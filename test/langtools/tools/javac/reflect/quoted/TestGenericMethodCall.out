@@ -1,0 +1,15 @@
+TestGenericMethodCall.java:43:29: compiler.err.quoted.lambda.must.be.explicit
+TestGenericMethodCall.java:44:29: compiler.err.quoted.lambda.must.be.explicit
+TestGenericMethodCall.java:45:29: compiler.err.quoted.lambda.must.be.explicit
+TestGenericMethodCall.java:46:29: compiler.err.quoted.lambda.must.be.explicit
+TestGenericMethodCall.java:47:29: compiler.err.quoted.lambda.must.be.explicit
+TestGenericMethodCall.java:48:29: compiler.err.quoted.lambda.must.be.explicit
+TestGenericMethodCall.java:52:29: compiler.err.quoted.lambda.must.be.explicit
+TestGenericMethodCall.java:53:29: compiler.err.quoted.lambda.must.be.explicit
+TestGenericMethodCall.java:54:29: compiler.err.quoted.lambda.must.be.explicit
+TestGenericMethodCall.java:55:29: compiler.err.quoted.lambda.must.be.explicit
+TestGenericMethodCall.java:56:29: compiler.err.quoted.lambda.must.be.explicit
+TestGenericMethodCall.java:57:29: compiler.err.quoted.lambda.must.be.explicit
+TestGenericMethodCall.java:61:40: compiler.err.cant.infer.quoted.lambda.return.type: void,java.lang.String
+TestGenericMethodCall.java:62:40: compiler.err.cant.infer.quoted.lambda.return.type: java.lang.String,void
+14 errors

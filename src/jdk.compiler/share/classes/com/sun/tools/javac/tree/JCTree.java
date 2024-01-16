@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -38,6 +38,7 @@ import com.sun.tools.javac.code.*;
 import com.sun.tools.javac.code.Directive.RequiresDirective;
 import com.sun.tools.javac.code.Scope.*;
 import com.sun.tools.javac.code.Symbol.*;
+import com.sun.tools.javac.code.Type.MethodType;
 import com.sun.tools.javac.util.*;
 import com.sun.tools.javac.util.DefinedBy.Api;
 import com.sun.tools.javac.util.JCDiagnostic.DiagnosticPosition;
@@ -757,7 +758,8 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
     /**
      * Common supertype for all functional expression trees (lambda and method references)
      */
-    public abstract static class JCFunctionalExpression extends JCPolyExpression {
+    public abstract static sealed class JCFunctionalExpression extends JCPolyExpression
+                                                               permits JCLambda, JCMemberReference {
 
         public JCFunctionalExpression() {
             //a functional expression is always a 'true' poly
@@ -766,10 +768,21 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
 
         /** list of target types inferred for this functional expression. */
         public Type target;
+        /** code reflection specific metadata. */
+        public CodeReflectionInfo codeReflectionInfo;
 
         public Type getDescriptorType(Types types) {
-            return target != null ? types.findDescriptorType(target) : types.createErrorType(null);
+            if (target == null) {
+                return types.createErrorType(null);
+            } else if (target.hasTag(TypeTag.METHOD)) {
+                // this is a quoted expression
+                return target;
+            } else {
+                return types.findDescriptorType(target);
+            }
         }
+
+        public record CodeReflectionInfo(Symbol quotedField, List<JCExpression> capturedArgs) { }
     }
 
     /**
@@ -1961,7 +1974,7 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
     /**
      * A lambda expression.
      */
-    public static class JCLambda extends JCFunctionalExpression implements LambdaExpressionTree {
+    public static final class JCLambda extends JCFunctionalExpression implements LambdaExpressionTree {
 
         public enum ParameterKind {
             IMPLICIT,
@@ -2600,7 +2613,7 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
     /**
      * Selects a member expression.
      */
-    public static class JCMemberReference extends JCFunctionalExpression implements MemberReferenceTree {
+    public static non-sealed class JCMemberReference extends JCFunctionalExpression implements MemberReferenceTree {
 
         public ReferenceMode mode;
         public ReferenceKind kind;

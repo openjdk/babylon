@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -34,9 +34,13 @@ import sun.security.action.GetBooleanAction;
 
 import java.io.Serializable;
 import java.lang.constant.ConstantDescs;
+import java.lang.reflect.code.op.CoreOps.FuncOp;
+import java.lang.reflect.code.Quoted;
+import java.lang.reflect.code.interpreter.Interpreter;
+import java.lang.reflect.code.parser.OpParser;
+import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.reflect.Modifier;
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.*;
 
 import static java.lang.invoke.MethodHandleStatics.CLASSFILE_VERSION;
 import static java.lang.invoke.MethodHandles.Lookup.ClassOption.NESTMATE;
@@ -62,10 +66,12 @@ import static jdk.internal.org.objectweb.asm.Opcodes.*;
     private static final String DESCR_METHOD_WRITE_REPLACE = "()Ljava/lang/Object;";
     private static final String DESCR_METHOD_WRITE_OBJECT = "(Ljava/io/ObjectOutputStream;)V";
     private static final String DESCR_METHOD_READ_OBJECT = "(Ljava/io/ObjectInputStream;)V";
+    private static final String DESCR_METHOD_QUOTED = "()Ljava/lang/reflect/code/Quoted;";
 
     private static final String NAME_METHOD_WRITE_REPLACE = "writeReplace";
     private static final String NAME_METHOD_READ_OBJECT = "readObject";
     private static final String NAME_METHOD_WRITE_OBJECT = "writeObject";
+    private static final String NAME_METHOD_QUOTED = "quoted";
 
     private static final String DESCR_CLASS = "Ljava/lang/Class;";
     private static final String DESCR_STRING = "Ljava/lang/String;";
@@ -87,6 +93,17 @@ import static jdk.internal.org.objectweb.asm.Opcodes.*;
     // condy to load implMethod from class data
     private static final ConstantDynamic implMethodCondy;
 
+    // condy to load reflective field from class data
+    private static final ConstantDynamic reflectiveFieldCondy;
+
+    private static final ConstantDynamic makeQuotedMethodCondy;
+
+    private static final MethodHandle HANDLE_MAKE_QUOTED;
+
+    private static final String quotedInstanceFieldName = "quoted";
+    private static final String quotedInstanceFieldDesc = Quoted.class.descriptorString();
+
+
     static {
         // To dump the lambda proxy classes, set this system property:
         //    -Djdk.invoke.LambdaMetafactory.dumpProxyClassFiles
@@ -98,10 +115,20 @@ import static jdk.internal.org.objectweb.asm.Opcodes.*;
         disableEagerInitialization = GetBooleanAction.privilegedGetProperty(disableEagerInitializationKey);
 
         // condy to load implMethod from class data
-        MethodType classDataMType = methodType(Object.class, MethodHandles.Lookup.class, String.class, Class.class);
-        Handle classDataBsm = new Handle(H_INVOKESTATIC, Type.getInternalName(MethodHandles.class), "classData",
-                                         classDataMType.descriptorString(), false);
-        implMethodCondy = new ConstantDynamic(ConstantDescs.DEFAULT_NAME, MethodHandle.class.descriptorString(), classDataBsm);
+        MethodType classDataAtMType = methodType(Object.class, MethodHandles.Lookup.class, String.class, Class.class, int.class);
+        Handle classDataBsm = new Handle(H_INVOKESTATIC, Type.getInternalName(MethodHandles.class), "classDataAt",
+                                         classDataAtMType.descriptorString(), false);
+        implMethodCondy = new ConstantDynamic(ConstantDescs.DEFAULT_NAME, MethodHandle.class.descriptorString(), classDataBsm, 0);
+        reflectiveFieldCondy = new ConstantDynamic(ConstantDescs.DEFAULT_NAME, MethodHandle.class.descriptorString(), classDataBsm, 1);
+        makeQuotedMethodCondy = new ConstantDynamic(ConstantDescs.DEFAULT_NAME, MethodHandle.class.descriptorString(), classDataBsm, 2);
+
+        try {
+            HANDLE_MAKE_QUOTED = MethodHandles.lookup().findStatic(
+                    InnerClassLambdaMetafactory.class, "makeQuoted",
+                    MethodType.methodType(Quoted.class, String.class, Object[].class));
+        } catch (Throwable ex) {
+            throw new AssertionError(ex);
+        }
     }
 
     // See context values in AbstractValidatingLambdaMetafactory
@@ -149,6 +176,9 @@ import static jdk.internal.org.objectweb.asm.Opcodes.*;
      *                      should implement.
      * @param altMethods Method types for additional signatures to be
      *                   implemented by invoking the implementation method
+     * @param reflectiveField a {@linkplain MethodHandles.Lookup#findGetter(Class, String, Class) getter}
+     *                   method handle that is used to retrieve the string representation of the
+     *                   quotable lambda's associated intermediate representation.
      * @throws LambdaConversionException If any of the meta-factory protocol
      *         invariants are violated
      * @throws SecurityException If a security manager is present, and it
@@ -163,11 +193,12 @@ import static jdk.internal.org.objectweb.asm.Opcodes.*;
                                        MethodType dynamicMethodType,
                                        boolean isSerializable,
                                        Class<?>[] altInterfaces,
-                                       MethodType[] altMethods)
+                                       MethodType[] altMethods,
+                                       MethodHandle reflectiveField)
             throws LambdaConversionException {
         super(caller, factoryType, interfaceMethodName, interfaceMethodType,
               implementation, dynamicMethodType,
-              isSerializable, altInterfaces, altMethods);
+              isSerializable, altInterfaces, altMethods, reflectiveField);
         implMethodClassName = implClass.getName().replace('.', '/');
         implMethodName = implInfo.getName();
         implMethodDesc = implInfo.getMethodType().toMethodDescriptorString();
@@ -182,7 +213,7 @@ import static jdk.internal.org.objectweb.asm.Opcodes.*;
         useImplMethodHandle = (Modifier.isProtected(implInfo.getModifiers()) &&
                                !VerifyAccess.isSamePackage(targetClass, implInfo.getDeclaringClass())) ||
                                implKind == H_INVOKESPECIAL;
-        cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
+        cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
         int parameterCount = factoryType.parameterCount();
         if (parameterCount > 0) {
             argNames = new String[parameterCount];
@@ -327,6 +358,14 @@ import static jdk.internal.org.objectweb.asm.Opcodes.*;
             fv.visitEnd();
         }
 
+        // if quotable, generate the field that will hold the value of quoted
+        if (quotableOpField != null) {
+            cw.visitField(ACC_PRIVATE + ACC_FINAL,
+                          quotedInstanceFieldName,
+                          quotedInstanceFieldDesc,
+                          null, null);
+        }
+
         generateConstructor();
 
         if (factoryType.parameterCount() == 0 && disableEagerInitialization) {
@@ -352,6 +391,10 @@ import static jdk.internal.org.objectweb.asm.Opcodes.*;
         else if (accidentallySerializable)
             generateSerializationHostileMethods();
 
+        if (quotableOpField != null) {
+            generateQuotableMethod();
+        }
+
         cw.visitEnd();
 
         // Define the generated class in this VM.
@@ -359,7 +402,14 @@ import static jdk.internal.org.objectweb.asm.Opcodes.*;
         final byte[] classBytes = cw.toByteArray();
         try {
             // this class is linked at the indy callsite; so define a hidden nestmate
-            var classdata = useImplMethodHandle? implementation : null;
+            List<?> classdata;
+            if (useImplMethodHandle || quotableOpField != null) {
+                classdata = quotableOpField == null ?
+                        List.of(implementation) :
+                        List.of(implementation, quotableOpField, HANDLE_MAKE_QUOTED);
+            } else {
+                classdata = null;
+            }
             return caller.makeHiddenClassDefiner(lambdaClassName, classBytes, Set.of(NESTMATE, STRONG), lambdaProxyClassFileDumper)
                          .defineClass(!disableEagerInitialization, classdata);
 
@@ -413,10 +463,56 @@ import static jdk.internal.org.objectweb.asm.Opcodes.*;
             lvIndex += getParameterSize(argType);
             ctor.visitFieldInsn(PUTFIELD, lambdaClassName, argNames[i], argDescs[i]);
         }
+
+        if (quotableOpField != null) {
+            generateQuotedFieldInitializer(ctor);
+        }
+
         ctor.visitInsn(RETURN);
         // Maxs computed by ClassWriter.COMPUTE_MAXS, these arguments ignored
         ctor.visitMaxs(-1, -1);
         ctor.visitEnd();
+    }
+
+    private void generateQuotedFieldInitializer(MethodVisitor ctor) {
+        ctor.visitCode();
+
+        // push the receiver on the stack for operand of put field instruction
+        ctor.visitVarInsn(ALOAD, 0);
+
+        ctor.visitLdcInsn(makeQuotedMethodCondy);
+
+        // load op string from field
+
+        ctor.visitLdcInsn(reflectiveFieldCondy);
+        MethodType mtype = quotableOpFieldInfo.getMethodType();
+        if (quotableOpFieldInfo.getReferenceKind() != MethodHandleInfo.REF_getStatic) {
+            mtype = mtype.insertParameterTypes(0, implClass);
+        }
+        ctor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/invoke/MethodHandle",
+                "invokeExact", mtype.descriptorString(), false);
+
+        // load captured args in array
+
+        ctor.visitLdcInsn(quotableOpType.parameterCount());
+        ctor.visitTypeInsn(ANEWARRAY, JAVA_LANG_OBJECT);
+        int capturedArity = factoryType.parameterCount() - reflectiveCaptureCount();
+        // initialize quoted captures
+        TypeConvertingMethodAdapter tcmv = new TypeConvertingMethodAdapter(ctor);
+        for (int i = 0; i < reflectiveCaptureCount(); i++) {
+            ctor.visitInsn(DUP);
+            ctor.visitIntInsn(BIPUSH, i); // is it possible that i can be greater than Byte.MAX_VALUE ?
+            ctor.visitVarInsn(ALOAD, 0);
+            ctor.visitFieldInsn(GETFIELD, lambdaClassName, argNames[capturedArity + i], argDescs[capturedArity + i]);
+            tcmv.boxIfTypePrimitive(Type.getType(argDescs[capturedArity + i]));
+            ctor.visitInsn(AASTORE);
+        }
+
+        // now create a Quoted from String and captured args Object[]
+
+        ctor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/invoke/MethodHandle",
+                "invokeExact", HANDLE_MAKE_QUOTED.type().toMethodDescriptorString(), false);
+        ctor.visitFieldInsn(PUTFIELD, lambdaClassName, quotedInstanceFieldName, quotedInstanceFieldDesc);
     }
 
     /**
@@ -454,6 +550,23 @@ import static jdk.internal.org.objectweb.asm.Opcodes.*;
         mv.visitMethodInsn(INVOKESPECIAL, NAME_SERIALIZED_LAMBDA, NAME_CTOR,
                 DESCR_CTOR_SERIALIZED_LAMBDA, false);
         mv.visitInsn(ARETURN);
+        // Maxs computed by ClassWriter.COMPUTE_MAXS, these arguments ignored
+        mv.visitMaxs(-1, -1);
+        mv.visitEnd();
+    }
+
+    /**
+     * Generate a writeReplace method that supports serialization
+     */
+    private void generateQuotableMethod() {
+        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC + ACC_FINAL,
+                                          NAME_METHOD_QUOTED, DESCR_METHOD_QUOTED,
+                                          null, null);
+
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitFieldInsn(GETFIELD, lambdaClassName, quotedInstanceFieldName, quotedInstanceFieldDesc);
+        mv.visitInsn(ARETURN);
+
         // Maxs computed by ClassWriter.COMPUTE_MAXS, these arguments ignored
         mv.visitMaxs(-1, -1);
         mv.visitEnd();
@@ -545,7 +658,7 @@ import static jdk.internal.org.objectweb.asm.Opcodes.*;
         private void convertArgumentTypes(MethodType samType) {
             int lvIndex = 0;
             int samParametersLength = samType.parameterCount();
-            int captureArity = factoryType.parameterCount();
+            int captureArity = factoryType.parameterCount() - reflectiveCaptureCount();
             for (int i = 0; i < samParametersLength; i++) {
                 Class<?> argType = samType.parameterType(i);
                 visitVarInsn(getLoadOpcode(argType), lvIndex + 1);
@@ -604,4 +717,8 @@ import static jdk.internal.org.objectweb.asm.Opcodes.*;
         }
     }
 
+    private static Quoted makeQuoted(String opText, Object[] args) {
+        FuncOp op = (FuncOp)OpParser.fromStringOfFuncOp(opText);
+        return (Quoted)Interpreter.invoke(Lookup.IMPL_LOOKUP, op, args);
+    }
 }

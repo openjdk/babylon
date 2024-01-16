@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright (c) 2007, 2020, Oracle and/or its affiliates. All rights reserved.
+  ~ Copyright (c) 2007, 2024, Oracle and/or its affiliates. All rights reserved.
   ~ DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
   ~
   ~ This code is free software; you can redistribute it and/or modify it
@@ -195,7 +195,15 @@
         </pcompile>
     </target>
 
-    <target name="generate-sources"  depends="-prepare-build,-def-pparse,-def-pcompile">
+    <target name="copy-cr-sources">
+        <exec executable="/bin/bash">
+            <arg value="cr-util/copy-to-compiler.sh"/>
+            <arg value="src/java.base/share/classes"/>
+            <arg value="${build.gensrc}/jdk.compiler"/>
+        </exec>
+    </target>
+
+    <target name="generate-sources"  depends="copy-cr-sources,-prepare-build,-def-pparse,-def-pcompile">
         <subant inheritall="true" target="generate-sources-internal" genericantfile="${make.dir}/build.xml">
               <dirset refid="src.module.dirset"/>
         </subant>

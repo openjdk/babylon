@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -137,6 +137,9 @@ public class LambdaToMethod extends TreeTranslator {
 
     /** Flag for alternate metafactories indicating the lambda object requires multiple bridges */
     public static final int FLAG_BRIDGES = 1 << 2;
+
+    /** Flag for alternate metafactories indicating the lambda object is intended to be quotable */
+    public static final int FLAG_QUOTABLE = 1 << 3;
 
     // <editor-fold defaultstate="collapsed" desc="Instantiating">
     protected static final Context.Key<LambdaToMethod> unlambdaKey = new Context.Key<>();
@@ -439,6 +442,12 @@ public class LambdaToMethod extends TreeTranslator {
             syntheticInits.append(captured_local);
         }
 
+        if (context.isQuotable()) {
+            for (JCExpression capturedArg : tree.codeReflectionInfo.capturedArgs()) {
+                syntheticInits.append(capturedArg);
+            }
+        }
+
         //then, determine the arguments to the indy call
         List<JCExpression> indy_args = translate(syntheticInits.toList(), localContext.prev);
 
@@ -519,6 +528,12 @@ public class LambdaToMethod extends TreeTranslator {
         }
 
         List<JCExpression> indy_args = init==null? List.nil() : translate(List.of(init), localContext.prev);
+
+        if (context.isQuotable()) {
+            for (JCExpression capturedArg : tree.codeReflectionInfo.capturedArgs()) {
+                indy_args = indy_args.append(capturedArg);
+            }
+        }
 
 
         //build a sam instance using an indy call to the meta-factory
@@ -921,6 +936,7 @@ public class LambdaToMethod extends TreeTranslator {
                         : expressionNew();
 
                 JCLambda slam = make.Lambda(params.toList(), expr);
+                slam.codeReflectionInfo = tree.codeReflectionInfo;
                 slam.target = tree.target;
                 slam.type = tree.type;
                 slam.pos = tree.pos;
@@ -1140,12 +1156,14 @@ public class LambdaToMethod extends TreeTranslator {
             for (Type t : targets) {
                 t = types.erasure(t);
                 if (t.tsym != syms.serializableType.tsym &&
+                    t.tsym != syms.quotableType.tsym &&
                     t.tsym != tree.type.tsym &&
                     t.tsym != syms.objectType.tsym) {
                     markers.append(t);
                 }
             }
             int flags = context.isSerializable() ? FLAG_SERIALIZABLE : 0;
+            flags |= context.isQuotable() ? FLAG_QUOTABLE : 0;
             boolean hasMarkers = markers.nonEmpty();
             boolean hasBridges = context.bridges.nonEmpty();
             if (hasMarkers) {
@@ -1167,6 +1185,10 @@ public class LambdaToMethod extends TreeTranslator {
                         staticArgs = staticArgs.append(((MethodType)s.erasure(types)));
                     }
                 }
+            }
+            if (context.isQuotable()) {
+                VarSymbol reflectField = (VarSymbol)tree.codeReflectionInfo.quotedField();
+                staticArgs = staticArgs.append(reflectField.asMethodHandle(true));
             }
             if (context.isSerializable()) {
                 int prevPos = make.pos;
@@ -1862,6 +1884,7 @@ public class LambdaToMethod extends TreeTranslator {
             boolean needsAltMetafactory() {
                 return tree.target.isIntersection() ||
                         isSerializable() ||
+                        isQuotable() ||
                         bridges.length() > 1;
             }
 
@@ -1871,6 +1894,10 @@ public class LambdaToMethod extends TreeTranslator {
                     return true;
                 }
                 return types.asSuper(tree.target, syms.serializableType.tsym) != null;
+            }
+
+            boolean isQuotable() {
+                return tree.codeReflectionInfo != null;
             }
 
             /**

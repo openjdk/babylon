@@ -1,0 +1,7 @@
+TestRecovery.java:33:22: compiler.err.quoted.lambda.must.be.explicit
+TestRecovery.java:33:50: compiler.err.cant.resolve.location: kindname.variable, nonExistent, , , (compiler.misc.location: kindname.class, TestRecovery, null)
+TestRecovery.java:37:15: compiler.err.quoted.lambda.must.be.explicit
+TestRecovery.java:37:43: compiler.err.cant.resolve.location: kindname.variable, nonExistent, , , (compiler.misc.location: kindname.class, TestRecovery, null)
+TestRecovery.java:41:29: compiler.err.quoted.lambda.must.be.explicit
+TestRecovery.java:41:57: compiler.err.cant.resolve.location: kindname.variable, nonExistent, , , (compiler.misc.location: kindname.class, TestRecovery, null)
+6 errors

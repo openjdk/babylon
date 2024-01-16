@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1996, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -45,8 +45,16 @@ import sun.reflect.annotation.AnnotationType;
 import sun.reflect.annotation.AnnotationParser;
 import java.lang.annotation.Annotation;
 import java.lang.annotation.AnnotationFormatError;
+import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.ExtendedOps;
+import java.lang.reflect.code.Op;
+import java.lang.reflect.code.parser.OpParser;
 import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.Optional;
 import java.util.StringJoiner;
+
+import static java.lang.reflect.code.op.CoreOps.*;
 
 /**
  * A {@code Method} provides information about, and access to, a single method
@@ -95,6 +103,7 @@ public final class Method extends Executable {
     // If this branching structure would ever contain cycles, deadlocks can
     // occur in annotation code.
     private Method              root;
+    private volatile Optional<FuncOp>     codeModel;
 
     // Generics infrastructure
     private String getGenericSignature() {return signature;}
@@ -243,6 +252,58 @@ public final class Method extends Executable {
     @Override
     public int getModifiers() {
         return modifiers;
+    }
+
+    /**
+     * Returns the code model of the method body, if present.
+     * @return the code model of the method body.
+     * @since 99
+     */
+    // @@@ Make caller sensitive with the same access control as invoke
+    // and throwing IllegalAccessException
+//    @CallerSensitive
+    public Optional<FuncOp> getCodeModel() {
+        Optional<FuncOp> localRef = codeModel;
+        if (localRef == null) {
+            synchronized (this) {
+                localRef = codeModel;
+                if (localRef == null) {
+                    Optional<FuncOp> op = createCodeModel();
+                    codeModel = localRef = op;
+                }
+            }
+        }
+        return localRef;
+    }
+
+    private Optional<FuncOp> createCodeModel() {
+        Class<?> dc = getDeclaringClass();
+        String fieldName = getName() + "$" + "op";
+        Field f;
+        try {
+            f = dc.getDeclaredField(fieldName);
+        } catch (NoSuchFieldException e) {
+            return Optional.empty();
+        }
+
+        String modelText;
+        try {
+            // @@@ Use method handle with full power mode
+            f.setAccessible(true);
+            modelText = (String) f.get(null);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+
+        FuncOp op;
+        try {
+            List<Op> ops = OpParser.fromString(ExtendedOps.FACTORY, modelText);
+            op = (FuncOp) ops.get(0);
+        } catch (RuntimeException e) {
+            // @@@ Error or Exception?
+            throw e;
+        }
+        return Optional.of(op);
     }
 
     /**
