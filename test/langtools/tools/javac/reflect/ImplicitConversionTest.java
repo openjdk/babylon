@@ -468,7 +468,7 @@ public class ImplicitConversionTest {
     }
 
     @CodeReflection
-    @IR(""" 
+    @IR("""
            func @"test19" (%0: ImplicitConversionTest, %1 : int)void -> {
                 %2 : Var<int> = var %1 @"i";
                 %3 : int = var.load %2;
@@ -544,7 +544,7 @@ public class ImplicitConversionTest {
                %6 : long = conv %5;
                %7 : ImplicitConversionTest$Box = new %3 %4 %6 @"(int, int, long[])ImplicitConversionTest$Box";
                return;
-           };           
+           };
            """)
     void test23(int i) {
         new Box(i, i, i);

@@ -294,7 +294,7 @@ class IntersectionTypeTest {
                 %12 : IntersectionTypeTest$C = cast %11 @"IntersectionTypeTest$C";
                 invoke %12 @"IntersectionTypeTest::g_C(IntersectionTypeTest$C)void";
                 return;
-            };  
+            };
             """)
     static void test8(E1 e1, E2 e2) {
         var x = makeIntersection(e1, e2);

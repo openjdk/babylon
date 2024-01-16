@@ -53,7 +53,7 @@ public final class StreamFuserUsingQuotable {
     public interface QuotableBiConsumer<T, U> extends Quotable, BiConsumer<T, U> {
     }
 
-    
+
     StreamFuserUsingQuotable() {}
 
     public static <T> StreamExprBuilder<T> fromList(Class<T> elementClass) {

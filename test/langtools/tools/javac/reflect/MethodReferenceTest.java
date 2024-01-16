@@ -190,7 +190,7 @@ public class MethodReferenceTest {
                 };
                 %6 : Var<java.util.function.IntFunction<MethodReferenceTest$A<java.lang.String>[]>> = var %1 @"aNewArray";
                 return;
-            };            
+            };
             """)
     void test8() {
         IntFunction<A<String>[]> aNewArray = A[]::new;

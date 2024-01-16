@@ -45,7 +45,7 @@ final class InvokableLeafOps {
         return !l;
     }
 
-    //int 
+    // int
 
     public static int neg(int l) {
         return -l;
@@ -155,7 +155,7 @@ final class InvokableLeafOps {
 
 
 
-    //float
+    // float
 
     static float neg(float l) {
         return -l;
