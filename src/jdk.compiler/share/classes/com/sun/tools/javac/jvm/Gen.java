@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -236,7 +236,7 @@ public class Gen extends JCTree.Visitor {
      *  @param sym    The accessed symbol
      *  @param site   The qualifier's type.
      */
-    Symbol binaryQualifier(Symbol sym, Type site) {
+    public Symbol binaryQualifier(Symbol sym, Type site) {
 
         if (site.hasTag(ARRAY)) {
             if (sym == syms.lengthVar ||

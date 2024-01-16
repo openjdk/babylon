@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,6 +24,8 @@
  */
 
 package java.lang.invoke;
+
+import java.lang.reflect.code.Quotable;
 
 import java.io.Serializable;
 import java.util.Arrays;
@@ -251,6 +253,10 @@ public final class LambdaMetafactory {
      */
     public static final int FLAG_BRIDGES = 1 << 2;
 
+    /** Flag for {@link #altMetafactory} indicating the lambda object
+     * must be a {@code Quotable} object, inspectable using code reflection. */
+    public static final int FLAG_QUOTABLE = 1 << 3;
+
     private static final Class<?>[] EMPTY_CLASS_ARRAY = new Class<?>[0];
     private static final MethodType[] EMPTY_MT_ARRAY = new MethodType[0];
 
@@ -336,7 +342,8 @@ public final class LambdaMetafactory {
                                              Objects.requireNonNull(dynamicMethodType),
                                              false,
                                              EMPTY_CLASS_ARRAY,
-                                             EMPTY_MT_ARRAY);
+                                             EMPTY_MT_ARRAY,
+                                 null);
         mf.validateMetafactoryArgs();
         return mf.buildCallSite();
     }
@@ -382,6 +389,8 @@ public final class LambdaMetafactory {
      *                          Class... altInterfaces,       // IF flags has MARKERS set
      *                          int altMethodCount,           // IF flags has BRIDGES set
      *                          MethodType... altMethods      // IF flags has BRIDGES set
+     *                          MethodType reflectType        // IF flags has QUOTABLE set
+     *                          MethodHandle reflectField     // IF flags has QUOTABLE set
      *                          )
      * }</pre>
      *
@@ -405,6 +414,10 @@ public final class LambdaMetafactory {
      *     <li>{@code altMethods} is a variable-length list of additional
      *     methods signatures to implement, whose length equals {@code altMethodCount},
      *     and is present if and only if the {@code FLAG_BRIDGES} flag is set.</li>
+     *     <li>{@code quotableField} is a
+     *     {@linkplain MethodHandles.Lookup#findGetter(Class, String, Class) getter} method handle
+     *     that is used to retrieve the string representation of the quotable lambda's associated
+     *     intermediate representation.</li>
      * </ul>
      *
      * <p>Each class named by {@code altInterfaces} is subject to the same
@@ -418,6 +431,9 @@ public final class LambdaMetafactory {
      * method that returns an appropriate {@link SerializedLambda}.  The
      * {@code caller} class must have an appropriate {@code $deserializeLambda$}
      * method, as described in {@link SerializedLambda}.
+     *
+     * <p>When FLAG_QUOTABLE is set in {@code flags}, the function objects
+     * will implement {@code Quotable}.
      *
      * <p>When the target of the {@code CallSite} returned from this method is
      * invoked, the resulting function objects are instances of a class with
@@ -487,6 +503,7 @@ public final class LambdaMetafactory {
         int flags = extractArg(args, argIndex++, Integer.class);
         Class<?>[] altInterfaces = EMPTY_CLASS_ARRAY;
         MethodType[] altMethods = EMPTY_MT_ARRAY;
+        MethodHandle quotableField = null;
         if ((flags & FLAG_MARKERS) != 0) {
             int altInterfaceCount = extractArg(args, argIndex++, Integer.class);
             if (altInterfaceCount < 0) {
@@ -506,6 +523,11 @@ public final class LambdaMetafactory {
                 altMethods = extractArgs(args, argIndex, MethodType.class, altMethodCount);
                 argIndex += altMethodCount;
             }
+        }
+        if ((flags & FLAG_QUOTABLE) != 0) {
+            quotableField = extractArg(args, argIndex++, MethodHandle.class);
+            altInterfaces = Arrays.copyOf(altInterfaces, altInterfaces.length + 1);
+            altInterfaces[altInterfaces.length-1] = Quotable.class;
         }
         if (argIndex < args.length) {
             throw new IllegalArgumentException("too many arguments");
@@ -531,7 +553,8 @@ public final class LambdaMetafactory {
                                                   dynamicMethodType,
                                                   isSerializable,
                                                   altInterfaces,
-                                                  altMethods);
+                                                  altMethods,
+                                                  quotableField);
         mf.validateMetafactoryArgs();
         return mf.buildCallSite();
     }

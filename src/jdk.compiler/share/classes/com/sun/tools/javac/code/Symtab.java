@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -45,6 +45,7 @@ import com.sun.tools.javac.code.Symbol.PackageSymbol;
 import com.sun.tools.javac.code.Symbol.RootPackageSymbol;
 import com.sun.tools.javac.code.Symbol.TypeSymbol;
 import com.sun.tools.javac.code.Symbol.VarSymbol;
+import com.sun.tools.javac.code.Type.ArrayType;
 import com.sun.tools.javac.code.Type.BottomType;
 import com.sun.tools.javac.code.Type.ClassType;
 import com.sun.tools.javac.code.Type.ErrorType;
@@ -246,6 +247,18 @@ public class Symtab {
     public final Type templateRuntimeType;
     public final Type processorType;
     public final Type linkageType;
+
+    // For code reflection
+    public final Type codeReflectionType;
+    public final Type quotedType;
+    public final Type quotableType;
+    public final Type closureOpType;
+    public final Type lambdaOpType;
+    public final Type opInterpreterType;
+    public final Type opParserType;
+    public final Type opType;
+    public final MethodSymbol opInterpreterInvoke;
+    public final MethodSymbol opParserFromString;
 
     /** The symbol representing the length field of an array.
      */
@@ -629,12 +642,33 @@ public class Symtab {
         externalizableType = enterClass("java.io.Externalizable");
         objectInputType  = enterClass("java.io.ObjectInput");
         objectOutputType = enterClass("java.io.ObjectOutput");
+        // For code reflection
+        codeReflectionType = enterClass("java.lang.runtime.CodeReflection");
+        quotedType = enterClass("java.lang.reflect.code.Quoted");
+        quotableType = enterClass("java.lang.reflect.code.Quotable");
+        closureOpType = enterClass("java.lang.reflect.code.op.CoreOps$ClosureOp");
+        lambdaOpType = enterClass("java.lang.reflect.code.op.CoreOps$LambdaOp");
+        opInterpreterType = enterClass("java.lang.reflect.code.interpreter.Interpreter");
+        opType = enterClass("java.lang.reflect.code.Op");
+        opInterpreterInvoke = new MethodSymbol(PUBLIC | STATIC | VARARGS,
+                names.fromString("invoke"),
+                new MethodType(List.of(opType, new ArrayType(objectType, arrayClass)), objectType,
+                        List.nil(), methodClass),
+                opInterpreterType.tsym);
+        opParserType = enterClass("java.lang.reflect.code.parser.OpParser");
+        opParserFromString = new MethodSymbol(PUBLIC | STATIC,
+                names.fromString("fromStringOfFuncOp"),
+                new MethodType(List.of(stringType), opType,
+                        List.nil(), methodClass),
+                opParserType.tsym);
         synthesizeEmptyInterfaceIfMissing(autoCloseableType);
         synthesizeEmptyInterfaceIfMissing(cloneableType);
         synthesizeEmptyInterfaceIfMissing(serializableType);
         synthesizeEmptyInterfaceIfMissing(lambdaMetafactory);
         synthesizeEmptyInterfaceIfMissing(serializedLambdaType);
         synthesizeEmptyInterfaceIfMissing(stringConcatFactory);
+        synthesizeEmptyInterfaceIfMissing(quotedType);
+        synthesizeEmptyInterfaceIfMissing(quotableType);
         synthesizeBoxTypeIfMissing(doubleType);
         synthesizeBoxTypeIfMissing(floatType);
         synthesizeBoxTypeIfMissing(voidType);

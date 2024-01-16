@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -90,6 +90,13 @@ module java.base {
     exports java.lang.module;
     exports java.lang.ref;
     exports java.lang.reflect;
+    exports java.lang.reflect.code;
+    exports java.lang.reflect.code.analysis;
+    exports java.lang.reflect.code.bytecode;
+    exports java.lang.reflect.code.descriptor;
+    exports java.lang.reflect.code.interpreter;
+    exports java.lang.reflect.code.op;
+    exports java.lang.reflect.code.parser;
     exports java.lang.runtime;
     exports java.math;
     exports java.net;

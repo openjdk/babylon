@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -161,6 +161,19 @@ public class TreeInfo {
             case IDENT: {
                 JCIdent id = (JCIdent)tree;
                 return id.name == id.name.table.names._this;
+            }
+            default:
+                return false;
+        }
+    }
+
+    public static boolean isSuperQualifier(JCTree tree) {
+        switch (tree.getTag()) {
+            case PARENS:
+                return isThisQualifier(skipParens(tree));
+            case IDENT: {
+                JCIdent id = (JCIdent)tree;
+                return id.name == id.name.table.names._super;
             }
             default:
                 return false;

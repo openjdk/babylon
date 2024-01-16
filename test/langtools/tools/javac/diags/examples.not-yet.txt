@@ -211,6 +211,13 @@ compiler.err.target.default.source.conflict
 compiler.err.preview.not.latest
 compiler.err.preview.without.source.or.release
 compiler.misc.illegal.signature                               # the compiler can now detect more non-denotable types before class writing
+compiler.misc.feature.reflect.methods                         # code reflection
+compiler.note.method.ir.dump                                  # code reflection
+compiler.note.method.ir.skip                                  # code reflection
+compiler.err.cant.infer.quoted.lambda.return.type             # code reflection
+compiler.err.quoted.lambda.must.be.explicit                   # code reflection
+compiler.note.quoted.ir.dump                                  # code reflection
+compiler.note.quoted.ir.skip                                  # code reflection
 
 # this one needs a forged class file to be reproduced
 compiler.err.annotation.unrecognized.attribute.name

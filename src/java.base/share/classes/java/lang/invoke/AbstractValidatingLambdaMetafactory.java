@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -69,6 +69,13 @@ import static sun.invoke.util.Wrapper.isWrapperType;
     final boolean isSerializable;             // Should the returned instance be serializable
     final Class<?>[] altInterfaces;           // Additional interfaces to be implemented
     final MethodType[] altMethods;            // Signatures of additional methods to bridge
+    final MethodHandle quotableOpField;       // A getter method handle that is used to retrieve the
+                                              // string representation of the quotable lambda's associated
+                                              // intermediate representation (can be null).
+    final MethodHandleInfo quotableOpFieldInfo;  // Info about the quotable getter method handle (can be null).
+
+    final MethodType quotableOpType;          // The type of the quotable lambda's associated
+                                              // intermediate representation (can be null).
 
 
     /**
@@ -105,6 +112,9 @@ import static sun.invoke.util.Wrapper.isWrapperType;
      *                      should implement.
      * @param altMethods Method types for additional signatures to be
      *                   implemented by invoking the implementation method
+     * @param reflectiveField a {@linkplain MethodHandles.Lookup#findGetter(Class, String, Class) getter}
+     *                   method handle that is used to retrieve the string representation of the
+     *                   quotable lambda's associated intermediate representation.
      * @throws LambdaConversionException If any of the meta-factory protocol
      *         invariants are violated
      * @throws SecurityException If a security manager is present, and it
@@ -119,7 +129,8 @@ import static sun.invoke.util.Wrapper.isWrapperType;
                                         MethodType dynamicMethodType,
                                         boolean isSerializable,
                                         Class<?>[] altInterfaces,
-                                        MethodType[] altMethods)
+                                        MethodType[] altMethods,
+                                        MethodHandle reflectiveField)
             throws LambdaConversionException {
         if (!caller.hasFullPrivilegeAccess()) {
             throw new LambdaConversionException(String.format(
@@ -180,6 +191,19 @@ import static sun.invoke.util.Wrapper.isWrapperType;
         this.isSerializable = isSerializable;
         this.altInterfaces = altInterfaces;
         this.altMethods = altMethods;
+        this.quotableOpField = reflectiveField;
+        if (reflectiveField != null) {
+            // infer the method type associated with the intermediate representation of the
+            // quotable lambda. Since {@code factoryType} contains all the captured args
+            // we need to subtract the captured args that are required to invoke the lambda's
+            // bytecode. The type of {@code implementation} is useful here, as it corresponds to
+            // the signature of the emitted javac lambda implementation. From there, we need to
+            // drop all the dynamic arguments, which are obtained from {@code interfaceMethodType}.
+            this.quotableOpType = factoryType.dropParameterTypes(0,
+                    implementation.type().parameterCount() - interfaceMethodType.parameterCount());
+        } else {
+            quotableOpType = null;
+        }
 
         if (interfaceMethodName.isEmpty() ||
                 interfaceMethodName.indexOf('.') >= 0 ||
@@ -206,6 +230,20 @@ import static sun.invoke.util.Wrapper.isWrapperType;
                         c.getName()));
             }
         }
+
+        if (reflectiveField != null) {
+            try {
+                quotableOpFieldInfo = caller.revealDirect(reflectiveField); // may throw SecurityException
+            } catch (IllegalArgumentException e) {
+                throw new LambdaConversionException(implementation + " is not direct or cannot be cracked");
+            }
+            if (quotableOpFieldInfo.getReferenceKind() != REF_getField &&
+                    quotableOpFieldInfo.getReferenceKind() != REF_getStatic) {
+                throw new LambdaConversionException(String.format("Unsupported MethodHandle kind: %s", quotableOpFieldInfo));
+            }
+        } else {
+            quotableOpFieldInfo = null;
+        }
     }
 
     /**
@@ -225,7 +263,7 @@ import static sun.invoke.util.Wrapper.isWrapperType;
     void validateMetafactoryArgs() throws LambdaConversionException {
         // Check arity: captured + SAM == impl
         final int implArity = implMethodType.parameterCount();
-        final int capturedArity = factoryType.parameterCount();
+        final int capturedArity = factoryType.parameterCount() - reflectiveCaptureCount();
         final int samArity = interfaceMethodType.parameterCount();
         final int dynamicArity = dynamicMethodType.parameterCount();
         if (implArity != capturedArity + samArity) {
@@ -314,6 +352,10 @@ import static sun.invoke.util.Wrapper.isWrapperType;
         for (MethodType bridgeMT : altMethods) {
             checkDescriptor(bridgeMT);
         }
+    }
+
+    int reflectiveCaptureCount() {
+        return quotableOpType == null ? 0 : quotableOpType.parameterCount();
     }
 
     /** Validate that the given descriptor's types are compatible with {@code dynamicMethodType} **/

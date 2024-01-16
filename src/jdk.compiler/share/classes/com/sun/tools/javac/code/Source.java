@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -255,6 +255,7 @@ public enum Source {
         WARN_ON_ILLEGAL_UTF8(MIN, JDK21),
         UNNAMED_VARIABLES(JDK22, Fragments.FeatureUnnamedVariables, DiagKind.PLURAL),
         SUPER_INIT(JDK22, Fragments.FeatureSuperInit, DiagKind.NORMAL),
+        REFLECT_METHODS(JDK22, Fragments.FeatureReflectMethods, DiagKind.NORMAL),
         ;
 
         enum DiagKind {

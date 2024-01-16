@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,6 +28,7 @@ package com.sun.tools.javac.comp;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import javax.lang.model.element.ElementKind;
@@ -35,6 +36,7 @@ import javax.tools.JavaFileObject;
 
 import com.sun.source.tree.CaseTree;
 import com.sun.source.tree.IdentifierTree;
+import com.sun.source.tree.LambdaExpressionTree.BodyKind;
 import com.sun.source.tree.MemberReferenceTree.ReferenceMode;
 import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.tree.TreeVisitor;
@@ -47,8 +49,11 @@ import com.sun.tools.javac.code.Symbol.*;
 import com.sun.tools.javac.code.Type.*;
 import com.sun.tools.javac.code.Types.FunctionDescriptorLookupError;
 import com.sun.tools.javac.comp.ArgumentAttr.LocalCacheContext;
+import com.sun.tools.javac.comp.Attr.ResultInfo;
 import com.sun.tools.javac.comp.Check.CheckContext;
+import com.sun.tools.javac.comp.Check.NestedCheckContext;
 import com.sun.tools.javac.comp.DeferredAttr.AttrMode;
+import com.sun.tools.javac.comp.DeferredAttr.LambdaReturnScanner;
 import com.sun.tools.javac.comp.MatchBindingsComputer.MatchBindings;
 import com.sun.tools.javac.jvm.*;
 
@@ -61,6 +66,7 @@ import com.sun.tools.javac.resources.CompilerProperties.Fragments;
 import com.sun.tools.javac.resources.CompilerProperties.Warnings;
 import com.sun.tools.javac.tree.*;
 import com.sun.tools.javac.tree.JCTree.*;
+import com.sun.tools.javac.tree.JCTree.JCLambda.ParameterKind;
 import com.sun.tools.javac.tree.JCTree.JCPolyExpression.*;
 import com.sun.tools.javac.util.*;
 import com.sun.tools.javac.util.DefinedBy.Api;
@@ -428,6 +434,19 @@ public class Attr extends JCTree.Visitor {
             log.useSource(prev);
         }
         return env;
+    }
+
+    public <R> R runWithAttributedMethod(Env<AttrContext> env, JCMethodDecl tree, Function<JCBlock, R> attributedAction) {
+        JavaFileObject prevSource = log.useSource(env.toplevel.sourcefile);
+        try {
+            JCBlock dupTree = (JCBlock)deferredAttr.attribSpeculative(tree.body, env, statInfo,
+                    null, DeferredAttr.AttributionMode.ATTRIB_TO_TREE,
+                    argumentAttr.withLocalCacheContext());
+            return attributedAction.apply(dupTree);
+        } finally {
+            attrRecover.doRecovery();
+            log.useSource(prevSource);
+        }
     }
 
     private JCTree breakTree = null;
@@ -3105,6 +3124,14 @@ public class Attr extends JCTree.Visitor {
             resultInfo = recoveryInfo;
             wrongContext = true;
         }
+        if (types.isQuoted(pt())) {
+            attribQuotedLambda(that);
+        } else {
+            attribFunctionalLambda(that, wrongContext);
+        }
+    }
+
+    void attribFunctionalLambda(JCLambda that, boolean wrongContext) {
         //create an environment for attribution of the lambda expression
         final Env<AttrContext> localEnv = lambdaEnv(that, env);
         boolean needsRecovery =
@@ -3246,6 +3273,99 @@ public class Attr extends JCTree.Visitor {
                     }
                 }
             }
+        }
+    }
+
+    void attribQuotedLambda(JCLambda that) {
+        // create an environment for attribution of the lambda expression
+        final Env<AttrContext> localEnv = lambdaEnv(that, env);
+        try {
+            // if quoted lambda is implicit, issue error, and recover
+            if (that.paramKind == ParameterKind.IMPLICIT) {
+                log.error(that, Errors.QuotedLambdaMustBeExplicit);
+                // recovery
+                List<JCVariableDecl> params = that.params;
+                while (params.nonEmpty()) {
+                    Type argType = syms.errType;
+                    if (params.head.isImplicitlyTyped()) {
+                        setSyntheticVariableType(params.head, argType);
+                    }
+                    params = params.tail;
+                }
+            }
+            // attribute lambda parameters
+            attribStats(that.params, localEnv);
+            List<Type> explicitParamTypes = TreeInfo.types(that.params);
+
+            ListBuffer<Type> restypes = new ListBuffer<>();
+            ListBuffer<DiagnosticPosition> resPositions = new ListBuffer<>();
+            ResultInfo bodyResultInfo = localEnv.info.returnResult = unknownExprInfo;
+
+            // type-check lambda body, and capture return types
+            if (that.getBodyKind() == JCLambda.BodyKind.EXPRESSION) {
+                attribTree(that.getBody(), localEnv, bodyResultInfo);
+                restypes.add(that.getBody().type);
+            } else {
+                JCBlock body = (JCBlock)that.body;
+                if (body == breakTree &&
+                        resultInfo.checkContext.deferredAttrContext().mode == AttrMode.CHECK) {
+                    breakTreeFound(copyEnv(localEnv));
+                }
+                attribStats(body.stats, localEnv);
+                new LambdaReturnScanner() {
+                    @Override
+                    public void visitReturn(JCReturn tree) {
+                        if (tree.expr != null) {
+                            resPositions.add(tree);
+                        }
+                        restypes.add(tree.expr == null ? syms.voidType : tree.expr.type);
+                    }
+                }.scan(body);
+            }
+
+            // check if lambda body can complete normally
+            preFlow(that);
+            flow.analyzeLambda(localEnv, that, make, false);
+
+            final Type restype;
+            if (that.getBodyKind() == BodyKind.STATEMENT) {
+                if (that.canCompleteNormally) {
+                    // a lambda that completes normally has an implicit void return
+                    restypes.add(syms.voidType);
+                }
+
+                boolean hasNonVoidReturn = restypes.toList()
+                        .stream().anyMatch(t -> t != syms.voidType);
+                boolean hasVoidReturn = restypes.toList()
+                        .stream().anyMatch(t -> t == syms.voidType);
+
+                if (hasVoidReturn && hasNonVoidReturn) {
+                    // void vs. non-void mismatch
+                    log.error(that.body, Errors.CantInferQuotedLambdaReturnType(restypes.toList()));
+                    restype = syms.errorType;
+                } else if (hasVoidReturn) {
+                    restype = syms.voidType;
+                } else {
+                    restype = condType(resPositions.toList(), restypes.toList());
+                }
+            } else {
+                restype = restypes.first();
+            }
+
+            // infer lambda return type using lub
+            if (restype.hasTag(ERROR)) {
+                // some other error occurred
+                log.error(that.body, Errors.CantInferQuotedLambdaReturnType(restypes.toList()));
+            }
+
+            // infer thrown types
+            List<Type> thrownTypes = flow.analyzeLambdaThrownTypes(localEnv, that, make);
+
+            // set up target descriptor with explicit parameter types, and inferred thrown/return types
+            that.target = new MethodType(explicitParamTypes, restype, thrownTypes, syms.methodClass);
+            result = that.type = pt();
+        } finally {
+            localEnv.info.scope.leave();
         }
     }
     //where

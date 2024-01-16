@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,6 +25,7 @@
 
 package com.sun.tools.javac.model;
 
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -43,8 +44,11 @@ import javax.lang.model.util.Elements;
 import javax.tools.JavaFileObject;
 import static javax.lang.model.util.ElementFilter.methodsIn;
 
+import com.sun.source.tree.Tree;
 import com.sun.source.util.JavacTask;
+import com.sun.tools.javac.api.JavacScope;
 import com.sun.tools.javac.api.JavacTaskImpl;
+import com.sun.tools.javac.api.JavacTrees;
 import com.sun.tools.javac.code.*;
 import com.sun.tools.javac.code.Attribute.Compound;
 import com.sun.tools.javac.code.Directive.ExportsDirective;
@@ -56,14 +60,17 @@ import com.sun.tools.javac.code.Directive.RequiresFlag;
 import com.sun.tools.javac.code.Scope.WriteableScope;
 import com.sun.tools.javac.code.Source.Feature;
 import com.sun.tools.javac.code.Symbol.*;
+import com.sun.tools.javac.comp.Attr;
 import com.sun.tools.javac.comp.AttrContext;
 import com.sun.tools.javac.comp.Enter;
 import com.sun.tools.javac.comp.Env;
+import com.sun.tools.javac.comp.ReflectMethods;
 import com.sun.tools.javac.main.JavaCompiler;
 import com.sun.tools.javac.processing.PrintingProcessor;
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.JCTree.*;
 import com.sun.tools.javac.tree.TreeInfo;
+import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.tree.TreeScanner;
 import com.sun.tools.javac.util.*;
 import com.sun.tools.javac.util.DefinedBy.Api;
@@ -71,11 +78,12 @@ import com.sun.tools.javac.util.Name;
 import static com.sun.tools.javac.code.Kinds.Kind.*;
 import static com.sun.tools.javac.code.Scope.LookupKind.NON_RECURSIVE;
 import static com.sun.tools.javac.code.TypeTag.CLASS;
-import com.sun.tools.javac.comp.Attr;
+
 import com.sun.tools.javac.comp.Modules;
 import com.sun.tools.javac.comp.Resolve;
-import com.sun.tools.javac.comp.Resolve.RecoveryLoadClass;
 import com.sun.tools.javac.resources.CompilerProperties.Notes;
+import jdk.internal.java.lang.reflect.code.op.CoreOps;
+
 import static com.sun.tools.javac.tree.JCTree.Tag.*;
 
 /**
@@ -94,10 +102,13 @@ public class JavacElements implements Elements {
     private final Names names;
     private final Types types;
     private final Enter enter;
+    private final JavacTrees javacTrees;
     private final Attr attr;
     private final Resolve resolve;
+    private final ReflectMethods reflectMethods;
     private final JavacTaskImpl javacTaskImpl;
     private final Log log;
+    private final TreeMaker make;
     private final boolean allowModules;
 
     public static JavacElements instance(Context context) {
@@ -118,9 +129,12 @@ public class JavacElements implements Elements {
         enter = Enter.instance(context);
         attr = Attr.instance(context);
         resolve = Resolve.instance(context);
+        javacTrees = JavacTrees.instance(context);
+        reflectMethods = ReflectMethods.instance(context);
         JavacTask t = context.get(JavacTask.class);
         javacTaskImpl = t instanceof JavacTaskImpl taskImpl ? taskImpl : null;
         log = Log.instance(context);
+        make = TreeMaker.instance(context);
         Source source = Source.instance(context);
         allowModules = Feature.MODULES.allowedInSource(source);
     }
@@ -791,6 +805,38 @@ public class JavacElements implements Elements {
             case TYP -> ((ClassSymbol) sym).classfile;
             default -> sym.enclClass().classfile;
         };
+    }
+
+    @Override @DefinedBy(Api.LANGUAGE_MODEL)
+    public Optional<Object> getBody(ExecutableElement e) {
+        if (e.getModifiers().contains(Modifier.ABSTRACT) ||
+                e.getModifiers().contains(Modifier.NATIVE)) {
+            return Optional.empty();
+        }
+
+        CoreOps.FuncOp funcOp;
+        try {
+            JCMethodDecl methodTree = (JCMethodDecl)getTree(e);
+            JavacScope scope = javacTrees.getScope(javacTrees.getPath(e));
+            ClassSymbol enclosingClass = (ClassSymbol) scope.getEnclosingClass();
+            funcOp = attr.runWithAttributedMethod(scope.getEnv(), methodTree,
+                    attribBlock -> reflectMethods.getMethodBody(enclosingClass, methodTree, attribBlock, make));
+        } catch (RuntimeException ex) {  // ReflectMethods.UnsupportedASTException
+            // some other error occurred when attempting to attribute the method
+            // @@@ better report of error
+            ex.printStackTrace();
+            return Optional.empty();
+        }
+
+        // Reparse using API in java.base
+        try {
+            String opString = funcOp.toText();
+            Class<?> opParserClass = Class.forName("java.lang.reflect.code.parser.OpParser");
+            Method fromStringMethod = opParserClass.getDeclaredMethod("fromStringOfFuncOp", String.class);
+            return Optional.of(fromStringMethod.invoke(null, opString));
+        } catch (ReflectiveOperationException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 
     /**

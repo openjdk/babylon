@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -834,7 +834,7 @@ public class DeferredAttr extends JCTree.Visitor {
             public void visitLambda(JCLambda tree) {
                 Check.CheckContext checkContext = resultInfo.checkContext;
                 Type pt = resultInfo.pt;
-                if (!inferenceContext.inferencevars.contains(pt)) {
+                if (!types.isQuoted(pt) && !inferenceContext.inferencevars.contains(pt)) {
                     //must be a functional descriptor
                     Type descriptorType = null;
                     try {
@@ -1226,7 +1226,7 @@ public class DeferredAttr extends JCTree.Visitor {
             if (inferenceContext.inferenceVars().contains(pt)) {
                 stuckVars.add(pt);
             }
-            if (!types.isFunctionalInterface(pt)) {
+            if (types.isQuoted(pt) || !types.isFunctionalInterface(pt)) {
                 return;
             }
             Type descType = types.findDescriptorType(pt);
