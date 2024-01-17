@@ -40,7 +40,7 @@ Specific runtime tests can be executed using `jtreg`, for example:
 jtreg -jdk:./build/macosx-x86_64-server-release/jdk/ -ea -esa -avm -va test/jdk/java/lang/reflect/code/
 ```
 
-In addition, the runtime tests can be executed using make with the test group 
+In addition, the runtime tests can be executed using make with the test group
 `jdk_lang_reflect_code` as follows:
 
 ```
