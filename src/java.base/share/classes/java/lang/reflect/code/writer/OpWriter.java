@@ -23,7 +23,7 @@
  * questions.
  */
 
-package java.lang.reflect.code.impl;
+package java.lang.reflect.code.writer;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -33,6 +33,7 @@ import java.lang.reflect.code.Body;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.descriptor.TypeDesc;
+import java.lang.reflect.code.writer.impl.GlobalValueBlockNaming;
 import java.util.function.Consumer;
 
 public final class OpWriter {
@@ -147,11 +148,11 @@ public final class OpWriter {
         }
     }
 
-    final java.lang.reflect.code.impl.GlobalValueBlockNaming gn;
+    final GlobalValueBlockNaming gn;
     final IndentWriter w;
 
     public OpWriter(Writer w) {
-        this(w, new java.lang.reflect.code.impl.GlobalValueBlockNaming());
+        this(w, new GlobalValueBlockNaming());
     }
 
     public OpWriter(Writer w, GlobalValueBlockNaming gn) {

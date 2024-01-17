@@ -23,7 +23,7 @@
  * questions.
  */
 
-package java.lang.reflect.code.impl;
+package java.lang.reflect.code.writer.impl;
 
 import java.lang.reflect.code.Block;
 import java.lang.reflect.code.Value;

@@ -97,6 +97,8 @@ module java.base {
     exports java.lang.reflect.code.interpreter;
     exports java.lang.reflect.code.op;
     exports java.lang.reflect.code.parser;
+    exports java.lang.reflect.code.writer;
+    exports java.lang.reflect.code.writer.impl;
     exports java.lang.runtime;
     exports java.math;
     exports java.net;
