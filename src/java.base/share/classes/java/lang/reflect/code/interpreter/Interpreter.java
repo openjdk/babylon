@@ -345,7 +345,8 @@ public final class Interpreter {
         Block cb = oc.exception(l, t);
         if (cb == null) {
             // If there is no matching catch bock then rethrow back to the caller
-            throw erase(t);
+            eraseAndThrow(t);
+            throw new InternalError("should not reach here");
         }
 
         // Add a new block context to the catch block with the exception as the argument
@@ -360,8 +361,8 @@ public final class Interpreter {
     }
 
     @SuppressWarnings("unchecked")
-    public static <E extends Throwable> E erase(Throwable e) throws E {
-        return (E) e;
+    public static <E extends Throwable> void eraseAndThrow(Throwable e) throws E {
+        throw (E) e;
     }
 
     static Object exec(MethodHandles.Lookup l, OpContext oc, Op o) {
@@ -640,7 +641,8 @@ public final class Interpreter {
         } catch (RuntimeException | Error e) {
             throw e;
         } catch (Throwable e) {
-            throw erase(e);
+            eraseAndThrow(e);
+            throw new InternalError("should not reach here");
         }
     }
 }
