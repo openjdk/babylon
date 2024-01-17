@@ -31,7 +31,8 @@ packages="
   $base \
   $base/descriptor \
   $base/descriptor/impl \
-  $base/impl \
+  $base/writer \
+  $base/writer/impl \
   $base/op \
   "
 

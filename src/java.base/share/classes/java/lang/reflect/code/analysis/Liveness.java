@@ -27,8 +27,8 @@ package java.lang.reflect.code.analysis;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.lang.reflect.code.*;
-import java.lang.reflect.code.impl.GlobalValueBlockNaming;
-import java.lang.reflect.code.impl.OpWriter;
+import java.lang.reflect.code.writer.impl.GlobalValueBlockNaming;
+import java.lang.reflect.code.writer.OpWriter;
 import java.util.*;
 
 /**
