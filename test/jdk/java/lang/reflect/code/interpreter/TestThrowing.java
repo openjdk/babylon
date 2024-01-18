@@ -21,15 +21,14 @@
  * questions.
  */
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
-import org.testng.annotations.DataProvider;
-
-import java.io.IOException;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.runtime.CodeReflection;
-import java.util.List;
+
+import org.testng.Assert;
+import org.testng.annotations.DataProvider;
+import org.testng.annotations.Test;
 
 /*
  * @test
@@ -39,37 +38,44 @@ import java.util.List;
 public class TestThrowing {
 
     @Test(dataProvider = "methods-exceptions")
-    public void testThrowsCorrectException(String methodName, Class<?> expectedExceptionType) throws NoSuchMethodException {
+    public void testThrowsCorrectException(String methodName, Class<? extends Throwable> expectedExceptionType) throws NoSuchMethodException {
         Method method = TestThrowing.class.getDeclaredMethod(methodName);
-        try {
-            Interpreter.invoke(method.getCodeModel().orElseThrow(), List.of());
-            Assert.fail("invoke should throw");
-        } catch (Throwable throwable) {
-            Assert.assertEquals(throwable.getClass(), expectedExceptionType);
-        }
+        Assert.assertThrows(expectedExceptionType, () -> Interpreter.invoke(MethodHandles.lookup(), method.getCodeModel().orElseThrow()));
     }
 
     @DataProvider(name = "methods-exceptions")
     static Object[][] testData() throws NoSuchMethodException {
         return new Object[][]{
-                {"throwsError", Error.class},
-                {"throwsRuntimeException", RuntimeException.class},
-                {"throwsCheckedException", IOException.class},
+                {"throwsError", TestError.class},
+                {"throwsRuntimeException", TestRuntimeException.class},
+                {"throwsCheckedException", TestCheckedException.class},
         };
+    }
+
+    public static class TestError extends Error {
+
+    }
+
+    public static class TestRuntimeException extends RuntimeException {
+
+    }
+
+    public static class TestCheckedException extends Exception {
+
     }
 
     @CodeReflection
     static void throwsError() {
-        throw new Error();
+        throw new TestError();
     }
 
     @CodeReflection
     static void throwsRuntimeException() {
-        throw new RuntimeException();
+        throw new TestRuntimeException();
     }
 
     @CodeReflection
-    static void throwsCheckedException() throws IOException {
-        throw new IOException();
+    static void throwsCheckedException() throws TestCheckedException {
+        throw new TestCheckedException();
     }
 }
