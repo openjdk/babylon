@@ -1066,8 +1066,21 @@ public final class CoreOps {
                 return value == NULL_ATTRIBUTE_VALUE ? null :
                         value.toString();
             } else if (t.equals(TypeDesc.J_L_CLASS)) {
-                return value == NULL_ATTRIBUTE_VALUE ? null :
-                        TypeDesc.ofNominalDescriptor(ClassDesc.of(value.toString()));
+                if (value == NULL_ATTRIBUTE_VALUE) {
+                    return null;
+                }
+                String asString = value.toString();
+                int bracketOpen = asString.indexOf('[');
+                int dimensions = 0;
+                if (bracketOpen != -1) {
+                    dimensions = (asString.length() - bracketOpen) / 2;
+                    asString = asString.substring(0, bracketOpen);
+                }
+                ClassDesc desc = ClassDesc.of(asString);
+                if (dimensions > 0) {
+                    desc = desc.arrayType(dimensions);
+                }
+                return TypeDesc.ofNominalDescriptor(desc);
             } else if (value == NULL_ATTRIBUTE_VALUE) {
                 return null; // null constant
             }
