@@ -442,7 +442,8 @@ public class ReflectMethods extends TreeTranslator {
                         Tag.SWITCH_EXPRESSION, Tag.YIELD,
                         Tag.CONDEXPR,
                         Tag.LABELLED,
-                        Tag.SKIP);
+                        Tag.SKIP,
+                        Tag.TYPEARRAY);
 
         BodyScanner(JCMethodDecl tree) {
             this(tree, tree.body);
@@ -899,6 +900,11 @@ public class ReflectMethods extends TreeTranslator {
         @Override
         public void visitTypeIdent(JCTree.JCPrimitiveTypeTree tree) {
             result = null;
+        }
+
+        @Override
+        public void visitTypeArray(JCTree.JCArrayTypeTree tree) {
+            result = null; // MyType[].class is handled in visitSelect just as MyType.class
         }
 
         @Override

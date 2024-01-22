@@ -1066,8 +1066,7 @@ public final class CoreOps {
                 return value == NULL_ATTRIBUTE_VALUE ? null :
                         value.toString();
             } else if (t.equals(TypeDesc.J_L_CLASS)) {
-                return value == NULL_ATTRIBUTE_VALUE ? null :
-                        TypeDesc.ofNominalDescriptor(ClassDesc.of(value.toString()));
+                return value == NULL_ATTRIBUTE_VALUE ? null : TypeDesc.ofString(value.toString());
             } else if (value == NULL_ATTRIBUTE_VALUE) {
                 return null; // null constant
             }
