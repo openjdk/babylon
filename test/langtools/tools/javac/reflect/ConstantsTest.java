@@ -215,4 +215,16 @@ public class ConstantsTest {
     void test13() {
         Class<?> s = float.class;
     }
+
+    @IR("""
+            func @"test14" (%0 : ConstantsTest)void -> {
+                %1 : java.lang.Class = constant @"java.lang.String[]";
+                %2 : Var<java.lang.Class> = var %1 @"s";
+                return;
+            };
+            """)
+    @CodeReflection
+    void test14() {
+        Class<?> s = String[].class;
+    }
 }
