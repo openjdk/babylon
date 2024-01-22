@@ -227,4 +227,52 @@ public class ConstantsTest {
     void test14() {
         Class<?> s = String[].class;
     }
+
+    @IR("""
+            func @"test15" (%0 : ConstantsTest)void -> {
+                %1 : java.lang.Class = constant @"java.lang.String[][]";
+                %2 : Var<java.lang.Class> = var %1 @"s";
+                return;
+            };
+            """)
+    @CodeReflection
+    void test15() {
+        Class<?> s = String[][].class;
+    }
+
+    @IR("""
+            func @"test16" (%0 : ConstantsTest)void -> {
+                %1 : java.lang.Class = constant @"java.lang.String[][][]";
+                %2 : Var<java.lang.Class> = var %1 @"s";
+                return;
+            };
+            """)
+    @CodeReflection
+    void test16() {
+        Class<?> s = String[][][].class;
+    }
+
+    @IR("""
+            func @"test17" (%0 : ConstantsTest)void -> {
+                %1 : java.lang.Class = constant @"boolean[]";
+                %2 : Var<java.lang.Class> = var %1 @"s";
+                return;
+            };
+            """)
+    @CodeReflection
+    void test17() {
+        Class<?> s = boolean[].class;
+    }
+
+    @IR("""
+            func @"test18" (%0 : ConstantsTest)void -> {
+                %1 : java.lang.Class = constant @"boolean[][][]";
+                %2 : Var<java.lang.Class> = var %1 @"s";
+                return;
+            };
+            """)
+    @CodeReflection
+    void test18() {
+        Class<?> s = boolean[][][].class;
+    }
 }
