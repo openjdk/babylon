@@ -139,7 +139,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         final Op op;
 
         Result(Block block, Op op) {
-            super(block, op.descriptor().returnType());
+            super(block, op.resultType()); // we can call resultType
 
             this.op = op;
         }
@@ -171,8 +171,6 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
 
     final List<Value> operands;
 
-    final TypeDesc resultType;
-
     /**
      * Constructs an operation by copying given operation.
      *
@@ -182,7 +180,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * values computed, in order, by mapping the operation's operands using the copy context.
      */
     protected Op(Op that, CopyContext cc) {
-        this(that.name, that.resultType, cc.getValues(that.operands));
+        this(that.name, cc.getValues(that.operands));
     }
 
     /**
@@ -223,15 +221,13 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     public abstract Op transform(CopyContext cc, OpTransformer ot);
 
     /**
-     * Constructs an operation with a name, operation result type, and list of operands.
+     * Constructs an operation with a name and list of operands.
      *
      * @param name       the operation name.
-     * @param resultType the operation result type.
      * @param operands   the list of operands, a copy of the list is performed if required.
      */
-    protected Op(String name, TypeDesc resultType, List<? extends Value> operands) {
+    protected Op(String name, List<? extends Value> operands) {
         this.name = name;
-        this.resultType = resultType;
         this.operands = List.copyOf(operands);
     }
 
@@ -319,9 +315,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     /**
      * {@return the operation's result type}
      */
-    public TypeDesc resultType() {
-        return resultType;
-    }
+    public abstract TypeDesc resultType();
 
     /**
      * Returns the operation's descriptor.
@@ -333,7 +327,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      */
     public MethodTypeDesc descriptor() {
         List<TypeDesc> operandTypes = operands.stream().map(Value::type).toList();
-        return MethodTypeDesc.methodType(resultType, operandTypes);
+        return MethodTypeDesc.methodType(resultType(), operandTypes);
     }
 
     /**

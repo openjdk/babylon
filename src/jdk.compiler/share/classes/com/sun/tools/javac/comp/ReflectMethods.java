@@ -1463,7 +1463,7 @@ public class ReflectMethods extends TreeTranslator {
                             popBody();
                         }
 
-                        localResult = append(ExtendedOps.conditionalAnd(clBodies));
+                        localResult = append(ExtendedOps.conditionalOr(clBodies));
                     }
 
                     append(CoreOps._yield(localResult));
@@ -1767,11 +1767,10 @@ public class ReflectMethods extends TreeTranslator {
             JCTree.JCExpression truepart = TreeInfo.skipParens(tree.truepart);
 
             Type condType = adaptBottom(tree.type);
-            Type trueType = condType(tree, truepart.type);
 
             // Push true body
             pushBody(truepart,
-                    MethodTypeDesc.methodType(typeToDesc(trueType)));
+                    MethodTypeDesc.methodType(typeToDesc(condType)));
 
             Value trueVal = toValue(truepart, condType);
             // Yield the result
@@ -1783,11 +1782,9 @@ public class ReflectMethods extends TreeTranslator {
 
             JCTree.JCExpression falsepart = TreeInfo.skipParens(tree.falsepart);
 
-            Type falseType = condType(tree, falsepart.type);
-
             // Push false body
             pushBody(falsepart,
-                    MethodTypeDesc.methodType(typeToDesc(falseType)));
+                    MethodTypeDesc.methodType(typeToDesc(condType)));
 
             Value falseVal = toValue(falsepart, condType);
             // Yield the result

@@ -218,7 +218,7 @@ public class TestInline {
         CoreOps.ClosureOp cop = (CoreOps.ClosureOp) q.op();
 
         // functional descriptor = (int)int
-        CoreOps.FuncOp f = func("f", methodType(int[].class, int.class))
+        CoreOps.FuncOp f = func("f", methodType(void.class, int[].class))
                 .body(fblock -> {
                     Block.Parameter a = fblock.parameters().get(0);
 

@@ -137,7 +137,7 @@ public final class CoreOps {
         }
 
         FuncOp(String funcName, Body.Builder bodyBuilder) {
-            super(NAME, TypeDesc.VOID,
+            super(NAME,
                     List.of());
 
             this.funcName = funcName;
@@ -177,6 +177,11 @@ public final class CoreOps {
             b.op(this, OpTransformer.COPYING_TRANSFORMER);
             return b;
         }
+
+        @Override
+        public TypeDesc resultType() {
+            return body().descriptor().returnType();
+        }
     }
 
     /**
@@ -190,6 +195,7 @@ public final class CoreOps {
         public static final String ATTRIBUTE_FUNC_NAME = NAME + ".name";
 
         final String funcName;
+        final TypeDesc resultType;
 
         public static FuncCallOp create(OpDefinition def) {
             String funcName = def.extractAttributeValue(ATTRIBUTE_FUNC_NAME, true,
@@ -205,12 +211,14 @@ public final class CoreOps {
             super(def);
 
             this.funcName = funcName;
+            this.resultType = def.resultType();
         }
 
         FuncCallOp(FuncCallOp that, CopyContext cc) {
             super(that, cc);
 
             this.funcName = that.funcName;
+            this.resultType = that.resultType;
         }
 
         @Override
@@ -219,9 +227,10 @@ public final class CoreOps {
         }
 
         FuncCallOp(String funcName, TypeDesc resultType, List<Value> args) {
-            super(NAME, resultType, args);
+            super(NAME, args);
 
             this.funcName = funcName;
+            this.resultType = resultType;
         }
 
         @Override
@@ -233,6 +242,11 @@ public final class CoreOps {
 
         public String funcName() {
             return funcName;
+        }
+
+        @Override
+        public TypeDesc resultType() {
+            return resultType;
         }
     }
 
@@ -292,7 +306,7 @@ public final class CoreOps {
         }
 
         ModuleOp(List<FuncOp> functions) {
-            super(NAME, TypeDesc.VOID,
+            super(NAME,
                     List.of());
 
             Body.Builder bodyC = Body.Builder.of(null, MethodTypeDesc.VOID);
@@ -313,6 +327,11 @@ public final class CoreOps {
 
         public Map<String, FuncOp> functionTable() {
             return table;
+        }
+
+        @Override
+        public TypeDesc resultType() {
+            return TypeDesc.VOID;
         }
     }
 
@@ -358,7 +377,7 @@ public final class CoreOps {
         }
 
         QuotedOp(Body.Builder bodyC) {
-            super(NAME, QUOTED_TYPE,
+            super(NAME,
                     List.of());
 
             this.quotedBody = bodyC.build(this);
@@ -418,6 +437,11 @@ public final class CoreOps {
             b.op(this, OpTransformer.COPYING_TRANSFORMER);
             return b;
         }
+
+        @Override
+        public TypeDesc resultType() {
+            return QUOTED_TYPE;
+        }
     }
 
     /**
@@ -469,7 +493,7 @@ public final class CoreOps {
         }
 
         LambdaOp(TypeDesc functionalInterface, Body.Builder bodyC) {
-            super(NAME, functionalInterface,
+            super(NAME,
                     List.of());
 
             this.functionalInterface = functionalInterface;
@@ -536,6 +560,11 @@ public final class CoreOps {
                 }
             });
             return b;
+        }
+
+        @Override
+        public TypeDesc resultType() {
+            return functionalInterface();
         }
     }
 
@@ -606,7 +635,7 @@ public final class CoreOps {
         }
 
         ClosureOp(Body.Builder bodyC) {
-            super(NAME, closureType(bodyC.descriptor()),
+            super(NAME,
                     List.of());
 
             this.body = bodyC.build(this);
@@ -676,6 +705,11 @@ public final class CoreOps {
             });
             return b;
         }
+
+        @Override
+        public TypeDesc resultType() {
+            return closureType(body().descriptor());
+        }
     }
 
     /**
@@ -702,7 +736,7 @@ public final class CoreOps {
         }
 
         ClosureCallOp(List<Value> args) {
-            super(NAME, resultType(args), args);
+            super(NAME, args);
         }
 
         static TypeDesc resultType(List<Value> args) {
@@ -720,6 +754,11 @@ public final class CoreOps {
                 throw new IllegalArgumentException();
             }
             return t.typeArguments().get(0);
+        }
+
+        @Override
+        public TypeDesc resultType() {
+            return resultType(operands());
         }
     }
 
@@ -750,11 +789,11 @@ public final class CoreOps {
         }
 
         ReturnOp() {
-            super(NAME, TypeDesc.VOID, List.of());
+            super(NAME, List.of());
         }
 
         ReturnOp(Value operand) {
-            super(NAME, TypeDesc.VOID,
+            super(NAME,
                     List.of(operand));
         }
 
@@ -765,6 +804,11 @@ public final class CoreOps {
                 // @@@
                 return null;
             }
+        }
+
+        @Override
+        public TypeDesc resultType() {
+            return TypeDesc.VOID;
         }
     }
 
@@ -793,12 +837,17 @@ public final class CoreOps {
         }
 
         ThrowOp(Value e) {
-            super(NAME, TypeDesc.VOID,
+            super(NAME,
                     List.of(e));
         }
 
         public Value argument() {
             return operands().get(0);
+        }
+
+        @Override
+        public TypeDesc resultType() {
+            return TypeDesc.VOID;
         }
     }
 
@@ -829,8 +878,13 @@ public final class CoreOps {
         }
 
         UnreachableOp() {
-            super(NAME, TypeDesc.VOID,
+            super(NAME,
                     List.of());
+        }
+
+        @Override
+        public TypeDesc resultType() {
+            return TypeDesc.VOID;
         }
     }
 
@@ -862,12 +916,12 @@ public final class CoreOps {
         }
 
         YieldOp() {
-            super(NAME, TypeDesc.VOID,
+            super(NAME,
                     List.of());
         }
 
         YieldOp(List<Value> operands) {
-            super(NAME, TypeDesc.VOID, operands);
+            super(NAME, operands);
         }
 
         public Value yieldValue() {
@@ -877,6 +931,11 @@ public final class CoreOps {
                 // @@@
                 return null;
             }
+        }
+
+        @Override
+        public TypeDesc resultType() {
+            return TypeDesc.VOID;
         }
     }
 
@@ -913,7 +972,7 @@ public final class CoreOps {
         }
 
         BranchOp(Block.Reference successor) {
-            super(NAME, TypeDesc.VOID,
+            super(NAME,
                     List.of());
 
             this.b = successor;
@@ -926,6 +985,11 @@ public final class CoreOps {
 
         public Block.Reference branch() {
             return b;
+        }
+
+        @Override
+        public TypeDesc resultType() {
+            return TypeDesc.VOID;
         }
     }
 
@@ -967,7 +1031,7 @@ public final class CoreOps {
         }
 
         ConditionalBranchOp(Value p, Block.Reference t, Block.Reference f) {
-            super(NAME, TypeDesc.VOID,
+            super(NAME,
                     List.of(p));
 
             this.t = t;
@@ -990,6 +1054,11 @@ public final class CoreOps {
         public Block.Reference falseBranch() {
             return f;
         }
+
+        @Override
+        public TypeDesc resultType() {
+            return TypeDesc.VOID;
+        }
     }
 
     /**
@@ -1002,6 +1071,7 @@ public final class CoreOps {
         public static final String ATTRIBUTE_CONSTANT_VALUE = NAME + ".value";
 
         final Object value;
+        final TypeDesc type;
 
         public static ConstantOp create(OpDefinition def) {
             if (!def.operands().isEmpty()) {
@@ -1077,12 +1147,14 @@ public final class CoreOps {
         ConstantOp(OpDefinition def, Object value) {
             super(def);
 
+            this.type = def.resultType();
             this.value = value;
         }
 
         ConstantOp(ConstantOp that, CopyContext cc) {
             super(that, cc);
 
+            this.type = that.type;
             this.value = that.value;
         }
 
@@ -1092,8 +1164,9 @@ public final class CoreOps {
         }
 
         ConstantOp(TypeDesc type, Object value) {
-            super(NAME, type, List.of());
+            super(NAME, List.of());
 
+            this.type = type;
             this.value = value;
         }
 
@@ -1106,6 +1179,11 @@ public final class CoreOps {
 
         public Object value() {
             return value;
+        }
+
+        @Override
+        public TypeDesc resultType() {
+            return type;
         }
     }
 
@@ -1129,6 +1207,7 @@ public final class CoreOps {
         public static final String ATTRIBUTE_INVOKE_DESCRIPTOR = NAME + ".descriptor";
 
         final MethodDesc invokeDescriptor;
+        final TypeDesc resultType;
 
         public static InvokeOp create(OpDefinition def) {
             MethodDesc invokeDescriptor = def.extractAttributeValue(ATTRIBUTE_INVOKE_DESCRIPTOR,
@@ -1145,12 +1224,14 @@ public final class CoreOps {
             super(def);
 
             this.invokeDescriptor = invokeDescriptor;
+            this.resultType = def.resultType();
         }
 
         InvokeOp(InvokeOp that, CopyContext cc) {
             super(that, cc);
 
             this.invokeDescriptor = that.invokeDescriptor;
+            this.resultType = that.resultType;
         }
 
         @Override
@@ -1163,9 +1244,10 @@ public final class CoreOps {
         }
 
         InvokeOp(TypeDesc resultType, MethodDesc invokeDescriptor, List<Value> args) {
-            super(NAME, resultType, args);
+            super(NAME, args);
 
             this.invokeDescriptor = invokeDescriptor;
+            this.resultType = resultType;
         }
 
         @Override
@@ -1182,6 +1264,11 @@ public final class CoreOps {
         public boolean hasReceiver() {
             return operands().size() != invokeDescriptor().type().parameters().size();
         }
+
+        @Override
+        public TypeDesc resultType() {
+            return resultType;
+        }
     }
 
     /**
@@ -1192,12 +1279,18 @@ public final class CoreOps {
     public static final class ConvOp extends OpWithDefinition implements Op.Pure {
         public static final String NAME = "conv";
 
+        final TypeDesc resultType;
+
         public ConvOp(OpDefinition def) {
             super(def);
+
+            this.resultType = def.resultType();
         }
 
         ConvOp(ConvOp that, CopyContext cc) {
             super(that, cc);
+
+            this.resultType = that.resultType;
         }
 
         @Override
@@ -1206,7 +1299,14 @@ public final class CoreOps {
         }
 
         ConvOp(TypeDesc resultType, Value arg) {
-            super(NAME, resultType, List.of(arg));
+            super(NAME, List.of(arg));
+
+            this.resultType = resultType;
+        }
+
+        @Override
+        public TypeDesc resultType() {
+            return resultType;
         }
     }
 
@@ -1219,6 +1319,7 @@ public final class CoreOps {
         public static final String ATTRIBUTE_NEW_DESCRIPTOR = NAME + ".descriptor";
 
         final MethodTypeDesc constructorDescriptor;
+        final TypeDesc resultType;
 
         public static NewOp create(OpDefinition def) {
             MethodTypeDesc constructorDescriptor = def.extractAttributeValue(ATTRIBUTE_NEW_DESCRIPTOR,true,
@@ -1234,12 +1335,14 @@ public final class CoreOps {
             super(def);
 
             this.constructorDescriptor = constructorDescriptor;
+            this.resultType = def.resultType();
         }
 
         NewOp(NewOp that, CopyContext cc) {
             super(that, cc);
 
             this.constructorDescriptor = that.constructorDescriptor;
+            this.resultType = that.resultType;
         }
 
         @Override
@@ -1252,9 +1355,10 @@ public final class CoreOps {
         }
 
         NewOp(TypeDesc resultType, MethodTypeDesc constructorDescriptor, List<Value> args) {
-            super(NAME, resultType, args);
+            super(NAME, args);
 
             this.constructorDescriptor = constructorDescriptor;
+            this.resultType = resultType;
         }
 
         @Override
@@ -1270,6 +1374,11 @@ public final class CoreOps {
 
         public MethodTypeDesc constructorDescriptor() {
             return constructorDescriptor;
+        }
+
+        @Override
+        public TypeDesc resultType() {
+            return resultType;
         }
     }
 
@@ -1299,9 +1408,9 @@ public final class CoreOps {
             this.fieldDescriptor = that.fieldDescriptor;
         }
 
-        FieldAccessOp(String name, TypeDesc resultType, List<Value> operands,
+        FieldAccessOp(String name, List<Value> operands,
                       FieldDesc fieldDescriptor) {
-            super(name, resultType, operands);
+            super(name, operands);
 
             this.fieldDescriptor = fieldDescriptor;
         }
@@ -1354,14 +1463,19 @@ public final class CoreOps {
 
             // instance
             FieldLoadOp(FieldDesc descriptor, Value receiver) {
-                super(NAME, descriptor.type(),
+                super(NAME,
                         List.of(receiver), descriptor);
             }
 
             // static
             FieldLoadOp(FieldDesc descriptor) {
-                super(NAME, descriptor.type(),
+                super(NAME,
                         List.of(), descriptor);
+            }
+
+            @Override
+            public TypeDesc resultType() {
+                return fieldDescriptor().type();
             }
         }
 
@@ -1402,14 +1516,19 @@ public final class CoreOps {
 
             // instance
             FieldStoreOp(FieldDesc descriptor, Value receiver, Value v) {
-                super(NAME, TypeDesc.VOID,
+                super(NAME,
                         List.of(receiver, v), descriptor);
             }
 
             // static
             FieldStoreOp(FieldDesc descriptor, Value v) {
-                super(NAME, TypeDesc.VOID,
+                super(NAME,
                         List.of(v), descriptor);
+            }
+
+            @Override
+            public TypeDesc resultType() {
+                return TypeDesc.VOID;
             }
         }
     }
@@ -1436,7 +1555,12 @@ public final class CoreOps {
         }
 
         ArrayLengthOp(Value array) {
-            super(NAME, TypeDesc.INT, List.of(array));
+            super(NAME, List.of(array));
+        }
+
+        @Override
+        public TypeDesc resultType() {
+            return TypeDesc.INT;
         }
     }
 
@@ -1457,12 +1581,12 @@ public final class CoreOps {
         }
 
         ArrayAccessOp(ArrayAccessOp that, List<Value> operands) {
-            super(that.opName(), resultType(operands.get(0), operands.size() == 2 ? null : operands.get(2)), operands);
+            super(that.opName(), operands);
         }
 
         ArrayAccessOp(String name,
                       Value array, Value index, Value v) {
-            super(name, resultType(array, v), operands(array, index, v));
+            super(name, operands(array, index, v));
         }
 
         static List<Value> operands(Value array, Value index, Value v) {
@@ -1510,6 +1634,12 @@ public final class CoreOps {
             ArrayLoadOp(Value array, Value index) {
                 super(NAME, array, index, null);
             }
+
+            @Override
+            public TypeDesc resultType() {
+                Value array = operands().get(0);
+                return resultType(array, null);
+            }
         }
 
         /**
@@ -1535,6 +1665,13 @@ public final class CoreOps {
 
             ArrayStoreOp(Value array, Value index, Value v) {
                 super(NAME, array, index, v);
+            }
+
+            @Override
+            public TypeDesc resultType() {
+                Value array = operands().get(0);
+                Value value = operands().get(2);
+                return resultType(array, value);
             }
         }
     }
@@ -1582,7 +1719,7 @@ public final class CoreOps {
         }
 
         InstanceOfOp(TypeDesc t, Value v) {
-            super(NAME, TypeDesc.BOOLEAN,
+            super(NAME,
                     List.of(v));
 
             this.typeDescriptor = t;
@@ -1597,6 +1734,11 @@ public final class CoreOps {
 
         public TypeDesc type() {
             return typeDescriptor;
+        }
+
+        @Override
+        public TypeDesc resultType() {
+            return TypeDesc.BOOLEAN;
         }
     }
 
@@ -1641,8 +1783,8 @@ public final class CoreOps {
             return new CastOp(this, cc);
         }
 
-        CastOp(TypeDesc resultType, TypeDesc t, Value v) {
-            super(NAME, resultType,
+        CastOp(TypeDesc t, Value v) {
+            super(NAME,
                     List.of(v));
 
             this.typeDescriptor = t;
@@ -1657,6 +1799,11 @@ public final class CoreOps {
 
         public TypeDesc type() {
             return typeDescriptor;
+        }
+
+        @Override
+        public TypeDesc resultType() {
+            return type();
         }
     }
 
@@ -1742,7 +1889,7 @@ public final class CoreOps {
         }
 
         VarOp(String varName, TypeDesc type, Value init) {
-            super(NAME, Var.type(type), List.of(init));
+            super(NAME, List.of(init));
 
             this.name = varName;
         }
@@ -1765,6 +1912,12 @@ public final class CoreOps {
         public TypeDesc varType() {
             return descriptor().parameters().get(0);
         }
+
+        @Override
+        public TypeDesc resultType() {
+            TypeDesc valueType = operands().get(0).type();
+            return Var.type(valueType);
+        }
     }
 
     /**
@@ -1776,8 +1929,8 @@ public final class CoreOps {
             super(opdef);
         }
 
-        VarAccessOp(String name, TypeDesc resultType, List<Value> operands) {
-            super(name, resultType, operands);
+        VarAccessOp(String name, List<Value> operands) {
+            super(name, operands);
         }
 
         public VarOp varOp() {
@@ -1816,7 +1969,7 @@ public final class CoreOps {
             }
 
             VarLoadOp(List<Value> varValue) {
-                super(NAME, getresultType(checkIsVarOp(varValue.get(0))), varValue);
+                super(NAME, varValue);
             }
 
             @Override
@@ -1826,7 +1979,7 @@ public final class CoreOps {
 
             // (Variable)VarType
             VarLoadOp(Value varValue) {
-                super(NAME, getresultType(checkIsVarOp(varValue)), List.of(varValue));
+                super(NAME, List.of(varValue));
             }
 
             static TypeDesc getresultType(Value varValue) {
@@ -1843,6 +1996,11 @@ public final class CoreOps {
                 }
 
                 return varType.typeArguments().get(0);
+            }
+
+            @Override
+            public TypeDesc resultType() {
+                return getresultType(operands().get(0));
             }
         }
 
@@ -1867,7 +2025,7 @@ public final class CoreOps {
             }
 
             VarStoreOp(List<Value> values) {
-                super(NAME, getresultType(checkIsVarOp(values.get(0))),
+                super(NAME,
                         values);
             }
 
@@ -1878,7 +2036,7 @@ public final class CoreOps {
 
             // (Variable, VarType)void
             VarStoreOp(Value varValue, Value v) {
-                super(NAME, getresultType(checkIsVarOp(varValue)),
+                super(NAME,
                         List.of(varValue, v));
             }
 
@@ -1896,6 +2054,11 @@ public final class CoreOps {
                 }
 
                 return TypeDesc.VOID;
+            }
+
+            @Override
+            public TypeDesc resultType() {
+                return getresultType(operands().get(0));
             }
         }
     }
@@ -1953,7 +2116,12 @@ public final class CoreOps {
         }
 
         TupleOp(List<? extends Value> componentValues) {
-            super(NAME, Tuple.typeFromValues(componentValues), componentValues);
+            super(NAME, componentValues);
+        }
+
+        @Override
+        public TypeDesc resultType() {
+            return Tuple.typeFromValues(operands());
         }
     }
 
@@ -1993,7 +2161,7 @@ public final class CoreOps {
         }
 
         TupleLoadOp(TupleLoadOp that, List<Value> values) {
-            super(NAME, getresultType(values.get(0), that.index), values);
+            super(NAME, values);
 
             this.index = that.index;
         }
@@ -2004,7 +2172,7 @@ public final class CoreOps {
         }
 
         TupleLoadOp(Value tupleValue, int index) {
-            super(NAME, getresultType(tupleValue, index), List.of(tupleValue));
+            super(NAME, List.of(tupleValue));
 
             this.index = index;
         }
@@ -2040,6 +2208,12 @@ public final class CoreOps {
 
         public int index() {
             return index;
+        }
+
+        @Override
+        public TypeDesc resultType() {
+            Value tupleValue = operands().get(0);
+            return getresultType(tupleValue, index);
         }
     }
 
@@ -2079,7 +2253,7 @@ public final class CoreOps {
         }
 
         TupleWithOp(TupleWithOp that, List<Value> values) {
-            super(NAME, getresultType(values.get(0), that.index, values.get(1)), values);
+            super(NAME, values);
 
             this.index = that.index;
         }
@@ -2090,7 +2264,7 @@ public final class CoreOps {
         }
 
         TupleWithOp(Value tupleValue, int index, Value value) {
-            super(NAME, getresultType(tupleValue, index, value), List.of(tupleValue, value));
+            super(NAME, List.of(tupleValue, value));
 
             this.index = index;
         }
@@ -2127,6 +2301,13 @@ public final class CoreOps {
 
         public int index() {
             return index;
+        }
+
+        @Override
+        public TypeDesc resultType() {
+            Value tupleValue = operands().get(0);
+            Value value = operands().get(2);
+            return getresultType(tupleValue, index, value);
         }
     }
 
@@ -2178,7 +2359,7 @@ public final class CoreOps {
         }
 
         ExceptionRegionEnter(List<Block.Reference> s) {
-            super(NAME, ExceptionRegion.EXCEPTION_REGION_TYPE, List.of());
+            super(NAME, List.of());
 
             if (s.size() < 2) {
                 throw new IllegalArgumentException("Operation must have two or more successors" + opName());
@@ -2198,6 +2379,11 @@ public final class CoreOps {
 
         public List<Block.Reference> catchBlocks() {
             return s.subList(1, s.size());
+        }
+
+        @Override
+        public TypeDesc resultType() {
+            return ExceptionRegion.EXCEPTION_REGION_TYPE;
         }
     }
 
@@ -2236,7 +2422,7 @@ public final class CoreOps {
         }
 
         ExceptionRegionExit(Value exceptionRegion, Block.Reference end) {
-            super(NAME, TypeDesc.VOID, checkValue(exceptionRegion));
+            super(NAME, checkValue(exceptionRegion));
 
             this.end = end;
         }
@@ -2267,6 +2453,10 @@ public final class CoreOps {
             throw new InternalError("Should not reach here");
         }
 
+        @Override
+        public TypeDesc resultType() {
+            return TypeDesc.VOID;
+        }
     }
 
     //
@@ -2288,8 +2478,8 @@ public final class CoreOps {
             super(that, cc);
         }
 
-        protected ArithmeticOperation(String name, TypeDesc resultType, List<Value> operands) {
-            super(name, resultType, operands);
+        protected ArithmeticOperation(String name, List<Value> operands) {
+            super(name, operands);
         }
     }
 
@@ -2309,8 +2499,8 @@ public final class CoreOps {
             super(that, cc);
         }
 
-        protected TestOperation(String name, TypeDesc resultType, List<Value> operands) {
-            super(name, resultType, operands);
+        protected TestOperation(String name, List<Value> operands) {
+            super(name, operands);
         }
     }
 
@@ -2331,7 +2521,12 @@ public final class CoreOps {
         }
 
         protected BinaryOp(String name, TypeDesc resultType, Value lhs, Value rhs) {
-            super(name, resultType, List.of(lhs, rhs));
+            super(name, List.of(lhs, rhs));
+        }
+
+        @Override
+        public TypeDesc resultType() {
+            return operands().get(0).type();
         }
     }
 
@@ -2351,8 +2546,8 @@ public final class CoreOps {
             super(that, cc);
         }
 
-        protected UnaryOp(String name, TypeDesc resultType, Value v) {
-            super(name, resultType, List.of(v));
+        protected UnaryOp(String name, Value v) {
+            super(name, List.of(v));
         }
     }
 
@@ -2373,7 +2568,7 @@ public final class CoreOps {
         }
 
         protected UnaryTestOp(String name, Value v) {
-            super(name, TypeDesc.BOOLEAN, List.of(v));
+            super(name, List.of(v));
         }
     }
 
@@ -2394,7 +2589,12 @@ public final class CoreOps {
         }
 
         protected BinaryTestOp(String name, Value lhs, Value rhs) {
-            super(name, TypeDesc.BOOLEAN, List.of(lhs, rhs));
+            super(name, List.of(lhs, rhs));
+        }
+
+        @Override
+        public TypeDesc resultType() {
+            return TypeDesc.BOOLEAN;
         }
     }
 
@@ -2544,7 +2744,12 @@ public final class CoreOps {
         }
 
         NegOp(TypeDesc resultType, Value v) {
-            super(NAME, resultType, v);
+            super(NAME, v);
+        }
+
+        @Override
+        public TypeDesc resultType() {
+            return operands().get(0).type();
         }
     }
 
@@ -2568,8 +2773,13 @@ public final class CoreOps {
             return new NotOp(this, cc);
         }
 
-        NotOp(TypeDesc resultType, Value v) {
-            super(NAME, resultType, v);
+        NotOp(Value v) {
+            super(NAME, v);
+        }
+
+        @Override
+        public TypeDesc resultType() {
+            return TypeDesc.BOOLEAN;
         }
     }
 
@@ -3229,7 +3439,7 @@ public final class CoreOps {
      * @return the cast operation
      */
     public static CastOp cast(TypeDesc t, Value v) {
-        return new CastOp(t, t, v);
+        return new CastOp(t, v);
     }
 
     /**
@@ -3241,7 +3451,7 @@ public final class CoreOps {
      * @return the cast operation
      */
     public static CastOp cast(TypeDesc resultType, TypeDesc t, Value v) {
-        return new CastOp(resultType, t, v);
+        return new CastOp(t, v);
     }
 
     /**
@@ -3499,18 +3709,7 @@ public final class CoreOps {
      * @return the not operation
      */
     public static UnaryOp not(Value v) {
-        return not(v.type(), v);
-    }
-
-    /**
-     * Creates a not operation.
-     *
-     * @param resultType the operation's result type
-     * @param v the operand
-     * @return the not operation
-     */
-    public static UnaryOp not(TypeDesc resultType, Value v) {
-        return new NotOp(resultType, v);
+        return new NotOp(v);
     }
 
 

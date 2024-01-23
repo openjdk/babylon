@@ -95,7 +95,7 @@ public class SwitchExpressionTest {
                 %2 : java.lang.String = var.load %1;
                 %3 : java.lang.Object = java.switch.expression %2
                     ^constantCaseLabel(%4 : java.lang.String)boolean -> {
-                        %5 : boolean = java.cand
+                        %5 : boolean = java.cor
                             ()boolean -> {
                                 %6 : java.lang.String = constant @"FOO";
                                 %7 : boolean = invoke %4 %6 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
@@ -195,7 +195,7 @@ public class SwitchExpressionTest {
                 %2 : java.lang.String = var.load %1;
                 %3 : java.lang.Object = java.switch.expression %2
                     ^constantCaseLabel(%4 : java.lang.String)boolean -> {
-                        %5 : boolean = java.cand
+                        %5 : boolean = java.cor
                             ()boolean -> {
                                 %6 : java.lang.String = constant @"FOO";
                                 %7 : boolean = invoke %4 %6 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";

@@ -94,7 +94,7 @@ public class ExtendedOps {
         }
 
         JavaLabelOp(String name, Value label) {
-            super(name, TypeDesc.VOID, checkLabel(label));
+            super(name, checkLabel(label));
         }
 
         static List<Value> checkLabel(Value label) {
@@ -159,6 +159,11 @@ public class ExtendedOps {
                 throw new IllegalStateException("No branch target for operation: " + opt);
             }
             return b;
+        }
+
+        @Override
+        public TypeDesc resultType() {
+            return TypeDesc.VOID;
         }
     }
 
@@ -265,12 +270,12 @@ public class ExtendedOps {
         }
 
         JavaYieldOp() {
-            super(NAME, TypeDesc.VOID,
+            super(NAME,
                     List.of());
         }
 
         JavaYieldOp(Value operand) {
-            super(NAME, TypeDesc.VOID, List.of(operand));
+            super(NAME, List.of(operand));
         }
 
         public Value yieldValue() {
@@ -280,6 +285,11 @@ public class ExtendedOps {
                 // @@@
                 return null;
             }
+        }
+
+        @Override
+        public TypeDesc resultType() {
+            return VOID;
         }
     }
 
@@ -317,7 +327,7 @@ public class ExtendedOps {
 
         // @@@ Support non-void result type
         JavaBlockOp(Body.Builder bodyC) {
-            super(NAME, TypeDesc.VOID, List.of());
+            super(NAME, List.of());
 
             this.body = bodyC.build(this);
             if (!body.descriptor().returnType().equals(VOID)) {
@@ -358,6 +368,11 @@ public class ExtendedOps {
 
             return exit;
         }
+
+        @Override
+        public TypeDesc resultType() {
+            return VOID;
+        }
     }
 
     /**
@@ -392,7 +407,7 @@ public class ExtendedOps {
         }
 
         JavaLabeledOp(Body.Builder bodyC) {
-            super(NAME, TypeDesc.VOID, List.of());
+            super(NAME, List.of());
 
             this.body = bodyC.build(this);
             if (!body.descriptor().returnType().equals(VOID)) {
@@ -443,6 +458,11 @@ public class ExtendedOps {
             }));
 
             return exit;
+        }
+
+        @Override
+        public TypeDesc resultType() {
+            return VOID;
         }
     }
 
@@ -564,7 +584,7 @@ public class ExtendedOps {
         }
 
         JavaIfOp(List<Body.Builder> bodyCs) {
-            super(NAME, VOID, List.of());
+            super(NAME, List.of());
 
             // Normalize by adding an empty else action
             // @@@ Is this needed?
@@ -664,6 +684,11 @@ public class ExtendedOps {
 
             return exit;
         }
+
+        @Override
+        public TypeDesc resultType() {
+            return VOID;
+        }
     }
 
     /**
@@ -673,6 +698,7 @@ public class ExtendedOps {
     public static final class JavaSwitchExpressionOp extends OpWithDefinition implements Op.Nested, Op.Lowerable {
         public static final String NAME = "java.switch.expression";
 
+        final TypeDesc type;
         final List<Body> bodies;
 
         public JavaSwitchExpressionOp(OpDefinition def) {
@@ -685,6 +711,7 @@ public class ExtendedOps {
             // @@@ Validate
 
             this.bodies = def.bodyDefinitions().stream().map(bd -> bd.build(this)).toList();
+            this.type = def.resultType();
         }
 
         JavaSwitchExpressionOp(JavaSwitchExpressionOp that, CopyContext cc, OpTransformer ot) {
@@ -693,6 +720,7 @@ public class ExtendedOps {
             // Copy body
             this.bodies = that.bodies.stream()
                     .map(b -> b.transform(cc, ot).build(this)).toList();
+            this.type = that.type;
         }
 
         @Override
@@ -701,7 +729,7 @@ public class ExtendedOps {
         }
 
         JavaSwitchExpressionOp(TypeDesc type, Value target, List<Body.Builder> bodyCs) {
-            super(NAME, type, List.of(target));
+            super(NAME, List.of(target));
 
             // Each case is modelled as a contiguous pair of bodies
             // The first body models the case labels, and the second models the case expression or statements
@@ -709,8 +737,9 @@ public class ExtendedOps {
             // The statements/expression body has no parameters and returns the result whose type is the result of
             // the switch expression
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
-
-            //
+            // I kept this for now to not affect code in ReflectMethods,
+            // but I think resultType can be computed using: bodies.get(1).yieldType();
+            this.type = type;
         }
 
         @Override
@@ -721,6 +750,11 @@ public class ExtendedOps {
         @Override
         public Block.Builder lower(Block.Builder b, OpTransformer opT) {
             throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public TypeDesc resultType() {
+            return type;
         }
     }
 
@@ -746,7 +780,12 @@ public class ExtendedOps {
         }
 
         JavaSwitchFallthroughOp() {
-            super(NAME, TypeDesc.VOID, List.of());
+            super(NAME, List.of());
+        }
+
+        @Override
+        public TypeDesc resultType() {
+            return VOID;
         }
     }
 
@@ -886,7 +925,7 @@ public class ExtendedOps {
                   Body.Builder condC,
                   Body.Builder updateC,
                   Body.Builder bodyC) {
-            super(NAME, VOID, List.of());
+            super(NAME, List.of());
 
             this.init = initC.build(this);
 
@@ -1002,6 +1041,11 @@ public class ExtendedOps {
 
             return exit;
         }
+
+        @Override
+        public TypeDesc resultType() {
+            return VOID;
+        }
     }
 
     /**
@@ -1111,7 +1155,7 @@ public class ExtendedOps {
         }
 
         JavaEnhancedForOp(Body.Builder expressionC, Body.Builder initC, Body.Builder bodyC) {
-            super(NAME, VOID, List.of());
+            super(NAME, List.of());
 
             this.expression = expressionC.build(this);
             if (expression.descriptor().returnType().equals(VOID)) {
@@ -1257,6 +1301,11 @@ public class ExtendedOps {
 
             return exit;
         }
+
+        @Override
+        public TypeDesc resultType() {
+            return VOID;
+        }
     }
 
     /**
@@ -1309,13 +1358,13 @@ public class ExtendedOps {
         }
 
         JavaWhileOp(List<Body.Builder> bodyCs) {
-            super(NAME, VOID, List.of());
+            super(NAME, List.of());
 
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
         }
 
         JavaWhileOp(Body.Builder predicate, Body.Builder body) {
-            super(NAME, VOID, List.of());
+            super(NAME, List.of());
 
             Objects.requireNonNull(body);
 
@@ -1396,6 +1445,11 @@ public class ExtendedOps {
 
             return exit;
         }
+
+        @Override
+        public TypeDesc resultType() {
+            return VOID;
+        }
     }
 
     /**
@@ -1449,13 +1503,13 @@ public class ExtendedOps {
         }
 
         JavaDoWhileOp(List<Body.Builder> bodyCs) {
-            super(NAME, VOID, List.of());
+            super(NAME, List.of());
 
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
         }
 
         JavaDoWhileOp(Body.Builder body, Body.Builder predicate) {
-            super(NAME, VOID, List.of());
+            super(NAME, List.of());
 
             Objects.requireNonNull(body);
 
@@ -1535,6 +1589,11 @@ public class ExtendedOps {
 
             return exit;
         }
+
+        @Override
+        public TypeDesc resultType() {
+            return VOID;
+        }
     }
 
     /**
@@ -1563,7 +1622,7 @@ public class ExtendedOps {
         }
 
         JavaConditionalOp(String name, List<Body.Builder> bodyCs) {
-            super(name, BOOLEAN, List.of());
+            super(name, List.of());
 
             if (bodyCs.isEmpty()) {
                 throw new IllegalArgumentException();
@@ -1641,6 +1700,11 @@ public class ExtendedOps {
             }
 
             return exit;
+        }
+
+        @Override
+        public TypeDesc resultType() {
+            return BOOLEAN;
         }
     }
 
@@ -1762,6 +1826,7 @@ public class ExtendedOps {
 
         public static final String NAME = "java.cexpression";
 
+        final TypeDesc resultType;
         // {cond, truepart, falsepart}
         final List<Body> bodies;
 
@@ -1775,6 +1840,7 @@ public class ExtendedOps {
             // @@@ Validate
 
             this.bodies = def.bodyDefinitions().stream().map(bd -> bd.build(this)).toList();
+            this.resultType = def.resultType();
         }
 
         JavaConditionalExpressionOp(JavaConditionalExpressionOp that, CopyContext cc, OpTransformer ot) {
@@ -1783,6 +1849,7 @@ public class ExtendedOps {
             // Copy body
             this.bodies = that.bodies.stream()
                     .map(b -> b.transform(cc, ot).build(this)).toList();
+            this.resultType = that.resultType;
         }
 
         @Override
@@ -1791,9 +1858,12 @@ public class ExtendedOps {
         }
 
         JavaConditionalExpressionOp(TypeDesc expressionType, List<Body.Builder> bodyCs) {
-            super(NAME, expressionType, List.of());
+            super(NAME, List.of());
 
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
+            // I kept this, to not affect code in ReflectMethods
+            // I think it can be removed and resultType can be computed using: bodies().get(1).yieldType()
+            this.resultType = expressionType;
 
             if (bodies.size() < 3) {
                 throw new IllegalArgumentException("Incorrect number of bodies: " + bodies.size());
@@ -1846,6 +1916,11 @@ public class ExtendedOps {
             }
 
             return exit;
+        }
+
+        @Override
+        public TypeDesc resultType() {
+            return resultType;
         }
     }
 
@@ -1972,7 +2047,7 @@ public class ExtendedOps {
                   Body.Builder bodyC,
                   List<Body.Builder> catchersC,
                   Body.Builder finalizerC) {
-            super(NAME, VOID, List.of());
+            super(NAME, List.of());
 
             if (resourcesC != null) {
                 this.resources = resourcesC.build(this);
@@ -2284,6 +2359,11 @@ public class ExtendedOps {
 
             return finallyExit;
         }
+
+        @Override
+        public TypeDesc resultType() {
+            return VOID;
+        }
     }
 
     //
@@ -2355,8 +2435,8 @@ public class ExtendedOps {
                 super(that, cc);
             }
 
-            PatternOp(String name, TypeDesc returnType, List<Value> operands) {
-                super(name, returnType, operands);
+            PatternOp(String name, List<Value> operands) {
+                super(name, operands);
             }
         }
 
@@ -2369,6 +2449,7 @@ public class ExtendedOps {
 
             public static final String ATTRIBUTE_BINDING_NAME = NAME + ".binding.name";
 
+            final TypeDesc resultType;
             final String bindingName;
 
             public static BindingPatternOp create(OpDefinition def) {
@@ -2384,12 +2465,14 @@ public class ExtendedOps {
                 super(def);
 
                 this.bindingName = bindingName;
+                this.resultType = def.resultType();
             }
 
             BindingPatternOp(BindingPatternOp that, CopyContext cc) {
                 super(that, cc);
 
                 this.bindingName = that.bindingName;
+                this.resultType = that.resultType;
             }
 
             @Override
@@ -2398,9 +2481,10 @@ public class ExtendedOps {
             }
 
             BindingPatternOp(TypeDesc targetType, String bindingName) {
-                super(NAME, Pattern.bindingType(targetType), List.of());
+                super(NAME, List.of());
 
                 this.bindingName = bindingName;
+                this.resultType = Pattern.bindingType(targetType);
             }
 
             @Override
@@ -2416,6 +2500,11 @@ public class ExtendedOps {
 
             public TypeDesc targetType() {
                 return Pattern.targetType(resultType());
+            }
+
+            @Override
+            public TypeDesc resultType() {
+                return resultType;
             }
         }
 
@@ -2461,7 +2550,7 @@ public class ExtendedOps {
             RecordPatternOp(RecordTypeDesc recordDescriptor, List<Value> nestedPatterns) {
                 // The type of each value is a subtype of Pattern
                 // The number of values corresponds to the number of components of the record
-                super(NAME, Pattern.recordType(recordDescriptor.recordType()), List.copyOf(nestedPatterns));
+                super(NAME, List.copyOf(nestedPatterns));
 
                 this.recordDescriptor = recordDescriptor;
             }
@@ -2479,6 +2568,11 @@ public class ExtendedOps {
 
             public TypeDesc targetType() {
                 return Pattern.targetType(resultType());
+            }
+
+            @Override
+            public TypeDesc resultType() {
+                return Pattern.recordType(recordDescriptor.recordType());
             }
         }
 
@@ -2512,7 +2606,7 @@ public class ExtendedOps {
             }
 
             MatchOp(Value target, Body.Builder patternC, Body.Builder matchC) {
-                super(NAME, BOOLEAN,
+                super(NAME,
                         List.of(target));
 
                 this.pattern = patternC.build(this);
@@ -2637,6 +2731,11 @@ public class ExtendedOps {
                 bindings.add(target);
 
                 return currentBlock;
+            }
+
+            @Override
+            public TypeDesc resultType() {
+                return BOOLEAN;
             }
         }
     }
