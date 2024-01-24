@@ -22,14 +22,10 @@
  */
 
 import java.lang.reflect.code.Block;
-import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.LinkedHashSet;
-import java.util.Set;
-import java.util.TreeSet;
+import java.lang.reflect.code.op.CoreOps;
+import java.util.*;
 
 public final class ActiveSet {
 
