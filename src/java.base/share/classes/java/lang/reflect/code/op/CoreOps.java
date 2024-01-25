@@ -25,7 +25,6 @@
 
 package java.lang.reflect.code.op;
 
-import java.lang.constant.ClassDesc;
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.descriptor.FieldDesc;
 import java.lang.reflect.code.descriptor.MethodDesc;
@@ -180,7 +179,7 @@ public final class CoreOps {
 
         @Override
         public TypeDesc resultType() {
-            return body().descriptor().returnType();
+            return body().yieldType();
         }
     }
 
@@ -1750,32 +1749,32 @@ public final class CoreOps {
         public static final String NAME = "cast";
         public static final String ATTRIBUTE_TYPE_DESCRIPTOR = NAME + ".descriptor";
 
-        final TypeDesc typeDescriptor;
+        final TypeDesc type;
 
         public static CastOp create(OpDefinition def) {
             if (def.operands().size() != 1) {
                 throw new IllegalArgumentException("Operation must have one operand " + def.name());
             }
 
-            TypeDesc typeDescriptor = def.extractAttributeValue(ATTRIBUTE_TYPE_DESCRIPTOR, true,
+            TypeDesc type = def.extractAttributeValue(ATTRIBUTE_TYPE_DESCRIPTOR, true,
                     v -> switch(v) {
                         case String s -> TypeDesc.ofString(s);
                         case TypeDesc td -> td;
                         default -> throw new UnsupportedOperationException("Unsupported type descriptor value:" + v);
                     });
-            return new CastOp(def, typeDescriptor);
+            return new CastOp(def, type);
         }
 
-        CastOp(OpDefinition def, TypeDesc typeDescriptor) {
+        CastOp(OpDefinition def, TypeDesc type) {
             super(def);
 
-            this.typeDescriptor = typeDescriptor;
+            this.type = type;
         }
 
         CastOp(CastOp that, CopyContext cc) {
             super(that, cc);
 
-            this.typeDescriptor = that.typeDescriptor;
+            this.type = that.type;
         }
 
         @Override
@@ -1784,21 +1783,20 @@ public final class CoreOps {
         }
 
         CastOp(TypeDesc t, Value v) {
-            super(NAME,
-                    List.of(v));
+            super(NAME, List.of(v));
 
-            this.typeDescriptor = t;
+            this.type = t;
         }
 
         @Override
         public Map<String, Object> attributes() {
             HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put("", typeDescriptor);
+            m.put("", type);
             return Collections.unmodifiableMap(m);
         }
 
         public TypeDesc type() {
-            return typeDescriptor;
+            return type;
         }
 
         @Override
@@ -1888,7 +1886,7 @@ public final class CoreOps {
             return new VarOp(this, cc);
         }
 
-        VarOp(String varName, TypeDesc type, Value init) {
+        VarOp(String varName, Value init) {
             super(NAME, List.of(init));
 
             this.name = varName;
@@ -2520,7 +2518,7 @@ public final class CoreOps {
             super(that, cc);
         }
 
-        protected BinaryOp(String name, TypeDesc resultType, Value lhs, Value rhs) {
+        protected BinaryOp(String name, Value lhs, Value rhs) {
             super(name, List.of(lhs, rhs));
         }
 
@@ -2548,6 +2546,11 @@ public final class CoreOps {
 
         protected UnaryOp(String name, Value v) {
             super(name, List.of(v));
+        }
+
+        @Override
+        public TypeDesc resultType() {
+            return operands().get(0).type();
         }
     }
 
@@ -2618,8 +2621,8 @@ public final class CoreOps {
             return new AddOp(this, cc);
         }
 
-        AddOp(TypeDesc resultType, Value lhs, Value rhs) {
-            super(NAME, resultType, lhs, rhs);
+        AddOp(Value lhs, Value rhs) {
+            super(NAME, lhs, rhs);
         }
     }
 
@@ -2643,8 +2646,8 @@ public final class CoreOps {
             return new SubOp(this, cc);
         }
 
-        SubOp(TypeDesc resultType, Value lhs, Value rhs) {
-            super(NAME, resultType, lhs, rhs);
+        SubOp(Value lhs, Value rhs) {
+            super(NAME, lhs, rhs);
         }
     }
 
@@ -2668,8 +2671,8 @@ public final class CoreOps {
             return new MulOp(this, cc);
         }
 
-        MulOp(TypeDesc resultType, Value lhs, Value rhs) {
-            super(NAME, resultType, lhs, rhs);
+        MulOp(Value lhs, Value rhs) {
+            super(NAME, lhs, rhs);
         }
     }
 
@@ -2693,8 +2696,8 @@ public final class CoreOps {
             return new DivOp(this, cc);
         }
 
-        DivOp(TypeDesc resultType, Value lhs, Value rhs) {
-            super(NAME, resultType, lhs, rhs);
+        DivOp(Value lhs, Value rhs) {
+            super(NAME, lhs, rhs);
         }
     }
 
@@ -2718,8 +2721,8 @@ public final class CoreOps {
             return new ModOp(this, cc);
         }
 
-        ModOp(TypeDesc resultType, Value lhs, Value rhs) {
-            super(NAME, resultType, lhs, rhs);
+        ModOp(Value lhs, Value rhs) {
+            super(NAME, lhs, rhs);
         }
     }
 
@@ -2746,11 +2749,6 @@ public final class CoreOps {
         NegOp(TypeDesc resultType, Value v) {
             super(NAME, v);
         }
-
-        @Override
-        public TypeDesc resultType() {
-            return operands().get(0).type();
-        }
     }
 
     /**
@@ -2775,11 +2773,6 @@ public final class CoreOps {
 
         NotOp(Value v) {
             super(NAME, v);
-        }
-
-        @Override
-        public TypeDesc resultType() {
-            return TypeDesc.BOOLEAN;
         }
     }
 
@@ -3443,36 +3436,13 @@ public final class CoreOps {
     }
 
     /**
-     * Creates a cast operation.
-     *
-     * @param resultType the result type of the operation
-     * @param t the type descriptor of the type to cast to
-     * @param v the value to cast
-     * @return the cast operation
-     */
-    public static CastOp cast(TypeDesc resultType, TypeDesc t, Value v) {
-        return new CastOp(t, v);
-    }
-
-    /**
      * Creates a var operation.
      *
      * @param init the initial value of the var
      * @return the var operation
      */
     public static VarOp var(Value init) {
-        return var(null, init.type(), init);
-    }
-
-    /**
-     * Creates a var operation.
-     *
-     * @param type the type of the var's value
-     * @param init the initial value of the var
-     * @return the var operation
-     */
-    public static VarOp var(TypeDesc type, Value init) {
-        return var(null, type, init);
+        return var(null, init);
     }
 
     /**
@@ -3483,19 +3453,7 @@ public final class CoreOps {
      * @return the var operation
      */
     public static VarOp var(String name, Value init) {
-        return var(name, init.type(), init);
-    }
-
-    /**
-     * Creates a var operation.
-     *
-     * @param name the name of the var
-     * @param type the type of the var's value
-     * @param init the initial value of the var
-     * @return the var operation
-     */
-    public static VarOp var(String name, TypeDesc type, Value init) {
-        return new VarOp(name, type, init);
+        return new VarOp(name, init);
     }
 
     /**
@@ -3573,19 +3531,7 @@ public final class CoreOps {
      * @return the add operation
      */
     public static BinaryOp add(Value lhs, Value rhs) {
-        return add(lhs.type(), lhs, rhs);
-    }
-
-    /**
-     * Creates an add operation.
-     *
-     * @param resultType the operation's result type
-     * @param lhs the first operand
-     * @param rhs the second operand
-     * @return the add operation
-     */
-    public static BinaryOp add(TypeDesc resultType, Value lhs, Value rhs) {
-        return new AddOp(resultType, lhs, rhs);
+        return new AddOp(lhs, rhs);
     }
 
     /**
@@ -3596,19 +3542,7 @@ public final class CoreOps {
      * @return the sub operation
      */
     public static BinaryOp sub(Value lhs, Value rhs) {
-        return sub(lhs.type(), lhs, rhs);
-    }
-
-    /**
-     * Creates a sub operation.
-     *
-     * @param resultType the operation's result type
-     * @param lhs the first operand
-     * @param rhs the second operand
-     * @return the sub operation
-     */
-    public static BinaryOp sub(TypeDesc resultType, Value lhs, Value rhs) {
-        return new SubOp(resultType, lhs, rhs);
+        return new SubOp(lhs, rhs);
     }
 
     /**
@@ -3619,19 +3553,7 @@ public final class CoreOps {
      * @return the mul operation
      */
     public static BinaryOp mul(Value lhs, Value rhs) {
-        return mul(lhs.type(), lhs, rhs);
-    }
-
-    /**
-     * Creates a mul operation.
-     *
-     * @param resultType the operation's result type
-     * @param lhs the first operand
-     * @param rhs the second operand
-     * @return the mul operation
-     */
-    public static BinaryOp mul(TypeDesc resultType, Value lhs, Value rhs) {
-        return new MulOp(resultType, lhs, rhs);
+        return new MulOp(lhs, rhs);
     }
 
     /**
@@ -3642,19 +3564,7 @@ public final class CoreOps {
      * @return the div operation
      */
     public static BinaryOp div(Value lhs, Value rhs) {
-        return div(lhs.type(), lhs, rhs);
-    }
-
-    /**
-     * Creates a div operation.
-     *
-     * @param resultType the operation's result type
-     * @param lhs the first operand
-     * @param rhs the second operand
-     * @return the div operation
-     */
-    public static BinaryOp div(TypeDesc resultType, Value lhs, Value rhs) {
-        return new DivOp(resultType, lhs, rhs);
+        return new DivOp(lhs, rhs);
     }
 
     /**
@@ -3665,21 +3575,8 @@ public final class CoreOps {
      * @return the mod operation
      */
     public static BinaryOp mod(Value lhs, Value rhs) {
-        return mod(lhs.type(), lhs, rhs);
+        return new ModOp(lhs, rhs);
     }
-
-    /**
-     * Creates a mod operation.
-     *
-     * @param resultType the operation's result type
-     * @param lhs the first operand
-     * @param rhs the second operand
-     * @return the mod operation
-     */
-    public static BinaryOp mod(TypeDesc resultType, Value lhs, Value rhs) {
-        return new ModOp(resultType, lhs, rhs);
-    }
-
 
     /**
      * Creates a neg operation.
