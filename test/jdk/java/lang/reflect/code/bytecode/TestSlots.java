@@ -99,6 +99,66 @@ public class TestSlots {
         }
     }
 
+    @CodeReflection
+    static int f4(/* Unused */ int a, int b) {
+        return b;
+    }
+
+    @Test
+    public void testF4() throws Throwable {
+        CoreOps.FuncOp f = getFuncOp("f4");
+
+        MethodHandle mh;
+        try {
+            mh = generate(f);
+        } catch (VerifyError e) {
+            Assert.fail("invalid class file generated", e);
+            return;
+        }
+
+        Assert.assertEquals(f4(1, 2), (int) mh.invoke(1, 2));
+    }
+
+    @CodeReflection
+    static int f5(/* Unused */ Object a, int b) {
+        return b;
+    }
+
+    @Test
+    public void testF5() throws Throwable {
+        CoreOps.FuncOp f = getFuncOp("f5");
+
+        MethodHandle mh;
+        try {
+            mh = generate(f);
+        } catch (VerifyError e) {
+            Assert.fail("invalid class file generated", e);
+            return;
+        }
+
+        Assert.assertEquals(f5(null, 2), (int) mh.invoke(null, 2));
+    }
+
+    @CodeReflection
+    int f6(/* Unused receiver parameter */ TestSlots this, int b) {
+        return b;
+    }
+
+    @Test
+    public void testF6() throws Throwable {
+        CoreOps.FuncOp f = getFuncOp("f6");
+
+        MethodHandle mh;
+        try {
+            mh = generate(f);
+        } catch (VerifyError e) {
+            Assert.fail("invalid class file generated", e);
+            return;
+        }
+
+        Assert.assertEquals(f6(2), (int) mh.invoke(/* receiver parameter */ this, 2));
+    }
+
     static MethodHandle generate(CoreOps.FuncOp f) {
         f.writeTo(System.out);
 

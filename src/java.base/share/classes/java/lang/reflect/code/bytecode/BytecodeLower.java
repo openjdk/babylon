@@ -125,6 +125,10 @@ public class BytecodeLower {
         }
 
         int getOrAssignSlot(Value v) {
+            return getOrAssignSlot(v, false);
+        }
+
+        int getOrAssignSlot(Value v, boolean forceUnused) {
             // If value is already active return slot
             Integer slotBox = liveSet.get(v);
             if (slotBox != null) {
@@ -138,7 +142,7 @@ public class BytecodeLower {
 
             // If no users then no slot is assigned
             Set<Op.Result> users = v.uses();
-            if (users.isEmpty()) {
+            if (!forceUnused && users.isEmpty()) {
                 // @@@
                 return -1;
             }
@@ -403,6 +407,9 @@ public class BytecodeLower {
         // Copy blocks, preserving topological order
         // Lowered blocks have no arguments
         c.mapBlock(r.entryBlock(), entryBlock);
+        // ensure all parameters of the entry block have their original slot
+        LiveSlotSet entrySlots = c.liveSlotSet(r.entryBlock());
+        r.entryBlock().parameters().forEach(p -> entrySlots.getOrAssignSlot(p, true));
         List<Block> blocks = r.blocks();
         for (Block b : blocks.subList(1, blocks.size())) {
             Block.Builder lb;
