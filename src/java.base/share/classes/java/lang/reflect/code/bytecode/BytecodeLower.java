@@ -33,6 +33,10 @@ import java.lang.reflect.code.Block;
 import java.lang.reflect.code.Body;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.analysis.Liveness;
+import java.lang.reflect.code.bytecode.BytecodeLower.ConditionalBranchConsumer;
+import java.lang.reflect.code.bytecode.BytecodeLower.ExceptionRegionNode;
+import java.lang.reflect.code.bytecode.BytecodeLower.LiveSlotSet;
+import java.lang.reflect.code.bytecode.BytecodeLower.LoweringContext;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.descriptor.MethodDesc;
@@ -128,7 +132,7 @@ public class BytecodeLower {
             return getOrAssignSlot(v, false);
         }
 
-        int getOrAssignSlot(Value v, boolean forceUnused) {
+        int getOrAssignSlot(Value v, boolean assignIfUnused) {
             // If value is already active return slot
             Integer slotBox = liveSet.get(v);
             if (slotBox != null) {
@@ -142,7 +146,7 @@ public class BytecodeLower {
 
             // If no users then no slot is assigned
             Set<Op.Result> users = v.uses();
-            if (!forceUnused && users.isEmpty()) {
+            if (!assignIfUnused && users.isEmpty()) {
                 // @@@
                 return -1;
             }
@@ -260,8 +264,12 @@ public class BytecodeLower {
             return liveSlotSet().assignSlot(v);
         }
 
+        int getOrAssignSlot(Value v, boolean assignIfUnused) {
+            return liveSlotSet().getOrAssignSlot(v, assignIfUnused);
+        }
+
         int getOrAssignSlot(Value v) {
-            return liveSlotSet().getOrAssignSlot(v);
+            return getOrAssignSlot(v, false);
         }
 
         void freeSlot(Value v) {
@@ -407,9 +415,6 @@ public class BytecodeLower {
         // Copy blocks, preserving topological order
         // Lowered blocks have no arguments
         c.mapBlock(r.entryBlock(), entryBlock);
-        // ensure all parameters of the entry block have their original slot
-        LiveSlotSet entrySlots = c.liveSlotSet(r.entryBlock());
-        r.entryBlock().parameters().forEach(p -> entrySlots.getOrAssignSlot(p, true));
         List<Block> blocks = r.blocks();
         for (Block b : blocks.subList(1, blocks.size())) {
             Block.Builder lb;
@@ -486,8 +491,9 @@ public class BytecodeLower {
                 }
             }
 
-            // Assign slots to block arguments
-            b.parameters().forEach(c::getOrAssignSlot);
+            // If b is the entry block then all its parameters conservatively require slots
+            // Some unused parameters might be declared before others that are used
+            b.parameters().forEach(p -> c.getOrAssignSlot(p, pb == null));
 
             // If b is a catch block then the exception argument will be represented on the stack
             if (c.catchingBlocks.contains(b)) {

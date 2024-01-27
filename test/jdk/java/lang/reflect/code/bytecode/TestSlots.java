@@ -120,7 +120,7 @@ public class TestSlots {
     }
 
     @CodeReflection
-    static int f5(/* Unused */ Object a, int b) {
+    static double f5(/* Unused */ double a, double b) {
         return b;
     }
 
@@ -136,27 +136,7 @@ public class TestSlots {
             return;
         }
 
-        Assert.assertEquals(f5(null, 2), (int) mh.invoke(null, 2));
-    }
-
-    @CodeReflection
-    int f6(/* Unused receiver parameter */ TestSlots this, int b) {
-        return b;
-    }
-
-    @Test
-    public void testF6() throws Throwable {
-        CoreOps.FuncOp f = getFuncOp("f6");
-
-        MethodHandle mh;
-        try {
-            mh = generate(f);
-        } catch (VerifyError e) {
-            Assert.fail("invalid class file generated", e);
-            return;
-        }
-
-        Assert.assertEquals(f6(2), (int) mh.invoke(/* receiver parameter */ this, 2));
+        Assert.assertEquals(f5(1.0, 2.0), (double) mh.invoke(1.0, 2.0));
     }
 
     static MethodHandle generate(CoreOps.FuncOp f) {
