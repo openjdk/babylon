@@ -99,6 +99,46 @@ public class TestSlots {
         }
     }
 
+    @CodeReflection
+    static int f4(/* Unused */ int a, int b) {
+        return b;
+    }
+
+    @Test
+    public void testF4() throws Throwable {
+        CoreOps.FuncOp f = getFuncOp("f4");
+
+        MethodHandle mh;
+        try {
+            mh = generate(f);
+        } catch (VerifyError e) {
+            Assert.fail("invalid class file generated", e);
+            return;
+        }
+
+        Assert.assertEquals(f4(1, 2), (int) mh.invoke(1, 2));
+    }
+
+    @CodeReflection
+    static double f5(/* Unused */ double a, double b) {
+        return b;
+    }
+
+    @Test
+    public void testF5() throws Throwable {
+        CoreOps.FuncOp f = getFuncOp("f5");
+
+        MethodHandle mh;
+        try {
+            mh = generate(f);
+        } catch (VerifyError e) {
+            Assert.fail("invalid class file generated", e);
+            return;
+        }
+
+        Assert.assertEquals(f5(1.0, 2.0), (double) mh.invoke(1.0, 2.0));
+    }
+
     static MethodHandle generate(CoreOps.FuncOp f) {
         f.writeTo(System.out);
 
