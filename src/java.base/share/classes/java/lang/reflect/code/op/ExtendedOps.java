@@ -698,7 +698,7 @@ public class ExtendedOps {
     public static final class JavaSwitchExpressionOp extends OpWithDefinition implements Op.Nested, Op.Lowerable {
         public static final String NAME = "java.switch.expression";
 
-        final TypeDesc type;
+        final TypeDesc resultType;
         final List<Body> bodies;
 
         public JavaSwitchExpressionOp(OpDefinition def) {
@@ -711,7 +711,7 @@ public class ExtendedOps {
             // @@@ Validate
 
             this.bodies = def.bodyDefinitions().stream().map(bd -> bd.build(this)).toList();
-            this.type = def.resultType();
+            this.resultType = def.resultType();
         }
 
         JavaSwitchExpressionOp(JavaSwitchExpressionOp that, CopyContext cc, OpTransformer ot) {
@@ -720,7 +720,7 @@ public class ExtendedOps {
             // Copy body
             this.bodies = that.bodies.stream()
                     .map(b -> b.transform(cc, ot).build(this)).toList();
-            this.type = that.type;
+            this.resultType = that.resultType;
         }
 
         @Override
@@ -728,7 +728,7 @@ public class ExtendedOps {
             return new JavaSwitchExpressionOp(this, cc, ot);
         }
 
-        JavaSwitchExpressionOp(TypeDesc type, Value target, List<Body.Builder> bodyCs) {
+        JavaSwitchExpressionOp(TypeDesc resultType, Value target, List<Body.Builder> bodyCs) {
             super(NAME, List.of(target));
 
             // Each case is modelled as a contiguous pair of bodies
@@ -737,9 +737,8 @@ public class ExtendedOps {
             // The statements/expression body has no parameters and returns the result whose type is the result of
             // the switch expression
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
-            // I kept this for now to not affect code in ReflectMethods,
-            // but I think resultType can be computed using: bodies.get(1).yieldType();
-            this.type = type;
+            // @@@ when resultType is null, we assume statements/expressions bodies have the same yieldType
+            this.resultType = resultType == null ? bodies.get(1).yieldType() : resultType;
         }
 
         @Override
@@ -754,7 +753,7 @@ public class ExtendedOps {
 
         @Override
         public TypeDesc resultType() {
-            return type;
+            return resultType;
         }
     }
 
@@ -1861,9 +1860,8 @@ public class ExtendedOps {
             super(NAME, List.of());
 
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
-            // I kept this, to not affect code in ReflectMethods
-            // I think it can be removed and resultType can be computed using: bodies().get(1).yieldType()
-            this.resultType = expressionType;
+            // @@@ when expressionType is null, we assume truepart and falsepart have the same yieldType
+            this.resultType = expressionType == null ? bodies.get(1).yieldType() : expressionType;
 
             if (bodies.size() < 3) {
                 throw new IllegalArgumentException("Incorrect number of bodies: " + bodies.size());
@@ -2842,13 +2840,25 @@ public class ExtendedOps {
 
     /**
      * Creates a switch expression operation.
-     * @param type the result type of the expression
+     *
      * @param target the switch target value
      * @param bodies the body builders of the operation to be built and become its children
      * @return the switch expression operation
      */
-    public static JavaSwitchExpressionOp switchExpression(TypeDesc type, Value target, List<Body.Builder> bodies) {
-        return new JavaSwitchExpressionOp(type, target, bodies);
+    public static JavaSwitchExpressionOp switchExpression(Value target, List<Body.Builder> bodies) {
+        return new JavaSwitchExpressionOp(null, target, bodies);
+    }
+
+    /**
+     * Creates a switch expression operation.
+     *
+     * @param resultType the result type of the expression
+     * @param target the switch target value
+     * @param bodies the body builders of the operation to be built and become its children
+     * @return the switch expression operation
+     */
+    public static JavaSwitchExpressionOp switchExpression(TypeDesc resultType, Value target, List<Body.Builder> bodies) {
+        return new JavaSwitchExpressionOp(resultType, target, bodies);
     }
 
     /**
@@ -3021,11 +3031,21 @@ public class ExtendedOps {
 
     /**
      * Creates a conditional operation
+     * @param expressionType the result type of the expression
      * @param bodies the body builders of operation to be built and become its children
      * @return the conditional operation
      */
     public static JavaConditionalExpressionOp conditionalExpression(TypeDesc expressionType, List<Body.Builder> bodies) {
         return new JavaConditionalExpressionOp(expressionType, bodies);
+    }
+
+    /**
+     * Creates a conditional operation
+     * @param bodies the body builders of operation to be built and become its children
+     * @return the conditional operation
+     */
+    public static JavaConditionalExpressionOp conditionalExpression(List<Body.Builder> bodies) {
+        return new JavaConditionalExpressionOp(null, bodies);
     }
 
     /**

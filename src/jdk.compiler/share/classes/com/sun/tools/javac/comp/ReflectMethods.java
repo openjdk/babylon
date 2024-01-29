@@ -681,7 +681,7 @@ public class ReflectMethods extends TreeTranslator {
             } else {
                 initOp = append(defaultValue(tree.type));
             }
-            result = append(CoreOps.var(tree.name.toString(), typeToDesc(tree.type), initOp));
+            result = append(CoreOps.var(tree.name.toString(), initOp));
             stack.localToOp.put(tree.sym, result);
         }
 
@@ -764,11 +764,11 @@ public class ReflectMethods extends TreeTranslator {
                 Value assignOpResult = switch (tree.getTag()) {
 
                     // Arithmetic operations
-                    case PLUS_ASG -> append(CoreOps.add(resultType, lhs, rhs));
-                    case MINUS_ASG -> append(CoreOps.sub(resultType, lhs, rhs));
-                    case MUL_ASG -> append(CoreOps.mul(resultType, lhs, rhs));
-                    case DIV_ASG -> append(CoreOps.div(resultType, lhs, rhs));
-                    case MOD_ASG -> append(CoreOps.mod(resultType, lhs, rhs));
+                    case PLUS_ASG -> append(CoreOps.add(lhs, rhs));
+                    case MINUS_ASG -> append(CoreOps.sub(lhs, rhs));
+                    case MUL_ASG -> append(CoreOps.mul(lhs, rhs));
+                    case DIV_ASG -> append(CoreOps.div(lhs, rhs));
+                    case MOD_ASG -> append(CoreOps.mod(lhs, rhs));
 
                     default -> throw unsupported(tree);
                 };
@@ -1159,7 +1159,7 @@ public class ReflectMethods extends TreeTranslator {
             // builder associated with the nearest statement tree
             for (JCVariableDecl jcVar : variables) {
                 Value init = variablesStack.block.op(defaultValue(jcVar.type));
-                Op.Result op = variablesStack.block.op(CoreOps.var(jcVar.name.toString(), typeToDesc(jcVar.type), init));
+                Op.Result op = variablesStack.block.op(CoreOps.var(jcVar.name.toString(), init));
                 variablesStack.localToOp.put(jcVar.sym, op);
             }
 
@@ -2021,11 +2021,11 @@ public class ReflectMethods extends TreeTranslator {
 
                 result = switch (tag) {
                     // Arithmetic operations
-                    case PLUS -> append(CoreOps.add(resultType, lhs, rhs));
-                    case MINUS -> append(CoreOps.sub(resultType, lhs, rhs));
-                    case MUL -> append(CoreOps.mul(resultType, lhs, rhs));
-                    case DIV -> append(CoreOps.div(resultType, lhs, rhs));
-                    case MOD -> append(CoreOps.mod(resultType, lhs, rhs));
+                    case PLUS -> append(CoreOps.add(lhs, rhs));
+                    case MINUS -> append(CoreOps.sub(lhs, rhs));
+                    case MUL -> append(CoreOps.mul(lhs, rhs));
+                    case DIV -> append(CoreOps.div(lhs, rhs));
+                    case MOD -> append(CoreOps.mod(lhs, rhs));
 
                     // Test operations
                     case EQ -> append(CoreOps.eq(lhs, rhs));

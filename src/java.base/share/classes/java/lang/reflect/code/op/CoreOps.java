@@ -179,7 +179,7 @@ public final class CoreOps {
 
         @Override
         public TypeDesc resultType() {
-            return body().yieldType();
+            return TypeDesc.VOID;
         }
     }
 
@@ -568,7 +568,7 @@ public final class CoreOps {
     }
 
     /**
-     * A synthetic closure type, that is the operation result-type of an closure operation.
+     * A synthetic closure type, that is the operation result-type of a closure operation.
      */
     // @@@: Maybe drop and move the constants elsewhere
     public interface Closure {
@@ -792,8 +792,7 @@ public final class CoreOps {
         }
 
         ReturnOp(Value operand) {
-            super(NAME,
-                    List.of(operand));
+            super(NAME, List.of(operand));
         }
 
         public Value returnValue() {
@@ -836,8 +835,7 @@ public final class CoreOps {
         }
 
         ThrowOp(Value e) {
-            super(NAME,
-                    List.of(e));
+            super(NAME, List.of(e));
         }
 
         public Value argument() {
@@ -877,8 +875,7 @@ public final class CoreOps {
         }
 
         UnreachableOp() {
-            super(NAME,
-                    List.of());
+            super(NAME, List.of());
         }
 
         @Override
@@ -915,8 +912,7 @@ public final class CoreOps {
         }
 
         YieldOp() {
-            super(NAME,
-                    List.of());
+            super(NAME, List.of());
         }
 
         YieldOp(List<Value> operands) {
@@ -971,8 +967,7 @@ public final class CoreOps {
         }
 
         BranchOp(Block.Reference successor) {
-            super(NAME,
-                    List.of());
+            super(NAME, List.of());
 
             this.b = successor;
         }
@@ -1030,8 +1025,7 @@ public final class CoreOps {
         }
 
         ConditionalBranchOp(Value p, Block.Reference t, Block.Reference f) {
-            super(NAME,
-                    List.of(p));
+            super(NAME, List.of(p));
 
             this.t = t;
             this.f = f;
@@ -1668,6 +1662,7 @@ public final class CoreOps {
 
             @Override
             public TypeDesc resultType() {
+                // resultType is void, but we still call resultType method because it has validations in it
                 Value array = operands().get(0);
                 Value value = operands().get(2);
                 return resultType(array, value);
@@ -1749,7 +1744,8 @@ public final class CoreOps {
         public static final String NAME = "cast";
         public static final String ATTRIBUTE_TYPE_DESCRIPTOR = NAME + ".descriptor";
 
-        final TypeDesc type;
+        final TypeDesc resultType;
+        final TypeDesc typeDescriptor;
 
         public static CastOp create(OpDefinition def) {
             if (def.operands().size() != 1) {
@@ -1765,16 +1761,18 @@ public final class CoreOps {
             return new CastOp(def, type);
         }
 
-        CastOp(OpDefinition def, TypeDesc type) {
+        CastOp(OpDefinition def, TypeDesc typeDescriptor) {
             super(def);
 
-            this.type = type;
+            this.resultType = def.resultType();
+            this.typeDescriptor = typeDescriptor;
         }
 
         CastOp(CastOp that, CopyContext cc) {
             super(that, cc);
 
-            this.type = that.type;
+            this.resultType = that.resultType;
+            this.typeDescriptor = that.typeDescriptor;
         }
 
         @Override
@@ -1782,26 +1780,27 @@ public final class CoreOps {
             return new CastOp(this, cc);
         }
 
-        CastOp(TypeDesc t, Value v) {
+        CastOp(TypeDesc resultType, TypeDesc t, Value v) {
             super(NAME, List.of(v));
 
-            this.type = t;
+            this.resultType = resultType;
+            this.typeDescriptor = t;
         }
 
         @Override
         public Map<String, Object> attributes() {
             HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put("", type);
+            m.put("", typeDescriptor);
             return Collections.unmodifiableMap(m);
         }
 
         public TypeDesc type() {
-            return type;
+            return typeDescriptor;
         }
 
         @Override
         public TypeDesc resultType() {
-            return type();
+            return resultType;
         }
     }
 
@@ -2216,7 +2215,7 @@ public final class CoreOps {
     }
 
     /**
-     * The tuple component load operation, that access the component of a tuple at a given, constant, component index.
+     * The tuple component set operation, that access the component of a tuple at a given, constant, component index.
      */
     @OpDeclaration(TupleWithOp.NAME)
     public static final class TupleWithOp extends OpWithDefinition {
@@ -3427,12 +3426,24 @@ public final class CoreOps {
     /**
      * Creates a cast operation.
      *
+     * @param resultType the result type of the operation
+     * @param v the value to cast
+     * @return the cast operation
+     */
+    public static CastOp cast(TypeDesc resultType, Value v) {
+        return new CastOp(resultType, resultType.rawType(), v);
+    }
+
+    /**
+     * Creates a cast operation.
+     *
+     * @param resultType the result type of the operation
      * @param t the type descriptor of the type to cast to
      * @param v the value to cast
      * @return the cast operation
      */
-    public static CastOp cast(TypeDesc t, Value v) {
-        return new CastOp(t, v);
+    public static CastOp cast(TypeDesc resultType, TypeDesc t, Value v) {
+        return new CastOp(resultType, t, v);
     }
 
     /**

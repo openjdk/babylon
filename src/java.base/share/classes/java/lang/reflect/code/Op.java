@@ -139,7 +139,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         final Op op;
 
         Result(Block block, Op op) {
-            super(block, op.resultType()); // we can call resultType
+            super(block, op.resultType());
 
             this.op = op;
         }
