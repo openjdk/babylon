@@ -38,6 +38,9 @@ import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDesc;
+import java.lang.constant.ConstantDescs;
+import java.lang.constant.DirectMethodHandleDesc;
+import java.lang.constant.MethodHandleDesc;
 import java.lang.reflect.code.Block;
 import java.lang.reflect.code.Body;
 import java.lang.reflect.code.op.CoreOps;
@@ -46,6 +49,9 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.code.Value;
+import java.lang.reflect.code.analysis.Liveness;
+import java.lang.reflect.code.descriptor.FieldDesc;
+import java.lang.reflect.code.descriptor.MethodDesc;
 import java.lang.reflect.code.descriptor.TypeDesc;
 import java.util.ArrayDeque;
 import java.util.BitSet;
@@ -96,11 +102,12 @@ public final class BytecodeGenerator {
         ClassPrinter.toYaml(cm, ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES, System.out::print);
     }
 
-    public static byte[] generateClassData(MethodHandles.Lookup l, CoreOps.FuncOp fop) {
-        String packageName = l.lookupClass().getPackageName();
+    public static byte[] generateClassData(MethodHandles.Lookup lookup, CoreOps.FuncOp fop) {
+        String packageName = lookup.lookupClass().getPackageName();
         String className = packageName.isEmpty()
                 ? fop.funcName()
                 : packageName + "." + fop.funcName();
+        Liveness liveness = new Liveness(fop);
         byte[] classBytes = ClassFile.of().build(ClassDesc.of(className),
                 clb -> {
                     clb.withMethodBody(
@@ -108,7 +115,7 @@ public final class BytecodeGenerator {
                             fop.funcDescriptor().toNominalDescriptor(),
                             ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC,
                             cob -> {
-                                ConversionContext c = new ConversionContext(cob);
+                                ConversionContext c = new ConversionContext(lookup, liveness, cob);
                                 generateBody(fop.body(), cob, c);
                             });
                 });
@@ -124,13 +131,17 @@ public final class BytecodeGenerator {
      */
 
     static final class ConversionContext implements BytecodeInstructionOps.MethodVisitorContext {
+        final MethodHandles.Lookup lookup;
+        final Liveness liveness;
         final CodeBuilder cb;
         final Deque<BytecodeInstructionOps.ExceptionTableStart> labelStack;
         final Map<Object, Label> labels;
         final Map<Block, LiveSlotSet> liveSet;
         Block current;
 
-        public ConversionContext(CodeBuilder cb) {
+        public ConversionContext(MethodHandles.Lookup lookup, Liveness liveness, CodeBuilder cb) {
+            this.lookup = lookup;
+            this.liveness = liveness;
             this.cb = cb;
             this.labelStack = new ArrayDeque<>();
             this.labels = new HashMap<>();
@@ -152,6 +163,10 @@ public final class BytecodeGenerator {
             liveSet.computeIfAbsent(current, b -> new LiveSlotSet());
         }
 
+        LiveSlotSet liveSlotSet(Block b) {
+            return liveSet.computeIfAbsent(b, _b -> new LiveSlotSet());
+        }
+
         LiveSlotSet liveSlotSet() {
             return liveSet.get(current);
         }
@@ -162,6 +177,34 @@ public final class BytecodeGenerator {
 
         int assignSlot(Value v) {
             return liveSlotSet().assignSlot(v);
+        }
+
+        void freeSlot(Value v) {
+            liveSlotSet().freeSlot(v);
+        }
+
+        boolean isLastUse(Value v, Op op) {
+            return liveness.isLastUse(v, op);
+        }
+
+        void freeSlotsOfOp(Op op) {
+            for (Value v : op.operands()) {
+                if (isLastUse(v, op)) {
+                    freeSlot(v);
+                }
+            }
+
+            for (Block.Reference s : op.successors()) {
+                for (Value v : s.arguments()) {
+                    if (isLastUse(v, op)) {
+                        freeSlot(v);
+                    }
+                }
+            }
+        }
+
+        void transitionLiveSlotSetTo(Block successor) {
+            liveSlotSet(successor).transitionLiveSlotSetFrom(liveSlotSet());
         }
     }
 
@@ -188,6 +231,35 @@ public final class BytecodeGenerator {
             case TypeDesc td -> td.toNominalDescriptor();
             default -> throw new IllegalArgumentException("Unsupported constant value: " + value);
         };
+    }
+
+    // Determines if the operation result used only by the next operation as the first operand
+    private static boolean isResultOnlyUse(Op.Result opr) {
+        Set<Op.Result> uses = opr.uses();
+        if (uses.size() != 1) {
+            return false;
+        }
+
+        // Pass over constant operations
+        Op.Result use = uses.iterator().next();
+        Op nextOp = opr.op();
+        do {
+            nextOp = opr.declaringBlock().nextOp(nextOp);
+        } while (nextOp instanceof CoreOps.ConstantOp);
+
+        if (nextOp == null || use != nextOp.result()) {
+            return false;
+        }
+
+        // Check if used in successor
+        for (Block.Reference s : nextOp.successors()) {
+            if (s.arguments().contains(opr)) {
+                return false;
+            }
+        }
+
+        List<Value> operands = nextOp.operands();
+        return !operands.isEmpty() && opr == operands.get(0);
     }
 
     private static boolean isConditionForCondBrOp(CoreOps.BinaryTestOp op) {
@@ -252,8 +324,10 @@ public final class BytecodeGenerator {
             List<Op> ops = b.ops();
             // True if the last result is retained on the stack for use as first operand of current operation
             boolean isLastOpResultOnStack = false;
+            Op.Result oprOnStack = null;
             for (int i = 0; i < ops.size() - 1; i++) {
-                switch (ops.get(i)) {
+                Op o = ops.get(i);
+                switch (o) {
                     case ConstantOp op -> {
                         if (op.resultType().equals(TypeDesc.J_L_CLASS)) {
                             // Loading a class constant may throw an exception so it cannot be deferred
@@ -378,12 +452,12 @@ public final class BytecodeGenerator {
                             if (vt == TypeKind.IntType) {
                                 // Inverse condition and ensure true block is the immediate successor
                                 cob.ifThenElse(switch (op) {
-                                    case EqOp o -> Opcode.IF_ICMPNE;
-                                    case NeqOp o -> Opcode.IF_ICMPEQ;
-                                    case GtOp o -> Opcode.IF_ICMPLE;
-                                    case GeOp o -> Opcode.IF_ICMPLT;
-                                    case LtOp o -> Opcode.IF_ICMPGE;
-                                    case LeOp o -> Opcode.IF_ICMPGT;
+                                    case EqOp _ -> Opcode.IF_ICMPNE;
+                                    case NeqOp _ -> Opcode.IF_ICMPEQ;
+                                    case GtOp _ -> Opcode.IF_ICMPLE;
+                                    case GeOp _ -> Opcode.IF_ICMPLT;
+                                    case LtOp _ -> Opcode.IF_ICMPGE;
+                                    case LeOp _ -> Opcode.IF_ICMPGT;
                                     default ->
                                         throw new UnsupportedOperationException(op.opName());
                                 }, CodeBuilder::iconst_1, CodeBuilder::iconst_0);
@@ -397,66 +471,200 @@ public final class BytecodeGenerator {
                                 }
                                 // Inverse condition and ensure true block is the immediate successor
                                 cob.ifThenElse(switch (op) {
-                                    case EqOp o -> Opcode.IFNE;
-                                    case NeqOp o -> Opcode.IFEQ;
-                                    case GtOp o -> Opcode.IFLE;
-                                    case GeOp o -> Opcode.IFLT;
-                                    case LtOp o -> Opcode.IFGE;
-                                    case LeOp o -> Opcode.IFGT;
+                                    case EqOp _ -> Opcode.IFNE;
+                                    case NeqOp _ -> Opcode.IFEQ;
+                                    case GtOp _ -> Opcode.IFLE;
+                                    case GeOp _ -> Opcode.IFLT;
+                                    case LtOp _ -> Opcode.IFGE;
+                                    case LeOp _ -> Opcode.IFGT;
                                     default ->
                                         throw new UnsupportedOperationException(op.opName());
                                 }, CodeBuilder::iconst_1, CodeBuilder::iconst_0);
                             }
-                        }//else {
-                          // Processing is deferred to the CondBrOp, do not process the op result
+                        }// else {
+                         // Processing is deferred to the CondBrOp, do not process the op result
                     }
+                    case NewOp op -> {
+                        TypeDesc t = op.constructorDescriptor().returnType();
+                        switch (t.dimensions()) {
+                            case 0 -> {
+                                if (isLastOpResultOnStack) {
+                                    int slot = c.assignSlot(oprOnStack);
+                                    cob.storeInstruction(toTypeKind(op.resultType()), slot);
+                                    isLastOpResultOnStack = false;
+                                    oprOnStack = null;
+                                }
+                                cob.new_(t.toNominalDescriptor())
+                                   .dup();
+                                processOperands(cob, c, op, false);
+                                cob.invokespecial(op.resultType().toNominalDescriptor(), ConstantDescs.INIT_NAME, op.constructorDescriptor().toNominalDescriptor());
+                            }
+                            case 1 -> {
+                                processOperands(cob, c, op, isLastOpResultOnStack);
+                                ClassDesc ctd = t.componentType().toNominalDescriptor();
+                                if (ctd.isPrimitive()) {
+                                    cob.newarray(TypeKind.from(ctd));
+                                } else {
+                                    cob.anewarray(ctd);
+                                }
+                            }
+                            default -> {
+                                processOperands(cob, c, op, isLastOpResultOnStack);
+                                cob.multianewarray(t.toNominalDescriptor(), op.operands().size());
+                            }
+                        }
+                    }
+                    case InvokeOp op -> {
+                        processOperands(cob, c, op, isLastOpResultOnStack);
+                        // @@@ Enhance method descriptor to include how the method is to be invoked
+                        // Example result of DirectMethodHandleDesc.toString()
+                        //   INTERFACE_VIRTUAL/IntBinaryOperator::applyAsInt(IntBinaryOperator,int,int)int
+                        // This will avoid the need to reflectively operate on the descriptor
+                        // which may be insufficient in certain cases.
+                        DirectMethodHandleDesc.Kind descKind;
+                        try {
+                            descKind = resolveToMethodHandleDesc(c.lookup, op.invokeDescriptor()).kind();
+                        } catch (ReflectiveOperationException e) {
+                            // @@@ Approximate fallback
+                            if (op.hasReceiver()) {
+                                descKind = DirectMethodHandleDesc.Kind.VIRTUAL;
+                            } else {
+                                descKind = DirectMethodHandleDesc.Kind.STATIC;
+                            }
+                        }
+                        MethodDesc md = op.invokeDescriptor();
+                        cob.invokeInstruction(
+                                switch (descKind) {
+                                    case STATIC, INTERFACE_STATIC   -> Opcode.INVOKESTATIC;
+                                    case VIRTUAL                    -> Opcode.INVOKEVIRTUAL;
+                                    case INTERFACE_VIRTUAL          -> Opcode.INVOKEINTERFACE;
+                                    case SPECIAL, INTERFACE_SPECIAL -> Opcode.INVOKESPECIAL;
+                                    default ->
+                                        throw new IllegalStateException("Bad method descriptor resolution: " + op.descriptor() + " > " + op.invokeDescriptor());
+                                },
+                                md.refType().toNominalDescriptor(),
+                                md.name(),
+                                md.type().toNominalDescriptor(),
+                                switch (descKind) {
+                                    case INTERFACE_STATIC, INTERFACE_VIRTUAL, INTERFACE_SPECIAL -> true;
+                                    default -> false;
+                                });
 
-//                    case FuncCallOp op -> {}
-//                    case ModuleOp op -> {}
-//                    case QuotedOp op -> {}
-//                    case LambdaOp op -> {}
-//                    case ClosureOp op -> {}
-//                    case ClosureCallOp op -> {}
-//                    case ReturnOp op -> {}
-//                    case ThrowOp op -> {}
-//                    case UnreachableOp op -> {}
-//                    case YieldOp op -> {}
-//                    case BranchOp op -> {}
-//                    case ConditionalBranchOp op -> {}
-//                    case InvokeOp op -> {}
-//                    case ConvOp op -> {}
-//                    case NewOp op -> {}
-//                    case FieldAccessOp.FieldLoadOp op -> {}
-//                    case FieldAccessOp.FieldStoreOp op -> {}
-//                    case InstanceOfOp op -> {}
-//                    case CastOp op -> {}
-//                    case VarAccessOp.VarLoadOp op -> {}
-//                    case VarAccessOp.VarStoreOp op -> {}
-//                    case TupleOp op -> {}
-//                    case TupleLoadOp op -> {}
-//                    case TupleWithOp op -> {}
+                        if (op.resultType().equals(TypeDesc.VOID) && !op.operands().isEmpty()) {
+                            isLastOpResultOnStack = false;
+                        }
+                    }
+                    case FieldAccessOp.FieldLoadOp op -> {
+                        processOperands(cob, c, op, isLastOpResultOnStack);
+                        FieldDesc fd = op.fieldDescriptor();
+                        if (op.operands().isEmpty()) {
+                            cob.getstatic(fd.refType().toNominalDescriptor(), fd.name(), fd.type().toNominalDescriptor());
+                        } else {
+                            cob.getfield(fd.refType().toNominalDescriptor(), fd.name(), fd.type().toNominalDescriptor());
+                        }
+                    }
+                    case FieldAccessOp.FieldStoreOp op -> {
+                        processOperands(cob, c, op, isLastOpResultOnStack);
+                        isLastOpResultOnStack = false;
+                        FieldDesc fd = op.fieldDescriptor();
+                        if (op.operands().size() == 1) {
+                            cob.putstatic(fd.refType().toNominalDescriptor(), fd.name(), fd.type().toNominalDescriptor());
+                        } else {
+                            cob.putfield(fd.refType().toNominalDescriptor(), fd.name(), fd.type().toNominalDescriptor());
+                        }
+                    }
+                    case InstanceOfOp op -> {
+                        processOperands(cob, c, op, isLastOpResultOnStack);
+                        cob.instanceof_(op.type().toNominalDescriptor());
+                    }
+                    case CastOp op -> {
+                        processOperands(cob, c, op, isLastOpResultOnStack);
+                        cob.checkcast(op.type().toNominalDescriptor());
+                    }
                     default ->
                         throw new UnsupportedOperationException("Unsupported operation: " + ops.get(i));
                 }
+                // Free up slots for values that are no longer live
+                c.freeSlotsOfOp(o);
+                // Assign slot to operation result
+                if (!o.resultType().equals(TypeDesc.VOID)) {
+                    if (!isResultOnlyUse(o.result())) {
+                        isLastOpResultOnStack = false;
+                        oprOnStack = null;
+                        int slot = c.assignSlot(o.result());
+                        cob.storeInstruction(toTypeKind(o.resultType()), slot);
+                    } else {
+                        isLastOpResultOnStack = true;
+                        oprOnStack = o.result();
+                    }
+                }
             }
-
-//            Op top = b.terminatingOp();
-//            if (top instanceof BytecodeInstructionOps.GotoInstructionOp inst) {
-//                Block s = inst.successors().get(0).targetBlock();
-//                int bi = blocks.indexOf(b);
-//                int si = blocks.indexOf(s);
-//                // If successor occurs immediately after this block,
-//                // then no need for goto instruction
-//                if (bi != si - 1) {
-//                    inst.apply(mv, c);
+            Op top = b.terminatingOp();
+            c.freeSlotsOfOp(top);
+            switch (top) {
+                case CoreOps.ReturnOp op -> {
+                    Value a = op.returnValue();
+                    if (a == null) {
+                        cob.return_();
+                    } else {
+                        processOperands(cob, c, op, isLastOpResultOnStack);
+                        cob.returnInstruction(toTypeKind(a.type()));
+                    }
+                }
+                case ThrowOp op -> {
+                    processOperands(cob, c, op, isLastOpResultOnStack);
+                    cob.athrow();
+                }
+                case BranchOp op -> {
+                    assignBlockArguments(op, op.branch(), cob, c);
+                    int bi = blocks.indexOf(b);
+                    int si = blocks.indexOf(op.branch().targetBlock());
+                    // If successor occurs immediately after this block,
+                    // then no need for goto instruction
+                    if (bi != si - 1) {
+                        cob.goto_(c.getLabel(op.branch()));
+                    }
+                }
+                case ConditionalBranchOp op -> {
+//                if (getConditionForCondBrOp(cop) instanceof CoreOps.BinaryTestOp btop) {
+//                    // Processing of the BinaryTestOp was deferred, so it can be merged with CondBrOp
+//                    conditionalBranch(lb, btop, cop, c, isLastOpResultOnStack,
+//                            (_lb, tBlock, fBlock) -> {
+//                                // Inverse condition and ensure true block is the immediate successor, in sequence, of lb
+//                                var vt = toTypeKind(btop.operands().get(0).type());
+//                                var cond = toComparisonType(btop).inverse();
+//                                if (vt == TypeKind.IntType) {
+//                                    _lb.op(BytecodeInstructionOps.if_cmp(TypeKind.IntType, cond, fBlock.successor(), tBlock.successor()));
+//                                } else {
+//                                    _lb.op(BytecodeInstructionOps.cmp(vt));
+//                                    _lb.op(BytecodeInstructionOps._if(cond, fBlock.successor(), tBlock.successor()));
+//                                }
+//                            });
+//
+//                } else {
+//                    conditionalBranch(lb, cop, cop, c, isLastOpResultOnStack,
+//                            (_lb, tBlock, fBlock) -> {
+//                                _lb.op(BytecodeInstructionOps._if(BytecodeInstructionOps.Comparison.EQ, fBlock.successor(), tBlock.successor()));
+//                            });
 //                }
-//            } else if (top instanceof BytecodeInstructionOps.TerminatingInstructionOp inst) {
-//                inst.apply(mv, c);
-//            } else if (top instanceof BytecodeInstructionOps.ControlInstructionOp inst) {
-//                inst.apply(mv, c);
-//            } else {
-//                throw new UnsupportedOperationException("Unsupported operation: " + top.opName());
-//            }
+                }
+                case ExceptionRegionEnter op -> {
+//                assignBlockArguments(er, er.start(), lb, c);
+//                lb.op(BytecodeInstructionOps.exceptionTableStart(c.getLoweredBlock(er.start().targetBlock()).successor(),
+//                        er.catchBlocks().stream().map(b1 -> c.getLoweredBlock(b1.targetBlock()).successor()).toList()));
+//
+//                for (Block.Reference catchBlock : er.catchBlocks()) {
+//                    c.transitionLiveSlotSetTo(catchBlock.targetBlock());
+//                }
+                }
+                case ExceptionRegionExit op -> {
+//                assignBlockArguments(er, er.end(), lb, c);
+//                lb.op(BytecodeInstructionOps.exceptionTableEnd());
+//                lb.op(BytecodeInstructionOps._goto(c.getLoweredBlock(er.end().targetBlock()).successor()));
+                }
+                default ->
+                    throw new UnsupportedOperationException("Terminating operation not supported: " + top);
+            }
         }
     }
 
@@ -594,5 +802,76 @@ public final class BytecodeGenerator {
                     ? 2
                     : 1;
         }
+    }
+
+    private static void assignBlockArguments(Op op, Block.Reference s, CodeBuilder cob, ConversionContext c) {
+        List<Value> sargs = s.arguments();
+        List<Block.Parameter> bargs = s.targetBlock().parameters();
+
+        // Transition over live-out to successor block
+        // All predecessors of successor will have the same live-out set so it does not
+        // matter which predecessor performs this action
+        c.transitionLiveSlotSetTo(s.targetBlock());
+
+        // First push successor arguments on the stack, then pop and assign
+        // so as not to overwrite slots that are reused slots at different argument positions
+
+        // Push successor values on the stack
+        for (int i = 0; i < bargs.size(); i++) {
+            Block.Parameter barg = bargs.get(i);
+            int bslot = c.liveSlotSet(s.targetBlock()).getOrAssignSlot(barg);
+
+            Value value = sargs.get(i);
+            if (value instanceof Op.Result or &&
+                    or.op() instanceof CoreOps.ConstantOp constantOp &&
+                    !constantOp.resultType().equals(TypeDesc.J_L_CLASS)) {
+                cob.ldc(fromValue(constantOp.value()));
+            } else {
+                int sslot = c.getSlot(value);
+
+                // Assignment only required if slots differ
+                if (sslot != bslot) {
+                    TypeKind vt = toTypeKind(barg.type());
+                    cob.loadInstruction(vt, sslot);
+                }
+            }
+        }
+
+        // Pop successor arguments on the stack assigning to block argument slots if necessary
+        for (int i = bargs.size() - 1; i >= 0; i--) {
+            Block.Parameter barg = bargs.get(i);
+            int bslot = c.liveSlotSet(s.targetBlock()).getOrAssignSlot(barg);
+
+            Value value = sargs.get(i);
+            if (value instanceof Op.Result or &&
+                    or.op() instanceof CoreOps.ConstantOp constantOp &&
+                    !constantOp.resultType().equals(TypeDesc.J_L_CLASS)) {
+                TypeKind vt = toTypeKind(barg.type());
+                cob.storeInstruction(vt, bslot);
+            } else {
+                int sslot = c.getSlot(value);
+
+                // Assignment only required if slots differ
+                if (sslot != bslot) {
+                    TypeKind vt = toTypeKind(barg.type());
+                    cob.storeInstruction(vt, bslot);
+                }
+            }
+        }
+    }
+
+    static DirectMethodHandleDesc resolveToMethodHandleDesc(MethodHandles.Lookup l, MethodDesc d) throws ReflectiveOperationException {
+        MethodHandle mh = d.resolve(l);
+
+        if (mh.describeConstable().isEmpty()) {
+            throw new NoSuchMethodException();
+        }
+
+        MethodHandleDesc mhd = mh.describeConstable().get();
+        if (!(mhd instanceof DirectMethodHandleDesc dmhd)) {
+            throw new NoSuchMethodException();
+        }
+
+        return dmhd;
     }
 }
