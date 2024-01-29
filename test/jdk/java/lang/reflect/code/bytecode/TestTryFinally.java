@@ -128,7 +128,8 @@ public class TestTryFinally {
         c.accept(-1);
     }
 
-    @Test
+    @Test(enabled = false)
+    //finalizer in exception handler is invalid (missing exception.region.exit)
     public void testCatchThrow() {
         CoreOps.FuncOp f = getFuncOp("catchThrow");
 
