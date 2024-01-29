@@ -57,15 +57,19 @@ import java.lang.reflect.code.Op;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.lang.reflect.code.Block.Reference;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.analysis.Liveness;
 import java.lang.reflect.code.descriptor.FieldDesc;
 import java.lang.reflect.code.descriptor.MethodDesc;
 import java.lang.reflect.code.descriptor.TypeDesc;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -162,6 +166,8 @@ public final class BytecodeGenerator {
         final Map<Object, Label> labels;
         final Map<Block, LiveSlotSet> liveSet;
         Block current;
+        final Set<Block> catchingBlocks;
+        final Map<Block, ExceptionRegionNode> coveredBlocks;
 
         public ConversionContext(MethodHandles.Lookup lookup, Liveness liveness, CodeBuilder cb) {
             this.lookup = lookup;
@@ -170,6 +176,8 @@ public final class BytecodeGenerator {
             this.labelStack = new ArrayDeque<>();
             this.labels = new HashMap<>();
             this.liveSet = new HashMap<>();
+            this.catchingBlocks = new HashSet<>();
+            this.coveredBlocks = new HashMap<>();
         }
 
         @Override
@@ -332,7 +340,89 @@ public final class BytecodeGenerator {
         }
     }
 
+    record ExceptionRegionNode(CoreOps.ExceptionRegionEnter ere, int size, ExceptionRegionNode next) {
+    }
+
+    static final ExceptionRegionNode NIL = new ExceptionRegionNode(null, 0, null);
+
+    private static void computeExceptionRegionMembership(Body r, ConversionContext c) {
+        Set<Block> visited = new HashSet<>();
+        Deque<Block> stack = new ArrayDeque<>();
+        stack.push(r.entryBlock());
+
+        // Set of catching blocks
+        Set<Block> catchingBlocks = c.catchingBlocks;
+        // Map of block to stack of covered exception regions
+        Map<Block, ExceptionRegionNode> coveredBlocks = c.coveredBlocks;
+        // Compute exception region membership
+        while (!stack.isEmpty()) {
+            Block b = stack.pop();
+            if (!visited.add(b)) {
+                continue;
+            }
+
+            Op top = b.terminatingOp();
+            ExceptionRegionNode bRegions = coveredBlocks.get(b);
+            if (top instanceof CoreOps.BranchOp bop) {
+                if (bRegions != null) {
+                    coveredBlocks.put(bop.branch().targetBlock(), bRegions);
+                }
+
+                stack.push(bop.branch().targetBlock());
+            } else if (top instanceof CoreOps.ConditionalBranchOp cop) {
+                if (bRegions != null) {
+                    coveredBlocks.put(cop.falseBranch().targetBlock(), bRegions);
+                    coveredBlocks.put(cop.trueBranch().targetBlock(), bRegions);
+                }
+
+                stack.push(cop.falseBranch().targetBlock());
+                stack.push(cop.trueBranch().targetBlock());
+            } else if (top instanceof CoreOps.ExceptionRegionEnter er) {
+                ArrayList<Block.Reference> catchBlocks = new ArrayList<>(er.catchBlocks());
+                Collections.reverse(catchBlocks);
+                for (Block.Reference catchBlock : catchBlocks) {
+                    catchingBlocks.add(catchBlock.targetBlock());
+                    if (bRegions != null) {
+                        coveredBlocks.put(catchBlock.targetBlock(), bRegions);
+                    }
+
+                    stack.push(catchBlock.targetBlock());
+                }
+
+                ExceptionRegionNode n;
+                if (bRegions != null) {
+                    n = new ExceptionRegionNode(er, bRegions.size + 1, bRegions);
+                } else {
+                    n = new ExceptionRegionNode(er, 1, NIL);
+                }
+                coveredBlocks.put(er.start().targetBlock(), n);
+
+                stack.push(er.start().targetBlock());
+            } else if (top instanceof CoreOps.ExceptionRegionExit er) {
+                assert bRegions != null;
+
+                if (bRegions.size() > 1) {
+                    coveredBlocks.put(er.end().targetBlock(), bRegions.next());
+                }
+
+                stack.push(er.end().targetBlock());
+            }
+        }
+    }
+
+    private static void branch(CodeBuilder cob, ConversionContext c, List<Block> blocks, Block source, Block target) {
+        int bi = blocks.indexOf(source);
+        int si = blocks.indexOf(target);
+        // If successor occurs immediately after this block,
+        // then no need for goto instruction
+        if (bi != si - 1) {
+            cob.goto_(c.getLabel(target));
+        }
+    }
+
     private static void generateBody(Body body, CodeBuilder cob, ConversionContext c) {
+        computeExceptionRegionMembership(body, c);
+
         // Process blocks in topological order
         // A jump instruction assumes the false successor block is
         // immediately after, in sequence, to the predecessor
@@ -351,6 +441,21 @@ public final class BytecodeGenerator {
 
             // Assign slots to block arguments
             b.parameters().forEach(c::getOrAssignSlot);
+
+            // If b is a catch block then the exception argument will be represented on the stack
+            if (c.catchingBlocks.contains(b)) {
+                // Retain block argument for exception table generation
+                Block.Parameter ex = b.parameters().get(0);
+//                clb.parameter(ex.type());
+
+                // Store in slot if used, otherwise pop
+                if (!ex.uses().isEmpty()) {
+                    int slot = c.getSlot(ex);
+                    cob.storeInstruction(toTypeKind(ex.type()), slot);
+                } else {
+                    cob.pop();
+                }
+            }
 
             List<Op> ops = b.ops();
             // True if the last result is retained on the stack for use as first operand of current operation
@@ -627,13 +732,7 @@ public final class BytecodeGenerator {
                 }
                 case BranchOp op -> {
                     assignBlockArguments(op, op.branch(), cob, c);
-                    int bi = blocks.indexOf(b);
-                    int si = blocks.indexOf(op.branch().targetBlock());
-                    // If successor occurs immediately after this block,
-                    // then no need for goto instruction
-                    if (bi != si - 1) {
-                        cob.goto_(c.getLabel(op.branch().targetBlock()));
-                    }
+                    branch(cob, c, blocks, b, op.branch().targetBlock());
                 }
                 case ConditionalBranchOp op -> {
                     if (getConditionForCondBrOp(op) instanceof CoreOps.BinaryTestOp btop) {
@@ -642,38 +741,46 @@ public final class BytecodeGenerator {
                         conditionalBranch(cob, btop,
                                 trueBuilder -> {
                                     assignBlockArguments(btop, op.trueBranch(), trueBuilder, c);
-                                    trueBuilder.goto_(c.getLabel(op.trueBranch().targetBlock()));
+                                    branch(trueBuilder, c, blocks, b, op.trueBranch().targetBlock());
                                 },
                                 falseBuilder -> {
                                     assignBlockArguments(btop, op.falseBranch(), falseBuilder, c);
-                                    falseBuilder.goto_(c.getLabel(op.falseBranch().targetBlock()));
+                                    branch(falseBuilder, c, blocks, b, op.falseBranch().targetBlock());
                                 });
                     } else {
                         processOperands(cob, c, op, isLastOpResultOnStack);
                         cob.ifThenElse(
                                 trueBuilder -> {
                                     assignBlockArguments(op, op.trueBranch(), trueBuilder, c);
-                                    trueBuilder.goto_(c.getLabel(op.trueBranch().targetBlock()));
+                                    branch(trueBuilder, c, blocks, b, op.trueBranch().targetBlock());
                                 },
                                 falseBuilder -> {
                                     assignBlockArguments(op, op.falseBranch(), falseBuilder, c);
-                                    falseBuilder.goto_(c.getLabel(op.falseBranch().targetBlock()));
+                                    branch(falseBuilder, c, blocks, b, op.falseBranch().targetBlock());
                                 });
                     }
                 }
                 case ExceptionRegionEnter op -> {
-//                assignBlockArguments(er, er.start(), lb, c);
-//                lb.op(BytecodeInstructionOps.exceptionTableStart(c.getLoweredBlock(er.start().targetBlock()).successor(),
-//                        er.catchBlocks().stream().map(b1 -> c.getLoweredBlock(b1.targetBlock()).successor()).toList()));
-//
-//                for (Block.Reference catchBlock : er.catchBlocks()) {
-//                    c.transitionLiveSlotSetTo(catchBlock.targetBlock());
-//                }
+                    assignBlockArguments(op, op.start(), cob, c);
+                    for (Block.Reference catchBlock : op.catchBlocks()) {
+                        c.transitionLiveSlotSetTo(catchBlock.targetBlock());
+                    }
                 }
                 case ExceptionRegionExit op -> {
-//                assignBlockArguments(er, er.end(), lb, c);
-//                lb.op(BytecodeInstructionOps.exceptionTableEnd());
-//                lb.op(BytecodeInstructionOps._goto(c.getLoweredBlock(er.end().targetBlock()).successor()));
+                    assignBlockArguments(op, op.end(), cob, c);
+                    ExceptionRegionEnter enterOp = op.regionStart();
+                    Label start = c.getLabel(enterOp.start().targetBlock());
+                    Label end = cob.newBoundLabel();
+                    for (Reference cbr : enterOp.catchBlocks()) {
+                        Block cb = cbr.targetBlock();
+                        if (!cb.parameters().isEmpty()) {
+                            ClassDesc type = cb.parameters().get(0).type().toNominalDescriptor();
+                            cob.exceptionCatch(start, end, c.getLabel(cb), type);
+                        } else {
+                            cob.exceptionCatchAll(start, end, c.getLabel(cb));
+                        }
+                    }
+                    branch(cob, c, blocks, b, op.end().targetBlock());
                 }
                 default ->
                     throw new UnsupportedOperationException("Terminating operation not supported: " + top);
