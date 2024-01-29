@@ -35,11 +35,16 @@ import java.lang.reflect.code.op.CoreOps.*;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.lang.classfile.CodeBuilder.BlockCodeBuilder;
+import java.lang.classfile.CodeElement;
+import java.lang.classfile.CodeTransform;
+import java.lang.classfile.Instruction;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
 import static java.lang.classfile.TypeKind.DoubleType;
 import static java.lang.classfile.TypeKind.FloatType;
 import static java.lang.classfile.TypeKind.LongType;
+import java.lang.classfile.instruction.BranchInstruction;
+import java.lang.classfile.instruction.LabelTarget;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDesc;
 import java.lang.constant.ConstantDescs;
@@ -107,23 +112,37 @@ public final class BytecodeGenerator {
         ClassPrinter.toYaml(cm, ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES, System.out::print);
     }
 
+    private static class DebugTransform implements CodeTransform {
+        private int bci = 0;
+
+        @Override
+        public void accept(CodeBuilder cob, CodeElement coe) {
+            cob.accept(coe);
+            switch (coe) {
+                case LabelTarget lt -> System.out.println(bci + ": " + lt + " (" + lt.label().hashCode() + ")");
+                case BranchInstruction bi -> System.out.println(bci + ": " + bi + " (" + bi.target().hashCode() + ")");
+                default -> System.out.println(bci + ": " + coe);
+            }
+            if (coe instanceof Instruction ins) bci += ins.sizeInBytes();
+        }
+
+    }
+
     public static byte[] generateClassData(MethodHandles.Lookup lookup, CoreOps.FuncOp fop) {
         String packageName = lookup.lookupClass().getPackageName();
         String className = packageName.isEmpty()
                 ? fop.funcName()
                 : packageName + "." + fop.funcName();
         Liveness liveness = new Liveness(fop);
-        byte[] classBytes = ClassFile.of().build(ClassDesc.of(className),
-                clb -> {
-                    clb.withMethodBody(
-                            fop.funcName(),
-                            fop.funcDescriptor().toNominalDescriptor(),
-                            ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC,
-                            cob -> {
-                                ConversionContext c = new ConversionContext(lookup, liveness, cob);
-                                generateBody(fop.body(), cob, c);
-                            });
-                });
+        byte[] classBytes = ClassFile.of().build(ClassDesc.of(className), clb ->
+                clb.withMethodBody(
+                        fop.funcName(),
+                        fop.funcDescriptor().toNominalDescriptor(),
+                        ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC,
+                        cb -> cb.transforming(new DebugTransform(), cob -> {
+                            ConversionContext c = new ConversionContext(lookup, liveness, cob);
+                            generateBody(fop.body(), cob, c);
+                        })));
         return classBytes;
     }
 
@@ -180,6 +199,10 @@ public final class BytecodeGenerator {
             return liveSlotSet().getSlot(v);
         }
 
+        int getOrAssignSlot(Value v) {
+            return liveSlotSet().getOrAssignSlot(v);
+        }
+
         int assignSlot(Value v) {
             return liveSlotSet().assignSlot(v);
         }
@@ -222,7 +245,7 @@ public final class BytecodeGenerator {
             if (operand instanceof Op.Result or &&
                     or.op() instanceof CoreOps.ConstantOp constantOp &&
                     !constantOp.resultType().equals(TypeDesc.J_L_CLASS)) {
-                cob.ldc(fromValue(constantOp.value()));
+                cob.constantInstruction(fromValue(constantOp.value()));
             } else {
                 int slot = c.getSlot(operand);
                 cob.loadInstruction(toTypeKind(operand.type()), slot);
@@ -326,20 +349,27 @@ public final class BytecodeGenerator {
             Label blockLabel = c.getLabel(b);
             cob.labelBinding(blockLabel);
 
+            // Assign slots to block arguments
+            b.parameters().forEach(c::getOrAssignSlot);
+
             List<Op> ops = b.ops();
             // True if the last result is retained on the stack for use as first operand of current operation
             boolean isLastOpResultOnStack = false;
             Op.Result oprOnStack = null;
             for (int i = 0; i < ops.size() - 1; i++) {
                 Op o = ops.get(i);
+                TypeDesc oprType = o.resultType();
+                TypeKind rvt = oprType.equals(TypeDesc.VOID) ? null : toTypeKind(oprType);
                 switch (o) {
                     case ConstantOp op -> {
                         if (op.resultType().equals(TypeDesc.J_L_CLASS)) {
                             // Loading a class constant may throw an exception so it cannot be deferred
                             cob.ldc(fromValue(op.value()));
-                        } // else {
+                        } else {
                           // Defer process to use, where constants are inlined
                           // This applies to both operands and successor arguments
+                          rvt = null;
+                        }
                     }
                     case VarOp op -> {
                         //     %1 : Var<int> = var %0 @"i";
@@ -348,6 +378,8 @@ public final class BytecodeGenerator {
                         // Use slot of variable result
                         int slot = c.assignSlot(op.result());
                         cob.storeInstruction(toTypeKind(op.varType()), slot);
+                        // Ignore result
+                        rvt = null;
                     }
                     case VarAccessOp.VarLoadOp op -> {
                         // Use slot of variable result
@@ -361,7 +393,7 @@ public final class BytecodeGenerator {
                             if (operand instanceof Op.Result or &&
                                     or.op() instanceof CoreOps.ConstantOp constantOp &&
                                     !constantOp.resultType().equals(TypeDesc.J_L_CLASS)) {
-                                cob.ldc(fromValue(constantOp.value()));
+                                cob.constantInstruction(fromValue(constantOp.value()));
                             } else {
                                 int slot = c.getSlot(operand);
                                 cob.loadInstruction(toTypeKind(operand.type()), slot);
@@ -375,7 +407,7 @@ public final class BytecodeGenerator {
                     }
                     case NegOp op -> {
                         processOperands(cob, c, op, isLastOpResultOnStack);
-                        switch (toTypeKind(op.resultType())) { //this can be moved to CodeBuilder::neg(TypeKind)
+                        switch (rvt) { //this can be moved to CodeBuilder::neg(TypeKind)
                             case IntType -> cob.ineg();
                             case LongType -> cob.lneg();
                             case FloatType -> cob.fneg();
@@ -389,7 +421,7 @@ public final class BytecodeGenerator {
                     }
                     case AddOp op -> {
                         processOperands(cob, c, op, isLastOpResultOnStack);
-                        switch (toTypeKind(op.resultType())) { //this can be moved to CodeBuilder::add(TypeKind)
+                        switch (rvt) { //this can be moved to CodeBuilder::add(TypeKind)
                             case IntType -> cob.iadd();
                             case LongType -> cob.ladd();
                             case FloatType -> cob.fadd();
@@ -399,7 +431,7 @@ public final class BytecodeGenerator {
                     }
                     case SubOp op -> {
                         processOperands(cob, c, op, isLastOpResultOnStack);
-                        switch (toTypeKind(op.resultType())) { //this can be moved to CodeBuilder::sub(TypeKind)
+                        switch (rvt) { //this can be moved to CodeBuilder::sub(TypeKind)
                             case IntType -> cob.isub();
                             case LongType -> cob.lsub();
                             case FloatType -> cob.fsub();
@@ -409,7 +441,7 @@ public final class BytecodeGenerator {
                     }
                     case MulOp op -> {
                         processOperands(cob, c, op, isLastOpResultOnStack);
-                        switch (toTypeKind(op.resultType())) { //this can be moved to CodeBuilder::mul(TypeKind)
+                        switch (rvt) { //this can be moved to CodeBuilder::mul(TypeKind)
                             case IntType -> cob.imul();
                             case LongType -> cob.lmul();
                             case FloatType -> cob.fmul();
@@ -419,7 +451,7 @@ public final class BytecodeGenerator {
                     }
                     case DivOp op -> {
                         processOperands(cob, c, op, isLastOpResultOnStack);
-                        switch (toTypeKind(op.resultType())) { //this can be moved to CodeBuilder::div(TypeKind)
+                        switch (rvt) { //this can be moved to CodeBuilder::div(TypeKind)
                             case IntType -> cob.idiv();
                             case LongType -> cob.ldiv();
                             case FloatType -> cob.fdiv();
@@ -429,7 +461,7 @@ public final class BytecodeGenerator {
                     }
                     case ModOp op -> {
                         processOperands(cob, c, op, isLastOpResultOnStack);
-                        switch (toTypeKind(op.resultType())) { //this can be moved to CodeBuilder::rem(TypeKind)
+                        switch (rvt) { //this can be moved to CodeBuilder::rem(TypeKind)
                             case IntType -> cob.irem();
                             case LongType -> cob.lrem();
                             case FloatType -> cob.frem();
@@ -439,7 +471,7 @@ public final class BytecodeGenerator {
                     }
                     case ArrayAccessOp.ArrayLoadOp op -> {
                         processOperands(cob, c, op, isLastOpResultOnStack);
-                        cob.arrayLoadInstruction(toTypeKind(op.resultType()));
+                        cob.arrayLoadInstruction(rvt);
                     }
                     case ArrayAccessOp.ArrayStoreOp op -> {
                         processOperands(cob, c, op, isLastOpResultOnStack);
@@ -454,8 +486,10 @@ public final class BytecodeGenerator {
                         if (!isConditionForCondBrOp(op)) {
                             processOperands(cob, c, op, isLastOpResultOnStack);
                             conditionalBranch(cob, op, CodeBuilder::iconst_1, CodeBuilder::iconst_0);
-                        }// else {
-                         // Processing is deferred to the CondBrOp, do not process the op result
+                        } else {
+                            // Processing is deferred to the CondBrOp, do not process the op result
+                            rvt = null;
+                        }
                     }
                     case NewOp op -> {
                         TypeDesc t = op.constructorDescriptor().returnType();
@@ -463,14 +497,17 @@ public final class BytecodeGenerator {
                             case 0 -> {
                                 if (isLastOpResultOnStack) {
                                     int slot = c.assignSlot(oprOnStack);
-                                    cob.storeInstruction(toTypeKind(op.resultType()), slot);
+                                    cob.storeInstruction(rvt, slot);
                                     isLastOpResultOnStack = false;
                                     oprOnStack = null;
                                 }
                                 cob.new_(t.toNominalDescriptor())
                                    .dup();
                                 processOperands(cob, c, op, false);
-                                cob.invokespecial(op.resultType().toNominalDescriptor(), ConstantDescs.INIT_NAME, op.constructorDescriptor().toNominalDescriptor());
+                                cob.invokespecial(
+                                        op.resultType().toNominalDescriptor(),
+                                        ConstantDescs.INIT_NAME,
+                                        op.constructorDescriptor().toNominalDescriptor().changeReturnType(ConstantDescs.CD_void));
                             }
                             case 1 -> {
                                 processOperands(cob, c, op, isLastOpResultOnStack);
@@ -560,12 +597,12 @@ public final class BytecodeGenerator {
                 // Free up slots for values that are no longer live
                 c.freeSlotsOfOp(o);
                 // Assign slot to operation result
-                if (!o.resultType().equals(TypeDesc.VOID)) {
+                if (rvt != null) {
                     if (!isResultOnlyUse(o.result())) {
                         isLastOpResultOnStack = false;
                         oprOnStack = null;
                         int slot = c.assignSlot(o.result());
-                        cob.storeInstruction(toTypeKind(o.resultType()), slot);
+                        cob.storeInstruction(rvt, slot);
                     } else {
                         isLastOpResultOnStack = true;
                         oprOnStack = o.result();
@@ -595,7 +632,7 @@ public final class BytecodeGenerator {
                     // If successor occurs immediately after this block,
                     // then no need for goto instruction
                     if (bi != si - 1) {
-                        cob.goto_(c.getLabel(op.branch()));
+                        cob.goto_(c.getLabel(op.branch().targetBlock()));
                     }
                 }
                 case ConditionalBranchOp op -> {
@@ -860,7 +897,7 @@ public final class BytecodeGenerator {
             if (value instanceof Op.Result or &&
                     or.op() instanceof CoreOps.ConstantOp constantOp &&
                     !constantOp.resultType().equals(TypeDesc.J_L_CLASS)) {
-                cob.ldc(fromValue(constantOp.value()));
+                cob.constantInstruction(fromValue(constantOp.value()));
             } else {
                 int sslot = c.getSlot(value);
 
