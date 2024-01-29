@@ -233,10 +233,7 @@ public class TestTryFinallyNested {
         lf = SSA.transform(lf);
         lf.writeTo(System.out);
 
-        CoreOps.FuncOp bcf = BytecodeLower.lowerToBytecodeDialect(MethodHandles.lookup(), lf);
-        bcf.writeTo(System.out);
-
-        return BytecodeGenerator.generate(MethodHandles.lookup(), bcf);
+        return BytecodeGenerator.generate(MethodHandles.lookup(), lf);
     }
 
     static <T> Consumer<T> asConsumer(MethodHandle mh) {

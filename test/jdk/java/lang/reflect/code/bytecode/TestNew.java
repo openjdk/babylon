@@ -81,10 +81,7 @@ public class TestNew {
         lf = SSA.transform(lf);
         lf.writeTo(System.out);
 
-        CoreOps.FuncOp bcf = BytecodeLower.lowerToBytecodeDialect(lf);
-        bcf.writeTo(System.out);
-
-        return BytecodeGenerator.generate(MethodHandles.lookup(), bcf);
+        return BytecodeGenerator.generate(MethodHandles.lookup(), lf);
     }
 
     static CoreOps.FuncOp getFuncOp(String name) {

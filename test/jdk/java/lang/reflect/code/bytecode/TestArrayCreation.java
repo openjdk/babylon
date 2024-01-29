@@ -28,7 +28,6 @@ import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
-import java.lang.reflect.code.bytecode.BytecodeLower;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
@@ -114,10 +113,7 @@ public class TestArrayCreation {
         lf = SSA.transform(lf);
         lf.writeTo(System.out);
 
-        CoreOps.FuncOp bcf = BytecodeLower.lowerToBytecodeDialect(lf);
-        bcf.writeTo(System.out);
-
-        return BytecodeGenerator.generate(MethodHandles.lookup(), bcf);
+        return BytecodeGenerator.generate(MethodHandles.lookup(), lf);
     }
 
     static CoreOps.FuncOp getFuncOp(String name) {
