@@ -34,8 +34,12 @@ import java.lang.reflect.code.op.CoreOps.*;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.lang.classfile.CodeBuilder.BlockCodeBuilder;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
+import static java.lang.classfile.TypeKind.DoubleType;
+import static java.lang.classfile.TypeKind.FloatType;
+import static java.lang.classfile.TypeKind.LongType;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDesc;
 import java.lang.constant.ConstantDescs;
@@ -61,6 +65,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 public final class BytecodeGenerator {
     private BytecodeGenerator() {
@@ -448,39 +453,7 @@ public final class BytecodeGenerator {
                     case BinaryTestOp op -> {
                         if (!isConditionForCondBrOp(op)) {
                             processOperands(cob, c, op, isLastOpResultOnStack);
-                            TypeKind vt = toTypeKind(op.operands().get(0).type());
-                            if (vt == TypeKind.IntType) {
-                                // Inverse condition and ensure true block is the immediate successor
-                                cob.ifThenElse(switch (op) {
-                                    case EqOp _ -> Opcode.IF_ICMPNE;
-                                    case NeqOp _ -> Opcode.IF_ICMPEQ;
-                                    case GtOp _ -> Opcode.IF_ICMPLE;
-                                    case GeOp _ -> Opcode.IF_ICMPLT;
-                                    case LtOp _ -> Opcode.IF_ICMPGE;
-                                    case LeOp _ -> Opcode.IF_ICMPGT;
-                                    default ->
-                                        throw new UnsupportedOperationException(op.opName());
-                                }, CodeBuilder::iconst_1, CodeBuilder::iconst_0);
-                            } else {
-                                switch (vt) {
-                                    case FloatType -> cob.fcmpg(); // FCMPL?
-                                    case LongType -> cob.lcmp();
-                                    case DoubleType -> cob.dcmpg(); //CMPL?
-                                    default ->
-                                        throw new UnsupportedOperationException(op.opName() + " on " + vt);
-                                }
-                                // Inverse condition and ensure true block is the immediate successor
-                                cob.ifThenElse(switch (op) {
-                                    case EqOp _ -> Opcode.IFNE;
-                                    case NeqOp _ -> Opcode.IFEQ;
-                                    case GtOp _ -> Opcode.IFLE;
-                                    case GeOp _ -> Opcode.IFLT;
-                                    case LtOp _ -> Opcode.IFGE;
-                                    case LeOp _ -> Opcode.IFGT;
-                                    default ->
-                                        throw new UnsupportedOperationException(op.opName());
-                                }, CodeBuilder::iconst_1, CodeBuilder::iconst_0);
-                            }
+                            conditionalBranch(cob, op, CodeBuilder::iconst_1, CodeBuilder::iconst_0);
                         }// else {
                          // Processing is deferred to the CondBrOp, do not process the op result
                     }
@@ -626,27 +599,30 @@ public final class BytecodeGenerator {
                     }
                 }
                 case ConditionalBranchOp op -> {
-//                if (getConditionForCondBrOp(cop) instanceof CoreOps.BinaryTestOp btop) {
-//                    // Processing of the BinaryTestOp was deferred, so it can be merged with CondBrOp
-//                    conditionalBranch(lb, btop, cop, c, isLastOpResultOnStack,
-//                            (_lb, tBlock, fBlock) -> {
-//                                // Inverse condition and ensure true block is the immediate successor, in sequence, of lb
-//                                var vt = toTypeKind(btop.operands().get(0).type());
-//                                var cond = toComparisonType(btop).inverse();
-//                                if (vt == TypeKind.IntType) {
-//                                    _lb.op(BytecodeInstructionOps.if_cmp(TypeKind.IntType, cond, fBlock.successor(), tBlock.successor()));
-//                                } else {
-//                                    _lb.op(BytecodeInstructionOps.cmp(vt));
-//                                    _lb.op(BytecodeInstructionOps._if(cond, fBlock.successor(), tBlock.successor()));
-//                                }
-//                            });
-//
-//                } else {
-//                    conditionalBranch(lb, cop, cop, c, isLastOpResultOnStack,
-//                            (_lb, tBlock, fBlock) -> {
-//                                _lb.op(BytecodeInstructionOps._if(BytecodeInstructionOps.Comparison.EQ, fBlock.successor(), tBlock.successor()));
-//                            });
-//                }
+                    if (getConditionForCondBrOp(op) instanceof CoreOps.BinaryTestOp btop) {
+                        // Processing of the BinaryTestOp was deferred, so it can be merged with CondBrOp
+                        processOperands(cob, c, btop, isLastOpResultOnStack);
+                        conditionalBranch(cob, btop,
+                                trueBuilder -> {
+                                    assignBlockArguments(btop, op.trueBranch(), trueBuilder, c);
+                                    trueBuilder.goto_(c.getLabel(op.trueBranch().targetBlock()));
+                                },
+                                falseBuilder -> {
+                                    assignBlockArguments(btop, op.falseBranch(), falseBuilder, c);
+                                    falseBuilder.goto_(c.getLabel(op.falseBranch().targetBlock()));
+                                });
+                    } else {
+                        processOperands(cob, c, op, isLastOpResultOnStack);
+                        cob.ifThenElse(
+                                trueBuilder -> {
+                                    assignBlockArguments(op, op.trueBranch(), trueBuilder, c);
+                                    trueBuilder.goto_(c.getLabel(op.trueBranch().targetBlock()));
+                                },
+                                falseBuilder -> {
+                                    assignBlockArguments(op, op.falseBranch(), falseBuilder, c);
+                                    falseBuilder.goto_(c.getLabel(op.falseBranch().targetBlock()));
+                                });
+                    }
                 }
                 case ExceptionRegionEnter op -> {
 //                assignBlockArguments(er, er.start(), lb, c);
@@ -801,6 +777,65 @@ public final class BytecodeGenerator {
             return x.type().equals(TypeDesc.DOUBLE) || x.type().equals(TypeDesc.LONG)
                     ? 2
                     : 1;
+        }
+    }
+
+    private static Op getConditionForCondBrOp(CoreOps.ConditionalBranchOp op) {
+        Value p = op.predicate();
+        if (p.uses().size() != 1) {
+            return null;
+        }
+
+        if (p.declaringBlock() != op.parentBlock()) {
+            return null;
+        }
+
+        // Check if used in successor
+        for (Block.Reference s : op.successors()) {
+            if (s.arguments().contains(p)) {
+                return null;
+            }
+        }
+
+        if (p instanceof Op.Result or) {
+            return or.op();
+        } else {
+            return null;
+        }
+    }
+
+    private static void conditionalBranch(CodeBuilder cob, BinaryTestOp op,
+                                          Consumer<BlockCodeBuilder> trueBlock, Consumer<BlockCodeBuilder> falseBlock) {
+        TypeKind vt = toTypeKind(op.operands().get(0).type());
+        if (vt == TypeKind.IntType) {
+            cob.ifThenElse(switch (op) {
+                case EqOp _ -> Opcode.IF_ICMPEQ;
+                case NeqOp _ -> Opcode.IF_ICMPNE;
+                case GtOp _ -> Opcode.IF_ICMPGT;
+                case GeOp _ -> Opcode.IF_ICMPGE;
+                case LtOp _ -> Opcode.IF_ICMPLT;
+                case LeOp _ -> Opcode.IF_ICMPLE;
+                default ->
+                    throw new UnsupportedOperationException(op.opName());
+            }, trueBlock, falseBlock);
+        } else {
+            switch (vt) {
+                case FloatType -> cob.fcmpg(); // FCMPL?
+                case LongType -> cob.lcmp();
+                case DoubleType -> cob.dcmpg(); //CMPL?
+                default ->
+                    throw new UnsupportedOperationException(op.opName() + " on " + vt);
+            }
+            cob.ifThenElse(switch (op) {
+                case EqOp _ -> Opcode.IFEQ;
+                case NeqOp _ -> Opcode.IFNE;
+                case GtOp _ -> Opcode.IFGT;
+                case GeOp _ -> Opcode.IFGE;
+                case LtOp _ -> Opcode.IFLT;
+                case LeOp _ -> Opcode.IFLE;
+                default ->
+                    throw new UnsupportedOperationException(op.opName());
+            }, trueBlock, falseBlock);
         }
     }
 
