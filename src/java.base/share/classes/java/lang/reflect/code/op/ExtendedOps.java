@@ -2248,7 +2248,7 @@ public class ExtendedOps {
 
         boolean ifExitFromTry(JavaLabelOp lop) {
             Op target = lop.target();
-            return ifAncestorOp(target, this);
+            return target == this || ifAncestorOp(target, this);
         }
 
         static boolean ifAncestorOp(Op ancestor, Op op) {
