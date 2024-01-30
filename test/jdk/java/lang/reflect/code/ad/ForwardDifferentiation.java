@@ -23,74 +23,70 @@
 
 import java.lang.reflect.code.Block;
 import java.lang.reflect.code.CopyContext;
-import java.lang.reflect.code.op.CoreOps;
-import java.lang.reflect.code.op.CoreOps.FuncOp;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.descriptor.MethodDesc;
 import java.lang.reflect.code.descriptor.MethodTypeDesc;
 import java.lang.reflect.code.descriptor.TypeDesc;
-
+import java.lang.reflect.code.op.CoreOps;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static java.lang.reflect.code.op.CoreOps._return;
-import static java.lang.reflect.code.op.CoreOps.add;
-import static java.lang.reflect.code.op.CoreOps.invoke;
-import static java.lang.reflect.code.op.CoreOps.constant;
-import static java.lang.reflect.code.op.CoreOps.mul;
-import static java.lang.reflect.code.op.CoreOps.neg;
 import static java.lang.reflect.code.descriptor.TypeDesc.DOUBLE;
+import static java.lang.reflect.code.op.CoreOps.*;
 
 public final class ForwardDifferentiation {
-    final FuncOp f;
+    // The function to differentiate
+    final FuncOp fcm;
+    // The independent variable
     final Block.Parameter ind;
-    final TypeDesc indT;
-
+    // The active set for the independent variable
     final Set<Value> activeSet;
+    // The map of input value to it's (output) differentiated value
     final Map<Value, Value> diffValueMapping;
 
+    // The constant value 0.0d
+    // Declared in the (output) function's entry block
     Value zero;
 
-    ForwardDifferentiation(FuncOp f, Block.Parameter ind) {
-        this.f = f;
-
-        Block fb = f.body().entryBlock();
-        int indI = fb.parameters().indexOf(ind);
+    private ForwardDifferentiation(FuncOp fcm, Block.Parameter ind) {
+        int indI = fcm.body().entryBlock().parameters().indexOf(ind);
         if (indI == -1) {
             throw new IllegalArgumentException("Independent argument not defined by function");
         }
+        this.fcm = fcm;
         this.ind = ind;
-        this.indT = ind.type();
 
         // Calculate the active set of dependent values for the independent value
-        this.activeSet = ActiveSet.activeSet(f, ind);
+        this.activeSet = ActiveSet.activeSet(fcm, ind);
+        // A mapping of input values to their (output) differentiated values
         this.diffValueMapping = new HashMap<>();
     }
 
-    public static FuncOp diff(FuncOp f, Block.Parameter ind) {
-        return new ForwardDifferentiation(f, ind).diff();
+    public static FuncOp partialDiff(FuncOp fcm, Block.Parameter ind) {
+        return new ForwardDifferentiation(fcm, ind).partialDiff();
     }
 
-    FuncOp diff() {
-        Block fb = f.body().entryBlock();
-        int indI = fb.parameters().indexOf(ind);
-        if (indI == -1) {
-            throw new IllegalArgumentException("Independent argument not defined by function");
-        }
+    FuncOp partialDiff() {
+        int indI = fcm.body().entryBlock().parameters().indexOf(ind);
 
         AtomicBoolean first = new AtomicBoolean(true);
-        FuncOp cf = f.transform("d" + f.funcName() + "_darg" + indI,
+        FuncOp dfcm = fcm.transform(STR."d\{fcm.funcName()}_darg\{indI}",
                 (block, op) -> {
                     if (first.getAndSet(false)) {
+                        // Initialize
                         processBlocks(block);
                     }
 
+                    // If the result of the operation is in the active set,
+                    // then differentiate it, otherwise copy it
                     if (activeSet.contains(op.result())) {
                         Value dor = diffOp(block, op);
+                        // Map the input result to its (output) differentiated result
+                        // so that it can be used when differentiating subsequent operations
                         diffValueMapping.put(op.result(), dor);
                     } else {
                         block.apply(op);
@@ -98,21 +94,25 @@ public final class ForwardDifferentiation {
                     return block;
                 });
 
-        return cf;
+        return dfcm;
     }
 
     void processBlocks(Block.Builder block) {
-        // Define constants at start
+        // Declare constants at start
         zero = block.op(constant(ind.type(), 0.0d));
+        // The differential of ind is 1
         Value one = block.op(constant(ind.type(), 1.0d));
         diffValueMapping.put(ind, one);
 
-        // Append differential block arguments to blocks
+        // Append differential block parameters to blocks
         for (Value v : activeSet) {
             if (v instanceof Block.Parameter ba) {
                 if (ba != ind) {
+                    // Get the output block builder for the input (declaring) block
                     Block.Builder b = block.context().getBlock(ba.declaringBlock());
+                    // Add a new block parameter for differential parameter
                     Block.Parameter dba = b.parameter(ba.type());
+                    // Place in mapping
                     diffValueMapping.put(ba, dba);
                 }
             }
@@ -126,17 +126,19 @@ public final class ForwardDifferentiation {
     static final MethodDesc J_L_MATH_COS = MethodDesc.method(J_L_MATH, "cos", D_D);
 
     Value diffOp(Block.Builder block, Op op) {
+        // Switch on the op, using pattern matching
         return switch (op) {
             case CoreOps.NegOp _ -> {
+                // Copy input operation
                 block.op(op);
 
                 // -diff(expr)
                 Value a = op.operands().get(0);
                 Value da = diffValueMapping.getOrDefault(a, zero);
-
                 yield block.op(neg(da));
             }
             case CoreOps.AddOp _ -> {
+                // Copy input operation
                 block.op(op);
 
                 // diff(l) + diff(r)
@@ -144,24 +146,28 @@ public final class ForwardDifferentiation {
                 Value rhs = op.operands().get(1);
                 Value dlhs = diffValueMapping.getOrDefault(lhs, zero);
                 Value drhs = diffValueMapping.getOrDefault(rhs, zero);
-
                 yield block.op(add(dlhs, drhs));
             }
             case CoreOps.MulOp _ -> {
+                // Copy input operation
                 block.op(op);
 
+                // Product rule
                 // diff(l) * r + l * diff(r)
                 Value lhs = op.operands().get(0);
                 Value rhs = op.operands().get(1);
                 Value dlhs = diffValueMapping.getOrDefault(lhs, zero);
                 Value drhs = diffValueMapping.getOrDefault(rhs, zero);
-
-                Op.Result x1 = block.op(mul(dlhs, block.context().getValue(rhs)));
-                Op.Result x2 = block.op(mul(block.context().getValue(lhs), drhs));
-                yield block.op(add(x1, x2));
+                Value outputLhs = block.context().getValue(lhs);
+                Value outputRhs = block.context().getValue(rhs);
+                yield block.op(add(
+                        block.op(mul(dlhs, outputRhs)),
+                        block.op(mul(outputLhs, drhs))));
             }
             case CoreOps.ConstantOp _ -> {
+                // Copy input operation
                 block.op(op);
+                // Differential of constant is zero
                 yield zero;
             }
             case CoreOps.InvokeOp c -> {
@@ -170,27 +176,30 @@ public final class ForwardDifferentiation {
                 if (md.refType().equals(J_L_MATH)) {
                     operationName = md.name();
                 }
+                // Differentiate sin(x)
                 if ("sin".equals(operationName)) {
+                    // Copy input operation
                     block.op(op);
 
+                    // Chain rule
                     // cos(expr) * diff(expr)
                     Value a = op.operands().get(0);
                     Value da = diffValueMapping.getOrDefault(a, zero);
-
-                    Op.Result cosx = block.op(invoke(J_L_MATH_COS, block.context().getValue(a)));
+                    Value outputA = block.context().getValue(a);
+                    Op.Result cosx = block.op(invoke(J_L_MATH_COS, outputA));
                     yield block.op(mul(cosx, da));
                 } else {
                     throw new UnsupportedOperationException("Operation not supported: " + op.opName());
                 }
             }
             case CoreOps.ReturnOp _ -> {
-                // Replace
+                // Replace with return of differentiated value
                 Value a = op.operands().get(0);
                 Value da = diffValueMapping.getOrDefault(a, zero);
-
                 yield block.op(_return(da));
             }
             case Op.BlockTerminating _ -> {
+                // Update with differentiated block arguments
                 op.successors().forEach(s -> adaptSuccessor(block.context(), s));
                 yield block.op(op);
             }
@@ -204,15 +213,15 @@ public final class ForwardDifferentiation {
                 .toList();
         if (!as.isEmpty()) {
             // Get the successor arguments
-            List<Value> args = cc.getValues(from.arguments());
-            // Append the differential value arguments, if any
+            List<Value> outputArgs = cc.getValues(from.arguments());
+            // Append the differential arguments, if any
             for (Value a : as) {
                 Value da = diffValueMapping.get(a);
-                args.add(da);
+                outputArgs.add(da);
             }
 
             // Map successor with appended arguments
-            Block.Reference to = cc.getBlock(from.targetBlock()).successor(args);
+            Block.Reference to = cc.getBlock(from.targetBlock()).successor(outputArgs);
             cc.mapSuccessor(from, to);
         }
     }

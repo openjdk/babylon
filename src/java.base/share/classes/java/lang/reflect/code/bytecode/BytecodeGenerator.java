@@ -207,8 +207,13 @@ public final class BytecodeGenerator {
             return liveSlotSet().getSlot(v);
         }
 
+
+        int getOrAssignSlot(Value v, boolean assignIfUnused) {
+            return liveSlotSet().getOrAssignSlot(v, assignIfUnused);
+        }
+
         int getOrAssignSlot(Value v) {
-            return liveSlotSet().getOrAssignSlot(v);
+            return getOrAssignSlot(v, false);
         }
 
         int assignSlot(Value v) {
@@ -439,8 +444,9 @@ public final class BytecodeGenerator {
             Label blockLabel = c.getLabel(b);
             cob.labelBinding(blockLabel);
 
-            // Assign slots to block arguments
-            b.parameters().forEach(c::getOrAssignSlot);
+            // If b is the entry block then all its parameters conservatively require slots
+            // Some unused parameters might be declared before others that are used
+            b.parameters().forEach(p -> c.getOrAssignSlot(p, b.isEntryBlock()));
 
             // If b is a catch block then the exception argument will be represented on the stack
             if (c.catchingBlocks.contains(b)) {
@@ -839,6 +845,10 @@ public final class BytecodeGenerator {
         }
 
         int getOrAssignSlot(Value v) {
+            return getOrAssignSlot(v, false);
+        }
+
+        int getOrAssignSlot(Value v, boolean assignIfUnused) {
             // If value is already active return slot
             Integer slotBox = liveSet.get(v);
             if (slotBox != null) {
@@ -852,7 +862,7 @@ public final class BytecodeGenerator {
 
             // If no users then no slot is assigned
             Set<Op.Result> users = v.uses();
-            if (users.isEmpty()) {
+            if (!assignIfUnused && users.isEmpty()) {
                 // @@@
                 return -1;
             }
