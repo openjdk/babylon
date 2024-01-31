@@ -29,6 +29,7 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.interpreter.Interpreter;
@@ -103,6 +104,82 @@ public class TestTryFinallyNested {
             Consumer<IntConsumer> test = testConsumer(
                     c -> Interpreter.invoke(MethodHandles.lookup(), lf, c, fra),
                     c -> tryCatchFinally(c, fra)
+            );
+
+            test.accept(i -> {});
+            for (int ea = 0; ea < 6; ea++) {
+                int fea = ea;
+                test.accept(i -> {
+                    if (i == fea) throw new IllegalStateException();
+                });
+                test.accept(i -> {
+                    if (i == fea) throw new RuntimeException();
+                });
+            }
+        }
+    }
+
+
+    @CodeReflection
+    public static void tryCatchFinallyBreak(IntConsumer c, int i) {
+        a: try {
+            try {
+                if (i == 0) {
+                    break a;
+                }
+                c.accept(0);
+            } catch (IllegalStateException e) {
+                if (i == 1) {
+                    break a;
+                }
+                c.accept(1);
+            } finally {
+                if (i == 2) {
+                    break a;
+                }
+                c.accept(2);
+            }
+            if (i == 3) {
+                break a;
+            }
+            c.accept(3);
+        } catch (IllegalStateException e) {
+            if (i == 4) {
+                break a;
+            }
+            c.accept(4);
+        } finally {
+            if (i == 5) {
+                break a;
+            }
+            c.accept(5);
+        }
+        c.accept(6);
+    }
+
+    @Test
+    public void testCatchFinallyBreak() {
+        CoreOps.FuncOp f = getFuncOp("tryCatchFinallyBreak");
+
+        f.writeTo(System.out);
+
+        CoreOps.FuncOp lf = f.transform((block, op) -> {
+            if (op instanceof Op.Lowerable lop) {
+                return lop.lower(block);
+            } else {
+                block.op(op);
+                return block;
+            }
+        });
+
+        lf.writeTo(System.out);
+
+        for (int ra = -1; ra < 6; ra++) {
+            int fra = ra;
+
+            Consumer<IntConsumer> test = testConsumer(
+                    c -> Interpreter.invoke(MethodHandles.lookup(), lf, c, fra),
+                    c -> tryCatchFinallyBreak(c, fra)
             );
 
             test.accept(i -> {});
