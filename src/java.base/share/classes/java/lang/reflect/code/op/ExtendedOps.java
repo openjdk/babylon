@@ -2840,7 +2840,8 @@ public class ExtendedOps {
 
     /**
      * Creates a switch expression operation.
-     *
+     * <p>
+     * The result type of the operation will be derived from the yield type of the second body
      * @param target the switch target value
      * @param bodies the body builders of the operation to be built and become its children
      * @return the switch expression operation
@@ -2858,6 +2859,7 @@ public class ExtendedOps {
      * @return the switch expression operation
      */
     public static JavaSwitchExpressionOp switchExpression(TypeDesc resultType, Value target, List<Body.Builder> bodies) {
+        Objects.requireNonNull(resultType);
         return new JavaSwitchExpressionOp(resultType, target, bodies);
     }
 
@@ -3036,11 +3038,14 @@ public class ExtendedOps {
      * @return the conditional operation
      */
     public static JavaConditionalExpressionOp conditionalExpression(TypeDesc expressionType, List<Body.Builder> bodies) {
+        Objects.requireNonNull(expressionType);
         return new JavaConditionalExpressionOp(expressionType, bodies);
     }
 
     /**
      * Creates a conditional operation
+     * <p>
+     * The result type of the operation will be derived from the yield type of the second body
      * @param bodies the body builders of operation to be built and become its children
      * @return the conditional operation
      */
