@@ -29,7 +29,6 @@ import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
-import java.lang.reflect.code.bytecode.BytecodeLower;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -149,10 +148,7 @@ public class TestForwardAutoDiff {
     }
 
     static MethodHandle generate(CoreOps.FuncOp f) {
-        CoreOps.FuncOp bcf = BytecodeLower.lowerToBytecodeDialect(f);
-        bcf.writeTo(System.out);
-
-        return BytecodeGenerator.generate(MethodHandles.lookup(), bcf);
+        return BytecodeGenerator.generate(MethodHandles.lookup(), f);
     }
 
     static CoreOps.FuncOp getFuncOp(String name) {
