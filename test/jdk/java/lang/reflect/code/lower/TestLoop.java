@@ -34,7 +34,7 @@ import java.lang.runtime.CodeReflection;
 public class TestLoop {
     @CodeReflection
     @LoweredModel(value = """
-            func @"test1" (%0 : int[])int -> {
+            func @"testFor" (%0 : int[])int -> {
                 %1 : Var<int[]> = var %0 @"a";
                 %2 : int = constant @"0";
                 %3 : Var<int> = var %2 @"sum";
@@ -70,7 +70,7 @@ public class TestLoop {
                 return %18;
             };
             """, ssa = false)
-    static int test1(int[] a) {
+    static int testFor(int[] a) {
         int sum = 0;
         for (int i = 0; i < a.length; i++) {
             sum += a[i];
@@ -80,7 +80,7 @@ public class TestLoop {
 
     @CodeReflection
     @LoweredModel(value = """
-            func @"test2" (%0 : int[])int -> {
+            func @"testForSSA" (%0 : int[])int -> {
                 %1 : int = constant @"0";
                 %2 : int = constant @"0";
                 branch ^block_0(%1, %2);
@@ -104,7 +104,7 @@ public class TestLoop {
                 return %3;
             };
             """, ssa = true)
-    static int test2(int[] a) {
+    static int testForSSA(int[] a) {
         int sum = 0;
         for (int i = 0; i < a.length; i++) {
             sum += a[i];
