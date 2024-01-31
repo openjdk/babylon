@@ -348,7 +348,7 @@ public final class BytecodeGenerator {
         final List<Block> blocks = r.blocks();
         record ExceptionRegionWithBlocks(CoreOps.ExceptionRegionEnter ere, BitSet blocks) {
         }
-        // Queue of all activeRegions
+        // List of all activeRegions
         final List<ExceptionRegionWithBlocks> allRegions = new ArrayList<>();
         class BlockWithActiveExceptionRegions {
             final Block block;
