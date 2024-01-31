@@ -1567,6 +1567,8 @@ public final class CoreOps {
             if (def.operands().size() != 2 && def.operands().size() != 3) {
                 throw new IllegalArgumentException("Operation must have 2 or 3 operands");
             }
+
+            // @@@ validate first operand is an array
         }
 
         ArrayAccessOp(ArrayAccessOp that, CopyContext cc) {
@@ -1631,7 +1633,7 @@ public final class CoreOps {
             @Override
             public TypeDesc resultType() {
                 Value array = operands().get(0);
-                return resultType(array, null);
+                return array.type().componentType();
             }
         }
 
@@ -1662,10 +1664,7 @@ public final class CoreOps {
 
             @Override
             public TypeDesc resultType() {
-                // resultType is void, but we still call resultType method because it has validations in it
-                Value array = operands().get(0);
-                Value value = operands().get(2);
-                return resultType(array, value);
+                return TypeDesc.VOID;
             }
         }
     }
@@ -2210,7 +2209,7 @@ public final class CoreOps {
         @Override
         public TypeDesc resultType() {
             Value tupleValue = operands().get(0);
-            return getresultType(tupleValue, index);
+            return tupleValue.type().typeArguments().get(index);
         }
     }
 
