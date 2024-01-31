@@ -41,6 +41,7 @@ import java.util.function.BiFunction;
 public sealed interface CodeElement<
         E extends CodeElement<E, C>,
         C extends CodeElement<C, ?>>
+        extends CodeItem
         permits Body, Block, Op {
 
     /**
@@ -65,9 +66,9 @@ public sealed interface CodeElement<
     /**
      * Creates a visiting function for bodies.
      *
-     * @param v the body visitor
-     * @return the visiting function for bodies
+     * @param v   the body visitor
      * @param <T> accumulator type
+     * @return the visiting function for bodies
      */
     static <T> BiFunction<T, CodeElement<?, ?>, T> bodyVisitor(BiFunction<T, Body, T> v) {
         return (t, e) -> e instanceof Body f
@@ -78,22 +79,22 @@ public sealed interface CodeElement<
     /**
      * Creates a visiting function for blocks.
      *
-     * @param v the block visitor
-     * @return the visiting function for blocks
+     * @param v   the block visitor
      * @param <T> accumulator type
+     * @return the visiting function for blocks
      */
     static <T> BiFunction<T, CodeElement<?, ?>, T> blockVisitor(BiFunction<T, Block, T> v) {
         return (t, e) -> e instanceof Block f
-            ? v.apply(t, f)
-            : t;
+                ? v.apply(t, f)
+                : t;
     }
 
     /**
      * Creates a visiting function for operations.
      *
-     * @param v the operation visitor
-     * @return the visiting function for operations
+     * @param v   the operation visitor
      * @param <T> accumulator type
+     * @return the visiting function for operations
      */
     static <T> BiFunction<T, CodeElement<?, ?>, T> opVisitor(BiFunction<T, Op, T> v) {
         return (t, e) -> e instanceof Op f

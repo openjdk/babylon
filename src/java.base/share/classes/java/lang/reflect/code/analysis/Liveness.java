@@ -24,12 +24,16 @@
  */
 package java.lang.reflect.code.analysis;
 
+import java.io.IOException;
 import java.io.StringWriter;
+import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.writer.impl.GlobalValueBlockNaming;
 import java.lang.reflect.code.writer.OpWriter;
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Provides liveness information for values declared in the bodies of an operation.
@@ -235,31 +239,33 @@ public class Liveness {
      * @param w the writer to write to.
      */
     public void writeTo(Writer w) {
-        GlobalValueBlockNaming gn = new GlobalValueBlockNaming();
-
-        OpWriter ow = new OpWriter(w, gn);
+        OpWriter ow = new OpWriter(w);
         ow.writeOp(op);
-        ow.write("\n");
-
+        try {
+            w.write("\n");
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        Function<CodeItem, String> namer = ow.namer();
         op.traverse(null, CodeElement.blockVisitor((_, b) -> {
             BlockInfo liveness = getLiveness(b);
-            ow.write("^");
-            ow.write(gn.getBlockName(b));
-            ow.write("\n");
-            ow.write("  Live-in values: ");
-            ow.writeCommaSeparatedList(liveness.inValues, v -> {
-                ow.write("%");
-                ow.write(gn.getValueName(v));
-            });
-            ow.write("\n");
-            ow.write("  Live-out values: ");
-            ow.writeCommaSeparatedList(liveness.outValues, v -> {
-                ow.write("%");
-                ow.write(gn.getValueName(v));
-            });
-            ow.write("\n");
-
-            return null;
+            try {
+                w.write("^" + namer.apply(b));
+                w.write("\n");
+                w.write("  Live-in values: ");
+                w.write(liveness.inValues.stream()
+                        .map(v -> "%" + namer.apply(v))
+                        .collect(Collectors.joining(",")));
+                w.write("\n");
+                w.write("  Live-out values: ");
+                w.write(liveness.outValues.stream()
+                        .map(v -> "%" + namer.apply(v))
+                        .collect(Collectors.joining(",")));
+                w.write("\n");
+                return null;
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
         }));
     }
 

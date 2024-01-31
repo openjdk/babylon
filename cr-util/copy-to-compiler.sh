@@ -32,7 +32,6 @@ packages="
   $base/descriptor \
   $base/descriptor/impl \
   $base/writer \
-  $base/writer/impl \
   $base/op \
   "
 
