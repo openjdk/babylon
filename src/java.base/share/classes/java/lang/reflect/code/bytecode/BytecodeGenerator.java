@@ -66,13 +66,13 @@ import java.lang.reflect.code.descriptor.TypeDesc;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -122,11 +122,11 @@ public final class BytecodeGenerator {
         @Override
         public void accept(CodeBuilder cob, CodeElement coe) {
             cob.accept(coe);
-            switch (coe) {
-                case LabelTarget lt -> System.out.println(bci + ": " + lt + " (" + lt.label().hashCode() + ")");
-                case BranchInstruction bi -> System.out.println(bci + ": " + bi + " (" + bi.target().hashCode() + ")");
-                default -> System.out.println(bci + ": " + coe);
-            }
+//            switch (coe) {
+//                case LabelTarget lt -> System.out.println(bci + ": " + lt + " (" + lt.label().hashCode() + ")");
+//                case BranchInstruction bi -> System.out.println(bci + ": " + bi + " (" + bi.target().hashCode() + ")");
+//                default -> System.out.println(bci + ": " + coe);
+//            }
             if (coe instanceof Instruction ins) bci += ins.sizeInBytes();
         }
 
@@ -167,7 +167,6 @@ public final class BytecodeGenerator {
         final Map<Block, LiveSlotSet> liveSet;
         Block current;
         final Set<Block> catchingBlocks;
-        final Map<Block, ExceptionRegionNode> coveredBlocks;
 
         public ConversionContext(MethodHandles.Lookup lookup, Liveness liveness, CodeBuilder cb) {
             this.lookup = lookup;
@@ -177,7 +176,6 @@ public final class BytecodeGenerator {
             this.labels = new HashMap<>();
             this.liveSet = new HashMap<>();
             this.catchingBlocks = new HashSet<>();
-            this.coveredBlocks = new HashMap<>();
         }
 
         @Override
@@ -345,72 +343,73 @@ public final class BytecodeGenerator {
         }
     }
 
-    record ExceptionRegionNode(CoreOps.ExceptionRegionEnter ere, int size, ExceptionRegionNode next) {
-    }
 
-    static final ExceptionRegionNode NIL = new ExceptionRegionNode(null, 0, null);
-
-    private static void computeExceptionRegionMembership(Body r, ConversionContext c) {
-        Set<Block> visited = new HashSet<>();
-        Deque<Block> stack = new ArrayDeque<>();
-        stack.push(r.entryBlock());
-
-        // Set of catching blocks
-        Set<Block> catchingBlocks = c.catchingBlocks;
-        // Map of block to stack of covered exception regions
-        Map<Block, ExceptionRegionNode> coveredBlocks = c.coveredBlocks;
+    private static void computeExceptionRegionMembership(Body r, CodeBuilder cob, ConversionContext c) {
+        final List<Block> blocks = r.blocks();
+        record ExceptionRegionWithBlocks(CoreOps.ExceptionRegionEnter ere, BitSet blocks) {
+        }
+        // Queue of all activeRegions
+        final List<ExceptionRegionWithBlocks> allRegions = new ArrayList<>();
+        class BlockWithActiveExceptionRegions {
+            final Block block;
+            final BitSet activeRegions;
+            BlockWithActiveExceptionRegions(Block block, BitSet activeRegions) {
+                this.block = block;
+                this.activeRegions = activeRegions;
+                int index = blocks.indexOf(block);
+                activeRegions.stream().forEach(r -> allRegions.get(r).blocks.set(index));
+            }
+        }
+        final Set<Block> visited = new HashSet<>();
+        final Deque<BlockWithActiveExceptionRegions> stack = new ArrayDeque<>();
+        stack.push(new BlockWithActiveExceptionRegions(r.entryBlock(), new BitSet()));
         // Compute exception region membership
         while (!stack.isEmpty()) {
-            Block b = stack.pop();
+            BlockWithActiveExceptionRegions bm = stack.pop();
+            Block b = bm.block;
             if (!visited.add(b)) {
                 continue;
             }
-
             Op top = b.terminatingOp();
-            ExceptionRegionNode bRegions = coveredBlocks.get(b);
             if (top instanceof CoreOps.BranchOp bop) {
-                if (bRegions != null) {
-                    coveredBlocks.put(bop.branch().targetBlock(), bRegions);
-                }
-
-                stack.push(bop.branch().targetBlock());
+                stack.push(new BlockWithActiveExceptionRegions(bop.branch().targetBlock(), bm.activeRegions));
             } else if (top instanceof CoreOps.ConditionalBranchOp cop) {
-                if (bRegions != null) {
-                    coveredBlocks.put(cop.falseBranch().targetBlock(), bRegions);
-                    coveredBlocks.put(cop.trueBranch().targetBlock(), bRegions);
-                }
-
-                stack.push(cop.falseBranch().targetBlock());
-                stack.push(cop.trueBranch().targetBlock());
+                stack.push(new BlockWithActiveExceptionRegions(cop.falseBranch().targetBlock(), bm.activeRegions));
+                stack.push(new BlockWithActiveExceptionRegions(cop.trueBranch().targetBlock(), bm.activeRegions));
             } else if (top instanceof CoreOps.ExceptionRegionEnter er) {
                 ArrayList<Block.Reference> catchBlocks = new ArrayList<>(er.catchBlocks());
-                Collections.reverse(catchBlocks);
-                for (Block.Reference catchBlock : catchBlocks) {
-                    catchingBlocks.add(catchBlock.targetBlock());
-                    if (bRegions != null) {
-                        coveredBlocks.put(catchBlock.targetBlock(), bRegions);
-                    }
-
-                    stack.push(catchBlock.targetBlock());
+                for (Block.Reference catchBlock : catchBlocks.reversed()) {
+                    c.catchingBlocks.add(catchBlock.targetBlock());
+                    stack.push(new BlockWithActiveExceptionRegions(catchBlock.targetBlock(), bm.activeRegions));
                 }
-
-                ExceptionRegionNode n;
-                if (bRegions != null) {
-                    n = new ExceptionRegionNode(er, bRegions.size + 1, bRegions);
-                } else {
-                    n = new ExceptionRegionNode(er, 1, NIL);
-                }
-                coveredBlocks.put(er.start().targetBlock(), n);
-
-                stack.push(er.start().targetBlock());
+                BitSet activeRegions = (BitSet)bm.activeRegions.clone();
+                activeRegions.set(allRegions.size());
+                ExceptionRegionWithBlocks newNode = new ExceptionRegionWithBlocks(er, new BitSet());
+                allRegions.add(newNode);
+                stack.push(new BlockWithActiveExceptionRegions(er.start().targetBlock(), activeRegions));
             } else if (top instanceof CoreOps.ExceptionRegionExit er) {
-                assert bRegions != null;
-
-                if (bRegions.size() > 1) {
-                    coveredBlocks.put(er.end().targetBlock(), bRegions.next());
+                BitSet activeRegions = (BitSet)bm.activeRegions.clone();
+                activeRegions.clear(activeRegions.length() - 1);
+                stack.push(new BlockWithActiveExceptionRegions(er.end().targetBlock(), activeRegions));
+            }
+        }
+        // Declare the exception regions
+        for (ExceptionRegionWithBlocks erNode : allRegions.reversed()) {
+            int start  = erNode.blocks.nextSetBit(0);
+            while (start >= 0) {
+                int end = erNode.blocks.nextClearBit(start);
+                Label startLabel = c.getLabel(blocks.get(start));
+                Label endLabel = c.getLabel(blocks.get(end));
+                for (Block.Reference cbr : erNode.ere.catchBlocks()) {
+                    Block cb = cbr.targetBlock();
+                    if (!cb.parameters().isEmpty()) {
+                        ClassDesc type = cb.parameters().get(0).type().toNominalDescriptor();
+                        cob.exceptionCatch(startLabel, endLabel, c.getLabel(cb), type);
+                    } else {
+                        cob.exceptionCatchAll(startLabel, endLabel, c.getLabel(cb));
+                    }
                 }
-
-                stack.push(er.end().targetBlock());
+                start = erNode.blocks.nextSetBit(end);
             }
         }
     }
@@ -426,7 +425,7 @@ public final class BytecodeGenerator {
     }
 
     private static void generateBody(Body body, CodeBuilder cob, ConversionContext c) {
-        computeExceptionRegionMembership(body, c);
+        computeExceptionRegionMembership(body, cob, c);
 
         // Process blocks in topological order
         // A jump instruction assumes the false successor block is
@@ -774,18 +773,6 @@ public final class BytecodeGenerator {
                 }
                 case ExceptionRegionExit op -> {
                     assignBlockArguments(op, op.end(), cob, c);
-                    ExceptionRegionEnter enterOp = op.regionStart();
-                    Label start = c.getLabel(enterOp.start().targetBlock());
-                    Label end = cob.newBoundLabel();
-                    for (Reference cbr : enterOp.catchBlocks()) {
-                        Block cb = cbr.targetBlock();
-                        if (!cb.parameters().isEmpty()) {
-                            ClassDesc type = cb.parameters().get(0).type().toNominalDescriptor();
-                            cob.exceptionCatch(start, end, c.getLabel(cb), type);
-                        } else {
-                            cob.exceptionCatchAll(start, end, c.getLabel(cb));
-                        }
-                    }
                     branch(cob, c, blocks, b, op.end().targetBlock());
                 }
                 default ->

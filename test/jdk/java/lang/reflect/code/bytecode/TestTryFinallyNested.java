@@ -84,8 +84,7 @@ public class TestTryFinallyNested {
         c.accept(6);
     }
 
-    @Test(enabled = false)
-    //finalizer in exception handler is invalid (missing exception.region.exit)
+    @Test
     public void testCatchFinally() {
         CoreOps.FuncOp f = getFuncOp("tryCatchFinally");
 
