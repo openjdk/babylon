@@ -378,7 +378,7 @@ public final class BytecodeGenerator {
                 stack.push(new BlockWithActiveExceptionRegions(cop.trueBranch().targetBlock(), bm.activeRegions));
             } else if (top instanceof CoreOps.ExceptionRegionEnter er) {
                 ArrayList<Block.Reference> catchBlocks = new ArrayList<>(er.catchBlocks());
-                for (Block.Reference catchBlock : catchBlocks.reversed()) {
+                for (Block.Reference catchBlock : er.catchBlocks().reversed()) {
                     c.catchingBlocks.add(catchBlock.targetBlock());
                     stack.push(new BlockWithActiveExceptionRegions(catchBlock.targetBlock(), bm.activeRegions));
                 }
