@@ -156,7 +156,16 @@ public final class Block implements CodeElement<Block, Op> {
     }
 
     /**
-     * Returns this block's index within the parent bodies list of blocks.
+     * Returns this block's index within the parent body's blocks.
+     * <p>
+     * The following identity holds true:
+     * {@snippet lang = "java"
+     *     this.parentBody().blocks().indexOf(this) == this.index();
+     * }
+     *
+     * @apiNote
+     * The block's index may be used to efficiently track blocks using
+     * bits sets or boolean arrays.
      *
      * @return the block index.
      */
