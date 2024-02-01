@@ -29,7 +29,6 @@ import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
-import java.lang.reflect.code.bytecode.BytecodeLower;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -40,6 +39,7 @@ import java.util.stream.Stream;
 
 /*
  * @test
+ * @enablePreview
  * @run testng TestForwardAutoDiff
  */
 
@@ -60,13 +60,13 @@ public class TestForwardAutoDiff {
         Block.Parameter x = f.body().entryBlock().parameters().get(0);
         Block.Parameter y = f.body().entryBlock().parameters().get(1);
 
-        CoreOps.FuncOp dff_dx = ExpressionElimination.eliminate(ForwardDifferentiation.diff(f, x));
+        CoreOps.FuncOp dff_dx = ExpressionElimination.eliminate(ForwardDifferentiation.partialDiff(f, x));
         dff_dx.writeTo(System.out);
         MethodHandle dff_dx_mh = generate(dff_dx);
         Assert.assertEquals((double) dff_dx_mh.invoke(0.0, 1.0), df_dx(0.0, 1.0));
         Assert.assertEquals((double) dff_dx_mh.invoke(PI_4, PI_4), df_dx(PI_4, PI_4));
 
-        CoreOps.FuncOp dff_dy = ExpressionElimination.eliminate(ForwardDifferentiation.diff(f, y));
+        CoreOps.FuncOp dff_dy = ExpressionElimination.eliminate(ForwardDifferentiation.partialDiff(f, y));
         dff_dy.writeTo(System.out);
         MethodHandle dff_dy_mh = generate(dff_dy);
         Assert.assertEquals((double) dff_dy_mh.invoke(0.0, 1.0), df_dy(0.0, 1.0));
@@ -110,7 +110,7 @@ public class TestForwardAutoDiff {
 
         Block.Parameter x = f.body().entryBlock().parameters().get(0);
 
-        CoreOps.FuncOp df_dx = ForwardDifferentiation.diff(f, x);
+        CoreOps.FuncOp df_dx = ForwardDifferentiation.partialDiff(f, x);
         df_dx.writeTo(System.out);
         MethodHandle df_dx_mh = generate(df_dx);
 
@@ -148,10 +148,7 @@ public class TestForwardAutoDiff {
     }
 
     static MethodHandle generate(CoreOps.FuncOp f) {
-        CoreOps.FuncOp bcf = BytecodeLower.lowerToBytecodeDialect(f);
-        bcf.writeTo(System.out);
-
-        return BytecodeGenerator.generate(MethodHandles.lookup(), bcf);
+        return BytecodeGenerator.generate(MethodHandles.lookup(), f);
     }
 
     static CoreOps.FuncOp getFuncOp(String name) {

@@ -29,7 +29,6 @@ import java.lang.reflect.code.Op;
 import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.reflect.code.bytecode.BytecodeLift;
-import java.lang.reflect.code.bytecode.BytecodeLower;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
@@ -100,10 +99,7 @@ public class TestLiftSimple {
         lf = SSA.transform(lf);
         lf.writeTo(System.out);
 
-        CoreOps.FuncOp bcf = BytecodeLower.lowerToBytecodeDialect(lf);
-        bcf.writeTo(System.out);
-
-        return BytecodeGenerator.generateClassData(MethodHandles.lookup(), bcf);
+        return BytecodeGenerator.generateClassData(MethodHandles.lookup(), lf);
     }
 
     static CoreOps.FuncOp getFuncOp(String name) {
