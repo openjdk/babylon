@@ -35,16 +35,11 @@ import java.lang.reflect.code.op.CoreOps.*;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.lang.classfile.CodeBuilder.BlockCodeBuilder;
-import java.lang.classfile.CodeElement;
-import java.lang.classfile.CodeTransform;
-import java.lang.classfile.Instruction;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
 import static java.lang.classfile.TypeKind.DoubleType;
 import static java.lang.classfile.TypeKind.FloatType;
 import static java.lang.classfile.TypeKind.LongType;
-import java.lang.classfile.instruction.BranchInstruction;
-import java.lang.classfile.instruction.LabelTarget;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDesc;
 import java.lang.constant.ConstantDescs;
@@ -57,7 +52,6 @@ import java.lang.reflect.code.Op;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
-import java.lang.reflect.code.Block.Reference;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.analysis.Liveness;
 import java.lang.reflect.code.descriptor.FieldDesc;
@@ -72,7 +66,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -116,22 +109,6 @@ public final class BytecodeGenerator {
         ClassPrinter.toYaml(cm, ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES, System.out::print);
     }
 
-    private static class DebugTransform implements CodeTransform {
-        private int bci = 0;
-
-        @Override
-        public void accept(CodeBuilder cob, CodeElement coe) {
-            cob.accept(coe);
-//            switch (coe) {
-//                case LabelTarget lt -> System.out.println(bci + ": " + lt + " (" + lt.label().hashCode() + ")");
-//                case BranchInstruction bi -> System.out.println(bci + ": " + bi + " (" + bi.target().hashCode() + ")");
-//                default -> System.out.println(bci + ": " + coe);
-//            }
-            if (coe instanceof Instruction ins) bci += ins.sizeInBytes();
-        }
-
-    }
-
     public static byte[] generateClassData(MethodHandles.Lookup lookup, CoreOps.FuncOp fop) {
         String packageName = lookup.lookupClass().getPackageName();
         String className = packageName.isEmpty()
@@ -143,10 +120,10 @@ public final class BytecodeGenerator {
                         fop.funcName(),
                         fop.funcDescriptor().toNominalDescriptor(),
                         ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC,
-                        cb -> cb.transforming(new DebugTransform(), cob -> {
+                        cob -> {
                             ConversionContext c = new ConversionContext(lookup, liveness, cob);
                             generateBody(fop.body(), cob, c);
-                        })));
+                        }));
         return classBytes;
     }
 
@@ -205,13 +182,8 @@ public final class BytecodeGenerator {
             return liveSlotSet().getSlot(v);
         }
 
-
         int getOrAssignSlot(Value v, boolean assignIfUnused) {
             return liveSlotSet().getOrAssignSlot(v, assignIfUnused);
-        }
-
-        int getOrAssignSlot(Value v) {
-            return getOrAssignSlot(v, false);
         }
 
         int assignSlot(Value v) {
@@ -344,25 +316,25 @@ public final class BytecodeGenerator {
     }
 
 
-    private static void computeExceptionRegionMembership(Body r, CodeBuilder cob, ConversionContext c) {
-        final List<Block> blocks = r.blocks();
+    private static void computeExceptionRegionMembership(Body body, CodeBuilder cob, ConversionContext c) {
+        final List<Block> blocks = body.blocks();
         record ExceptionRegionWithBlocks(CoreOps.ExceptionRegionEnter ere, BitSet blocks) {
         }
-        // List of all activeRegions
+        // List of all regions
         final List<ExceptionRegionWithBlocks> allRegions = new ArrayList<>();
         class BlockWithActiveExceptionRegions {
             final Block block;
-            final BitSet activeRegions;
-            BlockWithActiveExceptionRegions(Block block, BitSet activeRegions) {
+            final BitSet activeRegionStack;
+            BlockWithActiveExceptionRegions(Block block, BitSet activeRegionStack) {
                 this.block = block;
-                this.activeRegions = activeRegions;
+                this.activeRegionStack = activeRegionStack;
                 int index = blocks.indexOf(block);
-                activeRegions.stream().forEach(r -> allRegions.get(r).blocks.set(index));
+                activeRegionStack.stream().forEach(r -> allRegions.get(r).blocks.set(index));
             }
         }
         final Set<Block> visited = new HashSet<>();
         final Deque<BlockWithActiveExceptionRegions> stack = new ArrayDeque<>();
-        stack.push(new BlockWithActiveExceptionRegions(r.entryBlock(), new BitSet()));
+        stack.push(new BlockWithActiveExceptionRegions(body.entryBlock(), new BitSet()));
         // Compute exception region membership
         while (!stack.isEmpty()) {
             BlockWithActiveExceptionRegions bm = stack.pop();
@@ -372,25 +344,24 @@ public final class BytecodeGenerator {
             }
             Op top = b.terminatingOp();
             if (top instanceof CoreOps.BranchOp bop) {
-                stack.push(new BlockWithActiveExceptionRegions(bop.branch().targetBlock(), bm.activeRegions));
+                stack.push(new BlockWithActiveExceptionRegions(bop.branch().targetBlock(), bm.activeRegionStack));
             } else if (top instanceof CoreOps.ConditionalBranchOp cop) {
-                stack.push(new BlockWithActiveExceptionRegions(cop.falseBranch().targetBlock(), bm.activeRegions));
-                stack.push(new BlockWithActiveExceptionRegions(cop.trueBranch().targetBlock(), bm.activeRegions));
+                stack.push(new BlockWithActiveExceptionRegions(cop.falseBranch().targetBlock(), bm.activeRegionStack));
+                stack.push(new BlockWithActiveExceptionRegions(cop.trueBranch().targetBlock(), bm.activeRegionStack));
             } else if (top instanceof CoreOps.ExceptionRegionEnter er) {
-                ArrayList<Block.Reference> catchBlocks = new ArrayList<>(er.catchBlocks());
                 for (Block.Reference catchBlock : er.catchBlocks().reversed()) {
                     c.catchingBlocks.add(catchBlock.targetBlock());
-                    stack.push(new BlockWithActiveExceptionRegions(catchBlock.targetBlock(), bm.activeRegions));
+                    stack.push(new BlockWithActiveExceptionRegions(catchBlock.targetBlock(), bm.activeRegionStack));
                 }
-                BitSet activeRegions = (BitSet)bm.activeRegions.clone();
-                activeRegions.set(allRegions.size());
+                BitSet activeRegionStack = (BitSet)bm.activeRegionStack.clone();
+                activeRegionStack.set(allRegions.size());
                 ExceptionRegionWithBlocks newNode = new ExceptionRegionWithBlocks(er, new BitSet());
                 allRegions.add(newNode);
-                stack.push(new BlockWithActiveExceptionRegions(er.start().targetBlock(), activeRegions));
+                stack.push(new BlockWithActiveExceptionRegions(er.start().targetBlock(), activeRegionStack));
             } else if (top instanceof CoreOps.ExceptionRegionExit er) {
-                BitSet activeRegions = (BitSet)bm.activeRegions.clone();
-                activeRegions.clear(activeRegions.length() - 1);
-                stack.push(new BlockWithActiveExceptionRegions(er.end().targetBlock(), activeRegions));
+                BitSet activeRegionStack = (BitSet)bm.activeRegionStack.clone();
+                activeRegionStack.clear(activeRegionStack.length() - 1);
+                stack.push(new BlockWithActiveExceptionRegions(er.end().targetBlock(), activeRegionStack));
             }
         }
         // Declare the exception regions
@@ -451,8 +422,6 @@ public final class BytecodeGenerator {
             if (c.catchingBlocks.contains(b)) {
                 // Retain block argument for exception table generation
                 Block.Parameter ex = b.parameters().get(0);
-//                clb.parameter(ex.type());
-
                 // Store in slot if used, otherwise pop
                 if (!ex.uses().isEmpty()) {
                     int slot = c.getSlot(ex);
