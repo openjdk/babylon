@@ -38,7 +38,10 @@ import java.util.List;
  * BranchCompactor is a CodeTransform working as a state machine.
  * It identifies and compacts redundant sequences of branches in a single pass.
  */
-final class BranchCompactor implements CodeTransform {
+public final class BranchCompactor implements CodeTransform {
+
+    public BranchCompactor() {
+    }
 
     private BranchInstruction firstBranch, secondBranch;
     private final List<PseudoInstruction> pseudoBuffer1 = new ArrayList<>(),
