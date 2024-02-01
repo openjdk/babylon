@@ -97,7 +97,7 @@ public class ImplicitConversionTest {
                         %7 : long = constant @"1";
                         yield %7;
                     }
-                    ^falsepart()int -> {
+                    ^falsepart()long -> {
                         %8 : int = constant @"2";
                         %9 : long = conv %8;
                         yield %9;
@@ -122,7 +122,7 @@ public class ImplicitConversionTest {
                        %6 : boolean = var.load %2;
                        yield %6;
                    }
-                   ^truepart()int -> {
+                   ^truepart()long -> {
                        %7 : int = constant @"1";
                        %8 : long = conv %7;
                        yield %8;

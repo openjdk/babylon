@@ -124,7 +124,7 @@ class BytecodeInstructionOps {
         }
 
         InstructionOp(String name) {
-            super(name, TypeDesc.VOID, List.of());
+            super(name, List.of());
         }
 
         @Override
@@ -139,6 +139,13 @@ class BytecodeInstructionOps {
 
         // Produce an ASM bytecode instruction
         public abstract void apply(CodeBuilder b, MethodVisitorContext c);
+
+        @Override
+        public TypeDesc resultType() {
+            // I chose VOID, because bytecode instructions manipulate the stack
+            // plus the type of what an operation will push/pop mayn not be known, e.g. pop instruction
+            return TypeDesc.VOID;
+        }
     }
 
     public static abstract class TerminatingInstructionOp extends InstructionOp implements Op.Terminating {
@@ -2277,12 +2284,16 @@ class BytecodeInstructionOps {
     // Internal control operations
 
     public static abstract class ControlInstructionOp extends Op {
+        private final TypeDesc resultType;
+
         ControlInstructionOp(ControlInstructionOp that, CopyContext cc) {
             super(that, cc);
+            this.resultType = that.resultType;
         }
 
         ControlInstructionOp(String name, TypeDesc resultType, List<Value> operands) {
-            super(name, resultType, operands);
+            super(name, operands);
+            this.resultType = resultType;
         }
 
         @Override
@@ -2296,6 +2307,11 @@ class BytecodeInstructionOps {
         }
 
         public abstract void apply(CodeBuilder mv, MethodVisitorContext c);
+
+        @Override
+        public TypeDesc resultType() {
+            return resultType;
+        }
     }
 
     enum PrimitiveFrameType {

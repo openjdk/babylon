@@ -73,7 +73,7 @@ public class ConditionalExpressionTest {
                         %9 : boolean = not %8;
                         yield %9;
                     }
-                    ^truepart()int -> {
+                    ^truepart()double -> {
                         %10 : int = var.load %5;
                         %11 : double = conv %10;
                         yield %11;
@@ -145,7 +145,7 @@ public class ConditionalExpressionTest {
                                 %14 : boolean = var.load %7;
                                 yield %14;
                             }
-                            ^truepart()int -> {
+                            ^truepart()double -> {
                                 %15 : int = var.load %8;
                                 %16 : double = conv %15;
                                 yield %16;

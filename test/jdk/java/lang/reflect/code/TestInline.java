@@ -78,7 +78,7 @@ public class TestInline {
 
                     Op.Result fortyTwo = fblock.op(constant(INT, 42));
 
-                    Op.Result v = fblock.op(var(INT, fblock.op(constant(INT, 0))));
+                    Op.Result v = fblock.op(var(fblock.op(constant(INT, 0))));
 
                     var cb = fblock.inline(cop, List.of(i, fortyTwo), (b, value) -> {
                         b.op(varStore(v, value));
@@ -158,7 +158,7 @@ public class TestInline {
 
                     Op.Result fortyTwo = fblock.op(constant(INT, 42));
 
-                    Op.Result v = fblock.op(var(INT, fblock.op(constant(INT, 0))));
+                    Op.Result v = fblock.op(var(fblock.op(constant(INT, 0))));
 
                     var cb = fblock.inline(lcop, List.of(i, fortyTwo), (b, value) -> {
                         b.op(varStore(v, value));
@@ -218,7 +218,7 @@ public class TestInline {
         CoreOps.ClosureOp cop = (CoreOps.ClosureOp) q.op();
 
         // functional descriptor = (int)int
-        CoreOps.FuncOp f = func("f", methodType(int[].class, int.class))
+        CoreOps.FuncOp f = func("f", methodType(void.class, int[].class))
                 .body(fblock -> {
                     Block.Parameter a = fblock.parameters().get(0);
 

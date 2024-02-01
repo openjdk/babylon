@@ -55,12 +55,11 @@ public abstract class OpWithDefinition extends Op {
     /**
      * Constructs an operation with a name, operation result type, and list of operands.
      *
-     * @param name       the operation name.
-     * @param resultType the operation result type.
-     * @param operands   the list of operands, a copy of the list is performed if required.
+     * @param name     the operation name.
+     * @param operands the list of operands, a copy of the list is performed if required.
      */
-    protected OpWithDefinition(String name, TypeDesc resultType, List<? extends Value> operands) {
-        super(name, resultType, operands);
+    protected OpWithDefinition(String name, List<? extends Value> operands) {
+        super(name, operands);
 
         this.attributes = Map.of();
     }
@@ -69,7 +68,7 @@ public abstract class OpWithDefinition extends Op {
      * Constructs an operation from its operation definition.
      *
      * @param def the operation definition.
-     * @implSpec This implementation invokes the {@link Op#Op(String, TypeDesc, List) constructor}
+     * @implSpec This implementation invokes the {@link Op#Op(String, List) constructor}
      * accepting the non-optional components of the operation definition, {@code name}, {@code resultType},
      * and {@code operands}:
      * <pre> {@code
@@ -78,7 +77,7 @@ public abstract class OpWithDefinition extends Op {
      * If the attributes component of the operation definition is copied as if by {@code Map.copyOf}.
      */
     protected OpWithDefinition(OpDefinition def) {
-        super(def.name(), def.resultType(), def.operands());
+        super(def.name(), def.operands());
 
         this.attributes = Map.copyOf(def.attributes());
     }

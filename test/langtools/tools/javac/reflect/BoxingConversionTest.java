@@ -189,7 +189,7 @@ public class BoxingConversionTest {
                         %6 : boolean = var.load %3;
                         yield %6;
                     }
-                    ^truepart()java.lang.Integer -> {
+                    ^truepart()int -> {
                         %7 : java.lang.Integer = var.load %4;
                         %8 : int = invoke %7 @"java.lang.Integer::intValue(java.lang.Integer)int";
                         yield %8;
@@ -220,7 +220,7 @@ public class BoxingConversionTest {
                         %7 : int = constant @"2";
                         yield %7;
                     }
-                    ^falsepart()java.lang.Integer -> {
+                    ^falsepart()int -> {
                         %8 : java.lang.Integer = var.load %4;
                         %9 : int = invoke %8 @"java.lang.Integer::intValue(java.lang.Integer)int";
                         yield %9;
