@@ -120,10 +120,10 @@ public final class BytecodeGenerator {
                         fop.funcName(),
                         fop.funcDescriptor().toNominalDescriptor(),
                         ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC,
-                        cob -> {
+                        cb -> cb.transforming(new BranchCompactor(), cob -> {
                             ConversionContext c = new ConversionContext(lookup, liveness, cob);
                             generateBody(fop.body(), cob, c);
-                        }));
+                        })));
         return classBytes;
     }
 
@@ -382,16 +382,6 @@ public final class BytecodeGenerator {
                 }
                 start = erNode.blocks.nextSetBit(end);
             }
-        }
-    }
-
-    private static void branch(CodeBuilder cob, ConversionContext c, List<Block> blocks, Block source, Block target) {
-        int bi = blocks.indexOf(source);
-        int si = blocks.indexOf(target);
-        // If successor occurs immediately after this block,
-        // then no need for goto instruction
-        if (bi != si - 1) {
-            cob.goto_(c.getLabel(target));
         }
     }
 
@@ -706,7 +696,7 @@ public final class BytecodeGenerator {
                 }
                 case BranchOp op -> {
                     assignBlockArguments(op, op.branch(), cob, c);
-                    branch(cob, c, blocks, b, op.branch().targetBlock());
+                    cob.goto_(c.getLabel(op.branch().targetBlock()));
                 }
                 case ConditionalBranchOp op -> {
                     if (getConditionForCondBrOp(op) instanceof CoreOps.BinaryTestOp btop) {
@@ -715,22 +705,22 @@ public final class BytecodeGenerator {
                         conditionalBranch(cob, btop,
                                 trueBuilder -> {
                                     assignBlockArguments(btop, op.trueBranch(), trueBuilder, c);
-                                    branch(trueBuilder, c, blocks, b, op.trueBranch().targetBlock());
+                                    trueBuilder.goto_(c.getLabel(op.trueBranch().targetBlock()));
                                 },
                                 falseBuilder -> {
                                     assignBlockArguments(btop, op.falseBranch(), falseBuilder, c);
-                                    branch(falseBuilder, c, blocks, b, op.falseBranch().targetBlock());
+                                    falseBuilder.goto_(c.getLabel(op.falseBranch().targetBlock()));
                                 });
                     } else {
                         processOperands(cob, c, op, isLastOpResultOnStack);
                         cob.ifThenElse(
                                 trueBuilder -> {
                                     assignBlockArguments(op, op.trueBranch(), trueBuilder, c);
-                                    branch(trueBuilder, c, blocks, b, op.trueBranch().targetBlock());
+                                    trueBuilder.goto_(c.getLabel(op.trueBranch().targetBlock()));
                                 },
                                 falseBuilder -> {
                                     assignBlockArguments(op, op.falseBranch(), falseBuilder, c);
-                                    branch(falseBuilder, c, blocks, b, op.falseBranch().targetBlock());
+                                    falseBuilder.goto_(c.getLabel(op.falseBranch().targetBlock()));
                                 });
                     }
                 }
@@ -742,7 +732,7 @@ public final class BytecodeGenerator {
                 }
                 case ExceptionRegionExit op -> {
                     assignBlockArguments(op, op.end(), cob, c);
-                    branch(cob, c, blocks, b, op.end().targetBlock());
+                    cob.goto_(c.getLabel(op.end().targetBlock()));
                 }
                 default ->
                     throw new UnsupportedOperationException("Terminating operation not supported: " + top);
