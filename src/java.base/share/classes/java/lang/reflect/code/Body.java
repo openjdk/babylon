@@ -423,6 +423,8 @@ public final class Body implements CodeElement<Body, Block> {
                 }
 
                 // Remove any non-entry blocks with no operations and no predecessors
+                // @@@ Remove non-empty blocks with no predecessors?
+                //     Retaining such blocks may be useful for debugging, or perhaps it's intentional?
                 if (empty &&
                         !block.isEntryBlock() &&
                         block.predecessors.isEmpty()) {
@@ -534,6 +536,9 @@ public final class Body implements CodeElement<Body, Block> {
         return body;
     }
 
+    // Sort blocks in reverse post order
+    // After sorting the following holds for a block
+    //   block.parentBody().blocks().indexOf(block) == block.index()
     private void sortReversePostorder() {
         if (blocks.size() < 2) {
             for (int i = 0; i < blocks.size(); i++) {
@@ -543,7 +548,7 @@ public final class Body implements CodeElement<Body, Block> {
         }
 
         // Reset block indexes
-        // Ensure unreferenced blocks occur last
+        // Also ensuring blocks with no predecessors occur last
         for (Block b : blocks) {
             b.index = Integer.MAX_VALUE;
         }
@@ -576,6 +581,13 @@ public final class Body implements CodeElement<Body, Block> {
         }
 
         blocks.sort(Comparator.comparingInt(b -> b.index));
+        if (blocks.get(0).index > 0) {
+            // There are blocks with no predecessors
+            // Reassign indexes to their natural indexes, sort order is preserved
+            for (int i = 0; i < blocks.size(); i++) {
+                blocks.get(i).index = i;
+            }
+        }
     }
 
     // Modifying methods
