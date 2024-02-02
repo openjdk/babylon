@@ -384,13 +384,14 @@ public final class Body implements CodeElement<Body, Block> {
          * otherwise an {@code IllegalStateException} will occur.
          * <p>
          * Blocks are sorted in reserve postorder.
-         * Any non-entry blocks with no operations and are not referred to as successors of other blocks
-         * are removed.
+         * <p>
+         * Any unreferenced empty blocks are removed. An unreferenced block is a non-entry block with no predecessors.
          *
          * @param op the parent operation
          * @return the build body
          * @throws IllegalStateException if this body builder is built
          * @throws IllegalStateException if any descendant body builders are not built
+         * @throws IllegalStateException if a block has no terminal operation, unless unreferenced and empty
          */
         // @@@ Validation
         // e.g., every operand dominates the operation result (potentially expensive)
@@ -413,22 +414,19 @@ public final class Body implements CodeElement<Body, Block> {
             Iterator<Block> i = blocks.iterator();
             while (i.hasNext()) {
                 Block block = i.next();
-                boolean empty = block.ops.isEmpty();
 
                 // Structural check
-                // All blocks should have a terminating operation as the last operation
-                if (!empty && !(block.ops.getLast() instanceof Op.Terminating)) {
-                    // @@@ exception
-                    throw new IllegalStateException("Block has no terminating operation as the last operation");
-                }
+                // All referenced blocks should have a terminating operation as the last operation
+                if (block.ops.isEmpty()) {
+                    if (block.isEntryBlock() || !block.predecessors.isEmpty()) {
+                        throw noTerminatingOperation();
+                    }
 
-                // Remove any non-entry blocks with no operations and no predecessors
-                // @@@ Remove non-empty blocks with no predecessors?
-                //     Retaining such blocks may be useful for debugging, or perhaps it's intentional?
-                if (empty &&
-                        !block.isEntryBlock() &&
-                        block.predecessors.isEmpty()) {
+                    // Remove unreferenced empty block
+                    assert !block.isEntryBlock() && block.predecessors.isEmpty();
                     i.remove();
+                } else if (!(block.ops.getLast() instanceof Op.Terminating)) {
+                    throw noTerminatingOperation();
                 }
             }
 
@@ -436,6 +434,10 @@ public final class Body implements CodeElement<Body, Block> {
 
             Body.this.parentOp = op;
             return Body.this;
+        }
+
+        static IllegalStateException noTerminatingOperation() {
+            return new IllegalStateException("Block has no terminating operation as the last operation");
         }
 
         /**
