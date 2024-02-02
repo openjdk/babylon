@@ -21,11 +21,15 @@
  * questions.
  */
 
+import java.lang.classfile.Attributes;
 import java.lang.classfile.ClassFile;
+import java.lang.classfile.Instruction;
 import java.lang.classfile.components.ClassPrinter;
+import static java.lang.classfile.Opcode.*;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
 import java.lang.reflect.code.bytecode.BranchCompactor;
+import java.util.List;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -38,42 +42,40 @@ public class TestBranchCompactor {
 
     @Test
     public void testBranchCompactor() {
-        var cc = ClassFile.of();
+        var cc = ClassFile.of(ClassFile.StackMapsOption.DROP_STACK_MAPS);
         var clm = cc.parse(cc.build(ClassDesc.of("c"), clb -> clb.withMethodBody("m", ConstantDescs.MTD_void, 0,
                 cb -> cb.transforming(new BranchCompactor(), cob -> {
-                    var l1 = cob.newLabel();
-                    cob.goto_(l1);
-                    cob.labelBinding(l1);
-                    l1 = cob.newLabel();
-                    cob.goto_(l1);
-                    cob.labelBinding(l1);
-                    cob.iconst_0();
-                    cob.ifThenElse(tb -> {
-                        var l2 = tb.newLabel();
-                        tb.goto_(l2);
-                        tb.labelBinding(l2);
-                        l2 = tb.newLabel();
-                        tb.goto_(l2);
-                        tb.labelBinding(l2);
-                    }, eb -> {
-                        var l2 = eb.newLabel();
-                        eb.goto_(l2);
-                        eb.labelBinding(l2);
-                        l2 = eb.newLabel();
-                        eb.goto_(l2);
-                        eb.labelBinding(l2);
-                    });
-                    l1 = cob.newLabel();
-                    cob.goto_(l1);
-                    cob.labelBinding(l1);
-                    l1 = cob.newLabel();
-                    cob.goto_(l1);
-                    cob.labelBinding(l1);
-                    cob.return_();
-                }))));
+                    var l = cob.newLabel();
+                    cob.goto_(l) //compact
+                       .lineNumber(1)
+                       .labelBinding(l)
+                       .nop();
 
-        ClassPrinter.toYaml(clm, ClassPrinter.Verbosity.TRACE_ALL, System.out::print);
-        //only iconst_0 and return_ should remain
-        Assert.assertEquals(clm.methods().get(0).code().get().elementList().size(), 2);
+                    l = cob.newLabel();
+                    cob.goto_w(l) //compact
+                       .lineNumber(2)
+                       .labelBinding(l);
+
+                    l = cob.newLabel();
+                    cob.goto_(l) //compact
+                       .labelBinding(l);
+
+                    cob.iconst_0();
+                    l = cob.newLabel();
+                    cob.ifeq(l) //do not compact
+                       .labelBinding(l);
+
+                    l = cob.newLabel();
+                    cob.goto_(l) //do not compact
+                       .nop()
+                       .labelBinding(l)
+                       .return_();
+                }))));
+        var code = clm.methods().get(0).code().get();
+        ClassPrinter.toYaml(code, ClassPrinter.Verbosity.TRACE_ALL, System.out::print);
+        Assert.assertEquals(
+                code.elementList().stream().mapMulti((e, ec) -> {if (e instanceof Instruction i) ec.accept(i.opcode());}).toList(),
+                List.of(NOP, ICONST_0, IFEQ, GOTO, NOP, RETURN));
+        Assert.assertEquals(code.findAttribute(Attributes.LINE_NUMBER_TABLE).get().lineNumbers().size(), 2);
     }
 }
