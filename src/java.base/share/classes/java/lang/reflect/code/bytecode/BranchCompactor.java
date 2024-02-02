@@ -56,18 +56,13 @@ public final class BranchCompactor implements CodeTransform {
             }
         } else {
             switch (coe) {
-                case LabelTarget lt -> {
-                    if (branch.target() == lt.label()) {
-                        //skip branch to immediate target
-                        branch = null;
-                        //flush the buffer
-                        atEnd(cob);
-                        //pass the target
-                        cob.with(lt);
-                    } else {
-                        //buffer other targets
-                        buffer.add(lt);
-                    }
+                case LabelTarget lt when branch.target() == lt.label() -> {
+                    //skip branch to immediate target
+                    branch = null;
+                    //flush the buffer
+                    atEnd(cob);
+                    //pass the target
+                    cob.with(lt);
                 }
                 case PseudoInstruction pi -> {
                     //buffer pseudo instructions
