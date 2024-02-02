@@ -55,7 +55,7 @@ public final class BranchCompactor implements CodeTransform {
                 firstBranch = bi;
                 activeState = LOOKING_FOR_SHORT_JUMP;
             } else {
-                //all other instructions and pseudo instrutions are passed
+                //all other instructions and pseudo instructions are passed
                 cob.with(coe);
             }
         }
@@ -155,7 +155,7 @@ public final class BranchCompactor implements CodeTransform {
                 case BranchInstruction bi -> {
                     //third branch has been detected, so we flush the firstBranch and its pseudo instructions
                     //move to LOOKING_FOR_SHORT_JUMP state, shift secondBranch to the firstBranch
-                    //replay the seconBranch pseudo instructions and this actual branch
+                    //replay the secondBranch pseudo instructions and this actual branch
                     LOOKING_FOR_SHORT_JUMP.atEnd(cob);
                     activeState = LOOKING_FOR_SHORT_JUMP;
                     firstBranch = secondBranch;
