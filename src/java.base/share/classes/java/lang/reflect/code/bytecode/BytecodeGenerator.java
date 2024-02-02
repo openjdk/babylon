@@ -317,7 +317,6 @@ public final class BytecodeGenerator {
 
 
     private static void computeExceptionRegionMembership(Body body, CodeBuilder cob, ConversionContext c) {
-        final List<Block> blocks = body.blocks();
         record ExceptionRegionWithBlocks(CoreOps.ExceptionRegionEnter ere, BitSet blocks) {
         }
         // List of all regions
@@ -328,8 +327,7 @@ public final class BytecodeGenerator {
             BlockWithActiveExceptionRegions(Block block, BitSet activeRegionStack) {
                 this.block = block;
                 this.activeRegionStack = activeRegionStack;
-                int index = blocks.indexOf(block);
-                activeRegionStack.stream().forEach(r -> allRegions.get(r).blocks.set(index));
+                activeRegionStack.stream().forEach(r -> allRegions.get(r).blocks.set(block.index()));
             }
         }
         final Set<Block> visited = new HashSet<>();
@@ -365,6 +363,7 @@ public final class BytecodeGenerator {
             }
         }
         // Declare the exception regions
+        final List<Block> blocks = body.blocks();
         for (ExceptionRegionWithBlocks erNode : allRegions.reversed()) {
             int start  = erNode.blocks.nextSetBit(0);
             while (start >= 0) {
