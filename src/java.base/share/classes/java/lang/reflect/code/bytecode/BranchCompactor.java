@@ -38,11 +38,11 @@ import java.util.List;
  */
 public final class BranchCompactor implements CodeTransform {
 
-    public BranchCompactor() {
-    }
-
     private BranchInstruction branch;
     private final List<PseudoInstruction> buffer = new ArrayList<>();
+
+    public BranchCompactor() {
+    }
 
     @Override
     public void accept(CodeBuilder cob, CodeElement coe) {
@@ -51,40 +51,45 @@ public final class BranchCompactor implements CodeTransform {
                 //unconditional branch is stored
                 branch = bi;
             } else {
-                //all other instructions and pseudo instructions are passed
+                //all other elements are passed
                 cob.with(coe);
             }
-        } else switch (coe) {
-            case LabelTarget lt -> {
-                if (branch.target() == lt.label()) {
-                    //skip branch to immediate target
-                    branch = null;
-                    //flush buffer
-                    buffer.forEach(cob::with);
-                    buffer.clear();
-                    cob.with(coe);
-                } else {
-                    //buffer other targets
-                    buffer.add(lt);
+        } else {
+            switch (coe) {
+                case LabelTarget lt -> {
+                    if (branch.target() == lt.label()) {
+                        //skip branch to immediate target
+                        branch = null;
+                        //flush the buffer
+                        atEnd(cob);
+                        //pass the target
+                        cob.with(lt);
+                    } else {
+                        //buffer other targets
+                        buffer.add(lt);
+                    }
                 }
-            }
-            case PseudoInstruction pi -> {
-                //buffer pseudo instructions
-                buffer.add(pi);
-            }
-            default -> {
-                //any other instruction flushes the branch and buffer
-                atEnd(cob);
-                //the code element is replayed
-                accept(cob, coe);
+                case PseudoInstruction pi -> {
+                    //buffer pseudo instructions
+                    buffer.add(pi);
+                }
+                default -> {
+                    //any other instruction flushes the branch and buffer
+                    atEnd(cob);
+                    //replay the code element
+                    accept(cob, coe);
+                }
             }
         }
     }
+
     @Override
     public void atEnd(CodeBuilder cob) {
-        //flush the branch
-        cob.with(branch);
-        branch = null;
+        if (branch != null) {
+            //flush the branch
+            cob.with(branch);
+            branch = null;
+        }
         //flush the buffer
         buffer.forEach(cob::with);
         buffer.clear();
