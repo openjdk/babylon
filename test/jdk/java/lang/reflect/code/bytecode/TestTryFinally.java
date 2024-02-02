@@ -28,7 +28,6 @@ import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
-import java.lang.reflect.code.bytecode.BytecodeLower;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -128,8 +127,7 @@ public class TestTryFinally {
         c.accept(-1);
     }
 
-    @Test(enabled = false)
-    //finalizer in exception handler is invalid (missing exception.region.exit)
+    @Test
     public void testCatchThrow() {
         CoreOps.FuncOp f = getFuncOp("catchThrow");
 
