@@ -25,7 +25,6 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.code.*;
-import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.analysis.SSA;
 import java.util.function.IntBinaryOperator;
 
@@ -144,7 +143,7 @@ public class TestBuild {
 
         block.op(_return(result));
 
-        var f = CoreOps.func("f", body);
+        var f = func("f", body);
 
         Assert.assertNotNull(a.declaringBlock());
         Assert.assertNotNull(result.declaringBlock());
@@ -171,7 +170,7 @@ public class TestBuild {
         var result = anotherBlock.op(add(a, b));
         anotherBlock.op(_return(result));
 
-        var f = CoreOps.func("f", body);
+        var f = func("f", body);
 
         Assert.assertNotNull(successor.targetBlock());
     }
@@ -216,10 +215,10 @@ public class TestBuild {
         var body = Body.Builder.of(null, VOID);
         var block = body.entryBlock();
         block.op(_return());
-        CoreOps.func("f", body);
+        func("f", body);
 
         // Body is built
-        Assert.assertThrows(IllegalStateException.class, () -> CoreOps.func("f", body));
+        Assert.assertThrows(IllegalStateException.class, () -> func("f", body));
     }
 
     @Test
@@ -227,7 +226,7 @@ public class TestBuild {
         var body = Body.Builder.of(null, VOID);
         var block = body.entryBlock();
         block.op(_return());
-        CoreOps.func("f", body);
+        func("f", body);
 
         // ancestor body is built
         Assert.assertThrows(IllegalStateException.class, () -> Body.Builder.of(body, VOID));
@@ -242,7 +241,7 @@ public class TestBuild {
         Body.Builder.of(body, VOID);
 
         // Great-grandchild body is not built
-        Assert.assertThrows(IllegalStateException.class, () -> CoreOps.func("f", body));
+        Assert.assertThrows(IllegalStateException.class, () -> func("f", body));
     }
 
     @Test
@@ -278,11 +277,11 @@ public class TestBuild {
         block.op(constant(INT, 0));
 
         // No terminating operation
-        Assert.assertThrows(IllegalStateException.class, () -> CoreOps.func("f", body));
+        Assert.assertThrows(IllegalStateException.class, () -> func("f", body));
     }
 
     @Test
-    public void testEmptyBlocksElided() {
+    public void testUnreferencedBlocksRemoved() {
         var body = Body.Builder.of(null, VOID);
         var block = body.entryBlock();
         block.op(_return());
@@ -294,5 +293,49 @@ public class TestBuild {
 
         FuncOp f = func("f", body);
         Assert.assertEquals(f.body().blocks().size(), 1);
+    }
+
+    @Test
+    public void testEmptyEntryBlock() {
+        var body = Body.Builder.of(null, VOID);
+        var block = body.entryBlock();
+
+        Assert.assertThrows(IllegalStateException.class, () -> func("f", body));
+    }
+
+    @Test
+    public void testNonEmptyEntryBlockNoTerminatingOp() {
+        var body = Body.Builder.of(null, VOID);
+        var block = body.entryBlock();
+        // No terminating op
+        block.op(constant(INT, 0));
+
+        Assert.assertThrows(IllegalStateException.class, () -> func("f", body));
+    }
+
+    @Test
+    public void testEmptyBlockWithPredecessor() {
+        var body = Body.Builder.of(null, VOID);
+        var entryBlock = body.entryBlock();
+        // Create empty block
+        var block = entryBlock.block();
+        // Branch to empty block
+        entryBlock.op(branch(block.successor()));
+
+        Assert.assertThrows(IllegalStateException.class, () -> func("f", body));
+    }
+
+    @Test
+    public void testNonEmptyBlockNoTerminatingOp() {
+        var body = Body.Builder.of(null, VOID);
+        var entryBlock = body.entryBlock();
+        // Create empty block
+        var block = entryBlock.block();
+        // Branch to empty block
+        entryBlock.op(branch(block.successor()));
+        // No terminating op
+        block.op(constant(INT, 0));
+
+        Assert.assertThrows(IllegalStateException.class, () -> func("f", body));
     }
 }
