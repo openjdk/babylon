@@ -28,42 +28,51 @@ package java.lang.reflect.code.bytecode;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.CodeElement;
 import java.lang.classfile.CodeModel;
-import java.lang.classfile.Instruction;
 import java.lang.classfile.Label;
 import java.lang.classfile.MethodModel;
+import java.lang.classfile.Opcode;
 import java.lang.classfile.attribute.StackMapFrameInfo;
 import java.lang.classfile.attribute.StackMapTableAttribute;
 import java.lang.classfile.constantpool.ClassEntry;
+import java.lang.classfile.constantpool.FloatEntry;
+import java.lang.classfile.constantpool.IntegerEntry;
+import java.lang.classfile.constantpool.LongEntry;
+import java.lang.classfile.constantpool.StringEntry;
+import java.lang.classfile.instruction.ArrayLoadInstruction;
+import java.lang.classfile.instruction.ArrayStoreInstruction;
 import java.lang.classfile.instruction.BranchInstruction;
+import java.lang.classfile.instruction.ConstantInstruction;
 import java.lang.classfile.instruction.ExceptionCatch;
+import java.lang.classfile.instruction.FieldInstruction;
+import java.lang.classfile.instruction.IncrementInstruction;
 import java.lang.classfile.instruction.LabelTarget;
 import java.lang.classfile.instruction.LineNumber;
+import java.lang.classfile.instruction.LoadInstruction;
 import java.lang.classfile.instruction.LocalVariable;
 import java.lang.classfile.instruction.LocalVariableType;
 import java.lang.classfile.instruction.LookupSwitchInstruction;
+import java.lang.classfile.instruction.OperatorInstruction;
 import java.lang.classfile.instruction.ReturnInstruction;
+import java.lang.classfile.instruction.StoreInstruction;
 import java.lang.classfile.instruction.SwitchCase;
 import java.lang.classfile.instruction.TableSwitchInstruction;
 import java.lang.classfile.instruction.ThrowInstruction;
+import java.lang.constant.ClassDesc;
+import java.lang.constant.ConstantDesc;
 
 import java.lang.reflect.code.Block;
-import java.lang.reflect.code.Body;
-import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.Op;
-import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.Value;
+import java.lang.reflect.code.descriptor.FieldDesc;
 import java.lang.reflect.code.descriptor.MethodTypeDesc;
 import java.lang.reflect.code.descriptor.TypeDesc;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class BytecodeLift {
@@ -100,18 +109,6 @@ public class BytecodeLift {
 //
 //        // @@@ catch/finally handlers are disconnected block
 //        // treat as effectively separate bodies
-//
-//        // @@@ Needs to be cloned when there are two or more successors
-//        Map<Integer, Op.Result> locals = new HashMap<>();
-//        Deque<Value> stack = new ArrayDeque<>();
-//
-//        // Map Block arguments to local variables
-//        int lvm = 0;
-//        for (Block.Parameter bp : eb.parameters()) {
-//            // @@@ Reference type
-//            Op.Result local = eb.op(CoreOps.var(Integer.toString(lvm), bp));
-//            locals.put(lvm++, local);
-//        }
 //
 //        Set<Block> visited = new HashSet<>();
 //        Deque<Block> wl = new ArrayDeque<>();
@@ -161,6 +158,18 @@ public class BytecodeLift {
                 c.blockMap.put(bcb, b);
             }
 
+            // @@@ Needs to be cloned when there are two or more successors
+            Map<Integer, Op.Result> locals = new HashMap<>();
+            Deque<Value> stack = new ArrayDeque<>();
+
+            // Map Block arguments to local variables
+            int lvm = 0;
+            for (Block.Parameter bp : entryBlock.parameters()) {
+                // @@@ Reference type
+                Op.Result local = entryBlock.op(CoreOps.var(Integer.toString(lvm), bp));
+                locals.put(lvm++, local);
+            }
+
             // Process blocks
             for (BytecodeBasicBlock bcb : bcr.blocks) {
                 Block.Builder b = c.blockMap.get(bcb);
@@ -193,289 +202,302 @@ public class BytecodeLift {
 //                    b.op(frame);
                 }
 
-                liftBytecodeBlock(bcr, bcb, b, c);
+                int ni = bcb.instructions.size();
+                for (int i = 0; i < ni - 1; i++) {
+                    switch (bcb.instructions.get(i)) {
+                        case LabelTarget labelTarget -> {
+                            // Insert control instructions for exception start/end bodies
+        //                    for (ExceptionCatch tryCatchBlock : bcr.codeModel.exceptionHandlers()) {
+        //                        if (labelTarget.label() == tryCatchBlock.tryStart()) {
+        //                            BytecodeBasicBlock handler = bcr.blockMap.get(tryCatchBlock.handler());
+        //                            b.op(BytecodeInstructionOps.
+        //                                    exceptionTableStart(c.blockMap.get(handler).successor()));
+        //                        } else if (labelTarget.label() == tryCatchBlock.tryEnd()) {
+        //                            b.op(BytecodeInstructionOps.exceptionTableEnd());
+        //                        }
+        //                    }
+                        }
+                        case LineNumber ln -> {
+                            // @@@ Add special line number instructions
+                        }
+                        case LocalVariable lv -> {
+                            // @@@
+                        }
+                        case LocalVariableType lvt -> {
+                            // @@@
+                        }
+                        case LoadInstruction inst -> {
+                            stack.push(b.op(CoreOps.varLoad(locals.get(inst.slot()))));
+                        }
+                        case StoreInstruction inst -> {
+                            Value operand = stack.pop();
+                            Op.Result local = locals.get(inst.slot());
+                            if (local == null) {
+                                local = b.op(CoreOps.var(Integer.toString(lvm), operand));
+                                locals.put(lvm++, local);
+                            } else {
+                                TypeDesc varType = ((CoreOps.VarOp) local.op()).varType();
+                                if (!operand.type().equals(varType)) {
+                                    local = b.op(CoreOps.var(Integer.toString(lvm), operand));
+                                    locals.put(lvm++, local);
+                                } else {
+                                    b.op(CoreOps.varStore(local, operand));
+                                }
+                            }
+                        }
+                        case IncrementInstruction inst -> {
+                            Op.Result local = locals.get(inst.slot());
+                            b.op(CoreOps.varStore(local, b.op(CoreOps.add(
+                                    b.op(CoreOps.varLoad(local)),
+                                    b.op(CoreOps.constant(TypeDesc.INT, inst.constant()))))));
+                        }
+                        case ConstantInstruction.LoadConstantInstruction inst -> {
+                            stack.push(b.op(switch (inst.constantValue()) {
+                                case ClassDesc v -> CoreOps.constant(TypeDesc.J_L_CLASS, v);
+                                case Double v -> CoreOps.constant(TypeDesc.DOUBLE, v);
+                                case Float v -> CoreOps.constant(TypeDesc.FLOAT, v);
+                                case Integer v -> CoreOps.constant(TypeDesc.INT, v);
+                                case Long v -> CoreOps.constant(TypeDesc.LONG, v);
+                                case String v -> CoreOps.constant(TypeDesc.J_L_STRING, v);
+                                default ->
+                                    // @@@ MethodType, MethodHandle, ConstantDynamic
+                                    throw new IllegalArgumentException("Unsupported constant value: " + inst.constantValue());
+                            }));
+                        }
+                        case ConstantInstruction inst -> {
+                            Op.Result result = b.op(CoreOps.constant(TypeDesc.INT, inst.constantValue()));
+                            stack.push(result);
+                        }
+                        case OperatorInstruction inst -> {
+                            Value operand = stack.pop();
+                            stack.push(b.op(switch (inst.opcode()) {
+                                case IADD, LADD, FADD, DADD ->
+                                        CoreOps.add(stack.pop(), operand);
+                                case ISUB, LSUB, FSUB, DSUB ->
+                                        CoreOps.sub(stack.pop(), operand);
+                                case IMUL, LMUL, FMUL, DMUL ->
+                                        CoreOps.mul(stack.pop(), operand);
+                                case IDIV, LDIV, FDIV, DDIV ->
+                                        CoreOps.div(stack.pop(), operand);
+                                case IREM, LREM, FREM, DREM ->
+                                        CoreOps.mod(stack.pop(), operand);
+                                case INEG, LNEG, FNEG, DNEG ->
+                                        CoreOps.neg(operand);
+                                case ARRAYLENGTH ->
+                                        CoreOps.arrayLength(operand);
+                                default ->
+                                    throw new IllegalArgumentException("Unsupported operator opcode: " + inst.opcode());
+                            }));
+                        }
+                        case FieldInstruction inst -> {
+                                FieldDesc fd = FieldDesc.field(
+                                        TypeDesc.ofNominalDescriptor(inst.owner().asSymbol()),
+                                        inst.name().stringValue(),
+                                        TypeDesc.ofNominalDescriptor(inst.typeSymbol()));
+                                switch (inst.opcode()) {
+                                    case GETFIELD ->
+                                        stack.push(b.op(CoreOps.fieldLoad(fd, stack.pop())));
+                                    case GETSTATIC ->
+                                        stack.push(b.op(CoreOps.fieldLoad(fd)));
+                                    case PUTFIELD -> {
+                                        Value value = stack.pop();
+                                        stack.push(b.op(CoreOps.fieldStore(fd, stack.pop(), value)));
+                                    }
+                                    case PUTSTATIC ->
+                                        stack.push(b.op(CoreOps.fieldStore(fd, stack.pop())));
+                                    default ->
+                                        throw new IllegalArgumentException("Unsupported field opcode: " + inst.opcode());
+                                }
+                        }
+                        case ArrayStoreInstruction _ -> {
+                            Value value = stack.pop();
+                            Value index = stack.pop();
+                            b.op(CoreOps.arrayStoreOp(stack.pop(), index, value));
+                        }
+                        case ArrayLoadInstruction _ -> {
+                            Value index = stack.pop();
+                            stack.push(b.op(CoreOps.arrayLoadOp(stack.pop(), index)));
+                        }
+        //                } else if (lop instanceof BytecodeInstructionOps.InvokeInstructionOp inst) {
+        //                    MethodTypeDesc descriptor = inst.callOpDescriptor();
+        //
+        //                    List<Value> operands = new ArrayList<>();
+        //                    for (int p = 0; p < inst.desc().type().parameters().size(); p++) {
+        //                        operands.add(stack.pop());
+        //                    }
+        //
+        //                    switch (inst.kind()) {
+        //                        case VIRTUAL:
+        //                        case INTERFACE:
+        //                            operands.add(stack.pop());
+        //                            // Fallthrough
+        //                        case STATIC: {
+        //                            Collections.reverse(operands);
+        //                            Op.Result result = b.op(CoreOps.invoke(descriptor.returnType(), inst.desc(), operands.toArray(Value[]::new)));
+        //                            if (!result.type().equals(TypeDesc.VOID)) {
+        //                                stack.push(result);
+        //                            }
+        //                            break;
+        //                        }
+        //                        case SPECIAL: {
+        //                            if (inst.desc().name().equals("<init>")) {
+        //                                Collections.reverse(operands);
+        //
+        //                                TypeDesc ref = descriptor.parameters().get(0);
+        //                                List<TypeDesc> params = descriptor.parameters().subList(1, descriptor.parameters().size());
+        //                                MethodTypeDesc constructorDescriptor = MethodTypeDesc.methodType(ref, params);
+        //                                Op.Result result = b.op(CoreOps._new(constructorDescriptor, operands.toArray(Value[]::new)));
+        //                                stack.push(result);
+        //                            } else {
+        //                                operands.add(stack.pop());
+        //                                Collections.reverse(operands);
+        //                                Op.Result result = b.op(CoreOps.invoke(descriptor.returnType(), inst.desc(), operands.toArray(Value[]::new)));
+        //                                if (!result.type().equals(TypeDesc.VOID)) {
+        //                                    stack.push(result);
+        //                                }
+        //                                break;
+        //                            }
+        //                        }
+        //
+        //                    }
+        //                } else if (lop instanceof BytecodeInstructionOps.NewInstructionOp inst) {
+        //                    // Skip over this and the dup to process the invoke special
+        //                    if (i + 2 >= nops - 1) {
+        //                        throw new UnsupportedOperationException("new must be followed by dup and invokespecial");
+        //                    }
+        //                    Op dup = lb.ops().get(i + 1);
+        //                    if (!(dup instanceof BytecodeInstructionOps.DupInstructionOp)) {
+        //                        throw new UnsupportedOperationException("new must be followed by dup and invokespecial");
+        //                    }
+        //                    Op special = lb.ops().get(i + 2);
+        //                    if (special instanceof BytecodeInstructionOps.InvokeInstructionOp invoke) {
+        //                        if (!invoke.desc().name().equals("<init>")) {
+        //                            throw new UnsupportedOperationException("new must be followed by dup and invokespecial for <init>");
+        //                        }
+        //                    } else {
+        //                        throw new UnsupportedOperationException("new must be followed by dup and invokespecial");
+        //                    }
+        //
+        //                    i++;
+        //                } else if (lop instanceof BytecodeInstructionOps.NewArrayInstructionOp inst) {
+        //                    Value length = stack.pop();
+        //                    Op.Result result = b.op(CoreOps.newArray(TypeDesc.type(inst.desc(), 1), length));
+        //                    stack.push(result);
+        //                } else if (lop instanceof BytecodeInstructionOps.MultiNewArrayInstructionOp inst) {
+        //                    int dims = inst.dims();
+        //                    Value[] counts = new Value[dims];
+        //                    for (int d = dims - 1; d >= 0; d--) {
+        //                        counts[d] = stack.pop();
+        //                    }
+        //                    MethodTypeDesc m = MethodTypeDesc.methodType(inst.desc(), Collections.nCopies(dims, TypeDesc.INT));
+        //                    Op.Result result = b.op(CoreOps._new(m, counts));
+        //                    stack.push(result);
+        //                } else if (lop instanceof BytecodeInstructionOps.CheckCastInstructionOp inst) {
+        //                    Value instance = stack.pop();
+        //                    Op.Result result = b.op(CoreOps.cast(inst.desc(), instance));
+        //                    stack.push(result);
+        //                } else if (lop instanceof BytecodeInstructionOps.PopInstructionOp inst) {
+        //                    stack.pop();
+        //                } else if (lop instanceof BytecodeInstructionOps.DupInstructionOp inst) {
+        //                    stack.push(stack.peek());
+        //                } else if (lop instanceof BytecodeInstructionOps.Frame inst) {
+        //                    // Ignore
+        //                } else {
+
+                        default ->
+                            throw new UnsupportedOperationException("Unsupported code element: " + bcb.instructions.get(i));
+                    }
+                }
+
+        //        // @@@ cast, select last Instruction, and adjust prior loop
+        //        Instruction top = (Instruction) bcb.instructions.get(ni - 1);
+        //        if (bcb.isImplicitTermination) {
+        //            b.op(new InstructionOp(top));
+        //
+        //            BytecodeBasicBlock succ = bcb.successors.get(0);
+        //            b.op(new TerminatingInstructionOp(null, List.of(c.blockMap.get(succ).successor())));
+        //        } else {
+        //            List<Block.Reference> successors = bcb.successors.stream().map(s -> c.blockMap.get(s).successor()).toList();
+        //            b.op(new TerminatingInstructionOp(top, successors));
+        //        }
+
+
+        //            if (ltop instanceof BytecodeInstructionOps.GotoInstructionOp inst) {
+        //                Block slb = inst.successors().get(0).targetBlock();
+        //                Block.Reference sb;
+        //                // If the block has block parameters for stack operands then
+        //                // pop arguments off the stack and use as successor arguments
+        //                if (!slb.parameters().isEmpty()) {
+        //                    List<Value> args = new ArrayList<>();
+        //                    for (int x = 0; x < slb.parameters().size(); x++) {
+        //                        args.add(stack.pop());
+        //                    }
+        //                    sb = blockMap.get(slb).successor(args);
+        //                } else {
+        //                    sb = blockMap.get(slb).successor();
+        //                }
+        //                b.op(CoreOps.branch(sb));
+        //
+        //                wl.push(slb);
+        //            } else if (ltop instanceof BytecodeInstructionOps.IfInstructionOp inst) {
+        //                Value operand = stack.pop();
+        //                Value zero = b.op(CoreOps.constant(TypeDesc.INT, 0));
+        //
+        //                if (!stack.isEmpty()) {
+        //                    throw new UnsupportedOperationException("Operands on stack for branch not supported");
+        //                }
+        //
+        //                BytecodeInstructionOps.Comparison cond = inst.cond().inverse();
+        //                Op cop = switch (cond) {
+        //                    case EQ -> CoreOps.eq(operand, zero);
+        //                    case NE -> CoreOps.neq(operand, zero);
+        //                    case LT -> CoreOps.lt(operand, zero);
+        //                    case GT -> CoreOps.gt(operand, zero);
+        //                    default -> throw new UnsupportedOperationException("Unsupported condition " + cond);
+        //                };
+        //
+        //                Block fslb = inst.successors().get(0).targetBlock();
+        //                Block tslb = inst.successors().get(1).targetBlock();
+        //                b.op(CoreOps.conditionalBranch(b.op(cop), blockMap.get(fslb).successor(), blockMap.get(tslb).successor()));
+        //
+        //                wl.push(tslb);
+        //                wl.push(fslb);
+        //            } else if (ltop instanceof BytecodeInstructionOps.IfcmpInstructionOp inst) {
+        //                Value operand2 = stack.pop();
+        //                Value operand1 = stack.pop();
+        //
+        //                if (!stack.isEmpty()) {
+        //                    throw new UnsupportedOperationException("Operands on stack for branch not supported");
+        //                }
+        //
+        //                BytecodeInstructionOps.Comparison cond = inst.cond().inverse();
+        //                Op cop = switch (cond) {
+        //                    case EQ -> CoreOps.eq(operand1, operand2);
+        //                    case NE -> CoreOps.neq(operand1, operand2);
+        //                    case LT -> CoreOps.lt(operand1, operand2);
+        //                    case GT -> CoreOps.gt(operand1, operand2);
+        //                    default -> throw new UnsupportedOperationException("Unsupported condition " + cond);
+        //                };
+        //
+        //                Block tslb = inst.trueBranch();
+        //                Block fslb = inst.falseBranch();
+        //                b.op(CoreOps.conditionalBranch(b.op(cop), blockMap.get(fslb).successor(), blockMap.get(tslb).successor()));
+        //
+        //                wl.push(tslb);
+        //                wl.push(fslb);
+        //            } else if (ltop instanceof BytecodeInstructionOps.ReturnInstructionOp inst) {
+        //                Value operand = stack.pop();
+        //                b.op(CoreOps._return(operand));
+        //            } else if (ltop instanceof BytecodeInstructionOps.VoidReturnInstructionOp inst) {
+        //                b.op(CoreOps._return());
+        //            } else {
+        //                throw new UnsupportedOperationException("Unsupported terminating operation: " + ltop.opName());
+        //            }
+
             }
         });
 
         return f;
-    }
-
-    static void liftBytecodeBlock(BytecodeMethodBody bcr, BytecodeBasicBlock bcb, Block.Builder b, LiftContext c) {
-        int ni = bcb.instructions.size();
-        for (int i = 0; i < ni - 1; i++) {
-            switch (bcb.instructions.get(i)) {
-                case LabelTarget labelTarget -> {
-                    // Insert control instructions for exception start/end bodies
-                    for (ExceptionCatch tryCatchBlock : bcr.codeModel.exceptionHandlers()) {
-                        if (labelTarget.label() == tryCatchBlock.tryStart()) {
-                            BytecodeBasicBlock handler = bcr.blockMap.get(tryCatchBlock.handler());
-//                            b.op(BytecodeInstructionOps.
-//                                    exceptionTableStart(c.blockMap.get(handler).successor()));
-                        } else if (labelTarget.label() == tryCatchBlock.tryEnd()) {
-//                            b.op(BytecodeInstructionOps.exceptionTableEnd());
-                        }
-                    }
-                }
-                case LineNumber ln -> {
-                    // @@@ Add special line number instructions
-                }
-                case LocalVariable lv -> {
-                    // @@@
-                }
-                case LocalVariableType lvt -> {
-                    // @@@
-                }
-//                if (lop instanceof BytecodeInstructionOps.LoadInstructionOp inst) {
-//                    Op.Result result = b.op(CoreOps.varLoad(locals.get(inst.slot())));
-//                    stack.push(result);
-//                } else if (lop instanceof BytecodeInstructionOps.StoreInstructionOp inst) {
-//                    Value operand = stack.pop();
-//
-//                    Op.Result local = locals.get(inst.slot());
-//                    if (local == null) {
-//                        local = b.op(CoreOps.var(Integer.toString(lvm), operand));
-//                        locals.put(lvm++, local);
-//                    } else {
-//                        TypeDesc varType = ((CoreOps.VarOp) local.op()).varType();
-//                        if (!operand.type().equals(varType)) {
-//                            local = b.op(CoreOps.var(Integer.toString(lvm), operand));
-//                            locals.put(lvm++, local);
-//                        } else {
-//                            b.op(CoreOps.varStore(local, operand));
-//                        }
-//                    }
-//                } else if (lop instanceof BytecodeInstructionOps.IIncInstructionOp inst) {
-//                    Op.Result local = locals.get(inst.index());
-//                    Op.Result v1 = b.op(CoreOps.varLoad(local));
-//                    Op.Result v2 = b.op(CoreOps.constant(TypeDesc.INT, inst.incr()));
-//                    Op.Result result = b.op(CoreOps.add(v1, v2));
-//                    b.op(CoreOps.varStore(local, result));
-//                } else if (lop instanceof BytecodeInstructionOps.LdcInstructionOp inst) {
-//                    Op.Result result = b.op(CoreOps.constant(inst.type(), inst.value()));
-//                    stack.push(result);
-//                } else if (lop instanceof BytecodeInstructionOps.ConstInstructionOp inst) {
-//                    Op.Result result = b.op(CoreOps.constant(inst.typeDesc(), inst.value()));
-//                    stack.push(result);
-//                } else if (lop instanceof BytecodeInstructionOps.BipushInstructionOp inst) {
-//                    Op.Result result = b.op(CoreOps.constant(TypeDesc.INT, inst.value()));
-//                    stack.push(result);
-//                } else if (lop instanceof BytecodeInstructionOps.AddInstructionOp inst) {
-//                    Value operand2 = stack.pop();
-//                    Value operand1 = stack.pop();
-//                    Op.Result result = b.op(CoreOps.add(operand1, operand2));
-//                    stack.push(result);
-//                } else if (lop instanceof BytecodeInstructionOps.GetFieldInstructionOp inst) {
-//                    if (inst.kind() == BytecodeInstructionOps.FieldKind.INSTANCE) {
-//                        Value operand = stack.pop();
-//                        Op.Result result = b.op(CoreOps.fieldLoad(inst.desc(), operand));
-//                        stack.push(result);
-//                    } else {
-//                        Op.Result result = b.op(CoreOps.fieldLoad(inst.desc()));
-//                        stack.push(result);
-//                    }
-//                } else if (lop instanceof BytecodeInstructionOps.PutFieldInstructionOp inst) {
-//                    Value value = stack.pop();
-//                    if (inst.kind() == BytecodeInstructionOps.FieldKind.INSTANCE) {
-//                        Value receiver = stack.pop();
-//                        Op.Result result = b.op(CoreOps.fieldStore(inst.desc(), receiver, value));
-//                        stack.push(result);
-//                    } else {
-//                        Op.Result result = b.op(CoreOps.fieldStore(inst.desc(), value));
-//                        stack.push(result);
-//                    }
-//                } else if (lop instanceof BytecodeInstructionOps.ArrayStoreInstructionOp inst) {
-//                    Value value = stack.pop();
-//                    Value index = stack.pop();
-//                    Value array = stack.pop();
-//                    b.op(CoreOps.arrayStoreOp(array, index, value));
-//                } else if (lop instanceof BytecodeInstructionOps.ArrayLoadInstructionOp inst) {
-//                    Value index = stack.pop();
-//                    Value array = stack.pop();
-//                    Op.Result result = b.op(CoreOps.arrayLoadOp(array, index));
-//                    stack.push(result);
-//                } else if (lop instanceof BytecodeInstructionOps.ArrayLengthInstructionOp inst) {
-//                    Value array = stack.pop();
-//                    Op.Result result = b.op(CoreOps.arrayLength(array));
-//                    stack.push(result);
-//                } else if (lop instanceof BytecodeInstructionOps.InvokeInstructionOp inst) {
-//                    MethodTypeDesc descriptor = inst.callOpDescriptor();
-//
-//                    List<Value> operands = new ArrayList<>();
-//                    for (int p = 0; p < inst.desc().type().parameters().size(); p++) {
-//                        operands.add(stack.pop());
-//                    }
-//
-//                    switch (inst.kind()) {
-//                        case VIRTUAL:
-//                        case INTERFACE:
-//                            operands.add(stack.pop());
-//                            // Fallthrough
-//                        case STATIC: {
-//                            Collections.reverse(operands);
-//                            Op.Result result = b.op(CoreOps.invoke(descriptor.returnType(), inst.desc(), operands.toArray(Value[]::new)));
-//                            if (!result.type().equals(TypeDesc.VOID)) {
-//                                stack.push(result);
-//                            }
-//                            break;
-//                        }
-//                        case SPECIAL: {
-//                            if (inst.desc().name().equals("<init>")) {
-//                                Collections.reverse(operands);
-//
-//                                TypeDesc ref = descriptor.parameters().get(0);
-//                                List<TypeDesc> params = descriptor.parameters().subList(1, descriptor.parameters().size());
-//                                MethodTypeDesc constructorDescriptor = MethodTypeDesc.methodType(ref, params);
-//                                Op.Result result = b.op(CoreOps._new(constructorDescriptor, operands.toArray(Value[]::new)));
-//                                stack.push(result);
-//                            } else {
-//                                operands.add(stack.pop());
-//                                Collections.reverse(operands);
-//                                Op.Result result = b.op(CoreOps.invoke(descriptor.returnType(), inst.desc(), operands.toArray(Value[]::new)));
-//                                if (!result.type().equals(TypeDesc.VOID)) {
-//                                    stack.push(result);
-//                                }
-//                                break;
-//                            }
-//                        }
-//
-//                    }
-//                } else if (lop instanceof BytecodeInstructionOps.NewInstructionOp inst) {
-//                    // Skip over this and the dup to process the invoke special
-//                    if (i + 2 >= nops - 1) {
-//                        throw new UnsupportedOperationException("new must be followed by dup and invokespecial");
-//                    }
-//                    Op dup = lb.ops().get(i + 1);
-//                    if (!(dup instanceof BytecodeInstructionOps.DupInstructionOp)) {
-//                        throw new UnsupportedOperationException("new must be followed by dup and invokespecial");
-//                    }
-//                    Op special = lb.ops().get(i + 2);
-//                    if (special instanceof BytecodeInstructionOps.InvokeInstructionOp invoke) {
-//                        if (!invoke.desc().name().equals("<init>")) {
-//                            throw new UnsupportedOperationException("new must be followed by dup and invokespecial for <init>");
-//                        }
-//                    } else {
-//                        throw new UnsupportedOperationException("new must be followed by dup and invokespecial");
-//                    }
-//
-//                    i++;
-//                } else if (lop instanceof BytecodeInstructionOps.NewArrayInstructionOp inst) {
-//                    Value length = stack.pop();
-//                    Op.Result result = b.op(CoreOps.newArray(TypeDesc.type(inst.desc(), 1), length));
-//                    stack.push(result);
-//                } else if (lop instanceof BytecodeInstructionOps.MultiNewArrayInstructionOp inst) {
-//                    int dims = inst.dims();
-//                    Value[] counts = new Value[dims];
-//                    for (int d = dims - 1; d >= 0; d--) {
-//                        counts[d] = stack.pop();
-//                    }
-//                    MethodTypeDesc m = MethodTypeDesc.methodType(inst.desc(), Collections.nCopies(dims, TypeDesc.INT));
-//                    Op.Result result = b.op(CoreOps._new(m, counts));
-//                    stack.push(result);
-//                } else if (lop instanceof BytecodeInstructionOps.CheckCastInstructionOp inst) {
-//                    Value instance = stack.pop();
-//                    Op.Result result = b.op(CoreOps.cast(inst.desc(), instance));
-//                    stack.push(result);
-//                } else if (lop instanceof BytecodeInstructionOps.PopInstructionOp inst) {
-//                    stack.pop();
-//                } else if (lop instanceof BytecodeInstructionOps.DupInstructionOp inst) {
-//                    stack.push(stack.peek());
-//                } else if (lop instanceof BytecodeInstructionOps.Frame inst) {
-//                    // Ignore
-//                } else {
-
-//                case Instruction instruction -> {
-//                    b.op(new InstructionOp(instruction));
-//                }
-                default ->
-                    throw new UnsupportedOperationException("Unsupported code element: " + bcb.instructions.get(i));
-            }
-        }
-
-//        // @@@ cast, select last Instruction, and adjust prior loop
-//        Instruction top = (Instruction) bcb.instructions.get(ni - 1);
-//        if (bcb.isImplicitTermination) {
-//            b.op(new InstructionOp(top));
-//
-//            BytecodeBasicBlock succ = bcb.successors.get(0);
-//            b.op(new TerminatingInstructionOp(null, List.of(c.blockMap.get(succ).successor())));
-//        } else {
-//            List<Block.Reference> successors = bcb.successors.stream().map(s -> c.blockMap.get(s).successor()).toList();
-//            b.op(new TerminatingInstructionOp(top, successors));
-//        }
-
-
-//            if (ltop instanceof BytecodeInstructionOps.GotoInstructionOp inst) {
-//                Block slb = inst.successors().get(0).targetBlock();
-//                Block.Reference sb;
-//                // If the block has block parameters for stack operands then
-//                // pop arguments off the stack and use as successor arguments
-//                if (!slb.parameters().isEmpty()) {
-//                    List<Value> args = new ArrayList<>();
-//                    for (int x = 0; x < slb.parameters().size(); x++) {
-//                        args.add(stack.pop());
-//                    }
-//                    sb = blockMap.get(slb).successor(args);
-//                } else {
-//                    sb = blockMap.get(slb).successor();
-//                }
-//                b.op(CoreOps.branch(sb));
-//
-//                wl.push(slb);
-//            } else if (ltop instanceof BytecodeInstructionOps.IfInstructionOp inst) {
-//                Value operand = stack.pop();
-//                Value zero = b.op(CoreOps.constant(TypeDesc.INT, 0));
-//
-//                if (!stack.isEmpty()) {
-//                    throw new UnsupportedOperationException("Operands on stack for branch not supported");
-//                }
-//
-//                BytecodeInstructionOps.Comparison cond = inst.cond().inverse();
-//                Op cop = switch (cond) {
-//                    case EQ -> CoreOps.eq(operand, zero);
-//                    case NE -> CoreOps.neq(operand, zero);
-//                    case LT -> CoreOps.lt(operand, zero);
-//                    case GT -> CoreOps.gt(operand, zero);
-//                    default -> throw new UnsupportedOperationException("Unsupported condition " + cond);
-//                };
-//
-//                Block fslb = inst.successors().get(0).targetBlock();
-//                Block tslb = inst.successors().get(1).targetBlock();
-//                b.op(CoreOps.conditionalBranch(b.op(cop), blockMap.get(fslb).successor(), blockMap.get(tslb).successor()));
-//
-//                wl.push(tslb);
-//                wl.push(fslb);
-//            } else if (ltop instanceof BytecodeInstructionOps.IfcmpInstructionOp inst) {
-//                Value operand2 = stack.pop();
-//                Value operand1 = stack.pop();
-//
-//                if (!stack.isEmpty()) {
-//                    throw new UnsupportedOperationException("Operands on stack for branch not supported");
-//                }
-//
-//                BytecodeInstructionOps.Comparison cond = inst.cond().inverse();
-//                Op cop = switch (cond) {
-//                    case EQ -> CoreOps.eq(operand1, operand2);
-//                    case NE -> CoreOps.neq(operand1, operand2);
-//                    case LT -> CoreOps.lt(operand1, operand2);
-//                    case GT -> CoreOps.gt(operand1, operand2);
-//                    default -> throw new UnsupportedOperationException("Unsupported condition " + cond);
-//                };
-//
-//                Block tslb = inst.trueBranch();
-//                Block fslb = inst.falseBranch();
-//                b.op(CoreOps.conditionalBranch(b.op(cop), blockMap.get(fslb).successor(), blockMap.get(tslb).successor()));
-//
-//                wl.push(tslb);
-//                wl.push(fslb);
-//            } else if (ltop instanceof BytecodeInstructionOps.ReturnInstructionOp inst) {
-//                Value operand = stack.pop();
-//                b.op(CoreOps._return(operand));
-//            } else if (ltop instanceof BytecodeInstructionOps.VoidReturnInstructionOp inst) {
-//                b.op(CoreOps._return());
-//            } else {
-//                throw new UnsupportedOperationException("Unsupported terminating operation: " + ltop.opName());
-//            }
-
     }
 
     //
