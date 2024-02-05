@@ -34,10 +34,6 @@ import java.lang.classfile.Opcode;
 import java.lang.classfile.attribute.StackMapFrameInfo;
 import java.lang.classfile.attribute.StackMapTableAttribute;
 import java.lang.classfile.constantpool.ClassEntry;
-import java.lang.classfile.constantpool.FloatEntry;
-import java.lang.classfile.constantpool.IntegerEntry;
-import java.lang.classfile.constantpool.LongEntry;
-import java.lang.classfile.constantpool.StringEntry;
 import java.lang.classfile.instruction.ArrayLoadInstruction;
 import java.lang.classfile.instruction.ArrayStoreInstruction;
 import java.lang.classfile.instruction.BranchInstruction;
@@ -45,35 +41,46 @@ import java.lang.classfile.instruction.ConstantInstruction;
 import java.lang.classfile.instruction.ExceptionCatch;
 import java.lang.classfile.instruction.FieldInstruction;
 import java.lang.classfile.instruction.IncrementInstruction;
+import java.lang.classfile.instruction.InvokeInstruction;
 import java.lang.classfile.instruction.LabelTarget;
 import java.lang.classfile.instruction.LineNumber;
 import java.lang.classfile.instruction.LoadInstruction;
 import java.lang.classfile.instruction.LocalVariable;
 import java.lang.classfile.instruction.LocalVariableType;
 import java.lang.classfile.instruction.LookupSwitchInstruction;
+import java.lang.classfile.instruction.NewMultiArrayInstruction;
+import java.lang.classfile.instruction.NewObjectInstruction;
+import java.lang.classfile.instruction.NewPrimitiveArrayInstruction;
+import java.lang.classfile.instruction.NewReferenceArrayInstruction;
 import java.lang.classfile.instruction.OperatorInstruction;
 import java.lang.classfile.instruction.ReturnInstruction;
+import java.lang.classfile.instruction.StackInstruction;
 import java.lang.classfile.instruction.StoreInstruction;
 import java.lang.classfile.instruction.SwitchCase;
 import java.lang.classfile.instruction.TableSwitchInstruction;
 import java.lang.classfile.instruction.ThrowInstruction;
+import java.lang.classfile.instruction.TypeCheckInstruction;
 import java.lang.constant.ClassDesc;
-import java.lang.constant.ConstantDesc;
+import java.lang.constant.ConstantDescs;
 
 import java.lang.reflect.code.Block;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.descriptor.FieldDesc;
+import java.lang.reflect.code.descriptor.MethodDesc;
 import java.lang.reflect.code.descriptor.MethodTypeDesc;
 import java.lang.reflect.code.descriptor.TypeDesc;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import sun.nio.ch.Streams;
 
 public class BytecodeLift {
 
@@ -318,92 +325,92 @@ public class BytecodeLift {
                             Value index = stack.pop();
                             stack.push(b.op(CoreOps.arrayLoadOp(stack.pop(), index)));
                         }
-        //                } else if (lop instanceof BytecodeInstructionOps.InvokeInstructionOp inst) {
-        //                    MethodTypeDesc descriptor = inst.callOpDescriptor();
-        //
-        //                    List<Value> operands = new ArrayList<>();
-        //                    for (int p = 0; p < inst.desc().type().parameters().size(); p++) {
-        //                        operands.add(stack.pop());
-        //                    }
-        //
-        //                    switch (inst.kind()) {
-        //                        case VIRTUAL:
-        //                        case INTERFACE:
-        //                            operands.add(stack.pop());
-        //                            // Fallthrough
-        //                        case STATIC: {
-        //                            Collections.reverse(operands);
-        //                            Op.Result result = b.op(CoreOps.invoke(descriptor.returnType(), inst.desc(), operands.toArray(Value[]::new)));
-        //                            if (!result.type().equals(TypeDesc.VOID)) {
-        //                                stack.push(result);
-        //                            }
-        //                            break;
-        //                        }
-        //                        case SPECIAL: {
-        //                            if (inst.desc().name().equals("<init>")) {
-        //                                Collections.reverse(operands);
-        //
-        //                                TypeDesc ref = descriptor.parameters().get(0);
-        //                                List<TypeDesc> params = descriptor.parameters().subList(1, descriptor.parameters().size());
-        //                                MethodTypeDesc constructorDescriptor = MethodTypeDesc.methodType(ref, params);
-        //                                Op.Result result = b.op(CoreOps._new(constructorDescriptor, operands.toArray(Value[]::new)));
-        //                                stack.push(result);
-        //                            } else {
-        //                                operands.add(stack.pop());
-        //                                Collections.reverse(operands);
-        //                                Op.Result result = b.op(CoreOps.invoke(descriptor.returnType(), inst.desc(), operands.toArray(Value[]::new)));
-        //                                if (!result.type().equals(TypeDesc.VOID)) {
-        //                                    stack.push(result);
-        //                                }
-        //                                break;
-        //                            }
-        //                        }
-        //
-        //                    }
-        //                } else if (lop instanceof BytecodeInstructionOps.NewInstructionOp inst) {
-        //                    // Skip over this and the dup to process the invoke special
-        //                    if (i + 2 >= nops - 1) {
-        //                        throw new UnsupportedOperationException("new must be followed by dup and invokespecial");
-        //                    }
-        //                    Op dup = lb.ops().get(i + 1);
-        //                    if (!(dup instanceof BytecodeInstructionOps.DupInstructionOp)) {
-        //                        throw new UnsupportedOperationException("new must be followed by dup and invokespecial");
-        //                    }
-        //                    Op special = lb.ops().get(i + 2);
-        //                    if (special instanceof BytecodeInstructionOps.InvokeInstructionOp invoke) {
-        //                        if (!invoke.desc().name().equals("<init>")) {
-        //                            throw new UnsupportedOperationException("new must be followed by dup and invokespecial for <init>");
-        //                        }
-        //                    } else {
-        //                        throw new UnsupportedOperationException("new must be followed by dup and invokespecial");
-        //                    }
-        //
-        //                    i++;
-        //                } else if (lop instanceof BytecodeInstructionOps.NewArrayInstructionOp inst) {
-        //                    Value length = stack.pop();
-        //                    Op.Result result = b.op(CoreOps.newArray(TypeDesc.type(inst.desc(), 1), length));
-        //                    stack.push(result);
-        //                } else if (lop instanceof BytecodeInstructionOps.MultiNewArrayInstructionOp inst) {
-        //                    int dims = inst.dims();
-        //                    Value[] counts = new Value[dims];
-        //                    for (int d = dims - 1; d >= 0; d--) {
-        //                        counts[d] = stack.pop();
-        //                    }
-        //                    MethodTypeDesc m = MethodTypeDesc.methodType(inst.desc(), Collections.nCopies(dims, TypeDesc.INT));
-        //                    Op.Result result = b.op(CoreOps._new(m, counts));
-        //                    stack.push(result);
-        //                } else if (lop instanceof BytecodeInstructionOps.CheckCastInstructionOp inst) {
-        //                    Value instance = stack.pop();
-        //                    Op.Result result = b.op(CoreOps.cast(inst.desc(), instance));
-        //                    stack.push(result);
-        //                } else if (lop instanceof BytecodeInstructionOps.PopInstructionOp inst) {
-        //                    stack.pop();
-        //                } else if (lop instanceof BytecodeInstructionOps.DupInstructionOp inst) {
-        //                    stack.push(stack.peek());
-        //                } else if (lop instanceof BytecodeInstructionOps.Frame inst) {
-        //                    // Ignore
-        //                } else {
+                        case InvokeInstruction inst -> {
+                            MethodTypeDesc mType = MethodTypeDesc.ofNominalDescriptor(inst.typeSymbol());
+                            List<Value> operands = new ArrayList<>();
+                            for (var _ : mType.parameters()) {
+                                operands.add(stack.pop());
+                            }
+                            MethodDesc mDesc = MethodDesc.method(TypeDesc.ofNominalDescriptor(inst.owner().asSymbol()), inst.name().stringValue(), mType);
+                            Op.Result result = switch (inst.opcode()) {
+                                case INVOKEVIRTUAL, INVOKEINTERFACE -> {
+                                    operands.add(stack.pop());
+                                    yield b.op(CoreOps.invoke(mDesc, operands.reversed()));
+                                }
+                                case INVOKESTATIC ->
+                                    b.op(CoreOps.invoke(mDesc, operands.reversed()));
+                                case INVOKESPECIAL -> {
+                                    if (inst.name().equalsString(ConstantDescs.INIT_NAME)) {
+                                        yield b.op(CoreOps._new(
+                                                MethodTypeDesc.methodType(
+                                                        mType.parameters().get(0),
+                                                        mType.parameters().subList(1, mType.parameters().size())),
+                                                operands.reversed()));
+                                    } else {
+                                        operands.add(stack.pop());
+                                        yield b.op(CoreOps.invoke(mDesc, operands.reversed()));
+                                    }
+                                }
+                                default ->
+                                    throw new IllegalArgumentException("Unsupported invocation opcode: " + inst.opcode());
+                            };
+                            if (!result.type().equals(TypeDesc.VOID)) {
+                                stack.push(result);
+                            }
+                        }
+                        case NewObjectInstruction _ -> {
+                            // Skip over this and the dup to process the invoke special
+                            if (i + 2 < ni - 1
+                                    && bcb.instructions.get(i + 1) instanceof StackInstruction dup
+                                    && dup.opcode() == Opcode.DUP
+                                    && bcb.instructions.get(i + 2) instanceof InvokeInstruction init
+                                    && init.name().equalsString(ConstantDescs.INIT_NAME)) {
+                                i++;
+                            } else {
+                                throw new UnsupportedOperationException("New must be followed by dup and invokespecial for <init>");
+                            }
+                        }
+                        case NewPrimitiveArrayInstruction inst -> {
+                            stack.push(b.op(CoreOps.newArray(
+                                    switch (inst.typeKind()) {
+                                        case BooleanType -> TypeDesc.BOOLEAN_ARRAY;
+                                        case ByteType -> TypeDesc.BYTE_ARRAY;
+                                        case CharType -> TypeDesc.CHAR_ARRAY;
+                                        case DoubleType -> TypeDesc.DOUBLE_ARRAY;
+                                        case FloatType -> TypeDesc.FLOAT_ARRAY;
+                                        case IntType -> TypeDesc.INT_ARRAY;
+                                        case LongType -> TypeDesc.LONG_ARRAY;
+                                        case ShortType -> TypeDesc.SHORT_ARRAY;
+                                        default ->
+                                                throw new UnsupportedOperationException("Unsupported new primitive array type: " + inst.typeKind());
+                                    },
+                                    stack.pop())));
 
+                        }
+                        case NewReferenceArrayInstruction inst -> {
+                            stack.push(b.op(CoreOps.newArray(
+                                    TypeDesc.type(TypeDesc.ofNominalDescriptor(inst.componentType().asSymbol()), 1),
+                                    stack.pop())));
+                        }
+                        case NewMultiArrayInstruction inst -> {
+                            stack.push(b.op(CoreOps._new(
+                                    MethodTypeDesc.methodType(
+                                            TypeDesc.ofNominalDescriptor(inst.arrayType().asSymbol()),
+                                            Collections.nCopies(inst.dimensions(), TypeDesc.INT)),
+                                    IntStream.range(0, inst.dimensions()).mapToObj(_ -> stack.pop()).toList().reversed())));
+                        }
+                        case TypeCheckInstruction inst when inst.opcode() == Opcode.CHECKCAST-> {
+                            stack.push(b.op(CoreOps.cast(TypeDesc.ofNominalDescriptor(inst.type().asSymbol()), stack.pop())));
+                        }
+                        case StackInstruction inst -> {
+                            switch (inst.opcode()) {
+                                case POP, POP2 -> stack.pop(); //check the type width
+                                case DUP, DUP2 -> stack.push(stack.peek());
+                                //implement all other stack ops
+                                default ->
+                                    throw new UnsupportedOperationException("Unsupported stack instruction: " + inst);
+                            }
+                        }
                         default ->
                             throw new UnsupportedOperationException("Unsupported code element: " + bcb.instructions.get(i));
                     }
