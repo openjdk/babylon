@@ -66,11 +66,9 @@ public class TestLiftExample {
     public void testF() throws Throwable {
         URL resource = TestLiftExample.class.getClassLoader().getResource(TestLiftExample.class.getName().replace('.', '/') + ".class");
         byte[] classdata = resource.openStream().readAllBytes();
-        CoreOps.FuncOp flift = BytecodeLift.liftToBytecodeDialect(classdata, "proxy");
+        CoreOps.FuncOp flift = BytecodeLift.lift(classdata, "proxy");
         flift.writeTo(System.out);
-        CoreOps.FuncOp fliftcore = BytecodeLift.liftToCoreDialect(flift);
-        fliftcore.writeTo(System.out);
-        CoreOps.FuncOp fliftcoreSSA = SSA.transform(fliftcore);
+        CoreOps.FuncOp fliftcoreSSA = SSA.transform(flift);
         fliftcoreSSA.writeTo(System.out);
 
         Function<Integer, Integer> f = i -> i;
