@@ -31,6 +31,7 @@ import java.lang.classfile.CodeModel;
 import java.lang.classfile.Label;
 import java.lang.classfile.MethodModel;
 import java.lang.classfile.Opcode;
+import java.lang.classfile.TypeKind;
 import java.lang.classfile.attribute.StackMapFrameInfo;
 import java.lang.classfile.attribute.StackMapTableAttribute;
 import java.lang.classfile.constantpool.ClassEntry;
@@ -185,7 +186,7 @@ public class BytecodeLift {
                 for (ExceptionCatch tryCatchBlock : bcr.codeModel.exceptionHandlers()) {
                     BytecodeBasicBlock handler = bcr.blockMap.get(tryCatchBlock.handler());
                     if (handler == bcb) {
-                        if (b.parameters().size() == 0) {
+                        if (b.parameters().isEmpty()) {
                             TypeDesc throwableType = tryCatchBlock.catchType()
                                     .map(ClassEntry::asSymbol)
                                     .map(TypeDesc::ofNominalDescriptor)
@@ -210,7 +211,7 @@ public class BytecodeLift {
                 }
 
                 int ni = bcb.instructions.size();
-                for (int i = 0; i < ni - 1; i++) {
+                for (int i = 0; i < ni; i++) {
                     switch (bcb.instructions.get(i)) {
                         case LabelTarget labelTarget -> {
                             // Insert control instructions for exception start/end bodies
@@ -411,96 +412,73 @@ public class BytecodeLift {
                                     throw new UnsupportedOperationException("Unsupported stack instruction: " + inst);
                             }
                         }
+                        case BranchInstruction inst when inst.opcode().isUnconditionalBranch() -> {
+                            BytecodeBasicBlock succ = bcb.successors.get(0);
+                            Block.Reference sb;
+                            // If the block has block parameters for stack operands then
+                            // pop arguments off the stack and use as successor arguments
+                            if (!b.parameters().isEmpty()) {
+                                List<Value> args = new ArrayList<>();
+                                for (int x = 0; x < b.parameters().size(); x++) {
+                                    args.add(stack.pop());
+                                }
+                                sb = c.blockMap.get(succ).successor(args);
+                            } else {
+                                sb = c.blockMap.get(succ).successor();
+                            }
+                            stack.push(b.op(CoreOps.branch(sb)));
+                        }
+                        case BranchInstruction inst -> {
+                            Value operand = stack.pop();
+                            Op cop = switch (inst.opcode()) {
+                                case IFNE -> CoreOps.eq(operand, b.op(CoreOps.constant(TypeDesc.INT, 0)));
+                                case IFEQ -> CoreOps.neq(operand, b.op(CoreOps.constant(TypeDesc.INT, 0)));
+                                case IFGE -> CoreOps.lt(operand, b.op(CoreOps.constant(TypeDesc.INT, 0)));
+                                case IFLE -> CoreOps.gt(operand, b.op(CoreOps.constant(TypeDesc.INT, 0)));
+                                case IFGT -> CoreOps.le(operand, b.op(CoreOps.constant(TypeDesc.INT, 0)));
+                                case IFLT -> CoreOps.ge(operand, b.op(CoreOps.constant(TypeDesc.INT, 0)));
+                                case IF_ICMPNE -> CoreOps.eq(stack.pop(), operand);
+                                case IF_ICMPEQ -> CoreOps.neq(stack.pop(), operand);
+                                case IF_ICMPGE -> CoreOps.lt(stack.pop(), operand);
+                                case IF_ICMPLE -> CoreOps.gt(stack.pop(), operand);
+                                case IF_ICMPGT -> CoreOps.le(stack.pop(), operand);
+                                case IF_ICMPLT -> CoreOps.ge(stack.pop(), operand);
+                                default -> throw new UnsupportedOperationException("Unsupported branch instruction: " + inst);
+                            };
+                            if (!stack.isEmpty()) {
+                                throw new UnsupportedOperationException("Operands on stack for branch not supported");
+                            }
+                            BytecodeBasicBlock fslb = bcb.successors.get(0);
+                            BytecodeBasicBlock tslb = bcb.successors.get(1);
+                            stack.push(b.op(CoreOps.conditionalBranch(b.op(cop), c.blockMap.get(fslb).successor(), c.blockMap.get(tslb).successor())));
+                        }
+                        case ReturnInstruction inst when inst.typeKind() == TypeKind.VoidType -> {
+                            b.op(CoreOps._return());
+                        }
+                        case ReturnInstruction _ -> {
+                            b.op(CoreOps._return(stack.pop()));
+                        }
                         default ->
                             throw new UnsupportedOperationException("Unsupported code element: " + bcb.instructions.get(i));
                     }
                 }
-
-        //        // @@@ cast, select last Instruction, and adjust prior loop
-        //        Instruction top = (Instruction) bcb.instructions.get(ni - 1);
-        //        if (bcb.isImplicitTermination) {
-        //            b.op(new InstructionOp(top));
-        //
-        //            BytecodeBasicBlock succ = bcb.successors.get(0);
-        //            b.op(new TerminatingInstructionOp(null, List.of(c.blockMap.get(succ).successor())));
-        //        } else {
-        //            List<Block.Reference> successors = bcb.successors.stream().map(s -> c.blockMap.get(s).successor()).toList();
-        //            b.op(new TerminatingInstructionOp(top, successors));
-        //        }
-
-
-        //            if (ltop instanceof BytecodeInstructionOps.GotoInstructionOp inst) {
-        //                Block slb = inst.successors().get(0).targetBlock();
-        //                Block.Reference sb;
-        //                // If the block has block parameters for stack operands then
-        //                // pop arguments off the stack and use as successor arguments
-        //                if (!slb.parameters().isEmpty()) {
-        //                    List<Value> args = new ArrayList<>();
-        //                    for (int x = 0; x < slb.parameters().size(); x++) {
-        //                        args.add(stack.pop());
-        //                    }
-        //                    sb = blockMap.get(slb).successor(args);
-        //                } else {
-        //                    sb = blockMap.get(slb).successor();
-        //                }
-        //                b.op(CoreOps.branch(sb));
-        //
-        //                wl.push(slb);
-        //            } else if (ltop instanceof BytecodeInstructionOps.IfInstructionOp inst) {
-        //                Value operand = stack.pop();
-        //                Value zero = b.op(CoreOps.constant(TypeDesc.INT, 0));
-        //
-        //                if (!stack.isEmpty()) {
-        //                    throw new UnsupportedOperationException("Operands on stack for branch not supported");
-        //                }
-        //
-        //                BytecodeInstructionOps.Comparison cond = inst.cond().inverse();
-        //                Op cop = switch (cond) {
-        //                    case EQ -> CoreOps.eq(operand, zero);
-        //                    case NE -> CoreOps.neq(operand, zero);
-        //                    case LT -> CoreOps.lt(operand, zero);
-        //                    case GT -> CoreOps.gt(operand, zero);
-        //                    default -> throw new UnsupportedOperationException("Unsupported condition " + cond);
-        //                };
-        //
-        //                Block fslb = inst.successors().get(0).targetBlock();
-        //                Block tslb = inst.successors().get(1).targetBlock();
-        //                b.op(CoreOps.conditionalBranch(b.op(cop), blockMap.get(fslb).successor(), blockMap.get(tslb).successor()));
-        //
-        //                wl.push(tslb);
-        //                wl.push(fslb);
-        //            } else if (ltop instanceof BytecodeInstructionOps.IfcmpInstructionOp inst) {
-        //                Value operand2 = stack.pop();
-        //                Value operand1 = stack.pop();
-        //
-        //                if (!stack.isEmpty()) {
-        //                    throw new UnsupportedOperationException("Operands on stack for branch not supported");
-        //                }
-        //
-        //                BytecodeInstructionOps.Comparison cond = inst.cond().inverse();
-        //                Op cop = switch (cond) {
-        //                    case EQ -> CoreOps.eq(operand1, operand2);
-        //                    case NE -> CoreOps.neq(operand1, operand2);
-        //                    case LT -> CoreOps.lt(operand1, operand2);
-        //                    case GT -> CoreOps.gt(operand1, operand2);
-        //                    default -> throw new UnsupportedOperationException("Unsupported condition " + cond);
-        //                };
-        //
-        //                Block tslb = inst.trueBranch();
-        //                Block fslb = inst.falseBranch();
-        //                b.op(CoreOps.conditionalBranch(b.op(cop), blockMap.get(fslb).successor(), blockMap.get(tslb).successor()));
-        //
-        //                wl.push(tslb);
-        //                wl.push(fslb);
-        //            } else if (ltop instanceof BytecodeInstructionOps.ReturnInstructionOp inst) {
-        //                Value operand = stack.pop();
-        //                b.op(CoreOps._return(operand));
-        //            } else if (ltop instanceof BytecodeInstructionOps.VoidReturnInstructionOp inst) {
-        //                b.op(CoreOps._return());
-        //            } else {
-        //                throw new UnsupportedOperationException("Unsupported terminating operation: " + ltop.opName());
-        //            }
-
+                // @@@ cast, select last Instruction, and adjust prior loop
+                if (bcb.isImplicitTermination) {
+                    BytecodeBasicBlock succ = bcb.successors.get(0);
+                    Block.Reference sb;
+                    // If the block has block parameters for stack operands then
+                    // pop arguments off the stack and use as successor arguments
+                    if (!b.parameters().isEmpty()) {
+                        List<Value> args = new ArrayList<>();
+                        for (int x = 0; x < b.parameters().size(); x++) {
+                            args.add(stack.pop());
+                        }
+                        sb = c.blockMap.get(succ).successor(args);
+                    } else {
+                        sb = c.blockMap.get(succ).successor();
+                    }
+                    stack.push(b.op(CoreOps.branch(sb)));
+                }
             }
         });
 
