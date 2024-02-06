@@ -368,7 +368,7 @@ public class BytecodeLift {
                                             Collections.nCopies(inst.dimensions(), TypeDesc.INT)),
                                     IntStream.range(0, inst.dimensions()).mapToObj(_ -> stack.pop()).toList().reversed())));
                         }
-                        case TypeCheckInstruction inst when inst.opcode() == Opcode.CHECKCAST-> {
+                        case TypeCheckInstruction inst when inst.opcode() == Opcode.CHECKCAST -> {
                             stack.push(b.op(CoreOps.cast(TypeDesc.ofNominalDescriptor(inst.type().asSymbol()), stack.pop())));
                         }
                         case StackInstruction inst -> {
