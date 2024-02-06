@@ -127,29 +127,28 @@ public class BytecodeLift {
                 }
                 // If the frame has operand stack elements then represent as block arguments
                 if (basicBlock.frame != null) {
-                    for (StackMapFrameInfo.VerificationTypeInfo ost : basicBlock.frame.stack()) {
-                        if (ost instanceof StackMapFrameInfo.SimpleVerificationTypeInfo i) {
-                            switch (i) {
-                                case ITEM_INTEGER ->
-                                    b.parameter(TypeDesc.INT);
-                                case ITEM_FLOAT ->
-                                    b.parameter(TypeDesc.FLOAT);
-                                case ITEM_DOUBLE ->
-                                    b.parameter(TypeDesc.DOUBLE);
-                                case ITEM_LONG ->
-                                    b.parameter(TypeDesc.LONG);
-                                case ITEM_NULL -> // @@@
-                                    b.parameter(TypeDesc.J_L_OBJECT);
-                                case ITEM_UNINITIALIZED_THIS ->
-                                    b.parameter(TypeDesc.ofNominalDescriptor(bytecodeBody.methodModel.parent().get().thisClass().asSymbol()));
-                                case ITEM_TOP ->
-                                    throw new IllegalArgumentException("Unexpected item TOP at frame stack.");
+                    for (StackMapFrameInfo.VerificationTypeInfo vti : basicBlock.frame.stack()) {
+                        switch (vti) {
+                            case StackMapFrameInfo.SimpleVerificationTypeInfo.ITEM_INTEGER ->
+                                b.parameter(TypeDesc.INT);
+                            case StackMapFrameInfo.SimpleVerificationTypeInfo.ITEM_FLOAT ->
+                                b.parameter(TypeDesc.FLOAT);
+                            case StackMapFrameInfo.SimpleVerificationTypeInfo.ITEM_DOUBLE ->
+                                b.parameter(TypeDesc.DOUBLE);
+                            case StackMapFrameInfo.SimpleVerificationTypeInfo.ITEM_LONG ->
+                                b.parameter(TypeDesc.LONG);
+                            case StackMapFrameInfo.SimpleVerificationTypeInfo.ITEM_NULL -> // @@@
+                                b.parameter(TypeDesc.J_L_OBJECT);
+                            case StackMapFrameInfo.SimpleVerificationTypeInfo.ITEM_UNINITIALIZED_THIS ->
+                                b.parameter(TypeDesc.ofNominalDescriptor(bytecodeBody.methodModel.parent().get().thisClass().asSymbol()));
+                            case StackMapFrameInfo.ObjectVerificationTypeInfo i ->
+                                b.parameter(TypeDesc.ofNominalDescriptor(i.classSymbol()));
+                            case StackMapFrameInfo.UninitializedVerificationTypeInfo i -> {
+                                // @@@
+                                // label designates the NEW instruction that created the uninitialized value
                             }
-                        } else if (ost instanceof StackMapFrameInfo.ObjectVerificationTypeInfo i) {
-                            b.parameter(TypeDesc.ofNominalDescriptor(i.classSymbol()));
-                        } else if (ost instanceof StackMapFrameInfo.UninitializedVerificationTypeInfo i) {
-                            // @@@
-                            // label designates the NEW instruction that created the uninitialized value
+                            case StackMapFrameInfo.SimpleVerificationTypeInfo.ITEM_TOP ->
+                                throw new IllegalArgumentException("Unexpected item TOP at frame stack.");
                         }
                     }
                 }
@@ -524,62 +523,48 @@ public class BytecodeLift {
         List<BytecodeBasicBlock> blocks = new ArrayList<>();
         BytecodeBasicBlock currentBlock = new BytecodeBasicBlock();
         for (CodeElement ce : codeModel) {
-            if (ce instanceof LabelTarget labelTarget) {
-                StackMapFrameInfo frame = labelToFrameMap.get(labelTarget.label());
-                if (frame != null) {
-                    // Not first block, nor prior block with non-terminating instruction
-                    if (!currentBlock.instructions.isEmpty()) {
-                        blocks.add(currentBlock);
-                        currentBlock = new BytecodeBasicBlock();
+            switch (ce) {
+                case LabelTarget labelTarget -> {
+                    StackMapFrameInfo frame = labelToFrameMap.get(labelTarget.label());
+                    if (frame != null) {
+                        // Not first block, nor prior block with non-terminating instruction
+                        if (!currentBlock.instructions.isEmpty()) {
+                            blocks.add(currentBlock);
+                            currentBlock = new BytecodeBasicBlock();
+                        }
+                        currentBlock.setFrame(frame);
                     }
-
-                    currentBlock.setFrame(frame);
+                    blockMap.put(labelTarget.label(), currentBlock);
+                    currentBlock.addInstruction(ce);
                 }
-
-                blockMap.put(labelTarget.label(), currentBlock);
-                currentBlock.addInstruction(ce);
-            } else if (ce instanceof BranchInstruction ||
-                    ce instanceof TableSwitchInstruction ||
-                    ce instanceof LookupSwitchInstruction) {
-                // End of block, branch
-                currentBlock.addInstruction(ce);
-
-                blocks.add(currentBlock);
-                currentBlock = new BytecodeBasicBlock();
-            } else if (ce instanceof ReturnInstruction || ce instanceof ThrowInstruction) {
-                // End of block, method terminating instruction,
-                currentBlock.addInstruction(ce);
-
-                blocks.add(currentBlock);
-                currentBlock = new BytecodeBasicBlock();
-            } else {
-                currentBlock.addInstruction(ce);
+                case BranchInstruction _, TableSwitchInstruction _, LookupSwitchInstruction _,
+                     ReturnInstruction _, ThrowInstruction _ -> {
+                    // End of block, branch
+                    currentBlock.addInstruction(ce);
+                    blocks.add(currentBlock);
+                    currentBlock = new BytecodeBasicBlock();
+                }
+                default ->
+                    currentBlock.addInstruction(ce);
             }
         }
-
         // Update successors
         for (int i = 0; i < blocks.size(); i++) {
             BytecodeBasicBlock b = blocks.get(i);
             CodeElement lastElement = b.lastInstruction();
             switch (lastElement) {
+                case BranchInstruction bi when bi.opcode().isUnconditionalBranch() -> {
+                    BytecodeBasicBlock branch = blockMap.get(bi.target());
+                    b.addSuccessor(branch);
+                }
                 case BranchInstruction bi -> {
-                    switch (bi.opcode()) {
-                        case GOTO, GOTO_W -> {
-                            BytecodeBasicBlock branch = blockMap.get(bi.target());
-                            b.addSuccessor(branch);
-                        }
-                        // Conditional branch
-                        default -> {
-                            assert !bi.opcode().isUnconditionalBranch();
-
-                            BytecodeBasicBlock tBranch = blockMap.get(bi.target());
-                            BytecodeBasicBlock fBranch = blocks.get(i + 1);
-                            // True branch is first
-                            b.addSuccessor(tBranch);
-                            // False (or continuation) branch is second
-                            b.addSuccessor(fBranch);
-                        }
-                    }
+                    // Conditional branch
+                    BytecodeBasicBlock tBranch = blockMap.get(bi.target());
+                    BytecodeBasicBlock fBranch = blocks.get(i + 1);
+                    // True branch is first
+                    b.addSuccessor(tBranch);
+                    // False (or continuation) branch is second
+                    b.addSuccessor(fBranch);
                 }
                 case LookupSwitchInstruction si -> {
                     // Default label is first successor
@@ -592,10 +577,7 @@ public class BytecodeLift {
                     addSuccessors(si.cases(), blockMap, b);
                 }
                 // @@@ Merge cases and use _, after merge with master
-                case ReturnInstruction ri -> {
-                    // Ignore, method terminating
-                }
-                case ThrowInstruction ti -> {
+                case ReturnInstruction _, ThrowInstruction _ -> {
                     // Ignore, method terminating
                 }
                 default -> {
@@ -606,7 +588,6 @@ public class BytecodeLift {
                 }
             }
         }
-
         return new BytecodeMethodBody(methodModel, codeModel, blocks, blockMap);
     }
 
