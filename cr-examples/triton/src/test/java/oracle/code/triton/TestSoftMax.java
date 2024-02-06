@@ -255,7 +255,7 @@ def softmax_kernel(output_ptr, input_ptr, input_row_stride, output_row_stride, n
     output_ptrs = output_row_start_ptr + col_offsets
     tl.store(output_ptrs, softmax_output, mask=col_offsets < n_cols)
 */
-    
+
 /*
 input_row_stride = 1
 output_row_stride = 1
@@ -264,60 +264,60 @@ BLOCK_SIZE=64
 
 module {
   tt.func public @softmax_kernel_01(%arg0: !tt.ptr<f32, 1> , %arg1: !tt.ptr<f32, 1> ) attributes {noinline = false} {
-    %0 = tt.get_program_id x : i32 
-    %c1_i32 = arith.constant 1 : i32 
-    %1 = arith.muli %0, %c1_i32 : i32 
-    %2 = tt.addptr %arg1, %1 : !tt.ptr<f32, 1>, i32 
-    %3 = tt.make_range {end = 64 : i32, start = 0 : i32} : tensor<64xi32> 
-    %4 = tt.splat %2 : (!tt.ptr<f32, 1>) -> tensor<64x!tt.ptr<f32, 1>> 
-    %5 = tt.addptr %4, %3 : tensor<64x!tt.ptr<f32, 1>>, tensor<64xi32> 
-    %c10_i32 = arith.constant 10 : i32 
-    %cst = arith.constant dense<10> : tensor<64xi32> 
-    %6 = arith.cmpi slt, %3, %cst : tensor<64xi32> 
-    %cst_0 = arith.constant 0xFF800000 : f32 
-    %cst_1 = arith.constant dense<0xFF800000> : tensor<64xf32> 
-    %7 = tt.load %5, %6, %cst_1 {cache = 1 : i32, evict = 1 : i32, isVolatile = false} : tensor<64xf32> 
-    %8 = tt.call @max__fp32S64S__1cconstexpr_0__2cconstexpr_False__3cconstexpr_True_(%7) : (tensor<64xf32>) -> f32 
-    %9 = tt.splat %8 : (f32) -> tensor<64xf32> 
-    %10 = arith.subf %7, %9 : tensor<64xf32> 
-    %11 = math.exp %10 : tensor<64xf32> 
-    %12 = tt.call @sum__fp32S64S__1cconstexpr_0_(%11) : (tensor<64xf32>) -> f32 
-    %13 = tt.splat %12 : (f32) -> tensor<64xf32> 
-    %14 = arith.divf %11, %13 : tensor<64xf32> 
-    %c1_i32_2 = arith.constant 1 : i32 
-    %15 = arith.muli %0, %c1_i32_2 : i32 
-    %16 = tt.addptr %arg0, %15 : !tt.ptr<f32, 1>, i32 
-    %17 = tt.splat %16 : (!tt.ptr<f32, 1>) -> tensor<64x!tt.ptr<f32, 1>> 
-    %18 = tt.addptr %17, %3 : tensor<64x!tt.ptr<f32, 1>>, tensor<64xi32> 
-    %c10_i32_3 = arith.constant 10 : i32 
-    %cst_4 = arith.constant dense<10> : tensor<64xi32> 
-    %19 = arith.cmpi slt, %3, %cst_4 : tensor<64xi32> 
-    tt.store %18, %14, %19 {cache = 1 : i32, evict = 1 : i32} : tensor<64xf32> 
-    tt.return 
-  } 
+    %0 = tt.get_program_id x : i32
+    %c1_i32 = arith.constant 1 : i32
+    %1 = arith.muli %0, %c1_i32 : i32
+    %2 = tt.addptr %arg1, %1 : !tt.ptr<f32, 1>, i32
+    %3 = tt.make_range {end = 64 : i32, start = 0 : i32} : tensor<64xi32>
+    %4 = tt.splat %2 : (!tt.ptr<f32, 1>) -> tensor<64x!tt.ptr<f32, 1>>
+    %5 = tt.addptr %4, %3 : tensor<64x!tt.ptr<f32, 1>>, tensor<64xi32>
+    %c10_i32 = arith.constant 10 : i32
+    %cst = arith.constant dense<10> : tensor<64xi32>
+    %6 = arith.cmpi slt, %3, %cst : tensor<64xi32>
+    %cst_0 = arith.constant 0xFF800000 : f32
+    %cst_1 = arith.constant dense<0xFF800000> : tensor<64xf32>
+    %7 = tt.load %5, %6, %cst_1 {cache = 1 : i32, evict = 1 : i32, isVolatile = false} : tensor<64xf32>
+    %8 = tt.call @max__fp32S64S__1cconstexpr_0__2cconstexpr_False__3cconstexpr_True_(%7) : (tensor<64xf32>) -> f32
+    %9 = tt.splat %8 : (f32) -> tensor<64xf32>
+    %10 = arith.subf %7, %9 : tensor<64xf32>
+    %11 = math.exp %10 : tensor<64xf32>
+    %12 = tt.call @sum__fp32S64S__1cconstexpr_0_(%11) : (tensor<64xf32>) -> f32
+    %13 = tt.splat %12 : (f32) -> tensor<64xf32>
+    %14 = arith.divf %11, %13 : tensor<64xf32>
+    %c1_i32_2 = arith.constant 1 : i32
+    %15 = arith.muli %0, %c1_i32_2 : i32
+    %16 = tt.addptr %arg0, %15 : !tt.ptr<f32, 1>, i32
+    %17 = tt.splat %16 : (!tt.ptr<f32, 1>) -> tensor<64x!tt.ptr<f32, 1>>
+    %18 = tt.addptr %17, %3 : tensor<64x!tt.ptr<f32, 1>>, tensor<64xi32>
+    %c10_i32_3 = arith.constant 10 : i32
+    %cst_4 = arith.constant dense<10> : tensor<64xi32>
+    %19 = arith.cmpi slt, %3, %cst_4 : tensor<64xi32>
+    tt.store %18, %14, %19 {cache = 1 : i32, evict = 1 : i32} : tensor<64xf32>
+    tt.return
+  }
   tt.func private @max__fp32S64S__1cconstexpr_0__2cconstexpr_False__3cconstexpr_True_(%arg0: tensor<64xf32> ) -> f32 attributes {noinline = false} {
     %0 = "tt.reduce"(%arg0) <{axis = 0 : i32}> ({
     ^bb0(%arg1: f32 , %arg2: f32 ):
-      %1 = tt.call @maximum__fp32_fp32__(%arg1, %arg2) : (f32, f32) -> f32 
-      tt.reduce.return %1 : f32 
-    }) : (tensor<64xf32>) -> f32 
-    tt.return %0 : f32 
-  } 
+      %1 = tt.call @maximum__fp32_fp32__(%arg1, %arg2) : (f32, f32) -> f32
+      tt.reduce.return %1 : f32
+    }) : (tensor<64xf32>) -> f32
+    tt.return %0 : f32
+  }
   tt.func private @maximum__fp32_fp32__(%arg0: f32 , %arg1: f32 ) -> f32 attributes {noinline = false} {
-    %0 = arith.maximumf %arg0, %arg1 : f32 
-    tt.return %0 : f32 
-  } 
+    %0 = arith.maximumf %arg0, %arg1 : f32
+    tt.return %0 : f32
+  }
   tt.func private @sum__fp32S64S__1cconstexpr_0_(%arg0: tensor<64xf32> ) -> f32 attributes {noinline = false} {
     %0 = "tt.reduce"(%arg0) <{axis = 0 : i32}> ({
     ^bb0(%arg1: f32 , %arg2: f32 ):
-      %1 = tt.call @_sum_combine__fp32_fp32__(%arg1, %arg2) : (f32, f32) -> f32 
-      tt.reduce.return %1 : f32 
-    }) : (tensor<64xf32>) -> f32 
-    tt.return %0 : f32 
-  } 
+      %1 = tt.call @_sum_combine__fp32_fp32__(%arg1, %arg2) : (f32, f32) -> f32
+      tt.reduce.return %1 : f32
+    }) : (tensor<64xf32>) -> f32
+    tt.return %0 : f32
+  }
   tt.func private @_sum_combine__fp32_fp32__(%arg0: f32 , %arg1: f32 ) -> f32 attributes {noinline = false} {
-    %0 = arith.addf %arg0, %arg1 : f32 
-    tt.return %0 : f32 
-  } 
-} 
+    %0 = arith.addf %arg0, %arg1 : f32
+    tt.return %0 : f32
+  }
+}
 */
