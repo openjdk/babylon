@@ -81,111 +81,38 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import sun.nio.ch.Streams;
 
 public class BytecodeLift {
 
     BytecodeLift() {
     }
 
-//    //
-//    // Lift to core dialect
-//
-//    public static CoreOps.FuncOp liftToCoreDialect(CoreOps.FuncOp lf) {
-//        Body.Builder body = Body.Builder.of(null, lf.funcDescriptor());
-//        liftToCoreDialect(lf.body(), body);
-//        return CoreOps.func(lf.funcName(), body);
-//    }
-//
-//    // @@@ boolean, byte, short, and char are erased to int on the stack
-//
-//    public static void liftToCoreDialect(Body lbody, Body.Builder c) {
-//        Block.Builder eb = c.entryBlock();
-//
-//        // Create blocks
-//        Map<Block, Block.Builder> blockMap = new HashMap<>();
-//        for (Block lb : lbody.blocks()) {
-//            Block.Builder b = lb.isEntryBlock() ? eb : eb.block();
-//            if (!lb.isEntryBlock()) {
-//                for (Block.Parameter lbp : lb.parameters()) {
-//                    b.parameter(lbp.type());
-//                }
-//            }
-//            blockMap.put(lb, b);
-//        }
-//
-//
-//        // @@@ catch/finally handlers are disconnected block
-//        // treat as effectively separate bodies
-//
-//        Set<Block> visited = new HashSet<>();
-//        Deque<Block> wl = new ArrayDeque<>();
-//        wl.push(lbody.entryBlock());
-//        while (!wl.isEmpty()) {
-//            Block lb = wl.pop();
-//            if (!visited.add(lb)) {
-//                continue;
-//            }
-//
-//            Block.Builder b = blockMap.get(lb);
-//
-//            // If a non-entry block has parameters then they correspond to stack arguments
-//            // Push back block parameters on the stack, in reverse order to preserve order on the stack
-//            if (b.parameters().size() > 0 && !b.isEntryBlock()) {
-//                for (int i = b.parameters().size() - 1; i >= 0; i--) {
-//                    stack.push(b.parameters().get(i));
-//                }
-//            }
-//        }
-//    }
-
-
     //
-    // Lift to bytecode dialect
+    // Lift to core dialect
 
     static final class LiftContext {
         final Map<BytecodeBasicBlock, Block.Builder> blockMap = new HashMap<>();
     }
 
     public static CoreOps.FuncOp lift(byte[] classdata, String methodName) {
-        BytecodeMethodBody bcr = createBodyForMethod(classdata, methodName);
+        BytecodeMethodBody bytecodeBody = createBodyForMethod(classdata, methodName);
 
-        MethodTypeDesc methodTypeDescriptor = MethodTypeDesc.ofNominalDescriptor(bcr.methodModel.methodTypeSymbol());
+        MethodTypeDesc methodTypeDescriptor = MethodTypeDesc.ofNominalDescriptor(bytecodeBody.methodModel.methodTypeSymbol());
 
         CoreOps.FuncOp f = CoreOps.func(
-                bcr.methodModel.methodName().stringValue(),
+                bytecodeBody.methodModel.methodName().stringValue(),
                 methodTypeDescriptor).body(entryBlock -> {
             LiftContext c = new LiftContext();
 
             // Create blocks
             int count = 0;
-            for (BytecodeBasicBlock bcb : bcr.blocks) {
+            for (BytecodeBasicBlock basicBlock : bytecodeBody.blocks) {
                 Block.Builder b = count > 0 ? entryBlock.block() : entryBlock;
 
-                count++;
-                c.blockMap.put(bcb, b);
-            }
-
-            // @@@ Needs to be cloned when there are two or more successors
-            Map<Integer, Op.Result> locals = new HashMap<>();
-            Deque<Value> stack = new ArrayDeque<>();
-
-            // Map Block arguments to local variables
-            int lvm = 0;
-            for (Block.Parameter bp : entryBlock.parameters()) {
-                // @@@ Reference type
-                Op.Result local = entryBlock.op(CoreOps.var(Integer.toString(lvm), bp));
-                locals.put(lvm++, local);
-            }
-
-            // Process blocks
-            for (BytecodeBasicBlock bcb : bcr.blocks) {
-                Block.Builder b = c.blockMap.get(bcb);
-
                 // Add exception parameter to catch handler blocks
-                for (ExceptionCatch tryCatchBlock : bcr.codeModel.exceptionHandlers()) {
-                    BytecodeBasicBlock handler = bcr.blockMap.get(tryCatchBlock.handler());
-                    if (handler == bcb) {
+                for (ExceptionCatch tryCatchBlock : bytecodeBody.codeModel.exceptionHandlers()) {
+                    BytecodeBasicBlock handler = bytecodeBody.blockMap.get(tryCatchBlock.handler());
+                    if (handler == basicBlock) {
                         if (b.parameters().isEmpty()) {
                             TypeDesc throwableType = tryCatchBlock.catchType()
                                     .map(ClassEntry::asSymbol)
@@ -198,18 +125,60 @@ public class BytecodeLift {
                         break;
                     }
                 }
-
                 // If the frame has operand stack elements then represent as block arguments
-                if (bcb.frame != null) {
-//                    BytecodeInstructionOps.Frame frame = BytecodeInstructionOps.frame(bcb.frame);
-//                    if (frame.hasOperandStackElements()) {
-//                        for (TypeDesc t : frame.operandStackTypes()) {
-//                            b.parameter(t);
-//                        }
-//                    }
-//                    b.op(frame);
+                if (basicBlock.frame != null) {
+                    for (StackMapFrameInfo.VerificationTypeInfo ost : basicBlock.frame.stack()) {
+                        if (ost instanceof StackMapFrameInfo.SimpleVerificationTypeInfo i) {
+                            switch (i) {
+                                case ITEM_INTEGER ->
+                                    b.parameter(TypeDesc.INT);
+                                case ITEM_FLOAT ->
+                                    b.parameter(TypeDesc.FLOAT);
+                                case ITEM_DOUBLE ->
+                                    b.parameter(TypeDesc.DOUBLE);
+                                case ITEM_LONG ->
+                                    b.parameter(TypeDesc.LONG);
+                                case ITEM_NULL -> // @@@
+                                    b.parameter(TypeDesc.J_L_OBJECT);
+                                case ITEM_UNINITIALIZED_THIS ->
+                                    b.parameter(TypeDesc.ofNominalDescriptor(bytecodeBody.methodModel.parent().get().thisClass().asSymbol()));
+                                case ITEM_TOP ->
+                                    throw new IllegalArgumentException("Unexpected item TOP at frame stack.");
+                            }
+                        } else if (ost instanceof StackMapFrameInfo.ObjectVerificationTypeInfo i) {
+                            b.parameter(TypeDesc.ofNominalDescriptor(i.classSymbol()));
+                        } else if (ost instanceof StackMapFrameInfo.UninitializedVerificationTypeInfo i) {
+                            // @@@
+                            // label designates the NEW instruction that created the uninitialized value
+                        }
+                    }
                 }
+                count++;
+                c.blockMap.put(basicBlock, b);
+            }
 
+            // @@@ Needs to be cloned when there are two or more successors
+            Map<Integer, Op.Result> locals = new HashMap<>();
+
+            // Map Block arguments to local variables
+            int lvm = 0;
+            for (Block.Parameter bp : entryBlock.parameters()) {
+                // @@@ Reference type
+                Op.Result local = entryBlock.op(CoreOps.var(Integer.toString(lvm), bp));
+                locals.put(lvm++, local);
+            }
+
+            // Process blocks
+            for (BytecodeBasicBlock bcb : bytecodeBody.blocks) {
+                Block.Builder b = c.blockMap.get(bcb);
+                // If a non-entry block has parameters then they correspond to stack arguments
+                // Push back block parameters on the stack, in reverse order to preserve order on the stack
+                Deque<Value> stack = new ArrayDeque<>();
+                if (!b.parameters().isEmpty() && !b.isEntryBlock()) {
+                    for (int i = b.parameters().size() - 1; i >= 0; i--) {
+                        stack.push(b.parameters().get(i));
+                    }
+                }
                 int ni = bcb.instructions.size();
                 for (int i = 0; i < ni; i++) {
                     switch (bcb.instructions.get(i)) {
@@ -261,7 +230,7 @@ public class BytecodeLift {
                         }
                         case ConstantInstruction.LoadConstantInstruction inst -> {
                             stack.push(b.op(switch (inst.constantValue()) {
-                                case ClassDesc v -> CoreOps.constant(TypeDesc.J_L_CLASS, v);
+                                case ClassDesc v -> CoreOps.constant(TypeDesc.J_L_CLASS, TypeDesc.ofNominalDescriptor(v));
                                 case Double v -> CoreOps.constant(TypeDesc.DOUBLE, v);
                                 case Float v -> CoreOps.constant(TypeDesc.FLOAT, v);
                                 case Integer v -> CoreOps.constant(TypeDesc.INT, v);
@@ -450,7 +419,7 @@ public class BytecodeLift {
                             }
                             BytecodeBasicBlock fslb = bcb.successors.get(0);
                             BytecodeBasicBlock tslb = bcb.successors.get(1);
-                            stack.push(b.op(CoreOps.conditionalBranch(b.op(cop), c.blockMap.get(fslb).successor(), c.blockMap.get(tslb).successor())));
+                            stack.push(b.op(CoreOps.conditionalBranch(b.op(cop), c.blockMap.get(tslb).successor(), c.blockMap.get(fslb).successor())));
                         }
                         case ReturnInstruction inst when inst.typeKind() == TypeKind.VoidType -> {
                             b.op(CoreOps._return());
@@ -484,9 +453,6 @@ public class BytecodeLift {
 
         return f;
     }
-
-    //
-    // Lift to basic blocks of code elements
 
     record BytecodeMethodBody(MethodModel methodModel,
                               CodeModel codeModel,
