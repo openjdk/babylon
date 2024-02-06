@@ -87,13 +87,12 @@ public class BytecodeLift {
     BytecodeLift() {
     }
 
-    //
-    // Lift to core dialect
-
     static final class LiftContext {
         final Map<BytecodeBasicBlock, Block.Builder> blockMap = new HashMap<>();
     }
 
+    //
+    // Lift to core dialect
     public static CoreOps.FuncOp lift(byte[] classdata, String methodName) {
         BytecodeMethodBody bytecodeBody = createBodyForMethod(classdata, methodName);
 
@@ -103,12 +102,10 @@ public class BytecodeLift {
                 bytecodeBody.methodModel.methodName().stringValue(),
                 methodTypeDescriptor).body(entryBlock -> {
             LiftContext c = new LiftContext();
-
             // Create blocks
             int count = 0;
             for (BytecodeBasicBlock basicBlock : bytecodeBody.blocks) {
                 Block.Builder b = count > 0 ? entryBlock.block() : entryBlock;
-
                 // Add exception parameter to catch handler blocks
                 for (ExceptionCatch tryCatchBlock : bytecodeBody.codeModel.exceptionHandlers()) {
                     BytecodeBasicBlock handler = bytecodeBody.blockMap.get(tryCatchBlock.handler());
@@ -182,8 +179,7 @@ public class BytecodeLift {
                 for (int i = 0; i < ni; i++) {
                     switch (bcb.instructions.get(i)) {
                         case LabelTarget labelTarget -> {
-                            // Insert control instructions for exception start/end bodies
-        //                    for (ExceptionCatch tryCatchBlock : bcr.codeModel.exceptionHandlers()) {
+        // @@@                    for (ExceptionCatch tryCatchBlock : bcr.codeModel.exceptionHandlers()) {
         //                        if (labelTarget.label() == tryCatchBlock.tryStart()) {
         //                            BytecodeBasicBlock handler = bcr.blockMap.get(tryCatchBlock.handler());
         //                            b.op(BytecodeInstructionOps.
@@ -373,9 +369,9 @@ public class BytecodeLift {
                         }
                         case StackInstruction inst -> {
                             switch (inst.opcode()) {
-                                case POP, POP2 -> stack.pop(); //check the type width
+                                case POP, POP2 -> stack.pop(); // @@@ check the type width
                                 case DUP, DUP2 -> stack.push(stack.peek());
-                                //implement all other stack ops
+                                //@@@ implement all other stack ops
                                 default ->
                                     throw new UnsupportedOperationException("Unsupported stack instruction: " + inst);
                             }
@@ -430,7 +426,6 @@ public class BytecodeLift {
                             throw new UnsupportedOperationException("Unsupported code element: " + bcb.instructions.get(i));
                     }
                 }
-                // @@@ cast, select last Instruction, and adjust prior loop
                 if (bcb.isImplicitTermination) {
                     BytecodeBasicBlock succ = bcb.successors.get(0);
                     Block.Reference sb;
@@ -539,7 +534,7 @@ public class BytecodeLift {
                 }
                 case BranchInstruction _, TableSwitchInstruction _, LookupSwitchInstruction _,
                      ReturnInstruction _, ThrowInstruction _ -> {
-                    // End of block, branch
+                    // End of block
                     currentBlock.addInstruction(ce);
                     blocks.add(currentBlock);
                     currentBlock = new BytecodeBasicBlock();
@@ -553,18 +548,12 @@ public class BytecodeLift {
             BytecodeBasicBlock b = blocks.get(i);
             CodeElement lastElement = b.lastInstruction();
             switch (lastElement) {
-                case BranchInstruction bi when bi.opcode().isUnconditionalBranch() -> {
-                    BytecodeBasicBlock branch = blockMap.get(bi.target());
-                    b.addSuccessor(branch);
-                }
                 case BranchInstruction bi -> {
-                    // Conditional branch
-                    BytecodeBasicBlock tBranch = blockMap.get(bi.target());
-                    BytecodeBasicBlock fBranch = blocks.get(i + 1);
-                    // True branch is first
-                    b.addSuccessor(tBranch);
-                    // False (or continuation) branch is second
-                    b.addSuccessor(fBranch);
+                    b.addSuccessor(blockMap.get(bi.target()));
+                    if (!bi.opcode().isUnconditionalBranch()) {
+                        // Conditional false branch
+                        b.addSuccessor(blocks.get(i + 1));
+                    }
                 }
                 case LookupSwitchInstruction si -> {
                     // Default label is first successor
