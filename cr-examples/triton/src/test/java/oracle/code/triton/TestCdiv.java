@@ -141,7 +141,7 @@ public class TestCdiv {
                     tt.return;
                 };
                 unreachable;
-            };     
+            };
             """)
     @CodeReflection
     static void testCalls(int a, int b, int c) {
