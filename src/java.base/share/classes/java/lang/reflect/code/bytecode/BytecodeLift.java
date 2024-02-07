@@ -83,26 +83,26 @@ public final class BytecodeLift {
                 smta.entries().stream().collect(Collectors.toUnmodifiableMap(
                         StackMapFrameInfo::target,
                         frameInfo -> entryBlock.block(frameInfo.stack().stream().map(vti ->
-                        switch (vti) {
-                            case SimpleVerificationTypeInfo.ITEM_INTEGER ->
-                                TypeDesc.INT;
-                            case SimpleVerificationTypeInfo.ITEM_FLOAT ->
-                                TypeDesc.FLOAT;
-                            case SimpleVerificationTypeInfo.ITEM_DOUBLE ->
-                                TypeDesc.DOUBLE;
-                            case SimpleVerificationTypeInfo.ITEM_LONG ->
-                                TypeDesc.LONG;
-                            case SimpleVerificationTypeInfo.ITEM_NULL -> // @@@
-                                TypeDesc.J_L_OBJECT;
-                            case SimpleVerificationTypeInfo.ITEM_UNINITIALIZED_THIS ->
-                                TypeDesc.ofNominalDescriptor(methodModel.parent().get().thisClass().asSymbol());
-                            case ObjectVerificationTypeInfo i ->
-                                TypeDesc.ofNominalDescriptor(i.classSymbol());
-                            case UninitializedVerificationTypeInfo i ->
-                                throw new IllegalArgumentException("Unexpected item at frame stack: " + i);
-                            case SimpleVerificationTypeInfo.ITEM_TOP ->
-                                throw new IllegalArgumentException("Unexpected item at frame stack: TOP");
-                        }).toList())))).orElse(Map.of());
+                                switch (vti) {
+                                    case SimpleVerificationTypeInfo.ITEM_INTEGER ->
+                                        TypeDesc.INT;
+                                    case SimpleVerificationTypeInfo.ITEM_FLOAT ->
+                                        TypeDesc.FLOAT;
+                                    case SimpleVerificationTypeInfo.ITEM_DOUBLE ->
+                                        TypeDesc.DOUBLE;
+                                    case SimpleVerificationTypeInfo.ITEM_LONG ->
+                                        TypeDesc.LONG;
+                                    case SimpleVerificationTypeInfo.ITEM_NULL -> // @@@
+                                        TypeDesc.J_L_OBJECT;
+                                    case SimpleVerificationTypeInfo.ITEM_UNINITIALIZED_THIS ->
+                                        TypeDesc.ofNominalDescriptor(methodModel.parent().get().thisClass().asSymbol());
+                                    case ObjectVerificationTypeInfo i ->
+                                        TypeDesc.ofNominalDescriptor(i.classSymbol());
+                                    case UninitializedVerificationTypeInfo i ->
+                                        throw new IllegalArgumentException("Unexpected item at frame stack: " + i);
+                                    case SimpleVerificationTypeInfo.ITEM_TOP ->
+                                        throw new IllegalArgumentException("Unexpected item at frame stack: TOP");
+                                }).toList())))).orElse(Map.of());
 
             final Deque<Value> stack = new ArrayDeque<>();
             final Map<Integer, Op.Result> locals = new HashMap<>();
@@ -349,7 +349,6 @@ public final class BytecodeLift {
                                             throw new UnsupportedOperationException("Unsupported new primitive array type: " + inst.typeKind());
                                 },
                                 stack.pop())));
-
                     }
                     case NewReferenceArrayInstruction inst -> {
                         stack.push(currentBlock.op(CoreOps.newArray(
