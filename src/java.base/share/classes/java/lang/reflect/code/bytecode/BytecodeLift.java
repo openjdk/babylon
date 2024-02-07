@@ -392,6 +392,7 @@ public class BytecodeLift {
                             b.op(CoreOps.branch(sb));
                         }
                         case BranchInstruction inst -> {
+                            // Conditional branch
                             Value operand = stack.pop();
                             Op cop = switch (inst.opcode()) {
                                 case IFNE -> CoreOps.eq(operand, b.op(CoreOps.constant(TypeDesc.INT, 0)));
