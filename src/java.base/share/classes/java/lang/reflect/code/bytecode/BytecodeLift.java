@@ -212,6 +212,9 @@ public class BytecodeLift {
                                 if (!operand.type().equals(varType)) {
                                     local = b.op(CoreOps.var(Integer.toString(lvm), operand));
                                     locals.put(lvm++, local);
+                                    // @@@  The slot is reused with a different type
+                                    // so we need to update the existing entry in the map.
+                                    // This likely always connects to how to manage the map with conditional branching.
                                 } else {
                                     b.op(CoreOps.varStore(local, operand));
                                 }
@@ -223,7 +226,7 @@ public class BytecodeLift {
                                     b.op(CoreOps.varLoad(local)),
                                     b.op(CoreOps.constant(TypeDesc.INT, inst.constant()))))));
                         }
-                        case ConstantInstruction.LoadConstantInstruction inst -> {
+                        case ConstantInstruction inst -> {
                             stack.push(b.op(switch (inst.constantValue()) {
                                 case ClassDesc v -> CoreOps.constant(TypeDesc.J_L_CLASS, TypeDesc.ofNominalDescriptor(v));
                                 case Double v -> CoreOps.constant(TypeDesc.DOUBLE, v);
@@ -235,10 +238,6 @@ public class BytecodeLift {
                                     // @@@ MethodType, MethodHandle, ConstantDynamic
                                     throw new IllegalArgumentException("Unsupported constant value: " + inst.constantValue());
                             }));
-                        }
-                        case ConstantInstruction inst -> {
-                            Op.Result result = b.op(CoreOps.constant(TypeDesc.INT, inst.constantValue()));
-                            stack.push(result);
                         }
                         case OperatorInstruction inst -> {
                             Value operand = stack.pop();
@@ -390,7 +389,7 @@ public class BytecodeLift {
                             } else {
                                 sb = c.blockMap.get(succ).successor();
                             }
-                            stack.push(b.op(CoreOps.branch(sb)));
+                            b.op(CoreOps.branch(sb));
                         }
                         case BranchInstruction inst -> {
                             Value operand = stack.pop();
@@ -414,7 +413,10 @@ public class BytecodeLift {
                             }
                             BytecodeBasicBlock fslb = bcb.successors.get(0);
                             BytecodeBasicBlock tslb = bcb.successors.get(1);
-                            stack.push(b.op(CoreOps.conditionalBranch(b.op(cop), c.blockMap.get(tslb).successor(), c.blockMap.get(fslb).successor())));
+                            stack.push(b.op(CoreOps.conditionalBranch(
+                                    b.op(cop),
+                                    c.blockMap.get(tslb).successor(),
+                                    c.blockMap.get(fslb).successor())));
                         }
                         case ReturnInstruction inst when inst.typeKind() == TypeKind.VoidType -> {
                             b.op(CoreOps._return());
