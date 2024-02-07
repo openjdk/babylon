@@ -35,7 +35,7 @@ import java.util.Set;
 /**
  * A value, that is the result of an operation or a block parameter.
  */
-public abstract sealed class Value implements Comparable<Value>
+public abstract sealed class Value implements Comparable<Value>, CodeItem
         permits Block.Parameter, Op.Result {
     final Block block;
     final TypeDesc type;
