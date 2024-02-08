@@ -134,11 +134,10 @@ public final class BytecodeLift {
                             // Implicit goto next block, add explicitly
                             // Use stack content as next block arguments
                             currentBlock.op(CoreOps.branch(nextBlock.successor(List.copyOf(stack))));
-                            // Keep the stack
-                        } else {
-                            // Flow discontinued, stack must be reconstructed from block parameters
-                            nextBlock.parameters().forEach(stack::add);
+                            stack.clear();
                         }
+                        // Stack is reconstructed from block parameters
+                        nextBlock.parameters().forEach(stack::add);
                         currentBlock = nextBlock;
                         // Insert relevant tryStart and tryEnd blocks
                         for (ExceptionCatch ec : codeModel.exceptionHandlers().reversed()) {
