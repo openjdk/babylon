@@ -146,6 +146,9 @@ public final class BytecodeLift {
                                 ExceptionRegionEnter ere = CoreOps.exceptionRegionEnter(nextBlock.successor(List.copyOf(stack)), blockMap.get(ec.handler()).successor());
                                 currentBlock.op(ere);
                                 exceptionRegionsMap.put(ec, ere.result());
+                                stack.clear();
+                                // Stack is reconstructed from block parameters
+                                nextBlock.parameters().forEach(stack::add);
                                 currentBlock = nextBlock;
                             }
                         }
@@ -153,6 +156,9 @@ public final class BytecodeLift {
                             if (lt.label() == ec.tryEnd()) {
                                 nextBlock = entryBlock.block(stack.stream().map(Value::type).toList());
                                 currentBlock.op(CoreOps.exceptionRegionExit(exceptionRegionsMap.get(ec), nextBlock.successor()));
+                                stack.clear();
+                                // Stack is reconstructed from block parameters
+                                nextBlock.parameters().forEach(stack::add);
                                 currentBlock = nextBlock;
                             }
                         }
