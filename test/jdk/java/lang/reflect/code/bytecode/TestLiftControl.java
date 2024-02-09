@@ -89,16 +89,17 @@ public class TestLiftControl {
         Assert.assertEquals((int) Interpreter.invoke(f, 0, 0, 0, 0), ifelseEquality(0, 0, 0, 0));
     }
 
-    static int conditionalExpression(int a, int b, int n) {
-        return (n < 10) ? a : b;
+    static int conditionalExpression(int a, int b, int c, int n) {
+        return (n < 10) ? (n < 5) ? a : b : c;
     }
 
     @Test
     public void testConditionalExpression() throws Throwable {
         CoreOps.FuncOp f = getFuncOp("conditionalExpression");
 
-        Assert.assertEquals((int) Interpreter.invoke(f, 1, 2, 1), conditionalExpression(1, 2, 1));
-        Assert.assertEquals((int) Interpreter.invoke(f, 1, 2, 11), conditionalExpression(1, 2, 11));
+        Assert.assertEquals((int) Interpreter.invoke(f, 1, 2, 3, 1), conditionalExpression(1, 2, 3, 1));
+        Assert.assertEquals((int) Interpreter.invoke(f, 1, 2, 3, 6), conditionalExpression(1, 2, 3, 6));
+        Assert.assertEquals((int) Interpreter.invoke(f, 1, 2, 3, 11), conditionalExpression(1, 2, 3, 11));
     }
 
     @Test
