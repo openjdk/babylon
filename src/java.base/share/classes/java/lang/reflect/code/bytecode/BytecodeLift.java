@@ -104,11 +104,12 @@ public final class BytecodeLift {
             }
 
             final List<CodeElement> elements = codeModel.elementList();
-            final BitSet resolved = new BitSet();
-            int initiallyResolved;
-            while ((initiallyResolved = resolved.cardinality()) < elements.size()) {
-                for (int i = resolved.nextClearBit(0); i < elements.size();) {
-                    resolved.set(i);
+            final BitSet visited = new BitSet();
+            int initiallyResolved; // This is counter helping to determine if the remaining code is not accessible ("dead")
+            while ((initiallyResolved = visited.cardinality()) < elements.size()) {
+                for (int i = visited.nextClearBit(0); i < elements.size();) {
+                    // We start from the first unvisited block and mark it as visited
+                    visited.set(i);
                     switch (elements.get(i)) {
                         case ExceptionCatch ec -> {
                             // Exception blocks are inserted by label target (below)
@@ -117,6 +118,7 @@ public final class BytecodeLift {
                             // Start of a new block
                             CodeBlock next = blockMap.get(lt.label());
                             if (currentBlock != null) {
+                                // Flow has not been interrupted and we can build next block based on the actual stack and locals
                                 if (next == null) {
                                     // New block parameter types are calculated from the actual stack
                                     next = new CodeBlock(entryBlock.block(stack.stream().map(Value::type).toList()), locals);
@@ -127,12 +129,13 @@ public final class BytecodeLift {
                                 currentBlock.op(CoreOps.branch(next.blockBuilder.successor(List.copyOf(stack))));
                             }
                             if (next != null) {
+                                // We know the next block so we can continue
                                 currentBlock = next.blockBuilder;
                                 // Stack is reconstructed from block parameters
                                 stack.clear();
                                 currentBlock.parameters().forEach(stack::add);
                                 locals = next.locals;
-                                // Insert relevant tryStart and tryEnd blocks
+                                // Insert relevant tryStart and construct handler blocks, all in reversed order
                                 for (ExceptionCatch ec : codeModel.exceptionHandlers().reversed()) {
                                     if (lt.label() == ec.tryStart()) {
                                         // Get or create handler with the exception as parameter
@@ -150,6 +153,7 @@ public final class BytecodeLift {
                                         currentBlock.parameters().forEach(stack::add);
                                     }
                                 }
+                                // Insert relevant tryEnd blocks in normal order
                                 for (ExceptionCatch ec : codeModel.exceptionHandlers()) {
                                     if (lt.label() == ec.tryEnd()) {
                                         // Create exit block with parameters constructed from the stack
@@ -162,10 +166,13 @@ public final class BytecodeLift {
                                     }
                                 }
                             } else {
-                                resolved.clear(i);
+                                // Here we do not know the next block parameters, stack and locals
+                                // so we make it unvisited
+                                visited.clear(i);
+                                // interrupt the flow
                                 currentBlock = null;
                                 stack.clear();
-                                // Skip to next block
+                                // and skip to a next block
                                 while (i < elements.size() - 1 && !(elements.get(i + 1) instanceof LabelTarget)) i++;
                             }
                         }
@@ -410,14 +417,17 @@ public final class BytecodeLift {
                         default ->
                             throw new UnsupportedOperationException("Unsupported code element: " + elements.get(i));
                     }
-                    if (resolved.get(++i)) {
+                    if (visited.get(++i)) {
+                        // Interrupt the flow if the following instruction has been already visited
                         currentBlock = null;
                         stack.clear();
-                        i = resolved.nextClearBit(i);
+                        // and continue with the next unvisited instruction
+                        i = visited.nextClearBit(i);
                     }
                 }
-                if (resolved.cardinality() == initiallyResolved) {
-                    // No progress, all remaining blocks are dead code
+                if (visited.cardinality() == initiallyResolved) {
+                    // If there is no progress, all remaining blocks are dead code
+                    // we may alternatively just exit and ignore the dead code
                     throw new IllegalArgumentException("Dead code detected.");
                 }
             }
