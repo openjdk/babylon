@@ -78,12 +78,13 @@ import java.lang.reflect.code.Value;
 import java.lang.reflect.code.descriptor.FieldDesc;
 import java.lang.reflect.code.descriptor.MethodDesc;
 import java.lang.reflect.code.descriptor.MethodTypeDesc;
-import java.lang.reflect.code.descriptor.TypeDesc;
+import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.op.OpDeclaration;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.code.TypeElement;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
@@ -141,10 +142,10 @@ class BytecodeInstructionOps {
         public abstract void apply(CodeBuilder b, MethodVisitorContext c);
 
         @Override
-        public TypeDesc resultType() {
+        public TypeElement resultType() {
             // I chose VOID, because bytecode instructions manipulate the stack
             // plus the type of what an operation will push/pop mayn not be known, e.g. pop instruction
-            return TypeDesc.VOID;
+            return JavaType.VOID;
         }
     }
 
@@ -205,17 +206,17 @@ class BytecodeInstructionOps {
             return type;
         }
 
-        public TypeDesc typeDesc() {
+        public TypeElement typeDesc() {
             return switch (type) {
 //                case BooleanType -> TypeDesc.BOOLEAN;
 //                case ByteType -> TypeDesc.BYTE;
 //                case ShortType -> TypeDesc.SHORT;
 //                case CharType -> TypeDesc.CHAR;
-                case IntType -> TypeDesc.INT;
-                case FloatType -> TypeDesc.FLOAT;
-                case LongType -> TypeDesc.LONG;
-                case DoubleType -> TypeDesc.DOUBLE;
-                case ReferenceType -> TypeDesc.J_L_OBJECT;
+                case IntType -> JavaType.INT;
+                case FloatType -> JavaType.FLOAT;
+                case LongType -> JavaType.LONG;
+                case DoubleType -> JavaType.DOUBLE;
+                case ReferenceType -> JavaType.J_L_OBJECT;
                 default -> throw new IllegalArgumentException("Bad type kind: " + type);
             };
         }
@@ -413,26 +414,26 @@ class BytecodeInstructionOps {
 
         public static final String ATTRIBUTE_VALUE = "value";
 
-        final TypeDesc type;
+        final TypeElement type;
         final Object value;
 
         LdcInstructionOp(InstructionDef<ConstantInstruction.LoadConstantInstruction> def) {
             this(toTypeDesc(def.instruction().constantEntry()), toValue(def.instruction().constantEntry()));
         }
 
-        private static TypeDesc toTypeDesc(LoadableConstantEntry entry) {
+        private static TypeElement toTypeDesc(LoadableConstantEntry entry) {
             if (entry instanceof IntegerEntry) {
-                return TypeDesc.INT;
+                return JavaType.INT;
             } else if (entry instanceof LongEntry) {
-                return TypeDesc.LONG;
+                return JavaType.LONG;
             } else if (entry instanceof FloatEntry) {
-                return TypeDesc.FLOAT;
+                return JavaType.FLOAT;
             } else if (entry instanceof DoubleEntry) {
-                return TypeDesc.DOUBLE;
+                return JavaType.DOUBLE;
             } else if (entry instanceof StringEntry) {
-                return TypeDesc.J_L_STRING;
+                return JavaType.J_L_STRING;
             } else if (entry instanceof ClassEntry) {
-                return TypeDesc.J_L_CLASS;
+                return JavaType.J_L_CLASS;
             } else {
                 // @@@ MethodType, MethodHandle, ConstantDynamic
                 throw new IllegalArgumentException("Unsupported constant entry: " + entry);
@@ -451,7 +452,7 @@ class BytecodeInstructionOps {
             } else if (entry instanceof StringEntry e) {
                 return e.stringValue();
             } else if (entry instanceof ClassEntry e) {
-                return TypeDesc.ofNominalDescriptor(e.asSymbol());
+                return JavaType.ofNominalDescriptor(e.asSymbol());
             } else {
                 // @@@ MethodType, MethodHandle, ConstantDynamic
                 throw new IllegalArgumentException("Unsupported constant entry: " + entry);
@@ -470,7 +471,7 @@ class BytecodeInstructionOps {
             return new LdcInstructionOp(this, cc);
         }
 
-        LdcInstructionOp(TypeDesc type, Object value) {
+        LdcInstructionOp(TypeElement type, Object value) {
             super(NAME);
 
             // @@@ constant dynamic
@@ -488,7 +489,7 @@ class BytecodeInstructionOps {
             return m;
         }
 
-        public TypeDesc type() {
+        public TypeElement type() {
             return type;
         }
 
@@ -504,7 +505,7 @@ class BytecodeInstructionOps {
         static LoadableConstantEntry fromValue(ConstantPoolBuilder b, Object value) {
             if (value instanceof ConstantDesc cd) {
                 return b.constantValueEntry(cd);
-            } else if (value instanceof TypeDesc td) {
+            } else if (value instanceof JavaType td) {
                 return b.classEntry(td.toNominalDescriptor());
             } else {
                 throw new IllegalArgumentException("Unsupported constant value: " + value);
@@ -512,7 +513,7 @@ class BytecodeInstructionOps {
         }
     }
 
-    public static LdcInstructionOp ldc(TypeDesc type, Object value) {
+    public static LdcInstructionOp ldc(TypeElement type, Object value) {
         return new LdcInstructionOp(type, value);
     }
 
@@ -1281,7 +1282,7 @@ class BytecodeInstructionOps {
     public static abstract class ClassTypeInstructionOp extends InstructionOp {
         public static final String ATTRIBUTE_DESC = "desc";
 
-        final TypeDesc desc;
+        final TypeElement desc;
 
         ClassTypeInstructionOp(ClassTypeInstructionOp that, CopyContext cc) {
             super(that, cc);
@@ -1289,7 +1290,7 @@ class BytecodeInstructionOps {
             this.desc = that.desc;
         }
 
-        ClassTypeInstructionOp(String name, TypeDesc desc) {
+        ClassTypeInstructionOp(String name, TypeElement desc) {
             super(name);
 
             this.desc = desc;
@@ -1302,7 +1303,7 @@ class BytecodeInstructionOps {
             return m;
         }
 
-        public TypeDesc desc() {
+        public TypeElement desc() {
             return desc;
         }
     }
@@ -1313,7 +1314,7 @@ class BytecodeInstructionOps {
         public static final String NAME = "new";
 
         NewInstructionOp(InstructionDef<NewObjectInstruction> def) {
-            this(TypeDesc.ofNominalDescriptor(def.instruction.className().asSymbol()));
+            this(JavaType.ofNominalDescriptor(def.instruction.className().asSymbol()));
         }
 
         NewInstructionOp(NewInstructionOp that, CopyContext cc) {
@@ -1325,17 +1326,17 @@ class BytecodeInstructionOps {
             return new NewInstructionOp(this, cc);
         }
 
-        NewInstructionOp(TypeDesc desc) {
+        NewInstructionOp(TypeElement desc) {
             super(NAME, desc);
         }
 
         @Override
         public void apply(CodeBuilder mv, MethodVisitorContext c) {
-            mv.new_(desc.toNominalDescriptor());
+            mv.new_(((JavaType) desc).toNominalDescriptor());
         }
     }
 
-    public static NewInstructionOp _new(TypeDesc desc) {
+    public static NewInstructionOp _new(TypeElement desc) {
         return new NewInstructionOp(desc);
     }
 
@@ -1348,21 +1349,21 @@ class BytecodeInstructionOps {
             this(getType(def.instruction));
         }
 
-        static TypeDesc getType(Instruction instruction) {
+        static TypeElement getType(Instruction instruction) {
             if (instruction instanceof NewPrimitiveArrayInstruction a) {
                 return switch (a.typeKind()) {
-                    case BooleanType -> TypeDesc.BOOLEAN;
-                    case ByteType -> TypeDesc.BYTE;
-                    case ShortType -> TypeDesc.SHORT;
-                    case CharType -> TypeDesc.CHAR;
-                    case IntType -> TypeDesc.INT;
-                    case FloatType -> TypeDesc.FLOAT;
-                    case LongType -> TypeDesc.LONG;
-                    case DoubleType -> TypeDesc.DOUBLE;
+                    case BooleanType -> JavaType.BOOLEAN;
+                    case ByteType -> JavaType.BYTE;
+                    case ShortType -> JavaType.SHORT;
+                    case CharType -> JavaType.CHAR;
+                    case IntType -> JavaType.INT;
+                    case FloatType -> JavaType.FLOAT;
+                    case LongType -> JavaType.LONG;
+                    case DoubleType -> JavaType.DOUBLE;
                     default -> throw new IllegalArgumentException("Bad array component type: " + a.typeKind());
                 };
             } else if (instruction instanceof NewReferenceArrayInstruction ra) {
-                return TypeDesc.ofNominalDescriptor(ra.componentType().asSymbol());
+                return JavaType.ofNominalDescriptor(ra.componentType().asSymbol());
             } else {
                 throw new InternalError();
             }
@@ -1377,13 +1378,13 @@ class BytecodeInstructionOps {
             return new NewArrayInstructionOp(this, cc);
         }
 
-        NewArrayInstructionOp(TypeDesc desc) {
+        NewArrayInstructionOp(TypeElement desc) {
             super(NAME, desc);
         }
 
         @Override
         public void apply(CodeBuilder mv, MethodVisitorContext c) {
-            ClassDesc cd = desc().toNominalDescriptor();
+            ClassDesc cd = ((JavaType )desc()).toNominalDescriptor();
             if (cd.isPrimitive()) {
                 mv.newPrimitiveArrayInstruction(TypeKind.fromDescriptor(cd.descriptorString()));
             } else {
@@ -1392,7 +1393,7 @@ class BytecodeInstructionOps {
         }
     }
 
-    public static NewArrayInstructionOp newarray(TypeDesc desc) {
+    public static NewArrayInstructionOp newarray(TypeElement desc) {
         return new NewArrayInstructionOp(desc);
     }
 
@@ -1406,7 +1407,7 @@ class BytecodeInstructionOps {
         final int dims;
 
         MultiNewArrayInstructionOp(InstructionDef<NewMultiArrayInstruction> def) {
-            this(TypeDesc.ofNominalDescriptor(def.instruction().arrayType().asSymbol()), def.instruction().dimensions());
+            this(JavaType.ofNominalDescriptor(def.instruction().arrayType().asSymbol()), def.instruction().dimensions());
         }
 
         MultiNewArrayInstructionOp(MultiNewArrayInstructionOp that, CopyContext cc) {
@@ -1420,7 +1421,7 @@ class BytecodeInstructionOps {
             return new MultiNewArrayInstructionOp(this, cc);
         }
 
-        MultiNewArrayInstructionOp(TypeDesc desc, int dims) {
+        MultiNewArrayInstructionOp(TypeElement desc, int dims) {
             super(NAME, desc);
 
             this.dims = dims;
@@ -1439,11 +1440,11 @@ class BytecodeInstructionOps {
 
         @Override
         public void apply(CodeBuilder mv, MethodVisitorContext c) {
-            mv.multianewarray(desc().toNominalDescriptor(), dims);
+            mv.multianewarray(((JavaType )desc()).toNominalDescriptor(), dims);
         }
     }
 
-    public static MultiNewArrayInstructionOp multinewarray(TypeDesc desc, int dims) {
+    public static MultiNewArrayInstructionOp multinewarray(TypeElement desc, int dims) {
         return new MultiNewArrayInstructionOp(desc, dims);
     }
 
@@ -1453,7 +1454,7 @@ class BytecodeInstructionOps {
         public static final String NAME = "instanceof";
 
         InstanceOfInstructionOp(InstructionDef<TypeCheckInstruction> def) {
-            this(TypeDesc.ofNominalDescriptor(def.instruction().type().asSymbol()));
+            this(JavaType.ofNominalDescriptor(def.instruction().type().asSymbol()));
         }
 
         InstanceOfInstructionOp(InstanceOfInstructionOp that, CopyContext cc) {
@@ -1465,17 +1466,17 @@ class BytecodeInstructionOps {
             return new InstanceOfInstructionOp(this, cc);
         }
 
-        InstanceOfInstructionOp(TypeDesc desc) {
+        InstanceOfInstructionOp(TypeElement desc) {
             super(NAME, desc);
         }
 
         @Override
         public void apply(CodeBuilder mv, MethodVisitorContext c) {
-            mv.instanceof_(desc().toNominalDescriptor());
+            mv.instanceof_(((JavaType) desc()).toNominalDescriptor());
         }
     }
 
-    public static InstanceOfInstructionOp instanceOf(TypeDesc desc) {
+    public static InstanceOfInstructionOp instanceOf(TypeElement desc) {
         return new InstanceOfInstructionOp(desc);
     }
 
@@ -1485,7 +1486,7 @@ class BytecodeInstructionOps {
         public static final String NAME = "checkcast";
 
         CheckCastInstructionOp(InstructionDef<TypeCheckInstruction> def) {
-            this(TypeDesc.ofNominalDescriptor(def.instruction().type().asSymbol()));
+            this(JavaType.ofNominalDescriptor(def.instruction().type().asSymbol()));
         }
 
         CheckCastInstructionOp(CheckCastInstructionOp that, CopyContext cc) {
@@ -1497,17 +1498,17 @@ class BytecodeInstructionOps {
             return new CheckCastInstructionOp(this, cc);
         }
 
-        CheckCastInstructionOp(TypeDesc desc) {
+        CheckCastInstructionOp(TypeElement desc) {
             super(NAME, desc);
         }
 
         @Override
         public void apply(CodeBuilder mv, MethodVisitorContext c) {
-            mv.checkcast(desc().toNominalDescriptor());
+            mv.checkcast(((JavaType) desc()).toNominalDescriptor());
         }
     }
 
-    public static CheckCastInstructionOp checkCast(TypeDesc desc) {
+    public static CheckCastInstructionOp checkCast(TypeElement desc) {
         return new CheckCastInstructionOp(desc);
     }
 
@@ -1554,9 +1555,9 @@ class BytecodeInstructionOps {
 
         static FieldDesc getFieldDesc(FieldRefEntry node) {
             return FieldDesc.field(
-                    TypeDesc.ofNominalDescriptor(node.owner().asSymbol()),
+                    JavaType.ofNominalDescriptor(node.owner().asSymbol()),
                     node.name().stringValue(),
-                    TypeDesc.ofNominalDescriptorString(node.type().stringValue()));
+                    JavaType.ofNominalDescriptorString(node.type().stringValue()));
         }
     }
 
@@ -1586,7 +1587,9 @@ class BytecodeInstructionOps {
         public void apply(CodeBuilder mv, MethodVisitorContext c) {
             FieldDesc desc = desc();
             mv.fieldInstruction(getOpcode(kind),
-                    desc.refType().toNominalDescriptor(), desc.name(), desc.type().toNominalDescriptor());
+                    ((JavaType) desc.refType()).toNominalDescriptor(),
+                    desc.name(),
+                    ((JavaType) desc.type()).toNominalDescriptor());
         }
 
         private static Opcode getOpcode(FieldKind kind) {
@@ -1635,7 +1638,9 @@ class BytecodeInstructionOps {
         public void apply(CodeBuilder mv, MethodVisitorContext c) {
             FieldDesc desc = desc();
             mv.fieldInstruction(getOpcode(kind),
-                    desc.refType().toNominalDescriptor(), desc.name(), desc.type().toNominalDescriptor());
+                    ((JavaType) desc.refType()).toNominalDescriptor(),
+                    desc.name(),
+                    ((JavaType) desc.type()).toNominalDescriptor());
         }
 
         private static Opcode getOpcode(FieldKind kind) {
@@ -1726,7 +1731,7 @@ class BytecodeInstructionOps {
             return switch (kind) {
                 case STATIC -> desc.type();
                 case VIRTUAL, INTERFACE, SPECIAL -> {
-                    List<TypeDesc> params = new ArrayList<>();
+                    List<TypeElement> params = new ArrayList<>();
                     params.add(desc.refType());
                     params.addAll(desc.type().parameters());
                     yield MethodTypeDesc.methodType(desc.type().returnType(), params);
@@ -1741,7 +1746,7 @@ class BytecodeInstructionOps {
             // @@@ interfaces
             mv.invokeInstruction(
                     getOpcode(kind()),
-                    desc.refType().toNominalDescriptor(),
+                    ((JavaType) desc.refType()).toNominalDescriptor(),
                     desc.name(),
                     desc.type().toNominalDescriptor(),
                     iface()
@@ -1769,7 +1774,7 @@ class BytecodeInstructionOps {
 
         private static MethodDesc getMethodDesc(MemberRefEntry node) {
             return MethodDesc.method(
-                    TypeDesc.ofNominalDescriptor(node.owner().asSymbol()),
+                    JavaType.ofNominalDescriptor(node.owner().asSymbol()),
                     node.name().stringValue(),
                     MethodTypeDesc.ofNominalDescriptor(java.lang.constant.MethodTypeDesc.ofDescriptor(node.type().stringValue())));
         }
@@ -2284,14 +2289,14 @@ class BytecodeInstructionOps {
     // Internal control operations
 
     public static abstract class ControlInstructionOp extends Op {
-        private final TypeDesc resultType;
+        private final TypeElement resultType;
 
         ControlInstructionOp(ControlInstructionOp that, CopyContext cc) {
             super(that, cc);
             this.resultType = that.resultType;
         }
 
-        ControlInstructionOp(String name, TypeDesc resultType, List<Value> operands) {
+        ControlInstructionOp(String name, TypeElement resultType, List<Value> operands) {
             super(name, operands);
             this.resultType = resultType;
         }
@@ -2309,7 +2314,7 @@ class BytecodeInstructionOps {
         public abstract void apply(CodeBuilder mv, MethodVisitorContext c);
 
         @Override
-        public TypeDesc resultType() {
+        public TypeElement resultType() {
             return resultType;
         }
     }
@@ -2339,7 +2344,7 @@ class BytecodeInstructionOps {
         }
 
         Frame(StackMapFrameInfo node) {
-            super(NAME, TypeDesc.VOID, List.of());
+            super(NAME, JavaType.VOID, List.of());
 
             this.node = node;
         }
@@ -2361,38 +2366,38 @@ class BytecodeInstructionOps {
             return !node.stack().isEmpty();
         }
 
-        public List<TypeDesc> operandStackTypes() {
-            List<TypeDesc> stackTypes = new ArrayList<>();
+        public List<TypeElement> operandStackTypes() {
+            List<TypeElement> stackTypes = new ArrayList<>();
             for (StackMapFrameInfo.VerificationTypeInfo ost : node.stack()) {
                 if (ost instanceof StackMapFrameInfo.SimpleVerificationTypeInfo i) {
                     switch (i) {
                         case ITEM_TOP -> {
                             // @@@
-                            stackTypes.add(TypeDesc.J_L_OBJECT);
+                            stackTypes.add(JavaType.J_L_OBJECT);
                         }
                         case ITEM_INTEGER -> {
-                            stackTypes.add(TypeDesc.INT);
+                            stackTypes.add(JavaType.INT);
                         }
                         case ITEM_FLOAT -> {
-                            stackTypes.add(TypeDesc.FLOAT);
+                            stackTypes.add(JavaType.FLOAT);
                         }
                         case ITEM_DOUBLE -> {
-                            stackTypes.add(TypeDesc.DOUBLE);
+                            stackTypes.add(JavaType.DOUBLE);
                         }
                         case ITEM_LONG -> {
-                            stackTypes.add(TypeDesc.LONG);
+                            stackTypes.add(JavaType.LONG);
                         }
                         case ITEM_NULL -> {
                             // @@@
-                            stackTypes.add(TypeDesc.J_L_OBJECT);
+                            stackTypes.add(JavaType.J_L_OBJECT);
                         }
                         case ITEM_UNINITIALIZED_THIS -> {
                             // @@@
-                            stackTypes.add(TypeDesc.J_L_OBJECT);
+                            stackTypes.add(JavaType.J_L_OBJECT);
                         }
                     }
                 } else if (ost instanceof StackMapFrameInfo.ObjectVerificationTypeInfo i) {
-                    stackTypes.add(TypeDesc.ofNominalDescriptor(i.classSymbol()));
+                    stackTypes.add(JavaType.ofNominalDescriptor(i.classSymbol()));
                 } else if (ost instanceof StackMapFrameInfo.UninitializedVerificationTypeInfo i) {
                     // @@@
                     // label designates the NEW instruction that created the uninitialized value
@@ -2429,7 +2434,7 @@ class BytecodeInstructionOps {
         }
 
         ExceptionTableStart(List<Block.Reference> s) {
-            super(NAME, TypeDesc.VOID, List.of());
+            super(NAME, JavaType.VOID, List.of());
 
             if (s.size() < 2) {
                 throw new IllegalArgumentException("Operation must have two or more successors" + opName());
@@ -2478,7 +2483,7 @@ class BytecodeInstructionOps {
         }
 
         ExceptionTableEnd() {
-            super(NAME, TypeDesc.VOID, List.of());
+            super(NAME, JavaType.VOID, List.of());
         }
 
         @Override
@@ -2497,7 +2502,7 @@ class BytecodeInstructionOps {
                 Label handle = c.getLabel(catchBlock);
 
                 if (!catchBlock.parameters().isEmpty()) {
-                    ClassDesc type = catchBlock.parameters().get(0).type().toNominalDescriptor();
+                    ClassDesc type = ((JavaType) catchBlock.parameters().get(0).type()).toNominalDescriptor();
                     mv.exceptionCatch(start, end, handle, type);
                 } else {
                     mv.exceptionCatchAll(start, end, handle);

@@ -28,7 +28,7 @@ import java.lang.reflect.code.Block;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.descriptor.MethodTypeDesc;
-import java.lang.reflect.code.descriptor.TypeDesc;
+import java.lang.reflect.code.type.JavaType;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -56,7 +56,7 @@ public class TestDominate {
             Block.Builder elseBlock = entry.block();
             Block.Builder end = entry.block();
 
-            Op.Result p = entry.op(constant(TypeDesc.BOOLEAN, true));
+            Op.Result p = entry.op(constant(JavaType.BOOLEAN, true));
             entry.op(conditionalBranch(p, ifBlock.successor(), elseBlock.successor()));
 
             ifBlock.op(branch(end.successor()));
@@ -85,7 +85,7 @@ public class TestDominate {
             Block.Builder b4 = entry.block();
             Block.Builder b5 = entry.block();
 
-            Op.Result p = entry.op(constant(TypeDesc.BOOLEAN, true));
+            Op.Result p = entry.op(constant(JavaType.BOOLEAN, true));
             entry.op(conditionalBranch(p, b4.successor(), b2.successor()));
 
             b4.op(conditionalBranch(p, b5.successor(), b3.successor()));
@@ -120,7 +120,7 @@ public class TestDominate {
             Block.Builder update = entry.block();
             Block.Builder end = entry.block();
 
-            Op.Result p = entry.op(constant(TypeDesc.BOOLEAN, true));
+            Op.Result p = entry.op(constant(JavaType.BOOLEAN, true));
             entry.op(branch(cond.successor()));
 
             cond.op(conditionalBranch(p, body.successor(), end.successor()));
@@ -165,7 +165,7 @@ public class TestDominate {
             Block.Builder b2 = entry.block();
             Block.Builder b1 = entry.block();
 
-            Op.Result p = entry.op(constant(TypeDesc.BOOLEAN, true));
+            Op.Result p = entry.op(constant(JavaType.BOOLEAN, true));
             entry.op(branch(b6.successor()));
 
             b6.op(conditionalBranch(p, b5.successor(), b4.successor()));
@@ -213,7 +213,7 @@ public class TestDominate {
             Block.Builder b2 = entry.block();
             Block.Builder b1 = entry.block();
 
-            Op.Result p = entry.op(constant(TypeDesc.BOOLEAN, true));
+            Op.Result p = entry.op(constant(JavaType.BOOLEAN, true));
 
             entry.op(conditionalBranch(p, exit.successor(), b1.successor()));
 

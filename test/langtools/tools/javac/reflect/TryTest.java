@@ -164,7 +164,7 @@ public class TryTest {
     @IR("""
             func @"test4" (%0 : TryTest)void -> {
                 java.try
-                    ^resources()java.lang.reflect.code.CoreOps$Tuple<Var<TryTest$A>, TryTest$B, Var<TryTest$C>> -> {
+                    ^resources()Tuple<Var<TryTest$A>, TryTest$B, Var<TryTest$C>> -> {
                         %1 : TryTest$A = invoke %0 @"TryTest::a()TryTest$A";
                         %2 : Var<TryTest$A> = var %1 @"a";
                         %3 : TryTest$A = var.load %2;
@@ -173,7 +173,7 @@ public class TryTest {
                         %6 : TryTest$B = field.load %5 @"TryTest$A::b()TryTest$B";
                         %7 : TryTest$C = field.load %6 @"TryTest$B::c()TryTest$C";
                         %8 : Var<TryTest$C> = var %7 @"c";
-                        %9 : java.lang.reflect.code.CoreOps$Tuple<Var<TryTest$A>, TryTest$B, Var<TryTest$C>> = tuple %2 %4 %8;
+                        %9 : Tuple<Var<TryTest$A>, TryTest$B, Var<TryTest$C>> = tuple %2 %4 %8;
                         yield %9;
                     }
                     (%10 : Var<TryTest$A>, %11 : Var<TryTest$C>)void -> {

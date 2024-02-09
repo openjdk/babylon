@@ -97,6 +97,7 @@ module java.base {
     exports java.lang.reflect.code.interpreter;
     exports java.lang.reflect.code.op;
     exports java.lang.reflect.code.parser;
+    exports java.lang.reflect.code.type;
     exports java.lang.reflect.code.writer;
     exports java.lang.runtime;
     exports java.math;
@@ -382,6 +383,7 @@ module java.base {
         java.prefs;
     exports sun.util.resources to
         jdk.localedata;
+    exports java.lang.reflect.code.type.impl;
 
     // the service types defined by the APIs in this module
 

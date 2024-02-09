@@ -36,7 +36,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static java.lang.reflect.code.descriptor.TypeDesc.type;
+import static java.lang.reflect.code.type.JavaType.type;
 
 public class TestStream {
 

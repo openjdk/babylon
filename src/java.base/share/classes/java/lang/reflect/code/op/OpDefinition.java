@@ -26,7 +26,7 @@
 package java.lang.reflect.code.op;
 
 import java.lang.reflect.code.*;
-import java.lang.reflect.code.descriptor.TypeDesc;
+import java.lang.reflect.code.TypeElement;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,7 +48,7 @@ import java.util.function.Function;
 public record OpDefinition(String name,
                            List<Value> operands,
                            List<Block.Reference> successors,
-                           TypeDesc resultType,
+                           TypeElement resultType,
                            Map<String, Object> attributes,
                            List<Body.Builder> bodyDefinitions) {
 

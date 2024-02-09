@@ -26,24 +26,25 @@
 package java.lang.reflect.code.descriptor.impl;
 
 import java.lang.reflect.code.descriptor.FieldDesc;
-import java.lang.reflect.code.descriptor.TypeDesc;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.lang.reflect.Field;
+import java.lang.reflect.code.type.JavaType;
+import java.lang.reflect.code.TypeElement;
 
 public final class FieldDescImpl implements FieldDesc {
-    final TypeDesc refType;
+    final TypeElement refType;
     final String name;
-    final TypeDesc type;
+    final TypeElement type;
 
-    public FieldDescImpl(TypeDesc refType, String name, TypeDesc type) {
+    public FieldDescImpl(TypeElement refType, String name, TypeElement type) {
         this.refType = refType;
         this.name = name;
         this.type = type;
     }
 
     @Override
-    public TypeDesc refType() {
+    public TypeElement refType() {
         return refType;
     }
 
@@ -53,14 +54,14 @@ public final class FieldDescImpl implements FieldDesc {
     }
 
     @Override
-    public TypeDesc type() {
+    public TypeElement type() {
         return type;
     }
 
     @Override
     public Field resolveToMember(MethodHandles.Lookup l) throws ReflectiveOperationException {
-        Class<?> refC = refType.resolve(l);
-        Class<?> typeC = type.resolve(l);
+        Class<?> refC = resolve(l, refType);
+        Class<?> typeC = resolve(l, type);
 
         Field f = refC.getDeclaredField(name);
         if (!f.getType().equals(typeC)) {
@@ -72,8 +73,8 @@ public final class FieldDescImpl implements FieldDesc {
 
     @Override
     public VarHandle resolve(MethodHandles.Lookup l) throws ReflectiveOperationException {
-        Class<?> refC = refType.resolve(l);
-        Class<?> typeC = type.resolve(l);
+        Class<?> refC = resolve(l, refType);
+        Class<?> typeC = resolve(l, type);
 
         VarHandle vh = null;
         ReflectiveOperationException c = null;
@@ -99,6 +100,15 @@ public final class FieldDescImpl implements FieldDesc {
 
         assert vh != null;
         return vh;
+    }
+
+    static Class<?> resolve(MethodHandles.Lookup l, TypeElement t) throws ReflectiveOperationException {
+        if (t instanceof JavaType jt) {
+            return jt.resolve(l);
+        } else {
+            // @@@
+            throw new ReflectiveOperationException();
+        }
     }
 
     @Override

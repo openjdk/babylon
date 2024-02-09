@@ -29,29 +29,18 @@ import java.lang.reflect.code.*;
 import java.lang.reflect.code.descriptor.MethodDesc;
 import java.lang.reflect.code.descriptor.MethodTypeDesc;
 import java.lang.reflect.code.descriptor.RecordTypeDesc;
-import java.lang.reflect.code.descriptor.TypeDesc;
-import java.lang.reflect.code.descriptor.impl.TypeDescImpl;
+import java.lang.reflect.code.type.JavaType;
+import java.lang.reflect.code.type.TupleType;
+import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.type.VarType;
+import java.lang.reflect.code.type.impl.JavaTypeImpl;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-import static java.lang.reflect.code.op.CoreOps.Tuple;
-import static java.lang.reflect.code.op.CoreOps.YieldOp;
-import static java.lang.reflect.code.op.CoreOps._throw;
-import static java.lang.reflect.code.op.CoreOps._yield;
-import static java.lang.reflect.code.op.CoreOps.add;
-import static java.lang.reflect.code.op.CoreOps.arrayLength;
-import static java.lang.reflect.code.op.CoreOps.arrayLoadOp;
-import static java.lang.reflect.code.op.CoreOps.branch;
-import static java.lang.reflect.code.op.CoreOps.invoke;
-import static java.lang.reflect.code.op.CoreOps.conditionalBranch;
-import static java.lang.reflect.code.op.CoreOps.constant;
-import static java.lang.reflect.code.op.CoreOps.exceptionRegionEnter;
-import static java.lang.reflect.code.op.CoreOps.exceptionRegionExit;
-import static java.lang.reflect.code.op.CoreOps.lt;
-import static java.lang.reflect.code.descriptor.TypeDesc.*;
+import static java.lang.reflect.code.op.CoreOps.*;
 
 /**
  * The set of extended operations. A code model, produced by the Java compiler from Java program source, may consist of
@@ -162,8 +151,8 @@ public class ExtendedOps {
         }
 
         @Override
-        public TypeDesc resultType() {
-            return TypeDesc.VOID;
+        public TypeElement resultType() {
+            return JavaType.VOID;
         }
     }
 
@@ -288,8 +277,8 @@ public class ExtendedOps {
         }
 
         @Override
-        public TypeDesc resultType() {
-            return VOID;
+        public TypeElement resultType() {
+            return JavaType.VOID;
         }
     }
 
@@ -330,7 +319,7 @@ public class ExtendedOps {
             super(NAME, List.of());
 
             this.body = bodyC.build(this);
-            if (!body.descriptor().returnType().equals(VOID)) {
+            if (!body.descriptor().returnType().equals(JavaType.VOID)) {
                 throw new IllegalArgumentException("Body should return void: " + body.descriptor());
             }
             if (!body.descriptor().parameters().isEmpty()) {
@@ -370,8 +359,8 @@ public class ExtendedOps {
         }
 
         @Override
-        public TypeDesc resultType() {
-            return VOID;
+        public TypeElement resultType() {
+            return JavaType.VOID;
         }
     }
 
@@ -410,7 +399,7 @@ public class ExtendedOps {
             super(NAME, List.of());
 
             this.body = bodyC.build(this);
-            if (!body.descriptor().returnType().equals(VOID)) {
+            if (!body.descriptor().returnType().equals(JavaType.VOID)) {
                 throw new IllegalArgumentException("Body should return void: " + body.descriptor());
             }
             if (!body.descriptor().parameters().isEmpty()) {
@@ -461,8 +450,8 @@ public class ExtendedOps {
         }
 
         @Override
-        public TypeDesc resultType() {
-            return VOID;
+        public TypeElement resultType() {
+            return JavaType.VOID;
         }
     }
 
@@ -472,7 +461,7 @@ public class ExtendedOps {
     @OpDeclaration(JavaIfOp.NAME)
     public static final class JavaIfOp extends OpWithDefinition implements Op.Nested, Op.Lowerable {
 
-        static final MethodTypeDesc PREDICATE_TYPE = MethodTypeDesc.methodType(BOOLEAN);
+        static final MethodTypeDesc PREDICATE_TYPE = MethodTypeDesc.methodType(JavaType.BOOLEAN);
 
         static final MethodTypeDesc ACTION_TYPE = MethodTypeDesc.VOID;
 
@@ -608,7 +597,7 @@ public class ExtendedOps {
                 } else {
                     action = bodies.get(i + 1);
                     Body fromPred = bodies.get(i);
-                    if (!fromPred.descriptor().equals(MethodTypeDesc.methodType(BOOLEAN))) {
+                    if (!fromPred.descriptor().equals(MethodTypeDesc.methodType(JavaType.BOOLEAN))) {
                         throw new IllegalArgumentException("Illegal predicate body descriptor: " + fromPred.descriptor());
                     }
                 }
@@ -686,8 +675,8 @@ public class ExtendedOps {
         }
 
         @Override
-        public TypeDesc resultType() {
-            return VOID;
+        public TypeElement resultType() {
+            return JavaType.VOID;
         }
     }
 
@@ -698,7 +687,7 @@ public class ExtendedOps {
     public static final class JavaSwitchExpressionOp extends OpWithDefinition implements Op.Nested, Op.Lowerable {
         public static final String NAME = "java.switch.expression";
 
-        final TypeDesc resultType;
+        final TypeElement resultType;
         final List<Body> bodies;
 
         public JavaSwitchExpressionOp(OpDefinition def) {
@@ -728,7 +717,7 @@ public class ExtendedOps {
             return new JavaSwitchExpressionOp(this, cc, ot);
         }
 
-        JavaSwitchExpressionOp(TypeDesc resultType, Value target, List<Body.Builder> bodyCs) {
+        JavaSwitchExpressionOp(TypeElement resultType, Value target, List<Body.Builder> bodyCs) {
             super(NAME, List.of(target));
 
             // Each case is modelled as a contiguous pair of bodies
@@ -752,7 +741,7 @@ public class ExtendedOps {
         }
 
         @Override
-        public TypeDesc resultType() {
+        public TypeElement resultType() {
             return resultType;
         }
     }
@@ -783,8 +772,8 @@ public class ExtendedOps {
         }
 
         @Override
-        public TypeDesc resultType() {
-            return VOID;
+        public TypeElement resultType() {
+            return JavaType.VOID;
         }
     }
 
@@ -796,17 +785,17 @@ public class ExtendedOps {
 
         public static final class InitBuilder {
             final Body.Builder ancestorBody;
-            final List<TypeDesc> initTypes;
+            final List<? extends TypeElement> initTypes;
 
             InitBuilder(Body.Builder ancestorBody,
-                        List<TypeDesc> initTypes) {
+                        List<? extends TypeElement> initTypes) {
                 this.ancestorBody = ancestorBody;
-                this.initTypes = initTypes.stream().map(CoreOps.Var::type).toList();
+                this.initTypes = initTypes.stream().map(VarType::varType).toList();
             }
 
             public JavaForOp.CondBuilder init(Consumer<Block.Builder> c) {
                 Body.Builder init = Body.Builder.of(ancestorBody,
-                        MethodTypeDesc.methodType(Tuple.type(initTypes)));
+                        MethodTypeDesc.methodType(TupleType.tupleType(initTypes)));
                 c.accept(init.entryBlock());
 
                 return new CondBuilder(ancestorBody, initTypes, init);
@@ -815,11 +804,11 @@ public class ExtendedOps {
 
         public static final class CondBuilder {
             final Body.Builder ancestorBody;
-            final List<TypeDesc> initTypes;
+            final List<? extends TypeElement> initTypes;
             final Body.Builder init;
 
             public CondBuilder(Body.Builder ancestorBody,
-                               List<TypeDesc> initTypes,
+                               List<? extends TypeElement> initTypes,
                                Body.Builder init) {
                 this.ancestorBody = ancestorBody;
                 this.initTypes = initTypes;
@@ -828,7 +817,7 @@ public class ExtendedOps {
 
             public JavaForOp.UpdateBuilder cond(Consumer<Block.Builder> c) {
                 Body.Builder cond = Body.Builder.of(ancestorBody,
-                        MethodTypeDesc.methodType(BOOLEAN, initTypes));
+                        MethodTypeDesc.methodType(JavaType.BOOLEAN, initTypes));
                 c.accept(cond.entryBlock());
 
                 return new UpdateBuilder(ancestorBody, initTypes, init, cond);
@@ -837,12 +826,12 @@ public class ExtendedOps {
 
         public static final class UpdateBuilder {
             final Body.Builder ancestorBody;
-            final List<TypeDesc> initTypes;
+            final List<? extends TypeElement> initTypes;
             final Body.Builder init;
             final Body.Builder cond;
 
             public UpdateBuilder(Body.Builder ancestorBody,
-                                 List<TypeDesc> initTypes,
+                                 List<? extends TypeElement> initTypes,
                                  Body.Builder init, Body.Builder cond) {
                 this.ancestorBody = ancestorBody;
                 this.initTypes = initTypes;
@@ -852,7 +841,7 @@ public class ExtendedOps {
 
             public JavaForOp.BodyBuilder cond(Consumer<Block.Builder> c) {
                 Body.Builder update = Body.Builder.of(ancestorBody,
-                        MethodTypeDesc.methodType(VOID, initTypes));
+                        MethodTypeDesc.methodType(JavaType.VOID, initTypes));
                 c.accept(update.entryBlock());
 
                 return new BodyBuilder(ancestorBody, initTypes, init, cond, update);
@@ -862,13 +851,13 @@ public class ExtendedOps {
 
         public static final class BodyBuilder {
             final Body.Builder ancestorBody;
-            final List<TypeDesc> initTypes;
+            final List<? extends TypeElement> initTypes;
             final Body.Builder init;
             final Body.Builder cond;
             final Body.Builder update;
 
             public BodyBuilder(Body.Builder ancestorBody,
-                               List<TypeDesc> initTypes,
+                               List<? extends TypeElement> initTypes,
                                Body.Builder init, Body.Builder cond, Body.Builder update) {
                 this.ancestorBody = ancestorBody;
                 this.initTypes = initTypes;
@@ -879,7 +868,7 @@ public class ExtendedOps {
 
             public JavaForOp body(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody,
-                        MethodTypeDesc.methodType(VOID, initTypes));
+                        MethodTypeDesc.methodType(JavaType.VOID, initTypes));
                 c.accept(body.entryBlock());
 
                 return new JavaForOp(init, cond, update, body);
@@ -931,12 +920,12 @@ public class ExtendedOps {
             this.cond = condC.build(this);
 
             this.update = updateC.build(this);
-            if (!update.descriptor().returnType().equals(VOID)) {
+            if (!update.descriptor().returnType().equals(JavaType.VOID)) {
                 throw new IllegalArgumentException("Update should return void: " + update.descriptor());
             }
 
             this.body = bodyC.build(this);
-            if (!body.descriptor().returnType().equals(VOID)) {
+            if (!body.descriptor().returnType().equals(JavaType.VOID)) {
                 throw new IllegalArgumentException("Body should return void: " + body.descriptor());
             }
         }
@@ -1042,8 +1031,8 @@ public class ExtendedOps {
         }
 
         @Override
-        public TypeDesc resultType() {
-            return VOID;
+        public TypeElement resultType() {
+            return JavaType.VOID;
         }
     }
 
@@ -1055,11 +1044,11 @@ public class ExtendedOps {
 
         public static final class ExpressionBuilder {
             final Body.Builder ancestorBody;
-            final TypeDesc iterableType;
-            final TypeDesc elementType;
+            final TypeElement iterableType;
+            final TypeElement elementType;
 
             ExpressionBuilder(Body.Builder ancestorBody,
-                              TypeDesc iterableType, TypeDesc elementType) {
+                              TypeElement iterableType, TypeElement elementType) {
                 this.ancestorBody = ancestorBody;
                 this.iterableType = iterableType;
                 this.elementType = elementType;
@@ -1076,11 +1065,11 @@ public class ExtendedOps {
 
         public static final class DefinitionBuilder {
             final Body.Builder ancestorBody;
-            final TypeDesc elementType;
+            final TypeElement elementType;
             final Body.Builder expression;
 
             DefinitionBuilder(Body.Builder ancestorBody,
-                              TypeDesc elementType, Body.Builder expression) {
+                              TypeElement elementType, Body.Builder expression) {
                 this.ancestorBody = ancestorBody;
                 this.elementType = elementType;
                 this.expression = expression;
@@ -1090,7 +1079,7 @@ public class ExtendedOps {
                 return definition(elementType, c);
             }
 
-            public BodyBuilder definition(TypeDesc bodyElementType, Consumer<Block.Builder> c) {
+            public BodyBuilder definition(TypeElement bodyElementType, Consumer<Block.Builder> c) {
                 Body.Builder definition = Body.Builder.of(ancestorBody,
                         MethodTypeDesc.methodType(bodyElementType, elementType));
                 c.accept(definition.entryBlock());
@@ -1101,12 +1090,12 @@ public class ExtendedOps {
 
         public static final class BodyBuilder {
             final Body.Builder ancestorBody;
-            final TypeDesc elementType;
+            final TypeElement elementType;
             final Body.Builder expression;
             final Body.Builder definition;
 
             BodyBuilder(Body.Builder ancestorBody,
-                        TypeDesc elementType, Body.Builder expression, Body.Builder definition) {
+                        TypeElement elementType, Body.Builder expression, Body.Builder definition) {
                 this.ancestorBody = ancestorBody;
                 this.elementType = elementType;
                 this.expression = expression;
@@ -1115,7 +1104,7 @@ public class ExtendedOps {
 
             public JavaEnhancedForOp body(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody,
-                        MethodTypeDesc.methodType(VOID, elementType));
+                        MethodTypeDesc.methodType(JavaType.VOID, elementType));
                 c.accept(body.entryBlock());
 
                 return new JavaEnhancedForOp(expression, definition, body);
@@ -1157,7 +1146,7 @@ public class ExtendedOps {
             super(NAME, List.of());
 
             this.expression = expressionC.build(this);
-            if (expression.descriptor().returnType().equals(VOID)) {
+            if (expression.descriptor().returnType().equals(JavaType.VOID)) {
                 throw new IllegalArgumentException("Expression should return non-void value: " + expression.descriptor());
             }
             if (!expression.descriptor().parameters().isEmpty()) {
@@ -1165,7 +1154,7 @@ public class ExtendedOps {
             }
 
             this.init = initC.build(this);
-            if (init.descriptor().returnType().equals(VOID)) {
+            if (init.descriptor().returnType().equals(JavaType.VOID)) {
                 throw new IllegalArgumentException("Initialization should return non-void value: " + init.descriptor());
             }
             if (init.descriptor().parameters().size() != 1) {
@@ -1173,7 +1162,7 @@ public class ExtendedOps {
             }
 
             this.body = bodyC.build(this);
-            if (!body.descriptor().returnType().equals(VOID)) {
+            if (!body.descriptor().returnType().equals(JavaType.VOID)) {
                 throw new IllegalArgumentException("Body should return void: " + body.descriptor());
             }
             if (body.descriptor().parameters().size() != 1) {
@@ -1205,11 +1194,11 @@ public class ExtendedOps {
 
         @Override
         public Block.Builder lower(Block.Builder b, OpTransformer opT) {
-            TypeDesc elementType = init.entryBlock().parameters().get(0).type();
-            boolean isArray = expression.descriptor().returnType().isArray();
+            JavaType elementType = (JavaType) init.entryBlock().parameters().get(0).type();
+            boolean isArray = ((JavaType) expression.descriptor().returnType()).isArray();
 
             Block.Builder preHeader = b.block(expression.descriptor().returnType());
-            Block.Builder header = b.block(isArray ? List.of(TypeDesc.INT) : List.of());
+            Block.Builder header = b.block(isArray ? List.of(JavaType.INT) : List.of());
             Block.Builder init = b.block();
             Block.Builder body = b.block();
             Block.Builder exit = b.block();
@@ -1228,7 +1217,7 @@ public class ExtendedOps {
             if (isArray) {
                 Value array = preHeader.parameters().get(0);
                 Value arrayLength = preHeader.op(arrayLength(array));
-                Value i = preHeader.op(constant(TypeDesc.INT, 0));
+                Value i = preHeader.op(constant(JavaType.INT, 0));
                 preHeader.op(branch(header.successor(i)));
 
                 i = header.parameters().get(0);
@@ -1262,10 +1251,10 @@ public class ExtendedOps {
                     return block;
                 }));
 
-                i = update.op(add(i, update.op(constant(TypeDesc.INT, 1))));
+                i = update.op(add(i, update.op(constant(JavaType.INT, 1))));
                 update.op(branch(header.successor(i)));
             } else {
-                TypeDesc iterable = TypeDesc.type(TypeDesc.type(Iterator.class), elementType);
+                JavaType iterable = JavaType.type(JavaType.type(Iterator.class), elementType);
                 Value iterator = preHeader.op(CoreOps.invoke(iterable, ITERABLE_ITERATOR, preHeader.parameters().get(0)));
                 preHeader.op(branch(header.successor()));
 
@@ -1302,8 +1291,8 @@ public class ExtendedOps {
         }
 
         @Override
-        public TypeDesc resultType() {
-            return VOID;
+        public TypeElement resultType() {
+            return JavaType.VOID;
         }
     }
 
@@ -1321,7 +1310,7 @@ public class ExtendedOps {
             }
 
             public JavaWhileOp.BodyBuilder predicate(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, MethodTypeDesc.methodType(BOOLEAN));
+                Body.Builder body = Body.Builder.of(ancestorBody, MethodTypeDesc.methodType(JavaType.BOOLEAN));
                 c.accept(body.entryBlock());
 
                 return new JavaWhileOp.BodyBuilder(ancestorBody, body);
@@ -1371,14 +1360,14 @@ public class ExtendedOps {
                     .map(bc -> bc.build(this)).toList();
 
             // @@@ This will change with pattern bindings
-            if (!bodies.get(0).descriptor().equals(MethodTypeDesc.methodType(BOOLEAN))) {
+            if (!bodies.get(0).descriptor().equals(MethodTypeDesc.methodType(JavaType.BOOLEAN))) {
                 throw new IllegalArgumentException(
-                        "Predicate body descriptor should be " + MethodTypeDesc.methodType(BOOLEAN) +
+                        "Predicate body descriptor should be " + MethodTypeDesc.methodType(JavaType.BOOLEAN) +
                                 " but is " + bodies.get(0).descriptor());
             }
             if (!bodies.get(1).descriptor().equals(MethodTypeDesc.VOID)) {
                 throw new IllegalArgumentException(
-                        "Body descriptor should be " + MethodTypeDesc.methodType(VOID) +
+                        "Body descriptor should be " + MethodTypeDesc.methodType(JavaType.VOID) +
                                 " but is " + bodies.get(1).descriptor());
             }
         }
@@ -1446,8 +1435,8 @@ public class ExtendedOps {
         }
 
         @Override
-        public TypeDesc resultType() {
-            return VOID;
+        public TypeElement resultType() {
+            return JavaType.VOID;
         }
     }
 
@@ -1468,7 +1457,7 @@ public class ExtendedOps {
             }
 
             public JavaDoWhileOp predicate(Consumer<Block.Builder> c) {
-                Body.Builder predicate = Body.Builder.of(ancestorBody, MethodTypeDesc.methodType(BOOLEAN));
+                Body.Builder predicate = Body.Builder.of(ancestorBody, MethodTypeDesc.methodType(JavaType.BOOLEAN));
                 c.accept(predicate.entryBlock());
 
                 return new JavaDoWhileOp(List.of(body, predicate));
@@ -1517,12 +1506,12 @@ public class ExtendedOps {
 
             if (!bodies.get(0).descriptor().equals(MethodTypeDesc.VOID)) {
                 throw new IllegalArgumentException(
-                        "Body descriptor should be " + MethodTypeDesc.methodType(VOID) +
+                        "Body descriptor should be " + MethodTypeDesc.methodType(JavaType.VOID) +
                                 " but is " + bodies.get(1).descriptor());
             }
-            if (!bodies.get(1).descriptor().equals(MethodTypeDesc.methodType(BOOLEAN))) {
+            if (!bodies.get(1).descriptor().equals(MethodTypeDesc.methodType(JavaType.BOOLEAN))) {
                 throw new IllegalArgumentException(
-                        "Predicate body descriptor should be " + MethodTypeDesc.methodType(BOOLEAN) +
+                        "Predicate body descriptor should be " + MethodTypeDesc.methodType(JavaType.BOOLEAN) +
                                 " but is " + bodies.get(0).descriptor());
             }
         }
@@ -1590,8 +1579,8 @@ public class ExtendedOps {
         }
 
         @Override
-        public TypeDesc resultType() {
-            return VOID;
+        public TypeElement resultType() {
+            return JavaType.VOID;
         }
     }
 
@@ -1629,7 +1618,7 @@ public class ExtendedOps {
 
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
             for (Body b : bodies) {
-                if (!b.descriptor().equals(MethodTypeDesc.methodType(BOOLEAN))) {
+                if (!b.descriptor().equals(MethodTypeDesc.methodType(JavaType.BOOLEAN))) {
                     throw new IllegalArgumentException("Body conditional body descriptor: " + b.descriptor());
                 }
             }
@@ -1644,7 +1633,7 @@ public class ExtendedOps {
             List<Body> bodies = cop.bodies();
 
             Block.Builder exit = startBlock.block();
-            TypeDesc oprType = cop.result().type();
+            TypeElement oprType = cop.result().type();
             Block.Parameter arg = exit.parameter(oprType);
             startBlock.context().mapValue(cop.result(), arg);
 
@@ -1702,8 +1691,8 @@ public class ExtendedOps {
         }
 
         @Override
-        public TypeDesc resultType() {
-            return BOOLEAN;
+        public TypeElement resultType() {
+            return JavaType.BOOLEAN;
         }
     }
 
@@ -1725,7 +1714,7 @@ public class ExtendedOps {
             }
 
             public Builder and(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, MethodTypeDesc.methodType(BOOLEAN));
+                Body.Builder body = Body.Builder.of(ancestorBody, MethodTypeDesc.methodType(JavaType.BOOLEAN));
                 c.accept(body.entryBlock());
                 bodies.add(body);
 
@@ -1780,7 +1769,7 @@ public class ExtendedOps {
             }
 
             public Builder or(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, MethodTypeDesc.methodType(BOOLEAN));
+                Body.Builder body = Body.Builder.of(ancestorBody, MethodTypeDesc.methodType(JavaType.BOOLEAN));
                 c.accept(body.entryBlock());
                 bodies.add(body);
 
@@ -1825,7 +1814,7 @@ public class ExtendedOps {
 
         public static final String NAME = "java.cexpression";
 
-        final TypeDesc resultType;
+        final TypeElement resultType;
         // {cond, truepart, falsepart}
         final List<Body> bodies;
 
@@ -1856,7 +1845,7 @@ public class ExtendedOps {
             return new JavaConditionalExpressionOp(this, cc, ot);
         }
 
-        JavaConditionalExpressionOp(TypeDesc expressionType, List<Body.Builder> bodyCs) {
+        JavaConditionalExpressionOp(TypeElement expressionType, List<Body.Builder> bodyCs) {
             super(NAME, List.of());
 
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
@@ -1868,7 +1857,7 @@ public class ExtendedOps {
             }
 
             Body cond = bodies.get(0);
-            if (!cond.descriptor().equals(MethodTypeDesc.methodType(BOOLEAN))) {
+            if (!cond.descriptor().equals(MethodTypeDesc.methodType(JavaType.BOOLEAN))) {
                 throw new IllegalArgumentException("Illegal cond body descriptor: " + cond.descriptor());
             }
         }
@@ -1917,7 +1906,7 @@ public class ExtendedOps {
         }
 
         @Override
-        public TypeDesc resultType() {
+        public TypeElement resultType() {
             return resultType;
         }
     }
@@ -1930,17 +1919,18 @@ public class ExtendedOps {
 
         public static final class BodyBuilder {
             final Body.Builder ancestorBody;
-            final List<TypeDesc> resourceTypes;
+            final List<? extends TypeElement> resourceTypes;
             final Body.Builder resources;
 
-            BodyBuilder(Body.Builder ancestorBody, List<TypeDesc> resourceTypes, Body.Builder resources) {
+            BodyBuilder(Body.Builder ancestorBody, List<? extends TypeElement> resourceTypes, Body.Builder resources) {
                 this.ancestorBody = ancestorBody;
                 this.resourceTypes = resourceTypes;
                 this.resources = resources;
             }
 
             public CatchBuilder body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, MethodTypeDesc.methodType(VOID, resourceTypes));
+                Body.Builder body = Body.Builder.of(ancestorBody,
+                        MethodTypeDesc.methodType(JavaType.VOID, resourceTypes));
                 c.accept(body.entryBlock());
 
                 return new CatchBuilder(ancestorBody, resources, body);
@@ -1961,9 +1951,9 @@ public class ExtendedOps {
             }
 
             // @@@ multi-catch
-            public CatchBuilder _catch(TypeDesc exceptionType, Consumer<Block.Builder> c) {
+            public CatchBuilder _catch(TypeElement exceptionType, Consumer<Block.Builder> c) {
                 Body.Builder _catch = Body.Builder.of(ancestorBody,
-                        MethodTypeDesc.methodType(TypeDesc.VOID, exceptionType));
+                        MethodTypeDesc.methodType(JavaType.VOID, exceptionType));
                 c.accept(_catch.entryBlock());
                 catchers.add(_catch);
 
@@ -1998,7 +1988,7 @@ public class ExtendedOps {
 
             List<Body> bodies = def.bodyDefinitions().stream().map(b -> b.build(this)).toList();
             Body first = bodies.get(0);
-            if (first.descriptor().returnType().equals(VOID)) {
+            if (first.descriptor().returnType().equals(JavaType.VOID)) {
                 this.resources = null;
                 this.body = first;
             } else {
@@ -2049,7 +2039,7 @@ public class ExtendedOps {
 
             if (resourcesC != null) {
                 this.resources = resourcesC.build(this);
-                if (resources.descriptor().returnType().equals(VOID)) {
+                if (resources.descriptor().returnType().equals(JavaType.VOID)) {
                     throw new IllegalArgumentException("Resources should not return void: " + resources.descriptor());
                 }
                 if (!resources.descriptor().parameters().isEmpty()) {
@@ -2060,13 +2050,13 @@ public class ExtendedOps {
             }
 
             this.body = bodyC.build(this);
-            if (!body.descriptor().returnType().equals(VOID)) {
+            if (!body.descriptor().returnType().equals(JavaType.VOID)) {
                 throw new IllegalArgumentException("Try should return void: " + body.descriptor());
             }
 
             this.catchers = catchersC.stream().map(c -> c.build(this)).toList();
             for (Body _catch : catchers) {
-                if (!_catch.descriptor().returnType().equals(VOID)) {
+                if (!_catch.descriptor().returnType().equals(JavaType.VOID)) {
                     throw new IllegalArgumentException("Catch should return void: " + _catch.descriptor());
                 }
                 if (_catch.descriptor().parameters().size() != 1) {
@@ -2076,7 +2066,7 @@ public class ExtendedOps {
 
             if (finalizerC != null) {
                 this.finalizer = finalizerC.build(this);
-                if (!finalizer.descriptor().returnType().equals(VOID)) {
+                if (!finalizer.descriptor().returnType().equals(JavaType.VOID)) {
                     throw new IllegalArgumentException("Finally should return void: " + finalizer.descriptor());
                 }
                 if (!finalizer.descriptor().parameters().isEmpty()) {
@@ -2300,7 +2290,7 @@ public class ExtendedOps {
             // Inline the finally body as a catcher of Throwable and adjusting to throw
             if (finalizer != null) {
                 // Create the throwable argument
-                Block.Parameter t = catcherFinally.parameter(TypeDesc.type(Throwable.class));
+                Block.Parameter t = catcherFinally.parameter(JavaType.type(Throwable.class));
 
                 catcherFinally.transformBody(finalizer, List.of(), opT.andThen((block, op) -> {
                     if (op instanceof YieldOp) {
@@ -2359,8 +2349,8 @@ public class ExtendedOps {
         }
 
         @Override
-        public TypeDesc resultType() {
-            return VOID;
+        public TypeElement resultType() {
+            return JavaType.VOID;
         }
     }
 
@@ -2373,6 +2363,7 @@ public class ExtendedOps {
 
     /**
      * Synthetic pattern types
+     * // @@@ Replace with types extending from TypeElement
      */
     public sealed interface Pattern {
 
@@ -2396,21 +2387,23 @@ public class ExtendedOps {
             }
         }
 
-        TypeDesc PATTERN_BINDING_TYPE = new TypeDescImpl(Pattern_CLASS_NAME +
+        // @@@ Pattern types
+
+        JavaType PATTERN_BINDING_TYPE = new JavaTypeImpl(Pattern_CLASS_NAME +
                 "$" + Binding.class.getSimpleName());
-        TypeDesc PATTERN_RECORD_TYPE = new TypeDescImpl(Pattern_CLASS_NAME +
+        JavaType PATTERN_RECORD_TYPE = new JavaTypeImpl(Pattern_CLASS_NAME +
                 "$" + Pattern.Record.class.getSimpleName());
 
-        static TypeDesc bindingType(TypeDesc t) {
-            return TypeDesc.type(PATTERN_BINDING_TYPE, t);
+        static JavaType bindingType(TypeElement t) {
+            return JavaType.type(PATTERN_BINDING_TYPE, (JavaType) t);
         }
 
-        static TypeDesc recordType(TypeDesc t) {
-            return TypeDesc.type(PATTERN_RECORD_TYPE, t);
+        static JavaType recordType(TypeElement t) {
+            return JavaType.type(PATTERN_RECORD_TYPE, (JavaType) t);
         }
 
-        static TypeDesc targetType(TypeDesc t) {
-            return t.typeArguments().get(0);
+        static TypeElement targetType(TypeElement t) {
+            return ((JavaType) t).typeArguments().get(0);
         }
     }
 
@@ -2447,7 +2440,7 @@ public class ExtendedOps {
 
             public static final String ATTRIBUTE_BINDING_NAME = NAME + ".binding.name";
 
-            final TypeDesc resultType;
+            final TypeElement resultType;
             final String bindingName;
 
             public static BindingPatternOp create(OpDefinition def) {
@@ -2478,7 +2471,7 @@ public class ExtendedOps {
                 return new BindingPatternOp(this, cc);
             }
 
-            BindingPatternOp(TypeDesc targetType, String bindingName) {
+            BindingPatternOp(TypeElement targetType, String bindingName) {
                 super(NAME, List.of());
 
                 this.bindingName = bindingName;
@@ -2496,12 +2489,12 @@ public class ExtendedOps {
                 return bindingName;
             }
 
-            public TypeDesc targetType() {
+            public TypeElement targetType() {
                 return Pattern.targetType(resultType());
             }
 
             @Override
-            public TypeDesc resultType() {
+            public TypeElement resultType() {
                 return resultType;
             }
         }
@@ -2564,12 +2557,12 @@ public class ExtendedOps {
                 return recordDescriptor;
             }
 
-            public TypeDesc targetType() {
+            public TypeElement targetType() {
                 return Pattern.targetType(resultType());
             }
 
             @Override
-            public TypeDesc resultType() {
+            public TypeElement resultType() {
                 return Pattern.recordType(recordDescriptor.recordType());
             }
         }
@@ -2652,14 +2645,14 @@ public class ExtendedOps {
                 // No match block
                 // Pass false
                 endNoMatchBlock.op(branch(endBlock.successor(
-                        endNoMatchBlock.op(constant(BOOLEAN, false)))));
+                        endNoMatchBlock.op(constant(JavaType.BOOLEAN, false)))));
 
                 // Match block
                 // Lower match body and pass true
                 endMatchBlock.transformBody(match, patternValues, opT.andThen((block, op) -> {
                     if (op instanceof YieldOp) {
                         block.op(branch(endBlock.successor(
-                                block.op(constant(BOOLEAN, true)))));
+                                block.op(constant(JavaType.BOOLEAN, true)))));
                     } else if (op instanceof Lowerable lop) {
                         // @@@ Composition of lowerable ops
                         block = lop.lower(block, opT);
@@ -2687,7 +2680,7 @@ public class ExtendedOps {
             static Block.Builder lowerRecordPattern(Block.Builder endNoMatchBlock, Block.Builder currentBlock,
                                        List<Value> bindings,
                                        ExtendedOps.PatternOps.RecordPatternOp rpOp, Value target) {
-                TypeDesc targetType = rpOp.targetType();
+                TypeElement targetType = rpOp.targetType();
 
                 Block.Builder nextBlock = currentBlock.block();
 
@@ -2715,7 +2708,7 @@ public class ExtendedOps {
             static Block.Builder lowerBindingPattern(Block.Builder endNoMatchBlock, Block.Builder currentBlock,
                                        List<Value> bindings,
                                        ExtendedOps.PatternOps.BindingPatternOp bpOp, Value target) {
-                TypeDesc targetType = bpOp.targetType();
+                TypeElement targetType = bpOp.targetType();
 
                 Block.Builder nextBlock = currentBlock.block();
 
@@ -2732,8 +2725,8 @@ public class ExtendedOps {
             }
 
             @Override
-            public TypeDesc resultType() {
-                return BOOLEAN;
+            public TypeElement resultType() {
+                return JavaType.BOOLEAN;
             }
         }
     }
@@ -2858,7 +2851,8 @@ public class ExtendedOps {
      * @param bodies the body builders of the operation to be built and become its children
      * @return the switch expression operation
      */
-    public static JavaSwitchExpressionOp switchExpression(TypeDesc resultType, Value target, List<Body.Builder> bodies) {
+    public static JavaSwitchExpressionOp switchExpression(TypeElement resultType, Value target,
+                                                          List<Body.Builder> bodies) {
         Objects.requireNonNull(resultType);
         return new JavaSwitchExpressionOp(resultType, target, bodies);
     }
@@ -2878,7 +2872,7 @@ public class ExtendedOps {
      * @param initTypes the types of initialized variables
      * @return the for operation builder
      */
-    public static JavaForOp.InitBuilder _for(Body.Builder ancestorBody, TypeDesc... initTypes) {
+    public static JavaForOp.InitBuilder _for(Body.Builder ancestorBody, TypeElement... initTypes) {
         return _for(ancestorBody, List.of(initTypes));
     }
 
@@ -2889,7 +2883,7 @@ public class ExtendedOps {
      * @param initTypes the types of initialized variables
      * @return the for operation builder
      */
-    public static JavaForOp.InitBuilder _for(Body.Builder ancestorBody, List<TypeDesc> initTypes) {
+    public static JavaForOp.InitBuilder _for(Body.Builder ancestorBody, List<? extends TypeElement> initTypes) {
         return new JavaForOp.InitBuilder(ancestorBody, initTypes);
     }
 
@@ -2922,7 +2916,7 @@ public class ExtendedOps {
      * @return the enhanced for operation builder
      */
     public static JavaEnhancedForOp.ExpressionBuilder enhancedFor(Body.Builder ancestorBody,
-                                                                  TypeDesc iterableType, TypeDesc elementType) {
+                                                                  TypeElement iterableType, TypeElement elementType) {
         return new JavaEnhancedForOp.ExpressionBuilder(ancestorBody, iterableType, elementType);
     }
 
@@ -3037,7 +3031,8 @@ public class ExtendedOps {
      * @param bodies the body builders of operation to be built and become its children
      * @return the conditional operation
      */
-    public static JavaConditionalExpressionOp conditionalExpression(TypeDesc expressionType, List<Body.Builder> bodies) {
+    public static JavaConditionalExpressionOp conditionalExpression(TypeElement expressionType,
+                                                                    List<Body.Builder> bodies) {
         Objects.requireNonNull(expressionType);
         return new JavaConditionalExpressionOp(expressionType, bodies);
     }
@@ -3074,10 +3069,11 @@ public class ExtendedOps {
      * @return the try-with-resources operation builder
      */
     public static JavaTryOp.BodyBuilder tryWithResources(Body.Builder ancestorBody,
-                                                         List<TypeDesc> resourceTypes, Consumer<Block.Builder> c) {
-        resourceTypes = resourceTypes.stream().map(CoreOps.Var::type).toList();
+                                                         List<? extends TypeElement> resourceTypes,
+                                                         Consumer<Block.Builder> c) {
+        resourceTypes = resourceTypes.stream().map(VarType::varType).toList();
         Body.Builder resources = Body.Builder.of(ancestorBody,
-                MethodTypeDesc.methodType(Tuple.type(resourceTypes)));
+                MethodTypeDesc.methodType(TupleType.tupleType(resourceTypes)));
         c.accept(resources.entryBlock());
         return new JavaTryOp.BodyBuilder(ancestorBody, resourceTypes, resources);
     }
@@ -3124,7 +3120,7 @@ public class ExtendedOps {
      * @param bindingName the binding name
      * @return the pattern binding operation
      */
-    public static PatternOps.BindingPatternOp bindingPattern(TypeDesc type, String bindingName) {
+    public static PatternOps.BindingPatternOp bindingPattern(TypeElement type, String bindingName) {
         return new PatternOps.BindingPatternOp(type, bindingName);
     }
 

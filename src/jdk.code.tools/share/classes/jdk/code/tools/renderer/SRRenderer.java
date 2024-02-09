@@ -30,9 +30,9 @@ import java.lang.reflect.code.Body;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
-import java.lang.reflect.code.descriptor.TypeDesc;
 
 import java.io.*;
+import java.lang.reflect.code.type.JavaType;
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -202,7 +202,7 @@ public final class SRRenderer extends CommonRenderer<SRRenderer> {
         in();
         for (Op op : block.ops()) {
             Op.Result or = op.result();
-            if (!or.type().equals(TypeDesc.VOID)) {
+            if (!or.type().equals(JavaType.VOID)) {
                 writeValueDecl(gn, or);
                 spaceEqualSpace();
             }

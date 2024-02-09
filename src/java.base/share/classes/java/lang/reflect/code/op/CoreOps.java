@@ -29,21 +29,14 @@ import java.lang.reflect.code.*;
 import java.lang.reflect.code.descriptor.FieldDesc;
 import java.lang.reflect.code.descriptor.MethodDesc;
 import java.lang.reflect.code.descriptor.MethodTypeDesc;
-import java.lang.reflect.code.descriptor.TypeDesc;
-
-import java.lang.reflect.code.descriptor.impl.TypeDescImpl;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.lang.reflect.code.type.JavaType;
+import java.lang.reflect.code.type.TupleType;
+import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.type.VarType;
+import java.lang.reflect.code.type.impl.JavaTypeImpl;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.Stream;
 
 /**
  * The set of core operations. A code model, produced by the Java compiler from Java program source and lowered to
@@ -178,8 +171,8 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeDesc resultType() {
-            return TypeDesc.VOID;
+        public TypeElement resultType() {
+            return JavaType.VOID;
         }
     }
 
@@ -194,7 +187,7 @@ public final class CoreOps {
         public static final String ATTRIBUTE_FUNC_NAME = NAME + ".name";
 
         final String funcName;
-        final TypeDesc resultType;
+        final TypeElement resultType;
 
         public static FuncCallOp create(OpDefinition def) {
             String funcName = def.extractAttributeValue(ATTRIBUTE_FUNC_NAME, true,
@@ -225,7 +218,7 @@ public final class CoreOps {
             return new FuncCallOp(this, cc);
         }
 
-        FuncCallOp(String funcName, TypeDesc resultType, List<Value> args) {
+        FuncCallOp(String funcName, TypeElement resultType, List<Value> args) {
             super(NAME, args);
 
             this.funcName = funcName;
@@ -244,7 +237,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeDesc resultType() {
+        public TypeElement resultType() {
             return resultType;
         }
     }
@@ -329,8 +322,8 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeDesc resultType() {
-            return TypeDesc.VOID;
+        public TypeElement resultType() {
+            return JavaType.VOID;
         }
     }
 
@@ -344,7 +337,7 @@ public final class CoreOps {
         // Type description must be the same in the java.base and jdk.compiler module
         static final String Quoted_CLASS_NAME = PACKAGE_NAME +
                 "." + Quoted.class.getSimpleName();
-        public static final TypeDesc QUOTED_TYPE = new TypeDescImpl(Quoted_CLASS_NAME);
+        public static final JavaType QUOTED_TYPE = new JavaTypeImpl(Quoted_CLASS_NAME);
 
         final Body quotedBody;
 
@@ -438,7 +431,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeDesc resultType() {
+        public TypeElement resultType() {
             return QUOTED_TYPE;
         }
     }
@@ -452,9 +445,9 @@ public final class CoreOps {
         public static class Builder {
             final Body.Builder ancestorBody;
             final MethodTypeDesc functionalDescriptor;
-            final TypeDesc functionalInterface;
+            final TypeElement functionalInterface;
 
-            Builder(Body.Builder ancestorBody, MethodTypeDesc functionalDescriptor, TypeDesc functionalInterface) {
+            Builder(Body.Builder ancestorBody, MethodTypeDesc functionalDescriptor, TypeElement functionalInterface) {
                 this.ancestorBody = ancestorBody;
                 this.functionalDescriptor = functionalDescriptor;
                 this.functionalInterface = functionalInterface;
@@ -469,7 +462,7 @@ public final class CoreOps {
 
         public static final String NAME = "lambda";
 
-        final TypeDesc functionalInterface;
+        final TypeElement functionalInterface;
         final Body body;
 
         public LambdaOp(OpDefinition def) {
@@ -491,7 +484,7 @@ public final class CoreOps {
             return new LambdaOp(this, cc, ot);
         }
 
-        LambdaOp(TypeDesc functionalInterface, Body.Builder bodyC) {
+        LambdaOp(TypeElement functionalInterface, Body.Builder bodyC) {
             super(NAME,
                     List.of());
 
@@ -509,7 +502,7 @@ public final class CoreOps {
             return body.descriptor();
         }
 
-        public TypeDesc functionalInterface() {
+        public TypeElement functionalInterface() {
             return functionalInterface;
         }
 
@@ -562,7 +555,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeDesc resultType() {
+        public TypeElement resultType() {
             return functionalInterface();
         }
     }
@@ -570,20 +563,20 @@ public final class CoreOps {
     /**
      * A synthetic closure type, that is the operation result-type of a closure operation.
      */
-    // @@@: Maybe drop and move the constants elsewhere
+    // @@@: Replace with use of FunctionType
     public interface Closure {
         // Type description must be the same in the java.base and jdk.compiler module
-        TypeDesc CLOSURE_TYPE = new TypeDescImpl(CoreOps_CLASS_NAME +
+        JavaType CLOSURE_TYPE = new JavaTypeImpl(CoreOps_CLASS_NAME +
                 "$" + Closure.class.getSimpleName());
 
-        static TypeDesc type(TypeDesc... types) {
-            return TypeDesc.type(
+        static JavaType type(JavaType... types) {
+            return JavaType.type(
                     CLOSURE_TYPE,
                     types);
         }
 
-        static TypeDesc type(List<TypeDesc> types) {
-            return TypeDesc.type(
+        static JavaType type(List<JavaType> types) {
+            return JavaType.type(
                     CLOSURE_TYPE,
                     types);
         }
@@ -640,10 +633,10 @@ public final class CoreOps {
             this.body = bodyC.build(this);
         }
 
-        static TypeDesc closureType(MethodTypeDesc functionalDescriptor) {
-            List<TypeDesc> l = new ArrayList<>();
-            l.add(functionalDescriptor.returnType());
-            l.addAll(functionalDescriptor.parameters());
+        static JavaType closureType(MethodTypeDesc functionalDescriptor) {
+            List<JavaType> l = new ArrayList<>();
+            l.add((JavaType) functionalDescriptor.returnType());
+            l.addAll(functionalDescriptor.parameters().stream().map(t -> (JavaType) t).toList());
             return Closure.type(l);
         }
 
@@ -706,7 +699,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeDesc resultType() {
+        public TypeElement resultType() {
             return closureType(body().descriptor());
         }
     }
@@ -738,12 +731,12 @@ public final class CoreOps {
             super(NAME, args);
         }
 
-        static TypeDesc resultType(List<Value> args) {
+        static JavaType resultType(List<Value> args) {
             if (args.isEmpty()) {
                 throw new IllegalArgumentException(
                         "Operation must have one or more operands: " + args.size());
             }
-            TypeDesc t = args.get(0).type();
+            JavaType t = (JavaType) args.get(0).type();
 
             if (t.typeArguments().isEmpty()) {
                 throw new IllegalArgumentException(
@@ -756,7 +749,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeDesc resultType() {
+        public TypeElement resultType() {
             return resultType(operands());
         }
     }
@@ -805,8 +798,8 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeDesc resultType() {
-            return TypeDesc.VOID;
+        public TypeElement resultType() {
+            return JavaType.VOID;
         }
     }
 
@@ -843,8 +836,8 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeDesc resultType() {
-            return TypeDesc.VOID;
+        public TypeElement resultType() {
+            return JavaType.VOID;
         }
     }
 
@@ -879,8 +872,8 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeDesc resultType() {
-            return TypeDesc.VOID;
+        public TypeElement resultType() {
+            return JavaType.VOID;
         }
     }
 
@@ -929,8 +922,8 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeDesc resultType() {
-            return TypeDesc.VOID;
+        public TypeElement resultType() {
+            return JavaType.VOID;
         }
     }
 
@@ -982,8 +975,8 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeDesc resultType() {
-            return TypeDesc.VOID;
+        public TypeElement resultType() {
+            return JavaType.VOID;
         }
     }
 
@@ -1049,8 +1042,8 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeDesc resultType() {
-            return TypeDesc.VOID;
+        public TypeElement resultType() {
+            return JavaType.VOID;
         }
     }
 
@@ -1064,7 +1057,7 @@ public final class CoreOps {
         public static final String ATTRIBUTE_CONSTANT_VALUE = NAME + ".value";
 
         final Object value;
-        final TypeDesc type;
+        final TypeElement type;
 
         public static ConstantOp create(OpDefinition def) {
             if (!def.operands().isEmpty()) {
@@ -1076,60 +1069,60 @@ public final class CoreOps {
             return new ConstantOp(def, value);
         }
 
-        static Object processConstantValue(TypeDesc t, Object value) {
-            if (t.equals(TypeDesc.BOOLEAN)) {
+        static Object processConstantValue(TypeElement t, Object value) {
+            if (t.equals(JavaType.BOOLEAN)) {
                 if (value instanceof String s) {
                     return Boolean.valueOf(s);
                 } else if (value instanceof Boolean) {
                     return value;
                 }
-            } else if (t.equals(TypeDesc.BYTE)) {
+            } else if (t.equals(JavaType.BYTE)) {
                 if (value instanceof String s) {
                     return Byte.valueOf(s);
                 } else if (value instanceof Number n) {
                     return n.byteValue();
                 }
-            } else if (t.equals(TypeDesc.SHORT)) {
+            } else if (t.equals(JavaType.SHORT)) {
                 if (value instanceof String s) {
                     return Short.valueOf(s);
                 } else if (value instanceof Number n) {
                     return n.shortValue();
                 }
-            } else if (t.equals(TypeDesc.CHAR)) {
+            } else if (t.equals(JavaType.CHAR)) {
                 if (value instanceof String s) {
                     return s.charAt(0);
                 } else if (value instanceof Character) {
                     return value;
                 }
-            } else if (t.equals(TypeDesc.INT)) {
+            } else if (t.equals(JavaType.INT)) {
                 if (value instanceof String s) {
                     return Integer.valueOf(s);
                 } else if (value instanceof Number n) {
                     return n.intValue();
                 }
-            } else if (t.equals(TypeDesc.LONG)) {
+            } else if (t.equals(JavaType.LONG)) {
                 if (value instanceof String s) {
                     return Long.valueOf(s);
                 } else if (value instanceof Number n) {
                     return n.longValue();
                 }
-            } else if (t.equals(TypeDesc.FLOAT)) {
+            } else if (t.equals(JavaType.FLOAT)) {
                 if (value instanceof String s) {
                     return Float.valueOf(s);
                 } else if (value instanceof Number n) {
                     return n.floatValue();
                 }
-            } else if (t.equals(TypeDesc.DOUBLE)) {
+            } else if (t.equals(JavaType.DOUBLE)) {
                 if (value instanceof String s) {
                     return Double.valueOf(s);
                 } else if (value instanceof Number n) {
                     return n.doubleValue();
                 }
-            } else if (t.equals(TypeDesc.J_L_STRING)) {
+            } else if (t.equals(JavaType.J_L_STRING)) {
                 return value == NULL_ATTRIBUTE_VALUE ? null :
                         value.toString();
-            } else if (t.equals(TypeDesc.J_L_CLASS)) {
-                return value == NULL_ATTRIBUTE_VALUE ? null : TypeDesc.ofString(value.toString());
+            } else if (t.equals(JavaType.J_L_CLASS)) {
+                return value == NULL_ATTRIBUTE_VALUE ? null : JavaType.ofString(value.toString());
             } else if (value == NULL_ATTRIBUTE_VALUE) {
                 return null; // null constant
             }
@@ -1156,7 +1149,7 @@ public final class CoreOps {
             return new ConstantOp(this, cc);
         }
 
-        ConstantOp(TypeDesc type, Object value) {
+        ConstantOp(TypeElement type, Object value) {
             super(NAME, List.of());
 
             this.type = type;
@@ -1175,12 +1168,10 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeDesc resultType() {
+        public TypeElement resultType() {
             return type;
         }
     }
-
-    // @@@: Might be useful for pattern matching, but seems unused for now
 
     /**
      * An operation characteristic indicating the operation's behavior may be emulated using Java reflection.
@@ -1200,7 +1191,7 @@ public final class CoreOps {
         public static final String ATTRIBUTE_INVOKE_DESCRIPTOR = NAME + ".descriptor";
 
         final MethodDesc invokeDescriptor;
-        final TypeDesc resultType;
+        final TypeElement resultType;
 
         public static InvokeOp create(OpDefinition def) {
             MethodDesc invokeDescriptor = def.extractAttributeValue(ATTRIBUTE_INVOKE_DESCRIPTOR,
@@ -1236,7 +1227,7 @@ public final class CoreOps {
             this(invokeDescriptor.type().returnType(), invokeDescriptor, args);
         }
 
-        InvokeOp(TypeDesc resultType, MethodDesc invokeDescriptor, List<Value> args) {
+        InvokeOp(TypeElement resultType, MethodDesc invokeDescriptor, List<Value> args) {
             super(NAME, args);
 
             this.invokeDescriptor = invokeDescriptor;
@@ -1259,7 +1250,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeDesc resultType() {
+        public TypeElement resultType() {
             return resultType;
         }
     }
@@ -1272,7 +1263,7 @@ public final class CoreOps {
     public static final class ConvOp extends OpWithDefinition implements Op.Pure {
         public static final String NAME = "conv";
 
-        final TypeDesc resultType;
+        final TypeElement resultType;
 
         public ConvOp(OpDefinition def) {
             super(def);
@@ -1291,14 +1282,14 @@ public final class CoreOps {
             return new ConvOp(this, cc);
         }
 
-        ConvOp(TypeDesc resultType, Value arg) {
+        ConvOp(TypeElement resultType, Value arg) {
             super(NAME, List.of(arg));
 
             this.resultType = resultType;
         }
 
         @Override
-        public TypeDesc resultType() {
+        public TypeElement resultType() {
             return resultType;
         }
     }
@@ -1312,7 +1303,7 @@ public final class CoreOps {
         public static final String ATTRIBUTE_NEW_DESCRIPTOR = NAME + ".descriptor";
 
         final MethodTypeDesc constructorDescriptor;
-        final TypeDesc resultType;
+        final TypeElement resultType;
 
         public static NewOp create(OpDefinition def) {
             MethodTypeDesc constructorDescriptor = def.extractAttributeValue(ATTRIBUTE_NEW_DESCRIPTOR,true,
@@ -1347,7 +1338,7 @@ public final class CoreOps {
             this(constructorDescriptor.returnType(), constructorDescriptor, args);
         }
 
-        NewOp(TypeDesc resultType, MethodTypeDesc constructorDescriptor, List<Value> args) {
+        NewOp(TypeElement resultType, MethodTypeDesc constructorDescriptor, List<Value> args) {
             super(NAME, args);
 
             this.constructorDescriptor = constructorDescriptor;
@@ -1361,7 +1352,7 @@ public final class CoreOps {
             return Collections.unmodifiableMap(m);
         }
 
-        public TypeDesc type() {
+        public TypeElement type() {
             return descriptor().returnType();
         }
 
@@ -1370,7 +1361,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeDesc resultType() {
+        public TypeElement resultType() {
             return resultType;
         }
     }
@@ -1467,7 +1458,7 @@ public final class CoreOps {
             }
 
             @Override
-            public TypeDesc resultType() {
+            public TypeElement resultType() {
                 return fieldDescriptor().type();
             }
         }
@@ -1520,8 +1511,8 @@ public final class CoreOps {
             }
 
             @Override
-            public TypeDesc resultType() {
-                return TypeDesc.VOID;
+            public TypeElement resultType() {
+                return JavaType.VOID;
             }
         }
     }
@@ -1552,8 +1543,8 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeDesc resultType() {
-            return TypeDesc.INT;
+        public TypeElement resultType() {
+            return JavaType.INT;
         }
     }
 
@@ -1590,18 +1581,18 @@ public final class CoreOps {
                     : List.of(array, index, v);
         }
 
-        static TypeDesc resultType(Value array, Value v) {
-            TypeDesc arrayType = array.type();
+        static TypeElement resultType(Value array, Value v) {
+            JavaType arrayType = (JavaType) array.type();
             if (!arrayType.isArray()) {
                 throw new IllegalArgumentException("Type is not an array type: " + arrayType);
             }
 
             // @@@ restrict to indexes of int?
-            TypeDesc componentType = arrayType.componentType();
+            TypeElement componentType = arrayType.componentType();
             if (v == null) {
                 return componentType;
             } else {
-                return TypeDesc.VOID;
+                return JavaType.VOID;
             }
         }
 
@@ -1631,9 +1622,10 @@ public final class CoreOps {
             }
 
             @Override
-            public TypeDesc resultType() {
+            public TypeElement resultType() {
                 Value array = operands().get(0);
-                return array.type().componentType();
+                JavaType t = (JavaType) array.type();
+                return t.componentType();
             }
         }
 
@@ -1663,8 +1655,8 @@ public final class CoreOps {
             }
 
             @Override
-            public TypeDesc resultType() {
-                return TypeDesc.VOID;
+            public TypeElement resultType() {
+                return JavaType.VOID;
             }
         }
     }
@@ -1678,23 +1670,23 @@ public final class CoreOps {
         public static final String NAME = "instanceof";
         public static final String ATTRIBUTE_TYPE_DESCRIPTOR = NAME + ".descriptor";
 
-        final TypeDesc typeDescriptor;
+        final TypeElement typeDescriptor;
 
         public static InstanceOfOp create(OpDefinition def) {
             if (def.operands().size() != 1) {
                 throw new IllegalArgumentException("Operation must have one operand " + def.name());
             }
 
-            TypeDesc typeDescriptor = def.extractAttributeValue(ATTRIBUTE_TYPE_DESCRIPTOR, true,
+            TypeElement typeDescriptor = def.extractAttributeValue(ATTRIBUTE_TYPE_DESCRIPTOR, true,
                     v -> switch(v) {
-                        case String s -> TypeDesc.ofString(s);
-                        case TypeDesc td -> td;
+                        case String s -> JavaType.ofString(s);
+                        case JavaType td -> td;
                         default -> throw new UnsupportedOperationException("Unsupported type descriptor value:" + v);
                     });
             return new InstanceOfOp(def, typeDescriptor);
         }
 
-        InstanceOfOp(OpDefinition def, TypeDesc typeDescriptor) {
+        InstanceOfOp(OpDefinition def, TypeElement typeDescriptor) {
             super(def);
 
             this.typeDescriptor = typeDescriptor;
@@ -1711,7 +1703,7 @@ public final class CoreOps {
             return new InstanceOfOp(this, cc);
         }
 
-        InstanceOfOp(TypeDesc t, Value v) {
+        InstanceOfOp(TypeElement t, Value v) {
             super(NAME,
                     List.of(v));
 
@@ -1725,13 +1717,13 @@ public final class CoreOps {
             return Collections.unmodifiableMap(m);
         }
 
-        public TypeDesc type() {
+        public TypeElement type() {
             return typeDescriptor;
         }
 
         @Override
-        public TypeDesc resultType() {
-            return TypeDesc.BOOLEAN;
+        public TypeElement resultType() {
+            return JavaType.BOOLEAN;
         }
     }
 
@@ -1743,24 +1735,24 @@ public final class CoreOps {
         public static final String NAME = "cast";
         public static final String ATTRIBUTE_TYPE_DESCRIPTOR = NAME + ".descriptor";
 
-        final TypeDesc resultType;
-        final TypeDesc typeDescriptor;
+        final TypeElement resultType;
+        final TypeElement typeDescriptor;
 
         public static CastOp create(OpDefinition def) {
             if (def.operands().size() != 1) {
                 throw new IllegalArgumentException("Operation must have one operand " + def.name());
             }
 
-            TypeDesc type = def.extractAttributeValue(ATTRIBUTE_TYPE_DESCRIPTOR, true,
+            TypeElement type = def.extractAttributeValue(ATTRIBUTE_TYPE_DESCRIPTOR, true,
                     v -> switch(v) {
-                        case String s -> TypeDesc.ofString(s);
-                        case TypeDesc td -> td;
+                        case String s -> JavaType.ofString(s);
+                        case JavaType td -> td;
                         default -> throw new UnsupportedOperationException("Unsupported type descriptor value:" + v);
                     });
             return new CastOp(def, type);
         }
 
-        CastOp(OpDefinition def, TypeDesc typeDescriptor) {
+        CastOp(OpDefinition def, TypeElement typeDescriptor) {
             super(def);
 
             this.resultType = def.resultType();
@@ -1779,7 +1771,7 @@ public final class CoreOps {
             return new CastOp(this, cc);
         }
 
-        CastOp(TypeDesc resultType, TypeDesc t, Value v) {
+        CastOp(TypeElement resultType, TypeElement t, Value v) {
             super(NAME, List.of(v));
 
             this.resultType = resultType;
@@ -1793,44 +1785,29 @@ public final class CoreOps {
             return Collections.unmodifiableMap(m);
         }
 
-        public TypeDesc type() {
+        public TypeElement type() {
             return typeDescriptor;
         }
 
         @Override
-        public TypeDesc resultType() {
+        public TypeElement resultType() {
             return resultType;
         }
     }
 
 
-    // Synthetic/hidden type that is the result of a VarOp operation
-    // and is an operand of VarLoad and VarStore operation
-    // Instances should never leak out when interpreting an expression
-    // or executing a compiled (to bytecode) expression
-
     /**
-     * A synthetic var type that can model a Java language local variable
+     * A runtime representation of a variable.
+     *
      * @param <T> the type of the var's value.
+     * @@@ Ideally should never be exposed
+     * @@@ Move to interpreter?
      */
     public interface Var<T> {
-        /**
-         * The type descriptor of the var type.
-         */
-        TypeDesc VAR_TYPE = new TypeDescImpl("Var");
-
         /**
          * {@return the value of a var}
          */
         T value();
-
-        /**
-         * {@return the parameterized type of a var}
-         * @param type the value's type.
-         */
-        static TypeDesc type(TypeDesc type) {
-            return TypeDesc.type(VAR_TYPE, type);
-        }
 
         /**
          * Constructs an instance of a var.
@@ -1905,14 +1882,13 @@ public final class CoreOps {
             return name;
         }
 
-        public TypeDesc varType() {
-            return descriptor().parameters().get(0);
+        public TypeElement varType() {
+            return operands().get(0).type();
         }
 
         @Override
-        public TypeDesc resultType() {
-            TypeDesc valueType = operands().get(0).type();
-            return Var.type(valueType);
+        public TypeElement resultType() {
+            return VarType.varType(varType());
         }
     }
 
@@ -1938,8 +1914,8 @@ public final class CoreOps {
         }
 
         static Value checkIsVarOp(Value varValue) {
-            if (!varValue.type().rawType().equals(Var.VAR_TYPE)) {
-                throw new IllegalArgumentException("Value is of type Var: " + varValue);
+            if (!(varValue.type() instanceof VarType)) {
+                throw new IllegalArgumentException("Value's type is not a variable type: " + varValue);
             }
             return varValue;
         }
@@ -1978,25 +1954,10 @@ public final class CoreOps {
                 super(NAME, List.of(varValue));
             }
 
-            static TypeDesc getresultType(Value varValue) {
-                TypeDesc varType = varValue.type();
-
-                if (!varType.rawType().equals(Var.VAR_TYPE)) {
-                    throw new IllegalArgumentException(
-                            "Var value type is not of the Var type: " + varType);
-                }
-
-                if (!varType.hasTypeArguments()) {
-                    throw new IllegalArgumentException(
-                            "Var value type is not parameterized with its value types: " + varType);
-                }
-
-                return varType.typeArguments().get(0);
-            }
-
             @Override
-            public TypeDesc resultType() {
-                return getresultType(operands().get(0));
+            public TypeElement resultType() {
+                VarType vt = (VarType) operands().get(0).type();
+                return vt.variableType();
             }
         }
 
@@ -2036,56 +1997,10 @@ public final class CoreOps {
                         List.of(varValue, v));
             }
 
-            static TypeDesc getresultType(Value varValue) {
-                TypeDesc varType = varValue.type();
-
-                if (!varType.rawType().equals(Var.VAR_TYPE)) {
-                    throw new IllegalArgumentException(
-                            "Var value type is not of the Var type: " + varType);
-                }
-
-                if (!varType.hasTypeArguments()) {
-                    throw new IllegalArgumentException(
-                            "Var value type is not parameterized with its value types: " + varType);
-                }
-
-                return TypeDesc.VOID;
-            }
-
             @Override
-            public TypeDesc resultType() {
-                return getresultType(operands().get(0));
+            public TypeElement resultType() {
+                return operands().get(0).type();
             }
-        }
-    }
-
-    // Synthetic/hidden type that is the result of a TupleOp operation
-
-    /**
-     * A synthetic tuple type.
-     */
-    public interface Tuple {
-        TypeDesc TUPLE_TYPE = new TypeDescImpl(CoreOps_CLASS_NAME +
-                "$" + Tuple.class.getSimpleName());
-
-        static TypeDesc typeFromValues(Value... values) {
-            return type(Stream.of(values).map(Value::type).toArray(TypeDesc[]::new));
-        }
-
-        static TypeDesc typeFromValues(List<? extends Value> values) {
-            return type(values.stream().map(Value::type).toArray(TypeDesc[]::new));
-        }
-
-        static TypeDesc type(TypeDesc... types) {
-            return TypeDesc.type(
-                    TUPLE_TYPE,
-                    types);
-        }
-
-        static TypeDesc type(List<TypeDesc> types) {
-            return TypeDesc.type(
-                    TUPLE_TYPE,
-                    types);
         }
     }
 
@@ -2116,8 +2031,8 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeDesc resultType() {
-            return Tuple.typeFromValues(operands());
+        public TypeElement resultType() {
+            return TupleType.typeFromValues(operands());
         }
     }
 
@@ -2173,28 +2088,6 @@ public final class CoreOps {
             this.index = index;
         }
 
-        static TypeDesc getresultType(Value tupleValue, int index) {
-            TypeDesc tupleType = tupleValue.type();
-
-            if (!tupleType.rawType().equals(Tuple.TUPLE_TYPE)) {
-                throw new IllegalArgumentException(
-                        "Tuple value type is not of the Tuple type: " + tupleType);
-            }
-
-            if (!tupleType.hasTypeArguments()) {
-                throw new IllegalArgumentException(
-                        "Tuple value type is not parameterized with component types: " + tupleType);
-            }
-
-            List<TypeDesc> tupleComponentTypes = tupleType.typeArguments();
-            if (index < 0 || index >= tupleComponentTypes.size()) {
-                throw new IllegalArgumentException(
-                        "Tuple component index out of range:: " + index);
-            }
-
-            return tupleComponentTypes.get(index);
-        }
-
         @Override
         public Map<String, Object> attributes() {
             HashMap<String, Object> m = new HashMap<>(super.attributes());
@@ -2207,9 +2100,10 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeDesc resultType() {
+        public TypeElement resultType() {
             Value tupleValue = operands().get(0);
-            return tupleValue.type().typeArguments().get(index);
+            TupleType t = (TupleType) tupleValue.type();
+            return t.componentTypes().get(index);
         }
     }
 
@@ -2262,30 +2156,8 @@ public final class CoreOps {
         TupleWithOp(Value tupleValue, int index, Value value) {
             super(NAME, List.of(tupleValue, value));
 
+            // @@@ Validate tuple type and index
             this.index = index;
-        }
-
-        static TypeDesc getresultType(Value tupleValue, int index, Value value) {
-            TypeDesc tupleType = tupleValue.type();
-
-            if (!tupleType.rawType().equals(Tuple.TUPLE_TYPE)) {
-                throw new IllegalArgumentException(
-                        "Tuple value type is not of the Tuple type: " + tupleType);
-            }
-
-            if (!tupleType.hasTypeArguments()) {
-                throw new IllegalArgumentException(
-                        "Tuple value type is not parameterized with component types: " + tupleType);
-            }
-
-            List<TypeDesc> tupleComponentTypes = new ArrayList<>(tupleType.typeArguments());
-            if (index < 0 || index >= tupleComponentTypes.size()) {
-                throw new IllegalArgumentException(
-                        "Tuple component index out of range:: " + index);
-            }
-
-            tupleComponentTypes.set(index, value.type());
-            return Tuple.type(tupleComponentTypes);
         }
 
         @Override
@@ -2300,10 +2172,14 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeDesc resultType() {
+        public TypeElement resultType() {
             Value tupleValue = operands().get(0);
+            TupleType tupleType = (TupleType) tupleValue.type();
             Value value = operands().get(2);
-            return getresultType(tupleValue, index, value);
+
+            List<TypeElement> tupleComponentTypes = new ArrayList<>(tupleType.componentTypes());
+            tupleComponentTypes.set(index, value.type());
+            return TupleType.tupleType(tupleComponentTypes);
         }
     }
 
@@ -2315,9 +2191,9 @@ public final class CoreOps {
      * A synthetic exception region type, that is the operation result-type of an exception region
      * start operation.
      */
-    // @@@: Maybe drop and move the constants elsewhere
+    // @@@: Create as new type element
     public interface ExceptionRegion {
-        TypeDesc EXCEPTION_REGION_TYPE = new TypeDescImpl("ExceptionRegion");
+        TypeElement EXCEPTION_REGION_TYPE = new JavaTypeImpl("ExceptionRegion");
     }
 
     /**
@@ -2378,7 +2254,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeDesc resultType() {
+        public TypeElement resultType() {
             return ExceptionRegion.EXCEPTION_REGION_TYPE;
         }
     }
@@ -2450,8 +2326,8 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeDesc resultType() {
-            return TypeDesc.VOID;
+        public TypeElement resultType() {
+            return JavaType.VOID;
         }
     }
 
@@ -2521,7 +2397,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeDesc resultType() {
+        public TypeElement resultType() {
             return operands().get(0).type();
         }
     }
@@ -2547,7 +2423,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeDesc resultType() {
+        public TypeElement resultType() {
             return operands().get(0).type();
         }
     }
@@ -2594,8 +2470,8 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeDesc resultType() {
-            return TypeDesc.BOOLEAN;
+        public TypeElement resultType() {
+            return JavaType.BOOLEAN;
         }
     }
 
@@ -2744,7 +2620,7 @@ public final class CoreOps {
             return new NegOp(this, cc);
         }
 
-        NegOp(TypeDesc resultType, Value v) {
+        NegOp(Value v) {
             super(NAME, v);
         }
     }
@@ -3048,7 +2924,7 @@ public final class CoreOps {
      * @return the lambda operation
      */
     public static LambdaOp.Builder lambda(Body.Builder ancestorBody,
-                                          MethodTypeDesc functionalDescriptor, TypeDesc functionalInterface) {
+                                          MethodTypeDesc functionalDescriptor, TypeElement functionalInterface) {
         return new LambdaOp.Builder(ancestorBody, functionalDescriptor, functionalInterface);
     }
 
@@ -3058,7 +2934,7 @@ public final class CoreOps {
      * @param body the body of the lambda operation
      * @return the lambda operation
      */
-    public static LambdaOp lambda(TypeDesc functionalInterface, Body.Builder body) {
+    public static LambdaOp lambda(TypeElement functionalInterface, Body.Builder body) {
         return new LambdaOp(functionalInterface, body);
     }
 
@@ -3213,7 +3089,7 @@ public final class CoreOps {
      * @param value the constant value
      * @return the constant operation
      */
-    public static ConstantOp constant(TypeDesc type, Object value) {
+    public static ConstantOp constant(TypeElement type, Object value) {
         return new ConstantOp(type, value);
     }
 
@@ -3247,7 +3123,7 @@ public final class CoreOps {
      * @param args the invoke parameters
      * @return the invoke operation
      */
-    public static InvokeOp invoke(TypeDesc returnType, MethodDesc invokeDescriptor, Value... args) {
+    public static InvokeOp invoke(TypeElement returnType, MethodDesc invokeDescriptor, Value... args) {
         return new InvokeOp(returnType, invokeDescriptor, List.of(args));
     }
 
@@ -3259,7 +3135,7 @@ public final class CoreOps {
      * @param args the invoke parameters
      * @return the invoke operation
      */
-    public static InvokeOp invoke(TypeDesc returnType, MethodDesc invokeDescriptor, List<Value> args) {
+    public static InvokeOp invoke(TypeElement returnType, MethodDesc invokeDescriptor, List<Value> args) {
         return new InvokeOp(returnType, invokeDescriptor, args);
     }
 
@@ -3270,7 +3146,7 @@ public final class CoreOps {
      * @param from the value to be converted
      * @return the conversion operation
      */
-    public static ConvOp conv(TypeDesc to, Value from) {
+    public static ConvOp conv(TypeElement to, Value from) {
         return new ConvOp(to, from);
     }
 
@@ -3304,7 +3180,7 @@ public final class CoreOps {
      * @param args the constructor arguments
      * @return the instance creation operation
      */
-    public static NewOp _new(TypeDesc returnType, MethodTypeDesc constructorDescriptor,
+    public static NewOp _new(TypeElement returnType, MethodTypeDesc constructorDescriptor,
                              Value... args) {
         return _new(returnType, constructorDescriptor, List.of(args));
     }
@@ -3317,7 +3193,7 @@ public final class CoreOps {
      * @param args the constructor arguments
      * @return the instance creation operation
      */
-    public static NewOp _new(TypeDesc returnType, MethodTypeDesc constructorDescriptor,
+    public static NewOp _new(TypeElement returnType, MethodTypeDesc constructorDescriptor,
                              List<Value> args) {
         return new NewOp(returnType, constructorDescriptor, args);
     }
@@ -3329,8 +3205,8 @@ public final class CoreOps {
      * @param length the array size
      * @return the array creation operation
      */
-    public static NewOp newArray(TypeDesc arrayType, Value length) {
-        return _new(MethodTypeDesc.methodType(arrayType, TypeDesc.INT), length);
+    public static NewOp newArray(TypeElement arrayType, Value length) {
+        return _new(MethodTypeDesc.methodType(arrayType, JavaType.INT), length);
     }
 
     // @@@ Add field load/store overload with explicit fieldType
@@ -3418,7 +3294,7 @@ public final class CoreOps {
      * @param v the value to test
      * @return the instanceof operation
      */
-    public static InstanceOfOp instanceOf(TypeDesc t, Value v) {
+    public static InstanceOfOp instanceOf(TypeElement t, Value v) {
         return new InstanceOfOp(t, v);
     }
 
@@ -3429,8 +3305,8 @@ public final class CoreOps {
      * @param v the value to cast
      * @return the cast operation
      */
-    public static CastOp cast(TypeDesc resultType, Value v) {
-        return new CastOp(resultType, resultType.rawType(), v);
+    public static CastOp cast(TypeElement resultType, Value v) {
+        return new CastOp(resultType, resultType, v);
     }
 
     /**
@@ -3441,7 +3317,7 @@ public final class CoreOps {
      * @param v the value to cast
      * @return the cast operation
      */
-    public static CastOp cast(TypeDesc resultType, TypeDesc t, Value v) {
+    public static CastOp cast(TypeElement resultType, JavaType t, Value v) {
         return new CastOp(resultType, t, v);
     }
 
@@ -3595,18 +3471,7 @@ public final class CoreOps {
      * @return the neg operation
      */
     public static UnaryOp neg(Value v) {
-        return neg(v.type(), v);
-    }
-
-    /**
-     * Creates a neg operation.
-     *
-     * @param resultType the operation's result type
-     * @param v the operand
-     * @return the neg operation
-     */
-    public static UnaryOp neg(TypeDesc resultType, Value v) {
-        return new NegOp(resultType, v);
+        return new NegOp(v);
     }
 
     /**

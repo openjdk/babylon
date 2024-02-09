@@ -29,16 +29,18 @@ import java.lang.reflect.code.descriptor.impl.FieldDescImpl;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.lang.reflect.Field;
+import java.lang.reflect.code.type.JavaType;
+import java.lang.reflect.code.TypeElement;
 
 /**
  * The symbolic description of a Java field.
  */
 public sealed interface FieldDesc permits FieldDescImpl {
-    TypeDesc refType();
+    TypeElement refType();
 
     String name();
 
-    TypeDesc type();
+    TypeElement type();
 
     // Conversions
 
@@ -53,10 +55,10 @@ public sealed interface FieldDesc permits FieldDescImpl {
     }
 
     static FieldDesc field(Class<?> refType, String name, Class<?> type) {
-        return field(TypeDesc.type(refType), name, TypeDesc.type(type));
+        return field(JavaType.type(refType), name, JavaType.type(type));
     }
 
-    static FieldDesc field(TypeDesc refType, String name, TypeDesc type) {
+    static FieldDesc field(TypeElement refType, String name, TypeElement type) {
         return new FieldDescImpl(refType, name, type);
     }
 

@@ -482,12 +482,12 @@ public class ForLoopTest {
     @IR("""
             func @"test11" (%0 : ForLoopTest)void -> {
                 java.for
-                    ^init()java.lang.reflect.code.CoreOps$Tuple<Var<int>, Var<int>> -> {
+                    ^init()Tuple<Var<int>, Var<int>> -> {
                         %1 : int = constant @"0";
                         %2 : Var<int> = var %1 @"i";
                         %3 : int = constant @"0";
                         %4 : Var<int> = var %3 @"j";
-                        %5 : java.lang.reflect.code.CoreOps$Tuple<Var<int>, Var<int>> = tuple %2 %4;
+                        %5 : Tuple<Var<int>, Var<int>> = tuple %2 %4;
                         yield %5;
                     }
                     ^cond(%6 : Var<int>, %7 : Var<int>)boolean -> {

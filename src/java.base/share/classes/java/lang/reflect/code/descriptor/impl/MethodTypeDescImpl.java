@@ -26,33 +26,34 @@
 package java.lang.reflect.code.descriptor.impl;
 
 import java.lang.reflect.code.descriptor.MethodTypeDesc;
-import java.lang.reflect.code.descriptor.TypeDesc;
+import java.lang.reflect.code.type.JavaType;
+import java.lang.reflect.code.TypeElement;
 import java.util.List;
 
 import static java.util.stream.Collectors.joining;
 
 public final class MethodTypeDescImpl implements MethodTypeDesc {
-    final TypeDesc rtype;
-    final List<TypeDesc> ptypes;
+    final TypeElement rtype;
+    final List<TypeElement> ptypes;
 
-    public MethodTypeDescImpl(TypeDesc rtype, List<TypeDesc> ptypes) {
+    public MethodTypeDescImpl(TypeElement rtype, List<? extends TypeElement> ptypes) {
         this.rtype = rtype;
         this.ptypes = List.copyOf(ptypes);
     }
 
     @Override
-    public TypeDesc returnType() {
+    public TypeElement returnType() {
         return rtype;
     }
 
     @Override
-    public List<TypeDesc> parameters() {
+    public List<TypeElement> parameters() {
         return ptypes;
     }
 
     @Override
     public String toString() {
-        return ptypes.stream().map(TypeDesc::toString)
+        return ptypes.stream().map(TypeElement::toString)
                 .collect(joining(", ", "(", ")")) + rtype.toString();
     }
 
@@ -78,14 +79,24 @@ public final class MethodTypeDescImpl implements MethodTypeDesc {
 
     @Override
     public MethodTypeDesc erase() {
-        return new MethodTypeDescImpl(rtype.rawType(), ptypes.stream().map(TypeDesc::rawType).toList());
+        return new MethodTypeDescImpl(
+                erase(rtype),
+                ptypes.stream().map(MethodTypeDescImpl::erase).toList());
+    }
+
+    static TypeElement erase(TypeElement t) {
+        return t instanceof JavaType j ? j.rawType() : t;
     }
 
     @Override
     public String toNominalDescriptorString() {
         return ptypes.stream()
-                .map(TypeDesc::toNominalDescriptorString)
+                .map(MethodTypeDescImpl::toNominalDescriptorString)
                 .collect(joining("", "(", ")")) +
-                rtype.toNominalDescriptorString();
+                toNominalDescriptorString(rtype);
+    }
+
+    static String toNominalDescriptorString(TypeElement t) {
+        return t instanceof JavaType j ? j.toNominalDescriptorString() : t.toString();
     }
 }

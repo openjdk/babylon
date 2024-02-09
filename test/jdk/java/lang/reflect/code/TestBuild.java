@@ -31,8 +31,8 @@ import java.util.function.IntBinaryOperator;
 import static java.lang.reflect.code.op.CoreOps.*;
 import static java.lang.reflect.code.descriptor.MethodTypeDesc.VOID;
 import static java.lang.reflect.code.descriptor.MethodTypeDesc.methodType;
-import static java.lang.reflect.code.descriptor.TypeDesc.INT;
-import static java.lang.reflect.code.descriptor.TypeDesc.type;
+import static java.lang.reflect.code.type.JavaType.INT;
+import static java.lang.reflect.code.type.JavaType.type;
 
 /*
  * @test

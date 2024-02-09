@@ -52,7 +52,8 @@ import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.descriptor.MethodTypeDesc;
-import java.lang.reflect.code.descriptor.TypeDesc;
+import java.lang.reflect.code.type.JavaType;
+import java.lang.reflect.code.TypeElement;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -146,7 +147,7 @@ public class BytecodeLift {
                         local = b.op(CoreOps.var(Integer.toString(lvm), operand));
                         locals.put(lvm++, local);
                     } else {
-                        TypeDesc varType = ((CoreOps.VarOp) local.op()).varType();
+                        TypeElement varType = ((CoreOps.VarOp) local.op()).varType();
                         if (!operand.type().equals(varType)) {
                             local = b.op(CoreOps.var(Integer.toString(lvm), operand));
                             locals.put(lvm++, local);
@@ -157,7 +158,7 @@ public class BytecodeLift {
                 } else if (lop instanceof BytecodeInstructionOps.IIncInstructionOp inst) {
                     Op.Result local = locals.get(inst.index());
                     Op.Result v1 = b.op(CoreOps.varLoad(local));
-                    Op.Result v2 = b.op(CoreOps.constant(TypeDesc.INT, inst.incr()));
+                    Op.Result v2 = b.op(CoreOps.constant(JavaType.INT, inst.incr()));
                     Op.Result result = b.op(CoreOps.add(v1, v2));
                     b.op(CoreOps.varStore(local, result));
                 } else if (lop instanceof BytecodeInstructionOps.LdcInstructionOp inst) {
@@ -167,7 +168,7 @@ public class BytecodeLift {
                     Op.Result result = b.op(CoreOps.constant(inst.typeDesc(), inst.value()));
                     stack.push(result);
                 } else if (lop instanceof BytecodeInstructionOps.BipushInstructionOp inst) {
-                    Op.Result result = b.op(CoreOps.constant(TypeDesc.INT, inst.value()));
+                    Op.Result result = b.op(CoreOps.constant(JavaType.INT, inst.value()));
                     stack.push(result);
                 } else if (lop instanceof BytecodeInstructionOps.AddInstructionOp inst) {
                     Value operand2 = stack.pop();
@@ -223,7 +224,7 @@ public class BytecodeLift {
                         case STATIC: {
                             Collections.reverse(operands);
                             Op.Result result = b.op(CoreOps.invoke(descriptor.returnType(), inst.desc(), operands.toArray(Value[]::new)));
-                            if (!result.type().equals(TypeDesc.VOID)) {
+                            if (!result.type().equals(JavaType.VOID)) {
                                 stack.push(result);
                             }
                             break;
@@ -232,8 +233,8 @@ public class BytecodeLift {
                             if (inst.desc().name().equals("<init>")) {
                                 Collections.reverse(operands);
 
-                                TypeDesc ref = descriptor.parameters().get(0);
-                                List<TypeDesc> params = descriptor.parameters().subList(1, descriptor.parameters().size());
+                                TypeElement ref = descriptor.parameters().get(0);
+                                List<TypeElement> params = descriptor.parameters().subList(1, descriptor.parameters().size());
                                 MethodTypeDesc constructorDescriptor = MethodTypeDesc.methodType(ref, params);
                                 Op.Result result = b.op(CoreOps._new(constructorDescriptor, operands.toArray(Value[]::new)));
                                 stack.push(result);
@@ -241,7 +242,7 @@ public class BytecodeLift {
                                 operands.add(stack.pop());
                                 Collections.reverse(operands);
                                 Op.Result result = b.op(CoreOps.invoke(descriptor.returnType(), inst.desc(), operands.toArray(Value[]::new)));
-                                if (!result.type().equals(TypeDesc.VOID)) {
+                                if (!result.type().equals(JavaType.VOID)) {
                                     stack.push(result);
                                 }
                                 break;
@@ -270,7 +271,7 @@ public class BytecodeLift {
                     i++;
                 } else if (lop instanceof BytecodeInstructionOps.NewArrayInstructionOp inst) {
                     Value length = stack.pop();
-                    Op.Result result = b.op(CoreOps.newArray(TypeDesc.type(inst.desc(), 1), length));
+                    Op.Result result = b.op(CoreOps.newArray(JavaType.type((JavaType) inst.desc(), 1), length));
                     stack.push(result);
                 } else if (lop instanceof BytecodeInstructionOps.MultiNewArrayInstructionOp inst) {
                     int dims = inst.dims();
@@ -278,7 +279,7 @@ public class BytecodeLift {
                     for (int d = dims - 1; d >= 0; d--) {
                         counts[d] = stack.pop();
                     }
-                    MethodTypeDesc m = MethodTypeDesc.methodType(inst.desc(), Collections.nCopies(dims, TypeDesc.INT));
+                    MethodTypeDesc m = MethodTypeDesc.methodType(inst.desc(), Collections.nCopies(dims, JavaType.INT));
                     Op.Result result = b.op(CoreOps._new(m, counts));
                     stack.push(result);
                 } else if (lop instanceof BytecodeInstructionOps.CheckCastInstructionOp inst) {
@@ -316,7 +317,7 @@ public class BytecodeLift {
                 wl.push(slb);
             } else if (ltop instanceof BytecodeInstructionOps.IfInstructionOp inst) {
                 Value operand = stack.pop();
-                Value zero = b.op(CoreOps.constant(TypeDesc.INT, 0));
+                Value zero = b.op(CoreOps.constant(JavaType.INT, 0));
 
                 if (!stack.isEmpty()) {
                     throw new UnsupportedOperationException("Operands on stack for branch not supported");
@@ -407,9 +408,9 @@ public class BytecodeLift {
                     BytecodeBasicBlock handler = bcr.blockMap.get(tryCatchBlock.handler());
                     if (handler == bcb) {
                         if (b.parameters().size() == 0) {
-                            TypeDesc throwableType = tryCatchBlock.catchType()
+                            TypeElement throwableType = tryCatchBlock.catchType()
                                     .map(ClassEntry::asSymbol)
-                                    .map(TypeDesc::ofNominalDescriptor)
+                                    .map(JavaType::ofNominalDescriptor)
                                     .orElse(null);
                             if (throwableType != null) {
                                 b.parameter(throwableType);
@@ -423,7 +424,7 @@ public class BytecodeLift {
                 if (bcb.frame != null) {
                     BytecodeInstructionOps.Frame frame = BytecodeInstructionOps.frame(bcb.frame);
                     if (frame.hasOperandStackElements()) {
-                        for (TypeDesc t : frame.operandStackTypes()) {
+                        for (TypeElement t : frame.operandStackTypes()) {
                             b.parameter(t);
                         }
                     }

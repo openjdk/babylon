@@ -27,6 +27,10 @@ package java.lang.reflect.code.parser.impl;
 
 import java.lang.reflect.code.descriptor.*;
 import java.lang.reflect.code.descriptor.impl.*;
+import java.lang.reflect.code.type.CoreTypes;
+import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.type.TypeDefinition;
+import java.lang.reflect.code.type.impl.TypeDefinitionImpl;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,7 +42,7 @@ public final class DescParser {
      * @param desc the serialized type descriptor
      * @return the type descriptor
      */
-    public static TypeDesc parseTypeDesc(String desc) {
+    public static TypeDefinition parseTypeDesc(String desc) {
         Scanner s = Scanner.factory().newScanner(desc);
         s.nextToken();
         return parseTypeDesc(s);
@@ -91,7 +95,7 @@ public final class DescParser {
         return parseRecordTypeDesc(s);
     }
 
-    public static TypeDesc parseTypeDesc(Lexer l) {
+    public static TypeDefinition parseTypeDesc(Lexer l) {
         // Type
         // @@@ Extract string directly from start position of first identifier
         //     and end position of last identifier.
@@ -105,12 +109,12 @@ public final class DescParser {
         }
 
         // Type parameters
-        List<TypeDesc> ptypes;
+        List<TypeDefinition> ptypes;
         if (l.token().kind == Tokens.TokenKind.LT) {
             ptypes = new ArrayList<>();
             do {
                 l.nextToken();
-                TypeDesc pt = parseTypeDesc(l);
+                TypeDefinition pt = parseTypeDesc(l);
                 ptypes.add(pt);
             } while (l.token().kind == Tokens.TokenKind.COMMA);
             l.accept(Tokens.TokenKind.GT);
@@ -127,25 +131,30 @@ public final class DescParser {
             dims++;
         }
 
-        return new TypeDescImpl(type.toString(), dims, ptypes);
+        return new TypeDefinitionImpl(type.toString(), dims, ptypes);
+    }
+
+    static TypeElement parseTypeElement(Lexer l) {
+        TypeDefinition typeDesc = parseTypeDesc(l);
+        return CoreTypes.FACTORY2.constructType(typeDesc);
     }
 
     static MethodTypeDesc parseMethodTypeDesc(Lexer l) {
-        List<TypeDesc> ptypes = new ArrayList<>();
+        List<TypeElement> ptypes = new ArrayList<>();
         l.accept(Tokens.TokenKind.LPAREN);
         if (l.token().kind != Tokens.TokenKind.RPAREN) {
-            ptypes.add(parseTypeDesc(l));
+            ptypes.add(parseTypeElement(l));
             while (l.acceptIf(Tokens.TokenKind.COMMA)) {
-                ptypes.add(parseTypeDesc(l));
+                ptypes.add(parseTypeElement(l));
             }
         }
         l.accept(Tokens.TokenKind.RPAREN);
-        TypeDesc rtype = parseTypeDesc(l);
+        TypeElement rtype = parseTypeElement(l);
         return new MethodTypeDescImpl(rtype, ptypes);
     }
 
     static MethodDescImpl parseMethodDesc(Lexer l) {
-        TypeDesc refType = parseTypeDesc(l);
+        TypeElement refType = parseTypeElement(l);
 
         l.accept(Tokens.TokenKind.COLCOL);
 
@@ -165,14 +174,14 @@ public final class DescParser {
     }
 
     static FieldDescImpl parseFieldDesc(Lexer l) {
-        TypeDesc refType = parseTypeDesc(l);
+        TypeElement refType = parseTypeElement(l);
 
         l.accept(Tokens.TokenKind.COLCOL);
 
         String fieldName = l.accept(Tokens.TokenKind.IDENTIFIER).name();
 
         MethodTypeDesc mtype = parseMethodTypeDesc(l);
-        if (mtype.parameters().size() != 0) {
+        if (!mtype.parameters().isEmpty()) {
             throw new IllegalArgumentException();
         }
         return new FieldDescImpl(refType, fieldName, mtype.returnType());
@@ -183,14 +192,14 @@ public final class DescParser {
         l.accept(Tokens.TokenKind.LPAREN);
         if (l.token().kind != Tokens.TokenKind.RPAREN) {
             do {
-                TypeDesc componentType = parseTypeDesc(l);
+                TypeElement componentType = parseTypeElement(l);
                 String componentName = l.accept(Tokens.TokenKind.IDENTIFIER).name();
 
                 components.add(new RecordTypeDesc.ComponentDesc(componentType, componentName));
             } while(l.acceptIf(Tokens.TokenKind.COMMA));
         }
         l.accept(Tokens.TokenKind.RPAREN);
-        TypeDesc recordType = parseTypeDesc(l);
+        TypeElement recordType = parseTypeElement(l);
         return new RecordTypeDescImpl(recordType, components);
     }
 }

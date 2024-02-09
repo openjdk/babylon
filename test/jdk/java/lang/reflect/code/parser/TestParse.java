@@ -45,8 +45,8 @@ import static java.lang.reflect.code.op.CoreOps.constant;
 import static java.lang.reflect.code.op.CoreOps.func;
 import static java.lang.reflect.code.op.CoreOps.lambda;
 import static java.lang.reflect.code.descriptor.MethodTypeDesc.methodType;
-import static java.lang.reflect.code.descriptor.TypeDesc.INT;
-import static java.lang.reflect.code.descriptor.TypeDesc.type;
+import static java.lang.reflect.code.type.JavaType.INT;
+import static java.lang.reflect.code.type.JavaType.type;
 
 public class TestParse {
 
