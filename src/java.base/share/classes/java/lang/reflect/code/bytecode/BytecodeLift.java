@@ -70,37 +70,24 @@ public final class BytecodeLift {
                         .findFirst().orElseThrow(() -> new IllegalArgumentException("Unknown method: " + methodName)));
     }
 
-    private record CodeBlock(Block.Builder blockBuilder, Map<Integer, Op.Result> locals) {}
-
     public static CoreOps.FuncOp lift(MethodModel methodModel) {
         return CoreOps.func(
                 methodModel.methodName().stringValue(),
                 MethodTypeDesc.ofNominalDescriptor(methodModel.methodTypeSymbol())).body(entryBlock -> {
 
             final CodeModel codeModel = methodModel.code().orElseThrow();
-
-            final var blockMap = new HashMap<Label, CodeBlock>() {
-                public CodeBlock getOrCreate(Label l, Deque<Value> stack, Map<Integer, Op.Result> locals) {
-                    return getOrCreate(l, stack.stream().map(Value::type).toList(), locals);
-                }
-                public CodeBlock getOrCreate(Label l, List<TypeDesc> parameters, Map<Integer, Op.Result> locals) {
-                    return computeIfAbsent(l, _ ->
-                            new CodeBlock(entryBlock.block(parameters), locals));
-                }
-            };
-
+            final HashMap<Label, Block.Builder> blockMap = new HashMap<>();
             final Map<ExceptionCatch, Op.Result> exceptionRegionsMap = new HashMap<>();
 
             Block.Builder currentBlock = entryBlock;
             final Deque<Value> stack = new ArrayDeque<>();
-            Map<Integer, Op.Result> locals = new HashMap<>();
+            final Map<Integer, Op.Result> locals = new HashMap<>();
 
-            int uniqueVariableName = 0;
+            int varIndex = 0;
             // Initialize local variables from entry block parameters
             for (Block.Parameter bp : entryBlock.parameters()) {
                 // @@@ Reference type
-                Op.Result local = entryBlock.op(CoreOps.var(Integer.toString(uniqueVariableName), bp));
-                locals.put(uniqueVariableName++, local);
+                locals.put(varIndex, entryBlock.op(CoreOps.var(Integer.toString(varIndex++), bp)));
             }
 
             final List<CodeElement> elements = codeModel.elementList();
@@ -108,7 +95,7 @@ public final class BytecodeLift {
             int initiallyResolved; // This is counter helping to determine if the remaining code is not accessible ("dead")
             while ((initiallyResolved = visited.cardinality()) < elements.size()) {
                 for (int i = visited.nextClearBit(0); i < elements.size();) {
-                    // We start from the first unvisited block and mark it as visited
+                    // We start from the first unvisited instruction and mark it as visited
                     visited.set(i);
                     switch (elements.get(i)) {
                         case ExceptionCatch ec -> {
@@ -116,38 +103,38 @@ public final class BytecodeLift {
                         }
                         case LabelTarget lt -> {
                             // Start of a new block
-                            CodeBlock next = blockMap.get(lt.label());
+                            Block.Builder next = blockMap.get(lt.label());
                             if (currentBlock != null) {
                                 // Flow has not been interrupted and we can build next block based on the actual stack and locals
                                 if (next == null) {
                                     // New block parameter types are calculated from the actual stack
-                                    next = new CodeBlock(entryBlock.block(stack.stream().map(Value::type).toList()), locals);
+                                    next = entryBlock.block(stack.stream().map(Value::type).toList());
                                     blockMap.put(lt.label(), next);
                                 }
                                 // Implicit goto next block, add explicitly
                                 // Use stack content as next block arguments
-                                currentBlock.op(CoreOps.branch(next.blockBuilder.successor(List.copyOf(stack))));
+                                currentBlock.op(CoreOps.branch(next.successor(List.copyOf(stack))));
                             }
                             if (next != null) {
                                 // We know the next block so we can continue
-                                currentBlock = next.blockBuilder;
+                                currentBlock = next;
                                 // Stack is reconstructed from block parameters
                                 stack.clear();
                                 currentBlock.parameters().forEach(stack::add);
-                                locals = next.locals;
                                 // Insert relevant tryStart and construct handler blocks, all in reversed order
                                 for (ExceptionCatch ec : codeModel.exceptionHandlers().reversed()) {
                                     if (lt.label() == ec.tryStart()) {
                                         // Get or create handler with the exception as parameter
-                                        CodeBlock handler = blockMap.getOrCreate(ec.handler(),
-                                                List.of(TypeDesc.ofNominalDescriptor(ec.catchType().map(ClassEntry::asSymbol).orElse(ConstantDescs.CD_Throwable))), locals);
+                                        Block.Builder handler = blockMap.computeIfAbsent(ec.handler(), _ ->
+                                                entryBlock.block(List.of(TypeDesc.ofNominalDescriptor(
+                                                        ec.catchType().map(ClassEntry::asSymbol).orElse(ConstantDescs.CD_Throwable)))));
                                         // Create start block
-                                        Block.Builder startBlock = entryBlock.block(stack.stream().map(Value::type).toList());
-                                        ExceptionRegionEnter ere = CoreOps.exceptionRegionEnter(startBlock.successor(List.copyOf(stack)), handler.blockBuilder.successor());
+                                        next = entryBlock.block(stack.stream().map(Value::type).toList());
+                                        ExceptionRegionEnter ere = CoreOps.exceptionRegionEnter(next.successor(List.copyOf(stack)), handler.successor());
                                         currentBlock.op(ere);
                                         // Store ERE into map for exit
                                         exceptionRegionsMap.put(ec, ere.result());
-                                        currentBlock = startBlock;
+                                        currentBlock = next;
                                         // Stack is reconstructed from block parameters
                                         stack.clear();
                                         currentBlock.parameters().forEach(stack::add);
@@ -157,9 +144,9 @@ public final class BytecodeLift {
                                 for (ExceptionCatch ec : codeModel.exceptionHandlers()) {
                                     if (lt.label() == ec.tryEnd()) {
                                         // Create exit block with parameters constructed from the stack
-                                        Block.Builder endBlock = entryBlock.block(stack.stream().map(Value::type).toList());
-                                        currentBlock.op(CoreOps.exceptionRegionExit(exceptionRegionsMap.get(ec), endBlock.successor()));
-                                        currentBlock = endBlock;
+                                        next = entryBlock.block(stack.stream().map(Value::type).toList());
+                                        currentBlock.op(CoreOps.exceptionRegionExit(exceptionRegionsMap.get(ec), next.successor()));
+                                        currentBlock = next;
                                         // Stack is reconstructed from block parameters
                                         stack.clear();
                                         currentBlock.parameters().forEach(stack::add);
@@ -178,8 +165,8 @@ public final class BytecodeLift {
                         }
                         case BranchInstruction inst when inst.opcode().isUnconditionalBranch() -> {
                             // Get or create target block with parameters constructed from the stack
-                            currentBlock.op(CoreOps.branch(blockMap.getOrCreate(inst.target(), stack, locals)
-                                    .blockBuilder.successor(List.copyOf(stack))));
+                            currentBlock.op(CoreOps.branch(blockMap.computeIfAbsent(inst.target(), _ ->
+                                    entryBlock.block(stack.stream().map(Value::type).toList())).successor(List.copyOf(stack))));
                             // Flow discontinued, stack cleared to be ready for the next label target
                             stack.clear();
                             currentBlock = null;
@@ -206,11 +193,11 @@ public final class BytecodeLift {
                                 throw new UnsupportedOperationException("Operands on stack for branch not supported");
                             }
                             Block.Builder nextBlock = currentBlock.block();
-                            currentBlock.op(CoreOps.conditionalBranch(
-                                    currentBlock.op(cop),
+                            currentBlock.op(CoreOps.conditionalBranch(currentBlock.op(cop),
                                     nextBlock.successor(),
                                     // Get or create target block
-                                    blockMap.getOrCreate(inst.target(), stack, locals).blockBuilder.successor()));
+                                    blockMap.computeIfAbsent(inst.target(), _ ->
+                                            entryBlock.block(stack.stream().map(Value::type).toList())).successor()));
                             currentBlock = nextBlock;
                         }
         //                case LookupSwitchInstruction si -> {
@@ -248,13 +235,12 @@ public final class BytecodeLift {
                             Value operand = stack.pop();
                             Op.Result local = locals.get(inst.slot());
                             if (local == null) {
-                                locals.put(inst.slot(), currentBlock.op(CoreOps.var(Integer.toString(uniqueVariableName), operand)));
+                                locals.put(inst.slot(), currentBlock.op(CoreOps.var(Integer.toString(varIndex++), operand)));
                             } else {
                                 TypeDesc varType = ((CoreOps.VarOp) local.op()).varType();
                                 if (!operand.type().equals(varType)) {
-                                    // Fork locals to override the slot
-                                    locals = new HashMap<>(locals);
-                                    locals.put(inst.slot(), currentBlock.op(CoreOps.var(Integer.toString(uniqueVariableName++), operand)));
+                                    // @@@ How to override local slots?
+                                    locals.put(varIndex, currentBlock.op(CoreOps.var(Integer.toString(varIndex++), operand)));
                                 } else {
                                     currentBlock.op(CoreOps.varStore(local, operand));
                                 }
