@@ -800,10 +800,11 @@ public class ReflectMethods extends TreeTranslator {
                             FieldDesc fd = symbolToFieldDesc(sym, symbolSiteType(sym));
 
                             Op.Result lhsOpValue;
+                            TypeDesc resultType = typeToDesc(sym.type);
                             if (sym.isStatic()) {
-                                lhsOpValue = append(CoreOps.fieldLoad(fd));
+                                lhsOpValue = append(CoreOps.fieldLoad(resultType, fd));
                             } else {
-                                lhsOpValue = append(CoreOps.fieldLoad(fd, thisValue()));
+                                lhsOpValue = append(CoreOps.fieldLoad(resultType, fd, thisValue()));
                             }
                             // Scan the rhs
                             Value r = scanRhs.apply(lhsOpValue);
@@ -829,10 +830,11 @@ public class ReflectMethods extends TreeTranslator {
                     FieldDesc fd = symbolToFieldDesc(sym, assign.selected.type);
 
                     Op.Result lhsOpValue;
+                    TypeDesc resultType = typeToDesc(sym.type); // why not sym.type
                     if (sym.isStatic()) {
-                        lhsOpValue = append(CoreOps.fieldLoad(fd));
+                        lhsOpValue = append(CoreOps.fieldLoad(resultType, fd));
                     } else {
-                        lhsOpValue = append(CoreOps.fieldLoad(fd, receiver));
+                        lhsOpValue = append(CoreOps.fieldLoad(resultType, fd, receiver));
                     }
                     // Scan the rhs
                     Value r = scanRhs.apply(lhsOpValue);
@@ -880,10 +882,12 @@ public class ReflectMethods extends TreeTranslator {
                         result = thisValue();
                     } else {
                         FieldDesc fd = symbolToFieldDesc(sym, symbolSiteType(sym));
+                        // @@@ for now, for field of generic type, result type is the upper bound
+                        TypeDesc resultType = typeToDesc(sym.type);
                         if (sym.isStatic()) {
-                            result = append(CoreOps.fieldLoad(fd));
+                            result = append(CoreOps.fieldLoad(resultType, fd));
                         } else {
-                            result = append(CoreOps.fieldLoad(fd, thisValue()));
+                            result = append(CoreOps.fieldLoad(resultType, fd, thisValue()));
                         }
                     }
                 }
@@ -930,10 +934,11 @@ public class ReflectMethods extends TreeTranslator {
                     case FIELD, ENUM_CONSTANT -> {
                         FieldDesc fd = symbolToFieldDesc(sym, qualifierTarget.hasTag(NONE) ?
                                 tree.selected.type : qualifierTarget);
+                        TypeDesc resultType = typeToDesc(types.memberType(tree.selected.type, sym));
                         if (sym.isStatic()) {
-                            result = append(CoreOps.fieldLoad(fd));
+                            result = append(CoreOps.fieldLoad(resultType, fd));
                         } else {
-                            result = append(CoreOps.fieldLoad(fd, receiver));
+                            result = append(CoreOps.fieldLoad(resultType, fd, receiver));
                         }
                     }
                     case INTERFACE, CLASS, ENUM -> {

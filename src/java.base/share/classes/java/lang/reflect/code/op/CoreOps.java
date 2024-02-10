@@ -1427,6 +1427,8 @@ public final class CoreOps {
         public static final class FieldLoadOp extends FieldAccessOp implements Op.Pure {
             public static final String NAME = "field.load";
 
+            final TypeDesc resultType;
+
             public static FieldLoadOp create(OpDefinition def) {
                 if (def.operands().size() > 1) {
                     throw new IllegalArgumentException("Operation must accept zero or one operand");
@@ -1443,10 +1445,14 @@ public final class CoreOps {
 
             FieldLoadOp(OpDefinition opdef, FieldDesc fieldDescriptor) {
                 super(opdef, fieldDescriptor);
+
+                resultType = opdef.resultType();
             }
 
             FieldLoadOp(FieldLoadOp that, CopyContext cc) {
                 super(that, cc);
+
+                resultType = that.resultType();
             }
 
             @Override
@@ -1456,19 +1462,32 @@ public final class CoreOps {
 
             // instance
             FieldLoadOp(FieldDesc descriptor, Value receiver) {
-                super(NAME,
-                        List.of(receiver), descriptor);
+                super(NAME, List.of(receiver), descriptor);
+                resultType = descriptor.type();
+            }
+
+            FieldLoadOp(TypeDesc resultType, FieldDesc descriptor, Value receiver) {
+                super(NAME, List.of(receiver), descriptor);
+
+                this.resultType = resultType;
             }
 
             // static
             FieldLoadOp(FieldDesc descriptor) {
-                super(NAME,
-                        List.of(), descriptor);
+                super(NAME, List.of(), descriptor);
+
+                resultType = descriptor.type();
+            }
+
+            FieldLoadOp(TypeDesc resultType, FieldDesc descriptor) {
+                super(NAME, List.of(), descriptor);
+
+                this.resultType = resultType;
             }
 
             @Override
             public TypeDesc resultType() {
-                return fieldDescriptor().type();
+                return resultType;
             }
         }
 
@@ -3347,12 +3366,36 @@ public final class CoreOps {
     }
 
     /**
+     * Creates a field load operation to a non-static field.
+     *
+     * @param resultType the result type of the operation
+     * @param descriptor the field descriptor
+     * @param receiver the receiver value
+     * @return the field load operation
+     */
+    public static FieldAccessOp.FieldLoadOp fieldLoad(TypeDesc resultType, FieldDesc descriptor, Value receiver) {
+        return new FieldAccessOp.FieldLoadOp(resultType, descriptor, receiver);
+    }
+
+    /**
      * Creates a field load operation to a static field.
      *
+     * @param descriptor the field descriptor
      * @return the field load operation
      */
     public static FieldAccessOp.FieldLoadOp fieldLoad(FieldDesc descriptor) {
         return new FieldAccessOp.FieldLoadOp(descriptor);
+    }
+
+    /**
+     * Creates a field load operation to a static field.
+     *
+     * @param resultType the result type of the operation
+     * @param descriptor the field descriptor
+     * @return the field load operation
+     */
+    public static FieldAccessOp.FieldLoadOp fieldLoad(TypeDesc resultType, FieldDesc descriptor) {
+        return new FieldAccessOp.FieldLoadOp(resultType, descriptor);
     }
 
     /**

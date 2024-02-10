@@ -635,4 +635,32 @@ public class FieldAccessTest {
     void test24() {
         PrintStream ps = out;
     }
+
+    static class Box<T> {
+        public T v;
+
+        public Box(T v) {
+            this.v = v;
+        }
+    }
+
+    @CodeReflection
+    @IR("""
+            func @"test25" ()void -> {
+                  %0 : java.lang.String = constant @"abc";
+                  %1 : FieldAccessTest$Box<java.lang.String> = new %0 @"(java.lang.Object)FieldAccessTest$Box";
+                  %2 : Var<FieldAccessTest$Box<java.lang.String>> = var %1 @"b";
+                  %3 : FieldAccessTest$Box<java.lang.String> = var.load %2;
+                  %4 : java.lang.String = field.load %3 @"FieldAccessTest$Box::v()java.lang.Object";
+                  %5 : Var<java.lang.String> = var %4 @"s";
+                  return;
+              };
+            """)
+    static void test25() {
+        Box<String> b = new Box<>("abc");
+        String s = b.v;
+    }
+
+    //@@@ unqualified access to field of generic type needs to be tested
+    // waiting for a new way of modeling types, so that type variables are captured in the IR
 }
