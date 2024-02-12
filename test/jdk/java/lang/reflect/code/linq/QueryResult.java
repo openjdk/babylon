@@ -25,10 +25,10 @@ import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.type.JavaType;
 
 public interface QueryResult<T> {
-    JavaType DESC = JavaType.type(QueryResult.class);
+    JavaType TYPE = JavaType.type(QueryResult.class);
 
     // T
-    JavaType resultDesc();
+    JavaType resultType();
 
     // Queryable<T> -> QueryResult<T>
     CoreOps.FuncOp expression();

@@ -32,12 +32,12 @@ import static java.lang.reflect.code.op.CoreOps.*;
 import static java.lang.reflect.code.type.JavaType.type;
 
 public interface Queryable<T> {
-    JavaType DESC = type(Queryable.class);
+    JavaType TYPE = type(Queryable.class);
 
     QueryProvider provider();
 
     // T
-    JavaType elementDesc();
+    JavaType elementType();
 
     // Queryable<T> -> Queryable<U>
     FuncOp expression();
@@ -45,7 +45,7 @@ public interface Queryable<T> {
     @SuppressWarnings("unchecked")
     default Queryable<T> where(QuotablePredicate<T> f) {
         LambdaOp l = (LambdaOp) f.quoted().op();
-        return (Queryable<T>) insertQuery(elementDesc(), "where", l);
+        return (Queryable<T>) insertQuery(elementType(), "where", l);
     }
 
     @SuppressWarnings("unchecked")
@@ -54,51 +54,51 @@ public interface Queryable<T> {
         return (Queryable<R>) insertQuery((JavaType) l.funcDescriptor().returnType(), "select", l);
     }
 
-    private Queryable<?> insertQuery(JavaType elementDesc, String methodName, LambdaOp lambdaOp) {
+    private Queryable<?> insertQuery(JavaType elementType, String methodName, LambdaOp lambdaOp) {
         // Copy function expression, replacing return operation
         FuncOp queryExpression = expression();
-        JavaType queryableDesc = type(Queryable.DESC, elementDesc);
+        JavaType queryableType = type(Queryable.TYPE, elementType);
         FuncOp nextQueryExpression = func("query",
-                methodType(queryableDesc, queryExpression.funcDescriptor().parameters()))
+                methodType(queryableType, queryExpression.funcDescriptor().parameters()))
                 .body(b -> b.inline(queryExpression, b.parameters(), (block, query) -> {
                     Op.Result fi = block.op(lambdaOp);
 
-                    MethodDesc md = method(Queryable.DESC, methodName,
-                            methodType(Queryable.DESC, ((JavaType) lambdaOp.functionalInterface()).rawType()));
-                    Op.Result queryable = block.op(invoke(queryableDesc, md, query, fi));
+                    MethodDesc md = method(Queryable.TYPE, methodName,
+                            methodType(Queryable.TYPE, ((JavaType) lambdaOp.functionalInterface()).rawType()));
+                    Op.Result queryable = block.op(invoke(queryableType, md, query, fi));
 
                     block.op(_return(queryable));
                 }));
 
-        return provider().createQuery(elementDesc, nextQueryExpression);
+        return provider().createQuery(elementType, nextQueryExpression);
     }
 
     @SuppressWarnings("unchecked")
     default QueryResult<Stream<T>> elements() {
-        JavaType resultDesc = type(type(Stream.class), elementDesc());
-        return (QueryResult<Stream<T>>) insertQueryResult(resultDesc, "elements");
+        JavaType resultType = type(type(Stream.class), elementType());
+        return (QueryResult<Stream<T>>) insertQueryResult(resultType, "elements");
     }
 
     @SuppressWarnings("unchecked")
     default QueryResult<Long> count() {
-        JavaType resultDesc = JavaType.LONG;
-        return (QueryResult<Long>) insertQueryResult(resultDesc, "count");
+        JavaType resultType = JavaType.LONG;
+        return (QueryResult<Long>) insertQueryResult(resultType, "count");
     }
 
-    private QueryResult<?> insertQueryResult(JavaType resultDesc, String methodName) {
+    private QueryResult<?> insertQueryResult(JavaType resultType, String methodName) {
         // Copy function expression, replacing return operation
         FuncOp queryExpression = expression();
-        JavaType queryResultDesc = JavaType.type(QueryResult.DESC, resultDesc);
+        JavaType queryResultType = JavaType.type(QueryResult.TYPE, resultType);
         FuncOp queryResultExpression = func("queryResult",
-                methodType(queryResultDesc, queryExpression.funcDescriptor().parameters()))
+                methodType(queryResultType, queryExpression.funcDescriptor().parameters()))
                 .body(b -> b.inline(queryExpression, b.parameters(), (block, query) -> {
-                    MethodDesc md = method(Queryable.DESC, methodName,
-                            methodType(QueryResult.DESC));
-                    Op.Result queryResult = block.op(invoke(queryResultDesc, md, query));
+                    MethodDesc md = method(Queryable.TYPE, methodName,
+                            methodType(QueryResult.TYPE));
+                    Op.Result queryResult = block.op(invoke(queryResultType, md, query));
 
                     block.op(_return(queryResult));
                 }));
 
-        return provider().createQueryResult(resultDesc, queryResultExpression);
+        return provider().createQueryResult(resultType, queryResultExpression);
     }
 }
