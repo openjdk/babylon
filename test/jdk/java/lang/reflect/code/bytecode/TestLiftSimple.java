@@ -55,12 +55,10 @@ public class TestLiftSimple {
         CoreOps.FuncOp f = getFuncOp("f");
         byte[] classdata = generate(f);
 
-        CoreOps.FuncOp flift = BytecodeLift.liftToBytecodeDialect(classdata, "f");
+        CoreOps.FuncOp flift = BytecodeLift.lift(classdata, "f");
         flift.writeTo(System.out);
-        CoreOps.FuncOp fliftcore = BytecodeLift.liftToCoreDialect(flift);
-        fliftcore.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(fliftcore, 1, 1), f(1, 1));
+        Assert.assertEquals(Interpreter.invoke(flift, 1, 1), f(1, 1));
     }
 
     @CodeReflection
@@ -75,12 +73,10 @@ public class TestLiftSimple {
         CoreOps.FuncOp f = getFuncOp("f2");
         byte[] classdata = generate(f);
 
-        CoreOps.FuncOp flift = BytecodeLift.liftToBytecodeDialect(classdata, "f2");
+        CoreOps.FuncOp flift = BytecodeLift.lift(classdata, "f2");
         flift.writeTo(System.out);
-        CoreOps.FuncOp fliftcore = BytecodeLift.liftToCoreDialect(flift);
-        fliftcore.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(fliftcore), f2());
+        Assert.assertEquals(Interpreter.invoke(flift), f2());
     }
 
     static byte[] generate(CoreOps.FuncOp f) {

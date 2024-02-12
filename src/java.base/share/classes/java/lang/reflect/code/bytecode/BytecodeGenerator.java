@@ -135,11 +135,10 @@ public final class BytecodeGenerator {
         Block args need to have a fixed mapping to locals, unless the stack is used.
      */
 
-    static final class ConversionContext implements BytecodeInstructionOps.MethodVisitorContext {
+    static final class ConversionContext {
         final MethodHandles.Lookup lookup;
         final Liveness liveness;
         final CodeBuilder cb;
-        final Deque<BytecodeInstructionOps.ExceptionTableStart> labelStack;
         final Map<Object, Label> labels;
         final Map<Block, LiveSlotSet> liveSet;
         Block current;
@@ -149,18 +148,11 @@ public final class BytecodeGenerator {
             this.lookup = lookup;
             this.liveness = liveness;
             this.cb = cb;
-            this.labelStack = new ArrayDeque<>();
             this.labels = new HashMap<>();
             this.liveSet = new HashMap<>();
             this.catchingBlocks = new HashSet<>();
         }
 
-        @Override
-        public Deque<BytecodeInstructionOps.ExceptionTableStart> exceptionRegionStack() {
-            return labelStack;
-        }
-
-        @Override
         public Label getLabel(Object b) {
             return labels.computeIfAbsent(b, _b -> cb.newLabel());
         }
