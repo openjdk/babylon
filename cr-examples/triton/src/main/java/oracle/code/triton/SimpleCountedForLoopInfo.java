@@ -28,11 +28,11 @@ package oracle.code.triton;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.analysis.Patterns;
-import java.lang.reflect.code.descriptor.TypeDesc;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.op.CoreOps.VarAccessOp.VarLoadOp;
 import java.lang.reflect.code.op.CoreOps.VarAccessOp.VarStoreOp;
 import java.lang.reflect.code.op.ExtendedOps;
+import java.lang.reflect.code.type.JavaType;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,7 +46,7 @@ public class SimpleCountedForLoopInfo {
     SimpleCountedForLoopInfo(ExtendedOps.JavaForOp fop) {
         this.fop = fop;
 
-        if (fop.init().yieldType().equals(TypeDesc.VOID)) {
+        if (fop.init().yieldType().equals(JavaType.VOID)) {
             throw new IllegalArgumentException("Loop variable externally initialized");
         }
         if (fop.loopBody().entryBlock().parameters().size() > 1) {

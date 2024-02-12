@@ -27,8 +27,9 @@ package oracle.code.triton;
 
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.descriptor.MethodTypeDesc;
-import java.lang.reflect.code.descriptor.TypeDesc;
 import java.lang.reflect.code.op.*;
+import java.lang.reflect.code.type.JavaType;
+import java.lang.reflect.code.type.TupleType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -90,7 +91,7 @@ public class SCFOps {
         }
 
         @Override
-        public TypeDesc resultType() {
+        public TypeElement resultType() {
             return body.yieldType();
         }
 
@@ -127,15 +128,15 @@ public class SCFOps {
         }
 
         @Override
-        public TypeDesc resultType() {
-            return TypeDesc.VOID;
+        public TypeElement resultType() {
+            return JavaType.VOID;
         }
 
-        static TypeDesc yieldType(List<Value> values) {
+        static TypeElement yieldType(List<Value> values) {
             if (values.size() == 1) {
                 return values.get(0).type();
             } else {
-                return CoreOps.Tuple.typeFromValues(values);
+                return TupleType.tupleTypeFromValues(values);
             }
         }
     }
@@ -143,11 +144,11 @@ public class SCFOps {
     static public ForOp.Builder for_(Body.Builder ancestorBody,
                                      Value start, Value end, Value step,
                                      List<Value> iterValues) {
-        TypeDesc yieldType = (iterValues.size() == 1)
+        TypeElement yieldType = (iterValues.size() == 1)
                 ? iterValues.get(0).type()
-                : CoreOps.Tuple.typeFromValues(iterValues);
+                : TupleType.tupleTypeFromValues(iterValues);
 
-        List<TypeDesc> bodyParameterTypes = new ArrayList<>();
+        List<TypeElement> bodyParameterTypes = new ArrayList<>();
         bodyParameterTypes.add(start.type());
         bodyParameterTypes.addAll(iterValues.stream().map(Value::type).toList());
         MethodTypeDesc bodyType = MethodTypeDesc.methodType(yieldType, bodyParameterTypes);

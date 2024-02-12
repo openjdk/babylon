@@ -25,13 +25,11 @@
 
 package java.lang.reflect.code;
 
-import java.lang.reflect.code.descriptor.MethodTypeDesc;
-import java.lang.reflect.code.descriptor.TypeDesc;
-
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.lang.reflect.code.descriptor.MethodTypeDesc;
 import java.lang.reflect.code.writer.OpWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -87,6 +85,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         /**
          * @return the function descriptor describing the input parameter types and return type.
          */
+        // @@@ Replace with FunctionType
         MethodTypeDesc funcDescriptor();
     }
 
@@ -315,7 +314,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     /**
      * {@return the operation's result type}
      */
-    public abstract TypeDesc resultType();
+    public abstract TypeElement resultType();
 
     /**
      * Returns the operation's descriptor.
@@ -325,8 +324,9 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      *
      * @return the descriptor
      */
+    // @@@ Replace with FunctionType
     public MethodTypeDesc descriptor() {
-        List<TypeDesc> operandTypes = operands.stream().map(Value::type).toList();
+        List<TypeElement> operandTypes = operands.stream().map(Value::type).toList();
         return MethodTypeDesc.methodType(resultType(), operandTypes);
     }
 

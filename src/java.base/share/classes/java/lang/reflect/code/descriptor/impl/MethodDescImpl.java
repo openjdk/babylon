@@ -27,26 +27,27 @@ package java.lang.reflect.code.descriptor.impl;
 
 import java.lang.reflect.code.descriptor.MethodDesc;
 import java.lang.reflect.code.descriptor.MethodTypeDesc;
-import java.lang.reflect.code.descriptor.TypeDesc;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandleInfo;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Method;
+import java.lang.reflect.code.type.JavaType;
+import java.lang.reflect.code.TypeElement;
 
 public final class MethodDescImpl implements MethodDesc {
-    final TypeDesc refType;
+    final TypeElement refType;
     final String name;
     final MethodTypeDesc type;
 
-    public MethodDescImpl(TypeDesc refType, String name, MethodTypeDesc type) {
+    public MethodDescImpl(TypeElement refType, String name, MethodTypeDesc type) {
         this.refType = refType;
         this.name = name;
         this.type = type;
     }
 
     @Override
-    public TypeDesc refType() {
+    public TypeElement refType() {
         return refType;
     }
 
@@ -69,8 +70,8 @@ public final class MethodDescImpl implements MethodDesc {
     @Override
     public MethodHandle resolve(MethodHandles.Lookup l) throws ReflectiveOperationException {
         // @@@ kind
+        Class<?> refC = resolve(l, refType);
 
-        Class<?> refC = refType.resolve(l);
         MethodType mt = type.resolve(l);
 
         MethodHandle mh = null;
@@ -97,6 +98,15 @@ public final class MethodDescImpl implements MethodDesc {
 
         assert mh != null;
         return mh;
+    }
+
+    static Class<?> resolve(MethodHandles.Lookup l, TypeElement t) throws ReflectiveOperationException {
+        if (t instanceof JavaType jt) {
+            return jt.resolve(l);
+        } else {
+            // @@@
+            throw new ReflectiveOperationException();
+        }
     }
 
     @Override

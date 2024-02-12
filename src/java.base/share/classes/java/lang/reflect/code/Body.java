@@ -26,10 +26,7 @@
 package java.lang.reflect.code;
 
 import java.lang.reflect.code.descriptor.MethodTypeDesc;
-import java.lang.reflect.code.descriptor.TypeDesc;
-
 import java.util.*;
-import java.util.function.BiFunction;
 
 /**
  * A body containing a sequence of (basic) blocks.
@@ -56,7 +53,7 @@ public final class Body implements CodeElement<Body, Block> {
     // When non-null and body is built, ancestorBody == parentOp.result.block.parentBody
     final Body ancestorBody;
 
-    final TypeDesc yieldType;
+    final TypeElement yieldType;
 
     // Sorted in reverse postorder
     final List<Block> blocks;
@@ -67,9 +64,8 @@ public final class Body implements CodeElement<Body, Block> {
 
     /**
      * Constructs a body, whose ancestor is the given ancestor body.
-     *
      */
-    Body(Body ancestorBody, TypeDesc yieldType) {
+    Body(Body ancestorBody, TypeElement yieldType) {
         this.ancestorBody = ancestorBody;
         this.yieldType = yieldType;
         this.blocks = new ArrayList<>();
@@ -78,7 +74,7 @@ public final class Body implements CodeElement<Body, Block> {
     /**
      * {@return the yield type of this body}
      */
-    public TypeDesc yieldType() {
+    public TypeElement yieldType() {
         return yieldType;
     }
 
@@ -445,10 +441,11 @@ public final class Body implements CodeElement<Body, Block> {
          * <p>
          * The descriptor is composed of the body's yield type, as the descriptor's return type, and the currently built
          * entry block's parameter types, in order, as the descriptor's parameter types.
+         *
          * @return the body's descriptor
          */
         public MethodTypeDesc descriptor() {
-            TypeDesc returnType = Body.this.yieldType();
+            TypeElement returnType = Body.this.yieldType();
             Block eb = Body.this.entryBlock();
             return MethodTypeDesc.methodType(returnType, eb.parameterTypes());
         }
@@ -489,7 +486,7 @@ public final class Body implements CodeElement<Body, Block> {
         }
 
         // Build new block in body
-        Block.Builder block(List<TypeDesc> params, CopyContext cc, OpTransformer ot) {
+        Block.Builder block(List<TypeElement> params, CopyContext cc, OpTransformer ot) {
             check();
             Block block = Body.this.createBlock(params);
 
@@ -595,7 +592,7 @@ public final class Body implements CodeElement<Body, Block> {
     // Modifying methods
 
     // Create block
-    private Block createBlock(List<TypeDesc> params) {
+    private Block createBlock(List<TypeElement> params) {
         Block b = new Block(this, params);
         blocks.add(b);
         return b;

@@ -6,8 +6,8 @@ import java.lang.runtime.CodeReflection;
 import java.util.Arrays;
 
 import static java.lang.reflect.code.descriptor.MethodTypeDesc.methodType;
-import static java.lang.reflect.code.descriptor.TypeDesc.DOUBLE;
 import static java.lang.reflect.code.op.CoreOps.*;
+import static java.lang.reflect.code.type.JavaType.DOUBLE;
 
 /*
  * @test

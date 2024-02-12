@@ -35,7 +35,7 @@ import java.util.List;
 
 import static java.lang.reflect.code.op.CoreOps.*;
 import static java.lang.reflect.code.descriptor.MethodTypeDesc.methodType;
-import static java.lang.reflect.code.descriptor.TypeDesc.INT;
+import static java.lang.reflect.code.type.JavaType.INT;
 
 /*
  * @test

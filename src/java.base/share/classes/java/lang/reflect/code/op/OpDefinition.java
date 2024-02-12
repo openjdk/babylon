@@ -26,14 +26,14 @@
 package java.lang.reflect.code.op;
 
 import java.lang.reflect.code.*;
-import java.lang.reflect.code.descriptor.TypeDesc;
+import java.lang.reflect.code.TypeElement;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
 /**
- * An operation in generic form that is utilized to construct a concrete subclass of {@code Op},
+ * An operation in general form that is utilized to construct a concrete subclass of {@link Op},
  * such as a subclass of {@link OpWithDefinition}, associated with the operation name.
  *
  * @param name            the operation name
@@ -48,7 +48,7 @@ import java.util.function.Function;
 public record OpDefinition(String name,
                            List<Value> operands,
                            List<Block.Reference> successors,
-                           TypeDesc resultType,
+                           TypeElement resultType,
                            Map<String, Object> attributes,
                            List<Body.Builder> bodyDefinitions) {
 

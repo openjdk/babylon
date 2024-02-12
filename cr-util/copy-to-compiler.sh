@@ -33,6 +33,8 @@ packages="
   $base/descriptor/impl \
   $base/writer \
   $base/op \
+  $base/type \
+  $base/type/impl \
   "
 
 removeclasses=""

@@ -34,7 +34,6 @@ import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.op.CoreOps.FuncOp;
 import java.lang.reflect.code.op.CoreOps.LambdaOp;
 import java.lang.reflect.code.descriptor.MethodDesc;
-import java.lang.reflect.code.descriptor.TypeDesc;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
@@ -49,8 +48,8 @@ import java.util.stream.Stream;
 import static java.lang.reflect.code.op.CoreOps.*;
 import static java.lang.reflect.code.op.CoreOps.constant;
 import static java.lang.reflect.code.descriptor.MethodTypeDesc.methodType;
-import static java.lang.reflect.code.descriptor.TypeDesc.INT;
-import static java.lang.reflect.code.descriptor.TypeDesc.type;
+import static java.lang.reflect.code.type.JavaType.INT;
+import static java.lang.reflect.code.type.JavaType.type;
 
 @Test
 public class TestLambdaOps {
@@ -154,7 +153,7 @@ public class TestLambdaOps {
         Assert.assertTrue(top instanceof CoreOps.FuncOp);
 
         CoreOps.FuncOp fop = (CoreOps.FuncOp) top;
-        Assert.assertEquals(TypeDesc.type(Quoted.class, LambdaOp.class), fop.funcDescriptor().returnType());
+        Assert.assertEquals(type(Quoted.class, LambdaOp.class), fop.funcDescriptor().returnType());
     }
 
     @FunctionalInterface

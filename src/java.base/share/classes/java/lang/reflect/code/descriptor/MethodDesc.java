@@ -1,5 +1,3 @@
-package java.lang.reflect.code.descriptor;
-
 /*
  * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -25,12 +23,16 @@ package java.lang.reflect.code.descriptor;
  * questions.
  */
 
+package java.lang.reflect.code.descriptor;
+
 import java.lang.reflect.code.descriptor.impl.MethodDescImpl;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Executable;
 import java.lang.reflect.Method;
+import java.lang.reflect.code.type.JavaType;
+import java.lang.reflect.code.TypeElement;
 import java.util.List;
 
 import static java.lang.reflect.code.descriptor.MethodTypeDesc.methodType;
@@ -48,7 +50,7 @@ import static java.lang.reflect.code.descriptor.MethodTypeDesc.methodType;
 //  We can infer the kind, if we can resolve the types and lookup the declared method
 public sealed interface MethodDesc permits MethodDescImpl {
 
-    TypeDesc refType();
+    TypeElement refType();
 
     String name();
 
@@ -67,33 +69,33 @@ public sealed interface MethodDesc permits MethodDescImpl {
     }
 
     static MethodDesc method(Class<?> refType, String name, MethodType mt) {
-        return method(TypeDesc.type(refType), name, MethodTypeDesc.methodType(mt));
+        return method(JavaType.type(refType), name, MethodTypeDesc.methodType(mt));
     }
 
     static MethodDesc method(Class<?> refType, String name, Class<?> retType, Class<?>... params) {
-        return method(TypeDesc.type(refType), name, methodType(retType, params));
+        return method(JavaType.type(refType), name, methodType(retType, params));
     }
 
     static MethodDesc method(Class<?> refType, String name, Class<?> retType, List<Class<?>> params) {
-        return method(TypeDesc.type(refType), name, methodType(retType, params));
+        return method(JavaType.type(refType), name, methodType(retType, params));
     }
 
     static MethodDesc initMethod(MethodTypeDesc mt) {
         return new MethodDescImpl(
                 mt.returnType(),
                 "<init>",
-                MethodTypeDesc.methodType(TypeDesc.VOID, mt.parameters()));
+                MethodTypeDesc.methodType(JavaType.VOID, mt.parameters()));
     }
 
-    static MethodDesc method(TypeDesc refType, String name, MethodTypeDesc type) {
+    static MethodDesc method(TypeElement refType, String name, MethodTypeDesc type) {
         return new MethodDescImpl(refType, name, type);
     }
 
-    static MethodDesc method(TypeDesc refType, String name, TypeDesc retType, TypeDesc... params) {
+    static MethodDesc method(TypeElement refType, String name, TypeElement retType, TypeElement... params) {
         return method(refType, name, methodType(retType, params));
     }
 
-    static MethodDesc method(TypeDesc refType, String name, TypeDesc retType, List<TypeDesc> params) {
+    static MethodDesc method(TypeElement refType, String name, TypeElement retType, List<? extends TypeElement> params) {
         return method(refType, name, methodType(retType, params));
     }
 

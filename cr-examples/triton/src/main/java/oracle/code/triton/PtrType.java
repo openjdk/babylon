@@ -26,10 +26,10 @@
 package oracle.code.triton;
 
 import java.lang.reflect.Type;
-import java.lang.reflect.code.descriptor.TypeDesc;
 import java.util.Objects;
 
 public final class PtrType extends TritonType {
+    static final String NAME = "ptr";
     final Type rType;
 
     public PtrType(Type rType) {
@@ -38,11 +38,6 @@ public final class PtrType extends TritonType {
 
     public Type rType() {
         return rType;
-    }
-
-    @Override
-    public TypeDesc toDesc() {
-        return TypeDesc.type(TritonOps.TYPE_Ptr, fromType(rType));
     }
 
     @Override
@@ -60,6 +55,6 @@ public final class PtrType extends TritonType {
 
     @Override
     public String toString() {
-        return toDesc().toString();
+        return NAME + "<" + TritonType.fromType(rType) + ">";
     }
 }

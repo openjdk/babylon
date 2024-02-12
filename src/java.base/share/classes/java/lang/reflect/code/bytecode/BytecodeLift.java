@@ -38,14 +38,15 @@ import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
 
 import java.lang.reflect.code.Block;
+import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.descriptor.FieldDesc;
 import java.lang.reflect.code.descriptor.MethodDesc;
 import java.lang.reflect.code.descriptor.MethodTypeDesc;
-import java.lang.reflect.code.descriptor.TypeDesc;
 import java.lang.reflect.code.op.CoreOps.ExceptionRegionEnter;
+import java.lang.reflect.code.type.JavaType;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -126,7 +127,7 @@ public final class BytecodeLift {
                                     if (lt.label() == ec.tryStart()) {
                                         // Get or create handler with the exception as parameter
                                         Block.Builder handler = blockMap.computeIfAbsent(ec.handler(), _ ->
-                                                entryBlock.block(List.of(TypeDesc.ofNominalDescriptor(
+                                                entryBlock.block(List.of(JavaType.ofNominalDescriptor(
                                                         ec.catchType().map(ClassEntry::asSymbol).orElse(ConstantDescs.CD_Throwable)))));
                                         // Create start block
                                         next = entryBlock.block(stack.stream().map(Value::type).toList());
@@ -175,12 +176,12 @@ public final class BytecodeLift {
                             // Conditional branch
                             Value operand = stack.pop();
                             Op cop = switch (inst.opcode()) {
-                                case IFNE -> CoreOps.eq(operand, currentBlock.op(CoreOps.constant(TypeDesc.INT, 0)));
-                                case IFEQ -> CoreOps.neq(operand, currentBlock.op(CoreOps.constant(TypeDesc.INT, 0)));
-                                case IFGE -> CoreOps.lt(operand, currentBlock.op(CoreOps.constant(TypeDesc.INT, 0)));
-                                case IFLE -> CoreOps.gt(operand, currentBlock.op(CoreOps.constant(TypeDesc.INT, 0)));
-                                case IFGT -> CoreOps.le(operand, currentBlock.op(CoreOps.constant(TypeDesc.INT, 0)));
-                                case IFLT -> CoreOps.ge(operand, currentBlock.op(CoreOps.constant(TypeDesc.INT, 0)));
+                                case IFNE -> CoreOps.eq(operand, currentBlock.op(CoreOps.constant(JavaType.INT, 0)));
+                                case IFEQ -> CoreOps.neq(operand, currentBlock.op(CoreOps.constant(JavaType.INT, 0)));
+                                case IFGE -> CoreOps.lt(operand, currentBlock.op(CoreOps.constant(JavaType.INT, 0)));
+                                case IFLE -> CoreOps.gt(operand, currentBlock.op(CoreOps.constant(JavaType.INT, 0)));
+                                case IFGT -> CoreOps.le(operand, currentBlock.op(CoreOps.constant(JavaType.INT, 0)));
+                                case IFLT -> CoreOps.ge(operand, currentBlock.op(CoreOps.constant(JavaType.INT, 0)));
                                 case IF_ICMPNE -> CoreOps.eq(stack.pop(), operand);
                                 case IF_ICMPEQ -> CoreOps.neq(stack.pop(), operand);
                                 case IF_ICMPGE -> CoreOps.lt(stack.pop(), operand);
@@ -237,7 +238,7 @@ public final class BytecodeLift {
                             if (local == null) {
                                 locals.put(inst.slot(), currentBlock.op(CoreOps.var(Integer.toString(varIndex++), operand)));
                             } else {
-                                TypeDesc varType = ((CoreOps.VarOp) local.op()).varType();
+                                TypeElement varType = ((CoreOps.VarOp) local.op()).varType();
                                 if (!operand.type().equals(varType)) {
                                     // @@@ How to override local slots?
                                     locals.put(varIndex, currentBlock.op(CoreOps.var(Integer.toString(varIndex++), operand)));
@@ -250,16 +251,16 @@ public final class BytecodeLift {
                             Op.Result local = locals.get(inst.slot());
                             currentBlock.op(CoreOps.varStore(local, currentBlock.op(CoreOps.add(
                                     currentBlock.op(CoreOps.varLoad(local)),
-                                    currentBlock.op(CoreOps.constant(TypeDesc.INT, inst.constant()))))));
+                                    currentBlock.op(CoreOps.constant(JavaType.INT, inst.constant()))))));
                         }
                         case ConstantInstruction inst -> {
                             stack.push(currentBlock.op(switch (inst.constantValue()) {
-                                case ClassDesc v -> CoreOps.constant(TypeDesc.J_L_CLASS, TypeDesc.ofNominalDescriptor(v));
-                                case Double v -> CoreOps.constant(TypeDesc.DOUBLE, v);
-                                case Float v -> CoreOps.constant(TypeDesc.FLOAT, v);
-                                case Integer v -> CoreOps.constant(TypeDesc.INT, v);
-                                case Long v -> CoreOps.constant(TypeDesc.LONG, v);
-                                case String v -> CoreOps.constant(TypeDesc.J_L_STRING, v);
+                                case ClassDesc v -> CoreOps.constant(JavaType.J_L_CLASS, JavaType.ofNominalDescriptor(v));
+                                case Double v -> CoreOps.constant(JavaType.DOUBLE, v);
+                                case Float v -> CoreOps.constant(JavaType.FLOAT, v);
+                                case Integer v -> CoreOps.constant(JavaType.INT, v);
+                                case Long v -> CoreOps.constant(JavaType.LONG, v);
+                                case String v -> CoreOps.constant(JavaType.J_L_STRING, v);
                                 default ->
                                     // @@@ MethodType, MethodHandle, ConstantDynamic
                                     throw new IllegalArgumentException("Unsupported constant value: " + inst.constantValue());
@@ -288,9 +289,9 @@ public final class BytecodeLift {
                         }
                         case FieldInstruction inst -> {
                                 FieldDesc fd = FieldDesc.field(
-                                        TypeDesc.ofNominalDescriptor(inst.owner().asSymbol()),
+                                        JavaType.ofNominalDescriptor(inst.owner().asSymbol()),
                                         inst.name().stringValue(),
-                                        TypeDesc.ofNominalDescriptor(inst.typeSymbol()));
+                                        JavaType.ofNominalDescriptor(inst.typeSymbol()));
                                 switch (inst.opcode()) {
                                     case GETFIELD ->
                                         stack.push(currentBlock.op(CoreOps.fieldLoad(fd, stack.pop())));
@@ -321,7 +322,10 @@ public final class BytecodeLift {
                             for (var _ : mType.parameters()) {
                                 operands.add(stack.pop());
                             }
-                            MethodDesc mDesc = MethodDesc.method(TypeDesc.ofNominalDescriptor(inst.owner().asSymbol()), inst.name().stringValue(), mType);
+                            MethodDesc mDesc = MethodDesc.method(
+                                    JavaType.ofNominalDescriptor(inst.owner().asSymbol()),
+                                    inst.name().stringValue(),
+                                    mType);
                             Op.Result result = switch (inst.opcode()) {
                                 case INVOKEVIRTUAL, INVOKEINTERFACE -> {
                                     operands.add(stack.pop());
@@ -344,7 +348,7 @@ public final class BytecodeLift {
                                 default ->
                                     throw new IllegalArgumentException("Unsupported invocation opcode: " + inst.opcode());
                             };
-                            if (!result.type().equals(TypeDesc.VOID)) {
+                            if (!result.type().equals(JavaType.VOID)) {
                                 stack.push(result);
                             }
                         }
@@ -363,14 +367,14 @@ public final class BytecodeLift {
                         case NewPrimitiveArrayInstruction inst -> {
                             stack.push(currentBlock.op(CoreOps.newArray(
                                     switch (inst.typeKind()) {
-                                        case BooleanType -> TypeDesc.BOOLEAN_ARRAY;
-                                        case ByteType -> TypeDesc.BYTE_ARRAY;
-                                        case CharType -> TypeDesc.CHAR_ARRAY;
-                                        case DoubleType -> TypeDesc.DOUBLE_ARRAY;
-                                        case FloatType -> TypeDesc.FLOAT_ARRAY;
-                                        case IntType -> TypeDesc.INT_ARRAY;
-                                        case LongType -> TypeDesc.LONG_ARRAY;
-                                        case ShortType -> TypeDesc.SHORT_ARRAY;
+                                        case BooleanType -> JavaType.BOOLEAN_ARRAY;
+                                        case ByteType -> JavaType.BYTE_ARRAY;
+                                        case CharType -> JavaType.CHAR_ARRAY;
+                                        case DoubleType -> JavaType.DOUBLE_ARRAY;
+                                        case FloatType -> JavaType.FLOAT_ARRAY;
+                                        case IntType -> JavaType.INT_ARRAY;
+                                        case LongType -> JavaType.LONG_ARRAY;
+                                        case ShortType -> JavaType.SHORT_ARRAY;
                                         default ->
                                                 throw new UnsupportedOperationException("Unsupported new primitive array type: " + inst.typeKind());
                                     },
@@ -378,18 +382,18 @@ public final class BytecodeLift {
                         }
                         case NewReferenceArrayInstruction inst -> {
                             stack.push(currentBlock.op(CoreOps.newArray(
-                                    TypeDesc.type(TypeDesc.ofNominalDescriptor(inst.componentType().asSymbol()), 1),
+                                    JavaType.type(JavaType.ofNominalDescriptor(inst.componentType().asSymbol()), 1),
                                     stack.pop())));
                         }
                         case NewMultiArrayInstruction inst -> {
                             stack.push(currentBlock.op(CoreOps._new(
                                     MethodTypeDesc.methodType(
-                                            TypeDesc.ofNominalDescriptor(inst.arrayType().asSymbol()),
-                                            Collections.nCopies(inst.dimensions(), TypeDesc.INT)),
+                                            JavaType.ofNominalDescriptor(inst.arrayType().asSymbol()),
+                                            Collections.nCopies(inst.dimensions(), JavaType.INT)),
                                     IntStream.range(0, inst.dimensions()).mapToObj(_ -> stack.pop()).toList().reversed())));
                         }
                         case TypeCheckInstruction inst when inst.opcode() == Opcode.CHECKCAST -> {
-                            stack.push(currentBlock.op(CoreOps.cast(TypeDesc.ofNominalDescriptor(inst.type().asSymbol()), stack.pop())));
+                            stack.push(currentBlock.op(CoreOps.cast(JavaType.ofNominalDescriptor(inst.type().asSymbol()), stack.pop())));
                         }
                         case StackInstruction inst -> {
                             switch (inst.opcode()) {

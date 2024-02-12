@@ -27,16 +27,16 @@ import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.descriptor.MethodDesc;
 import java.lang.reflect.code.descriptor.MethodTypeDesc;
-import java.lang.reflect.code.descriptor.TypeDesc;
 import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.type.JavaType;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static java.lang.reflect.code.descriptor.TypeDesc.DOUBLE;
 import static java.lang.reflect.code.op.CoreOps.*;
+import static java.lang.reflect.code.type.JavaType.DOUBLE;
 
 public final class ForwardDifferentiation {
     // The function to differentiate
@@ -120,7 +120,7 @@ public final class ForwardDifferentiation {
     }
 
 
-    static final TypeDesc J_L_MATH = TypeDesc.type(Math.class);
+    static final JavaType J_L_MATH = JavaType.type(Math.class);
     static final MethodTypeDesc D_D = MethodTypeDesc.methodType(DOUBLE, DOUBLE);
     static final MethodDesc J_L_MATH_SIN = MethodDesc.method(J_L_MATH, "sin", D_D);
     static final MethodDesc J_L_MATH_COS = MethodDesc.method(J_L_MATH, "cos", D_D);

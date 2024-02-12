@@ -26,18 +26,17 @@
 package oracle.code.triton;
 
 import java.lang.reflect.Type;
-import java.lang.reflect.code.descriptor.TypeDesc;
+import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.type.JavaType;
 
-public abstract sealed class TritonType implements Type
+public abstract sealed class TritonType implements Type, TypeElement
         permits ConstantType, PtrType, TensorType {
 
-    public abstract TypeDesc toDesc();
-
-    public static TypeDesc fromType(Type t) {
+    public static TypeElement fromType(Type t) {
         if (t instanceof Class<?> c) {
-            return TypeDesc.type(c);
+            return JavaType.type(c);
         } else if (t instanceof TritonType tt) {
-            return tt.toDesc();
+            return tt;
         } else {
             throw new UnsupportedOperationException("Unsupported type: " + t);
         }
