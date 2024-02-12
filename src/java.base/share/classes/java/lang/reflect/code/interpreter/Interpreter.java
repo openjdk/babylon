@@ -194,7 +194,7 @@ public final class Interpreter {
                 }
                 TypeElement et = args.get(0).type();
                 if (et instanceof VarType vt) {
-                    et = vt.variableType();
+                    et = vt.valueType();
                 }
                 if (resolveToClass(l, et).isInstance(e)) {
                     return target;

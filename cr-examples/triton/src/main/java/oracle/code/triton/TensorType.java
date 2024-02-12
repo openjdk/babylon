@@ -26,12 +26,13 @@
 package oracle.code.triton;
 
 import java.lang.reflect.Type;
-import java.lang.reflect.code.descriptor.TypeDesc;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public final class TensorType extends TritonType {
+    static final String NAME = "tensor";
+
     final Type eType;
     final List<Integer> shape;
     final int size;
@@ -59,16 +60,6 @@ public final class TensorType extends TritonType {
     }
 
     @Override
-    public TypeDesc toDesc() {
-        List<TypeDesc> params = new ArrayList<>();
-        for (int i : shape) {
-            params.add(TypeDesc.ofString("x" + i));
-        }
-        params.add(fromType(eType));
-        return TypeDesc.type(TritonOps.TYPE_Tensor, params);
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
@@ -83,6 +74,15 @@ public final class TensorType extends TritonType {
 
     @Override
     public String toString() {
-        return toDesc().toString();
+        StringBuilder s = new StringBuilder();
+
+        s.append(NAME);
+        s.append("<");
+        s.append(shape.stream().map(i -> "x" + i).collect(Collectors.joining(",")));
+        s.append(",");
+        s.append(fromType(eType));
+        s.append(">");
+
+        return s.toString();
     }
 }

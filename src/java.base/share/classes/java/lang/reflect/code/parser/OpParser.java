@@ -38,7 +38,7 @@ import java.lang.reflect.code.parser.impl.DescParser;
 import java.lang.reflect.code.parser.impl.Lexer;
 import java.lang.reflect.code.parser.impl.Scanner;
 import java.lang.reflect.code.parser.impl.Tokens;
-import java.lang.reflect.code.type.CoreTypes;
+import java.lang.reflect.code.type.CoreTypeFactory;
 import java.lang.reflect.code.type.TypeElementFactory;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -134,8 +134,12 @@ public final class OpParser {
      * @throws IOException if parsing fails
      */
     public static List<Op> fromStream(OpFactory opFactory, InputStream in) throws IOException {
+        return fromStream(opFactory, CoreTypeFactory.CORE_TYPE_FACTORY, in);
+    }
+
+    public static List<Op> fromStream(OpFactory opFactory, TypeElementFactory typeFactory, InputStream in) throws IOException {
         String s = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-        return fromString(opFactory, s);
+        return fromString(opFactory, typeFactory, s);
     }
 
     /**
@@ -146,7 +150,11 @@ public final class OpParser {
      * @return the list of operations
      */
     public static List<Op> fromString(OpFactory opFactory, String in) {
-        return parse(opFactory, in);
+        return parse(opFactory, CoreTypeFactory.CORE_TYPE_FACTORY, in);
+    }
+
+    public static List<Op> fromString(OpFactory opFactory, TypeElementFactory typeFactory, String in) {
+        return parse(opFactory, typeFactory, in);
     }
 
     /**
@@ -163,13 +171,13 @@ public final class OpParser {
         return op;
     }
 
-    static List<Op> parse(OpFactory opFactory, String in) {
+    static List<Op> parse(OpFactory opFactory, TypeElementFactory typeFactory, String in) {
         Lexer lexer = Scanner.factory().newScanner(in);
         lexer.nextToken();
 
         List<OpNode> opNodes = new OpParser(lexer).parseNodes();
 
-        Context c = new Context(opFactory, CoreTypes.FACTORY2);
+        Context c = new Context(opFactory, typeFactory);
         return opNodes.stream().map(n -> nodeToOp(n, TypeDefinition.VOID, c, null)).toList();
     }
 

@@ -7,7 +7,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * The symbolic description of a function type.
+ * A function type.
  */
 public final class FunctionType implements TypeElement {
     static final String NAME = "->";
@@ -15,15 +15,21 @@ public final class FunctionType implements TypeElement {
     final TypeElement returnType;
     final List<TypeElement> parameterTypes;
 
-    FunctionType(TypeElement returnType, List<TypeElement> parameterTypes) {
+    FunctionType(TypeElement returnType, List<? extends TypeElement> parameterTypes) {
         this.returnType = returnType;
         this.parameterTypes = List.copyOf(parameterTypes);
     }
 
+    /**
+     * {@return the function type's return type}
+     */
     public TypeElement returnType() {
         return returnType;
     }
 
+    /**
+     * {@return the function type's parameter types}
+     */
     public List<TypeElement> parameterTypes() {
         return parameterTypes;
     }
@@ -51,13 +57,27 @@ public final class FunctionType implements TypeElement {
         return result;
     }
 
-    public static FunctionType functionType(TypeElement returnType, TypeElement... parameterTypes) {
-        return functionType(returnType, List.of(parameterTypes));
-    }
-
-    public static FunctionType functionType(TypeElement returnType, List<TypeElement> parameterTypes) {
+    /**
+     * Constructs a function type.
+     *
+     * @param returnType the function type's return type.
+     * @param parameterTypes the function type's parameter types.
+     * @return a function type.
+     */
+    public static FunctionType functionType(TypeElement returnType, List<? extends TypeElement> parameterTypes) {
         Objects.requireNonNull(returnType);
         Objects.requireNonNull(parameterTypes);
         return new FunctionType(returnType, parameterTypes);
     }
+    /**
+     * Constructs a function type.
+     *
+     * @param returnType the function type's return type.
+     * @param parameterTypes the function type's parameter types.
+     * @return a function type.
+     */
+    public static FunctionType functionType(TypeElement returnType, TypeElement... parameterTypes) {
+        return functionType(returnType, List.of(parameterTypes));
+    }
+
 }

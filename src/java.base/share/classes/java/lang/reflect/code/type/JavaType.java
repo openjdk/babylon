@@ -218,6 +218,6 @@ public sealed interface JavaType extends TypeElement permits JavaTypeImpl {
 
     // Copied code in jdk.compiler module throws UOE
     static JavaType ofString(String s) {
-/*__throw new UnsupportedOperationException();__*/        return (JavaType) CoreTypes.FACTORY.constructType(java.lang.reflect.code.parser.impl.DescParser.parseTypeDesc(s));
+/*__throw new UnsupportedOperationException();__*/        return (JavaType) CoreTypeFactory.JAVA_TYPE_FACTORY.constructType(java.lang.reflect.code.parser.impl.DescParser.parseTypeDesc(s));
     }
 }

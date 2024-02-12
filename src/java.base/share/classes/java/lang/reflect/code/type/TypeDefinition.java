@@ -29,7 +29,9 @@ import java.lang.reflect.code.type.impl.TypeDefinitionImpl;
 import java.util.List;
 
 /**
- * The general symbolic description of a type.
+ * A type in general form that is utilized to construct a
+ * concrete subclass of {@link  TypeElement} using a
+ * {@link TypeElementFactory}
  */
 public sealed interface TypeDefinition permits TypeDefinitionImpl {
 

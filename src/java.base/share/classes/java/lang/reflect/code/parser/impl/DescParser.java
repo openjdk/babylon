@@ -27,7 +27,7 @@ package java.lang.reflect.code.parser.impl;
 
 import java.lang.reflect.code.descriptor.*;
 import java.lang.reflect.code.descriptor.impl.*;
-import java.lang.reflect.code.type.CoreTypes;
+import java.lang.reflect.code.type.CoreTypeFactory;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.type.TypeDefinition;
 import java.lang.reflect.code.type.impl.TypeDefinitionImpl;
@@ -136,7 +136,7 @@ public final class DescParser {
 
     static TypeElement parseTypeElement(Lexer l) {
         TypeDefinition typeDesc = parseTypeDesc(l);
-        return CoreTypes.FACTORY2.constructType(typeDesc);
+        return CoreTypeFactory.CORE_TYPE_FACTORY.constructType(typeDesc);
     }
 
     static MethodTypeDesc parseMethodTypeDesc(Lexer l) {

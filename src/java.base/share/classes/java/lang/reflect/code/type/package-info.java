@@ -23,22 +23,7 @@
  * questions.
  */
 
-package oracle.code.triton;
-
-import java.lang.reflect.Type;
-import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.type.JavaType;
-
-public abstract sealed class TritonType implements Type, TypeElement
-        permits ConstantType, PtrType, TensorType {
-
-    public static TypeElement fromType(Type t) {
-        if (t instanceof Class<?> c) {
-            return JavaType.type(c);
-        } else if (t instanceof TritonType tt) {
-            return tt;
-        } else {
-            throw new UnsupportedOperationException("Unsupported type: " + t);
-        }
-    }
-}
+/**
+ * Types for code models.
+ */
+package java.lang.reflect.code.type;

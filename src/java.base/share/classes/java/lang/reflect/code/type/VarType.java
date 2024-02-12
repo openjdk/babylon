@@ -4,7 +4,7 @@ import java.lang.reflect.code.TypeElement;
 import java.util.Objects;
 
 /**
- * The symbolic description of a variable type.
+ * A variable type.
  */
 public final class VarType implements TypeElement {
     static final String NAME = "Var";
@@ -15,7 +15,10 @@ public final class VarType implements TypeElement {
         this.variableType = variableType;
     }
 
-    public TypeElement variableType() {
+    /**
+     * {@return the variable type's value type}
+     */
+    public TypeElement valueType() {
         return variableType;
     }
 
@@ -36,8 +39,14 @@ public final class VarType implements TypeElement {
         return variableType.hashCode();
     }
 
-    public static VarType varType(TypeElement variableType) {
-        Objects.requireNonNull(variableType);
-        return new VarType(variableType);
+    /**
+     * Constructs a variable type.
+     *
+     * @param valueType the variable's value type.
+     * @return a variable type.
+     */
+    public static VarType varType(TypeElement valueType) {
+        Objects.requireNonNull(valueType);
+        return new VarType(valueType);
     }
 }

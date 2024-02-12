@@ -1957,7 +1957,7 @@ public final class CoreOps {
             @Override
             public TypeElement resultType() {
                 VarType vt = (VarType) operands().get(0).type();
-                return vt.variableType();
+                return vt.valueType();
             }
         }
 
@@ -2032,7 +2032,7 @@ public final class CoreOps {
 
         @Override
         public TypeElement resultType() {
-            return TupleType.typeFromValues(operands());
+            return TupleType.tupleTypeFromValues(operands());
         }
     }
 

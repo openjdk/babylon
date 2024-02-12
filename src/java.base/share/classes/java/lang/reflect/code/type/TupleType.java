@@ -8,7 +8,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * The symbolic description of a tuple type
+ * A tuple type.
  */
 public final class TupleType implements TypeElement {
     static final String NAME = "Tuple";
@@ -19,6 +19,9 @@ public final class TupleType implements TypeElement {
         this.componentTypes = List.copyOf(componentTypes);
     }
 
+    /**
+     * {@return the tuple's component types, in order}
+     */
     public List<TypeElement> componentTypes() {
         return componentTypes;
     }
@@ -41,21 +44,46 @@ public final class TupleType implements TypeElement {
         return componentTypes.hashCode();
     }
 
+    /**
+     * Constructs a tuple type.
+     *
+     * @param componentTypes the tuple type's component types.
+     * @return a tuple type.
+     */
     public static TupleType tupleType(List<? extends TypeElement> componentTypes) {
         Objects.requireNonNull(componentTypes);
         return new TupleType(componentTypes);
     }
 
+    /**
+     * Constructs a tuple type.
+     *
+     * @param componentTypes the tuple type's component types.
+     * @return a tuple type.
+     */
     public static TupleType tupleType(TypeElement... componentTypes) {
         return tupleType(List.of(componentTypes));
     }
 
-    public static TupleType tupleTypeFromValues(Value... values) {
-        return tupleType(Stream.of(values).map(Value::type).toList());
-    }
-
-    public static TupleType typeFromValues(List<? extends Value> values) {
+    /**
+     * Constructs a tuple type whose components are the types of
+     * the given values.
+     *
+     * @param values the values.
+     * @return a tuple type.
+     */
+    public static TupleType tupleTypeFromValues(List<? extends Value> values) {
         return tupleType(values.stream().map(Value::type).toList());
     }
 
+    /**
+     * Constructs a tuple type whose components are the types of
+     * the given values.
+     *
+     * @param values the values.
+     * @return a tuple type.
+     */
+    public static TupleType tupleTypeFromValues(Value... values) {
+        return tupleType(Stream.of(values).map(Value::type).toList());
+    }
 }

@@ -33,7 +33,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 /**
- * An operation in generic form that is utilized to construct a concrete subclass of {@code Op},
+ * An operation in general form that is utilized to construct a concrete subclass of {@link Op},
  * such as a subclass of {@link OpWithDefinition}, associated with the operation name.
  *
  * @param name            the operation name

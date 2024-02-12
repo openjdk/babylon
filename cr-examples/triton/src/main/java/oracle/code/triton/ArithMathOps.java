@@ -25,15 +25,9 @@
 
 package oracle.code.triton;
 
-import java.lang.reflect.code.CopyContext;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.OpTransformer;
-import java.lang.reflect.code.Value;
-import java.lang.reflect.code.descriptor.TypeDesc;
-import java.lang.reflect.code.op.OpDeclaration;
-import java.lang.reflect.code.op.OpDefinition;
-import java.lang.reflect.code.op.OpFactory;
-import java.lang.reflect.code.op.OpWithDefinition;
+import java.lang.reflect.code.*;
+import java.lang.reflect.code.op.*;
+import java.lang.reflect.code.type.JavaType;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +35,7 @@ import java.util.Map;
 public class ArithMathOps {
 
     static abstract class ArithMathOp extends OpWithDefinition {
-        final TypeDesc resultType;
+        final TypeElement resultType;
 
         public ArithMathOp(OpDefinition def) {
             super(def);
@@ -55,14 +49,14 @@ public class ArithMathOps {
             this.resultType = that.resultType;
         }
 
-        ArithMathOp(String name, TypeDesc resultType, List<? extends Value> operands) {
+        ArithMathOp(String name, TypeElement resultType, List<? extends Value> operands) {
             super(name, operands);
 
             this.resultType = resultType;
         }
 
         @Override
-        public TypeDesc resultType() {
+        public TypeElement resultType() {
             return resultType;
         }
     }
@@ -84,58 +78,57 @@ public class ArithMathOps {
             return new ConstantOp(def, value);
         }
 
-        static Object processConstantValue(TypeDesc t, Object value) {
-            if (t.equals(TypeDesc.BOOLEAN)) {
+        static Object processConstantValue(TypeElement t, Object value) {
+            if (t.equals(JavaType.BOOLEAN)) {
                 if (value instanceof String s) {
                     return Boolean.valueOf(s);
                 } else if (value instanceof Boolean) {
                     return value;
                 }
-            } else if (t.equals(TypeDesc.BYTE)) {
+            } else if (t.equals(JavaType.BYTE)) {
                 if (value instanceof String s) {
                     return Byte.valueOf(s);
                 } else if (value instanceof Number n) {
                     return n.byteValue();
                 }
-            } else if (t.equals(TypeDesc.SHORT)) {
+            } else if (t.equals(JavaType.SHORT)) {
                 if (value instanceof String s) {
                     return Short.valueOf(s);
                 } else if (value instanceof Number n) {
                     return n.shortValue();
                 }
-            } else if (t.equals(TypeDesc.CHAR)) {
+            } else if (t.equals(JavaType.CHAR)) {
                 if (value instanceof String s) {
                     return s.charAt(0);
                 } else if (value instanceof Character) {
                     return value;
                 }
-            } else if (t.equals(TypeDesc.INT)) {
+            } else if (t.equals(JavaType.INT)) {
                 if (value instanceof String s) {
                     return Integer.valueOf(s);
                 } else if (value instanceof Number n) {
                     return n.intValue();
                 }
-            } else if (t.equals(TypeDesc.LONG)) {
+            } else if (t.equals(JavaType.LONG)) {
                 if (value instanceof String s) {
                     return Long.valueOf(s);
                 } else if (value instanceof Number n) {
                     return n.longValue();
                 }
-            } else if (t.equals(TypeDesc.FLOAT)) {
+            } else if (t.equals(JavaType.FLOAT)) {
                 if (value instanceof String s) {
                     return Float.valueOf(s);
                 } else if (value instanceof Number n) {
                     return n.floatValue();
                 }
-            } else if (t.equals(TypeDesc.DOUBLE)) {
+            } else if (t.equals(JavaType.DOUBLE)) {
                 if (value instanceof String s) {
                     return Double.valueOf(s);
                 } else if (value instanceof Number n) {
                     return n.doubleValue();
                 }
-            } else if (t.rawType().equals(TritonOps.TYPE_Tensor)) {
-                List<TypeDesc> typeDescs = t.typeArguments();
-                return processConstantValue(typeDescs.getLast(), value);
+            } else if (t instanceof TensorType tt) {
+                return processConstantValue(TritonType.fromType(tt.eType()), value);
             }
 
             throw new UnsupportedOperationException("Unsupported constant type and value: " + t + " " + value);
@@ -158,7 +151,7 @@ public class ArithMathOps {
             return new ConstantOp(this, cc);
         }
 
-        ConstantOp(TypeDesc type, Object value) {
+        ConstantOp(TypeElement type, Object value) {
             super(NAME, type, List.of());
 
             this.value = value;
@@ -371,7 +364,7 @@ public class ArithMathOps {
             return new TruncOp(this, cc);
         }
 
-        TruncOp(TypeDesc t, Value a) {
+        TruncOp(TypeElement t, Value a) {
             super(NAME + nameSuffixFromType(a.type(), false),
                     t, List.of(a));
         }
@@ -455,28 +448,28 @@ public class ArithMathOps {
         }
     }
 
-    static String maxMinSuffixFromType(TypeDesc t) {
-        if (t.rawType().equals(TritonOps.TYPE_Tensor)) {
-            return maxMinSuffixFromType(t.typeArguments().getLast());
-        } else if (t.rawType().equals(TritonOps.TYPE_Ptr)) {
-            return maxMinSuffixFromType(t.typeArguments().getFirst());
-        } else if (TypeDesc.INT.equals(t)) {
+    static String maxMinSuffixFromType(TypeElement t) {
+        if (t instanceof TensorType tt) {
+            return maxMinSuffixFromType(TritonType.fromType(tt.eType()));
+        } else if (t instanceof PtrType pt) {
+            return maxMinSuffixFromType(TritonType.fromType(pt.rType()));
+        } else if (t.equals(JavaType.INT)) {
             return "";
-        } else if (TypeDesc.FLOAT.equals(t)) {
+        } else if (t.equals(JavaType.FLOAT)) {
             return "imum";
         } else {
             throw new UnsupportedOperationException("Unsupported type: " + t);
         }
     }
 
-    static String nameSuffixFromType(TypeDesc t, boolean signed) {
-        if (t.rawType().equals(TritonOps.TYPE_Tensor)) {
-            return nameSuffixFromType(t.typeArguments().getLast(), signed);
-        } else if (t.rawType().equals(TritonOps.TYPE_Ptr)) {
-            return nameSuffixFromType(t.typeArguments().getFirst(), signed);
-        } else if (TypeDesc.INT.equals(t) || TypeDesc.LONG.equals(t)) {
+    static String nameSuffixFromType(TypeElement t, boolean signed) {
+        if (t instanceof TensorType tt) {
+            return nameSuffixFromType(TritonType.fromType(tt.eType()), signed);
+        } else if (t instanceof PtrType pt) {
+            return nameSuffixFromType(TritonType.fromType(pt.rType()), signed);
+        } else if (t.equals(JavaType.INT) || t.equals(JavaType.LONG)) {
             return (signed ? "s" : "") + "i";
-        } else if (TypeDesc.FLOAT.equals(t) || TypeDesc.DOUBLE.equals(t) ||
+        } else if (t.equals(JavaType.FLOAT) || t.equals(JavaType.DOUBLE) ||
                 Float16.FLOAT_16_TYPE.equals(t)) {
             return "f";
         } else {
@@ -504,7 +497,7 @@ public class ArithMathOps {
 
     // Arith
 
-    public static ConstantOp constant(TypeDesc type, Object value) {
+    public static ConstantOp constant(TypeElement type, Object value) {
         return new ConstantOp(type, value);
     }
 
@@ -544,7 +537,7 @@ public class ArithMathOps {
         return new CompareOp(ck, a, b);
     }
 
-    public static TruncOp trunc(TypeDesc type, Value a) {
+    public static TruncOp trunc(TypeElement type, Value a) {
         return new TruncOp(type, a);
     }
 
