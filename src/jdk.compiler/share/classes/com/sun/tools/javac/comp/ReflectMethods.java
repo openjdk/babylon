@@ -830,7 +830,7 @@ public class ReflectMethods extends TreeTranslator {
                     FieldDesc fd = symbolToFieldDesc(sym, assign.selected.type);
 
                     Op.Result lhsOpValue;
-                    TypeDesc resultType = typeToDesc(sym.type); // why not sym.type
+                    TypeDesc resultType = typeToDesc(sym.type);
                     if (sym.isStatic()) {
                         lhsOpValue = append(CoreOps.fieldLoad(resultType, fd));
                     } else {
