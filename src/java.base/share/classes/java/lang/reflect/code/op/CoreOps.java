@@ -1461,11 +1461,6 @@ public final class CoreOps {
             }
 
             // instance
-            FieldLoadOp(FieldDesc descriptor, Value receiver) {
-                super(NAME, List.of(receiver), descriptor);
-                resultType = descriptor.type();
-            }
-
             FieldLoadOp(TypeDesc resultType, FieldDesc descriptor, Value receiver) {
                 super(NAME, List.of(receiver), descriptor);
 
@@ -1473,12 +1468,6 @@ public final class CoreOps {
             }
 
             // static
-            FieldLoadOp(FieldDesc descriptor) {
-                super(NAME, List.of(), descriptor);
-
-                resultType = descriptor.type();
-            }
-
             FieldLoadOp(TypeDesc resultType, FieldDesc descriptor) {
                 super(NAME, List.of(), descriptor);
 
@@ -3362,7 +3351,7 @@ public final class CoreOps {
      * @return the field load operation
      */
     public static FieldAccessOp.FieldLoadOp fieldLoad(FieldDesc descriptor, Value receiver) {
-        return new FieldAccessOp.FieldLoadOp(descriptor, receiver);
+        return new FieldAccessOp.FieldLoadOp(descriptor.type(), descriptor, receiver);
     }
 
     /**
@@ -3384,7 +3373,7 @@ public final class CoreOps {
      * @return the field load operation
      */
     public static FieldAccessOp.FieldLoadOp fieldLoad(FieldDesc descriptor) {
-        return new FieldAccessOp.FieldLoadOp(descriptor);
+        return new FieldAccessOp.FieldLoadOp(descriptor.type(), descriptor);
     }
 
     /**
