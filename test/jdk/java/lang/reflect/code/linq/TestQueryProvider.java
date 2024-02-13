@@ -21,13 +21,13 @@
  * questions.
  */
 
-import java.lang.reflect.code.descriptor.TypeDesc;
 import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.type.JavaType;
 
 import static java.lang.reflect.code.descriptor.MethodTypeDesc.methodType;
-import static java.lang.reflect.code.descriptor.TypeDesc.type;
 import static java.lang.reflect.code.op.CoreOps._return;
 import static java.lang.reflect.code.op.CoreOps.func;
+import static java.lang.reflect.code.type.JavaType.type;
 
 public final class TestQueryProvider extends QueryProvider {
     public TestQueryProvider() {
@@ -39,33 +39,33 @@ public final class TestQueryProvider extends QueryProvider {
     }
 
     @Override
-    protected Queryable<?> createQuery(TypeDesc elementDesc, CoreOps.FuncOp expression) {
-        return new TestQueryable<>(elementDesc, this, expression);
+    protected Queryable<?> createQuery(JavaType elementType, CoreOps.FuncOp expression) {
+        return new TestQueryable<>(elementType, this, expression);
     }
 
     @Override
-    protected QueryResult<?> createQueryResult(TypeDesc resultDesc, CoreOps.FuncOp expression) {
-        return new TestQueryResult<>(resultDesc, expression);
+    protected QueryResult<?> createQueryResult(JavaType resultType, CoreOps.FuncOp expression) {
+        return new TestQueryResult<>(resultType, expression);
     }
 
     static final class TestQueryable<T> implements Queryable<T> {
-        final TypeDesc elementDesc;
+        final JavaType elementType;
         final TestQueryProvider provider;
         final CoreOps.FuncOp expression;
 
         TestQueryable(Class<T> tableClass, TestQueryProvider qp) {
-            this.elementDesc = type(tableClass);
+            this.elementType = type(tableClass);
             this.provider = qp;
 
-            TypeDesc queryableType = TypeDesc.type(Queryable.DESC, elementDesc);
+            JavaType queryableType = type(Queryable.TYPE, elementType);
             // Initial expression is an identity function
             var funDescriptor = methodType(queryableType, queryableType);
             this.expression = func("query", funDescriptor)
                     .body(b -> b.op(_return(b.parameters().get(0))));
         }
 
-        TestQueryable(TypeDesc elementDesc, TestQueryProvider provider, CoreOps.FuncOp expression) {
-            this.elementDesc = elementDesc;
+        TestQueryable(JavaType elementType, TestQueryProvider provider, CoreOps.FuncOp expression) {
+            this.elementType = elementType;
             this.provider = provider;
             this.expression = expression;
         }
@@ -76,8 +76,8 @@ public final class TestQueryProvider extends QueryProvider {
         }
 
         @Override
-        public TypeDesc elementDesc() {
-            return elementDesc;
+        public JavaType elementType() {
+            return elementType;
         }
 
         @Override
@@ -86,6 +86,6 @@ public final class TestQueryProvider extends QueryProvider {
         }
     }
 
-    record TestQueryResult<T>(TypeDesc resultDesc, CoreOps.FuncOp expression) implements QueryResult<T> {
+    record TestQueryResult<T>(JavaType resultType, CoreOps.FuncOp expression) implements QueryResult<T> {
     }
 }

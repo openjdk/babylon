@@ -23,30 +23,30 @@
  * questions.
  */
 
-package java.lang.reflect.code.descriptor.impl;
+package java.lang.reflect.code.type.impl;
 
-import java.lang.reflect.code.descriptor.TypeDesc;
+import java.lang.reflect.code.type.JavaType;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public final class TypeDescImpl implements TypeDesc {
+public final class JavaTypeImpl implements JavaType {
     // Fully qualified name
     public final String type;
 
     public final int dims;
 
-    public final List<TypeDesc> typeArguments;
+    public final List<JavaType> typeArguments;
 
-    public TypeDescImpl(String type) {
+    public JavaTypeImpl(String type) {
         this(type, 0, List.of());
     }
 
-    public TypeDescImpl(String type, int dim) {
+    public JavaTypeImpl(String type, int dim) {
         this(type, dim, List.of());
     }
 
-    public TypeDescImpl(String type, int dims, List<TypeDesc> typeArguments) {
+    public JavaTypeImpl(String type, int dims, List<JavaType> typeArguments) {
         this.type = type;
         this.dims = dims;
         this.typeArguments = List.copyOf(typeArguments);
@@ -59,7 +59,7 @@ public final class TypeDescImpl implements TypeDesc {
         } else if (typeArguments.isEmpty()) {
             return type + "[]".repeat(dims);
         } else {
-            String params = typeArguments.stream().map(TypeDesc::toString).collect(Collectors.joining(", ", "<", ">"));
+            String params = typeArguments.stream().map(JavaType::toString).collect(Collectors.joining(", ", "<", ">"));
             return type + params + "[]".repeat(dims);
         }
     }
@@ -69,7 +69,7 @@ public final class TypeDescImpl implements TypeDesc {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        TypeDescImpl typeDesc = (TypeDescImpl) o;
+        JavaTypeImpl typeDesc = (JavaTypeImpl) o;
 
         if (dims != typeDesc.dims) return false;
         if (!type.equals(typeDesc.type)) return false;
@@ -95,17 +95,17 @@ public final class TypeDescImpl implements TypeDesc {
     }
 
     @Override
-    public TypeDesc componentType() {
+    public JavaType componentType() {
         if (!isArray()) {
             return null;
         }
 
-        return new TypeDescImpl(type, dims - 1, List.of());
+        return new JavaTypeImpl(type, dims - 1, List.of());
     }
 
     @Override
-    public TypeDescImpl rawType() {
-        return new TypeDescImpl(type, dims);
+    public JavaTypeImpl rawType() {
+        return new JavaTypeImpl(type, dims);
     }
 
     @Override
@@ -114,28 +114,28 @@ public final class TypeDescImpl implements TypeDesc {
     }
 
     @Override
-    public List<TypeDesc> typeArguments() {
+    public List<JavaType> typeArguments() {
         return typeArguments;
     }
 
     // Conversions
 
     @Override
-    public TypeDesc toBasicType() {
+    public JavaType toBasicType() {
         if (isArray()) {
-            return TypeDesc.J_L_OBJECT;
+            return JavaType.J_L_OBJECT;
         }
 
         Character bytecodeKind = PRIMITIVE_TYPE_MAP.get(type);
         if (bytecodeKind == null) {
-            return TypeDesc.J_L_OBJECT;
+            return JavaType.J_L_OBJECT;
         } else {
             return switch (bytecodeKind) {
-                case 'V' -> TypeDesc.VOID;
-                case 'J' -> TypeDesc.LONG;
-                case 'F' -> TypeDesc.FLOAT;
-                case 'D' -> TypeDesc.DOUBLE;
-                default -> TypeDesc.INT;
+                case 'V' -> JavaType.VOID;
+                case 'J' -> JavaType.LONG;
+                case 'F' -> JavaType.FLOAT;
+                case 'D' -> JavaType.DOUBLE;
+                default -> JavaType.INT;
             };
         }
     }

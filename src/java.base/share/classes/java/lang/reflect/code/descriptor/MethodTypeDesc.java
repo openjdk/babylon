@@ -28,19 +28,21 @@ package java.lang.reflect.code.descriptor;
 import java.lang.reflect.code.descriptor.impl.MethodTypeDescImpl;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.lang.reflect.code.type.JavaType;
+import java.lang.reflect.code.TypeElement;
 import java.util.List;
 
 /**
  * The symbolic description of a method type, comprising descriptions of zero or more parameter types and a return type.
  */
 public sealed interface MethodTypeDesc permits MethodTypeDescImpl {
-    MethodTypeDesc VOID = methodType(TypeDesc.VOID);
+    MethodTypeDesc VOID = methodType(JavaType.VOID);
 
     //
 
-    TypeDesc returnType();
+    TypeElement returnType();
 
-    List<TypeDesc> parameters();
+    List<TypeElement> parameters();
 
     // Conversions
 
@@ -68,23 +70,23 @@ public sealed interface MethodTypeDesc permits MethodTypeDescImpl {
     }
 
     static MethodTypeDesc methodType(Class<?> ret, List<Class<?>> params) {
-        return new MethodTypeDescImpl(TypeDesc.type(ret), params.stream().map(TypeDesc::type).toList());
+        return new MethodTypeDescImpl(JavaType.type(ret), params.stream().map(JavaType::type).toList());
     }
 
     static MethodTypeDesc ofNominalDescriptor(java.lang.constant.MethodTypeDesc d) {
-        return methodType(TypeDesc.ofNominalDescriptor(d.returnType()),
-                d.parameterList().stream().map(TypeDesc::ofNominalDescriptor).toList());
+        return methodType(JavaType.ofNominalDescriptor(d.returnType()),
+                d.parameterList().stream().map(JavaType::ofNominalDescriptor).toList());
     }
 
     static MethodTypeDesc ofNominalDescriptorString(String d) {
         return ofNominalDescriptor(java.lang.constant.MethodTypeDesc.ofDescriptor(d));
     }
 
-    static MethodTypeDesc methodType(TypeDesc ret, TypeDesc... params) {
+    static MethodTypeDesc methodType(TypeElement ret, TypeElement... params) {
         return methodType(ret, List.of(params));
     }
 
-    static MethodTypeDesc methodType(TypeDesc ret, List<TypeDesc> params) {
+    static MethodTypeDesc methodType(TypeElement ret, List<? extends TypeElement> params) {
         return new MethodTypeDescImpl(ret, params);
     }
 

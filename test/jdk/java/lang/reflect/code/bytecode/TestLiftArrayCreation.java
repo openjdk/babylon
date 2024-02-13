@@ -52,12 +52,10 @@ public class TestLiftArrayCreation {
         CoreOps.FuncOp f = getFuncOp("f");
         byte[] classdata = generate(f);
 
-        CoreOps.FuncOp flift = BytecodeLift.liftToBytecodeDialect(classdata, "f");
+        CoreOps.FuncOp flift = BytecodeLift.lift(classdata, "f");
         flift.writeTo(System.out);
-        CoreOps.FuncOp fliftcore = BytecodeLift.liftToCoreDialect(flift);
-        fliftcore.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(fliftcore), f());
+        Assert.assertEquals(Interpreter.invoke(flift), f());
     }
 
     @CodeReflection
@@ -70,12 +68,10 @@ public class TestLiftArrayCreation {
         CoreOps.FuncOp f = getFuncOp("f2");
         byte[] classdata = generate(f);
 
-        CoreOps.FuncOp flift = BytecodeLift.liftToBytecodeDialect(classdata, "f2");
+        CoreOps.FuncOp flift = BytecodeLift.lift(classdata, "f2");
         flift.writeTo(System.out);
-        CoreOps.FuncOp fliftcore = BytecodeLift.liftToCoreDialect(flift);
-        fliftcore.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(fliftcore), f2());
+        Assert.assertEquals(Interpreter.invoke(flift), f2());
     }
 
     @CodeReflection
@@ -88,12 +84,10 @@ public class TestLiftArrayCreation {
         CoreOps.FuncOp f = getFuncOp("f3");
         byte[] classdata = generate(f);
 
-        CoreOps.FuncOp flift = BytecodeLift.liftToBytecodeDialect(classdata, "f3");
+        CoreOps.FuncOp flift = BytecodeLift.lift(classdata, "f3");
         flift.writeTo(System.out);
-        CoreOps.FuncOp fliftcore = BytecodeLift.liftToCoreDialect(flift);
-        fliftcore.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(fliftcore), f3());
+        Assert.assertEquals(Interpreter.invoke(flift), f3());
     }
 
     @CodeReflection
@@ -106,12 +100,10 @@ public class TestLiftArrayCreation {
         CoreOps.FuncOp f = getFuncOp("f4");
         byte[] classdata = generate(f);
 
-        CoreOps.FuncOp flift = BytecodeLift.liftToBytecodeDialect(classdata, "f4");
+        CoreOps.FuncOp flift = BytecodeLift.lift(classdata, "f4");
         flift.writeTo(System.out);
-        CoreOps.FuncOp fliftcore = BytecodeLift.liftToCoreDialect(flift);
-        fliftcore.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(fliftcore), f4());
+        Assert.assertEquals(Interpreter.invoke(flift), f4());
     }
 
     static byte[] generate(CoreOps.FuncOp f) {

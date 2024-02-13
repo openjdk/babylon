@@ -25,8 +25,6 @@
 
 package java.lang.reflect.code;
 
-import java.lang.reflect.code.descriptor.TypeDesc;
-
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -35,15 +33,15 @@ import java.util.Set;
 /**
  * A value, that is the result of an operation or a block parameter.
  */
-public abstract sealed class Value implements Comparable<Value>
+public abstract sealed class Value implements Comparable<Value>, CodeItem
         permits Block.Parameter, Op.Result {
     final Block block;
-    final TypeDesc type;
+    final TypeElement type;
     // @@@ In topological order?
     //     Can the representation be more efficient e.g. an array?
     final Set<Op.Result> uses;
 
-    Value(Block block, TypeDesc type) {
+    Value(Block block, TypeElement type) {
         this.block = block;
         this.type = type;
         this.uses = new LinkedHashSet<>();
@@ -69,7 +67,7 @@ public abstract sealed class Value implements Comparable<Value>
      *
      * @return the type of the value.
      */
-    public TypeDesc type() {
+    public TypeElement type() {
         return type;
     }
 

@@ -31,10 +31,10 @@ import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.descriptor.FieldDesc;
 import java.lang.reflect.code.descriptor.MethodDesc;
-import java.lang.reflect.code.descriptor.TypeDesc;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
+import java.lang.reflect.code.TypeElement;
 import java.lang.runtime.CodeReflection;
 import java.util.List;
 import java.util.Optional;
@@ -46,13 +46,11 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.lang.reflect.code.op.CoreOps.arrayStoreOp;
-import static java.lang.reflect.code.op.CoreOps.invoke;
 import static java.lang.reflect.code.op.CoreOps.constant;
 import static java.lang.reflect.code.op.CoreOps.fieldLoad;
 import static java.lang.reflect.code.op.CoreOps.newArray;
 import static java.lang.reflect.code.descriptor.MethodDesc.method;
-import static java.lang.reflect.code.descriptor.TypeDesc.INT;
-import static java.lang.reflect.code.descriptor.TypeDesc.J_L_STRING;
+import static java.lang.reflect.code.type.JavaType.*;
 
 /*
  * @test
@@ -264,7 +262,7 @@ public class TestLocalTransformationsAdaption {
         Value arrayLength = opBuilder.apply(
                 constant(INT, adaptedInvokeOperands.size()));
         Value formatArray = opBuilder.apply(
-                newArray(TypeDesc.type(Object[].class), arrayLength));
+                newArray(type(Object[].class), arrayLength));
 
         Value indexZero = null;
         for (int i = 0; i < adaptedInvokeOperands.size(); i++) {
@@ -321,7 +319,7 @@ public class TestLocalTransformationsAdaption {
         return vs.stream().map(v -> formatString(v.type())).collect(Collectors.joining(","));
     }
 
-    static String formatString(TypeDesc t) {
+    static String formatString(TypeElement t) {
         if (t.equals(INT)) {
             return "%d";
         } else {

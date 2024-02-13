@@ -28,17 +28,41 @@ package java.lang.reflect.code.writer;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.io.Writer;
-import java.lang.reflect.code.Block;
-import java.lang.reflect.code.Body;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.Value;
-import java.lang.reflect.code.descriptor.TypeDesc;
-import java.lang.reflect.code.writer.impl.GlobalValueBlockNaming;
+import java.lang.reflect.code.*;
+import java.lang.reflect.code.type.JavaType;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
+/**
+ * A writer of code models (operations) to the textual form.
+ * <p>
+ * A code model in textual form may be parsed back into the runtime form by parsing it.
+ */
+// @@@ We cannot link to OpParser since this code is copied into the jdk.compiler module
 public final class OpWriter {
 
-    static class AttributeMapper {
+    static final class GlobalValueBlockNaming implements Function<CodeItem, String> {
+        final Map<CodeItem, String> gn;
+        int valueOrdinal = 0;
+        int blockOrdinal = 0;
+
+        GlobalValueBlockNaming() {
+            this.gn = new HashMap<>();
+        }
+
+        @Override
+        public String apply(CodeItem codeItem) {
+            return switch (codeItem) {
+                case Block block -> gn.computeIfAbsent(block, _b -> "block_" + blockOrdinal++);
+                case Value value -> gn.computeIfAbsent(value, _v -> String.valueOf(valueOrdinal++));
+                default -> throw new IllegalStateException("Unexpected code item: " + codeItem);
+            };
+        }
+    }
+
+    static final class AttributeMapper {
         static String toString(Object value) {
             return value == Op.NULL_ATTRIBUTE_VALUE
                     ? "null"
@@ -137,6 +161,61 @@ public final class OpWriter {
         }
     }
 
+    final Function<CodeItem, String> namer;
+    final IndentWriter w;
+
+    /**
+     * Computes global names for blocks and values in a code model.
+     * <p>
+     * The code model is traversed in the same order as if the model
+     * was written. Therefore, the names in the returned map will the
+     * same as the names that are written. This can be useful for debugging
+     * and testing.
+     *
+     * @param root the code model
+     * @return the map of computed names, modifiable
+     */
+    public static Map<CodeItem, String> computeGlobalNames(Op root) {
+        GlobalValueBlockNaming gn = root.traverse(new GlobalValueBlockNaming(), (n, e) -> {
+            switch (e) {
+                case Op op -> {
+                    for (Block.Reference r : op.successors()) {
+                        n.apply(r.targetBlock());
+                    }
+
+                    if (root != op) {
+                        Op.Result opr = op.result();
+                        if (!opr.type().equals(JavaType.VOID)) {
+                            n.apply(opr);
+                        }
+                    }
+                }
+                case Block block -> {
+                    if (!block.isEntryBlock()) {
+                        n.apply(block);
+                    }
+                    for (Block.Parameter p : block.parameters()) {
+                        n.apply(p);
+                    }
+                }
+                default -> {
+                }
+            }
+            return n;
+        });
+
+        return gn.gn;
+    }
+
+    /**
+     * Writes a code model (an operation) to the character stream.
+     * <p>
+     * A carriage return will be written after the model is writen, and
+     * then character stream will be flushed.
+     *
+     * @param w the character stream
+     * @param op the code modelz
+     */
     public static void writeTo(Writer w, Op op) {
         OpWriter ow = new OpWriter(w);
         ow.writeOp(op);
@@ -148,18 +227,38 @@ public final class OpWriter {
         }
     }
 
-    final GlobalValueBlockNaming gn;
-    final IndentWriter w;
-
+    /**
+     * Creates a writer of code models (operations) to their textual form.
+     *
+     * @param w the character stream writer to write the textual form.
+     */
     public OpWriter(Writer w) {
         this(w, new GlobalValueBlockNaming());
     }
 
-    public OpWriter(Writer w, GlobalValueBlockNaming gn) {
-        this.gn = gn;
+    /**
+     * Creates a writer of code models (operations) to their textual form.
+     *
+     * @param w     the character stream writer to write the textual form.
+     * @param namer the function that computes names for blocks and values.
+     */
+    public OpWriter(Writer w, Function<CodeItem, String> namer) {
+        this.namer = namer;
         this.w = new IndentWriter(w);
     }
 
+    /**
+     * {@return the function that names blocks and values.}
+     */
+    public Function<CodeItem, String> namer() {
+        return namer;
+    }
+
+    /**
+     * Writes a code model, an operation, to the character stream.
+     *
+     * @param op the code model
+     */
     public void writeOp(Op op) {
         write(op.opName());
 
@@ -230,20 +329,18 @@ public final class OpWriter {
         write(body.descriptor().returnType().toString());
         write(" -> {\n");
         w.in();
-        boolean isEntryBlock = true;
         for (Block b : body.blocks()) {
-            if (!isEntryBlock) {
+            if (!b.isEntryBlock()) {
                 write("\n");
             }
-            writeBlock(b, isEntryBlock);
-            isEntryBlock = false;
+            writeBlock(b);
         }
         w.out();
         write("}");
     }
 
-    void writeBlock(Block block, boolean isEntryBlock) {
-        if (!isEntryBlock) {
+    void writeBlock(Block block) {
+        if (!block.isEntryBlock()) {
             writeBlockName(block);
             if (!block.parameters().isEmpty()) {
                 write("(");
@@ -255,7 +352,7 @@ public final class OpWriter {
         w.in();
         for (Op op : block.ops()) {
             Op.Result opr = op.result();
-            if (!opr.type().equals(TypeDesc.VOID)) {
+            if (!opr.type().equals(JavaType.VOID)) {
                 writeValueDeclaration(opr);
                 write(" = ");
             }
@@ -266,7 +363,7 @@ public final class OpWriter {
     }
 
     void writeBlockName(Block b) {
-        writeBlockName(gn.getBlockName(b));
+        writeBlockName(namer.apply(b));
     }
 
     void writeBlockName(String s) {
@@ -276,12 +373,12 @@ public final class OpWriter {
 
     void writeValueUse(Value v) {
         write("%");
-        write(gn.getValueName(v));
+        write(namer.apply(v));
     }
 
     void writeValueDeclaration(Value v) {
         write("%");
-        write(gn.getValueName(v));
+        write(namer.apply(v));
         write(" : ");
         write(v.type().toString());
     }
@@ -290,7 +387,7 @@ public final class OpWriter {
         writeSeparatedList(" ", l, c);
     }
 
-    public <T> void writeCommaSeparatedList(Iterable<T> l, Consumer<T> c) {
+    <T> void writeCommaSeparatedList(Iterable<T> l, Consumer<T> c) {
         writeSeparatedList(", ", l, c);
     }
 
@@ -305,7 +402,7 @@ public final class OpWriter {
         }
     }
 
-    public void write(String s) {
+    void write(String s) {
         try {
             w.write(s);
         } catch (IOException e) {

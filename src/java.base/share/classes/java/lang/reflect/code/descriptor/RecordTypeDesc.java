@@ -26,6 +26,8 @@
 package java.lang.reflect.code.descriptor;
 
 import java.lang.reflect.code.descriptor.impl.RecordTypeDescImpl;
+import java.lang.reflect.code.type.JavaType;
+import java.lang.reflect.code.TypeElement;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -33,14 +35,14 @@ import java.util.stream.Stream;
  * The symbolic description of a Java record type.
  */
 public sealed interface RecordTypeDesc permits RecordTypeDescImpl {
-    TypeDesc recordType();
+    TypeElement recordType();
 
     /**
      * The symbolic description a Java record component.
      * @param type the type of the component
      * @param name the name of the component
      */
-    record ComponentDesc(TypeDesc type, String name) {}
+    record ComponentDesc(TypeElement type, String name) {}
 
     List<ComponentDesc> components();
 
@@ -50,16 +52,16 @@ public sealed interface RecordTypeDesc permits RecordTypeDescImpl {
 
     static RecordTypeDesc recordType(Class<? extends Record> c) {
         List<ComponentDesc> components = Stream.of(c.getRecordComponents())
-                .map(rc -> new ComponentDesc(TypeDesc.type(rc.getType()), rc.getName()))
+                .map(rc -> new ComponentDesc(JavaType.type(rc.getType()), rc.getName()))
                 .toList();
-        return recordType(TypeDesc.type(c), components);
+        return recordType(JavaType.type(c), components);
     }
 
-    static RecordTypeDesc recordType(TypeDesc recordType, ComponentDesc... components) {
+    static RecordTypeDesc recordType(TypeElement recordType, ComponentDesc... components) {
         return recordType(recordType, List.of(components));
     }
 
-    static RecordTypeDesc recordType(TypeDesc recordType, List<ComponentDesc> components) {
+    static RecordTypeDesc recordType(TypeElement recordType, List<ComponentDesc> components) {
         return new RecordTypeDescImpl(recordType, components);
     }
 

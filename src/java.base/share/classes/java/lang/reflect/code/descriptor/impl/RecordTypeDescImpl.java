@@ -27,22 +27,22 @@ package java.lang.reflect.code.descriptor.impl;
 
 import java.lang.reflect.code.descriptor.MethodDesc;
 import java.lang.reflect.code.descriptor.RecordTypeDesc;
-import java.lang.reflect.code.descriptor.TypeDesc;
+import java.lang.reflect.code.TypeElement;
 import java.util.List;
 
 import static java.util.stream.Collectors.joining;
 
 public final class RecordTypeDescImpl implements RecordTypeDesc {
-    final TypeDesc recordType;
+    final TypeElement recordType;
     final List<ComponentDesc> components;
 
-    public RecordTypeDescImpl(TypeDesc recordType, List<ComponentDesc> components) {
+    public RecordTypeDescImpl(TypeElement recordType, List<ComponentDesc> components) {
         this.recordType = recordType;
         this.components = List.copyOf(components);
     }
 
     @Override
-    public TypeDesc recordType() {
+    public TypeElement recordType() {
         return recordType;
     }
 

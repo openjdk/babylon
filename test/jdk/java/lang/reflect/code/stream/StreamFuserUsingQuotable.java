@@ -23,16 +23,16 @@
 
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.descriptor.MethodTypeDesc;
-import java.lang.reflect.code.descriptor.TypeDesc;
 import java.lang.reflect.code.op.ExtendedOps.JavaEnhancedForOp;
+import java.lang.reflect.code.type.JavaType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.*;
 
-import static java.lang.reflect.code.descriptor.TypeDesc.type;
 import static java.lang.reflect.code.op.CoreOps.*;
 import static java.lang.reflect.code.op.ExtendedOps._continue;
 import static java.lang.reflect.code.op.ExtendedOps.enhancedFor;
+import static java.lang.reflect.code.type.JavaType.type;
 
 public final class StreamFuserUsingQuotable {
 
@@ -57,9 +57,9 @@ public final class StreamFuserUsingQuotable {
     StreamFuserUsingQuotable() {}
 
     public static <T> StreamExprBuilder<T> fromList(Class<T> elementClass) {
-        TypeDesc elementType = type(elementClass);
+        JavaType elementType = type(elementClass);
         // java.util.List<E>
-        TypeDesc listType = type(type(List.class), elementType);
+        JavaType listType = type(type(List.class), elementType);
         return new StreamExprBuilder<>(listType, elementType,
                 (b, v) -> StreamExprBuilder.enhancedForLoop(b, elementType, v)::body);
     }
@@ -101,12 +101,12 @@ public final class StreamFuserUsingQuotable {
             }
         }
 
-        final TypeDesc sourceType;
-        final TypeDesc sourceElementType;
+        final JavaType sourceType;
+        final JavaType sourceElementType;
         final BiFunction<Body.Builder, Value, Function<Consumer<Block.Builder>, Op>> loopSupplier;
         final List<StreamOp> streamOps;
 
-        StreamExprBuilder(TypeDesc sourceType, TypeDesc sourceElementType,
+        StreamExprBuilder(JavaType sourceType, JavaType sourceElementType,
                           BiFunction<Body.Builder, Value, Function<Consumer<Block.Builder>, Op>> loopSupplier) {
             this.sourceType = sourceType;
             this.sourceElementType = sourceElementType;
@@ -114,7 +114,7 @@ public final class StreamFuserUsingQuotable {
             this.streamOps = new ArrayList<>();
         }
 
-        static JavaEnhancedForOp.BodyBuilder enhancedForLoop(Body.Builder ancestorBody, TypeDesc elementType,
+        static JavaEnhancedForOp.BodyBuilder enhancedForLoop(Body.Builder ancestorBody, JavaType elementType,
                                                              Value iterable) {
             return enhancedFor(ancestorBody, iterable.type(), elementType)
                     .expression(b -> {
@@ -174,7 +174,7 @@ public final class StreamFuserUsingQuotable {
             } else if (sop instanceof FlatMapStreamOp) {
                 body.inline(sop.op(), List.of(element), (block, iterable) -> {
                     JavaEnhancedForOp forOp = enhancedFor(block.parentBody(),
-                            iterable.type(), iterable.type().typeArguments().get(0))
+                            iterable.type(), ((JavaType) iterable.type()).typeArguments().get(0))
                             .expression(b -> {
                                 b.op(_yield(iterable));
                             })
@@ -202,7 +202,7 @@ public final class StreamFuserUsingQuotable {
                 throw new IllegalArgumentException("Quotable consumer captures values");
             }
 
-            return func("fused.forEach", MethodTypeDesc.methodType(TypeDesc.VOID, sourceType))
+            return func("fused.forEach", MethodTypeDesc.methodType(JavaType.VOID, sourceType))
                     .body(b -> {
                         Value source = b.parameters().get(0);
 
@@ -235,7 +235,7 @@ public final class StreamFuserUsingQuotable {
                 throw new IllegalArgumentException("Quotable accumulator captures values");
             }
 
-            TypeDesc collectType = supplier.funcDescriptor().returnType();
+            JavaType collectType = (JavaType) supplier.funcDescriptor().returnType();
             return func("fused.collect", MethodTypeDesc.methodType(collectType, sourceType))
                     .body(b -> {
                         Value source = b.parameters().get(0);

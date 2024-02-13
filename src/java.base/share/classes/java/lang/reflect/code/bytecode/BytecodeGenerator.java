@@ -35,16 +35,8 @@ import java.lang.reflect.code.op.CoreOps.*;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.lang.classfile.CodeBuilder.BlockCodeBuilder;
-import java.lang.classfile.CodeElement;
-import java.lang.classfile.CodeTransform;
-import java.lang.classfile.Instruction;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
-import static java.lang.classfile.TypeKind.DoubleType;
-import static java.lang.classfile.TypeKind.FloatType;
-import static java.lang.classfile.TypeKind.LongType;
-import java.lang.classfile.instruction.BranchInstruction;
-import java.lang.classfile.instruction.LabelTarget;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDesc;
 import java.lang.constant.ConstantDescs;
@@ -57,16 +49,15 @@ import java.lang.reflect.code.Op;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
-import java.lang.reflect.code.Block.Reference;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.analysis.Liveness;
 import java.lang.reflect.code.descriptor.FieldDesc;
 import java.lang.reflect.code.descriptor.MethodDesc;
-import java.lang.reflect.code.descriptor.TypeDesc;
+import java.lang.reflect.code.type.JavaType;
+import java.lang.reflect.code.TypeElement;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -116,22 +107,6 @@ public final class BytecodeGenerator {
         ClassPrinter.toYaml(cm, ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES, System.out::print);
     }
 
-    private static class DebugTransform implements CodeTransform {
-        private int bci = 0;
-
-        @Override
-        public void accept(CodeBuilder cob, CodeElement coe) {
-            cob.accept(coe);
-            switch (coe) {
-                case LabelTarget lt -> System.out.println(bci + ": " + lt + " (" + lt.label().hashCode() + ")");
-                case BranchInstruction bi -> System.out.println(bci + ": " + bi + " (" + bi.target().hashCode() + ")");
-                default -> System.out.println(bci + ": " + coe);
-            }
-            if (coe instanceof Instruction ins) bci += ins.sizeInBytes();
-        }
-
-    }
-
     public static byte[] generateClassData(MethodHandles.Lookup lookup, CoreOps.FuncOp fop) {
         String packageName = lookup.lookupClass().getPackageName();
         String className = packageName.isEmpty()
@@ -143,7 +118,7 @@ public final class BytecodeGenerator {
                         fop.funcName(),
                         fop.funcDescriptor().toNominalDescriptor(),
                         ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC,
-                        cb -> cb.transforming(new DebugTransform(), cob -> {
+                        cb -> cb.transforming(new BranchCompactor(), cob -> {
                             ConversionContext c = new ConversionContext(lookup, liveness, cob);
                             generateBody(fop.body(), cob, c);
                         })));
@@ -158,34 +133,24 @@ public final class BytecodeGenerator {
         Block args need to have a fixed mapping to locals, unless the stack is used.
      */
 
-    static final class ConversionContext implements BytecodeInstructionOps.MethodVisitorContext {
+    static final class ConversionContext {
         final MethodHandles.Lookup lookup;
         final Liveness liveness;
         final CodeBuilder cb;
-        final Deque<BytecodeInstructionOps.ExceptionTableStart> labelStack;
         final Map<Object, Label> labels;
         final Map<Block, LiveSlotSet> liveSet;
         Block current;
         final Set<Block> catchingBlocks;
-        final Map<Block, ExceptionRegionNode> coveredBlocks;
 
         public ConversionContext(MethodHandles.Lookup lookup, Liveness liveness, CodeBuilder cb) {
             this.lookup = lookup;
             this.liveness = liveness;
             this.cb = cb;
-            this.labelStack = new ArrayDeque<>();
             this.labels = new HashMap<>();
             this.liveSet = new HashMap<>();
             this.catchingBlocks = new HashSet<>();
-            this.coveredBlocks = new HashMap<>();
         }
 
-        @Override
-        public Deque<BytecodeInstructionOps.ExceptionTableStart> exceptionRegionStack() {
-            return labelStack;
-        }
-
-        @Override
         public Label getLabel(Object b) {
             return labels.computeIfAbsent(b, _b -> cb.newLabel());
         }
@@ -207,13 +172,8 @@ public final class BytecodeGenerator {
             return liveSlotSet().getSlot(v);
         }
 
-
         int getOrAssignSlot(Value v, boolean assignIfUnused) {
             return liveSlotSet().getOrAssignSlot(v, assignIfUnused);
-        }
-
-        int getOrAssignSlot(Value v) {
-            return getOrAssignSlot(v, false);
         }
 
         int assignSlot(Value v) {
@@ -257,7 +217,7 @@ public final class BytecodeGenerator {
             Value operand = op.operands().get(i);
             if (operand instanceof Op.Result or &&
                     or.op() instanceof CoreOps.ConstantOp constantOp &&
-                    !constantOp.resultType().equals(TypeDesc.J_L_CLASS)) {
+                    !constantOp.resultType().equals(JavaType.J_L_CLASS)) {
                 cob.constantInstruction(fromValue(constantOp.value()));
             } else {
                 int slot = c.getSlot(operand);
@@ -269,7 +229,7 @@ public final class BytecodeGenerator {
     private static ConstantDesc fromValue(Object value) {
         return switch (value) {
             case ConstantDesc cd -> cd;
-            case TypeDesc td -> td.toNominalDescriptor();
+            case JavaType td -> td.toNominalDescriptor();
             default -> throw new IllegalArgumentException("Unsupported constant value: " + value);
         };
     }
@@ -327,106 +287,97 @@ public final class BytecodeGenerator {
         return use.op() instanceof CoreOps.ConditionalBranchOp;
     }
 
-    private static TypeKind toTypeKind(TypeDesc t) {
-        TypeDesc rbt = t.toBasicType();
+    private static TypeKind toTypeKind(TypeElement t) {
+        JavaType jt = (JavaType) t;
+        TypeElement rbt = jt.toBasicType();
 
-        if (rbt.equals(TypeDesc.INT)) {
+        if (rbt.equals(JavaType.INT)) {
             return TypeKind.IntType;
-        } else if (rbt.equals(TypeDesc.LONG)) {
+        } else if (rbt.equals(JavaType.LONG)) {
             return TypeKind.LongType;
-        } else if (rbt.equals(TypeDesc.FLOAT)) {
+        } else if (rbt.equals(JavaType.FLOAT)) {
             return TypeKind.FloatType;
-        } else if (rbt.equals(TypeDesc.DOUBLE)) {
+        } else if (rbt.equals(JavaType.DOUBLE)) {
             return TypeKind.DoubleType;
-        } else if (rbt.equals(TypeDesc.J_L_OBJECT)) {
+        } else if (rbt.equals(JavaType.J_L_OBJECT)) {
             return TypeKind.ReferenceType;
         } else {
             throw new IllegalArgumentException("Bad type: " + t);
         }
     }
 
-    record ExceptionRegionNode(CoreOps.ExceptionRegionEnter ere, int size, ExceptionRegionNode next) {
-    }
 
-    static final ExceptionRegionNode NIL = new ExceptionRegionNode(null, 0, null);
-
-    private static void computeExceptionRegionMembership(Body r, ConversionContext c) {
-        Set<Block> visited = new HashSet<>();
-        Deque<Block> stack = new ArrayDeque<>();
-        stack.push(r.entryBlock());
-
-        // Set of catching blocks
-        Set<Block> catchingBlocks = c.catchingBlocks;
-        // Map of block to stack of covered exception regions
-        Map<Block, ExceptionRegionNode> coveredBlocks = c.coveredBlocks;
+    private static void computeExceptionRegionMembership(Body body, CodeBuilder cob, ConversionContext c) {
+        record ExceptionRegionWithBlocks(CoreOps.ExceptionRegionEnter ere, BitSet blocks) {
+        }
+        // List of all regions
+        final List<ExceptionRegionWithBlocks> allRegions = new ArrayList<>();
+        class BlockWithActiveExceptionRegions {
+            final Block block;
+            final BitSet activeRegionStack;
+            BlockWithActiveExceptionRegions(Block block, BitSet activeRegionStack) {
+                this.block = block;
+                this.activeRegionStack = activeRegionStack;
+                activeRegionStack.stream().forEach(r -> allRegions.get(r).blocks.set(block.index()));
+            }
+        }
+        final Set<Block> visited = new HashSet<>();
+        final Deque<BlockWithActiveExceptionRegions> stack = new ArrayDeque<>();
+        stack.push(new BlockWithActiveExceptionRegions(body.entryBlock(), new BitSet()));
         // Compute exception region membership
         while (!stack.isEmpty()) {
-            Block b = stack.pop();
+            BlockWithActiveExceptionRegions bm = stack.pop();
+            Block b = bm.block;
             if (!visited.add(b)) {
                 continue;
             }
-
             Op top = b.terminatingOp();
-            ExceptionRegionNode bRegions = coveredBlocks.get(b);
             if (top instanceof CoreOps.BranchOp bop) {
-                if (bRegions != null) {
-                    coveredBlocks.put(bop.branch().targetBlock(), bRegions);
-                }
-
-                stack.push(bop.branch().targetBlock());
+                stack.push(new BlockWithActiveExceptionRegions(bop.branch().targetBlock(), bm.activeRegionStack));
             } else if (top instanceof CoreOps.ConditionalBranchOp cop) {
-                if (bRegions != null) {
-                    coveredBlocks.put(cop.falseBranch().targetBlock(), bRegions);
-                    coveredBlocks.put(cop.trueBranch().targetBlock(), bRegions);
-                }
-
-                stack.push(cop.falseBranch().targetBlock());
-                stack.push(cop.trueBranch().targetBlock());
+                stack.push(new BlockWithActiveExceptionRegions(cop.falseBranch().targetBlock(), bm.activeRegionStack));
+                stack.push(new BlockWithActiveExceptionRegions(cop.trueBranch().targetBlock(), bm.activeRegionStack));
             } else if (top instanceof CoreOps.ExceptionRegionEnter er) {
-                ArrayList<Block.Reference> catchBlocks = new ArrayList<>(er.catchBlocks());
-                Collections.reverse(catchBlocks);
-                for (Block.Reference catchBlock : catchBlocks) {
-                    catchingBlocks.add(catchBlock.targetBlock());
-                    if (bRegions != null) {
-                        coveredBlocks.put(catchBlock.targetBlock(), bRegions);
-                    }
-
-                    stack.push(catchBlock.targetBlock());
+                for (Block.Reference catchBlock : er.catchBlocks().reversed()) {
+                    c.catchingBlocks.add(catchBlock.targetBlock());
+                    stack.push(new BlockWithActiveExceptionRegions(catchBlock.targetBlock(), bm.activeRegionStack));
                 }
-
-                ExceptionRegionNode n;
-                if (bRegions != null) {
-                    n = new ExceptionRegionNode(er, bRegions.size + 1, bRegions);
-                } else {
-                    n = new ExceptionRegionNode(er, 1, NIL);
-                }
-                coveredBlocks.put(er.start().targetBlock(), n);
-
-                stack.push(er.start().targetBlock());
+                BitSet activeRegionStack = (BitSet)bm.activeRegionStack.clone();
+                activeRegionStack.set(allRegions.size());
+                ExceptionRegionWithBlocks newNode = new ExceptionRegionWithBlocks(er, new BitSet());
+                allRegions.add(newNode);
+                stack.push(new BlockWithActiveExceptionRegions(er.start().targetBlock(), activeRegionStack));
             } else if (top instanceof CoreOps.ExceptionRegionExit er) {
-                assert bRegions != null;
-
-                if (bRegions.size() > 1) {
-                    coveredBlocks.put(er.end().targetBlock(), bRegions.next());
-                }
-
-                stack.push(er.end().targetBlock());
+                BitSet activeRegionStack = (BitSet)bm.activeRegionStack.clone();
+                activeRegionStack.clear(activeRegionStack.length() - 1);
+                stack.push(new BlockWithActiveExceptionRegions(er.end().targetBlock(), activeRegionStack));
             }
         }
-    }
-
-    private static void branch(CodeBuilder cob, ConversionContext c, List<Block> blocks, Block source, Block target) {
-        int bi = blocks.indexOf(source);
-        int si = blocks.indexOf(target);
-        // If successor occurs immediately after this block,
-        // then no need for goto instruction
-        if (bi != si - 1) {
-            cob.goto_(c.getLabel(target));
+        // Declare the exception regions
+        final List<Block> blocks = body.blocks();
+        for (ExceptionRegionWithBlocks erNode : allRegions.reversed()) {
+            int start  = erNode.blocks.nextSetBit(0);
+            while (start >= 0) {
+                int end = erNode.blocks.nextClearBit(start);
+                Label startLabel = c.getLabel(blocks.get(start));
+                Label endLabel = c.getLabel(blocks.get(end));
+                for (Block.Reference cbr : erNode.ere.catchBlocks()) {
+                    Block cb = cbr.targetBlock();
+                    if (!cb.parameters().isEmpty()) {
+                        JavaType jt = (JavaType) cb.parameters().get(0).type();
+                        ClassDesc type = jt.toNominalDescriptor();
+                        cob.exceptionCatch(startLabel, endLabel, c.getLabel(cb), type);
+                    } else {
+                        cob.exceptionCatchAll(startLabel, endLabel, c.getLabel(cb));
+                    }
+                }
+                start = erNode.blocks.nextSetBit(end);
+            }
         }
     }
 
     private static void generateBody(Body body, CodeBuilder cob, ConversionContext c) {
-        computeExceptionRegionMembership(body, c);
+        computeExceptionRegionMembership(body, cob, c);
 
         // Process blocks in topological order
         // A jump instruction assumes the false successor block is
@@ -452,8 +403,6 @@ public final class BytecodeGenerator {
             if (c.catchingBlocks.contains(b)) {
                 // Retain block argument for exception table generation
                 Block.Parameter ex = b.parameters().get(0);
-//                clb.parameter(ex.type());
-
                 // Store in slot if used, otherwise pop
                 if (!ex.uses().isEmpty()) {
                     int slot = c.getSlot(ex);
@@ -469,11 +418,11 @@ public final class BytecodeGenerator {
             Op.Result oprOnStack = null;
             for (int i = 0; i < ops.size() - 1; i++) {
                 Op o = ops.get(i);
-                TypeDesc oprType = o.resultType();
-                TypeKind rvt = oprType.equals(TypeDesc.VOID) ? null : toTypeKind(oprType);
+                TypeElement oprType = o.resultType();
+                TypeKind rvt = oprType.equals(JavaType.VOID) ? null : toTypeKind(oprType);
                 switch (o) {
                     case ConstantOp op -> {
-                        if (op.resultType().equals(TypeDesc.J_L_CLASS)) {
+                        if (op.resultType().equals(JavaType.J_L_CLASS)) {
                             // Loading a class constant may throw an exception so it cannot be deferred
                             cob.ldc(fromValue(op.value()));
                         } else {
@@ -503,7 +452,7 @@ public final class BytecodeGenerator {
                             Value operand = op.operands().get(1);
                             if (operand instanceof Op.Result or &&
                                     or.op() instanceof CoreOps.ConstantOp constantOp &&
-                                    !constantOp.resultType().equals(TypeDesc.J_L_CLASS)) {
+                                    !constantOp.resultType().equals(JavaType.J_L_CLASS)) {
                                 cob.constantInstruction(fromValue(constantOp.value()));
                             } else {
                                 int slot = c.getSlot(operand);
@@ -603,7 +552,8 @@ public final class BytecodeGenerator {
                         }
                     }
                     case NewOp op -> {
-                        TypeDesc t = op.constructorDescriptor().returnType();
+                        TypeElement t_ = op.constructorDescriptor().returnType();
+                        JavaType t = (JavaType) t_;
                         switch (t.dimensions()) {
                             case 0 -> {
                                 if (isLastOpResultOnStack) {
@@ -616,7 +566,7 @@ public final class BytecodeGenerator {
                                    .dup();
                                 processOperands(cob, c, op, false);
                                 cob.invokespecial(
-                                        op.resultType().toNominalDescriptor(),
+                                        ((JavaType) op.resultType()).toNominalDescriptor(),
                                         ConstantDescs.INIT_NAME,
                                         op.constructorDescriptor().toNominalDescriptor().changeReturnType(ConstantDescs.CD_void));
                             }
@@ -663,7 +613,7 @@ public final class BytecodeGenerator {
                                     default ->
                                         throw new IllegalStateException("Bad method descriptor resolution: " + op.descriptor() + " > " + op.invokeDescriptor());
                                 },
-                                md.refType().toNominalDescriptor(),
+                                ((JavaType) md.refType()).toNominalDescriptor(),
                                 md.name(),
                                 md.type().toNominalDescriptor(),
                                 switch (descKind) {
@@ -671,7 +621,7 @@ public final class BytecodeGenerator {
                                     default -> false;
                                 });
 
-                        if (op.resultType().equals(TypeDesc.VOID) && !op.operands().isEmpty()) {
+                        if (op.resultType().equals(JavaType.VOID) && !op.operands().isEmpty()) {
                             isLastOpResultOnStack = false;
                         }
                     }
@@ -679,9 +629,15 @@ public final class BytecodeGenerator {
                         processOperands(cob, c, op, isLastOpResultOnStack);
                         FieldDesc fd = op.fieldDescriptor();
                         if (op.operands().isEmpty()) {
-                            cob.getstatic(fd.refType().toNominalDescriptor(), fd.name(), fd.type().toNominalDescriptor());
+                            cob.getstatic(
+                                    ((JavaType) fd.refType()).toNominalDescriptor(),
+                                    fd.name(),
+                                    ((JavaType) fd.type()).toNominalDescriptor());
                         } else {
-                            cob.getfield(fd.refType().toNominalDescriptor(), fd.name(), fd.type().toNominalDescriptor());
+                            cob.getfield(
+                                    ((JavaType) fd.refType()).toNominalDescriptor(),
+                                    fd.name(),
+                                    ((JavaType) fd.type()).toNominalDescriptor());
                         }
                     }
                     case FieldAccessOp.FieldStoreOp op -> {
@@ -689,18 +645,24 @@ public final class BytecodeGenerator {
                         isLastOpResultOnStack = false;
                         FieldDesc fd = op.fieldDescriptor();
                         if (op.operands().size() == 1) {
-                            cob.putstatic(fd.refType().toNominalDescriptor(), fd.name(), fd.type().toNominalDescriptor());
+                            cob.putstatic(
+                                    ((JavaType) fd.refType()).toNominalDescriptor(),
+                                    fd.name(),
+                                    ((JavaType) fd.type()).toNominalDescriptor());
                         } else {
-                            cob.putfield(fd.refType().toNominalDescriptor(), fd.name(), fd.type().toNominalDescriptor());
+                            cob.putfield(
+                                    ((JavaType) fd.refType()).toNominalDescriptor(),
+                                    fd.name(),
+                                    ((JavaType) fd.type()).toNominalDescriptor());
                         }
                     }
                     case InstanceOfOp op -> {
                         processOperands(cob, c, op, isLastOpResultOnStack);
-                        cob.instanceof_(op.type().toNominalDescriptor());
+                        cob.instanceof_(((JavaType) op.type()).toNominalDescriptor());
                     }
                     case CastOp op -> {
                         processOperands(cob, c, op, isLastOpResultOnStack);
-                        cob.checkcast(op.type().toNominalDescriptor());
+                        cob.checkcast(((JavaType) op.type()).toNominalDescriptor());
                     }
                     default ->
                         throw new UnsupportedOperationException("Unsupported operation: " + ops.get(i));
@@ -738,7 +700,7 @@ public final class BytecodeGenerator {
                 }
                 case BranchOp op -> {
                     assignBlockArguments(op, op.branch(), cob, c);
-                    branch(cob, c, blocks, b, op.branch().targetBlock());
+                    cob.goto_(c.getLabel(op.branch().targetBlock()));
                 }
                 case ConditionalBranchOp op -> {
                     if (getConditionForCondBrOp(op) instanceof CoreOps.BinaryTestOp btop) {
@@ -747,22 +709,22 @@ public final class BytecodeGenerator {
                         conditionalBranch(cob, btop,
                                 trueBuilder -> {
                                     assignBlockArguments(btop, op.trueBranch(), trueBuilder, c);
-                                    branch(trueBuilder, c, blocks, b, op.trueBranch().targetBlock());
+                                    trueBuilder.goto_(c.getLabel(op.trueBranch().targetBlock()));
                                 },
                                 falseBuilder -> {
                                     assignBlockArguments(btop, op.falseBranch(), falseBuilder, c);
-                                    branch(falseBuilder, c, blocks, b, op.falseBranch().targetBlock());
+                                    falseBuilder.goto_(c.getLabel(op.falseBranch().targetBlock()));
                                 });
                     } else {
                         processOperands(cob, c, op, isLastOpResultOnStack);
                         cob.ifThenElse(
                                 trueBuilder -> {
                                     assignBlockArguments(op, op.trueBranch(), trueBuilder, c);
-                                    branch(trueBuilder, c, blocks, b, op.trueBranch().targetBlock());
+                                    trueBuilder.goto_(c.getLabel(op.trueBranch().targetBlock()));
                                 },
                                 falseBuilder -> {
                                     assignBlockArguments(op, op.falseBranch(), falseBuilder, c);
-                                    branch(falseBuilder, c, blocks, b, op.falseBranch().targetBlock());
+                                    falseBuilder.goto_(c.getLabel(op.falseBranch().targetBlock()));
                                 });
                     }
                 }
@@ -774,19 +736,7 @@ public final class BytecodeGenerator {
                 }
                 case ExceptionRegionExit op -> {
                     assignBlockArguments(op, op.end(), cob, c);
-                    ExceptionRegionEnter enterOp = op.regionStart();
-                    Label start = c.getLabel(enterOp.start().targetBlock());
-                    Label end = cob.newBoundLabel();
-                    for (Reference cbr : enterOp.catchBlocks()) {
-                        Block cb = cbr.targetBlock();
-                        if (!cb.parameters().isEmpty()) {
-                            ClassDesc type = cb.parameters().get(0).type().toNominalDescriptor();
-                            cob.exceptionCatch(start, end, c.getLabel(cb), type);
-                        } else {
-                            cob.exceptionCatchAll(start, end, c.getLabel(cb));
-                        }
-                    }
-                    branch(cob, c, blocks, b, op.end().targetBlock());
+                    cob.goto_(c.getLabel(op.end().targetBlock()));
                 }
                 default ->
                     throw new UnsupportedOperationException("Terminating operation not supported: " + top);
@@ -928,7 +878,7 @@ public final class BytecodeGenerator {
         }
 
         static int slotsPerValue(Value x) {
-            return x.type().equals(TypeDesc.DOUBLE) || x.type().equals(TypeDesc.LONG)
+            return x.type().equals(JavaType.DOUBLE) || x.type().equals(JavaType.LONG)
                     ? 2
                     : 1;
         }
@@ -1013,7 +963,7 @@ public final class BytecodeGenerator {
             Value value = sargs.get(i);
             if (value instanceof Op.Result or &&
                     or.op() instanceof CoreOps.ConstantOp constantOp &&
-                    !constantOp.resultType().equals(TypeDesc.J_L_CLASS)) {
+                    !constantOp.resultType().equals(JavaType.J_L_CLASS)) {
                 cob.constantInstruction(fromValue(constantOp.value()));
             } else {
                 int sslot = c.getSlot(value);
@@ -1034,7 +984,7 @@ public final class BytecodeGenerator {
             Value value = sargs.get(i);
             if (value instanceof Op.Result or &&
                     or.op() instanceof CoreOps.ConstantOp constantOp &&
-                    !constantOp.resultType().equals(TypeDesc.J_L_CLASS)) {
+                    !constantOp.resultType().equals(JavaType.J_L_CLASS)) {
                 TypeKind vt = toTypeKind(barg.type());
                 cob.storeInstruction(vt, bslot);
             } else {

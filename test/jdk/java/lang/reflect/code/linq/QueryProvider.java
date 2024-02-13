@@ -21,13 +21,13 @@
  * questions.
  */
 
-import java.lang.reflect.code.descriptor.TypeDesc;
 import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.type.JavaType;
 
 public abstract class QueryProvider {
     public abstract <T> Queryable<T> query(Class<T> elementType);
 
-    protected abstract Queryable<?> createQuery(TypeDesc elementDesc, CoreOps.FuncOp queryExpression);
+    protected abstract Queryable<?> createQuery(JavaType elementType, CoreOps.FuncOp queryExpression);
 
-    protected abstract QueryResult<?> createQueryResult(TypeDesc resultDesc, CoreOps.FuncOp expression);
+    protected abstract QueryResult<?> createQueryResult(JavaType resultType, CoreOps.FuncOp expression);
 }

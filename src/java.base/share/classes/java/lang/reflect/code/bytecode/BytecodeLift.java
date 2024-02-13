@@ -28,624 +28,399 @@ package java.lang.reflect.code.bytecode;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.CodeElement;
 import java.lang.classfile.CodeModel;
-import java.lang.classfile.Instruction;
 import java.lang.classfile.Label;
 import java.lang.classfile.MethodModel;
-import java.lang.classfile.attribute.StackMapFrameInfo;
-import java.lang.classfile.attribute.StackMapTableAttribute;
+import java.lang.classfile.Opcode;
+import java.lang.classfile.TypeKind;
 import java.lang.classfile.constantpool.ClassEntry;
-import java.lang.classfile.instruction.BranchInstruction;
-import java.lang.classfile.instruction.ExceptionCatch;
-import java.lang.classfile.instruction.LabelTarget;
-import java.lang.classfile.instruction.LineNumber;
-import java.lang.classfile.instruction.LocalVariable;
-import java.lang.classfile.instruction.LocalVariableType;
-import java.lang.classfile.instruction.LookupSwitchInstruction;
-import java.lang.classfile.instruction.ReturnInstruction;
-import java.lang.classfile.instruction.SwitchCase;
-import java.lang.classfile.instruction.TableSwitchInstruction;
-import java.lang.classfile.instruction.ThrowInstruction;
+import java.lang.classfile.instruction.*;
+import java.lang.constant.ClassDesc;
+import java.lang.constant.ConstantDescs;
 
 import java.lang.reflect.code.Block;
-import java.lang.reflect.code.Body;
+import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
+import java.lang.reflect.code.descriptor.FieldDesc;
+import java.lang.reflect.code.descriptor.MethodDesc;
 import java.lang.reflect.code.descriptor.MethodTypeDesc;
-import java.lang.reflect.code.descriptor.TypeDesc;
+import java.lang.reflect.code.op.CoreOps.ExceptionRegionEnter;
+import java.lang.reflect.code.type.JavaType;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
-public class BytecodeLift {
+public final class BytecodeLift {
 
-    BytecodeLift() {
+    private BytecodeLift() {
     }
 
-    //
     // Lift to core dialect
-
-    public static CoreOps.FuncOp liftToCoreDialect(CoreOps.FuncOp lf) {
-        Body.Builder body = Body.Builder.of(null, lf.funcDescriptor());
-        liftToCoreDialect(lf.body(), body);
-        return CoreOps.func(lf.funcName(), body);
+    public static CoreOps.FuncOp lift(byte[] classdata, String methodName) {
+        return lift(ClassFile.of(
+                ClassFile.DebugElementsOption.DROP_DEBUG,
+                ClassFile.LineNumbersOption.DROP_LINE_NUMBERS).parse(classdata).methods().stream()
+                        .filter(mm -> mm.methodName().equalsString(methodName))
+                        .findFirst().orElseThrow(() -> new IllegalArgumentException("Unknown method: " + methodName)));
     }
 
-    // @@@ boolean, byte, short, and char are erased to int on the stack
+    public static CoreOps.FuncOp lift(MethodModel methodModel) {
+        return CoreOps.func(
+                methodModel.methodName().stringValue(),
+                MethodTypeDesc.ofNominalDescriptor(methodModel.methodTypeSymbol())).body(entryBlock -> {
 
-    @SuppressWarnings("fallthrough")
-    public static void liftToCoreDialect(Body lbody, Body.Builder c) {
-        Block.Builder eb = c.entryBlock();
+            final CodeModel codeModel = methodModel.code().orElseThrow();
+            final HashMap<Label, Block.Builder> blockMap = new HashMap<>();
+            final Map<ExceptionCatch, Op.Result> exceptionRegionsMap = new HashMap<>();
 
-        // Create blocks
-        Map<Block, Block.Builder> blockMap = new HashMap<>();
-        for (Block lb : lbody.blocks()) {
-            Block.Builder b = lb.isEntryBlock() ? eb : eb.block();
-            if (!lb.isEntryBlock()) {
-                for (Block.Parameter lbp : lb.parameters()) {
-                    b.parameter(lbp.type());
-                }
-            }
-            blockMap.put(lb, b);
-        }
+            Block.Builder currentBlock = entryBlock;
+            final Deque<Value> stack = new ArrayDeque<>();
+            final Map<Integer, Op.Result> locals = new HashMap<>();
 
-
-        // @@@ catch/finally handlers are disconnected block
-        // treat as effectively separate bodies
-
-        // @@@ Needs to be cloned when there are two or more successors
-        Map<Integer, Op.Result> locals = new HashMap<>();
-        Deque<Value> stack = new ArrayDeque<>();
-
-        // Map Block arguments to local variables
-        int lvm = 0;
-        for (Block.Parameter bp : eb.parameters()) {
-            // @@@ Reference type
-            Op.Result local = eb.op(CoreOps.var(Integer.toString(lvm), bp));
-            locals.put(lvm++, local);
-        }
-
-        Set<Block> visited = new HashSet<>();
-        Deque<Block> wl = new ArrayDeque<>();
-        wl.push(lbody.entryBlock());
-        while (!wl.isEmpty()) {
-            Block lb = wl.pop();
-            if (!visited.add(lb)) {
-                continue;
+            int varIndex = 0;
+            // Initialize local variables from entry block parameters
+            for (Block.Parameter bp : entryBlock.parameters()) {
+                // @@@ Reference type
+                locals.put(varIndex, entryBlock.op(CoreOps.var(Integer.toString(varIndex++), bp)));
             }
 
-            Block.Builder b = blockMap.get(lb);
-
-            // If a non-entry block has parameters then they correspond to stack arguments
-            // Push back block parameters on the stack, in reverse order to preserve order on the stack
-            if (b.parameters().size() > 0 && !b.isEntryBlock()) {
-                for (int i = b.parameters().size() - 1; i >= 0; i--) {
-                    stack.push(b.parameters().get(i));
-                }
-            }
-
-            int nops = lb.ops().size();
-            for (int i = 0; i < nops - 1; i++) {
-                Op lop = lb.ops().get(i);
-
-                if (lop instanceof BytecodeInstructionOps.LoadInstructionOp inst) {
-                    Op.Result result = b.op(CoreOps.varLoad(locals.get(inst.slot())));
-                    stack.push(result);
-                } else if (lop instanceof BytecodeInstructionOps.StoreInstructionOp inst) {
-                    Value operand = stack.pop();
-
-                    Op.Result local = locals.get(inst.slot());
-                    if (local == null) {
-                        local = b.op(CoreOps.var(Integer.toString(lvm), operand));
-                        locals.put(lvm++, local);
-                    } else {
-                        TypeDesc varType = ((CoreOps.VarOp) local.op()).varType();
-                        if (!operand.type().equals(varType)) {
-                            local = b.op(CoreOps.var(Integer.toString(lvm), operand));
-                            locals.put(lvm++, local);
-                        } else {
-                            b.op(CoreOps.varStore(local, operand));
+            final List<CodeElement> elements = codeModel.elementList();
+            final BitSet visited = new BitSet();
+            int initiallyResolved; // This is counter helping to determine if the remaining code is not accessible ("dead")
+            while ((initiallyResolved = visited.cardinality()) < elements.size()) {
+                for (int i = visited.nextClearBit(0); i < elements.size();) {
+                    // We start from the first unvisited instruction and mark it as visited
+                    visited.set(i);
+                    switch (elements.get(i)) {
+                        case ExceptionCatch ec -> {
+                            // Exception blocks are inserted by label target (below)
                         }
-                    }
-                } else if (lop instanceof BytecodeInstructionOps.IIncInstructionOp inst) {
-                    Op.Result local = locals.get(inst.index());
-                    Op.Result v1 = b.op(CoreOps.varLoad(local));
-                    Op.Result v2 = b.op(CoreOps.constant(TypeDesc.INT, inst.incr()));
-                    Op.Result result = b.op(CoreOps.add(v1, v2));
-                    b.op(CoreOps.varStore(local, result));
-                } else if (lop instanceof BytecodeInstructionOps.LdcInstructionOp inst) {
-                    Op.Result result = b.op(CoreOps.constant(inst.type(), inst.value()));
-                    stack.push(result);
-                } else if (lop instanceof BytecodeInstructionOps.ConstInstructionOp inst) {
-                    Op.Result result = b.op(CoreOps.constant(inst.typeDesc(), inst.value()));
-                    stack.push(result);
-                } else if (lop instanceof BytecodeInstructionOps.BipushInstructionOp inst) {
-                    Op.Result result = b.op(CoreOps.constant(TypeDesc.INT, inst.value()));
-                    stack.push(result);
-                } else if (lop instanceof BytecodeInstructionOps.AddInstructionOp inst) {
-                    Value operand2 = stack.pop();
-                    Value operand1 = stack.pop();
-                    Op.Result result = b.op(CoreOps.add(operand1, operand2));
-                    stack.push(result);
-                } else if (lop instanceof BytecodeInstructionOps.GetFieldInstructionOp inst) {
-                    if (inst.kind() == BytecodeInstructionOps.FieldKind.INSTANCE) {
-                        Value operand = stack.pop();
-                        Op.Result result = b.op(CoreOps.fieldLoad(inst.desc(), operand));
-                        stack.push(result);
-                    } else {
-                        Op.Result result = b.op(CoreOps.fieldLoad(inst.desc()));
-                        stack.push(result);
-                    }
-                } else if (lop instanceof BytecodeInstructionOps.PutFieldInstructionOp inst) {
-                    Value value = stack.pop();
-                    if (inst.kind() == BytecodeInstructionOps.FieldKind.INSTANCE) {
-                        Value receiver = stack.pop();
-                        Op.Result result = b.op(CoreOps.fieldStore(inst.desc(), receiver, value));
-                        stack.push(result);
-                    } else {
-                        Op.Result result = b.op(CoreOps.fieldStore(inst.desc(), value));
-                        stack.push(result);
-                    }
-                } else if (lop instanceof BytecodeInstructionOps.ArrayStoreInstructionOp inst) {
-                    Value value = stack.pop();
-                    Value index = stack.pop();
-                    Value array = stack.pop();
-                    b.op(CoreOps.arrayStoreOp(array, index, value));
-                } else if (lop instanceof BytecodeInstructionOps.ArrayLoadInstructionOp inst) {
-                    Value index = stack.pop();
-                    Value array = stack.pop();
-                    Op.Result result = b.op(CoreOps.arrayLoadOp(array, index));
-                    stack.push(result);
-                } else if (lop instanceof BytecodeInstructionOps.ArrayLengthInstructionOp inst) {
-                    Value array = stack.pop();
-                    Op.Result result = b.op(CoreOps.arrayLength(array));
-                    stack.push(result);
-                } else if (lop instanceof BytecodeInstructionOps.InvokeInstructionOp inst) {
-                    MethodTypeDesc descriptor = inst.callOpDescriptor();
-
-                    List<Value> operands = new ArrayList<>();
-                    for (int p = 0; p < inst.desc().type().parameters().size(); p++) {
-                        operands.add(stack.pop());
-                    }
-
-                    switch (inst.kind()) {
-                        case VIRTUAL:
-                        case INTERFACE:
-                            operands.add(stack.pop());
-                            // Fallthrough
-                        case STATIC: {
-                            Collections.reverse(operands);
-                            Op.Result result = b.op(CoreOps.invoke(descriptor.returnType(), inst.desc(), operands.toArray(Value[]::new)));
-                            if (!result.type().equals(TypeDesc.VOID)) {
-                                stack.push(result);
-                            }
-                            break;
-                        }
-                        case SPECIAL: {
-                            if (inst.desc().name().equals("<init>")) {
-                                Collections.reverse(operands);
-
-                                TypeDesc ref = descriptor.parameters().get(0);
-                                List<TypeDesc> params = descriptor.parameters().subList(1, descriptor.parameters().size());
-                                MethodTypeDesc constructorDescriptor = MethodTypeDesc.methodType(ref, params);
-                                Op.Result result = b.op(CoreOps._new(constructorDescriptor, operands.toArray(Value[]::new)));
-                                stack.push(result);
-                            } else {
-                                operands.add(stack.pop());
-                                Collections.reverse(operands);
-                                Op.Result result = b.op(CoreOps.invoke(descriptor.returnType(), inst.desc(), operands.toArray(Value[]::new)));
-                                if (!result.type().equals(TypeDesc.VOID)) {
-                                    stack.push(result);
+                        case LabelTarget lt -> {
+                            // Start of a new block
+                            Block.Builder next = blockMap.get(lt.label());
+                            if (currentBlock != null) {
+                                // Flow has not been interrupted and we can build next block based on the actual stack and locals
+                                if (next == null) {
+                                    // New block parameter types are calculated from the actual stack
+                                    next = entryBlock.block(stack.stream().map(Value::type).toList());
+                                    blockMap.put(lt.label(), next);
                                 }
-                                break;
+                                // Implicit goto next block, add explicitly
+                                // Use stack content as next block arguments
+                                currentBlock.op(CoreOps.branch(next.successor(List.copyOf(stack))));
+                            }
+                            if (next != null) {
+                                // We know the next block so we can continue
+                                currentBlock = next;
+                                // Stack is reconstructed from block parameters
+                                stack.clear();
+                                currentBlock.parameters().forEach(stack::add);
+                                // Insert relevant tryStart and construct handler blocks, all in reversed order
+                                for (ExceptionCatch ec : codeModel.exceptionHandlers().reversed()) {
+                                    if (lt.label() == ec.tryStart()) {
+                                        // Get or create handler with the exception as parameter
+                                        Block.Builder handler = blockMap.computeIfAbsent(ec.handler(), _ ->
+                                                entryBlock.block(List.of(JavaType.ofNominalDescriptor(
+                                                        ec.catchType().map(ClassEntry::asSymbol).orElse(ConstantDescs.CD_Throwable)))));
+                                        // Create start block
+                                        next = entryBlock.block(stack.stream().map(Value::type).toList());
+                                        ExceptionRegionEnter ere = CoreOps.exceptionRegionEnter(next.successor(List.copyOf(stack)), handler.successor());
+                                        currentBlock.op(ere);
+                                        // Store ERE into map for exit
+                                        exceptionRegionsMap.put(ec, ere.result());
+                                        currentBlock = next;
+                                        // Stack is reconstructed from block parameters
+                                        stack.clear();
+                                        currentBlock.parameters().forEach(stack::add);
+                                    }
+                                }
+                                // Insert relevant tryEnd blocks in normal order
+                                for (ExceptionCatch ec : codeModel.exceptionHandlers()) {
+                                    if (lt.label() == ec.tryEnd()) {
+                                        // Create exit block with parameters constructed from the stack
+                                        next = entryBlock.block(stack.stream().map(Value::type).toList());
+                                        currentBlock.op(CoreOps.exceptionRegionExit(exceptionRegionsMap.get(ec), next.successor()));
+                                        currentBlock = next;
+                                        // Stack is reconstructed from block parameters
+                                        stack.clear();
+                                        currentBlock.parameters().forEach(stack::add);
+                                    }
+                                }
+                            } else {
+                                // Here we do not know the next block parameters, stack and locals
+                                // so we make it unvisited
+                                visited.clear(i);
+                                // interrupt the flow
+                                currentBlock = null;
+                                stack.clear();
+                                // and skip to a next block
+                                while (i < elements.size() - 1 && !(elements.get(i + 1) instanceof LabelTarget)) i++;
                             }
                         }
-
-                    }
-                } else if (lop instanceof BytecodeInstructionOps.NewInstructionOp inst) {
-                    // Skip over this and the dup to process the invoke special
-                    if (i + 2 >= nops - 1) {
-                        throw new UnsupportedOperationException("new must be followed by dup and invokespecial");
-                    }
-                    Op dup = lb.ops().get(i + 1);
-                    if (!(dup instanceof BytecodeInstructionOps.DupInstructionOp)) {
-                        throw new UnsupportedOperationException("new must be followed by dup and invokespecial");
-                    }
-                    Op special = lb.ops().get(i + 2);
-                    if (special instanceof BytecodeInstructionOps.InvokeInstructionOp invoke) {
-                        if (!invoke.desc().name().equals("<init>")) {
-                            throw new UnsupportedOperationException("new must be followed by dup and invokespecial for <init>");
+                        case BranchInstruction inst when inst.opcode().isUnconditionalBranch() -> {
+                            // Get or create target block with parameters constructed from the stack
+                            currentBlock.op(CoreOps.branch(blockMap.computeIfAbsent(inst.target(), _ ->
+                                    entryBlock.block(stack.stream().map(Value::type).toList())).successor(List.copyOf(stack))));
+                            // Flow discontinued, stack cleared to be ready for the next label target
+                            stack.clear();
+                            currentBlock = null;
                         }
-                    } else {
-                        throw new UnsupportedOperationException("new must be followed by dup and invokespecial");
-                    }
-
-                    i++;
-                } else if (lop instanceof BytecodeInstructionOps.NewArrayInstructionOp inst) {
-                    Value length = stack.pop();
-                    Op.Result result = b.op(CoreOps.newArray(TypeDesc.type(inst.desc(), 1), length));
-                    stack.push(result);
-                } else if (lop instanceof BytecodeInstructionOps.MultiNewArrayInstructionOp inst) {
-                    int dims = inst.dims();
-                    Value[] counts = new Value[dims];
-                    for (int d = dims - 1; d >= 0; d--) {
-                        counts[d] = stack.pop();
-                    }
-                    MethodTypeDesc m = MethodTypeDesc.methodType(inst.desc(), Collections.nCopies(dims, TypeDesc.INT));
-                    Op.Result result = b.op(CoreOps._new(m, counts));
-                    stack.push(result);
-                } else if (lop instanceof BytecodeInstructionOps.CheckCastInstructionOp inst) {
-                    Value instance = stack.pop();
-                    Op.Result result = b.op(CoreOps.cast(inst.desc(), instance));
-                    stack.push(result);
-                } else if (lop instanceof BytecodeInstructionOps.PopInstructionOp inst) {
-                    stack.pop();
-                } else if (lop instanceof BytecodeInstructionOps.DupInstructionOp inst) {
-                    stack.push(stack.peek());
-                } else if (lop instanceof BytecodeInstructionOps.Frame inst) {
-                    // Ignore
-                } else {
-                    throw new UnsupportedOperationException("Unsupported operation: " + lop.opName());
-                }
-            }
-
-            Op ltop = lb.terminatingOp();
-            if (ltop instanceof BytecodeInstructionOps.GotoInstructionOp inst) {
-                Block slb = inst.successors().get(0).targetBlock();
-                Block.Reference sb;
-                // If the block has block parameters for stack operands then
-                // pop arguments off the stack and use as successor arguments
-                if (!slb.parameters().isEmpty()) {
-                    List<Value> args = new ArrayList<>();
-                    for (int x = 0; x < slb.parameters().size(); x++) {
-                        args.add(stack.pop());
-                    }
-                    sb = blockMap.get(slb).successor(args);
-                } else {
-                    sb = blockMap.get(slb).successor();
-                }
-                b.op(CoreOps.branch(sb));
-
-                wl.push(slb);
-            } else if (ltop instanceof BytecodeInstructionOps.IfInstructionOp inst) {
-                Value operand = stack.pop();
-                Value zero = b.op(CoreOps.constant(TypeDesc.INT, 0));
-
-                if (!stack.isEmpty()) {
-                    throw new UnsupportedOperationException("Operands on stack for branch not supported");
-                }
-
-                BytecodeInstructionOps.Comparison cond = inst.cond().inverse();
-                Op cop = switch (cond) {
-                    case EQ -> CoreOps.eq(operand, zero);
-                    case NE -> CoreOps.neq(operand, zero);
-                    case LT -> CoreOps.lt(operand, zero);
-                    case GT -> CoreOps.gt(operand, zero);
-                    default -> throw new UnsupportedOperationException("Unsupported condition " + cond);
-                };
-
-                Block fslb = inst.successors().get(0).targetBlock();
-                Block tslb = inst.successors().get(1).targetBlock();
-                b.op(CoreOps.conditionalBranch(b.op(cop), blockMap.get(fslb).successor(), blockMap.get(tslb).successor()));
-
-                wl.push(tslb);
-                wl.push(fslb);
-            } else if (ltop instanceof BytecodeInstructionOps.IfcmpInstructionOp inst) {
-                Value operand2 = stack.pop();
-                Value operand1 = stack.pop();
-
-                if (!stack.isEmpty()) {
-                    throw new UnsupportedOperationException("Operands on stack for branch not supported");
-                }
-
-                BytecodeInstructionOps.Comparison cond = inst.cond().inverse();
-                Op cop = switch (cond) {
-                    case EQ -> CoreOps.eq(operand1, operand2);
-                    case NE -> CoreOps.neq(operand1, operand2);
-                    case LT -> CoreOps.lt(operand1, operand2);
-                    case GT -> CoreOps.gt(operand1, operand2);
-                    default -> throw new UnsupportedOperationException("Unsupported condition " + cond);
-                };
-
-                Block tslb = inst.trueBranch();
-                Block fslb = inst.falseBranch();
-                b.op(CoreOps.conditionalBranch(b.op(cop), blockMap.get(fslb).successor(), blockMap.get(tslb).successor()));
-
-                wl.push(tslb);
-                wl.push(fslb);
-            } else if (ltop instanceof BytecodeInstructionOps.ReturnInstructionOp inst) {
-                Value operand = stack.pop();
-                b.op(CoreOps._return(operand));
-            } else if (ltop instanceof BytecodeInstructionOps.VoidReturnInstructionOp inst) {
-                b.op(CoreOps._return());
-            } else {
-                throw new UnsupportedOperationException("Unsupported terminating operation: " + ltop.opName());
-            }
-        }
-    }
-
-
-    //
-    // Lift to bytecode dialect
-
-    static final class LiftContext {
-        final Map<BytecodeBasicBlock, Block.Builder> blockMap = new HashMap<>();
-    }
-
-    public static CoreOps.FuncOp liftToBytecodeDialect(byte[] classdata, String methodName) {
-        BytecodeMethodBody bcr = createBodyForMethod(classdata, methodName);
-
-        MethodTypeDesc methodTypeDescriptor = MethodTypeDesc.ofNominalDescriptor(bcr.methodModel.methodTypeSymbol());
-
-        CoreOps.FuncOp f = CoreOps.func(
-                bcr.methodModel.methodName().stringValue(),
-                methodTypeDescriptor).body(entryBlock -> {
-            LiftContext c = new LiftContext();
-
-            // Create blocks
-            int count = 0;
-            for (BytecodeBasicBlock bcb : bcr.blocks) {
-                Block.Builder b = count > 0 ? entryBlock.block() : entryBlock;
-
-                count++;
-                c.blockMap.put(bcb, b);
-            }
-
-            // Process blocks
-            for (BytecodeBasicBlock bcb : bcr.blocks) {
-                Block.Builder b = c.blockMap.get(bcb);
-
-                // Add exception parameter to catch handler blocks
-                for (ExceptionCatch tryCatchBlock : bcr.codeModel.exceptionHandlers()) {
-                    BytecodeBasicBlock handler = bcr.blockMap.get(tryCatchBlock.handler());
-                    if (handler == bcb) {
-                        if (b.parameters().size() == 0) {
-                            TypeDesc throwableType = tryCatchBlock.catchType()
-                                    .map(ClassEntry::asSymbol)
-                                    .map(TypeDesc::ofNominalDescriptor)
-                                    .orElse(null);
-                            if (throwableType != null) {
-                                b.parameter(throwableType);
+                        case BranchInstruction inst -> {
+                            // Conditional branch
+                            Value operand = stack.pop();
+                            Op cop = switch (inst.opcode()) {
+                                case IFNE -> CoreOps.eq(operand, currentBlock.op(CoreOps.constant(JavaType.INT, 0)));
+                                case IFEQ -> CoreOps.neq(operand, currentBlock.op(CoreOps.constant(JavaType.INT, 0)));
+                                case IFGE -> CoreOps.lt(operand, currentBlock.op(CoreOps.constant(JavaType.INT, 0)));
+                                case IFLE -> CoreOps.gt(operand, currentBlock.op(CoreOps.constant(JavaType.INT, 0)));
+                                case IFGT -> CoreOps.le(operand, currentBlock.op(CoreOps.constant(JavaType.INT, 0)));
+                                case IFLT -> CoreOps.ge(operand, currentBlock.op(CoreOps.constant(JavaType.INT, 0)));
+                                case IF_ICMPNE -> CoreOps.eq(stack.pop(), operand);
+                                case IF_ICMPEQ -> CoreOps.neq(stack.pop(), operand);
+                                case IF_ICMPGE -> CoreOps.lt(stack.pop(), operand);
+                                case IF_ICMPLE -> CoreOps.gt(stack.pop(), operand);
+                                case IF_ICMPGT -> CoreOps.le(stack.pop(), operand);
+                                case IF_ICMPLT -> CoreOps.ge(stack.pop(), operand);
+                                default -> throw new UnsupportedOperationException("Unsupported branch instruction: " + inst);
+                            };
+                            if (!stack.isEmpty()) {
+                                throw new UnsupportedOperationException("Operands on stack for branch not supported");
+                            }
+                            Block.Builder nextBlock = currentBlock.block();
+                            currentBlock.op(CoreOps.conditionalBranch(currentBlock.op(cop),
+                                    nextBlock.successor(),
+                                    // Get or create target block
+                                    blockMap.computeIfAbsent(inst.target(), _ ->
+                                            entryBlock.block(stack.stream().map(Value::type).toList())).successor()));
+                            currentBlock = nextBlock;
+                        }
+        //                case LookupSwitchInstruction si -> {
+        //                    // Default label is first successor
+        //                    b.addSuccessor(blockMap.get(si.defaultTarget()));
+        //                    addSuccessors(si.cases(), blockMap, b);
+        //                }
+        //                case TableSwitchInstruction si -> {
+        //                    // Default label is first successor
+        //                    b.addSuccessor(blockMap.get(si.defaultTarget()));
+        //                    addSuccessors(si.cases(), blockMap, b);
+        //                }
+                        case ReturnInstruction inst when inst.typeKind() == TypeKind.VoidType -> {
+                            currentBlock.op(CoreOps._return());
+                            // Flow discontinued, stack cleared to be ready for the next label target
+                            stack.clear();
+                            currentBlock = null;
+                        }
+                        case ReturnInstruction _ -> {
+                            currentBlock.op(CoreOps._return(stack.pop()));
+                            // Flow discontinued, stack cleared to be ready for the next label target
+                            stack.clear();
+                            currentBlock = null;
+                        }
+                        case ThrowInstruction _ -> {
+                            currentBlock.op(CoreOps._throw(stack.pop()));
+                            // Flow discontinued, stack cleared to be ready for the next label target
+                            stack.clear();
+                            currentBlock = null;
+                        }
+                        case LoadInstruction inst -> {
+                            stack.push(currentBlock.op(CoreOps.varLoad(locals.get(inst.slot()))));
+                        }
+                        case StoreInstruction inst -> {
+                            Value operand = stack.pop();
+                            Op.Result local = locals.get(inst.slot());
+                            if (local == null) {
+                                locals.put(inst.slot(), currentBlock.op(CoreOps.var(Integer.toString(varIndex++), operand)));
+                            } else {
+                                TypeElement varType = ((CoreOps.VarOp) local.op()).varType();
+                                if (!operand.type().equals(varType)) {
+                                    // @@@ How to override local slots?
+                                    locals.put(varIndex, currentBlock.op(CoreOps.var(Integer.toString(varIndex++), operand)));
+                                } else {
+                                    currentBlock.op(CoreOps.varStore(local, operand));
+                                }
                             }
                         }
-                        break;
-                    }
-                }
-
-                // If the frame has operand stack elements then represent as block arguments
-                if (bcb.frame != null) {
-                    BytecodeInstructionOps.Frame frame = BytecodeInstructionOps.frame(bcb.frame);
-                    if (frame.hasOperandStackElements()) {
-                        for (TypeDesc t : frame.operandStackTypes()) {
-                            b.parameter(t);
+                        case IncrementInstruction inst -> {
+                            Op.Result local = locals.get(inst.slot());
+                            currentBlock.op(CoreOps.varStore(local, currentBlock.op(CoreOps.add(
+                                    currentBlock.op(CoreOps.varLoad(local)),
+                                    currentBlock.op(CoreOps.constant(JavaType.INT, inst.constant()))))));
                         }
+                        case ConstantInstruction inst -> {
+                            stack.push(currentBlock.op(switch (inst.constantValue()) {
+                                case ClassDesc v -> CoreOps.constant(JavaType.J_L_CLASS, JavaType.ofNominalDescriptor(v));
+                                case Double v -> CoreOps.constant(JavaType.DOUBLE, v);
+                                case Float v -> CoreOps.constant(JavaType.FLOAT, v);
+                                case Integer v -> CoreOps.constant(JavaType.INT, v);
+                                case Long v -> CoreOps.constant(JavaType.LONG, v);
+                                case String v -> CoreOps.constant(JavaType.J_L_STRING, v);
+                                default ->
+                                    // @@@ MethodType, MethodHandle, ConstantDynamic
+                                    throw new IllegalArgumentException("Unsupported constant value: " + inst.constantValue());
+                            }));
+                        }
+                        case OperatorInstruction inst -> {
+                            Value operand = stack.pop();
+                            stack.push(currentBlock.op(switch (inst.opcode()) {
+                                case IADD, LADD, FADD, DADD ->
+                                        CoreOps.add(stack.pop(), operand);
+                                case ISUB, LSUB, FSUB, DSUB ->
+                                        CoreOps.sub(stack.pop(), operand);
+                                case IMUL, LMUL, FMUL, DMUL ->
+                                        CoreOps.mul(stack.pop(), operand);
+                                case IDIV, LDIV, FDIV, DDIV ->
+                                        CoreOps.div(stack.pop(), operand);
+                                case IREM, LREM, FREM, DREM ->
+                                        CoreOps.mod(stack.pop(), operand);
+                                case INEG, LNEG, FNEG, DNEG ->
+                                        CoreOps.neg(operand);
+                                case ARRAYLENGTH ->
+                                        CoreOps.arrayLength(operand);
+                                default ->
+                                    throw new IllegalArgumentException("Unsupported operator opcode: " + inst.opcode());
+                            }));
+                        }
+                        case FieldInstruction inst -> {
+                                FieldDesc fd = FieldDesc.field(
+                                        JavaType.ofNominalDescriptor(inst.owner().asSymbol()),
+                                        inst.name().stringValue(),
+                                        JavaType.ofNominalDescriptor(inst.typeSymbol()));
+                                switch (inst.opcode()) {
+                                    case GETFIELD ->
+                                        stack.push(currentBlock.op(CoreOps.fieldLoad(fd, stack.pop())));
+                                    case GETSTATIC ->
+                                        stack.push(currentBlock.op(CoreOps.fieldLoad(fd)));
+                                    case PUTFIELD -> {
+                                        Value value = stack.pop();
+                                        stack.push(currentBlock.op(CoreOps.fieldStore(fd, stack.pop(), value)));
+                                    }
+                                    case PUTSTATIC ->
+                                        stack.push(currentBlock.op(CoreOps.fieldStore(fd, stack.pop())));
+                                    default ->
+                                        throw new IllegalArgumentException("Unsupported field opcode: " + inst.opcode());
+                                }
+                        }
+                        case ArrayStoreInstruction _ -> {
+                            Value value = stack.pop();
+                            Value index = stack.pop();
+                            currentBlock.op(CoreOps.arrayStoreOp(stack.pop(), index, value));
+                        }
+                        case ArrayLoadInstruction _ -> {
+                            Value index = stack.pop();
+                            stack.push(currentBlock.op(CoreOps.arrayLoadOp(stack.pop(), index)));
+                        }
+                        case InvokeInstruction inst -> {
+                            MethodTypeDesc mType = MethodTypeDesc.ofNominalDescriptor(inst.typeSymbol());
+                            List<Value> operands = new ArrayList<>();
+                            for (var _ : mType.parameters()) {
+                                operands.add(stack.pop());
+                            }
+                            MethodDesc mDesc = MethodDesc.method(
+                                    JavaType.ofNominalDescriptor(inst.owner().asSymbol()),
+                                    inst.name().stringValue(),
+                                    mType);
+                            Op.Result result = switch (inst.opcode()) {
+                                case INVOKEVIRTUAL, INVOKEINTERFACE -> {
+                                    operands.add(stack.pop());
+                                    yield currentBlock.op(CoreOps.invoke(mDesc, operands.reversed()));
+                                }
+                                case INVOKESTATIC ->
+                                    currentBlock.op(CoreOps.invoke(mDesc, operands.reversed()));
+                                case INVOKESPECIAL -> {
+                                    if (inst.name().equalsString(ConstantDescs.INIT_NAME)) {
+                                        yield currentBlock.op(CoreOps._new(
+                                                MethodTypeDesc.methodType(
+                                                        mType.parameters().get(0),
+                                                        mType.parameters().subList(1, mType.parameters().size())),
+                                                operands.reversed()));
+                                    } else {
+                                        operands.add(stack.pop());
+                                        yield currentBlock.op(CoreOps.invoke(mDesc, operands.reversed()));
+                                    }
+                                }
+                                default ->
+                                    throw new IllegalArgumentException("Unsupported invocation opcode: " + inst.opcode());
+                            };
+                            if (!result.type().equals(JavaType.VOID)) {
+                                stack.push(result);
+                            }
+                        }
+                        case NewObjectInstruction _ -> {
+                            // Skip over this and the dup to process the invoke special
+                            if (i + 2 < elements.size() - 1
+                                    && elements.get(i + 1) instanceof StackInstruction dup
+                                    && dup.opcode() == Opcode.DUP
+                                    && elements.get(i + 2) instanceof InvokeInstruction init
+                                    && init.name().equalsString(ConstantDescs.INIT_NAME)) {
+                                i++;
+                            } else {
+                                throw new UnsupportedOperationException("New must be followed by dup and invokespecial for <init>");
+                            }
+                        }
+                        case NewPrimitiveArrayInstruction inst -> {
+                            stack.push(currentBlock.op(CoreOps.newArray(
+                                    switch (inst.typeKind()) {
+                                        case BooleanType -> JavaType.BOOLEAN_ARRAY;
+                                        case ByteType -> JavaType.BYTE_ARRAY;
+                                        case CharType -> JavaType.CHAR_ARRAY;
+                                        case DoubleType -> JavaType.DOUBLE_ARRAY;
+                                        case FloatType -> JavaType.FLOAT_ARRAY;
+                                        case IntType -> JavaType.INT_ARRAY;
+                                        case LongType -> JavaType.LONG_ARRAY;
+                                        case ShortType -> JavaType.SHORT_ARRAY;
+                                        default ->
+                                                throw new UnsupportedOperationException("Unsupported new primitive array type: " + inst.typeKind());
+                                    },
+                                    stack.pop())));
+                        }
+                        case NewReferenceArrayInstruction inst -> {
+                            stack.push(currentBlock.op(CoreOps.newArray(
+                                    JavaType.type(JavaType.ofNominalDescriptor(inst.componentType().asSymbol()), 1),
+                                    stack.pop())));
+                        }
+                        case NewMultiArrayInstruction inst -> {
+                            stack.push(currentBlock.op(CoreOps._new(
+                                    MethodTypeDesc.methodType(
+                                            JavaType.ofNominalDescriptor(inst.arrayType().asSymbol()),
+                                            Collections.nCopies(inst.dimensions(), JavaType.INT)),
+                                    IntStream.range(0, inst.dimensions()).mapToObj(_ -> stack.pop()).toList().reversed())));
+                        }
+                        case TypeCheckInstruction inst when inst.opcode() == Opcode.CHECKCAST -> {
+                            stack.push(currentBlock.op(CoreOps.cast(JavaType.ofNominalDescriptor(inst.type().asSymbol()), stack.pop())));
+                        }
+                        case StackInstruction inst -> {
+                            switch (inst.opcode()) {
+                                case POP, POP2 -> stack.pop(); // @@@ check the type width
+                                case DUP, DUP2 -> stack.push(stack.peek());
+                                //@@@ implement all other stack ops
+                                default ->
+                                    throw new UnsupportedOperationException("Unsupported stack instruction: " + inst);
+                            }
+                        }
+                        default ->
+                            throw new UnsupportedOperationException("Unsupported code element: " + elements.get(i));
                     }
-                    b.op(frame);
+                    if (visited.get(++i)) {
+                        // Interrupt the flow if the following instruction has been already visited
+                        currentBlock = null;
+                        stack.clear();
+                        // and continue with the next unvisited instruction
+                        i = visited.nextClearBit(i);
+                    }
                 }
-
-                liftBytecodeBlock(bcr, bcb, b, c);
+                if (visited.cardinality() == initiallyResolved) {
+                    // If there is no progress, all remaining blocks are dead code
+                    // we may alternatively just exit and ignore the dead code
+                    throw new IllegalArgumentException("Dead code detected.");
+                }
             }
         });
-
-        return f;
-    }
-
-    static void liftBytecodeBlock(BytecodeMethodBody bcr, BytecodeBasicBlock bcb, Block.Builder b, LiftContext c) {
-        int ni = bcb.instructions.size();
-        for (int i = 0; i < ni - 1; i++) {
-            CodeElement codeElement = bcb.instructions.get(i);
-            if (codeElement instanceof LabelTarget labelTarget) {
-                // Insert control instructions for exception start/end bodies
-                for (ExceptionCatch tryCatchBlock : bcr.codeModel.exceptionHandlers()) {
-                    if (labelTarget.label() == tryCatchBlock.tryStart()) {
-                        BytecodeBasicBlock handler = bcr.blockMap.get(tryCatchBlock.handler());
-                        b.op(BytecodeInstructionOps.
-                                exceptionTableStart(c.blockMap.get(handler).successor()));
-                    } else if (labelTarget.label() == tryCatchBlock.tryEnd()) {
-                        b.op(BytecodeInstructionOps.exceptionTableEnd());
-                    }
-                }
-            } else if (codeElement instanceof LineNumber) {
-                // @@@ Add special line number instructions
-            } else if (codeElement instanceof LocalVariable) {
-                // @@@
-            } else if (codeElement instanceof LocalVariableType) {
-                // @@@
-            } else if (codeElement instanceof Instruction instruction) {
-                var def = new BytecodeInstructionOps.InstructionDef<>(instruction);
-                b.op(BytecodeInstructionOps.create(def));
-            } else {
-                throw new UnsupportedOperationException("Unsupported code element: " + codeElement);
-            }
-        }
-
-        // @@@ cast, select last Instruction, and adjust prior loop
-        Instruction top = (Instruction) bcb.instructions.get(ni - 1);
-        if (bcb.isImplicitTermination) {
-            var def = new BytecodeInstructionOps.InstructionDef<>(top);
-            b.op(BytecodeInstructionOps.create(def));
-
-            BytecodeBasicBlock succ = bcb.successors.get(0);
-            b.op(BytecodeInstructionOps._goto(c.blockMap.get(succ).successor()));
-        } else {
-            List<Block.Reference> successors = bcb.successors.stream().map(s -> c.blockMap.get(s).successor()).toList();
-            var def = new BytecodeInstructionOps.InstructionDef<>(top, successors);
-            b.op(BytecodeInstructionOps.create(def));
-        }
-    }
-
-
-    //
-    // Lift to basic blocks of code elements
-
-    record BytecodeMethodBody(MethodModel methodModel,
-                              CodeModel codeModel,
-                              List<BytecodeBasicBlock> blocks,
-                              Map<Label, BytecodeBasicBlock> blockMap) {
-    }
-
-    static final class BytecodeBasicBlock {
-        final List<CodeElement> instructions;
-
-        final List<BytecodeBasicBlock> successors;
-
-        StackMapFrameInfo frame;
-
-        boolean isImplicitTermination;
-
-        public BytecodeBasicBlock() {
-            this.instructions = new ArrayList<>();
-            this.successors = new ArrayList<>();
-        }
-
-        void setFrame(StackMapFrameInfo frame) {
-            this.frame = frame;
-        }
-
-        void setImplicitTermination() {
-            isImplicitTermination = true;
-        }
-
-        void addInstruction(CodeElement i) {
-            instructions.add(i);
-        }
-
-        CodeElement firstInstruction() {
-            return instructions.get(0);
-        }
-
-        CodeElement lastInstruction() {
-            return instructions.get(instructions.size() - 1);
-        }
-
-        void addSuccessor(BytecodeBasicBlock s) {
-            successors.add(s);
-        }
-    }
-
-    static BytecodeMethodBody createBodyForMethod(byte[] classdata, String methodName) {
-        MethodModel methodModel = ClassFile.of().parse(classdata).methods().stream()
-                .filter(mm -> mm.methodName().equalsString(methodName))
-                .findFirst().orElseThrow(() -> new IllegalArgumentException("Unknown method: " + methodName));
-
-        return createBlocks(methodModel);
-    }
-
-    static BytecodeMethodBody createBlocks(MethodModel methodModel) {
-        CodeModel codeModel = methodModel.code().orElseThrow();
-
-        // Obtain stack map frames
-        Map<Label, StackMapFrameInfo> labelToFrameMap = codeModel.attributes().stream()
-                .<StackMapFrameInfo>mapMulti((a, consumer) -> {
-                    if (a instanceof StackMapTableAttribute sa) {
-                        sa.entries().forEach(consumer::accept);
-                    }
-                })
-                .collect(Collectors.toMap(StackMapFrameInfo::target, sa -> sa));
-
-        // Construct list of basic blocks
-        Map<Label, BytecodeBasicBlock> blockMap = new HashMap<>();
-        List<BytecodeBasicBlock> blocks = new ArrayList<>();
-        BytecodeBasicBlock currentBlock = new BytecodeBasicBlock();
-        for (CodeElement ce : codeModel) {
-            if (ce instanceof LabelTarget labelTarget) {
-                StackMapFrameInfo frame = labelToFrameMap.get(labelTarget.label());
-                if (frame != null) {
-                    // Not first block, nor prior block with non-terminating instruction
-                    if (!currentBlock.instructions.isEmpty()) {
-                        blocks.add(currentBlock);
-                        currentBlock = new BytecodeBasicBlock();
-                    }
-
-                    currentBlock.setFrame(frame);
-                }
-
-                blockMap.put(labelTarget.label(), currentBlock);
-                currentBlock.addInstruction(ce);
-            } else if (ce instanceof BranchInstruction ||
-                    ce instanceof TableSwitchInstruction ||
-                    ce instanceof LookupSwitchInstruction) {
-                // End of block, branch
-                currentBlock.addInstruction(ce);
-
-                blocks.add(currentBlock);
-                currentBlock = new BytecodeBasicBlock();
-            } else if (ce instanceof ReturnInstruction || ce instanceof ThrowInstruction) {
-                // End of block, method terminating instruction,
-                currentBlock.addInstruction(ce);
-
-                blocks.add(currentBlock);
-                currentBlock = new BytecodeBasicBlock();
-            } else {
-                currentBlock.addInstruction(ce);
-            }
-        }
-
-        // Update successors
-        for (int i = 0; i < blocks.size(); i++) {
-            BytecodeBasicBlock b = blocks.get(i);
-            CodeElement lastElement = b.lastInstruction();
-            switch (lastElement) {
-                case BranchInstruction bi -> {
-                    switch (bi.opcode()) {
-                        case GOTO, GOTO_W -> {
-                            BytecodeBasicBlock branch = blockMap.get(bi.target());
-                            b.addSuccessor(branch);
-                        }
-                        // Conditional branch
-                        default -> {
-                            assert !bi.opcode().isUnconditionalBranch();
-
-                            BytecodeBasicBlock tBranch = blockMap.get(bi.target());
-                            BytecodeBasicBlock fBranch = blocks.get(i + 1);
-                            // True branch is first
-                            b.addSuccessor(tBranch);
-                            // False (or continuation) branch is second
-                            b.addSuccessor(fBranch);
-                        }
-                    }
-                }
-                case LookupSwitchInstruction si -> {
-                    // Default label is first successor
-                    b.addSuccessor(blockMap.get(si.defaultTarget()));
-                    addSuccessors(si.cases(), blockMap, b);
-                }
-                case TableSwitchInstruction si -> {
-                    // Default label is first successor
-                    b.addSuccessor(blockMap.get(si.defaultTarget()));
-                    addSuccessors(si.cases(), blockMap, b);
-                }
-                // @@@ Merge cases and use _, after merge with master
-                case ReturnInstruction ri -> {
-                    // Ignore, method terminating
-                }
-                case ThrowInstruction ti -> {
-                    // Ignore, method terminating
-                }
-                default -> {
-                    // Implicit goto next block, add explicitly
-                    b.setImplicitTermination();
-                    BytecodeBasicBlock branch = blocks.get(i + 1);
-                    b.addSuccessor(branch);
-                }
-            }
-        }
-
-        return new BytecodeMethodBody(methodModel, codeModel, blocks, blockMap);
-    }
-
-    static void addSuccessors(List<SwitchCase> cases,
-                              Map<Label, BytecodeBasicBlock> blockMap,
-                              BytecodeBasicBlock b) {
-        cases.stream().map(SwitchCase::target)
-                .map(blockMap::get)
-                .forEach(b::addSuccessor);
     }
 }

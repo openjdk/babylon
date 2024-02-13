@@ -26,10 +26,7 @@
 package java.lang.reflect.code;
 
 import java.lang.reflect.code.descriptor.MethodTypeDesc;
-import java.lang.reflect.code.descriptor.TypeDesc;
-
 import java.util.*;
-import java.util.function.BiFunction;
 
 /**
  * A body containing a sequence of (basic) blocks.
@@ -56,7 +53,7 @@ public final class Body implements CodeElement<Body, Block> {
     // When non-null and body is built, ancestorBody == parentOp.result.block.parentBody
     final Body ancestorBody;
 
-    final TypeDesc yieldType;
+    final TypeElement yieldType;
 
     // Sorted in reverse postorder
     final List<Block> blocks;
@@ -67,9 +64,8 @@ public final class Body implements CodeElement<Body, Block> {
 
     /**
      * Constructs a body, whose ancestor is the given ancestor body.
-     *
      */
-    Body(Body ancestorBody, TypeDesc yieldType) {
+    Body(Body ancestorBody, TypeElement yieldType) {
         this.ancestorBody = ancestorBody;
         this.yieldType = yieldType;
         this.blocks = new ArrayList<>();
@@ -78,7 +74,7 @@ public final class Body implements CodeElement<Body, Block> {
     /**
      * {@return the yield type of this body}
      */
-    public TypeDesc yieldType() {
+    public TypeElement yieldType() {
         return yieldType;
     }
 
@@ -384,13 +380,14 @@ public final class Body implements CodeElement<Body, Block> {
          * otherwise an {@code IllegalStateException} will occur.
          * <p>
          * Blocks are sorted in reserve postorder.
-         * Any non-entry blocks with no operations and are not referred to as successors of other blocks
-         * are removed.
+         * <p>
+         * Any unreferenced empty blocks are removed. An unreferenced block is a non-entry block with no predecessors.
          *
          * @param op the parent operation
          * @return the build body
          * @throws IllegalStateException if this body builder is built
          * @throws IllegalStateException if any descendant body builders are not built
+         * @throws IllegalStateException if a block has no terminal operation, unless unreferenced and empty
          */
         // @@@ Validation
         // e.g., every operand dominates the operation result (potentially expensive)
@@ -413,20 +410,19 @@ public final class Body implements CodeElement<Body, Block> {
             Iterator<Block> i = blocks.iterator();
             while (i.hasNext()) {
                 Block block = i.next();
-                boolean empty = block.ops.isEmpty();
 
                 // Structural check
-                // All blocks should have a terminating operation as the last operation
-                if (!empty && !(block.ops.getLast() instanceof Op.Terminating)) {
-                    // @@@ exception
-                    throw new IllegalStateException("Block has no terminating operation as the last operation");
-                }
+                // All referenced blocks should have a terminating operation as the last operation
+                if (block.ops.isEmpty()) {
+                    if (block.isEntryBlock() || !block.predecessors.isEmpty()) {
+                        throw noTerminatingOperation();
+                    }
 
-                // Remove any non-entry blocks with no operations and no predecessors
-                if (empty &&
-                        !block.isEntryBlock() &&
-                        block.predecessors.isEmpty()) {
+                    // Remove unreferenced empty block
+                    assert !block.isEntryBlock() && block.predecessors.isEmpty();
                     i.remove();
+                } else if (!(block.ops.getLast() instanceof Op.Terminating)) {
+                    throw noTerminatingOperation();
                 }
             }
 
@@ -436,15 +432,20 @@ public final class Body implements CodeElement<Body, Block> {
             return Body.this;
         }
 
+        static IllegalStateException noTerminatingOperation() {
+            return new IllegalStateException("Block has no terminating operation as the last operation");
+        }
+
         /**
          * Returns the body's descriptor.
          * <p>
          * The descriptor is composed of the body's yield type, as the descriptor's return type, and the currently built
          * entry block's parameter types, in order, as the descriptor's parameter types.
+         *
          * @return the body's descriptor
          */
         public MethodTypeDesc descriptor() {
-            TypeDesc returnType = Body.this.yieldType();
+            TypeElement returnType = Body.this.yieldType();
             Block eb = Body.this.entryBlock();
             return MethodTypeDesc.methodType(returnType, eb.parameterTypes());
         }
@@ -485,7 +486,7 @@ public final class Body implements CodeElement<Body, Block> {
         }
 
         // Build new block in body
-        Block.Builder block(List<TypeDesc> params, CopyContext cc, OpTransformer ot) {
+        Block.Builder block(List<TypeElement> params, CopyContext cc, OpTransformer ot) {
             check();
             Block block = Body.this.createBlock(params);
 
@@ -534,6 +535,9 @@ public final class Body implements CodeElement<Body, Block> {
         return body;
     }
 
+    // Sort blocks in reverse post order
+    // After sorting the following holds for a block
+    //   block.parentBody().blocks().indexOf(block) == block.index()
     private void sortReversePostorder() {
         if (blocks.size() < 2) {
             for (int i = 0; i < blocks.size(); i++) {
@@ -543,7 +547,7 @@ public final class Body implements CodeElement<Body, Block> {
         }
 
         // Reset block indexes
-        // Ensure unreferenced blocks occur last
+        // Also ensuring blocks with no predecessors occur last
         for (Block b : blocks) {
             b.index = Integer.MAX_VALUE;
         }
@@ -576,12 +580,19 @@ public final class Body implements CodeElement<Body, Block> {
         }
 
         blocks.sort(Comparator.comparingInt(b -> b.index));
+        if (blocks.get(0).index > 0) {
+            // There are blocks with no predecessors
+            // Reassign indexes to their natural indexes, sort order is preserved
+            for (int i = 0; i < blocks.size(); i++) {
+                blocks.get(i).index = i;
+            }
+        }
     }
 
     // Modifying methods
 
     // Create block
-    private Block createBlock(List<TypeDesc> params) {
+    private Block createBlock(List<TypeElement> params) {
         Block b = new Block(this, params);
         blocks.add(b);
         return b;

@@ -28,7 +28,6 @@ package java.lang.reflect.code.op;
 import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
-import java.lang.reflect.code.descriptor.TypeDesc;
 import java.util.List;
 import java.util.Map;
 

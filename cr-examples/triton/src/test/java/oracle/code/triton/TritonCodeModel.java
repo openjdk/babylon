@@ -4,9 +4,7 @@
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
+ * published by the Free Software Foundation.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -23,29 +21,17 @@
  * questions.
  */
 
-package java.lang.reflect.code.writer.impl;
+package oracle.code.triton;
 
-import java.lang.reflect.code.Block;
-import java.lang.reflect.code.Value;
-import java.util.HashMap;
-import java.util.Map;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-public final class GlobalValueBlockNaming {
-    final Map<Value, String> gvn;
-    final Map<Block, String> gbn;
-    int valueOrdinal = 0;
-    int blockOrdinal = 0;
+@Target({ElementType.METHOD, ElementType.FIELD})
+@Retention(RetentionPolicy.RUNTIME)
+public @interface TritonCodeModel {
+    String value();
 
-    public GlobalValueBlockNaming() {
-        this.gvn = new HashMap<>();
-        this.gbn = new HashMap<>();
-    }
-
-    public String getValueName(Value _v) {
-        return gvn.computeIfAbsent(_v, v -> String.valueOf(valueOrdinal++));
-    }
-
-    public String getBlockName(Block _b) {
-        return gbn.computeIfAbsent(_b, b -> "block_" + blockOrdinal++);
-    }
+    boolean SSA() default true;
 }
