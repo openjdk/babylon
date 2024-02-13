@@ -21,6 +21,7 @@
  * questions.
  */
 
+import java.io.StringWriter;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.Instruction;
 import java.lang.classfile.Label;
@@ -32,6 +33,7 @@ import java.lang.reflect.code.Op;
 import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.reflect.code.bytecode.BytecodeLift;
+import java.lang.reflect.code.op.CoreOps;
 
 import java.net.URI;
 import java.nio.file.FileSystem;
@@ -55,7 +57,7 @@ public class TestLiftSmallCorpus {
     private static final FileSystem JRT = FileSystems.getFileSystem(URI.create("jrt:/"));
     private static final ClassFile CF = ClassFile.of(ClassFile.DebugElementsOption.DROP_DEBUG,
                                                      ClassFile.LineNumbersOption.DROP_LINE_NUMBERS);
-    private static final int COLUMN_WIDTH = 80;
+    private static final int COLUMN_WIDTH = 120;
 
     @Test
     public void testDoubleRoundTripStability() throws Exception {
@@ -71,44 +73,72 @@ public class TestLiftSmallCorpus {
     private static boolean testDoubleRoundTripStability(Path path) throws Exception {
         var clm = CF.parse(path);
         boolean passed = true;
-        for (var originalMethod : clm.methods()) {
-            MethodModel firstRound = null, secondRound = null;
+        for (var originalModel : clm.methods()) {
+            CoreOps.FuncOp firstLift = null, secondLift = null;
+            CoreOps.FuncOp firstTransform = null, secondTransform = null;
+            MethodModel firstModel = null, secondModel = null;
             try {
-                firstRound = roundTrip(originalMethod);
-                secondRound = roundTrip(firstRound);
+                firstLift = lift(originalModel);
+                firstTransform = transform(firstLift);
+                firstModel = lower(firstTransform);
+                secondLift = lift(firstModel);
+                secondTransform = transform(secondLift);
+                secondModel = lower(secondTransform);
             } catch (Exception e) {
                 //ignore for now
             }
 
-            if (secondRound != null) {
+            if (secondModel != null) {
                 // test only methods passing lift and generation
-                var firstNormalized = normalize(firstRound);
-                var secondNormalized = normalize(secondRound);
+                var firstNormalized = normalize(firstModel);
+                var secondNormalized = normalize(secondModel);
                 if (!firstNormalized.equals(secondNormalized)) {
                     passed = false;
-                    System.out.println(clm.thisClass().asInternalName() + "::" + originalMethod.methodName().stringValue() + originalMethod.methodTypeSymbol().displayDescriptor());
-                    for (int i = 0; i < firstNormalized.size() || i < secondNormalized.size(); i++) {
-                        String s = i < firstNormalized.size() ? firstNormalized.get(i) : "";
-                        System.out.println("    " + s + (s.length() < COLUMN_WIDTH ? " ".repeat(COLUMN_WIDTH - s.length()) : "") + " | " + (i < secondNormalized.size() ? secondNormalized.get(i) : ""));
-                    }
+                    System.out.println(clm.thisClass().asInternalName() + "::" + originalModel.methodName().stringValue() + originalModel.methodTypeSymbol().displayDescriptor());
+                    printInColumns(firstLift, secondLift);
+                    printInColumns(firstTransform, secondTransform);
+                    printInColumns(firstNormalized, secondNormalized);
                     System.out.println();
                 }
             }
         }
         return passed;
     }
+    private static void printInColumns(CoreOps.FuncOp first, CoreOps.FuncOp second) {
+        StringWriter fw = new StringWriter();
+        first.writeTo(fw);
+        StringWriter sw = new StringWriter();
+        second.writeTo(sw);
+        printInColumns(fw.toString().lines().toList(), sw.toString().lines().toList());
+    }
 
-    private static MethodModel roundTrip(MethodModel mm) {
-        return CF.parse(BytecodeGenerator.generateClassData(
-                MethodHandles.lookup(),
-                SSA.transform(BytecodeLift.lift(mm).transform((block, op) -> {
+    private static void printInColumns(List<String> first, List<String> second) {
+        System.out.println("-".repeat(COLUMN_WIDTH ) + "-----+-" + "-".repeat(COLUMN_WIDTH ));
+        for (int i = 0; i < first.size() || i < second.size(); i++) {
+            String s = i < first.size() ? first.get(i) : "";
+            System.out.println("    " + s + (s.length() < COLUMN_WIDTH ? " ".repeat(COLUMN_WIDTH - s.length()) : "") + " | " + (i < second.size() ? second.get(i) : ""));
+        }
+    }
+
+    private static CoreOps.FuncOp lift(MethodModel mm) {
+        return BytecodeLift.lift(mm);
+    }
+
+    private static CoreOps.FuncOp transform(CoreOps.FuncOp func) {
+        return SSA.transform(func.transform((block, op) -> {
                     if (op instanceof Op.Lowerable lop) {
                         return lop.lower(block);
                     } else {
                         block.op(op);
                         return block;
                     }
-                })))).methods().get(0);
+                }));
+    }
+
+    private static MethodModel lower(CoreOps.FuncOp func) {
+        return CF.parse(BytecodeGenerator.generateClassData(
+                MethodHandles.lookup(),
+                func)).methods().get(0);
     }
 
 
