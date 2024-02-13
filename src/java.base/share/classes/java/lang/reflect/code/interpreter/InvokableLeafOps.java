@@ -75,6 +75,14 @@ final class InvokableLeafOps {
         return l | r;
     }
 
+    public static int and(int l, int r) {
+        return l & r;
+    }
+
+    public static int xor(int l, int r) {
+        return l ^ r;
+    }
+
     public static boolean eq(int l, int r) {
         return l == r;
     }
@@ -129,6 +137,15 @@ final class InvokableLeafOps {
         return l | r;
     }
 
+    public static long and(long l, long r) {
+        return l & r;
+    }
+
+    public static long xor(long l, long r) {
+        return l ^ r;
+    }
+
+
     public static boolean eq(long l, long r) {
         return l == r;
     }
@@ -177,6 +194,10 @@ final class InvokableLeafOps {
         return l / r;
     }
 
+    static float mod(float l, float r) {
+        return l % r;
+    }
+
     public static boolean eq(float l, float r) {
         return l == r;
     }
@@ -223,6 +244,34 @@ final class InvokableLeafOps {
 
     static double div(double l, double r) {
         return l / r;
+    }
+
+    static double mod(double l, double r) {
+        return l % r;
+    }
+
+
+
+    // boolean
+
+    static boolean eq(boolean l, boolean r) {
+        return l == r;
+    }
+
+    static boolean neq(boolean l, boolean r) {
+        return l != r;
+    }
+
+    static boolean and(boolean l, boolean r) {
+        return l & r;
+    }
+
+    static boolean or(boolean l, boolean r) {
+        return l | r;
+    }
+
+    static boolean xor(boolean l, boolean r) {
+        return l ^ r;
     }
 
 

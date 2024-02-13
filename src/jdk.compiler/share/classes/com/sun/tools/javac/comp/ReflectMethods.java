@@ -427,6 +427,7 @@ public class ReflectMethods extends TreeTranslator {
                         Tag.RETURN, Tag.THROW, Tag.BREAK, Tag.CONTINUE,
                         Tag.PLUS, Tag.MINUS, Tag.MUL, Tag.DIV, Tag.MOD,
                         Tag.NEG, Tag.NOT,
+                        Tag.BITOR, Tag.BITAND, Tag.BITXOR,
                         Tag.PLUS_ASG, Tag.MINUS_ASG, Tag.MUL_ASG, Tag.DIV_ASG, Tag.MOD_ASG,
                         Tag.POSTINC, Tag.PREINC, Tag.POSTDEC, Tag.PREDEC,
                         Tag.EQ, Tag.NE, Tag.LT, Tag.LE, Tag.GT, Tag.GE,
@@ -2035,6 +2036,11 @@ public class ReflectMethods extends TreeTranslator {
                     case LE -> append(CoreOps.le(lhs, rhs));
                     case GT -> append(CoreOps.gt(lhs, rhs));
                     case GE -> append(CoreOps.ge(lhs, rhs));
+
+                    // Bitwise operations (including their boolean variants)
+                    case BITOR -> append(CoreOps.or(lhs, rhs));
+                    case BITAND -> append(CoreOps.and(lhs, rhs));
+                    case BITXOR -> append(CoreOps.xor(lhs, rhs));
 
                     default -> throw unsupported(tree);
                 };

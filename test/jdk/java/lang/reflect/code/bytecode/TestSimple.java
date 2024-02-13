@@ -228,6 +228,19 @@ public class TestSimple {
         Assert.assertEquals((int) mh.invoke(10, 3), mod(10, 3));
     }
 
+    @CodeReflection
+    public static boolean xor(boolean a, boolean b) {
+        return a ^ b;
+    }
+
+    @Test
+    public void testXor() throws Throwable {
+        CoreOps.FuncOp f = getFuncOp("xor");
+
+        MethodHandle mh = generate(f);
+
+        Assert.assertEquals((boolean) mh.invoke(true, false), xor(true, false));
+    }
 
     static MethodHandle generate(CoreOps.FuncOp f) {
         f.writeTo(System.out);

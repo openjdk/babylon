@@ -67,6 +67,104 @@ public class TestBinops {
         Assert.assertEquals(Interpreter.invoke(f, 10, 3), mod(10, 3));
     }
 
+    @CodeReflection
+    public static int bitand(int a, int b) {
+        return a & b;
+    }
+
+    @Test
+    public void testBitand() {
+        CoreOps.FuncOp f = getFuncOp("bitand");
+
+        f.writeTo(System.out);
+
+        Assert.assertEquals(Interpreter.invoke(f, 10, 3), bitand(10, 3));
+    }
+
+    @CodeReflection
+    public static int bitor(int a, int b) {
+        return a | b;
+    }
+
+    @Test
+    public void testBitor() {
+        CoreOps.FuncOp f = getFuncOp("bitor");
+
+        f.writeTo(System.out);
+
+        Assert.assertEquals(Interpreter.invoke(f, 10, 3), bitor(10, 3));
+    }
+
+    @CodeReflection
+    public static int bitxor(int a, int b) {
+        return a ^ b;
+    }
+
+    @Test
+    public void testBitxor() {
+        CoreOps.FuncOp f = getFuncOp("bitxor");
+
+        f.writeTo(System.out);
+
+        Assert.assertEquals(Interpreter.invoke(f, 10, 3), bitxor(10, 3));
+    }
+
+    @CodeReflection
+    public static boolean booland(boolean a, boolean b) {
+        return a & b;
+    }
+
+    @Test
+    public void testBooland() {
+        CoreOps.FuncOp f = getFuncOp("booland");
+
+        f.writeTo(System.out);
+
+        Assert.assertEquals(Interpreter.invoke(f, true, false), booland(true, false));
+    }
+
+    @CodeReflection
+    public static boolean boolor(boolean a, boolean b) {
+        return a | b;
+    }
+
+    @Test
+    public void testBoolor() {
+        CoreOps.FuncOp f = getFuncOp("boolor");
+
+        f.writeTo(System.out);
+
+        Assert.assertEquals(Interpreter.invoke(f, false, true), boolor(false, true));
+    }
+
+    @CodeReflection
+    public static boolean boolxor(boolean a, boolean b) {
+        return a ^ b;
+    }
+
+    @Test
+    public void testBoolxor() {
+        CoreOps.FuncOp f = getFuncOp("boolxor");
+
+        f.writeTo(System.out);
+
+        Assert.assertEquals(Interpreter.invoke(f, true, true), boolxor(true, true));
+    }
+
+    @CodeReflection
+    public static double doublemod(double a, double b) {
+        return a % b;
+    }
+
+    @Test
+    public void testDoublemod() {
+        CoreOps.FuncOp f = getFuncOp("doublemod");
+
+        f.writeTo(System.out);
+
+        Assert.assertEquals(Interpreter.invoke(f, 15.6, 2.1), doublemod(15.6, 2.1));
+    }
+
     static CoreOps.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestBinops.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
