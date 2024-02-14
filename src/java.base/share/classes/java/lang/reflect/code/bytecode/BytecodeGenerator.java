@@ -839,13 +839,14 @@ public final class BytecodeGenerator {
             // The value and slot are still preserved in the live set,
             // so slots can still be queried, but no slots should be assigned
             // to new values until it is safe to do so
-            Integer slot = liveSet.get(v);
-            if (slot != null) {
-                freeSlots.set(slot);
-                if (slotsPerValue(v) == 2) {
-                    freeSlots.set(slot + 1);
-                }
-            }
+//@@@ BytecodeLift does not handle slot overrides correctly yet
+//            Integer slot = liveSet.get(v);
+//            if (slot != null) {
+//                freeSlots.set(slot);
+//                if (slotsPerValue(v) == 2) {
+//                    freeSlots.set(slot + 1);
+//                }
+//            }
         }
 
         static int slotsPerValue(Value x) {
@@ -946,7 +947,6 @@ public final class BytecodeGenerator {
         // First push successor arguments on the stack, then pop and assign
         // so as not to overwrite slots that are reused slots at different argument positions
 
-        // Push successor values on the stack
         for (int i = 0; i < bargs.size(); i++) {
             Block.Parameter barg = bargs.get(i);
             int bslot = c.liveSlotSet(s.targetBlock()).getOrAssignSlot(barg);
@@ -956,26 +956,6 @@ public final class BytecodeGenerator {
                     or.op() instanceof CoreOps.ConstantOp constantOp &&
                     !constantOp.resultType().equals(TypeDesc.J_L_CLASS)) {
                 cob.constantInstruction(fromValue(constantOp.value()));
-            } else {
-                int sslot = c.getSlot(value);
-
-                // Assignment only required if slots differ
-                if (sslot != bslot) {
-                    TypeKind vt = toTypeKind(barg.type());
-                    cob.loadInstruction(vt, sslot);
-                }
-            }
-        }
-
-        // Pop successor arguments on the stack assigning to block argument slots if necessary
-        for (int i = bargs.size() - 1; i >= 0; i--) {
-            Block.Parameter barg = bargs.get(i);
-            int bslot = c.liveSlotSet(s.targetBlock()).getOrAssignSlot(barg);
-
-            Value value = sargs.get(i);
-            if (value instanceof Op.Result or &&
-                    or.op() instanceof CoreOps.ConstantOp constantOp &&
-                    !constantOp.resultType().equals(TypeDesc.J_L_CLASS)) {
                 TypeKind vt = toTypeKind(barg.type());
                 cob.storeInstruction(vt, bslot);
             } else {
@@ -984,6 +964,7 @@ public final class BytecodeGenerator {
                 // Assignment only required if slots differ
                 if (sslot != bslot) {
                     TypeKind vt = toTypeKind(barg.type());
+                    cob.loadInstruction(vt, sslot);
                     cob.storeInstruction(vt, bslot);
                 }
             }
