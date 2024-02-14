@@ -59,36 +59,32 @@ public class TestLiftSmallCorpus {
                                                      ClassFile.LineNumbersOption.DROP_LINE_NUMBERS);
     private static final int COLUMN_WIDTH = 150;
 
+    private int passed, failed, skipped;
+
     @Test
     public void testDoubleRoundtripStability() throws Exception {
-        int failed = 0;
+        passed = 0;
+        failed = 0;
+        skipped = 0;
         for (Path p : Files.walk(JRT.getPath("modules/java.base/java"))
                 .filter(p -> Files.isRegularFile(p) && p.toString().endsWith(".class"))
                 .toList()) {
-            failed += testDoubleRoundtripStability(p);
+            testDoubleRoundtripStability(p);
         }
-        Assert.assertEquals(failed, 0);
+        Assert.assertEquals(failed, 0, STR."failed: \{failed}, passed: \{passed}, skipped: \{skipped}");
     }
 
-    private static int testDoubleRoundtripStability(Path path) throws Exception {
+    private void testDoubleRoundtripStability(Path path) throws Exception {
         var clm = CF.parse(path);
-        int failed = 0;
         for (var originalModel : clm.methods()) {
-            CoreOps.FuncOp firstLift = null, secondLift = null;
-            CoreOps.FuncOp firstTransform = null, secondTransform = null;
-            MethodModel firstModel = null, secondModel = null;
             try {
-                firstLift = lift(originalModel);
-                firstTransform = transform(firstLift);
-                firstModel = lower(firstTransform);
-                secondLift = lift(firstModel);
-                secondTransform = transform(secondLift);
-                secondModel = lower(secondTransform);
-            } catch (Exception e) {
-                // We ignore methods failing to lift or lower for now
-            }
+                CoreOps.FuncOp firstLift = lift(originalModel);
+                CoreOps.FuncOp firstTransform = transform(firstLift);
+                MethodModel firstModel = lower(firstTransform);
+                CoreOps.FuncOp secondLift = lift(firstModel);
+                CoreOps.FuncOp secondTransform = transform(secondLift);
+                MethodModel secondModel = lower(secondTransform);
 
-            if (secondModel != null) {
                 // testing only methods passing through
                 var firstNormalized = normalize(firstModel);
                 var secondNormalized = normalize(secondModel);
@@ -99,10 +95,14 @@ public class TestLiftSmallCorpus {
                     printInColumns(firstTransform, secondTransform);
                     printInColumns(firstNormalized, secondNormalized);
                     System.out.println();
+                } else {
+                    passed++;
                 }
+            } catch (Exception e) {
+                // We skip methods failing to lift or lower for now
+                skipped++;
             }
         }
-        return failed;
     }
     private static void printInColumns(CoreOps.FuncOp first, CoreOps.FuncOp second) {
         StringWriter fw = new StringWriter();
