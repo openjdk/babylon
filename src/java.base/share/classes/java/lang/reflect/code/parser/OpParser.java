@@ -601,7 +601,7 @@ public final class OpParser {
     }
 
     TypeDefinition parseTypeDesc() {
-        return DescParser.parseTypeDesc(lexer);
+        return DescParser.parseTypeDefinition(lexer);
     }
 }
 

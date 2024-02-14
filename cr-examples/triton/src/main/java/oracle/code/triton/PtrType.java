@@ -26,6 +26,8 @@
 package oracle.code.triton;
 
 import java.lang.reflect.Type;
+import java.lang.reflect.code.type.TypeDefinition;
+import java.util.List;
 import java.util.Objects;
 
 public final class PtrType extends TritonType {
@@ -54,7 +56,12 @@ public final class PtrType extends TritonType {
     }
 
     @Override
+    public TypeDefinition toTypeDefinition() {
+        return new TypeDefinition(NAME, List.of(fromType(rType).toTypeDefinition()));
+    }
+
+    @Override
     public String toString() {
-        return NAME + "<" + TritonType.fromType(rType) + ">";
+        return toTypeDefinition().toString();
     }
 }

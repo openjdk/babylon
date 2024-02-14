@@ -42,10 +42,10 @@ public final class DescParser {
      * @param desc the serialized type descriptor
      * @return the type descriptor
      */
-    public static TypeDefinition parseTypeDesc(String desc) {
+    public static TypeDefinition parseTypeDefinition(String desc) {
         Scanner s = Scanner.factory().newScanner(desc);
         s.nextToken();
-        return parseTypeDesc(s);
+        return parseTypeDefinition(s);
     }
 
     /**
@@ -95,31 +95,29 @@ public final class DescParser {
         return parseRecordTypeDesc(s);
     }
 
-    public static TypeDefinition parseTypeDesc(Lexer l) {
+    public static TypeDefinition parseTypeDefinition(Lexer l) {
         // Type
-        // @@@ Extract string directly from start position of first identifier
-        //     and end position of last identifier.
         Tokens.Token t = l.accept(Tokens.TokenKind.IDENTIFIER);
-        StringBuilder type = new StringBuilder();
-        type.append(t.name());
+        StringBuilder identifier = new StringBuilder();
+        identifier.append(t.name());
         while (l.acceptIf(Tokens.TokenKind.DOT)) {
-            type.append(Tokens.TokenKind.DOT.name);
+            identifier.append(Tokens.TokenKind.DOT.name);
             t = l.accept(Tokens.TokenKind.IDENTIFIER);
-            type.append(t.name());
+            identifier.append(t.name());
         }
 
         // Type parameters
-        List<TypeDefinition> ptypes;
+        List<TypeDefinition> args;
         if (l.token().kind == Tokens.TokenKind.LT) {
-            ptypes = new ArrayList<>();
+            args = new ArrayList<>();
             do {
                 l.nextToken();
-                TypeDefinition pt = parseTypeDesc(l);
-                ptypes.add(pt);
+                TypeDefinition arg = parseTypeDefinition(l);
+                args.add(arg);
             } while (l.token().kind == Tokens.TokenKind.COMMA);
             l.accept(Tokens.TokenKind.GT);
         } else {
-            ptypes = List.of();
+            args = List.of();
         }
 
         // @@@ Enclosed/inner classes, separated by $ which may also be parameterized
@@ -131,11 +129,16 @@ public final class DescParser {
             dims++;
         }
 
-        return new TypeDefinitionImpl(type.toString(), dims, ptypes);
+        TypeDefinition td = new TypeDefinition(identifier.toString(), args);
+        if (dims > 0) {
+            return new TypeDefinition("[".repeat(dims), List.of(td));
+        } else {
+            return td;
+        }
     }
 
     static TypeElement parseTypeElement(Lexer l) {
-        TypeDefinition typeDesc = parseTypeDesc(l);
+        TypeDefinition typeDesc = parseTypeDefinition(l);
         return CoreTypeFactory.CORE_TYPE_FACTORY.constructType(typeDesc);
     }
 

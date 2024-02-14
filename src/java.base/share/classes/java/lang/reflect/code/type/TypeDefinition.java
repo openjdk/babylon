@@ -25,65 +25,72 @@
 
 package java.lang.reflect.code.type;
 
-import java.lang.reflect.code.type.impl.TypeDefinitionImpl;
+import java.lang.reflect.code.TypeElement;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
- * A type in general form that is utilized to construct a
- * concrete subclass of {@link  TypeElement} using a
- * {@link TypeElementFactory}
+ * A type in general symbolic structured form.
+ * <p>
+ * A type definition can be converted to an instance of a type, a {@link TypeElement type element}, using
+ * a {@link TypeElementFactory}.
  */
-public sealed interface TypeDefinition permits TypeDefinitionImpl {
+public record TypeDefinition(String identifier, List<TypeDefinition> arguments) {
 
-    TypeDefinition VOID = new TypeDefinitionImpl("void");
+    public static final TypeDefinition VOID = new TypeDefinition("void", List.of());
 
-    //
+    public TypeDefinition {
+        arguments = List.copyOf(arguments);
+    }
 
-    String name();
+    @Override
+    public String toString() {
+        return toString(this);
+    }
 
-    boolean isArray();
+    static String toString(TypeDefinition t) {
+        int dimensions = dimensions(t.identifier);
+        if (dimensions > 0 && t.arguments.size() == 1) {
+            t = t.arguments.getFirst();
+        }
 
-    int dimensions();
+        if (dimensions == 0 && t.arguments.isEmpty()) {
+            return t.identifier;
+        } else {
+            StringBuilder s = new StringBuilder();
+            s.append(t.identifier);
+            if (!t.arguments.isEmpty()) {
+                String args = t.arguments.stream()
+                        .map(Object::toString)
+                        .collect(Collectors.joining(", ", "<", ">"));
+                s.append(args);
+            }
 
-    TypeDefinition componentType();
+            if (dimensions > 0) {
+                s.append("[]".repeat(dimensions));
+            }
 
-    TypeDefinition rawType();
+            return s.toString();
+        }
+    }
 
-    boolean hasTypeArguments();
-
-    List<TypeDefinition> typeArguments();
+    static int dimensions(String identifier) {
+        if (!identifier.isEmpty() && identifier.charAt(0) == '[') {
+            for (int i = 1; i < identifier.length(); i++) {
+                if (identifier.charAt(i) != '[') {
+                    return 0;
+                }
+            }
+            return identifier.length();
+        } else {
+            return 0;
+        }
+    }
 
     // Factories
 
-    static TypeDefinition type(TypeDefinition t, TypeDefinition... typeArguments) {
-        return type(t, List.of(typeArguments));
-    }
-
-    static TypeDefinition type(TypeDefinition t, List<TypeDefinition> typeArguments) {
-        if (t.hasTypeArguments()) {
-            throw new IllegalArgumentException("Type descriptor must not have type arguments: " + t);
-        }
-        TypeDefinitionImpl timpl = (TypeDefinitionImpl) t;
-        return new TypeDefinitionImpl(timpl.type, timpl.dims, typeArguments);
-    }
-
-    static TypeDefinition type(TypeDefinition t, int dims, TypeDefinition... typeArguments) {
-        return type(t, dims, List.of(typeArguments));
-    }
-
-    static TypeDefinition type(TypeDefinition t, int dims, List<TypeDefinition> typeArguments) {
-        if (t.isArray()) {
-            throw new IllegalArgumentException("Type descriptor must not be an array: " + t);
-        }
-        if (t.hasTypeArguments()) {
-            throw new IllegalArgumentException("Type descriptor must not have type arguments: " + t);
-        }
-        TypeDefinitionImpl timpl = (TypeDefinitionImpl) t;
-        return new TypeDefinitionImpl(timpl.type, dims, typeArguments);
-    }
-
     // Copied code in jdk.compiler module throws UOE
-    static TypeDefinition ofString(String s) {
-/*__throw new UnsupportedOperationException();__*/        return java.lang.reflect.code.parser.impl.DescParser.parseTypeDesc(s);
+    public static TypeDefinition ofString(String s) {
+/*__throw new UnsupportedOperationException();__*/        return java.lang.reflect.code.parser.impl.DescParser.parseTypeDefinition(s);
     }
 }

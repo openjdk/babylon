@@ -1,5 +1,8 @@
 package java.lang.reflect.code;
 
+import java.lang.reflect.code.type.TypeDefinition;
+import java.util.Optional;
+
 /**
  * A type, that defines a set of values.
  * <p>
@@ -15,4 +18,12 @@ public non-sealed interface TypeElement extends CodeItem {
 
     // @@@ Declare
     // toString, equals, hashCode
+
+    /**
+     * Converts this type element to a type definition.
+     *
+     * @return the type definition
+     * @throws UnsupportedOperationException if the type element is not convertible
+     */
+    TypeDefinition toTypeDefinition();
 }
