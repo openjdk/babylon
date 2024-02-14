@@ -85,7 +85,7 @@ public class TestLiftSmallCorpus {
                 secondTransform = transform(secondLift);
                 secondModel = lower(secondTransform);
             } catch (Exception e) {
-                //ignore for now
+                // We ignore methods failing to lift or lower for now
             }
 
             if (secondModel != null) {
@@ -214,6 +214,6 @@ public class TestLiftSmallCorpus {
     private static String trim(Opcode opcode) {
         var name = opcode.toString();
         int i = name.indexOf('_');
-        return i > 0 ? name.substring(0, i) : name;
+        return i > 2 ? name.substring(0, i) : name;
     }
 }

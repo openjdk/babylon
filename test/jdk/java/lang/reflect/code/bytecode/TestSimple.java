@@ -228,6 +228,21 @@ public class TestSimple {
         Assert.assertEquals((int) mh.invoke(10, 3), mod(10, 3));
     }
 
+    @CodeReflection
+    public static int conditionalExpression(int i, int len) {
+        return ((i - 1 >= 0) ? i - 1 : len - 1);
+    }
+
+    @Test
+    public void testConditionalExpression() throws Throwable {
+        CoreOps.FuncOp f = getFuncOp("conditionalExpression");
+
+        MethodHandle mh = generate(f);
+
+        Assert.assertEquals((int) mh.invoke(5, 10), conditionalExpression(5, 10));
+        Assert.assertEquals((int) mh.invoke(0, 10), conditionalExpression(0, 10));
+        Assert.assertEquals((int) mh.invoke(0, 50), conditionalExpression(0, 50));
+    }
 
     static MethodHandle generate(CoreOps.FuncOp f) {
         f.writeTo(System.out);
