@@ -77,11 +77,12 @@ public final class BytecodeLift {
 
             final CodeModel codeModel = methodModel.code().orElseThrow();
             final HashMap<Label, Block.Builder> blockMap = new HashMap<>();
+            final HashMap<Label, Map<Integer, Op.Result>> localsMap = new HashMap<>();
             final Map<ExceptionCatch, Op.Result> exceptionRegionsMap = new HashMap<>();
 
             Block.Builder currentBlock = entryBlock;
             final Deque<Value> stack = new ArrayDeque<>();
-            final Map<Integer, Op.Result> locals = new HashMap<>();
+            Map<Integer, Op.Result> locals = new HashMap<>();
 
             int varIndex = 0;
             // Initialize local variables from entry block parameters
@@ -110,6 +111,7 @@ public final class BytecodeLift {
                                     // New block parameter types are calculated from the actual stack
                                     next = entryBlock.block(stack.stream().map(Value::type).toList());
                                     blockMap.put(lt.label(), next);
+                                    localsMap.put(lt.label(), locals);
                                 }
                                 // Implicit goto next block, add explicitly
                                 // Use stack content as next block arguments
@@ -120,6 +122,7 @@ public final class BytecodeLift {
                                 currentBlock = next;
                                 // Stack is reconstructed from block parameters
                                 stack.clear();
+                                locals = localsMap.get(lt.label());
                                 currentBlock.parameters().forEach(stack::add);
                                 // Insert relevant tryStart and construct handler blocks, all in reversed order
                                 for (ExceptionCatch ec : codeModel.exceptionHandlers().reversed()) {
@@ -128,6 +131,7 @@ public final class BytecodeLift {
                                         Block.Builder handler = blockMap.computeIfAbsent(ec.handler(), _ ->
                                                 entryBlock.block(List.of(TypeDesc.ofNominalDescriptor(
                                                         ec.catchType().map(ClassEntry::asSymbol).orElse(ConstantDescs.CD_Throwable)))));
+                                        localsMap.putIfAbsent(ec.handler(), locals);
                                         // Create start block
                                         next = entryBlock.block(stack.stream().map(Value::type).toList());
                                         ExceptionRegionEnter ere = CoreOps.exceptionRegionEnter(next.successor(List.copyOf(stack)), handler.successor());
@@ -167,6 +171,7 @@ public final class BytecodeLift {
                             // Get or create target block with parameters constructed from the stack
                             currentBlock.op(CoreOps.branch(blockMap.computeIfAbsent(inst.target(), _ ->
                                     entryBlock.block(stack.stream().map(Value::type).toList())).successor(List.copyOf(stack))));
+                            localsMap.putIfAbsent(inst.target(), locals);
                             // Flow discontinued, stack cleared to be ready for the next label target
                             stack.clear();
                             currentBlock = null;
@@ -198,6 +203,7 @@ public final class BytecodeLift {
                                     // Get or create target block
                                     blockMap.computeIfAbsent(inst.target(), _ ->
                                             entryBlock.block(stack.stream().map(Value::type).toList())).successor()));
+                            localsMap.putIfAbsent(inst.target(), locals);
                             currentBlock = nextBlock;
                         }
         //                case LookupSwitchInstruction si -> {
@@ -240,7 +246,8 @@ public final class BytecodeLift {
                                 TypeDesc varType = ((CoreOps.VarOp) local.op()).varType();
                                 if (!operand.type().equals(varType)) {
                                     // @@@ How to override local slots?
-                                    locals.put(varIndex, currentBlock.op(CoreOps.var(Integer.toString(varIndex++), operand)));
+                                    locals = new HashMap<>(locals);
+                                    locals.put(inst.slot(), currentBlock.op(CoreOps.var(Integer.toString(varIndex++), operand)));
                                 } else {
                                     currentBlock.op(CoreOps.varStore(local, operand));
                                 }

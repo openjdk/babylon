@@ -61,18 +61,18 @@ public class TestLiftSmallCorpus {
 
     @Test
     public void testDoubleRoundtripStability() throws Exception {
-        boolean passed = true;
+        int failed = 0;
         for (Path p : Files.walk(JRT.getPath("modules/java.base/java"))
                 .filter(p -> Files.isRegularFile(p) && p.toString().endsWith(".class"))
                 .toList()) {
-            passed &= testDoubleRoundtripStability(p);
+            failed += testDoubleRoundtripStability(p);
         }
-        Assert.assertTrue(passed);
+        Assert.assertEquals(failed, 0);
     }
 
-    private static boolean testDoubleRoundtripStability(Path path) throws Exception {
+    private static int testDoubleRoundtripStability(Path path) throws Exception {
         var clm = CF.parse(path);
-        boolean passed = true;
+        int failed = 0;
         for (var originalModel : clm.methods()) {
             CoreOps.FuncOp firstLift = null, secondLift = null;
             CoreOps.FuncOp firstTransform = null, secondTransform = null;
@@ -93,7 +93,7 @@ public class TestLiftSmallCorpus {
                 var firstNormalized = normalize(firstModel);
                 var secondNormalized = normalize(secondModel);
                 if (!firstNormalized.equals(secondNormalized)) {
-                    passed = false;
+                    failed++;
                     System.out.println(clm.thisClass().asInternalName() + "::" + originalModel.methodName().stringValue() + originalModel.methodTypeSymbol().displayDescriptor());
                     printInColumns(firstLift, secondLift);
                     printInColumns(firstTransform, secondTransform);
@@ -102,7 +102,7 @@ public class TestLiftSmallCorpus {
                 }
             }
         }
-        return passed;
+        return failed;
     }
     private static void printInColumns(CoreOps.FuncOp first, CoreOps.FuncOp second) {
         StringWriter fw = new StringWriter();
