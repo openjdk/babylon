@@ -545,7 +545,7 @@ public final class BytecodeGenerator {
                     case BinaryTestOp op -> {
                         if (!isConditionForCondBrOp(op)) {
                             processOperands(cob, c, op, isLastOpResultOnStack);
-                            cob.ifThenElse(prepareCondition(cob, op), CodeBuilder::iconst_1, CodeBuilder::iconst_0);
+                            cob.ifThenElse(prepareReverseCondition(cob, op), CodeBuilder::iconst_0, CodeBuilder::iconst_1);
                         } else {
                             // Processing is deferred to the CondBrOp, do not process the op result
                             rvt = null;
@@ -696,7 +696,7 @@ public final class BytecodeGenerator {
                         conditionalBranch(cob, c, btop, op.trueBranch(), op.falseBranch());
                     } else {
                         processOperands(cob, c, op, isLastOpResultOnStack);
-                        conditionalBranch(cob, c, Opcode.IFNE, op, op.trueBranch(), op.falseBranch());
+                        conditionalBranch(cob, c, Opcode.IFEQ, op, op.trueBranch(), op.falseBranch());
                     }
                 }
                 case ExceptionRegionEnter op -> {
@@ -881,35 +881,35 @@ public final class BytecodeGenerator {
 
     private static void conditionalBranch(CodeBuilder cob, ConversionContext c, BinaryTestOp op,
                                           Block.Reference trueBlock, Block.Reference falseBlock) {
-        conditionalBranch(cob, c, prepareCondition(cob, op), op, trueBlock, falseBlock);
+        conditionalBranch(cob, c, prepareReverseCondition(cob, op), op, trueBlock, falseBlock);
     }
 
-    private static void conditionalBranch(CodeBuilder cob, ConversionContext c, Opcode opcode, Op op,
+    private static void conditionalBranch(CodeBuilder cob, ConversionContext c, Opcode reverseOpcode, Op op,
                                           Block.Reference trueBlock, Block.Reference falseBlock) {
-        if (trueBlock.targetBlock().parameters().isEmpty()) {
-            assignBlockArguments(op, trueBlock, cob, c);
-            cob.branchInstruction(opcode, c.getLabel(trueBlock.targetBlock()));
+        if (falseBlock.targetBlock().parameters().isEmpty()) {
+            assignBlockArguments(op, falseBlock, cob, c);
+            cob.branchInstruction(reverseOpcode, c.getLabel(falseBlock.targetBlock()));
         } else {
-            cob.ifThen(opcode,
-                trueBuilder -> {
-                    assignBlockArguments(op, trueBlock, trueBuilder, c);
-                    trueBuilder.goto_(c.getLabel(trueBlock.targetBlock()));
+            cob.ifThen(reverseOpcode,
+                bb -> {
+                    assignBlockArguments(op, falseBlock, bb, c);
+                    bb.goto_(c.getLabel(falseBlock.targetBlock()));
                 });
         }
-        assignBlockArguments(op, falseBlock, cob, c);
-        cob.goto_(c.getLabel(falseBlock.targetBlock()));
+        assignBlockArguments(op, trueBlock, cob, c);
+        cob.goto_(c.getLabel(trueBlock.targetBlock()));
     }
 
-    private static Opcode prepareCondition(CodeBuilder cob, BinaryTestOp op) {
+    private static Opcode prepareReverseCondition(CodeBuilder cob, BinaryTestOp op) {
         TypeKind vt = toTypeKind(op.operands().get(0).type());
         if (vt == TypeKind.IntType) {
             return switch (op) {
-                case EqOp _ -> Opcode.IF_ICMPEQ;
-                case NeqOp _ -> Opcode.IF_ICMPNE;
-                case GtOp _ -> Opcode.IF_ICMPGT;
-                case GeOp _ -> Opcode.IF_ICMPGE;
-                case LtOp _ -> Opcode.IF_ICMPLT;
-                case LeOp _ -> Opcode.IF_ICMPLE;
+                case EqOp _ -> Opcode.IF_ICMPNE;
+                case NeqOp _ -> Opcode.IF_ICMPEQ;
+                case GtOp _ -> Opcode.IF_ICMPLE;
+                case GeOp _ -> Opcode.IF_ICMPLT;
+                case LtOp _ -> Opcode.IF_ICMPGE;
+                case LeOp _ -> Opcode.IF_ICMPGT;
                 default ->
                     throw new UnsupportedOperationException(op.opName());
             };
@@ -922,12 +922,12 @@ public final class BytecodeGenerator {
                     throw new UnsupportedOperationException(op.opName() + " on " + vt);
             }
             return switch (op) {
-                case EqOp _ -> Opcode.IFEQ;
-                case NeqOp _ -> Opcode.IFNE;
-                case GtOp _ -> Opcode.IFGT;
-                case GeOp _ -> Opcode.IFGE;
-                case LtOp _ -> Opcode.IFLT;
-                case LeOp _ -> Opcode.IFLE;
+                case EqOp _ -> Opcode.IFNE;
+                case NeqOp _ -> Opcode.IFEQ;
+                case GtOp _ -> Opcode.IFLE;
+                case GeOp _ -> Opcode.IFLT;
+                case LtOp _ -> Opcode.IFGE;
+                case LeOp _ -> Opcode.IFGT;
                 default ->
                     throw new UnsupportedOperationException(op.opName());
             };
