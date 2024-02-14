@@ -590,7 +590,7 @@ public final class Block implements CodeElement<Block, Op> {
                         Value r;
                         if (rop.ancestorBody().blocks().size() != 1) {
                             List<TypeElement> param = rop.returnValue() != null
-                                    ? List.of(invokableOp.funcDescriptor().returnType())
+                                    ? List.of(invokableOp.invokableType().returnType())
                                     : List.of();
                             rb = block.block(param);
                             r = !param.isEmpty()

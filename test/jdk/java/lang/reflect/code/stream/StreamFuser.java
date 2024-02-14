@@ -182,7 +182,7 @@ public final class StreamFuser {
                 throw new IllegalArgumentException("Quoted consumer is not closure operation");
             }
 
-            return func("fused.forEach", MethodTypeDesc.methodType(JavaType.VOID, sourceType))
+            return func("fused.forEach", MethodTypeDesc.methodType(JavaType.VOID, sourceType).toFunctionType())
                     .body(b -> {
                         Value source = b.parameters().get(0);
 
@@ -210,8 +210,8 @@ public final class StreamFuser {
                 throw new IllegalArgumentException("Quoted accumulator is not closure operation");
             }
 
-            JavaType collectType = (JavaType) supplier.funcDescriptor().returnType();
-            return func("fused.collect", MethodTypeDesc.methodType(collectType, sourceType))
+            JavaType collectType = (JavaType) supplier.invokableType().returnType();
+            return func("fused.collect", MethodTypeDesc.methodType(collectType, sourceType).toFunctionType())
                     .body(b -> {
                         Value source = b.parameters().get(0);
 

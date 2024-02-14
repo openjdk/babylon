@@ -27,7 +27,6 @@ package oracle.code.triton;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.code.*;
-import java.lang.reflect.code.descriptor.MethodTypeDesc;
 import java.lang.reflect.code.op.*;
 import java.lang.reflect.code.type.*;
 import java.util.*;
@@ -110,7 +109,7 @@ public class TritonOps {
             super(NAME, JavaType.VOID,
                     List.of());
 
-            Body.Builder bodyC = Body.Builder.of(null, MethodTypeDesc.VOID);
+            Body.Builder bodyC = Body.Builder.of(null, FunctionType.VOID);
             Block.Builder entryBlock = bodyC.entryBlock();
             Map<String, FuncOp> table = new HashMap<>();
             for (FuncOp f : functions) {
@@ -138,9 +137,9 @@ public class TritonOps {
         public static class Builder {
             final Body.Builder ancestorBody;
             final String funcName;
-            final MethodTypeDesc funcDescriptor;
+            final FunctionType funcDescriptor;
 
-            Builder(Body.Builder ancestorBody, String funcName, MethodTypeDesc funcDescriptor) {
+            Builder(Body.Builder ancestorBody, String funcName, FunctionType funcDescriptor) {
                 this.ancestorBody = ancestorBody;
                 this.funcName = funcName;
                 this.funcDescriptor = funcDescriptor;
@@ -224,8 +223,8 @@ public class TritonOps {
         }
 
         @Override
-        public MethodTypeDesc funcDescriptor() {
-            return body.descriptor();
+        public FunctionType invokableType() {
+            return body.bodyType();
         }
 
         public String funcName() {
@@ -307,9 +306,9 @@ public class TritonOps {
             final Body.Builder ancestorBody;
             final int axis;
             final Value v;
-            final MethodTypeDesc reduceDescriptor;
+            final FunctionType reduceDescriptor;
 
-            Builder(Body.Builder ancestorBody, int axis, Value v, MethodTypeDesc reduceDescriptor) {
+            Builder(Body.Builder ancestorBody, int axis, Value v, FunctionType reduceDescriptor) {
                 this.ancestorBody = ancestorBody;
                 this.axis = axis;
                 this.v = v;
@@ -359,7 +358,7 @@ public class TritonOps {
         }
 
         ReduceOp(int axis, Value tensor, Body.Builder reducerBuilder) {
-            super(NAME, reducerBuilder.descriptor().returnType(), List.of(tensor));
+            super(NAME, reducerBuilder.bodyType().returnType(), List.of(tensor));
 
             this.axis = axis;
             this.reducer = reducerBuilder.build(this);
@@ -743,7 +742,7 @@ public class TritonOps {
         return new ModuleOp(List.copyOf(functions));
     }
 
-    public static FuncOp.Builder func(String funcName, MethodTypeDesc funcDescriptor) {
+    public static FuncOp.Builder func(String funcName, FunctionType funcDescriptor) {
         return new FuncOp.Builder(null, funcName, funcDescriptor);
     }
 
@@ -756,11 +755,11 @@ public class TritonOps {
     }
 
     public static CallOp call(FuncOp func, List<Value> args) {
-        return new CallOp(func.funcName(), func.funcDescriptor().returnType(), args);
+        return new CallOp(func.funcName(), func.invokableType().returnType(), args);
     }
 
     public static ReduceOp.Builder reduce(Body.Builder ancestorBody, int axis, Value tensor,
-                                          MethodTypeDesc reduceDescriptor) {
+                                          FunctionType reduceDescriptor) {
         return new ReduceOp.Builder(ancestorBody, axis, tensor, reduceDescriptor);
     }
 

@@ -32,7 +32,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.analysis.SSA;
-import java.lang.reflect.code.descriptor.MethodTypeDesc;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.op.ExtendedOps;
 import java.lang.reflect.code.type.JavaType;
@@ -41,8 +40,8 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
-import static java.lang.reflect.code.descriptor.MethodTypeDesc.methodType;
 import static java.lang.reflect.code.op.CoreOps.*;
+import static java.lang.reflect.code.type.FunctionType.functionType;
 
 public final class TritonTransformer {
     private TritonTransformer() {}
@@ -557,7 +556,7 @@ public final class TritonTransformer {
             Type rType,
             Map<Value, Type> valueTypeMap, Map<Op, Object> opData,
             Map<String, TritonOps.FuncOp> fsymTable) {
-        TritonOps.FuncOp ttKernel = TritonOps.func(signature, MethodTypeDesc.methodType(TritonType.fromType(rType)))
+        TritonOps.FuncOp ttKernel = TritonOps.func(signature, functionType(TritonType.fromType(rType)))
                 .body(fblock -> {
                     // Process kernel parameters
                     List<Value> args = new ArrayList<>();
@@ -1145,11 +1144,11 @@ public final class TritonTransformer {
                                        int axisConstant,
                                        String name, TritonOps.FuncOp scalarFunc) {
             return TritonOps.func(name,
-                            methodType(elementType, tensorType))
+                            functionType(elementType, tensorType))
                     .body(fblock -> {
                         TritonOps.ReduceOp reduceOp = TritonOps.reduce(fblock.parentBody(),
                                         axisConstant, fblock.parameters().get(0),
-                                        methodType(elementType, elementType, elementType))
+                                        functionType(elementType, elementType, elementType))
                                 .body(rblock -> {
                                     Block.Parameter a = rblock.parameters().get(0);
                                     Block.Parameter b = rblock.parameters().get(1);

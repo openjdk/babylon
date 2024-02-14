@@ -326,7 +326,7 @@ public final class OpWriter {
         write("(");
         writeCommaSeparatedList(eb.parameters(), this::writeValueDeclaration);
         write(")");
-        write(body.descriptor().returnType().toString());
+        write(body.bodyType().returnType().toString());
         write(" -> {\n");
         w.in();
         for (Block b : body.blocks()) {

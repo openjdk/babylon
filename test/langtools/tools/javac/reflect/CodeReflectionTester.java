@@ -29,9 +29,9 @@ import java.lang.reflect.code.op.ExtendedOps;
 import java.lang.reflect.code.parser.OpParser;
 import java.lang.runtime.CodeReflection;
 
-import static java.lang.reflect.code.descriptor.MethodTypeDesc.VOID;
 import static java.lang.reflect.code.op.CoreOps._return;
 import static java.lang.reflect.code.op.CoreOps.func;
+import static java.lang.reflect.code.type.FunctionType.VOID;
 
 public class CodeReflectionTester {
 

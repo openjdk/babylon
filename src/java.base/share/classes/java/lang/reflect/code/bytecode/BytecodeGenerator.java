@@ -53,6 +53,8 @@ import java.lang.reflect.code.Value;
 import java.lang.reflect.code.analysis.Liveness;
 import java.lang.reflect.code.descriptor.FieldDesc;
 import java.lang.reflect.code.descriptor.MethodDesc;
+import java.lang.reflect.code.descriptor.MethodTypeDesc;
+import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.TypeElement;
 import java.util.ArrayDeque;
@@ -95,7 +97,8 @@ public final class BytecodeGenerator {
         }
 
         try {
-            MethodType mt = fop.funcDescriptor().resolve(hcl);
+            FunctionType ft = fop.invokableType();
+            MethodType mt = MethodTypeDesc.ofFunctionType(ft).resolve(hcl);
             return hcl.findStatic(hcl.lookupClass(), fop.funcName(), mt);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
@@ -113,10 +116,11 @@ public final class BytecodeGenerator {
                 ? fop.funcName()
                 : packageName + "." + fop.funcName();
         Liveness liveness = new Liveness(fop);
+        MethodTypeDesc mtd = MethodTypeDesc.ofFunctionType(fop.invokableType());
         byte[] classBytes = ClassFile.of().build(ClassDesc.of(className), clb ->
                 clb.withMethodBody(
                         fop.funcName(),
-                        fop.funcDescriptor().toNominalDescriptor(),
+                        mtd.toNominalDescriptor(),
                         ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC,
                         cb -> cb.transforming(new BranchCompactor(), cob -> {
                             ConversionContext c = new ConversionContext(lookup, liveness, cob);
@@ -635,7 +639,7 @@ public final class BytecodeGenerator {
                                     case INTERFACE_VIRTUAL          -> Opcode.INVOKEINTERFACE;
                                     case SPECIAL, INTERFACE_SPECIAL -> Opcode.INVOKESPECIAL;
                                     default ->
-                                        throw new IllegalStateException("Bad method descriptor resolution: " + op.descriptor() + " > " + op.invokeDescriptor());
+                                        throw new IllegalStateException("Bad method descriptor resolution: " + op.opType() + " > " + op.invokeDescriptor());
                                 },
                                 ((JavaType) md.refType()).toNominalDescriptor(),
                                 md.name(),

@@ -55,6 +55,25 @@ public final class CoreTypeFactory {
                         }
                         yield TupleType.tupleType(cs);
                     }
+                    case FunctionType.NAME -> {
+                        if (tree.typeArguments().isEmpty()) {
+                            throw new IllegalArgumentException();
+                        }
+
+                        TypeElement rt = thisThenF.constructType(tree.typeArguments().getFirst());
+                        if (rt == null) {
+                            throw new IllegalArgumentException();
+                        }
+                        List<TypeElement> pts = new ArrayList<>(tree.typeArguments().size() - 1);
+                        for (TypeDefinition child : tree.typeArguments().subList(1, tree.typeArguments().size())) {
+                            TypeElement c = thisThenF.constructType(child);
+                            if (c == null) {
+                                throw new IllegalArgumentException();
+                            }
+                            pts.add(c);
+                        }
+                        yield FunctionType.functionType(rt, pts);
+                    }
                     default -> null;
                 };
             }

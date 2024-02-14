@@ -202,7 +202,7 @@ public final class StreamFuserUsingQuotable {
                 throw new IllegalArgumentException("Quotable consumer captures values");
             }
 
-            return func("fused.forEach", MethodTypeDesc.methodType(JavaType.VOID, sourceType))
+            return func("fused.forEach", MethodTypeDesc.methodType(JavaType.VOID, sourceType).toFunctionType())
                     .body(b -> {
                         Value source = b.parameters().get(0);
 
@@ -235,8 +235,8 @@ public final class StreamFuserUsingQuotable {
                 throw new IllegalArgumentException("Quotable accumulator captures values");
             }
 
-            JavaType collectType = (JavaType) supplier.funcDescriptor().returnType();
-            return func("fused.collect", MethodTypeDesc.methodType(collectType, sourceType))
+            JavaType collectType = (JavaType) supplier.invokableType().returnType();
+            return func("fused.collect", MethodTypeDesc.methodType(collectType, sourceType).toFunctionType())
                     .body(b -> {
                         Value source = b.parameters().get(0);
 

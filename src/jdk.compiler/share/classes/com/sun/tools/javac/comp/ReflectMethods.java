@@ -84,6 +84,7 @@ import jdk.internal.java.lang.reflect.code.descriptor.FieldDesc;
 import jdk.internal.java.lang.reflect.code.descriptor.MethodDesc;
 import jdk.internal.java.lang.reflect.code.descriptor.MethodTypeDesc;
 import jdk.internal.java.lang.reflect.code.descriptor.RecordTypeDesc;
+import jdk.internal.java.lang.reflect.code.type.FunctionType;
 import jdk.internal.java.lang.reflect.code.type.JavaType;
 import jdk.internal.java.lang.reflect.code.type.TupleType;
 import jdk.internal.java.lang.reflect.code.type.VarType;
@@ -391,7 +392,7 @@ public class ReflectMethods extends TreeTranslator {
         // Label
         Map.Entry<String, Op.Result> label;
 
-        BodyStack(BodyStack parent, JCTree tree, MethodTypeDesc bodyType) {
+        BodyStack(BodyStack parent, JCTree tree, FunctionType bodyType) {
             this.parent = parent;
 
             this.tree = tree;
@@ -465,9 +466,10 @@ public class ReflectMethods extends TreeTranslator {
             }
             tree.sym.type.getParameterTypes().stream().map(this::typeToTypeElement).forEach(parameters::add);
 
-            MethodTypeDesc mtDesc = MethodTypeDesc.methodType(typeToTypeElement(tree.sym.type.getReturnType()), parameters);
+            FunctionType bodyType = FunctionType.functionType(
+                    typeToTypeElement(tree.sym.type.getReturnType()), parameters);
 
-            this.stack = this.top = new BodyStack(null, tree.body, mtDesc);
+            this.stack = this.top = new BodyStack(null, tree.body, bodyType);
 
             // @@@ this as local variable? (it can never be stored to)
             for (int i = 0 ; i < tree.params.size() ; i++) {
@@ -495,7 +497,7 @@ public class ReflectMethods extends TreeTranslator {
             Type quotedReturnType = new ClassType(null,
                     com.sun.tools.javac.util.List.of(quotedOpType), syms.quotedType.tsym);
             MethodType mtype = new MethodType(nil, quotedReturnType, nil, syms.methodClass);
-            MethodTypeDesc mtDesc = MethodTypeDesc.methodType(typeToTypeElement(mtype.restype),
+            FunctionType mtDesc = FunctionType.functionType(typeToTypeElement(mtype.restype),
                     mtype.getParameterTypes().map(this::typeToTypeElement));
 
             this.stack = this.top = new BodyStack(null, tree.body, mtDesc);
@@ -503,7 +505,7 @@ public class ReflectMethods extends TreeTranslator {
             bodyTarget = tree.target.getReturnType();
         }
 
-        void pushBody(JCTree tree, MethodTypeDesc bodyType) {
+        void pushBody(JCTree tree, FunctionType bodyType) {
             stack = new BodyStack(stack, tree, bodyType);
             lastOp = null; // reset
         }
@@ -1101,7 +1103,7 @@ public class ReflectMethods extends TreeTranslator {
             }
 
             // Push pattern body
-            pushBody(pattern, MethodTypeDesc.methodType(patternType));
+            pushBody(pattern, FunctionType.functionType(patternType));
 
             // @@@ Assumes just pattern nodes, likely will change when method patterns are supported
             //     that have expressions for any arguments (which perhaps in turn may have pattern expressions)
@@ -1167,10 +1169,10 @@ public class ReflectMethods extends TreeTranslator {
 
             // Create pattern descriptor
             List<JavaType> patternDescParams = variables.stream().map(var -> typeToTypeElement(var.type)).toList();
-            MethodTypeDesc patternDesc = MethodTypeDesc.methodType(JavaType.VOID, patternDescParams);
+            FunctionType matchFuncType = FunctionType.functionType(JavaType.VOID, patternDescParams);
 
             // Create the match body, assigning pattern values to pattern variables
-            Body.Builder matchBody = Body.Builder.of(patternBody.ancestorBody(), patternDesc);
+            Body.Builder matchBody = Body.Builder.of(patternBody.ancestorBody(), matchFuncType);
             Block.Builder matchBuilder = matchBody.entryBlock();
             for (int i = 0; i < variables.size(); i++) {
                 Value v = matchBuilder.parameters().get(i);
@@ -1252,16 +1254,16 @@ public class ReflectMethods extends TreeTranslator {
         @Override
         public void visitLambda(JCTree.JCLambda tree) {
             FunctionalExpressionKind kind = functionalKind(tree);
-            final MethodTypeDesc lambdaType = switch (kind) {
-                case QUOTED_STRUCTURAL -> typeToMethodTypeDesc(tree.target);
-                default -> typeToMethodTypeDesc(types.findDescriptorType(tree.target));
+            final FunctionType lambdaType = switch (kind) {
+                case QUOTED_STRUCTURAL -> typeToFunctionType(tree.target);
+                default -> typeToFunctionType(types.findDescriptorType(tree.target));
             };
 
             // Push quoted body
             // We can either be explicitly quoted or a structural quoted expression
             // within some larger reflected code
             if (isQuoted || kind == FunctionalExpressionKind.QUOTED_STRUCTURAL) {
-                pushBody(tree.body, MethodTypeDesc.VOID);
+                pushBody(tree.body, FunctionType.VOID);
             }
 
             // Push lambda body
@@ -1337,7 +1339,7 @@ public class ReflectMethods extends TreeTranslator {
 
                 // Push if condition
                 pushBody(cond,
-                        MethodTypeDesc.methodType(JavaType.BOOLEAN));
+                        FunctionType.functionType(JavaType.BOOLEAN));
                 Value last = toValue(cond);
                 // Yield the boolean result of the condition
                 append(CoreOps._yield(last));
@@ -1347,7 +1349,7 @@ public class ReflectMethods extends TreeTranslator {
                 popBody();
 
                 // Push if body
-                pushBody(tree.thenpart, MethodTypeDesc.VOID);
+                pushBody(tree.thenpart, FunctionType.VOID);
 
                 scan(tree.thenpart);
                 appendTerminating(CoreOps::_yield);
@@ -1362,7 +1364,7 @@ public class ReflectMethods extends TreeTranslator {
                 }
                 else if (elsepart.getTag() == Tag.BLOCK) {
                     // Push else body
-                    pushBody(elsepart, MethodTypeDesc.VOID);
+                    pushBody(elsepart, FunctionType.VOID);
 
                     scan(elsepart);
                     appendTerminating(CoreOps::_yield);
@@ -1386,9 +1388,9 @@ public class ReflectMethods extends TreeTranslator {
         public void visitSwitchExpression(JCTree.JCSwitchExpression tree) {
             Value target = toValue(tree.selector);
 
-            MethodTypeDesc caseLabelType = MethodTypeDesc.methodType(JavaType.BOOLEAN, target.type());
+            FunctionType caseLabelType = FunctionType.functionType(JavaType.BOOLEAN, target.type());
             Type switchType = adaptBottom(tree.type);
-            MethodTypeDesc actionType = MethodTypeDesc.methodType(typeToTypeElement(switchType));
+            FunctionType actionType = FunctionType.functionType(typeToTypeElement(switchType));
             List<Body.Builder> bodies = new ArrayList<>();
             for (JCTree.JCCase c : tree.cases) {
                 // Labels body
@@ -1405,13 +1407,13 @@ public class ReflectMethods extends TreeTranslator {
                     if (c.guard != null) {
                         List<Body.Builder> clBodies = new ArrayList<>();
 
-                        pushBody(pcl.pat, MethodTypeDesc.methodType(JavaType.BOOLEAN));
+                        pushBody(pcl.pat, FunctionType.functionType(JavaType.BOOLEAN));
                         Value patVal = scanPattern(pcl.pat, localTarget);
                         append(CoreOps._yield(patVal));
                         clBodies.add(stack.body);
                         popBody();
 
-                        pushBody(c.guard, MethodTypeDesc.methodType(JavaType.BOOLEAN));
+                        pushBody(c.guard, FunctionType.functionType(JavaType.BOOLEAN));
                         append(CoreOps._yield(toValue(c.guard)));
                         clBodies.add(stack.body);
                         popBody();
@@ -1445,7 +1447,7 @@ public class ReflectMethods extends TreeTranslator {
                         List<Body.Builder> clBodies = new ArrayList<>();
                         for (JCTree.JCCaseLabel cl : c.labels) {
                             ccl = (JCTree.JCConstantCaseLabel) cl;
-                            pushBody(ccl, MethodTypeDesc.methodType(JavaType.BOOLEAN));
+                            pushBody(ccl, FunctionType.functionType(JavaType.BOOLEAN));
 
                             Value expr = toValue(ccl.expr);
                             // @@@ Conversion of localTarget
@@ -1475,7 +1477,7 @@ public class ReflectMethods extends TreeTranslator {
                     popBody();
                 } else if (headCl instanceof JCTree.JCDefaultCaseLabel) {
                     // @@@ Do we need to model the default label body?
-                    pushBody(headCl, MethodTypeDesc.VOID);
+                    pushBody(headCl, FunctionType.VOID);
 
                     append(CoreOps._yield());
                     bodies.add(stack.body);
@@ -1549,7 +1551,7 @@ public class ReflectMethods extends TreeTranslator {
             JCTree.JCExpression cond = TreeInfo.skipParens(tree.cond);
 
             // Push while condition
-            pushBody(cond, MethodTypeDesc.methodType(JavaType.BOOLEAN));
+            pushBody(cond, FunctionType.functionType(JavaType.BOOLEAN));
             Value last = toValue(cond);
             // Yield the boolean result of the condition
             append(CoreOps._yield(last));
@@ -1559,7 +1561,7 @@ public class ReflectMethods extends TreeTranslator {
             popBody();
 
             // Push while body
-            pushBody(tree.body, MethodTypeDesc.VOID);
+            pushBody(tree.body, FunctionType.VOID);
             scan(tree.body);
             appendTerminating(ExtendedOps::_continue);
             Body.Builder body = stack.body;
@@ -1578,7 +1580,7 @@ public class ReflectMethods extends TreeTranslator {
             JCTree.JCExpression cond = TreeInfo.skipParens(tree.cond);
 
             // Push while body
-            pushBody(tree.body, MethodTypeDesc.VOID);
+            pushBody(tree.body, FunctionType.VOID);
             scan(tree.body);
             appendTerminating(ExtendedOps::_continue);
             Body.Builder body = stack.body;
@@ -1587,7 +1589,7 @@ public class ReflectMethods extends TreeTranslator {
             popBody();
 
             // Push while condition
-            pushBody(cond, MethodTypeDesc.methodType(JavaType.BOOLEAN));
+            pushBody(cond, FunctionType.functionType(JavaType.BOOLEAN));
             Value last = toValue(cond);
             // Yield the boolean result of the condition
             append(CoreOps._yield(last));
@@ -1603,7 +1605,7 @@ public class ReflectMethods extends TreeTranslator {
         @Override
         public void visitForeachLoop(JCTree.JCEnhancedForLoop tree) {
             // Push expression
-            pushBody(tree.expr, MethodTypeDesc.methodType(typeToTypeElement(tree.expr.type)));
+            pushBody(tree.expr, FunctionType.functionType(typeToTypeElement(tree.expr.type)));
             Value last = toValue(tree.expr);
             // Yield the Iterable result of the expression
             append(CoreOps._yield(last));
@@ -1619,7 +1621,7 @@ public class ReflectMethods extends TreeTranslator {
             // Push init
             // @@@ When lhs assignment is a pattern we embed the pattern match into the init body and
             // return the bound variables
-            pushBody(var, MethodTypeDesc.methodType(varEType, eType));
+            pushBody(var, FunctionType.functionType(varEType, eType));
             Op.Result varEResult = append(CoreOps.var(var.name.toString(), stack.block.parameters().get(0)));
             append(CoreOps._yield(varEResult));
             Body.Builder init = stack.body;
@@ -1627,7 +1629,7 @@ public class ReflectMethods extends TreeTranslator {
             popBody();
 
             // Push body
-            pushBody(tree.body, MethodTypeDesc.methodType(JavaType.VOID, varEType));
+            pushBody(tree.body, FunctionType.functionType(JavaType.VOID, varEType));
             stack.localToOp.put(var.sym, stack.block.parameters().get(0));
 
             scan(tree.body);
@@ -1681,18 +1683,18 @@ public class ReflectMethods extends TreeTranslator {
 
             // Push init
             if (varTypes.size() > 1) {
-                pushBody(null, MethodTypeDesc.methodType(TupleType.tupleType(varTypes)));
+                pushBody(null, FunctionType.functionType(TupleType.tupleType(varTypes)));
                 scan(tree.init);
 
                 // Capture all local variable declarations in tuple
                 append(CoreOps._yield(append(CoreOps.tuple(vds.varValues()))));
             } else if (varTypes.size() == 1) {
-                pushBody(null, MethodTypeDesc.methodType(varTypes.get(0)));
+                pushBody(null, FunctionType.functionType(varTypes.get(0)));
                 scan(tree.init);
 
                 append(CoreOps._yield(vds.varValues().get(0)));
             } else {
-                pushBody(null, MethodTypeDesc.VOID);
+                pushBody(null, FunctionType.VOID);
                 scan(tree.init);
 
                 append(CoreOps._yield());
@@ -1703,7 +1705,7 @@ public class ReflectMethods extends TreeTranslator {
             popBody();
 
             // Push cond
-            pushBody(tree.cond, MethodTypeDesc.methodType(JavaType.BOOLEAN, varTypes));
+            pushBody(tree.cond, FunctionType.functionType(JavaType.BOOLEAN, varTypes));
             if (tree.cond != null) {
                 vds.mapVarsToBlockArguments();
 
@@ -1720,7 +1722,7 @@ public class ReflectMethods extends TreeTranslator {
 
             // Push update
             // @@@ tree.step is a List<JCStatement>
-            pushBody(null, MethodTypeDesc.methodType(JavaType.VOID, varTypes));
+            pushBody(null, FunctionType.functionType(JavaType.VOID, varTypes));
             if (!tree.step.isEmpty()) {
                 vds.mapVarsToBlockArguments();
 
@@ -1733,7 +1735,7 @@ public class ReflectMethods extends TreeTranslator {
             popBody();
 
             // Push body
-            pushBody(tree.body, MethodTypeDesc.methodType(JavaType.VOID, varTypes));
+            pushBody(tree.body, FunctionType.functionType(JavaType.VOID, varTypes));
             if (tree.body != null) {
                 vds.mapVarsToBlockArguments();
 
@@ -1757,7 +1759,7 @@ public class ReflectMethods extends TreeTranslator {
 
             // Push condition
             pushBody(cond,
-                    MethodTypeDesc.methodType(JavaType.BOOLEAN));
+                    FunctionType.functionType(JavaType.BOOLEAN));
             Value condVal = toValue(cond);
             // Yield the boolean result of the condition
             append(CoreOps._yield(condVal));
@@ -1772,7 +1774,7 @@ public class ReflectMethods extends TreeTranslator {
 
             // Push true body
             pushBody(truepart,
-                    MethodTypeDesc.methodType(typeToTypeElement(condType)));
+                    FunctionType.functionType(typeToTypeElement(condType)));
 
             Value trueVal = toValue(truepart, condType);
             // Yield the result
@@ -1786,7 +1788,7 @@ public class ReflectMethods extends TreeTranslator {
 
             // Push false body
             pushBody(falsepart,
-                    MethodTypeDesc.methodType(typeToTypeElement(condType)));
+                    FunctionType.functionType(typeToTypeElement(condType)));
 
             Value falseVal = toValue(falsepart, condType);
             // Yield the result
@@ -1822,7 +1824,7 @@ public class ReflectMethods extends TreeTranslator {
                 // Otherwise, independent block structure
                 // @@@ Support synchronized blocks
                 // Push block
-                pushBody(tree, MethodTypeDesc.VOID);
+                pushBody(tree, FunctionType.VOID);
                 scan(tree.stats);
                 appendTerminating(CoreOps::_yield);
                 Body.Builder body = stack.body;
@@ -1838,7 +1840,7 @@ public class ReflectMethods extends TreeTranslator {
         @Override
         public void visitLabelled(JCTree.JCLabeledStatement tree) {
             // Push block
-            pushBody(tree, MethodTypeDesc.VOID);
+            pushBody(tree, FunctionType.VOID);
             // Create constant for label
             String labelName = tree.label.toString();
             Op.Result label = append(CoreOps.constant(JavaType.J_L_STRING, labelName));
@@ -1872,7 +1874,7 @@ public class ReflectMethods extends TreeTranslator {
                 }
 
                 // Push resources body
-                pushBody(null, MethodTypeDesc.methodType(TupleType.tupleType(rTypes)));
+                pushBody(null, FunctionType.functionType(TupleType.tupleType(rTypes)));
 
                 List<Value> rValues = new ArrayList<>();
                 for (JCTree resource : tree.resources) {
@@ -1895,7 +1897,7 @@ public class ReflectMethods extends TreeTranslator {
                     c.accept(vt);
                 }
             }).toList();
-            pushBody(tree.body, MethodTypeDesc.methodType(JavaType.VOID, rVarTypes));
+            pushBody(tree.body, FunctionType.functionType(JavaType.VOID, rVarTypes));
             for (int i = 0; i < rVariableDecls.size(); i++) {
                 stack.localToOp.put(rVariableDecls.get(i).sym, stack.block.parameters().get(i));
             }
@@ -1914,7 +1916,7 @@ public class ReflectMethods extends TreeTranslator {
                 }
 
                 // Push body
-                pushBody(catcher.body, MethodTypeDesc.methodType(JavaType.VOID, typeToTypeElement(catcher.param.type)));
+                pushBody(catcher.body, FunctionType.functionType(JavaType.VOID, typeToTypeElement(catcher.param.type)));
                 Op.Result exVariable = append(CoreOps.var(
                         catcher.param.name.toString(),
                         stack.block.parameters().get(0)));
@@ -1930,7 +1932,7 @@ public class ReflectMethods extends TreeTranslator {
             Body.Builder finalizer;
             if (tree.finalizer != null) {
                 // Push body
-                pushBody(tree.finalizer, MethodTypeDesc.VOID);
+                pushBody(tree.finalizer, FunctionType.VOID);
                 scan(tree.finalizer);
                 appendTerminating(CoreOps::_yield);
                 finalizer = stack.body;
@@ -1996,7 +1998,7 @@ public class ReflectMethods extends TreeTranslator {
                 // @@@ Flatten nested sequences
 
                 // Push lhs
-                pushBody(tree.lhs, MethodTypeDesc.methodType(JavaType.BOOLEAN));
+                pushBody(tree.lhs, FunctionType.functionType(JavaType.BOOLEAN));
                 Value lhs = toValue(tree.lhs);
                 // Yield the boolean result of the condition
                 append(CoreOps._yield(lhs));
@@ -2006,7 +2008,7 @@ public class ReflectMethods extends TreeTranslator {
                 popBody();
 
                 // Push rhs
-                pushBody(tree.rhs, MethodTypeDesc.methodType(JavaType.BOOLEAN));
+                pushBody(tree.rhs, FunctionType.functionType(JavaType.BOOLEAN));
                 Value rhs = toValue(tree.rhs);
                 // Yield the boolean result of the condition
                 append(CoreOps._yield(rhs));
@@ -2213,12 +2215,12 @@ public class ReflectMethods extends TreeTranslator {
                     erasedType.getParameterTypes().stream().map(this::typeToTypeElement).toArray(TypeElement[]::new));
         }
 
-        MethodTypeDesc symbolToMethodTypeDesc(Symbol s) {
-            return typeToMethodTypeDesc(s.type);
+        FunctionType symbolToFunctionType(Symbol s) {
+            return typeToFunctionType(s.type);
         }
 
-        MethodTypeDesc typeToMethodTypeDesc(Type t) {
-            return MethodTypeDesc.methodType(
+        FunctionType typeToFunctionType(Type t) {
+            return FunctionType.functionType(
                     typeToTypeElement(t.getReturnType()),
                     t.getParameterTypes().stream().map(this::typeToTypeElement).toArray(TypeElement[]::new));
         }
