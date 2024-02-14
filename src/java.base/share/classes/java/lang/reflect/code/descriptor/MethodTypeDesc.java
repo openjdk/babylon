@@ -28,6 +28,7 @@ package java.lang.reflect.code.descriptor;
 import java.lang.reflect.code.descriptor.impl.MethodTypeDescImpl;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.TypeElement;
 import java.util.List;
@@ -35,7 +36,9 @@ import java.util.List;
 /**
  * The symbolic description of a method type, comprising descriptions of zero or more parameter types and a return type.
  */
+// @@@ Duplicates much of FunctionType
 public sealed interface MethodTypeDesc permits MethodTypeDescImpl {
+
     MethodTypeDesc VOID = methodType(JavaType.VOID);
 
     //
@@ -49,6 +52,11 @@ public sealed interface MethodTypeDesc permits MethodTypeDescImpl {
     MethodTypeDesc erase();
 
     String toNominalDescriptorString();
+
+    // @@@ required?
+    default FunctionType toFunctionType() {
+        return FunctionType.functionType(returnType(), parameters());
+    }
 
     default java.lang.constant.MethodTypeDesc toNominalDescriptor() {
         return java.lang.constant.MethodTypeDesc.ofDescriptor(toNominalDescriptorString());
@@ -71,6 +79,11 @@ public sealed interface MethodTypeDesc permits MethodTypeDescImpl {
 
     static MethodTypeDesc methodType(Class<?> ret, List<Class<?>> params) {
         return new MethodTypeDescImpl(JavaType.type(ret), params.stream().map(JavaType::type).toList());
+    }
+
+    // @@@ required?
+    static MethodTypeDesc ofFunctionType(FunctionType ft) {
+        return methodType(ft.returnType(), ft.parameterTypes());
     }
 
     static MethodTypeDesc ofNominalDescriptor(java.lang.constant.MethodTypeDesc d) {

@@ -72,9 +72,10 @@ public final class BytecodeLift {
     }
 
     public static CoreOps.FuncOp lift(MethodModel methodModel) {
+        MethodTypeDesc mtd = MethodTypeDesc.ofNominalDescriptor(methodModel.methodTypeSymbol());
         return CoreOps.func(
                 methodModel.methodName().stringValue(),
-                MethodTypeDesc.ofNominalDescriptor(methodModel.methodTypeSymbol())).body(entryBlock -> {
+                mtd.toFunctionType()).body(entryBlock -> {
 
             final CodeModel codeModel = methodModel.code().orElseThrow();
             final HashMap<Label, Block.Builder> blockMap = new HashMap<>();

@@ -37,6 +37,7 @@ import java.util.stream.Stream;
 import static java.lang.reflect.code.descriptor.MethodDesc.method;
 import static java.lang.reflect.code.descriptor.MethodTypeDesc.methodType;
 import static java.lang.reflect.code.op.CoreOps.*;
+import static java.lang.reflect.code.type.FunctionType.functionType;
 
 /*
  * @test
@@ -68,7 +69,7 @@ public class TestLinqUsingQuoted {
         default Queryable select(Quoted f) {
             // @@@@ validate
             ClosureOp c = (ClosureOp) f.op();
-            return insertQuery(c.funcDescriptor().returnType(), "select", c);
+            return insertQuery(c.invokableType().returnType(), "select", c);
         }
 
         private Queryable insertQuery(TypeElement et, String name, ClosureOp c) {
@@ -114,7 +115,7 @@ public class TestLinqUsingQuoted {
             // Copy function expression, replacing return type
             FuncOp currentQueryExpression = expression();
             FuncOp nextQueryExpression = func("queryresult",
-                    methodType(qp.queryResultType(), currentQueryExpression.funcDescriptor().parameters()))
+                    functionType(qp.queryResultType(), currentQueryExpression.invokableType().parameterTypes()))
                     .body(b -> b.inline(currentQueryExpression, b.parameters(), (block, query) -> {
                         MethodDesc md = method(qp.queryableType(), name, methodType(qp.queryResultType()));
                         Op.Result queryResult = block.op(invoke(md, query));
@@ -159,7 +160,7 @@ public class TestLinqUsingQuoted {
             this.provider = provider;
 
             // Initial expression is an identity function
-            var funDescriptor = methodType(provider().queryableType(), provider().queryableType());
+            var funDescriptor = functionType(provider().queryableType(), provider().queryableType());
             this.expression = func("query", funDescriptor)
                     .body(b -> b.op(_return(b.parameters().get(0))));
         }

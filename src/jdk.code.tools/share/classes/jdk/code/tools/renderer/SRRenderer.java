@@ -219,7 +219,7 @@ public final class SRRenderer extends CommonRenderer<SRRenderer> {
             commaSpaceSeparator();
             writeValueDecl(gn, v);
         }
-        cparen().type(body.descriptor().returnType().toString()).space().rarrow().space().obrace().nl();
+        cparen().type(body.bodyType().returnType().toString()).space().rarrow().space().obrace().nl();
         in();
         boolean isEntryBlock = true;
         for (Block b : body.blocks()) {

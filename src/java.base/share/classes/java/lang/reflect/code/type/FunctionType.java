@@ -10,7 +10,14 @@ import java.util.stream.Stream;
  * A function type.
  */
 public final class FunctionType implements TypeElement {
-    static final String NAME = "->";
+    // @@@ Change to "->" when the textual form supports it
+    static final String NAME = "func";
+
+    /**
+     * The function type with no parameters, returning void.
+     */
+    // @@@ Uses JavaType
+    public static final FunctionType VOID = functionType(JavaType.VOID);
 
     final TypeElement returnType;
     final List<TypeElement> parameterTypes;

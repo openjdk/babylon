@@ -29,6 +29,7 @@ import java.lang.reflect.code.*;
 import java.lang.reflect.code.descriptor.FieldDesc;
 import java.lang.reflect.code.descriptor.MethodDesc;
 import java.lang.reflect.code.descriptor.MethodTypeDesc;
+import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.type.TupleType;
 import java.lang.reflect.code.TypeElement;
@@ -63,16 +64,16 @@ public final class CoreOps {
         public static class Builder {
             final Body.Builder ancestorBody;
             final String funcName;
-            final MethodTypeDesc funcDescriptor;
+            final FunctionType funcType;
 
-            Builder(Body.Builder ancestorBody, String funcName, MethodTypeDesc funcDescriptor) {
+            Builder(Body.Builder ancestorBody, String funcName, FunctionType funcType) {
                 this.ancestorBody = ancestorBody;
                 this.funcName = funcName;
-                this.funcDescriptor = funcDescriptor;
+                this.funcType = funcType;
             }
 
             public FuncOp body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, funcDescriptor);
+                Body.Builder body = Body.Builder.of(ancestorBody, funcType);
                 c.accept(body.entryBlock());
                 return new FuncOp(funcName, body);
             }
@@ -149,8 +150,8 @@ public final class CoreOps {
         }
 
         @Override
-        public MethodTypeDesc funcDescriptor() {
-            return body.descriptor();
+        public FunctionType invokableType() {
+            return body.bodyType();
         }
 
         public String funcName() {
@@ -301,7 +302,7 @@ public final class CoreOps {
             super(NAME,
                     List.of());
 
-            Body.Builder bodyC = Body.Builder.of(null, MethodTypeDesc.VOID);
+            Body.Builder bodyC = Body.Builder.of(null, FunctionType.VOID);
             Block.Builder entryBlock = bodyC.entryBlock();
             Map<String, FuncOp> table = new HashMap<>();
             for (FuncOp f : functions) {
@@ -444,17 +445,17 @@ public final class CoreOps {
 
         public static class Builder {
             final Body.Builder ancestorBody;
-            final MethodTypeDesc functionalDescriptor;
+            final FunctionType funcType;
             final TypeElement functionalInterface;
 
-            Builder(Body.Builder ancestorBody, MethodTypeDesc functionalDescriptor, TypeElement functionalInterface) {
+            Builder(Body.Builder ancestorBody, FunctionType funcType, TypeElement functionalInterface) {
                 this.ancestorBody = ancestorBody;
-                this.functionalDescriptor = functionalDescriptor;
+                this.funcType = funcType;
                 this.functionalInterface = functionalInterface;
             }
 
             public LambdaOp body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, functionalDescriptor);
+                Body.Builder body = Body.Builder.of(ancestorBody, funcType);
                 c.accept(body.entryBlock());
                 return new LambdaOp(functionalInterface, body);
             }
@@ -498,8 +499,8 @@ public final class CoreOps {
         }
 
         @Override
-        public MethodTypeDesc funcDescriptor() {
-            return body.descriptor();
+        public FunctionType invokableType() {
+            return body.bodyType();
         }
 
         public TypeElement functionalInterface() {
@@ -561,28 +562,6 @@ public final class CoreOps {
     }
 
     /**
-     * A synthetic closure type, that is the operation result-type of a closure operation.
-     */
-    // @@@: Replace with use of FunctionType
-    public interface Closure {
-        // Type description must be the same in the java.base and jdk.compiler module
-        JavaType CLOSURE_TYPE = new JavaTypeImpl(CoreOps_CLASS_NAME +
-                "$" + Closure.class.getSimpleName());
-
-        static JavaType type(JavaType... types) {
-            return JavaType.type(
-                    CLOSURE_TYPE,
-                    types);
-        }
-
-        static JavaType type(List<JavaType> types) {
-            return JavaType.type(
-                    CLOSURE_TYPE,
-                    types);
-        }
-    }
-
-    /**
      * The closure operation, that can model a structured Java lambda expression
      * that has no target type (a functional interface).
      */
@@ -591,15 +570,15 @@ public final class CoreOps {
 
         public static class Builder {
             final Body.Builder ancestorBody;
-            final MethodTypeDesc functionalDescriptor;
+            final FunctionType funcType;
 
-            Builder(Body.Builder ancestorBody, MethodTypeDesc functionalDescriptor) {
+            Builder(Body.Builder ancestorBody, FunctionType funcType) {
                 this.ancestorBody = ancestorBody;
-                this.functionalDescriptor = functionalDescriptor;
+                this.funcType = funcType;
             }
 
             public ClosureOp body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, functionalDescriptor);
+                Body.Builder body = Body.Builder.of(ancestorBody, funcType);
                 c.accept(body.entryBlock());
                 return new ClosureOp(body);
             }
@@ -633,21 +612,14 @@ public final class CoreOps {
             this.body = bodyC.build(this);
         }
 
-        static JavaType closureType(MethodTypeDesc functionalDescriptor) {
-            List<JavaType> l = new ArrayList<>();
-            l.add((JavaType) functionalDescriptor.returnType());
-            l.addAll(functionalDescriptor.parameters().stream().map(t -> (JavaType) t).toList());
-            return Closure.type(l);
-        }
-
         @Override
         public List<Body> bodies() {
             return List.of(body);
         }
 
         @Override
-        public MethodTypeDesc funcDescriptor() {
-            return body.descriptor();
+        public FunctionType invokableType() {
+            return body.bodyType();
         }
 
         @Override
@@ -700,7 +672,7 @@ public final class CoreOps {
 
         @Override
         public TypeElement resultType() {
-            return closureType(body().descriptor());
+            return body.bodyType();
         }
     }
 
@@ -731,26 +703,10 @@ public final class CoreOps {
             super(NAME, args);
         }
 
-        static JavaType resultType(List<Value> args) {
-            if (args.isEmpty()) {
-                throw new IllegalArgumentException(
-                        "Operation must have one or more operands: " + args.size());
-            }
-            JavaType t = (JavaType) args.get(0).type();
-
-            if (t.typeArguments().isEmpty()) {
-                throw new IllegalArgumentException(
-                        "Operation result type must have one or more parameters: " + t.typeArguments().size());
-            }
-            if (t.typeArguments().size() != args.size()) {
-                throw new IllegalArgumentException();
-            }
-            return t.typeArguments().get(0);
-        }
-
         @Override
         public TypeElement resultType() {
-            return resultType(operands());
+            FunctionType ft = (FunctionType) operands().getFirst().type();
+            return ft.returnType();
         }
     }
 
@@ -1353,7 +1309,7 @@ public final class CoreOps {
         }
 
         public TypeElement type() {
-            return descriptor().returnType();
+            return opType().returnType();
         }
 
         public MethodTypeDesc constructorDescriptor() {
@@ -2815,11 +2771,11 @@ public final class CoreOps {
     /**
      * Creates a function operation builder
      * @param funcName the function name
-     * @param funcDescriptor the function descriptor
+     * @param funcType the function type
      * @return the function operation builder
      */
-    public static FuncOp.Builder func(String funcName, MethodTypeDesc funcDescriptor) {
-        return new FuncOp.Builder(null, funcName, funcDescriptor);
+    public static FuncOp.Builder func(String funcName, FunctionType funcType) {
+        return new FuncOp.Builder(null, funcName, funcType);
     }
 
     /**
@@ -2871,7 +2827,7 @@ public final class CoreOps {
      * @return the function call operation
      */
     public static FuncCallOp funcCall(FuncOp func, List<Value> args) {
-        return new FuncCallOp(func.funcName(), func.funcDescriptor().returnType(), args);
+        return new FuncCallOp(func.funcName(), func.invokableType().returnType(), args);
     }
 
     /**
@@ -2900,7 +2856,7 @@ public final class CoreOps {
      */
     public static QuotedOp quoted(Body.Builder ancestorBody,
                                   Function<Block.Builder, Op> opFunc) {
-        Body.Builder body = Body.Builder.of(ancestorBody, MethodTypeDesc.VOID);
+        Body.Builder body = Body.Builder.of(ancestorBody, FunctionType.VOID);
         Block.Builder block = body.entryBlock();
         block.op(_yield(
                 block.op(opFunc.apply(block))));
@@ -2919,18 +2875,18 @@ public final class CoreOps {
     /**
      * Creates a lambda operation.
      * @param ancestorBody the ancestor of the body of the lambda operation
-     * @param functionalDescriptor the lambda operation's functional descriptor
-     * @param functionalInterface the lambda operation's functional interface
+     * @param funcType the lambda operation's function type
+     * @param functionalInterface the lambda operation's functional interface type
      * @return the lambda operation
      */
     public static LambdaOp.Builder lambda(Body.Builder ancestorBody,
-                                          MethodTypeDesc functionalDescriptor, TypeElement functionalInterface) {
-        return new LambdaOp.Builder(ancestorBody, functionalDescriptor, functionalInterface);
+                                          FunctionType funcType, TypeElement functionalInterface) {
+        return new LambdaOp.Builder(ancestorBody, funcType, functionalInterface);
     }
 
     /**
      * Creates a lambda operation.
-     * @param functionalInterface the lambda operation's functional interface
+     * @param functionalInterface the lambda operation's functional interface type
      * @param body the body of the lambda operation
      * @return the lambda operation
      */
@@ -2941,12 +2897,12 @@ public final class CoreOps {
     /**
      * Creates a closure operation.
      * @param ancestorBody the ancestor of the body of the closure operation
-     * @param functionalDescriptor the closure operation's functional descriptor
+     * @param funcType the closure operation's function type
      * @return the closure operation
      */
     public static ClosureOp.Builder closure(Body.Builder ancestorBody,
-                                            MethodTypeDesc functionalDescriptor) {
-        return new ClosureOp.Builder(ancestorBody, functionalDescriptor);
+                                            FunctionType funcType) {
+        return new ClosureOp.Builder(ancestorBody, funcType);
     }
 
     /**

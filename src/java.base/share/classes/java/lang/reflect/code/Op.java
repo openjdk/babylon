@@ -29,7 +29,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.lang.reflect.code.descriptor.MethodTypeDesc;
+import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.writer.OpWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -38,8 +38,8 @@ import java.util.function.BiFunction;
 /**
  * An operation modelling a unit of functionality.
  * <p>
- * An operation might model the addition of two 32-integers, or a Java method call.
- * Alternatively an operation may model something more complex like a method bodies, lambda bodies, or
+ * An operation might model the addition of two 32-bit integers, or a Java method call.
+ * Alternatively an operation may model something more complex like method bodies, lambda bodies, or
  * try/catch/finally statements. In this case such an operation will contain one or more bodies modelling
  * the nested structure.
  */
@@ -83,10 +83,9 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         Body body();
 
         /**
-         * @return the function descriptor describing the input parameter types and return type.
+         * @return the function type describing the invokable operation's parameter types and return type.
          */
-        // @@@ Replace with FunctionType
-        MethodTypeDesc funcDescriptor();
+        FunctionType invokableType();
     }
 
     /**
@@ -317,17 +316,16 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     public abstract TypeElement resultType();
 
     /**
-     * Returns the operation's descriptor.
+     * Returns the operation's function type.
      * <p>
-     * The descriptor's result type is the operation's return type and the descriptor's parameter types are the
+     * The function type's result type is the operation's result type and the function type's parameter types are the
      * operation's operand types, in order.
      *
-     * @return the descriptor
+     * @return the function type
      */
-    // @@@ Replace with FunctionType
-    public MethodTypeDesc descriptor() {
+    public FunctionType opType() {
         List<TypeElement> operandTypes = operands.stream().map(Value::type).toList();
-        return MethodTypeDesc.methodType(resultType(), operandTypes);
+        return FunctionType.functionType(resultType(), operandTypes);
     }
 
     /**

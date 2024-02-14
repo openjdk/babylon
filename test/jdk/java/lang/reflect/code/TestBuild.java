@@ -29,8 +29,8 @@ import java.lang.reflect.code.analysis.SSA;
 import java.util.function.IntBinaryOperator;
 
 import static java.lang.reflect.code.op.CoreOps.*;
-import static java.lang.reflect.code.descriptor.MethodTypeDesc.VOID;
-import static java.lang.reflect.code.descriptor.MethodTypeDesc.methodType;
+import static java.lang.reflect.code.type.FunctionType.functionType;
+import static java.lang.reflect.code.type.FunctionType.VOID;
 import static java.lang.reflect.code.type.JavaType.INT;
 import static java.lang.reflect.code.type.JavaType.type;
 
@@ -51,7 +51,7 @@ public class TestBuild {
     public void testBoundValueAsOperand() {
         LambdaOp f = f();
 
-        var body = Body.Builder.of(null, f.funcDescriptor());
+        var body = Body.Builder.of(null, f.invokableType());
         var block = body.entryBlock();
 
         var a = f.body().entryBlock().parameters().get(0);
@@ -66,7 +66,7 @@ public class TestBuild {
     public void testBoundValueAsHeaderArgument() {
         LambdaOp f = f();
 
-        var body = Body.Builder.of(null, f.funcDescriptor());
+        var body = Body.Builder.of(null, f.invokableType());
         var block = body.entryBlock();
         var anotherBlock = block.block(INT, INT);
 
@@ -83,7 +83,7 @@ public class TestBuild {
     public void testUnmappedBoundValue() {
         LambdaOp f = f();
 
-        var body = Body.Builder.of(null, f.funcDescriptor());
+        var body = Body.Builder.of(null, f.invokableType());
         var block = body.entryBlock();
 
         var freturnOp = f.body().entryBlock().terminatingOp();
@@ -95,7 +95,7 @@ public class TestBuild {
     public void testMappingToBoundValue() {
         LambdaOp f = f();
 
-        var body = Body.Builder.of(null, f.funcDescriptor());
+        var body = Body.Builder.of(null, f.invokableType());
         var block = body.entryBlock();
 
         var result = f.body().entryBlock().firstOp().result();
@@ -107,7 +107,7 @@ public class TestBuild {
     public void testMappedBoundValue() {
         LambdaOp f = f();
 
-        var body = Body.Builder.of(null, f.funcDescriptor());
+        var body = Body.Builder.of(null, f.invokableType());
         var block = body.entryBlock();
 
         var a = block.parameters().get(0);
@@ -124,7 +124,7 @@ public class TestBuild {
 
     @Test
     public void testPartiallyConstructedValueAccess() {
-        var body = Body.Builder.of(null, methodType(int.class, int.class, int.class));
+        var body = Body.Builder.of(null, functionType(INT, INT, INT));
         var block = body.entryBlock();
 
         Block.Parameter a = block.parameters().get(0);
@@ -154,7 +154,7 @@ public class TestBuild {
 
     @Test
     public void testPartiallyConstructedHeaderAccess() {
-        var body = Body.Builder.of(null, methodType(int.class, int.class, int.class));
+        var body = Body.Builder.of(null, functionType(INT, INT, INT));
         var block = body.entryBlock();
         var anotherBlock = block.block(INT, INT);
 
@@ -177,12 +177,12 @@ public class TestBuild {
 
     @Test
     public void testValueUseFromOtherModel() {
-        var abody = Body.Builder.of(null, methodType(int.class, int.class, int.class));
+        var abody = Body.Builder.of(null, functionType(INT, INT, INT));
         var ablock = abody.entryBlock();
         var aa = ablock.parameters().get(0);
         var ab = ablock.parameters().get(1);
 
-        var bbody = Body.Builder.of(null, abody.descriptor());
+        var bbody = Body.Builder.of(null, abody.bodyType());
         var bblock = bbody.entryBlock();
 
         // Operation uses values from another model
