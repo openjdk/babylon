@@ -879,7 +879,6 @@ public class ReflectMethods extends TreeTranslator {
                         result = thisValue();
                     } else {
                         FieldDesc fd = symbolToFieldDesc(sym, symbolSiteType(sym));
-                        // @@@ for now, for field of generic type, result type is the upper bound
                         TypeElement resultType = typeToTypeElement(sym.type);
                         if (sym.isStatic()) {
                             result = append(CoreOps.fieldLoad(resultType, fd));
