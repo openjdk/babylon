@@ -545,7 +545,7 @@ public final class BytecodeGenerator {
                     case BinaryTestOp op -> {
                         if (!isConditionForCondBrOp(op)) {
                             processOperands(cob, c, op, isLastOpResultOnStack);
-                            conditionalBranch(cob, op, CodeBuilder::iconst_1, CodeBuilder::iconst_0);
+                            cob.ifThenElse(prepareCondition(cob, op), CodeBuilder::iconst_1, CodeBuilder::iconst_0);
                         } else {
                             // Processing is deferred to the CondBrOp, do not process the op result
                             rvt = null;
@@ -693,26 +693,10 @@ public final class BytecodeGenerator {
                     if (getConditionForCondBrOp(op) instanceof CoreOps.BinaryTestOp btop) {
                         // Processing of the BinaryTestOp was deferred, so it can be merged with CondBrOp
                         processOperands(cob, c, btop, isLastOpResultOnStack);
-                        conditionalBranch(cob, btop,
-                                trueBuilder -> {
-                                    assignBlockArguments(btop, op.trueBranch(), trueBuilder, c);
-                                    trueBuilder.goto_(c.getLabel(op.trueBranch().targetBlock()));
-                                },
-                                falseBuilder -> {
-                                    assignBlockArguments(btop, op.falseBranch(), falseBuilder, c);
-                                    falseBuilder.goto_(c.getLabel(op.falseBranch().targetBlock()));
-                                });
+                        conditionalBranch(cob, c, btop, op.trueBranch(), op.falseBranch());
                     } else {
                         processOperands(cob, c, op, isLastOpResultOnStack);
-                        cob.ifThenElse(
-                                trueBuilder -> {
-                                    assignBlockArguments(op, op.trueBranch(), trueBuilder, c);
-                                    trueBuilder.goto_(c.getLabel(op.trueBranch().targetBlock()));
-                                },
-                                falseBuilder -> {
-                                    assignBlockArguments(op, op.falseBranch(), falseBuilder, c);
-                                    falseBuilder.goto_(c.getLabel(op.falseBranch().targetBlock()));
-                                });
+                        conditionalBranch(cob, c, Opcode.IFNE, op, op.trueBranch(), op.falseBranch());
                     }
                 }
                 case ExceptionRegionEnter op -> {
@@ -895,11 +879,31 @@ public final class BytecodeGenerator {
         }
     }
 
-    private static void conditionalBranch(CodeBuilder cob, BinaryTestOp op,
-                                          Consumer<BlockCodeBuilder> trueBlock, Consumer<BlockCodeBuilder> falseBlock) {
+    private static void conditionalBranch(CodeBuilder cob, ConversionContext c, BinaryTestOp op,
+                                          Block.Reference trueBlock, Block.Reference falseBlock) {
+        conditionalBranch(cob, c, prepareCondition(cob, op), op, trueBlock, falseBlock);
+    }
+
+    private static void conditionalBranch(CodeBuilder cob, ConversionContext c, Opcode opcode, Op op,
+                                          Block.Reference trueBlock, Block.Reference falseBlock) {
+        if (trueBlock.targetBlock().parameters().isEmpty()) {
+            assignBlockArguments(op, trueBlock, cob, c);
+            cob.branchInstruction(opcode, c.getLabel(trueBlock.targetBlock()));
+        } else {
+            cob.ifThen(opcode,
+                trueBuilder -> {
+                    assignBlockArguments(op, trueBlock, trueBuilder, c);
+                    trueBuilder.goto_(c.getLabel(trueBlock.targetBlock()));
+                });
+        }
+        assignBlockArguments(op, falseBlock, cob, c);
+        cob.goto_(c.getLabel(falseBlock.targetBlock()));
+    }
+
+    private static Opcode prepareCondition(CodeBuilder cob, BinaryTestOp op) {
         TypeKind vt = toTypeKind(op.operands().get(0).type());
         if (vt == TypeKind.IntType) {
-            cob.ifThenElse(switch (op) {
+            return switch (op) {
                 case EqOp _ -> Opcode.IF_ICMPEQ;
                 case NeqOp _ -> Opcode.IF_ICMPNE;
                 case GtOp _ -> Opcode.IF_ICMPGT;
@@ -908,7 +912,7 @@ public final class BytecodeGenerator {
                 case LeOp _ -> Opcode.IF_ICMPLE;
                 default ->
                     throw new UnsupportedOperationException(op.opName());
-            }, trueBlock, falseBlock);
+            };
         } else {
             switch (vt) {
                 case FloatType -> cob.fcmpg(); // FCMPL?
@@ -917,7 +921,7 @@ public final class BytecodeGenerator {
                 default ->
                     throw new UnsupportedOperationException(op.opName() + " on " + vt);
             }
-            cob.ifThenElse(switch (op) {
+            return switch (op) {
                 case EqOp _ -> Opcode.IFEQ;
                 case NeqOp _ -> Opcode.IFNE;
                 case GtOp _ -> Opcode.IFGT;
@@ -926,7 +930,7 @@ public final class BytecodeGenerator {
                 case LeOp _ -> Opcode.IFLE;
                 default ->
                     throw new UnsupportedOperationException(op.opName());
-            }, trueBlock, falseBlock);
+            };
         }
     }
 
