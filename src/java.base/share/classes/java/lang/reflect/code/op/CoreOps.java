@@ -2792,10 +2792,10 @@ public final class CoreOps {
      * Creates a function call operation
      * @param funcName the name of the function operation
      * @param funcDescriptor the function descriptor
-     * @param args the function argments
+     * @param args the function arguments
      * @return the function call operation
      */
-    public static FuncCallOp funcCall(String funcName, MethodTypeDesc funcDescriptor, Value... args) {
+    public static FuncCallOp funcCall(String funcName, FunctionType funcDescriptor, Value... args) {
         return funcCall(funcName, funcDescriptor, List.of(args));
     }
 
@@ -2803,10 +2803,10 @@ public final class CoreOps {
      * Creates a function call operation
      * @param funcName the name of the function operation
      * @param funcDescriptor the function descriptor
-     * @param args the function argments
+     * @param args the function arguments
      * @return the function call operation
      */
-    public static FuncCallOp funcCall(String funcName, MethodTypeDesc funcDescriptor, List<Value> args) {
+    public static FuncCallOp funcCall(String funcName, FunctionType funcDescriptor, List<Value> args) {
         return new FuncCallOp(funcName, funcDescriptor.returnType(), args);
     }
 
