@@ -57,20 +57,20 @@ public class TestLiftSmallCorpus {
     private static final FileSystem JRT = FileSystems.getFileSystem(URI.create("jrt:/"));
     private static final ClassFile CF = ClassFile.of(ClassFile.DebugElementsOption.DROP_DEBUG,
                                                      ClassFile.LineNumbersOption.DROP_LINE_NUMBERS);
-    private static final int COLUMN_WIDTH = 120;
+    private static final int COLUMN_WIDTH = 150;
 
     @Test
-    public void testDoubleRoundTripStability() throws Exception {
+    public void testDoubleRoundtripStability() throws Exception {
         boolean passed = true;
         for (Path p : Files.walk(JRT.getPath("modules/java.base/java"))
                 .filter(p -> Files.isRegularFile(p) && p.toString().endsWith(".class"))
                 .toList()) {
-            passed &= testDoubleRoundTripStability(p);
+            passed &= testDoubleRoundtripStability(p);
         }
         Assert.assertTrue(passed);
     }
 
-    private static boolean testDoubleRoundTripStability(Path path) throws Exception {
+    private static boolean testDoubleRoundtripStability(Path path) throws Exception {
         var clm = CF.parse(path);
         boolean passed = true;
         for (var originalModel : clm.methods()) {
@@ -89,7 +89,7 @@ public class TestLiftSmallCorpus {
             }
 
             if (secondModel != null) {
-                // test only methods passing lift and generation
+                // testing only methods passing through
                 var firstNormalized = normalize(firstModel);
                 var secondNormalized = normalize(secondModel);
                 if (!firstNormalized.equals(secondNormalized)) {
@@ -115,8 +115,9 @@ public class TestLiftSmallCorpus {
     private static void printInColumns(List<String> first, List<String> second) {
         System.out.println("-".repeat(COLUMN_WIDTH ) + "-----+-" + "-".repeat(COLUMN_WIDTH ));
         for (int i = 0; i < first.size() || i < second.size(); i++) {
-            String s = i < first.size() ? first.get(i) : "";
-            System.out.println("    " + s + (s.length() < COLUMN_WIDTH ? " ".repeat(COLUMN_WIDTH - s.length()) : "") + " | " + (i < second.size() ? second.get(i) : ""));
+            String f = i < first.size() ? first.get(i) : "";
+            String s = i < second.size() ? second.get(i) : "";
+            System.out.println("    " + f + (f.length() < COLUMN_WIDTH ? " ".repeat(COLUMN_WIDTH - f.length()) : "") + (f.equals(s) ? " | " : " x ") + s);
         }
     }
 
@@ -143,14 +144,17 @@ public class TestLiftSmallCorpus {
 
 
     public static List<String> normalize(MethodModel mm) {
-        record ElementRecord(String format, Label... targets) {
-            public String toString(Map<Label, ElementRecord> targetsMap) {
-                return (targets.length == 0) ? format : format.toString().formatted(Stream.of(targets).map(l -> targetsMap.get(l).toString(targetsMap)).toArray());
+        record El(String format, Label... targets) {
+            public El(Instruction i, Object format, Label... targets) {
+                this(trim(i.opcode()) + " " + format, targets);
+            }
+            public String toString(Map<Label, El> targetsMap) {
+                return (targets.length == 0) ? format : format.formatted(Stream.of(targets).map(l -> targetsMap.get(l).toString(targetsMap)).toArray());
             }
         }
 
-        Map<Label, ElementRecord> targetsMap = new HashMap<>();
-        List<ElementRecord> elements = new ArrayList<>();
+        Map<Label, El> targetsMap = new HashMap<>();
+        List<El> elements = new ArrayList<>();
         Label lastLabel = null;
         for (var e : mm.code().orElseThrow()) {
             var er = switch (e) {
@@ -159,41 +163,41 @@ public class TestLiftSmallCorpus {
                     yield null;
                 }
                 case ExceptionCatch ec ->
-                    new ElementRecord("ExceptionCatch start:(%s) end:(%s) handler:(%s)" + ec.catchType().map(ct -> " catch type: " + ct.asInternalName()).orElse(""), ec.tryStart(), ec.tryEnd(), ec.handler());
+                    new El("ExceptionCatch start:(%s) end:(%s) handler:(%s)" + ec.catchType().map(ct -> " catch type: " + ct.asInternalName()).orElse(""), ec.tryStart(), ec.tryEnd(), ec.handler());
                 case BranchInstruction i ->
-                    new ElementRecord(trim(i.opcode()) + " target:(%s)", i.target());
+                    new El(i, "target:(%s)", i.target());
                 case ConstantInstruction i ->
-                    new ElementRecord("LDC " + i.constantValue());
+                    new El("LDC " + i.constantValue());
                 case FieldInstruction i ->
-                    new ElementRecord(trim(i.opcode()) + " " + i.owner().asInternalName() + "." + i.name().stringValue());
+                    new El(i, i.owner().asInternalName() + "." + i.name().stringValue());
                 case InvokeDynamicInstruction i ->
-                    new ElementRecord(trim(i.opcode())+ " " + i.name().stringValue() + i.typeSymbol() + " " + i.bootstrapMethod() + "(" + i.bootstrapArgs() + ")");
+                    new El(trim(i.opcode())+ " " + i.name().stringValue() + i.typeSymbol() + " " + i.bootstrapMethod() + "(" + i.bootstrapArgs() + ")");
                 case InvokeInstruction i ->
-                    new ElementRecord(trim(i.opcode()) + " " + i.owner().asInternalName() + "::" + i.name().stringValue() + i.typeSymbol().displayDescriptor());
+                    new El(i, i.owner().asInternalName() + "::" + i.name().stringValue() + i.typeSymbol().displayDescriptor());
                 case LoadInstruction i ->
-                    new ElementRecord(trim(i.opcode()) + " " + i.slot());
+                    new El(i, i.slot());
                 case StoreInstruction i ->
-                    new ElementRecord(trim(i.opcode()) + " " + i.slot());
+                    new El(i, i.slot());
                 case IncrementInstruction i ->
-                    new ElementRecord(trim(i.opcode()) + " " + i.slot() + " " + i.constant());
+                    new El(i, i.slot() + " " + i.constant());
                 case LookupSwitchInstruction i ->
-                    new ElementRecord(trim(i.opcode()) + " default:(%s)" + i.cases().stream().map(c -> ", " + c.caseValue() + ":(%s)").collect(Collectors.joining()),
+                    new El(i, "default:(%s)" + i.cases().stream().map(c -> ", " + c.caseValue() + ":(%s)").collect(Collectors.joining()),
                             Stream.concat(Stream.of(i.defaultTarget()), i.cases().stream().map(SwitchCase::target)).toArray(Label[]::new));
                 case NewMultiArrayInstruction i ->
-                    new ElementRecord(trim(i.opcode()) + " " + i.arrayType().asInternalName() + "(" + i.dimensions() + ")");
+                    new El(i, i.arrayType().asInternalName() + "(" + i.dimensions() + ")");
                 case NewObjectInstruction i ->
-                    new ElementRecord(trim(i.opcode()) + " " + i.className().asInternalName());
+                    new El(i, i.className().asInternalName());
                 case NewPrimitiveArrayInstruction i ->
-                    new ElementRecord(trim(i.opcode()) + " " + i.typeKind());
+                    new El(i, i.typeKind());
                 case NewReferenceArrayInstruction i ->
-                    new ElementRecord(trim(i.opcode()) + " " + i.componentType().asInternalName());
+                    new El(i, i.componentType().asInternalName());
                 case TableSwitchInstruction i ->
-                    new ElementRecord(trim(i.opcode()) + " default:(%s)" + i.cases().stream().map(c -> ", " + c.caseValue() + ":(%s)").collect(Collectors.joining()),
+                    new El(i, "default:(%s)" + i.cases().stream().map(c -> ", " + c.caseValue() + ":(%s)").collect(Collectors.joining()),
                             Stream.concat(Stream.of(i.defaultTarget()), i.cases().stream().map(SwitchCase::target)).toArray(Label[]::new));
                 case TypeCheckInstruction i ->
-                    new ElementRecord(trim(i.opcode()) + " " + i.type().asInternalName());
+                    new El(i, i.type().asInternalName());
                 case Instruction i ->
-                    new ElementRecord(trim(i.opcode()));
+                    new El(i, "");
                 default -> null;
             };
             if (er != null) {
