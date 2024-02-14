@@ -31,7 +31,6 @@ import java.lang.reflect.code.descriptor.MethodDesc;
 import java.lang.reflect.code.descriptor.MethodTypeDesc;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.type.TupleType;
-import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.type.VarType;
 import java.lang.reflect.code.type.impl.JavaTypeImpl;
 import java.util.*;
@@ -2559,7 +2558,7 @@ public final class CoreOps {
     }
 
     /**
-     * The dic operation, that can model the Java language binary {@code /} operator for numeric types
+     * The div operation, that can model the Java language binary {@code /} operator for numeric types
      */
     @OpDeclaration(DivOp.NAME)
     public static final class DivOp extends BinaryOp {
@@ -2584,7 +2583,7 @@ public final class CoreOps {
     }
 
     /**
-     * The div operation, that can model the Java language binary {@code %} operator for numeric types
+     * The mod operation, that can model the Java language binary {@code %} operator for numeric types
      */
     @OpDeclaration(ModOp.NAME)
     public static final class ModOp extends BinaryOp {
@@ -2604,6 +2603,84 @@ public final class CoreOps {
         }
 
         ModOp(Value lhs, Value rhs) {
+            super(NAME, lhs, rhs);
+        }
+    }
+
+    /**
+     * The bitwise/logical or operation, that can model the Java language binary {@code |} operator for integral types
+     * and booleans
+     */
+    @OpDeclaration(OrOp.NAME)
+    public static final class OrOp extends BinaryOp {
+        public static final String NAME = "or";
+
+        public OrOp(OpDefinition opdef) {
+            super(opdef);
+        }
+
+        OrOp(OrOp that, CopyContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public OrOp transform(CopyContext cc, OpTransformer ot) {
+            return new OrOp(this, cc);
+        }
+
+        OrOp(Value lhs, Value rhs) {
+            super(NAME, lhs, rhs);
+        }
+    }
+
+    /**
+     * The bitwise/logical and operation, that can model the Java language binary {@code &} operator for integral types
+     * and booleans
+     */
+    @OpDeclaration(AndOp.NAME)
+    public static final class AndOp extends BinaryOp {
+        public static final String NAME = "and";
+
+        public AndOp(OpDefinition opdef) {
+            super(opdef);
+        }
+
+        AndOp(AndOp that, CopyContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public AndOp transform(CopyContext cc, OpTransformer ot) {
+            return new AndOp(this, cc);
+        }
+
+        AndOp(Value lhs, Value rhs) {
+            super(NAME, lhs, rhs);
+        }
+    }
+
+    /**
+     * The xor operation, that can model the Java language binary {@code ^} operator for integral types
+     * and booleans
+     */
+    @OpDeclaration(XorOp.NAME)
+    public static final class XorOp extends BinaryOp {
+        public static final String NAME = "xor";
+
+        public XorOp(OpDefinition opdef) {
+            super(opdef);
+        }
+
+        XorOp(XorOp that, CopyContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public XorOp transform(CopyContext cc, OpTransformer ot) {
+            return new XorOp(this, cc);
+        }
+
+        XorOp(Value lhs, Value rhs) {
             super(NAME, lhs, rhs);
         }
     }
@@ -3494,6 +3571,39 @@ public final class CoreOps {
      */
     public static BinaryOp mod(Value lhs, Value rhs) {
         return new ModOp(lhs, rhs);
+    }
+
+    /**
+     * Creates a bitwise/logical or operation.
+     *
+     * @param lhs the first operand
+     * @param rhs the second operand
+     * @return the or operation
+     */
+    public static BinaryOp or(Value lhs, Value rhs) {
+        return new OrOp(lhs, rhs);
+    }
+
+    /**
+     * Creates a bitwise/logical and operation.
+     *
+     * @param lhs the first operand
+     * @param rhs the second operand
+     * @return the and operation
+     */
+    public static BinaryOp and(Value lhs, Value rhs) {
+        return new AndOp(lhs, rhs);
+    }
+
+    /**
+     * Creates a bitwise/logical xor operation.
+     *
+     * @param lhs the first operand
+     * @param rhs the second operand
+     * @return the xor operation
+     */
+    public static BinaryOp xor(Value lhs, Value rhs) {
+        return new XorOp(lhs, rhs);
     }
 
     /**

@@ -529,6 +529,30 @@ public final class BytecodeGenerator {
                             default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
                         }
                     }
+                    case AndOp op -> {
+                        processOperands(cob, c, op, isLastOpResultOnStack);
+                        switch (rvt) { //this can be moved to CodeBuilder::and(TypeKind)
+                            case IntType, BooleanType -> cob.iand();
+                            case LongType -> cob.land();
+                            default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
+                        }
+                    }
+                    case OrOp op -> {
+                        processOperands(cob, c, op, isLastOpResultOnStack);
+                        switch (rvt) { //this can be moved to CodeBuilder::or(TypeKind)
+                            case IntType, BooleanType -> cob.ior();
+                            case LongType -> cob.lor();
+                            default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
+                        }
+                    }
+                    case XorOp op -> {
+                        processOperands(cob, c, op, isLastOpResultOnStack);
+                        switch (rvt) { //this can be moved to CodeBuilder::xor(TypeKind)
+                            case IntType, BooleanType -> cob.ixor();
+                            case LongType -> cob.lxor();
+                            default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
+                        }
+                    }
                     case ArrayAccessOp.ArrayLoadOp op -> {
                         processOperands(cob, c, op, isLastOpResultOnStack);
                         cob.arrayLoadInstruction(rvt);
