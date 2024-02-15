@@ -928,8 +928,7 @@ public final class BytecodeGenerator {
 
     private static void conditionalBranch(CodeBuilder cob, ConversionContext c, Opcode reverseOpcode, Op op,
                                           Block.Reference trueBlock, Block.Reference falseBlock) {
-        if (falseBlock.targetBlock().parameters().isEmpty()) {
-            assignBlockArguments(op, falseBlock, cob, c);
+        if (!needToAssignBlockArguments(falseBlock.targetBlock(), c)) {
             cob.branchInstruction(reverseOpcode, c.getLabel(falseBlock.targetBlock()));
         } else {
             cob.ifThen(reverseOpcode,
@@ -976,6 +975,17 @@ public final class BytecodeGenerator {
         }
     }
 
+    private static boolean needToAssignBlockArguments(Block b, ConversionContext c) {
+        c.transitionLiveSlotSetTo(b);
+        LiveSlotSet liveSlots = c.liveSlotSet(b);
+        for (Block.Parameter barg : b.parameters()) {
+            if (liveSlots.getOrAssignSlot(barg) >= 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static void assignBlockArguments(Op op, Block.Reference s, CodeBuilder cob, ConversionContext c) {
         List<Value> sargs = s.arguments();
         List<Block.Parameter> bargs = s.targetBlock().parameters();
@@ -988,25 +998,27 @@ public final class BytecodeGenerator {
         // First push successor arguments on the stack, then pop and assign
         // so as not to overwrite slots that are reused slots at different argument positions
 
+        LiveSlotSet liveSlots = c.liveSlotSet(s.targetBlock());
         for (int i = 0; i < bargs.size(); i++) {
             Block.Parameter barg = bargs.get(i);
-            int bslot = c.liveSlotSet(s.targetBlock()).getOrAssignSlot(barg);
-
-            Value value = sargs.get(i);
-            if (value instanceof Op.Result or &&
-                    or.op() instanceof CoreOps.ConstantOp constantOp &&
-                    !constantOp.resultType().equals(JavaType.J_L_CLASS)) {
-                cob.constantInstruction(fromValue(constantOp.value()));
-                TypeKind vt = toTypeKind(barg.type());
-                cob.storeInstruction(vt, bslot);
-            } else {
-                int sslot = c.getSlot(value);
-
-                // Assignment only required if slots differ
-                if (sslot != bslot) {
+            int bslot = liveSlots.getOrAssignSlot(barg);
+            if (bslot >= 0) {
+                Value value = sargs.get(i);
+                if (value instanceof Op.Result or &&
+                        or.op() instanceof CoreOps.ConstantOp constantOp &&
+                        !constantOp.resultType().equals(JavaType.J_L_CLASS)) {
+                    cob.constantInstruction(fromValue(constantOp.value()));
                     TypeKind vt = toTypeKind(barg.type());
-                    cob.loadInstruction(vt, sslot);
                     cob.storeInstruction(vt, bslot);
+                } else {
+                    int sslot = c.getSlot(value);
+
+                    // Assignment only required if slots differ
+                    if (sslot != bslot) {
+                        TypeKind vt = toTypeKind(barg.type());
+                        cob.loadInstruction(vt, sslot);
+                        cob.storeInstruction(vt, bslot);
+                    }
                 }
             }
         }
