@@ -26,7 +26,8 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.code.descriptor.*;
-import java.util.List;
+import java.lang.reflect.code.type.TypeDefinition;
+import java.util.stream.Stream;
 
 /*
  * @test
@@ -57,10 +58,8 @@ public class TestDescriptors {
 
     @Test(dataProvider = "TypeDescs")
     public void testTypeDesc(String tds, String bcd) {
-        TypeDesc td = TypeDesc.ofString(tds);
+        TypeDefinition td = TypeDefinition.ofString(tds);
         Assert.assertEquals(td.toString(), tds);
-        Assert.assertEquals(td.toNominalDescriptorString(), bcd);
-        Assert.assertEquals(td, TypeDesc.ofNominalDescriptorString(bcd));
     }
 
     @DataProvider
@@ -72,41 +71,9 @@ public class TestDescriptors {
 
     @Test(dataProvider = "classDescriptors")
     public void classDescriptor(String tds, String bcd) {
-        TypeDesc td = TypeDesc.ofString(tds);
+        TypeDefinition td = TypeDefinition.ofString(tds);
         Assert.assertEquals(td.toString(), tds);
-        Assert.assertEquals(td.toClassName(), bcd);
     }
-
-
-    @DataProvider
-    public Object[][] basicTypeDescs() {
-        return new Object[][]{
-                {"boolean", "int"},
-                {"byte", "int"},
-                {"char", "int"},
-                {"short", "int"},
-                {"int", "int"},
-                {"long", "long"},
-                {"float", "float"},
-                {"double", "double"},
-                {"void", "void"},
-                {"int[]", "java.lang.Object"},
-                {"int[][][][]", "java.lang.Object"},
-                {"java.lang.String", "java.lang.Object"},
-                {"java.lang.String[][]", "java.lang.Object"},
-                {"a.b.C$D", "java.lang.Object"},
-                {"java.util.List<T>", "java.lang.Object"},
-                {"java.util.List<T>[]", "java.lang.Object"},
-        };
-    }
-
-    @Test(dataProvider = "basicTypeDescs")
-    public void testBasicTypeDesc(String tds, String btds) {
-        TypeDesc td = TypeDesc.ofString(tds);
-        Assert.assertEquals(td.toString(), tds);
-        Assert.assertEquals(td.toBasicType().toString(), btds);
-    }
-
 
     @DataProvider
     public Object[][] paramTypeDescs() {
@@ -123,13 +90,13 @@ public class TestDescriptors {
 
     @Test(dataProvider = "paramTypeDescs")
     public void testParamTypeDesc(String tds, String... paramTypes) {
-        TypeDesc td = TypeDesc.ofString(tds);
+        TypeDefinition td = TypeDefinition.ofString(tds);
         Assert.assertEquals(td.toString(), tds);
 
         Assert.assertTrue(td.hasTypeArguments());
         Assert.assertEquals(paramTypes.length, td.typeArguments().size());
 
-        Assert.assertEquals(td.typeArguments(), List.of(paramTypes).stream().map(TypeDesc::ofString).toList());
+        Assert.assertEquals(td.typeArguments(), Stream.of(paramTypes).map(TypeDefinition::ofString).toList());
     }
 
 

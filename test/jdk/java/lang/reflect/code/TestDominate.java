@@ -27,8 +27,8 @@ import org.testng.annotations.Test;
 import java.lang.reflect.code.Block;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.Op;
-import java.lang.reflect.code.descriptor.MethodTypeDesc;
-import java.lang.reflect.code.descriptor.TypeDesc;
+import java.lang.reflect.code.type.FunctionType;
+import java.lang.reflect.code.type.JavaType;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -51,12 +51,12 @@ public class TestDominate {
 
     @Test
     public void testIfElse() {
-        CoreOps.FuncOp f = func("f", MethodTypeDesc.VOID).body(entry -> {
+        CoreOps.FuncOp f = func("f", FunctionType.VOID).body(entry -> {
             Block.Builder ifBlock = entry.block();
             Block.Builder elseBlock = entry.block();
             Block.Builder end = entry.block();
 
-            Op.Result p = entry.op(constant(TypeDesc.BOOLEAN, true));
+            Op.Result p = entry.op(constant(JavaType.BOOLEAN, true));
             entry.op(conditionalBranch(p, ifBlock.successor(), elseBlock.successor()));
 
             ifBlock.op(branch(end.successor()));
@@ -78,14 +78,14 @@ public class TestDominate {
 
     @Test
     public void testForwardSuccessors() {
-        CoreOps.FuncOp f = func("f", MethodTypeDesc.VOID).body(entry -> {
+        CoreOps.FuncOp f = func("f", FunctionType.VOID).body(entry -> {
             Block.Builder b1 = entry.block();
             Block.Builder b2 = entry.block();
             Block.Builder b3 = entry.block();
             Block.Builder b4 = entry.block();
             Block.Builder b5 = entry.block();
 
-            Op.Result p = entry.op(constant(TypeDesc.BOOLEAN, true));
+            Op.Result p = entry.op(constant(JavaType.BOOLEAN, true));
             entry.op(conditionalBranch(p, b4.successor(), b2.successor()));
 
             b4.op(conditionalBranch(p, b5.successor(), b3.successor()));
@@ -114,13 +114,13 @@ public class TestDominate {
 
     @Test
     public void testBackbranch() {
-        CoreOps.FuncOp f = func("f", MethodTypeDesc.VOID).body(entry -> {
+        CoreOps.FuncOp f = func("f", FunctionType.VOID).body(entry -> {
             Block.Builder cond = entry.block();
             Block.Builder body = entry.block();
             Block.Builder update = entry.block();
             Block.Builder end = entry.block();
 
-            Op.Result p = entry.op(constant(TypeDesc.BOOLEAN, true));
+            Op.Result p = entry.op(constant(JavaType.BOOLEAN, true));
             entry.op(branch(cond.successor()));
 
             cond.op(conditionalBranch(p, body.successor(), end.successor()));
@@ -157,7 +157,7 @@ public class TestDominate {
 
     @Test
     public void testImmediateDominators() {
-        CoreOps.FuncOp f = func("f", MethodTypeDesc.VOID).body(entry -> {
+        CoreOps.FuncOp f = func("f", FunctionType.VOID).body(entry -> {
             Block.Builder b6 = entry.block();
             Block.Builder b5 = entry.block();
             Block.Builder b4 = entry.block();
@@ -165,7 +165,7 @@ public class TestDominate {
             Block.Builder b2 = entry.block();
             Block.Builder b1 = entry.block();
 
-            Op.Result p = entry.op(constant(TypeDesc.BOOLEAN, true));
+            Op.Result p = entry.op(constant(JavaType.BOOLEAN, true));
             entry.op(branch(b6.successor()));
 
             b6.op(conditionalBranch(p, b5.successor(), b4.successor()));
@@ -198,7 +198,7 @@ public class TestDominate {
 
     @Test
     public void testCytronExample() {
-        CoreOps.FuncOp f = func("f", MethodTypeDesc.VOID).body(entry -> {
+        CoreOps.FuncOp f = func("f", FunctionType.VOID).body(entry -> {
             Block.Builder exit = entry.block();
             Block.Builder b12 = entry.block();
             Block.Builder b11 = entry.block();
@@ -213,7 +213,7 @@ public class TestDominate {
             Block.Builder b2 = entry.block();
             Block.Builder b1 = entry.block();
 
-            Op.Result p = entry.op(constant(TypeDesc.BOOLEAN, true));
+            Op.Result p = entry.op(constant(JavaType.BOOLEAN, true));
 
             entry.op(conditionalBranch(p, exit.successor(), b1.successor()));
 

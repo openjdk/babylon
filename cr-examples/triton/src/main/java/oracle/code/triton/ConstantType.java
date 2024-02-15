@@ -26,10 +26,11 @@
 package oracle.code.triton;
 
 import java.lang.reflect.Type;
-import java.lang.reflect.code.descriptor.TypeDesc;
 import java.util.Objects;
 
 public final class ConstantType extends TritonType {
+    static final String NAME = "constant";
+
     final Type cType;
     final Object value;
 
@@ -47,11 +48,6 @@ public final class ConstantType extends TritonType {
     }
 
     @Override
-    public TypeDesc toDesc() {
-        return fromType(cType);
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
@@ -66,6 +62,6 @@ public final class ConstantType extends TritonType {
 
     @Override
     public String toString() {
-        return value.toString();
+        return NAME + "<" + fromType(cType).toString() + ", c" + value + ">";
     }
 }

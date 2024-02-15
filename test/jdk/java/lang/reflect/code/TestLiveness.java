@@ -34,8 +34,8 @@ import java.lang.reflect.code.CodeElement;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.analysis.Liveness;
-import java.lang.reflect.code.descriptor.TypeDesc;
 import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.parser.OpParser;
 import java.util.HashMap;
 import java.util.List;
@@ -320,7 +320,7 @@ public class TestLiveness {
                 }
                 case Op op -> {
                     Op.Result r = op.result();
-                    if (r != null && !r.type().equals(TypeDesc.VOID)) {
+                    if (r != null && !r.type().equals(JavaType.VOID)) {
                         m.put(r, i.getAndIncrement());
                     }
                 }

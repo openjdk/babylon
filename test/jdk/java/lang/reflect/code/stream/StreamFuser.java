@@ -23,9 +23,9 @@
 
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.descriptor.MethodTypeDesc;
-import java.lang.reflect.code.descriptor.TypeDesc;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.op.ExtendedOps.JavaEnhancedForOp;
+import java.lang.reflect.code.type.JavaType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
@@ -33,18 +33,18 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import static java.lang.reflect.code.descriptor.TypeDesc.type;
 import static java.lang.reflect.code.op.CoreOps.*;
 import static java.lang.reflect.code.op.ExtendedOps._continue;
 import static java.lang.reflect.code.op.ExtendedOps.enhancedFor;
+import static java.lang.reflect.code.type.JavaType.type;
 
 public final class StreamFuser {
 
     StreamFuser() {}
 
-    public static StreamExprBuilder fromList(TypeDesc elementType) {
+    public static StreamExprBuilder fromList(JavaType elementType) {
         // java.util.List<E>
-        TypeDesc listType = type(type(List.class), elementType);
+        JavaType listType = type(type(List.class), elementType);
         return new StreamExprBuilder(listType, elementType,
                 (b, v) -> StreamExprBuilder.enhancedForLoop(b, elementType, v)::body);
     }
@@ -86,12 +86,12 @@ public final class StreamFuser {
             }
         }
 
-        final TypeDesc sourceType;
-        final TypeDesc sourceElementType;
+        final JavaType sourceType;
+        final JavaType sourceElementType;
         final BiFunction<Body.Builder, Value, Function<Consumer<Block.Builder>, Op>> loopSupplier;
         final List<StreamOp> streamOps;
 
-        StreamExprBuilder(TypeDesc sourceType, TypeDesc sourceElementType,
+        StreamExprBuilder(JavaType sourceType, JavaType sourceElementType,
                           BiFunction<Body.Builder, Value, Function<Consumer<Block.Builder>, Op>> loopSupplier) {
             this.sourceType = sourceType;
             this.sourceElementType = sourceElementType;
@@ -99,7 +99,7 @@ public final class StreamFuser {
             this.streamOps = new ArrayList<>();
         }
 
-        static JavaEnhancedForOp.BodyBuilder enhancedForLoop(Body.Builder ancestorBody, TypeDesc elementType,
+        static JavaEnhancedForOp.BodyBuilder enhancedForLoop(Body.Builder ancestorBody, JavaType elementType,
                                                              Value iterable) {
             return enhancedFor(ancestorBody, iterable.type(), elementType)
                     .expression(b -> {
@@ -157,7 +157,7 @@ public final class StreamFuser {
             } else if (sop instanceof FlatMapStreamOp) {
                 body.inline(sop.op(), List.of(element), (block, iterable) -> {
                     JavaEnhancedForOp forOp = enhancedFor(block.parentBody(),
-                            iterable.type(), iterable.type().typeArguments().get(0))
+                            iterable.type(), ((JavaType) iterable.type()).typeArguments().get(0))
                             .expression(b -> {
                                 b.op(_yield(iterable));
                             })
@@ -182,7 +182,7 @@ public final class StreamFuser {
                 throw new IllegalArgumentException("Quoted consumer is not closure operation");
             }
 
-            return func("fused.forEach", MethodTypeDesc.methodType(TypeDesc.VOID, sourceType))
+            return func("fused.forEach", MethodTypeDesc.methodType(JavaType.VOID, sourceType).toFunctionType())
                     .body(b -> {
                         Value source = b.parameters().get(0);
 
@@ -210,8 +210,8 @@ public final class StreamFuser {
                 throw new IllegalArgumentException("Quoted accumulator is not closure operation");
             }
 
-            TypeDesc collectType = supplier.funcDescriptor().returnType();
-            return func("fused.collect", MethodTypeDesc.methodType(collectType, sourceType))
+            JavaType collectType = (JavaType) supplier.invokableType().returnType();
+            return func("fused.collect", MethodTypeDesc.methodType(collectType, sourceType).toFunctionType())
                     .body(b -> {
                         Value source = b.parameters().get(0);
 

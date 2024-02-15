@@ -26,18 +26,8 @@
 package java.lang.reflect.code;
 
 import java.lang.reflect.code.op.CoreOps;
-import java.lang.reflect.code.descriptor.TypeDesc;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -60,7 +50,7 @@ public final class Block implements CodeElement<Block, Op> {
      * A value that is a block parameter
      */
     public static final class Parameter extends Value {
-        Parameter(Block block, TypeDesc type) {
+        Parameter(Block block, TypeElement type) {
             super(block, type);
         }
 
@@ -136,10 +126,10 @@ public final class Block implements CodeElement<Block, Op> {
         this(parentBody, List.of());
     }
 
-    Block(Body parentBody, List<TypeDesc> parameterTypes) {
+    Block(Body parentBody, List<TypeElement> parameterTypes) {
         this.parentBody = parentBody;
         this.parameters = new ArrayList<>();
-        for (TypeDesc param : parameterTypes) {
+        for (TypeElement param : parameterTypes) {
             parameters.add(new Parameter(this, param));
         }
         this.ops = new ArrayList<>();
@@ -187,7 +177,7 @@ public final class Block implements CodeElement<Block, Op> {
      *
      * @return the block parameter types, as am unmodifiable list.
      */
-    public List<TypeDesc> parameterTypes() {
+    public List<TypeElement> parameterTypes() {
         return parameters.stream().map(Value::type).toList();
     }
 
@@ -474,7 +464,7 @@ public final class Block implements CodeElement<Block, Op> {
          * @param params the block's parameter types
          * @return the new block builder
          */
-        public Block.Builder block(TypeDesc... params) {
+        public Block.Builder block(TypeElement... params) {
             return block(List.of(params));
         }
 
@@ -484,7 +474,7 @@ public final class Block implements CodeElement<Block, Op> {
          * @param params the block's parameter types
          * @return the new block builder
          */
-        public Block.Builder block(List<TypeDesc> params) {
+        public Block.Builder block(List<TypeElement> params) {
             return parentBody.block(params, cc, ot);
         }
 
@@ -503,7 +493,7 @@ public final class Block implements CodeElement<Block, Op> {
          * @param p the parameter type
          * @return the appended block parameter
          */
-        public Parameter parameter(TypeDesc p) {
+        public Parameter parameter(TypeElement p) {
             check();
             return appendBlockParameter(p);
         }
@@ -599,8 +589,8 @@ public final class Block implements CodeElement<Block, Op> {
                         // with two or more blocks with only one returnOp is declared.
                         Value r;
                         if (rop.ancestorBody().blocks().size() != 1) {
-                            List<TypeDesc> param = rop.returnValue() != null
-                                    ? List.of(invokableOp.funcDescriptor().returnType())
+                            List<TypeElement> param = rop.returnValue() != null
+                                    ? List.of(invokableOp.invokableType().returnType())
                                     : List.of();
                             rb = block.block(param);
                             r = !param.isEmpty()
@@ -831,7 +821,7 @@ public final class Block implements CodeElement<Block, Op> {
     // Modifying methods
 
     // Create block parameter associated with this block
-    private Parameter appendBlockParameter(TypeDesc type) {
+    private Parameter appendBlockParameter(TypeElement type) {
         Parameter blockParameter = new Parameter(this, type);
         parameters.add(blockParameter);
 

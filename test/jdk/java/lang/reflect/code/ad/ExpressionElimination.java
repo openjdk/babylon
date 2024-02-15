@@ -23,7 +23,7 @@
 
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.op.CoreOps;
-import java.lang.reflect.code.descriptor.TypeDesc;
+import java.lang.reflect.code.type.JavaType;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -36,7 +36,7 @@ public final class ExpressionElimination {
     private ExpressionElimination() {
     }
 
-    static final TypeDesc J_L_MATH = TypeDesc.type(Math.class);
+    static final JavaType J_L_MATH = JavaType.type(Math.class);
 
     static OpPattern negP(Pattern operand) {
         return opP(CoreOps.NegOp.class, operand);

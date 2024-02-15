@@ -35,7 +35,8 @@ import java.util.List;
 
 import static java.lang.reflect.code.op.CoreOps.*;
 import static java.lang.reflect.code.descriptor.MethodTypeDesc.methodType;
-import static java.lang.reflect.code.descriptor.TypeDesc.INT;
+import static java.lang.reflect.code.type.FunctionType.functionType;
+import static java.lang.reflect.code.type.JavaType.INT;
 
 /*
  * @test
@@ -50,7 +51,7 @@ public class TestInline {
         CoreOps.ClosureOp cop = (CoreOps.ClosureOp) q.op();
 
         // functional descriptor = (int)int
-        CoreOps.FuncOp f = func("f", methodType(int.class, int.class))
+        CoreOps.FuncOp f = func("f", functionType(INT, INT))
                 .body(fblock -> {
                     Block.Parameter i = fblock.parameters().get(0);
 
@@ -72,7 +73,7 @@ public class TestInline {
         CoreOps.ClosureOp cop = (CoreOps.ClosureOp) q.op();
 
         // functional descriptor = (int)int
-        CoreOps.FuncOp f = func("f", methodType(int.class, int.class))
+        CoreOps.FuncOp f = func("f", functionType(INT, INT))
                 .body(fblock -> {
                     Block.Parameter i = fblock.parameters().get(0);
 
@@ -116,7 +117,7 @@ public class TestInline {
         lcop.writeTo(System.out);
 
         // functional descriptor = (int)int
-        CoreOps.FuncOp f = func("f", methodType(int.class, int.class))
+        CoreOps.FuncOp f = func("f", functionType(INT, INT))
                 .body(fblock -> {
                     Block.Parameter i = fblock.parameters().get(0);
 
@@ -152,7 +153,7 @@ public class TestInline {
         lcop.writeTo(System.out);
 
         // functional descriptor = (int)int
-        CoreOps.FuncOp f = func("f", methodType(int.class, int.class))
+        CoreOps.FuncOp f = func("f", functionType(INT, INT))
                 .body(fblock -> {
                     Block.Parameter i = fblock.parameters().get(0);
 
@@ -184,7 +185,7 @@ public class TestInline {
         CoreOps.ClosureOp cop = (CoreOps.ClosureOp) q.op();
         cop.writeTo(System.out);
 
-        CoreOps.FuncOp f = func("f", methodType(int.class, int.class))
+        CoreOps.FuncOp f = func("f", functionType(INT, INT))
                 .body(fblock -> {
                     Block.Parameter i = fblock.parameters().get(0);
 
@@ -218,7 +219,7 @@ public class TestInline {
         CoreOps.ClosureOp cop = (CoreOps.ClosureOp) q.op();
 
         // functional descriptor = (int)int
-        CoreOps.FuncOp f = func("f", methodType(void.class, int[].class))
+        CoreOps.FuncOp f = func("f", methodType(void.class, int[].class).toFunctionType())
                 .body(fblock -> {
                     Block.Parameter a = fblock.parameters().get(0);
 

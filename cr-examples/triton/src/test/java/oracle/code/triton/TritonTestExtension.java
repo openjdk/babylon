@@ -94,6 +94,7 @@ public class TritonTestExtension implements ParameterResolver {
                             .andThen(TritonTestOps.FACTORY)
                             .andThen(SCFOps.FACTORY)
                             .andThen(CoreOps.FACTORY),
+                    TritonOps.TYPE_FACTORY,
                     tcm.value()).get(0);
         }
 
@@ -105,8 +106,9 @@ public class TritonTestExtension implements ParameterResolver {
                 return TritonTransformer.tritonModule(javaKernel, void.class, argTypes);
             });
 
-            Assertions.assertEquals(actualTritonKernel.toText(),
-                    expectedTritonKernel == null ? "NO @TritonCodeModel" : expectedTritonKernel.toText());
+            Assertions.assertEquals(
+                    expectedTritonKernel == null ? "NO @TritonCodeModel" : expectedTritonKernel.toText(),
+                    actualTritonKernel.toText());
         }
     }
 

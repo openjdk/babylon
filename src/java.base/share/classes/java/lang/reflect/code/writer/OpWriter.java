@@ -29,7 +29,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.lang.reflect.code.*;
-import java.lang.reflect.code.descriptor.TypeDesc;
+import java.lang.reflect.code.type.JavaType;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -185,7 +185,7 @@ public final class OpWriter {
 
                     if (root != op) {
                         Op.Result opr = op.result();
-                        if (!opr.type().equals(TypeDesc.VOID)) {
+                        if (!opr.type().equals(JavaType.VOID)) {
                             n.apply(opr);
                         }
                     }
@@ -326,7 +326,7 @@ public final class OpWriter {
         write("(");
         writeCommaSeparatedList(eb.parameters(), this::writeValueDeclaration);
         write(")");
-        write(body.descriptor().returnType().toString());
+        write(body.bodyType().returnType().toString());
         write(" -> {\n");
         w.in();
         for (Block b : body.blocks()) {
@@ -352,7 +352,7 @@ public final class OpWriter {
         w.in();
         for (Op op : block.ops()) {
             Op.Result opr = op.result();
-            if (!opr.type().equals(TypeDesc.VOID)) {
+            if (!opr.type().equals(JavaType.VOID)) {
                 writeValueDeclaration(opr);
                 write(" = ");
             }

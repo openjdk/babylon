@@ -31,7 +31,6 @@ import org.testng.annotations.Test;
 
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.descriptor.MethodDesc;
-import java.lang.reflect.code.descriptor.TypeDesc;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
@@ -42,15 +41,12 @@ import java.util.function.IntConsumer;
 import static java.lang.reflect.code.op.CoreOps._return;
 import static java.lang.reflect.code.op.CoreOps._throw;
 import static java.lang.reflect.code.op.CoreOps.branch;
-import static java.lang.reflect.code.op.CoreOps.invoke;
 import static java.lang.reflect.code.op.CoreOps.constant;
 import static java.lang.reflect.code.op.CoreOps.exceptionRegionEnter;
 import static java.lang.reflect.code.op.CoreOps.exceptionRegionExit;
 import static java.lang.reflect.code.op.CoreOps.func;
 import static java.lang.reflect.code.descriptor.MethodTypeDesc.methodType;
-import static java.lang.reflect.code.descriptor.TypeDesc.INT;
-import static java.lang.reflect.code.descriptor.TypeDesc.VOID;
-import static java.lang.reflect.code.descriptor.TypeDesc.type;
+import static java.lang.reflect.code.type.JavaType.*;
 
 public class TestExceptionRegionOps {
 
@@ -71,11 +67,11 @@ public class TestExceptionRegionOps {
 
     @Test
     public void test() {
-        CoreOps.FuncOp f = func("f", methodType(void.class, IntConsumer.class))
+        CoreOps.FuncOp f = func("f", methodType(void.class, IntConsumer.class).toFunctionType())
                 .body(fbody -> {
                     var fblock = fbody.entryBlock();
-                    var catchER1ISE = fblock.block(TypeDesc.type(IllegalStateException.class));
-                    var catchER1IAE = fblock.block(TypeDesc.type(IllegalArgumentException.class));
+                    var catchER1ISE = fblock.block(type(IllegalStateException.class));
+                    var catchER1IAE = fblock.block(type(IllegalArgumentException.class));
                     var enterER1 = fblock.block();
                     var end = fblock.block();
 
@@ -162,11 +158,11 @@ public class TestExceptionRegionOps {
 
     @Test
     public void testCatchThrowable() {
-        CoreOps.FuncOp f = func("f", methodType(void.class, IntConsumer.class))
+        CoreOps.FuncOp f = func("f", methodType(void.class, IntConsumer.class).toFunctionType())
                 .body(fbody -> {
                     var fblock = fbody.entryBlock();
-                    var catchER1ISE = fblock.block(TypeDesc.type(IllegalStateException.class));
-                    var catchER1T = fblock.block(TypeDesc.type(Throwable.class));
+                    var catchER1ISE = fblock.block(type(IllegalStateException.class));
+                    var catchER1T = fblock.block(type(Throwable.class));
                     var enterER1 = fblock.block();
                     var end = fblock.block();
 
@@ -256,11 +252,11 @@ public class TestExceptionRegionOps {
 
     @Test
     public void testNested() {
-        CoreOps.FuncOp f = func("f", methodType(void.class, IntConsumer.class))
+        CoreOps.FuncOp f = func("f", methodType(void.class, IntConsumer.class).toFunctionType())
                 .body(fbody -> {
                     var fblock = fbody.entryBlock();
-                    var catchER1 = fblock.block(TypeDesc.type(IllegalArgumentException.class));
-                    var catchER2 = fblock.block(TypeDesc.type(IllegalStateException.class));
+                    var catchER1 = fblock.block(type(IllegalArgumentException.class));
+                    var catchER2 = fblock.block(type(IllegalStateException.class));
                     var enterER1 = fblock.block();
                     var enterER2 = fblock.block();
                     var b3 = fblock.block();
@@ -377,11 +373,11 @@ public class TestExceptionRegionOps {
 
     @Test
     public void testCatchFinally() {
-        CoreOps.FuncOp f = func("f", methodType(void.class, IntConsumer.class))
+        CoreOps.FuncOp f = func("f", methodType(void.class, IntConsumer.class).toFunctionType())
                 .body(fbody -> {
                     var fblock = fbody.entryBlock();
-                    var catchRE = fblock.block(TypeDesc.type(IllegalStateException.class));
-                    var catchAll = fblock.block(TypeDesc.type(Throwable.class));
+                    var catchRE = fblock.block(type(IllegalStateException.class));
+                    var catchAll = fblock.block(type(Throwable.class));
                     var enterER1 = fblock.block();
                     var exitER1 = fblock.block();
                     var enterER2 = fblock.block();

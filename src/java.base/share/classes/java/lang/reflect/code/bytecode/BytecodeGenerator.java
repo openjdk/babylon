@@ -37,9 +37,6 @@ import java.io.FileOutputStream;
 import java.lang.classfile.CodeBuilder.BlockCodeBuilder;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
-import static java.lang.classfile.TypeKind.DoubleType;
-import static java.lang.classfile.TypeKind.FloatType;
-import static java.lang.classfile.TypeKind.LongType;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDesc;
 import java.lang.constant.ConstantDescs;
@@ -56,7 +53,10 @@ import java.lang.reflect.code.Value;
 import java.lang.reflect.code.analysis.Liveness;
 import java.lang.reflect.code.descriptor.FieldDesc;
 import java.lang.reflect.code.descriptor.MethodDesc;
-import java.lang.reflect.code.descriptor.TypeDesc;
+import java.lang.reflect.code.descriptor.MethodTypeDesc;
+import java.lang.reflect.code.type.FunctionType;
+import java.lang.reflect.code.type.JavaType;
+import java.lang.reflect.code.TypeElement;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -97,7 +97,8 @@ public final class BytecodeGenerator {
         }
 
         try {
-            MethodType mt = fop.funcDescriptor().resolve(hcl);
+            FunctionType ft = fop.invokableType();
+            MethodType mt = MethodTypeDesc.ofFunctionType(ft).resolve(hcl);
             return hcl.findStatic(hcl.lookupClass(), fop.funcName(), mt);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
@@ -115,10 +116,11 @@ public final class BytecodeGenerator {
                 ? fop.funcName()
                 : packageName + "." + fop.funcName();
         Liveness liveness = new Liveness(fop);
+        MethodTypeDesc mtd = MethodTypeDesc.ofFunctionType(fop.invokableType());
         byte[] classBytes = ClassFile.of().build(ClassDesc.of(className), clb ->
                 clb.withMethodBody(
                         fop.funcName(),
-                        fop.funcDescriptor().toNominalDescriptor(),
+                        mtd.toNominalDescriptor(),
                         ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC,
                         cb -> cb.transforming(new BranchCompactor(), cob -> {
                             ConversionContext c = new ConversionContext(lookup, liveness, cob);
@@ -219,7 +221,7 @@ public final class BytecodeGenerator {
             Value operand = op.operands().get(i);
             if (operand instanceof Op.Result or &&
                     or.op() instanceof CoreOps.ConstantOp constantOp &&
-                    !constantOp.resultType().equals(TypeDesc.J_L_CLASS)) {
+                    !constantOp.resultType().equals(JavaType.J_L_CLASS)) {
                 cob.constantInstruction(fromValue(constantOp.value()));
             } else {
                 int slot = c.getSlot(operand);
@@ -231,7 +233,7 @@ public final class BytecodeGenerator {
     private static ConstantDesc fromValue(Object value) {
         return switch (value) {
             case ConstantDesc cd -> cd;
-            case TypeDesc td -> td.toNominalDescriptor();
+            case JavaType td -> td.toNominalDescriptor();
             default -> throw new IllegalArgumentException("Unsupported constant value: " + value);
         };
     }
@@ -289,18 +291,19 @@ public final class BytecodeGenerator {
         return use.op() instanceof CoreOps.ConditionalBranchOp;
     }
 
-    private static TypeKind toTypeKind(TypeDesc t) {
-        TypeDesc rbt = t.toBasicType();
+    private static TypeKind toTypeKind(TypeElement t) {
+        JavaType jt = (JavaType) t;
+        TypeElement rbt = jt.toBasicType();
 
-        if (rbt.equals(TypeDesc.INT)) {
+        if (rbt.equals(JavaType.INT)) {
             return TypeKind.IntType;
-        } else if (rbt.equals(TypeDesc.LONG)) {
+        } else if (rbt.equals(JavaType.LONG)) {
             return TypeKind.LongType;
-        } else if (rbt.equals(TypeDesc.FLOAT)) {
+        } else if (rbt.equals(JavaType.FLOAT)) {
             return TypeKind.FloatType;
-        } else if (rbt.equals(TypeDesc.DOUBLE)) {
+        } else if (rbt.equals(JavaType.DOUBLE)) {
             return TypeKind.DoubleType;
-        } else if (rbt.equals(TypeDesc.J_L_OBJECT)) {
+        } else if (rbt.equals(JavaType.J_L_OBJECT)) {
             return TypeKind.ReferenceType;
         } else {
             throw new IllegalArgumentException("Bad type: " + t);
@@ -365,7 +368,8 @@ public final class BytecodeGenerator {
                 for (Block.Reference cbr : erNode.ere.catchBlocks()) {
                     Block cb = cbr.targetBlock();
                     if (!cb.parameters().isEmpty()) {
-                        ClassDesc type = cb.parameters().get(0).type().toNominalDescriptor();
+                        JavaType jt = (JavaType) cb.parameters().get(0).type();
+                        ClassDesc type = jt.toNominalDescriptor();
                         cob.exceptionCatch(startLabel, endLabel, c.getLabel(cb), type);
                     } else {
                         cob.exceptionCatchAll(startLabel, endLabel, c.getLabel(cb));
@@ -418,11 +422,11 @@ public final class BytecodeGenerator {
             Op.Result oprOnStack = null;
             for (int i = 0; i < ops.size() - 1; i++) {
                 Op o = ops.get(i);
-                TypeDesc oprType = o.resultType();
-                TypeKind rvt = oprType.equals(TypeDesc.VOID) ? null : toTypeKind(oprType);
+                TypeElement oprType = o.resultType();
+                TypeKind rvt = oprType.equals(JavaType.VOID) ? null : toTypeKind(oprType);
                 switch (o) {
                     case ConstantOp op -> {
-                        if (op.resultType().equals(TypeDesc.J_L_CLASS)) {
+                        if (op.resultType().equals(JavaType.J_L_CLASS)) {
                             // Loading a class constant may throw an exception so it cannot be deferred
                             cob.ldc(fromValue(op.value()));
                         } else {
@@ -452,7 +456,7 @@ public final class BytecodeGenerator {
                             Value operand = op.operands().get(1);
                             if (operand instanceof Op.Result or &&
                                     or.op() instanceof CoreOps.ConstantOp constantOp &&
-                                    !constantOp.resultType().equals(TypeDesc.J_L_CLASS)) {
+                                    !constantOp.resultType().equals(JavaType.J_L_CLASS)) {
                                 cob.constantInstruction(fromValue(constantOp.value()));
                             } else {
                                 int slot = c.getSlot(operand);
@@ -529,6 +533,30 @@ public final class BytecodeGenerator {
                             default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
                         }
                     }
+                    case AndOp op -> {
+                        processOperands(cob, c, op, isLastOpResultOnStack);
+                        switch (rvt) { //this can be moved to CodeBuilder::and(TypeKind)
+                            case IntType, BooleanType -> cob.iand();
+                            case LongType -> cob.land();
+                            default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
+                        }
+                    }
+                    case OrOp op -> {
+                        processOperands(cob, c, op, isLastOpResultOnStack);
+                        switch (rvt) { //this can be moved to CodeBuilder::or(TypeKind)
+                            case IntType, BooleanType -> cob.ior();
+                            case LongType -> cob.lor();
+                            default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
+                        }
+                    }
+                    case XorOp op -> {
+                        processOperands(cob, c, op, isLastOpResultOnStack);
+                        switch (rvt) { //this can be moved to CodeBuilder::xor(TypeKind)
+                            case IntType, BooleanType -> cob.ixor();
+                            case LongType -> cob.lxor();
+                            default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
+                        }
+                    }
                     case ArrayAccessOp.ArrayLoadOp op -> {
                         processOperands(cob, c, op, isLastOpResultOnStack);
                         cob.arrayLoadInstruction(rvt);
@@ -552,7 +580,8 @@ public final class BytecodeGenerator {
                         }
                     }
                     case NewOp op -> {
-                        TypeDesc t = op.constructorDescriptor().returnType();
+                        TypeElement t_ = op.constructorDescriptor().returnType();
+                        JavaType t = (JavaType) t_;
                         switch (t.dimensions()) {
                             case 0 -> {
                                 if (isLastOpResultOnStack) {
@@ -565,7 +594,7 @@ public final class BytecodeGenerator {
                                    .dup();
                                 processOperands(cob, c, op, false);
                                 cob.invokespecial(
-                                        op.resultType().toNominalDescriptor(),
+                                        ((JavaType) op.resultType()).toNominalDescriptor(),
                                         ConstantDescs.INIT_NAME,
                                         op.constructorDescriptor().toNominalDescriptor().changeReturnType(ConstantDescs.CD_void));
                             }
@@ -610,9 +639,9 @@ public final class BytecodeGenerator {
                                     case INTERFACE_VIRTUAL          -> Opcode.INVOKEINTERFACE;
                                     case SPECIAL, INTERFACE_SPECIAL -> Opcode.INVOKESPECIAL;
                                     default ->
-                                        throw new IllegalStateException("Bad method descriptor resolution: " + op.descriptor() + " > " + op.invokeDescriptor());
+                                        throw new IllegalStateException("Bad method descriptor resolution: " + op.opType() + " > " + op.invokeDescriptor());
                                 },
-                                md.refType().toNominalDescriptor(),
+                                ((JavaType) md.refType()).toNominalDescriptor(),
                                 md.name(),
                                 md.type().toNominalDescriptor(),
                                 switch (descKind) {
@@ -620,7 +649,7 @@ public final class BytecodeGenerator {
                                     default -> false;
                                 });
 
-                        if (op.resultType().equals(TypeDesc.VOID) && !op.operands().isEmpty()) {
+                        if (op.resultType().equals(JavaType.VOID) && !op.operands().isEmpty()) {
                             isLastOpResultOnStack = false;
                         }
                     }
@@ -628,9 +657,15 @@ public final class BytecodeGenerator {
                         processOperands(cob, c, op, isLastOpResultOnStack);
                         FieldDesc fd = op.fieldDescriptor();
                         if (op.operands().isEmpty()) {
-                            cob.getstatic(fd.refType().toNominalDescriptor(), fd.name(), fd.type().toNominalDescriptor());
+                            cob.getstatic(
+                                    ((JavaType) fd.refType()).toNominalDescriptor(),
+                                    fd.name(),
+                                    ((JavaType) fd.type()).toNominalDescriptor());
                         } else {
-                            cob.getfield(fd.refType().toNominalDescriptor(), fd.name(), fd.type().toNominalDescriptor());
+                            cob.getfield(
+                                    ((JavaType) fd.refType()).toNominalDescriptor(),
+                                    fd.name(),
+                                    ((JavaType) fd.type()).toNominalDescriptor());
                         }
                     }
                     case FieldAccessOp.FieldStoreOp op -> {
@@ -638,18 +673,24 @@ public final class BytecodeGenerator {
                         isLastOpResultOnStack = false;
                         FieldDesc fd = op.fieldDescriptor();
                         if (op.operands().size() == 1) {
-                            cob.putstatic(fd.refType().toNominalDescriptor(), fd.name(), fd.type().toNominalDescriptor());
+                            cob.putstatic(
+                                    ((JavaType) fd.refType()).toNominalDescriptor(),
+                                    fd.name(),
+                                    ((JavaType) fd.type()).toNominalDescriptor());
                         } else {
-                            cob.putfield(fd.refType().toNominalDescriptor(), fd.name(), fd.type().toNominalDescriptor());
+                            cob.putfield(
+                                    ((JavaType) fd.refType()).toNominalDescriptor(),
+                                    fd.name(),
+                                    ((JavaType) fd.type()).toNominalDescriptor());
                         }
                     }
                     case InstanceOfOp op -> {
                         processOperands(cob, c, op, isLastOpResultOnStack);
-                        cob.instanceof_(op.type().toNominalDescriptor());
+                        cob.instanceof_(((JavaType) op.type()).toNominalDescriptor());
                     }
                     case CastOp op -> {
                         processOperands(cob, c, op, isLastOpResultOnStack);
-                        cob.checkcast(op.type().toNominalDescriptor());
+                        cob.checkcast(((JavaType) op.type()).toNominalDescriptor());
                     }
                     default ->
                         throw new UnsupportedOperationException("Unsupported operation: " + ops.get(i));
@@ -850,7 +891,7 @@ public final class BytecodeGenerator {
         }
 
         static int slotsPerValue(Value x) {
-            return x.type().equals(TypeDesc.DOUBLE) || x.type().equals(TypeDesc.LONG)
+            return x.type().equals(JavaType.DOUBLE) || x.type().equals(JavaType.LONG)
                     ? 2
                     : 1;
         }
@@ -954,7 +995,7 @@ public final class BytecodeGenerator {
             Value value = sargs.get(i);
             if (value instanceof Op.Result or &&
                     or.op() instanceof CoreOps.ConstantOp constantOp &&
-                    !constantOp.resultType().equals(TypeDesc.J_L_CLASS)) {
+                    !constantOp.resultType().equals(JavaType.J_L_CLASS)) {
                 cob.constantInstruction(fromValue(constantOp.value()));
                 TypeKind vt = toTypeKind(barg.type());
                 cob.storeInstruction(vt, bslot);

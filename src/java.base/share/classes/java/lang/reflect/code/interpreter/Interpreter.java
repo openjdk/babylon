@@ -25,28 +25,19 @@
 
 package java.lang.reflect.code.interpreter;
 
-import java.lang.reflect.code.op.CoreOps;
-import java.lang.reflect.code.descriptor.FieldDesc;
-import java.lang.reflect.code.descriptor.MethodDesc;
-import java.lang.reflect.code.descriptor.MethodTypeDesc;
-import java.lang.reflect.code.descriptor.TypeDesc;
-
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandleProxies;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
-import java.lang.invoke.VarHandle;
+import java.lang.invoke.*;
 import java.lang.reflect.Array;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.code.*;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.lang.reflect.code.descriptor.FieldDesc;
+import java.lang.reflect.code.descriptor.MethodDesc;
+import java.lang.reflect.code.descriptor.MethodTypeDesc;
+import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.type.FunctionType;
+import java.lang.reflect.code.type.JavaType;
+import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.type.VarType;
+import java.util.*;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toMap;
@@ -177,12 +168,10 @@ public final class Interpreter {
     }
 
     record ClosureRecord(CoreOps.ClosureOp op,
-                         Map<Value, Object> capturedValues)
-            implements CoreOps.Closure {
+                         Map<Value, Object> capturedValues) {
     }
 
-    record TupleRecord(List<Object> components)
-            implements CoreOps.Tuple {
+    record TupleRecord(List<Object> components) {
         Object getComponent(int index) {
             return components.get(index);
         }
@@ -203,9 +192,9 @@ public final class Interpreter {
                 if (args.size() != 1) {
                     throw interpreterException(new IllegalStateException("Catch block must have one argument"));
                 }
-                TypeDesc et = args.get(0).type();
-                if (et.rawType().equals(CoreOps.Var.VAR_TYPE)) {
-                    et = et.typeArguments().get(0);
+                TypeElement et = args.get(0).type();
+                if (et instanceof VarType vt) {
+                    et = vt.valueType();
                 }
                 if (resolveToClass(l, et).isInstance(e)) {
                     return target;
@@ -352,7 +341,7 @@ public final class Interpreter {
         // Add a new block context to the catch block with the exception as the argument
         Map<Value, Object> bValues = new HashMap<>();
         Block.Parameter eArg = cb.parameters().get(0);
-        if (eArg.type().rawType().equals(CoreOps.Var.VAR_TYPE)) {
+        if (eArg.type() instanceof VarType) {
             bValues.put(eArg, new VarBox(t));
         } else {
             bValues.put(eArg, t);
@@ -367,8 +356,8 @@ public final class Interpreter {
 
     static Object exec(MethodHandles.Lookup l, OpContext oc, Op o) {
         if (o instanceof CoreOps.ConstantOp co) {
-            if (co.resultType().equals(TypeDesc.J_L_CLASS)) {
-                return resolveToClass(l, (TypeDesc) co.value());
+            if (co.resultType().equals(JavaType.J_L_CLASS)) {
+                return resolveToClass(l, (JavaType) co.value());
             } else {
                 return co.value();
             }
@@ -405,13 +394,13 @@ public final class Interpreter {
             } else {
                 mh = methodStaticHandle(l, co.invokeDescriptor());
             }
-            MethodType target = resolveToMethodType(l, o.descriptor());
+            MethodType target = resolveToMethodType(l, o.opType());
             mh = mh.asType(target).asFixedArity();
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
         } else if (o instanceof CoreOps.NewOp no) {
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
-            TypeDesc nType = no.constructorDescriptor().returnType();
+            JavaType nType = (JavaType) no.constructorDescriptor().returnType();
             if (nType.dimensions() > 0) {
                 if (values.length > nType.dimensions()) {
                     throw interpreterException(new IllegalArgumentException("Bad constructor NewOp: " + no));
@@ -523,11 +512,11 @@ public final class Interpreter {
             Array.set(a, (int) index, v);
             return null;
         } else if (o instanceof CoreOps.ArithmeticOperation || o instanceof CoreOps.TestOperation) {
-            MethodHandle mh = opHandle(o.opName(), o.descriptor());
+            MethodHandle mh = opHandle(o.opName(), o.opType());
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
         } else if (o instanceof CoreOps.ConvOp) {
-            MethodHandle mh = opHandle(o.opName() + "_" + o.descriptor().returnType(), o.descriptor());
+            MethodHandle mh = opHandle(o.opName() + "_" + o.opType().returnType(), o.opType());
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
         } else {
@@ -551,8 +540,8 @@ public final class Interpreter {
         return invoke(l, op, capturedValues, args);
     }
 
-    static MethodHandle opHandle(String opName, MethodTypeDesc d) {
-        MethodType mt = resolveToMethodType(MethodHandles.lookup(), d).erase();
+    static MethodHandle opHandle(String opName, FunctionType ft) {
+        MethodType mt = resolveToMethodType(MethodHandles.lookup(), ft).erase();
         try {
             return MethodHandles.lookup().findStatic(InvokableLeafOps.class, opName, mt);
         } catch (NoSuchMethodException | IllegalAccessException e) {
@@ -593,12 +582,12 @@ public final class Interpreter {
         return resolveToVarHandle(l, d);
     }
 
-    static Object isInstance(MethodHandles.Lookup l, TypeDesc d, Object v) {
+    static Object isInstance(MethodHandles.Lookup l, TypeElement d, Object v) {
         Class<?> c = resolveToClass(l, d);
         return c.isInstance(v);
     }
 
-    static Object cast(MethodHandles.Lookup l, TypeDesc d, Object v) {
+    static Object cast(MethodHandles.Lookup l, TypeElement d, Object v) {
         Class<?> c = resolveToClass(l, d);
         return c.cast(v);
     }
@@ -619,6 +608,10 @@ public final class Interpreter {
         }
     }
 
+    public static MethodType resolveToMethodType(MethodHandles.Lookup l, FunctionType ft) {
+        return resolveToMethodType(l, MethodTypeDesc.ofFunctionType(ft));
+    }
+
     public static MethodType resolveToMethodType(MethodHandles.Lookup l, MethodTypeDesc d) {
         try {
             return d.resolve(l);
@@ -627,9 +620,13 @@ public final class Interpreter {
         }
     }
 
-    public static Class<?> resolveToClass(MethodHandles.Lookup l, TypeDesc d) {
+    public static Class<?> resolveToClass(MethodHandles.Lookup l, TypeElement d) {
         try {
-            return d.resolve(l);
+            if (d instanceof JavaType jt) {
+                return jt.resolve(l);
+            } else {
+                throw new ReflectiveOperationException();
+            }
         } catch (ReflectiveOperationException e) {
             throw interpreterException(e);
         }

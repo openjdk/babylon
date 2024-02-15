@@ -40,13 +40,12 @@ import java.util.function.IntUnaryOperator;
 
 import static java.lang.reflect.code.op.CoreOps._return;
 import static java.lang.reflect.code.op.CoreOps.add;
-import static java.lang.reflect.code.op.CoreOps.invoke;
 import static java.lang.reflect.code.op.CoreOps.constant;
 import static java.lang.reflect.code.op.CoreOps.func;
 import static java.lang.reflect.code.op.CoreOps.lambda;
-import static java.lang.reflect.code.descriptor.MethodTypeDesc.methodType;
-import static java.lang.reflect.code.descriptor.TypeDesc.INT;
-import static java.lang.reflect.code.descriptor.TypeDesc.type;
+import static java.lang.reflect.code.type.FunctionType.functionType;
+import static java.lang.reflect.code.type.JavaType.INT;
+import static java.lang.reflect.code.type.JavaType.type;
 
 public class TestParse {
 
@@ -57,7 +56,7 @@ public class TestParse {
     @Test
     public void testParseLambdaOp() {
         // functional descriptor = (int)int
-        CoreOps.FuncOp f = func("f", methodType(int.class, int.class))
+        CoreOps.FuncOp f = func("f", functionType(INT, INT))
                 .body(block -> {
                     Block.Parameter i = block.parameters().get(0);
 
@@ -65,7 +64,7 @@ public class TestParse {
                     // op descriptor = ()IntUnaryOperator
                     //   captures i
                     CoreOps.LambdaOp lambda = lambda(block.parentBody(),
-                            methodType(int.class, int.class), type(IntUnaryOperator.class))
+                            functionType(INT, INT), type(IntUnaryOperator.class))
                             .body(lbody -> {
                                 Block.Builder lblock = lbody.entryBlock();
                                 Block.Parameter li = lblock.parameters().get(0);

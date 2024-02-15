@@ -29,18 +29,17 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.code.Block;
 import java.lang.reflect.code.Body;
-import java.lang.reflect.code.descriptor.MethodTypeDesc;
-import java.lang.reflect.code.descriptor.TypeDesc;
-import java.lang.reflect.code.op.CoreOps;
-import java.lang.reflect.code.op.ExtendedOps;
+import java.lang.reflect.code.type.FunctionType;
+import java.lang.reflect.code.type.TypeDefinition;
+import java.lang.reflect.code.op.*;
 import java.lang.reflect.code.Op;
-import java.lang.reflect.code.op.OpDefinition;
-import java.lang.reflect.code.op.OpFactory;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.parser.impl.DescParser;
 import java.lang.reflect.code.parser.impl.Lexer;
 import java.lang.reflect.code.parser.impl.Scanner;
 import java.lang.reflect.code.parser.impl.Tokens;
+import java.lang.reflect.code.type.CoreTypeFactory;
+import java.lang.reflect.code.type.TypeElementFactory;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -135,8 +134,12 @@ public final class OpParser {
      * @throws IOException if parsing fails
      */
     public static List<Op> fromStream(OpFactory opFactory, InputStream in) throws IOException {
+        return fromStream(opFactory, CoreTypeFactory.CORE_TYPE_FACTORY, in);
+    }
+
+    public static List<Op> fromStream(OpFactory opFactory, TypeElementFactory typeFactory, InputStream in) throws IOException {
         String s = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-        return fromString(opFactory, s);
+        return fromString(opFactory, typeFactory, s);
     }
 
     /**
@@ -147,7 +150,11 @@ public final class OpParser {
      * @return the list of operations
      */
     public static List<Op> fromString(OpFactory opFactory, String in) {
-        return parse(opFactory, in);
+        return parse(opFactory, CoreTypeFactory.CORE_TYPE_FACTORY, in);
+    }
+
+    public static List<Op> fromString(OpFactory opFactory, TypeElementFactory typeFactory, String in) {
+        return parse(opFactory, typeFactory, in);
     }
 
     /**
@@ -164,33 +171,36 @@ public final class OpParser {
         return op;
     }
 
-    static List<Op> parse(OpFactory opFactory, String in) {
+    static List<Op> parse(OpFactory opFactory, TypeElementFactory typeFactory, String in) {
         Lexer lexer = Scanner.factory().newScanner(in);
         lexer.nextToken();
 
-        List<OpNode> opNodes = new OpParser(opFactory, lexer).parseNodes();
+        List<OpNode> opNodes = new OpParser(lexer).parseNodes();
 
-        Context c = new Context(opFactory);
-        return opNodes.stream().map(n -> nodeToOp(n, TypeDesc.VOID, c, null)).toList();
+        Context c = new Context(opFactory, typeFactory);
+        return opNodes.stream().map(n -> nodeToOp(n, TypeDefinition.VOID, c, null)).toList();
     }
 
 
     static final class Context {
         final Context parent;
         final OpFactory opFactory;
+        final TypeElementFactory typeFactory;
         final Map<String, Value> valueMap;
         final Map<String, Block.Builder> blockMap;
 
         Context(Context that, boolean isolated) {
             this.parent = that;
             this.opFactory = that.opFactory;
+            this.typeFactory = that.typeFactory;
             this.valueMap = isolated ? new HashMap<>() : new HashMap<>(that.valueMap);
             this.blockMap = new HashMap<>();
         }
 
-        Context(OpFactory opFactory) {
+        Context(OpFactory opFactory, TypeElementFactory typeFactory) {
             this.parent = null;
             this.opFactory = opFactory;
+            this.typeFactory = typeFactory;
             this.valueMap = new HashMap<>();
             this.blockMap = new HashMap<>();
         }
@@ -228,12 +238,12 @@ public final class OpParser {
         }
     }
 
-    static Op nodeToOp(OpNode opNode, TypeDesc rtype, Context c, Body.Builder ancestorBody) {
+    static Op nodeToOp(OpNode opNode, TypeDefinition rtype, Context c, Body.Builder ancestorBody) {
         OpDefinition opdef = nodeToOpDef(opNode, rtype, c, ancestorBody);
         return c.opFactory.constructOpOrFail(opdef);
     }
 
-    static OpDefinition nodeToOpDef(OpNode opNode, TypeDesc rtype, Context c, Body.Builder ancestorBody) {
+    static OpDefinition nodeToOpDef(OpNode opNode, TypeDefinition rtype, Context c, Body.Builder ancestorBody) {
         String operationName = opNode.name;
         List<Value> operands = opNode.operands.stream().map(c::getValue).toList();
         List<Block.Reference> successors = opNode.successors.stream()
@@ -243,7 +253,7 @@ public final class OpParser {
         return new OpDefinition(operationName,
                 operands,
                 successors,
-                rtype,
+                c.typeFactory.constructType(rtype),
                 opNode.attributes,
                 bodies);
     }
@@ -251,7 +261,7 @@ public final class OpParser {
     static Body.Builder nodeToBody(BodyNode n, Context c, Body.Builder ancestorBody) {
         Body.Builder body = Body.Builder.of(ancestorBody,
                 // Create descriptor with just the return type and add parameters afterward
-                MethodTypeDesc.methodType(n.rtype));
+                FunctionType.functionType(c.typeFactory.constructType(n.rtype)));
         Block.Builder eb = body.entryBlock();
 
         // Create blocks upfront for forward referencing successors
@@ -266,7 +276,7 @@ public final class OpParser {
             }
 
             for (ValueNode a : bn.parameters) {
-                Block.Parameter v = b.parameter(a.type);
+                Block.Parameter v = b.parameter(c.typeFactory.constructType(a.type));
                 c.putValue(a.name, v);
             }
         }
@@ -287,7 +297,7 @@ public final class OpParser {
                     Op.Result v = b.op(nodeToOp(on, r.type, c, body));
                     c.putValue(r.name, v);
                 } else {
-                    b.op(nodeToOp(on, TypeDesc.VOID, c, body));
+                    b.op(nodeToOp(on, TypeDefinition.VOID, c, body));
                 }
             }
         }
@@ -313,7 +323,7 @@ public final class OpParser {
                          List<String> arguments) {
     }
 
-    record BodyNode(TypeDesc rtype,
+    record BodyNode(TypeDefinition rtype,
                     List<BlockNode> blocks) {
     }
 
@@ -323,14 +333,12 @@ public final class OpParser {
     }
 
     record ValueNode(String name,
-                     TypeDesc type) {
+                     TypeDefinition type) {
     }
 
-    final OpFactory opFactory;
     final Lexer lexer;
 
-    OpParser(OpFactory opFactory, Lexer lexer) {
-        this.opFactory = opFactory;
+    OpParser(Lexer lexer) {
         this.lexer = lexer;
     }
 
@@ -507,7 +515,7 @@ public final class OpParser {
         // Entry block header
         List<ValueNode> arguments = parseBlockHeaderArguments(true);
         // Body return type
-        TypeDesc rtype = parseTypeDesc();
+        TypeDefinition rtype = parseTypeDesc();
 
         lexer.accept(Tokens.TokenKind.ARROW);
         lexer.accept(Tokens.TokenKind.LBRACE);
@@ -545,7 +553,7 @@ public final class OpParser {
 
         lexer.accept(Tokens.TokenKind.COLON);
 
-        TypeDesc type = parseTypeDesc();
+        TypeDefinition type = parseTypeDesc();
 
         return new ValueNode(valueName, type);
     }
@@ -592,7 +600,7 @@ public final class OpParser {
         return name.toString();
     }
 
-    TypeDesc parseTypeDesc() {
+    TypeDefinition parseTypeDesc() {
         return DescParser.parseTypeDesc(lexer);
     }
 }

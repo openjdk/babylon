@@ -112,7 +112,7 @@ public class TestMatrix {
                     %76 : int = arith.constant @"0";
                     %77 : int = tt.call %17 @"cdiv_int_32_int";
                     %78 : int = arith.constant @"1";
-                    %79 : java.lang.reflect.code.CoreOps$Tuple<tensor<x32, x64, float>, tensor<x32, x32, ptr<float>>, tensor<x32, x64, ptr<float>>> = scf.for %76 %77 %78 %75 %63 %74 (%80 : int, %81 : tensor<x32, x64, float>, %82 : tensor<x32, x32, ptr<float>>, %83 : tensor<x32, x64, ptr<float>>)java.lang.reflect.code.CoreOps$Tuple<tensor<x32, x64, float>, tensor<x32, x32, ptr<float>>, tensor<x32, x64, ptr<float>>> -> {
+                    %79 : Tuple<tensor<x32, x64, float>, tensor<x32, x32, ptr<float>>, tensor<x32, x64, ptr<float>>> = scf.for %76 %77 %78 %75 %63 %74 (%80 : int, %81 : tensor<x32, x64, float>, %82 : tensor<x32, x32, ptr<float>>, %83 : tensor<x32, x64, ptr<float>>)Tuple<tensor<x32, x64, float>, tensor<x32, x32, ptr<float>>, tensor<x32, x64, ptr<float>>> -> {
                         %84 : tensor<x1, x32, int> = tt.expand_dims %52 @"0";
                         %85 : int = arith.muli %80 %26;
                         %86 : int = arith.subi %17 %85;
@@ -389,7 +389,7 @@ public class TestMatrix {
                     %76 : int = arith.constant @"0";
                     %77 : int = tt.call %17 @"cdiv_int_32_int";
                     %78 : int = arith.constant @"1";
-                    %79 : java.lang.reflect.code.CoreOps$Tuple<tensor<x32, x64, float>, tensor<x32, x32, ptr<oracle.code.triton.Float16>>, tensor<x32, x64, ptr<oracle.code.triton.Float16>>> = scf.for %76 %77 %78 %75 %63 %74 (%80 : int, %81 : tensor<x32, x64, float>, %82 : tensor<x32, x32, ptr<oracle.code.triton.Float16>>, %83 : tensor<x32, x64, ptr<oracle.code.triton.Float16>>)java.lang.reflect.code.CoreOps$Tuple<tensor<x32, x64, float>, tensor<x32, x32, ptr<oracle.code.triton.Float16>>, tensor<x32, x64, ptr<oracle.code.triton.Float16>>> -> {
+                    %79 : Tuple<tensor<x32, x64, float>, tensor<x32, x32, ptr<oracle.code.triton.Float16>>, tensor<x32, x64, ptr<oracle.code.triton.Float16>>> = scf.for %76 %77 %78 %75 %63 %74 (%80 : int, %81 : tensor<x32, x64, float>, %82 : tensor<x32, x32, ptr<oracle.code.triton.Float16>>, %83 : tensor<x32, x64, ptr<oracle.code.triton.Float16>>)Tuple<tensor<x32, x64, float>, tensor<x32, x32, ptr<oracle.code.triton.Float16>>, tensor<x32, x64, ptr<oracle.code.triton.Float16>>> -> {
                         %84 : tensor<x1, x32, int> = tt.expand_dims %52 @"0";
                         %85 : int = arith.muli %80 %26;
                         %86 : int = arith.subi %17 %85;

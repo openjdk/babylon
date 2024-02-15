@@ -5,9 +5,9 @@ import java.lang.reflect.code.Op;
 import java.lang.runtime.CodeReflection;
 import java.util.Arrays;
 
-import static java.lang.reflect.code.descriptor.MethodTypeDesc.methodType;
-import static java.lang.reflect.code.descriptor.TypeDesc.DOUBLE;
 import static java.lang.reflect.code.op.CoreOps.*;
+import static java.lang.reflect.code.type.FunctionType.functionType;
+import static java.lang.reflect.code.type.JavaType.DOUBLE;
 
 /*
  * @test
@@ -25,7 +25,7 @@ public class TestOpResultTypeNotCopiedBlindly {
     void test() {
         FuncOp f = getCodeModel(this.getClass(), "f");
 
-        FuncOp g = func("g", methodType(DOUBLE, DOUBLE, DOUBLE))
+        FuncOp g = func("g", functionType(DOUBLE, DOUBLE, DOUBLE))
                 .body(b -> b.inline(f, b.parameters(), (block, v) -> {
                     block.op(_return(v));
                 }));
