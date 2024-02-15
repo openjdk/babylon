@@ -30,7 +30,6 @@ import java.lang.reflect.code.descriptor.impl.*;
 import java.lang.reflect.code.type.CoreTypeFactory;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.type.TypeDefinition;
-import java.lang.reflect.code.type.impl.TypeDefinitionImpl;
 import java.util.ArrayList;
 import java.util.List;
 
