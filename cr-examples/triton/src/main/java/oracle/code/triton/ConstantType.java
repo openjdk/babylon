@@ -26,6 +26,9 @@
 package oracle.code.triton;
 
 import java.lang.reflect.Type;
+import java.lang.reflect.code.type.TypeDefinition;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 public final class ConstantType extends TritonType {
@@ -61,7 +64,14 @@ public final class ConstantType extends TritonType {
     }
 
     @Override
+    public TypeDefinition toTypeDefinition() {
+        return new TypeDefinition(NAME,
+                List.of(fromType(cType).toTypeDefinition(),
+                        new TypeDefinition("c" + value, List.of())));
+    }
+
+    @Override
     public String toString() {
-        return NAME + "<" + fromType(cType).toString() + ", c" + value + ">";
+        return toTypeDefinition().toString();
     }
 }

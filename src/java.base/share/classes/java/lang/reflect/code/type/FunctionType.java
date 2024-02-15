@@ -42,11 +42,15 @@ public final class FunctionType implements TypeElement {
     }
 
     @Override
+    public TypeDefinition toTypeDefinition() {
+        return new TypeDefinition(NAME,
+                Stream.concat(Stream.of(returnType), parameterTypes.stream())
+                        .map(TypeElement::toTypeDefinition).toList());
+    }
+
+    @Override
     public String toString() {
-        String cs = Stream.concat(Stream.of(returnType), parameterTypes.stream())
-                .map(TypeElement::toString)
-                .collect(Collectors.joining(",", "<", ">"));
-        return NAME + cs;
+        return toTypeDefinition().toString();
     }
 
     @Override

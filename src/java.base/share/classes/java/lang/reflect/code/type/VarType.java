@@ -1,6 +1,7 @@
 package java.lang.reflect.code.type;
 
 import java.lang.reflect.code.TypeElement;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -23,8 +24,13 @@ public final class VarType implements TypeElement {
     }
 
     @Override
+    public TypeDefinition toTypeDefinition() {
+        return new TypeDefinition(NAME, List.of(variableType.toTypeDefinition()));
+    }
+
+    @Override
     public String toString() {
-        return NAME + "<" + variableType + ">";
+        return toTypeDefinition().toString();
     }
 
     @Override

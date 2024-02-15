@@ -827,16 +827,13 @@ public class TritonOps {
     static final TypeElementFactory TRITON_TYPE_FACTORY = new TypeElementFactory() {
         @Override
         public TypeElement constructType(TypeDefinition tree) {
-            if (tree.isArray()) {
-                return null;
-            }
-            return switch (tree.name()) {
+            return switch (tree.identifier()) {
                 case PtrType.NAME -> {
-                    if (tree.typeArguments().size() != 1) {
+                    if (tree.arguments().size() != 1) {
                         throw new IllegalArgumentException();
                     }
 
-                    TypeElement v = TRITON_JAVA_TYPE_FACTORY.constructType(tree.typeArguments().getFirst());
+                    TypeElement v = TRITON_JAVA_TYPE_FACTORY.constructType(tree.arguments().getFirst());
                     if (v == null) {
                         throw new IllegalArgumentException("Bad type: " + tree);
                     }
@@ -849,26 +846,26 @@ public class TritonOps {
                     }
                 }
                 case TensorType.NAME -> {
-                    if (tree.typeArguments().size() < 2) {
+                    if (tree.arguments().size() < 2) {
                         throw new IllegalArgumentException("Bad type: " + tree);
                     }
 
                     List<Integer> shape = new ArrayList<>();
-                    for (int i = 0; i < tree.typeArguments().size() - 1; i++) {
-                        TypeDefinition a = tree.typeArguments().get(i);
-                        if (!a.name().startsWith("x")) {
+                    for (int i = 0; i < tree.arguments().size() - 1; i++) {
+                        TypeDefinition a = tree.arguments().get(i);
+                        if (!a.identifier().startsWith("x")) {
                             throw new IllegalArgumentException("Bad type: " + tree);
                         }
                         int d;
                         try {
-                            d = Integer.parseInt(a.name().substring(1));
+                            d = Integer.parseInt(a.identifier().substring(1));
                         } catch (NumberFormatException e) {
                             throw new IllegalArgumentException("Bad type: " + tree, e);
                         }
                         shape.add(d);
                     }
 
-                    TypeElement v = TRITON_JAVA_TYPE_FACTORY.constructType(tree.typeArguments().getLast());
+                    TypeElement v = TRITON_JAVA_TYPE_FACTORY.constructType(tree.arguments().getLast());
                     if (v == null) {
                         throw new IllegalArgumentException("Bad type: " + tree);
                     }
