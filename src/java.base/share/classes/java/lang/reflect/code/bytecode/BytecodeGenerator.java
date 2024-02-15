@@ -310,6 +310,17 @@ public final class BytecodeGenerator {
         }
     }
 
+    private static void storeInstruction(CodeBuilder cob, TypeKind tk, int slot) {
+        if (slot < 0) {
+            // Only pop results from stack if the value has no further use (no valid slot)
+            switch (tk.slotSize()) {
+                case 1 -> cob.pop();
+                case 2 -> cob.pop2();
+            }
+        } else {
+            cob.storeInstruction(tk, slot);
+        }
+    }
 
     private static void computeExceptionRegionMembership(Body body, CodeBuilder cob, ConversionContext c) {
         record ExceptionRegionWithBlocks(CoreOps.ExceptionRegionEnter ere, BitSet blocks) {
@@ -410,7 +421,7 @@ public final class BytecodeGenerator {
                 // Store in slot if used, otherwise pop
                 if (!ex.uses().isEmpty()) {
                     int slot = c.getSlot(ex);
-                    cob.storeInstruction(toTypeKind(ex.type()), slot);
+                    storeInstruction(cob, toTypeKind(ex.type()), slot);
                 } else {
                     cob.pop();
                 }
@@ -441,7 +452,7 @@ public final class BytecodeGenerator {
                         isLastOpResultOnStack = false;
                         // Use slot of variable result
                         int slot = c.assignSlot(op.result());
-                        cob.storeInstruction(toTypeKind(op.varType()), slot);
+                        storeInstruction(cob, toTypeKind(op.varType()), slot);
                         // Ignore result
                         rvt = null;
                     }
@@ -467,7 +478,7 @@ public final class BytecodeGenerator {
                         // Use slot of variable result
                         int slot = c.getSlot(op.operands().get(0));
                         CoreOps.VarOp vop = op.varOp();
-                        cob.storeInstruction(toTypeKind(vop.varType()), slot);
+                        storeInstruction(cob, toTypeKind(vop.varType()), slot);
                     }
                     case NegOp op -> {
                         processOperands(cob, c, op, isLastOpResultOnStack);
@@ -586,7 +597,7 @@ public final class BytecodeGenerator {
                             case 0 -> {
                                 if (isLastOpResultOnStack) {
                                     int slot = c.assignSlot(oprOnStack);
-                                    cob.storeInstruction(rvt, slot);
+                                    storeInstruction(cob, rvt, slot);
                                     isLastOpResultOnStack = false;
                                     oprOnStack = null;
                                 }
@@ -703,7 +714,7 @@ public final class BytecodeGenerator {
                         isLastOpResultOnStack = false;
                         oprOnStack = null;
                         int slot = c.assignSlot(o.result());
-                        cob.storeInstruction(rvt, slot);
+                        storeInstruction(cob, rvt, slot);
                     } else {
                         isLastOpResultOnStack = true;
                         oprOnStack = o.result();

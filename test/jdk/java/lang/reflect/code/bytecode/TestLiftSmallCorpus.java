@@ -73,7 +73,7 @@ public class TestLiftSmallCorpus {
         }
 
         // @@@ There is still several failing cases
-        Assert.assertTrue(failed < 15, STR."failed: \{failed}, passed: \{passed}, skipped: \{skipped}");
+        Assert.assertTrue(failed < 5, STR."failed: \{failed}, passed: \{passed}, skipped: \{skipped}");
     }
 
     private void testDoubleRoundtripStability(Path path) throws Exception {
