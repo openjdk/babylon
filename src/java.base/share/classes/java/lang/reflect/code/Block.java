@@ -64,7 +64,7 @@ public final class Block implements CodeElement<Block, Op> {
          * <p>
          * If this block parameter is declared in an entry block and that
          * block's ancestor operation (the parent of the entry block's parent body)
-         * is an instance of {@link Op.Invokable}, that that instance is returned,
+         * is an instance of {@link Op.Invokable}, then that instance is returned,
          * otherwise {@code null} is returned.
          * <p>
          * A non-{@code null} result implies this parameter is an invokable parameter.
