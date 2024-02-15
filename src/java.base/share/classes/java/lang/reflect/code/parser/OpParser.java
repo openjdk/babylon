@@ -515,7 +515,7 @@ public final class OpParser {
         // Entry block header
         List<ValueNode> arguments = parseBlockHeaderArguments(true);
         // Body return type
-        TypeDefinition rtype = parseTypeDesc();
+        TypeDefinition rtype = parseTypeDef();
 
         lexer.accept(Tokens.TokenKind.ARROW);
         lexer.accept(Tokens.TokenKind.LBRACE);
@@ -553,7 +553,7 @@ public final class OpParser {
 
         lexer.accept(Tokens.TokenKind.COLON);
 
-        TypeDefinition type = parseTypeDesc();
+        TypeDefinition type = parseTypeDef();
 
         return new ValueNode(valueName, type);
     }
@@ -600,7 +600,7 @@ public final class OpParser {
         return name.toString();
     }
 
-    TypeDefinition parseTypeDesc() {
+    TypeDefinition parseTypeDef() {
         return DescParser.parseTypeDefinition(lexer);
     }
 }
