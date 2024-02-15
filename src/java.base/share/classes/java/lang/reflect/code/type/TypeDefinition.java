@@ -49,29 +49,34 @@ public record TypeDefinition(String identifier, List<TypeDefinition> arguments) 
     }
 
     static String toString(TypeDefinition t) {
-        int dimensions = dimensions(t.identifier);
-        if (dimensions > 0 && t.arguments.size() == 1) {
-            t = t.arguments.getFirst();
-        }
-
-        if (dimensions == 0 && t.arguments.isEmpty()) {
+        if (t.arguments.isEmpty()) {
             return t.identifier;
-        } else {
-            StringBuilder s = new StringBuilder();
-            s.append(t.identifier);
-            if (!t.arguments.isEmpty()) {
-                String args = t.arguments.stream()
-                        .map(Object::toString)
-                        .collect(Collectors.joining(", ", "<", ">"));
-                s.append(args);
-            }
-
-            if (dimensions > 0) {
-                s.append("[]".repeat(dimensions));
-            }
-
-            return s.toString();
         }
+
+        // Unpack array-like identifier [+
+        int dimensions = 0;
+        if (t.arguments.size() == 1) {
+            dimensions = dimensions(t.identifier);
+            if (dimensions > 0) {
+                t = t.arguments.getFirst();
+            }
+        }
+
+        StringBuilder s = new StringBuilder();
+        s.append(t.identifier);
+        if (!t.arguments.isEmpty()) {
+            String args = t.arguments.stream()
+                    .map(Object::toString)
+                    .collect(Collectors.joining(", ", "<", ">"));
+            s.append(args);
+        }
+
+        // Write out array-like syntax at end []+
+        if (dimensions > 0) {
+            s.append("[]".repeat(dimensions));
+        }
+
+        return s.toString();
     }
 
     static int dimensions(String identifier) {

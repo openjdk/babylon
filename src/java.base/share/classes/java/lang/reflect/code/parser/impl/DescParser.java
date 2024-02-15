@@ -122,7 +122,7 @@ public final class DescParser {
 
         // @@@ Enclosed/inner classes, separated by $ which may also be parameterized
 
-        // Array
+        // Parse array-like syntax []+
         int dims = 0;
         while (l.acceptIf(Tokens.TokenKind.LBRACKET)) {
             l.accept(Tokens.TokenKind.RBRACKET);
@@ -131,6 +131,7 @@ public final class DescParser {
 
         TypeDefinition td = new TypeDefinition(identifier.toString(), args);
         if (dims > 0) {
+            // If array-like then type definition becomes a child with identifier [+
             return new TypeDefinition("[".repeat(dims), List.of(td));
         } else {
             return td;
