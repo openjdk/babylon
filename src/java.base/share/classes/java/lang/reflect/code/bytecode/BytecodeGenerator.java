@@ -310,6 +310,17 @@ public final class BytecodeGenerator {
         }
     }
 
+    private static void storeInstruction(CodeBuilder cob, TypeKind tk, int slot) {
+        if (slot < 0) {
+            // Only pop results from stack if the value has no further use (no valid slot)
+            switch (tk.slotSize()) {
+                case 1 -> cob.pop();
+                case 2 -> cob.pop2();
+            }
+        } else {
+            cob.storeInstruction(tk, slot);
+        }
+    }
 
     private static void computeExceptionRegionMembership(Body body, CodeBuilder cob, ConversionContext c) {
         record ExceptionRegionWithBlocks(CoreOps.ExceptionRegionEnter ere, BitSet blocks) {
@@ -410,7 +421,7 @@ public final class BytecodeGenerator {
                 // Store in slot if used, otherwise pop
                 if (!ex.uses().isEmpty()) {
                     int slot = c.getSlot(ex);
-                    cob.storeInstruction(toTypeKind(ex.type()), slot);
+                    storeInstruction(cob, toTypeKind(ex.type()), slot);
                 } else {
                     cob.pop();
                 }
@@ -441,7 +452,7 @@ public final class BytecodeGenerator {
                         isLastOpResultOnStack = false;
                         // Use slot of variable result
                         int slot = c.assignSlot(op.result());
-                        cob.storeInstruction(toTypeKind(op.varType()), slot);
+                        storeInstruction(cob, toTypeKind(op.varType()), slot);
                         // Ignore result
                         rvt = null;
                     }
@@ -467,7 +478,7 @@ public final class BytecodeGenerator {
                         // Use slot of variable result
                         int slot = c.getSlot(op.operands().get(0));
                         CoreOps.VarOp vop = op.varOp();
-                        cob.storeInstruction(toTypeKind(vop.varType()), slot);
+                        storeInstruction(cob, toTypeKind(vop.varType()), slot);
                     }
                     case NegOp op -> {
                         processOperands(cob, c, op, isLastOpResultOnStack);
@@ -573,7 +584,7 @@ public final class BytecodeGenerator {
                     case BinaryTestOp op -> {
                         if (!isConditionForCondBrOp(op)) {
                             processOperands(cob, c, op, isLastOpResultOnStack);
-                            conditionalBranch(cob, op, CodeBuilder::iconst_1, CodeBuilder::iconst_0);
+                            cob.ifThenElse(prepareReverseCondition(cob, op), CodeBuilder::iconst_0, CodeBuilder::iconst_1);
                         } else {
                             // Processing is deferred to the CondBrOp, do not process the op result
                             rvt = null;
@@ -586,7 +597,7 @@ public final class BytecodeGenerator {
                             case 0 -> {
                                 if (isLastOpResultOnStack) {
                                     int slot = c.assignSlot(oprOnStack);
-                                    cob.storeInstruction(rvt, slot);
+                                    storeInstruction(cob, rvt, slot);
                                     isLastOpResultOnStack = false;
                                     oprOnStack = null;
                                 }
@@ -703,7 +714,7 @@ public final class BytecodeGenerator {
                         isLastOpResultOnStack = false;
                         oprOnStack = null;
                         int slot = c.assignSlot(o.result());
-                        cob.storeInstruction(rvt, slot);
+                        storeInstruction(cob, rvt, slot);
                     } else {
                         isLastOpResultOnStack = true;
                         oprOnStack = o.result();
@@ -734,26 +745,10 @@ public final class BytecodeGenerator {
                     if (getConditionForCondBrOp(op) instanceof CoreOps.BinaryTestOp btop) {
                         // Processing of the BinaryTestOp was deferred, so it can be merged with CondBrOp
                         processOperands(cob, c, btop, isLastOpResultOnStack);
-                        conditionalBranch(cob, btop,
-                                trueBuilder -> {
-                                    assignBlockArguments(btop, op.trueBranch(), trueBuilder, c);
-                                    trueBuilder.goto_(c.getLabel(op.trueBranch().targetBlock()));
-                                },
-                                falseBuilder -> {
-                                    assignBlockArguments(btop, op.falseBranch(), falseBuilder, c);
-                                    falseBuilder.goto_(c.getLabel(op.falseBranch().targetBlock()));
-                                });
+                        conditionalBranch(cob, c, btop, op.trueBranch(), op.falseBranch());
                     } else {
                         processOperands(cob, c, op, isLastOpResultOnStack);
-                        cob.ifThenElse(
-                                trueBuilder -> {
-                                    assignBlockArguments(op, op.trueBranch(), trueBuilder, c);
-                                    trueBuilder.goto_(c.getLabel(op.trueBranch().targetBlock()));
-                                },
-                                falseBuilder -> {
-                                    assignBlockArguments(op, op.falseBranch(), falseBuilder, c);
-                                    falseBuilder.goto_(c.getLabel(op.falseBranch().targetBlock()));
-                                });
+                        conditionalBranch(cob, c, Opcode.IFEQ, op, op.trueBranch(), op.falseBranch());
                     }
                 }
                 case ExceptionRegionEnter op -> {
@@ -896,13 +891,14 @@ public final class BytecodeGenerator {
             // The value and slot are still preserved in the live set,
             // so slots can still be queried, but no slots should be assigned
             // to new values until it is safe to do so
-            Integer slot = liveSet.get(v);
-            if (slot != null) {
-                freeSlots.set(slot);
-                if (slotsPerValue(v) == 2) {
-                    freeSlots.set(slot + 1);
-                }
-            }
+//@@@ BytecodeLift does not handle slot overrides correctly yet
+//            Integer slot = liveSet.get(v);
+//            if (slot != null) {
+//                freeSlots.set(slot);
+//                if (slotsPerValue(v) == 2) {
+//                    freeSlots.set(slot + 1);
+//                }
+//            }
         }
 
         static int slotsPerValue(Value x) {
@@ -936,20 +932,39 @@ public final class BytecodeGenerator {
         }
     }
 
-    private static void conditionalBranch(CodeBuilder cob, BinaryTestOp op,
-                                          Consumer<BlockCodeBuilder> trueBlock, Consumer<BlockCodeBuilder> falseBlock) {
+    private static void conditionalBranch(CodeBuilder cob, ConversionContext c, BinaryTestOp op,
+                                          Block.Reference trueBlock, Block.Reference falseBlock) {
+        conditionalBranch(cob, c, prepareReverseCondition(cob, op), op, trueBlock, falseBlock);
+    }
+
+    private static void conditionalBranch(CodeBuilder cob, ConversionContext c, Opcode reverseOpcode, Op op,
+                                          Block.Reference trueBlock, Block.Reference falseBlock) {
+        if (!needToAssignBlockArguments(falseBlock.targetBlock(), c)) {
+            cob.branchInstruction(reverseOpcode, c.getLabel(falseBlock.targetBlock()));
+        } else {
+            cob.ifThen(reverseOpcode,
+                bb -> {
+                    assignBlockArguments(op, falseBlock, bb, c);
+                    bb.goto_(c.getLabel(falseBlock.targetBlock()));
+                });
+        }
+        assignBlockArguments(op, trueBlock, cob, c);
+        cob.goto_(c.getLabel(trueBlock.targetBlock()));
+    }
+
+    private static Opcode prepareReverseCondition(CodeBuilder cob, BinaryTestOp op) {
         TypeKind vt = toTypeKind(op.operands().get(0).type());
         if (vt == TypeKind.IntType) {
-            cob.ifThenElse(switch (op) {
-                case EqOp _ -> Opcode.IF_ICMPEQ;
-                case NeqOp _ -> Opcode.IF_ICMPNE;
-                case GtOp _ -> Opcode.IF_ICMPGT;
-                case GeOp _ -> Opcode.IF_ICMPGE;
-                case LtOp _ -> Opcode.IF_ICMPLT;
-                case LeOp _ -> Opcode.IF_ICMPLE;
+            return switch (op) {
+                case EqOp _ -> Opcode.IF_ICMPNE;
+                case NeqOp _ -> Opcode.IF_ICMPEQ;
+                case GtOp _ -> Opcode.IF_ICMPLE;
+                case GeOp _ -> Opcode.IF_ICMPLT;
+                case LtOp _ -> Opcode.IF_ICMPGE;
+                case LeOp _ -> Opcode.IF_ICMPGT;
                 default ->
                     throw new UnsupportedOperationException(op.opName());
-            }, trueBlock, falseBlock);
+            };
         } else {
             switch (vt) {
                 case FloatType -> cob.fcmpg(); // FCMPL?
@@ -958,17 +973,28 @@ public final class BytecodeGenerator {
                 default ->
                     throw new UnsupportedOperationException(op.opName() + " on " + vt);
             }
-            cob.ifThenElse(switch (op) {
-                case EqOp _ -> Opcode.IFEQ;
-                case NeqOp _ -> Opcode.IFNE;
-                case GtOp _ -> Opcode.IFGT;
-                case GeOp _ -> Opcode.IFGE;
-                case LtOp _ -> Opcode.IFLT;
-                case LeOp _ -> Opcode.IFLE;
+            return switch (op) {
+                case EqOp _ -> Opcode.IFNE;
+                case NeqOp _ -> Opcode.IFEQ;
+                case GtOp _ -> Opcode.IFLE;
+                case GeOp _ -> Opcode.IFLT;
+                case LtOp _ -> Opcode.IFGE;
+                case LeOp _ -> Opcode.IFGT;
                 default ->
                     throw new UnsupportedOperationException(op.opName());
-            }, trueBlock, falseBlock);
+            };
         }
+    }
+
+    private static boolean needToAssignBlockArguments(Block b, ConversionContext c) {
+        c.transitionLiveSlotSetTo(b);
+        LiveSlotSet liveSlots = c.liveSlotSet(b);
+        for (Block.Parameter barg : b.parameters()) {
+            if (liveSlots.getOrAssignSlot(barg) >= 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void assignBlockArguments(Op op, Block.Reference s, CodeBuilder cob, ConversionContext c) {
@@ -983,45 +1009,27 @@ public final class BytecodeGenerator {
         // First push successor arguments on the stack, then pop and assign
         // so as not to overwrite slots that are reused slots at different argument positions
 
-        // Push successor values on the stack
+        LiveSlotSet liveSlots = c.liveSlotSet(s.targetBlock());
         for (int i = 0; i < bargs.size(); i++) {
             Block.Parameter barg = bargs.get(i);
-            int bslot = c.liveSlotSet(s.targetBlock()).getOrAssignSlot(barg);
-
-            Value value = sargs.get(i);
-            if (value instanceof Op.Result or &&
-                    or.op() instanceof CoreOps.ConstantOp constantOp &&
-                    !constantOp.resultType().equals(JavaType.J_L_CLASS)) {
-                cob.constantInstruction(fromValue(constantOp.value()));
-            } else {
-                int sslot = c.getSlot(value);
-
-                // Assignment only required if slots differ
-                if (sslot != bslot) {
-                    TypeKind vt = toTypeKind(barg.type());
-                    cob.loadInstruction(vt, sslot);
-                }
-            }
-        }
-
-        // Pop successor arguments on the stack assigning to block argument slots if necessary
-        for (int i = bargs.size() - 1; i >= 0; i--) {
-            Block.Parameter barg = bargs.get(i);
-            int bslot = c.liveSlotSet(s.targetBlock()).getOrAssignSlot(barg);
-
-            Value value = sargs.get(i);
-            if (value instanceof Op.Result or &&
-                    or.op() instanceof CoreOps.ConstantOp constantOp &&
-                    !constantOp.resultType().equals(JavaType.J_L_CLASS)) {
-                TypeKind vt = toTypeKind(barg.type());
-                cob.storeInstruction(vt, bslot);
-            } else {
-                int sslot = c.getSlot(value);
-
-                // Assignment only required if slots differ
-                if (sslot != bslot) {
+            int bslot = liveSlots.getOrAssignSlot(barg);
+            if (bslot >= 0) {
+                Value value = sargs.get(i);
+                if (value instanceof Op.Result or &&
+                        or.op() instanceof CoreOps.ConstantOp constantOp &&
+                        !constantOp.resultType().equals(JavaType.J_L_CLASS)) {
+                    cob.constantInstruction(fromValue(constantOp.value()));
                     TypeKind vt = toTypeKind(barg.type());
                     cob.storeInstruction(vt, bslot);
+                } else {
+                    int sslot = c.getSlot(value);
+
+                    // Assignment only required if slots differ
+                    if (sslot != bslot) {
+                        TypeKind vt = toTypeKind(barg.type());
+                        cob.loadInstruction(vt, sslot);
+                        cob.storeInstruction(vt, bslot);
+                    }
                 }
             }
         }
