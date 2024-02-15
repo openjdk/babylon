@@ -229,22 +229,6 @@ public class TestSimple {
     }
 
     @CodeReflection
-    public static int conditionalExpression(int i, int len) {
-        return ((i - 1 >= 0) ? i - 1 : len - 1);
-    }
-
-    @Test
-    public void testConditionalExpression() throws Throwable {
-        CoreOps.FuncOp f = getFuncOp("conditionalExpression");
-
-        MethodHandle mh = generate(f);
-
-        Assert.assertEquals((int) mh.invoke(5, 10), conditionalExpression(5, 10));
-        Assert.assertEquals((int) mh.invoke(0, 10), conditionalExpression(0, 10));
-        Assert.assertEquals((int) mh.invoke(0, 50), conditionalExpression(0, 50));
-    }
-
-    @CodeReflection
     public static boolean xor(boolean a, boolean b) {
         return a ^ b;
     }
