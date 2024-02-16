@@ -78,14 +78,21 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      */
     public interface Invokable extends Nested {
         /**
-         * @return the body of the invokable operation.
+         * {@return the body of the invokable operation.}
          */
         Body body();
 
         /**
-         * @return the function type describing the invokable operation's parameter types and return type.
+         * {@return the function type describing the invokable operation's parameter types and return type.}
          */
         FunctionType invokableType();
+
+        /**
+         * {@return the entry block parameters of this operation's body}
+         */
+        default List<Block.Parameter> parameters() {
+            return body().entryBlock().parameters();
+        }
     }
 
     /**
