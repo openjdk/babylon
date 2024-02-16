@@ -27,6 +27,8 @@ package java.lang.reflect.code;
 
 import java.util.List;
 import java.util.function.BiFunction;
+import java.util.stream.Gatherer;
+import java.util.stream.Stream;
 
 /**
  * A code element, one of {@link Body body}, {@link Block block}, or {@link Op operation}.
@@ -43,6 +45,25 @@ public sealed interface CodeElement<
         C extends CodeElement<C, ?>>
         extends CodeItem
         permits Body, Block, Op {
+
+    /**
+     * {@return a stream of code elements sorted topologically in pre-order traversal.}
+     */
+    default Stream<CodeElement<?, ?>> elements() {
+        return Stream.of(Void.class).gather(() -> (_, _, downstream) -> traversePreOrder(downstream));
+    }
+
+    private boolean traversePreOrder(Gatherer.Downstream<? super CodeElement<?, ?>> v) {
+        if (!v.push(this)) {
+            return false;
+        }
+        for (C c : children()) {
+            if (!((CodeElement<?, ?>) c).traversePreOrder(v)) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     /**
      * Traverses this code element and any descendant code elements.
