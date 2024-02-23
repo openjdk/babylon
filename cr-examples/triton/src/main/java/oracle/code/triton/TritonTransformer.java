@@ -308,6 +308,7 @@ public final class TritonTransformer {
 
         //                Tensor load(Tensor ptr, Tensor mask)
         public static TensorType load(TensorType ptr, TensorType mask) {
+            checkTensorShape(ptr, mask);
             if (ptr.eType() instanceof PtrType eptr) {
                 return new TensorType(eptr.rType(), ptr.shape());
             }
@@ -495,6 +496,12 @@ public final class TritonTransformer {
         }
 
         static TensorType checkTensorTypes(TensorType a, TensorType b) {
+            List<Integer> s = checkTensorShape(a, b);
+            Type e = checkScalarTypes(a.eType(), b.eType());
+            return new TensorType(e, s);
+        }
+
+        static List<Integer> checkTensorShape(TensorType a, TensorType b) {
             if (a.shape().size() != b.shape().size()) {
                 // Shape mismatch
                 throw new IllegalStateException();
@@ -523,8 +530,7 @@ public final class TritonTransformer {
                 s.add(d);
             }
 
-            Type e = checkScalarTypes(a.eType(), b.eType());
-            return new TensorType(e, s);
+            return s;
         }
 
         static Type checkScalarTypes(Type a, Type b) {
@@ -671,7 +677,7 @@ public final class TritonTransformer {
                 }
             }
             default -> kblock.op(op);
-        };
+        }
         return kblock;
     }
 
@@ -832,7 +838,7 @@ public final class TritonTransformer {
         if (doSSA) {
             f = SSA.transform(f);
         }
-        // Remove unsued ops
+        // Remove unused ops
         f = f.transform((fblock, op) -> {
             if (op instanceof Op.Pure && op.result().uses().isEmpty()) {
                 return fblock;

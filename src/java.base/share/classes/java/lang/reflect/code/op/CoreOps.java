@@ -1962,7 +1962,7 @@ public final class CoreOps {
 
             @Override
             public TypeElement resultType() {
-                return operands().get(0).type();
+                return JavaType.VOID;
             }
         }
     }

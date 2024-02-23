@@ -27,7 +27,7 @@ package java.lang.reflect.code;
 
 import java.util.List;
 import java.util.function.BiFunction;
-import java.util.stream.Gatherer;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 /**
@@ -49,12 +49,14 @@ public sealed interface CodeElement<
     /**
      * {@return a stream of code elements sorted topologically in pre-order traversal.}
      */
+    // Code copied into the compiler cannot depend on new gatherer API
     default Stream<CodeElement<?, ?>> elements() {
-        return Stream.of(Void.class).gather(() -> (_, _, downstream) -> traversePreOrder(downstream));
+/*__throw new UnsupportedOperationException();__*/        return Stream.of(Void.class).gather(() -> (_, _, downstream) -> traversePreOrder(downstream::push));
     }
 
-    private boolean traversePreOrder(Gatherer.Downstream<? super CodeElement<?, ?>> v) {
-        if (!v.push(this)) {
+//    private boolean traversePreOrder(Gatherer.Downstream<? super CodeElement<?, ?>> v) {
+    private boolean traversePreOrder(Predicate<? super CodeElement<?, ?>> v) {
+        if (!v.test(this)) {
             return false;
         }
         for (C c : children()) {
