@@ -26,7 +26,8 @@ package oracle.code.triton;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import java.lang.reflect.Type;
+import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.type.JavaType;
 import java.lang.runtime.CodeReflection;
 import java.util.List;
 
@@ -299,17 +300,17 @@ public class TestMatrix {
     @TritonTestExtension.Kernel("matmul_kernel_broadcast")
     @Test
     public void testWithBroadcast(TritonTestExtension.TritonTestData t) {
-        List<Type> argTypes = List.of(
-                new PtrType(float.class),
-                new PtrType(float.class),
-                new PtrType(float.class),
-                int.class, int.class, int.class,
-                int.class, int.class,
-                int.class, int.class,
-                int.class, int.class,
-                new ConstantType(int.class, 32), new ConstantType(int.class, 64), new ConstantType(int.class, 32),
-                new ConstantType(int.class, 8),
-                new ConstantType(int.class, false));
+        List<TypeElement> argTypes = List.of(
+                new PtrType(JavaType.FLOAT),
+                new PtrType(JavaType.FLOAT),
+                new PtrType(JavaType.FLOAT),
+                JavaType.INT, JavaType.INT, JavaType.INT,
+                JavaType.INT, JavaType.INT,
+                JavaType.INT, JavaType.INT,
+                JavaType.INT, JavaType.INT,
+                new ConstantType(JavaType.INT, 32), new ConstantType(JavaType.INT, 64), new ConstantType(JavaType.INT, 32),
+                new ConstantType(JavaType.INT, 8),
+                new ConstantType(JavaType.INT, false));
 
         t.test(argTypes);
     }
@@ -546,17 +547,17 @@ public class TestMatrix {
     @TritonTestExtension.Kernel("matmul_kernel")
     @Test
     public void test(TritonTestExtension.TritonTestData t) {
-        List<Type> argTypes = List.of(
-                new PtrType(Float16.class),
-                new PtrType(Float16.class),
-                new PtrType(Float16.class),
-                int.class, int.class, int.class,
-                int.class, int.class,
-                int.class, int.class,
-                int.class, int.class,
-                new ConstantType(int.class, 32), new ConstantType(int.class, 64), new ConstantType(int.class, 32),
-                new ConstantType(int.class, 8),
-                new ConstantType(int.class, false));
+        List<TypeElement> argTypes = List.of(
+                new PtrType(Float16.FLOAT_16_TYPE),
+                new PtrType(Float16.FLOAT_16_TYPE),
+                new PtrType(Float16.FLOAT_16_TYPE),
+                JavaType.INT, JavaType.INT, JavaType.INT,
+                JavaType.INT, JavaType.INT,
+                JavaType.INT, JavaType.INT,
+                JavaType.INT, JavaType.INT,
+                new ConstantType(JavaType.INT, 32), new ConstantType(JavaType.INT, 64), new ConstantType(JavaType.INT, 32),
+                new ConstantType(JavaType.INT, 8),
+                new ConstantType(JavaType.INT, false));
 
         t.test(argTypes);
     }

@@ -27,7 +27,8 @@ import oracle.code.triton.TritonTestExtension.TritonTestData;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import java.lang.reflect.Type;
+import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.type.JavaType;
 import java.lang.runtime.CodeReflection;
 import java.util.List;
 
@@ -62,9 +63,9 @@ public class TestCdiv {
 
     @Test
     public void testScalar(TritonTestData t) {
-        List<Type> argTypes = List.of(
-                int.class,
-                int.class);
+        List<TypeElement> argTypes = List.of(
+                JavaType.INT,
+                JavaType.INT);
 
         t.test(argTypes);
     }
@@ -96,9 +97,9 @@ public class TestCdiv {
 
     @Test
     public void testConstant(TritonTestData t) {
-        List<Type> argTypes = List.of(
-                int.class,
-                new ConstantType(int.class, 10));
+        List<TypeElement> argTypes = List.of(
+                JavaType.INT,
+                new ConstantType(JavaType.INT, 10));
 
         t.test(argTypes);
     }
@@ -153,10 +154,10 @@ public class TestCdiv {
 
     @Test
     public void testCalls(TritonTestData t) {
-        List<Type> argTypes = List.of(
-                int.class,
-                int.class,
-                new ConstantType(int.class, 10));
+        List<TypeElement> argTypes = List.of(
+                JavaType.INT,
+                JavaType.INT,
+                new ConstantType(JavaType.INT, 10));
 
         t.test(argTypes);
     }

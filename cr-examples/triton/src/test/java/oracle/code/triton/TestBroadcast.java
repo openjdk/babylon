@@ -27,7 +27,8 @@ import oracle.code.triton.TritonTestExtension.TritonTestData;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import java.lang.reflect.Type;
+import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.type.JavaType;
 import java.lang.runtime.CodeReflection;
 import java.util.List;
 
@@ -73,10 +74,10 @@ public class TestBroadcast {
 
     @Test
     public void test1(TritonTestData t) {
-        List<Type> argTypes = List.of(
-                new PtrType(int.class),
-                int.class,
-                new ConstantType(int.class, 64));
+        List<TypeElement> argTypes = List.of(
+                new PtrType(JavaType.INT),
+                JavaType.INT,
+                new ConstantType(JavaType.INT, 64));
 
         t.test(argTypes);
     }
@@ -117,10 +118,10 @@ public class TestBroadcast {
 
     @Test
     public void test2(TritonTestData t) {
-        List<Type> argTypes = List.of(
-                int.class,
-                new ConstantType(int.class, 64),
-                new ConstantType(int.class, 32)
+        List<TypeElement> argTypes = List.of(
+                JavaType.INT,
+                new ConstantType(JavaType.INT, 64),
+                new ConstantType(JavaType.INT, 32)
         );
 
         t.test(argTypes);
