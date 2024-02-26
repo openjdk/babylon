@@ -3143,4 +3143,48 @@ public class ExtendedOps {
     public static PatternOps.RecordPatternOp recordPattern(RecordTypeDesc recordDescriptor, List<Value> nestedPatterns) {
         return new PatternOps.RecordPatternOp(recordDescriptor, nestedPatterns);
     }
+
+    @OpDeclaration(StringTemplateOp.NAME)
+    public static final class StringTemplateOp extends OpWithDefinition {
+
+        public static final String NAME = "java.stringTemplate";
+
+        public StringTemplateOp(OpDefinition def) {
+            super(def);
+        }
+
+        StringTemplateOp(StringTemplateOp that, CopyContext cc, OpTransformer ot) {
+            super(that, cc);
+        }
+
+        @Override
+        public StringTemplateOp transform(CopyContext cc, OpTransformer ot) {
+            return new StringTemplateOp(this, cc, ot);
+        }
+
+        public StringTemplateOp(List<Value> literalsValues, List<Value> expressionValues) {
+            super(NAME, getOperandsList(literalsValues, expressionValues));
+        }
+
+        private static List<Value> getOperandsList(List<Value> literalsValues, List<Value> expressionValues) {
+            List<Value> operands = new ArrayList<>();
+            for (int i = 0; i < literalsValues.size(); i++) {
+                operands.add(literalsValues.get(i));
+                if (i < expressionValues.size()) {
+                    operands.add(expressionValues.get(i));
+                }
+            }
+            return operands;
+        }
+
+        @Override
+        public TypeElement resultType() {
+            return JavaType.J_L_STRING_TEMPLATE;
+        }
+    }
+
+    public static StringTemplateOp stringTemplate(List<Value> literalsValues, List<Value> expressionsValues) {
+        return new StringTemplateOp(literalsValues, expressionsValues);
+    }
+
 }

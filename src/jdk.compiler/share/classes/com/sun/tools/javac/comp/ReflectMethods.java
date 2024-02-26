@@ -440,7 +440,8 @@ public class ReflectMethods extends TreeTranslator {
                         Tag.CONDEXPR,
                         Tag.LABELLED,
                         Tag.SKIP,
-                        Tag.TYPEARRAY);
+                        Tag.TYPEARRAY,
+                        Tag.STRING_TEMPLATE);
 
         BodyScanner(JCMethodDecl tree) {
             this(tree, tree.body);
@@ -2091,6 +2092,26 @@ public class ReflectMethods extends TreeTranslator {
         @Override
         public void visitClassDef(JCClassDecl tree) {
             // do nothing
+        }
+
+
+        @Override
+        public void visitStringTemplate(JCTree.JCStringTemplate tree) {
+            /*
+            #1 = "y= "
+            #2 = ""
+            #3 = y
+            #4 = StringTemplate(#1 #3 #2)
+            #5 invoke StringTemplate.Processor.process #stp #4
+            */
+            List<Value> literalsValues = tree.fragments.map(f -> append(CoreOps.constant(JavaType.J_L_STRING, f)));
+            List<Value> expressionsValues = tree.expressions.map(e -> toValue(e));
+            Op.Result stringTemplateValue = append(ExtendedOps.stringTemplate(literalsValues, expressionsValues));
+            Value processorValue = toValue(tree.processor);
+            TypeElement processorReturnType = typeToTypeElement(tree.processor.type.allparams().get(0));
+            result = append(CoreOps.invoke(
+                    MethodDesc.method(JavaType.J_L_STRING_TEMPLATE_PROCESSOR, "process", processorReturnType, JavaType.J_L_STRING_TEMPLATE),
+                    processorValue, stringTemplateValue));
         }
 
         UnsupportedASTException unsupported(JCTree tree) {
