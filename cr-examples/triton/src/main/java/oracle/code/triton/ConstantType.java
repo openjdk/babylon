@@ -25,24 +25,23 @@
 
 package oracle.code.triton;
 
-import java.lang.reflect.Type;
+import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.type.TypeDefinition;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 public final class ConstantType extends TritonType {
     static final String NAME = "constant";
 
-    final Type cType;
+    final TypeElement cType;
     final Object value;
 
-    public ConstantType(Type cType, Object value) {
+    public ConstantType(TypeElement cType, Object value) {
         this.cType = cType;
         this.value = value;
     }
 
-    public Type cType() {
+    public TypeElement cType() {
         return cType;
     }
 
@@ -66,7 +65,7 @@ public final class ConstantType extends TritonType {
     @Override
     public TypeDefinition toTypeDefinition() {
         return new TypeDefinition(NAME,
-                List.of(fromType(cType).toTypeDefinition(),
+                List.of(cType.toTypeDefinition(),
                         new TypeDefinition("c" + value, List.of())));
     }
 

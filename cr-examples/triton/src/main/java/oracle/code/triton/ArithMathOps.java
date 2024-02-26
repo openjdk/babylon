@@ -128,7 +128,7 @@ public class ArithMathOps {
                     return n.doubleValue();
                 }
             } else if (t instanceof TensorType tt) {
-                return processConstantValue(TritonType.fromType(tt.eType()), value);
+                return processConstantValue(tt.eType(), value);
             }
 
             throw new UnsupportedOperationException("Unsupported constant type and value: " + t + " " + value);
@@ -450,9 +450,9 @@ public class ArithMathOps {
 
     static String maxMinSuffixFromType(TypeElement t) {
         if (t instanceof TensorType tt) {
-            return maxMinSuffixFromType(TritonType.fromType(tt.eType()));
+            return maxMinSuffixFromType(tt.eType());
         } else if (t instanceof PtrType pt) {
-            return maxMinSuffixFromType(TritonType.fromType(pt.rType()));
+            return maxMinSuffixFromType(pt.rType());
         } else if (t.equals(JavaType.INT)) {
             return "";
         } else if (t.equals(JavaType.FLOAT)) {
@@ -464,9 +464,9 @@ public class ArithMathOps {
 
     static String nameSuffixFromType(TypeElement t, boolean signed) {
         if (t instanceof TensorType tt) {
-            return nameSuffixFromType(TritonType.fromType(tt.eType()), signed);
+            return nameSuffixFromType(tt.eType(), signed);
         } else if (t instanceof PtrType pt) {
-            return nameSuffixFromType(TritonType.fromType(pt.rType()), signed);
+            return nameSuffixFromType(pt.rType(), signed);
         } else if (t.equals(JavaType.INT) || t.equals(JavaType.LONG)) {
             return (signed ? "s" : "") + "i";
         } else if (t.equals(JavaType.FLOAT) || t.equals(JavaType.DOUBLE) ||

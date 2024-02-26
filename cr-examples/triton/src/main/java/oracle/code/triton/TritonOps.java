@@ -25,7 +25,6 @@
 
 package oracle.code.triton;
 
-import java.lang.invoke.MethodHandles;
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.op.*;
 import java.lang.reflect.code.type.*;
@@ -511,7 +510,7 @@ public class TritonOps {
         }
 
         static TensorType tensorType(int start, int end) {
-            return new TensorType(int.class, List.of(end - start));
+            return new TensorType(JavaType.INT, List.of(end - start));
         }
 
         @Override
@@ -837,10 +836,8 @@ public class TritonOps {
                     if (v == null) {
                         throw new IllegalArgumentException("Bad type: " + tree);
                     }
-                    if (v instanceof JavaType jt) {
-                        yield new PtrType(resolve(jt));
-                    } else if (v instanceof TensorType tt) {
-                        yield new PtrType(tt);
+                    if (v instanceof JavaType || v instanceof TritonType) {
+                        yield new PtrType(v);
                     } else {
                         throw new IllegalArgumentException("Bad type: " + tree);
                     }
@@ -869,10 +866,8 @@ public class TritonOps {
                     if (v == null) {
                         throw new IllegalArgumentException("Bad type: " + tree);
                     }
-                    if (v instanceof JavaType jt) {
-                        yield new TensorType(resolve(jt), shape);
-                    } else if (v instanceof TritonType tt) {
-                        yield new TensorType(tt, shape);
+                    if (v instanceof JavaType || v instanceof TritonType) {
+                        yield new TensorType(v, shape);
                     } else {
                         throw new IllegalArgumentException("Bad type: " + tree);
                     }
@@ -881,14 +876,6 @@ public class TritonOps {
             };
         }
     };
-
-    static Class<?> resolve(JavaType t) {
-        try {
-            return t.resolve(MethodHandles.lookup());
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalArgumentException("Bad type: " + t, e);
-        }
-    }
 
     // Triton types then Java types
     static final TypeElementFactory TRITON_JAVA_TYPE_FACTORY =

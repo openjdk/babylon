@@ -27,7 +27,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import java.lang.reflect.Type;
+import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.type.JavaType;
 import java.lang.runtime.CodeReflection;
 import java.util.List;
 
@@ -49,8 +50,8 @@ public class TestVariables {
 
     @Test
     public void test1(TritonTestExtension.TritonTestData t) {
-        List<Type> argTypes = List.of(
-                new ConstantType(int.class, 32));
+        List<TypeElement> argTypes = List.of(
+                new ConstantType(JavaType.INT, 32));
 
         Assertions.assertThrows(IllegalStateException.class, () -> {
             t.test(argTypes);

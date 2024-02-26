@@ -33,9 +33,10 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Method;
-import java.lang.reflect.Type;
+import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.parser.OpParser;
+import java.lang.reflect.code.type.JavaType;
 import java.lang.runtime.CodeReflection;
 import java.util.List;
 import java.util.Optional;
@@ -73,7 +74,7 @@ public class TritonTestExtension implements ParameterResolver {
             this.javaKernelName = javaKernelName;
         }
 
-        public void test(List<Type> argTypes) {
+        public void test(List<? extends TypeElement> argTypes) {
             Optional<Method> om = Stream.of(testClass.getDeclaredMethods())
                     .filter(m -> m.getName().equals(javaKernelName))
                     .filter(m -> m.getAnnotation(CodeReflection.class) != null)
@@ -99,11 +100,11 @@ public class TritonTestExtension implements ParameterResolver {
         }
 
         void test(CoreOps.FuncOp javaKernel,
-                  List<Type> argTypes,
+                  List<? extends TypeElement> argTypes,
                   TritonOps.ModuleOp expectedTritonKernel,
                   boolean doSSA) {
             TritonOps.ModuleOp actualTritonKernel = ScopedValue.getWhere(TritonTransformer.SV_SSA, doSSA,() -> {
-                return TritonTransformer.tritonModule(javaKernel, void.class, argTypes);
+                return TritonTransformer.tritonModule(javaKernel, JavaType.VOID, argTypes);
             });
 
             Assertions.assertEquals(
