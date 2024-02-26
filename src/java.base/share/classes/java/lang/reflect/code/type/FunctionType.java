@@ -10,7 +10,14 @@ import java.util.stream.Stream;
  * A function type.
  */
 public final class FunctionType implements TypeElement {
-    static final String NAME = "->";
+    // @@@ Change to "->" when the textual form supports it
+    static final String NAME = "func";
+
+    /**
+     * The function type with no parameters, returning void.
+     */
+    // @@@ Uses JavaType
+    public static final FunctionType VOID = functionType(JavaType.VOID);
 
     final TypeElement returnType;
     final List<TypeElement> parameterTypes;
@@ -35,11 +42,15 @@ public final class FunctionType implements TypeElement {
     }
 
     @Override
+    public TypeDefinition toTypeDefinition() {
+        return new TypeDefinition(NAME,
+                Stream.concat(Stream.of(returnType), parameterTypes.stream())
+                        .map(TypeElement::toTypeDefinition).toList());
+    }
+
+    @Override
     public String toString() {
-        String cs = Stream.concat(Stream.of(returnType), parameterTypes.stream())
-                .map(TypeElement::toString)
-                .collect(Collectors.joining(",", "<", ">"));
-        return NAME + cs;
+        return toTypeDefinition().toString();
     }
 
     @Override

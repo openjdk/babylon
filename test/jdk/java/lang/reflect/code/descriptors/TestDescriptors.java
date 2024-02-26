@@ -26,8 +26,6 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.code.descriptor.*;
-import java.lang.reflect.code.type.TypeDefinition;
-import java.util.stream.Stream;
 
 /*
  * @test
@@ -35,70 +33,6 @@ import java.util.stream.Stream;
  */
 
 public class TestDescriptors {
-
-    @DataProvider
-    public Object[][] TypeDescs() {
-        return new Object[][]{
-                {"boolean", "Z"},
-                {"byte", "B"},
-                {"char", "C"},
-                {"short", "S"},
-                {"int", "I"},
-                {"long", "J"},
-                {"float", "F"},
-                {"double", "D"},
-                {"void", "V"},
-                {"int[]", "[I"},
-                {"int[][][][]", "[[[[I"},
-                {"java.lang.String", "Ljava/lang/String;"},
-                {"java.lang.String[][]", "[[Ljava/lang/String;"},
-                {"a.b.C$D", "La/b/C$D;"},
-        };
-    }
-
-    @Test(dataProvider = "TypeDescs")
-    public void testTypeDesc(String tds, String bcd) {
-        TypeDefinition td = TypeDefinition.ofString(tds);
-        Assert.assertEquals(td.toString(), tds);
-    }
-
-    @DataProvider
-    public Object[][] classDescriptors() {
-        return new Object[][]{
-                {"java.lang.String", "java.lang.String"},
-        };
-    }
-
-    @Test(dataProvider = "classDescriptors")
-    public void classDescriptor(String tds, String bcd) {
-        TypeDefinition td = TypeDefinition.ofString(tds);
-        Assert.assertEquals(td.toString(), tds);
-    }
-
-    @DataProvider
-    public Object[][] paramTypeDescs() {
-        return new Object[][]{
-                {"java.util.List<T>", "T"},
-                {"java.util.List<T>[]", "T"},
-                {"java.util.List<java.util.function.Supplier<T>>", "java.util.function.Supplier<T>"},
-                {"java.util.List<java.util.function.Supplier<T>>[][]", "java.util.function.Supplier<T>"},
-                {"java.util.Map<K, V>", "K", "V"},
-                {"ab<cd<S<T, V>, N>>", "cd<S<T, V>, N>"},
-                {"java.util.Consumer<java.util.Function<String, Number>>", "java.util.Function<String, Number>"},
-        };
-    }
-
-    @Test(dataProvider = "paramTypeDescs")
-    public void testParamTypeDesc(String tds, String... paramTypes) {
-        TypeDefinition td = TypeDefinition.ofString(tds);
-        Assert.assertEquals(td.toString(), tds);
-
-        Assert.assertTrue(td.hasTypeArguments());
-        Assert.assertEquals(paramTypes.length, td.typeArguments().size());
-
-        Assert.assertEquals(td.typeArguments(), Stream.of(paramTypes).map(TypeDefinition::ofString).toList());
-    }
-
 
     @DataProvider
     public Object[][] methodTypeDescriptors() {

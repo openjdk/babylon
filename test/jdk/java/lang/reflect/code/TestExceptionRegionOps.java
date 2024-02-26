@@ -67,7 +67,7 @@ public class TestExceptionRegionOps {
 
     @Test
     public void test() {
-        CoreOps.FuncOp f = func("f", methodType(void.class, IntConsumer.class))
+        CoreOps.FuncOp f = func("f", methodType(void.class, IntConsumer.class).toFunctionType())
                 .body(fbody -> {
                     var fblock = fbody.entryBlock();
                     var catchER1ISE = fblock.block(type(IllegalStateException.class));
@@ -158,7 +158,7 @@ public class TestExceptionRegionOps {
 
     @Test
     public void testCatchThrowable() {
-        CoreOps.FuncOp f = func("f", methodType(void.class, IntConsumer.class))
+        CoreOps.FuncOp f = func("f", methodType(void.class, IntConsumer.class).toFunctionType())
                 .body(fbody -> {
                     var fblock = fbody.entryBlock();
                     var catchER1ISE = fblock.block(type(IllegalStateException.class));
@@ -252,7 +252,7 @@ public class TestExceptionRegionOps {
 
     @Test
     public void testNested() {
-        CoreOps.FuncOp f = func("f", methodType(void.class, IntConsumer.class))
+        CoreOps.FuncOp f = func("f", methodType(void.class, IntConsumer.class).toFunctionType())
                 .body(fbody -> {
                     var fblock = fbody.entryBlock();
                     var catchER1 = fblock.block(type(IllegalArgumentException.class));
@@ -373,7 +373,7 @@ public class TestExceptionRegionOps {
 
     @Test
     public void testCatchFinally() {
-        CoreOps.FuncOp f = func("f", methodType(void.class, IntConsumer.class))
+        CoreOps.FuncOp f = func("f", methodType(void.class, IntConsumer.class).toFunctionType())
                 .body(fbody -> {
                     var fblock = fbody.entryBlock();
                     var catchRE = fblock.block(type(IllegalStateException.class));

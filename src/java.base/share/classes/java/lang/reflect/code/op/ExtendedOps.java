@@ -27,8 +27,8 @@ package java.lang.reflect.code.op;
 
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.descriptor.MethodDesc;
-import java.lang.reflect.code.descriptor.MethodTypeDesc;
 import java.lang.reflect.code.descriptor.RecordTypeDesc;
+import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.type.TupleType;
 import java.lang.reflect.code.TypeElement;
@@ -319,11 +319,11 @@ public class ExtendedOps {
             super(NAME, List.of());
 
             this.body = bodyC.build(this);
-            if (!body.descriptor().returnType().equals(JavaType.VOID)) {
-                throw new IllegalArgumentException("Body should return void: " + body.descriptor());
+            if (!body.bodyType().returnType().equals(JavaType.VOID)) {
+                throw new IllegalArgumentException("Body should return void: " + body.bodyType());
             }
-            if (!body.descriptor().parameters().isEmpty()) {
-                throw new IllegalArgumentException("Body should have zero parameters: " + body.descriptor());
+            if (!body.bodyType().parameterTypes().isEmpty()) {
+                throw new IllegalArgumentException("Body should have zero parameters: " + body.bodyType());
             }
         }
 
@@ -399,11 +399,11 @@ public class ExtendedOps {
             super(NAME, List.of());
 
             this.body = bodyC.build(this);
-            if (!body.descriptor().returnType().equals(JavaType.VOID)) {
-                throw new IllegalArgumentException("Body should return void: " + body.descriptor());
+            if (!body.bodyType().returnType().equals(JavaType.VOID)) {
+                throw new IllegalArgumentException("Body should return void: " + body.bodyType());
             }
-            if (!body.descriptor().parameters().isEmpty()) {
-                throw new IllegalArgumentException("Body should have zero parameters: " + body.descriptor());
+            if (!body.bodyType().parameterTypes().isEmpty()) {
+                throw new IllegalArgumentException("Body should have zero parameters: " + body.bodyType());
             }
         }
 
@@ -461,9 +461,9 @@ public class ExtendedOps {
     @OpDeclaration(JavaIfOp.NAME)
     public static final class JavaIfOp extends OpWithDefinition implements Op.Nested, Op.Lowerable {
 
-        static final MethodTypeDesc PREDICATE_TYPE = MethodTypeDesc.methodType(JavaType.BOOLEAN);
+        static final FunctionType PREDICATE_TYPE = FunctionType.functionType(JavaType.BOOLEAN);
 
-        static final MethodTypeDesc ACTION_TYPE = MethodTypeDesc.VOID;
+        static final FunctionType ACTION_TYPE = FunctionType.VOID;
 
         public static class IfBuilder {
             final Body.Builder ancestorBody;
@@ -580,7 +580,7 @@ public class ExtendedOps {
             if (bodyCs.size() % 2 == 0) {
                 bodyCs = new ArrayList<>(bodyCs);
                 Body.Builder end = Body.Builder.of(bodyCs.get(0).ancestorBody(),
-                        MethodTypeDesc.VOID);
+                        FunctionType.VOID);
                 end.entryBlock().op(_yield());
                 bodyCs.add(end);
             }
@@ -597,12 +597,12 @@ public class ExtendedOps {
                 } else {
                     action = bodies.get(i + 1);
                     Body fromPred = bodies.get(i);
-                    if (!fromPred.descriptor().equals(MethodTypeDesc.methodType(JavaType.BOOLEAN))) {
-                        throw new IllegalArgumentException("Illegal predicate body descriptor: " + fromPred.descriptor());
+                    if (!fromPred.bodyType().equals(FunctionType.functionType(JavaType.BOOLEAN))) {
+                        throw new IllegalArgumentException("Illegal predicate body descriptor: " + fromPred.bodyType());
                     }
                 }
-                if (!action.descriptor().equals(MethodTypeDesc.VOID)) {
-                    throw new IllegalArgumentException("Illegal action body descriptor: " + action.descriptor());
+                if (!action.bodyType().equals(FunctionType.VOID)) {
+                    throw new IllegalArgumentException("Illegal action body descriptor: " + action.bodyType());
                 }
             }
         }
@@ -795,7 +795,7 @@ public class ExtendedOps {
 
             public JavaForOp.CondBuilder init(Consumer<Block.Builder> c) {
                 Body.Builder init = Body.Builder.of(ancestorBody,
-                        MethodTypeDesc.methodType(TupleType.tupleType(initTypes)));
+                        FunctionType.functionType(TupleType.tupleType(initTypes)));
                 c.accept(init.entryBlock());
 
                 return new CondBuilder(ancestorBody, initTypes, init);
@@ -817,7 +817,7 @@ public class ExtendedOps {
 
             public JavaForOp.UpdateBuilder cond(Consumer<Block.Builder> c) {
                 Body.Builder cond = Body.Builder.of(ancestorBody,
-                        MethodTypeDesc.methodType(JavaType.BOOLEAN, initTypes));
+                        FunctionType.functionType(JavaType.BOOLEAN, initTypes));
                 c.accept(cond.entryBlock());
 
                 return new UpdateBuilder(ancestorBody, initTypes, init, cond);
@@ -841,7 +841,7 @@ public class ExtendedOps {
 
             public JavaForOp.BodyBuilder cond(Consumer<Block.Builder> c) {
                 Body.Builder update = Body.Builder.of(ancestorBody,
-                        MethodTypeDesc.methodType(JavaType.VOID, initTypes));
+                        FunctionType.functionType(JavaType.VOID, initTypes));
                 c.accept(update.entryBlock());
 
                 return new BodyBuilder(ancestorBody, initTypes, init, cond, update);
@@ -868,7 +868,7 @@ public class ExtendedOps {
 
             public JavaForOp body(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody,
-                        MethodTypeDesc.methodType(JavaType.VOID, initTypes));
+                        FunctionType.functionType(JavaType.VOID, initTypes));
                 c.accept(body.entryBlock());
 
                 return new JavaForOp(init, cond, update, body);
@@ -920,13 +920,13 @@ public class ExtendedOps {
             this.cond = condC.build(this);
 
             this.update = updateC.build(this);
-            if (!update.descriptor().returnType().equals(JavaType.VOID)) {
-                throw new IllegalArgumentException("Update should return void: " + update.descriptor());
+            if (!update.bodyType().returnType().equals(JavaType.VOID)) {
+                throw new IllegalArgumentException("Update should return void: " + update.bodyType());
             }
 
             this.body = bodyC.build(this);
-            if (!body.descriptor().returnType().equals(JavaType.VOID)) {
-                throw new IllegalArgumentException("Body should return void: " + body.descriptor());
+            if (!body.bodyType().returnType().equals(JavaType.VOID)) {
+                throw new IllegalArgumentException("Body should return void: " + body.bodyType());
             }
         }
 
@@ -1056,7 +1056,7 @@ public class ExtendedOps {
 
             public DefinitionBuilder expression(Consumer<Block.Builder> c) {
                 Body.Builder expression = Body.Builder.of(ancestorBody,
-                        MethodTypeDesc.methodType(iterableType));
+                        FunctionType.functionType(iterableType));
                 c.accept(expression.entryBlock());
 
                 return new DefinitionBuilder(ancestorBody, elementType, expression);
@@ -1081,7 +1081,7 @@ public class ExtendedOps {
 
             public BodyBuilder definition(TypeElement bodyElementType, Consumer<Block.Builder> c) {
                 Body.Builder definition = Body.Builder.of(ancestorBody,
-                        MethodTypeDesc.methodType(bodyElementType, elementType));
+                        FunctionType.functionType(bodyElementType, elementType));
                 c.accept(definition.entryBlock());
 
                 return new BodyBuilder(ancestorBody, elementType, expression, definition);
@@ -1104,7 +1104,7 @@ public class ExtendedOps {
 
             public JavaEnhancedForOp body(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody,
-                        MethodTypeDesc.methodType(JavaType.VOID, elementType));
+                        FunctionType.functionType(JavaType.VOID, elementType));
                 c.accept(body.entryBlock());
 
                 return new JavaEnhancedForOp(expression, definition, body);
@@ -1146,27 +1146,27 @@ public class ExtendedOps {
             super(NAME, List.of());
 
             this.expression = expressionC.build(this);
-            if (expression.descriptor().returnType().equals(JavaType.VOID)) {
-                throw new IllegalArgumentException("Expression should return non-void value: " + expression.descriptor());
+            if (expression.bodyType().returnType().equals(JavaType.VOID)) {
+                throw new IllegalArgumentException("Expression should return non-void value: " + expression.bodyType());
             }
-            if (!expression.descriptor().parameters().isEmpty()) {
-                throw new IllegalArgumentException("Expression should have zero parameters: " + expression.descriptor());
+            if (!expression.bodyType().parameterTypes().isEmpty()) {
+                throw new IllegalArgumentException("Expression should have zero parameters: " + expression.bodyType());
             }
 
             this.init = initC.build(this);
-            if (init.descriptor().returnType().equals(JavaType.VOID)) {
-                throw new IllegalArgumentException("Initialization should return non-void value: " + init.descriptor());
+            if (init.bodyType().returnType().equals(JavaType.VOID)) {
+                throw new IllegalArgumentException("Initialization should return non-void value: " + init.bodyType());
             }
-            if (init.descriptor().parameters().size() != 1) {
-                throw new IllegalArgumentException("Initialization should have one parameter: " + init.descriptor());
+            if (init.bodyType().parameterTypes().size() != 1) {
+                throw new IllegalArgumentException("Initialization should have one parameter: " + init.bodyType());
             }
 
             this.body = bodyC.build(this);
-            if (!body.descriptor().returnType().equals(JavaType.VOID)) {
-                throw new IllegalArgumentException("Body should return void: " + body.descriptor());
+            if (!body.bodyType().returnType().equals(JavaType.VOID)) {
+                throw new IllegalArgumentException("Body should return void: " + body.bodyType());
             }
-            if (body.descriptor().parameters().size() != 1) {
-                throw new IllegalArgumentException("Body should have one parameter: " + body.descriptor());
+            if (body.bodyType().parameterTypes().size() != 1) {
+                throw new IllegalArgumentException("Body should have one parameter: " + body.bodyType());
             }
         }
 
@@ -1195,9 +1195,9 @@ public class ExtendedOps {
         @Override
         public Block.Builder lower(Block.Builder b, OpTransformer opT) {
             JavaType elementType = (JavaType) init.entryBlock().parameters().get(0).type();
-            boolean isArray = ((JavaType) expression.descriptor().returnType()).isArray();
+            boolean isArray = ((JavaType) expression.bodyType().returnType()).isArray();
 
-            Block.Builder preHeader = b.block(expression.descriptor().returnType());
+            Block.Builder preHeader = b.block(expression.bodyType().returnType());
             Block.Builder header = b.block(isArray ? List.of(JavaType.INT) : List.of());
             Block.Builder init = b.block();
             Block.Builder body = b.block();
@@ -1310,7 +1310,7 @@ public class ExtendedOps {
             }
 
             public JavaWhileOp.BodyBuilder predicate(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, MethodTypeDesc.methodType(JavaType.BOOLEAN));
+                Body.Builder body = Body.Builder.of(ancestorBody, FunctionType.functionType(JavaType.BOOLEAN));
                 c.accept(body.entryBlock());
 
                 return new JavaWhileOp.BodyBuilder(ancestorBody, body);
@@ -1327,7 +1327,7 @@ public class ExtendedOps {
             }
 
             public JavaWhileOp body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, MethodTypeDesc.VOID);
+                Body.Builder body = Body.Builder.of(ancestorBody, FunctionType.VOID);
                 c.accept(body.entryBlock());
 
                 return new JavaWhileOp(List.of(predicate, body));
@@ -1360,15 +1360,15 @@ public class ExtendedOps {
                     .map(bc -> bc.build(this)).toList();
 
             // @@@ This will change with pattern bindings
-            if (!bodies.get(0).descriptor().equals(MethodTypeDesc.methodType(JavaType.BOOLEAN))) {
+            if (!bodies.get(0).bodyType().equals(FunctionType.functionType(JavaType.BOOLEAN))) {
                 throw new IllegalArgumentException(
-                        "Predicate body descriptor should be " + MethodTypeDesc.methodType(JavaType.BOOLEAN) +
-                                " but is " + bodies.get(0).descriptor());
+                        "Predicate body descriptor should be " + FunctionType.functionType(JavaType.BOOLEAN) +
+                                " but is " + bodies.get(0).bodyType());
             }
-            if (!bodies.get(1).descriptor().equals(MethodTypeDesc.VOID)) {
+            if (!bodies.get(1).bodyType().equals(FunctionType.VOID)) {
                 throw new IllegalArgumentException(
-                        "Body descriptor should be " + MethodTypeDesc.methodType(JavaType.VOID) +
-                                " but is " + bodies.get(1).descriptor());
+                        "Body descriptor should be " + FunctionType.functionType(JavaType.VOID) +
+                                " but is " + bodies.get(1).bodyType());
             }
         }
 
@@ -1457,7 +1457,7 @@ public class ExtendedOps {
             }
 
             public JavaDoWhileOp predicate(Consumer<Block.Builder> c) {
-                Body.Builder predicate = Body.Builder.of(ancestorBody, MethodTypeDesc.methodType(JavaType.BOOLEAN));
+                Body.Builder predicate = Body.Builder.of(ancestorBody, FunctionType.functionType(JavaType.BOOLEAN));
                 c.accept(predicate.entryBlock());
 
                 return new JavaDoWhileOp(List.of(body, predicate));
@@ -1472,7 +1472,7 @@ public class ExtendedOps {
             }
 
             public JavaDoWhileOp.PredicateBuilder body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, MethodTypeDesc.VOID);
+                Body.Builder body = Body.Builder.of(ancestorBody, FunctionType.VOID);
                 c.accept(body.entryBlock());
 
                 return new JavaDoWhileOp.PredicateBuilder(ancestorBody, body);
@@ -1504,15 +1504,15 @@ public class ExtendedOps {
             this.bodies = Stream.of(body, predicate).filter(Objects::nonNull)
                     .map(bc -> bc.build(this)).toList();
 
-            if (!bodies.get(0).descriptor().equals(MethodTypeDesc.VOID)) {
+            if (!bodies.get(0).bodyType().equals(FunctionType.VOID)) {
                 throw new IllegalArgumentException(
-                        "Body descriptor should be " + MethodTypeDesc.methodType(JavaType.VOID) +
-                                " but is " + bodies.get(1).descriptor());
+                        "Body descriptor should be " + FunctionType.functionType(JavaType.VOID) +
+                                " but is " + bodies.get(1).bodyType());
             }
-            if (!bodies.get(1).descriptor().equals(MethodTypeDesc.methodType(JavaType.BOOLEAN))) {
+            if (!bodies.get(1).bodyType().equals(FunctionType.functionType(JavaType.BOOLEAN))) {
                 throw new IllegalArgumentException(
-                        "Predicate body descriptor should be " + MethodTypeDesc.methodType(JavaType.BOOLEAN) +
-                                " but is " + bodies.get(0).descriptor());
+                        "Predicate body descriptor should be " + FunctionType.functionType(JavaType.BOOLEAN) +
+                                " but is " + bodies.get(0).bodyType());
             }
         }
 
@@ -1618,8 +1618,8 @@ public class ExtendedOps {
 
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
             for (Body b : bodies) {
-                if (!b.descriptor().equals(MethodTypeDesc.methodType(JavaType.BOOLEAN))) {
-                    throw new IllegalArgumentException("Body conditional body descriptor: " + b.descriptor());
+                if (!b.bodyType().equals(FunctionType.functionType(JavaType.BOOLEAN))) {
+                    throw new IllegalArgumentException("Body conditional body descriptor: " + b.bodyType());
                 }
             }
         }
@@ -1682,7 +1682,7 @@ public class ExtendedOps {
                 if (i == 0) {
                     startBlock.transformBody(fromPred, List.of(), opt);
                 } else {
-                    pred = startBlock.block(fromPred.descriptor().parameters());
+                    pred = startBlock.block(fromPred.bodyType().parameterTypes());
                     pred.transformBody(fromPred, pred.parameters(), opT.andThen(opt));
                 }
             }
@@ -1714,7 +1714,7 @@ public class ExtendedOps {
             }
 
             public Builder and(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, MethodTypeDesc.methodType(JavaType.BOOLEAN));
+                Body.Builder body = Body.Builder.of(ancestorBody, FunctionType.functionType(JavaType.BOOLEAN));
                 c.accept(body.entryBlock());
                 bodies.add(body);
 
@@ -1769,7 +1769,7 @@ public class ExtendedOps {
             }
 
             public Builder or(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, MethodTypeDesc.methodType(JavaType.BOOLEAN));
+                Body.Builder body = Body.Builder.of(ancestorBody, FunctionType.functionType(JavaType.BOOLEAN));
                 c.accept(body.entryBlock());
                 bodies.add(body);
 
@@ -1857,8 +1857,8 @@ public class ExtendedOps {
             }
 
             Body cond = bodies.get(0);
-            if (!cond.descriptor().equals(MethodTypeDesc.methodType(JavaType.BOOLEAN))) {
-                throw new IllegalArgumentException("Illegal cond body descriptor: " + cond.descriptor());
+            if (!cond.bodyType().equals(FunctionType.functionType(JavaType.BOOLEAN))) {
+                throw new IllegalArgumentException("Illegal cond body descriptor: " + cond.bodyType());
             }
         }
 
@@ -1930,7 +1930,7 @@ public class ExtendedOps {
 
             public CatchBuilder body(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody,
-                        MethodTypeDesc.methodType(JavaType.VOID, resourceTypes));
+                        FunctionType.functionType(JavaType.VOID, resourceTypes));
                 c.accept(body.entryBlock());
 
                 return new CatchBuilder(ancestorBody, resources, body);
@@ -1953,7 +1953,7 @@ public class ExtendedOps {
             // @@@ multi-catch
             public CatchBuilder _catch(TypeElement exceptionType, Consumer<Block.Builder> c) {
                 Body.Builder _catch = Body.Builder.of(ancestorBody,
-                        MethodTypeDesc.methodType(JavaType.VOID, exceptionType));
+                        FunctionType.functionType(JavaType.VOID, exceptionType));
                 c.accept(_catch.entryBlock());
                 catchers.add(_catch);
 
@@ -1961,7 +1961,7 @@ public class ExtendedOps {
             }
 
             public JavaTryOp _finally(Consumer<Block.Builder> c) {
-                Body.Builder _finally = Body.Builder.of(ancestorBody, MethodTypeDesc.VOID);
+                Body.Builder _finally = Body.Builder.of(ancestorBody, FunctionType.VOID);
                 c.accept(_finally.entryBlock());
 
                 return new JavaTryOp(resources, body, catchers, _finally);
@@ -1988,7 +1988,7 @@ public class ExtendedOps {
 
             List<Body> bodies = def.bodyDefinitions().stream().map(b -> b.build(this)).toList();
             Body first = bodies.get(0);
-            if (first.descriptor().returnType().equals(JavaType.VOID)) {
+            if (first.bodyType().returnType().equals(JavaType.VOID)) {
                 this.resources = null;
                 this.body = first;
             } else {
@@ -1997,7 +1997,7 @@ public class ExtendedOps {
             }
 
             Body last = bodies.get(bodies.size() - 1);
-            if (last.descriptor().parameters().isEmpty()) {
+            if (last.bodyType().parameterTypes().isEmpty()) {
                 this.finalizer = last;
             } else {
                 this.finalizer = null;
@@ -2039,38 +2039,38 @@ public class ExtendedOps {
 
             if (resourcesC != null) {
                 this.resources = resourcesC.build(this);
-                if (resources.descriptor().returnType().equals(JavaType.VOID)) {
-                    throw new IllegalArgumentException("Resources should not return void: " + resources.descriptor());
+                if (resources.bodyType().returnType().equals(JavaType.VOID)) {
+                    throw new IllegalArgumentException("Resources should not return void: " + resources.bodyType());
                 }
-                if (!resources.descriptor().parameters().isEmpty()) {
-                    throw new IllegalArgumentException("Resources should have zero parameters: " + resources.descriptor());
+                if (!resources.bodyType().parameterTypes().isEmpty()) {
+                    throw new IllegalArgumentException("Resources should have zero parameters: " + resources.bodyType());
                 }
             } else {
                 this.resources = null;
             }
 
             this.body = bodyC.build(this);
-            if (!body.descriptor().returnType().equals(JavaType.VOID)) {
-                throw new IllegalArgumentException("Try should return void: " + body.descriptor());
+            if (!body.bodyType().returnType().equals(JavaType.VOID)) {
+                throw new IllegalArgumentException("Try should return void: " + body.bodyType());
             }
 
             this.catchers = catchersC.stream().map(c -> c.build(this)).toList();
             for (Body _catch : catchers) {
-                if (!_catch.descriptor().returnType().equals(JavaType.VOID)) {
-                    throw new IllegalArgumentException("Catch should return void: " + _catch.descriptor());
+                if (!_catch.bodyType().returnType().equals(JavaType.VOID)) {
+                    throw new IllegalArgumentException("Catch should return void: " + _catch.bodyType());
                 }
-                if (_catch.descriptor().parameters().size() != 1) {
-                    throw new IllegalArgumentException("Catch should have zero parameters: " + _catch.descriptor());
+                if (_catch.bodyType().parameterTypes().size() != 1) {
+                    throw new IllegalArgumentException("Catch should have zero parameters: " + _catch.bodyType());
                 }
             }
 
             if (finalizerC != null) {
                 this.finalizer = finalizerC.build(this);
-                if (!finalizer.descriptor().returnType().equals(JavaType.VOID)) {
-                    throw new IllegalArgumentException("Finally should return void: " + finalizer.descriptor());
+                if (!finalizer.bodyType().returnType().equals(JavaType.VOID)) {
+                    throw new IllegalArgumentException("Finally should return void: " + finalizer.bodyType());
                 }
-                if (!finalizer.descriptor().parameters().isEmpty()) {
-                    throw new IllegalArgumentException("Finally should have zero parameters: " + finalizer.descriptor());
+                if (!finalizer.bodyType().parameterTypes().isEmpty()) {
+                    throw new IllegalArgumentException("Finally should have zero parameters: " + finalizer.bodyType());
                 }
             } else {
                 this.finalizer = null;
@@ -2211,7 +2211,7 @@ public class ExtendedOps {
                 Block.Builder catcher = catchers.get(i);
                 Body catcherBody = this.catchers.get(i);
                 // Create the throwable argument
-                Block.Parameter t = catcher.parameter(catcherBody.descriptor().parameters().get(0));
+                Block.Parameter t = catcher.parameter(catcherBody.bodyType().parameterTypes().get(0));
 
                 if (finalizer != null) {
                     Block.Builder catchRegionEnter = b.block();
@@ -3056,7 +3056,7 @@ public class ExtendedOps {
      * @return the try operation builder
      */
     public static JavaTryOp.CatchBuilder _try(Body.Builder ancestorBody, Consumer<Block.Builder> c) {
-        Body.Builder _try = Body.Builder.of(ancestorBody, MethodTypeDesc.VOID);
+        Body.Builder _try = Body.Builder.of(ancestorBody, FunctionType.VOID);
         c.accept(_try.entryBlock());
         return new JavaTryOp.CatchBuilder(ancestorBody, null, _try);
     }
@@ -3073,7 +3073,7 @@ public class ExtendedOps {
                                                          Consumer<Block.Builder> c) {
         resourceTypes = resourceTypes.stream().map(VarType::varType).toList();
         Body.Builder resources = Body.Builder.of(ancestorBody,
-                MethodTypeDesc.methodType(TupleType.tupleType(resourceTypes)));
+                FunctionType.functionType(TupleType.tupleType(resourceTypes)));
         c.accept(resources.entryBlock());
         return new JavaTryOp.BodyBuilder(ancestorBody, resourceTypes, resources);
     }

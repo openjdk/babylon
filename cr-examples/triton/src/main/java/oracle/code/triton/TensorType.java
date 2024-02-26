@@ -25,19 +25,20 @@
 
 package oracle.code.triton;
 
-import java.lang.reflect.Type;
+import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.type.TypeDefinition;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public final class TensorType extends TritonType {
     static final String NAME = "tensor";
 
-    final Type eType;
+    final TypeElement eType;
     final List<Integer> shape;
     final int size;
 
-    public TensorType(Type eType, List<Integer> shape) {
+    public TensorType(TypeElement eType, List<Integer> shape) {
         this.eType = eType;
         this.shape = List.copyOf(shape);
         int s = 1;
@@ -47,7 +48,7 @@ public final class TensorType extends TritonType {
         this.size = s;
     }
 
-    public Type eType() {
+    public TypeElement eType() {
         return eType;
     }
 
@@ -73,16 +74,17 @@ public final class TensorType extends TritonType {
     }
 
     @Override
+    public TypeDefinition toTypeDefinition() {
+        List<TypeDefinition> args = new ArrayList<>();
+        for (int i : shape) {
+            args.add(new TypeDefinition("x" + i, List.of()));
+        }
+        args.add(eType.toTypeDefinition());
+        return new TypeDefinition(NAME, args);
+    }
+
+    @Override
     public String toString() {
-        StringBuilder s = new StringBuilder();
-
-        s.append(NAME);
-        s.append("<");
-        s.append(shape.stream().map(i -> "x" + i).collect(Collectors.joining(",")));
-        s.append(",");
-        s.append(fromType(eType));
-        s.append(">");
-
-        return s.toString();
+        return toTypeDefinition().toString();
     }
 }

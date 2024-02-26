@@ -33,6 +33,7 @@ import java.lang.reflect.code.descriptor.FieldDesc;
 import java.lang.reflect.code.descriptor.MethodDesc;
 import java.lang.reflect.code.descriptor.MethodTypeDesc;
 import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.type.VarType;
@@ -167,8 +168,7 @@ public final class Interpreter {
     }
 
     record ClosureRecord(CoreOps.ClosureOp op,
-                         Map<Value, Object> capturedValues)
-            implements CoreOps.Closure {
+                         Map<Value, Object> capturedValues) {
     }
 
     record TupleRecord(List<Object> components) {
@@ -394,7 +394,7 @@ public final class Interpreter {
             } else {
                 mh = methodStaticHandle(l, co.invokeDescriptor());
             }
-            MethodType target = resolveToMethodType(l, o.descriptor());
+            MethodType target = resolveToMethodType(l, o.opType());
             mh = mh.asType(target).asFixedArity();
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
@@ -512,11 +512,11 @@ public final class Interpreter {
             Array.set(a, (int) index, v);
             return null;
         } else if (o instanceof CoreOps.ArithmeticOperation || o instanceof CoreOps.TestOperation) {
-            MethodHandle mh = opHandle(o.opName(), o.descriptor());
+            MethodHandle mh = opHandle(o.opName(), o.opType());
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
         } else if (o instanceof CoreOps.ConvOp) {
-            MethodHandle mh = opHandle(o.opName() + "_" + o.descriptor().returnType(), o.descriptor());
+            MethodHandle mh = opHandle(o.opName() + "_" + o.opType().returnType(), o.opType());
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
         } else {
@@ -540,8 +540,8 @@ public final class Interpreter {
         return invoke(l, op, capturedValues, args);
     }
 
-    static MethodHandle opHandle(String opName, MethodTypeDesc d) {
-        MethodType mt = resolveToMethodType(MethodHandles.lookup(), d).erase();
+    static MethodHandle opHandle(String opName, FunctionType ft) {
+        MethodType mt = resolveToMethodType(MethodHandles.lookup(), ft).erase();
         try {
             return MethodHandles.lookup().findStatic(InvokableLeafOps.class, opName, mt);
         } catch (NoSuchMethodException | IllegalAccessException e) {
@@ -606,6 +606,10 @@ public final class Interpreter {
         } catch (ReflectiveOperationException e) {
             throw interpreterException(e);
         }
+    }
+
+    public static MethodType resolveToMethodType(MethodHandles.Lookup l, FunctionType ft) {
+        return resolveToMethodType(l, MethodTypeDesc.ofFunctionType(ft));
     }
 
     public static MethodType resolveToMethodType(MethodHandles.Lookup l, MethodTypeDesc d) {

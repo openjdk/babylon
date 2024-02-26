@@ -89,17 +89,30 @@ public class TestLiftControl {
         Assert.assertEquals((int) Interpreter.invoke(f, 0, 0, 0, 0), ifelseEquality(0, 0, 0, 0));
     }
 
-    static int conditionalExpression(int a, int b, int c, int n) {
-        return (n < 10) ? (n < 5) ? a : b : c;
+    static int conditionalExpression(int i, int len) {
+        return ((i - 1 >= 0) ? i - 1 : len - 1);
     }
 
     @Test
     public void testConditionalExpression() throws Throwable {
         CoreOps.FuncOp f = getFuncOp("conditionalExpression");
 
-        Assert.assertEquals((int) Interpreter.invoke(f, 1, 2, 3, 1), conditionalExpression(1, 2, 3, 1));
-        Assert.assertEquals((int) Interpreter.invoke(f, 1, 2, 3, 6), conditionalExpression(1, 2, 3, 6));
-        Assert.assertEquals((int) Interpreter.invoke(f, 1, 2, 3, 11), conditionalExpression(1, 2, 3, 11));
+        Assert.assertEquals((int) Interpreter.invoke(f, 5, 10), conditionalExpression(5, 10));
+        Assert.assertEquals((int) Interpreter.invoke(f, 0, 10), conditionalExpression(0, 10));
+        Assert.assertEquals((int) Interpreter.invoke(f, 0, 50), conditionalExpression(0, 50));
+    }
+
+    static int nestedConditionalExpression(int a, int b, int c, int n) {
+        return (n < 10) ? (n < 5) ? a : b : c;
+    }
+
+    @Test
+    public void testNestedConditionalExpression() throws Throwable {
+        CoreOps.FuncOp f = getFuncOp("nestedConditionalExpression");
+
+        Assert.assertEquals((int) Interpreter.invoke(f, 1, 2, 3, 1), nestedConditionalExpression(1, 2, 3, 1));
+        Assert.assertEquals((int) Interpreter.invoke(f, 1, 2, 3, 6), nestedConditionalExpression(1, 2, 3, 6));
+        Assert.assertEquals((int) Interpreter.invoke(f, 1, 2, 3, 11), nestedConditionalExpression(1, 2, 3, 11));
     }
 
     @Test

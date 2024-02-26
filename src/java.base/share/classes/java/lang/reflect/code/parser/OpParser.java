@@ -29,7 +29,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.code.Block;
 import java.lang.reflect.code.Body;
-import java.lang.reflect.code.descriptor.MethodTypeDesc;
+import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.TypeDefinition;
 import java.lang.reflect.code.op.*;
 import java.lang.reflect.code.Op;
@@ -261,7 +261,7 @@ public final class OpParser {
     static Body.Builder nodeToBody(BodyNode n, Context c, Body.Builder ancestorBody) {
         Body.Builder body = Body.Builder.of(ancestorBody,
                 // Create descriptor with just the return type and add parameters afterward
-                MethodTypeDesc.methodType(c.typeFactory.constructType(n.rtype)));
+                FunctionType.functionType(c.typeFactory.constructType(n.rtype)));
         Block.Builder eb = body.entryBlock();
 
         // Create blocks upfront for forward referencing successors
@@ -515,7 +515,7 @@ public final class OpParser {
         // Entry block header
         List<ValueNode> arguments = parseBlockHeaderArguments(true);
         // Body return type
-        TypeDefinition rtype = parseTypeDesc();
+        TypeDefinition rtype = parseTypeDef();
 
         lexer.accept(Tokens.TokenKind.ARROW);
         lexer.accept(Tokens.TokenKind.LBRACE);
@@ -553,7 +553,7 @@ public final class OpParser {
 
         lexer.accept(Tokens.TokenKind.COLON);
 
-        TypeDefinition type = parseTypeDesc();
+        TypeDefinition type = parseTypeDef();
 
         return new ValueNode(valueName, type);
     }
@@ -600,8 +600,8 @@ public final class OpParser {
         return name.toString();
     }
 
-    TypeDefinition parseTypeDesc() {
-        return DescParser.parseTypeDesc(lexer);
+    TypeDefinition parseTypeDef() {
+        return DescParser.parseTypeDefinition(lexer);
     }
 }
 

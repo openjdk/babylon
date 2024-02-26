@@ -25,7 +25,7 @@
 
 package java.lang.reflect.code;
 
-import java.lang.reflect.code.descriptor.MethodTypeDesc;
+import java.lang.reflect.code.type.FunctionType;
 import java.util.*;
 
 /**
@@ -38,11 +38,11 @@ import java.util.*;
  * <p>
  * The first block in the sequence is the entry block, and no other blocks refer to it as a successor.
  * <p>
- * A body has a descriptor whose return type is the body's return type and whose parameter types are the entry block's
- * parameters types, in order.
- * The descriptor describes the sequence of input parameters types for arguments that are passed to the
- * body when control flow is passed it, and describes the return type of values that are returned when body passes
- * control back to the operation.
+ * A body has a function type whose return type is the body's yield type and whose parameter types are the entry
+ * block's parameters types, in order.
+ * The function type describes the sequence of input parameters types for arguments that are passed to the
+ * body when control flow is passed to it, and describes the return type of values that are returned when body passes
+ * control back to its parent operation.
  */
 public final class Body implements CodeElement<Body, Block> {
     // Parent operation
@@ -79,15 +79,15 @@ public final class Body implements CodeElement<Body, Block> {
     }
 
     /**
-     * Returns the descriptor of this body.
-     * <p>The descriptor is composed of the body's entry block parameter types and
+     * Returns the body's function type.
+     * <p>The function type is composed of the body's entry block parameter types and
      * the body's yield type.
      *
-     * @return the descriptor of this body.
+     * @return the body type.
      */
-    public MethodTypeDesc descriptor() {
+    public FunctionType bodyType() {
         Block entryBlock = entryBlock();
-        return MethodTypeDesc.methodType(yieldType, entryBlock.parameterTypes());
+        return FunctionType.functionType(yieldType, entryBlock.parameterTypes());
     }
 
     /**
@@ -287,28 +287,28 @@ public final class Body implements CodeElement<Body, Block> {
          * Creates a body build with a new context, and a copying transformer.
          *
          * @param ancestorBody the nearest ancestor body builder
-         * @param desc         the body descriptor
+         * @param bodyType     the body's function type
          * @return the body builder
          * @throws IllegalStateException if the ancestor body builder is built
-         * @see #of(Builder, MethodTypeDesc, CopyContext, OpTransformer)
+         * @see #of(Builder, FunctionType, CopyContext, OpTransformer)
          */
-        public static Builder of(Builder ancestorBody, MethodTypeDesc desc) {
+        public static Builder of(Builder ancestorBody, FunctionType bodyType) {
             // @@@ Creation of CopyContext
-            return of(ancestorBody, desc, CopyContext.create(), OpTransformer.COPYING_TRANSFORMER);
+            return of(ancestorBody, bodyType, CopyContext.create(), OpTransformer.COPYING_TRANSFORMER);
         }
 
         /**
          * Creates a body build with a copying transformer.
          *
          * @param ancestorBody the nearest ancestor body builder
-         * @param desc         the body descriptor
+         * @param bodyType     the body's function type
          * @param cc           the context
          * @return the body builder
          * @throws IllegalStateException if the ancestor body builder is built
-         * @see #of(Builder, MethodTypeDesc, CopyContext, OpTransformer)
+         * @see #of(Builder, FunctionType, CopyContext, OpTransformer)
          */
-        public static Builder of(Builder ancestorBody, MethodTypeDesc desc, CopyContext cc) {
-            return of(ancestorBody, desc, cc, OpTransformer.COPYING_TRANSFORMER);
+        public static Builder of(Builder ancestorBody, FunctionType bodyType, CopyContext cc) {
+            return of(ancestorBody, bodyType, cc, OpTransformer.COPYING_TRANSFORMER);
         }
 
         /**
@@ -317,33 +317,34 @@ public final class Body implements CodeElement<Body, Block> {
          * Structurally, the created body builder must be built before its ancestor body builder (if non-null) is built,
          * otherwise an {@code IllegalStateException} will occur.
          * <p>
-         * The body descriptor defines the body's yield type and the initial sequence of entry block parameters.
-         * The body's yield is the descriptors return type.
+         * A function type, referred to as the body type, defines the body's yield type and the initial sequence of
+         * entry block parameters.
+         * The body's yield type is the function type's return type.
          * An entry block builder is created with appended block parameters corresponding, in order, to
-         * the body descriptor parameter types.
+         * the function type's parameter types.
          * <p>
          * If the ancestor body is null then the created body builder is isolated and descendant operations may only
          * refer to values declared within the created body builder. Otherwise, operations
          * may refer to values declared in the ancestor body builders (outside the created body builder).
          *
          * @param ancestorBody the nearest ancestor body builder, may be null if isolated
-         * @param desc         the body descriptor
+         * @param bodyType     the body's function type
          * @param cc           the context
          * @param ot           the transformer
          * @return the body builder
          * @throws IllegalStateException if the ancestor body builder is built
-         * @see #of(Builder, MethodTypeDesc, CopyContext, OpTransformer)
+         * @see #of(Builder, FunctionType, CopyContext, OpTransformer)
          */
-        public static Builder of(Builder ancestorBody, MethodTypeDesc desc,
+        public static Builder of(Builder ancestorBody, FunctionType bodyType,
                                  CopyContext cc, OpTransformer ot) {
-            Body body = new Body(ancestorBody != null ? ancestorBody.target() : null, desc.returnType());
-            return body.new Builder(ancestorBody, desc, cc, ot);
+            Body body = new Body(ancestorBody != null ? ancestorBody.target() : null, bodyType.returnType());
+            return body.new Builder(ancestorBody, bodyType, cc, ot);
         }
 
         // The ancestor body, may be null
         final Builder ancestorBody;
 
-        // The entry block of this body, whose parameters are given by the body's descriptor
+        // The entry block of this body, whose parameters are given by the body's function type
         final Block.Builder entryBlock;
 
         // When non-null contains one or more great-grandchildren
@@ -352,7 +353,7 @@ public final class Body implements CodeElement<Body, Block> {
         // True when built
         boolean closed;
 
-        Builder(Builder ancestorBody, MethodTypeDesc descriptor,
+        Builder(Builder ancestorBody, FunctionType bodyType,
                 CopyContext cc, OpTransformer ot) {
             // Structural check
             // The ancestor body should not be built before this body is created
@@ -362,8 +363,8 @@ public final class Body implements CodeElement<Body, Block> {
             }
 
             this.ancestorBody = ancestorBody;
-            // Create entry block from descriptor
-            Block eb = Body.this.createBlock(descriptor.parameters());
+            // Create entry block from the body's function type
+            Block eb = Body.this.createBlock(bodyType.parameterTypes());
             this.entryBlock = eb.new Builder(this, cc, ot);
         }
 
@@ -437,17 +438,17 @@ public final class Body implements CodeElement<Body, Block> {
         }
 
         /**
-         * Returns the body's descriptor.
+         * Returns the body builder's function type.
          * <p>
-         * The descriptor is composed of the body's yield type, as the descriptor's return type, and the currently built
-         * entry block's parameter types, in order, as the descriptor's parameter types.
+         * The function type is composed of the body builder's yield type, as the function type's return type, and the
+         * currently built entry block's parameter types, in order, as the function type's parameter types.
          *
-         * @return the body's descriptor
+         * @return the body builder's function type
          */
-        public MethodTypeDesc descriptor() {
+        public FunctionType bodyType() {
             TypeElement returnType = Body.this.yieldType();
             Block eb = Body.this.entryBlock();
-            return MethodTypeDesc.methodType(returnType, eb.parameterTypes());
+            return FunctionType.functionType(returnType, eb.parameterTypes());
         }
 
         /**
@@ -508,7 +509,7 @@ public final class Body implements CodeElement<Body, Block> {
     /**
      * Transforms this body.
      * <p>
-     * A new body builder is created with the same descriptor as this body.
+     * A new body builder is created with the same function type as this body.
      * Then, this body is {@link Block.Builder#transformBody(Body, java.util.List, CopyContext, OpTransformer) transformed}
      * into the body builder's entry block builder with the given copy context, operation transformer, and values
      * that are the entry block's parameters.
@@ -523,8 +524,8 @@ public final class Body implements CodeElement<Body, Block> {
         Builder ancestorBodyBuilder = ancestorBlockBuilder != null
                 ? ancestorBlockBuilder.parentBody() : null;
         Builder body = Builder.of(ancestorBodyBuilder,
-                // Create descriptor with just the return type and add parameters afterward
-                MethodTypeDesc.methodType(yieldType),
+                // Create function type with just the return type and add parameters afterward
+                FunctionType.functionType(yieldType),
                 cc, ot);
 
         for (Block.Parameter p : entryBlock().parameters()) {

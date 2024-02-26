@@ -26,8 +26,8 @@
 package oracle.code.triton;
 
 import java.lang.reflect.code.*;
-import java.lang.reflect.code.descriptor.MethodTypeDesc;
 import java.lang.reflect.code.op.*;
+import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.type.TupleType;
 import java.util.ArrayList;
@@ -42,9 +42,9 @@ public class SCFOps {
         public static class Builder {
             final Body.Builder ancestorBody;
             final List<Value> range;
-            final MethodTypeDesc loopDescriptor;
+            final FunctionType loopDescriptor;
 
-            Builder(Body.Builder ancestorBody, List<Value> range, MethodTypeDesc loopDescriptor) {
+            Builder(Body.Builder ancestorBody, List<Value> range, FunctionType loopDescriptor) {
                 this.ancestorBody = ancestorBody;
                 this.range = range;
                 this.loopDescriptor = loopDescriptor;
@@ -151,7 +151,7 @@ public class SCFOps {
         List<TypeElement> bodyParameterTypes = new ArrayList<>();
         bodyParameterTypes.add(start.type());
         bodyParameterTypes.addAll(iterValues.stream().map(Value::type).toList());
-        MethodTypeDesc bodyType = MethodTypeDesc.methodType(yieldType, bodyParameterTypes);
+        FunctionType bodyType = FunctionType.functionType(yieldType, bodyParameterTypes);
 
         List<Value> operands = new ArrayList<>();
         operands.addAll(List.of(start, end, step));
