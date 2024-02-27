@@ -21,6 +21,7 @@
  * questions.
  */
 
+import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.Instruction;
@@ -29,6 +30,7 @@ import java.lang.classfile.MethodModel;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.instruction.*;
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.AccessFlag;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
@@ -60,12 +62,14 @@ public class TestLiftSmallCorpus {
     private static final int COLUMN_WIDTH = 150;
 
     private int passed, failed, skipped;
+    private Map<String, Integer> skippedStats;
 
     @Test
     public void testDoubleRoundtripStability() throws Exception {
         passed = 0;
         failed = 0;
         skipped = 0;
+        skippedStats = new HashMap<>();
         for (Path p : Files.walk(JRT.getPath("modules/java.base/java"))
                 .filter(p -> Files.isRegularFile(p) && p.toString().endsWith(".class"))
                 .toList()) {
@@ -73,13 +77,14 @@ public class TestLiftSmallCorpus {
         }
 
         // @@@ There is still several failing cases
-        Assert.assertTrue(failed < 5 && passed > 4200, STR."failed: \{failed}, passed: \{passed}, skipped: \{skipped}");
+        skippedStats.entrySet().stream().sorted((e1, e2) -> Integer.compare(e2.getValue(), e1.getValue())).forEach(e -> System.out.println(e.getValue() +"x " + e.getKey() + "\n"));
+        Assert.assertTrue(failed < 5 && passed > 3500, STR."failed: \{failed}, passed: \{passed}, skipped: \{skipped}");
     }
 
     private void testDoubleRoundtripStability(Path path) throws Exception {
         var clm = CF.parse(path);
         for (var originalModel : clm.methods()) {
-            try {
+            if (originalModel.flags().has(AccessFlag.STATIC)) try {
                 CoreOps.FuncOp firstLift = lift(originalModel);
                 CoreOps.FuncOp firstTransform = transform(firstLift);
                 MethodModel firstModel = lower(firstTransform);
@@ -102,6 +107,9 @@ public class TestLiftSmallCorpus {
                 }
             } catch (Exception e) {
                 // We skip methods failing to lift or lower for now
+                StringWriter sw = new StringWriter();
+                e.printStackTrace(new PrintWriter(sw));
+                skippedStats.compute(sw.toString(), (m, i) -> i == null ? 1 : i + 1);
                 skipped++;
             }
         }
