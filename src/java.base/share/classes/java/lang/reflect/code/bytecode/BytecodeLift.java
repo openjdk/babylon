@@ -28,6 +28,7 @@ package java.lang.reflect.code.bytecode;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.CodeElement;
 import java.lang.classfile.CodeModel;
+import java.lang.classfile.Instruction;
 import java.lang.classfile.Label;
 import java.lang.classfile.MethodModel;
 import java.lang.classfile.Opcode;
@@ -36,6 +37,7 @@ import java.lang.classfile.constantpool.ClassEntry;
 import java.lang.classfile.instruction.*;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
+import java.lang.reflect.AccessFlag;
 
 import java.lang.reflect.code.Block;
 import java.lang.reflect.code.TypeElement;
@@ -72,6 +74,9 @@ public final class BytecodeLift {
     }
 
     public static CoreOps.FuncOp lift(MethodModel methodModel) {
+        if (!methodModel.flags().has(AccessFlag.STATIC)) {
+            throw new IllegalArgumentException("Unsuported lift of non-static method: " + methodModel);
+        }
         MethodTypeDesc mtd = MethodTypeDesc.ofNominalDescriptor(methodModel.methodTypeSymbol());
         return CoreOps.func(
                 methodModel.methodName().stringValue(),
@@ -86,11 +91,13 @@ public final class BytecodeLift {
             final Deque<Value> stack = new ArrayDeque<>();
             Map<Integer, Op.Result> locals = new HashMap<>();
 
-            int varIndex = 0;
+            int varIndex = 0;int slot = 0;
             // Initialize local variables from entry block parameters
             for (Block.Parameter bp : entryBlock.parameters()) {
                 // @@@ Reference type
-                locals.put(varIndex, entryBlock.op(CoreOps.var(Integer.toString(varIndex++), bp)));
+                locals.put(slot, entryBlock.op(CoreOps.var(Integer.toString(varIndex++), bp)));
+                TypeElement te = bp.type();
+                slot += te.equals(JavaType.DOUBLE) || te.equals(JavaType.LONG) ? 2 : 1;
             }
 
             final List<CodeElement> elements = codeModel.elementList();
@@ -412,6 +419,8 @@ public final class BytecodeLift {
                                     throw new UnsupportedOperationException("Unsupported stack instruction: " + inst);
                             }
                         }
+                        case Instruction inst ->
+                            throw new UnsupportedOperationException("Unsupported instruction: " + inst.opcode().name());
                         default ->
                             throw new UnsupportedOperationException("Unsupported code element: " + elements.get(i));
                     }
