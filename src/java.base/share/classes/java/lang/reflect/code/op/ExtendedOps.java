@@ -28,11 +28,8 @@ package java.lang.reflect.code.op;
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.descriptor.MethodDesc;
 import java.lang.reflect.code.descriptor.RecordTypeDesc;
-import java.lang.reflect.code.type.FunctionType;
-import java.lang.reflect.code.type.JavaType;
-import java.lang.reflect.code.type.TupleType;
+import java.lang.reflect.code.type.*;
 import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.type.VarType;
 import java.lang.reflect.code.type.impl.JavaTypeImpl;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -3145,16 +3142,37 @@ public class ExtendedOps {
     }
 
     @OpDeclaration(StringTemplateOp.NAME)
-    public static final class StringTemplateOp extends OpWithDefinition {
+    public static final class StringTemplateOp extends OpWithDefinition implements Op.Nested {
 
         public static final String NAME = "java.stringTemplate";
 
+        private final Value processorValue;
+        private final List<Value> literalsValues;
+        private final List<Body> expressionsBodies;
+
         public StringTemplateOp(OpDefinition def) {
             super(def);
+
+            this.processorValue = operands().get(0);
+            this.literalsValues = operands().subList(1, operands().size());
+            this.expressionsBodies = def.bodyDefinitions().stream().map(bd -> bd.build(this)).toList();
         }
 
         StringTemplateOp(StringTemplateOp that, CopyContext cc, OpTransformer ot) {
             super(that, cc);
+
+            this.processorValue = operands().get(0);
+            this.literalsValues = operands().subList(1, operands().size());
+            this.expressionsBodies = that.expressionsBodies.stream()
+                    .map(b -> b.transform(cc, ot).build(this)).toList();
+        }
+
+        public StringTemplateOp(Value processorValue, List<Value> literalsValues, List<Body.Builder> expressionsBodies) {
+            super(NAME, makeOperandsList(processorValue, literalsValues));
+
+            this.processorValue = processorValue;
+            this.literalsValues = literalsValues;
+            this.expressionsBodies = expressionsBodies.stream().map(b -> b.build(this)).toList();
         }
 
         @Override
@@ -3162,29 +3180,28 @@ public class ExtendedOps {
             return new StringTemplateOp(this, cc, ot);
         }
 
-        public StringTemplateOp(List<Value> literalsValues, List<Value> expressionValues) {
-            super(NAME, getOperandsList(literalsValues, expressionValues));
-        }
-
-        private static List<Value> getOperandsList(List<Value> literalsValues, List<Value> expressionValues) {
+        private static List<Value> makeOperandsList(Value processorValue, List<Value> literalsValues) {
             List<Value> operands = new ArrayList<>();
-            for (int i = 0; i < literalsValues.size(); i++) {
-                operands.add(literalsValues.get(i));
-                if (i < expressionValues.size()) {
-                    operands.add(expressionValues.get(i));
-                }
-            }
+            operands.add(processorValue);
+            operands.addAll(literalsValues);
             return operands;
         }
 
         @Override
         public TypeElement resultType() {
-            return JavaType.J_L_STRING_TEMPLATE;
+            // processor type: StringTemplate$Processor<R, ...>
+            TypeDefinition processorReturnType = processorValue.type().toTypeDefinition().arguments().get(0);
+            return CoreTypeFactory.JAVA_TYPE_FACTORY.constructType(processorReturnType);
+        }
+
+        @Override
+        public List<Body> bodies() {
+            return expressionsBodies;
         }
     }
 
-    public static StringTemplateOp stringTemplate(List<Value> literalsValues, List<Value> expressionsValues) {
-        return new StringTemplateOp(literalsValues, expressionsValues);
+    public static StringTemplateOp stringTemplate(Value processorValue, List<Value> literalsValues, List<Body.Builder> expressionsBodies) {
+        return new StringTemplateOp(processorValue, literalsValues, expressionsBodies);
     }
 
 }
