@@ -58,9 +58,9 @@ public class TestLiftTryFinally {
         byte[] classdata = getClassdata();
         CoreOps.FuncOp flift = BytecodeLift.lift(classdata, method);
         flift.writeTo(System.out);
-        CoreOps.FuncOp fliftcoreSSA = SSA.transform(flift);
-        fliftcoreSSA.writeTo(System.out);
-        return fliftcoreSSA;
+//        CoreOps.FuncOp fliftcoreSSA = SSA.transform(flift);
+//        fliftcoreSSA.writeTo(System.out);
+        return flift;
     }
 
     static byte[] getClassdata() {

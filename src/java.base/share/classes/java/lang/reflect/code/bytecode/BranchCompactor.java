@@ -46,6 +46,7 @@ public final class BranchCompactor implements CodeTransform {
 
     @Override
     public void accept(CodeBuilder cob, CodeElement coe) {
+//        System.out.println(coe);
         if (branch == null) {
             if (coe instanceof BranchInstruction bi && bi.opcode().isUnconditionalBranch()) {
                 //unconditional branch is stored

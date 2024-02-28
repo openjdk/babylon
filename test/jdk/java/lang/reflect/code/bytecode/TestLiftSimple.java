@@ -92,8 +92,8 @@ public class TestLiftSimple {
         });
         lf.writeTo(System.out);
 
-        lf = SSA.transform(lf);
-        lf.writeTo(System.out);
+//        lf = SSA.transform(lf);
+//        lf.writeTo(System.out);
 
         return BytecodeGenerator.generateClassData(MethodHandles.lookup(), lf);
     }

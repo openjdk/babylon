@@ -151,8 +151,8 @@ public class TestSlots {
         });
         lf.writeTo(System.out);
 
-        lf = SSA.transform(lf);
-        lf.writeTo(System.out);
+//        lf = SSA.transform(lf);
+//        lf.writeTo(System.out);
 
         return BytecodeGenerator.generate(MethodHandles.lookup(), lf);
     }

@@ -205,8 +205,8 @@ public class TestTryFinally {
         });
         lf.writeTo(System.out);
 
-        lf = SSA.transform(lf);
-        lf.writeTo(System.out);
+//        lf = SSA.transform(lf);
+//        lf.writeTo(System.out);
 
         return BytecodeGenerator.generate(MethodHandles.lookup(), lf);
     }

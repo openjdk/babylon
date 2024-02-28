@@ -153,9 +153,9 @@ public class TestLiftControl {
     static CoreOps.FuncOp getFuncOp(byte[] classdata, String method) {
         CoreOps.FuncOp flift = BytecodeLift.lift(classdata, method);
         flift.writeTo(System.out);
-        CoreOps.FuncOp fliftcoreSSA = SSA.transform(flift);
-        fliftcoreSSA.writeTo(System.out);
-        return fliftcoreSSA;
+//        CoreOps.FuncOp fliftcoreSSA = SSA.transform(flift);
+//        fliftcoreSSA.writeTo(System.out);
+        return flift;
     }
 
     static byte[] getClassdata() {

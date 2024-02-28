@@ -56,6 +56,7 @@ import java.lang.reflect.code.descriptor.MethodTypeDesc;
 import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.type.VarType;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -152,8 +153,10 @@ public final class BytecodeGenerator {
     private void storeIfUsed(Value v) {
         if (!v.uses().isEmpty()) {
             Slot slot = allocateSlot(v);
+//            System.out.println("Stored " + hash(v) + " in " + slot);
             cob.storeInstruction(slot.typeKind(), slot.slot());
         } else {
+//            System.out.println("Popped " + hash(v));
             // Only pop results from stack if the value has no further use (no valid slot)
             switch (toTypeKind(v.type()).slotSize()) {
                 case 1 -> cob.pop();
@@ -162,14 +165,22 @@ public final class BytecodeGenerator {
         }
     }
 
-    private void load(Value v) {
+    private static String hash(Value v) {
+        return Integer.toHexString(v.hashCode());
+    }
+
+    private Slot load(Value v) {
         if (v instanceof Op.Result or &&
                 or.op() instanceof CoreOps.ConstantOp constantOp &&
                 !constantOp.resultType().equals(JavaType.J_L_CLASS)) {
+//            System.out.println("Loaded constant " + hash(v) + " value " + fromValue(constantOp.value()));
             cob.constantInstruction(fromValue(constantOp.value()));
+            return null;
         } else {
             Slot slot = slots.get(v);
+//            System.out.println("Loaded " + hash(v) + " from " + slot);
             cob.loadInstruction(slot.typeKind(), slot.slot());
+            return slot;
         }
     }
 
@@ -241,22 +252,27 @@ public final class BytecodeGenerator {
     }
 
     private static TypeKind toTypeKind(TypeElement t) {
-        JavaType jt = (JavaType) t;
-        TypeElement rbt = jt.toBasicType();
-
-        if (rbt.equals(JavaType.INT)) {
-            return TypeKind.IntType;
-        } else if (rbt.equals(JavaType.LONG)) {
-            return TypeKind.LongType;
-        } else if (rbt.equals(JavaType.FLOAT)) {
-            return TypeKind.FloatType;
-        } else if (rbt.equals(JavaType.DOUBLE)) {
-            return TypeKind.DoubleType;
-        } else if (rbt.equals(JavaType.J_L_OBJECT)) {
-            return TypeKind.ReferenceType;
-        } else {
-            throw new IllegalArgumentException("Bad type: " + t);
-        }
+        return switch (t) {
+            case VarType vt -> toTypeKind(vt.valueType());
+            case JavaType jt -> {
+                TypeElement bt = jt.toBasicType();
+                if (bt.equals(JavaType.INT)) {
+                    yield TypeKind.IntType;
+                } else if (bt.equals(JavaType.LONG)) {
+                    yield TypeKind.LongType;
+                } else if (bt.equals(JavaType.FLOAT)) {
+                    yield TypeKind.FloatType;
+                } else if (bt.equals(JavaType.DOUBLE)) {
+                    yield TypeKind.DoubleType;
+                } else if (bt.equals(JavaType.J_L_OBJECT)) {
+                    yield TypeKind.ReferenceType;
+                } else {
+                    throw new IllegalArgumentException("Bad type: " + t);
+                }
+            }
+            default ->
+                throw new IllegalArgumentException("Bad type: " + t);
+        };
     }
 
     private void computeExceptionRegionMembership(Body body) {
@@ -376,6 +392,7 @@ public final class BytecodeGenerator {
                 Op o = ops.get(i);
                 TypeElement oprType = o.resultType();
                 TypeKind rvt = oprType.equals(JavaType.VOID) ? null : toTypeKind(oprType);
+//                System.out.println(o.getClass().getSimpleName() + " result: " + hash(o.result()));
                 switch (o) {
                     case ConstantOp op -> {
                         if (op.resultType().equals(JavaType.J_L_CLASS)) {
@@ -398,7 +415,10 @@ public final class BytecodeGenerator {
                     }
                     case VarAccessOp.VarLoadOp op -> {
                         // Use slot of variable result
-                        load(op.operands().get(0));
+                        Slot slot = load(op.operands().get(0));
+                        if (slot != null) {
+                            slots.putIfAbsent(op.result(), slot);
+                        }
                     }
                     case VarAccessOp.VarStoreOp op -> {
                         if (!isLastOpResultOnStack) {
