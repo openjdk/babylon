@@ -76,36 +76,50 @@ public class StringTemplateTest {
 
     @CodeReflection
     @IR("""
-            func @"f3" (%0 : int, %1 : int)void -> {
-                  %2 : Var<int> = var %0 @"x";
-                  %3 : Var<int> = var %1 @"y";
-                  %4 : java.lang.StringTemplate$Processor<java.lang.String, java.lang.RuntimeException> = field.load @"java.lang.StringTemplate::STR()java.lang.StringTemplate$Processor<java.lang.String, java.lang.RuntimeException>";
-                  %5 : java.lang.String = constant @"x = ";
-                  %6 : java.lang.String = constant @"";
-                  %7 : java.lang.String = java.stringTemplate %4 %5 %6 ()int -> {
-                      %8 : int = var.load %2;
-                      yield %8;
-                  };
-                  %9 : Var<java.lang.String> = var %7 @"s";
-                  %10 : java.lang.StringTemplate$Processor<java.lang.String, java.lang.RuntimeException> = field.load @"java.lang.StringTemplate::STR()java.lang.StringTemplate$Processor<java.lang.String, java.lang.RuntimeException>";
-                  %11 : java.lang.String = constant @"y = ";
-                  %12 : java.lang.String = constant @", ";
-                  %13 : java.lang.String = constant @"";
-                  %14 : java.lang.String = java.stringTemplate %10 %11 %12 %13
+            func @"f3" (%0 : int, %1 : int, %2 : int)void -> {
+                  %3 : Var<int> = var %0 @"x";
+                  %4 : Var<int> = var %1 @"y";
+                  %5 : Var<int> = var %2 @"z";
+                  %6 : java.lang.StringTemplate$Processor<java.lang.String, java.lang.RuntimeException> = field.load @"java.lang.StringTemplate::STR()java.lang.StringTemplate$Processor<java.lang.String, java.lang.RuntimeException>";
+                  %7 : java.lang.String = constant @"x = ";
+                  %8 : java.lang.String = constant @", z = ";
+                  %9 : java.lang.String = constant @", x + z = ";
+                  %10 : java.lang.String = constant @"";
+                  %11 : java.lang.String = java.stringTemplate %6 %7 %8 %9 %10
                       ()int -> {
-                          %15 : int = var.load %3;
-                          yield %15;
+                          %12 : int = var.load %3;
+                          yield %12;
                       }
-                      ()java.lang.String -> {
-                          %16 : java.lang.String = var.load %9;
+                      ()int -> {
+                          %13 : int = var.load %5;
+                          yield %13;
+                      }
+                      ()int -> {
+                          %14 : int = var.load %3;
+                          %15 : int = var.load %5;
+                          %16 : int = add %14 %15;
                           yield %16;
                       };
-                  %17 : Var<java.lang.String> = var %14 @"s2";
+                  %17 : Var<java.lang.String> = var %11 @"s";
+                  %18 : java.lang.StringTemplate$Processor<java.lang.String, java.lang.RuntimeException> = field.load @"java.lang.StringTemplate::STR()java.lang.StringTemplate$Processor<java.lang.String, java.lang.RuntimeException>";
+                  %19 : java.lang.String = constant @"y = ";
+                  %20 : java.lang.String = constant @", ";
+                  %21 : java.lang.String = constant @"";
+                  %22 : java.lang.String = java.stringTemplate %18 %19 %20 %21
+                      ()int -> {
+                          %23 : int = var.load %4;
+                          yield %23;
+                      }
+                      ()java.lang.String -> {
+                          %24 : java.lang.String = var.load %17;
+                          yield %24;
+                      };
+                  %25 : Var<java.lang.String> = var %22 @"s2";
                   return;
               };
             """)
-    static void f3(int x, int y) {
-        String s = STR."x = \{x}";
+    static void f3(int x, int y, int z) {
+        String s = STR."x = \{x}, z = \{z}, x + z = \{x + z}";
         String s2 = STR."y = \{y}, \{s}";
     }
 }
