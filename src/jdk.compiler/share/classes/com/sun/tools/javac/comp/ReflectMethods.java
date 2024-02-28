@@ -2117,12 +2117,6 @@ public class ReflectMethods extends TreeTranslator {
                 popBody();
             });
             result = append(ExtendedOps.stringTemplate(processorValue, literalsValues, expressionsBodies));
-//            List<Value> expressionsValues = tree.expressions.map(e -> toValue(e));
-//            Op.Result stringTemplateValue = append(ExtendedOps.stringTemplate(literalsValues, expressionsValues));
-//            TypeElement processorReturnType = typeToTypeElement(tree.processor.type.allparams().get(0));
-//            result = append(CoreOps.invoke(
-//                    MethodDesc.method(JavaType.J_L_STRING_TEMPLATE_PROCESSOR, "process", processorReturnType, JavaType.J_L_STRING_TEMPLATE),
-//                    processorValue, stringTemplateValue));
         }
 
         UnsupportedASTException unsupported(JCTree tree) {
