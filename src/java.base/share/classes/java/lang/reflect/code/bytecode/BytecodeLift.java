@@ -281,6 +281,20 @@ public final class BytecodeLift {
                                     throw new IllegalArgumentException("Unsupported constant value: " + inst.constantValue());
                             }));
                         }
+                        case ConvertInstruction inst -> {
+                            stack.push(currentBlock.op(CoreOps.conv(switch (inst.toType()) {
+                                case ByteType -> JavaType.BYTE;
+                                case ShortType -> JavaType.SHORT;
+                                case IntType -> JavaType.INT;
+                                case FloatType -> JavaType.FLOAT;
+                                case LongType -> JavaType.LONG;
+                                case DoubleType -> JavaType.DOUBLE;
+                                case CharType -> JavaType.CHAR;
+                                case BooleanType -> JavaType.BOOLEAN;
+                                default ->
+                                    throw new IllegalArgumentException("Unsupported conversion target: " + inst.toType());
+                            }, stack.pop())));
+                        }
                         case OperatorInstruction inst -> {
                             Value operand = stack.pop();
                             stack.push(currentBlock.op(switch (inst.opcode()) {
