@@ -3146,38 +3146,26 @@ public class ExtendedOps {
 
         public static final String NAME = "java.stringTemplate";
 
-        private final Value processorValue;
-        private final List<Value> literalsValues;
-        private final List<Body> expressionsBodies;
+        private final List<Body> expressions;
 
         public StringTemplateOp(OpDefinition def) {
             super(def);
 
-            this.processorValue = operands().get(0);
-            this.literalsValues = operands().subList(1, operands().size());
-            this.expressionsBodies = def.bodyDefinitions().stream().map(bd -> bd.build(this)).toList();
+            this.expressions = def.bodyDefinitions().stream().map(bd -> bd.build(this)).toList();
         }
 
         StringTemplateOp(StringTemplateOp that, CopyContext cc, OpTransformer ot) {
             super(that, cc);
 
-            this.processorValue = operands().get(0);
-            this.literalsValues = operands().subList(1, operands().size());
-            this.expressionsBodies = that.expressionsBodies.stream()
+            this.expressions = that.expressions.stream()
                     .map(b -> b.transform(cc, ot).build(this)).toList();
         }
 
-        public StringTemplateOp(Value processorValue, List<Value> literalsValues, List<Body.Builder> expressionsBodies) {
+        public StringTemplateOp(Value processorValue, List<Value> literalsValues, List<Body.Builder> expressions) {
+            // @@@ update to use statements before super when the compiler can depend on 22 features
             super(NAME, makeOperandsList(processorValue, literalsValues));
 
-            this.processorValue = processorValue;
-            this.literalsValues = literalsValues;
-            this.expressionsBodies = expressionsBodies.stream().map(b -> b.build(this)).toList();
-        }
-
-        @Override
-        public StringTemplateOp transform(CopyContext cc, OpTransformer ot) {
-            return new StringTemplateOp(this, cc, ot);
+            this.expressions = expressions.stream().map(b -> b.build(this)).toList();
         }
 
         private static List<Value> makeOperandsList(Value processorValue, List<Value> literalsValues) {
@@ -3188,15 +3176,29 @@ public class ExtendedOps {
         }
 
         @Override
+        public StringTemplateOp transform(CopyContext cc, OpTransformer ot) {
+            return new StringTemplateOp(this, cc, ot);
+        }
+
+        @Override
         public TypeElement resultType() {
-            // processor type: StringTemplate$Processor<R, ...>
-            TypeDefinition processorReturnType = processorValue.type().toTypeDefinition().arguments().get(0);
-            return CoreTypeFactory.JAVA_TYPE_FACTORY.constructType(processorReturnType);
+            if (processor().type() instanceof JavaType t) {
+                return t.typeArguments().get(0);
+            }
+            throw new IllegalStateException("processor type is not a java type");
         }
 
         @Override
         public List<Body> bodies() {
-            return expressionsBodies;
+            return expressions;
+        }
+
+        public Value processor() {
+            return operands().get(0);
+        }
+
+        public List<Value> fragments() {
+            return operands().subList(1, operands().size());
         }
     }
 
