@@ -22,8 +22,8 @@
  */
 
 import java.lang.reflect.code.*;
-import java.lang.reflect.code.descriptor.MethodTypeDesc;
 import java.lang.reflect.code.op.ExtendedOps.JavaEnhancedForOp;
+import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
 import java.util.ArrayList;
 import java.util.List;
@@ -202,7 +202,7 @@ public final class StreamFuserUsingQuotable {
                 throw new IllegalArgumentException("Quotable consumer captures values");
             }
 
-            return func("fused.forEach", MethodTypeDesc.methodType(JavaType.VOID, sourceType).toFunctionType())
+            return func("fused.forEach", FunctionType.functionType(JavaType.VOID, sourceType))
                     .body(b -> {
                         Value source = b.parameters().get(0);
 
@@ -236,7 +236,7 @@ public final class StreamFuserUsingQuotable {
             }
 
             JavaType collectType = (JavaType) supplier.invokableType().returnType();
-            return func("fused.collect", MethodTypeDesc.methodType(collectType, sourceType).toFunctionType())
+            return func("fused.collect", FunctionType.functionType(collectType, sourceType))
                     .body(b -> {
                         Value source = b.parameters().get(0);
 

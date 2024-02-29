@@ -31,10 +31,10 @@ import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Quoted;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.code.type.JavaType;
 import java.util.List;
 
 import static java.lang.reflect.code.op.CoreOps.*;
-import static java.lang.reflect.code.descriptor.MethodTypeDesc.methodType;
 import static java.lang.reflect.code.type.FunctionType.functionType;
 import static java.lang.reflect.code.type.JavaType.INT;
 
@@ -219,7 +219,7 @@ public class TestInline {
         CoreOps.ClosureOp cop = (CoreOps.ClosureOp) q.op();
 
         // functional descriptor = (int)int
-        CoreOps.FuncOp f = func("f", methodType(void.class, int[].class).toFunctionType())
+        CoreOps.FuncOp f = func("f", functionType(JavaType.VOID, JavaType.type(int[].class)))
                 .body(fblock -> {
                     Block.Parameter a = fblock.parameters().get(0);
 

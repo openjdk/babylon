@@ -31,7 +31,6 @@ import java.lang.reflect.Proxy;
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.descriptor.FieldDesc;
 import java.lang.reflect.code.descriptor.MethodDesc;
-import java.lang.reflect.code.descriptor.MethodTypeDesc;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
@@ -557,12 +556,12 @@ public final class Interpreter {
         return resolveToMethodHandle(l, d);
     }
 
-    static MethodHandle constructorHandle(MethodHandles.Lookup l, MethodTypeDesc d) {
-        MethodType mt = resolveToMethodType(l, d);
+    static MethodHandle constructorHandle(MethodHandles.Lookup l, FunctionType ft) {
+        MethodType mt = resolveToMethodType(l, ft);
 
         if (mt.returnType().isArray()) {
             if (mt.parameterCount() != 1 || mt.parameterType(0) != int.class) {
-                throw interpreterException(new IllegalArgumentException("Bad constructor descriptor: " + d));
+                throw interpreterException(new IllegalArgumentException("Bad constructor descriptor: " + ft));
             }
             return MethodHandles.arrayConstructor(mt.returnType());
         } else {
@@ -594,7 +593,7 @@ public final class Interpreter {
 
     static MethodHandle resolveToMethodHandle(MethodHandles.Lookup l, MethodDesc d) {
         try {
-            return d.resolve(l);
+            return d.resolveToHandle(l);
         } catch (ReflectiveOperationException e) {
             throw interpreterException(e);
         }
@@ -602,19 +601,15 @@ public final class Interpreter {
 
     static VarHandle resolveToVarHandle(MethodHandles.Lookup l, FieldDesc d) {
         try {
-            return d.resolve(l);
+            return d.resolveToHandle(l);
         } catch (ReflectiveOperationException e) {
             throw interpreterException(e);
         }
     }
 
     public static MethodType resolveToMethodType(MethodHandles.Lookup l, FunctionType ft) {
-        return resolveToMethodType(l, MethodTypeDesc.ofFunctionType(ft));
-    }
-
-    public static MethodType resolveToMethodType(MethodHandles.Lookup l, MethodTypeDesc d) {
         try {
-            return d.resolve(l);
+            return MethodDesc.toNominalDescriptor(ft).resolveConstantDesc(l);
         } catch (ReflectiveOperationException e) {
             throw interpreterException(e);
         }

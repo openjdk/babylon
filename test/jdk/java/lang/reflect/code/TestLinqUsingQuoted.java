@@ -35,7 +35,6 @@ import java.lang.reflect.code.TypeElement;
 import java.util.stream.Stream;
 
 import static java.lang.reflect.code.descriptor.MethodDesc.method;
-import static java.lang.reflect.code.descriptor.MethodTypeDesc.methodType;
 import static java.lang.reflect.code.op.CoreOps.*;
 import static java.lang.reflect.code.type.FunctionType.functionType;
 
@@ -83,7 +82,7 @@ public class TestLinqUsingQuoted {
                     Op.Result quotedLambda = block.op(quoted(block.parentBody(), qblock -> c));
 
                     MethodDesc md = method(qp.queryableType(), name,
-                            methodType(qp.queryableType(), QuotedOp.QUOTED_TYPE));
+                            functionType(qp.queryableType(), QuotedOp.QUOTED_TYPE));
                     Op.Result queryable = block.op(invoke(md, query, quotedLambda));
 
                     block.op(_return(queryable));
@@ -117,7 +116,7 @@ public class TestLinqUsingQuoted {
             FuncOp nextQueryExpression = func("queryresult",
                     functionType(qp.queryResultType(), currentQueryExpression.invokableType().parameterTypes()))
                     .body(b -> b.inline(currentQueryExpression, b.parameters(), (block, query) -> {
-                        MethodDesc md = method(qp.queryableType(), name, methodType(qp.queryResultType()));
+                        MethodDesc md = method(qp.queryableType(), name, functionType(qp.queryResultType()));
                         Op.Result queryResult = block.op(invoke(md, query));
 
                         block.op(_return(queryResult));

@@ -648,7 +648,7 @@ public class FieldAccessTest {
     @IR("""
             func @"test25" ()void -> {
                   %0 : java.lang.String = constant @"abc";
-                  %1 : FieldAccessTest$Box<java.lang.String> = new %0 @"(java.lang.Object)FieldAccessTest$Box";
+                  %1 : FieldAccessTest$Box<java.lang.String> = new %0 @"func<FieldAccessTest$Box, java.lang.Object>";
                   %2 : Var<FieldAccessTest$Box<java.lang.String>> = var %1 @"b";
                   %3 : FieldAccessTest$Box<java.lang.String> = var.load %2;
                   %4 : java.lang.String = field.load %3 @"FieldAccessTest$Box::v()java.lang.Object";

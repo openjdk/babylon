@@ -153,7 +153,7 @@ public class MethodReferenceTest {
                     %3 : Var<java.lang.Integer> = var %2 @"x$0";
                     %4 : java.lang.Integer = var.load %3;
                     %5 : int = invoke %4 @"java.lang.Integer::intValue(java.lang.Integer)int";
-                    %6 : MethodReferenceTest$X = new %5 @"(int)MethodReferenceTest$X";
+                    %6 : MethodReferenceTest$X = new %5 @"func<MethodReferenceTest$X, int>";
                     return %6;
                 };
                 %7 : Var<java.util.function.Function<java.lang.Integer, MethodReferenceTest$X>> = var %1 @"xNew";
@@ -168,7 +168,7 @@ public class MethodReferenceTest {
     @IR("""
             func @"test7" (%0 : MethodReferenceTest)void -> {
                 %1 : java.util.function.Supplier<MethodReferenceTest$A<java.lang.String>> = lambda ()MethodReferenceTest$A<java.lang.String> -> {
-                    %2 : MethodReferenceTest$A<java.lang.String> = new %0 @"()MethodReferenceTest$A";
+                    %2 : MethodReferenceTest$A<java.lang.String> = new %0 @"func<MethodReferenceTest$A>";
                     return %2;
                 };
                 %3 : Var<java.util.function.Supplier<MethodReferenceTest$A<java.lang.String>>> = var %1 @"aNew";
@@ -185,7 +185,7 @@ public class MethodReferenceTest {
                 %1 : java.util.function.IntFunction<MethodReferenceTest$A<java.lang.String>[]> = lambda (%2 : int)MethodReferenceTest$A<java.lang.String>[] -> {
                     %3 : Var<int> = var %2 @"x$0";
                     %4 : int = var.load %3;
-                    %5 : MethodReferenceTest$A[] = new %4 @"(int)MethodReferenceTest$A[]";
+                    %5 : MethodReferenceTest$A[] = new %4 @"func<MethodReferenceTest$A[], int>";
                     return %5;
                 };
                 %6 : Var<java.util.function.IntFunction<MethodReferenceTest$A<java.lang.String>[]>> = var %1 @"aNewArray";

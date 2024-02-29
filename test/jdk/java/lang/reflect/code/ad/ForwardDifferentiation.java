@@ -26,8 +26,8 @@ import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.descriptor.MethodDesc;
-import java.lang.reflect.code.descriptor.MethodTypeDesc;
 import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
 import java.util.HashMap;
 import java.util.List;
@@ -121,7 +121,7 @@ public final class ForwardDifferentiation {
 
 
     static final JavaType J_L_MATH = JavaType.type(Math.class);
-    static final MethodTypeDesc D_D = MethodTypeDesc.methodType(DOUBLE, DOUBLE);
+    static final FunctionType D_D = FunctionType.functionType(DOUBLE, DOUBLE);
     static final MethodDesc J_L_MATH_SIN = MethodDesc.method(J_L_MATH, "sin", D_D);
     static final MethodDesc J_L_MATH_COS = MethodDesc.method(J_L_MATH, "cos", D_D);
 
