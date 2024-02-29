@@ -399,7 +399,7 @@ public final class Interpreter {
             return invoke(mh, values);
         } else if (o instanceof CoreOps.NewOp no) {
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
-            JavaType nType = (JavaType) no.constructorDescriptor().returnType();
+            JavaType nType = (JavaType) no.constructorType().returnType();
             if (nType.dimensions() > 0) {
                 if (values.length > nType.dimensions()) {
                     throw interpreterException(new IllegalArgumentException("Bad constructor NewOp: " + no));
@@ -410,7 +410,7 @@ public final class Interpreter {
                 }
                 return Array.newInstance(resolveToClass(l, nType), lengths);
             } else {
-                MethodHandle mh = constructorHandle(l, no.constructorDescriptor());
+                MethodHandle mh = constructorHandle(l, no.constructorType());
                 return invoke(mh, values);
             }
         } else if (o instanceof CoreOps.QuotedOp qo) {

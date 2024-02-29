@@ -584,7 +584,7 @@ public final class BytecodeGenerator {
                         }
                     }
                     case NewOp op -> {
-                        TypeElement t_ = op.constructorDescriptor().returnType();
+                        TypeElement t_ = op.constructorType().returnType();
                         JavaType t = (JavaType) t_;
                         switch (t.dimensions()) {
                             case 0 -> {
@@ -600,7 +600,7 @@ public final class BytecodeGenerator {
                                 cob.invokespecial(
                                         ((JavaType) op.resultType()).toNominalDescriptor(),
                                         ConstantDescs.INIT_NAME,
-                                        MethodDesc.toNominalDescriptor(op.constructorDescriptor())
+                                        MethodDesc.toNominalDescriptor(op.constructorType())
                                                 .changeReturnType(ConstantDescs.CD_void));
                             }
                             case 1 -> {

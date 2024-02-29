@@ -1257,7 +1257,7 @@ public final class CoreOps {
         final TypeElement resultType;
 
         public static NewOp create(OpDefinition def) {
-            FunctionType constructorDescriptor = def.extractAttributeValue(ATTRIBUTE_NEW_DESCRIPTOR,true,
+            FunctionType constructorType = def.extractAttributeValue(ATTRIBUTE_NEW_DESCRIPTOR,true,
                     v -> switch(v) {
                         case String s -> {
                             TypeElement te = CoreTypeFactory.CORE_TYPE_FACTORY
@@ -1270,7 +1270,7 @@ public final class CoreOps {
                         case FunctionType ct -> ct;
                         default -> throw new UnsupportedOperationException("Unsupported new descriptor value:" + v);
                     });
-            return new NewOp(def, constructorDescriptor);
+            return new NewOp(def, constructorType);
         }
 
         NewOp(OpDefinition def, FunctionType constructorType) {
@@ -1314,7 +1314,7 @@ public final class CoreOps {
             return opType().returnType();
         }
 
-        public FunctionType constructorDescriptor() {
+        public FunctionType constructorType() {
             return constructorType;
         }
 
