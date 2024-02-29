@@ -84,7 +84,7 @@ public class TestLiftSmallCorpus {
 
 
         // @@@ There is still several failing cases and a lot of errors
-        Assert.assertTrue(notMatching < 25 && passed > 3800, STR."""
+        Assert.assertTrue(notMatching < 26 && passed > 3900, STR."""
 
                     passed: \{passed}
                     not matching: \{notMatching}

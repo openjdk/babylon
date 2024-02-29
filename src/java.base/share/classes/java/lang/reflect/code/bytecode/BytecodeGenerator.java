@@ -755,37 +755,53 @@ public final class BytecodeGenerator {
     }
 
     private Opcode prepareReverseCondition(BinaryTestOp op) {
-        TypeKind vt = toTypeKind(op.operands().get(0).type());
-        if (vt == TypeKind.IntType) {
-            return switch (op) {
-                case EqOp _ -> Opcode.IF_ICMPNE;
-                case NeqOp _ -> Opcode.IF_ICMPEQ;
-                case GtOp _ -> Opcode.IF_ICMPLE;
-                case GeOp _ -> Opcode.IF_ICMPLT;
-                case LtOp _ -> Opcode.IF_ICMPGE;
-                case LeOp _ -> Opcode.IF_ICMPGT;
-                default ->
-                    throw new UnsupportedOperationException(op.opName());
-            };
-        } else {
-            switch (vt) {
-                case FloatType -> cob.fcmpg(); // FCMPL?
-                case LongType -> cob.lcmp();
-                case DoubleType -> cob.dcmpg(); //CMPL?
-                default ->
-                    throw new UnsupportedOperationException(op.opName() + " on " + vt);
+        return switch (toTypeKind(op.operands().get(0).type())) {
+            case IntType ->
+                switch (op) {
+                    case EqOp _ -> Opcode.IF_ICMPNE;
+                    case NeqOp _ -> Opcode.IF_ICMPEQ;
+                    case GtOp _ -> Opcode.IF_ICMPLE;
+                    case GeOp _ -> Opcode.IF_ICMPLT;
+                    case LtOp _ -> Opcode.IF_ICMPGE;
+                    case LeOp _ -> Opcode.IF_ICMPGT;
+                    default ->
+                        throw new UnsupportedOperationException(op.opName() + " on int");
+                };
+            case ReferenceType ->
+                switch (op) {
+                    case EqOp _ -> Opcode.IF_ACMPNE;
+                    case NeqOp _ -> Opcode.IF_ACMPEQ;
+                    default ->
+                        throw new UnsupportedOperationException(op.opName() + " on Object");
+                };
+            case FloatType -> {
+                cob.fcmpg(); // FCMPL?
+                yield reverseIfOpcode(op);
             }
-            return switch (op) {
-                case EqOp _ -> Opcode.IFNE;
-                case NeqOp _ -> Opcode.IFEQ;
-                case GtOp _ -> Opcode.IFLE;
-                case GeOp _ -> Opcode.IFLT;
-                case LtOp _ -> Opcode.IFGE;
-                case LeOp _ -> Opcode.IFGT;
-                default ->
-                    throw new UnsupportedOperationException(op.opName());
-            };
-        }
+            case LongType -> {
+                cob.lcmp();
+                yield reverseIfOpcode(op);
+            }
+            case DoubleType -> {
+                cob.dcmpg(); //CMPL?
+                yield reverseIfOpcode(op);
+            }
+            default ->
+                throw new UnsupportedOperationException(op.opName() + " on " + op.operands().get(0).type());
+        };
+    }
+
+    private static Opcode reverseIfOpcode(BinaryTestOp op) {
+        return switch (op) {
+            case EqOp _ -> Opcode.IFNE;
+            case NeqOp _ -> Opcode.IFEQ;
+            case GtOp _ -> Opcode.IFLE;
+            case GeOp _ -> Opcode.IFLT;
+            case LtOp _ -> Opcode.IFGE;
+            case LeOp _ -> Opcode.IFGT;
+            default ->
+                throw new UnsupportedOperationException(op.opName());
+        };
     }
 
     private boolean needToAssignBlockArguments(Block.Reference ref) {

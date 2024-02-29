@@ -195,12 +195,16 @@ public final class BytecodeLift {
                                 case IFLE -> CoreOps.gt(operand, currentBlock.op(CoreOps.constant(JavaType.INT, 0)));
                                 case IFGT -> CoreOps.le(operand, currentBlock.op(CoreOps.constant(JavaType.INT, 0)));
                                 case IFLT -> CoreOps.ge(operand, currentBlock.op(CoreOps.constant(JavaType.INT, 0)));
+                                case IFNULL -> CoreOps.neq(operand, currentBlock.op(CoreOps.constant(JavaType.J_L_OBJECT, Op.NULL_ATTRIBUTE_VALUE)));
+                                case IFNONNULL -> CoreOps.eq(operand, currentBlock.op(CoreOps.constant(JavaType.J_L_OBJECT, Op.NULL_ATTRIBUTE_VALUE)));
                                 case IF_ICMPNE -> CoreOps.eq(stack.pop(), operand);
                                 case IF_ICMPEQ -> CoreOps.neq(stack.pop(), operand);
                                 case IF_ICMPGE -> CoreOps.lt(stack.pop(), operand);
                                 case IF_ICMPLE -> CoreOps.gt(stack.pop(), operand);
                                 case IF_ICMPGT -> CoreOps.le(stack.pop(), operand);
                                 case IF_ICMPLT -> CoreOps.ge(stack.pop(), operand);
+                                case IF_ACMPEQ -> CoreOps.neq(stack.pop(), operand);
+                                case IF_ACMPNE -> CoreOps.eq(stack.pop(), operand);
                                 default -> throw new UnsupportedOperationException("Unsupported branch instruction: " + inst);
                             };
                             if (!stack.isEmpty()) {
