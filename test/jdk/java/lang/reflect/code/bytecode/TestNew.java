@@ -26,7 +26,6 @@ import org.testng.annotations.Test;
 
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.Op;
-import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -76,9 +75,6 @@ public class TestNew {
             }
         });
         lf.writeTo(System.out);
-
-//        lf = SSA.transform(lf);
-//        lf.writeTo(System.out);
 
         return BytecodeGenerator.generate(MethodHandles.lookup(), lf);
     }

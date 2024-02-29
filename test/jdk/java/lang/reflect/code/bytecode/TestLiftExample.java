@@ -25,7 +25,6 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.code.op.CoreOps;
-import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.bytecode.BytecodeLift;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
@@ -68,8 +67,6 @@ public class TestLiftExample {
         byte[] classdata = resource.openStream().readAllBytes();
         CoreOps.FuncOp flift = BytecodeLift.lift(classdata, "proxy");
         flift.writeTo(System.out);
-//        CoreOps.FuncOp fliftcoreSSA = SSA.transform(flift);
-//        fliftcoreSSA.writeTo(System.out);
 
         Function<Integer, Integer> f = i -> i;
         @SuppressWarnings("unchecked")

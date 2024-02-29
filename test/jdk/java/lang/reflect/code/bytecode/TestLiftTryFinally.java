@@ -27,7 +27,6 @@ import org.testng.annotations.Test;
 
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.interpreter.Interpreter;
-import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.bytecode.BytecodeLift;
 import java.net.URL;
 
@@ -58,8 +57,6 @@ public class TestLiftTryFinally {
         byte[] classdata = getClassdata();
         CoreOps.FuncOp flift = BytecodeLift.lift(classdata, method);
         flift.writeTo(System.out);
-//        CoreOps.FuncOp fliftcoreSSA = SSA.transform(flift);
-//        fliftcoreSSA.writeTo(System.out);
         return flift;
     }
 

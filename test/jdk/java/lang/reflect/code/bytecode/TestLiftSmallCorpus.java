@@ -86,9 +86,11 @@ public class TestLiftSmallCorpus {
         for (var originalModel : clm.methods()) {
             if (originalModel.flags().has(AccessFlag.STATIC)) try {
                 CoreOps.FuncOp firstLift = lift(originalModel);
-                MethodModel firstModel = lower(firstLift);
+                CoreOps.FuncOp firstTransform = transform(firstLift);
+                MethodModel firstModel = lower(firstTransform);
                 CoreOps.FuncOp secondLift = lift(firstModel);
-                MethodModel secondModel = lower(secondLift);
+                CoreOps.FuncOp secondTransform = transform(secondLift);
+                MethodModel secondModel = lower(secondTransform);
 
                 // testing only methods passing through
                 var firstNormalized = normalize(firstModel);
@@ -97,6 +99,7 @@ public class TestLiftSmallCorpus {
                     failed++;
                     System.out.println(clm.thisClass().asInternalName() + "::" + originalModel.methodName().stringValue() + originalModel.methodTypeSymbol().displayDescriptor());
                     printInColumns(firstLift, secondLift);
+                    printInColumns(firstTransform, secondTransform);
                     printInColumns(firstNormalized, secondNormalized);
                     System.out.println();
                 } else {
@@ -130,6 +133,17 @@ public class TestLiftSmallCorpus {
 
     private static CoreOps.FuncOp lift(MethodModel mm) {
         return BytecodeLift.lift(mm);
+    }
+
+    private static CoreOps.FuncOp transform(CoreOps.FuncOp func) {
+        return SSA.transform(func.transform((block, op) -> {
+                    if (op instanceof Op.Lowerable lop) {
+                        return lop.lower(block);
+                    } else {
+                        block.op(op);
+                        return block;
+                    }
+                }));
     }
 
     private static MethodModel lower(CoreOps.FuncOp func) {
