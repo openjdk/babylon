@@ -797,7 +797,7 @@ public final class CoreOps {
     }
 
     /**
-     *
+     * The assertion operation. Supporting assertions in statement form.
      */
     @OpDeclaration(AssertOp.NAME)
     public static final class AssertOp extends OpWithDefinition implements Op.Nested {
