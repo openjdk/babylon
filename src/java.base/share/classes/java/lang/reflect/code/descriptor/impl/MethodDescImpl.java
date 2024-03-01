@@ -26,21 +26,23 @@
 package java.lang.reflect.code.descriptor.impl;
 
 import java.lang.reflect.code.descriptor.MethodDesc;
-import java.lang.reflect.code.descriptor.MethodTypeDesc;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandleInfo;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Method;
+import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.TypeElement;
+
+import static java.util.stream.Collectors.joining;
 
 public final class MethodDescImpl implements MethodDesc {
     final TypeElement refType;
     final String name;
-    final MethodTypeDesc type;
+    final FunctionType type;
 
-    public MethodDescImpl(TypeElement refType, String name, MethodTypeDesc type) {
+    public MethodDescImpl(TypeElement refType, String name, FunctionType type) {
         this.refType = refType;
         this.name = name;
         this.type = type;
@@ -57,22 +59,22 @@ public final class MethodDescImpl implements MethodDesc {
     }
 
     @Override
-    public MethodTypeDesc type() {
+    public FunctionType type() {
         return type;
     }
 
     @Override
     public Method resolveToMember(MethodHandles.Lookup l) throws ReflectiveOperationException {
-        MethodHandleInfo methodHandleInfo = l.revealDirect(resolve(l));
+        MethodHandleInfo methodHandleInfo = l.revealDirect(resolveToHandle(l));
         return methodHandleInfo.reflectAs(Method.class, l);
     }
 
     @Override
-    public MethodHandle resolve(MethodHandles.Lookup l) throws ReflectiveOperationException {
+    public MethodHandle resolveToHandle(MethodHandles.Lookup l) throws ReflectiveOperationException {
         // @@@ kind
         Class<?> refC = resolve(l, refType);
 
-        MethodType mt = type.resolve(l);
+        MethodType mt = MethodDesc.toNominalDescriptor(type).resolveConstantDesc(l);
 
         MethodHandle mh = null;
         ReflectiveOperationException c = null;
@@ -111,7 +113,9 @@ public final class MethodDescImpl implements MethodDesc {
 
     @Override
     public String toString() {
-        return refType + "::" + name + type;
+        return refType + "::" + name +
+            type.parameterTypes().stream().map(TypeElement::toString)
+                    .collect(joining(", ", "(", ")")) + type.returnType();
     }
 
     @Override

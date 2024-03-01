@@ -25,17 +25,20 @@
 
 package java.lang.reflect.code.descriptor;
 
+import java.lang.constant.ClassDesc;
+import java.lang.constant.MethodTypeDesc;
 import java.lang.reflect.code.descriptor.impl.MethodDescImpl;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Executable;
 import java.lang.reflect.Method;
+import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.TypeElement;
 import java.util.List;
 
-import static java.lang.reflect.code.descriptor.MethodTypeDesc.methodType;
+import static java.lang.reflect.code.type.FunctionType.functionType;
 
 /**
  * The symbolic description of a Java method.
@@ -54,13 +57,13 @@ public sealed interface MethodDesc permits MethodDescImpl {
 
     String name();
 
-    MethodTypeDesc type();
+    FunctionType type();
 
     // Conversions
 
     Executable resolveToMember(MethodHandles.Lookup l) throws ReflectiveOperationException;
 
-    MethodHandle resolve(MethodHandles.Lookup l) throws ReflectiveOperationException;
+    MethodHandle resolveToHandle(MethodHandles.Lookup l) throws ReflectiveOperationException;
 
     // Factories
 
@@ -69,38 +72,56 @@ public sealed interface MethodDesc permits MethodDescImpl {
     }
 
     static MethodDesc method(Class<?> refType, String name, MethodType mt) {
-        return method(JavaType.type(refType), name, MethodTypeDesc.methodType(mt));
+        return method(refType, name, mt.returnType(), mt.parameterList());
     }
 
     static MethodDesc method(Class<?> refType, String name, Class<?> retType, Class<?>... params) {
-        return method(JavaType.type(refType), name, methodType(retType, params));
+        return method(refType, name, retType, List.of(params));
     }
 
     static MethodDesc method(Class<?> refType, String name, Class<?> retType, List<Class<?>> params) {
-        return method(JavaType.type(refType), name, methodType(retType, params));
+        return method(JavaType.type(refType), name, JavaType.type(retType), params.stream().map(JavaType::type).toList());
     }
 
-    static MethodDesc initMethod(MethodTypeDesc mt) {
-        return new MethodDescImpl(
-                mt.returnType(),
-                "<init>",
-                MethodTypeDesc.methodType(JavaType.VOID, mt.parameters()));
-    }
 
-    static MethodDesc method(TypeElement refType, String name, MethodTypeDesc type) {
+    static MethodDesc method(TypeElement refType, String name, FunctionType type) {
         return new MethodDescImpl(refType, name, type);
     }
 
     static MethodDesc method(TypeElement refType, String name, TypeElement retType, TypeElement... params) {
-        return method(refType, name, methodType(retType, params));
+        return method(refType, name, functionType(retType, params));
     }
 
     static MethodDesc method(TypeElement refType, String name, TypeElement retType, List<? extends TypeElement> params) {
-        return method(refType, name, methodType(retType, params));
+        return method(refType, name, functionType(retType, params));
     }
 
     // Copied code in jdk.compiler module throws UOE
     static MethodDesc ofString(String s) {
 /*__throw new UnsupportedOperationException();__*/        return java.lang.reflect.code.parser.impl.DescParser.parseMethodDesc(s);
+    }
+
+
+    // MethodTypeDesc factories
+    // @@@ Where else to place them?
+
+    static FunctionType ofNominalDescriptor(MethodTypeDesc d) {
+        return FunctionType.functionType(
+                JavaType.ofNominalDescriptor(d.returnType()),
+                d.parameterList().stream().map(JavaType::ofNominalDescriptor).toList());
+    }
+
+    static MethodTypeDesc toNominalDescriptor(FunctionType t) {
+        return MethodTypeDesc.of(
+                toClassDesc(t.returnType()),
+                t.parameterTypes().stream().map(MethodDesc::toClassDesc).toList());
+    }
+
+    private static ClassDesc toClassDesc(TypeElement e) {
+        if (!(e instanceof JavaType jt)) {
+            throw new IllegalArgumentException();
+        }
+
+        return jt.toNominalDescriptor();
     }
 }

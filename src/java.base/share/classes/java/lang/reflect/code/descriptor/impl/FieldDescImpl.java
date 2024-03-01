@@ -72,7 +72,7 @@ public final class FieldDescImpl implements FieldDesc {
     }
 
     @Override
-    public VarHandle resolve(MethodHandles.Lookup l) throws ReflectiveOperationException {
+    public VarHandle resolveToHandle(MethodHandles.Lookup l) throws ReflectiveOperationException {
         Class<?> refC = resolve(l, refType);
         Class<?> typeC = resolve(l, type);
 

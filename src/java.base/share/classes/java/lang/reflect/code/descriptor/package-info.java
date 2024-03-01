@@ -24,6 +24,6 @@
  */
 
 /**
- * Descriptors for code models.
+ * Java descriptors for code models.
  */
 package java.lang.reflect.code.descriptor;

@@ -82,7 +82,6 @@ import jdk.internal.java.lang.reflect.code.op.CoreOps;
 import jdk.internal.java.lang.reflect.code.op.ExtendedOps;
 import jdk.internal.java.lang.reflect.code.descriptor.FieldDesc;
 import jdk.internal.java.lang.reflect.code.descriptor.MethodDesc;
-import jdk.internal.java.lang.reflect.code.descriptor.MethodTypeDesc;
 import jdk.internal.java.lang.reflect.code.descriptor.RecordTypeDesc;
 import jdk.internal.java.lang.reflect.code.type.FunctionType;
 import jdk.internal.java.lang.reflect.code.type.JavaType;
@@ -651,7 +650,7 @@ public class ReflectMethods extends TreeTranslator {
 
         Value box(Value valueExpr, Type box) {
             MethodDesc boxMethod = MethodDesc.method(typeToTypeElement(box), names.valueOf.toString(),
-                    MethodTypeDesc.methodType(typeToTypeElement(box), typeToTypeElement(types.unboxedType(box))));
+                    FunctionType.functionType(typeToTypeElement(box), typeToTypeElement(types.unboxedType(box))));
             return append(CoreOps.invoke(boxMethod, valueExpr));
         }
 
@@ -663,7 +662,7 @@ public class ReflectMethods extends TreeTranslator {
             }
             MethodDesc unboxMethod = MethodDesc.method(typeToTypeElement(box),
                     unboxedType.tsym.name.append(names.Value).toString(),
-                    MethodTypeDesc.methodType(typeToTypeElement(unboxedType), typeToTypeElement(box)));
+                    FunctionType.functionType(typeToTypeElement(unboxedType), typeToTypeElement(box)));
             return append(CoreOps.invoke(unboxMethod, valueExpr));
         }
 
@@ -1211,13 +1210,13 @@ public class ReflectMethods extends TreeTranslator {
             // the return type declares the class to instantiate
             // @@@ require symbol site type?
             MethodDesc methodDesc = symbolToErasedMethodDesc(tree.constructor);
-            MethodTypeDesc constructorDesc = MethodTypeDesc.methodType(
+            FunctionType constructorType = FunctionType.functionType(
                     symbolToErasedDesc(tree.constructor.owner),
-                    methodDesc.type().parameters());
+                    methodDesc.type().parameterTypes());
 
             args.addAll(scanMethodArguments(tree.args, tree.constructorType, tree.varargsElement));
 
-            result = append(CoreOps._new(typeToTypeElement(type), constructorDesc, args));
+            result = append(CoreOps._new(typeToTypeElement(type), constructorType, args));
         }
 
         @Override
@@ -1245,9 +1244,9 @@ public class ReflectMethods extends TreeTranslator {
                 }
 
                 JavaType arrayType = typeToTypeElement(tree.type);
-                MethodTypeDesc descriptor = MethodTypeDesc.methodType(arrayType,
+                FunctionType constructorType = FunctionType.functionType(arrayType,
                         indexes.stream().map(Value::type).toList());
-                result = append(CoreOps._new(arrayType, descriptor, indexes));
+                result = append(CoreOps._new(arrayType, constructorType, indexes));
             }
         }
 

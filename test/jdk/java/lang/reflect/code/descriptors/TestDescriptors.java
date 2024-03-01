@@ -35,35 +35,12 @@ import java.lang.reflect.code.descriptor.*;
 public class TestDescriptors {
 
     @DataProvider
-    public Object[][] methodTypeDescriptors() {
-        return new Object[][]{
-                {"()boolean", "()Z"},
-                {"()void", "()V"},
-                {"(int)int", "(I)I"},
-                {"(int, int)int", "(II)I"},
-                {"(java.lang.String)int", "(Ljava/lang/String;)I"},
-                {"(java.lang.String, int)int", "(Ljava/lang/String;I)I"},
-                {"(int, java.lang.String)int", "(ILjava/lang/String;)I"},
-                {"(int, java.lang.String)java.lang.String", "(ILjava/lang/String;)Ljava/lang/String;"},
-                {"(byte, short, int, long)boolean", "(BSIJ)Z"},
-                {"(Func<String, Number>, Entry<List<String>, val>, int, long)void", "(LFunc;LEntry;IJ)V"},
-        };
-    }
-
-    @Test(dataProvider = "methodTypeDescriptors")
-    public void testMethodTypeDescriptor(String mtds, String bcd) {
-        MethodTypeDesc mtd = MethodTypeDesc.ofString(mtds);
-        Assert.assertEquals(mtd.toString(), mtds);
-        Assert.assertEquals(mtd.toNominalDescriptorString(), bcd);
-        Assert.assertEquals(mtd.erase(), MethodTypeDesc.ofNominalDescriptorString(bcd));
-    }
-
-    @DataProvider
     public Object[][] methodDescriptors() {
         return new Object[][]{
                 {"a::b()void", "a", "b"},
                 {"a.b::c(int)int", "a.b", "c"},
                 {"a.b.c::d(int, int)int", "a.b.c", "d"},
+                {"a::b(Func<String, Number>, Entry<List<String>, val>, int, long)void", "a", "b"},
                 {"java.io.PrintStream::println(java.lang.String)void", "java.io.PrintStream", "println"},
                 {"MethodReferenceTest$A::m(java.lang.Object)java.lang.Object", "MethodReferenceTest$A", "m"},
                 {"MethodReferenceTest$X::<new>(int)MethodReferenceTest$X", "MethodReferenceTest$X", "<new>"},

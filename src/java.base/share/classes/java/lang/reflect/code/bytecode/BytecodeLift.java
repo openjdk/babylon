@@ -44,8 +44,8 @@ import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.descriptor.FieldDesc;
 import java.lang.reflect.code.descriptor.MethodDesc;
-import java.lang.reflect.code.descriptor.MethodTypeDesc;
 import java.lang.reflect.code.op.CoreOps.ExceptionRegionEnter;
+import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -72,10 +72,10 @@ public final class BytecodeLift {
     }
 
     public static CoreOps.FuncOp lift(MethodModel methodModel) {
-        MethodTypeDesc mtd = MethodTypeDesc.ofNominalDescriptor(methodModel.methodTypeSymbol());
+        FunctionType mt = MethodDesc.ofNominalDescriptor(methodModel.methodTypeSymbol());
         return CoreOps.func(
                 methodModel.methodName().stringValue(),
-                mtd.toFunctionType()).body(entryBlock -> {
+                mt).body(entryBlock -> {
 
             final CodeModel codeModel = methodModel.code().orElseThrow();
             final HashMap<Label, Block.Builder> blockMap = new HashMap<>();
@@ -325,9 +325,9 @@ public final class BytecodeLift {
                             stack.push(currentBlock.op(CoreOps.arrayLoadOp(stack.pop(), index)));
                         }
                         case InvokeInstruction inst -> {
-                            MethodTypeDesc mType = MethodTypeDesc.ofNominalDescriptor(inst.typeSymbol());
+                            FunctionType mType = MethodDesc.ofNominalDescriptor(inst.typeSymbol());
                             List<Value> operands = new ArrayList<>();
-                            for (var _ : mType.parameters()) {
+                            for (var _ : mType.parameterTypes()) {
                                 operands.add(stack.pop());
                             }
                             MethodDesc mDesc = MethodDesc.method(
@@ -344,9 +344,9 @@ public final class BytecodeLift {
                                 case INVOKESPECIAL -> {
                                     if (inst.name().equalsString(ConstantDescs.INIT_NAME)) {
                                         yield currentBlock.op(CoreOps._new(
-                                                MethodTypeDesc.methodType(
-                                                        mType.parameters().get(0),
-                                                        mType.parameters().subList(1, mType.parameters().size())),
+                                                FunctionType.functionType(
+                                                        mType.parameterTypes().get(0),
+                                                        mType.parameterTypes().subList(1, mType.parameterTypes().size())),
                                                 operands.reversed()));
                                     } else {
                                         operands.add(stack.pop());
@@ -395,7 +395,7 @@ public final class BytecodeLift {
                         }
                         case NewMultiArrayInstruction inst -> {
                             stack.push(currentBlock.op(CoreOps._new(
-                                    MethodTypeDesc.methodType(
+                                    FunctionType.functionType(
                                             JavaType.ofNominalDescriptor(inst.arrayType().asSymbol()),
                                             Collections.nCopies(inst.dimensions(), JavaType.INT)),
                                     IntStream.range(0, inst.dimensions()).mapToObj(_ -> stack.pop()).toList().reversed())));

@@ -28,11 +28,7 @@ package java.lang.reflect.code.op;
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.descriptor.FieldDesc;
 import java.lang.reflect.code.descriptor.MethodDesc;
-import java.lang.reflect.code.descriptor.MethodTypeDesc;
-import java.lang.reflect.code.type.FunctionType;
-import java.lang.reflect.code.type.JavaType;
-import java.lang.reflect.code.type.TupleType;
-import java.lang.reflect.code.type.VarType;
+import java.lang.reflect.code.type.*;
 import java.lang.reflect.code.type.impl.JavaTypeImpl;
 import java.util.*;
 import java.util.function.Consumer;
@@ -1201,7 +1197,7 @@ public final class CoreOps {
         }
 
         public boolean hasReceiver() {
-            return operands().size() != invokeDescriptor().type().parameters().size();
+            return operands().size() != invokeDescriptor().type().parameterTypes().size();
         }
 
         @Override
@@ -1257,30 +1253,37 @@ public final class CoreOps {
         public static final String NAME = "new";
         public static final String ATTRIBUTE_NEW_DESCRIPTOR = NAME + ".descriptor";
 
-        final MethodTypeDesc constructorDescriptor;
+        final FunctionType constructorType;
         final TypeElement resultType;
 
         public static NewOp create(OpDefinition def) {
-            MethodTypeDesc constructorDescriptor = def.extractAttributeValue(ATTRIBUTE_NEW_DESCRIPTOR,true,
+            FunctionType constructorType = def.extractAttributeValue(ATTRIBUTE_NEW_DESCRIPTOR,true,
                     v -> switch(v) {
-                        case String s -> MethodTypeDesc.ofString(s);
-                        case MethodTypeDesc mtd -> mtd;
+                        case String s -> {
+                            TypeElement te = CoreTypeFactory.CORE_TYPE_FACTORY
+                                    .constructType(TypeDefinition.ofString(s));
+                            if (!(te instanceof FunctionType ft)) {
+                                throw new UnsupportedOperationException("Unsupported new descriptor value:" + v);
+                            }
+                            yield ft;
+                        }
+                        case FunctionType ct -> ct;
                         default -> throw new UnsupportedOperationException("Unsupported new descriptor value:" + v);
                     });
-            return new NewOp(def, constructorDescriptor);
+            return new NewOp(def, constructorType);
         }
 
-        NewOp(OpDefinition def, MethodTypeDesc constructorDescriptor) {
+        NewOp(OpDefinition def, FunctionType constructorType) {
             super(def);
 
-            this.constructorDescriptor = constructorDescriptor;
+            this.constructorType = constructorType;
             this.resultType = def.resultType();
         }
 
         NewOp(NewOp that, CopyContext cc) {
             super(that, cc);
 
-            this.constructorDescriptor = that.constructorDescriptor;
+            this.constructorType = that.constructorType;
             this.resultType = that.resultType;
         }
 
@@ -1289,21 +1292,21 @@ public final class CoreOps {
             return new NewOp(this, cc);
         }
 
-        NewOp(MethodTypeDesc constructorDescriptor, List<Value> args) {
-            this(constructorDescriptor.returnType(), constructorDescriptor, args);
+        NewOp(FunctionType constructorType, List<Value> args) {
+            this(constructorType.returnType(), constructorType, args);
         }
 
-        NewOp(TypeElement resultType, MethodTypeDesc constructorDescriptor, List<Value> args) {
+        NewOp(TypeElement resultType, FunctionType constructorType, List<Value> args) {
             super(NAME, args);
 
-            this.constructorDescriptor = constructorDescriptor;
+            this.constructorType = constructorType;
             this.resultType = resultType;
         }
 
         @Override
         public Map<String, Object> attributes() {
             HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put("", constructorDescriptor);
+            m.put("", constructorType);
             return Collections.unmodifiableMap(m);
         }
 
@@ -1311,8 +1314,8 @@ public final class CoreOps {
             return opType().returnType();
         }
 
-        public MethodTypeDesc constructorDescriptor() {
-            return constructorDescriptor;
+        public FunctionType constructorType() {
+            return constructorType;
         }
 
         @Override
@@ -3194,49 +3197,49 @@ public final class CoreOps {
     /**
      * Creates an instance creation operation.
      *
-     * @param constructorDescriptor the constructor descriptor
+     * @param constructorType the constructor type
      * @param args the constructor arguments
      * @return the instance creation operation
      */
-    public static NewOp _new(MethodTypeDesc constructorDescriptor, Value... args) {
-        return _new(constructorDescriptor, List.of(args));
+    public static NewOp _new(FunctionType constructorType, Value... args) {
+        return _new(constructorType, List.of(args));
     }
 
     /**
      * Creates an instance creation operation.
      *
-     * @param constructorDescriptor the constructor descriptor
+     * @param constructorType the constructor type
      * @param args the constructor arguments
      * @return the instance creation operation
      */
-    public static NewOp _new(MethodTypeDesc constructorDescriptor, List<Value> args) {
-        return new NewOp(constructorDescriptor, args);
+    public static NewOp _new(FunctionType constructorType, List<Value> args) {
+        return new NewOp(constructorType, args);
     }
 
     /**
      * Creates an instance creation operation.
      *
      * @param returnType the instance type
-     * @param constructorDescriptor the constructor descriptor
+     * @param constructorType the constructor type
      * @param args the constructor arguments
      * @return the instance creation operation
      */
-    public static NewOp _new(TypeElement returnType, MethodTypeDesc constructorDescriptor,
+    public static NewOp _new(TypeElement returnType, FunctionType constructorType,
                              Value... args) {
-        return _new(returnType, constructorDescriptor, List.of(args));
+        return _new(returnType, constructorType, List.of(args));
     }
 
     /**
      * Creates an instance creation operation.
      *
      * @param returnType the instance type
-     * @param constructorDescriptor the constructor descriptor
+     * @param constructorType the constructor type
      * @param args the constructor arguments
      * @return the instance creation operation
      */
-    public static NewOp _new(TypeElement returnType, MethodTypeDesc constructorDescriptor,
+    public static NewOp _new(TypeElement returnType, FunctionType constructorType,
                              List<Value> args) {
-        return new NewOp(returnType, constructorDescriptor, args);
+        return new NewOp(returnType, constructorType, args);
     }
 
     /**
@@ -3247,7 +3250,7 @@ public final class CoreOps {
      * @return the array creation operation
      */
     public static NewOp newArray(TypeElement arrayType, Value length) {
-        return _new(MethodTypeDesc.methodType(arrayType, JavaType.INT), length);
+        return _new(FunctionType.functionType(arrayType, JavaType.INT), length);
     }
 
     // @@@ Add field load/store overload with explicit fieldType

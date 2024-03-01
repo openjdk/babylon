@@ -29,6 +29,7 @@ import java.lang.reflect.code.descriptor.*;
 import java.lang.reflect.code.descriptor.impl.*;
 import java.lang.reflect.code.type.CoreTypeFactory;
 import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.TypeDefinition;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,17 +46,6 @@ public final class DescParser {
         Scanner s = Scanner.factory().newScanner(desc);
         s.nextToken();
         return parseTypeDefinition(s);
-    }
-
-    /**
-     * Parse a method type descriptor from its serialized textual form.
-     * @param desc the serialized method type descriptor
-     * @return the method type descriptor
-     */
-    public static MethodTypeDesc parseMethodTypeDesc(String desc) {
-        Scanner s = Scanner.factory().newScanner(desc);
-        s.nextToken();
-        return parseMethodTypeDesc(s);
     }
 
     /**
@@ -142,7 +132,8 @@ public final class DescParser {
         return CoreTypeFactory.CORE_TYPE_FACTORY.constructType(typeDesc);
     }
 
-    static MethodTypeDesc parseMethodTypeDesc(Lexer l) {
+    // (T, T, T, T)R
+    static FunctionType parseMethodType(Lexer l) {
         List<TypeElement> ptypes = new ArrayList<>();
         l.accept(Tokens.TokenKind.LPAREN);
         if (l.token().kind != Tokens.TokenKind.RPAREN) {
@@ -153,10 +144,10 @@ public final class DescParser {
         }
         l.accept(Tokens.TokenKind.RPAREN);
         TypeElement rtype = parseTypeElement(l);
-        return new MethodTypeDescImpl(rtype, ptypes);
+        return FunctionType.functionType(rtype, ptypes);
     }
 
-    static MethodDescImpl parseMethodDesc(Lexer l) {
+    static MethodDesc parseMethodDesc(Lexer l) {
         TypeElement refType = parseTypeElement(l);
 
         l.accept(Tokens.TokenKind.COLCOL);
@@ -171,20 +162,20 @@ public final class DescParser {
             methodName = l.accept(Tokens.TokenKind.IDENTIFIER).name();
         }
 
-        MethodTypeDesc mtype = parseMethodTypeDesc(l);
+        FunctionType mtype = parseMethodType(l);
 
         return new MethodDescImpl(refType, methodName, mtype);
     }
 
-    static FieldDescImpl parseFieldDesc(Lexer l) {
+    static FieldDesc parseFieldDesc(Lexer l) {
         TypeElement refType = parseTypeElement(l);
 
         l.accept(Tokens.TokenKind.COLCOL);
 
         String fieldName = l.accept(Tokens.TokenKind.IDENTIFIER).name();
 
-        MethodTypeDesc mtype = parseMethodTypeDesc(l);
-        if (!mtype.parameters().isEmpty()) {
+        FunctionType mtype = parseMethodType(l);
+        if (!mtype.parameterTypes().isEmpty()) {
             throw new IllegalArgumentException();
         }
         return new FieldDescImpl(refType, fieldName, mtype.returnType());

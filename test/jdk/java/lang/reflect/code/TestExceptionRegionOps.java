@@ -33,6 +33,7 @@ import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.descriptor.MethodDesc;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.code.type.JavaType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -45,8 +46,9 @@ import static java.lang.reflect.code.op.CoreOps.constant;
 import static java.lang.reflect.code.op.CoreOps.exceptionRegionEnter;
 import static java.lang.reflect.code.op.CoreOps.exceptionRegionExit;
 import static java.lang.reflect.code.op.CoreOps.func;
-import static java.lang.reflect.code.descriptor.MethodTypeDesc.methodType;
+import static java.lang.reflect.code.type.FunctionType.*;
 import static java.lang.reflect.code.type.JavaType.*;
+import static java.lang.reflect.code.type.JavaType.VOID;
 
 public class TestExceptionRegionOps {
 
@@ -67,7 +69,7 @@ public class TestExceptionRegionOps {
 
     @Test
     public void test() {
-        CoreOps.FuncOp f = func("f", methodType(void.class, IntConsumer.class).toFunctionType())
+        CoreOps.FuncOp f = func("f", functionType(VOID, type(IntConsumer.class)))
                 .body(fbody -> {
                     var fblock = fbody.entryBlock();
                     var catchER1ISE = fblock.block(type(IllegalStateException.class));
@@ -158,7 +160,7 @@ public class TestExceptionRegionOps {
 
     @Test
     public void testCatchThrowable() {
-        CoreOps.FuncOp f = func("f", methodType(void.class, IntConsumer.class).toFunctionType())
+        CoreOps.FuncOp f = func("f", functionType(VOID, type(IntConsumer.class)))
                 .body(fbody -> {
                     var fblock = fbody.entryBlock();
                     var catchER1ISE = fblock.block(type(IllegalStateException.class));
@@ -252,7 +254,7 @@ public class TestExceptionRegionOps {
 
     @Test
     public void testNested() {
-        CoreOps.FuncOp f = func("f", methodType(void.class, IntConsumer.class).toFunctionType())
+        CoreOps.FuncOp f = func("f", functionType(VOID, type(IntConsumer.class)))
                 .body(fbody -> {
                     var fblock = fbody.entryBlock();
                     var catchER1 = fblock.block(type(IllegalArgumentException.class));
@@ -373,7 +375,7 @@ public class TestExceptionRegionOps {
 
     @Test
     public void testCatchFinally() {
-        CoreOps.FuncOp f = func("f", methodType(void.class, IntConsumer.class).toFunctionType())
+        CoreOps.FuncOp f = func("f", functionType(VOID, JavaType.type(IntConsumer.class)))
                 .body(fbody -> {
                     var fblock = fbody.entryBlock();
                     var catchRE = fblock.block(type(IllegalStateException.class));

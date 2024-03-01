@@ -46,7 +46,7 @@ public sealed interface FieldDesc permits FieldDescImpl {
 
     Field resolveToMember(MethodHandles.Lookup l) throws ReflectiveOperationException;
 
-    VarHandle resolve(MethodHandles.Lookup l) throws ReflectiveOperationException;
+    VarHandle resolveToHandle(MethodHandles.Lookup l) throws ReflectiveOperationException;
 
     // Factories
 
