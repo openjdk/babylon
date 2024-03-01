@@ -65,6 +65,7 @@ import com.sun.tools.javac.tree.JCTree.JCNewArray;
 import com.sun.tools.javac.tree.JCTree.JCNewClass;
 import com.sun.tools.javac.tree.JCTree.JCReturn;
 import com.sun.tools.javac.tree.JCTree.JCVariableDecl;
+import com.sun.tools.javac.tree.JCTree.JCAssert;
 import com.sun.tools.javac.tree.JCTree.Tag;
 import com.sun.tools.javac.tree.TreeInfo;
 import com.sun.tools.javac.tree.TreeMaker;
@@ -440,6 +441,7 @@ public class ReflectMethods extends TreeTranslator {
                         Tag.BLOCK, Tag.IF, Tag.WHILELOOP, Tag.DOLOOP, Tag.FOREACHLOOP, Tag.FORLOOP, Tag.TRY,
                         Tag.SWITCH_EXPRESSION, Tag.YIELD,
                         Tag.CONDEXPR,
+                        Tag.ASSERT,
                         Tag.LABELLED,
                         Tag.SKIP,
                         Tag.TYPEARRAY);
@@ -1813,6 +1815,43 @@ public class ReflectMethods extends TreeTranslator {
             return type.hasTag(BOT) ?
                     (pt.hasTag(NONE) ? syms.objectType : pt) :
                     type;
+        }
+
+        @Override
+        public void visitAssert(JCAssert tree) {
+            // assert <cond:body1> [detail:body2]
+
+            List<Body.Builder> bodies = new ArrayList<>();
+            JCTree.JCExpression cond = TreeInfo.skipParens(tree.cond);
+
+            // Push condition
+            pushBody(cond,
+                    FunctionType.functionType(JavaType.BOOLEAN));
+            Value condVal = toValue(cond);
+
+            // Yield the boolean result of the condition
+            append(CoreOps._yield(condVal));
+            bodies.add(stack.body);
+
+            // Pop condition
+            popBody();
+
+            if (tree.detail != null) {
+                JCTree.JCExpression detail = TreeInfo.skipParens(tree.detail);
+
+                pushBody(detail,
+                         FunctionType.functionType(JavaType.J_L_STRING));
+                Value detailVal = toValue(detail);
+
+                append(CoreOps._yield(detailVal));
+                bodies.add(stack.body);
+
+                //Pop detail
+                popBody();
+            }
+
+            result = append(CoreOps._assert(bodies));
+
         }
 
         @Override
