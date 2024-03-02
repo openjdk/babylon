@@ -812,15 +812,15 @@ public final class CoreOps {
         }
 
         public AssertOp(List<Body.Builder> bodies) {
-            super(new OpDefinition(AssertOp.NAME,
-                    List.of(), List.of(), JavaType.VOID, Map.of(),bodies));
+            super(NAME, List.of());
             checkBodies(bodies);
             this.bodies = bodies.stream().map(b -> b.build(this)).toList();
         }
 
-        public AssertOp(AssertOp that, CopyContext cc) {
+        AssertOp(AssertOp that, CopyContext cc, OpTransformer ot) {
+
             super(that, cc);
-            this.bodies = that.bodies;
+            this.bodies = that.bodies.stream().map(b -> b.transform(cc, ot).build(this)).toList();
         }
 
         private void checkBodies(List<?> bodies) {
@@ -831,7 +831,7 @@ public final class CoreOps {
 
         @Override
         public Op transform(CopyContext cc, OpTransformer ot) {
-            return new AssertOp(this, cc);
+            return new AssertOp(this, cc, ot);
         }
 
         @Override
