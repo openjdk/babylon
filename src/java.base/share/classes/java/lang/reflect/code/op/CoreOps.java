@@ -793,6 +793,55 @@ public final class CoreOps {
     }
 
     /**
+     * The assertion operation. Supporting assertions in statement form.
+     */
+    @OpDeclaration(AssertOp.NAME)
+    public static final class AssertOp extends OpWithDefinition implements Op.Nested {
+        public static final String NAME = "assert";
+        public final List<Body> bodies;
+
+        public AssertOp(OpDefinition def) {
+            super(def);
+            var bodies = def.bodyDefinitions().stream().map(b -> b.build(this)).toList();
+            checkBodies(bodies);
+            this.bodies = bodies;
+        }
+
+        public AssertOp(List<Body.Builder> bodies) {
+            super(NAME, List.of());
+            checkBodies(bodies);
+            this.bodies = bodies.stream().map(b -> b.build(this)).toList();
+        }
+
+        AssertOp(AssertOp that, CopyContext cc, OpTransformer ot) {
+
+            super(that, cc);
+            this.bodies = that.bodies.stream().map(b -> b.transform(cc, ot).build(this)).toList();
+        }
+
+        private void checkBodies(List<?> bodies) {
+            if (bodies.size() != 1 && bodies.size() != 2) {
+                throw new IllegalArgumentException("Assert must have one or two bodies.");
+            }
+        }
+
+        @Override
+        public Op transform(CopyContext cc, OpTransformer ot) {
+            return new AssertOp(this, cc, ot);
+        }
+
+        @Override
+        public TypeElement resultType() {
+            return JavaType.VOID;
+        }
+
+        @Override
+        public List<Body> bodies() {
+            return this.bodies;
+        }
+    }
+
+    /**
      * The terminating unreachable operation.
      * <p>
      * This operation models termination that is unreachable.
@@ -3104,6 +3153,15 @@ public final class CoreOps {
      */
     public static YieldOp _yield(Value yieldValue) {
         return new YieldOp(List.of(yieldValue));
+    }
+
+    /**
+     * Creates an assert operation.
+     * @param bodies the nested bodies
+     * @return the assert operation
+     */
+    public static AssertOp _assert(List<Body.Builder> bodies) {
+        return new AssertOp(bodies);
     }
 
     /**
