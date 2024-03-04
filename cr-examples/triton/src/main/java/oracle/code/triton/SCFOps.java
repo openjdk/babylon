@@ -42,22 +42,22 @@ public class SCFOps {
         public static class Builder {
             final Body.Builder ancestorBody;
             final List<Value> range;
-            final FunctionType loopDescriptor;
+            final FunctionType loopType;
 
-            Builder(Body.Builder ancestorBody, List<Value> range, FunctionType loopDescriptor) {
+            Builder(Body.Builder ancestorBody, List<Value> range, FunctionType loopType) {
                 this.ancestorBody = ancestorBody;
                 this.range = range;
-                this.loopDescriptor = loopDescriptor;
+                this.loopType = loopType;
             }
 
             public ForOp body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, loopDescriptor);
+                Body.Builder body = Body.Builder.of(ancestorBody, loopType);
                 c.accept(body.entryBlock());
                 return new ForOp(range, body);
             }
 
             public ForOp body(CopyContext cc, Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, loopDescriptor, cc);
+                Body.Builder body = Body.Builder.of(ancestorBody, loopType, cc);
                 c.accept(body.entryBlock());
                 return new ForOp(range, body);
             }
