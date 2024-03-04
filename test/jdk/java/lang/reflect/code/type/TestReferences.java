@@ -31,13 +31,13 @@ import java.lang.reflect.code.type.RecordTypeRef;
 
 /*
  * @test
- * @run testng TestDescriptors
+ * @run testng TestReferences
  */
 
-public class TestDescriptors {
+public class TestReferences {
 
     @DataProvider
-    public Object[][] methodDescriptors() {
+    public Object[][] methodRefs() {
         return new Object[][]{
                 {"a::b()void", "a", "b"},
                 {"a.b::c(int)int", "a.b", "c"},
@@ -50,17 +50,17 @@ public class TestDescriptors {
         };
     }
 
-    @Test(dataProvider = "methodDescriptors")
-    public void testMethodDescriptor(String mds, String refType, String name) {
-        MethodRef md = MethodRef.ofString(mds);
-        Assert.assertEquals(md.toString(), mds);
-        Assert.assertEquals(md.refType().toString(), refType);
-        Assert.assertEquals(md.name(), name);
+    @Test(dataProvider = "methodRefs")
+    public void testMethodRef(String mds, String refType, String name) {
+        MethodRef mr = MethodRef.ofString(mds);
+        Assert.assertEquals(mr.toString(), mds);
+        Assert.assertEquals(mr.refType().toString(), refType);
+        Assert.assertEquals(mr.name(), name);
     }
 
 
     @DataProvider
-    public Object[][] fieldDescriptors() {
+    public Object[][] fieldRefs() {
         return new Object[][]{
                 {"a.b::c()int", "a.b", "c", "int"},
                 {"a.b.c::d()int", "a.b.c", "d", "int"},
@@ -68,18 +68,18 @@ public class TestDescriptors {
         };
     }
 
-    @Test(dataProvider = "fieldDescriptors")
-    public void testFieldDescriptor(String fds, String refType, String name, String type) {
-        FieldRef fd = FieldRef.ofString(fds);
-        Assert.assertEquals(fd.toString(), fds);
-        Assert.assertEquals(fd.refType().toString(), refType);
-        Assert.assertEquals(fd.name(), name);
-        Assert.assertEquals(fd.type().toString(), type);
+    @Test(dataProvider = "fieldRefs")
+    public void testFieldRef(String fds, String refType, String name, String type) {
+        FieldRef fr = FieldRef.ofString(fds);
+        Assert.assertEquals(fr.toString(), fds);
+        Assert.assertEquals(fr.refType().toString(), refType);
+        Assert.assertEquals(fr.name(), name);
+        Assert.assertEquals(fr.type().toString(), type);
     }
 
 
     @DataProvider
-    public Object[][] recordTypeDescriptors() {
+    public Object[][] recordTypeRefs() {
         return new Object[][]{
                 {"()A"},
                 {"(B b)A"},
@@ -88,10 +88,10 @@ public class TestDescriptors {
         };
     }
 
-    @Test(dataProvider = "recordTypeDescriptors")
-    public void testRecordTypeDescriptor(String rtds) {
-        RecordTypeRef mtd = RecordTypeRef.ofString(rtds);
-        Assert.assertEquals(mtd.toString(), rtds);
+    @Test(dataProvider = "recordTypeRefs")
+    public void testRecordTypeRef(String rtds) {
+        RecordTypeRef rtr = RecordTypeRef.ofString(rtds);
+        Assert.assertEquals(rtr.toString(), rtds);
     }
 
 }
