@@ -2259,8 +2259,8 @@ public class ReflectMethods extends TreeTranslator {
 
         RecordTypeRef symbolToRecordTypeRef(Symbol.ClassSymbol s) {
             TypeElement recordType = typeToTypeElement(s.type);
-            List<RecordTypeRef.ComponentDesc> components = s.getRecordComponents().stream()
-                    .map(rc -> new RecordTypeRef.ComponentDesc(typeToTypeElement(rc.type), rc.name.toString()))
+            List<RecordTypeRef.ComponentRef> components = s.getRecordComponents().stream()
+                    .map(rc -> new RecordTypeRef.ComponentRef(typeToTypeElement(rc.type), rc.name.toString()))
                     .toList();
             return RecordTypeRef.recordType(recordType, components);
         }

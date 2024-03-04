@@ -41,26 +41,26 @@ public sealed interface RecordTypeRef permits RecordTypeRefImpl {
      * @param type the type of the component
      * @param name the name of the component
      */
-    record ComponentDesc(TypeElement type, String name) {}
+    record ComponentRef(TypeElement type, String name) {}
 
-    List<ComponentDesc> components();
+    List<ComponentRef> components();
 
     MethodRef methodForComponent(int i);
 
     // Factories
 
     static RecordTypeRef recordType(Class<? extends Record> c) {
-        List<ComponentDesc> components = Stream.of(c.getRecordComponents())
-                .map(rc -> new ComponentDesc(JavaType.type(rc.getType()), rc.getName()))
+        List<ComponentRef> components = Stream.of(c.getRecordComponents())
+                .map(rc -> new ComponentRef(JavaType.type(rc.getType()), rc.getName()))
                 .toList();
         return recordType(JavaType.type(c), components);
     }
 
-    static RecordTypeRef recordType(TypeElement recordType, ComponentDesc... components) {
+    static RecordTypeRef recordType(TypeElement recordType, ComponentRef... components) {
         return recordType(recordType, List.of(components));
     }
 
-    static RecordTypeRef recordType(TypeElement recordType, List<ComponentDesc> components) {
+    static RecordTypeRef recordType(TypeElement recordType, List<ComponentRef> components) {
         return new RecordTypeRefImpl(recordType, components);
     }
 

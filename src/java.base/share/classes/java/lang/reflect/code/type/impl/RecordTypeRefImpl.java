@@ -34,9 +34,9 @@ import static java.util.stream.Collectors.joining;
 
 public final class RecordTypeRefImpl implements RecordTypeRef {
     final TypeElement recordType;
-    final List<ComponentDesc> components;
+    final List<ComponentRef> components;
 
-    public RecordTypeRefImpl(TypeElement recordType, List<ComponentDesc> components) {
+    public RecordTypeRefImpl(TypeElement recordType, List<ComponentRef> components) {
         this.recordType = recordType;
         this.components = List.copyOf(components);
     }
@@ -47,7 +47,7 @@ public final class RecordTypeRefImpl implements RecordTypeRef {
     }
 
     @Override
-    public List<ComponentDesc> components() {
+    public List<ComponentRef> components() {
         return components;
     }
 
@@ -57,7 +57,7 @@ public final class RecordTypeRefImpl implements RecordTypeRef {
             throw new IndexOutOfBoundsException();
         }
 
-        ComponentDesc c = components.get(i);
+        ComponentRef c = components.get(i);
         return MethodRef.method(recordType, c.name(), c.type());
     }
 

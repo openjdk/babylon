@@ -182,14 +182,14 @@ public final class DescParser {
     }
 
     static RecordTypeRef parseRecordTypeRef(Lexer l) {
-        List<RecordTypeRef.ComponentDesc> components = new ArrayList<>();
+        List<RecordTypeRef.ComponentRef> components = new ArrayList<>();
         l.accept(Tokens.TokenKind.LPAREN);
         if (l.token().kind != Tokens.TokenKind.RPAREN) {
             do {
                 TypeElement componentType = parseTypeElement(l);
                 String componentName = l.accept(Tokens.TokenKind.IDENTIFIER).name();
 
-                components.add(new RecordTypeRef.ComponentDesc(componentType, componentName));
+                components.add(new RecordTypeRef.ComponentRef(componentType, componentName));
             } while(l.acceptIf(Tokens.TokenKind.COMMA));
         }
         l.accept(Tokens.TokenKind.RPAREN);
