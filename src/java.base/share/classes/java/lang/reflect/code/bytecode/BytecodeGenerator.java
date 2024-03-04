@@ -46,8 +46,8 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.analysis.Liveness;
-import java.lang.reflect.code.descriptor.FieldDesc;
-import java.lang.reflect.code.descriptor.MethodDesc;
+import java.lang.reflect.code.type.FieldRef;
+import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.TypeElement;
@@ -91,7 +91,7 @@ public final class BytecodeGenerator {
 
         try {
             FunctionType ft = fop.invokableType();
-            MethodType mt = MethodDesc.toNominalDescriptor(ft).resolveConstantDesc(hcl);
+            MethodType mt = MethodRef.toNominalDescriptor(ft).resolveConstantDesc(hcl);
             return hcl.findStatic(hcl.lookupClass(), fop.funcName(), mt);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
@@ -109,7 +109,7 @@ public final class BytecodeGenerator {
                 ? fop.funcName()
                 : packageName + "." + fop.funcName();
         Liveness liveness = new Liveness(fop);
-        MethodTypeDesc mtd = MethodDesc.toNominalDescriptor(fop.invokableType());
+        MethodTypeDesc mtd = MethodRef.toNominalDescriptor(fop.invokableType());
         byte[] classBytes = ClassFile.of().build(ClassDesc.of(className), clb ->
                 clb.withMethodBody(
                         fop.funcName(),
@@ -600,7 +600,7 @@ public final class BytecodeGenerator {
                                 cob.invokespecial(
                                         ((JavaType) op.resultType()).toNominalDescriptor(),
                                         ConstantDescs.INIT_NAME,
-                                        MethodDesc.toNominalDescriptor(op.constructorType())
+                                        MethodRef.toNominalDescriptor(op.constructorType())
                                                 .changeReturnType(ConstantDescs.CD_void));
                             }
                             case 1 -> {
@@ -636,7 +636,7 @@ public final class BytecodeGenerator {
                                 descKind = DirectMethodHandleDesc.Kind.STATIC;
                             }
                         }
-                        MethodDesc md = op.invokeDescriptor();
+                        MethodRef md = op.invokeDescriptor();
                         cob.invokeInstruction(
                                 switch (descKind) {
                                     case STATIC, INTERFACE_STATIC   -> Opcode.INVOKESTATIC;
@@ -648,7 +648,7 @@ public final class BytecodeGenerator {
                                 },
                                 ((JavaType) md.refType()).toNominalDescriptor(),
                                 md.name(),
-                                MethodDesc.toNominalDescriptor(md.type()),
+                                MethodRef.toNominalDescriptor(md.type()),
                                 switch (descKind) {
                                     case INTERFACE_STATIC, INTERFACE_VIRTUAL, INTERFACE_SPECIAL -> true;
                                     default -> false;
@@ -660,7 +660,7 @@ public final class BytecodeGenerator {
                     }
                     case FieldAccessOp.FieldLoadOp op -> {
                         processOperands(cob, c, op, isLastOpResultOnStack);
-                        FieldDesc fd = op.fieldDescriptor();
+                        FieldRef fd = op.fieldDescriptor();
                         if (op.operands().isEmpty()) {
                             cob.getstatic(
                                     ((JavaType) fd.refType()).toNominalDescriptor(),
@@ -676,7 +676,7 @@ public final class BytecodeGenerator {
                     case FieldAccessOp.FieldStoreOp op -> {
                         processOperands(cob, c, op, isLastOpResultOnStack);
                         isLastOpResultOnStack = false;
-                        FieldDesc fd = op.fieldDescriptor();
+                        FieldRef fd = op.fieldDescriptor();
                         if (op.operands().size() == 1) {
                             cob.putstatic(
                                     ((JavaType) fd.refType()).toNominalDescriptor(),
@@ -1029,7 +1029,7 @@ public final class BytecodeGenerator {
         }
     }
 
-    static DirectMethodHandleDesc resolveToMethodHandleDesc(MethodHandles.Lookup l, MethodDesc d) throws ReflectiveOperationException {
+    static DirectMethodHandleDesc resolveToMethodHandleDesc(MethodHandles.Lookup l, MethodRef d) throws ReflectiveOperationException {
         MethodHandle mh = d.resolveToHandle(l);
 
         if (mh.describeConstable().isEmpty()) {

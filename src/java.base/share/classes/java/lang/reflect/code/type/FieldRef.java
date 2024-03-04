@@ -23,19 +23,18 @@
  * questions.
  */
 
-package java.lang.reflect.code.descriptor;
+package java.lang.reflect.code.type;
 
-import java.lang.reflect.code.descriptor.impl.FieldDescImpl;
+import java.lang.reflect.code.type.impl.FieldRefImpl;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.lang.reflect.Field;
-import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.TypeElement;
 
 /**
- * The symbolic description of a Java field.
+ * The symbolic reference to a Java field.
  */
-public sealed interface FieldDesc permits FieldDescImpl {
+public sealed interface FieldRef permits FieldRefImpl {
     TypeElement refType();
 
     String name();
@@ -50,20 +49,20 @@ public sealed interface FieldDesc permits FieldDescImpl {
 
     // Factories
 
-    static FieldDesc field(Field f) {
+    static FieldRef field(Field f) {
         return field(f.getDeclaringClass(), f.getName(), f.getType());
     }
 
-    static FieldDesc field(Class<?> refType, String name, Class<?> type) {
+    static FieldRef field(Class<?> refType, String name, Class<?> type) {
         return field(JavaType.type(refType), name, JavaType.type(type));
     }
 
-    static FieldDesc field(TypeElement refType, String name, TypeElement type) {
-        return new FieldDescImpl(refType, name, type);
+    static FieldRef field(TypeElement refType, String name, TypeElement type) {
+        return new FieldRefImpl(refType, name, type);
     }
 
     // Copied code in jdk.compiler module throws UOE
-    static FieldDesc ofString(String s) {
-/*__throw new UnsupportedOperationException();__*/        return java.lang.reflect.code.parser.impl.DescParser.parseFieldDesc(s);
+    static FieldRef ofString(String s) {
+/*__throw new UnsupportedOperationException();__*/        return java.lang.reflect.code.parser.impl.DescParser.parseFieldRef(s);
     }
 }

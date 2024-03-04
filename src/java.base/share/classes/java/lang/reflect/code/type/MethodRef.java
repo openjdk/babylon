@@ -23,25 +23,23 @@
  * questions.
  */
 
-package java.lang.reflect.code.descriptor;
+package java.lang.reflect.code.type;
 
 import java.lang.constant.ClassDesc;
 import java.lang.constant.MethodTypeDesc;
-import java.lang.reflect.code.descriptor.impl.MethodDescImpl;
+import java.lang.reflect.code.type.impl.MethodRefImpl;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Executable;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.type.FunctionType;
-import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.TypeElement;
 import java.util.List;
 
 import static java.lang.reflect.code.type.FunctionType.functionType;
 
 /**
- * The symbolic description of a Java method.
+ * The symbolic reference to a Java method.
  */
 // @@@ require invoke kind:
 //    special, static, virtual
@@ -51,7 +49,7 @@ import static java.lang.reflect.code.type.FunctionType.functionType;
 //  constant pool entry of CONSTANT_Methodref_info or CONSTANT_InterfaceMethodref_info.
 //
 //  We can infer the kind, if we can resolve the types and lookup the declared method
-public sealed interface MethodDesc permits MethodDescImpl {
+public sealed interface MethodRef permits MethodRefImpl {
 
     TypeElement refType();
 
@@ -67,38 +65,38 @@ public sealed interface MethodDesc permits MethodDescImpl {
 
     // Factories
 
-    static MethodDesc method(Method m) {
+    static MethodRef method(Method m) {
         return method(m.getDeclaringClass(), m.getName(), m.getReturnType(), m.getParameterTypes());
     }
 
-    static MethodDesc method(Class<?> refType, String name, MethodType mt) {
+    static MethodRef method(Class<?> refType, String name, MethodType mt) {
         return method(refType, name, mt.returnType(), mt.parameterList());
     }
 
-    static MethodDesc method(Class<?> refType, String name, Class<?> retType, Class<?>... params) {
+    static MethodRef method(Class<?> refType, String name, Class<?> retType, Class<?>... params) {
         return method(refType, name, retType, List.of(params));
     }
 
-    static MethodDesc method(Class<?> refType, String name, Class<?> retType, List<Class<?>> params) {
+    static MethodRef method(Class<?> refType, String name, Class<?> retType, List<Class<?>> params) {
         return method(JavaType.type(refType), name, JavaType.type(retType), params.stream().map(JavaType::type).toList());
     }
 
 
-    static MethodDesc method(TypeElement refType, String name, FunctionType type) {
-        return new MethodDescImpl(refType, name, type);
+    static MethodRef method(TypeElement refType, String name, FunctionType type) {
+        return new MethodRefImpl(refType, name, type);
     }
 
-    static MethodDesc method(TypeElement refType, String name, TypeElement retType, TypeElement... params) {
+    static MethodRef method(TypeElement refType, String name, TypeElement retType, TypeElement... params) {
         return method(refType, name, functionType(retType, params));
     }
 
-    static MethodDesc method(TypeElement refType, String name, TypeElement retType, List<? extends TypeElement> params) {
+    static MethodRef method(TypeElement refType, String name, TypeElement retType, List<? extends TypeElement> params) {
         return method(refType, name, functionType(retType, params));
     }
 
     // Copied code in jdk.compiler module throws UOE
-    static MethodDesc ofString(String s) {
-/*__throw new UnsupportedOperationException();__*/        return java.lang.reflect.code.parser.impl.DescParser.parseMethodDesc(s);
+    static MethodRef ofString(String s) {
+/*__throw new UnsupportedOperationException();__*/        return java.lang.reflect.code.parser.impl.DescParser.parseMethodRef(s);
     }
 
 
@@ -114,7 +112,7 @@ public sealed interface MethodDesc permits MethodDescImpl {
     static MethodTypeDesc toNominalDescriptor(FunctionType t) {
         return MethodTypeDesc.of(
                 toClassDesc(t.returnType()),
-                t.parameterTypes().stream().map(MethodDesc::toClassDesc).toList());
+                t.parameterTypes().stream().map(MethodRef::toClassDesc).toList());
     }
 
     private static ClassDesc toClassDesc(TypeElement e) {

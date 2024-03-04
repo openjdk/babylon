@@ -33,7 +33,7 @@ import java.lang.reflect.code.Block;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Quoted;
-import java.lang.reflect.code.descriptor.MethodDesc;
+import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.code.type.JavaType;
@@ -52,7 +52,7 @@ import static java.lang.reflect.code.type.JavaType.type;
 public class TestClosureOps {
 
     static class Builder {
-        static final MethodDesc ACCEPT_METHOD = MethodDesc.method(type(TestClosureOps.Builder.class), "accept",
+        static final MethodRef ACCEPT_METHOD = MethodRef.method(type(TestClosureOps.Builder.class), "accept",
                 INT, CoreOps.QuotedOp.QUOTED_TYPE);
 
         static int accept(Quoted c) {

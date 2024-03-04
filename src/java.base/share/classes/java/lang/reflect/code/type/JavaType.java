@@ -195,7 +195,7 @@ public sealed interface JavaType extends TypeElement permits JavaTypeImpl {
 
     static JavaType type(JavaType t, List<JavaType> typeArguments) {
         if (t.hasTypeArguments()) {
-            throw new IllegalArgumentException("Type descriptor must not have type arguments: " + t);
+            throw new IllegalArgumentException("Type must not have type arguments: " + t);
         }
         JavaTypeImpl timpl = (JavaTypeImpl) t;
         return new JavaTypeImpl(timpl.type, timpl.dims, typeArguments);
@@ -207,10 +207,10 @@ public sealed interface JavaType extends TypeElement permits JavaTypeImpl {
 
     static JavaType type(JavaType t, int dims, List<JavaType> typeArguments) {
         if (t.isArray()) {
-            throw new IllegalArgumentException("Type descriptor must not be an array: " + t);
+            throw new IllegalArgumentException("Type must not be an array: " + t);
         }
         if (t.hasTypeArguments()) {
-            throw new IllegalArgumentException("Type descriptor must not have type arguments: " + t);
+            throw new IllegalArgumentException("Type must not have type arguments: " + t);
         }
         JavaTypeImpl timpl = (JavaTypeImpl) t;
         return new JavaTypeImpl(timpl.type, dims, typeArguments);

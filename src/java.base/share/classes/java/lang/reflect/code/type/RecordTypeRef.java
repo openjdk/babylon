@@ -23,22 +23,21 @@
  * questions.
  */
 
-package java.lang.reflect.code.descriptor;
+package java.lang.reflect.code.type;
 
-import java.lang.reflect.code.descriptor.impl.RecordTypeDescImpl;
-import java.lang.reflect.code.type.JavaType;
+import java.lang.reflect.code.type.impl.RecordTypeRefImpl;
 import java.lang.reflect.code.TypeElement;
 import java.util.List;
 import java.util.stream.Stream;
 
 /**
- * The symbolic description of a Java record type.
+ * The symbolic reference to a Java record type.
  */
-public sealed interface RecordTypeDesc permits RecordTypeDescImpl {
+public sealed interface RecordTypeRef permits RecordTypeRefImpl {
     TypeElement recordType();
 
     /**
-     * The symbolic description a Java record component.
+     * The symbolic reference to a Java record component.
      * @param type the type of the component
      * @param name the name of the component
      */
@@ -46,27 +45,27 @@ public sealed interface RecordTypeDesc permits RecordTypeDescImpl {
 
     List<ComponentDesc> components();
 
-    MethodDesc methodForComponent(int i);
+    MethodRef methodForComponent(int i);
 
     // Factories
 
-    static RecordTypeDesc recordType(Class<? extends Record> c) {
+    static RecordTypeRef recordType(Class<? extends Record> c) {
         List<ComponentDesc> components = Stream.of(c.getRecordComponents())
                 .map(rc -> new ComponentDesc(JavaType.type(rc.getType()), rc.getName()))
                 .toList();
         return recordType(JavaType.type(c), components);
     }
 
-    static RecordTypeDesc recordType(TypeElement recordType, ComponentDesc... components) {
+    static RecordTypeRef recordType(TypeElement recordType, ComponentDesc... components) {
         return recordType(recordType, List.of(components));
     }
 
-    static RecordTypeDesc recordType(TypeElement recordType, List<ComponentDesc> components) {
-        return new RecordTypeDescImpl(recordType, components);
+    static RecordTypeRef recordType(TypeElement recordType, List<ComponentDesc> components) {
+        return new RecordTypeRefImpl(recordType, components);
     }
 
     // Copied code in jdk.compiler module throws UOE
-    static RecordTypeDesc ofString(String s) {
-/*__throw new UnsupportedOperationException();__*/        return java.lang.reflect.code.parser.impl.DescParser.parseRecordTypeDesc(s);
+    static RecordTypeRef ofString(String s) {
+/*__throw new UnsupportedOperationException();__*/        return java.lang.reflect.code.parser.impl.DescParser.parseRecordTypeRef(s);
     }
 }

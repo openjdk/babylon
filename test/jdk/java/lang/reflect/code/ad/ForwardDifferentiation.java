@@ -25,7 +25,7 @@ import java.lang.reflect.code.Block;
 import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
-import java.lang.reflect.code.descriptor.MethodDesc;
+import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
@@ -122,8 +122,8 @@ public final class ForwardDifferentiation {
 
     static final JavaType J_L_MATH = JavaType.type(Math.class);
     static final FunctionType D_D = FunctionType.functionType(DOUBLE, DOUBLE);
-    static final MethodDesc J_L_MATH_SIN = MethodDesc.method(J_L_MATH, "sin", D_D);
-    static final MethodDesc J_L_MATH_COS = MethodDesc.method(J_L_MATH, "cos", D_D);
+    static final MethodRef J_L_MATH_SIN = MethodRef.method(J_L_MATH, "sin", D_D);
+    static final MethodRef J_L_MATH_COS = MethodRef.method(J_L_MATH, "cos", D_D);
 
     Value diffOp(Block.Builder block, Op op) {
         // Switch on the op, using pattern matching
@@ -171,7 +171,7 @@ public final class ForwardDifferentiation {
                 yield zero;
             }
             case CoreOps.InvokeOp c -> {
-                MethodDesc md = c.invokeDescriptor();
+                MethodRef md = c.invokeDescriptor();
                 String operationName = null;
                 if (md.refType().equals(J_L_MATH)) {
                     operationName = md.name();

@@ -24,6 +24,6 @@
  */
 
 /**
- * Types for code models.
+ * Types and symbolic references for code models.
  */
 package java.lang.reflect.code.type;

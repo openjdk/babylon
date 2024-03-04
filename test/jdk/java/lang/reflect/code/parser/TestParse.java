@@ -33,7 +33,7 @@ import org.testng.annotations.Test;
 import java.lang.reflect.code.Block;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.Op;
-import java.lang.reflect.code.descriptor.MethodDesc;
+import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.parser.OpParser;
 import java.util.List;
 import java.util.function.IntUnaryOperator;
@@ -49,7 +49,7 @@ import static java.lang.reflect.code.type.JavaType.type;
 
 public class TestParse {
 
-    static final MethodDesc INT_UNARY_OPERATOR_METHOD = MethodDesc.method(
+    static final MethodRef INT_UNARY_OPERATOR_METHOD = MethodRef.method(
             IntUnaryOperator.class, "applyAsInt",
             int.class, int.class);
 

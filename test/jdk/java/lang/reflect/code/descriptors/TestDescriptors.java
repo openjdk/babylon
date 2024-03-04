@@ -25,7 +25,9 @@ import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.descriptor.*;
+import java.lang.reflect.code.type.FieldRef;
+import java.lang.reflect.code.type.MethodRef;
+import java.lang.reflect.code.type.RecordTypeRef;
 
 /*
  * @test
@@ -50,7 +52,7 @@ public class TestDescriptors {
 
     @Test(dataProvider = "methodDescriptors")
     public void testMethodDescriptor(String mds, String refType, String name) {
-        MethodDesc md = MethodDesc.ofString(mds);
+        MethodRef md = MethodRef.ofString(mds);
         Assert.assertEquals(md.toString(), mds);
         Assert.assertEquals(md.refType().toString(), refType);
         Assert.assertEquals(md.name(), name);
@@ -68,7 +70,7 @@ public class TestDescriptors {
 
     @Test(dataProvider = "fieldDescriptors")
     public void testFieldDescriptor(String fds, String refType, String name, String type) {
-        FieldDesc fd = FieldDesc.ofString(fds);
+        FieldRef fd = FieldRef.ofString(fds);
         Assert.assertEquals(fd.toString(), fds);
         Assert.assertEquals(fd.refType().toString(), refType);
         Assert.assertEquals(fd.name(), name);
@@ -88,7 +90,7 @@ public class TestDescriptors {
 
     @Test(dataProvider = "recordTypeDescriptors")
     public void testRecordTypeDescriptor(String rtds) {
-        RecordTypeDesc mtd = RecordTypeDesc.ofString(rtds);
+        RecordTypeRef mtd = RecordTypeRef.ofString(rtds);
         Assert.assertEquals(mtd.toString(), rtds);
     }
 

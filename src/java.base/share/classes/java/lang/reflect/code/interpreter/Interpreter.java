@@ -29,8 +29,8 @@ import java.lang.invoke.*;
 import java.lang.reflect.Array;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.code.*;
-import java.lang.reflect.code.descriptor.FieldDesc;
-import java.lang.reflect.code.descriptor.MethodDesc;
+import java.lang.reflect.code.type.FieldRef;
+import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
@@ -548,11 +548,11 @@ public final class Interpreter {
         }
     }
 
-    static MethodHandle methodStaticHandle(MethodHandles.Lookup l, MethodDesc d) {
+    static MethodHandle methodStaticHandle(MethodHandles.Lookup l, MethodRef d) {
         return resolveToMethodHandle(l, d);
     }
 
-    static MethodHandle methodHandle(MethodHandles.Lookup l, MethodDesc d) {
+    static MethodHandle methodHandle(MethodHandles.Lookup l, MethodRef d) {
         return resolveToMethodHandle(l, d);
     }
 
@@ -573,11 +573,11 @@ public final class Interpreter {
         }
     }
 
-    static VarHandle fieldStaticHandle(MethodHandles.Lookup l, FieldDesc d) {
+    static VarHandle fieldStaticHandle(MethodHandles.Lookup l, FieldRef d) {
         return resolveToVarHandle(l, d);
     }
 
-    static VarHandle fieldHandle(MethodHandles.Lookup l, FieldDesc d) {
+    static VarHandle fieldHandle(MethodHandles.Lookup l, FieldRef d) {
         return resolveToVarHandle(l, d);
     }
 
@@ -591,7 +591,7 @@ public final class Interpreter {
         return c.cast(v);
     }
 
-    static MethodHandle resolveToMethodHandle(MethodHandles.Lookup l, MethodDesc d) {
+    static MethodHandle resolveToMethodHandle(MethodHandles.Lookup l, MethodRef d) {
         try {
             return d.resolveToHandle(l);
         } catch (ReflectiveOperationException e) {
@@ -599,7 +599,7 @@ public final class Interpreter {
         }
     }
 
-    static VarHandle resolveToVarHandle(MethodHandles.Lookup l, FieldDesc d) {
+    static VarHandle resolveToVarHandle(MethodHandles.Lookup l, FieldRef d) {
         try {
             return d.resolveToHandle(l);
         } catch (ReflectiveOperationException e) {
@@ -609,7 +609,7 @@ public final class Interpreter {
 
     public static MethodType resolveToMethodType(MethodHandles.Lookup l, FunctionType ft) {
         try {
-            return MethodDesc.toNominalDescriptor(ft).resolveConstantDesc(l);
+            return MethodRef.toNominalDescriptor(ft).resolveConstantDesc(l);
         } catch (ReflectiveOperationException e) {
             throw interpreterException(e);
         }
