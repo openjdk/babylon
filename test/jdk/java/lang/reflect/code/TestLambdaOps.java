@@ -69,13 +69,13 @@ public class TestLambdaOps {
 
     @Test
     public void testQuotedWithCapture() {
-        // functional descriptor = (int)int
+        // functional type = (int)int
         FuncOp f = func("f", functionType(INT, INT))
                 .body(block -> {
                     Block.Parameter i = block.parameters().get(0);
 
-                    // functional descriptor = (int)int
-                    // op descriptor = ()Quoted<LambdaOp>
+                    // functional type = (int)int
+                    // op type = ()Quoted<LambdaOp>
                     QuotedOp qop = quoted(block.parentBody(), qblock -> {
                         return lambda(qblock.parentBody(),
                                 functionType(INT, INT), type(IntUnaryOperator.class))
@@ -106,13 +106,13 @@ public class TestLambdaOps {
 
     @Test
     public void testWithCapture() {
-        // functional descriptor = (int)int
+        // functional type = (int)int
         FuncOp f = func("f", functionType(INT, INT))
                 .body(block -> {
                     Block.Parameter i = block.parameters().get(0);
 
-                    // functional descriptor = (int)int
-                    // op descriptor = ()IntUnaryOperator
+                    // functional type = (int)int
+                    // op type = ()IntUnaryOperator
                     //   captures i
                     LambdaOp lambda = lambda(block.parentBody(),
                             functionType(INT, INT), type(IntUnaryOperator.class))

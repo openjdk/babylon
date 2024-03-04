@@ -50,7 +50,7 @@ public class TestInline {
         Quoted q = (int a, int b) -> a + b;
         CoreOps.ClosureOp cop = (CoreOps.ClosureOp) q.op();
 
-        // functional descriptor = (int)int
+        // functional type = (int)int
         CoreOps.FuncOp f = func("f", functionType(INT, INT))
                 .body(fblock -> {
                     Block.Parameter i = fblock.parameters().get(0);
@@ -72,7 +72,7 @@ public class TestInline {
         Quoted q = (int a, int b) -> a + b;
         CoreOps.ClosureOp cop = (CoreOps.ClosureOp) q.op();
 
-        // functional descriptor = (int)int
+        // functional type = (int)int
         CoreOps.FuncOp f = func("f", functionType(INT, INT))
                 .body(fblock -> {
                     Block.Parameter i = fblock.parameters().get(0);
@@ -116,7 +116,7 @@ public class TestInline {
         });
         lcop.writeTo(System.out);
 
-        // functional descriptor = (int)int
+        // functional type = (int)int
         CoreOps.FuncOp f = func("f", functionType(INT, INT))
                 .body(fblock -> {
                     Block.Parameter i = fblock.parameters().get(0);
@@ -152,7 +152,7 @@ public class TestInline {
         });
         lcop.writeTo(System.out);
 
-        // functional descriptor = (int)int
+        // functional type = (int)int
         CoreOps.FuncOp f = func("f", functionType(INT, INT))
                 .body(fblock -> {
                     Block.Parameter i = fblock.parameters().get(0);
@@ -218,7 +218,7 @@ public class TestInline {
         };
         CoreOps.ClosureOp cop = (CoreOps.ClosureOp) q.op();
 
-        // functional descriptor = (int)int
+        // functional type = (int)int
         CoreOps.FuncOp f = func("f", functionType(JavaType.VOID, JavaType.type(int[].class)))
                 .body(fblock -> {
                     Block.Parameter a = fblock.parameters().get(0);

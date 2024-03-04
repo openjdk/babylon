@@ -67,12 +67,12 @@ public class TestClosureOps {
 
     @Test
     public void testQuotedWithCapture() {
-        // functional descriptor = (int)int
+        // functional type = (int)int
         CoreOps.FuncOp f = func("f", functionType(INT, INT))
                 .body(block -> {
                     Block.Parameter i = block.parameters().get(0);
 
-                    // functional descriptor = (int)int
+                    // functional type = (int)int
                     // op descriptor = ()Quoted<ClosureOp>
                     CoreOps.QuotedOp qop = quoted(block.parentBody(), qblock -> {
                         return closure(qblock.parentBody(), functionType(INT, INT))
@@ -99,12 +99,12 @@ public class TestClosureOps {
 
     @Test
     public void testWithCapture() {
-        // functional descriptor = (int)int
+        // functional type = (int)int
         CoreOps.FuncOp f = func("f", functionType(INT, INT))
                 .body(block -> {
                     Block.Parameter i = block.parameters().get(0);
 
-                    // functional descriptor = (int)int
+                    // functional type = (int)int
                     //   captures i
                     CoreOps.ClosureOp closure = CoreOps.closure(block.parentBody(),
                                     functionType(INT, INT))

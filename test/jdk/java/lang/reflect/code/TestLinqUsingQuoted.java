@@ -159,8 +159,8 @@ public class TestLinqUsingQuoted {
             this.provider = provider;
 
             // Initial expression is an identity function
-            var funDescriptor = functionType(provider().queryableType(), provider().queryableType());
-            this.expression = func("query", funDescriptor)
+            var funType = functionType(provider().queryableType(), provider().queryableType());
+            this.expression = func("query", funType)
                     .body(b -> b.op(_return(b.parameters().get(0))));
         }
 

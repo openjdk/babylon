@@ -55,13 +55,13 @@ public class TestParse {
 
     @Test
     public void testParseLambdaOp() {
-        // functional descriptor = (int)int
+        // functional type = (int)int
         CoreOps.FuncOp f = func("f", functionType(INT, INT))
                 .body(block -> {
                     Block.Parameter i = block.parameters().get(0);
 
-                    // functional descriptor = (int)int
-                    // op descriptor = ()IntUnaryOperator
+                    // functional type = (int)int
+                    // op type = ()IntUnaryOperator
                     //   captures i
                     CoreOps.LambdaOp lambda = lambda(block.parentBody(),
                             functionType(INT, INT), type(IntUnaryOperator.class))
