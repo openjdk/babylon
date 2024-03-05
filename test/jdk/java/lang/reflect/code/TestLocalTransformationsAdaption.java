@@ -29,8 +29,8 @@ import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
-import java.lang.reflect.code.descriptor.FieldDesc;
-import java.lang.reflect.code.descriptor.MethodDesc;
+import java.lang.reflect.code.type.FieldRef;
+import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
@@ -49,7 +49,7 @@ import static java.lang.reflect.code.op.CoreOps.arrayStoreOp;
 import static java.lang.reflect.code.op.CoreOps.constant;
 import static java.lang.reflect.code.op.CoreOps.fieldLoad;
 import static java.lang.reflect.code.op.CoreOps.newArray;
-import static java.lang.reflect.code.descriptor.MethodDesc.method;
+import static java.lang.reflect.code.type.MethodRef.method;
 import static java.lang.reflect.code.type.JavaType.*;
 
 /*
@@ -170,7 +170,7 @@ public class TestLocalTransformationsAdaption {
 
     static void printConstantString(Function<Op, Op.Result> opBuilder, String s) {
         Op.Result c = opBuilder.apply(constant(J_L_STRING, s));
-        Value System_out = opBuilder.apply(fieldLoad(FieldDesc.field(System.class, "out", PrintStream.class)));
+        Value System_out = opBuilder.apply(fieldLoad(FieldRef.field(System.class, "out", PrintStream.class)));
         opBuilder.apply(CoreOps.invoke(method(PrintStream.class, "println", void.class, String.class), System_out, c));
     }
 
@@ -286,7 +286,7 @@ public class TestLocalTransformationsAdaption {
         Op.Result formatString = opBuilder.apply(
                 constant(J_L_STRING,
                         prefix + ": " + invokeOp.invokeDescriptor() + "(" + formatString(adaptedInvokeOperands) + ")%n"));
-        Value System_out = opBuilder.apply(fieldLoad(FieldDesc.field(System.class, "out", PrintStream.class)));
+        Value System_out = opBuilder.apply(fieldLoad(FieldRef.field(System.class, "out", PrintStream.class)));
         opBuilder.apply(
                 CoreOps.invoke(method(PrintStream.class, "printf", PrintStream.class, String.class, Object[].class),
                         System_out, formatString, formatArray));
@@ -328,7 +328,7 @@ public class TestLocalTransformationsAdaption {
     }
 
 
-    static final MethodDesc ADD_METHOD = MethodDesc.method(
+    static final MethodRef ADD_METHOD = MethodRef.method(
             TestLocalTransformationsAdaption.class, "add",
             int.class, int.class, int.class);
 
@@ -336,7 +336,7 @@ public class TestLocalTransformationsAdaption {
         return a + b;
     }
 
-    static final MethodDesc ADD_WITH_PRINT_METHOD = MethodDesc.method(
+    static final MethodRef ADD_WITH_PRINT_METHOD = MethodRef.method(
             TestLocalTransformationsAdaption.class, "addWithPrint",
             int.class, int.class, int.class);
 

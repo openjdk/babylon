@@ -42,8 +42,8 @@ import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
-import java.lang.reflect.code.descriptor.FieldDesc;
-import java.lang.reflect.code.descriptor.MethodDesc;
+import java.lang.reflect.code.type.FieldRef;
+import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.op.CoreOps.ExceptionRegionEnter;
 import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
@@ -72,7 +72,7 @@ public final class BytecodeLift {
     }
 
     public static CoreOps.FuncOp lift(MethodModel methodModel) {
-        FunctionType mt = MethodDesc.ofNominalDescriptor(methodModel.methodTypeSymbol());
+        FunctionType mt = MethodRef.ofNominalDescriptor(methodModel.methodTypeSymbol());
         return CoreOps.func(
                 methodModel.methodName().stringValue(),
                 mt).body(entryBlock -> {
@@ -296,7 +296,7 @@ public final class BytecodeLift {
                             }));
                         }
                         case FieldInstruction inst -> {
-                                FieldDesc fd = FieldDesc.field(
+                                FieldRef fd = FieldRef.field(
                                         JavaType.ofNominalDescriptor(inst.owner().asSymbol()),
                                         inst.name().stringValue(),
                                         JavaType.ofNominalDescriptor(inst.typeSymbol()));
@@ -325,12 +325,12 @@ public final class BytecodeLift {
                             stack.push(currentBlock.op(CoreOps.arrayLoadOp(stack.pop(), index)));
                         }
                         case InvokeInstruction inst -> {
-                            FunctionType mType = MethodDesc.ofNominalDescriptor(inst.typeSymbol());
+                            FunctionType mType = MethodRef.ofNominalDescriptor(inst.typeSymbol());
                             List<Value> operands = new ArrayList<>();
                             for (var _ : mType.parameterTypes()) {
                                 operands.add(stack.pop());
                             }
-                            MethodDesc mDesc = MethodDesc.method(
+                            MethodRef mDesc = MethodRef.method(
                                     JavaType.ofNominalDescriptor(inst.owner().asSymbol()),
                                     inst.name().stringValue(),
                                     mType);

@@ -30,7 +30,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.code.op.CoreOps;
-import java.lang.reflect.code.descriptor.MethodDesc;
+import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.code.type.JavaType;
@@ -465,7 +465,7 @@ public class TestExceptionRegionOps {
         });
     }
 
-    static final MethodDesc INT_CONSUMER_ACCEPT_METHOD = MethodDesc.method(type(IntConsumer.class), "accept",
+    static final MethodRef INT_CONSUMER_ACCEPT_METHOD = MethodRef.method(type(IntConsumer.class), "accept",
             VOID, INT);
 
     static Consumer<IntConsumer> testConsumer(Consumer<IntConsumer> actualR, Consumer<IntConsumer> expectedR) {

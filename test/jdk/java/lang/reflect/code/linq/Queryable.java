@@ -22,11 +22,11 @@
  */
 
 import java.lang.reflect.code.Op;
-import java.lang.reflect.code.descriptor.MethodDesc;
+import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.type.JavaType;
 import java.util.stream.Stream;
 
-import static java.lang.reflect.code.descriptor.MethodDesc.method;
+import static java.lang.reflect.code.type.MethodRef.method;
 import static java.lang.reflect.code.op.CoreOps.*;
 import static java.lang.reflect.code.type.FunctionType.functionType;
 import static java.lang.reflect.code.type.JavaType.type;
@@ -63,7 +63,7 @@ public interface Queryable<T> {
                 .body(b -> b.inline(queryExpression, b.parameters(), (block, query) -> {
                     Op.Result fi = block.op(lambdaOp);
 
-                    MethodDesc md = method(Queryable.TYPE, methodName,
+                    MethodRef md = method(Queryable.TYPE, methodName,
                             functionType(Queryable.TYPE, ((JavaType) lambdaOp.functionalInterface()).rawType()));
                     Op.Result queryable = block.op(invoke(queryableType, md, query, fi));
 
@@ -92,7 +92,7 @@ public interface Queryable<T> {
         FuncOp queryResultExpression = func("queryResult",
                 functionType(queryResultType, queryExpression.invokableType().parameterTypes()))
                 .body(b -> b.inline(queryExpression, b.parameters(), (block, query) -> {
-                    MethodDesc md = method(Queryable.TYPE, methodName,
+                    MethodRef md = method(Queryable.TYPE, methodName,
                             functionType(QueryResult.TYPE));
                     Op.Result queryResult = block.op(invoke(queryResultType, md, query));
 

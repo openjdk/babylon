@@ -23,9 +23,9 @@
  * questions.
  */
 
-package java.lang.reflect.code.descriptor.impl;
+package java.lang.reflect.code.type.impl;
 
-import java.lang.reflect.code.descriptor.MethodDesc;
+import java.lang.reflect.code.type.MethodRef;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandleInfo;
 import java.lang.invoke.MethodHandles;
@@ -37,12 +37,12 @@ import java.lang.reflect.code.TypeElement;
 
 import static java.util.stream.Collectors.joining;
 
-public final class MethodDescImpl implements MethodDesc {
+public final class MethodRefImpl implements MethodRef {
     final TypeElement refType;
     final String name;
     final FunctionType type;
 
-    public MethodDescImpl(TypeElement refType, String name, FunctionType type) {
+    public MethodRefImpl(TypeElement refType, String name, FunctionType type) {
         this.refType = refType;
         this.name = name;
         this.type = type;
@@ -74,7 +74,7 @@ public final class MethodDescImpl implements MethodDesc {
         // @@@ kind
         Class<?> refC = resolve(l, refType);
 
-        MethodType mt = MethodDesc.toNominalDescriptor(type).resolveConstantDesc(l);
+        MethodType mt = MethodRef.toNominalDescriptor(type).resolveConstantDesc(l);
 
         MethodHandle mh = null;
         ReflectiveOperationException c = null;
@@ -123,7 +123,7 @@ public final class MethodDescImpl implements MethodDesc {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        MethodDescImpl that = (MethodDescImpl) o;
+        MethodRefImpl that = (MethodRefImpl) o;
 
         if (!refType.equals(that.refType)) return false;
         if (!name.equals(that.name)) return false;

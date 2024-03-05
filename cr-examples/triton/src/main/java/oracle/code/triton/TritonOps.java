@@ -136,16 +136,16 @@ public class TritonOps {
         public static class Builder {
             final Body.Builder ancestorBody;
             final String funcName;
-            final FunctionType funcDescriptor;
+            final FunctionType funcType;
 
-            Builder(Body.Builder ancestorBody, String funcName, FunctionType funcDescriptor) {
+            Builder(Body.Builder ancestorBody, String funcName, FunctionType funcType) {
                 this.ancestorBody = ancestorBody;
                 this.funcName = funcName;
-                this.funcDescriptor = funcDescriptor;
+                this.funcType = funcType;
             }
 
             public FuncOp body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, funcDescriptor);
+                Body.Builder body = Body.Builder.of(ancestorBody, funcType);
                 c.accept(body.entryBlock());
                 return new FuncOp(funcName, body);
             }
@@ -305,17 +305,17 @@ public class TritonOps {
             final Body.Builder ancestorBody;
             final int axis;
             final Value v;
-            final FunctionType reduceDescriptor;
+            final FunctionType reduceType;
 
-            Builder(Body.Builder ancestorBody, int axis, Value v, FunctionType reduceDescriptor) {
+            Builder(Body.Builder ancestorBody, int axis, Value v, FunctionType reduceType) {
                 this.ancestorBody = ancestorBody;
                 this.axis = axis;
                 this.v = v;
-                this.reduceDescriptor = reduceDescriptor;
+                this.reduceType = reduceType;
             }
 
             public ReduceOp body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, reduceDescriptor);
+                Body.Builder body = Body.Builder.of(ancestorBody, reduceType);
                 c.accept(body.entryBlock());
                 return new ReduceOp(axis, v, body);
             }
@@ -741,8 +741,8 @@ public class TritonOps {
         return new ModuleOp(List.copyOf(functions));
     }
 
-    public static FuncOp.Builder func(String funcName, FunctionType funcDescriptor) {
-        return new FuncOp.Builder(null, funcName, funcDescriptor);
+    public static FuncOp.Builder func(String funcName, FunctionType funcType) {
+        return new FuncOp.Builder(null, funcName, funcType);
     }
 
     public static FuncOp func(String funcName, Body.Builder body) {
@@ -758,8 +758,8 @@ public class TritonOps {
     }
 
     public static ReduceOp.Builder reduce(Body.Builder ancestorBody, int axis, Value tensor,
-                                          FunctionType reduceDescriptor) {
-        return new ReduceOp.Builder(ancestorBody, axis, tensor, reduceDescriptor);
+                                          FunctionType reduceType) {
+        return new ReduceOp.Builder(ancestorBody, axis, tensor, reduceType);
     }
 
     public static ReduceOp reduce(int axis, Value tensor, Body.Builder reducerBuilder) {

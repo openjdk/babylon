@@ -26,8 +26,8 @@
 package java.lang.reflect.code.op;
 
 import java.lang.reflect.code.*;
-import java.lang.reflect.code.descriptor.FieldDesc;
-import java.lang.reflect.code.descriptor.MethodDesc;
+import java.lang.reflect.code.type.FieldRef;
+import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.type.*;
 import java.lang.reflect.code.type.impl.JavaTypeImpl;
 import java.util.*;
@@ -330,7 +330,7 @@ public final class CoreOps {
     public static final class QuotedOp extends OpWithDefinition implements Op.Nested, Op.Lowerable, Op.Pure {
         public static final String NAME = "quoted";
 
-        // Type description must be the same in the java.base and jdk.compiler module
+        // Type name must be the same in the java.base and jdk.compiler module
         static final String Quoted_CLASS_NAME = PACKAGE_NAME +
                 "." + Quoted.class.getSimpleName();
         public static final JavaType QUOTED_TYPE = new JavaTypeImpl(Quoted_CLASS_NAME);
@@ -1190,21 +1190,21 @@ public final class CoreOps {
         public static final String NAME = "invoke";
         public static final String ATTRIBUTE_INVOKE_DESCRIPTOR = NAME + ".descriptor";
 
-        final MethodDesc invokeDescriptor;
+        final MethodRef invokeDescriptor;
         final TypeElement resultType;
 
         public static InvokeOp create(OpDefinition def) {
-            MethodDesc invokeDescriptor = def.extractAttributeValue(ATTRIBUTE_INVOKE_DESCRIPTOR,
+            MethodRef invokeDescriptor = def.extractAttributeValue(ATTRIBUTE_INVOKE_DESCRIPTOR,
                     true, v -> switch(v) {
-                        case String s -> MethodDesc.ofString(s);
-                        case MethodDesc md -> md;
+                        case String s -> MethodRef.ofString(s);
+                        case MethodRef md -> md;
                         default -> throw new UnsupportedOperationException("Unsupported invoke descriptor value:" + v);
                     });
 
             return new InvokeOp(def, invokeDescriptor);
         }
 
-        InvokeOp(OpDefinition def, MethodDesc invokeDescriptor) {
+        InvokeOp(OpDefinition def, MethodRef invokeDescriptor) {
             super(def);
 
             this.invokeDescriptor = invokeDescriptor;
@@ -1223,11 +1223,11 @@ public final class CoreOps {
             return new InvokeOp(this, cc);
         }
 
-        InvokeOp(MethodDesc invokeDescriptor, List<Value> args) {
+        InvokeOp(MethodRef invokeDescriptor, List<Value> args) {
             this(invokeDescriptor.type().returnType(), invokeDescriptor, args);
         }
 
-        InvokeOp(TypeElement resultType, MethodDesc invokeDescriptor, List<Value> args) {
+        InvokeOp(TypeElement resultType, MethodRef invokeDescriptor, List<Value> args) {
             super(NAME, args);
 
             this.invokeDescriptor = invokeDescriptor;
@@ -1241,7 +1241,7 @@ public final class CoreOps {
             return Collections.unmodifiableMap(m);
         }
 
-        public MethodDesc invokeDescriptor() {
+        public MethodRef invokeDescriptor() {
             return invokeDescriptor;
         }
 
@@ -1385,9 +1385,9 @@ public final class CoreOps {
     public abstract static sealed class FieldAccessOp extends OpWithDefinition implements AccessOp, ReflectiveOp {
         public static final String ATTRIBUTE_FIELD_DESCRIPTOR = "field.descriptor";
 
-        final FieldDesc fieldDescriptor;
+        final FieldRef fieldDescriptor;
 
-        FieldAccessOp(OpDefinition def, FieldDesc fieldDescriptor) {
+        FieldAccessOp(OpDefinition def, FieldRef fieldDescriptor) {
             super(def);
 
             this.fieldDescriptor = fieldDescriptor;
@@ -1400,7 +1400,7 @@ public final class CoreOps {
         }
 
         FieldAccessOp(String name, List<Value> operands,
-                      FieldDesc fieldDescriptor) {
+                      FieldRef fieldDescriptor) {
             super(name, operands);
 
             this.fieldDescriptor = fieldDescriptor;
@@ -1413,7 +1413,7 @@ public final class CoreOps {
             return Collections.unmodifiableMap(m);
         }
 
-        public final FieldDesc fieldDescriptor() {
+        public final FieldRef fieldDescriptor() {
             return fieldDescriptor;
         }
 
@@ -1432,16 +1432,16 @@ public final class CoreOps {
                     throw new IllegalArgumentException("Operation must accept zero or one operand");
                 }
 
-                FieldDesc fieldDescriptor = def.extractAttributeValue(ATTRIBUTE_FIELD_DESCRIPTOR,true,
+                FieldRef fieldDescriptor = def.extractAttributeValue(ATTRIBUTE_FIELD_DESCRIPTOR,true,
                         v -> switch(v) {
-                            case String s -> FieldDesc.ofString(s);
-                            case FieldDesc fd -> fd;
+                            case String s -> FieldRef.ofString(s);
+                            case FieldRef fd -> fd;
                             default -> throw new UnsupportedOperationException("Unsupported field descriptor value:" + v);
                         });
                 return new FieldLoadOp(def, fieldDescriptor);
             }
 
-            FieldLoadOp(OpDefinition opdef, FieldDesc fieldDescriptor) {
+            FieldLoadOp(OpDefinition opdef, FieldRef fieldDescriptor) {
                 super(opdef, fieldDescriptor);
 
                 resultType = opdef.resultType();
@@ -1459,14 +1459,14 @@ public final class CoreOps {
             }
 
             // instance
-            FieldLoadOp(TypeElement resultType, FieldDesc descriptor, Value receiver) {
+            FieldLoadOp(TypeElement resultType, FieldRef descriptor, Value receiver) {
                 super(NAME, List.of(receiver), descriptor);
 
                 this.resultType = resultType;
             }
 
             // static
-            FieldLoadOp(TypeElement resultType, FieldDesc descriptor) {
+            FieldLoadOp(TypeElement resultType, FieldRef descriptor) {
                 super(NAME, List.of(), descriptor);
 
                 this.resultType = resultType;
@@ -1491,16 +1491,16 @@ public final class CoreOps {
                     throw new IllegalArgumentException("Operation must accept one or two operands");
                 }
 
-                FieldDesc fieldDescriptor = def.extractAttributeValue(ATTRIBUTE_FIELD_DESCRIPTOR,true,
+                FieldRef fieldDescriptor = def.extractAttributeValue(ATTRIBUTE_FIELD_DESCRIPTOR,true,
                         v -> switch(v) {
-                            case String s -> FieldDesc.ofString(s);
-                            case FieldDesc fd -> fd;
+                            case String s -> FieldRef.ofString(s);
+                            case FieldRef fd -> fd;
                             default -> throw new UnsupportedOperationException("Unsupported field descriptor value:" + v);
                         });
                 return new FieldStoreOp(def, fieldDescriptor);
             }
 
-            FieldStoreOp(OpDefinition opdef, FieldDesc fieldDescriptor) {
+            FieldStoreOp(OpDefinition opdef, FieldRef fieldDescriptor) {
                 super(opdef, fieldDescriptor);
             }
 
@@ -1514,13 +1514,13 @@ public final class CoreOps {
             }
 
             // instance
-            FieldStoreOp(FieldDesc descriptor, Value receiver, Value v) {
+            FieldStoreOp(FieldRef descriptor, Value receiver, Value v) {
                 super(NAME,
                         List.of(receiver, v), descriptor);
             }
 
             // static
-            FieldStoreOp(FieldDesc descriptor, Value v) {
+            FieldStoreOp(FieldRef descriptor, Value v) {
                 super(NAME,
                         List.of(v), descriptor);
             }
@@ -2928,29 +2928,29 @@ public final class CoreOps {
     /**
      * Creates a function call operation
      * @param funcName the name of the function operation
-     * @param funcDescriptor the function descriptor
+     * @param funcType the function type
      * @param args the function arguments
      * @return the function call operation
      */
-    public static FuncCallOp funcCall(String funcName, FunctionType funcDescriptor, Value... args) {
-        return funcCall(funcName, funcDescriptor, List.of(args));
+    public static FuncCallOp funcCall(String funcName, FunctionType funcType, Value... args) {
+        return funcCall(funcName, funcType, List.of(args));
     }
 
     /**
      * Creates a function call operation
      * @param funcName the name of the function operation
-     * @param funcDescriptor the function descriptor
+     * @param funcType the function type
      * @param args the function arguments
      * @return the function call operation
      */
-    public static FuncCallOp funcCall(String funcName, FunctionType funcDescriptor, List<Value> args) {
-        return new FuncCallOp(funcName, funcDescriptor.returnType(), args);
+    public static FuncCallOp funcCall(String funcName, FunctionType funcType, List<Value> args) {
+        return new FuncCallOp(funcName, funcType.returnType(), args);
     }
 
     /**
      * Creates a function call operation
      * @param func the target function
-     * @param args the function argments
+     * @param args the function arguments
      * @return the function call operation
      */
     public static FuncCallOp funcCall(FuncOp func, Value... args) {
@@ -3202,7 +3202,7 @@ public final class CoreOps {
      * @param args the invoke parameters
      * @return the invoke operation
      */
-    public static InvokeOp invoke(MethodDesc invokeDescriptor, Value... args) {
+    public static InvokeOp invoke(MethodRef invokeDescriptor, Value... args) {
         return new InvokeOp(invokeDescriptor, List.of(args));
     }
 
@@ -3213,7 +3213,7 @@ public final class CoreOps {
      * @param args the invoke parameters
      * @return the invoke operation
      */
-    public static InvokeOp invoke(MethodDesc invokeDescriptor, List<Value> args) {
+    public static InvokeOp invoke(MethodRef invokeDescriptor, List<Value> args) {
         return new InvokeOp(invokeDescriptor, args);
     }
 
@@ -3225,7 +3225,7 @@ public final class CoreOps {
      * @param args the invoke parameters
      * @return the invoke operation
      */
-    public static InvokeOp invoke(TypeElement returnType, MethodDesc invokeDescriptor, Value... args) {
+    public static InvokeOp invoke(TypeElement returnType, MethodRef invokeDescriptor, Value... args) {
         return new InvokeOp(returnType, invokeDescriptor, List.of(args));
     }
 
@@ -3237,7 +3237,7 @@ public final class CoreOps {
      * @param args the invoke parameters
      * @return the invoke operation
      */
-    public static InvokeOp invoke(TypeElement returnType, MethodDesc invokeDescriptor, List<Value> args) {
+    public static InvokeOp invoke(TypeElement returnType, MethodRef invokeDescriptor, List<Value> args) {
         return new InvokeOp(returnType, invokeDescriptor, args);
     }
 
@@ -3320,7 +3320,7 @@ public final class CoreOps {
      * @param receiver the receiver value
      * @return the field load operation
      */
-    public static FieldAccessOp.FieldLoadOp fieldLoad(FieldDesc descriptor, Value receiver) {
+    public static FieldAccessOp.FieldLoadOp fieldLoad(FieldRef descriptor, Value receiver) {
         return new FieldAccessOp.FieldLoadOp(descriptor.type(), descriptor, receiver);
     }
 
@@ -3332,7 +3332,7 @@ public final class CoreOps {
      * @param receiver the receiver value
      * @return the field load operation
      */
-    public static FieldAccessOp.FieldLoadOp fieldLoad(TypeElement resultType, FieldDesc descriptor, Value receiver) {
+    public static FieldAccessOp.FieldLoadOp fieldLoad(TypeElement resultType, FieldRef descriptor, Value receiver) {
         return new FieldAccessOp.FieldLoadOp(resultType, descriptor, receiver);
     }
 
@@ -3342,7 +3342,7 @@ public final class CoreOps {
      * @param descriptor the field descriptor
      * @return the field load operation
      */
-    public static FieldAccessOp.FieldLoadOp fieldLoad(FieldDesc descriptor) {
+    public static FieldAccessOp.FieldLoadOp fieldLoad(FieldRef descriptor) {
         return new FieldAccessOp.FieldLoadOp(descriptor.type(), descriptor);
     }
 
@@ -3353,7 +3353,7 @@ public final class CoreOps {
      * @param descriptor the field descriptor
      * @return the field load operation
      */
-    public static FieldAccessOp.FieldLoadOp fieldLoad(TypeElement resultType, FieldDesc descriptor) {
+    public static FieldAccessOp.FieldLoadOp fieldLoad(TypeElement resultType, FieldRef descriptor) {
         return new FieldAccessOp.FieldLoadOp(resultType, descriptor);
     }
 
@@ -3365,7 +3365,7 @@ public final class CoreOps {
      * @param v the value to store
      * @return the field store operation
      */
-    public static FieldAccessOp.FieldStoreOp fieldStore(FieldDesc descriptor, Value receiver, Value v) {
+    public static FieldAccessOp.FieldStoreOp fieldStore(FieldRef descriptor, Value receiver, Value v) {
         return new FieldAccessOp.FieldStoreOp(descriptor, receiver, v);
     }
 
@@ -3376,7 +3376,7 @@ public final class CoreOps {
      * @param v the value to store
      * @return the field store operation
      */
-    public static FieldAccessOp.FieldStoreOp fieldStore(FieldDesc descriptor, Value v) {
+    public static FieldAccessOp.FieldStoreOp fieldStore(FieldRef descriptor, Value v) {
         return new FieldAccessOp.FieldStoreOp(descriptor, v);
     }
 
@@ -3416,7 +3416,7 @@ public final class CoreOps {
     /**
      * Creates an instanceof operation.
      *
-     * @param t the type descriptor of the type to test against
+     * @param t the type to test against
      * @param v the value to test
      * @return the instanceof operation
      */
@@ -3439,7 +3439,7 @@ public final class CoreOps {
      * Creates a cast operation.
      *
      * @param resultType the result type of the operation
-     * @param t the type descriptor of the type to cast to
+     * @param t the type to cast to
      * @param v the value to cast
      * @return the cast operation
      */

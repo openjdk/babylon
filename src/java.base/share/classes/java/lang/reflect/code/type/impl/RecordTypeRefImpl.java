@@ -23,20 +23,20 @@
  * questions.
  */
 
-package java.lang.reflect.code.descriptor.impl;
+package java.lang.reflect.code.type.impl;
 
-import java.lang.reflect.code.descriptor.MethodDesc;
-import java.lang.reflect.code.descriptor.RecordTypeDesc;
+import java.lang.reflect.code.type.MethodRef;
+import java.lang.reflect.code.type.RecordTypeRef;
 import java.lang.reflect.code.TypeElement;
 import java.util.List;
 
 import static java.util.stream.Collectors.joining;
 
-public final class RecordTypeDescImpl implements RecordTypeDesc {
+public final class RecordTypeRefImpl implements RecordTypeRef {
     final TypeElement recordType;
-    final List<ComponentDesc> components;
+    final List<ComponentRef> components;
 
-    public RecordTypeDescImpl(TypeElement recordType, List<ComponentDesc> components) {
+    public RecordTypeRefImpl(TypeElement recordType, List<ComponentRef> components) {
         this.recordType = recordType;
         this.components = List.copyOf(components);
     }
@@ -47,18 +47,18 @@ public final class RecordTypeDescImpl implements RecordTypeDesc {
     }
 
     @Override
-    public List<ComponentDesc> components() {
+    public List<ComponentRef> components() {
         return components;
     }
 
     @Override
-    public MethodDesc methodForComponent(int i) {
+    public MethodRef methodForComponent(int i) {
         if (i < 0 || i >= components.size()) {
             throw new IndexOutOfBoundsException();
         }
 
-        ComponentDesc c = components.get(i);
-        return MethodDesc.method(recordType, c.name(), c.type());
+        ComponentRef c = components.get(i);
+        return MethodRef.method(recordType, c.name(), c.type());
     }
 
     @Override

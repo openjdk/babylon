@@ -23,21 +23,21 @@
  * questions.
  */
 
-package java.lang.reflect.code.descriptor.impl;
+package java.lang.reflect.code.type.impl;
 
-import java.lang.reflect.code.descriptor.FieldDesc;
+import java.lang.reflect.code.type.FieldRef;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.lang.reflect.Field;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.TypeElement;
 
-public final class FieldDescImpl implements FieldDesc {
+public final class FieldRefImpl implements FieldRef {
     final TypeElement refType;
     final String name;
     final TypeElement type;
 
-    public FieldDescImpl(TypeElement refType, String name, TypeElement type) {
+    public FieldRefImpl(TypeElement refType, String name, TypeElement type) {
         this.refType = refType;
         this.name = name;
         this.type = type;
@@ -121,7 +121,7 @@ public final class FieldDescImpl implements FieldDesc {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        FieldDescImpl fieldDesc = (FieldDescImpl) o;
+        FieldRefImpl fieldDesc = (FieldRefImpl) o;
 
         if (!refType.equals(fieldDesc.refType)) return false;
         if (!name.equals(fieldDesc.name)) return false;
