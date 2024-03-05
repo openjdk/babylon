@@ -27,6 +27,7 @@ package java.lang.reflect.code.type;
 
 import java.lang.constant.ClassDesc;
 import java.lang.constant.MethodTypeDesc;
+import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.type.impl.MethodRefImpl;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -35,6 +36,7 @@ import java.lang.reflect.Executable;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.TypeElement;
 import java.util.List;
+import java.util.Optional;
 
 import static java.lang.reflect.code.type.FunctionType.functionType;
 
@@ -57,11 +59,13 @@ public sealed interface MethodRef permits MethodRefImpl {
 
     FunctionType type();
 
-    // Conversions
+    // Resolutions and model access
 
     Executable resolveToMember(MethodHandles.Lookup l) throws ReflectiveOperationException;
 
     MethodHandle resolveToHandle(MethodHandles.Lookup l) throws ReflectiveOperationException;
+
+    Optional<CoreOps.FuncOp> codeModel(MethodHandles.Lookup l) throws ReflectiveOperationException;
 
     // Factories
 
