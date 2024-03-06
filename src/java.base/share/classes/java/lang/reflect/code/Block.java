@@ -176,6 +176,17 @@ public final class Block implements CodeElement<Block, Op> {
         this.predecessors = new LinkedHashSet<>();
     }
 
+
+    /**
+     * Returns this block's parent body.
+     *
+     * @return this block's parent body.
+     */
+    @Override
+    public Body parent() {
+        return parentBody;
+    }
+
     /**
      * Returns this block's parent body.
      *
@@ -183,6 +194,20 @@ public final class Block implements CodeElement<Block, Op> {
      */
     public Body parentBody() {
         return parentBody;
+    }
+
+    @Override
+    public List<Op> children() {
+        return ops();
+    }
+
+    /**
+     * Returns the sequence of operations contained in this block.
+     *
+     * @return returns the sequence operations, as an unmodifiable list.
+     */
+    public List<Op> ops() {
+        return Collections.unmodifiableList(ops);
     }
 
     /**
@@ -222,15 +247,6 @@ public final class Block implements CodeElement<Block, Op> {
     }
 
     /**
-     * Returns the sequence of operations contained in this block.
-     *
-     * @return returns the sequence operations, as an unmodifiable list.
-     */
-    public List<Op> ops() {
-        return Collections.unmodifiableList(ops);
-    }
-
-    /**
      * Finds the operation in this block that is the ancestor of the given operation.
      *
      * @param op the given operation.
@@ -250,11 +266,6 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         return op;
-    }
-
-    @Override
-    public List<Op> children() {
-        return ops();
     }
 
     /**
