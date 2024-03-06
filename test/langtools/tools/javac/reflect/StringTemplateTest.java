@@ -122,4 +122,25 @@ public class StringTemplateTest {
         String s = STR."x = \{x}, z = \{z}, x + z = \{x + z}";
         String s2 = STR."y = \{y}, \{s}";
     }
+
+    // this test will fail for now
+    // the reason is wildcard types not modeled
+    // the type of the processor X will be java.lang.StringTemplate$Processor
+    // this will cause StringTemplateOp.resultType to fail (which is called during IR generation)
+    @CodeReflection
+    @IR("""
+            func @"f4" ()void -> {
+                  %0 : java.lang.StringTemplate$Processor<java.lang.String, java.lang.RuntimeException> = field.load @"java.lang.StringTemplate::STR()java.lang.StringTemplate$Processor<java.lang.String, java.lang.RuntimeException>";
+                  %1 : Var<java.lang.StringTemplate$Processor<java.lang.Object, java.lang.RuntimeException>> = var %0 @"X";
+                  %2 : java.lang.x<java.lang.Object, java.lang.RuntimeException> = var.load %1;
+                  %3 : java.lang.String = constant @"some template";
+                  %4 : java.lang.Object = java.stringTemplate %2 %3;
+                  %5 : Var<java.lang.Object> = var %4 @"o";
+                  return;
+            };
+            """)
+    static void f4() {
+        StringTemplate.Processor<?, RuntimeException> X = STR;
+        Object o = X."some template";
+    }
 }
