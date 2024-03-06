@@ -328,6 +328,92 @@ public final class Interpreter {
         }
     }
 
+    public static <T extends Op & Op.Invokable>
+    Object invokeBody(MethodHandles.Lookup l, Body r,
+                  OpContext oc,
+                  //Map<Value, Object> capturedValues,
+                  List<Object> args) {
+        //OpContext oc = new OpContext();
+        Block first = r.entryBlock();
+
+        if (args.size() != first.parameters().size()) {
+            throw interpreterException(new IllegalArgumentException("Incorrect number of arguments"));
+        }
+        Map<Value, Object> values = new HashMap<>();
+        for (int i = 0; i < first.parameters().size(); i++) {
+            values.put(first.parameters().get(i), args.get(i));
+        }
+
+        // Note that first block cannot have any successors so the queue will have at least one entry
+        oc.stack.push(new BlockContext(first, values));
+        //capturedValues.forEach(oc::setValue);
+        while (true) {
+            BlockContext bc = oc.stack.peek();
+
+            // Execute all but the terminating operation
+            int nops = bc.b.ops().size();
+            try {
+                for (int i = 0; i < nops - 1; i++) {
+                    Op op = bc.b.ops().get(i);
+                    assert !(op instanceof Op.Terminating) : op.opName();
+
+                    Object result = exec(l, oc, op);
+                    oc.setValue(op.result(), result);
+                }
+            } catch (InterpreterException e) {
+                throw e;
+            } catch (Throwable t) {
+                processThrowable(oc, l, t);
+                continue;
+            }
+
+            // Execute the terminating operation
+            Op to = bc.b.terminatingOp();
+            if (to instanceof CoreOps.ConditionalBranchOp cb) {
+                boolean p;
+                Object bop = oc.getValue(cb.predicate());
+                if (bop instanceof Boolean bp) {
+                    p = bp;
+                } else if (bop instanceof Integer ip) {
+                    // @@@ This is required when lifting up from bytecode, since boolean values
+                    // are erased to int values, abd the bytecode lifting implementation is not currently
+                    // sophisticated enough to recover the type information
+                    p = ip != 0;
+                } else {
+                    throw interpreterException(
+                            new UnsupportedOperationException("Unsupported type input to operation: " + cb));
+                }
+                Block.Reference sb = p ? cb.trueBranch() : cb.falseBranch();
+                oc.successor(sb);
+            } else if (to instanceof CoreOps.BranchOp b) {
+                Block.Reference sb = b.branch();
+
+                oc.successor(sb);
+            } else if (to instanceof CoreOps.ThrowOp _throw) {
+                Throwable t = (Throwable) oc.getValue(_throw.argument());
+                processThrowable(oc, l, t);
+            } else if (to instanceof CoreOps.ReturnOp ret) {
+                Value rv = ret.returnValue();
+
+                return rv == null ? null : oc.getValue(rv);
+            } else if (to instanceof CoreOps.ExceptionRegionEnter ers) {
+                var er = new ExceptionRegionRecord(oc.stack.peek(), ers);
+                oc.setValue(ers.result(), er);
+
+                oc.pushExceptionRegion(er);
+
+                oc.successor(ers.start());
+            } else if (to instanceof CoreOps.ExceptionRegionExit ere) {
+                oc.popExceptionRegion(ere.regionStart());
+
+                oc.successor(ere.end());
+            } else {
+                throw interpreterException(
+                        new UnsupportedOperationException("Unsupported terminating operation: " + to.opName()));
+            }
+        }
+    }
+
     static void processThrowable(OpContext oc, MethodHandles.Lookup l, Throwable t) {
         // Find a matching catch block
         Block cb = oc.exception(l, t);
@@ -347,6 +433,8 @@ public final class Interpreter {
         }
         oc.successor(cb, bValues);
     }
+
+
 
     @SuppressWarnings("unchecked")
     public static <E extends Throwable> void eraseAndThrow(Throwable e) throws E {
@@ -518,6 +606,19 @@ public final class Interpreter {
             MethodHandle mh = opHandle(o.opName() + "_" + o.opType().returnType(), o.opType());
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
+        } else if (o instanceof CoreOps.AssertOp _assert) {
+            Body testBody = _assert.bodies.get(0);
+            Boolean testResult = (Boolean) invokeBody(l,testBody,oc,List.of());
+            if (testResult) {
+                if (_assert.bodies.size() > 1) {
+                    Body messageBlock = _assert.bodies.get(1);
+                    String message = (String) invokeBody(l, messageBlock, oc, List.of());
+                    throw new AssertionError(message);
+                } else {
+                    throw new AssertionError();
+                }
+            }
+            return null;
         } else {
             throw interpreterException(
                     new UnsupportedOperationException("Unsupported operation: " + o.opName()));
