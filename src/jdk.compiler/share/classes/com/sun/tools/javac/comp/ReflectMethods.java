@@ -2105,18 +2105,18 @@ public class ReflectMethods extends TreeTranslator {
 
         @Override
         public void visitStringTemplate(JCTree.JCStringTemplate tree) {
-            Value processorValue = toValue(tree.processor);
+            Value processor = toValue(tree.processor);
 
-            List<Value> literalsValues = tree.fragments.map(f -> append(CoreOps.constant(JavaType.J_L_STRING, f)));
+            List<Value> fragments = tree.fragments.map(f -> append(CoreOps.constant(JavaType.J_L_STRING, f)));
 
-            List<Body.Builder> expressionsBodies = new ArrayList<>();
+            List<Body.Builder> expressions = new ArrayList<>();
             tree.expressions.forEach(e -> {
                 pushBody(e, FunctionType.functionType(typeToTypeElement(e.type)));
                 append(CoreOps._yield(toValue(e)));
-                expressionsBodies.add(stack.body);
+                expressions.add(stack.body);
                 popBody();
             });
-            result = append(ExtendedOps.stringTemplate(processorValue, literalsValues, expressionsBodies));
+            result = append(ExtendedOps.stringTemplate(processor, fragments, expressions));
         }
 
         UnsupportedASTException unsupported(JCTree tree) {
