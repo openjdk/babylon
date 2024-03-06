@@ -3182,10 +3182,14 @@ public class ExtendedOps {
 
         @Override
         public TypeElement resultType() {
-            if (processor().type() instanceof JavaType t) {
-                return t.typeArguments().get(0);
+            TypeElement pt = processor().type();
+            if (!(pt instanceof JavaType jt)) {
+                throw new IllegalStateException("We expect processor type to be a java type");
             }
-            throw new IllegalStateException("processor type is not a java type");
+            if (!jt.hasTypeArguments()) {
+                throw new IllegalStateException("We expect processor type to have arguments, found " + jt);
+            }
+            return jt.typeArguments().get(0);
         }
 
         @Override
