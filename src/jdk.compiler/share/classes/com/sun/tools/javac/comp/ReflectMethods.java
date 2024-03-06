@@ -682,7 +682,7 @@ public class ReflectMethods extends TreeTranslator {
             } else {
                 initOp = append(defaultValue(tree.type));
             }
-            result = append(CoreOps.var(tree.name.toString(), initOp));
+            result = append(CoreOps.var(tree.name.toString(), typeToTypeElement(tree.type), initOp));
             stack.localToOp.put(tree.sym, result);
         }
 
@@ -1164,7 +1164,7 @@ public class ReflectMethods extends TreeTranslator {
             // builder associated with the nearest statement tree
             for (JCVariableDecl jcVar : variables) {
                 Value init = variablesStack.block.op(defaultValue(jcVar.type));
-                Op.Result op = variablesStack.block.op(CoreOps.var(jcVar.name.toString(), init));
+                Op.Result op = variablesStack.block.op(CoreOps.var(jcVar.name.toString(), typeToTypeElement(jcVar.type), init));
                 variablesStack.localToOp.put(jcVar.sym, op);
             }
 
