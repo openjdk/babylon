@@ -25,6 +25,7 @@
 
 package java.lang.reflect.code.type.impl;
 
+import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.type.MethodRef;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandleInfo;
@@ -34,6 +35,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.TypeElement;
+import java.util.Optional;
 
 import static java.util.stream.Collectors.joining;
 
@@ -65,6 +67,7 @@ public final class MethodRefImpl implements MethodRef {
 
     @Override
     public Method resolveToMember(MethodHandles.Lookup l) throws ReflectiveOperationException {
+        // @@@ Constructor
         MethodHandleInfo methodHandleInfo = l.revealDirect(resolveToHandle(l));
         return methodHandleInfo.reflectAs(Method.class, l);
     }
@@ -109,6 +112,12 @@ public final class MethodRefImpl implements MethodRef {
             // @@@
             throw new ReflectiveOperationException();
         }
+    }
+
+    // Copied code in jdk.compiler module throws UOE
+    @Override
+    public Optional<CoreOps.FuncOp> codeModel(MethodHandles.Lookup l) throws ReflectiveOperationException {
+/*__throw new UnsupportedOperationException();__*/        return resolveToMember(l).getCodeModel();
     }
 
     @Override
