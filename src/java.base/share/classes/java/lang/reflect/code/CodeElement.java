@@ -126,6 +126,16 @@ public sealed interface CodeElement<
     }
 
     /**
+     * Returns the parent code element.
+     * <p>
+     * If this element is an instance of {@code Op} then the parent may be {@code null}
+     * if operation is not assigned to a block.
+     *
+     * @return the parent code element
+     */
+    CodeElement<?, E> parent();
+
+    /**
      * Returns the child code elements, as an unmodifiable list.
      *
      * @return the child code elements
