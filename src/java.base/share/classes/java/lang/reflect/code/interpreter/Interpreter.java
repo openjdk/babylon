@@ -330,19 +330,10 @@ public final class Interpreter {
 
     static <T extends Op & Op.Invokable>
     Object invokeBody(MethodHandles.Lookup l, Body r,
-                  OpContext oc,
-                  //Map<Value, Object> capturedValues,
-                  List<Object> args) {
-        //OpContext oc = new OpContext();
+                  OpContext oc) {
         Block first = r.entryBlock();
 
-        if (args.size() != first.parameters().size()) {
-            throw interpreterException(new IllegalArgumentException("Incorrect number of arguments"));
-        }
         Map<Value, Object> values = new HashMap<>();
-        for (int i = 0; i < first.parameters().size(); i++) {
-            values.put(first.parameters().get(i), args.get(i));
-        }
 
         // Note that first block cannot have any successors so the queue will have at least one entry
         oc.stack.push(new BlockContext(first, values));
@@ -610,11 +601,11 @@ public final class Interpreter {
             return invoke(mh, values);
         } else if (o instanceof CoreOps.AssertOp _assert) {
             Body testBody = _assert.bodies.get(0);
-            Boolean testResult = (Boolean) invokeBody(l,testBody,oc,List.of());
+            Boolean testResult = (Boolean) invokeBody(l,testBody,oc);
             if (!testResult) {
                 if (_assert.bodies.size() > 1) {
                     Body messageBlock = _assert.bodies.get(1);
-                    String message = String.valueOf(invokeBody(l, messageBlock, oc, List.of()));
+                    String message = String.valueOf(invokeBody(l, messageBlock, oc));
                     throw new AssertionError(message);
                 } else {
                     throw new AssertionError();
