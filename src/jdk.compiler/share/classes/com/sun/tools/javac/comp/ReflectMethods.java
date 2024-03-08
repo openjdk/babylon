@@ -1839,7 +1839,7 @@ public class ReflectMethods extends TreeTranslator {
                 JCTree.JCExpression detail = TreeInfo.skipParens(tree.detail);
 
                 pushBody(detail,
-                         FunctionType.functionType(JavaType.J_L_STRING));
+                         FunctionType.functionType(typeToTypeElement(tree.detail.type)));
                 Value detailVal = toValue(detail);
 
                 append(CoreOps._yield(detailVal));

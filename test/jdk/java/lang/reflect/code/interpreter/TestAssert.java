@@ -38,22 +38,185 @@ import org.testng.annotations.Test;
  */
 public class TestAssert {
 
+    public static final String FAILURESTRING = "failure";
+    public static final char FAILURECHAR = 'o';
+
+    public static final float FAILUREFLOAT = -1.0f;
+    public static final double FAILUREDOUBLE = -1.0d;
+    public static final byte FAILUREBYTE = -1;
+    public static final short FAILURESHORT = -1;
+    public static final int FAILUREINT = -1;
+
+    public static final long FAILURELONG = -1;
+
+    public static final String FAILUREOBJECTMSG = "FAILURE OBJECT";
+
+    public static final Object FAILUREOBJECT = new FailureObject();
+
+
     @Test
     public void testAssertThrows(){
+        testThrows("assertThrow");
+    }
+
+    @Test
+    public void testAssertString(){
+        AssertionError ae = testThrows("assertThrowWithMessage");
+        if (ae.getMessage() == null || !ae.getMessage().equals(FAILURESTRING)) {
+            Assert.fail("Assertion failure messages do not match.");
+        }
+    }
+
+    @Test
+    public void testAssertChar() {
+        AssertionError ae = testThrows("assertChar");
+        if (ae.getMessage() == null || !ae.getMessage().equals(String.valueOf(FAILURECHAR))){
+            Assert.fail("Assertion failure messages do not match.");
+        }
+    }
+
+    @Test
+    public void testAssertFloat() {
+        AssertionError ae = testThrows("assertFloat");
+        if (ae.getMessage() == null || !ae.getMessage().equals(String.valueOf(FAILUREFLOAT))){
+            Assert.fail("Assertion failure messages do not match.");
+        }
+    }
+
+    @Test
+    public void testAssertDouble() {
+        AssertionError ae = testThrows("assertDouble");
+        if (ae.getMessage() == null || !ae.getMessage().equals(String.valueOf(FAILUREDOUBLE))){
+            Assert.fail("Assertion failure messages do not match.");
+        }
+    }
+
+    @Test
+    public void testAssertByte() {
+        AssertionError ae = testThrows("assertByte");
+        if (ae.getMessage() == null || !ae.getMessage().equals(String.valueOf(FAILUREBYTE))){
+            Assert.fail("Assertion failure messages do not match.");
+        }
+    }
+
+    @Test
+    public void testAssertShort() {
+        AssertionError ae = testThrows("assertShort");
+        if (ae.getMessage() == null || !ae.getMessage().equals(String.valueOf(FAILURESHORT))){
+            Assert.fail("Assertion failure messages do not match.");
+        }
+    }
+
+    @Test
+    public void testAssertInt() {
+        AssertionError ae = testThrows("assertInt");
+        if (ae.getMessage() == null || !ae.getMessage().equals(String.valueOf(FAILUREINT))){
+            Assert.fail("Assertion failure messages do not match.");
+        }
+    }
+
+    @Test
+    public void testAssertLong() {
+        AssertionError ae = testThrows("assertLong");
+        if (ae.getMessage() == null || !ae.getMessage().equals(String.valueOf(FAILURELONG))){
+            Assert.fail("Assertion failure messages do not match.");
+        }
+    }
+
+    @Test
+    public void testAssertObject() {
+        AssertionError ae = testThrows("assertObject");
+        if (ae.getMessage() == null || !ae.getMessage().equals(String.valueOf(FAILUREOBJECT))){
+            Assert.fail("Assertion failure messages do not match.");
+        }
+    }
+
+    private static AssertionError testThrows(String methodName) {
         try {
             Class<TestAssert> clazz = TestAssert.class;
-            Method method = clazz.getDeclaredMethod("assertThrow");
+            Method method = clazz.getDeclaredMethod(methodName);
             CoreOps.FuncOp f = method.getCodeModel().orElseThrow();
-            //Interpreter.invoke(MethodHandles.lookup(), f);
-            Assert.assertThrows(AssertionError.class, () -> Interpreter.invoke(MethodHandles.lookup(), method.getCodeModel().orElseThrow()));
+            AssertionError ae = (AssertionError) retCatch(() -> Interpreter.invoke(MethodHandles.lookup(), method.getCodeModel().orElseThrow()));
+            Assert.assertNotNull(ae);
+            return ae;
         } catch (NoSuchMethodException e) {
             throw new RuntimeException(e);
         }
-        return;
     }
+
+    private static Throwable retCatch(Runnable r) {
+        try {
+            r.run();
+        } catch (Throwable t) {
+            return t;
+        }
+        return null;
+    }
+
+
 
     @CodeReflection
     public static void assertThrow() {
         assert false;
+    }
+
+    @CodeReflection
+    public static void assertThrowWithMessage() {
+        assert false : FAILURESTRING;
+    }
+
+    @CodeReflection
+    public static void assertChar() {
+        char c = FAILURECHAR;
+        assert false : c;
+    }
+
+    @CodeReflection
+    public static void assertFloat() {
+        float f = FAILUREFLOAT;
+        assert false : f;
+    }
+
+    @CodeReflection
+    public static void assertDouble() {
+        double d = FAILUREDOUBLE;
+        assert false : d;
+    }
+
+    @CodeReflection
+    public static void assertByte() {
+        byte b = FAILUREBYTE;
+        assert false : b;
+    }
+
+    @CodeReflection
+    public static void assertShort() {
+        short s = FAILURESHORT;
+        assert false : s;
+    }
+
+    @CodeReflection
+    public static void assertInt() {
+        int i = FAILUREINT;
+        assert false : i;
+    }
+
+    @CodeReflection
+    public static void assertLong() {
+        long l = FAILURELONG;
+        assert false : l;
+    }
+
+    @CodeReflection
+    public static void assertObject() {
+        Object o = FAILUREOBJECT;
+        assert false : o;
+    }
+
+    static class FailureObject {
+        @Override
+        public String toString(){
+           return FAILUREOBJECTMSG;
+        }
     }
 }

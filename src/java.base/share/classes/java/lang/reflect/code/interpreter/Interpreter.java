@@ -614,7 +614,7 @@ public final class Interpreter {
             if (!testResult) {
                 if (_assert.bodies.size() > 1) {
                     Body messageBlock = _assert.bodies.get(1);
-                    String message = (String) invokeBody(l, messageBlock, oc, List.of());
+                    String message = String.valueOf(invokeBody(l, messageBlock, oc, List.of()));
                     throw new AssertionError(message);
                 } else {
                     throw new AssertionError();
