@@ -328,7 +328,7 @@ public final class Interpreter {
         }
     }
 
-    public static <T extends Op & Op.Invokable>
+    static <T extends Op & Op.Invokable>
     Object invokeBody(MethodHandles.Lookup l, Body r,
                   OpContext oc,
                   //Map<Value, Object> capturedValues,
@@ -394,8 +394,10 @@ public final class Interpreter {
                 processThrowable(oc, l, t);
             } else if (to instanceof CoreOps.ReturnOp ret) {
                 Value rv = ret.returnValue();
-
                 return rv == null ? null : oc.getValue(rv);
+            } else if (to instanceof CoreOps.YieldOp yop) {
+               Value yv = yop.yieldValue();
+               return yv == null ? null : oc.getValue(yv);
             } else if (to instanceof CoreOps.ExceptionRegionEnter ers) {
                 var er = new ExceptionRegionRecord(oc.stack.peek(), ers);
                 oc.setValue(ers.result(), er);
@@ -609,7 +611,7 @@ public final class Interpreter {
         } else if (o instanceof CoreOps.AssertOp _assert) {
             Body testBody = _assert.bodies.get(0);
             Boolean testResult = (Boolean) invokeBody(l,testBody,oc,List.of());
-            if (testResult) {
+            if (!testResult) {
                 if (_assert.bodies.size() > 1) {
                     Body messageBlock = _assert.bodies.get(1);
                     String message = (String) invokeBody(l, messageBlock, oc, List.of());
