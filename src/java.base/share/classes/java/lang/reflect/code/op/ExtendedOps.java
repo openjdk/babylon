@@ -3146,12 +3146,14 @@ public class ExtendedOps {
 
         public static final String NAME = "java.stringTemplate";
 
+        private final TypeElement resultType;
         private final List<Body> expressions;
 
         public StringTemplateOp(OpDefinition def) {
             super(def);
 
             this.expressions = def.bodyDefinitions().stream().map(bd -> bd.build(this)).toList();
+            this.resultType = def.resultType();
         }
 
         StringTemplateOp(StringTemplateOp that, CopyContext cc, OpTransformer ot) {
@@ -3159,13 +3161,15 @@ public class ExtendedOps {
 
             this.expressions = that.expressions.stream()
                     .map(b -> b.transform(cc, ot).build(this)).toList();
+            this.resultType = that.resultType;
         }
 
-        public StringTemplateOp(Value processorValue, List<Value> literalsValues, List<Body.Builder> expressions) {
+        public StringTemplateOp(TypeElement resultType, Value processorValue, List<Value> literalsValues, List<Body.Builder> expressions) {
             // @@@ update to use statements before super when the compiler can depend on 22 features
             super(NAME, makeOperandsList(processorValue, literalsValues));
 
             this.expressions = expressions.stream().map(b -> b.build(this)).toList();
+            this.resultType = resultType;
         }
 
         private static List<Value> makeOperandsList(Value processorValue, List<Value> literalsValues) {
@@ -3182,14 +3186,7 @@ public class ExtendedOps {
 
         @Override
         public TypeElement resultType() {
-            TypeElement pt = processor().type();
-            if (!(pt instanceof JavaType jt)) {
-                throw new IllegalStateException("We expect processor type to be a java type");
-            }
-            if (!jt.hasTypeArguments()) {
-                throw new IllegalStateException("We expect processor type to have arguments, found " + jt);
-            }
-            return jt.typeArguments().get(0);
+            return resultType;
         }
 
         @Override
@@ -3206,8 +3203,10 @@ public class ExtendedOps {
         }
     }
 
-    public static StringTemplateOp stringTemplate(Value processorValue, List<Value> literalsValues, List<Body.Builder> expressionsBodies) {
-        return new StringTemplateOp(processorValue, literalsValues, expressionsBodies);
+    public static StringTemplateOp stringTemplate(TypeElement resultType, Value processorValue,
+                                                  List<Value> literalsValues,
+                                                  List<Body.Builder> expressionsBodies) {
+        return new StringTemplateOp(resultType, processorValue, literalsValues, expressionsBodies);
     }
 
 }

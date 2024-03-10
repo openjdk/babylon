@@ -33,6 +33,7 @@ import java.lang.runtime.CodeReflection;
 
 import static java.lang.StringTemplate.RAW;
 import static java.lang.StringTemplate.STR;
+import static java.util.FormatProcessor.FMT;
 
 public class StringTemplateTest {
 
@@ -126,21 +127,54 @@ public class StringTemplateTest {
     // this test will fail for now
     // the reason is wildcard types not modeled
     // the type of the processor X will be java.lang.StringTemplate$Processor
-    // this will cause StringTemplateOp.resultType to fail (which is called during IR generation)
+    // but the expected type is java.lang.StringTemplate$Processor<java.lang.Object, java.lang.RuntimeException>
+//    @CodeReflection
+//    @IR("""
+//            func @"f4" ()void -> {
+//                  %0 : java.lang.StringTemplate$Processor<java.lang.String, java.lang.RuntimeException> = field.load @"java.lang.StringTemplate::STR()java.lang.StringTemplate$Processor<java.lang.String, java.lang.RuntimeException>";
+//                  %1 : Var<java.lang.StringTemplate$Processor<java.lang.Object, java.lang.RuntimeException>> = var %0 @"X";
+//                  %2 : java.lang.StringTemplate$Processor<java.lang.Object, java.lang.RuntimeException> = var.load %1;
+//                  %3 : java.lang.String = constant @"some template";
+//                  %4 : java.lang.Object = java.stringTemplate %2 %3;
+//                  %5 : Var<java.lang.Object> = var %4 @"o";
+//                  return;
+//            };
+//            """)
+//    static void f4() {
+//        StringTemplate.Processor<?, RuntimeException> X = STR;
+//        Object o = X."some template";
+//    }
+
     @CodeReflection
     @IR("""
-            func @"f4" ()void -> {
-                  %0 : java.lang.StringTemplate$Processor<java.lang.String, java.lang.RuntimeException> = field.load @"java.lang.StringTemplate::STR()java.lang.StringTemplate$Processor<java.lang.String, java.lang.RuntimeException>";
-                  %1 : Var<java.lang.StringTemplate$Processor<java.lang.Object, java.lang.RuntimeException>> = var %0 @"X";
-                  %2 : java.lang.x<java.lang.Object, java.lang.RuntimeException> = var.load %1;
-                  %3 : java.lang.String = constant @"some template";
-                  %4 : java.lang.Object = java.stringTemplate %2 %3;
-                  %5 : Var<java.lang.Object> = var %4 @"o";
+            func @"f5" (%0 : int, %1 : int)void -> {
+                  %2 : Var<int> = var %0 @"x";
+                  %3 : Var<int> = var %1 @"y";
+                  %4 : java.util.FormatProcessor = field.load @"java.util.FormatProcessor::FMT()java.util.FormatProcessor";
+                  %5 : java.lang.String = constant @"%05d";
+                  %6 : java.lang.String = constant @" + %05d";
+                  %7 : java.lang.String = constant @" = %05d";
+                  %8 : java.lang.String = constant @";";
+                  %9 : java.lang.String = java.stringTemplate %4 %5 %6 %7 %8
+                      ()int -> {
+                          %10 : int = var.load %2;
+                          yield %10;
+                      }
+                      ()int -> {
+                          %11 : int = var.load %3;
+                          yield %11;
+                      }
+                      ()int -> {
+                          %12 : int = var.load %2;
+                          %13 : int = var.load %3;
+                          %14 : int = add %12 %13;
+                          yield %14;
+                      };
+                  %15 : Var<java.lang.Object> = var %9 @"s";
                   return;
             };
             """)
-    static void f4() {
-        StringTemplate.Processor<?, RuntimeException> X = STR;
-        Object o = X."some template";
+    static void f5(int x, int y) {
+        Object s = FMT."%05d\{x} + %05d\{y} = %05d\{x + y};";
     }
 }
