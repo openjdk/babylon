@@ -23,24 +23,21 @@
  * questions.
  */
 
-package java.lang.reflect.code.descriptor.impl;
+package java.lang.reflect.code.type.impl;
 
-import java.lang.reflect.code.descriptor.MethodDesc;
-import java.lang.reflect.code.descriptor.MethodTypeDesc;
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandleInfo;
+import java.lang.reflect.code.type.FieldRef;
 import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
-import java.lang.reflect.Method;
+import java.lang.invoke.VarHandle;
+import java.lang.reflect.Field;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.TypeElement;
 
-public final class MethodDescImpl implements MethodDesc {
+public final class FieldRefImpl implements FieldRef {
     final TypeElement refType;
     final String name;
-    final MethodTypeDesc type;
+    final TypeElement type;
 
-    public MethodDescImpl(TypeElement refType, String name, MethodTypeDesc type) {
+    public FieldRefImpl(TypeElement refType, String name, TypeElement type) {
         this.refType = refType;
         this.name = name;
         this.type = type;
@@ -57,37 +54,42 @@ public final class MethodDescImpl implements MethodDesc {
     }
 
     @Override
-    public MethodTypeDesc type() {
+    public TypeElement type() {
         return type;
     }
 
     @Override
-    public Method resolveToMember(MethodHandles.Lookup l) throws ReflectiveOperationException {
-        MethodHandleInfo methodHandleInfo = l.revealDirect(resolve(l));
-        return methodHandleInfo.reflectAs(Method.class, l);
+    public Field resolveToMember(MethodHandles.Lookup l) throws ReflectiveOperationException {
+        Class<?> refC = resolve(l, refType);
+        Class<?> typeC = resolve(l, type);
+
+        Field f = refC.getDeclaredField(name);
+        if (!f.getType().equals(typeC)) {
+            throw new NoSuchFieldException();
+        }
+
+        return f;
     }
 
     @Override
-    public MethodHandle resolve(MethodHandles.Lookup l) throws ReflectiveOperationException {
-        // @@@ kind
+    public VarHandle resolveToHandle(MethodHandles.Lookup l) throws ReflectiveOperationException {
         Class<?> refC = resolve(l, refType);
+        Class<?> typeC = resolve(l, type);
 
-        MethodType mt = type.resolve(l);
-
-        MethodHandle mh = null;
+        VarHandle vh = null;
         ReflectiveOperationException c = null;
 
         try {
-            mh = l.findStatic(refC, name, mt);
-        } catch (NoSuchMethodException | IllegalAccessException e) {
+            vh = l.findStaticVarHandle(refC, name, typeC);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
             c = e;
         }
 
         if (c != null) {
             c = null;
             try {
-                mh = l.findVirtual(refC, name, mt);
-            } catch (NoSuchMethodException | IllegalAccessException e) {
+                vh = l.findVarHandle(refC, name, typeC);
+            } catch (NoSuchFieldException | IllegalAccessException e) {
                 c = e;
             }
         }
@@ -96,8 +98,8 @@ public final class MethodDescImpl implements MethodDesc {
             throw c;
         }
 
-        assert mh != null;
-        return mh;
+        assert vh != null;
+        return vh;
     }
 
     static Class<?> resolve(MethodHandles.Lookup l, TypeElement t) throws ReflectiveOperationException {
@@ -111,7 +113,7 @@ public final class MethodDescImpl implements MethodDesc {
 
     @Override
     public String toString() {
-        return refType + "::" + name + type;
+        return refType + "::" + name + "()" + type;
     }
 
     @Override
@@ -119,11 +121,11 @@ public final class MethodDescImpl implements MethodDesc {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        MethodDescImpl that = (MethodDescImpl) o;
+        FieldRefImpl fieldDesc = (FieldRefImpl) o;
 
-        if (!refType.equals(that.refType)) return false;
-        if (!name.equals(that.name)) return false;
-        return type.equals(that.type);
+        if (!refType.equals(fieldDesc.refType)) return false;
+        if (!name.equals(fieldDesc.name)) return false;
+        return type.equals(fieldDesc.type);
     }
 
     @Override

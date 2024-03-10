@@ -93,7 +93,6 @@ module java.base {
     exports java.lang.reflect.code;
     exports java.lang.reflect.code.analysis;
     exports java.lang.reflect.code.bytecode;
-    exports java.lang.reflect.code.descriptor;
     exports java.lang.reflect.code.interpreter;
     exports java.lang.reflect.code.op;
     exports java.lang.reflect.code.parser;

@@ -26,10 +26,13 @@
 package java.lang.reflect.code.op;
 
 import java.lang.reflect.code.*;
-import java.lang.reflect.code.descriptor.MethodDesc;
-import java.lang.reflect.code.descriptor.RecordTypeDesc;
-import java.lang.reflect.code.type.*;
+import java.lang.reflect.code.type.MethodRef;
+import java.lang.reflect.code.type.RecordTypeRef;
+import java.lang.reflect.code.type.FunctionType;
+import java.lang.reflect.code.type.JavaType;
+import java.lang.reflect.code.type.TupleType;
 import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.type.VarType;
 import java.lang.reflect.code.type.impl.JavaTypeImpl;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -1185,9 +1188,9 @@ public class ExtendedOps {
             return body;
         }
 
-        static final MethodDesc ITERABLE_ITERATOR = MethodDesc.method(Iterable.class, "iterator", Iterator.class);
-        static final MethodDesc ITERATOR_HAS_NEXT = MethodDesc.method(Iterator.class, "hasNext", boolean.class);
-        static final MethodDesc ITERATOR_NEXT = MethodDesc.method(Iterator.class, "next", Object.class);
+        static final MethodRef ITERABLE_ITERATOR = MethodRef.method(Iterable.class, "iterator", Iterator.class);
+        static final MethodRef ITERATOR_HAS_NEXT = MethodRef.method(Iterator.class, "hasNext", boolean.class);
+        static final MethodRef ITERATOR_NEXT = MethodRef.method(Iterator.class, "next", Object.class);
 
         @Override
         public Block.Builder lower(Block.Builder b, OpTransformer opT) {
@@ -2505,20 +2508,20 @@ public class ExtendedOps {
 
             public static final String ATTRIBUTE_RECORD_DESCRIPTOR = NAME + ".descriptor";
 
-            final RecordTypeDesc recordDescriptor;
+            final RecordTypeRef recordDescriptor;
 
             public static RecordPatternOp create(OpDefinition def) {
-                RecordTypeDesc recordDescriptor = def.extractAttributeValue(ATTRIBUTE_RECORD_DESCRIPTOR,true,
+                RecordTypeRef recordDescriptor = def.extractAttributeValue(ATTRIBUTE_RECORD_DESCRIPTOR,true,
                         v -> switch (v) {
-                            case String s -> RecordTypeDesc.ofString(s);
-                            case RecordTypeDesc rtd -> rtd;
+                            case String s -> RecordTypeRef.ofString(s);
+                            case RecordTypeRef rtd -> rtd;
                             default -> throw new UnsupportedOperationException("Unsupported record type descriptor value:" + v);
                         });
 
                 return new RecordPatternOp(def, recordDescriptor);
             }
 
-            RecordPatternOp(OpDefinition def, RecordTypeDesc recordDescriptor) {
+            RecordPatternOp(OpDefinition def, RecordTypeRef recordDescriptor) {
                 super(def);
 
                 this.recordDescriptor = recordDescriptor;
@@ -2535,7 +2538,7 @@ public class ExtendedOps {
                 return new RecordPatternOp(this, cc);
             }
 
-            RecordPatternOp(RecordTypeDesc recordDescriptor, List<Value> nestedPatterns) {
+            RecordPatternOp(RecordTypeRef recordDescriptor, List<Value> nestedPatterns) {
                 // The type of each value is a subtype of Pattern
                 // The number of values corresponds to the number of components of the record
                 super(NAME, List.copyOf(nestedPatterns));
@@ -2550,7 +2553,7 @@ public class ExtendedOps {
                 return Collections.unmodifiableMap(m);
             }
 
-            public RecordTypeDesc recordDescriptor() {
+            public RecordTypeRef recordDescriptor() {
                 return recordDescriptor;
             }
 
@@ -3189,7 +3192,7 @@ public class ExtendedOps {
      * @param nestedPatterns the nested pattern values
      * @return the record pattern operation
      */
-    public static PatternOps.RecordPatternOp recordPattern(RecordTypeDesc recordDescriptor, Value... nestedPatterns) {
+    public static PatternOps.RecordPatternOp recordPattern(RecordTypeRef recordDescriptor, Value... nestedPatterns) {
         return recordPattern(recordDescriptor, List.of(nestedPatterns));
     }
 
@@ -3199,7 +3202,7 @@ public class ExtendedOps {
      * @param nestedPatterns the nested pattern values
      * @return the record pattern operation
      */
-    public static PatternOps.RecordPatternOp recordPattern(RecordTypeDesc recordDescriptor, List<Value> nestedPatterns) {
+    public static PatternOps.RecordPatternOp recordPattern(RecordTypeRef recordDescriptor, List<Value> nestedPatterns) {
         return new PatternOps.RecordPatternOp(recordDescriptor, nestedPatterns);
     }
 

@@ -25,11 +25,12 @@
 
 package java.lang.reflect.code.parser.impl;
 
-import java.lang.reflect.code.descriptor.*;
-import java.lang.reflect.code.descriptor.impl.*;
-import java.lang.reflect.code.type.CoreTypeFactory;
+import java.lang.reflect.code.type.*;
 import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.type.TypeDefinition;
+import java.lang.reflect.code.type.RecordTypeRef;
+import java.lang.reflect.code.type.impl.FieldRefImpl;
+import java.lang.reflect.code.type.impl.MethodRefImpl;
+import java.lang.reflect.code.type.impl.RecordTypeRefImpl;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,9 +38,9 @@ public final class DescParser {
     private DescParser() {}
 
     /**
-     * Parse a type descriptor from its serialized textual form.
-     * @param desc the serialized type descriptor
-     * @return the type descriptor
+     * Parse a type definition from its serialized textual form.
+     * @param desc the serialized type definition
+     * @return the type definition
      */
     public static TypeDefinition parseTypeDefinition(String desc) {
         Scanner s = Scanner.factory().newScanner(desc);
@@ -48,50 +49,39 @@ public final class DescParser {
     }
 
     /**
-     * Parse a method type descriptor from its serialized textual form.
-     * @param desc the serialized method type descriptor
-     * @return the method type descriptor
+     * Parse a method reference from its serialized textual form.
+     *
+     * @param desc the serialized method reference
+     * @return the method reference
      */
-    public static MethodTypeDesc parseMethodTypeDesc(String desc) {
+    public static MethodRef parseMethodRef(String desc) {
         Scanner s = Scanner.factory().newScanner(desc);
         s.nextToken();
-        return parseMethodTypeDesc(s);
+        return parseMethodRef(s);
     }
 
     /**
-     * Parse a method descriptor from its serialized textual form.
+     * Parse a field reference from its serialized textual form.
      *
-     * @param desc the serialized method descriptor
-     * @return the method descriptor
+     * @param desc the serialized field reference
+     * @return the field reference
      */
-    public static MethodDesc parseMethodDesc(String desc) {
+    public static FieldRef parseFieldRef(String desc) {
         Scanner s = Scanner.factory().newScanner(desc);
         s.nextToken();
-        return parseMethodDesc(s);
+        return parseFieldRef(s);
     }
 
     /**
-     * Parse a field descriptor from its serialized textual form.
+     * Parse a record type reference from its serialized textual form.
      *
-     * @param desc the serialized field descriptor
-     * @return the field descriptor
+     * @param desc the serialized record type reference
+     * @return the record type reference
      */
-    public static FieldDesc parseFieldDesc(String desc) {
+    public static RecordTypeRef parseRecordTypeRef(String desc) {
         Scanner s = Scanner.factory().newScanner(desc);
         s.nextToken();
-        return parseFieldDesc(s);
-    }
-
-    /**
-     * Parse a record type descriptor from its serialized textual form.
-     *
-     * @param desc the serialized record type descriptor
-     * @return the record type descriptor
-     */
-    public static RecordTypeDesc parseRecordTypeDesc(String desc) {
-        Scanner s = Scanner.factory().newScanner(desc);
-        s.nextToken();
-        return parseRecordTypeDesc(s);
+        return parseRecordTypeRef(s);
     }
 
     public static TypeDefinition parseTypeDefinition(Lexer l) {
@@ -142,7 +132,8 @@ public final class DescParser {
         return CoreTypeFactory.CORE_TYPE_FACTORY.constructType(typeDesc);
     }
 
-    static MethodTypeDesc parseMethodTypeDesc(Lexer l) {
+    // (T, T, T, T)R
+    static FunctionType parseMethodType(Lexer l) {
         List<TypeElement> ptypes = new ArrayList<>();
         l.accept(Tokens.TokenKind.LPAREN);
         if (l.token().kind != Tokens.TokenKind.RPAREN) {
@@ -153,10 +144,10 @@ public final class DescParser {
         }
         l.accept(Tokens.TokenKind.RPAREN);
         TypeElement rtype = parseTypeElement(l);
-        return new MethodTypeDescImpl(rtype, ptypes);
+        return FunctionType.functionType(rtype, ptypes);
     }
 
-    static MethodDescImpl parseMethodDesc(Lexer l) {
+    static MethodRef parseMethodRef(Lexer l) {
         TypeElement refType = parseTypeElement(l);
 
         l.accept(Tokens.TokenKind.COLCOL);
@@ -171,38 +162,38 @@ public final class DescParser {
             methodName = l.accept(Tokens.TokenKind.IDENTIFIER).name();
         }
 
-        MethodTypeDesc mtype = parseMethodTypeDesc(l);
+        FunctionType mtype = parseMethodType(l);
 
-        return new MethodDescImpl(refType, methodName, mtype);
+        return new MethodRefImpl(refType, methodName, mtype);
     }
 
-    static FieldDescImpl parseFieldDesc(Lexer l) {
+    static FieldRef parseFieldRef(Lexer l) {
         TypeElement refType = parseTypeElement(l);
 
         l.accept(Tokens.TokenKind.COLCOL);
 
         String fieldName = l.accept(Tokens.TokenKind.IDENTIFIER).name();
 
-        MethodTypeDesc mtype = parseMethodTypeDesc(l);
-        if (!mtype.parameters().isEmpty()) {
+        FunctionType mtype = parseMethodType(l);
+        if (!mtype.parameterTypes().isEmpty()) {
             throw new IllegalArgumentException();
         }
-        return new FieldDescImpl(refType, fieldName, mtype.returnType());
+        return new FieldRefImpl(refType, fieldName, mtype.returnType());
     }
 
-    static RecordTypeDesc parseRecordTypeDesc(Lexer l) {
-        List<RecordTypeDesc.ComponentDesc> components = new ArrayList<>();
+    static RecordTypeRef parseRecordTypeRef(Lexer l) {
+        List<RecordTypeRef.ComponentRef> components = new ArrayList<>();
         l.accept(Tokens.TokenKind.LPAREN);
         if (l.token().kind != Tokens.TokenKind.RPAREN) {
             do {
                 TypeElement componentType = parseTypeElement(l);
                 String componentName = l.accept(Tokens.TokenKind.IDENTIFIER).name();
 
-                components.add(new RecordTypeDesc.ComponentDesc(componentType, componentName));
+                components.add(new RecordTypeRef.ComponentRef(componentType, componentName));
             } while(l.acceptIf(Tokens.TokenKind.COMMA));
         }
         l.accept(Tokens.TokenKind.RPAREN);
         TypeElement recordType = parseTypeElement(l);
-        return new RecordTypeDescImpl(recordType, components);
+        return new RecordTypeRefImpl(recordType, components);
     }
 }

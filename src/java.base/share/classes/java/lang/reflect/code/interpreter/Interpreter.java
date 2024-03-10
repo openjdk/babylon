@@ -29,9 +29,8 @@ import java.lang.invoke.*;
 import java.lang.reflect.Array;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.code.*;
-import java.lang.reflect.code.descriptor.FieldDesc;
-import java.lang.reflect.code.descriptor.MethodDesc;
-import java.lang.reflect.code.descriptor.MethodTypeDesc;
+import java.lang.reflect.code.type.FieldRef;
+import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
@@ -400,7 +399,7 @@ public final class Interpreter {
             return invoke(mh, values);
         } else if (o instanceof CoreOps.NewOp no) {
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
-            JavaType nType = (JavaType) no.constructorDescriptor().returnType();
+            JavaType nType = (JavaType) no.constructorType().returnType();
             if (nType.dimensions() > 0) {
                 if (values.length > nType.dimensions()) {
                     throw interpreterException(new IllegalArgumentException("Bad constructor NewOp: " + no));
@@ -411,7 +410,7 @@ public final class Interpreter {
                 }
                 return Array.newInstance(resolveToClass(l, nType), lengths);
             } else {
-                MethodHandle mh = constructorHandle(l, no.constructorDescriptor());
+                MethodHandle mh = constructorHandle(l, no.constructorType());
                 return invoke(mh, values);
             }
         } else if (o instanceof CoreOps.QuotedOp qo) {
@@ -549,20 +548,20 @@ public final class Interpreter {
         }
     }
 
-    static MethodHandle methodStaticHandle(MethodHandles.Lookup l, MethodDesc d) {
+    static MethodHandle methodStaticHandle(MethodHandles.Lookup l, MethodRef d) {
         return resolveToMethodHandle(l, d);
     }
 
-    static MethodHandle methodHandle(MethodHandles.Lookup l, MethodDesc d) {
+    static MethodHandle methodHandle(MethodHandles.Lookup l, MethodRef d) {
         return resolveToMethodHandle(l, d);
     }
 
-    static MethodHandle constructorHandle(MethodHandles.Lookup l, MethodTypeDesc d) {
-        MethodType mt = resolveToMethodType(l, d);
+    static MethodHandle constructorHandle(MethodHandles.Lookup l, FunctionType ft) {
+        MethodType mt = resolveToMethodType(l, ft);
 
         if (mt.returnType().isArray()) {
             if (mt.parameterCount() != 1 || mt.parameterType(0) != int.class) {
-                throw interpreterException(new IllegalArgumentException("Bad constructor descriptor: " + d));
+                throw interpreterException(new IllegalArgumentException("Bad constructor descriptor: " + ft));
             }
             return MethodHandles.arrayConstructor(mt.returnType());
         } else {
@@ -574,11 +573,11 @@ public final class Interpreter {
         }
     }
 
-    static VarHandle fieldStaticHandle(MethodHandles.Lookup l, FieldDesc d) {
+    static VarHandle fieldStaticHandle(MethodHandles.Lookup l, FieldRef d) {
         return resolveToVarHandle(l, d);
     }
 
-    static VarHandle fieldHandle(MethodHandles.Lookup l, FieldDesc d) {
+    static VarHandle fieldHandle(MethodHandles.Lookup l, FieldRef d) {
         return resolveToVarHandle(l, d);
     }
 
@@ -592,29 +591,25 @@ public final class Interpreter {
         return c.cast(v);
     }
 
-    static MethodHandle resolveToMethodHandle(MethodHandles.Lookup l, MethodDesc d) {
+    static MethodHandle resolveToMethodHandle(MethodHandles.Lookup l, MethodRef d) {
         try {
-            return d.resolve(l);
+            return d.resolveToHandle(l);
         } catch (ReflectiveOperationException e) {
             throw interpreterException(e);
         }
     }
 
-    static VarHandle resolveToVarHandle(MethodHandles.Lookup l, FieldDesc d) {
+    static VarHandle resolveToVarHandle(MethodHandles.Lookup l, FieldRef d) {
         try {
-            return d.resolve(l);
+            return d.resolveToHandle(l);
         } catch (ReflectiveOperationException e) {
             throw interpreterException(e);
         }
     }
 
     public static MethodType resolveToMethodType(MethodHandles.Lookup l, FunctionType ft) {
-        return resolveToMethodType(l, MethodTypeDesc.ofFunctionType(ft));
-    }
-
-    public static MethodType resolveToMethodType(MethodHandles.Lookup l, MethodTypeDesc d) {
         try {
-            return d.resolve(l);
+            return MethodRef.toNominalDescriptor(ft).resolveConstantDesc(l);
         } catch (ReflectiveOperationException e) {
             throw interpreterException(e);
         }

@@ -65,6 +65,7 @@ import com.sun.tools.javac.tree.JCTree.JCNewArray;
 import com.sun.tools.javac.tree.JCTree.JCNewClass;
 import com.sun.tools.javac.tree.JCTree.JCReturn;
 import com.sun.tools.javac.tree.JCTree.JCVariableDecl;
+import com.sun.tools.javac.tree.JCTree.JCAssert;
 import com.sun.tools.javac.tree.JCTree.Tag;
 import com.sun.tools.javac.tree.TreeInfo;
 import com.sun.tools.javac.tree.TreeMaker;
@@ -80,14 +81,7 @@ import com.sun.tools.javac.util.Options;
 import jdk.internal.java.lang.reflect.code.*;
 import jdk.internal.java.lang.reflect.code.op.CoreOps;
 import jdk.internal.java.lang.reflect.code.op.ExtendedOps;
-import jdk.internal.java.lang.reflect.code.descriptor.FieldDesc;
-import jdk.internal.java.lang.reflect.code.descriptor.MethodDesc;
-import jdk.internal.java.lang.reflect.code.descriptor.MethodTypeDesc;
-import jdk.internal.java.lang.reflect.code.descriptor.RecordTypeDesc;
-import jdk.internal.java.lang.reflect.code.type.FunctionType;
-import jdk.internal.java.lang.reflect.code.type.JavaType;
-import jdk.internal.java.lang.reflect.code.type.TupleType;
-import jdk.internal.java.lang.reflect.code.type.VarType;
+import jdk.internal.java.lang.reflect.code.type.*;
 import jdk.internal.java.lang.reflect.code.type.impl.JavaTypeImpl;
 
 import javax.lang.model.element.Modifier;
@@ -440,6 +434,7 @@ public class ReflectMethods extends TreeTranslator {
                         Tag.BLOCK, Tag.IF, Tag.WHILELOOP, Tag.DOLOOP, Tag.FOREACHLOOP, Tag.FORLOOP, Tag.TRY,
                         Tag.SWITCH_EXPRESSION, Tag.YIELD,
                         Tag.CONDEXPR,
+                        Tag.ASSERT,
                         Tag.LABELLED,
                         Tag.SKIP,
                         Tag.TYPEARRAY,
@@ -651,8 +646,8 @@ public class ReflectMethods extends TreeTranslator {
         }
 
         Value box(Value valueExpr, Type box) {
-            MethodDesc boxMethod = MethodDesc.method(typeToTypeElement(box), names.valueOf.toString(),
-                    MethodTypeDesc.methodType(typeToTypeElement(box), typeToTypeElement(types.unboxedType(box))));
+            MethodRef boxMethod = MethodRef.method(typeToTypeElement(box), names.valueOf.toString(),
+                    FunctionType.functionType(typeToTypeElement(box), typeToTypeElement(types.unboxedType(box))));
             return append(CoreOps.invoke(boxMethod, valueExpr));
         }
 
@@ -662,9 +657,9 @@ public class ReflectMethods extends TreeTranslator {
                 unboxedType = primitive;
                 valueExpr = append(CoreOps.cast(typeToTypeElement(types.boxedClass(unboxedType).type), valueExpr));
             }
-            MethodDesc unboxMethod = MethodDesc.method(typeToTypeElement(box),
+            MethodRef unboxMethod = MethodRef.method(typeToTypeElement(box),
                     unboxedType.tsym.name.append(names.Value).toString(),
-                    MethodTypeDesc.methodType(typeToTypeElement(unboxedType), typeToTypeElement(box)));
+                    FunctionType.functionType(typeToTypeElement(unboxedType), typeToTypeElement(box)));
             return append(CoreOps.invoke(unboxMethod, valueExpr));
         }
 
@@ -705,7 +700,7 @@ public class ReflectMethods extends TreeTranslator {
                             append(CoreOps.varStore(varOp, result));
                         }
                         case FIELD -> {
-                            FieldDesc fd = symbolToFieldDesc(sym, symbolSiteType(sym));
+                            FieldRef fd = symbolToFieldRef(sym, symbolSiteType(sym));
                             if (sym.isStatic()) {
                                 append(CoreOps.fieldStore(fd, result));
                             } else {
@@ -728,11 +723,11 @@ public class ReflectMethods extends TreeTranslator {
                     result = toValue(tree.rhs, target);
 
                     Symbol sym = assign.sym;
-                    FieldDesc fd = symbolToFieldDesc(sym, assign.selected.type);
+                    FieldRef fr = symbolToFieldRef(sym, assign.selected.type);
                     if (sym.isStatic()) {
-                        append(CoreOps.fieldStore(fd, result));
+                        append(CoreOps.fieldStore(fr, result));
                     } else {
-                        append(CoreOps.fieldStore(fd, receiver, result));
+                        append(CoreOps.fieldStore(fr, receiver, result));
                     }
                     break;
                 }
@@ -798,22 +793,22 @@ public class ReflectMethods extends TreeTranslator {
                             append(CoreOps.varStore(varOp, r));
                         }
                         case FIELD -> {
-                            FieldDesc fd = symbolToFieldDesc(sym, symbolSiteType(sym));
+                            FieldRef fr = symbolToFieldRef(sym, symbolSiteType(sym));
 
                             Op.Result lhsOpValue;
                             TypeElement resultType = typeToTypeElement(sym.type);
                             if (sym.isStatic()) {
-                                lhsOpValue = append(CoreOps.fieldLoad(resultType, fd));
+                                lhsOpValue = append(CoreOps.fieldLoad(resultType, fr));
                             } else {
-                                lhsOpValue = append(CoreOps.fieldLoad(resultType, fd, thisValue()));
+                                lhsOpValue = append(CoreOps.fieldLoad(resultType, fr, thisValue()));
                             }
                             // Scan the rhs
                             Value r = scanRhs.apply(lhsOpValue);
 
                             if (sym.isStatic()) {
-                                append(CoreOps.fieldStore(fd, r));
+                                append(CoreOps.fieldStore(fr, r));
                             } else {
-                                append(CoreOps.fieldStore(fd, thisValue(), r));
+                                append(CoreOps.fieldStore(fr, thisValue(), r));
                             }
                         }
                         default -> {
@@ -828,22 +823,22 @@ public class ReflectMethods extends TreeTranslator {
                     Value receiver = toValue(assign.selected);
 
                     Symbol sym = assign.sym;
-                    FieldDesc fd = symbolToFieldDesc(sym, assign.selected.type);
+                    FieldRef fr = symbolToFieldRef(sym, assign.selected.type);
 
                     Op.Result lhsOpValue;
                     TypeElement resultType = typeToTypeElement(sym.type);
                     if (sym.isStatic()) {
-                        lhsOpValue = append(CoreOps.fieldLoad(resultType, fd));
+                        lhsOpValue = append(CoreOps.fieldLoad(resultType, fr));
                     } else {
-                        lhsOpValue = append(CoreOps.fieldLoad(resultType, fd, receiver));
+                        lhsOpValue = append(CoreOps.fieldLoad(resultType, fr, receiver));
                     }
                     // Scan the rhs
                     Value r = scanRhs.apply(lhsOpValue);
 
                     if (sym.isStatic()) {
-                        append(CoreOps.fieldStore(fd, r));
+                        append(CoreOps.fieldStore(fr, r));
                     } else {
-                        append(CoreOps.fieldStore(fd, receiver, r));
+                        append(CoreOps.fieldStore(fr, receiver, r));
                     }
                 }
                 case INDEXED -> {
@@ -882,12 +877,12 @@ public class ReflectMethods extends TreeTranslator {
                     if (sym.name.equals(names._this)) {
                         result = thisValue();
                     } else {
-                        FieldDesc fd = symbolToFieldDesc(sym, symbolSiteType(sym));
+                        FieldRef fr = symbolToFieldRef(sym, symbolSiteType(sym));
                         TypeElement resultType = typeToTypeElement(sym.type);
                         if (sym.isStatic()) {
-                            result = append(CoreOps.fieldLoad(resultType, fd));
+                            result = append(CoreOps.fieldLoad(resultType, fr));
                         } else {
-                            result = append(CoreOps.fieldLoad(resultType, fd, thisValue()));
+                            result = append(CoreOps.fieldLoad(resultType, fr, thisValue()));
                         }
                     }
                 }
@@ -932,13 +927,13 @@ public class ReflectMethods extends TreeTranslator {
                 Symbol sym = tree.sym;
                 switch (sym.getKind()) {
                     case FIELD, ENUM_CONSTANT -> {
-                        FieldDesc fd = symbolToFieldDesc(sym, qualifierTarget.hasTag(NONE) ?
+                        FieldRef fr = symbolToFieldRef(sym, qualifierTarget.hasTag(NONE) ?
                                 tree.selected.type : qualifierTarget);
                         TypeElement resultType = typeToTypeElement(types.memberType(tree.selected.type, sym));
                         if (sym.isStatic()) {
-                            result = append(CoreOps.fieldLoad(resultType, fd));
+                            result = append(CoreOps.fieldLoad(resultType, fr));
                         } else {
-                            result = append(CoreOps.fieldLoad(resultType, fd, receiver));
+                            result = append(CoreOps.fieldLoad(resultType, fr, receiver));
                         }
                     }
                     case INTERFACE, CLASS, ENUM -> {
@@ -971,7 +966,7 @@ public class ReflectMethods extends TreeTranslator {
 
             // @@@ super.xyz(...) calls
             // Modeling with a call operation would result in the receiver type differing from that
-            // in the method descriptor, perhaps that is sufficient?
+            // in the method reference, perhaps that is sufficient?
 
             JCTree meth = TreeInfo.skipParens(tree.meth);
             switch (meth.getTag()) {
@@ -986,8 +981,8 @@ public class ReflectMethods extends TreeTranslator {
 
                     args.addAll(scanMethodArguments(tree.args, tree.meth.type, tree.varargsElement));
 
-                    MethodDesc md = symbolToErasedMethodDesc(sym, symbolSiteType(sym));
-                    Value res = append(CoreOps.invoke(typeToTypeElement(meth.type.getReturnType()), md, args));
+                    MethodRef mr = symbolToErasedMethodRef(sym, symbolSiteType(sym));
+                    Value res = append(CoreOps.invoke(typeToTypeElement(meth.type.getReturnType()), mr, args));
                     if (sym.type.getReturnType().getTag() != TypeTag.VOID) {
                         result = res;
                     }
@@ -1007,9 +1002,9 @@ public class ReflectMethods extends TreeTranslator {
 
                     args.addAll(scanMethodArguments(tree.args, tree.meth.type, tree.varargsElement));
 
-                    MethodDesc md = symbolToErasedMethodDesc(sym, qualifierTarget.hasTag(NONE) ?
+                    MethodRef mr = symbolToErasedMethodRef(sym, qualifierTarget.hasTag(NONE) ?
                             access.selected.type : qualifierTarget);
-                    Value res = append(CoreOps.invoke(typeToTypeElement(meth.type.getReturnType()), md, args));
+                    Value res = append(CoreOps.invoke(typeToTypeElement(meth.type.getReturnType()), mr, args));
                     if (sym.type.getReturnType().getTag() != TypeTag.VOID) {
                         result = res;
                     }
@@ -1076,8 +1071,8 @@ public class ReflectMethods extends TreeTranslator {
                 result = v;
             } else {
                 // Reference cast
-                JavaType descriptor = typeToTypeElement(types.erasure(type));
-                result = append(CoreOps.cast(typeToTypeElement(type), descriptor, v));
+                JavaType jt = typeToTypeElement(types.erasure(type));
+                result = append(CoreOps.cast(typeToTypeElement(type), jt, v));
             }
         }
 
@@ -1135,7 +1130,7 @@ public class ReflectMethods extends TreeTranslator {
                         nestedValues.add(toValue(jcPattern));
                     }
 
-                    result = append(ExtendedOps.recordPattern(symbolToRecordTypeDesc(record.record), nestedValues));
+                    result = append(ExtendedOps.recordPattern(symbolToRecordTypeRef(record.record), nestedValues));
                 }
 
                 Value toValue(JCTree tree) {
@@ -1208,17 +1203,17 @@ public class ReflectMethods extends TreeTranslator {
                 args.add(outerInstance);
             }
 
-            // Create erased method type descriptor for constructor, where
+            // Create erased method type reference for constructor, where
             // the return type declares the class to instantiate
             // @@@ require symbol site type?
-            MethodDesc methodDesc = symbolToErasedMethodDesc(tree.constructor);
-            MethodTypeDesc constructorDesc = MethodTypeDesc.methodType(
+            MethodRef methodRef = symbolToErasedMethodRef(tree.constructor);
+            FunctionType constructorType = FunctionType.functionType(
                     symbolToErasedDesc(tree.constructor.owner),
-                    methodDesc.type().parameters());
+                    methodRef.type().parameterTypes());
 
             args.addAll(scanMethodArguments(tree.args, tree.constructorType, tree.varargsElement));
 
-            result = append(CoreOps._new(typeToTypeElement(type), constructorDesc, args));
+            result = append(CoreOps._new(typeToTypeElement(type), constructorType, args));
         }
 
         @Override
@@ -1246,9 +1241,9 @@ public class ReflectMethods extends TreeTranslator {
                 }
 
                 JavaType arrayType = typeToTypeElement(tree.type);
-                MethodTypeDesc descriptor = MethodTypeDesc.methodType(arrayType,
+                FunctionType constructorType = FunctionType.functionType(arrayType,
                         indexes.stream().map(Value::type).toList());
-                result = append(CoreOps._new(arrayType, descriptor, indexes));
+                result = append(CoreOps._new(arrayType, constructorType, indexes));
             }
         }
 
@@ -1441,7 +1436,7 @@ public class ReflectMethods extends TreeTranslator {
                             localResult = append(CoreOps.eq(localTarget, expr));
                         } else {
                             localResult = append(CoreOps.invoke(
-                                    MethodDesc.method(Objects.class, "equals", boolean.class, Object.class, Object.class),
+                                    MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class),
                                     localTarget, expr));
                         }
                     } else {
@@ -1457,7 +1452,7 @@ public class ReflectMethods extends TreeTranslator {
                                 labelResult = append(CoreOps.eq(localTarget, expr));
                             } else {
                                 labelResult = append(CoreOps.invoke(
-                                        MethodDesc.method(Objects.class, "equals", boolean.class, Object.class, Object.class),
+                                        MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class),
                                         localTarget, expr));
                             }
 
@@ -1814,6 +1809,43 @@ public class ReflectMethods extends TreeTranslator {
             return type.hasTag(BOT) ?
                     (pt.hasTag(NONE) ? syms.objectType : pt) :
                     type;
+        }
+
+        @Override
+        public void visitAssert(JCAssert tree) {
+            // assert <cond:body1> [detail:body2]
+
+            List<Body.Builder> bodies = new ArrayList<>();
+            JCTree.JCExpression cond = TreeInfo.skipParens(tree.cond);
+
+            // Push condition
+            pushBody(cond,
+                    FunctionType.functionType(JavaType.BOOLEAN));
+            Value condVal = toValue(cond);
+
+            // Yield the boolean result of the condition
+            append(CoreOps._yield(condVal));
+            bodies.add(stack.body);
+
+            // Pop condition
+            popBody();
+
+            if (tree.detail != null) {
+                JCTree.JCExpression detail = TreeInfo.skipParens(tree.detail);
+
+                pushBody(detail,
+                         FunctionType.functionType(JavaType.J_L_STRING));
+                Value detailVal = toValue(detail);
+
+                append(CoreOps._yield(detailVal));
+                bodies.add(stack.body);
+
+                //Pop detail
+                popBody();
+            }
+
+            result = append(CoreOps._assert(bodies));
+
         }
 
         @Override
@@ -2194,38 +2226,38 @@ public class ReflectMethods extends TreeTranslator {
             return isMember ? currentClassSym.type : s.owner.type;
         }
 
-        FieldDesc symbolToFieldDesc(Symbol s, Type site) {
+        FieldRef symbolToFieldRef(Symbol s, Type site) {
             // @@@ Made Gen::binaryQualifier public, duplicate logic?
-            // Ensure correct qualifying class is used in descriptor, see JLS 13.1
+            // Ensure correct qualifying class is used in the reference, see JLS 13.1
             // https://docs.oracle.com/javase/specs/jls/se20/html/jls-13.html#jls-13.1
-            return symbolToFieldDesc(gen.binaryQualifier(s, site));
+            return symbolToFieldRef(gen.binaryQualifier(s, site));
         }
 
-        FieldDesc symbolToFieldDesc(Symbol s) {
-            return FieldDesc.field(
+        FieldRef symbolToFieldRef(Symbol s) {
+            return FieldRef.field(
                     typeToTypeElement(s.owner.type),
                     s.name.toString(),
                     typeToTypeElement(s.type));
         }
 
-        MethodDesc symbolToMethodDesc(Symbol s) {
-            return MethodDesc.method(
+        MethodRef symbolToMethodRef(Symbol s) {
+            return MethodRef.method(
                     typeToTypeElement(s.owner.type),
                     s.name.toString(),
                     typeToTypeElement(s.type.getReturnType()),
                     s.type.getParameterTypes().stream().map(this::typeToTypeElement).toArray(TypeElement[]::new));
         }
 
-        MethodDesc symbolToErasedMethodDesc(Symbol s, Type site) {
+        MethodRef symbolToErasedMethodRef(Symbol s, Type site) {
             // @@@ Made Gen::binaryQualifier public, duplicate logic?
-            // Ensure correct qualifying class is used in descriptor, see JLS 13.1
+            // Ensure correct qualifying class is used in the reference, see JLS 13.1
             // https://docs.oracle.com/javase/specs/jls/se20/html/jls-13.html#jls-13.1
-            return symbolToErasedMethodDesc(gen.binaryQualifier(s, site));
+            return symbolToErasedMethodRef(gen.binaryQualifier(s, site));
         }
 
-        MethodDesc symbolToErasedMethodDesc(Symbol s) {
+        MethodRef symbolToErasedMethodRef(Symbol s) {
             Type erasedType = s.erasure(types);
-            return MethodDesc.method(
+            return MethodRef.method(
                     typeToTypeElement(s.owner.erasure(types)),
                     s.name.toString(),
                     typeToTypeElement(erasedType.getReturnType()),
@@ -2242,12 +2274,12 @@ public class ReflectMethods extends TreeTranslator {
                     t.getParameterTypes().stream().map(this::typeToTypeElement).toArray(TypeElement[]::new));
         }
 
-        RecordTypeDesc symbolToRecordTypeDesc(Symbol.ClassSymbol s) {
+        RecordTypeRef symbolToRecordTypeRef(Symbol.ClassSymbol s) {
             TypeElement recordType = typeToTypeElement(s.type);
-            List<RecordTypeDesc.ComponentDesc> components = s.getRecordComponents().stream()
-                    .map(rc -> new RecordTypeDesc.ComponentDesc(typeToTypeElement(rc.type), rc.name.toString()))
+            List<RecordTypeRef.ComponentRef> components = s.getRecordComponents().stream()
+                    .map(rc -> new RecordTypeRef.ComponentRef(typeToTypeElement(rc.type), rc.name.toString()))
                     .toList();
-            return RecordTypeDesc.recordType(recordType, components);
+            return RecordTypeRef.recordType(recordType, components);
         }
 
         Op defaultValue(Type t) {
@@ -2296,7 +2328,7 @@ public class ReflectMethods extends TreeTranslator {
 
         /**
          * A type visitor that descends into the given type looking for types that are non-denotable
-         * in IR type descriptors. Examples of such types are: type-variables (regular or captured),
+         * in code model types. Examples of such types are: type-variables (regular or captured),
          * wildcard type argument, intersection types, union types. The visit methods return false
          * as soon as a non-denotable type is encountered and true otherwise. (see {@link Check#checkDenotable(Type)}.
          */
@@ -2308,7 +2340,7 @@ public class ReflectMethods extends TreeTranslator {
             @Override
             public Boolean visitClassType(ClassType t, Void s) {
                 if (t.isUnion() || t.isIntersection()) {
-                    // union an intersections cannot be denoted in IR type descriptors
+                    // union and intersections cannot be denoted in code model types
                     return false;
                 }
                 // @@@ What about enclosing types?
@@ -2323,13 +2355,13 @@ public class ReflectMethods extends TreeTranslator {
 
             @Override
             public Boolean visitTypeVar(TypeVar t, Void s) {
-                // type variables cannot be denoted in IR type descriptors
+                // type variables cannot be denoted in code model types
                 return false;
             }
 
             @Override
             public Boolean visitWildcardType(WildcardType t, Void s) {
-                // wildcards cannot de denoted in IR type descriptors
+                // wildcards cannot de denoted in code model types
                 return false;
             }
 

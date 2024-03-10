@@ -72,6 +72,39 @@ public final class Body implements CodeElement<Body, Block> {
     }
 
     /**
+     * Returns this body's parent operation.
+     *
+     * @return the body's parent operation.
+     */
+    @Override
+    public Op parent() {
+        return parentOp;
+    }
+
+    /**
+     * Returns this body's parent operation.
+     *
+     * @return the body's parent operation.
+     */
+    public Op parentOp() {
+        return parentOp;
+    }
+
+    @Override
+    public List<Block> children() {
+        return blocks();
+    }
+
+    /**
+     * Returns body's blocks in reverse-postorder as an unmodifiable list.
+     *
+     * @return the body's blocks in reverse-postorder.
+     */
+    public List<Block> blocks() {
+        return Collections.unmodifiableList(blocks);
+    }
+
+    /**
      * {@return the yield type of this body}
      */
     public TypeElement yieldType() {
@@ -91,15 +124,6 @@ public final class Body implements CodeElement<Body, Block> {
     }
 
     /**
-     * Returns this body's parent operation.
-     *
-     * @return the body's parent operation.
-     */
-    public Op parentOp() {
-        return parentOp;
-    }
-
-    /**
      * Finds the block in this body that is the ancestor of the given block.
      *
      * @param b the given block.
@@ -114,20 +138,6 @@ public final class Body implements CodeElement<Body, Block> {
         }
 
         return b;
-    }
-
-    /**
-     * Returns body's blocks in reverse-postorder as an unmodifiable list.
-     *
-     * @return the body's blocks in reverse-postorder.
-     */
-    public List<Block> blocks() {
-        return Collections.unmodifiableList(blocks);
-    }
-
-    @Override
-    public List<Block> children() {
-        return blocks();
     }
 
     /**
