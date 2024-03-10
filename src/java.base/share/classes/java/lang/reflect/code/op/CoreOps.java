@@ -3419,6 +3419,7 @@ public final class CoreOps {
      * Creates a var operation.
      *
      * @param name the name of the var
+     * @param type the type of the var's value
      * @param init the initial value of the var
      * @return the var operation
      */
