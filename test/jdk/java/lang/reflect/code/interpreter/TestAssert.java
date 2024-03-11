@@ -131,6 +131,14 @@ public class TestAssert {
         }
     }
 
+    @Test
+    public void testAssertExpr1() {
+        AssertionError ae = testThrows("assertExpr1");
+        if (ae.getMessage() == null || !ae.getMessage().equals(String.valueOf(FAILUREINT + FAILURELONG))){
+            Assert.fail("Assertion failure messages do not match.");
+        }
+    }
+
     private static AssertionError testThrows(String methodName) {
         try {
             Class<TestAssert> clazz = TestAssert.class;
@@ -211,6 +219,13 @@ public class TestAssert {
     public static void assertObject() {
         Object o = FAILUREOBJECT;
         assert false : o;
+    }
+
+    @CodeReflection
+    public static void assertExpr1() {
+        int i = FAILUREINT;
+        long l = FAILURELONG;
+        assert false : i + l;
     }
 
     static class FailureObject {

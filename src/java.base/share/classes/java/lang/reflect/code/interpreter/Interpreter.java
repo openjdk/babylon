@@ -601,11 +601,11 @@ public final class Interpreter {
             return invoke(mh, values);
         } else if (o instanceof CoreOps.AssertOp _assert) {
             Body testBody = _assert.bodies.get(0);
-            Boolean testResult = (Boolean) invokeBody(l,testBody,oc);
+            boolean testResult = (boolean) invokeBody(l,testBody,oc);
             if (!testResult) {
                 if (_assert.bodies.size() > 1) {
-                    Body messageBlock = _assert.bodies.get(1);
-                    String message = String.valueOf(invokeBody(l, messageBlock, oc));
+                    Body messageBody = _assert.bodies.get(1);
+                    String message = String.valueOf(invokeBody(l, messageBody, oc));
                     throw new AssertionError(message);
                 } else {
                     throw new AssertionError();
