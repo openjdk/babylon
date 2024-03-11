@@ -1844,7 +1844,8 @@ public final class CoreOps {
         public static final String NAME = "var";
         public static final String ATTRIBUTE_NAME = NAME + ".name";
 
-        final String name;
+        final String varName;
+        final TypeElement resultType;
 
         public static VarOp create(OpDefinition def) {
             if (def.operands().size() != 1) {
@@ -1859,16 +1860,18 @@ public final class CoreOps {
             return new VarOp(def, name);
         }
 
-        VarOp(OpDefinition def, String name) {
+        VarOp(OpDefinition def, String varName) {
             super(def);
 
-            this.name = name;
+            this.varName = varName;
+            this.resultType = def.resultType();
         }
 
         VarOp(VarOp that, CopyContext cc) {
             super(that, cc);
 
-            this.name = that.name;
+            this.varName = that.varName;
+            this.resultType = that.resultType;
         }
 
         @Override
@@ -1877,33 +1880,38 @@ public final class CoreOps {
         }
 
         VarOp(String varName, Value init) {
+            this(varName, init.type(), init);
+        }
+
+        VarOp(String varName, TypeElement type, Value init) {
             super(NAME, List.of(init));
 
-            this.name = varName;
+            this.varName = varName;
+            this.resultType = VarType.varType(type);
         }
 
         @Override
         public Map<String, Object> attributes() {
-            if (name == null) {
+            if (varName == null) {
                 return super.attributes();
             }
 
             HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put("", name);
+            m.put("", varName);
             return Collections.unmodifiableMap(m);
         }
 
         public String varName() {
-            return name;
+            return varName;
         }
 
         public TypeElement varType() {
-            return operands().get(0).type();
+            return ((VarType) resultType).valueType();
         }
 
         @Override
         public TypeElement resultType() {
-            return VarType.varType(varType());
+            return resultType;
         }
     }
 
@@ -3466,6 +3474,18 @@ public final class CoreOps {
      */
     public static VarOp var(String name, Value init) {
         return new VarOp(name, init);
+    }
+
+    /**
+     * Creates a var operation.
+     *
+     * @param name the name of the var
+     * @param type the type of the var's value
+     * @param init the initial value of the var
+     * @return the var operation
+     */
+    public static VarOp var(String name, TypeElement type, Value init) {
+        return new VarOp(name, type, init);
     }
 
     /**

@@ -437,7 +437,8 @@ public class ReflectMethods extends TreeTranslator {
                         Tag.ASSERT,
                         Tag.LABELLED,
                         Tag.SKIP,
-                        Tag.TYPEARRAY);
+                        Tag.TYPEARRAY,
+                        Tag.STRING_TEMPLATE);
 
         BodyScanner(JCMethodDecl tree) {
             this(tree, tree.body);
@@ -676,7 +677,7 @@ public class ReflectMethods extends TreeTranslator {
             } else {
                 initOp = append(defaultValue(tree.type));
             }
-            result = append(CoreOps.var(tree.name.toString(), initOp));
+            result = append(CoreOps.var(tree.name.toString(), typeToTypeElement(tree.type), initOp));
             stack.localToOp.put(tree.sym, result);
         }
 
@@ -1158,7 +1159,7 @@ public class ReflectMethods extends TreeTranslator {
             // builder associated with the nearest statement tree
             for (JCVariableDecl jcVar : variables) {
                 Value init = variablesStack.block.op(defaultValue(jcVar.type));
-                Op.Result op = variablesStack.block.op(CoreOps.var(jcVar.name.toString(), init));
+                Op.Result op = variablesStack.block.op(CoreOps.var(jcVar.name.toString(), typeToTypeElement(jcVar.type), init));
                 variablesStack.localToOp.put(jcVar.sym, op);
             }
 
@@ -2131,6 +2132,22 @@ public class ReflectMethods extends TreeTranslator {
         @Override
         public void visitClassDef(JCClassDecl tree) {
             // do nothing
+        }
+
+
+        @Override
+        public void visitStringTemplate(JCTree.JCStringTemplate tree) {
+            Value processor = toValue(tree.processor);
+            List<Value> fragments = tree.fragments.map(f -> append(CoreOps.constant(JavaType.J_L_STRING, f)));
+
+            List<Body.Builder> expressions = new ArrayList<>();
+            tree.expressions.forEach(e -> {
+                pushBody(e, FunctionType.functionType(typeToTypeElement(e.type)));
+                append(CoreOps._yield(toValue(e)));
+                expressions.add(stack.body);
+                popBody();
+            });
+            result = append(ExtendedOps.stringTemplate(typeToTypeElement(tree.type), processor, fragments, expressions));
         }
 
         UnsupportedASTException unsupported(JCTree tree) {

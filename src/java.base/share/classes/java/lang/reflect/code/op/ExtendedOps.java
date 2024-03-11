@@ -2731,6 +2731,68 @@ public class ExtendedOps {
         }
     }
 
+    @OpDeclaration(StringTemplateOp.NAME)
+    public static final class StringTemplateOp extends OpWithDefinition implements Op.Nested {
+
+        public static final String NAME = "java.stringTemplate";
+
+        private final TypeElement resultType;
+        private final List<Body> expressions;
+
+        public StringTemplateOp(OpDefinition def) {
+            super(def);
+
+            this.expressions = def.bodyDefinitions().stream().map(bd -> bd.build(this)).toList();
+            this.resultType = def.resultType();
+        }
+
+        StringTemplateOp(StringTemplateOp that, CopyContext cc, OpTransformer ot) {
+            super(that, cc);
+
+            this.expressions = that.expressions.stream()
+                    .map(b -> b.transform(cc, ot).build(this)).toList();
+            this.resultType = that.resultType;
+        }
+
+        public StringTemplateOp(TypeElement resultType, Value processorValue, List<Value> literalsValues, List<Body.Builder> expressions) {
+            // @@@ update to use statements before super when the compiler can depend on 22 features
+            super(NAME, makeOperandsList(processorValue, literalsValues));
+
+            this.expressions = expressions.stream().map(b -> b.build(this)).toList();
+            this.resultType = resultType;
+        }
+
+        private static List<Value> makeOperandsList(Value processorValue, List<Value> literalsValues) {
+            List<Value> operands = new ArrayList<>();
+            operands.add(processorValue);
+            operands.addAll(literalsValues);
+            return operands;
+        }
+
+        @Override
+        public StringTemplateOp transform(CopyContext cc, OpTransformer ot) {
+            return new StringTemplateOp(this, cc, ot);
+        }
+
+        @Override
+        public TypeElement resultType() {
+            return resultType;
+        }
+
+        @Override
+        public List<Body> bodies() {
+            return expressions;
+        }
+
+        public Value processor() {
+            return operands().get(0);
+        }
+
+        public List<Value> fragments() {
+            return operands().subList(1, operands().size());
+        }
+    }
+
 
     /**
      * A factory for extended and core operations.
@@ -3143,4 +3205,19 @@ public class ExtendedOps {
     public static PatternOps.RecordPatternOp recordPattern(RecordTypeRef recordDescriptor, List<Value> nestedPatterns) {
         return new PatternOps.RecordPatternOp(recordDescriptor, nestedPatterns);
     }
+
+    /**
+     * Creates a string template operation.
+     * @param resultType the result type of the operation
+     * @param processor the processor
+     * @param fragments the fragments
+     * @param expressions the expressions
+     * @return the string template operation
+     */
+    public static StringTemplateOp stringTemplate(TypeElement resultType, Value processor,
+                                                  List<Value> fragments,
+                                                  List<Body.Builder> expressions) {
+        return new StringTemplateOp(resultType, processor, fragments, expressions);
+    }
+
 }

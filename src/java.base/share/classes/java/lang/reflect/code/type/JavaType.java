@@ -96,6 +96,10 @@ public sealed interface JavaType extends TypeElement permits JavaTypeImpl {
 
     JavaType J_L_STRING = new JavaTypeImpl("java.lang.String");
 
+    JavaType J_L_STRING_TEMPLATE = new JavaTypeImpl("java.lang.StringTemplate");
+
+    JavaType J_L_STRING_TEMPLATE_PROCESSOR = new JavaTypeImpl("java.lang.StringTemplate$Processor");
+
     //
 
     boolean isArray();
