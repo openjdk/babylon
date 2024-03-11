@@ -1,3 +1,28 @@
+/*
+ * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
+
 package java.lang.reflect.code.writer;
 
 import java.lang.reflect.code.*;
@@ -49,6 +74,15 @@ public class OpBuilder {
 
     static final MethodRef FUNCTION_TYPE_FUNCTION_TYPE = MethodRef.method(FunctionType.class, "functionType",
             FunctionType.class, TypeElement.class, TypeElement[].class);
+
+    static final MethodRef METHOD_REF_OF_STRING = MethodRef.method(MethodRef.class, "ofString",
+            MethodRef.class, String.class);
+
+    static final MethodRef FIELD_REF_OF_STRING = MethodRef.method(FieldRef.class, "ofString",
+            FieldRef.class, String.class);
+
+    static final MethodRef RECORD_TYPE_REF_OF_STRING = MethodRef.method(RecordTypeRef.class, "ofString",
+            RecordTypeRef.class, String.class);
 
 
     static final JavaType J_U_LIST = type(List.class);
@@ -239,14 +273,56 @@ public class OpBuilder {
 
     Value buildAttributeValue(Object value) {
         return switch (value) {
+            case Boolean v -> {
+                yield builder.op(constant(BOOLEAN, value));
+            }
+            case Byte v -> {
+                yield builder.op(constant(BYTE, value));
+            }
+            case Short v -> {
+                yield builder.op(constant(SHORT, value));
+            }
+            case Character v -> {
+                yield builder.op(constant(CHAR, value));
+            }
+            case Integer v -> {
+                yield builder.op(constant(INT, value));
+            }
+            case Long v -> {
+                yield builder.op(constant(LONG, value));
+            }
+            case Float v -> {
+                yield builder.op(constant(FLOAT, value));
+            }
+            case Double v -> {
+                yield builder.op(constant(DOUBLE, value));
+            }
+            case Class<?> v -> {
+                yield buildType(JavaType.type(v));
+            }
             case String s -> {
                 yield builder.op(constant(J_L_STRING, value));
             }
-            case Integer i -> {
-                yield builder.op(constant(INT, value));
+            case MethodRef r -> {
+                Value string = builder.op(constant(J_L_STRING, value.toString()));
+                yield builder.op(invoke(METHOD_REF_OF_STRING, string));
+            }
+            case FieldRef r -> {
+                Value string = builder.op(constant(J_L_STRING, value.toString()));
+                yield builder.op(invoke(FIELD_REF_OF_STRING, string));
+            }
+            case RecordTypeRef r -> {
+                Value string = builder.op(constant(J_L_STRING, value.toString()));
+                yield builder.op(invoke(RECORD_TYPE_REF_OF_STRING, string));
+            }
+            case TypeElement f -> {
+                yield buildType(f);
+            }
+            case Object o when value == Op.NULL_ATTRIBUTE_VALUE -> {
+                yield builder.op(fieldLoad(FieldRef.field(Op.class, "NULL_ATTRIBUTE_VALUE", Object.class)));
             }
             default -> {
-                throw new UnsupportedOperationException(value.getClass().toString());
+                throw new UnsupportedOperationException(value + " " + value.getClass().toString());
             }
         };
     }
