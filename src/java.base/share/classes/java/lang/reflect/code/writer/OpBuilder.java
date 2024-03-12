@@ -322,7 +322,8 @@ public class OpBuilder {
                 yield builder.op(fieldLoad(FieldRef.field(Op.class, "NULL_ATTRIBUTE_VALUE", Object.class)));
             }
             default -> {
-                throw new UnsupportedOperationException(value + " " + value.getClass().toString());
+                // @@@ use the result of value.toString()?
+                throw new UnsupportedOperationException("Unsupported attribute value: " + value);
             }
         };
     }
