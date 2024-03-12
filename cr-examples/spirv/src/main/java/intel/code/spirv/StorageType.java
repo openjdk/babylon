@@ -31,59 +31,59 @@ import java.util.List;
 import java.util.Objects;
 
 public sealed abstract class StorageType extends SpirvType
-	permits StorageType.Input, StorageType.Workgroup, StorageType.CrossWorkgroup, StorageType.Private, StorageType.Function {
+    permits StorageType.Input, StorageType.Workgroup, StorageType.CrossWorkgroup, StorageType.Private, StorageType.Function {
 
-	public static final Input INPUT = new Input();
-	public static final Workgroup WORKGROUP = new Workgroup();
-	public static final CrossWorkgroup CROSSWORKGROUP= new CrossWorkgroup();
-	public static final Private PRIVATE = new Private();
-	public static final Function FUNCTION = new Function();
+    public static final Input INPUT = new Input();
+    public static final Workgroup WORKGROUP = new Workgroup();
+    public static final CrossWorkgroup CROSSWORKGROUP= new CrossWorkgroup();
+    public static final Private PRIVATE = new Private();
+    public static final Function FUNCTION = new Function();
 
-	protected final String NAME;
+    protected final String NAME;
 
-	protected StorageType(String name) {
-		this.NAME = name;
-	}
+    protected StorageType(String name) {
+        this.NAME = name;
+    }
 
-	static final class Input extends StorageType {		
-		protected Input(){
-			super("Input");
-		}
-	}
+    static final class Input extends StorageType {
+        protected Input(){
+            super("Input");
+        }
+    }
 
-	static final class Workgroup extends StorageType {
-		protected Workgroup() {
-			super("Workgroup");
-		}
-	}
+    static final class Workgroup extends StorageType {
+        protected Workgroup() {
+            super("Workgroup");
+        }
+    }
 
-	static final class CrossWorkgroup extends StorageType
-	{
-		protected CrossWorkgroup() {
-			super("CrossWorkgroup");
-		}
-	}
+    static final class CrossWorkgroup extends StorageType
+    {
+        protected CrossWorkgroup() {
+            super("CrossWorkgroup");
+        }
+    }
 
-	static final class Private extends StorageType
-	{
-		protected Private() {
-			super("Private");
-		}
-	}
+    static final class Private extends StorageType
+    {
+        protected Private() {
+            super("Private");
+        }
+    }
 
-	static final class Function extends StorageType
-	{
-		protected Function() {
-			super("Function");
-		}
-	}
+    static final class Function extends StorageType
+    {
+        protected Function() {
+            super("Function");
+        }
+    }
 
-	@Override
-	public boolean equals(Object obj) {
-		return obj != null && obj.getClass() != this.getClass();
-	}
-	
-	@Override
+    @Override
+    public boolean equals(Object obj) {
+        return obj != null && obj.getClass() != this.getClass();
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hash(NAME);
     }

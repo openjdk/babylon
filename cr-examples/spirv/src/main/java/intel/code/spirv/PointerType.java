@@ -31,35 +31,35 @@ import java.util.Objects;
 import java.util.List;
 
 public final class PointerType extends SpirvType {
-	static final String NAME = "spirv.pointer";
-	private final TypeElement referentType;
-	private final TypeElement storageType;
+    static final String NAME = "spirv.pointer";
+    private final TypeElement referentType;
+    private final TypeElement storageType;
 
-	public PointerType(TypeElement referentType, TypeElement storageType)
-	{
-		this.referentType = referentType;
-		this.storageType = storageType;
-	}
+    public PointerType(TypeElement referentType, TypeElement storageType)
+    {
+        this.referentType = referentType;
+        this.storageType = storageType;
+    }
 
-	public TypeElement referentType()
-	{
-		return referentType;
-	}
+    public TypeElement referentType()
+    {
+        return referentType;
+    }
 
-	public TypeElement storageType()
-	{
-		return storageType;
-	}
+    public TypeElement storageType()
+    {
+        return storageType;
+    }
 
-	@Override
-	public boolean equals(Object obj)
-	{
-		if (obj == null || obj.getClass() != PointerType.class) return false;
-		PointerType pt = (PointerType)obj;
-		return pt.referentType().equals(referentType) && pt.storageType.equals(storageType);
-	}
-	
-	@Override
+    @Override
+    public boolean equals(Object obj)
+    {
+        if (obj == null || obj.getClass() != PointerType.class) return false;
+        PointerType pt = (PointerType)obj;
+        return pt.referentType().equals(referentType) && pt.storageType.equals(storageType);
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hash(referentType, storageType);
     }

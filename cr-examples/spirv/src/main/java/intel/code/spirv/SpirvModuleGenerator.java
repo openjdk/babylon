@@ -910,15 +910,15 @@ public class SpirvModuleGenerator {
     }
 
     private SPIRVId nextId() {
-    	return module.getNextId();
+        return module.getNextId();
     }
 
     private SPIRVId nextId(String name) {
-    	SPIRVId ans = nextId();
+        SPIRVId ans = nextId();
         ans.setName(name);
         symbols.putId(name, ans);
-    	module.add(new SPIRVOpName(ans, new SPIRVLiteralString(name)));
-    	return ans;
+        module.add(new SPIRVOpName(ans, new SPIRVLiteralString(name)));
+        return ans;
     }
 
     private static int counter = 0;
@@ -952,8 +952,8 @@ public class SpirvModuleGenerator {
 
     private SPIRVId getId(String name) {
         SPIRVId ans = symbols.getId(name);
-    	assert ans != null : name + " not found";
-    	return ans;
+        assert ans != null : name + " not found";
+        return ans;
     }
 
     private SPIRVId getIdOrNull(String name) {
