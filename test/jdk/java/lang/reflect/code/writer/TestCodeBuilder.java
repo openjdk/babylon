@@ -45,21 +45,70 @@ import java.util.stream.Stream;
 public class TestCodeBuilder {
 
     @CodeReflection
-    static double f(double i, double j) {
-        int sum = 0;
-        for (int k = 0; k < 10; k++) {
-            sum += j;
-        }
-
-        String s = "HELLO";
-        int k = s.length();
-        s = null;
-        return i + j + k;
+    static void constants() {
+        boolean bool = false;
+        byte b = 1;
+        char c = 'a';
+        short s = 1;
+        int i = 1;
+        long l = 1L;
+        float f = 1.0f;
+        double d = 1.0;
+        String str = "1";
+        Object obj = null;
+        Class<?> klass = Object.class;
     }
 
     @Test
-    public void testF() {
-        CoreOps.FuncOp f = getFuncOp("f");
+    public void testConstants() {
+        testWithTransforms(getFuncOp("constants"));
+    }
+
+    static record X(int f) {
+        void m() {}
+    }
+
+    @CodeReflection
+    static void reflect() {
+        X x = new X(1);
+        int i = x.f;
+        x.m();
+        X[] ax = new X[1];
+        int l = ax.length;
+        x = ax[0];
+
+        Object o = x;
+        x = (X) o;
+        if (o instanceof X) {
+            return;
+        }
+        if (o instanceof X(var a)) {
+            return;
+        }
+    }
+
+    @Test
+    public void testReflect() {
+        testWithTransforms(getFuncOp("reflect"));
+    }
+
+    @CodeReflection
+    static int bodies(int m, int n) {
+        int sum = 0;
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                sum += i + j;
+            }
+        }
+        return m > 10 ? sum : 0;
+    }
+
+    @Test
+    public void testBodies() {
+        testWithTransforms(getFuncOp("bodies"));
+    }
+
+    public void testWithTransforms(CoreOps.FuncOp f) {
         test(f);
 
         f = f.transform((block, op) -> {
@@ -91,5 +140,4 @@ public class TestCodeBuilder {
         Method m = om.get();
         return m.getCodeModel().get();
     }
-
 }
