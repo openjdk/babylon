@@ -1032,4 +1032,4 @@ public class SpirvModuleGenerator {
             return String.format("results %s\n\nids %s\n\nblocks %s\nlabels %s\n", results.keySet(), ids.keySet(), blocks.keySet(), labels.keySet());
         }
     }
-}    
+}
