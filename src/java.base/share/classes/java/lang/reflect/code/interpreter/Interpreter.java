@@ -245,9 +245,16 @@ public final class Interpreter {
     Object invoke(MethodHandles.Lookup l, T invokableOp,
                   Map<Value, Object> capturedValues,
                   List<Object> args) {
-        OpContext oc = new OpContext();
-
         Body r = invokableOp.bodies().get(0);
+        return invoke(l, r, capturedValues, Optional.empty(), args);
+
+    }
+
+    private static Object invoke(MethodHandles.Lookup l, Body r,
+                  Map<Value, Object> capturedValues, Optional<OpContext> ooc,
+                  List<Object> args) {
+        OpContext oc = ooc.orElse(new OpContext());
+
         Block first = r.entryBlock();
 
         if (args.size() != first.parameters().size()) {
@@ -308,8 +315,10 @@ public final class Interpreter {
                 processThrowable(oc, l, t);
             } else if (to instanceof CoreOps.ReturnOp ret) {
                 Value rv = ret.returnValue();
-
                 return rv == null ? null : oc.getValue(rv);
+            } else if (to instanceof CoreOps.YieldOp yop) {
+                Value yv = yop.yieldValue();
+                return yv == null ? null : oc.getValue(yv);
             } else if (to instanceof CoreOps.ExceptionRegionEnter ers) {
                 var er = new ExceptionRegionRecord(oc.stack.peek(), ers);
                 oc.setValue(ers.result(), er);
@@ -329,82 +338,9 @@ public final class Interpreter {
     }
 
     static <T extends Op & Op.Invokable>
-    Object invokeBody(MethodHandles.Lookup l, Body r,
-                  OpContext oc) {
-        Block first = r.entryBlock();
-
-        Map<Value, Object> values = new HashMap<>();
-
-        // Note that first block cannot have any successors so the queue will have at least one entry
-        oc.stack.push(new BlockContext(first, values));
-        //capturedValues.forEach(oc::setValue);
-        while (true) {
-            BlockContext bc = oc.stack.peek();
-
-            // Execute all but the terminating operation
-            int nops = bc.b.ops().size();
-            try {
-                for (int i = 0; i < nops - 1; i++) {
-                    Op op = bc.b.ops().get(i);
-                    assert !(op instanceof Op.Terminating) : op.opName();
-
-                    Object result = exec(l, oc, op);
-                    oc.setValue(op.result(), result);
-                }
-            } catch (InterpreterException e) {
-                throw e;
-            } catch (Throwable t) {
-                processThrowable(oc, l, t);
-                continue;
-            }
-
-            // Execute the terminating operation
-            Op to = bc.b.terminatingOp();
-            if (to instanceof CoreOps.ConditionalBranchOp cb) {
-                boolean p;
-                Object bop = oc.getValue(cb.predicate());
-                if (bop instanceof Boolean bp) {
-                    p = bp;
-                } else if (bop instanceof Integer ip) {
-                    // @@@ This is required when lifting up from bytecode, since boolean values
-                    // are erased to int values, abd the bytecode lifting implementation is not currently
-                    // sophisticated enough to recover the type information
-                    p = ip != 0;
-                } else {
-                    throw interpreterException(
-                            new UnsupportedOperationException("Unsupported type input to operation: " + cb));
-                }
-                Block.Reference sb = p ? cb.trueBranch() : cb.falseBranch();
-                oc.successor(sb);
-            } else if (to instanceof CoreOps.BranchOp b) {
-                Block.Reference sb = b.branch();
-
-                oc.successor(sb);
-            } else if (to instanceof CoreOps.ThrowOp _throw) {
-                Throwable t = (Throwable) oc.getValue(_throw.argument());
-                processThrowable(oc, l, t);
-            } else if (to instanceof CoreOps.ReturnOp ret) {
-                Value rv = ret.returnValue();
-                return rv == null ? null : oc.getValue(rv);
-            } else if (to instanceof CoreOps.YieldOp yop) {
-               Value yv = yop.yieldValue();
-               return yv == null ? null : oc.getValue(yv);
-            } else if (to instanceof CoreOps.ExceptionRegionEnter ers) {
-                var er = new ExceptionRegionRecord(oc.stack.peek(), ers);
-                oc.setValue(ers.result(), er);
-
-                oc.pushExceptionRegion(er);
-
-                oc.successor(ers.start());
-            } else if (to instanceof CoreOps.ExceptionRegionExit ere) {
-                oc.popExceptionRegion(ere.regionStart());
-
-                oc.successor(ere.end());
-            } else {
-                throw interpreterException(
-                        new UnsupportedOperationException("Unsupported terminating operation: " + to.opName()));
-            }
-        }
+    Object interpretBody(MethodHandles.Lookup l, Body r,
+                         OpContext oc) {
+        return invoke(l, r, new HashMap<>(), Optional.of(oc), List.of());
     }
 
     static void processThrowable(OpContext oc, MethodHandles.Lookup l, Throwable t) {
@@ -601,11 +537,11 @@ public final class Interpreter {
             return invoke(mh, values);
         } else if (o instanceof CoreOps.AssertOp _assert) {
             Body testBody = _assert.bodies.get(0);
-            boolean testResult = (boolean) invokeBody(l,testBody,oc);
+            boolean testResult = (boolean) interpretBody(l,testBody,oc);
             if (!testResult) {
                 if (_assert.bodies.size() > 1) {
                     Body messageBody = _assert.bodies.get(1);
-                    String message = String.valueOf(invokeBody(l, messageBody, oc));
+                    String message = String.valueOf(interpretBody(l, messageBody, oc));
                     throw new AssertionError(message);
                 } else {
                     throw new AssertionError();
