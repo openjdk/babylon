@@ -32,6 +32,7 @@ import java.lang.reflect.code.*;
 import java.lang.reflect.code.descriptor.FieldDesc;
 import java.lang.reflect.code.descriptor.MethodDesc;
 import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.ExtendedOps;
 import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.TypeElement;
@@ -246,16 +247,18 @@ public final class Interpreter {
                   Map<Value, Object> capturedValues,
                   List<Object> args) {
         Body r = invokableOp.bodies().get(0);
-        return invoke(l, r, capturedValues, Optional.empty(), args);
+        return invoke(l, r, capturedValues, new OpContext(), args);
 
     }
+    static Object invoke(MethodHandles.Lookup l, Body r,
+                                 Map<Value, Object> capturedValues, OpContext oc,
+                                 List<Object> args) {
+        return invoke(l,r.entryBlock(), capturedValues, oc, args);
+    }
 
-    private static Object invoke(MethodHandles.Lookup l, Body r,
-                  Map<Value, Object> capturedValues, Optional<OpContext> ooc,
+    private static Object invoke(MethodHandles.Lookup l, Block first,
+                  Map<Value, Object> capturedValues, OpContext oc,
                   List<Object> args) {
-        OpContext oc = ooc.orElse(new OpContext());
-
-        Block first = r.entryBlock();
 
         if (args.size() != first.parameters().size()) {
             throw interpreterException(new IllegalArgumentException("Incorrect number of arguments"));
@@ -340,7 +343,7 @@ public final class Interpreter {
     static <T extends Op & Op.Invokable>
     Object interpretBody(MethodHandles.Lookup l, Body r,
                          OpContext oc) {
-        return invoke(l, r, new HashMap<>(), Optional.of(oc), List.of());
+        return invoke(l, r, Map.of(), oc, List.of());
     }
 
     static void processThrowable(OpContext oc, MethodHandles.Lookup l, Throwable t) {
@@ -537,7 +540,7 @@ public final class Interpreter {
             return invoke(mh, values);
         } else if (o instanceof CoreOps.AssertOp _assert) {
             Body testBody = _assert.bodies.get(0);
-            boolean testResult = (boolean) interpretBody(l,testBody,oc);
+            boolean testResult = (boolean) interpretBody(l, testBody, oc);
             if (!testResult) {
                 if (_assert.bodies.size() > 1) {
                     Body messageBody = _assert.bodies.get(1);

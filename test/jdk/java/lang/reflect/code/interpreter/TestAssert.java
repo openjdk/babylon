@@ -20,6 +20,8 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+import java.lang.reflect.code.Op;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 import java.lang.invoke.MethodHandles;
@@ -139,12 +141,36 @@ public class TestAssert {
         }
     }
 
+    @Test
+    public void testAssertExpr2() {
+        AssertionError ae = testThrows("assertExpr2", List.of(int.class), 52);
+        if (ae.getMessage() == null || !ae.getMessage().equals(String.valueOf(FAILUREINT))){
+            Assert.fail("Assertion failure messages do not match.");
+        }
+    }
+
     private static AssertionError testThrows(String methodName) {
+        return testThrows(methodName, List.of());
+    }
+
+    private static AssertionError testThrows(String methodName, List<Class<?>> params, Object...args) {
         try {
             Class<TestAssert> clazz = TestAssert.class;
-            Method method = clazz.getDeclaredMethod(methodName);
+            Method method = clazz.getDeclaredMethod(methodName,params.toArray(new Class[params.size()]));
             CoreOps.FuncOp f = method.getCodeModel().orElseThrow();
-            AssertionError ae = (AssertionError) retCatch(() -> Interpreter.invoke(MethodHandles.lookup(), method.getCodeModel().orElseThrow()));
+
+            //Ensure we're fully lowered before testing.
+            final var fz = f.transform((b, o) -> {
+                if (o instanceof Op.Lowerable l) {
+                    b = l.lower(b);
+                } else {
+                    b.op(o);
+                }
+                return b;
+            });
+
+
+            AssertionError ae = (AssertionError) retCatch(() -> Interpreter.invoke(MethodHandles.lookup(), fz ,args));
             Assert.assertNotNull(ae);
             return ae;
         } catch (NoSuchMethodException e) {
@@ -226,6 +252,15 @@ public class TestAssert {
         int i = FAILUREINT;
         long l = FAILURELONG;
         assert false : i + l;
+        String y = "test";
+    }
+
+    @CodeReflection
+    public static void assertExpr2(int iz) {
+        int i = FAILUREINT;
+        long l = FAILURELONG;
+        assert false : (i > iz) ? i + l : i;
+        String s = "";
     }
 
     static class FailureObject {
