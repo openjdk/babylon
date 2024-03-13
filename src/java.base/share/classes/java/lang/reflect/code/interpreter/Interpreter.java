@@ -539,6 +539,8 @@ public final class Interpreter {
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
         } else if (o instanceof CoreOps.AssertOp _assert) {
+            //Note: The nature of asserts and munged bodies may require a re-visiting.
+            //This code seems to work without poisoning contexts. See TestAssert.java in tests for relevant test coverage.
             Body testBody = _assert.bodies.get(0);
             boolean testResult = (boolean) interpretBody(l, testBody, oc);
             if (!testResult) {
