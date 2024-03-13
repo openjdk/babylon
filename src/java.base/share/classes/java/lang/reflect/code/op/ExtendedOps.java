@@ -2732,7 +2732,7 @@ public class ExtendedOps {
     }
 
     @OpDeclaration(StringTemplateOp.NAME)
-    public static final class StringTemplateOp extends OpWithDefinition implements Op.Nested {
+    public static final class StringTemplateOp extends OpWithDefinition implements Op.Nested, Op.Lowerable {
 
         public static final String NAME = "java.stringTemplate";
 
@@ -2790,6 +2790,53 @@ public class ExtendedOps {
 
         public List<Value> fragments() {
             return operands().subList(1, operands().size());
+        }
+
+        public List<Body> expressions() {
+            return expressions;
+        }
+
+        @Override
+        public Block.Builder lower(Block.Builder b, OpTransformer opT) {
+
+            Block.Builder[] builders = new Block.Builder[1];
+            builders[0] = b;
+            List<Value> expressions = new ArrayList<>();
+            for (Body expression : expressions()) {
+                builders[0].transformBody(expression, List.of(), opT.andThen((block, op) -> {
+                    if (op instanceof YieldOp yop) {
+                        expressions.add(block.context().getValue(yop.yieldValue()));
+                        builders[0] = block;
+                    } else if (op instanceof Lowerable lop) {
+                        block = lop.lower(block, opT);
+                    } else {
+                        block.op(op);
+                    }
+                    return block;
+                }));
+            }
+
+            Block.Builder builder = builders[0];
+
+            Op.Result fragmentsList = builder.op(invoke(
+                    MethodRef.method(JavaType.J_L_LIST, "of", JavaType.J_L_LIST, JavaType.J_L_OBJECT_ARRAY),
+                    builder.context().getValues(fragments())));
+
+            Op.Result expressionsList = builder.op(invoke(
+                    MethodRef.method(JavaType.J_L_LIST, "of", JavaType.J_L_LIST, JavaType.J_L_OBJECT_ARRAY),
+                    expressions));
+
+            Op.Result st = builder.op(invoke(
+                    MethodRef.method(JavaType.J_L_STRING_TEMPLATE, "of", JavaType.J_L_STRING_TEMPLATE, JavaType.J_L_LIST, JavaType.J_L_LIST),
+                    fragmentsList, expressionsList));
+
+            Op.Result res = builder.op(invoke(resultType(), MethodRef.method(JavaType.J_L_STRING_TEMPLATE_PROCESSOR, "process",
+                            JavaType.J_L_OBJECT, JavaType.J_L_STRING_TEMPLATE),
+                    builder.context().getValue(processor()), st));
+
+            builder.context().mapValue(result(), res);
+
+            return builder;
         }
     }
 
