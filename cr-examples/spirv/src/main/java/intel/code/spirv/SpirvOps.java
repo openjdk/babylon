@@ -85,7 +85,7 @@ public class SpirvOps {
 
         public FieldLoadOp(TypeElement resultType, FieldRef fieldRef, List<Value> operands) {
             super(OPNAME, resultType, operands);
-            this.fieldDesc = fieldDesc;
+            this.fieldDesc = fieldRef;
         }
 
         public FieldLoadOp(FieldLoadOp that, CopyContext cc) {
