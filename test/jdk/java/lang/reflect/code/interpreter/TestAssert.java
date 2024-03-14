@@ -149,8 +149,34 @@ public class TestAssert {
         }
     }
 
+    @Test
+    public void testAssertExpr3() {
+         testRun("assertExpr3", List.of(int.class), 52);
+    }
+
     private static AssertionError testThrows(String methodName) {
         return testThrows(methodName, List.of());
+    }
+    private static void testRun(String methodName, List<Class<?>> params, Object...args) {
+        try {
+            Class<TestAssert> clazz = TestAssert.class;
+            Method method = clazz.getDeclaredMethod(methodName,params.toArray(new Class[params.size()]));
+            CoreOps.FuncOp f = method.getCodeModel().orElseThrow();
+
+            //Ensure we're fully lowered before testing.
+            final var fz = f.transform((b, o) -> {
+                if (o instanceof Op.Lowerable l) {
+                    b = l.lower(b);
+                } else {
+                    b.op(o);
+                }
+                return b;
+            });
+
+            Interpreter.invoke(MethodHandles.lookup(), fz ,args);
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static AssertionError testThrows(String methodName, List<Class<?>> params, Object...args) {
@@ -260,6 +286,14 @@ public class TestAssert {
         int i = FAILUREINT;
         long l = FAILURELONG;
         assert false : (i > iz) ? i + l : i;
+        String s = "";
+    }
+
+    @CodeReflection
+    public static void assertExpr3(int iz) {
+        int i = FAILUREINT;
+        long l = FAILURELONG;
+        assert true : (i > iz) ? i + l : i;
         String s = "";
     }
 
