@@ -114,7 +114,7 @@ public class SpirvModuleGenerator {
     private final Symbols symbols;
 
     private SpirvModuleGenerator() {
-        this.module = new SPIRVModule(new SPIRVHeader(1, 2, 29, 0, 0));
+        this.module = new SPIRVModule(new SPIRVHeader(1, 2, 32, 0, 0));
         this.symbols = new Symbols();
     }
 
