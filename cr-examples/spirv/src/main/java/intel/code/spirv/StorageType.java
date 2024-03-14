@@ -25,7 +25,6 @@
 
 package intel.code.spirv;
 
-import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.type.TypeDefinition;
 import java.util.List;
 import java.util.Objects;

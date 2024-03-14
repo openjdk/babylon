@@ -30,8 +30,6 @@ import java.util.Map;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.CopyContext;
-import java.lang.reflect.code.OpTransformer;
-import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.type.JavaType;
 

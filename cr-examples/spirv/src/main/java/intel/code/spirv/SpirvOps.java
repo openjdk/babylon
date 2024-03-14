@@ -29,13 +29,12 @@ import java.util.List;
 import java.lang.reflect.code.Block;
 import java.lang.reflect.code.Body;
 import java.lang.reflect.code.Op;
-import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.descriptor.MethodDesc;
-import java.lang.reflect.code.descriptor.FieldDesc;
+import java.lang.reflect.code.type.MethodRef;
+import java.lang.reflect.code.type.FieldRef;
 import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
 
@@ -82,9 +81,9 @@ public class SpirvOps {
 
     public static final class FieldLoadOp extends SpirvOp {
         public static final String OPNAME = NAME_PREFIX + "fieldload";
-        private final FieldDesc fieldDesc;
+        private final FieldRef fieldDesc;
 
-        public FieldLoadOp(TypeElement resultType, FieldDesc fieldDesc, List<Value> operands) {
+        public FieldLoadOp(TypeElement resultType, FieldRef fieldRef, List<Value> operands) {
             super(OPNAME, resultType, operands);
             this.fieldDesc = fieldDesc;
         }
@@ -99,7 +98,7 @@ public class SpirvOps {
             return new FieldLoadOp(this, cc);
         }
 
-        public FieldDesc fieldDescriptor() {
+        public FieldRef fieldDescriptor() {
             return fieldDesc;
         }
     }
@@ -123,9 +122,9 @@ public class SpirvOps {
 
     public static final class CallOp extends SpirvOp {
         public static final String OPNAME = NAME_PREFIX + "call";
-        private MethodDesc descriptor;
+        private MethodRef descriptor;
 
-        public CallOp(MethodDesc descriptor, List<Value> operands) {
+        public CallOp(MethodRef descriptor, List<Value> operands) {
             super(nameString(descriptor), descriptor.type().returnType(), operands);
             this.descriptor = descriptor;
         }
@@ -139,11 +138,11 @@ public class SpirvOps {
             return new CallOp(this, cc);
         }
 
-        public MethodDesc callDescriptor() {
+        public MethodRef callDescriptor() {
             return descriptor;
         }
 
-        private static String nameString(MethodDesc descriptor) {
+        private static String nameString(MethodRef descriptor) {
             return OPNAME + " @" + descriptor.refType() + "::" + descriptor.name();
         }
     }

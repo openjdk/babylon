@@ -34,8 +34,6 @@ import java.lang.reflect.code.Body;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
-import java.lang.reflect.code.descriptor.MethodDesc;
-import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.type.JavaType;
 

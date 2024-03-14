@@ -27,8 +27,6 @@ package intel.code.spirv;
 
 import java.util.List;
 import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.Map;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.HashSet;
@@ -55,11 +53,9 @@ import java.lang.reflect.code.Body;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.op.CoreOps;
-import java.lang.reflect.code.descriptor.MethodDesc;
 import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.type.FunctionType;
+import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.type.JavaType;
-import uk.ac.manchester.beehivespirvtoolkit.lib.InvalidSPIRVModuleException;
 import uk.ac.manchester.beehivespirvtoolkit.lib.SPIRVHeader;
 import uk.ac.manchester.beehivespirvtoolkit.lib.SPIRVModule;
 import uk.ac.manchester.beehivespirvtoolkit.lib.SPIRVFunction;
@@ -68,8 +64,6 @@ import uk.ac.manchester.beehivespirvtoolkit.lib.instructions.*;
 import uk.ac.manchester.beehivespirvtoolkit.lib.instructions.operands.*;
 import uk.ac.manchester.beehivespirvtoolkit.lib.disassembler.Disassembler;
 import uk.ac.manchester.beehivespirvtoolkit.lib.disassembler.SPIRVDisassemblerOptions;
-import uk.ac.manchester.beehivespirvtoolkit.lib.disassembler.CLIHighlighter;
-import uk.ac.manchester.beehivespirvtoolkit.lib.disassembler.SPIRVPrintingOptions;
 import uk.ac.manchester.beehivespirvtoolkit.lib.disassembler.SPVByteStreamReader;
 
 public class SpirvModuleGenerator {
@@ -280,8 +274,8 @@ public class SpirvModuleGenerator {
                         addResult(op.result(), new SpirvResult(lhsType, null, ans));
                     }
                     case SpirvOps.CallOp call -> {
-                        if (call.callDescriptor().equals(MethodDesc.ofString("spirvdemo.IntArray::get(long)int")) ||
-                            call.callDescriptor().equals(MethodDesc.ofString("spirvdemo.FloatArray::get(long)float"))) {
+                        if (call.callDescriptor().equals(MethodRef.ofString("spirvdemo.IntArray::get(long)int")) ||
+                            call.callDescriptor().equals(MethodRef.ofString("spirvdemo.FloatArray::get(long)float"))) {
                             SPIRVId longType = getType("long");
                             String arrayTypeName = call.operands().get(0).type().toString();
                             SpirvResult arrayResult = getResult(call.operands().get(0));
@@ -298,8 +292,8 @@ public class SpirvModuleGenerator {
                             spirvBlock.add(new SPIRVOpLoad(elementType, result, resultAddr, align(elementType.getName())));
                             addResult(call.result(), new SpirvResult(elementType, resultAddr, result));
                         }
-                        else if (call.callDescriptor().equals(MethodDesc.ofString("spirvdemo.IntArray::set(long, int)void")) ||
-                                call.callDescriptor().equals(MethodDesc.ofString("spirvdemo.FloatArray::set(long, float)void"))) {
+                        else if (call.callDescriptor().equals(MethodRef.ofString("spirvdemo.IntArray::set(long, int)void")) ||
+                                call.callDescriptor().equals(MethodRef.ofString("spirvdemo.FloatArray::set(long, float)void"))) {
                             SPIRVId longType = getType("long");
                             String arrayTypeName = call.operands().get(0).type().toString();
                             SpirvResult arrayResult = getResult(call.operands().get(0));
@@ -316,8 +310,8 @@ public class SpirvModuleGenerator {
                             SPIRVId value = getResult(call.operands().get(valueIndex)).value();
                             spirvBlock.add(new SPIRVOpStore(dest, value, align(elementType.getName())));
                         }
-                        else if (call.callDescriptor().equals(MethodDesc.method(IntVector.class, "fromArray", IntVector.class, VectorSpecies.class, int[].class, int.class))
-                              || call.callDescriptor().equals(MethodDesc.method(FloatVector.class, "fromArray", FloatVector.class, VectorSpecies.class, float[].class, int.class))) {
+                        else if (call.callDescriptor().equals(MethodRef.method(IntVector.class, "fromArray", IntVector.class, VectorSpecies.class, int[].class, int.class))
+                              || call.callDescriptor().equals(MethodRef.method(FloatVector.class, "fromArray", FloatVector.class, VectorSpecies.class, float[].class, int.class))) {
                             SPIRVId oclExtension = getId("oclExtension");
                             SpirvResult speciesResult = getResult(call.operands().get(0));
                             SpirvResult arrayResult = getResult(call.operands().get(1));
@@ -336,8 +330,8 @@ public class SpirvModuleGenerator {
                             spirvBlock.add(new SPIRVOpExtInst(vType, vector, oclExtension, new SPIRVLiteralExtInstInteger(171, "vloadn"), operands));
                             addResult(call.result(), new SpirvResult(vType, null, vector));
                         }
-                        else if (call.callDescriptor().equals(MethodDesc.method(IntVector.class, "fromMemorySegment", IntVector.class, VectorSpecies.class, MemorySegment.class, long.class, ByteOrder.class))
-                              || call.callDescriptor().equals(MethodDesc.method(FloatVector.class, "fromMemorySegment", FloatVector.class, VectorSpecies.class, MemorySegment.class, long.class, ByteOrder.class))) {
+                        else if (call.callDescriptor().equals(MethodRef.method(IntVector.class, "fromMemorySegment", IntVector.class, VectorSpecies.class, MemorySegment.class, long.class, ByteOrder.class))
+                              || call.callDescriptor().equals(MethodRef.method(FloatVector.class, "fromMemorySegment", FloatVector.class, VectorSpecies.class, MemorySegment.class, long.class, ByteOrder.class))) {
                             SPIRVId oclExtension = getId("oclExtension");
                             SPIRVId species = getResult(call.operands().get(0)).value();
                             SPIRVId lanesLong = nextId();
@@ -360,8 +354,8 @@ public class SpirvModuleGenerator {
                             spirvBlock.add(new SPIRVOpExtInst(vType, vector, oclExtension, new SPIRVLiteralExtInstInteger(171, "vloadn"), operands));
                             addResult(call.result(), new SpirvResult(vType, null, vector));
                         }
-                        else if (call.callDescriptor().equals(MethodDesc.method(IntVector.class, "intoArray", void.class, int[].class, int.class))
-                              || call.callDescriptor().equals(MethodDesc.method(FloatVector.class, "intoArray", void.class, float[].class, int.class))) {
+                        else if (call.callDescriptor().equals(MethodRef.method(IntVector.class, "intoArray", void.class, int[].class, int.class))
+                              || call.callDescriptor().equals(MethodRef.method(FloatVector.class, "intoArray", void.class, float[].class, int.class))) {
                             SPIRVId oclExtension = getId("oclExtension");
                             SpirvResult vectorResult = getResult(call.operands().get(0));
                             SPIRVId vector = vectorResult.value();
@@ -376,8 +370,8 @@ public class SpirvModuleGenerator {
                             SPIRVMultipleOperands<SPIRVId> operandsR = new SPIRVMultipleOperands<>(vector, longIndex, array);
                             spirvBlock.add(new SPIRVOpExtInst(getType("void"), nextId(), oclExtension, new SPIRVLiteralExtInstInteger(172, "vstoren"), operandsR));
                         }
-                        else if (call.callDescriptor().equals(MethodDesc.method(IntVector.class, "intoMemorySegment", void.class, MemorySegment.class, long.class, ByteOrder.class))
-                              || call.callDescriptor().equals(MethodDesc.method(FloatVector.class, "intoMemorySegment", void.class, MemorySegment.class, long.class, ByteOrder.class))) {
+                        else if (call.callDescriptor().equals(MethodRef.method(IntVector.class, "intoMemorySegment", void.class, MemorySegment.class, long.class, ByteOrder.class))
+                              || call.callDescriptor().equals(MethodRef.method(FloatVector.class, "intoMemorySegment", void.class, MemorySegment.class, long.class, ByteOrder.class))) {
                             SPIRVId oclExtension = getId("oclExtension");
                             SpirvResult vectorResult = getResult(call.operands().get(0));
                             SPIRVId vector = vectorResult.value();
@@ -397,8 +391,8 @@ public class SpirvModuleGenerator {
                             SPIRVMultipleOperands<SPIRVId> operandsR = new SPIRVMultipleOperands<>(vector, vectorIndex, typedSegment);
                             spirvBlock.add(new SPIRVOpExtInst(getId("void"), nextId(), oclExtension, new SPIRVLiteralExtInstInteger(172, "vstoren"), operandsR));
                         }
-                        else if (call.callDescriptor().equals(MethodDesc.method(IntVector.class, "reduceLanes", int.class, VectorOperators.Associative.class))
-                              || call.callDescriptor().equals(MethodDesc.method(FloatVector.class, "reduceLanes", float.class, VectorOperators.Associative.class))) {
+                        else if (call.callDescriptor().equals(MethodRef.method(IntVector.class, "reduceLanes", int.class, VectorOperators.Associative.class))
+                              || call.callDescriptor().equals(MethodRef.method(FloatVector.class, "reduceLanes", float.class, VectorOperators.Associative.class))) {
                             SpirvResult vectorResult = getResult(call.operands().get(0));
                             SPIRVId vectorType = vectorResult.type();
                             SPIRVId vector = vectorResult.value();
@@ -428,10 +422,10 @@ public class SpirvModuleGenerator {
                             }
                             addResult(call.result(), new SpirvResult(elementType, null, getId(tempTag + (laneCount(vectorType.getName()) - 1))));
                         }
-                        else if (call.callDescriptor().equals(MethodDesc.method(IntVector.class, "add", IntVector.class, Vector.class))
-                              || call.callDescriptor().equals(MethodDesc.method(IntVector.class, "mul", IntVector.class, Vector.class))
-                              || call.callDescriptor().equals(MethodDesc.method(FloatVector.class, "add", FloatVector.class, Vector.class))
-                              || call.callDescriptor().equals(MethodDesc.method(FloatVector.class, "mul", FloatVector.class, Vector.class))) {
+                        else if (call.callDescriptor().equals(MethodRef.method(IntVector.class, "add", IntVector.class, Vector.class))
+                              || call.callDescriptor().equals(MethodRef.method(IntVector.class, "mul", IntVector.class, Vector.class))
+                              || call.callDescriptor().equals(MethodRef.method(FloatVector.class, "add", FloatVector.class, Vector.class))
+                              || call.callDescriptor().equals(MethodRef.method(FloatVector.class, "mul", FloatVector.class, Vector.class))) {
                             SPIRVId oclExtension = getId("oclExtension");
                             SpirvResult lhsResult = getResult(call.operands().get(0));
                             SPIRVId lhsType = lhsResult.type();
@@ -446,7 +440,7 @@ public class SpirvModuleGenerator {
                             }
                             addResult(call.result(), new SpirvResult(lhsType, null, add));
                         }
-                        else if (call.callDescriptor().equals(MethodDesc.method(FloatVector.class, "fma", FloatVector.class, Vector.class, Vector.class))) {
+                        else if (call.callDescriptor().equals(MethodRef.method(FloatVector.class, "fma", FloatVector.class, Vector.class, Vector.class))) {
                             SPIRVId oclExtension = getId("oclExtension");
                             SpirvResult aResult = getResult(call.operands().get(0));
                             SPIRVId vType = aResult.type();
@@ -460,8 +454,8 @@ public class SpirvModuleGenerator {
                             spirvBlock.add(new SPIRVOpExtInst(vType, result, oclExtension, new SPIRVLiteralExtInstInteger(26, "fma"), operands));
                             addResult(call.result(), new SpirvResult(vType, null, result));
                         }
-                        else if (call.callDescriptor().equals(MethodDesc.method(IntVector.class, "zero", IntVector.class, VectorSpecies.class))
-                             || call.callDescriptor().equals(MethodDesc.method(FloatVector.class, "zero", FloatVector.class, VectorSpecies.class))) {
+                        else if (call.callDescriptor().equals(MethodRef.method(IntVector.class, "zero", IntVector.class, VectorSpecies.class))
+                             || call.callDescriptor().equals(MethodRef.method(FloatVector.class, "zero", FloatVector.class, VectorSpecies.class))) {
                             SpirvResult speciesResult = getResult(call.operands().get(0));
                             SPIRVId vType = spirvType(((JavaType)call.callDescriptor().refType()).toClassName());
                             String elementType = vectorElementType(vType).getName();
@@ -473,8 +467,8 @@ public class SpirvModuleGenerator {
                             spirvBlock.add(new SPIRVOpCompositeConstruct(vType, vector, operands));
                             addResult(call.result(), new SpirvResult(vType, null, vector));
                         }
-                        else if (call.callDescriptor().equals(MethodDesc.method(IntVector.class, "lane", int.class, int.class))
-                              || call.callDescriptor().equals(MethodDesc.method(FloatVector.class, "lane", float.class, int.class)))  {
+                        else if (call.callDescriptor().equals(MethodRef.method(IntVector.class, "lane", int.class, int.class))
+                              || call.callDescriptor().equals(MethodRef.method(FloatVector.class, "lane", float.class, int.class)))  {
                             SpirvResult lhsResult = getResult(call.operands().get(0));
                             SPIRVId lhsType = lhsResult.type();
                             SPIRVId lhs = lhsResult.value();
@@ -488,7 +482,7 @@ public class SpirvModuleGenerator {
                             spirvBlock.add(new SPIRVOpCompositeExtract(elementType, result, lhsResult.value(), new SPIRVMultipleOperands<>(new SPIRVLiteralInteger(lane))));
                             addResult(call.result(), new SpirvResult(elementType, null, result));
                         }
-                        else if (call.callDescriptor().equals(MethodDesc.method(VectorSpecies.class, "length", int.class))) {
+                        else if (call.callDescriptor().equals(MethodRef.method(VectorSpecies.class, "length", int.class))) {
                             addResult(call.result(), new SpirvResult(getType("int"), null, getConst("int_EIGHT"))); // TODO: remove hardcode
                         }
                         else unsupported("method", call.callDescriptor());
