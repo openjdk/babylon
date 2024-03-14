@@ -36,7 +36,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
- * A writer of code models (operations) to the textual form.
+ * A writer of code models to the textual form.
  * <p>
  * A code model in textual form may be parsed back into the runtime form by parsing it.
  */
