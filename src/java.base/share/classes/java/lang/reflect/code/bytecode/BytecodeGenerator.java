@@ -140,6 +140,10 @@ public final class BytecodeGenerator {
      */
     public static <O extends Op & Op.Invokable> byte[] generateClassData(MethodHandles.Lookup lookup,
                                                                          String name, O iop) {
+        if (!iop.capturedValues().isEmpty()) {
+            throw new UnsupportedOperationException("Operation captures values");
+        }
+
         String packageName = lookup.lookupClass().getPackageName();
         String className = packageName.isEmpty()
                 ? name
