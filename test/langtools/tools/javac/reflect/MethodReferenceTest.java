@@ -152,7 +152,7 @@ public class MethodReferenceTest {
                 %1 : java.util.function.Function<java.lang.Integer, MethodReferenceTest$X> = lambda (%2 : java.lang.Integer)MethodReferenceTest$X -> {
                     %3 : Var<java.lang.Integer> = var %2 @"x$0";
                     %4 : java.lang.Integer = var.load %3;
-                    %5 : int = invoke %4 @"java.lang.Integer::intValue(java.lang.Integer)int";
+                    %5 : int = invoke %4 @"java.lang.Integer::intValue()int";
                     %6 : MethodReferenceTest$X = new %5 @"func<MethodReferenceTest$X, int>";
                     return %6;
                 };

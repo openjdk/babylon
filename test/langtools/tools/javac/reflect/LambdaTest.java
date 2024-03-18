@@ -139,7 +139,7 @@ public class LambdaTest {
                     %20 : int = var.load %3;
                     %21 : java.util.function.Supplier<java.lang.Integer> = var.load %19;
                     %22 : java.lang.Integer = invoke %21 @"java.util.function.Supplier::get()java.lang.Object";
-                    %23 : int = invoke %22 @"java.lang.Integer::intValue(java.lang.Integer)int";
+                    %23 : int = invoke %22 @"java.lang.Integer::intValue()int";
                     %24 : int = add %20 %23;
                     %25 : Var<int> = var %24 @"r";
                     %26 : int = var.load %25;
