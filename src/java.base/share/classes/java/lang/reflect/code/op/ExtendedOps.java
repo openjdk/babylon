@@ -2799,15 +2799,35 @@ public class ExtendedOps {
 
         @Override
         public Block.Builder lower(Block.Builder b, OpTransformer opT) {
+            /*
+            create block for every expression body
+            when yield branch to the next block
+            also create a block for after expressions
+            *
+            * */
+            List<Block.Builder> builders = new ArrayList<>();
+            for (Body expression : expressions()) {
+                builders.add(b.block());
+            }
+            if (expressions().isEmpty()) {
+                builders.add(b);
+            } else {
+                builders.add(b.block());
+            }
+            // if no expression, we should work with b
 
-            Block.Builder[] builders = new Block.Builder[1];
-            builders[0] = b;
+            // for the first expression body, branch to its block
             List<Value> expressions = new ArrayList<>();
             for (Body expression : expressions()) {
-                builders[0].transformBody(expression, List.of(), opT.andThen((block, op) -> {
+                int exprIndex = expressions().indexOf(expression);
+                Block.Builder bb = builders.get(exprIndex);
+                if (exprIndex == 0) {
+                    b.op(branch(bb.successor()));
+                }
+                bb.transformBody(expression, List.of(), opT.andThen((block, op) -> {
                     if (op instanceof YieldOp yop) {
                         expressions.add(block.context().getValue(yop.yieldValue()));
-                        builders[0] = block;
+                        block.op(branch(builders.get(exprIndex + 1).successor()));
                     } else if (op instanceof Lowerable lop) {
                         block = lop.lower(block, opT);
                     } else {
@@ -2817,7 +2837,7 @@ public class ExtendedOps {
                 }));
             }
 
-            Block.Builder builder = builders[0];
+            Block.Builder builder = builders.getLast();
 
             MethodRef listOfArray = MethodRef.method(JavaType.J_U_LIST, "of", JavaType.J_U_LIST, J_L_OBJECT_ARRAY);
 
