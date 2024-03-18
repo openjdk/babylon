@@ -100,7 +100,7 @@ public sealed interface JavaType extends TypeElement permits JavaTypeImpl {
 
     JavaType J_L_STRING_TEMPLATE_PROCESSOR = new JavaTypeImpl("java.lang.StringTemplate$Processor");
 
-    JavaType J_L_LIST = new JavaTypeImpl("java.util.List");
+    JavaType J_U_LIST = new JavaTypeImpl("java.util.List");
 
     //
 

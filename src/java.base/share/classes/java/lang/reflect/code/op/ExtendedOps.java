@@ -2819,7 +2819,7 @@ public class ExtendedOps {
 
             Block.Builder builder = builders[0];
 
-            MethodRef listOfArray = MethodRef.method(JavaType.J_L_LIST, "of", JavaType.J_L_LIST, J_L_OBJECT_ARRAY);
+            MethodRef listOfArray = MethodRef.method(JavaType.J_U_LIST, "of", JavaType.J_U_LIST, J_L_OBJECT_ARRAY);
 
             Op.Result fragmentsList = builder.op(invoke(listOfArray,
                     buildArrayObject(builder, builder.context().getValues(fragments()))));
@@ -2827,7 +2827,7 @@ public class ExtendedOps {
             Op.Result expressionsList = builder.op(invoke(listOfArray, buildArrayObject(builder, expressions)));
 
             MethodRef stOf = MethodRef.method(JavaType.J_L_STRING_TEMPLATE, "of", JavaType.J_L_STRING_TEMPLATE,
-                    JavaType.J_L_LIST, JavaType.J_L_LIST);
+                    JavaType.J_U_LIST, JavaType.J_U_LIST);
             Op.Result st = builder.op(invoke(stOf, fragmentsList, expressionsList));
 
             MethodRef stpProcess = MethodRef.method(JavaType.J_L_STRING_TEMPLATE_PROCESSOR, "process",
