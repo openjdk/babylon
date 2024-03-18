@@ -41,6 +41,7 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static java.lang.reflect.code.op.CoreOps.*;
+import static java.lang.reflect.code.type.JavaType.*;
 
 /**
  * The set of extended operations. A code model, produced by the Java compiler from Java program source, may consist of
@@ -2818,25 +2819,59 @@ public class ExtendedOps {
 
             Block.Builder builder = builders[0];
 
-            Op.Result fragmentsList = builder.op(invoke(
-                    MethodRef.method(JavaType.J_L_LIST, "of", JavaType.J_L_LIST, JavaType.J_L_OBJECT_ARRAY),
-                    builder.context().getValues(fragments())));
+            MethodRef listOfArray = MethodRef.method(JavaType.J_L_LIST, "of", JavaType.J_L_LIST, J_L_OBJECT_ARRAY);
 
-            Op.Result expressionsList = builder.op(invoke(
-                    MethodRef.method(JavaType.J_L_LIST, "of", JavaType.J_L_LIST, JavaType.J_L_OBJECT_ARRAY),
-                    expressions));
+            Op.Result fragmentsList = builder.op(invoke(listOfArray,
+                    buildArrayObject(builder, builder.context().getValues(fragments()))));
 
-            Op.Result st = builder.op(invoke(
-                    MethodRef.method(JavaType.J_L_STRING_TEMPLATE, "of", JavaType.J_L_STRING_TEMPLATE, JavaType.J_L_LIST, JavaType.J_L_LIST),
-                    fragmentsList, expressionsList));
+            Op.Result expressionsList = builder.op(invoke(listOfArray, buildArrayObject(builder, expressions)));
 
-            Op.Result res = builder.op(invoke(resultType(), MethodRef.method(JavaType.J_L_STRING_TEMPLATE_PROCESSOR, "process",
-                            JavaType.J_L_OBJECT, JavaType.J_L_STRING_TEMPLATE),
-                    builder.context().getValue(processor()), st));
+            MethodRef stOf = MethodRef.method(JavaType.J_L_STRING_TEMPLATE, "of", JavaType.J_L_STRING_TEMPLATE,
+                    JavaType.J_L_LIST, JavaType.J_L_LIST);
+            Op.Result st = builder.op(invoke(stOf, fragmentsList, expressionsList));
+
+            MethodRef stpProcess = MethodRef.method(JavaType.J_L_STRING_TEMPLATE_PROCESSOR, "process",
+                    JavaType.J_L_OBJECT, JavaType.J_L_STRING_TEMPLATE);
+            Op.Result res = builder.op(invoke(resultType(), stpProcess, builder.context().getValue(processor()), st));
 
             builder.context().mapValue(result(), res);
 
             return builder;
+        }
+
+        private static Value buildArrayObject(Block.Builder builder, List<Value> elements) {
+            Value array = builder.op(newArray(J_L_OBJECT_ARRAY, builder.op(constant(JavaType.INT, elements.size()))));
+            for (int i = 0; i < elements.size(); i++) {
+                Value ele = elements.get(i);
+                if (isPrimitive(ele.type())) {
+                    TypeElement wt = getWrapperType(ele.type());
+                    MethodRef valueOf = MethodRef.method(wt, "valueOf", wt, ele.type());
+                    ele = builder.op(invoke(valueOf, ele));
+                }
+                builder.op(arrayStoreOp(array, builder.op(constant(JavaType.INT, i)), ele));
+            }
+            return array;
+        }
+
+        private static boolean isPrimitive(TypeElement te) {
+            return primitiveToWrapper().containsKey(te);
+        }
+
+        private static TypeElement getWrapperType(TypeElement te) {
+            return primitiveToWrapper().get(te);
+        };
+
+        private static Map<TypeElement, TypeElement> primitiveToWrapper() {
+            return Map.of(
+                    BYTE, J_L_BYTE,
+                    SHORT, J_L_SHORT,
+                    JavaType.INT, J_L_INTEGER,
+                    LONG, J_L_LONG,
+                    FLOAT, J_L_FLOAT,
+                    DOUBLE, J_L_DOUBLE,
+                    CHAR, J_L_CHARACTER,
+                    BOOLEAN, J_L_BOOLEAN
+            );
         }
     }
 
