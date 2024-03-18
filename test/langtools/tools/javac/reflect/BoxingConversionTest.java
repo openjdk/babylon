@@ -51,7 +51,7 @@ public class BoxingConversionTest {
             func @"test2" (%0 : BoxingConversionTest, %1 : java.lang.Long)void -> {
                 %2 : Var<java.lang.Long> = var %1 @"L";
                 %3 : java.lang.Long = var.load %2;
-                %4 : long = invoke %3 @"java.lang.Long::longValue(java.lang.Long)long";
+                %4 : long = invoke %3 @"java.lang.Long::longValue()long";
                 %5 : Var<long> = var %4 @"l";
                 return;
             };
@@ -79,7 +79,7 @@ public class BoxingConversionTest {
                 %2 : Var<java.lang.Object> = var %1 @"o";
                 %3 : java.lang.Object = var.load %2;
                 %4 : java.lang.Long = cast %3 @"java.lang.Long";
-                %5 : long = invoke %4 @"java.lang.Object::longValue(java.lang.Object)long";
+                %5 : long = invoke %4 @"java.lang.Long::longValue()long";
                 %6 : Var<long> = var %5 @"l";
                 return;
             };
@@ -94,7 +94,7 @@ public class BoxingConversionTest {
                 %2 : Var<java.lang.Integer> = var %1 @"i2";
                 %3 : java.lang.Integer = var.load %2;
                 %4 : int = constant @"1";
-                %5 : int = invoke %3 @"java.lang.Integer::intValue(java.lang.Integer)int";
+                %5 : int = invoke %3 @"java.lang.Integer::intValue()int";
                 %6 : int = add %5 %4;
                 %7 : java.lang.Integer = invoke %6 @"java.lang.Integer::valueOf(int)java.lang.Integer";
                 var.store %2 %7;
@@ -111,7 +111,7 @@ public class BoxingConversionTest {
                 %2 : Var<java.lang.Integer> = var %1 @"i2";
                 %3 : java.lang.Integer = var.load %2;
                 %4 : int = constant @"3";
-                %5 : int = invoke %3 @"java.lang.Integer::intValue(java.lang.Integer)int";
+                %5 : int = invoke %3 @"java.lang.Integer::intValue()int";
                 %6 : int = add %5 %4;
                 %7 : java.lang.Integer = invoke %6 @"java.lang.Integer::valueOf(int)java.lang.Integer";
                 var.store %2 %7;
@@ -132,7 +132,7 @@ public class BoxingConversionTest {
                 %1 : BoxingConversionTest$Box = new @"func<BoxingConversionTest$Box>";
                 %2 : java.lang.Integer = field.load %1 @"BoxingConversionTest$Box::i()java.lang.Integer";
                 %3 : int = constant @"1";
-                %4 : int = invoke %2 @"java.lang.Integer::intValue(java.lang.Integer)int";
+                %4 : int = invoke %2 @"java.lang.Integer::intValue()int";
                 %5 : int = add %4 %3;
                 %6 : java.lang.Integer = invoke %5 @"java.lang.Integer::valueOf(int)java.lang.Integer";
                 field.store %1 %6 @"BoxingConversionTest$Box::i()java.lang.Integer";
@@ -149,7 +149,7 @@ public class BoxingConversionTest {
                 %1 : BoxingConversionTest$Box = new @"func<BoxingConversionTest$Box>";
                 %2 : java.lang.Integer = field.load %1 @"BoxingConversionTest$Box::i()java.lang.Integer";
                 %3 : int = constant @"3";
-                %4 : int = invoke %2 @"java.lang.Integer::intValue(java.lang.Integer)int";
+                %4 : int = invoke %2 @"java.lang.Integer::intValue()int";
                 %5 : int = add %4 %3;
                 %6 : java.lang.Integer = invoke %5 @"java.lang.Integer::valueOf(int)java.lang.Integer";
                 field.store %1 %6 @"BoxingConversionTest$Box::i()java.lang.Integer";
@@ -169,7 +169,7 @@ public class BoxingConversionTest {
                 %6 : int = constant @"0";
                 %7 : int = array.load %5 %6;
                 %8 : java.lang.Integer = var.load %4;
-                %9 : int = invoke %8 @"java.lang.Integer::intValue(java.lang.Integer)int";
+                %9 : int = invoke %8 @"java.lang.Integer::intValue()int";
                 %10 : int = add %7 %9;
                 array.store %5 %6 %10;
                 return;
@@ -191,7 +191,7 @@ public class BoxingConversionTest {
                     }
                     ^truepart()int -> {
                         %7 : java.lang.Integer = var.load %4;
-                        %8 : int = invoke %7 @"java.lang.Integer::intValue(java.lang.Integer)int";
+                        %8 : int = invoke %7 @"java.lang.Integer::intValue()int";
                         yield %8;
                     }
                     ^falsepart()int -> {
@@ -222,7 +222,7 @@ public class BoxingConversionTest {
                     }
                     ^falsepart()int -> {
                         %8 : java.lang.Integer = var.load %4;
-                        %9 : int = invoke %8 @"java.lang.Integer::intValue(java.lang.Integer)int";
+                        %9 : int = invoke %8 @"java.lang.Integer::intValue()int";
                         yield %9;
                     };
                 %10 : Var<int> = var %5 @"res";
@@ -305,7 +305,7 @@ public class BoxingConversionTest {
                     }
                     ()int -> {
                         %10 : java.lang.Integer = var.load %4;
-                        %11 : int = invoke %10 @"java.lang.Integer::intValue(java.lang.Integer)int";
+                        %11 : int = invoke %10 @"java.lang.Integer::intValue()int";
                         yield %11;
                     }
                     ^defaultCaseLabel()void -> {
@@ -347,7 +347,7 @@ public class BoxingConversionTest {
                     }
                     ()int -> {
                         %11 : java.lang.Integer = var.load %4;
-                        %12 : int = invoke %11 @"java.lang.Integer::intValue(java.lang.Integer)int";
+                        %12 : int = invoke %11 @"java.lang.Integer::intValue()int";
                         yield %12;
                     };
                 %13 : Var<int> = var %6 @"x";
@@ -410,7 +410,7 @@ public class BoxingConversionTest {
                     }
                     ()int -> {
                         %10 : java.lang.Integer = var.load %4;
-                        %11 : int = invoke %10 @"java.lang.Integer::intValue(java.lang.Integer)int";
+                        %11 : int = invoke %10 @"java.lang.Integer::intValue()int";
                         java.yield %11;
                     }
                     ^defaultCaseLabel()void -> {
@@ -452,7 +452,7 @@ public class BoxingConversionTest {
                     }
                     ()int -> {
                         %11 : java.lang.Integer = var.load %4;
-                        %12 : int = invoke %11 @"java.lang.Integer::intValue(java.lang.Integer)int";
+                        %12 : int = invoke %11 @"java.lang.Integer::intValue()int";
                         java.yield %12;
                     };
                 %13 : Var<int> = var %6 @"x";
@@ -508,7 +508,7 @@ public class BoxingConversionTest {
                 %4 : Var<java.lang.Integer> = var %2 @"I";
                 %5 : int = var.load %3;
                 %6 : java.lang.Integer = var.load %4;
-                %7 : int = invoke %6 @"java.lang.Integer::intValue(java.lang.Integer)int";
+                %7 : int = invoke %6 @"java.lang.Integer::intValue()int";
                 %8 : int = add %5 %7;
                 %9 : Var<int> = var %8 @"l";
                 return;

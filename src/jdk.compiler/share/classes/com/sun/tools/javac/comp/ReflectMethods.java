@@ -646,6 +646,7 @@ public class ReflectMethods extends TreeTranslator {
         }
 
         Value box(Value valueExpr, Type box) {
+            // Boxing is a static method e.g., java.lang.Integer::valueOf(int)java.lang.Integer
             MethodRef boxMethod = MethodRef.method(typeToTypeElement(box), names.valueOf.toString(),
                     FunctionType.functionType(typeToTypeElement(box), typeToTypeElement(types.unboxedType(box))));
             return append(CoreOps.invoke(boxMethod, valueExpr));
@@ -655,11 +656,13 @@ public class ReflectMethods extends TreeTranslator {
             if (unboxedType.hasTag(NONE)) {
                 // Object target, first downcast to correct wrapper type
                 unboxedType = primitive;
-                valueExpr = append(CoreOps.cast(typeToTypeElement(types.boxedClass(unboxedType).type), valueExpr));
+                box = types.boxedClass(unboxedType).type;
+                valueExpr = append(CoreOps.cast(typeToTypeElement(box), valueExpr));
             }
+            // Unboxing is a virtual method e.g., java.lang.Integer::intValue()int
             MethodRef unboxMethod = MethodRef.method(typeToTypeElement(box),
                     unboxedType.tsym.name.append(names.Value).toString(),
-                    FunctionType.functionType(typeToTypeElement(unboxedType), typeToTypeElement(box)));
+                    FunctionType.functionType(typeToTypeElement(unboxedType)));
             return append(CoreOps.invoke(unboxMethod, valueExpr));
         }
 
