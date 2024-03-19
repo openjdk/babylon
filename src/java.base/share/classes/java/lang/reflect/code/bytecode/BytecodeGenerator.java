@@ -62,12 +62,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Transformer of code models to bytecode.
+ */
 public final class BytecodeGenerator {
     private BytecodeGenerator() {
     }
 
-    public static MethodHandle generate(MethodHandles.Lookup l, CoreOps.FuncOp fop) {
-        byte[] classBytes = generateClassData(l, fop);
+    /**
+     * Transforms the invokable operation to bytecode encapsulated in a method of hidden class and exposed
+     * for invocation via a method handle.
+     *
+     * @param l the lookup
+     * @param iop the invokable operation to transform to bytecode
+     * @return the invoking method handle
+     * @param <O> the type of the invokable operation
+     */
+    public static <O extends Op & Op.Invokable> MethodHandle generate(MethodHandles.Lookup l, O iop) {
+        String name = iop instanceof FuncOp fop ? fop.funcName() : "m";
+        byte[] classBytes = generateClassData(l, name, iop);
 
         {
             print(classBytes);
@@ -90,9 +103,9 @@ public final class BytecodeGenerator {
         }
 
         try {
-            FunctionType ft = fop.invokableType();
+            FunctionType ft = iop.invokableType();
             MethodType mt = MethodRef.toNominalDescriptor(ft).resolveConstantDesc(hcl);
-            return hcl.findStatic(hcl.lookupClass(), fop.funcName(), mt);
+            return hcl.findStatic(hcl.lookupClass(), name, mt);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
@@ -103,21 +116,48 @@ public final class BytecodeGenerator {
         ClassPrinter.toYaml(cm, ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES, System.out::print);
     }
 
-    public static byte[] generateClassData(MethodHandles.Lookup lookup, CoreOps.FuncOp fop) {
+    /**
+     * Transforms the function operation to bytecode encapsulated in a method of a class file.
+     * <p>
+     * The name of the method is the function operation's {@link FuncOp#funcName() function name}.
+     *
+     * @param lookup the lookup
+     * @param fop the function operation to transform to bytecode
+     * @return the class file bytes
+     */
+    public static byte[] generateClassData(MethodHandles.Lookup lookup, FuncOp fop) {
+        return generateClassData(lookup, fop.funcName(), fop);
+    }
+
+    /**
+     * Transforms the invokable operation to bytecode encapsulated in a method of a class file.
+     *
+     * @param lookup the lookup
+     * @param name the name to use for the method of the class file
+     * @param iop the invokable operation to transform to bytecode
+     * @return the class file bytes
+     * @param <O> the type of the invokable operation
+     */
+    public static <O extends Op & Op.Invokable> byte[] generateClassData(MethodHandles.Lookup lookup,
+                                                                         String name, O iop) {
+        if (!iop.capturedValues().isEmpty()) {
+            throw new UnsupportedOperationException("Operation captures values");
+        }
+
         String packageName = lookup.lookupClass().getPackageName();
         String className = packageName.isEmpty()
-                ? fop.funcName()
-                : packageName + "." + fop.funcName();
-        Liveness liveness = new Liveness(fop);
-        MethodTypeDesc mtd = MethodRef.toNominalDescriptor(fop.invokableType());
+                ? name
+                : packageName + "." + name;
+        Liveness liveness = new Liveness(iop);
+        MethodTypeDesc mtd = MethodRef.toNominalDescriptor(iop.invokableType());
         byte[] classBytes = ClassFile.of().build(ClassDesc.of(className), clb ->
                 clb.withMethodBody(
-                        fop.funcName(),
+                        name,
                         mtd,
                         ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC,
                         cb -> cb.transforming(new BranchCompactor(), cob -> {
                             ConversionContext c = new ConversionContext(lookup, liveness, cob);
-                            generateBody(fop.body(), cob, c);
+                            generateBody(iop.body(), cob, c);
                         })));
         return classBytes;
     }

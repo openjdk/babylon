@@ -93,6 +93,13 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         default List<Block.Parameter> parameters() {
             return body().entryBlock().parameters();
         }
+
+        /**
+         * {@return the captured values}
+         */
+        default List<Value> capturedValues() {
+            return List.of();
+        }
     }
 
     /**
