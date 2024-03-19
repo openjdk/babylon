@@ -24,6 +24,8 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.lang.reflect.code.CopyContext;
+import java.lang.reflect.code.Quoted;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.analysis.SSA;
@@ -55,6 +57,19 @@ public class TestSimple {
         CoreOps.FuncOp f = getFuncOp("f");
 
         MethodHandle mh = generate(f);
+
+        Assert.assertEquals(f(1, 2), (int) mh.invoke(1, 2));
+    }
+
+    @Test
+    public void testQuoted() throws Throwable {
+        Quoted q = (int i, int j) -> {
+            i = i + j;
+            return i;
+        };
+        CoreOps.ClosureOp cop = (CoreOps.ClosureOp) q.op();
+
+        MethodHandle mh = generate(cop);
 
         Assert.assertEquals(f(1, 2), (int) mh.invoke(1, 2));
     }
@@ -242,10 +257,11 @@ public class TestSimple {
         Assert.assertEquals((boolean) mh.invoke(true, false), xor(true, false));
     }
 
-    static MethodHandle generate(CoreOps.FuncOp f) {
+    static <O extends Op & Op.Invokable> MethodHandle generate(O f) {
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
+        @SuppressWarnings("unchecked")
+        O lf = (O) f.transform(CopyContext.create(), (block, op) -> {
             if (op instanceof Op.Lowerable lop) {
                 return lop.lower(block);
             } else {
