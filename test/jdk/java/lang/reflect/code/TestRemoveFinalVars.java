@@ -86,10 +86,6 @@ public class TestRemoveFinalVars {
         return block;
     }
 
-    private static boolean isValueUsedWithOpClass(Value value, Class<? extends Op> opClass) {
-        return isValueUsedWithOp(value, op -> opClass.isAssignableFrom(op.getClass()));
-    }
-
     private static boolean isValueUsedWithOp(Value value, Predicate<Op> opPredicate) {
         for (Op.Result user : value.uses()) {
             if (opPredicate.test(user.op())) {
