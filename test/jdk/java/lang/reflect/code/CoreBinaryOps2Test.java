@@ -120,8 +120,8 @@ public class CoreBinaryOps2Test {
                 .map(Stream::toList)
                 .toList();
         Executable[] tests = new Executable[binaryOpsPerMethod.size()];
-		for (int i = 0; i < binaryOpsPerMethod.size(); i++) {
-			List<Op> ops = binaryOpsPerMethod.get(i);
+        for (int i = 0; i < binaryOpsPerMethod.size(); i++) {
+            List<Op> ops = binaryOpsPerMethod.get(i);
             tests[i] = () -> {
                 assertEquals(1, ops.size(), () -> "Expects exactly one binary op per method, got " + ops);
                 FunctionType type = ops.getFirst().parent().parent().bodyType();
@@ -130,7 +130,7 @@ public class CoreBinaryOps2Test {
                 assertEquals(type.returnType(), type.parameterTypes().getFirst());
                 assertEquals(type.parameterTypes().getFirst(), type.parameterTypes().getLast());
             };
-		}
+        }
         assertAll(tests);
 
         for (List<Op> ops : binaryOpsPerMethod) {
@@ -157,17 +157,17 @@ public class CoreBinaryOps2Test {
             TestInput input = new TestInput(valueForType(type.returnType()), valueForType(type.returnType()));
             compareToReflection.add(dynamicTest("reflection " + method, () -> {
                 Result reflection = runCatching(() -> {
-					try {
-						return method.invoke(null, input.left, input.right);
-					} catch (IllegalAccessException | InvocationTargetException e) {
-						throw new RuntimeException(e);
-					}
-				});
+                    try {
+                        return method.invoke(null, input.left, input.right);
+                    } catch (IllegalAccessException | InvocationTargetException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
                 Result interpret = runCatching(() -> interpret(input, funcOp));
                 assertResults(reflection, interpret);
             }));
         }
-        return list.stream().map(Method::getCodeModel)
+        Stream<DynamicTest> compareInterpreterBytecode = list.stream().map(Method::getCodeModel)
                 .flatMap(Optional::stream)
                 .flatMap(func -> Arrays.stream(types.get(func)).map(type -> retype(func, type)))
                 .map(func -> {
@@ -183,6 +183,7 @@ public class CoreBinaryOps2Test {
                             }
                     );
                 });
+        return Stream.concat(compareToReflection.build(), compareInterpreterBytecode);
     }
 
     private static void assertResults(Result first, Result second) {
@@ -208,7 +209,8 @@ public class CoreBinaryOps2Test {
         return new Result(value, interpretThrowable);
     }
 
-    record Result(Object onSuccess, Throwable throwable) { }
+    record Result(Object onSuccess, Throwable throwable) {
+    }
 
     static CoreOps.FuncOp retype(CoreOps.FuncOp original, Class<?> newType) {
         JavaType type = JavaType.type(newType);
@@ -225,7 +227,8 @@ public class CoreBinaryOps2Test {
 
     static Op retype(CopyContext context, Op op) {
         return switch (op) {
-            case CoreOps.VarOp varOp -> CoreOps.var(varOp.varName(), context.getValueOrDefault(varOp.operands().getFirst(), varOp.operands().getFirst()));
+            case CoreOps.VarOp varOp ->
+                    CoreOps.var(varOp.varName(), context.getValueOrDefault(varOp.operands().getFirst(), varOp.operands().getFirst()));
             default -> op;
         };
     }
