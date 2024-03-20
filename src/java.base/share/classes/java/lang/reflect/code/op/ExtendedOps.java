@@ -41,6 +41,7 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static java.lang.reflect.code.op.CoreOps.*;
+import static java.lang.reflect.code.type.JavaType.*;
 
 /**
  * The set of extended operations. A code model, produced by the Java compiler from Java program source, may consist of
@@ -152,7 +153,7 @@ public class ExtendedOps {
 
         @Override
         public TypeElement resultType() {
-            return JavaType.VOID;
+            return VOID;
         }
     }
 
@@ -278,7 +279,7 @@ public class ExtendedOps {
 
         @Override
         public TypeElement resultType() {
-            return JavaType.VOID;
+            return VOID;
         }
     }
 
@@ -319,7 +320,7 @@ public class ExtendedOps {
             super(NAME, List.of());
 
             this.body = bodyC.build(this);
-            if (!body.bodyType().returnType().equals(JavaType.VOID)) {
+            if (!body.bodyType().returnType().equals(VOID)) {
                 throw new IllegalArgumentException("Body should return void: " + body.bodyType());
             }
             if (!body.bodyType().parameterTypes().isEmpty()) {
@@ -360,7 +361,7 @@ public class ExtendedOps {
 
         @Override
         public TypeElement resultType() {
-            return JavaType.VOID;
+            return VOID;
         }
     }
 
@@ -399,7 +400,7 @@ public class ExtendedOps {
             super(NAME, List.of());
 
             this.body = bodyC.build(this);
-            if (!body.bodyType().returnType().equals(JavaType.VOID)) {
+            if (!body.bodyType().returnType().equals(VOID)) {
                 throw new IllegalArgumentException("Body should return void: " + body.bodyType());
             }
             if (!body.bodyType().parameterTypes().isEmpty()) {
@@ -451,7 +452,7 @@ public class ExtendedOps {
 
         @Override
         public TypeElement resultType() {
-            return JavaType.VOID;
+            return VOID;
         }
     }
 
@@ -461,7 +462,7 @@ public class ExtendedOps {
     @OpDeclaration(JavaIfOp.NAME)
     public static final class JavaIfOp extends OpWithDefinition implements Op.Nested, Op.Lowerable {
 
-        static final FunctionType PREDICATE_TYPE = FunctionType.functionType(JavaType.BOOLEAN);
+        static final FunctionType PREDICATE_TYPE = FunctionType.functionType(BOOLEAN);
 
         static final FunctionType ACTION_TYPE = FunctionType.VOID;
 
@@ -597,7 +598,7 @@ public class ExtendedOps {
                 } else {
                     action = bodies.get(i + 1);
                     Body fromPred = bodies.get(i);
-                    if (!fromPred.bodyType().equals(FunctionType.functionType(JavaType.BOOLEAN))) {
+                    if (!fromPred.bodyType().equals(FunctionType.functionType(BOOLEAN))) {
                         throw new IllegalArgumentException("Illegal predicate body descriptor: " + fromPred.bodyType());
                     }
                 }
@@ -676,7 +677,7 @@ public class ExtendedOps {
 
         @Override
         public TypeElement resultType() {
-            return JavaType.VOID;
+            return VOID;
         }
     }
 
@@ -773,7 +774,7 @@ public class ExtendedOps {
 
         @Override
         public TypeElement resultType() {
-            return JavaType.VOID;
+            return VOID;
         }
     }
 
@@ -817,7 +818,7 @@ public class ExtendedOps {
 
             public JavaForOp.UpdateBuilder cond(Consumer<Block.Builder> c) {
                 Body.Builder cond = Body.Builder.of(ancestorBody,
-                        FunctionType.functionType(JavaType.BOOLEAN, initTypes));
+                        FunctionType.functionType(BOOLEAN, initTypes));
                 c.accept(cond.entryBlock());
 
                 return new UpdateBuilder(ancestorBody, initTypes, init, cond);
@@ -841,7 +842,7 @@ public class ExtendedOps {
 
             public JavaForOp.BodyBuilder cond(Consumer<Block.Builder> c) {
                 Body.Builder update = Body.Builder.of(ancestorBody,
-                        FunctionType.functionType(JavaType.VOID, initTypes));
+                        FunctionType.functionType(VOID, initTypes));
                 c.accept(update.entryBlock());
 
                 return new BodyBuilder(ancestorBody, initTypes, init, cond, update);
@@ -868,7 +869,7 @@ public class ExtendedOps {
 
             public JavaForOp body(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody,
-                        FunctionType.functionType(JavaType.VOID, initTypes));
+                        FunctionType.functionType(VOID, initTypes));
                 c.accept(body.entryBlock());
 
                 return new JavaForOp(init, cond, update, body);
@@ -920,12 +921,12 @@ public class ExtendedOps {
             this.cond = condC.build(this);
 
             this.update = updateC.build(this);
-            if (!update.bodyType().returnType().equals(JavaType.VOID)) {
+            if (!update.bodyType().returnType().equals(VOID)) {
                 throw new IllegalArgumentException("Update should return void: " + update.bodyType());
             }
 
             this.body = bodyC.build(this);
-            if (!body.bodyType().returnType().equals(JavaType.VOID)) {
+            if (!body.bodyType().returnType().equals(VOID)) {
                 throw new IllegalArgumentException("Body should return void: " + body.bodyType());
             }
         }
@@ -1032,7 +1033,7 @@ public class ExtendedOps {
 
         @Override
         public TypeElement resultType() {
-            return JavaType.VOID;
+            return VOID;
         }
     }
 
@@ -1104,7 +1105,7 @@ public class ExtendedOps {
 
             public JavaEnhancedForOp body(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody,
-                        FunctionType.functionType(JavaType.VOID, elementType));
+                        FunctionType.functionType(VOID, elementType));
                 c.accept(body.entryBlock());
 
                 return new JavaEnhancedForOp(expression, definition, body);
@@ -1146,7 +1147,7 @@ public class ExtendedOps {
             super(NAME, List.of());
 
             this.expression = expressionC.build(this);
-            if (expression.bodyType().returnType().equals(JavaType.VOID)) {
+            if (expression.bodyType().returnType().equals(VOID)) {
                 throw new IllegalArgumentException("Expression should return non-void value: " + expression.bodyType());
             }
             if (!expression.bodyType().parameterTypes().isEmpty()) {
@@ -1154,7 +1155,7 @@ public class ExtendedOps {
             }
 
             this.init = initC.build(this);
-            if (init.bodyType().returnType().equals(JavaType.VOID)) {
+            if (init.bodyType().returnType().equals(VOID)) {
                 throw new IllegalArgumentException("Initialization should return non-void value: " + init.bodyType());
             }
             if (init.bodyType().parameterTypes().size() != 1) {
@@ -1162,7 +1163,7 @@ public class ExtendedOps {
             }
 
             this.body = bodyC.build(this);
-            if (!body.bodyType().returnType().equals(JavaType.VOID)) {
+            if (!body.bodyType().returnType().equals(VOID)) {
                 throw new IllegalArgumentException("Body should return void: " + body.bodyType());
             }
             if (body.bodyType().parameterTypes().size() != 1) {
@@ -1198,7 +1199,7 @@ public class ExtendedOps {
             boolean isArray = ((JavaType) expression.bodyType().returnType()).isArray();
 
             Block.Builder preHeader = b.block(expression.bodyType().returnType());
-            Block.Builder header = b.block(isArray ? List.of(JavaType.INT) : List.of());
+            Block.Builder header = b.block(isArray ? List.of(INT) : List.of());
             Block.Builder init = b.block();
             Block.Builder body = b.block();
             Block.Builder exit = b.block();
@@ -1217,7 +1218,7 @@ public class ExtendedOps {
             if (isArray) {
                 Value array = preHeader.parameters().get(0);
                 Value arrayLength = preHeader.op(arrayLength(array));
-                Value i = preHeader.op(constant(JavaType.INT, 0));
+                Value i = preHeader.op(constant(INT, 0));
                 preHeader.op(branch(header.successor(i)));
 
                 i = header.parameters().get(0);
@@ -1251,10 +1252,10 @@ public class ExtendedOps {
                     return block;
                 }));
 
-                i = update.op(add(i, update.op(constant(JavaType.INT, 1))));
+                i = update.op(add(i, update.op(constant(INT, 1))));
                 update.op(branch(header.successor(i)));
             } else {
-                JavaType iterable = JavaType.type(JavaType.type(Iterator.class), elementType);
+                JavaType iterable = type(type(Iterator.class), elementType);
                 Value iterator = preHeader.op(CoreOps.invoke(iterable, ITERABLE_ITERATOR, preHeader.parameters().get(0)));
                 preHeader.op(branch(header.successor()));
 
@@ -1292,7 +1293,7 @@ public class ExtendedOps {
 
         @Override
         public TypeElement resultType() {
-            return JavaType.VOID;
+            return VOID;
         }
     }
 
@@ -1310,7 +1311,7 @@ public class ExtendedOps {
             }
 
             public JavaWhileOp.BodyBuilder predicate(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, FunctionType.functionType(JavaType.BOOLEAN));
+                Body.Builder body = Body.Builder.of(ancestorBody, FunctionType.functionType(BOOLEAN));
                 c.accept(body.entryBlock());
 
                 return new JavaWhileOp.BodyBuilder(ancestorBody, body);
@@ -1360,14 +1361,14 @@ public class ExtendedOps {
                     .map(bc -> bc.build(this)).toList();
 
             // @@@ This will change with pattern bindings
-            if (!bodies.get(0).bodyType().equals(FunctionType.functionType(JavaType.BOOLEAN))) {
+            if (!bodies.get(0).bodyType().equals(FunctionType.functionType(BOOLEAN))) {
                 throw new IllegalArgumentException(
-                        "Predicate body descriptor should be " + FunctionType.functionType(JavaType.BOOLEAN) +
+                        "Predicate body descriptor should be " + FunctionType.functionType(BOOLEAN) +
                                 " but is " + bodies.get(0).bodyType());
             }
             if (!bodies.get(1).bodyType().equals(FunctionType.VOID)) {
                 throw new IllegalArgumentException(
-                        "Body descriptor should be " + FunctionType.functionType(JavaType.VOID) +
+                        "Body descriptor should be " + FunctionType.functionType(VOID) +
                                 " but is " + bodies.get(1).bodyType());
             }
         }
@@ -1436,7 +1437,7 @@ public class ExtendedOps {
 
         @Override
         public TypeElement resultType() {
-            return JavaType.VOID;
+            return VOID;
         }
     }
 
@@ -1457,7 +1458,7 @@ public class ExtendedOps {
             }
 
             public JavaDoWhileOp predicate(Consumer<Block.Builder> c) {
-                Body.Builder predicate = Body.Builder.of(ancestorBody, FunctionType.functionType(JavaType.BOOLEAN));
+                Body.Builder predicate = Body.Builder.of(ancestorBody, FunctionType.functionType(BOOLEAN));
                 c.accept(predicate.entryBlock());
 
                 return new JavaDoWhileOp(List.of(body, predicate));
@@ -1506,12 +1507,12 @@ public class ExtendedOps {
 
             if (!bodies.get(0).bodyType().equals(FunctionType.VOID)) {
                 throw new IllegalArgumentException(
-                        "Body descriptor should be " + FunctionType.functionType(JavaType.VOID) +
+                        "Body descriptor should be " + FunctionType.functionType(VOID) +
                                 " but is " + bodies.get(1).bodyType());
             }
-            if (!bodies.get(1).bodyType().equals(FunctionType.functionType(JavaType.BOOLEAN))) {
+            if (!bodies.get(1).bodyType().equals(FunctionType.functionType(BOOLEAN))) {
                 throw new IllegalArgumentException(
-                        "Predicate body descriptor should be " + FunctionType.functionType(JavaType.BOOLEAN) +
+                        "Predicate body descriptor should be " + FunctionType.functionType(BOOLEAN) +
                                 " but is " + bodies.get(0).bodyType());
             }
         }
@@ -1580,7 +1581,7 @@ public class ExtendedOps {
 
         @Override
         public TypeElement resultType() {
-            return JavaType.VOID;
+            return VOID;
         }
     }
 
@@ -1618,7 +1619,7 @@ public class ExtendedOps {
 
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
             for (Body b : bodies) {
-                if (!b.bodyType().equals(FunctionType.functionType(JavaType.BOOLEAN))) {
+                if (!b.bodyType().equals(FunctionType.functionType(BOOLEAN))) {
                     throw new IllegalArgumentException("Body conditional body descriptor: " + b.bodyType());
                 }
             }
@@ -1692,7 +1693,7 @@ public class ExtendedOps {
 
         @Override
         public TypeElement resultType() {
-            return JavaType.BOOLEAN;
+            return BOOLEAN;
         }
     }
 
@@ -1714,7 +1715,7 @@ public class ExtendedOps {
             }
 
             public Builder and(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, FunctionType.functionType(JavaType.BOOLEAN));
+                Body.Builder body = Body.Builder.of(ancestorBody, FunctionType.functionType(BOOLEAN));
                 c.accept(body.entryBlock());
                 bodies.add(body);
 
@@ -1769,7 +1770,7 @@ public class ExtendedOps {
             }
 
             public Builder or(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, FunctionType.functionType(JavaType.BOOLEAN));
+                Body.Builder body = Body.Builder.of(ancestorBody, FunctionType.functionType(BOOLEAN));
                 c.accept(body.entryBlock());
                 bodies.add(body);
 
@@ -1857,7 +1858,7 @@ public class ExtendedOps {
             }
 
             Body cond = bodies.get(0);
-            if (!cond.bodyType().equals(FunctionType.functionType(JavaType.BOOLEAN))) {
+            if (!cond.bodyType().equals(FunctionType.functionType(BOOLEAN))) {
                 throw new IllegalArgumentException("Illegal cond body descriptor: " + cond.bodyType());
             }
         }
@@ -1930,7 +1931,7 @@ public class ExtendedOps {
 
             public CatchBuilder body(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody,
-                        FunctionType.functionType(JavaType.VOID, resourceTypes));
+                        FunctionType.functionType(VOID, resourceTypes));
                 c.accept(body.entryBlock());
 
                 return new CatchBuilder(ancestorBody, resources, body);
@@ -1953,7 +1954,7 @@ public class ExtendedOps {
             // @@@ multi-catch
             public CatchBuilder _catch(TypeElement exceptionType, Consumer<Block.Builder> c) {
                 Body.Builder _catch = Body.Builder.of(ancestorBody,
-                        FunctionType.functionType(JavaType.VOID, exceptionType));
+                        FunctionType.functionType(VOID, exceptionType));
                 c.accept(_catch.entryBlock());
                 catchers.add(_catch);
 
@@ -1988,7 +1989,7 @@ public class ExtendedOps {
 
             List<Body> bodies = def.bodyDefinitions().stream().map(b -> b.build(this)).toList();
             Body first = bodies.get(0);
-            if (first.bodyType().returnType().equals(JavaType.VOID)) {
+            if (first.bodyType().returnType().equals(VOID)) {
                 this.resources = null;
                 this.body = first;
             } else {
@@ -2039,7 +2040,7 @@ public class ExtendedOps {
 
             if (resourcesC != null) {
                 this.resources = resourcesC.build(this);
-                if (resources.bodyType().returnType().equals(JavaType.VOID)) {
+                if (resources.bodyType().returnType().equals(VOID)) {
                     throw new IllegalArgumentException("Resources should not return void: " + resources.bodyType());
                 }
                 if (!resources.bodyType().parameterTypes().isEmpty()) {
@@ -2050,13 +2051,13 @@ public class ExtendedOps {
             }
 
             this.body = bodyC.build(this);
-            if (!body.bodyType().returnType().equals(JavaType.VOID)) {
+            if (!body.bodyType().returnType().equals(VOID)) {
                 throw new IllegalArgumentException("Try should return void: " + body.bodyType());
             }
 
             this.catchers = catchersC.stream().map(c -> c.build(this)).toList();
             for (Body _catch : catchers) {
-                if (!_catch.bodyType().returnType().equals(JavaType.VOID)) {
+                if (!_catch.bodyType().returnType().equals(VOID)) {
                     throw new IllegalArgumentException("Catch should return void: " + _catch.bodyType());
                 }
                 if (_catch.bodyType().parameterTypes().size() != 1) {
@@ -2066,7 +2067,7 @@ public class ExtendedOps {
 
             if (finalizerC != null) {
                 this.finalizer = finalizerC.build(this);
-                if (!finalizer.bodyType().returnType().equals(JavaType.VOID)) {
+                if (!finalizer.bodyType().returnType().equals(VOID)) {
                     throw new IllegalArgumentException("Finally should return void: " + finalizer.bodyType());
                 }
                 if (!finalizer.bodyType().parameterTypes().isEmpty()) {
@@ -2290,7 +2291,7 @@ public class ExtendedOps {
             // Inline the finally body as a catcher of Throwable and adjusting to throw
             if (finalizer != null) {
                 // Create the throwable argument
-                Block.Parameter t = catcherFinally.parameter(JavaType.type(Throwable.class));
+                Block.Parameter t = catcherFinally.parameter(type(Throwable.class));
 
                 catcherFinally.transformBody(finalizer, List.of(), opT.andThen((block, op) -> {
                     if (op instanceof YieldOp) {
@@ -2350,7 +2351,7 @@ public class ExtendedOps {
 
         @Override
         public TypeElement resultType() {
-            return JavaType.VOID;
+            return VOID;
         }
     }
 
@@ -2395,11 +2396,11 @@ public class ExtendedOps {
                 "$" + Pattern.Record.class.getSimpleName());
 
         static JavaType bindingType(TypeElement t) {
-            return JavaType.type(PATTERN_BINDING_TYPE, (JavaType) t);
+            return type(PATTERN_BINDING_TYPE, (JavaType) t);
         }
 
         static JavaType recordType(TypeElement t) {
-            return JavaType.type(PATTERN_RECORD_TYPE, (JavaType) t);
+            return type(PATTERN_RECORD_TYPE, (JavaType) t);
         }
 
         static TypeElement targetType(TypeElement t) {
@@ -2645,14 +2646,14 @@ public class ExtendedOps {
                 // No match block
                 // Pass false
                 endNoMatchBlock.op(branch(endBlock.successor(
-                        endNoMatchBlock.op(constant(JavaType.BOOLEAN, false)))));
+                        endNoMatchBlock.op(constant(BOOLEAN, false)))));
 
                 // Match block
                 // Lower match body and pass true
                 endMatchBlock.transformBody(match, patternValues, opT.andThen((block, op) -> {
                     if (op instanceof YieldOp) {
                         block.op(branch(endBlock.successor(
-                                block.op(constant(JavaType.BOOLEAN, true)))));
+                                block.op(constant(BOOLEAN, true)))));
                     } else if (op instanceof Lowerable lop) {
                         // @@@ Composition of lowerable ops
                         block = lop.lower(block, opT);
@@ -2726,13 +2727,13 @@ public class ExtendedOps {
 
             @Override
             public TypeElement resultType() {
-                return JavaType.BOOLEAN;
+                return BOOLEAN;
             }
         }
     }
 
     @OpDeclaration(StringTemplateOp.NAME)
-    public static final class StringTemplateOp extends OpWithDefinition implements Op.Nested {
+    public static final class StringTemplateOp extends OpWithDefinition implements Op.Nested, Op.Lowerable {
 
         public static final String NAME = "java.stringTemplate";
 
@@ -2790,6 +2791,77 @@ public class ExtendedOps {
 
         public List<Value> fragments() {
             return operands().subList(1, operands().size());
+        }
+
+        public List<Body> expressions() {
+            return expressions;
+        }
+
+        @Override
+        public Block.Builder lower(Block.Builder b, OpTransformer opT) {
+            // Creates a block for each expression and a last block
+            // to continue building from. An expression block branches
+            // to the next expression block or the last block
+            List<Block.Builder> builders = new ArrayList<>();
+            for (int i = 0; i < expressions().size(); i++) {
+                Block.Builder bb = b.block();
+                if (i == 0) {
+                    b.op(branch(bb.successor()));
+                }
+                builders.add(bb);
+            }
+            Block.Builder last = expressions().isEmpty() ? b : b.block();
+            builders.add(last);
+
+            List<Value> expressions = new ArrayList<>();
+            for (int i = 0; i < expressions().size(); i++) {
+                Block.Builder current = builders.get(i);
+                Block.Builder next = builders.get(i + 1);
+                current.transformBody(expressions().get(i), List.of(), opT.andThen((block, op) -> {
+                    if (op instanceof YieldOp yop) {
+                        expressions.add(block.context().getValue(yop.yieldValue()));
+                        block.op(branch(next.successor()));
+                    } else if (op instanceof Lowerable lop) {
+                        block = lop.lower(block, opT);
+                    } else {
+                        block.op(op);
+                    }
+                    return block;
+                }));
+            }
+
+            MethodRef listOfArray = MethodRef.method(J_U_LIST, "of", J_U_LIST, J_L_OBJECT_ARRAY);
+
+            Op.Result fragmentsList = last.op(invoke(listOfArray,
+                    buildArrayObject(last, last.context().getValues(fragments()))));
+
+            Op.Result expressionsList = last.op(invoke(listOfArray, buildArrayObject(last, expressions)));
+
+            MethodRef stOf = MethodRef.method(J_L_STRING_TEMPLATE, "of", J_L_STRING_TEMPLATE,
+                    J_U_LIST, J_U_LIST);
+            Op.Result st = last.op(invoke(stOf, fragmentsList, expressionsList));
+
+            MethodRef stpProcess = MethodRef.method(J_L_STRING_TEMPLATE_PROCESSOR, "process",
+                    J_L_OBJECT, J_L_STRING_TEMPLATE);
+            Op.Result res = last.op(invoke(resultType(), stpProcess, last.context().getValue(processor()), st));
+
+            last.context().mapValue(result(), res);
+
+            return last;
+        }
+
+        private static Value buildArrayObject(Block.Builder builder, List<Value> elements) {
+            Value array = builder.op(newArray(J_L_OBJECT_ARRAY, builder.op(constant(INT, elements.size()))));
+            for (int i = 0; i < elements.size(); i++) {
+                Value ele = elements.get(i);
+                if (isPrimitive(ele.type())) {
+                    TypeElement wt = getWrapperType(ele.type());
+                    MethodRef valueOf = MethodRef.method(wt, "valueOf", wt, ele.type());
+                    ele = builder.op(invoke(valueOf, ele));
+                }
+                builder.op(arrayStoreOp(array, builder.op(constant(INT, i)), ele));
+            }
+            return array;
         }
     }
 

@@ -30,6 +30,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.type.impl.JavaTypeImpl;
 import java.util.List;
+import java.util.Map;
 
 /**
  * The symbolic description of a Java type.
@@ -100,7 +101,28 @@ public sealed interface JavaType extends TypeElement permits JavaTypeImpl {
 
     JavaType J_L_STRING_TEMPLATE_PROCESSOR = new JavaTypeImpl("java.lang.StringTemplate$Processor");
 
+    JavaType J_U_LIST = new JavaTypeImpl("java.util.List");
+
     //
+
+    Map<TypeElement, TypeElement> primitiveToWrapper = Map.of(
+            BYTE, J_L_BYTE,
+            SHORT, J_L_SHORT,
+            INT, J_L_INTEGER,
+            LONG, J_L_LONG,
+            FLOAT, J_L_FLOAT,
+            DOUBLE, J_L_DOUBLE,
+            CHAR, J_L_CHARACTER,
+            BOOLEAN, J_L_BOOLEAN
+    );
+
+    static boolean isPrimitive(TypeElement te) {
+        return primitiveToWrapper.containsKey(te);
+    }
+
+    static TypeElement getWrapperType(TypeElement te) {
+        return primitiveToWrapper.get(te);
+    };
 
     boolean isArray();
 
