@@ -32,6 +32,7 @@ import java.lang.reflect.code.*;
 import java.lang.reflect.code.type.FieldRef;
 import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.ExtendedOps;
 import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.TypeElement;
@@ -245,10 +246,19 @@ public final class Interpreter {
     Object invoke(MethodHandles.Lookup l, T invokableOp,
                   Map<Value, Object> capturedValues,
                   List<Object> args) {
-        OpContext oc = new OpContext();
-
         Body r = invokableOp.bodies().get(0);
-        Block first = r.entryBlock();
+        return invoke(l, r, capturedValues, new OpContext(), args);
+
+    }
+    static Object invoke(MethodHandles.Lookup l, Body r,
+                                 Map<Value, Object> capturedValues, OpContext oc,
+                                 List<Object> args) {
+        return invoke(l,r.entryBlock(), capturedValues, oc, args);
+    }
+
+    private static Object invoke(MethodHandles.Lookup l, Block first,
+                  Map<Value, Object> capturedValues, OpContext oc,
+                  List<Object> args) {
 
         if (args.size() != first.parameters().size()) {
             throw interpreterException(new IllegalArgumentException("Incorrect number of arguments"));
@@ -308,8 +318,10 @@ public final class Interpreter {
                 processThrowable(oc, l, t);
             } else if (to instanceof CoreOps.ReturnOp ret) {
                 Value rv = ret.returnValue();
-
                 return rv == null ? null : oc.getValue(rv);
+            } else if (to instanceof CoreOps.YieldOp yop) {
+                Value yv = yop.yieldValue();
+                return yv == null ? null : oc.getValue(yv);
             } else if (to instanceof CoreOps.ExceptionRegionEnter ers) {
                 var er = new ExceptionRegionRecord(oc.stack.peek(), ers);
                 oc.setValue(ers.result(), er);
@@ -326,6 +338,12 @@ public final class Interpreter {
                         new UnsupportedOperationException("Unsupported terminating operation: " + to.opName()));
             }
         }
+    }
+
+    static <T extends Op & Op.Invokable>
+    Object interpretBody(MethodHandles.Lookup l, Body r,
+                         OpContext oc) {
+        return invoke(l, r, Map.of(), oc, List.of());
     }
 
     static void processThrowable(OpContext oc, MethodHandles.Lookup l, Throwable t) {
@@ -347,6 +365,8 @@ public final class Interpreter {
         }
         oc.successor(cb, bValues);
     }
+
+
 
     @SuppressWarnings("unchecked")
     public static <E extends Throwable> void eraseAndThrow(Throwable e) throws E {
@@ -518,6 +538,21 @@ public final class Interpreter {
             MethodHandle mh = opHandle(o.opName() + "_" + o.opType().returnType(), o.opType());
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
+        } else if (o instanceof CoreOps.AssertOp _assert) {
+            //Note: The nature of asserts and munged bodies may require a re-visiting.
+            //This code seems to work without poisoning contexts. See TestAssert.java in tests for relevant test coverage.
+            Body testBody = _assert.bodies.get(0);
+            boolean testResult = (boolean) interpretBody(l, testBody, oc);
+            if (!testResult) {
+                if (_assert.bodies.size() > 1) {
+                    Body messageBody = _assert.bodies.get(1);
+                    String message = String.valueOf(interpretBody(l, messageBody, oc));
+                    throw new AssertionError(message);
+                } else {
+                    throw new AssertionError();
+                }
+            }
+            return null;
         } else {
             throw interpreterException(
                     new UnsupportedOperationException("Unsupported operation: " + o.opName()));

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024 Intel Corporation. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,7 +23,41 @@
  * questions.
  */
 
-/**
- * Functionality for writing and storing code models.
- */
-package java.lang.reflect.code.writer;
+package intel.code.spirv;
+
+import java.util.List;
+import java.util.Map;
+import java.lang.reflect.code.Op;
+import java.lang.reflect.code.Value;
+import java.lang.reflect.code.CopyContext;
+import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.type.JavaType;
+
+public abstract class SpirvOp extends Op {
+    private final TypeElement type;
+
+    SpirvOp(String opName) {
+        super(opName, List.of());
+        this.type = JavaType.VOID;
+    }
+
+    SpirvOp(String opName, TypeElement type, List<Value> operands) {
+        super(opName, operands);
+        this.type = type;
+    }
+
+    SpirvOp(String opName, TypeElement type, List<Value> operands, Map<String, Object> attributes) {
+        super(opName, operands);
+        this.type = type;
+    }
+
+    SpirvOp(SpirvOp that, CopyContext cc) {
+        super(that, cc);
+        this.type = that.type;
+    }
+
+    @Override
+    public TypeElement resultType() {
+        return type;
+    }
+}

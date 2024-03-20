@@ -508,6 +508,7 @@ public final class CoreOps {
         }
 
         // Returns the set of values used in but declared outside the lambda's body
+        @Override
         public List<Value> capturedValues() {
             Set<Value> cvs = new LinkedHashSet<>();
             Body body = body();
@@ -623,6 +624,7 @@ public final class CoreOps {
         }
 
         // Returns the set of values used in but declared outside the lambda's body
+        @Override
         public List<Value> capturedValues() {
             Set<Value> cvs = new LinkedHashSet<>();
             Body body = body();
