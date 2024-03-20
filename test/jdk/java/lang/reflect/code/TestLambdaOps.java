@@ -33,7 +33,7 @@ import java.lang.reflect.code.*;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.op.CoreOps.FuncOp;
 import java.lang.reflect.code.op.CoreOps.LambdaOp;
-import java.lang.reflect.code.descriptor.MethodDesc;
+import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
@@ -47,14 +47,14 @@ import java.util.stream.Stream;
 
 import static java.lang.reflect.code.op.CoreOps.*;
 import static java.lang.reflect.code.op.CoreOps.constant;
-import static java.lang.reflect.code.descriptor.MethodTypeDesc.methodType;
+import static java.lang.reflect.code.type.FunctionType.functionType;
 import static java.lang.reflect.code.type.JavaType.INT;
 import static java.lang.reflect.code.type.JavaType.type;
 
 @Test
 public class TestLambdaOps {
     static class Builder {
-        static final MethodDesc ACCEPT_METHOD = MethodDesc.method(type(Builder.class), "accept",
+        static final MethodRef ACCEPT_METHOD = MethodRef.method(type(Builder.class), "accept",
                 INT, CoreOps.QuotedOp.QUOTED_TYPE);
 
         static int accept(Quoted l) {
@@ -69,16 +69,16 @@ public class TestLambdaOps {
 
     @Test
     public void testQuotedWithCapture() {
-        // functional descriptor = (int)int
-        FuncOp f = func("f", methodType(int.class, int.class))
+        // functional type = (int)int
+        FuncOp f = func("f", functionType(INT, INT))
                 .body(block -> {
                     Block.Parameter i = block.parameters().get(0);
 
-                    // functional descriptor = (int)int
-                    // op descriptor = ()Quoted<LambdaOp>
+                    // functional type = (int)int
+                    // op type = ()Quoted<LambdaOp>
                     QuotedOp qop = quoted(block.parentBody(), qblock -> {
                         return lambda(qblock.parentBody(),
-                                methodType(int.class, int.class), type(IntUnaryOperator.class))
+                                functionType(INT, INT), type(IntUnaryOperator.class))
                                 .body(lblock -> {
                                     Block.Parameter li = lblock.parameters().get(0);
 
@@ -100,22 +100,22 @@ public class TestLambdaOps {
         Assert.assertEquals(ir, 43);
     }
 
-    static final MethodDesc INT_UNARY_OPERATOR_METHOD = MethodDesc.method(
+    static final MethodRef INT_UNARY_OPERATOR_METHOD = MethodRef.method(
             IntUnaryOperator.class, "applyAsInt",
             int.class, int.class);
 
     @Test
     public void testWithCapture() {
-        // functional descriptor = (int)int
-        FuncOp f = func("f", methodType(int.class, int.class))
+        // functional type = (int)int
+        FuncOp f = func("f", functionType(INT, INT))
                 .body(block -> {
                     Block.Parameter i = block.parameters().get(0);
 
-                    // functional descriptor = (int)int
-                    // op descriptor = ()IntUnaryOperator
+                    // functional type = (int)int
+                    // op type = ()IntUnaryOperator
                     //   captures i
                     LambdaOp lambda = lambda(block.parentBody(),
-                            methodType(int.class, int.class), type(IntUnaryOperator.class))
+                            functionType(INT, INT), type(IntUnaryOperator.class))
                             .body(lblock -> {
                                 Block.Parameter li = lblock.parameters().get(0);
 
@@ -153,7 +153,7 @@ public class TestLambdaOps {
         Assert.assertTrue(top instanceof CoreOps.FuncOp);
 
         CoreOps.FuncOp fop = (CoreOps.FuncOp) top;
-        Assert.assertEquals(type(Quoted.class, LambdaOp.class), fop.funcDescriptor().returnType());
+        Assert.assertEquals(type(Quoted.class, LambdaOp.class), fop.invokableType().returnType());
     }
 
     @FunctionalInterface

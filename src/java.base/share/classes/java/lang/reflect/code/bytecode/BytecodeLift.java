@@ -42,10 +42,10 @@ import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
-import java.lang.reflect.code.descriptor.FieldDesc;
-import java.lang.reflect.code.descriptor.MethodDesc;
-import java.lang.reflect.code.descriptor.MethodTypeDesc;
+import java.lang.reflect.code.type.FieldRef;
+import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.op.CoreOps.ExceptionRegionEnter;
+import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -72,17 +72,19 @@ public final class BytecodeLift {
     }
 
     public static CoreOps.FuncOp lift(MethodModel methodModel) {
+        FunctionType mt = MethodRef.ofNominalDescriptor(methodModel.methodTypeSymbol());
         return CoreOps.func(
                 methodModel.methodName().stringValue(),
-                MethodTypeDesc.ofNominalDescriptor(methodModel.methodTypeSymbol())).body(entryBlock -> {
+                mt).body(entryBlock -> {
 
             final CodeModel codeModel = methodModel.code().orElseThrow();
             final HashMap<Label, Block.Builder> blockMap = new HashMap<>();
+            final HashMap<Label, Map<Integer, Op.Result>> localsMap = new HashMap<>();
             final Map<ExceptionCatch, Op.Result> exceptionRegionsMap = new HashMap<>();
 
             Block.Builder currentBlock = entryBlock;
             final Deque<Value> stack = new ArrayDeque<>();
-            final Map<Integer, Op.Result> locals = new HashMap<>();
+            Map<Integer, Op.Result> locals = new HashMap<>();
 
             int varIndex = 0;
             // Initialize local variables from entry block parameters
@@ -111,6 +113,7 @@ public final class BytecodeLift {
                                     // New block parameter types are calculated from the actual stack
                                     next = entryBlock.block(stack.stream().map(Value::type).toList());
                                     blockMap.put(lt.label(), next);
+                                    localsMap.put(lt.label(), locals);
                                 }
                                 // Implicit goto next block, add explicitly
                                 // Use stack content as next block arguments
@@ -121,6 +124,7 @@ public final class BytecodeLift {
                                 currentBlock = next;
                                 // Stack is reconstructed from block parameters
                                 stack.clear();
+                                locals = localsMap.get(lt.label());
                                 currentBlock.parameters().forEach(stack::add);
                                 // Insert relevant tryStart and construct handler blocks, all in reversed order
                                 for (ExceptionCatch ec : codeModel.exceptionHandlers().reversed()) {
@@ -129,6 +133,7 @@ public final class BytecodeLift {
                                         Block.Builder handler = blockMap.computeIfAbsent(ec.handler(), _ ->
                                                 entryBlock.block(List.of(JavaType.ofNominalDescriptor(
                                                         ec.catchType().map(ClassEntry::asSymbol).orElse(ConstantDescs.CD_Throwable)))));
+                                        localsMap.putIfAbsent(ec.handler(), locals);
                                         // Create start block
                                         next = entryBlock.block(stack.stream().map(Value::type).toList());
                                         ExceptionRegionEnter ere = CoreOps.exceptionRegionEnter(next.successor(List.copyOf(stack)), handler.successor());
@@ -168,6 +173,7 @@ public final class BytecodeLift {
                             // Get or create target block with parameters constructed from the stack
                             currentBlock.op(CoreOps.branch(blockMap.computeIfAbsent(inst.target(), _ ->
                                     entryBlock.block(stack.stream().map(Value::type).toList())).successor(List.copyOf(stack))));
+                            localsMap.putIfAbsent(inst.target(), locals);
                             // Flow discontinued, stack cleared to be ready for the next label target
                             stack.clear();
                             currentBlock = null;
@@ -199,6 +205,7 @@ public final class BytecodeLift {
                                     // Get or create target block
                                     blockMap.computeIfAbsent(inst.target(), _ ->
                                             entryBlock.block(stack.stream().map(Value::type).toList())).successor()));
+                            localsMap.putIfAbsent(inst.target(), locals);
                             currentBlock = nextBlock;
                         }
         //                case LookupSwitchInstruction si -> {
@@ -241,7 +248,8 @@ public final class BytecodeLift {
                                 TypeElement varType = ((CoreOps.VarOp) local.op()).varType();
                                 if (!operand.type().equals(varType)) {
                                     // @@@ How to override local slots?
-                                    locals.put(varIndex, currentBlock.op(CoreOps.var(Integer.toString(varIndex++), operand)));
+                                    locals = new HashMap<>(locals);
+                                    locals.put(inst.slot(), currentBlock.op(CoreOps.var(Integer.toString(varIndex++), operand)));
                                 } else {
                                     currentBlock.op(CoreOps.varStore(local, operand));
                                 }
@@ -288,7 +296,7 @@ public final class BytecodeLift {
                             }));
                         }
                         case FieldInstruction inst -> {
-                                FieldDesc fd = FieldDesc.field(
+                                FieldRef fd = FieldRef.field(
                                         JavaType.ofNominalDescriptor(inst.owner().asSymbol()),
                                         inst.name().stringValue(),
                                         JavaType.ofNominalDescriptor(inst.typeSymbol()));
@@ -317,12 +325,12 @@ public final class BytecodeLift {
                             stack.push(currentBlock.op(CoreOps.arrayLoadOp(stack.pop(), index)));
                         }
                         case InvokeInstruction inst -> {
-                            MethodTypeDesc mType = MethodTypeDesc.ofNominalDescriptor(inst.typeSymbol());
+                            FunctionType mType = MethodRef.ofNominalDescriptor(inst.typeSymbol());
                             List<Value> operands = new ArrayList<>();
-                            for (var _ : mType.parameters()) {
+                            for (var _ : mType.parameterTypes()) {
                                 operands.add(stack.pop());
                             }
-                            MethodDesc mDesc = MethodDesc.method(
+                            MethodRef mDesc = MethodRef.method(
                                     JavaType.ofNominalDescriptor(inst.owner().asSymbol()),
                                     inst.name().stringValue(),
                                     mType);
@@ -336,9 +344,9 @@ public final class BytecodeLift {
                                 case INVOKESPECIAL -> {
                                     if (inst.name().equalsString(ConstantDescs.INIT_NAME)) {
                                         yield currentBlock.op(CoreOps._new(
-                                                MethodTypeDesc.methodType(
-                                                        mType.parameters().get(0),
-                                                        mType.parameters().subList(1, mType.parameters().size())),
+                                                FunctionType.functionType(
+                                                        mType.parameterTypes().get(0),
+                                                        mType.parameterTypes().subList(1, mType.parameterTypes().size())),
                                                 operands.reversed()));
                                     } else {
                                         operands.add(stack.pop());
@@ -387,7 +395,7 @@ public final class BytecodeLift {
                         }
                         case NewMultiArrayInstruction inst -> {
                             stack.push(currentBlock.op(CoreOps._new(
-                                    MethodTypeDesc.methodType(
+                                    FunctionType.functionType(
                                             JavaType.ofNominalDescriptor(inst.arrayType().asSymbol()),
                                             Collections.nCopies(inst.dimensions(), JavaType.INT)),
                                     IntStream.range(0, inst.dimensions()).mapToObj(_ -> stack.pop()).toList().reversed())));

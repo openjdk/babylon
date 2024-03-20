@@ -4,7 +4,6 @@ import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.Value;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -27,10 +26,13 @@ public final class TupleType implements TypeElement {
     }
 
     @Override
+    public TypeDefinition toTypeDefinition() {
+        return new TypeDefinition(NAME, componentTypes.stream().map(TypeElement::toTypeDefinition).toList());
+    }
+
+    @Override
     public String toString() {
-        String cs = componentTypes.stream().map(TypeElement::toString)
-                .collect(Collectors.joining(",", "<", ">"));
-        return NAME + cs;
+        return toTypeDefinition().toString();
     }
 
     @Override

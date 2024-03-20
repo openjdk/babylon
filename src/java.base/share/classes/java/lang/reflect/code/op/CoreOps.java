@@ -26,13 +26,9 @@
 package java.lang.reflect.code.op;
 
 import java.lang.reflect.code.*;
-import java.lang.reflect.code.descriptor.FieldDesc;
-import java.lang.reflect.code.descriptor.MethodDesc;
-import java.lang.reflect.code.descriptor.MethodTypeDesc;
-import java.lang.reflect.code.type.JavaType;
-import java.lang.reflect.code.type.TupleType;
-import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.type.VarType;
+import java.lang.reflect.code.type.FieldRef;
+import java.lang.reflect.code.type.MethodRef;
+import java.lang.reflect.code.type.*;
 import java.lang.reflect.code.type.impl.JavaTypeImpl;
 import java.util.*;
 import java.util.function.Consumer;
@@ -63,16 +59,16 @@ public final class CoreOps {
         public static class Builder {
             final Body.Builder ancestorBody;
             final String funcName;
-            final MethodTypeDesc funcDescriptor;
+            final FunctionType funcType;
 
-            Builder(Body.Builder ancestorBody, String funcName, MethodTypeDesc funcDescriptor) {
+            Builder(Body.Builder ancestorBody, String funcName, FunctionType funcType) {
                 this.ancestorBody = ancestorBody;
                 this.funcName = funcName;
-                this.funcDescriptor = funcDescriptor;
+                this.funcType = funcType;
             }
 
             public FuncOp body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, funcDescriptor);
+                Body.Builder body = Body.Builder.of(ancestorBody, funcType);
                 c.accept(body.entryBlock());
                 return new FuncOp(funcName, body);
             }
@@ -149,8 +145,8 @@ public final class CoreOps {
         }
 
         @Override
-        public MethodTypeDesc funcDescriptor() {
-            return body.descriptor();
+        public FunctionType invokableType() {
+            return body.bodyType();
         }
 
         public String funcName() {
@@ -301,7 +297,7 @@ public final class CoreOps {
             super(NAME,
                     List.of());
 
-            Body.Builder bodyC = Body.Builder.of(null, MethodTypeDesc.VOID);
+            Body.Builder bodyC = Body.Builder.of(null, FunctionType.VOID);
             Block.Builder entryBlock = bodyC.entryBlock();
             Map<String, FuncOp> table = new HashMap<>();
             for (FuncOp f : functions) {
@@ -334,7 +330,7 @@ public final class CoreOps {
     public static final class QuotedOp extends OpWithDefinition implements Op.Nested, Op.Lowerable, Op.Pure {
         public static final String NAME = "quoted";
 
-        // Type description must be the same in the java.base and jdk.compiler module
+        // Type name must be the same in the java.base and jdk.compiler module
         static final String Quoted_CLASS_NAME = PACKAGE_NAME +
                 "." + Quoted.class.getSimpleName();
         public static final JavaType QUOTED_TYPE = new JavaTypeImpl(Quoted_CLASS_NAME);
@@ -444,17 +440,17 @@ public final class CoreOps {
 
         public static class Builder {
             final Body.Builder ancestorBody;
-            final MethodTypeDesc functionalDescriptor;
+            final FunctionType funcType;
             final TypeElement functionalInterface;
 
-            Builder(Body.Builder ancestorBody, MethodTypeDesc functionalDescriptor, TypeElement functionalInterface) {
+            Builder(Body.Builder ancestorBody, FunctionType funcType, TypeElement functionalInterface) {
                 this.ancestorBody = ancestorBody;
-                this.functionalDescriptor = functionalDescriptor;
+                this.funcType = funcType;
                 this.functionalInterface = functionalInterface;
             }
 
             public LambdaOp body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, functionalDescriptor);
+                Body.Builder body = Body.Builder.of(ancestorBody, funcType);
                 c.accept(body.entryBlock());
                 return new LambdaOp(functionalInterface, body);
             }
@@ -498,8 +494,8 @@ public final class CoreOps {
         }
 
         @Override
-        public MethodTypeDesc funcDescriptor() {
-            return body.descriptor();
+        public FunctionType invokableType() {
+            return body.bodyType();
         }
 
         public TypeElement functionalInterface() {
@@ -512,6 +508,7 @@ public final class CoreOps {
         }
 
         // Returns the set of values used in but declared outside the lambda's body
+        @Override
         public List<Value> capturedValues() {
             Set<Value> cvs = new LinkedHashSet<>();
             Body body = body();
@@ -561,28 +558,6 @@ public final class CoreOps {
     }
 
     /**
-     * A synthetic closure type, that is the operation result-type of a closure operation.
-     */
-    // @@@: Replace with use of FunctionType
-    public interface Closure {
-        // Type description must be the same in the java.base and jdk.compiler module
-        JavaType CLOSURE_TYPE = new JavaTypeImpl(CoreOps_CLASS_NAME +
-                "$" + Closure.class.getSimpleName());
-
-        static JavaType type(JavaType... types) {
-            return JavaType.type(
-                    CLOSURE_TYPE,
-                    types);
-        }
-
-        static JavaType type(List<JavaType> types) {
-            return JavaType.type(
-                    CLOSURE_TYPE,
-                    types);
-        }
-    }
-
-    /**
      * The closure operation, that can model a structured Java lambda expression
      * that has no target type (a functional interface).
      */
@@ -591,15 +566,15 @@ public final class CoreOps {
 
         public static class Builder {
             final Body.Builder ancestorBody;
-            final MethodTypeDesc functionalDescriptor;
+            final FunctionType funcType;
 
-            Builder(Body.Builder ancestorBody, MethodTypeDesc functionalDescriptor) {
+            Builder(Body.Builder ancestorBody, FunctionType funcType) {
                 this.ancestorBody = ancestorBody;
-                this.functionalDescriptor = functionalDescriptor;
+                this.funcType = funcType;
             }
 
             public ClosureOp body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, functionalDescriptor);
+                Body.Builder body = Body.Builder.of(ancestorBody, funcType);
                 c.accept(body.entryBlock());
                 return new ClosureOp(body);
             }
@@ -633,21 +608,14 @@ public final class CoreOps {
             this.body = bodyC.build(this);
         }
 
-        static JavaType closureType(MethodTypeDesc functionalDescriptor) {
-            List<JavaType> l = new ArrayList<>();
-            l.add((JavaType) functionalDescriptor.returnType());
-            l.addAll(functionalDescriptor.parameters().stream().map(t -> (JavaType) t).toList());
-            return Closure.type(l);
-        }
-
         @Override
         public List<Body> bodies() {
             return List.of(body);
         }
 
         @Override
-        public MethodTypeDesc funcDescriptor() {
-            return body.descriptor();
+        public FunctionType invokableType() {
+            return body.bodyType();
         }
 
         @Override
@@ -656,6 +624,7 @@ public final class CoreOps {
         }
 
         // Returns the set of values used in but declared outside the lambda's body
+        @Override
         public List<Value> capturedValues() {
             Set<Value> cvs = new LinkedHashSet<>();
             Body body = body();
@@ -700,7 +669,7 @@ public final class CoreOps {
 
         @Override
         public TypeElement resultType() {
-            return closureType(body().descriptor());
+            return body.bodyType();
         }
     }
 
@@ -731,26 +700,10 @@ public final class CoreOps {
             super(NAME, args);
         }
 
-        static JavaType resultType(List<Value> args) {
-            if (args.isEmpty()) {
-                throw new IllegalArgumentException(
-                        "Operation must have one or more operands: " + args.size());
-            }
-            JavaType t = (JavaType) args.get(0).type();
-
-            if (t.typeArguments().isEmpty()) {
-                throw new IllegalArgumentException(
-                        "Operation result type must have one or more parameters: " + t.typeArguments().size());
-            }
-            if (t.typeArguments().size() != args.size()) {
-                throw new IllegalArgumentException();
-            }
-            return t.typeArguments().get(0);
-        }
-
         @Override
         public TypeElement resultType() {
-            return resultType(operands());
+            FunctionType ft = (FunctionType) operands().getFirst().type();
+            return ft.returnType();
         }
     }
 
@@ -838,6 +791,55 @@ public final class CoreOps {
         @Override
         public TypeElement resultType() {
             return JavaType.VOID;
+        }
+    }
+
+    /**
+     * The assertion operation. Supporting assertions in statement form.
+     */
+    @OpDeclaration(AssertOp.NAME)
+    public static final class AssertOp extends OpWithDefinition implements Op.Nested {
+        public static final String NAME = "assert";
+        public final List<Body> bodies;
+
+        public AssertOp(OpDefinition def) {
+            super(def);
+            var bodies = def.bodyDefinitions().stream().map(b -> b.build(this)).toList();
+            checkBodies(bodies);
+            this.bodies = bodies;
+        }
+
+        public AssertOp(List<Body.Builder> bodies) {
+            super(NAME, List.of());
+            checkBodies(bodies);
+            this.bodies = bodies.stream().map(b -> b.build(this)).toList();
+        }
+
+        AssertOp(AssertOp that, CopyContext cc, OpTransformer ot) {
+
+            super(that, cc);
+            this.bodies = that.bodies.stream().map(b -> b.transform(cc, ot).build(this)).toList();
+        }
+
+        private void checkBodies(List<?> bodies) {
+            if (bodies.size() != 1 && bodies.size() != 2) {
+                throw new IllegalArgumentException("Assert must have one or two bodies.");
+            }
+        }
+
+        @Override
+        public Op transform(CopyContext cc, OpTransformer ot) {
+            return new AssertOp(this, cc, ot);
+        }
+
+        @Override
+        public TypeElement resultType() {
+            return JavaType.VOID;
+        }
+
+        @Override
+        public List<Body> bodies() {
+            return this.bodies;
         }
     }
 
@@ -1190,21 +1192,21 @@ public final class CoreOps {
         public static final String NAME = "invoke";
         public static final String ATTRIBUTE_INVOKE_DESCRIPTOR = NAME + ".descriptor";
 
-        final MethodDesc invokeDescriptor;
+        final MethodRef invokeDescriptor;
         final TypeElement resultType;
 
         public static InvokeOp create(OpDefinition def) {
-            MethodDesc invokeDescriptor = def.extractAttributeValue(ATTRIBUTE_INVOKE_DESCRIPTOR,
+            MethodRef invokeDescriptor = def.extractAttributeValue(ATTRIBUTE_INVOKE_DESCRIPTOR,
                     true, v -> switch(v) {
-                        case String s -> MethodDesc.ofString(s);
-                        case MethodDesc md -> md;
+                        case String s -> MethodRef.ofString(s);
+                        case MethodRef md -> md;
                         default -> throw new UnsupportedOperationException("Unsupported invoke descriptor value:" + v);
                     });
 
             return new InvokeOp(def, invokeDescriptor);
         }
 
-        InvokeOp(OpDefinition def, MethodDesc invokeDescriptor) {
+        InvokeOp(OpDefinition def, MethodRef invokeDescriptor) {
             super(def);
 
             this.invokeDescriptor = invokeDescriptor;
@@ -1223,11 +1225,11 @@ public final class CoreOps {
             return new InvokeOp(this, cc);
         }
 
-        InvokeOp(MethodDesc invokeDescriptor, List<Value> args) {
+        InvokeOp(MethodRef invokeDescriptor, List<Value> args) {
             this(invokeDescriptor.type().returnType(), invokeDescriptor, args);
         }
 
-        InvokeOp(TypeElement resultType, MethodDesc invokeDescriptor, List<Value> args) {
+        InvokeOp(TypeElement resultType, MethodRef invokeDescriptor, List<Value> args) {
             super(NAME, args);
 
             this.invokeDescriptor = invokeDescriptor;
@@ -1241,12 +1243,12 @@ public final class CoreOps {
             return Collections.unmodifiableMap(m);
         }
 
-        public MethodDesc invokeDescriptor() {
+        public MethodRef invokeDescriptor() {
             return invokeDescriptor;
         }
 
         public boolean hasReceiver() {
-            return operands().size() != invokeDescriptor().type().parameters().size();
+            return operands().size() != invokeDescriptor().type().parameterTypes().size();
         }
 
         @Override
@@ -1302,30 +1304,37 @@ public final class CoreOps {
         public static final String NAME = "new";
         public static final String ATTRIBUTE_NEW_DESCRIPTOR = NAME + ".descriptor";
 
-        final MethodTypeDesc constructorDescriptor;
+        final FunctionType constructorType;
         final TypeElement resultType;
 
         public static NewOp create(OpDefinition def) {
-            MethodTypeDesc constructorDescriptor = def.extractAttributeValue(ATTRIBUTE_NEW_DESCRIPTOR,true,
+            FunctionType constructorType = def.extractAttributeValue(ATTRIBUTE_NEW_DESCRIPTOR,true,
                     v -> switch(v) {
-                        case String s -> MethodTypeDesc.ofString(s);
-                        case MethodTypeDesc mtd -> mtd;
+                        case String s -> {
+                            TypeElement te = CoreTypeFactory.CORE_TYPE_FACTORY
+                                    .constructType(TypeDefinition.ofString(s));
+                            if (!(te instanceof FunctionType ft)) {
+                                throw new UnsupportedOperationException("Unsupported new descriptor value:" + v);
+                            }
+                            yield ft;
+                        }
+                        case FunctionType ct -> ct;
                         default -> throw new UnsupportedOperationException("Unsupported new descriptor value:" + v);
                     });
-            return new NewOp(def, constructorDescriptor);
+            return new NewOp(def, constructorType);
         }
 
-        NewOp(OpDefinition def, MethodTypeDesc constructorDescriptor) {
+        NewOp(OpDefinition def, FunctionType constructorType) {
             super(def);
 
-            this.constructorDescriptor = constructorDescriptor;
+            this.constructorType = constructorType;
             this.resultType = def.resultType();
         }
 
         NewOp(NewOp that, CopyContext cc) {
             super(that, cc);
 
-            this.constructorDescriptor = that.constructorDescriptor;
+            this.constructorType = that.constructorType;
             this.resultType = that.resultType;
         }
 
@@ -1334,30 +1343,30 @@ public final class CoreOps {
             return new NewOp(this, cc);
         }
 
-        NewOp(MethodTypeDesc constructorDescriptor, List<Value> args) {
-            this(constructorDescriptor.returnType(), constructorDescriptor, args);
+        NewOp(FunctionType constructorType, List<Value> args) {
+            this(constructorType.returnType(), constructorType, args);
         }
 
-        NewOp(TypeElement resultType, MethodTypeDesc constructorDescriptor, List<Value> args) {
+        NewOp(TypeElement resultType, FunctionType constructorType, List<Value> args) {
             super(NAME, args);
 
-            this.constructorDescriptor = constructorDescriptor;
+            this.constructorType = constructorType;
             this.resultType = resultType;
         }
 
         @Override
         public Map<String, Object> attributes() {
             HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put("", constructorDescriptor);
+            m.put("", constructorType);
             return Collections.unmodifiableMap(m);
         }
 
         public TypeElement type() {
-            return descriptor().returnType();
+            return opType().returnType();
         }
 
-        public MethodTypeDesc constructorDescriptor() {
-            return constructorDescriptor;
+        public FunctionType constructorType() {
+            return constructorType;
         }
 
         @Override
@@ -1378,9 +1387,9 @@ public final class CoreOps {
     public abstract static sealed class FieldAccessOp extends OpWithDefinition implements AccessOp, ReflectiveOp {
         public static final String ATTRIBUTE_FIELD_DESCRIPTOR = "field.descriptor";
 
-        final FieldDesc fieldDescriptor;
+        final FieldRef fieldDescriptor;
 
-        FieldAccessOp(OpDefinition def, FieldDesc fieldDescriptor) {
+        FieldAccessOp(OpDefinition def, FieldRef fieldDescriptor) {
             super(def);
 
             this.fieldDescriptor = fieldDescriptor;
@@ -1393,7 +1402,7 @@ public final class CoreOps {
         }
 
         FieldAccessOp(String name, List<Value> operands,
-                      FieldDesc fieldDescriptor) {
+                      FieldRef fieldDescriptor) {
             super(name, operands);
 
             this.fieldDescriptor = fieldDescriptor;
@@ -1406,7 +1415,7 @@ public final class CoreOps {
             return Collections.unmodifiableMap(m);
         }
 
-        public final FieldDesc fieldDescriptor() {
+        public final FieldRef fieldDescriptor() {
             return fieldDescriptor;
         }
 
@@ -1425,16 +1434,16 @@ public final class CoreOps {
                     throw new IllegalArgumentException("Operation must accept zero or one operand");
                 }
 
-                FieldDesc fieldDescriptor = def.extractAttributeValue(ATTRIBUTE_FIELD_DESCRIPTOR,true,
+                FieldRef fieldDescriptor = def.extractAttributeValue(ATTRIBUTE_FIELD_DESCRIPTOR,true,
                         v -> switch(v) {
-                            case String s -> FieldDesc.ofString(s);
-                            case FieldDesc fd -> fd;
+                            case String s -> FieldRef.ofString(s);
+                            case FieldRef fd -> fd;
                             default -> throw new UnsupportedOperationException("Unsupported field descriptor value:" + v);
                         });
                 return new FieldLoadOp(def, fieldDescriptor);
             }
 
-            FieldLoadOp(OpDefinition opdef, FieldDesc fieldDescriptor) {
+            FieldLoadOp(OpDefinition opdef, FieldRef fieldDescriptor) {
                 super(opdef, fieldDescriptor);
 
                 resultType = opdef.resultType();
@@ -1452,14 +1461,14 @@ public final class CoreOps {
             }
 
             // instance
-            FieldLoadOp(TypeElement resultType, FieldDesc descriptor, Value receiver) {
+            FieldLoadOp(TypeElement resultType, FieldRef descriptor, Value receiver) {
                 super(NAME, List.of(receiver), descriptor);
 
                 this.resultType = resultType;
             }
 
             // static
-            FieldLoadOp(TypeElement resultType, FieldDesc descriptor) {
+            FieldLoadOp(TypeElement resultType, FieldRef descriptor) {
                 super(NAME, List.of(), descriptor);
 
                 this.resultType = resultType;
@@ -1484,16 +1493,16 @@ public final class CoreOps {
                     throw new IllegalArgumentException("Operation must accept one or two operands");
                 }
 
-                FieldDesc fieldDescriptor = def.extractAttributeValue(ATTRIBUTE_FIELD_DESCRIPTOR,true,
+                FieldRef fieldDescriptor = def.extractAttributeValue(ATTRIBUTE_FIELD_DESCRIPTOR,true,
                         v -> switch(v) {
-                            case String s -> FieldDesc.ofString(s);
-                            case FieldDesc fd -> fd;
+                            case String s -> FieldRef.ofString(s);
+                            case FieldRef fd -> fd;
                             default -> throw new UnsupportedOperationException("Unsupported field descriptor value:" + v);
                         });
                 return new FieldStoreOp(def, fieldDescriptor);
             }
 
-            FieldStoreOp(OpDefinition opdef, FieldDesc fieldDescriptor) {
+            FieldStoreOp(OpDefinition opdef, FieldRef fieldDescriptor) {
                 super(opdef, fieldDescriptor);
             }
 
@@ -1507,13 +1516,13 @@ public final class CoreOps {
             }
 
             // instance
-            FieldStoreOp(FieldDesc descriptor, Value receiver, Value v) {
+            FieldStoreOp(FieldRef descriptor, Value receiver, Value v) {
                 super(NAME,
                         List.of(receiver, v), descriptor);
             }
 
             // static
-            FieldStoreOp(FieldDesc descriptor, Value v) {
+            FieldStoreOp(FieldRef descriptor, Value v) {
                 super(NAME,
                         List.of(v), descriptor);
             }
@@ -1837,7 +1846,8 @@ public final class CoreOps {
         public static final String NAME = "var";
         public static final String ATTRIBUTE_NAME = NAME + ".name";
 
-        final String name;
+        final String varName;
+        final TypeElement resultType;
 
         public static VarOp create(OpDefinition def) {
             if (def.operands().size() != 1) {
@@ -1852,16 +1862,18 @@ public final class CoreOps {
             return new VarOp(def, name);
         }
 
-        VarOp(OpDefinition def, String name) {
+        VarOp(OpDefinition def, String varName) {
             super(def);
 
-            this.name = name;
+            this.varName = varName;
+            this.resultType = def.resultType();
         }
 
         VarOp(VarOp that, CopyContext cc) {
             super(that, cc);
 
-            this.name = that.name;
+            this.varName = that.varName;
+            this.resultType = that.resultType;
         }
 
         @Override
@@ -1870,33 +1882,38 @@ public final class CoreOps {
         }
 
         VarOp(String varName, Value init) {
+            this(varName, init.type(), init);
+        }
+
+        VarOp(String varName, TypeElement type, Value init) {
             super(NAME, List.of(init));
 
-            this.name = varName;
+            this.varName = varName;
+            this.resultType = VarType.varType(type);
         }
 
         @Override
         public Map<String, Object> attributes() {
-            if (name == null) {
+            if (varName == null) {
                 return super.attributes();
             }
 
             HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put("", name);
+            m.put("", varName);
             return Collections.unmodifiableMap(m);
         }
 
         public String varName() {
-            return name;
+            return varName;
         }
 
         public TypeElement varType() {
-            return operands().get(0).type();
+            return ((VarType) resultType).valueType();
         }
 
         @Override
         public TypeElement resultType() {
-            return VarType.varType(varType());
+            return resultType;
         }
     }
 
@@ -2007,7 +2024,7 @@ public final class CoreOps {
 
             @Override
             public TypeElement resultType() {
-                return operands().get(0).type();
+                return JavaType.VOID;
             }
         }
     }
@@ -2559,7 +2576,7 @@ public final class CoreOps {
     }
 
     /**
-     * The dic operation, that can model the Java language binary {@code /} operator for numeric types
+     * The div operation, that can model the Java language binary {@code /} operator for numeric types
      */
     @OpDeclaration(DivOp.NAME)
     public static final class DivOp extends BinaryOp {
@@ -2584,7 +2601,7 @@ public final class CoreOps {
     }
 
     /**
-     * The div operation, that can model the Java language binary {@code %} operator for numeric types
+     * The mod operation, that can model the Java language binary {@code %} operator for numeric types
      */
     @OpDeclaration(ModOp.NAME)
     public static final class ModOp extends BinaryOp {
@@ -2604,6 +2621,84 @@ public final class CoreOps {
         }
 
         ModOp(Value lhs, Value rhs) {
+            super(NAME, lhs, rhs);
+        }
+    }
+
+    /**
+     * The bitwise/logical or operation, that can model the Java language binary {@code |} operator for integral types
+     * and booleans
+     */
+    @OpDeclaration(OrOp.NAME)
+    public static final class OrOp extends BinaryOp {
+        public static final String NAME = "or";
+
+        public OrOp(OpDefinition opdef) {
+            super(opdef);
+        }
+
+        OrOp(OrOp that, CopyContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public OrOp transform(CopyContext cc, OpTransformer ot) {
+            return new OrOp(this, cc);
+        }
+
+        OrOp(Value lhs, Value rhs) {
+            super(NAME, lhs, rhs);
+        }
+    }
+
+    /**
+     * The bitwise/logical and operation, that can model the Java language binary {@code &} operator for integral types
+     * and booleans
+     */
+    @OpDeclaration(AndOp.NAME)
+    public static final class AndOp extends BinaryOp {
+        public static final String NAME = "and";
+
+        public AndOp(OpDefinition opdef) {
+            super(opdef);
+        }
+
+        AndOp(AndOp that, CopyContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public AndOp transform(CopyContext cc, OpTransformer ot) {
+            return new AndOp(this, cc);
+        }
+
+        AndOp(Value lhs, Value rhs) {
+            super(NAME, lhs, rhs);
+        }
+    }
+
+    /**
+     * The xor operation, that can model the Java language binary {@code ^} operator for integral types
+     * and booleans
+     */
+    @OpDeclaration(XorOp.NAME)
+    public static final class XorOp extends BinaryOp {
+        public static final String NAME = "xor";
+
+        public XorOp(OpDefinition opdef) {
+            super(opdef);
+        }
+
+        XorOp(XorOp that, CopyContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public XorOp transform(CopyContext cc, OpTransformer ot) {
+            return new XorOp(this, cc);
+        }
+
+        XorOp(Value lhs, Value rhs) {
             super(NAME, lhs, rhs);
         }
     }
@@ -2823,11 +2918,11 @@ public final class CoreOps {
     /**
      * Creates a function operation builder
      * @param funcName the function name
-     * @param funcDescriptor the function descriptor
+     * @param funcType the function type
      * @return the function operation builder
      */
-    public static FuncOp.Builder func(String funcName, MethodTypeDesc funcDescriptor) {
-        return new FuncOp.Builder(null, funcName, funcDescriptor);
+    public static FuncOp.Builder func(String funcName, FunctionType funcType) {
+        return new FuncOp.Builder(null, funcName, funcType);
     }
 
     /**
@@ -2843,29 +2938,29 @@ public final class CoreOps {
     /**
      * Creates a function call operation
      * @param funcName the name of the function operation
-     * @param funcDescriptor the function descriptor
-     * @param args the function argments
+     * @param funcType the function type
+     * @param args the function arguments
      * @return the function call operation
      */
-    public static FuncCallOp funcCall(String funcName, MethodTypeDesc funcDescriptor, Value... args) {
-        return funcCall(funcName, funcDescriptor, List.of(args));
+    public static FuncCallOp funcCall(String funcName, FunctionType funcType, Value... args) {
+        return funcCall(funcName, funcType, List.of(args));
     }
 
     /**
      * Creates a function call operation
      * @param funcName the name of the function operation
-     * @param funcDescriptor the function descriptor
-     * @param args the function argments
+     * @param funcType the function type
+     * @param args the function arguments
      * @return the function call operation
      */
-    public static FuncCallOp funcCall(String funcName, MethodTypeDesc funcDescriptor, List<Value> args) {
-        return new FuncCallOp(funcName, funcDescriptor.returnType(), args);
+    public static FuncCallOp funcCall(String funcName, FunctionType funcType, List<Value> args) {
+        return new FuncCallOp(funcName, funcType.returnType(), args);
     }
 
     /**
      * Creates a function call operation
      * @param func the target function
-     * @param args the function argments
+     * @param args the function arguments
      * @return the function call operation
      */
     public static FuncCallOp funcCall(FuncOp func, Value... args) {
@@ -2879,7 +2974,7 @@ public final class CoreOps {
      * @return the function call operation
      */
     public static FuncCallOp funcCall(FuncOp func, List<Value> args) {
-        return new FuncCallOp(func.funcName(), func.funcDescriptor().returnType(), args);
+        return new FuncCallOp(func.funcName(), func.invokableType().returnType(), args);
     }
 
     /**
@@ -2908,7 +3003,7 @@ public final class CoreOps {
      */
     public static QuotedOp quoted(Body.Builder ancestorBody,
                                   Function<Block.Builder, Op> opFunc) {
-        Body.Builder body = Body.Builder.of(ancestorBody, MethodTypeDesc.VOID);
+        Body.Builder body = Body.Builder.of(ancestorBody, FunctionType.VOID);
         Block.Builder block = body.entryBlock();
         block.op(_yield(
                 block.op(opFunc.apply(block))));
@@ -2927,18 +3022,18 @@ public final class CoreOps {
     /**
      * Creates a lambda operation.
      * @param ancestorBody the ancestor of the body of the lambda operation
-     * @param functionalDescriptor the lambda operation's functional descriptor
-     * @param functionalInterface the lambda operation's functional interface
+     * @param funcType the lambda operation's function type
+     * @param functionalInterface the lambda operation's functional interface type
      * @return the lambda operation
      */
     public static LambdaOp.Builder lambda(Body.Builder ancestorBody,
-                                          MethodTypeDesc functionalDescriptor, TypeElement functionalInterface) {
-        return new LambdaOp.Builder(ancestorBody, functionalDescriptor, functionalInterface);
+                                          FunctionType funcType, TypeElement functionalInterface) {
+        return new LambdaOp.Builder(ancestorBody, funcType, functionalInterface);
     }
 
     /**
      * Creates a lambda operation.
-     * @param functionalInterface the lambda operation's functional interface
+     * @param functionalInterface the lambda operation's functional interface type
      * @param body the body of the lambda operation
      * @return the lambda operation
      */
@@ -2949,12 +3044,12 @@ public final class CoreOps {
     /**
      * Creates a closure operation.
      * @param ancestorBody the ancestor of the body of the closure operation
-     * @param functionalDescriptor the closure operation's functional descriptor
+     * @param funcType the closure operation's function type
      * @return the closure operation
      */
     public static ClosureOp.Builder closure(Body.Builder ancestorBody,
-                                            MethodTypeDesc functionalDescriptor) {
-        return new ClosureOp.Builder(ancestorBody, functionalDescriptor);
+                                            FunctionType funcType) {
+        return new ClosureOp.Builder(ancestorBody, funcType);
     }
 
     /**
@@ -3071,6 +3166,15 @@ public final class CoreOps {
     }
 
     /**
+     * Creates an assert operation.
+     * @param bodies the nested bodies
+     * @return the assert operation
+     */
+    public static AssertOp _assert(List<Body.Builder> bodies) {
+        return new AssertOp(bodies);
+    }
+
+    /**
      * Creates an unconditional break operation.
      * @param target the jump target
      * @return the unconditional break operation
@@ -3108,7 +3212,7 @@ public final class CoreOps {
      * @param args the invoke parameters
      * @return the invoke operation
      */
-    public static InvokeOp invoke(MethodDesc invokeDescriptor, Value... args) {
+    public static InvokeOp invoke(MethodRef invokeDescriptor, Value... args) {
         return new InvokeOp(invokeDescriptor, List.of(args));
     }
 
@@ -3119,7 +3223,7 @@ public final class CoreOps {
      * @param args the invoke parameters
      * @return the invoke operation
      */
-    public static InvokeOp invoke(MethodDesc invokeDescriptor, List<Value> args) {
+    public static InvokeOp invoke(MethodRef invokeDescriptor, List<Value> args) {
         return new InvokeOp(invokeDescriptor, args);
     }
 
@@ -3131,7 +3235,7 @@ public final class CoreOps {
      * @param args the invoke parameters
      * @return the invoke operation
      */
-    public static InvokeOp invoke(TypeElement returnType, MethodDesc invokeDescriptor, Value... args) {
+    public static InvokeOp invoke(TypeElement returnType, MethodRef invokeDescriptor, Value... args) {
         return new InvokeOp(returnType, invokeDescriptor, List.of(args));
     }
 
@@ -3143,7 +3247,7 @@ public final class CoreOps {
      * @param args the invoke parameters
      * @return the invoke operation
      */
-    public static InvokeOp invoke(TypeElement returnType, MethodDesc invokeDescriptor, List<Value> args) {
+    public static InvokeOp invoke(TypeElement returnType, MethodRef invokeDescriptor, List<Value> args) {
         return new InvokeOp(returnType, invokeDescriptor, args);
     }
 
@@ -3161,49 +3265,49 @@ public final class CoreOps {
     /**
      * Creates an instance creation operation.
      *
-     * @param constructorDescriptor the constructor descriptor
+     * @param constructorType the constructor type
      * @param args the constructor arguments
      * @return the instance creation operation
      */
-    public static NewOp _new(MethodTypeDesc constructorDescriptor, Value... args) {
-        return _new(constructorDescriptor, List.of(args));
+    public static NewOp _new(FunctionType constructorType, Value... args) {
+        return _new(constructorType, List.of(args));
     }
 
     /**
      * Creates an instance creation operation.
      *
-     * @param constructorDescriptor the constructor descriptor
+     * @param constructorType the constructor type
      * @param args the constructor arguments
      * @return the instance creation operation
      */
-    public static NewOp _new(MethodTypeDesc constructorDescriptor, List<Value> args) {
-        return new NewOp(constructorDescriptor, args);
+    public static NewOp _new(FunctionType constructorType, List<Value> args) {
+        return new NewOp(constructorType, args);
     }
 
     /**
      * Creates an instance creation operation.
      *
      * @param returnType the instance type
-     * @param constructorDescriptor the constructor descriptor
+     * @param constructorType the constructor type
      * @param args the constructor arguments
      * @return the instance creation operation
      */
-    public static NewOp _new(TypeElement returnType, MethodTypeDesc constructorDescriptor,
+    public static NewOp _new(TypeElement returnType, FunctionType constructorType,
                              Value... args) {
-        return _new(returnType, constructorDescriptor, List.of(args));
+        return _new(returnType, constructorType, List.of(args));
     }
 
     /**
      * Creates an instance creation operation.
      *
      * @param returnType the instance type
-     * @param constructorDescriptor the constructor descriptor
+     * @param constructorType the constructor type
      * @param args the constructor arguments
      * @return the instance creation operation
      */
-    public static NewOp _new(TypeElement returnType, MethodTypeDesc constructorDescriptor,
+    public static NewOp _new(TypeElement returnType, FunctionType constructorType,
                              List<Value> args) {
-        return new NewOp(returnType, constructorDescriptor, args);
+        return new NewOp(returnType, constructorType, args);
     }
 
     /**
@@ -3214,7 +3318,7 @@ public final class CoreOps {
      * @return the array creation operation
      */
     public static NewOp newArray(TypeElement arrayType, Value length) {
-        return _new(MethodTypeDesc.methodType(arrayType, JavaType.INT), length);
+        return _new(FunctionType.functionType(arrayType, JavaType.INT), length);
     }
 
     // @@@ Add field load/store overload with explicit fieldType
@@ -3226,7 +3330,7 @@ public final class CoreOps {
      * @param receiver the receiver value
      * @return the field load operation
      */
-    public static FieldAccessOp.FieldLoadOp fieldLoad(FieldDesc descriptor, Value receiver) {
+    public static FieldAccessOp.FieldLoadOp fieldLoad(FieldRef descriptor, Value receiver) {
         return new FieldAccessOp.FieldLoadOp(descriptor.type(), descriptor, receiver);
     }
 
@@ -3238,7 +3342,7 @@ public final class CoreOps {
      * @param receiver the receiver value
      * @return the field load operation
      */
-    public static FieldAccessOp.FieldLoadOp fieldLoad(TypeElement resultType, FieldDesc descriptor, Value receiver) {
+    public static FieldAccessOp.FieldLoadOp fieldLoad(TypeElement resultType, FieldRef descriptor, Value receiver) {
         return new FieldAccessOp.FieldLoadOp(resultType, descriptor, receiver);
     }
 
@@ -3248,7 +3352,7 @@ public final class CoreOps {
      * @param descriptor the field descriptor
      * @return the field load operation
      */
-    public static FieldAccessOp.FieldLoadOp fieldLoad(FieldDesc descriptor) {
+    public static FieldAccessOp.FieldLoadOp fieldLoad(FieldRef descriptor) {
         return new FieldAccessOp.FieldLoadOp(descriptor.type(), descriptor);
     }
 
@@ -3259,7 +3363,7 @@ public final class CoreOps {
      * @param descriptor the field descriptor
      * @return the field load operation
      */
-    public static FieldAccessOp.FieldLoadOp fieldLoad(TypeElement resultType, FieldDesc descriptor) {
+    public static FieldAccessOp.FieldLoadOp fieldLoad(TypeElement resultType, FieldRef descriptor) {
         return new FieldAccessOp.FieldLoadOp(resultType, descriptor);
     }
 
@@ -3271,7 +3375,7 @@ public final class CoreOps {
      * @param v the value to store
      * @return the field store operation
      */
-    public static FieldAccessOp.FieldStoreOp fieldStore(FieldDesc descriptor, Value receiver, Value v) {
+    public static FieldAccessOp.FieldStoreOp fieldStore(FieldRef descriptor, Value receiver, Value v) {
         return new FieldAccessOp.FieldStoreOp(descriptor, receiver, v);
     }
 
@@ -3282,7 +3386,7 @@ public final class CoreOps {
      * @param v the value to store
      * @return the field store operation
      */
-    public static FieldAccessOp.FieldStoreOp fieldStore(FieldDesc descriptor, Value v) {
+    public static FieldAccessOp.FieldStoreOp fieldStore(FieldRef descriptor, Value v) {
         return new FieldAccessOp.FieldStoreOp(descriptor, v);
     }
 
@@ -3322,7 +3426,7 @@ public final class CoreOps {
     /**
      * Creates an instanceof operation.
      *
-     * @param t the type descriptor of the type to test against
+     * @param t the type to test against
      * @param v the value to test
      * @return the instanceof operation
      */
@@ -3345,7 +3449,7 @@ public final class CoreOps {
      * Creates a cast operation.
      *
      * @param resultType the result type of the operation
-     * @param t the type descriptor of the type to cast to
+     * @param t the type to cast to
      * @param v the value to cast
      * @return the cast operation
      */
@@ -3372,6 +3476,18 @@ public final class CoreOps {
      */
     public static VarOp var(String name, Value init) {
         return new VarOp(name, init);
+    }
+
+    /**
+     * Creates a var operation.
+     *
+     * @param name the name of the var
+     * @param type the type of the var's value
+     * @param init the initial value of the var
+     * @return the var operation
+     */
+    public static VarOp var(String name, TypeElement type, Value init) {
+        return new VarOp(name, type, init);
     }
 
     /**
@@ -3494,6 +3610,39 @@ public final class CoreOps {
      */
     public static BinaryOp mod(Value lhs, Value rhs) {
         return new ModOp(lhs, rhs);
+    }
+
+    /**
+     * Creates a bitwise/logical or operation.
+     *
+     * @param lhs the first operand
+     * @param rhs the second operand
+     * @return the or operation
+     */
+    public static BinaryOp or(Value lhs, Value rhs) {
+        return new OrOp(lhs, rhs);
+    }
+
+    /**
+     * Creates a bitwise/logical and operation.
+     *
+     * @param lhs the first operand
+     * @param rhs the second operand
+     * @return the and operation
+     */
+    public static BinaryOp and(Value lhs, Value rhs) {
+        return new AndOp(lhs, rhs);
+    }
+
+    /**
+     * Creates a bitwise/logical xor operation.
+     *
+     * @param lhs the first operand
+     * @param rhs the second operand
+     * @return the xor operation
+     */
+    public static BinaryOp xor(Value lhs, Value rhs) {
+        return new XorOp(lhs, rhs);
     }
 
     /**

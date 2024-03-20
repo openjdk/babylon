@@ -24,6 +24,6 @@
  */
 
 /**
- * Functionality for writing text description of code models.
+ * Functionality for writing and storing code models.
  */
 package java.lang.reflect.code.writer;

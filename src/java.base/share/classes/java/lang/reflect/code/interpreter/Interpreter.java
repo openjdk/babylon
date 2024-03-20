@@ -29,10 +29,11 @@ import java.lang.invoke.*;
 import java.lang.reflect.Array;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.code.*;
-import java.lang.reflect.code.descriptor.FieldDesc;
-import java.lang.reflect.code.descriptor.MethodDesc;
-import java.lang.reflect.code.descriptor.MethodTypeDesc;
+import java.lang.reflect.code.type.FieldRef;
+import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.ExtendedOps;
+import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.type.VarType;
@@ -167,8 +168,7 @@ public final class Interpreter {
     }
 
     record ClosureRecord(CoreOps.ClosureOp op,
-                         Map<Value, Object> capturedValues)
-            implements CoreOps.Closure {
+                         Map<Value, Object> capturedValues) {
     }
 
     record TupleRecord(List<Object> components) {
@@ -246,10 +246,19 @@ public final class Interpreter {
     Object invoke(MethodHandles.Lookup l, T invokableOp,
                   Map<Value, Object> capturedValues,
                   List<Object> args) {
-        OpContext oc = new OpContext();
-
         Body r = invokableOp.bodies().get(0);
-        Block first = r.entryBlock();
+        return invoke(l, r, capturedValues, new OpContext(), args);
+
+    }
+    static Object invoke(MethodHandles.Lookup l, Body r,
+                                 Map<Value, Object> capturedValues, OpContext oc,
+                                 List<Object> args) {
+        return invoke(l,r.entryBlock(), capturedValues, oc, args);
+    }
+
+    private static Object invoke(MethodHandles.Lookup l, Block first,
+                  Map<Value, Object> capturedValues, OpContext oc,
+                  List<Object> args) {
 
         if (args.size() != first.parameters().size()) {
             throw interpreterException(new IllegalArgumentException("Incorrect number of arguments"));
@@ -309,8 +318,10 @@ public final class Interpreter {
                 processThrowable(oc, l, t);
             } else if (to instanceof CoreOps.ReturnOp ret) {
                 Value rv = ret.returnValue();
-
                 return rv == null ? null : oc.getValue(rv);
+            } else if (to instanceof CoreOps.YieldOp yop) {
+                Value yv = yop.yieldValue();
+                return yv == null ? null : oc.getValue(yv);
             } else if (to instanceof CoreOps.ExceptionRegionEnter ers) {
                 var er = new ExceptionRegionRecord(oc.stack.peek(), ers);
                 oc.setValue(ers.result(), er);
@@ -327,6 +338,12 @@ public final class Interpreter {
                         new UnsupportedOperationException("Unsupported terminating operation: " + to.opName()));
             }
         }
+    }
+
+    static <T extends Op & Op.Invokable>
+    Object interpretBody(MethodHandles.Lookup l, Body r,
+                         OpContext oc) {
+        return invoke(l, r, Map.of(), oc, List.of());
     }
 
     static void processThrowable(OpContext oc, MethodHandles.Lookup l, Throwable t) {
@@ -348,6 +365,8 @@ public final class Interpreter {
         }
         oc.successor(cb, bValues);
     }
+
+
 
     @SuppressWarnings("unchecked")
     public static <E extends Throwable> void eraseAndThrow(Throwable e) throws E {
@@ -394,13 +413,13 @@ public final class Interpreter {
             } else {
                 mh = methodStaticHandle(l, co.invokeDescriptor());
             }
-            MethodType target = resolveToMethodType(l, o.descriptor());
+            MethodType target = resolveToMethodType(l, o.opType());
             mh = mh.asType(target).asFixedArity();
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
         } else if (o instanceof CoreOps.NewOp no) {
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
-            JavaType nType = (JavaType) no.constructorDescriptor().returnType();
+            JavaType nType = (JavaType) no.constructorType().returnType();
             if (nType.dimensions() > 0) {
                 if (values.length > nType.dimensions()) {
                     throw interpreterException(new IllegalArgumentException("Bad constructor NewOp: " + no));
@@ -411,7 +430,7 @@ public final class Interpreter {
                 }
                 return Array.newInstance(resolveToClass(l, nType), lengths);
             } else {
-                MethodHandle mh = constructorHandle(l, no.constructorDescriptor());
+                MethodHandle mh = constructorHandle(l, no.constructorType());
                 return invoke(mh, values);
             }
         } else if (o instanceof CoreOps.QuotedOp qo) {
@@ -512,13 +531,28 @@ public final class Interpreter {
             Array.set(a, (int) index, v);
             return null;
         } else if (o instanceof CoreOps.ArithmeticOperation || o instanceof CoreOps.TestOperation) {
-            MethodHandle mh = opHandle(o.opName(), o.descriptor());
+            MethodHandle mh = opHandle(o.opName(), o.opType());
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
         } else if (o instanceof CoreOps.ConvOp) {
-            MethodHandle mh = opHandle(o.opName() + "_" + o.descriptor().returnType(), o.descriptor());
+            MethodHandle mh = opHandle(o.opName() + "_" + o.opType().returnType(), o.opType());
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
+        } else if (o instanceof CoreOps.AssertOp _assert) {
+            //Note: The nature of asserts and munged bodies may require a re-visiting.
+            //This code seems to work without poisoning contexts. See TestAssert.java in tests for relevant test coverage.
+            Body testBody = _assert.bodies.get(0);
+            boolean testResult = (boolean) interpretBody(l, testBody, oc);
+            if (!testResult) {
+                if (_assert.bodies.size() > 1) {
+                    Body messageBody = _assert.bodies.get(1);
+                    String message = String.valueOf(interpretBody(l, messageBody, oc));
+                    throw new AssertionError(message);
+                } else {
+                    throw new AssertionError();
+                }
+            }
+            return null;
         } else {
             throw interpreterException(
                     new UnsupportedOperationException("Unsupported operation: " + o.opName()));
@@ -540,8 +574,8 @@ public final class Interpreter {
         return invoke(l, op, capturedValues, args);
     }
 
-    static MethodHandle opHandle(String opName, MethodTypeDesc d) {
-        MethodType mt = resolveToMethodType(MethodHandles.lookup(), d).erase();
+    static MethodHandle opHandle(String opName, FunctionType ft) {
+        MethodType mt = resolveToMethodType(MethodHandles.lookup(), ft).erase();
         try {
             return MethodHandles.lookup().findStatic(InvokableLeafOps.class, opName, mt);
         } catch (NoSuchMethodException | IllegalAccessException e) {
@@ -549,20 +583,20 @@ public final class Interpreter {
         }
     }
 
-    static MethodHandle methodStaticHandle(MethodHandles.Lookup l, MethodDesc d) {
+    static MethodHandle methodStaticHandle(MethodHandles.Lookup l, MethodRef d) {
         return resolveToMethodHandle(l, d);
     }
 
-    static MethodHandle methodHandle(MethodHandles.Lookup l, MethodDesc d) {
+    static MethodHandle methodHandle(MethodHandles.Lookup l, MethodRef d) {
         return resolveToMethodHandle(l, d);
     }
 
-    static MethodHandle constructorHandle(MethodHandles.Lookup l, MethodTypeDesc d) {
-        MethodType mt = resolveToMethodType(l, d);
+    static MethodHandle constructorHandle(MethodHandles.Lookup l, FunctionType ft) {
+        MethodType mt = resolveToMethodType(l, ft);
 
         if (mt.returnType().isArray()) {
             if (mt.parameterCount() != 1 || mt.parameterType(0) != int.class) {
-                throw interpreterException(new IllegalArgumentException("Bad constructor descriptor: " + d));
+                throw interpreterException(new IllegalArgumentException("Bad constructor descriptor: " + ft));
             }
             return MethodHandles.arrayConstructor(mt.returnType());
         } else {
@@ -574,11 +608,11 @@ public final class Interpreter {
         }
     }
 
-    static VarHandle fieldStaticHandle(MethodHandles.Lookup l, FieldDesc d) {
+    static VarHandle fieldStaticHandle(MethodHandles.Lookup l, FieldRef d) {
         return resolveToVarHandle(l, d);
     }
 
-    static VarHandle fieldHandle(MethodHandles.Lookup l, FieldDesc d) {
+    static VarHandle fieldHandle(MethodHandles.Lookup l, FieldRef d) {
         return resolveToVarHandle(l, d);
     }
 
@@ -592,25 +626,25 @@ public final class Interpreter {
         return c.cast(v);
     }
 
-    static MethodHandle resolveToMethodHandle(MethodHandles.Lookup l, MethodDesc d) {
+    static MethodHandle resolveToMethodHandle(MethodHandles.Lookup l, MethodRef d) {
         try {
-            return d.resolve(l);
+            return d.resolveToHandle(l);
         } catch (ReflectiveOperationException e) {
             throw interpreterException(e);
         }
     }
 
-    static VarHandle resolveToVarHandle(MethodHandles.Lookup l, FieldDesc d) {
+    static VarHandle resolveToVarHandle(MethodHandles.Lookup l, FieldRef d) {
         try {
-            return d.resolve(l);
+            return d.resolveToHandle(l);
         } catch (ReflectiveOperationException e) {
             throw interpreterException(e);
         }
     }
 
-    public static MethodType resolveToMethodType(MethodHandles.Lookup l, MethodTypeDesc d) {
+    public static MethodType resolveToMethodType(MethodHandles.Lookup l, FunctionType ft) {
         try {
-            return d.resolve(l);
+            return MethodRef.toNominalDescriptor(ft).resolveConstantDesc(l);
         } catch (ReflectiveOperationException e) {
             throw interpreterException(e);
         }

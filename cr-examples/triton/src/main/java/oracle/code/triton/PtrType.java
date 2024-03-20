@@ -25,18 +25,20 @@
 
 package oracle.code.triton;
 
-import java.lang.reflect.Type;
+import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.type.TypeDefinition;
+import java.util.List;
 import java.util.Objects;
 
 public final class PtrType extends TritonType {
     static final String NAME = "ptr";
-    final Type rType;
+    final TypeElement rType;
 
-    public PtrType(Type rType) {
+    public PtrType(TypeElement rType) {
         this.rType = rType;
     }
 
-    public Type rType() {
+    public TypeElement rType() {
         return rType;
     }
 
@@ -54,7 +56,12 @@ public final class PtrType extends TritonType {
     }
 
     @Override
+    public TypeDefinition toTypeDefinition() {
+        return new TypeDefinition(NAME, List.of(rType.toTypeDefinition()));
+    }
+
+    @Override
     public String toString() {
-        return NAME + "<" + TritonType.fromType(rType) + ">";
+        return toTypeDefinition().toString();
     }
 }

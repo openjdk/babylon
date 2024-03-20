@@ -28,7 +28,8 @@ import oracle.code.triton.TritonTestExtension.TritonTestData;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import java.lang.reflect.Type;
+import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.type.JavaType;
 import java.lang.runtime.CodeReflection;
 import java.util.List;
 
@@ -123,13 +124,13 @@ public class TestSoftMax {
     @Kernel("softmax_kernel")
     @Test
     public void test(TritonTestData t) {
-        List<Type> argTypes = List.of(
-                new PtrType(float.class),
-                new PtrType(float.class),
-                new ConstantType(int.class, 1),
-                new ConstantType(int.class, 1),
-                new ConstantType(int.class, 10),
-                new ConstantType(int.class, 64));
+        List<TypeElement> argTypes = List.of(
+                new PtrType(JavaType.FLOAT),
+                new PtrType(JavaType.FLOAT),
+                new ConstantType(JavaType.INT, 1),
+                new ConstantType(JavaType.INT, 1),
+                new ConstantType(JavaType.INT, 10),
+                new ConstantType(JavaType.INT, 64));
 
         t.test(argTypes);
     }
@@ -220,13 +221,13 @@ public class TestSoftMax {
     @Kernel("softmax_kernel2")
     @Test
     public void test2(TritonTestData t) {
-        List<Type> argTypes = List.of(
-                new PtrType(float.class),
-                new PtrType(float.class),
-                new ConstantType(int.class, 1),
-                new ConstantType(int.class, 1),
-                new ConstantType(int.class, 10),
-                new ConstantType(int.class, 64));
+        List<TypeElement> argTypes = List.of(
+                new PtrType(JavaType.FLOAT),
+                new PtrType(JavaType.FLOAT),
+                new ConstantType(JavaType.INT, 1),
+                new ConstantType(JavaType.INT, 1),
+                new ConstantType(JavaType.INT, 10),
+                new ConstantType(JavaType.INT, 64));
 
         t.test(argTypes);
     }

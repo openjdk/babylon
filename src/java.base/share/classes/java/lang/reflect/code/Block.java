@@ -58,6 +58,46 @@ public final class Block implements CodeElement<Block, Op> {
         public Set<Value> dependsOn() {
             return Set.of();
         }
+
+        /**
+         * Returns the invokable operation associated with this block parameter.
+         * <p>
+         * If this block parameter is declared in an entry block and that
+         * block's ancestor operation (the parent of the entry block's parent body)
+         * is an instance of {@link Op.Invokable}, then that instance is returned,
+         * otherwise {@code null} is returned.
+         * <p>
+         * A non-{@code null} result implies this parameter is an invokable parameter.
+         *
+         * @apiNote
+         * This method may be used to pattern match on the returned result:
+         * {@snippet lang = "java" :
+         *     if (p.invokableOperation() instanceof CoreOps.FuncOp f) {
+         *         assert f.parameters().indexOf(p) == p.index(); // @link substring="parameters()" target="Op.Invokable#parameters()"
+         *     }
+         * }
+         *
+         * @return the invokable operation, otherwise {@code null} if the operation
+         * is not an instance of {@link Op.Invokable}.
+         * @see Op.Invokable#parameters()
+         */
+        public Op.Invokable invokableOperation() {
+            if (declaringBlock().isEntryBlock() &&
+                    declaringBlock().parentBody().parentOp() instanceof Op.Invokable o) {
+                return o;
+            } else {
+                return null;
+            }
+        }
+
+        /**
+         * {@return the index of this block parameter in the parameters of its declaring block.}
+         * @see Value#declaringBlock()
+         * @see Block#parameters()
+         */
+        public int index() {
+            return declaringBlock().parameters().indexOf(this);
+        }
     }
 
     /**
@@ -136,6 +176,17 @@ public final class Block implements CodeElement<Block, Op> {
         this.predecessors = new LinkedHashSet<>();
     }
 
+
+    /**
+     * Returns this block's parent body.
+     *
+     * @return this block's parent body.
+     */
+    @Override
+    public Body parent() {
+        return parentBody;
+    }
+
     /**
      * Returns this block's parent body.
      *
@@ -145,11 +196,25 @@ public final class Block implements CodeElement<Block, Op> {
         return parentBody;
     }
 
+    @Override
+    public List<Op> children() {
+        return ops();
+    }
+
+    /**
+     * Returns the sequence of operations contained in this block.
+     *
+     * @return returns the sequence operations, as an unmodifiable list.
+     */
+    public List<Op> ops() {
+        return Collections.unmodifiableList(ops);
+    }
+
     /**
      * Returns this block's index within the parent body's blocks.
      * <p>
      * The following identity holds true:
-     * {@snippet lang = "java"
+     * {@snippet lang = "java" :
      *     this.parentBody().blocks().indexOf(this) == this.index();
      * }
      *
@@ -182,15 +247,6 @@ public final class Block implements CodeElement<Block, Op> {
     }
 
     /**
-     * Returns the sequence of operations contained in this block.
-     *
-     * @return returns the sequence operations, as an unmodifiable list.
-     */
-    public List<Op> ops() {
-        return Collections.unmodifiableList(ops);
-    }
-
-    /**
      * Finds the operation in this block that is the ancestor of the given operation.
      *
      * @param op the given operation.
@@ -210,11 +266,6 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         return op;
-    }
-
-    @Override
-    public List<Op> children() {
-        return ops();
     }
 
     /**
@@ -590,7 +641,7 @@ public final class Block implements CodeElement<Block, Op> {
                         Value r;
                         if (rop.ancestorBody().blocks().size() != 1) {
                             List<TypeElement> param = rop.returnValue() != null
-                                    ? List.of(invokableOp.funcDescriptor().returnType())
+                                    ? List.of(invokableOp.invokableType().returnType())
                                     : List.of();
                             rb = block.block(param);
                             r = !param.isEmpty()

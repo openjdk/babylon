@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024 Intel Corporation. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,7 +23,9 @@
  * questions.
  */
 
-/**
- * Descriptors for code models.
- */
-package java.lang.reflect.code.descriptor;
+package intel.code.spirv;
+
+import java.lang.reflect.code.TypeElement;
+
+public abstract sealed class SpirvType implements TypeElement permits PointerType, StorageType {
+}

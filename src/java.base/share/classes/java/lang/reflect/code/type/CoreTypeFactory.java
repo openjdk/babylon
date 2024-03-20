@@ -25,35 +25,51 @@ public final class CoreTypeFactory {
 
             @Override
             public TypeElement constructType(TypeDefinition tree) {
-                if (tree.isArray()) {
-                    return null;
-                }
-                return switch (tree.name()) {
+                return switch (tree.identifier()) {
                     case VarType.NAME -> {
-                        if (tree.typeArguments().size() != 1) {
+                        if (tree.arguments().size() != 1) {
                             throw new IllegalArgumentException();
                         }
 
-                        TypeElement v = thisThenF.constructType(tree.typeArguments().getFirst());
+                        TypeElement v = thisThenF.constructType(tree.arguments().getFirst());
                         if (v == null) {
-                            throw new IllegalArgumentException();
+                            throw new IllegalArgumentException("Bad type: " + tree);
                         }
                         yield VarType.varType(v);
                     }
                     case TupleType.NAME -> {
-                        if (tree.typeArguments().isEmpty()) {
-                            throw new IllegalArgumentException();
+                        if (tree.arguments().isEmpty()) {
+                            throw new IllegalArgumentException("Bad type: " + tree);
                         }
 
-                        List<TypeElement> cs = new ArrayList<>(tree.typeArguments().size());
-                        for (TypeDefinition child : tree.typeArguments()) {
+                        List<TypeElement> cs = new ArrayList<>(tree.arguments().size());
+                        for (TypeDefinition child : tree.arguments()) {
                             TypeElement c = thisThenF.constructType(child);
                             if (c == null) {
-                                throw new IllegalArgumentException();
+                                throw new IllegalArgumentException("Bad type: " + tree);
                             }
                             cs.add(c);
                         }
                         yield TupleType.tupleType(cs);
+                    }
+                    case FunctionType.NAME -> {
+                        if (tree.arguments().isEmpty()) {
+                            throw new IllegalArgumentException("Bad type: " + tree);
+                        }
+
+                        TypeElement rt = thisThenF.constructType(tree.arguments().getFirst());
+                        if (rt == null) {
+                            throw new IllegalArgumentException("Bad type: " + tree);
+                        }
+                        List<TypeElement> pts = new ArrayList<>(tree.arguments().size() - 1);
+                        for (TypeDefinition child : tree.arguments().subList(1, tree.arguments().size())) {
+                            TypeElement c = thisThenF.constructType(child);
+                            if (c == null) {
+                                throw new IllegalArgumentException("Bad type: " + tree);
+                            }
+                            pts.add(c);
+                        }
+                        yield FunctionType.functionType(rt, pts);
                     }
                     default -> null;
                 };
@@ -74,17 +90,31 @@ public final class CoreTypeFactory {
     public static final TypeElementFactory JAVA_TYPE_FACTORY = new TypeElementFactory() {
         @Override
         public TypeElement constructType(TypeDefinition tree) {
-            String name = tree.name();
-            int dimensions = tree.dimensions();
-            List<JavaType> typeArguments = new ArrayList<>(tree.typeArguments().size());
-            for (TypeDefinition child : tree.typeArguments()) {
+            String identifier = tree.identifier();
+            int dimensions = 0;
+            if (identifier.startsWith("[")) {
+                if (tree.arguments().size() != 1) {
+                    throw new IllegalArgumentException("Bad type: " + tree);
+                }
+                for (int i = 1; i < identifier.length(); i++) {
+                    if (identifier.charAt(i) != '[') {
+                        throw new IllegalArgumentException("Bad type: " + tree);
+                    }
+                }
+                dimensions = identifier.length();
+                tree = tree.arguments().getFirst();
+                identifier = tree.identifier();
+            }
+
+            List<JavaType> typeArguments = new ArrayList<>(tree.arguments().size());
+            for (TypeDefinition child : tree.arguments()) {
                 TypeElement t = JAVA_TYPE_FACTORY.constructType(child);
                 if (!(t instanceof JavaType a)) {
-                    throw new IllegalArgumentException();
+                    throw new IllegalArgumentException("Bad type: " + tree);
                 }
                 typeArguments.add(a);
             }
-            return new JavaTypeImpl(name, dimensions, typeArguments);
+            return new JavaTypeImpl(identifier, dimensions, typeArguments);
         }
     };
 

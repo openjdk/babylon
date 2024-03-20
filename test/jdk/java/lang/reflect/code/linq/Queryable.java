@@ -22,13 +22,13 @@
  */
 
 import java.lang.reflect.code.Op;
-import java.lang.reflect.code.descriptor.MethodDesc;
+import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.type.JavaType;
 import java.util.stream.Stream;
 
-import static java.lang.reflect.code.descriptor.MethodDesc.method;
-import static java.lang.reflect.code.descriptor.MethodTypeDesc.methodType;
+import static java.lang.reflect.code.type.MethodRef.method;
 import static java.lang.reflect.code.op.CoreOps.*;
+import static java.lang.reflect.code.type.FunctionType.functionType;
 import static java.lang.reflect.code.type.JavaType.type;
 
 public interface Queryable<T> {
@@ -51,7 +51,7 @@ public interface Queryable<T> {
     @SuppressWarnings("unchecked")
     default <R> Queryable<R> select(QuotableFunction<T, R> f) {
         LambdaOp l = (LambdaOp) f.quoted().op();
-        return (Queryable<R>) insertQuery((JavaType) l.funcDescriptor().returnType(), "select", l);
+        return (Queryable<R>) insertQuery((JavaType) l.invokableType().returnType(), "select", l);
     }
 
     private Queryable<?> insertQuery(JavaType elementType, String methodName, LambdaOp lambdaOp) {
@@ -59,12 +59,12 @@ public interface Queryable<T> {
         FuncOp queryExpression = expression();
         JavaType queryableType = type(Queryable.TYPE, elementType);
         FuncOp nextQueryExpression = func("query",
-                methodType(queryableType, queryExpression.funcDescriptor().parameters()))
+                functionType(queryableType, queryExpression.invokableType().parameterTypes()))
                 .body(b -> b.inline(queryExpression, b.parameters(), (block, query) -> {
                     Op.Result fi = block.op(lambdaOp);
 
-                    MethodDesc md = method(Queryable.TYPE, methodName,
-                            methodType(Queryable.TYPE, ((JavaType) lambdaOp.functionalInterface()).rawType()));
+                    MethodRef md = method(Queryable.TYPE, methodName,
+                            functionType(Queryable.TYPE, ((JavaType) lambdaOp.functionalInterface()).rawType()));
                     Op.Result queryable = block.op(invoke(queryableType, md, query, fi));
 
                     block.op(_return(queryable));
@@ -90,10 +90,10 @@ public interface Queryable<T> {
         FuncOp queryExpression = expression();
         JavaType queryResultType = JavaType.type(QueryResult.TYPE, resultType);
         FuncOp queryResultExpression = func("queryResult",
-                methodType(queryResultType, queryExpression.funcDescriptor().parameters()))
+                functionType(queryResultType, queryExpression.invokableType().parameterTypes()))
                 .body(b -> b.inline(queryExpression, b.parameters(), (block, query) -> {
-                    MethodDesc md = method(Queryable.TYPE, methodName,
-                            methodType(QueryResult.TYPE));
+                    MethodRef md = method(Queryable.TYPE, methodName,
+                            functionType(QueryResult.TYPE));
                     Op.Result queryResult = block.op(invoke(queryResultType, md, query));
 
                     block.op(_return(queryResult));

@@ -30,18 +30,13 @@ import java.lang.classfile.ClassFile;
 import java.lang.classfile.CodeBuilder;
 import java.lang.classfile.Label;
 import java.lang.classfile.components.ClassPrinter;
+import java.lang.constant.*;
 import java.lang.reflect.code.op.CoreOps.*;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.lang.classfile.CodeBuilder.BlockCodeBuilder;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
-import java.lang.constant.ClassDesc;
-import java.lang.constant.ConstantDesc;
-import java.lang.constant.ConstantDescs;
-import java.lang.constant.DirectMethodHandleDesc;
-import java.lang.constant.MethodHandleDesc;
 import java.lang.reflect.code.Block;
 import java.lang.reflect.code.Body;
 import java.lang.reflect.code.op.CoreOps;
@@ -51,8 +46,9 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.analysis.Liveness;
-import java.lang.reflect.code.descriptor.FieldDesc;
-import java.lang.reflect.code.descriptor.MethodDesc;
+import java.lang.reflect.code.type.FieldRef;
+import java.lang.reflect.code.type.MethodRef;
+import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.TypeElement;
 import java.util.ArrayDeque;
@@ -65,14 +61,26 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 
+/**
+ * Transformer of code models to bytecode.
+ */
 public final class BytecodeGenerator {
     private BytecodeGenerator() {
     }
 
-    public static MethodHandle generate(MethodHandles.Lookup l, CoreOps.FuncOp fop) {
-        byte[] classBytes = generateClassData(l, fop);
+    /**
+     * Transforms the invokable operation to bytecode encapsulated in a method of hidden class and exposed
+     * for invocation via a method handle.
+     *
+     * @param l the lookup
+     * @param iop the invokable operation to transform to bytecode
+     * @return the invoking method handle
+     * @param <O> the type of the invokable operation
+     */
+    public static <O extends Op & Op.Invokable> MethodHandle generate(MethodHandles.Lookup l, O iop) {
+        String name = iop instanceof FuncOp fop ? fop.funcName() : "m";
+        byte[] classBytes = generateClassData(l, name, iop);
 
         {
             print(classBytes);
@@ -95,8 +103,9 @@ public final class BytecodeGenerator {
         }
 
         try {
-            MethodType mt = fop.funcDescriptor().resolve(hcl);
-            return hcl.findStatic(hcl.lookupClass(), fop.funcName(), mt);
+            FunctionType ft = iop.invokableType();
+            MethodType mt = MethodRef.toNominalDescriptor(ft).resolveConstantDesc(hcl);
+            return hcl.findStatic(hcl.lookupClass(), name, mt);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
@@ -107,20 +116,48 @@ public final class BytecodeGenerator {
         ClassPrinter.toYaml(cm, ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES, System.out::print);
     }
 
-    public static byte[] generateClassData(MethodHandles.Lookup lookup, CoreOps.FuncOp fop) {
+    /**
+     * Transforms the function operation to bytecode encapsulated in a method of a class file.
+     * <p>
+     * The name of the method is the function operation's {@link FuncOp#funcName() function name}.
+     *
+     * @param lookup the lookup
+     * @param fop the function operation to transform to bytecode
+     * @return the class file bytes
+     */
+    public static byte[] generateClassData(MethodHandles.Lookup lookup, FuncOp fop) {
+        return generateClassData(lookup, fop.funcName(), fop);
+    }
+
+    /**
+     * Transforms the invokable operation to bytecode encapsulated in a method of a class file.
+     *
+     * @param lookup the lookup
+     * @param name the name to use for the method of the class file
+     * @param iop the invokable operation to transform to bytecode
+     * @return the class file bytes
+     * @param <O> the type of the invokable operation
+     */
+    public static <O extends Op & Op.Invokable> byte[] generateClassData(MethodHandles.Lookup lookup,
+                                                                         String name, O iop) {
+        if (!iop.capturedValues().isEmpty()) {
+            throw new UnsupportedOperationException("Operation captures values");
+        }
+
         String packageName = lookup.lookupClass().getPackageName();
         String className = packageName.isEmpty()
-                ? fop.funcName()
-                : packageName + "." + fop.funcName();
-        Liveness liveness = new Liveness(fop);
+                ? name
+                : packageName + "." + name;
+        Liveness liveness = new Liveness(iop);
+        MethodTypeDesc mtd = MethodRef.toNominalDescriptor(iop.invokableType());
         byte[] classBytes = ClassFile.of().build(ClassDesc.of(className), clb ->
                 clb.withMethodBody(
-                        fop.funcName(),
-                        fop.funcDescriptor().toNominalDescriptor(),
+                        name,
+                        mtd,
                         ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC,
                         cb -> cb.transforming(new BranchCompactor(), cob -> {
                             ConversionContext c = new ConversionContext(lookup, liveness, cob);
-                            generateBody(fop.body(), cob, c);
+                            generateBody(iop.body(), cob, c);
                         })));
         return classBytes;
     }
@@ -306,6 +343,17 @@ public final class BytecodeGenerator {
         }
     }
 
+    private static void storeInstruction(CodeBuilder cob, TypeKind tk, int slot) {
+        if (slot < 0) {
+            // Only pop results from stack if the value has no further use (no valid slot)
+            switch (tk.slotSize()) {
+                case 1 -> cob.pop();
+                case 2 -> cob.pop2();
+            }
+        } else {
+            cob.storeInstruction(tk, slot);
+        }
+    }
 
     private static void computeExceptionRegionMembership(Body body, CodeBuilder cob, ConversionContext c) {
         record ExceptionRegionWithBlocks(CoreOps.ExceptionRegionEnter ere, BitSet blocks) {
@@ -406,7 +454,7 @@ public final class BytecodeGenerator {
                 // Store in slot if used, otherwise pop
                 if (!ex.uses().isEmpty()) {
                     int slot = c.getSlot(ex);
-                    cob.storeInstruction(toTypeKind(ex.type()), slot);
+                    storeInstruction(cob, toTypeKind(ex.type()), slot);
                 } else {
                     cob.pop();
                 }
@@ -437,7 +485,7 @@ public final class BytecodeGenerator {
                         isLastOpResultOnStack = false;
                         // Use slot of variable result
                         int slot = c.assignSlot(op.result());
-                        cob.storeInstruction(toTypeKind(op.varType()), slot);
+                        storeInstruction(cob, toTypeKind(op.varType()), slot);
                         // Ignore result
                         rvt = null;
                     }
@@ -463,7 +511,7 @@ public final class BytecodeGenerator {
                         // Use slot of variable result
                         int slot = c.getSlot(op.operands().get(0));
                         CoreOps.VarOp vop = op.varOp();
-                        cob.storeInstruction(toTypeKind(vop.varType()), slot);
+                        storeInstruction(cob, toTypeKind(vop.varType()), slot);
                     }
                     case NegOp op -> {
                         processOperands(cob, c, op, isLastOpResultOnStack);
@@ -529,6 +577,30 @@ public final class BytecodeGenerator {
                             default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
                         }
                     }
+                    case AndOp op -> {
+                        processOperands(cob, c, op, isLastOpResultOnStack);
+                        switch (rvt) { //this can be moved to CodeBuilder::and(TypeKind)
+                            case IntType, BooleanType -> cob.iand();
+                            case LongType -> cob.land();
+                            default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
+                        }
+                    }
+                    case OrOp op -> {
+                        processOperands(cob, c, op, isLastOpResultOnStack);
+                        switch (rvt) { //this can be moved to CodeBuilder::or(TypeKind)
+                            case IntType, BooleanType -> cob.ior();
+                            case LongType -> cob.lor();
+                            default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
+                        }
+                    }
+                    case XorOp op -> {
+                        processOperands(cob, c, op, isLastOpResultOnStack);
+                        switch (rvt) { //this can be moved to CodeBuilder::xor(TypeKind)
+                            case IntType, BooleanType -> cob.ixor();
+                            case LongType -> cob.lxor();
+                            default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
+                        }
+                    }
                     case ArrayAccessOp.ArrayLoadOp op -> {
                         processOperands(cob, c, op, isLastOpResultOnStack);
                         cob.arrayLoadInstruction(rvt);
@@ -545,20 +617,20 @@ public final class BytecodeGenerator {
                     case BinaryTestOp op -> {
                         if (!isConditionForCondBrOp(op)) {
                             processOperands(cob, c, op, isLastOpResultOnStack);
-                            conditionalBranch(cob, op, CodeBuilder::iconst_1, CodeBuilder::iconst_0);
+                            cob.ifThenElse(prepareReverseCondition(cob, op), CodeBuilder::iconst_0, CodeBuilder::iconst_1);
                         } else {
                             // Processing is deferred to the CondBrOp, do not process the op result
                             rvt = null;
                         }
                     }
                     case NewOp op -> {
-                        TypeElement t_ = op.constructorDescriptor().returnType();
+                        TypeElement t_ = op.constructorType().returnType();
                         JavaType t = (JavaType) t_;
                         switch (t.dimensions()) {
                             case 0 -> {
                                 if (isLastOpResultOnStack) {
                                     int slot = c.assignSlot(oprOnStack);
-                                    cob.storeInstruction(rvt, slot);
+                                    storeInstruction(cob, rvt, slot);
                                     isLastOpResultOnStack = false;
                                     oprOnStack = null;
                                 }
@@ -568,7 +640,8 @@ public final class BytecodeGenerator {
                                 cob.invokespecial(
                                         ((JavaType) op.resultType()).toNominalDescriptor(),
                                         ConstantDescs.INIT_NAME,
-                                        op.constructorDescriptor().toNominalDescriptor().changeReturnType(ConstantDescs.CD_void));
+                                        MethodRef.toNominalDescriptor(op.constructorType())
+                                                .changeReturnType(ConstantDescs.CD_void));
                             }
                             case 1 -> {
                                 processOperands(cob, c, op, isLastOpResultOnStack);
@@ -603,7 +676,7 @@ public final class BytecodeGenerator {
                                 descKind = DirectMethodHandleDesc.Kind.STATIC;
                             }
                         }
-                        MethodDesc md = op.invokeDescriptor();
+                        MethodRef md = op.invokeDescriptor();
                         cob.invokeInstruction(
                                 switch (descKind) {
                                     case STATIC, INTERFACE_STATIC   -> Opcode.INVOKESTATIC;
@@ -611,11 +684,11 @@ public final class BytecodeGenerator {
                                     case INTERFACE_VIRTUAL          -> Opcode.INVOKEINTERFACE;
                                     case SPECIAL, INTERFACE_SPECIAL -> Opcode.INVOKESPECIAL;
                                     default ->
-                                        throw new IllegalStateException("Bad method descriptor resolution: " + op.descriptor() + " > " + op.invokeDescriptor());
+                                        throw new IllegalStateException("Bad method descriptor resolution: " + op.opType() + " > " + op.invokeDescriptor());
                                 },
                                 ((JavaType) md.refType()).toNominalDescriptor(),
                                 md.name(),
-                                md.type().toNominalDescriptor(),
+                                MethodRef.toNominalDescriptor(md.type()),
                                 switch (descKind) {
                                     case INTERFACE_STATIC, INTERFACE_VIRTUAL, INTERFACE_SPECIAL -> true;
                                     default -> false;
@@ -627,7 +700,7 @@ public final class BytecodeGenerator {
                     }
                     case FieldAccessOp.FieldLoadOp op -> {
                         processOperands(cob, c, op, isLastOpResultOnStack);
-                        FieldDesc fd = op.fieldDescriptor();
+                        FieldRef fd = op.fieldDescriptor();
                         if (op.operands().isEmpty()) {
                             cob.getstatic(
                                     ((JavaType) fd.refType()).toNominalDescriptor(),
@@ -643,7 +716,7 @@ public final class BytecodeGenerator {
                     case FieldAccessOp.FieldStoreOp op -> {
                         processOperands(cob, c, op, isLastOpResultOnStack);
                         isLastOpResultOnStack = false;
-                        FieldDesc fd = op.fieldDescriptor();
+                        FieldRef fd = op.fieldDescriptor();
                         if (op.operands().size() == 1) {
                             cob.putstatic(
                                     ((JavaType) fd.refType()).toNominalDescriptor(),
@@ -675,7 +748,7 @@ public final class BytecodeGenerator {
                         isLastOpResultOnStack = false;
                         oprOnStack = null;
                         int slot = c.assignSlot(o.result());
-                        cob.storeInstruction(rvt, slot);
+                        storeInstruction(cob, rvt, slot);
                     } else {
                         isLastOpResultOnStack = true;
                         oprOnStack = o.result();
@@ -706,26 +779,10 @@ public final class BytecodeGenerator {
                     if (getConditionForCondBrOp(op) instanceof CoreOps.BinaryTestOp btop) {
                         // Processing of the BinaryTestOp was deferred, so it can be merged with CondBrOp
                         processOperands(cob, c, btop, isLastOpResultOnStack);
-                        conditionalBranch(cob, btop,
-                                trueBuilder -> {
-                                    assignBlockArguments(btop, op.trueBranch(), trueBuilder, c);
-                                    trueBuilder.goto_(c.getLabel(op.trueBranch().targetBlock()));
-                                },
-                                falseBuilder -> {
-                                    assignBlockArguments(btop, op.falseBranch(), falseBuilder, c);
-                                    falseBuilder.goto_(c.getLabel(op.falseBranch().targetBlock()));
-                                });
+                        conditionalBranch(cob, c, btop, op.trueBranch(), op.falseBranch());
                     } else {
                         processOperands(cob, c, op, isLastOpResultOnStack);
-                        cob.ifThenElse(
-                                trueBuilder -> {
-                                    assignBlockArguments(op, op.trueBranch(), trueBuilder, c);
-                                    trueBuilder.goto_(c.getLabel(op.trueBranch().targetBlock()));
-                                },
-                                falseBuilder -> {
-                                    assignBlockArguments(op, op.falseBranch(), falseBuilder, c);
-                                    falseBuilder.goto_(c.getLabel(op.falseBranch().targetBlock()));
-                                });
+                        conditionalBranch(cob, c, Opcode.IFEQ, op, op.trueBranch(), op.falseBranch());
                     }
                 }
                 case ExceptionRegionEnter op -> {
@@ -868,13 +925,14 @@ public final class BytecodeGenerator {
             // The value and slot are still preserved in the live set,
             // so slots can still be queried, but no slots should be assigned
             // to new values until it is safe to do so
-            Integer slot = liveSet.get(v);
-            if (slot != null) {
-                freeSlots.set(slot);
-                if (slotsPerValue(v) == 2) {
-                    freeSlots.set(slot + 1);
-                }
-            }
+//@@@ BytecodeLift does not handle slot overrides correctly yet
+//            Integer slot = liveSet.get(v);
+//            if (slot != null) {
+//                freeSlots.set(slot);
+//                if (slotsPerValue(v) == 2) {
+//                    freeSlots.set(slot + 1);
+//                }
+//            }
         }
 
         static int slotsPerValue(Value x) {
@@ -908,20 +966,39 @@ public final class BytecodeGenerator {
         }
     }
 
-    private static void conditionalBranch(CodeBuilder cob, BinaryTestOp op,
-                                          Consumer<BlockCodeBuilder> trueBlock, Consumer<BlockCodeBuilder> falseBlock) {
+    private static void conditionalBranch(CodeBuilder cob, ConversionContext c, BinaryTestOp op,
+                                          Block.Reference trueBlock, Block.Reference falseBlock) {
+        conditionalBranch(cob, c, prepareReverseCondition(cob, op), op, trueBlock, falseBlock);
+    }
+
+    private static void conditionalBranch(CodeBuilder cob, ConversionContext c, Opcode reverseOpcode, Op op,
+                                          Block.Reference trueBlock, Block.Reference falseBlock) {
+        if (!needToAssignBlockArguments(falseBlock.targetBlock(), c)) {
+            cob.branchInstruction(reverseOpcode, c.getLabel(falseBlock.targetBlock()));
+        } else {
+            cob.ifThen(reverseOpcode,
+                bb -> {
+                    assignBlockArguments(op, falseBlock, bb, c);
+                    bb.goto_(c.getLabel(falseBlock.targetBlock()));
+                });
+        }
+        assignBlockArguments(op, trueBlock, cob, c);
+        cob.goto_(c.getLabel(trueBlock.targetBlock()));
+    }
+
+    private static Opcode prepareReverseCondition(CodeBuilder cob, BinaryTestOp op) {
         TypeKind vt = toTypeKind(op.operands().get(0).type());
         if (vt == TypeKind.IntType) {
-            cob.ifThenElse(switch (op) {
-                case EqOp _ -> Opcode.IF_ICMPEQ;
-                case NeqOp _ -> Opcode.IF_ICMPNE;
-                case GtOp _ -> Opcode.IF_ICMPGT;
-                case GeOp _ -> Opcode.IF_ICMPGE;
-                case LtOp _ -> Opcode.IF_ICMPLT;
-                case LeOp _ -> Opcode.IF_ICMPLE;
+            return switch (op) {
+                case EqOp _ -> Opcode.IF_ICMPNE;
+                case NeqOp _ -> Opcode.IF_ICMPEQ;
+                case GtOp _ -> Opcode.IF_ICMPLE;
+                case GeOp _ -> Opcode.IF_ICMPLT;
+                case LtOp _ -> Opcode.IF_ICMPGE;
+                case LeOp _ -> Opcode.IF_ICMPGT;
                 default ->
                     throw new UnsupportedOperationException(op.opName());
-            }, trueBlock, falseBlock);
+            };
         } else {
             switch (vt) {
                 case FloatType -> cob.fcmpg(); // FCMPL?
@@ -930,17 +1007,28 @@ public final class BytecodeGenerator {
                 default ->
                     throw new UnsupportedOperationException(op.opName() + " on " + vt);
             }
-            cob.ifThenElse(switch (op) {
-                case EqOp _ -> Opcode.IFEQ;
-                case NeqOp _ -> Opcode.IFNE;
-                case GtOp _ -> Opcode.IFGT;
-                case GeOp _ -> Opcode.IFGE;
-                case LtOp _ -> Opcode.IFLT;
-                case LeOp _ -> Opcode.IFLE;
+            return switch (op) {
+                case EqOp _ -> Opcode.IFNE;
+                case NeqOp _ -> Opcode.IFEQ;
+                case GtOp _ -> Opcode.IFLE;
+                case GeOp _ -> Opcode.IFLT;
+                case LtOp _ -> Opcode.IFGE;
+                case LeOp _ -> Opcode.IFGT;
                 default ->
                     throw new UnsupportedOperationException(op.opName());
-            }, trueBlock, falseBlock);
+            };
         }
+    }
+
+    private static boolean needToAssignBlockArguments(Block b, ConversionContext c) {
+        c.transitionLiveSlotSetTo(b);
+        LiveSlotSet liveSlots = c.liveSlotSet(b);
+        for (Block.Parameter barg : b.parameters()) {
+            if (liveSlots.getOrAssignSlot(barg) >= 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void assignBlockArguments(Op op, Block.Reference s, CodeBuilder cob, ConversionContext c) {
@@ -955,52 +1043,34 @@ public final class BytecodeGenerator {
         // First push successor arguments on the stack, then pop and assign
         // so as not to overwrite slots that are reused slots at different argument positions
 
-        // Push successor values on the stack
+        LiveSlotSet liveSlots = c.liveSlotSet(s.targetBlock());
         for (int i = 0; i < bargs.size(); i++) {
             Block.Parameter barg = bargs.get(i);
-            int bslot = c.liveSlotSet(s.targetBlock()).getOrAssignSlot(barg);
-
-            Value value = sargs.get(i);
-            if (value instanceof Op.Result or &&
-                    or.op() instanceof CoreOps.ConstantOp constantOp &&
-                    !constantOp.resultType().equals(JavaType.J_L_CLASS)) {
-                cob.constantInstruction(fromValue(constantOp.value()));
-            } else {
-                int sslot = c.getSlot(value);
-
-                // Assignment only required if slots differ
-                if (sslot != bslot) {
-                    TypeKind vt = toTypeKind(barg.type());
-                    cob.loadInstruction(vt, sslot);
-                }
-            }
-        }
-
-        // Pop successor arguments on the stack assigning to block argument slots if necessary
-        for (int i = bargs.size() - 1; i >= 0; i--) {
-            Block.Parameter barg = bargs.get(i);
-            int bslot = c.liveSlotSet(s.targetBlock()).getOrAssignSlot(barg);
-
-            Value value = sargs.get(i);
-            if (value instanceof Op.Result or &&
-                    or.op() instanceof CoreOps.ConstantOp constantOp &&
-                    !constantOp.resultType().equals(JavaType.J_L_CLASS)) {
-                TypeKind vt = toTypeKind(barg.type());
-                cob.storeInstruction(vt, bslot);
-            } else {
-                int sslot = c.getSlot(value);
-
-                // Assignment only required if slots differ
-                if (sslot != bslot) {
+            int bslot = liveSlots.getOrAssignSlot(barg);
+            if (bslot >= 0) {
+                Value value = sargs.get(i);
+                if (value instanceof Op.Result or &&
+                        or.op() instanceof CoreOps.ConstantOp constantOp &&
+                        !constantOp.resultType().equals(JavaType.J_L_CLASS)) {
+                    cob.constantInstruction(fromValue(constantOp.value()));
                     TypeKind vt = toTypeKind(barg.type());
                     cob.storeInstruction(vt, bslot);
+                } else {
+                    int sslot = c.getSlot(value);
+
+                    // Assignment only required if slots differ
+                    if (sslot != bslot) {
+                        TypeKind vt = toTypeKind(barg.type());
+                        cob.loadInstruction(vt, sslot);
+                        cob.storeInstruction(vt, bslot);
+                    }
                 }
             }
         }
     }
 
-    static DirectMethodHandleDesc resolveToMethodHandleDesc(MethodHandles.Lookup l, MethodDesc d) throws ReflectiveOperationException {
-        MethodHandle mh = d.resolve(l);
+    static DirectMethodHandleDesc resolveToMethodHandleDesc(MethodHandles.Lookup l, MethodRef d) throws ReflectiveOperationException {
+        MethodHandle mh = d.resolveToHandle(l);
 
         if (mh.describeConstable().isEmpty()) {
             throw new NoSuchMethodException();

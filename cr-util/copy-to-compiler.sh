@@ -29,8 +29,6 @@
 base=java/lang/reflect/code
 packages="
   $base \
-  $base/descriptor \
-  $base/descriptor/impl \
   $base/writer \
   $base/op \
   $base/type \

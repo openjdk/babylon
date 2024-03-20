@@ -33,7 +33,7 @@ import java.lang.reflect.code.Block;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Quoted;
-import java.lang.reflect.code.descriptor.MethodDesc;
+import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.code.type.JavaType;
@@ -45,14 +45,14 @@ import static java.lang.reflect.code.op.CoreOps.closureCall;
 import static java.lang.reflect.code.op.CoreOps.constant;
 import static java.lang.reflect.code.op.CoreOps.func;
 import static java.lang.reflect.code.op.CoreOps.quoted;
-import static java.lang.reflect.code.descriptor.MethodTypeDesc.methodType;
+import static java.lang.reflect.code.type.FunctionType.functionType;
 import static java.lang.reflect.code.type.JavaType.INT;
 import static java.lang.reflect.code.type.JavaType.type;
 
 public class TestClosureOps {
 
     static class Builder {
-        static final MethodDesc ACCEPT_METHOD = MethodDesc.method(type(TestClosureOps.Builder.class), "accept",
+        static final MethodRef ACCEPT_METHOD = MethodRef.method(type(TestClosureOps.Builder.class), "accept",
                 INT, CoreOps.QuotedOp.QUOTED_TYPE);
 
         static int accept(Quoted c) {
@@ -67,15 +67,15 @@ public class TestClosureOps {
 
     @Test
     public void testQuotedWithCapture() {
-        // functional descriptor = (int)int
-        CoreOps.FuncOp f = func("f", methodType(int.class, int.class))
+        // functional type = (int)int
+        CoreOps.FuncOp f = func("f", functionType(INT, INT))
                 .body(block -> {
                     Block.Parameter i = block.parameters().get(0);
 
-                    // functional descriptor = (int)int
+                    // functional type = (int)int
                     // op descriptor = ()Quoted<ClosureOp>
                     CoreOps.QuotedOp qop = quoted(block.parentBody(), qblock -> {
-                        return closure(qblock.parentBody(), methodType(int.class, int.class))
+                        return closure(qblock.parentBody(), functionType(INT, INT))
                                 .body(cblock -> {
                                     Block.Parameter ci = cblock.parameters().get(0);
 
@@ -99,15 +99,15 @@ public class TestClosureOps {
 
     @Test
     public void testWithCapture() {
-        // functional descriptor = (int)int
-        CoreOps.FuncOp f = func("f", methodType(int.class, int.class))
+        // functional type = (int)int
+        CoreOps.FuncOp f = func("f", functionType(INT, INT))
                 .body(block -> {
                     Block.Parameter i = block.parameters().get(0);
 
-                    // functional descriptor = (int)int
+                    // functional type = (int)int
                     //   captures i
                     CoreOps.ClosureOp closure = CoreOps.closure(block.parentBody(),
-                            methodType(int.class, int.class))
+                                    functionType(INT, INT))
                             .body(cblock -> {
                                 Block.Parameter ci = cblock.parameters().get(0);
 
@@ -135,6 +135,6 @@ public class TestClosureOps {
         Assert.assertTrue(top instanceof CoreOps.FuncOp);
 
         CoreOps.FuncOp fop = (CoreOps.FuncOp) top;
-        Assert.assertEquals(JavaType.type(Quoted.class, CoreOps.ClosureOp.class), fop.funcDescriptor().returnType());
+        Assert.assertEquals(JavaType.type(Quoted.class, CoreOps.ClosureOp.class), fop.invokableType().returnType());
     }
 }

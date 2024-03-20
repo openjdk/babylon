@@ -24,9 +24,9 @@
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.type.JavaType;
 
-import static java.lang.reflect.code.descriptor.MethodTypeDesc.methodType;
 import static java.lang.reflect.code.op.CoreOps._return;
 import static java.lang.reflect.code.op.CoreOps.func;
+import static java.lang.reflect.code.type.FunctionType.functionType;
 import static java.lang.reflect.code.type.JavaType.type;
 
 public final class TestQueryProvider extends QueryProvider {
@@ -59,8 +59,8 @@ public final class TestQueryProvider extends QueryProvider {
 
             JavaType queryableType = type(Queryable.TYPE, elementType);
             // Initial expression is an identity function
-            var funDescriptor = methodType(queryableType, queryableType);
-            this.expression = func("query", funDescriptor)
+            var funType = functionType(queryableType, queryableType);
+            this.expression = func("query", funType)
                     .body(b -> b.op(_return(b.parameters().get(0))));
         }
 

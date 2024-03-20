@@ -36,7 +36,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
- * A writer of code models (operations) to the textual form.
+ * A writer of code models to the textual form.
  * <p>
  * A code model in textual form may be parsed back into the runtime form by parsing it.
  */
@@ -326,7 +326,7 @@ public final class OpWriter {
         write("(");
         writeCommaSeparatedList(eb.parameters(), this::writeValueDeclaration);
         write(")");
-        write(body.descriptor().returnType().toString());
+        writeType(body.bodyType().returnType());
         write(" -> {\n");
         w.in();
         for (Block b : body.blocks()) {
@@ -363,12 +363,8 @@ public final class OpWriter {
     }
 
     void writeBlockName(Block b) {
-        writeBlockName(namer.apply(b));
-    }
-
-    void writeBlockName(String s) {
         write("^");
-        write(s);
+        write(namer.apply(b));
     }
 
     void writeValueUse(Value v) {
@@ -380,7 +376,7 @@ public final class OpWriter {
         write("%");
         write(namer.apply(v));
         write(" : ");
-        write(v.type().toString());
+        writeType(v.type());
     }
 
     <T> void writeSpaceSeparatedList(Iterable<T> l, Consumer<T> c) {
@@ -400,6 +396,10 @@ public final class OpWriter {
             c.accept(t);
             first = false;
         }
+    }
+
+    void writeType(TypeElement te) {
+        write(te.toTypeDefinition().toString());
     }
 
     void write(String s) {

@@ -27,6 +27,8 @@ package java.lang.reflect.code;
 
 import java.util.List;
 import java.util.function.BiFunction;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 /**
  * A code element, one of {@link Body body}, {@link Block block}, or {@link Op operation}.
@@ -43,6 +45,27 @@ public sealed interface CodeElement<
         C extends CodeElement<C, ?>>
         extends CodeItem
         permits Body, Block, Op {
+
+    /**
+     * {@return a stream of code elements sorted topologically in pre-order traversal.}
+     */
+    // Code copied into the compiler cannot depend on new gatherer API
+    default Stream<CodeElement<?, ?>> elements() {
+/*__throw new UnsupportedOperationException();__*/        return Stream.of(Void.class).gather(() -> (_, _, downstream) -> traversePreOrder(downstream::push));
+    }
+
+//    private boolean traversePreOrder(Gatherer.Downstream<? super CodeElement<?, ?>> v) {
+    private boolean traversePreOrder(Predicate<? super CodeElement<?, ?>> v) {
+        if (!v.test(this)) {
+            return false;
+        }
+        for (C c : children()) {
+            if (!((CodeElement<?, ?>) c).traversePreOrder(v)) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     /**
      * Traverses this code element and any descendant code elements.
@@ -101,6 +124,16 @@ public sealed interface CodeElement<
                 ? v.apply(t, f)
                 : t;
     }
+
+    /**
+     * Returns the parent code element.
+     * <p>
+     * If this element is an instance of {@code Op} then the parent may be {@code null}
+     * if operation is not assigned to a block.
+     *
+     * @return the parent code element
+     */
+    CodeElement<?, E> parent();
 
     /**
      * Returns the child code elements, as an unmodifiable list.

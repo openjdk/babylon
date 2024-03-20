@@ -25,10 +25,11 @@
 
 package java.lang.reflect.code.type.impl;
 
+import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.type.JavaType;
+import java.lang.reflect.code.type.TypeDefinition;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public final class JavaTypeImpl implements JavaType {
     // Fully qualified name
@@ -53,15 +54,21 @@ public final class JavaTypeImpl implements JavaType {
     }
 
     @Override
-    public String toString() {
-        if (dims == 0 && typeArguments.isEmpty()) {
-            return type;
-        } else if (typeArguments.isEmpty()) {
-            return type + "[]".repeat(dims);
-        } else {
-            String params = typeArguments.stream().map(JavaType::toString).collect(Collectors.joining(", ", "<", ">"));
-            return type + params + "[]".repeat(dims);
+    public TypeDefinition toTypeDefinition() {
+        List<TypeDefinition> args = typeArguments.stream()
+                .map(TypeElement::toTypeDefinition)
+                .toList();
+
+        TypeDefinition td = new TypeDefinition(type, args);
+        if (dims != 0) {
+            td = new TypeDefinition("[".repeat(dims), List.of(td));
         }
+        return td;
+    }
+
+    @Override
+    public String toString() {
+        return toTypeDefinition().toString();
     }
 
     @Override

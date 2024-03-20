@@ -29,7 +29,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.lang.reflect.code.descriptor.MethodTypeDesc;
+import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.writer.OpWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -38,8 +38,8 @@ import java.util.function.BiFunction;
 /**
  * An operation modelling a unit of functionality.
  * <p>
- * An operation might model the addition of two 32-integers, or a Java method call.
- * Alternatively an operation may model something more complex like a method bodies, lambda bodies, or
+ * An operation might model the addition of two 32-bit integers, or a Java method call.
+ * Alternatively an operation may model something more complex like method bodies, lambda bodies, or
  * try/catch/finally statements. In this case such an operation will contain one or more bodies modelling
  * the nested structure.
  */
@@ -78,15 +78,28 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      */
     public interface Invokable extends Nested {
         /**
-         * @return the body of the invokable operation.
+         * {@return the body of the invokable operation.}
          */
         Body body();
 
         /**
-         * @return the function descriptor describing the input parameter types and return type.
+         * {@return the function type describing the invokable operation's parameter types and return type.}
          */
-        // @@@ Replace with FunctionType
-        MethodTypeDesc funcDescriptor();
+        FunctionType invokableType();
+
+        /**
+         * {@return the entry block parameters of this operation's body}
+         */
+        default List<Block.Parameter> parameters() {
+            return body().entryBlock().parameters();
+        }
+
+        /**
+         * {@return the captured values}
+         */
+        default List<Value> capturedValues() {
+            return List.of();
+        }
     }
 
     /**
@@ -231,12 +244,13 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Returns the operation's result, otherwise {@code null} if the operation is not assigned to a block.
+     * Returns this operation's parent block, otherwise {@code null} if the operation is not assigned to a block.
      *
-     * @return the operation's result, or {@code null} if not assigned to a block.
+     * @return operation's parent block, or {@code null} if the operation is not assigned to a block.
      */
-    public final Result result() {
-        return result;
+    @Override
+    public final Block parent() {
+        return parentBlock();
     }
 
     /**
@@ -255,6 +269,29 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
 
         return result.block;
     }
+
+    @Override
+    public final List<Body> children() {
+        return bodies();
+    }
+
+    /**
+     * {@return the operation's bodies, as an unmodifiable list}
+     * @implSpec this implementation returns an unmodifiable empty list.
+     */
+    public List<Body> bodies() {
+        return List.of();
+    }
+
+    /**
+     * Returns the operation's result, otherwise {@code null} if the operation is not assigned to a block.
+     *
+     * @return the operation's result, or {@code null} if not assigned to a block.
+     */
+    public final Result result() {
+        return result;
+    }
+
 
     /**
      * Returns this operation's nearest ancestor body (the parent body of this operation's parent block),
@@ -317,30 +354,16 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     public abstract TypeElement resultType();
 
     /**
-     * Returns the operation's descriptor.
+     * Returns the operation's function type.
      * <p>
-     * The descriptor's result type is the operation's return type and the descriptor's parameter types are the
+     * The function type's result type is the operation's result type and the function type's parameter types are the
      * operation's operand types, in order.
      *
-     * @return the descriptor
+     * @return the function type
      */
-    // @@@ Replace with FunctionType
-    public MethodTypeDesc descriptor() {
+    public FunctionType opType() {
         List<TypeElement> operandTypes = operands.stream().map(Value::type).toList();
-        return MethodTypeDesc.methodType(resultType(), operandTypes);
-    }
-
-    /**
-     * {@return the operation's bodies, as an unmodifiable list}
-     * @implSpec this implementation returns an unmodifiable empty list.
-     */
-    public List<Body> bodies() {
-        return List.of();
-    }
-
-    @Override
-    public final List<Body> children() {
-        return bodies();
+        return FunctionType.functionType(resultType(), operandTypes);
     }
 
     /**
