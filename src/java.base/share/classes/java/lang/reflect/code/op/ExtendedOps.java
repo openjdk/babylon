@@ -2815,12 +2815,12 @@ public class ExtendedOps {
 
             List<Value> expressions = new ArrayList<>();
             for (int i = 0; i < expressions().size(); i++) {
-                Block.Builder bb = builders.get(i);
-                int ci = i;
-                bb.transformBody(expressions().get(i), List.of(), opT.andThen((block, op) -> {
+                Block.Builder current = builders.get(i);
+                Block.Builder next = builders.get(i + 1);
+                current.transformBody(expressions().get(i), List.of(), opT.andThen((block, op) -> {
                     if (op instanceof YieldOp yop) {
                         expressions.add(block.context().getValue(yop.yieldValue()));
-                        block.op(branch(builders.get(ci + 1).successor()));
+                        block.op(branch(next.successor()));
                     } else if (op instanceof Lowerable lop) {
                         block = lop.lower(block, opT);
                     } else {
