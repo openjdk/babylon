@@ -25,45 +25,29 @@ import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.descriptor.*;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.type.FieldRef;
+import java.lang.reflect.code.type.MethodRef;
+import java.lang.reflect.code.type.RecordTypeRef;
+import java.lang.runtime.CodeReflection;
+import java.util.Optional;
 
 /*
  * @test
- * @run testng TestDescriptors
+ * @run testng TestReferences
  */
 
-public class TestDescriptors {
+public class TestReferences {
 
     @DataProvider
-    public Object[][] methodTypeDescriptors() {
-        return new Object[][]{
-                {"()boolean", "()Z"},
-                {"()void", "()V"},
-                {"(int)int", "(I)I"},
-                {"(int, int)int", "(II)I"},
-                {"(java.lang.String)int", "(Ljava/lang/String;)I"},
-                {"(java.lang.String, int)int", "(Ljava/lang/String;I)I"},
-                {"(int, java.lang.String)int", "(ILjava/lang/String;)I"},
-                {"(int, java.lang.String)java.lang.String", "(ILjava/lang/String;)Ljava/lang/String;"},
-                {"(byte, short, int, long)boolean", "(BSIJ)Z"},
-                {"(Func<String, Number>, Entry<List<String>, val>, int, long)void", "(LFunc;LEntry;IJ)V"},
-        };
-    }
-
-    @Test(dataProvider = "methodTypeDescriptors")
-    public void testMethodTypeDescriptor(String mtds, String bcd) {
-        MethodTypeDesc mtd = MethodTypeDesc.ofString(mtds);
-        Assert.assertEquals(mtd.toString(), mtds);
-        Assert.assertEquals(mtd.toNominalDescriptorString(), bcd);
-        Assert.assertEquals(mtd.erase(), MethodTypeDesc.ofNominalDescriptorString(bcd));
-    }
-
-    @DataProvider
-    public Object[][] methodDescriptors() {
+    public Object[][] methodRefs() {
         return new Object[][]{
                 {"a::b()void", "a", "b"},
                 {"a.b::c(int)int", "a.b", "c"},
                 {"a.b.c::d(int, int)int", "a.b.c", "d"},
+                {"a::b(Func<String, Number>, Entry<List<String>, val>, int, long)void", "a", "b"},
                 {"java.io.PrintStream::println(java.lang.String)void", "java.io.PrintStream", "println"},
                 {"MethodReferenceTest$A::m(java.lang.Object)java.lang.Object", "MethodReferenceTest$A", "m"},
                 {"MethodReferenceTest$X::<new>(int)MethodReferenceTest$X", "MethodReferenceTest$X", "<new>"},
@@ -71,17 +55,17 @@ public class TestDescriptors {
         };
     }
 
-    @Test(dataProvider = "methodDescriptors")
-    public void testMethodDescriptor(String mds, String refType, String name) {
-        MethodDesc md = MethodDesc.ofString(mds);
-        Assert.assertEquals(md.toString(), mds);
-        Assert.assertEquals(md.refType().toString(), refType);
-        Assert.assertEquals(md.name(), name);
+    @Test(dataProvider = "methodRefs")
+    public void testMethodRef(String mds, String refType, String name) {
+        MethodRef mr = MethodRef.ofString(mds);
+        Assert.assertEquals(mr.toString(), mds);
+        Assert.assertEquals(mr.refType().toString(), refType);
+        Assert.assertEquals(mr.name(), name);
     }
 
 
     @DataProvider
-    public Object[][] fieldDescriptors() {
+    public Object[][] fieldRefs() {
         return new Object[][]{
                 {"a.b::c()int", "a.b", "c", "int"},
                 {"a.b.c::d()int", "a.b.c", "d", "int"},
@@ -89,18 +73,18 @@ public class TestDescriptors {
         };
     }
 
-    @Test(dataProvider = "fieldDescriptors")
-    public void testFieldDescriptor(String fds, String refType, String name, String type) {
-        FieldDesc fd = FieldDesc.ofString(fds);
-        Assert.assertEquals(fd.toString(), fds);
-        Assert.assertEquals(fd.refType().toString(), refType);
-        Assert.assertEquals(fd.name(), name);
-        Assert.assertEquals(fd.type().toString(), type);
+    @Test(dataProvider = "fieldRefs")
+    public void testFieldRef(String fds, String refType, String name, String type) {
+        FieldRef fr = FieldRef.ofString(fds);
+        Assert.assertEquals(fr.toString(), fds);
+        Assert.assertEquals(fr.refType().toString(), refType);
+        Assert.assertEquals(fr.name(), name);
+        Assert.assertEquals(fr.type().toString(), type);
     }
 
 
     @DataProvider
-    public Object[][] recordTypeDescriptors() {
+    public Object[][] recordTypeRefs() {
         return new Object[][]{
                 {"()A"},
                 {"(B b)A"},
@@ -109,10 +93,20 @@ public class TestDescriptors {
         };
     }
 
-    @Test(dataProvider = "recordTypeDescriptors")
-    public void testRecordTypeDescriptor(String rtds) {
-        RecordTypeDesc mtd = RecordTypeDesc.ofString(rtds);
-        Assert.assertEquals(mtd.toString(), rtds);
+    @Test(dataProvider = "recordTypeRefs")
+    public void testRecordTypeRef(String rtds) {
+        RecordTypeRef rtr = RecordTypeRef.ofString(rtds);
+        Assert.assertEquals(rtr.toString(), rtds);
     }
 
+
+    @CodeReflection
+    static void x() {}
+
+    @Test
+    public void testAccessCodeModel() throws ReflectiveOperationException {
+        MethodRef xr = MethodRef.method(TestReferences.class, "x", void.class);
+        Optional<CoreOps.FuncOp> m = xr.codeModel(MethodHandles.lookup());
+        Assert.assertTrue(m.isPresent());
+    }
 }

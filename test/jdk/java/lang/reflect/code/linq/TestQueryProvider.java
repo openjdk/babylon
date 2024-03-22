@@ -59,8 +59,8 @@ public final class TestQueryProvider extends QueryProvider {
 
             JavaType queryableType = type(Queryable.TYPE, elementType);
             // Initial expression is an identity function
-            var funDescriptor = functionType(queryableType, queryableType);
-            this.expression = func("query", funDescriptor)
+            var funType = functionType(queryableType, queryableType);
+            this.expression = func("query", funType)
                     .body(b -> b.op(_return(b.parameters().get(0))));
         }
 

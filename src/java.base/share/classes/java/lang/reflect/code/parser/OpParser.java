@@ -47,7 +47,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * A parser of serialized code models and descriptors from their textual form.
+ * A parser of serialized code models from their textual form.
  * <p>
  * The syntactic grammar of a code mode is specified in the grammar notation, and is a subset of the grammar,
  * specified by the JLS, see section 2.4. (Except that we cannot express non-terminal symbols in italic type.)
@@ -260,7 +260,7 @@ public final class OpParser {
 
     static Body.Builder nodeToBody(BodyNode n, Context c, Body.Builder ancestorBody) {
         Body.Builder body = Body.Builder.of(ancestorBody,
-                // Create descriptor with just the return type and add parameters afterward
+                // Create function type with just the return type and add parameters afterward
                 FunctionType.functionType(c.typeFactory.constructType(n.rtype)));
         Block.Builder eb = body.entryBlock();
 

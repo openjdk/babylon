@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024 Intel Corporation. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,50 +23,54 @@
  * questions.
  */
 
-package java.lang.reflect.code.descriptor.impl;
+package intel.code.spirv;
 
-import java.lang.reflect.code.descriptor.MethodDesc;
-import java.lang.reflect.code.descriptor.RecordTypeDesc;
 import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.type.TypeDefinition;
+import java.util.Objects;
 import java.util.List;
 
-import static java.util.stream.Collectors.joining;
+public final class PointerType extends SpirvType {
+    static final String NAME = "spirv.pointer";
+    private final TypeElement referentType;
+    private final TypeElement storageType;
 
-public final class RecordTypeDescImpl implements RecordTypeDesc {
-    final TypeElement recordType;
-    final List<ComponentDesc> components;
+    public PointerType(TypeElement referentType, TypeElement storageType)
+    {
+        this.referentType = referentType;
+        this.storageType = storageType;
+    }
 
-    public RecordTypeDescImpl(TypeElement recordType, List<ComponentDesc> components) {
-        this.recordType = recordType;
-        this.components = List.copyOf(components);
+    public TypeElement referentType()
+    {
+        return referentType;
+    }
+
+    public TypeElement storageType()
+    {
+        return storageType;
     }
 
     @Override
-    public TypeElement recordType() {
-        return recordType;
+    public boolean equals(Object obj)
+    {
+        if (obj == null || obj.getClass() != PointerType.class) return false;
+        PointerType pt = (PointerType)obj;
+        return pt.referentType().equals(referentType) && pt.storageType.equals(storageType);
     }
 
     @Override
-    public List<ComponentDesc> components() {
-        return components;
+    public int hashCode() {
+        return Objects.hash(referentType, storageType);
     }
 
     @Override
-    public MethodDesc methodForComponent(int i) {
-        if (i < 0 || i >= components.size()) {
-            throw new IndexOutOfBoundsException();
-        }
-
-        ComponentDesc c = components.get(i);
-        return MethodDesc.method(recordType, c.name(), c.type());
+    public TypeDefinition toTypeDefinition() {
+        return new TypeDefinition(NAME, List.of(referentType.toTypeDefinition(), storageType.toTypeDefinition()));
     }
 
     @Override
     public String toString() {
-        return components.stream()
-                .map(c -> c.type().toString() + " " + c.name())
-                .collect(joining(", ", "(", ")")) +
-                recordType.toString();
+        return toTypeDefinition().toString();
     }
-
 }

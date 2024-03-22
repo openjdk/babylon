@@ -89,7 +89,7 @@ public class QuotableIntersectionTest {
     @IR("""
             func @"f" ()void -> {
                 %0 : java.lang.reflect.code.Quotable = lambda ()void -> {
-                    %1 : java.lang.AssertionError = new @"()java.lang.AssertionError";
+                    %1 : java.lang.AssertionError = new @"func<java.lang.AssertionError>";
                     throw %1;
                 };
                 return;
@@ -218,7 +218,7 @@ public class QuotableIntersectionTest {
                 %0 : java.lang.reflect.code.Quotable = lambda (%1 : int)int[] -> {
                     %2 : Var<int> = var %1 @"x$0";
                     %3 : int = var.load %2;
-                    %4 : int[] = new %3 @"(int)int[]";
+                    %4 : int[] = new %3 @"func<int[], int>";
                     return %4;
                 };
                 return;

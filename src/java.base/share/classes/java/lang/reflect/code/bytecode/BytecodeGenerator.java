@@ -30,17 +30,13 @@ import java.lang.classfile.ClassFile;
 import java.lang.classfile.CodeBuilder;
 import java.lang.classfile.Label;
 import java.lang.classfile.components.ClassPrinter;
+import java.lang.constant.*;
 import java.lang.reflect.code.op.CoreOps.*;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
-import java.lang.constant.ClassDesc;
-import java.lang.constant.ConstantDesc;
-import java.lang.constant.ConstantDescs;
-import java.lang.constant.DirectMethodHandleDesc;
-import java.lang.constant.MethodHandleDesc;
 import java.lang.reflect.code.Block;
 import java.lang.reflect.code.Body;
 import java.lang.reflect.code.op.CoreOps;
@@ -50,9 +46,8 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.analysis.Liveness;
-import java.lang.reflect.code.descriptor.FieldDesc;
-import java.lang.reflect.code.descriptor.MethodDesc;
-import java.lang.reflect.code.descriptor.MethodTypeDesc;
+import java.lang.reflect.code.type.FieldRef;
+import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.TypeElement;
@@ -67,6 +62,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Transformer of code models to bytecode.
+ */
 public final class BytecodeGenerator {
 
     final MethodHandles.Lookup lookup;
@@ -83,8 +81,18 @@ public final class BytecodeGenerator {
         this.catchingBlocks = new HashSet<>();
     }
 
-    public static MethodHandle generate(MethodHandles.Lookup l, CoreOps.FuncOp fop) {
-        byte[] classBytes = generateClassData(l, fop);
+    /**
+     * Transforms the invokable operation to bytecode encapsulated in a method of hidden class and exposed
+     * for invocation via a method handle.
+     *
+     * @param l the lookup
+     * @param iop the invokable operation to transform to bytecode
+     * @return the invoking method handle
+     * @param <O> the type of the invokable operation
+     */
+    public static <O extends Op & Op.Invokable> MethodHandle generate(MethodHandles.Lookup l, O iop) {
+        String name = iop instanceof FuncOp fop ? fop.funcName() : "m";
+        byte[] classBytes = generateClassData(l, name, iop);
 
         {
             print(classBytes);
@@ -107,9 +115,9 @@ public final class BytecodeGenerator {
         }
 
         try {
-            FunctionType ft = fop.invokableType();
-            MethodType mt = MethodTypeDesc.ofFunctionType(ft).resolve(hcl);
-            return hcl.findStatic(hcl.lookupClass(), fop.funcName(), mt);
+            FunctionType ft = iop.invokableType();
+            MethodType mt = MethodRef.toNominalDescriptor(ft).resolveConstantDesc(hcl);
+            return hcl.findStatic(hcl.lookupClass(), name, mt);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
@@ -120,20 +128,47 @@ public final class BytecodeGenerator {
         ClassPrinter.toYaml(cm, ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES, System.out::print);
     }
 
-    public static byte[] generateClassData(MethodHandles.Lookup lookup, CoreOps.FuncOp fop) {
+    /**
+     * Transforms the function operation to bytecode encapsulated in a method of a class file.
+     * <p>
+     * The name of the method is the function operation's {@link FuncOp#funcName() function name}.
+     *
+     * @param lookup the lookup
+     * @param fop the function operation to transform to bytecode
+     * @return the class file bytes
+     */
+    public static byte[] generateClassData(MethodHandles.Lookup lookup, FuncOp fop) {
+        return generateClassData(lookup, fop.funcName(), fop);
+    }
+
+    /**
+     * Transforms the invokable operation to bytecode encapsulated in a method of a class file.
+     *
+     * @param lookup the lookup
+     * @param name the name to use for the method of the class file
+     * @param iop the invokable operation to transform to bytecode
+     * @return the class file bytes
+     * @param <O> the type of the invokable operation
+     */
+    public static <O extends Op & Op.Invokable> byte[] generateClassData(MethodHandles.Lookup lookup,
+                                                                         String name, O iop) {
+        if (!iop.capturedValues().isEmpty()) {
+            throw new UnsupportedOperationException("Operation captures values");
+        }
+
         String packageName = lookup.lookupClass().getPackageName();
         String className = packageName.isEmpty()
-                ? fop.funcName()
-                : packageName + "." + fop.funcName();
-        Liveness liveness = new Liveness(fop);
-        MethodTypeDesc mtd = MethodTypeDesc.ofFunctionType(fop.invokableType());
+                ? name
+                : packageName + "." + name;
+        Liveness liveness = new Liveness(iop);
+        MethodTypeDesc mtd = MethodRef.toNominalDescriptor(iop.invokableType());
         byte[] classBytes = ClassFile.of().build(ClassDesc.of(className), clb ->
                 clb.withMethodBody(
-                        fop.funcName(),
-                        mtd.toNominalDescriptor(),
+                        name,
+                        mtd,
                         ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC,
                         cb -> cb.transforming(new BranchCompactor(), cob ->
-                            new BytecodeGenerator(lookup, liveness, cob).generateBody(fop.body()))));
+                            new BytecodeGenerator(lookup, liveness, cob).generateBody(iop.body()))));
         return classBytes;
     }
 
@@ -544,7 +579,7 @@ public final class BytecodeGenerator {
                         }
                     }
                     case NewOp op -> {
-                        TypeElement t_ = op.constructorDescriptor().returnType();
+                        TypeElement t_ = op.constructorType().returnType();
                         JavaType t = (JavaType) t_;
                         switch (t.dimensions()) {
                             case 0 -> {
@@ -559,7 +594,8 @@ public final class BytecodeGenerator {
                                 cob.invokespecial(
                                         ((JavaType) op.resultType()).toNominalDescriptor(),
                                         ConstantDescs.INIT_NAME,
-                                        op.constructorDescriptor().toNominalDescriptor().changeReturnType(ConstantDescs.CD_void));
+                                        MethodRef.toNominalDescriptor(op.constructorType())
+                                                .changeReturnType(ConstantDescs.CD_void));
                             }
                             case 1 -> {
                                 processOperands(op, isLastOpResultOnStack);
@@ -594,7 +630,7 @@ public final class BytecodeGenerator {
                                 descKind = DirectMethodHandleDesc.Kind.STATIC;
                             }
                         }
-                        MethodDesc md = op.invokeDescriptor();
+                        MethodRef md = op.invokeDescriptor();
                         cob.invokeInstruction(
                                 switch (descKind) {
                                     case STATIC, INTERFACE_STATIC   -> Opcode.INVOKESTATIC;
@@ -606,7 +642,7 @@ public final class BytecodeGenerator {
                                 },
                                 ((JavaType) md.refType()).toNominalDescriptor(),
                                 md.name(),
-                                md.type().toNominalDescriptor(),
+                                MethodRef.toNominalDescriptor(md.type()),
                                 switch (descKind) {
                                     case INTERFACE_STATIC, INTERFACE_VIRTUAL, INTERFACE_SPECIAL -> true;
                                     default -> false;
@@ -618,7 +654,7 @@ public final class BytecodeGenerator {
                     }
                     case FieldAccessOp.FieldLoadOp op -> {
                         processOperands(op, isLastOpResultOnStack);
-                        FieldDesc fd = op.fieldDescriptor();
+                        FieldRef fd = op.fieldDescriptor();
                         if (op.operands().isEmpty()) {
                             cob.getstatic(
                                     ((JavaType) fd.refType()).toNominalDescriptor(),
@@ -634,7 +670,7 @@ public final class BytecodeGenerator {
                     case FieldAccessOp.FieldStoreOp op -> {
                         processOperands(op, isLastOpResultOnStack);
                         isLastOpResultOnStack = false;
-                        FieldDesc fd = op.fieldDescriptor();
+                        FieldRef fd = op.fieldDescriptor();
                         if (op.operands().size() == 1) {
                             cob.putstatic(
                                     ((JavaType) fd.refType()).toNominalDescriptor(),
@@ -833,8 +869,8 @@ public final class BytecodeGenerator {
         }
     }
 
-    static DirectMethodHandleDesc resolveToMethodHandleDesc(MethodHandles.Lookup l, MethodDesc d) throws ReflectiveOperationException {
-        MethodHandle mh = d.resolve(l);
+    static DirectMethodHandleDesc resolveToMethodHandleDesc(MethodHandles.Lookup l, MethodRef d) throws ReflectiveOperationException {
+        MethodHandle mh = d.resolveToHandle(l);
 
         if (mh.describeConstable().isEmpty()) {
             throw new NoSuchMethodException();

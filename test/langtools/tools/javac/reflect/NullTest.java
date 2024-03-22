@@ -479,7 +479,7 @@ public class NullTest {
     @IR("""
             func @"test19" (%0 : NullTest)void -> {
                 %1 : java.lang.String = constant @null;
-                %2 : NullTest$Box = new %1 @"(java.lang.String, java.lang.String[])NullTest$Box";
+                %2 : NullTest$Box = new %1 @"func<NullTest$Box, java.lang.String, java.lang.String[]>";
                 return;
             };
             """)
@@ -492,7 +492,7 @@ public class NullTest {
             func @"test20" (%0 : NullTest)void -> {
                 %1 : java.lang.String = constant @null;
                 %2 : java.lang.String[] = constant @null;
-                %3 : NullTest$Box = new %1 %2 @"(java.lang.String, java.lang.String[])NullTest$Box";
+                %3 : NullTest$Box = new %1 %2 @"func<NullTest$Box, java.lang.String, java.lang.String[]>";
                 return;
             };
             """)
@@ -506,7 +506,7 @@ public class NullTest {
                 %1 : java.lang.String = constant @null;
                 %2 : java.lang.String = constant @null;
                 %3 : java.lang.String = constant @null;
-                %4 : NullTest$Box = new %1 %2 %3 @"(java.lang.String, java.lang.String[])NullTest$Box";
+                %4 : NullTest$Box = new %1 %2 %3 @"func<NullTest$Box, java.lang.String, java.lang.String[]>";
                 return;
             };
             """)

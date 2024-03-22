@@ -23,21 +23,28 @@
  * questions.
  */
 
-package java.lang.reflect.code.descriptor.impl;
+package java.lang.reflect.code.type.impl;
 
-import java.lang.reflect.code.descriptor.FieldDesc;
+import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.type.MethodRef;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandleInfo;
 import java.lang.invoke.MethodHandles;
-import java.lang.invoke.VarHandle;
-import java.lang.reflect.Field;
+import java.lang.invoke.MethodType;
+import java.lang.reflect.Method;
+import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.TypeElement;
+import java.util.Optional;
 
-public final class FieldDescImpl implements FieldDesc {
+import static java.util.stream.Collectors.joining;
+
+public final class MethodRefImpl implements MethodRef {
     final TypeElement refType;
     final String name;
-    final TypeElement type;
+    final FunctionType type;
 
-    public FieldDescImpl(TypeElement refType, String name, TypeElement type) {
+    public MethodRefImpl(TypeElement refType, String name, FunctionType type) {
         this.refType = refType;
         this.name = name;
         this.type = type;
@@ -54,42 +61,38 @@ public final class FieldDescImpl implements FieldDesc {
     }
 
     @Override
-    public TypeElement type() {
+    public FunctionType type() {
         return type;
     }
 
     @Override
-    public Field resolveToMember(MethodHandles.Lookup l) throws ReflectiveOperationException {
-        Class<?> refC = resolve(l, refType);
-        Class<?> typeC = resolve(l, type);
-
-        Field f = refC.getDeclaredField(name);
-        if (!f.getType().equals(typeC)) {
-            throw new NoSuchFieldException();
-        }
-
-        return f;
+    public Method resolveToMember(MethodHandles.Lookup l) throws ReflectiveOperationException {
+        // @@@ Constructor
+        MethodHandleInfo methodHandleInfo = l.revealDirect(resolveToHandle(l));
+        return methodHandleInfo.reflectAs(Method.class, l);
     }
 
     @Override
-    public VarHandle resolve(MethodHandles.Lookup l) throws ReflectiveOperationException {
+    public MethodHandle resolveToHandle(MethodHandles.Lookup l) throws ReflectiveOperationException {
+        // @@@ kind
         Class<?> refC = resolve(l, refType);
-        Class<?> typeC = resolve(l, type);
 
-        VarHandle vh = null;
+        MethodType mt = MethodRef.toNominalDescriptor(type).resolveConstantDesc(l);
+
+        MethodHandle mh = null;
         ReflectiveOperationException c = null;
 
         try {
-            vh = l.findStaticVarHandle(refC, name, typeC);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
+            mh = l.findStatic(refC, name, mt);
+        } catch (NoSuchMethodException | IllegalAccessException e) {
             c = e;
         }
 
         if (c != null) {
             c = null;
             try {
-                vh = l.findVarHandle(refC, name, typeC);
-            } catch (NoSuchFieldException | IllegalAccessException e) {
+                mh = l.findVirtual(refC, name, mt);
+            } catch (NoSuchMethodException | IllegalAccessException e) {
                 c = e;
             }
         }
@@ -98,8 +101,8 @@ public final class FieldDescImpl implements FieldDesc {
             throw c;
         }
 
-        assert vh != null;
-        return vh;
+        assert mh != null;
+        return mh;
     }
 
     static Class<?> resolve(MethodHandles.Lookup l, TypeElement t) throws ReflectiveOperationException {
@@ -111,9 +114,17 @@ public final class FieldDescImpl implements FieldDesc {
         }
     }
 
+    // Copied code in jdk.compiler module throws UOE
+    @Override
+    public Optional<CoreOps.FuncOp> codeModel(MethodHandles.Lookup l) throws ReflectiveOperationException {
+/*__throw new UnsupportedOperationException();__*/        return resolveToMember(l).getCodeModel();
+    }
+
     @Override
     public String toString() {
-        return refType + "::" + name + "()" + type;
+        return refType + "::" + name +
+            type.parameterTypes().stream().map(TypeElement::toString)
+                    .collect(joining(", ", "(", ")")) + type.returnType();
     }
 
     @Override
@@ -121,11 +132,11 @@ public final class FieldDescImpl implements FieldDesc {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        FieldDescImpl fieldDesc = (FieldDescImpl) o;
+        MethodRefImpl that = (MethodRefImpl) o;
 
-        if (!refType.equals(fieldDesc.refType)) return false;
-        if (!name.equals(fieldDesc.name)) return false;
-        return type.equals(fieldDesc.type);
+        if (!refType.equals(that.refType)) return false;
+        if (!name.equals(that.name)) return false;
+        return type.equals(that.type);
     }
 
     @Override

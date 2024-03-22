@@ -93,6 +93,13 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         default List<Block.Parameter> parameters() {
             return body().entryBlock().parameters();
         }
+
+        /**
+         * {@return the captured values}
+         */
+        default List<Value> capturedValues() {
+            return List.of();
+        }
     }
 
     /**
@@ -237,12 +244,13 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Returns the operation's result, otherwise {@code null} if the operation is not assigned to a block.
+     * Returns this operation's parent block, otherwise {@code null} if the operation is not assigned to a block.
      *
-     * @return the operation's result, or {@code null} if not assigned to a block.
+     * @return operation's parent block, or {@code null} if the operation is not assigned to a block.
      */
-    public final Result result() {
-        return result;
+    @Override
+    public final Block parent() {
+        return parentBlock();
     }
 
     /**
@@ -261,6 +269,29 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
 
         return result.block;
     }
+
+    @Override
+    public final List<Body> children() {
+        return bodies();
+    }
+
+    /**
+     * {@return the operation's bodies, as an unmodifiable list}
+     * @implSpec this implementation returns an unmodifiable empty list.
+     */
+    public List<Body> bodies() {
+        return List.of();
+    }
+
+    /**
+     * Returns the operation's result, otherwise {@code null} if the operation is not assigned to a block.
+     *
+     * @return the operation's result, or {@code null} if not assigned to a block.
+     */
+    public final Result result() {
+        return result;
+    }
+
 
     /**
      * Returns this operation's nearest ancestor body (the parent body of this operation's parent block),
@@ -333,19 +364,6 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     public FunctionType opType() {
         List<TypeElement> operandTypes = operands.stream().map(Value::type).toList();
         return FunctionType.functionType(resultType(), operandTypes);
-    }
-
-    /**
-     * {@return the operation's bodies, as an unmodifiable list}
-     * @implSpec this implementation returns an unmodifiable empty list.
-     */
-    public List<Body> bodies() {
-        return List.of();
-    }
-
-    @Override
-    public final List<Body> children() {
-        return bodies();
     }
 
     /**
