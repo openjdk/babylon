@@ -21,6 +21,9 @@
  * questions.
  */
 
+import java.io.IOException;
+import java.lang.classfile.ClassFile;
+import java.lang.classfile.components.ClassPrinter;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -32,12 +35,14 @@ import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.lang.runtime.CodeReflection;
+import java.net.URL;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
 /*
  * @test
+ * @enablePreview
  * @run testng TestLiftSimple
  */
 
@@ -51,12 +56,8 @@ public class TestLiftSimple {
 
     @Test
     public void testF() throws Throwable {
-        CoreOps.FuncOp f = getFuncOp("f");
-        byte[] classdata = generate(f);
-
-        CoreOps.FuncOp flift = BytecodeLift.lift(classdata, "f");
+        CoreOps.FuncOp flift = getFuncOp("f");
         flift.writeTo(System.out);
-
         Assert.assertEquals(Interpreter.invoke(flift, 1, 1), f(1, 1));
     }
 
@@ -69,37 +70,37 @@ public class TestLiftSimple {
 
     @Test
     public void testF2() {
-        CoreOps.FuncOp f = getFuncOp("f2");
-        byte[] classdata = generate(f);
-
-        CoreOps.FuncOp flift = BytecodeLift.lift(classdata, "f2");
+        CoreOps.FuncOp flift = getFuncOp("f2");
         flift.writeTo(System.out);
-
         Assert.assertEquals(Interpreter.invoke(flift), f2());
     }
 
-    static byte[] generate(CoreOps.FuncOp f) {
-        f.writeTo(System.out);
-
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
-        lf.writeTo(System.out);
-
-        return BytecodeGenerator.generateClassData(MethodHandles.lookup(), lf);
+    @CodeReflection
+    static String f3() {
+        return new String("hello".getBytes(), 1, 3);
     }
 
-    static CoreOps.FuncOp getFuncOp(String name) {
-        Optional<Method> om = Stream.of(TestLiftSimple.class.getDeclaredMethods())
-                .filter(m -> m.getName().equals(name))
-                .findFirst();
+    @Test
+    public void testF3() {
+        CoreOps.FuncOp flift = getFuncOp("f3");
+        flift.writeTo(System.out);
+        Assert.assertEquals(Interpreter.invoke(flift), f3());
+    }
 
-        Method m = om.get();
-        return m.getCodeModel().get();
+    static CoreOps.FuncOp getFuncOp(String method) {
+        byte[] classdata = getClassdata();
+        CoreOps.FuncOp flift = BytecodeLift.lift(classdata, method);
+        flift.writeTo(System.out);
+        return flift;
+    }
+
+    static byte[] getClassdata() {
+        URL resource = TestLiftSimple.class.getClassLoader()
+                .getResource(TestLiftSimple.class.getName().replace('.', '/') + ".class");
+        try {
+            return resource.openStream().readAllBytes();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

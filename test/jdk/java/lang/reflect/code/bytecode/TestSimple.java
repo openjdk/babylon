@@ -214,6 +214,20 @@ public class TestSimple {
     }
 
     @CodeReflection
+    static String objectCreation() {
+        return new String("hello".getBytes(), 1, 3);
+    }
+
+    @Test
+    public void testObjectCreation() throws Throwable {
+        CoreOps.FuncOp f = getFuncOp("objectCreation");
+
+        MethodHandle mh = generate(f);
+
+        Assert.assertEquals((String) mh.invoke(), objectCreation());
+    }
+
+    @CodeReflection
     public static boolean not(boolean b) {
         return !b;
     }

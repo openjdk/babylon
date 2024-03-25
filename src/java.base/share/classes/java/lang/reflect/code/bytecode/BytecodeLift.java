@@ -393,8 +393,8 @@ public final class BytecodeLift {
                             if (inst.name().equalsString(ConstantDescs.INIT_NAME)) {
                                 yield op(CoreOps._new(
                                         FunctionType.functionType(
-                                                mType.parameterTypes().get(0),
-                                                mType.parameterTypes().subList(1, mType.parameterTypes().size())),
+                                                mDesc.refType(),
+                                                mType.parameterTypes()),
                                         operands.reversed()));
                             } else {
                                 operands.add(stack.pop());
@@ -412,12 +412,10 @@ public final class BytecodeLift {
                     // Skip over this and the dup to process the invoke special
                     if (i + 2 < elements.size() - 1
                             && elements.get(i + 1) instanceof StackInstruction dup
-                            && dup.opcode() == Opcode.DUP
-                            && elements.get(i + 2) instanceof InvokeInstruction init
-                            && init.name().equalsString(ConstantDescs.INIT_NAME)) {
+                            && dup.opcode() == Opcode.DUP) {
                         i++;
                     } else {
-                        throw new UnsupportedOperationException("New must be followed by dup and invokespecial for <init>");
+                        throw new UnsupportedOperationException("New must be followed by dup");
                     }
                 }
                 case NewPrimitiveArrayInstruction inst -> {
