@@ -83,6 +83,8 @@ public final class BytecodeLift {
             case ITEM_NULL -> JavaType.J_L_OBJECT;
             case StackMapFrameInfo.ObjectVerificationTypeInfo ovti ->
                     JavaType.ofNominalDescriptor(ovti.classSymbol());
+            case StackMapFrameInfo.UninitializedVerificationTypeInfo _ ->
+                    JavaType.J_L_OBJECT;
             default ->
                 throw new IllegalArgumentException("Unexpected VTI: " + vti);
 
@@ -97,7 +99,9 @@ public final class BytecodeLift {
             case ITEM_DOUBLE -> TypeKind.DoubleType;
             case ITEM_LONG -> TypeKind.LongType;
             case ITEM_NULL -> TypeKind.ReferenceType;
-            case StackMapFrameInfo.ObjectVerificationTypeInfo ovti ->
+            case StackMapFrameInfo.ObjectVerificationTypeInfo _ ->
+                    TypeKind.ReferenceType;
+            case StackMapFrameInfo.UninitializedVerificationTypeInfo _ ->
                     TypeKind.ReferenceType;
             default ->
                 throw new IllegalArgumentException("Unexpected VTI: " + vti);
@@ -135,7 +139,7 @@ public final class BytecodeLift {
                                         case DoubleType -> CoreOps.constant(JavaType.DOUBLE, 0.0d);
                                         case LongType -> CoreOps.constant(JavaType.LONG, 0l);
                                         case FloatType -> CoreOps.constant(JavaType.FLOAT, 0.0f);
-                                        case ReferenceType -> CoreOps.constant(JavaType.J_L_OBJECT, null);
+                                        case ReferenceType -> CoreOps.constant(JavaType.J_L_OBJECT, Op.NULL_ATTRIBUTE_VALUE);
                                         default -> CoreOps.constant(JavaType.INT, 0);
                                     }))));
                                     slot += tk.slotSize();
@@ -196,7 +200,7 @@ public final class BytecodeLift {
         List<CodeElement> elements = codeModel.elementList();
         for (int i = 0; i < elements.size(); i++) {
             switch (elements.get(i)) {
-                case ExceptionCatch ec -> {
+                case ExceptionCatch _ -> {
                     // Exception blocks are inserted by label target (below)
                 }
                 case LabelTarget lt -> {
