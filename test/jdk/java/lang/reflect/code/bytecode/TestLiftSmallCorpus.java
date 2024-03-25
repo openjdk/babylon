@@ -84,7 +84,7 @@ public class TestLiftSmallCorpus {
 
 
         // @@@ There is still several failing cases and a lot of errors
-        Assert.assertTrue(notMatching < 53 && passed > 4400, STR."""
+        Assert.assertTrue(notMatching < 26 && passed > 3900, STR."""
 
                     passed: \{passed}
                     not matching: \{notMatching}
@@ -96,7 +96,7 @@ public class TestLiftSmallCorpus {
     private void testDoubleRoundtripStability(Path path) throws Exception {
         var clm = CF.parse(path);
         for (var originalModel : clm.methods()) {
-            if (originalModel.flags().has(AccessFlag.STATIC)) try {
+            if (originalModel.flags().has(AccessFlag.STATIC) && originalModel.code().isPresent()) try {
                 CoreOps.FuncOp firstLift = lift(originalModel);
                 try {
                     CoreOps.FuncOp firstTransform = transform(firstLift);

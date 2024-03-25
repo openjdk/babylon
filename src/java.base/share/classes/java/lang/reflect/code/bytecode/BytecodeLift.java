@@ -71,7 +71,7 @@ public final class BytecodeLift {
     private Block.Builder currentBlock;
 
     private static String varName(int slot, TypeKind tk) {
-        return slot + "-" + tk;
+        return tk.typeName() + slot;
     }
 
     private static TypeElement toTypeElement(StackMapFrameInfo.VerificationTypeInfo vti) {
@@ -85,24 +85,6 @@ public final class BytecodeLift {
                     JavaType.ofNominalDescriptor(ovti.classSymbol());
             case StackMapFrameInfo.UninitializedVerificationTypeInfo _ ->
                     JavaType.J_L_OBJECT;
-            default ->
-                throw new IllegalArgumentException("Unexpected VTI: " + vti);
-
-        };
-    }
-
-    private static TypeKind toTypeKind(StackMapFrameInfo.VerificationTypeInfo vti) {
-        return switch (vti) {
-            case ITEM_TOP -> null;
-            case ITEM_INTEGER -> TypeKind.IntType;
-            case ITEM_FLOAT -> TypeKind.FloatType;
-            case ITEM_DOUBLE -> TypeKind.DoubleType;
-            case ITEM_LONG -> TypeKind.LongType;
-            case ITEM_NULL -> TypeKind.ReferenceType;
-            case StackMapFrameInfo.ObjectVerificationTypeInfo _ ->
-                    TypeKind.ReferenceType;
-            case StackMapFrameInfo.UninitializedVerificationTypeInfo _ ->
-                    TypeKind.ReferenceType;
             default ->
                 throw new IllegalArgumentException("Unexpected VTI: " + vti);
 
@@ -128,25 +110,7 @@ public final class BytecodeLift {
         this.blockMap = codeModel.findAttribute(Attributes.STACK_MAP_TABLE).map(sma ->
                 sma.entries().stream().collect(Collectors.toUnmodifiableMap(
                         StackMapFrameInfo::target,
-                        smfi -> {
-                            int slot = 0;
-                            for (StackMapFrameInfo.VerificationTypeInfo vti : smfi.locals()) {
-                                TypeKind tk = toTypeKind(vti);
-                                if (tk == null) {
-                                    slot++;
-                                } else {
-                                    varMap.computeIfAbsent(varName(slot, tk), varName -> entryBlock.op(CoreOps.var(varName, entryBlock.op(switch (tk) {
-                                        case DoubleType -> CoreOps.constant(JavaType.DOUBLE, 0.0d);
-                                        case LongType -> CoreOps.constant(JavaType.LONG, 0l);
-                                        case FloatType -> CoreOps.constant(JavaType.FLOAT, 0.0f);
-                                        case ReferenceType -> CoreOps.constant(JavaType.J_L_OBJECT, Op.NULL_ATTRIBUTE_VALUE);
-                                        default -> CoreOps.constant(JavaType.INT, 0);
-                                    }))));
-                                    slot += tk.slotSize();
-                                }
-                            }
-                            return entryBlock.block(smfi.stack().stream().map(BytecodeLift::toTypeElement).toList());
-                        }))).orElse(Map.of());
+                        smfi -> entryBlock.block(smfi.stack().stream().map(BytecodeLift::toTypeElement).toList())))).orElse(Map.of());
     }
 
     private void varStore(int slot, TypeKind tk, Value value) {
