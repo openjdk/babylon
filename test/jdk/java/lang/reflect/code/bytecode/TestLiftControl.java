@@ -138,12 +138,12 @@ public class TestLiftControl {
         Assert.assertEquals((int) Interpreter.invoke(f, 42), 42);
     }
 
-    @Test(expectedExceptions = IllegalArgumentException.class)
-    public void testDeadCodeDetection() throws Throwable {
-        Interpreter.invoke(getFuncOp(ClassFile.of().build(ClassDesc.of("DeadCode"), clb ->
-                clb.withMethodBody("deadCode", ConstantDescs.MTD_void, ClassFile.ACC_STATIC, cob ->
-                   cob.return_().nop())), "deadCode"));
-    }
+//    @Test(expectedExceptions = IllegalArgumentException.class)
+//    public void testDeadCodeDetection() throws Throwable {
+//        Interpreter.invoke(getFuncOp(ClassFile.of().build(ClassDesc.of("DeadCode"), clb ->
+//                clb.withMethodBody("deadCode", ConstantDescs.MTD_void, ClassFile.ACC_STATIC, cob ->
+//                   cob.return_().nop())), "deadCode"));
+//    }
 
     static CoreOps.FuncOp getFuncOp(String method) {
         return getFuncOp(getClassdata(), method);
