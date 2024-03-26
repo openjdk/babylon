@@ -339,6 +339,12 @@ public final class BytecodeLift {
                                 CoreOps.neg(operand);
                         case ARRAYLENGTH ->
                                 CoreOps.arrayLength(operand);
+                        case IAND, LAND ->
+                                CoreOps.and(stack.pop(), operand);
+                        case IOR, LOR ->
+                                CoreOps.or(stack.pop(), operand);
+                        case IXOR, LXOR ->
+                                CoreOps.xor(stack.pop(), operand);
                         default ->
                             throw new IllegalArgumentException("Unsupported operator opcode: " + inst.opcode());
                     }));
