@@ -23,6 +23,8 @@
 
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.components.ClassPrinter;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
@@ -32,6 +34,9 @@ import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.bytecode.BytecodeLift;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.Method;
+import java.lang.reflect.code.CopyContext;
+import java.lang.reflect.code.Op;
+import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.runtime.CodeReflection;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -39,10 +44,10 @@ import java.util.stream.Stream;
 /*
  * @test
  * @enablePreview
- * @run testng TestLift
+ * @run testng TestBytecode
  */
 
-public class TestLift {
+public class TestBytecode {
 
     @CodeReflection
     static int sum(int i, int j) {
@@ -135,26 +140,34 @@ public class TestLift {
         return i;
     }
 
+    public record A(String s) {}
+
+    @CodeReflection
+    static A newWithArguments(int i, int j) {
+        return new A("hello world".substring(i, i + j));
+    }
+
+
     @DataProvider(name = "testMethods")
     public static Object[] testMethods() {
-        return Stream.of(TestLift.class.getDeclaredMethods()).filter(m -> m.isAnnotationPresent(CodeReflection.class)).map(Method::getName).toArray();
+        return Stream.of(TestBytecode.class.getDeclaredMethods()).filter(m -> m.isAnnotationPresent(CodeReflection.class)).map(Method::getName).toArray();
     }
 
     private static byte[] CLASS_DATA;
 
     @BeforeClass
     public void setup() throws Exception {
-        CLASS_DATA = TestLift.class.getResourceAsStream("TestLift.class").readAllBytes();
+        CLASS_DATA = TestBytecode.class.getResourceAsStream("TestBytecode.class").readAllBytes();
 //        ClassPrinter.toYaml(ClassFile.of().parse(CLASS_DATA), ClassPrinter.Verbosity.TRACE_ALL, System.out::print);
     }
 
     @Test(dataProvider = "testMethods")
-    public void testLift(String methodName) throws Exception {
-        Method testMethod = TestLift.class.getDeclaredMethod(methodName, int.class, int.class);
+    public void testLift(String methodName) throws Throwable {
+        Method testMethod = TestBytecode.class.getDeclaredMethod(methodName, int.class, int.class);
         CoreOps.FuncOp flift = null;
         try {
             flift = BytecodeLift.lift(CLASS_DATA, methodName);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             System.out.println("Lift failed, expected:");
             testMethod.getCodeModel().ifPresent(f -> f.writeTo(System.out));
             throw e;
@@ -165,8 +178,38 @@ public class TestLift {
                     Assert.assertEquals(Interpreter.invoke(flift, i, j), testMethod.invoke(null, i, j));
                 }
             }
-        } catch (Exception e) {
+        } catch (Throwable e) {
             flift.writeTo(System.out);
+            throw e;
+        }
+    }
+
+    @Test(dataProvider = "testMethods")
+    public void testGenerate(String methodName) throws Throwable {
+        Method testMethod = TestBytecode.class.getDeclaredMethod(methodName, int.class, int.class);
+
+        CoreOps.FuncOp func = testMethod.getCodeModel().get();
+
+        @SuppressWarnings("unchecked")
+        CoreOps.FuncOp lfunc = func.transform(CopyContext.create(), (block, op) -> {
+            if (op instanceof Op.Lowerable lop) {
+                return lop.lower(block);
+            } else {
+                block.op(op);
+                return block;
+            }
+        });
+
+        try {
+            MethodHandle mh = BytecodeGenerator.generate(MethodHandles.lookup(), lfunc);
+            for (int i = 0; i < 5; i++) {
+                for (int j = 0; j < 5; j++) {
+                    Assert.assertEquals(mh.invoke(i, j), testMethod.invoke(null, i, j));
+                }
+            }
+        } catch (Throwable e) {
+            func.writeTo(System.out);
+            lfunc.writeTo(System.out);
             throw e;
         }
     }

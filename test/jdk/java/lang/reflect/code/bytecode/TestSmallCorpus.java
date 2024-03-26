@@ -50,9 +50,9 @@ import org.testng.annotations.Test;
 /*
  * @test
  * @enablePreview
- * @run testng TestLiftSmallCorpus
+ * @run testng TestSmallCorpus
  */
-public class TestLiftSmallCorpus {
+public class TestSmallCorpus {
 
     private static final FileSystem JRT = FileSystems.getFileSystem(URI.create("jrt:/"));
     private static final ClassFile CF = ClassFile.of(ClassFile.DebugElementsOption.DROP_DEBUG,

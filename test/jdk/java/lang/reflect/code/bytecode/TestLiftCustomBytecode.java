@@ -36,10 +36,10 @@ import java.lang.reflect.code.interpreter.Interpreter;
 /*
  * @test
  * @enablePreview
- * @run testng TestLiftControl
+ * @run testng TestLiftCustomBytecode
  */
 
-public class TestLiftControl {
+public class TestLiftCustomBytecode {
 
     @Test
     public void testBackJumps() throws Throwable {
