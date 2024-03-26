@@ -24,7 +24,6 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.io.IOException;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.Label;
 import java.lang.constant.ClassDesc;
@@ -33,7 +32,6 @@ import java.lang.constant.MethodTypeDesc;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.bytecode.BytecodeLift;
 import java.lang.reflect.code.interpreter.Interpreter;
-import java.net.URL;
 
 /*
  * @test
@@ -42,77 +40,6 @@ import java.net.URL;
  */
 
 public class TestLiftControl {
-
-    static int ifelseCompare(int a, int b, int n) {
-        if (n < 10) {
-            a += 1;
-        } else {
-            b += 2;
-        }
-        return a + b;
-    }
-
-    @Test
-    public void testifElseCompare() throws Throwable {
-        CoreOps.FuncOp f = getFuncOp("ifelseCompare");
-
-        Assert.assertEquals((int) Interpreter.invoke(f, 0, 0, 1), ifelseCompare(0, 0, 1));
-        Assert.assertEquals((int) Interpreter.invoke(f, 0, 0, 11), ifelseCompare(0, 0, 11));
-    }
-
-    // @@@ Cannot use boolean since it erases to int
-    static int ifelseEquality(int v, int t1, int t1_1, int t2_1) {
-        if (t1 != 0) {
-            if (t1_1 != 0) {
-                v += 1;
-            } else {
-                v += 2;
-            }
-        } else {
-            if (t2_1 != 0) {
-                v += 3;
-            } else {
-                v += 4;
-            }
-        }
-        return v;
-    }
-
-    @Test
-    public void testIfelseEquality() throws Throwable {
-        CoreOps.FuncOp f = getFuncOp("ifelseEquality");
-
-        Assert.assertEquals((int) Interpreter.invoke(f, 0, 1, 0, 0), ifelseEquality(0, 1, 0, 0));
-        Assert.assertEquals((int) Interpreter.invoke(f, 0, 1, 1, 0), ifelseEquality(0, 1, 1, 0));
-        Assert.assertEquals((int) Interpreter.invoke(f, 0, 0, 0, 1), ifelseEquality(0, 0, 0, 1));
-        Assert.assertEquals((int) Interpreter.invoke(f, 0, 0, 0, 0), ifelseEquality(0, 0, 0, 0));
-    }
-
-    static int conditionalExpression(int i, int len) {
-        return ((i - 1 >= 0) ? i - 1 : len - 1);
-    }
-
-    @Test
-    public void testConditionalExpression() throws Throwable {
-        CoreOps.FuncOp f = getFuncOp("conditionalExpression");
-
-        Assert.assertEquals((int) Interpreter.invoke(f, 5, 10), conditionalExpression(5, 10));
-        Assert.assertEquals((int) Interpreter.invoke(f, 0, 10), conditionalExpression(0, 10));
-        Assert.assertEquals((int) Interpreter.invoke(f, 0, 50), conditionalExpression(0, 50));
-    }
-
-    static int nestedConditionalExpression(int a, int b, int c, int n) {
-        return (n < 10) ? (n < 5) ? a : b : c;
-    }
-
-    @Test
-    public void testNestedConditionalExpression() throws Throwable {
-        CoreOps.FuncOp f = getFuncOp("nestedConditionalExpression");
-
-        Assert.assertEquals((int) Interpreter.invoke(f, 1, 2, 3, 1), nestedConditionalExpression(1, 2, 3, 1));
-        Assert.assertEquals((int) Interpreter.invoke(f, 1, 2, 3, 6), nestedConditionalExpression(1, 2, 3, 6));
-        Assert.assertEquals((int) Interpreter.invoke(f, 1, 2, 3, 11), nestedConditionalExpression(1, 2, 3, 11));
-    }
 
     @Test
     public void testBackJumps() throws Throwable {
@@ -138,30 +65,9 @@ public class TestLiftControl {
         Assert.assertEquals((int) Interpreter.invoke(f, 42), 42);
     }
 
-//    @Test(expectedExceptions = IllegalArgumentException.class)
-//    public void testDeadCodeDetection() throws Throwable {
-//        Interpreter.invoke(getFuncOp(ClassFile.of().build(ClassDesc.of("DeadCode"), clb ->
-//                clb.withMethodBody("deadCode", ConstantDescs.MTD_void, ClassFile.ACC_STATIC, cob ->
-//                   cob.return_().nop())), "deadCode"));
-//    }
-
-    static CoreOps.FuncOp getFuncOp(String method) {
-        return getFuncOp(getClassdata(), method);
-    }
-
     static CoreOps.FuncOp getFuncOp(byte[] classdata, String method) {
         CoreOps.FuncOp flift = BytecodeLift.lift(classdata, method);
         flift.writeTo(System.out);
         return flift;
-    }
-
-    static byte[] getClassdata() {
-        URL resource = TestLiftControl.class.getClassLoader()
-                .getResource(TestLiftControl.class.getName().replace('.', '/') + ".class");
-        try {
-            return resource.openStream().readAllBytes();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 }

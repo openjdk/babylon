@@ -442,7 +442,7 @@ public final class BytecodeLift {
                 }
                 case NewReferenceArrayInstruction inst -> {
                     stack.push(op(CoreOps.newArray(
-                            JavaType.type(JavaType.ofNominalDescriptor(inst.componentType().asSymbol()), 1),
+                            JavaType.ofNominalDescriptor(inst.componentType().asSymbol().arrayType()),
                             stack.pop())));
                 }
                 case NewMultiArrayInstruction inst -> {

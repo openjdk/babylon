@@ -21,6 +21,8 @@
  * questions.
  */
 
+import java.lang.classfile.ClassFile;
+import java.lang.classfile.components.ClassPrinter;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
@@ -31,7 +33,6 @@ import java.lang.reflect.code.bytecode.BytecodeLift;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.Method;
 import java.lang.runtime.CodeReflection;
-import java.util.Arrays;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -50,10 +51,8 @@ public class TestLift {
     }
 
     @CodeReflection
-    static Class<?> objectArray(int i, int j) {
-        Class<?>[] ifaces = new Class[1 + i + j];
-        ifaces[0] = Function.class;
-        return ifaces[0];
+    static int logicalOps(int i, int j) {
+        return 13 & i | j ^ 13;
     }
 
     @CodeReflection
@@ -62,8 +61,78 @@ public class TestLift {
     }
 
     @CodeReflection
-    static int logicalOps(int i, int j) {
-        return 13 & i | j ^ 13;
+    static Class<?> classArray(int i, int j) {
+        Class<?>[] ifaces = new Class[1 + i + j];
+        ifaces[0] = Function.class;
+        return ifaces[0];
+    }
+
+    @CodeReflection
+    static String[] stringArray(int i, int j) {
+        return new String[i];
+    }
+
+    @CodeReflection
+    static String[][] stringArray2(int i, int j) {
+        return new String[i][];
+    }
+
+    @CodeReflection
+    static String[][] stringArrayMulti(int i, int j) {
+        return new String[i][j];
+    }
+
+    @CodeReflection
+    static int[][] initializedIntArray(int i, int j) {
+        return new int[][]{{i, j}, {i + j}};
+    }
+
+    @CodeReflection
+    static int ifElseCompare(int i, int j) {
+        if (i < 3) {
+            i += 1;
+        } else {
+            j += 2;
+        }
+        return i + j;
+    }
+
+    @CodeReflection
+    static int ifElseEquality(int i, int j) {
+        if (j != 0) {
+            if (i != 0) {
+                i += 1;
+            } else {
+                i += 2;
+            }
+        } else {
+            if (j != 0) {
+                i += 3;
+            } else {
+                i += 4;
+            }
+        }
+        return i;
+    }
+
+    @CodeReflection
+    static int conditionalExpression(int i, int j) {
+        return ((i - 1 >= 0) ? i - 1 : j - 1);
+    }
+
+    @CodeReflection
+    static int nestedConditionalExpression(int i, int j) {
+        return (i < 2) ? (j < 3) ? i : j : i + j;
+    }
+
+    @CodeReflection
+    static int tryFinally(int i, int j) {
+        try {
+            i = i + j;
+        } finally {
+            i = i + j;
+        }
+        return i;
     }
 
     @DataProvider(name = "testMethods")
@@ -76,6 +145,7 @@ public class TestLift {
     @BeforeClass
     public void setup() throws Exception {
         CLASS_DATA = TestLift.class.getResourceAsStream("TestLift.class").readAllBytes();
+//        ClassPrinter.toYaml(ClassFile.of().parse(CLASS_DATA), ClassPrinter.Verbosity.TRACE_ALL, System.out::print);
     }
 
     @Test(dataProvider = "testMethods")
