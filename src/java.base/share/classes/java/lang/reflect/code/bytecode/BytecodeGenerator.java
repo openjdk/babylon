@@ -95,7 +95,7 @@ public final class BytecodeGenerator {
         byte[] classBytes = generateClassData(l, name, iop);
 
         {
-            print(classBytes);
+//            print(classBytes);
             try {
                 File f = new File("f.class");
                 try (FileOutputStream fos = new FileOutputStream(f)) {

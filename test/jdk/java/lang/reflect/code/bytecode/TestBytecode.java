@@ -147,6 +147,78 @@ public class TestBytecode {
         return new A("hello world".substring(i, i + j));
     }
 
+    @CodeReflection
+    static int loop(int n, int j) {
+        int sum = 0;
+        for (int i = 0; i < n; i++) {
+            sum = sum + j;
+        }
+        return sum;
+    }
+
+
+    @CodeReflection
+    static int ifelseNested(int a, int b) {
+        int c = a + b;
+        int d = 10 - a + b;
+        if (b < 3) {
+            if (a < 3) {
+                a += 1;
+            } else {
+                b += 2;
+            }
+            c += 3;
+        } else {
+            if (a > 2) {
+                a += 4;
+            } else {
+                b += 5;
+            }
+            d += 6;
+        }
+        return a + b + c + d;
+    }
+
+    @CodeReflection
+    static int nestedLoop(int m, int n) {
+        int sum = 0;
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                sum = sum + i + j;
+            }
+        }
+        return sum;
+    }
+
+    @CodeReflection
+    static int methodCallFieldAccess(int a, int b) {
+        int i = Math.max(a, b);
+        return Math.negateExact(i);
+    }
+
+    @CodeReflection
+    static int[] primitiveArrayCreationAndAccess(int i, int j) {
+        int[] ia = new int[i + 1];
+        ia[0] = j;
+        return ia;
+    }
+
+    @CodeReflection
+    public static int not(int i, int j) {
+        boolean b = i < j;
+        return !b ? i : j;
+    }
+
+    @CodeReflection
+    public static int mod(int i, int j) {
+        return i % (j + 1);
+    }
+
+    @CodeReflection
+    public static int xor(int i, int j) {
+        return i ^ j;
+    }
+
 
     @DataProvider(name = "testMethods")
     public static Object[] testMethods() {
