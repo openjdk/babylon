@@ -40,6 +40,9 @@ import java.lang.reflect.code.Op;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.runtime.CodeReflection;
 import java.util.Arrays;
+import java.util.IdentityHashMap;
+import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -251,9 +254,51 @@ public class TestBytecode {
                                  Arrays.stream(m.getParameterTypes()).map(cls -> cls.describeConstable().orElseThrow()).toList());
     }
 
+
+    private static final Map<Class<?>, Object[]> TEST_ARGS = new IdentityHashMap<>();
+    private static Object[] values(Object... values) {
+        return values;
+    }
+    private static void initTestArgs(Object[] values, Class<?>... argTypes) {
+        for (var argType : argTypes) TEST_ARGS.put(argType, values);
+    }
+    static {
+        initTestArgs(values(0, 1, 2, 3, 4), int.class, Integer.class, byte.class, Byte.class, short.class, Short.class, char.class, Character.class);
+        initTestArgs(values(false, true), boolean.class, Boolean.class);
+        initTestArgs(values("Hello World"), String.class);
+        initTestArgs(values(0l, 1l, 2l, 3l, 4l), long.class, Long.class);
+        initTestArgs(values(0f, 1f, 2f, 3f, 4f), float.class, Float.class);
+        initTestArgs(values(0d, 1d, 2d, 3d, 4d), double.class, Double.class);
+    }
+
+    interface Executor {
+        void execute(Object[] args) throws Throwable;
+    }
+
+    private static void permutateAllArgs(Class<?>[] argTypes, Executor executor) throws Throwable {
+        final int argn = argTypes.length;
+        Object[][] argValues = new Object[argn][];
+        for (int i = 0; i < argn; i++) {
+            argValues[i] = TEST_ARGS.get(argTypes[i]);
+        }
+        int[] argIndexes = new int[argn];
+        Object[] args = new Object[argn];
+        while (true) {
+            for (int i = 0; i < argn; i++) {
+                args[i] = argValues[i][argIndexes[i]];
+            }
+            executor.execute(args);
+            int i = argn - 1;
+            while (i >= 0 && argIndexes[i] == argValues[i].length - 1) i--;
+            if (i < 0) return;
+            argIndexes[i++]++;
+            while (i < argn) argIndexes[i++] = 0;
+        }
+    }
+
     @Test(dataProvider = "testMethods")
     public void testLift(TestData d) throws Throwable {
-        CoreOps.FuncOp flift = null;
+        CoreOps.FuncOp flift;
         try {
             flift = BytecodeLift.lift(CLASS_DATA, d.testMethod.getName(), toMethodTypeDesc(d.testMethod));
         } catch (Throwable e) {
@@ -262,11 +307,8 @@ public class TestBytecode {
             throw e;
         }
         try {
-            for (int i = 0; i < 5; i++) {
-                for (int j = 0; j < 5; j++) {
-                    Assert.assertEquals(Interpreter.invoke(flift, i, j), d.testMethod.invoke(null, i, j));
-                }
-            }
+            permutateAllArgs(d.testMethod.getParameterTypes(), args ->
+                Assert.assertEquals(Interpreter.invoke(flift, args), d.testMethod.invoke(null, args)));
         } catch (Throwable e) {
             flift.writeTo(System.out);
             throw e;
@@ -288,11 +330,8 @@ public class TestBytecode {
 
         try {
             MethodHandle mh = BytecodeGenerator.generate(MethodHandles.lookup(), lfunc);
-            for (int i = 0; i < 5; i++) {
-                for (int j = 0; j < 5; j++) {
-                    Assert.assertEquals(mh.invoke(i, j), d.testMethod.invoke(null, i, j));
-                }
-            }
+            permutateAllArgs(d.testMethod.getParameterTypes(), args ->
+                    Assert.assertEquals(mh.invokeWithArguments(args), d.testMethod.invoke(null, args)));
         } catch (Throwable e) {
             func.writeTo(System.out);
             lfunc.writeTo(System.out);
