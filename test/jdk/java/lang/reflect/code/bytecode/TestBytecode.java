@@ -102,8 +102,8 @@ public class TestBytecode {
     }
 
     @CodeReflection
-    static String constructor(int i, int j) {
-        return new String("hello world".getBytes(), i, j);
+    static String constructor(String s, int i, int j) {
+        return new String(s.getBytes(), i, j);
     }
 
     @CodeReflection
