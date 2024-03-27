@@ -42,7 +42,6 @@ import java.lang.runtime.CodeReflection;
 import java.util.Arrays;
 import java.util.IdentityHashMap;
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -56,14 +55,50 @@ import java.util.stream.Stream;
 public class TestBytecode {
 
     @CodeReflection
-    static int sum(int i, int j) {
-        i = i + j;
+    static int intNumOps(int i, int j, int k) {
+        k++;
+        i = (i + j) / k - i % j;
+        i--;
         return i;
     }
 
     @CodeReflection
-    static int logicalOps(int i, int j) {
-        return 13 & i | j ^ 13;
+    static long longNumOps(long i, long j, long k) {
+        k++;
+        i = (i + j) / k - i % j;
+        i--;
+        return i;
+    }
+
+    @CodeReflection
+    static float floatNumOps(float i, float j, float k) {
+        k++;
+        i = (i + j) / k - i % j;
+        i--;
+        return i;
+    }
+
+    @CodeReflection
+    static double doubleNumOps(double i, double j, double k) {
+        k++;
+        i = (i + j) / k - i % j;
+        i--;
+        return i;
+    }
+
+    @CodeReflection
+    static int intBitOps(int i, int j, int k) {
+        return i & j | k ^ j;
+    }
+
+    @CodeReflection
+    static long longBitOps(long i, long j, long k) {
+        return i & j | k ^ j;
+    }
+
+    @CodeReflection
+    static boolean boolBitOps(boolean i, boolean j, boolean k) {
+        return i & j | k ^ j;
     }
 
     @CodeReflection
@@ -263,12 +298,12 @@ public class TestBytecode {
         for (var argType : argTypes) TEST_ARGS.put(argType, values);
     }
     static {
-        initTestArgs(values(0, 1, 2, 3, 4), int.class, Integer.class, byte.class, Byte.class, short.class, Short.class, char.class, Character.class);
+        initTestArgs(values(1, 2, 3, 4), int.class, Integer.class, byte.class, Byte.class, short.class, Short.class, char.class, Character.class);
         initTestArgs(values(false, true), boolean.class, Boolean.class);
         initTestArgs(values("Hello World"), String.class);
-        initTestArgs(values(0l, 1l, 2l, 3l, 4l), long.class, Long.class);
-        initTestArgs(values(0f, 1f, 2f, 3f, 4f), float.class, Float.class);
-        initTestArgs(values(0d, 1d, 2d, 3d, 4d), double.class, Double.class);
+        initTestArgs(values(1l, 2l, 3l, 4l), long.class, Long.class);
+        initTestArgs(values(1f, 2f, 3f, 4f), float.class, Float.class);
+        initTestArgs(values(1d, 2d, 3d, 4d), double.class, Double.class);
     }
 
     interface Executor {
