@@ -245,22 +245,33 @@ public class TestBytecode {
     }
 
     @CodeReflection
-    public static boolean not(int i, int j) {
+    static boolean not(int i, int j) {
         boolean b = i < j;
         return !b;
     }
 
     @CodeReflection
-    public static int mod(int i, int j) {
+    static int mod(int i, int j) {
         return i % (j + 1);
     }
 
     @CodeReflection
-    public static int xor(int i, int j) {
+    static int xor(int i, int j) {
         return i ^ j;
     }
 
-
+    @CodeReflection
+    static int whileLoop(int i, int n) { int
+        counter = 0;
+        while (i < n && counter < 3) {
+            counter++;
+            if (counter == 4) {
+                break;
+            }
+            i++;
+        }
+        return counter;
+    }
 
     record TestData(Method testMethod) {
         @Override
@@ -322,6 +333,7 @@ public class TestBytecode {
             for (int i = 0; i < argn; i++) {
                 args[i] = argValues[i][argIndexes[i]];
             }
+//            System.out.println(Arrays.toString(args));
             executor.execute(args);
             int i = argn - 1;
             while (i >= 0 && argIndexes[i] == argValues[i].length - 1) i--;
