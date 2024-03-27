@@ -2354,6 +2354,39 @@ public final class CoreOps {
         }
     }
 
+    /**
+     * The String Concatenation Operation
+     */
+
+    @OpDeclaration(ConcatOp.NAME)
+    public static final class ConcatOp extends OpWithDefinition implements Op.Pure {
+        public static final String NAME = "concat";
+
+        public ConcatOp(ConcatOp that, CopyContext cc) {
+            super(that, cc);
+        }
+
+        public ConcatOp(OpDefinition def) {
+            super(def);
+            if(def.operands().size() != 2) {
+                throw new IllegalArgumentException("Concatenation Operation must have two operands.");
+            }
+        }
+
+        public ConcatOp(Value lhs, Value rhs) {
+            super(ConcatOp.NAME, List.of(lhs,rhs));
+        }
+        @Override
+        public Op transform(CopyContext cc, OpTransformer ot) {
+            return new ConcatOp(this, cc);
+        }
+
+        @Override
+        public TypeElement resultType() {
+            return JavaType.J_L_STRING;
+        }
+    }
+
     //
     // Arithmetic ops
 
@@ -3729,4 +3762,13 @@ public final class CoreOps {
     public static BinaryTestOp le(Value lhs, Value rhs) {
         return new LeOp(lhs, rhs);
     }
+
+    /**
+     * Creates a string concatenation operation.
+     *
+     * @param lhs the first operand
+     * @param rhs the second operand
+     * @return the string concatenation operation
+     */
+    public static ConcatOp concat(Value lhs, Value rhs) { return new ConcatOp(lhs, rhs); }
 }

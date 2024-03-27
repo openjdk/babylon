@@ -32,7 +32,6 @@ import java.lang.reflect.code.*;
 import java.lang.reflect.code.type.FieldRef;
 import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.op.CoreOps;
-import java.lang.reflect.code.op.ExtendedOps;
 import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.TypeElement;
@@ -553,6 +552,11 @@ public final class Interpreter {
                 }
             }
             return null;
+        } else if (o instanceof CoreOps.ConcatOp concat) {
+            return o.operands().stream()
+                    .map(oc::getValue)
+                    .reduce("", (left, right) -> left + String.valueOf(right));
+
         } else {
             throw interpreterException(
                     new UnsupportedOperationException("Unsupported operation: " + o.opName()));

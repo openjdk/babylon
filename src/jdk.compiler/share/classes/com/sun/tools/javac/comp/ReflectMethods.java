@@ -2055,13 +2055,30 @@ public class ReflectMethods extends TreeTranslator {
                         ? ExtendedOps.conditionalAnd(bodies)
                         : ExtendedOps.conditionalOr(bodies));
             } else {
-                Type opType = tree.operator.type.getParameterTypes().get(0);
-                Value lhs = toValue(tree.lhs, opType);
-                Value rhs = toValue(tree.rhs, opType);
+                Value lhs, rhs;
+                if (tag == Tag.PLUS) { // If PLUS ia a String concatenation, we need to check both sides.
+
+                    //Ignore the operator and query both subexpressions for their type with concats
+                    Type lhsType = tree.lhs.type;
+                    Type rhsType = tree.rhs.type;
+
+                    lhs = toValue(tree.lhs, lhsType);
+                    rhs = toValue(tree.rhs, rhsType);
+                } else {
+                    Type opType = tree.operator.type.getParameterTypes().get(0);
+                    lhs = toValue(tree.lhs, opType);
+                    rhs = toValue(tree.rhs, opType);
+                }
 
                 result = switch (tag) {
                     // Arithmetic operations
-                    case PLUS -> append(CoreOps.add(lhs, rhs));
+                    case PLUS -> {
+                        if (lhs.type().equals(JavaType.J_L_STRING) || rhs.type().equals(JavaType.J_L_STRING)){
+                            yield append(CoreOps.concat(lhs, rhs));
+                        } else {
+                            yield append(CoreOps.add(lhs, rhs));
+                        }
+                    }
                     case MINUS -> append(CoreOps.sub(lhs, rhs));
                     case MUL -> append(CoreOps.mul(lhs, rhs));
                     case DIV -> append(CoreOps.div(lhs, rhs));
