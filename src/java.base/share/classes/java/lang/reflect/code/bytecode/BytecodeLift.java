@@ -60,6 +60,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
 import java.lang.classfile.constantpool.ClassEntry;
+import java.lang.constant.MethodTypeDesc;
 
 
 public final class BytecodeLift {
@@ -141,10 +142,14 @@ public final class BytecodeLift {
 
     // Lift to core dialect
     public static CoreOps.FuncOp lift(byte[] classdata, String methodName) {
+        return lift(classdata, methodName, null);
+    }
+
+    public static CoreOps.FuncOp lift(byte[] classdata, String methodName, MethodTypeDesc methodType) {
         return lift(ClassFile.of(
                 ClassFile.DebugElementsOption.DROP_DEBUG,
                 ClassFile.LineNumbersOption.DROP_LINE_NUMBERS).parse(classdata).methods().stream()
-                        .filter(mm -> mm.methodName().equalsString(methodName))
+                        .filter(mm -> mm.methodName().equalsString(methodName) && (methodType == null || mm.methodTypeSymbol().equals(methodType)))
                         .findFirst().orElseThrow(() -> new IllegalArgumentException("Unknown method: " + methodName)));
     }
 

@@ -23,6 +23,7 @@
 
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.components.ClassPrinter;
+import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import org.testng.Assert;
@@ -38,7 +39,9 @@ import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.runtime.CodeReflection;
+import java.util.Arrays;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /*
@@ -121,12 +124,12 @@ public class TestBytecode {
     }
 
     @CodeReflection
-    static int conditionalExpression(int i, int j) {
+    static int conditionalExpr(int i, int j) {
         return ((i - 1 >= 0) ? i - 1 : j - 1);
     }
 
     @CodeReflection
-    static int nestedConditionalExpression(int i, int j) {
+    static int nestedConditionalExpr(int i, int j) {
         return (i < 2) ? (j < 3) ? i : j : i + j;
     }
 
@@ -143,7 +146,7 @@ public class TestBytecode {
     public record A(String s) {}
 
     @CodeReflection
-    static A newWithArguments(int i, int j) {
+    static A newWithArgs(int i, int j) {
         return new A("hello world".substring(i, i + j));
     }
 
@@ -158,7 +161,7 @@ public class TestBytecode {
 
 
     @CodeReflection
-    static int ifelseNested(int a, int b) {
+    static int ifElseNested(int a, int b) {
         int c = a + b;
         int d = 10 - a + b;
         if (b < 3) {
@@ -191,22 +194,22 @@ public class TestBytecode {
     }
 
     @CodeReflection
-    static int methodCallFieldAccess(int a, int b) {
+    static int methodCall(int a, int b) {
         int i = Math.max(a, b);
         return Math.negateExact(i);
     }
 
     @CodeReflection
-    static int[] primitiveArrayCreationAndAccess(int i, int j) {
+    static int[] primitiveArray(int i, int j) {
         int[] ia = new int[i + 1];
         ia[0] = j;
         return ia;
     }
 
     @CodeReflection
-    public static int not(int i, int j) {
+    public static boolean not(int i, int j) {
         boolean b = i < j;
-        return !b ? i : j;
+        return !b;
     }
 
     @CodeReflection
@@ -220,34 +223,48 @@ public class TestBytecode {
     }
 
 
+
+    record TestData(Method testMethod) {
+        @Override
+        public String toString() {
+            String s = testMethod.getName() + Arrays.stream(testMethod.getParameterTypes()).map(Class::getSimpleName).collect(Collectors.joining(",", "(", ")"));
+            if (s.length() > 30) s = s.substring(0, 27) + "...";
+            return s;
+        }
+    }
+
     @DataProvider(name = "testMethods")
-    public static Object[] testMethods() {
-        return Stream.of(TestBytecode.class.getDeclaredMethods()).filter(m -> m.isAnnotationPresent(CodeReflection.class)).map(Method::getName).toArray();
+    public static TestData[]testMethods() {
+        return Stream.of(TestBytecode.class.getDeclaredMethods()).filter(m -> m.isAnnotationPresent(CodeReflection.class)).map(TestData::new).toArray(TestData[]::new);
     }
 
     private static byte[] CLASS_DATA;
 
     @BeforeClass
-    public void setup() throws Exception {
+    public static void setup() throws Exception {
         CLASS_DATA = TestBytecode.class.getResourceAsStream("TestBytecode.class").readAllBytes();
 //        ClassPrinter.toYaml(ClassFile.of().parse(CLASS_DATA), ClassPrinter.Verbosity.TRACE_ALL, System.out::print);
     }
 
+    private static MethodTypeDesc toMethodTypeDesc(Method m) {
+        return MethodTypeDesc.of(m.getReturnType().describeConstable().orElseThrow(),
+                                 Arrays.stream(m.getParameterTypes()).map(cls -> cls.describeConstable().orElseThrow()).toList());
+    }
+
     @Test(dataProvider = "testMethods")
-    public void testLift(String methodName) throws Throwable {
-        Method testMethod = TestBytecode.class.getDeclaredMethod(methodName, int.class, int.class);
+    public void testLift(TestData d) throws Throwable {
         CoreOps.FuncOp flift = null;
         try {
-            flift = BytecodeLift.lift(CLASS_DATA, methodName);
+            flift = BytecodeLift.lift(CLASS_DATA, d.testMethod.getName(), toMethodTypeDesc(d.testMethod));
         } catch (Throwable e) {
             System.out.println("Lift failed, expected:");
-            testMethod.getCodeModel().ifPresent(f -> f.writeTo(System.out));
+            d.testMethod.getCodeModel().ifPresent(f -> f.writeTo(System.out));
             throw e;
         }
         try {
             for (int i = 0; i < 5; i++) {
                 for (int j = 0; j < 5; j++) {
-                    Assert.assertEquals(Interpreter.invoke(flift, i, j), testMethod.invoke(null, i, j));
+                    Assert.assertEquals(Interpreter.invoke(flift, i, j), d.testMethod.invoke(null, i, j));
                 }
             }
         } catch (Throwable e) {
@@ -257,12 +274,9 @@ public class TestBytecode {
     }
 
     @Test(dataProvider = "testMethods")
-    public void testGenerate(String methodName) throws Throwable {
-        Method testMethod = TestBytecode.class.getDeclaredMethod(methodName, int.class, int.class);
+    public void testGenerate(TestData d) throws Throwable {
+        CoreOps.FuncOp func = d.testMethod.getCodeModel().get();
 
-        CoreOps.FuncOp func = testMethod.getCodeModel().get();
-
-        @SuppressWarnings("unchecked")
         CoreOps.FuncOp lfunc = func.transform(CopyContext.create(), (block, op) -> {
             if (op instanceof Op.Lowerable lop) {
                 return lop.lower(block);
@@ -276,7 +290,7 @@ public class TestBytecode {
             MethodHandle mh = BytecodeGenerator.generate(MethodHandles.lookup(), lfunc);
             for (int i = 0; i < 5; i++) {
                 for (int j = 0; j < 5; j++) {
-                    Assert.assertEquals(mh.invoke(i, j), testMethod.invoke(null, i, j));
+                    Assert.assertEquals(mh.invoke(i, j), d.testMethod.invoke(null, i, j));
                 }
             }
         } catch (Throwable e) {
