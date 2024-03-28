@@ -247,20 +247,8 @@ public final class Interpreter {
                   Map<Value, Object> capturedValues,
                   List<Object> args) {
         Body r = invokableOp.bodies().get(0);
-        Object ret = invoke(l, r, capturedValues, new OpContext(), args);
-        if (ret instanceof Integer i) {
-            TypeElement rt = invokableOp.invokableType().returnType();
-            if (rt.equals(JavaType.BOOLEAN)) {
-                return i != 0;
-            } else if (rt.equals(JavaType.BYTE)) {
-                return i.byteValue();
-            } else if (rt.equals(JavaType.CHAR)) {
-                return (short)i.intValue();
-            } else if (rt.equals(JavaType.SHORT)) {
-                return i.shortValue();
-            }
-        }
-        return ret;
+        return invoke(l, r, capturedValues, new OpContext(), args);
+
     }
     static Object invoke(MethodHandles.Lookup l, Body r,
                                  Map<Value, Object> capturedValues, OpContext oc,

@@ -37,7 +37,9 @@ import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.Op;
+import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
+import java.lang.reflect.code.type.JavaType;
 import java.lang.runtime.CodeReflection;
 import java.util.Arrays;
 import java.util.IdentityHashMap;
@@ -355,11 +357,28 @@ public class TestBytecode {
         }
         try {
             permutateAllArgs(d.testMethod.getParameterTypes(), args ->
-                Assert.assertEquals(Interpreter.invoke(flift, args), d.testMethod.invoke(null, args)));
+                Assert.assertEquals(invokeAndConvert(flift, args), d.testMethod.invoke(null, args)));
         } catch (Throwable e) {
             flift.writeTo(System.out);
             throw e;
         }
+    }
+
+    private static Object invokeAndConvert(CoreOps.FuncOp func, Object[] args) {
+        Object ret = Interpreter.invoke(func, args);
+        if (ret instanceof Integer i) {
+            TypeElement rt = func.invokableType().returnType();
+            if (rt.equals(JavaType.BOOLEAN)) {
+                return i != 0;
+            } else if (rt.equals(JavaType.BYTE)) {
+                return i.byteValue();
+            } else if (rt.equals(JavaType.CHAR)) {
+                return (short)i.intValue();
+            } else if (rt.equals(JavaType.SHORT)) {
+                return i.shortValue();
+            }
+        }
+        return ret;
     }
 
     @Test(dataProvider = "testMethods")
