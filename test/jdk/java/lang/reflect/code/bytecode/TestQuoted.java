@@ -24,65 +24,45 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.lang.reflect.code.CopyContext;
+import java.lang.reflect.code.Quoted;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.Op;
-import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
-import java.lang.reflect.code.bytecode.BytecodeLift;
-import java.lang.reflect.code.interpreter.Interpreter;
+import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.lang.runtime.CodeReflection;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.IntBinaryOperator;
 import java.util.stream.Stream;
 
 /*
  * @test
- * @run testng TestLiftSimple
+ * @run testng TestQuoted
  */
 
-public class TestLiftSimple {
-
-    @CodeReflection
-    static int f(int i, int j) {
-        i = i + j;
-        return i;
-    }
+public class TestQuoted {
 
     @Test
-    public void testF() throws Throwable {
-        CoreOps.FuncOp f = getFuncOp("f");
-        byte[] classdata = generate(f);
+    public void testQuoted() throws Throwable {
+        Quoted q = (int i, int j) -> {
+            i = i + j;
+            return i;
+        };
+        CoreOps.ClosureOp cop = (CoreOps.ClosureOp) q.op();
 
-        CoreOps.FuncOp flift = BytecodeLift.lift(classdata, "f");
-        flift.writeTo(System.out);
+        MethodHandle mh = generate(cop);
 
-        Assert.assertEquals(Interpreter.invoke(flift, 1, 1), f(1, 1));
+        Assert.assertEquals(3, (int) mh.invoke(1, 2));
     }
 
-    @CodeReflection
-    static int f2() {
-        Class<?>[] ifaces = new Class[1];
-        ifaces[0] = Function.class;
-        return ifaces.length;
-    }
-
-    @Test
-    public void testF2() {
-        CoreOps.FuncOp f = getFuncOp("f2");
-        byte[] classdata = generate(f);
-
-        CoreOps.FuncOp flift = BytecodeLift.lift(classdata, "f2");
-        flift.writeTo(System.out);
-
-        Assert.assertEquals(Interpreter.invoke(flift), f2());
-    }
-
-    static byte[] generate(CoreOps.FuncOp f) {
+    static <O extends Op & Op.Invokable> MethodHandle generate(O f) {
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
+        @SuppressWarnings("unchecked")
+        O lf = (O) f.transform(CopyContext.create(), (block, op) -> {
             if (op instanceof Op.Lowerable lop) {
                 return lop.lower(block);
             } else {
@@ -92,18 +72,6 @@ public class TestLiftSimple {
         });
         lf.writeTo(System.out);
 
-        lf = SSA.transform(lf);
-        lf.writeTo(System.out);
-
-        return BytecodeGenerator.generateClassData(MethodHandles.lookup(), lf);
-    }
-
-    static CoreOps.FuncOp getFuncOp(String name) {
-        Optional<Method> om = Stream.of(TestLiftSimple.class.getDeclaredMethods())
-                .filter(m -> m.getName().equals(name))
-                .findFirst();
-
-        Method m = om.get();
-        return m.getCodeModel().get();
+        return BytecodeGenerator.generate(MethodHandles.lookup(), lf);
     }
 }

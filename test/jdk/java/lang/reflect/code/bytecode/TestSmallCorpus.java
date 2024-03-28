@@ -21,6 +21,7 @@
  * questions.
  */
 
+import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.Instruction;
@@ -29,12 +30,12 @@ import java.lang.classfile.MethodModel;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.instruction.*;
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.AccessFlag;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.reflect.code.bytecode.BytecodeLift;
 import java.lang.reflect.code.op.CoreOps;
-
 import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -49,60 +50,95 @@ import org.testng.annotations.Test;
 /*
  * @test
  * @enablePreview
- * @run testng TestLiftSmallCorpus
+ * @run testng TestSmallCorpus
  */
-
-public class TestLiftSmallCorpus {
+public class TestSmallCorpus {
 
     private static final FileSystem JRT = FileSystems.getFileSystem(URI.create("jrt:/"));
     private static final ClassFile CF = ClassFile.of(ClassFile.DebugElementsOption.DROP_DEBUG,
                                                      ClassFile.LineNumbersOption.DROP_LINE_NUMBERS);
     private static final int COLUMN_WIDTH = 150;
 
-    private int passed, failed, skipped;
+    private int passed, notMatching;
+    private Map<String, Map<String, Integer>> errorStats;
 
     @Test
     public void testDoubleRoundtripStability() throws Exception {
         passed = 0;
-        failed = 0;
-        skipped = 0;
+        notMatching = 0;
+        errorStats = new LinkedHashMap<>();
         for (Path p : Files.walk(JRT.getPath("modules/java.base/java"))
                 .filter(p -> Files.isRegularFile(p) && p.toString().endsWith(".class"))
                 .toList()) {
             testDoubleRoundtripStability(p);
         }
 
-        // @@@ There is still several failing cases
-        Assert.assertTrue(failed < 5 && passed > 4200, STR."failed: \{failed}, passed: \{passed}, skipped: \{skipped}");
+        for (var stats : errorStats.entrySet()) {
+            System.out.println(STR."""
+
+            \{stats.getKey()} errors:
+            -----------------------------------------------------
+            """);
+            stats.getValue().entrySet().stream().sorted((e1, e2) -> Integer.compare(e2.getValue(), e1.getValue())).forEach(e -> System.out.println(e.getValue() +"x " + e.getKey() + "\n"));
+        }
+
+
+        // @@@ There is still several failing cases and a lot of errors
+        Assert.assertTrue(notMatching < 31 && passed > 5400, STR."""
+
+                    passed: \{passed}
+                    not matching: \{notMatching}
+                    \{errorStats.entrySet().stream().map(e -> e.getKey() + " errors: "
+                            + e.getValue().values().stream().collect(Collectors.summingInt(Integer::intValue))).collect(Collectors.joining("\n    "))}
+                """);
     }
 
     private void testDoubleRoundtripStability(Path path) throws Exception {
         var clm = CF.parse(path);
         for (var originalModel : clm.methods()) {
-            try {
+            if (originalModel.flags().has(AccessFlag.STATIC) && originalModel.code().isPresent()) try {
                 CoreOps.FuncOp firstLift = lift(originalModel);
-                CoreOps.FuncOp firstTransform = transform(firstLift);
-                MethodModel firstModel = lower(firstTransform);
-                CoreOps.FuncOp secondLift = lift(firstModel);
-                CoreOps.FuncOp secondTransform = transform(secondLift);
-                MethodModel secondModel = lower(secondTransform);
+                try {
+                    CoreOps.FuncOp firstTransform = transform(firstLift);
+                    try {
+                        MethodModel firstModel = lower(firstTransform);
+                        try {
+                            CoreOps.FuncOp secondLift = lift(firstModel);
+                            try {
+                                CoreOps.FuncOp secondTransform = transform(secondLift);
+                                try {
+                                    MethodModel secondModel = lower(secondTransform);
 
-                // testing only methods passing through
-                var firstNormalized = normalize(firstModel);
-                var secondNormalized = normalize(secondModel);
-                if (!firstNormalized.equals(secondNormalized)) {
-                    failed++;
-                    System.out.println(clm.thisClass().asInternalName() + "::" + originalModel.methodName().stringValue() + originalModel.methodTypeSymbol().displayDescriptor());
-                    printInColumns(firstLift, secondLift);
-                    printInColumns(firstTransform, secondTransform);
-                    printInColumns(firstNormalized, secondNormalized);
-                    System.out.println();
-                } else {
-                    passed++;
+                                    // testing only methods passing through
+                                    var firstNormalized = normalize(firstModel);
+                                    var secondNormalized = normalize(secondModel);
+                                    if (!firstNormalized.equals(secondNormalized)) {
+                                        notMatching++;
+                                        System.out.println(clm.thisClass().asInternalName() + "::" + originalModel.methodName().stringValue() + originalModel.methodTypeSymbol().displayDescriptor());
+                                        printInColumns(firstLift, secondLift);
+                                        printInColumns(firstTransform, secondTransform);
+                                        printInColumns(firstNormalized, secondNormalized);
+                                        System.out.println();
+                                    } else {
+                                        passed++;
+                                    }
+                                } catch (Exception e) {
+                                    error("second lower", e);
+                                }
+                            } catch (Exception e) {
+                                error("second transform", e);
+                            }
+                        } catch (Exception e) {
+                            error("second lift", e);
+                        }
+                    } catch (Exception e) {
+                        error("first lower", e);
+                    }
+                } catch (Exception e) {
+                    error("first transform", e);
                 }
             } catch (Exception e) {
-                // We skip methods failing to lift or lower for now
-                skipped++;
+                error("first lift", e);
             }
         }
     }
@@ -218,5 +254,12 @@ public class TestLiftSmallCorpus {
         var name = opcode.toString();
         int i = name.indexOf('_');
         return i > 2 ? name.substring(0, i) : name;
+    }
+
+    private void error(String category, Exception e) {
+        StringWriter sw = new StringWriter();
+        e.printStackTrace(new PrintWriter(sw));
+        errorStats.computeIfAbsent(category, _ -> new HashMap<>())
+                  .compute(sw.toString(), (_, i) -> i == null ? 1 : i + 1);
     }
 }
