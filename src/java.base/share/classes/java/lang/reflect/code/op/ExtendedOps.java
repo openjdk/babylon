@@ -737,13 +737,101 @@ public class ExtendedOps {
         }
 
         @Override
-        public Block.Builder lower(Block.Builder b, OpTransformer opT) {
-            throw new UnsupportedOperationException();
+        public TypeElement resultType() {
+            return resultType;
         }
 
         @Override
-        public TypeElement resultType() {
-            return resultType;
+        public Block.Builder lower(Block.Builder b, OpTransformer opT) {
+            // what's the lowered form ?
+            // an exit block with result as parameter
+            // branch to label with target as param
+            // do the check
+            // if true branch to expression, else branch to next label
+            // default label branch unconditionaly to its expression
+            // an expression branch to the exit block
+            // yield in a label body will be converted to cbranch
+            // yield in a expression body will be converted to branch to the exit block with yield value that represent the result
+
+            // input: the switch expression op, block builder (b)
+            // output: the exit block
+
+            // create block for every label body, these blocks will have param of the type of the target
+            // create block for every expression body
+
+            // in b branch to the first block, passing the target
+            // for every body of the switch expression op
+            // if it's a label body
+            //      inline it, convert yield to cbranch %p ^block_i+1 ^block_i+2 %block_i_param
+            //      for default we just branch to the next
+            // if it's an expression body
+            //      inline it, convert yield to branch ^exit %yield_val
+
+            Value target = b.context().getValue(operands().get(0));
+
+            List<Block.Builder> blocks = new ArrayList<>();
+            for (int i = 0; i < bodies().size(); i++) {
+                Block.Builder bb;
+                boolean isLabelBody = i % 2 == 0;
+                if (isLabelBody) {
+                    bb = b.block(target.type());
+                } else {
+                    bb = b.block();
+                }
+                if (i == 0) {
+                    b.op(branch(bb.successor(target)));
+                }
+                blocks.add(bb);
+            }
+
+            Block.Builder exit;
+            if (bodies().isEmpty()) {
+                exit = b;
+            } else {
+                exit = b.block(resultType());
+                exit.context().mapValue(result(), exit.parameters().get(0));
+            }
+
+            for (int i = 0; i < bodies().size(); i++) {
+                boolean isLabelBody = i % 2 == 0;
+                Block.Builder curr = blocks.get(i);
+                if (isLabelBody) {
+                    Block.Builder expression = blocks.get(i + 1);
+                    boolean isDefaultLabel = i == blocks.size() - 2;
+                    Block.Builder nextLabel = isDefaultLabel ? null : blocks.get(i + 2);
+                    curr.transformBody(bodies().get(i), blocks.get(i).parameters(), opT.andThen((block, op) -> {
+                        if (op instanceof YieldOp yop) {
+                            if (isDefaultLabel) {
+                                block.op(branch(expression.successor()));
+                            } else {
+                                block.op(conditionalBranch(
+                                        block.context().getValue(yop.yieldValue()),
+                                        expression.successor(),
+                                        nextLabel.successor(curr.parameters())
+                                ));
+                            }
+                        } else if (op instanceof Lowerable lop) {
+                            block = lop.lower(block);
+                        } else {
+                            block.op(op);
+                        }
+                        return block;
+                    }));
+                } else {
+                    curr.transformBody(bodies().get(i), blocks.get(i).parameters(), opT.andThen((block, op) -> {
+                        if (op instanceof YieldOp yop) {
+                            block.op(branch(exit.successor(block.context().getValue(yop.yieldValue()))));
+                        } else if (op instanceof Lowerable lop) {
+                            block = lop.lower(block);
+                        } else {
+                            block.op(op);
+                        }
+                        return block;
+                    }));
+                }
+            }
+
+            return exit;
         }
     }
 
