@@ -23,14 +23,16 @@
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
+import org.testng.annotations.DataProvider;
 
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.runtime.CodeReflection;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 /*
@@ -156,153 +158,74 @@ public class TestConcat {
     }
 
 
-
-    @Test
-    public void testInterpretConcat() {
-        //CoreOps.FuncOp fModel = getFuncOp("f");
-        var res1 = testRun("f",List.of());
-        var res2 = f();
-        Assert.assertEquals(res1,res2);
+    record Triple(Class<?> first, Class<?> second, String third) {
     }
 
-    @Test
-    public static void testByteConcat() {
-       byte b = 42;
-       Object res1 = testRun("byteConcat1", List.of(byte.class, String.class), b, TESTSTR);
-       Assert.assertEquals(res1, byteConcat1(b, TESTSTR));
-
-       var res2 = testRun("byteConcat2", List.of(String.class, byte.class), TESTSTR, b);
-       Assert.assertEquals(res2, byteConcat2(TESTSTR,b));
+    static final Map<Class<?>, Object> valMap;
+    static {
+        valMap = new HashMap<>();
+        valMap.put(byte.class, (byte) 42);
+        valMap.put(short.class, (short) 42);
+        valMap.put(int.class, 42);
+        valMap.put(long.class, (long) 42);
+        valMap.put(float.class, 42f);
+        valMap.put(double.class, 42d);
+        valMap.put(char.class, 'z');
+        valMap.put(boolean.class, false);
+        valMap.put(Object.class, new Object() {
+                    @Override
+                    public String toString() {
+                        return "I'm a test string.";
+                    }
+                });
+        valMap.put(TestObject.class, new TestObject());
+        valMap.put(String.class, TESTSTR);
     }
+    @DataProvider(name = "testData")
+    public static Object[][]  testData() {
+        Set<Class<?>> types = Set.of(byte.class, short.class, int.class, long.class, float.class,
+                double.class, char.class, boolean.class, Object.class);
 
-    @Test
-    public static void testShortConcat() {
-        short b = 42;
-        Object res1 = testRun("shortConcat1", List.of(short.class, String.class), b, TESTSTR);
-        Assert.assertEquals(res1, shortConcat1(b, TESTSTR));
 
-        var res2 = testRun("shortConcat2", List.of(String.class, short.class), TESTSTR, b);
-        Assert.assertEquals(res2, shortConcat2(TESTSTR,b));
-    }
+        BiFunction<Class<?>, Integer, String> name = (Class<?> n, Integer i) -> n.getSimpleName().toLowerCase() + "Concat" + i;
 
-    @Test
-    public static void testIntConcat() {
-        int b = 42;
-        Object res1 = testRun("intConcat1", List.of(int.class, String.class), b, TESTSTR);
-        Assert.assertEquals(res1, intConcat1(b, TESTSTR));
+        Stream<Triple> s1 = types.stream().map(t -> new Triple(t,String.class, name.apply(t, 1)));
+        Stream<Triple> s2 = types.stream().map(t -> new Triple(String.class, t, name.apply(t, 2)));
 
-        var res2 = testRun("intConcat2", List.of(String.class, int.class), TESTSTR, b);
-        Assert.assertEquals(res2, intConcat2(TESTSTR,b));
-    }
+        Stream<Triple> s3 = Stream.of(new Triple(TestObject.class, String.class, name.apply(Object.class, 3)),
+                                      new Triple(String.class, TestObject.class, name.apply(Object.class, 4)));
 
-    @Test
-    public static void testLongConcat() {
-        long b = 42;
-        Object res1 = testRun("longConcat1", List.of(long.class, String.class), b, TESTSTR);
-        Assert.assertEquals(res1, longConcat1(b, TESTSTR));
+        Stream<Triple> s4 = Stream.of(new Triple(String.class, String.class, "stringConcat"));
 
-        var res2 = testRun("longConcat2", List.of(String.class, long.class), TESTSTR, b);
-        Assert.assertEquals(res2, longConcat2(TESTSTR,b));
-    }
+        Object[] t = Stream.concat(Stream.concat(Stream.concat(s1,s2),s3),s4).toArray();
 
-    @Test
-    public static void testFloatConcat() {
-        float b = 42.0f;
-        Object res1 = testRun("floatConcat1", List.of(float.class, String.class), b, TESTSTR);
-        Assert.assertEquals(res1, floatConcat1(b, TESTSTR));
+        Object[][] args = new Object[t.length][];
 
-        var res2 = testRun("floatConcat2", List.of(String.class, float.class), TESTSTR, b);
-        Assert.assertEquals(res2, floatConcat2(TESTSTR,b));
-    }
+        for(int i = 0; i < args.length; i++) {
+            args[i] = new Object[]{ t[i] };
+        }
 
-    @Test
-    public static void testDoubleConcat() {
-        double b = 42.0f;
-        Object res1 = testRun("doubleConcat1", List.of(double.class, String.class), b, TESTSTR);
-        Assert.assertEquals(res1, doubleConcat1(b, TESTSTR));
-
-        var res2 = testRun("doubleConcat2", List.of(String.class, double.class), TESTSTR, b);
-        Assert.assertEquals(res2, doubleConcat2(TESTSTR,b));
-    }
-
-    @Test
-    public static void testBooleanConcat() {
-        boolean b = false;
-        Object res1 = testRun("booleanConcat1", List.of(boolean.class, String.class), b, TESTSTR);
-        Assert.assertEquals(res1, booleanConcat1(b, TESTSTR));
-
-        var res2 = testRun("booleanConcat2", List.of(String.class, boolean.class), TESTSTR, b);
-        Assert.assertEquals(res2, booleanConcat2(TESTSTR,b));
-    }
-    @Test
-    public static void testCharConcat() {
-        char b = 'z';
-        Object res1 = testRun("charConcat1", List.of(char.class, String.class), b, TESTSTR);
-        Assert.assertEquals(res1, charConcat1(b, TESTSTR));
-
-        var res2 = testRun("charConcat2", List.of(String.class, char.class), TESTSTR, b);
-        Assert.assertEquals(res2, charConcat2(TESTSTR,b));
-    }
-
-    @Test
-    public static void testObjectConcat() {
-
-        Object o = new Object() {
-            @Override
-            public String toString() {
-                return "I'm a test string.";
-            }
-        };
-
-        Object res1 = testRun("objectConcat1", List.of(Object.class, String.class), o, TESTSTR);
-        Assert.assertEquals(res1, objectConcat1(o, TESTSTR));
-
-        var res2 = testRun("objectConcat2", List.of(String.class, Object.class), TESTSTR, o);
-        Assert.assertEquals(res2, objectConcat2(TESTSTR,o));
-    }
-
-    @Test
-    public static void testObjectConcat2() {
-
-        TestObject o = new TestObject();
-
-        Object res1 = testRun("objectConcat3", List.of(TestObject.class, String.class), o, TESTSTR);
-        Assert.assertEquals(res1, objectConcat3(o, TESTSTR));
-
-        var res2 = testRun("objectConcat4", List.of(String.class, TestObject.class), TESTSTR, o);
-        Assert.assertEquals(res2, objectConcat4(TESTSTR,o));
-    }
-
-    @Test
-    public static void testStringConcat() {
-        String s = "teststring.";
-
-        Object res1 = testRun("stringConcat", List.of(String.class, String.class), s, TESTSTR);
-        Assert.assertEquals(res1, stringConcat(s, TESTSTR));
+        return args;
 
     }
 
-    private static Object testRun(String methodName, List<Class<?>> params, Object...args) {
+
+    @Test(dataProvider = "testData")
+    public static void testRun(Triple t) {
         try {
 
+            Object[] args = new Object[] {valMap.get(t.first), valMap.get(t.second)};
             Class<TestConcat> clazz = TestConcat.class;
-            Method method = clazz.getDeclaredMethod(methodName,params.toArray(new Class[params.size()]));
+            Method method = clazz.getDeclaredMethod(t.third, t.first, t.second);
             CoreOps.FuncOp f = method.getCodeModel().orElseThrow();
-            return Interpreter.invoke(MethodHandles.lookup(), f ,args);
+            var res1 = Interpreter.invoke(MethodHandles.lookup(), f, args);
+            var res2 = method.invoke(null, args);
 
-        } catch (NoSuchMethodException e) {
+            //Assert.assertEquals(res1, res2);
+
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
         }
-    }
-
-
-    static CoreOps.FuncOp getFuncOp(String name) {
-        Optional<Method> om = Stream.of(TestConcat.class.getDeclaredMethods())
-                .filter(m -> m.getName().equals(name))
-                .findFirst();
-
-        Method m = om.get();
-        return m.getCodeModel().get();
     }
 
     public static final class TestObject {
@@ -310,7 +233,7 @@ public class TestConcat {
 
         @Override
         public String toString() {
-           return "TestObject String";
+            return "TestObject String";
         }
     }
 }

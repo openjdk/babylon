@@ -37,6 +37,7 @@ import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.type.VarType;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toMap;
@@ -552,11 +553,11 @@ public final class Interpreter {
                 }
             }
             return null;
-        } else if (o instanceof CoreOps.ConcatOp concat) {
+        } else if (o instanceof CoreOps.ConcatOp) {
             return o.operands().stream()
                     .map(oc::getValue)
-                    .reduce("", (left, right) -> left + String.valueOf(right));
-
+                    .map(String::valueOf)
+                    .collect(Collectors.joining());
         } else {
             throw interpreterException(
                     new UnsupportedOperationException("Unsupported operation: " + o.opName()));
