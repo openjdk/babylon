@@ -221,7 +221,7 @@ public class TestConcat {
             var res1 = Interpreter.invoke(MethodHandles.lookup(), f, args);
             var res2 = method.invoke(null, args);
 
-            //Assert.assertEquals(res1, res2);
+            Assert.assertEquals(res1, res2);
 
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
