@@ -33,7 +33,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
-import org.junit.jupiter.params.provider.ValueSource;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -62,16 +61,67 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class CoreBinaryOpsTest {
 
-    @Retention(RetentionPolicy.RUNTIME)
-    @Target(ElementType.METHOD)
-    @interface SupportedTypes {
-        Class<?>[] types();
+    @CodeReflection
+    @SupportedTypes(types = {int.class, long.class, boolean.class})
+    static int and(int left, int right) {
+        return left & right;
+    }
+
+    @CodeReflection
+    @SupportedTypes(types = {int.class, long.class, float.class, double.class})
+    static int add(int left, int right) {
+        return left + right;
+    }
+
+    @CodeReflection
+    @SupportedTypes(types = {int.class, long.class, float.class, double.class})
+    static int div(int left, int right) {
+        return left / right;
+    }
+
+    @CodeReflection
+    @SupportedTypes(types = {int.class, long.class, float.class, double.class})
+    static int mod(int left, int right) {
+        return left % right;
+    }
+
+    @CodeReflection
+    @SupportedTypes(types = {int.class, long.class, float.class, double.class})
+    static int mul(int left, int right) {
+        return left * right;
+    }
+
+    @CodeReflection
+    @SupportedTypes(types = {int.class, long.class, boolean.class})
+    static int or(int left, int right) {
+        return left | right;
+    }
+
+    @CodeReflection
+    @SupportedTypes(types = {int.class, long.class, float.class, double.class})
+    static int sub(int left, int right) {
+        return left - right;
+    }
+
+
+    @CodeReflection
+    @SupportedTypes(types = {int.class, long.class, boolean.class})
+    static int xor(int left, int right) {
+        return left ^ right;
+    }
+
+    @ParameterizedTest
+    @CodeReflectionExecutionSource
+    void test(CoreOps.FuncOp funcOp, Object left, Object right) {
+        Result interpret = runCatching(() -> interpret(left, right, funcOp));
+        Result bytecode = runCatching(() -> bytecode(left, right, funcOp));
+        assertResults(interpret, bytecode);
     }
 
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.METHOD)
-    @interface SpecialInputs {
-        ValueSource[] value();
+    @interface SupportedTypes {
+        Class<?>[] types();
     }
 
     @Retention(RetentionPolicy.RUNTIME)
@@ -187,34 +237,8 @@ public class CoreBinaryOpsTest {
 
         record TransformedFunc(CoreOps.FuncOp funcOp, Class<?> type) {
         }
-    }
 
-    @CodeReflection
-    @SupportedTypes(types = {int.class, long.class, boolean.class})
-    static int and(int left, int right) {
-        return left & right;
     }
-
-    @CodeReflection
-    @SupportedTypes(types = {int.class, long.class, float.class, double.class})
-    static int add(int left, int right) {
-        return left + right;
-    }
-
-    @CodeReflection
-    @SupportedTypes(types = {int.class, long.class, float.class, double.class})
-    static int div(int left, int right) {
-        return left / right;
-    }
-
-    @ParameterizedTest
-    @CodeReflectionExecutionSource
-    void test(CoreOps.FuncOp funcOp, Object left, Object right) {
-        Result interpret = runCatching(() -> interpret(left, right, funcOp));
-        Result bytecode = runCatching(() -> bytecode(left, right, funcOp));
-        assertResults(interpret, bytecode);
-    }
-
 
     private static Object interpret(Object left, Object right, CoreOps.FuncOp op) {
         return Interpreter.invoke(MethodHandles.lookup(), op, left, right);
@@ -243,9 +267,8 @@ public class CoreBinaryOpsTest {
             if (first.throwable.getClass() != second.throwable.getClass()) {
                 first.throwable.printStackTrace();
                 second.throwable.printStackTrace();
-                fail("Different exceptions where thrown");
+                fail("Different exceptions were thrown");
             }
-            assertEquals(first.throwable.getClass(), second.throwable.getClass());
             return;
         }
         // otherwise, both results should be non-null and equals
