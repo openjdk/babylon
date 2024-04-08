@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * A function type.
+ * A class type.
  */
 public final class ClassType implements JavaType {
     // Fully qualified name

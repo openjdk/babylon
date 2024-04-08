@@ -150,19 +150,13 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
     // Factories
 
     static JavaType type(Class<?> c) {
-        int dims = 0;
-        if (c.isArray()) {
-            while (c.isArray()) {
-                c = c.getComponentType();
-                dims++;
-            }
+        if (c.isPrimitive()) {
+            return new PrimitiveType(c.getName());
+        } else if (c.isArray()) {
+            return array(type(c.getComponentType()));
+        } else {
+            return new ClassType(c.getName());
         }
-        JavaType ctype = c.isPrimitive() ?
-                new PrimitiveType(c.getName()) :
-                new ClassType(c.getName());
-        return dims == 0 ?
-                ctype :
-                array(ctype, dims);
     }
 
     static JavaType type(Class<?> c, Class<?>... typeArguments) {
@@ -170,20 +164,14 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
     }
 
     static JavaType type(Class<?> c, List<Class<?>> typeArguments) {
-        int dims = 0;
-        if (c.isArray()) {
-            while (c.isArray()) {
-                c = c.getComponentType();
-                dims++;
-            }
-        }
         if (c.isPrimitive()) {
             throw new IllegalArgumentException("Cannot parameterize a primitive type");
+        } else if (c.isArray()) {
+            return array(type(c.getComponentType(), typeArguments));
+        } else {
+            return new ClassType(c.getName(),
+                    typeArguments.stream().map(JavaType::type).toList());
         }
-        JavaType ctype = new ClassType(c.getName(), typeArguments.stream().map(JavaType::type).toList());
-        return dims == 0 ?
-                ctype :
-                array(ctype, dims);
     }
 
     static JavaType ofNominalDescriptor(ClassDesc d) {
@@ -223,20 +211,17 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
     }
 
     static JavaType type(JavaType t, List<JavaType> typeArguments) {
-        int dims = 0;
-        if (t.isArray()) {
-            while (t.isArray()) {
-                t = ((ArrayType)t).componentType();
-                dims++;
+        if (t.isPrimitive()) {
+            throw new IllegalArgumentException("Cannot parameterize a primitive type");
+        } else if (t.isArray()) {
+            return array(type(((ArrayType)t).componentType(), typeArguments));
+        } else {
+            ClassType ct = (ClassType)t;
+            if (ct.hasTypeArguments()) {
+                throw new IllegalArgumentException("Type must not have type arguments: " + ct);
             }
+            return new ClassType(ct.toClassName(), typeArguments);
         }
-        if (t instanceof ClassType ct && ct.hasTypeArguments() || t.isPrimitive()) {
-            throw new IllegalArgumentException("Type must not have type arguments: " + t);
-        }
-        JavaType ctype = new ClassType(((ClassType)t).toClassName(), typeArguments);
-        return dims == 0 ?
-                ctype :
-                array(ctype, dims);
     }
 
     /**
