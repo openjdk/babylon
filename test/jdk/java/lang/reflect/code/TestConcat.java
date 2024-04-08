@@ -32,7 +32,6 @@ import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.runtime.CodeReflection;
 import java.util.*;
-import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 /*
@@ -181,23 +180,26 @@ public class TestConcat {
         valMap.put(TestObject.class, new TestObject());
         valMap.put(String.class, TESTSTR);
     }
+    private static String testName(Class<?> n, Integer i){
+        return n.getSimpleName().toLowerCase() + "Concat" + i;
+    }
     @DataProvider(name = "testData")
     public static Object[][]  testData() {
         Set<Class<?>> types = Set.of(byte.class, short.class, int.class, long.class, float.class,
                 double.class, char.class, boolean.class, Object.class);
 
 
-        BiFunction<Class<?>, Integer, String> name = (Class<?> n, Integer i) -> n.getSimpleName().toLowerCase() + "Concat" + i;
 
-        Stream<Triple> s1 = types.stream().map(t -> new Triple(t,String.class, name.apply(t, 1)));
-        Stream<Triple> s2 = types.stream().map(t -> new Triple(String.class, t, name.apply(t, 2)));
+        //Types from types concatenated to strings left-to-right and right-to-left
+        Stream<Triple> s1 = types.stream().map(t -> new Triple(t,String.class, testName(t, 1)));
+        Stream<Triple> s2 = types.stream().map(t -> new Triple(String.class, t, testName(t, 2)));
 
-        Stream<Triple> s3 = Stream.of(new Triple(TestObject.class, String.class, name.apply(Object.class, 3)),
-                                      new Triple(String.class, TestObject.class, name.apply(Object.class, 4)));
+        //Custom Object and basic string concat tests
+        Stream<Triple> s3 = Stream.of(new Triple(TestObject.class, String.class, testName(Object.class, 3)),
+                                      new Triple(String.class, TestObject.class, testName(Object.class, 4)),
+                                      new Triple(String.class, String.class, "stringConcat"));
 
-        Stream<Triple> s4 = Stream.of(new Triple(String.class, String.class, "stringConcat"));
-
-        Object[] t = Stream.concat(Stream.concat(Stream.concat(s1,s2),s3),s4).toArray();
+        Object[] t = Stream.concat(Stream.concat(s1,s2),s3).toArray();
 
         Object[][] args = new Object[t.length][];
 
@@ -208,7 +210,6 @@ public class TestConcat {
         return args;
 
     }
-
 
     @Test(dataProvider = "testData")
     public static void testRun(Triple t) {
