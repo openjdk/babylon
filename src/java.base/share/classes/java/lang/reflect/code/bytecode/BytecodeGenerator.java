@@ -46,6 +46,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.analysis.Liveness;
+import java.lang.reflect.code.type.ArrayType;
 import java.lang.reflect.code.type.FieldRef;
 import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.type.FunctionType;
@@ -584,7 +585,7 @@ public final class BytecodeGenerator {
                         switch (t) {
                             case ArrayType at when at.dimensions() == 1 -> {
                                 processOperands(op, isLastOpResultOnStack);
-                                ClassDesc ctd = t.componentType().toNominalDescriptor();
+                                ClassDesc ctd = at.componentType().toNominalDescriptor();
                                 if (ctd.isPrimitive()) {
                                     cob.newarray(TypeKind.from(ctd));
                                 } else {
@@ -592,19 +593,18 @@ public final class BytecodeGenerator {
                                 }
                             }
                             case ArrayType at -> {
-                                processOperands(cob, c, op, isLastOpResultOnStack);
+                                processOperands(op, isLastOpResultOnStack);
                                 cob.multianewarray(t.toNominalDescriptor(), op.operands().size());
                             }
                             default -> {
                                 if (isLastOpResultOnStack) {
-                                    int slot = c.assignSlot(oprOnStack);
-                                    storeInstruction(cob, rvt, slot);
+                                    storeIfUsed(oprOnStack);
                                     isLastOpResultOnStack = false;
                                     oprOnStack = null;
                                 }
                                 cob.new_(t.toNominalDescriptor())
-                                   .dup();
-                                processOperands(cob, c, op, false);
+                                        .dup();
+                                processOperands(op, false);
                                 cob.invokespecial(
                                         ((JavaType) op.resultType()).toNominalDescriptor(),
                                         ConstantDescs.INIT_NAME,
