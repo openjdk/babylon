@@ -33,8 +33,11 @@ import java.lang.reflect.code.op.CoreOps.*;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.lang.classfile.ClassBuilder;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
+import java.lang.classfile.components.ClassPrinter;
+import java.lang.invoke.LambdaMetafactory;
 import java.lang.reflect.code.Block;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.Op;
@@ -56,10 +59,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static java.lang.constant.ConstantDescs.*;
+
 /**
  * Transformer of code models to bytecode.
  */
 public final class BytecodeGenerator {
+
+    private static final DirectMethodHandleDesc DMHD_LAMBDA_METAFACTORY = MethodHandleDesc.ofMethod(
+            DirectMethodHandleDesc.Kind.STATIC,
+            LambdaMetafactory.class.describeConstable().orElseThrow(),
+            "metafactory",
+            MethodTypeDesc.of(CD_CallSite, CD_MethodHandles_Lookup, CD_String, CD_MethodType, CD_MethodType, CD_MethodHandle, CD_MethodType));
 
     /**
      * Transforms the invokable operation to bytecode encapsulated in a method of hidden class and exposed
@@ -73,6 +84,7 @@ public final class BytecodeGenerator {
     public static <O extends Op & Op.Invokable> MethodHandle generate(MethodHandles.Lookup l, O iop) {
         String name = iop instanceof FuncOp fop ? fop.funcName() : "m";
         byte[] classBytes = generateClassData(l, name, iop);
+//        ClassPrinter.toYaml(ClassFile.of().parse(classBytes), ClassPrinter.Verbosity.TRACE_ALL, System.out::print);
 
         {
             try {
@@ -87,7 +99,9 @@ public final class BytecodeGenerator {
 
         MethodHandles.Lookup hcl;
         try {
-            hcl = l.defineHiddenClass(classBytes, true);
+            hcl = l.in(l.defineClass(classBytes));
+// @@@ lambdas do not work in hidden classes
+//            hcl = l.defineHiddenClass(classBytes, true);
         } catch (IllegalAccessException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
@@ -124,31 +138,36 @@ public final class BytecodeGenerator {
      * @return the class file bytes
      * @param <O> the type of the invokable operation
      */
-    public static <O extends Op & Op.Invokable> byte[] generateClassData(MethodHandles.Lookup lookup,
-                                                                         String name, O iop) {
+    public static <O extends Op & Op.Invokable> byte[] generateClassData(MethodHandles.Lookup lookup, String name, O iop) {
         if (!iop.capturedValues().isEmpty()) {
             throw new UnsupportedOperationException("Operation captures values");
         }
 
         String packageName = lookup.lookupClass().getPackageName();
-        String className = packageName.isEmpty()
+        ClassDesc className = ClassDesc.of(packageName.isEmpty()
                 ? name
-                : packageName + "." + name;
-        MethodTypeDesc mtd = MethodRef.toNominalDescriptor(iop.invokableType());
-        byte[] classBytes = ClassFile.of().build(ClassDesc.of(className), clb ->
-                clb.withMethodBody(
-                        name,
-                        mtd,
-                        ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC,
-                        cb -> cb.transforming(new BranchCompactor(), cob ->
-                            new BytecodeGenerator(lookup, new Liveness(iop), iop.body().blocks(), cob).generate())));
+                : packageName + "." + name);
+        byte[] classBytes = ClassFile.of().build(className, clb -> {
+            List<LambdaOp> lambdaSink = new ArrayList<>();
+            generateMethod(lookup, className, name, iop, clb, lambdaSink);
+            for (int i = 0; i < lambdaSink.size(); i++) {
+                generateMethod(lookup, className, name + "$lambda$" + i, lambdaSink.get(i), clb, lambdaSink);
+            }
+        });
         return classBytes;
+    }
+
+    private static <O extends Op & Op.Invokable> void generateMethod(MethodHandles.Lookup lookup, ClassDesc className, String methodName, O iop, ClassBuilder clb, List<LambdaOp> lambdaSink) {
+        clb.withMethodBody(methodName, MethodRef.toNominalDescriptor(iop.invokableType()), ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC,
+                cb -> cb.transforming(new BranchCompactor(), cob ->
+                    new BytecodeGenerator(lookup, className, new Liveness(iop), iop.body().blocks(), cob, lambdaSink).generate()));
     }
 
     private record Slot(int slot, TypeKind typeKind) {}
     private record ExceptionRegionWithBlocks(CoreOps.ExceptionRegionEnter ere, BitSet blocks) {}
 
     private final MethodHandles.Lookup lookup;
+    private final ClassDesc className;
     private final List<Block> blocks;
     private final CodeBuilder cob;
     private final Label[] blockLabels;
@@ -156,9 +175,11 @@ public final class BytecodeGenerator {
     private final BitSet[] blocksRegionStack;
     private final BitSet blocksToVisit, catchingBlocks;
     private final Map<Value, Slot> slots;
+    private final List<LambdaOp> lambdaSink;
 
-    private BytecodeGenerator(MethodHandles.Lookup lookup, Liveness liveness, List<Block> blocks, CodeBuilder cob) {
+    private BytecodeGenerator(MethodHandles.Lookup lookup, ClassDesc className, Liveness liveness, List<Block> blocks, CodeBuilder cob, List<LambdaOp> lambdaSink) {
         this.lookup = lookup;
+        this.className = className;
         this.blocks = blocks;
         this.cob = cob;
         this.blockLabels = new Label[blocks.size()];
@@ -167,6 +188,7 @@ public final class BytecodeGenerator {
         this.blocksToVisit = new BitSet(blocks.size());
         this.catchingBlocks = new BitSet();
         this.slots = new HashMap<>();
+        this.lambdaSink = lambdaSink;
     }
 
     private void setExceptionRegionStack(Block.Reference target, BitSet activeRegionStack) {
@@ -298,16 +320,26 @@ public final class BytecodeGenerator {
             case VarType vt -> toTypeKind(vt.valueType());
             case JavaType jt -> {
                 TypeElement bt = jt.toBasicType();
-                if (bt.equals(JavaType.INT)) {
+                if (bt.equals(JavaType.VOID)) {
+                    yield TypeKind.VoidType;
+                } else if (bt.equals(JavaType.INT)) {
                     yield TypeKind.IntType;
-                } else if (bt.equals(JavaType.LONG)) {
-                    yield TypeKind.LongType;
-                } else if (bt.equals(JavaType.FLOAT)) {
-                    yield TypeKind.FloatType;
-                } else if (bt.equals(JavaType.DOUBLE)) {
-                    yield TypeKind.DoubleType;
                 } else if (bt.equals(JavaType.J_L_OBJECT)) {
                     yield TypeKind.ReferenceType;
+                } else if (bt.equals(JavaType.LONG)) {
+                    yield TypeKind.LongType;
+                } else if (bt.equals(JavaType.DOUBLE)) {
+                    yield TypeKind.DoubleType;
+                } else if (bt.equals(JavaType.BOOLEAN)) {
+                    yield TypeKind.BooleanType;
+                } else if (bt.equals(JavaType.BYTE)) {
+                    yield TypeKind.ByteType;
+                } else if (bt.equals(JavaType.CHAR)) {
+                    yield TypeKind.CharType;
+                } else if (bt.equals(JavaType.FLOAT)) {
+                    yield TypeKind.FloatType;
+                } else if (bt.equals(JavaType.SHORT)) {
+                    yield TypeKind.ShortType;
                 } else {
                     throw new IllegalArgumentException("Bad type: " + t);
                 }
@@ -411,7 +443,7 @@ public final class BytecodeGenerator {
             for (int i = 0; i < ops.size() - 1; i++) {
                 Op o = ops.get(i);
                 TypeElement oprType = o.resultType();
-                TypeKind rvt = oprType.equals(JavaType.VOID) ? null : toTypeKind(oprType);
+                TypeKind rvt = toTypeKind(oprType);
                 switch (o) {
                     case ConstantOp op -> {
                         if (op.resultType().equals(JavaType.J_L_CLASS)) {
@@ -420,7 +452,7 @@ public final class BytecodeGenerator {
                         } else {
                           // Defer process to use, where constants are inlined
                           // This applies to both operands and successor arguments
-                          rvt = null;
+                          rvt = TypeKind.VoidType;
                         }
                     }
                     case VarOp op -> {
@@ -430,7 +462,7 @@ public final class BytecodeGenerator {
                         // Use slot of variable result
                         storeIfUsed(op.result());
                         // Ignore result
-                        rvt = null;
+                        rvt = TypeKind.VoidType;
                     }
                     case VarAccessOp.VarLoadOp op -> {
                         // Use slot of variable result
@@ -455,7 +487,7 @@ public final class BytecodeGenerator {
                     case NegOp op -> {
                         processOperands(op, isLastOpResultOnStack);
                         switch (rvt) { //this can be moved to CodeBuilder::neg(TypeKind)
-                            case IntType -> cob.ineg();
+                            case IntType, BooleanType, ByteType, ShortType, CharType -> cob.ineg();
                             case LongType -> cob.lneg();
                             case FloatType -> cob.fneg();
                             case DoubleType -> cob.dneg();
@@ -469,7 +501,7 @@ public final class BytecodeGenerator {
                     case AddOp op -> {
                         processOperands(op, isLastOpResultOnStack);
                         switch (rvt) { //this can be moved to CodeBuilder::add(TypeKind)
-                            case IntType -> cob.iadd();
+                            case IntType, BooleanType, ByteType, ShortType, CharType -> cob.iadd();
                             case LongType -> cob.ladd();
                             case FloatType -> cob.fadd();
                             case DoubleType -> cob.dadd();
@@ -479,7 +511,7 @@ public final class BytecodeGenerator {
                     case SubOp op -> {
                         processOperands(op, isLastOpResultOnStack);
                         switch (rvt) { //this can be moved to CodeBuilder::sub(TypeKind)
-                            case IntType -> cob.isub();
+                            case IntType, BooleanType, ByteType, ShortType, CharType -> cob.isub();
                             case LongType -> cob.lsub();
                             case FloatType -> cob.fsub();
                             case DoubleType -> cob.dsub();
@@ -489,7 +521,7 @@ public final class BytecodeGenerator {
                     case MulOp op -> {
                         processOperands(op, isLastOpResultOnStack);
                         switch (rvt) { //this can be moved to CodeBuilder::mul(TypeKind)
-                            case IntType -> cob.imul();
+                            case IntType, BooleanType, ByteType, ShortType, CharType -> cob.imul();
                             case LongType -> cob.lmul();
                             case FloatType -> cob.fmul();
                             case DoubleType -> cob.dmul();
@@ -499,7 +531,7 @@ public final class BytecodeGenerator {
                     case DivOp op -> {
                         processOperands(op, isLastOpResultOnStack);
                         switch (rvt) { //this can be moved to CodeBuilder::div(TypeKind)
-                            case IntType -> cob.idiv();
+                            case IntType, BooleanType, ByteType, ShortType, CharType -> cob.idiv();
                             case LongType -> cob.ldiv();
                             case FloatType -> cob.fdiv();
                             case DoubleType -> cob.ddiv();
@@ -509,7 +541,7 @@ public final class BytecodeGenerator {
                     case ModOp op -> {
                         processOperands(op, isLastOpResultOnStack);
                         switch (rvt) { //this can be moved to CodeBuilder::rem(TypeKind)
-                            case IntType -> cob.irem();
+                            case IntType, BooleanType, ByteType, ShortType, CharType -> cob.irem();
                             case LongType -> cob.lrem();
                             case FloatType -> cob.frem();
                             case DoubleType -> cob.drem();
@@ -519,7 +551,7 @@ public final class BytecodeGenerator {
                     case AndOp op -> {
                         processOperands(op, isLastOpResultOnStack);
                         switch (rvt) { //this can be moved to CodeBuilder::and(TypeKind)
-                            case IntType, BooleanType -> cob.iand();
+                            case IntType, BooleanType, ByteType, ShortType, CharType -> cob.iand();
                             case LongType -> cob.land();
                             default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
                         }
@@ -527,7 +559,7 @@ public final class BytecodeGenerator {
                     case OrOp op -> {
                         processOperands(op, isLastOpResultOnStack);
                         switch (rvt) { //this can be moved to CodeBuilder::or(TypeKind)
-                            case IntType, BooleanType -> cob.ior();
+                            case IntType, BooleanType, ByteType, ShortType, CharType -> cob.ior();
                             case LongType -> cob.lor();
                             default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
                         }
@@ -535,7 +567,7 @@ public final class BytecodeGenerator {
                     case XorOp op -> {
                         processOperands(op, isLastOpResultOnStack);
                         switch (rvt) { //this can be moved to CodeBuilder::xor(TypeKind)
-                            case IntType, BooleanType -> cob.ixor();
+                            case IntType, BooleanType, ByteType, ShortType, CharType -> cob.ixor();
                             case LongType -> cob.lxor();
                             default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
                         }
@@ -559,7 +591,7 @@ public final class BytecodeGenerator {
                             cob.ifThenElse(prepareReverseCondition(op), CodeBuilder::iconst_0, CodeBuilder::iconst_1);
                         } else {
                             // Processing is deferred to the CondBrOp, do not process the op result
-                            rvt = null;
+                            rvt = TypeKind.VoidType;
                         }
                     }
                     case NewOp op -> {
@@ -675,11 +707,23 @@ public final class BytecodeGenerator {
                         processOperands(op, isLastOpResultOnStack);
                         cob.checkcast(((JavaType) op.type()).toNominalDescriptor());
                     }
+                    case LambdaOp op -> {
+                        lambdaSink.add(op);
+                        processOperands(op, isLastOpResultOnStack);
+                        cob.invokedynamic(DynamicCallSiteDesc.of(
+                                DMHD_LAMBDA_METAFACTORY,
+                                // @@@ compose DynamicCallSiteDesc from the LambdaOp
+                                "apply",
+                                MethodTypeDesc.ofDescriptor("()LTestLambda$Func;"),
+                                MethodTypeDesc.of(CD_int, CD_int),
+                                MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC, className, "lambda$lambda$0", MethodTypeDesc.of(CD_int, CD_int)),
+                                MethodTypeDesc.of(CD_int, CD_int)));
+                    }
                     default ->
                         throw new UnsupportedOperationException("Unsupported operation: " + ops.get(i));
                 }
                 // Assign slot to operation result
-                if (rvt != null) {
+                if (rvt != TypeKind.VoidType) {
                     if (!isResultOnlyUse(o.result())) {
                         isLastOpResultOnStack = false;
                         oprOnStack = null;
