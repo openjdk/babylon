@@ -43,6 +43,10 @@ public final class ClassType implements JavaType {
     }
 
     ClassType(String type, List<JavaType> typeArguments) {
+        switch (type) {
+            case "boolean", "char", "byte", "short", "int", "long",
+                    "float", "double", "void" -> throw new IllegalArgumentException();
+        }
         this.type = type;
         this.typeArguments = List.copyOf(typeArguments);
     }

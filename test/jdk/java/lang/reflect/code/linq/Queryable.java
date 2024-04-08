@@ -22,6 +22,7 @@
  */
 
 import java.lang.reflect.code.Op;
+import java.lang.reflect.code.type.ClassType;
 import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.type.JavaType;
 import java.util.stream.Stream;
@@ -64,7 +65,7 @@ public interface Queryable<T> {
                     Op.Result fi = block.op(lambdaOp);
 
                     MethodRef md = method(Queryable.TYPE, methodName,
-                            functionType(Queryable.TYPE, ((JavaType) lambdaOp.functionalInterface()).rawType()));
+                            functionType(Queryable.TYPE, ((ClassType) lambdaOp.functionalInterface()).rawType()));
                     Op.Result queryable = block.op(invoke(queryableType, md, query, fi));
 
                     block.op(_return(queryable));

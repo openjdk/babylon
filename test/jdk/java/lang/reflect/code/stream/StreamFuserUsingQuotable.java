@@ -23,6 +23,7 @@
 
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.op.ExtendedOps.JavaEnhancedForOp;
+import java.lang.reflect.code.type.ClassType;
 import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
 import java.util.ArrayList;
@@ -174,7 +175,7 @@ public final class StreamFuserUsingQuotable {
             } else if (sop instanceof FlatMapStreamOp) {
                 body.inline(sop.op(), List.of(element), (block, iterable) -> {
                     JavaEnhancedForOp forOp = enhancedFor(block.parentBody(),
-                            iterable.type(), ((JavaType) iterable.type()).typeArguments().get(0))
+                            iterable.type(), ((ClassType) iterable.type()).typeArguments().get(0))
                             .expression(b -> {
                                 b.op(_yield(iterable));
                             })

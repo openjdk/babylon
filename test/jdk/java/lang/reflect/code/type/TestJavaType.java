@@ -25,6 +25,8 @@ import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import java.lang.reflect.code.type.ArrayType;
+import java.lang.reflect.code.type.ClassType;
 import java.lang.reflect.code.type.JavaType;
 import java.util.stream.Stream;
 
@@ -73,7 +75,7 @@ public class TestJavaType {
 
     @Test(dataProvider = "classDescriptors")
     public void classDescriptor(String tds, String bcd) {
-        JavaType jt = JavaType.ofString(tds);
+        ClassType jt = (ClassType)JavaType.ofString(tds);
         Assert.assertEquals(jt.toString(), tds);
         Assert.assertEquals(jt.toClassName(), bcd);
     }
@@ -127,9 +129,13 @@ public class TestJavaType {
         JavaType jt = JavaType.ofString(tds);
         Assert.assertEquals(jt.toString(), tds);
 
-        Assert.assertTrue(jt.hasTypeArguments());
-        Assert.assertEquals(argTypes.length, jt.typeArguments().size());
+        while (jt.isArray()) {
+            jt = ((ArrayType)jt).componentType();
+        }
+        ClassType ct = (ClassType)jt;
 
-        Assert.assertEquals(jt.typeArguments(), Stream.of(argTypes).map(JavaType::ofString).toList());
+        Assert.assertEquals(argTypes.length, ct.typeArguments().size());
+
+        Assert.assertEquals(ct.typeArguments(), Stream.of(argTypes).map(JavaType::ofString).toList());
     }
 }

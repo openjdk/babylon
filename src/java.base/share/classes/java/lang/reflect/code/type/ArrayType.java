@@ -92,11 +92,7 @@ public final class ArrayType implements JavaType {
 
     @Override
     public String toNominalDescriptorString() {
-        if (componentType instanceof ArrayType at) {
-            return "[" + at.toNominalDescriptor();
-        } else {
-            return componentType.toNominalDescriptorString();
-        }
+        return "[" + componentType.toNominalDescriptorString();
     }
 
     @Override

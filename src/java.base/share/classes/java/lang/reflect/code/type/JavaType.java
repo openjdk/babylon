@@ -157,7 +157,9 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
                 dims++;
             }
         }
-        JavaType ctype = new ClassType(c.getName());
+        JavaType ctype = c.isPrimitive() ?
+                new PrimitiveType(c.getName()) :
+                new ClassType(c.getName());
         return dims == 0 ?
                 ctype :
                 array(ctype, dims);
@@ -174,6 +176,9 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
                 c = c.getComponentType();
                 dims++;
             }
+        }
+        if (c.isPrimitive()) {
+            throw new IllegalArgumentException("Cannot parameterize a primitive type");
         }
         JavaType ctype = new ClassType(c.getName(), typeArguments.stream().map(JavaType::type).toList());
         return dims == 0 ?

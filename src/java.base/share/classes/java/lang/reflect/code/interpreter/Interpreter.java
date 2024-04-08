@@ -427,7 +427,7 @@ public final class Interpreter {
                 }
                 int[] lengths = Stream.of(values).mapToInt(v -> (int) v).toArray();
                 for (int length : lengths) {
-                    nType = at.componentType();
+                    nType = ((ArrayType)nType).componentType();
                 }
                 return Array.newInstance(resolveToClass(l, nType), lengths);
             } else {
