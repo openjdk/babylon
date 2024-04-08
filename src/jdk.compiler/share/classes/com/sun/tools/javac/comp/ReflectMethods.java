@@ -82,10 +82,9 @@ import jdk.internal.java.lang.reflect.code.*;
 import jdk.internal.java.lang.reflect.code.op.CoreOps;
 import jdk.internal.java.lang.reflect.code.op.ExtendedOps;
 import jdk.internal.java.lang.reflect.code.type.*;
-import jdk.internal.java.lang.reflect.code.type.impl.JavaTypeImpl;
 
 import javax.lang.model.element.Modifier;
-import javax.lang.model.type.TypeKind;
+import java.lang.constant.ClassDesc;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -2191,15 +2190,8 @@ public class ReflectMethods extends TreeTranslator {
                 case LONG -> JavaType.LONG;
                 case DOUBLE -> JavaType.DOUBLE;
                 case ARRAY -> {
-                    int dims = 1;
                     Type et = ((ArrayType)t).elemtype;
-                    while (et.getKind() == TypeKind.ARRAY) {
-                        et = ((ArrayType) et).elemtype;
-                        dims++;
-                    }
-
-                    JavaType etd = typeToTypeElement(et);
-                    yield new JavaTypeImpl(etd.rawType().toString(), dims, etd.typeArguments());
+                    yield JavaType.array(typeToTypeElement(et));
                 }
                 case CLASS -> {
                     // @@@ Need to clean this up, probably does not work inner generic classes
@@ -2215,7 +2207,7 @@ public class ReflectMethods extends TreeTranslator {
                     }
 
                     // Use flat name to ensure demarcation of nested classes
-                    yield new JavaTypeImpl(t.tsym.flatName().toString(), 0, typeArguments);
+                    yield JavaType.type(JavaType.ofNominalDescriptor(ClassDesc.of(t.tsym.flatName().toString())), typeArguments);
                 }
                 default -> {
                     throw new UnsupportedOperationException("Unsupported type: kind=" + t.getKind() + " type=" + t);

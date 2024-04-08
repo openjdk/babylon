@@ -29,6 +29,7 @@ import java.lang.invoke.*;
 import java.lang.reflect.Array;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.code.*;
+import java.lang.reflect.code.type.ArrayType;
 import java.lang.reflect.code.type.FieldRef;
 import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.op.CoreOps;
@@ -420,13 +421,13 @@ public final class Interpreter {
         } else if (o instanceof CoreOps.NewOp no) {
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             JavaType nType = (JavaType) no.constructorType().returnType();
-            if (nType.dimensions() > 0) {
-                if (values.length > nType.dimensions()) {
+            if (nType instanceof ArrayType at) {
+                if (values.length > at.dimensions()) {
                     throw interpreterException(new IllegalArgumentException("Bad constructor NewOp: " + no));
                 }
                 int[] lengths = Stream.of(values).mapToInt(v -> (int) v).toArray();
                 for (int length : lengths) {
-                    nType = nType.componentType();
+                    nType = at.componentType();
                 }
                 return Array.newInstance(resolveToClass(l, nType), lengths);
             } else {

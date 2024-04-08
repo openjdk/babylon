@@ -581,23 +581,8 @@ public final class BytecodeGenerator {
                     case NewOp op -> {
                         TypeElement t_ = op.constructorType().returnType();
                         JavaType t = (JavaType) t_;
-                        switch (t.dimensions()) {
-                            case 0 -> {
-                                if (isLastOpResultOnStack) {
-                                    storeIfUsed(oprOnStack);
-                                    isLastOpResultOnStack = false;
-                                    oprOnStack = null;
-                                }
-                                cob.new_(t.toNominalDescriptor())
-                                   .dup();
-                                processOperands(op, false);
-                                cob.invokespecial(
-                                        ((JavaType) op.resultType()).toNominalDescriptor(),
-                                        ConstantDescs.INIT_NAME,
-                                        MethodRef.toNominalDescriptor(op.constructorType())
-                                                .changeReturnType(ConstantDescs.CD_void));
-                            }
-                            case 1 -> {
+                        switch (t) {
+                            case ArrayType at when at.dimensions() == 1 -> {
                                 processOperands(op, isLastOpResultOnStack);
                                 ClassDesc ctd = t.componentType().toNominalDescriptor();
                                 if (ctd.isPrimitive()) {
@@ -606,9 +591,25 @@ public final class BytecodeGenerator {
                                     cob.anewarray(ctd);
                                 }
                             }
-                            default -> {
-                                processOperands(op, isLastOpResultOnStack);
+                            case ArrayType at -> {
+                                processOperands(cob, c, op, isLastOpResultOnStack);
                                 cob.multianewarray(t.toNominalDescriptor(), op.operands().size());
+                            }
+                            default -> {
+                                if (isLastOpResultOnStack) {
+                                    int slot = c.assignSlot(oprOnStack);
+                                    storeInstruction(cob, rvt, slot);
+                                    isLastOpResultOnStack = false;
+                                    oprOnStack = null;
+                                }
+                                cob.new_(t.toNominalDescriptor())
+                                   .dup();
+                                processOperands(cob, c, op, false);
+                                cob.invokespecial(
+                                        ((JavaType) op.resultType()).toNominalDescriptor(),
+                                        ConstantDescs.INIT_NAME,
+                                        MethodRef.toNominalDescriptor(op.constructorType())
+                                                .changeReturnType(ConstantDescs.CD_void));
                             }
                         }
                     }

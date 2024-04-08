@@ -25,11 +25,11 @@
 
 package java.lang.reflect.code.op;
 
+import java.lang.constant.ClassDesc;
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.type.FieldRef;
 import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.type.*;
-import java.lang.reflect.code.type.impl.JavaTypeImpl;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -333,7 +333,7 @@ public final class CoreOps {
         // Type name must be the same in the java.base and jdk.compiler module
         static final String Quoted_CLASS_NAME = PACKAGE_NAME +
                 "." + Quoted.class.getSimpleName();
-        public static final JavaType QUOTED_TYPE = new JavaTypeImpl(Quoted_CLASS_NAME);
+        public static final JavaType QUOTED_TYPE = JavaType.ofNominalDescriptor(ClassDesc.of(Quoted_CLASS_NAME));
 
         final Body quotedBody;
 
@@ -1599,7 +1599,7 @@ public final class CoreOps {
         }
 
         static TypeElement resultType(Value array, Value v) {
-            JavaType arrayType = (JavaType) array.type();
+            ArrayType arrayType = (ArrayType) array.type();
             if (!arrayType.isArray()) {
                 throw new IllegalArgumentException("Type is not an array type: " + arrayType);
             }
@@ -1641,7 +1641,7 @@ public final class CoreOps {
             @Override
             public TypeElement resultType() {
                 Value array = operands().get(0);
-                JavaType t = (JavaType) array.type();
+                ArrayType t = (ArrayType) array.type();
                 return t.componentType();
             }
         }
@@ -2218,7 +2218,7 @@ public final class CoreOps {
      */
     // @@@: Create as new type element
     public interface ExceptionRegion {
-        TypeElement EXCEPTION_REGION_TYPE = new JavaTypeImpl("ExceptionRegion");
+        TypeElement EXCEPTION_REGION_TYPE = JavaType.ofNominalDescriptor(ClassDesc.of("ExceptionRegion"));
     }
 
     /**
