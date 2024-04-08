@@ -123,6 +123,7 @@ public final class CoreTypeFactory {
                 case "long" -> JavaType.LONG;
                 case "float" -> JavaType.FLOAT;
                 case "double" -> JavaType.DOUBLE;
+                case "void" -> JavaType.VOID;
                 default -> JavaType.ofNominalDescriptor(ClassDesc.of(identifier));
             };
             if (!typeArguments.isEmpty()) {
