@@ -31,7 +31,7 @@ import java.util.Map;
 /**
  * A primitive type.
  */
-final class PrimitiveType implements JavaType {
+/* package */ final class PrimitiveType implements JavaType {
     // Fully qualified name
     private final String type;
 
