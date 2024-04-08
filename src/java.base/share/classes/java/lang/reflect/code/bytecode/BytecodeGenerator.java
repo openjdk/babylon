@@ -25,11 +25,9 @@
 
 package java.lang.reflect.code.bytecode;
 
-import java.lang.classfile.ClassModel;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.CodeBuilder;
 import java.lang.classfile.Label;
-import java.lang.classfile.components.ClassPrinter;
 import java.lang.constant.*;
 import java.lang.reflect.code.op.CoreOps.*;
 
@@ -38,7 +36,6 @@ import java.io.FileOutputStream;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
 import java.lang.reflect.code.Block;
-import java.lang.reflect.code.Body;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.Op;
 import java.lang.invoke.MethodHandle;
@@ -52,12 +49,9 @@ import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.type.VarType;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -66,20 +60,6 @@ import java.util.Set;
  * Transformer of code models to bytecode.
  */
 public final class BytecodeGenerator {
-
-    final MethodHandles.Lookup lookup;
-    final CodeBuilder cob;
-    final Map<Object, Label> labels;
-    final Set<Block> catchingBlocks;
-    final Map<Value, Slot> slots;
-
-    private BytecodeGenerator(MethodHandles.Lookup lookup, Liveness liveness, CodeBuilder cob) {
-        this.lookup = lookup;
-        this.cob = cob;
-        this.labels = new HashMap<>();
-        this.slots = new HashMap<>();
-        this.catchingBlocks = new HashSet<>();
-    }
 
     /**
      * Transforms the invokable operation to bytecode encapsulated in a method of hidden class and exposed
@@ -95,7 +75,6 @@ public final class BytecodeGenerator {
         byte[] classBytes = generateClassData(l, name, iop);
 
         {
-//            print(classBytes);
             try {
                 File f = new File("f.class");
                 try (FileOutputStream fos = new FileOutputStream(f)) {
@@ -121,11 +100,6 @@ public final class BytecodeGenerator {
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private static void print(byte[] classBytes) {
-        ClassModel cm = ClassFile.of().parse(classBytes);
-        ClassPrinter.toYaml(cm, ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES, System.out::print);
     }
 
     /**
@@ -160,7 +134,6 @@ public final class BytecodeGenerator {
         String className = packageName.isEmpty()
                 ? name
                 : packageName + "." + name;
-        Liveness liveness = new Liveness(iop);
         MethodTypeDesc mtd = MethodRef.toNominalDescriptor(iop.invokableType());
         byte[] classBytes = ClassFile.of().build(ClassDesc.of(className), clb ->
                 clb.withMethodBody(
@@ -168,14 +141,56 @@ public final class BytecodeGenerator {
                         mtd,
                         ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC,
                         cb -> cb.transforming(new BranchCompactor(), cob ->
-                            new BytecodeGenerator(lookup, liveness, cob).generateBody(iop.body()))));
+                            new BytecodeGenerator(lookup, new Liveness(iop), iop.body().blocks(), cob).generate())));
         return classBytes;
     }
 
     private record Slot(int slot, TypeKind typeKind) {}
+    private record ExceptionRegionWithBlocks(CoreOps.ExceptionRegionEnter ere, BitSet blocks) {}
 
-    private Label getLabel(Object b) {
-        return labels.computeIfAbsent(b, _b -> cob.newLabel());
+    private final MethodHandles.Lookup lookup;
+    private final List<Block> blocks;
+    private final CodeBuilder cob;
+    private final Label[] blockLabels;
+    private final List<ExceptionRegionWithBlocks> allExceptionRegions;
+    private final BitSet[] blocksRegionStack;
+    private final BitSet blocksToVisit, catchingBlocks;
+    private final Map<Value, Slot> slots;
+
+    private BytecodeGenerator(MethodHandles.Lookup lookup, Liveness liveness, List<Block> blocks, CodeBuilder cob) {
+        this.lookup = lookup;
+        this.blocks = blocks;
+        this.cob = cob;
+        this.blockLabels = new Label[blocks.size()];
+        this.allExceptionRegions = new ArrayList<>();
+        this.blocksRegionStack = new BitSet[blocks.size()];
+        this.blocksToVisit = new BitSet(blocks.size());
+        this.catchingBlocks = new BitSet();
+        this.slots = new HashMap<>();
+    }
+
+    private void setExceptionRegionStack(Block.Reference target, BitSet activeRegionStack) {
+        setExceptionRegionStack(target.targetBlock().index(), activeRegionStack);
+    }
+
+    private void setExceptionRegionStack(int blockIndex, BitSet activeRegionStack) {
+        if (blocksRegionStack[blockIndex] == null) {
+            blocksToVisit.set(blockIndex);
+            blocksRegionStack[blockIndex] = activeRegionStack;
+            activeRegionStack.stream().forEach(r -> allExceptionRegions.get(r).blocks.set(blockIndex));
+        }
+    }
+
+    private Label getLabel(Block.Reference target) {
+        return getLabel(target.targetBlock().index());
+    }
+
+    private Label getLabel(int blockIndex) {
+        Label l = blockLabels[blockIndex];
+        if (l == null) {
+            blockLabels[blockIndex] = l = cob.newLabel();
+        }
+        return l;
     }
 
     private Slot allocateSlot(Value v) {
@@ -188,10 +203,8 @@ public final class BytecodeGenerator {
     private void storeIfUsed(Value v) {
         if (!v.uses().isEmpty()) {
             Slot slot = allocateSlot(v);
-//            System.out.println("Stored " + hash(v) + " in " + slot);
             cob.storeInstruction(slot.typeKind(), slot.slot());
         } else {
-//            System.out.println("Popped " + hash(v));
             // Only pop results from stack if the value has no further use (no valid slot)
             switch (toTypeKind(v.type()).slotSize()) {
                 case 1 -> cob.pop();
@@ -200,20 +213,14 @@ public final class BytecodeGenerator {
         }
     }
 
-    private static String hash(Value v) {
-        return Integer.toHexString(v.hashCode());
-    }
-
     private Slot load(Value v) {
         if (v instanceof Op.Result or &&
                 or.op() instanceof CoreOps.ConstantOp constantOp &&
                 !constantOp.resultType().equals(JavaType.J_L_CLASS)) {
-//            System.out.println("Loaded constant " + hash(v) + " value " + fromValue(constantOp.value()));
             cob.constantInstruction(fromValue(constantOp.value()));
             return null;
         } else {
             Slot slot = slots.get(v);
-//            System.out.println("Loaded " + hash(v) + " from " + slot);
             cob.loadInstruction(slot.typeKind(), slot.slot());
             return slot;
         }
@@ -310,97 +317,75 @@ public final class BytecodeGenerator {
         };
     }
 
-    private void computeExceptionRegionMembership(Body body) {
-        record ExceptionRegionWithBlocks(CoreOps.ExceptionRegionEnter ere, BitSet blocks) {
-        }
-        // List of all regions
-        final List<ExceptionRegionWithBlocks> allRegions = new ArrayList<>();
-        class BlockWithActiveExceptionRegions {
-            final Block block;
-            final BitSet activeRegionStack;
-            BlockWithActiveExceptionRegions(Block block, BitSet activeRegionStack) {
-                this.block = block;
-                this.activeRegionStack = activeRegionStack;
-                activeRegionStack.stream().forEach(r -> allRegions.get(r).blocks.set(block.index()));
-            }
-        }
-        final Set<Block> visited = new HashSet<>();
-        final Deque<BlockWithActiveExceptionRegions> stack = new ArrayDeque<>();
-        stack.push(new BlockWithActiveExceptionRegions(body.entryBlock(), new BitSet()));
+    private void generate() {
         // Compute exception region membership
-        while (!stack.isEmpty()) {
-            BlockWithActiveExceptionRegions bm = stack.pop();
-            Block b = bm.block;
-            if (!visited.add(b)) {
-                continue;
-            }
+        setExceptionRegionStack(0, new BitSet());
+        int blockIndex;
+        while ((blockIndex = blocksToVisit.nextSetBit(0)) >= 0) {
+            blocksToVisit.clear(blockIndex);
+            BitSet activeRegionStack = blocksRegionStack[blockIndex];
+            Block b = blocks.get(blockIndex);
             Op top = b.terminatingOp();
             switch (top) {
                 case CoreOps.BranchOp bop ->
-                    stack.push(new BlockWithActiveExceptionRegions(bop.branch().targetBlock(), bm.activeRegionStack));
+                    setExceptionRegionStack(bop.branch(), activeRegionStack);
                 case CoreOps.ConditionalBranchOp cop -> {
-                    stack.push(new BlockWithActiveExceptionRegions(cop.falseBranch().targetBlock(), bm.activeRegionStack));
-                    stack.push(new BlockWithActiveExceptionRegions(cop.trueBranch().targetBlock(), bm.activeRegionStack));
+                    setExceptionRegionStack(cop.falseBranch(), activeRegionStack);
+                    setExceptionRegionStack(cop.trueBranch(), activeRegionStack);
                 }
                 case CoreOps.ExceptionRegionEnter er -> {
                     for (Block.Reference catchBlock : er.catchBlocks().reversed()) {
-                        catchingBlocks.add(catchBlock.targetBlock());
-                        stack.push(new BlockWithActiveExceptionRegions(catchBlock.targetBlock(), bm.activeRegionStack));
+                        catchingBlocks.set(catchBlock.targetBlock().index());
+                        setExceptionRegionStack(catchBlock, activeRegionStack);
                     }
-                    BitSet activeRegionStack = (BitSet)bm.activeRegionStack.clone();
-                    activeRegionStack.set(allRegions.size());
+                    activeRegionStack = (BitSet)activeRegionStack.clone();
+                    activeRegionStack.set(allExceptionRegions.size());
                     ExceptionRegionWithBlocks newNode = new ExceptionRegionWithBlocks(er, new BitSet());
-                    allRegions.add(newNode);
-                    stack.push(new BlockWithActiveExceptionRegions(er.start().targetBlock(), activeRegionStack));
+                    allExceptionRegions.add(newNode);
+                    setExceptionRegionStack(er.start(), activeRegionStack);
                 }
                 case CoreOps.ExceptionRegionExit er -> {
-                    BitSet activeRegionStack = (BitSet)bm.activeRegionStack.clone();
+                    activeRegionStack = (BitSet)activeRegionStack.clone();
                     activeRegionStack.clear(activeRegionStack.length() - 1);
-                    stack.push(new BlockWithActiveExceptionRegions(er.end().targetBlock(), activeRegionStack));
+                    setExceptionRegionStack(er.end(), activeRegionStack);
                 }
                 default -> {
                 }
             }
         }
+
         // Declare the exception regions
-        final List<Block> blocks = body.blocks();
-        for (ExceptionRegionWithBlocks erNode : allRegions.reversed()) {
+        for (ExceptionRegionWithBlocks erNode : allExceptionRegions.reversed()) {
             int start  = erNode.blocks.nextSetBit(0);
             while (start >= 0) {
                 int end = erNode.blocks.nextClearBit(start);
-                Label startLabel = getLabel(blocks.get(start));
-                Label endLabel = getLabel(blocks.get(end));
+                Label startLabel = getLabel(start);
+                Label endLabel = getLabel(end);
                 for (Block.Reference cbr : erNode.ere.catchBlocks()) {
-                    Block cb = cbr.targetBlock();
-                    if (!cb.parameters().isEmpty()) {
-                        JavaType jt = (JavaType) cb.parameters().get(0).type();
-                        ClassDesc type = jt.toNominalDescriptor();
-                        cob.exceptionCatch(startLabel, endLabel, getLabel(cb), type);
+                    List<Block.Parameter> params = cbr.targetBlock().parameters();
+                    if (!params.isEmpty()) {
+                        JavaType jt = (JavaType) params.get(0).type();
+                        cob.exceptionCatch(startLabel, endLabel, getLabel(cbr), jt.toNominalDescriptor());
                     } else {
-                        cob.exceptionCatchAll(startLabel, endLabel, getLabel(cb));
+                        cob.exceptionCatchAll(startLabel, endLabel, getLabel(cbr));
                     }
                 }
                 start = erNode.blocks.nextSetBit(end);
             }
         }
-    }
-
-    private void generateBody(Body body) {
-        computeExceptionRegionMembership(body);
 
         // Process blocks in topological order
         // A jump instruction assumes the false successor block is
         // immediately after, in sequence, to the predecessor
         // since the jump instructions branch on a true condition
         // Conditions are inverted when lowered to bytecode
-        List<Block> blocks = body.blocks();
         for (Block b : blocks) {
             // Ignore any non-entry blocks that have no predecessors
-            if (body.entryBlock() != b && b.predecessors().isEmpty()) {
+            if (!b.isEntryBlock() && b.predecessors().isEmpty()) {
                 continue;
             }
 
-            Label blockLabel = getLabel(b);
+            Label blockLabel = getLabel(b.index());
             cob.labelBinding(blockLabel);
 
             // If b is the entry block then all its parameters conservatively require slots
@@ -414,7 +399,7 @@ public final class BytecodeGenerator {
             }
 
             // If b is a catch block then the exception argument will be represented on the stack
-            if (catchingBlocks.contains(b)) {
+            if (catchingBlocks.get(b.index())) {
                 // Retain block argument for exception table generation
                 storeIfUsed(b.parameters().get(0));
             }
@@ -427,7 +412,6 @@ public final class BytecodeGenerator {
                 Op o = ops.get(i);
                 TypeElement oprType = o.resultType();
                 TypeKind rvt = oprType.equals(JavaType.VOID) ? null : toTypeKind(oprType);
-//                System.out.println(o.getClass().getSimpleName() + " result: " + hash(o.result()));
                 switch (o) {
                     case ConstantOp op -> {
                         if (op.resultType().equals(JavaType.J_L_CLASS)) {
@@ -723,7 +707,7 @@ public final class BytecodeGenerator {
                 }
                 case BranchOp op -> {
                     assignBlockArguments(op.branch());
-                    cob.goto_(getLabel(op.branch().targetBlock()));
+                    cob.goto_(getLabel(op.branch()));
                 }
                 case ConditionalBranchOp op -> {
                     if (getConditionForCondBrOp(op) instanceof CoreOps.BinaryTestOp btop) {
@@ -740,7 +724,7 @@ public final class BytecodeGenerator {
                 }
                 case ExceptionRegionExit op -> {
                     assignBlockArguments(op.end());
-                    cob.goto_(getLabel(op.end().targetBlock()));
+                    cob.goto_(getLabel(op.end()));
                 }
                 default ->
                     throw new UnsupportedOperationException("Terminating operation not supported: " + top);
@@ -778,16 +762,16 @@ public final class BytecodeGenerator {
 
     private void conditionalBranch(Opcode reverseOpcode, Op op, Block.Reference trueBlock, Block.Reference falseBlock) {
         if (!needToAssignBlockArguments(falseBlock)) {
-            cob.branchInstruction(reverseOpcode, getLabel(falseBlock.targetBlock()));
+            cob.branchInstruction(reverseOpcode, getLabel(falseBlock));
         } else {
             cob.ifThen(reverseOpcode,
                 bb -> {
                     assignBlockArguments(falseBlock);
-                    bb.goto_(getLabel(falseBlock.targetBlock()));
+                    bb.goto_(getLabel(falseBlock));
                 });
         }
         assignBlockArguments(trueBlock);
-        cob.goto_(getLabel(trueBlock.targetBlock()));
+        cob.goto_(getLabel(trueBlock));
     }
 
     private Opcode prepareReverseCondition(BinaryTestOp op) {
