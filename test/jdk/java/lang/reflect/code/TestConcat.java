@@ -157,7 +157,7 @@ public class TestConcat {
     }
 
 
-    record Triple(Class<?> first, Class<?> second, String third) {
+    record TestMethodData(Class<?> first, Class<?> second, String third) {
     }
 
     static final Map<Class<?>, Object> valMap;
@@ -188,16 +188,14 @@ public class TestConcat {
         Set<Class<?>> types = Set.of(byte.class, short.class, int.class, long.class, float.class,
                 double.class, char.class, boolean.class, Object.class);
 
-
-
         //Types from types concatenated to strings left-to-right and right-to-left
-        Stream<Triple> s1 = types.stream().map(t -> new Triple(t,String.class, testName(t, 1)));
-        Stream<Triple> s2 = types.stream().map(t -> new Triple(String.class, t, testName(t, 2)));
+        Stream<TestMethodData> s1 = types.stream().map(t -> new TestMethodData(t, String.class, testName(t, 1)));
+        Stream<TestMethodData> s2 = types.stream().map(t -> new TestMethodData(String.class, t, testName(t, 2)));
 
         //Custom Object and basic string concat tests
-        Stream<Triple> s3 = Stream.of(new Triple(TestObject.class, String.class, testName(Object.class, 3)),
-                                      new Triple(String.class, TestObject.class, testName(Object.class, 4)),
-                                      new Triple(String.class, String.class, "stringConcat"));
+        Stream<TestMethodData> s3 = Stream.of(new TestMethodData(TestObject.class, String.class, testName(Object.class, 3)),
+                                      new TestMethodData(String.class, TestObject.class, testName(Object.class, 4)),
+                                      new TestMethodData(String.class, String.class, "stringConcat"));
 
         Object[] t = Stream.concat(Stream.concat(s1,s2),s3).toArray();
 
@@ -208,13 +206,11 @@ public class TestConcat {
         }
 
         return args;
-
     }
 
     @Test(dataProvider = "testData")
-    public static void testRun(Triple t) {
+    public static void testRun(TestMethodData t) {
         try {
-
             Object[] args = new Object[] {valMap.get(t.first), valMap.get(t.second)};
             Class<TestConcat> clazz = TestConcat.class;
             Method method = clazz.getDeclaredMethod(t.third, t.first, t.second);

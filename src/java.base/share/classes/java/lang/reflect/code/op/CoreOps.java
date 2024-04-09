@@ -2368,7 +2368,7 @@ public final class CoreOps {
 
         public ConcatOp(OpDefinition def) {
             super(def);
-            if(def.operands().size() != 2) {
+            if (def.operands().size() != 2) {
                 throw new IllegalArgumentException("Concatenation Operation must have two operands.");
             }
         }
