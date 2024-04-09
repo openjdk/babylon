@@ -28,80 +28,80 @@ package java.lang.reflect.code.type;
 import java.lang.constant.ClassDesc;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.type.impl.JavaTypeImpl;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * The symbolic description of a Java type.
  */
 // @@@ Extend from this interface to model Java types with more fidelity
-public sealed interface JavaType extends TypeElement permits JavaTypeImpl {
+public sealed interface JavaType extends TypeElement permits ClassType, ArrayType, PrimitiveType {
 
     // @@@ Share with general void type?
-    JavaType VOID = new JavaTypeImpl("void");
+    JavaType VOID = new PrimitiveType("void");
 
-    JavaType BOOLEAN = new JavaTypeImpl("boolean");
+    JavaType BOOLEAN = new PrimitiveType("boolean");
 
-    JavaType J_L_BOOLEAN = new JavaTypeImpl("java.lang.Boolean");
+    JavaType J_L_BOOLEAN = new ClassType("java.lang.Boolean");
 
-    JavaType BOOLEAN_ARRAY = new JavaTypeImpl("boolean", 1);
+    JavaType BOOLEAN_ARRAY = new ArrayType(BOOLEAN);
 
-    JavaType BYTE = new JavaTypeImpl("byte");
+    JavaType BYTE = new PrimitiveType("byte");
 
-    JavaType J_L_BYTE = new JavaTypeImpl("java.lang.Byte");
+    JavaType J_L_BYTE = new ClassType("java.lang.Byte");
 
-    JavaType BYTE_ARRAY = new JavaTypeImpl("byte", 1);
+    JavaType BYTE_ARRAY = new ArrayType(BYTE);
 
-    JavaType CHAR = new JavaTypeImpl("char");
+    JavaType CHAR = new PrimitiveType("char");
 
-    JavaType J_L_CHARACTER = new JavaTypeImpl("java.lang.Character");
+    JavaType J_L_CHARACTER = new ClassType("java.lang.Character");
 
-    JavaType CHAR_ARRAY = new JavaTypeImpl("char", 1);
+    JavaType CHAR_ARRAY = new ArrayType(CHAR);
 
-    JavaType SHORT = new JavaTypeImpl("short");
+    JavaType SHORT = new PrimitiveType("short");
 
-    JavaType J_L_SHORT = new JavaTypeImpl("java.lang.Short");
+    JavaType J_L_SHORT = new ClassType("java.lang.Short");
 
-    JavaType SHORT_ARRAY = new JavaTypeImpl("short", 1);
+    JavaType SHORT_ARRAY = new ArrayType(SHORT);
 
-    JavaType INT = new JavaTypeImpl("int");
+    JavaType INT = new PrimitiveType("int");
 
-    JavaType J_L_INTEGER = new JavaTypeImpl("java.lang.Integer");
+    JavaType J_L_INTEGER = new ClassType("java.lang.Integer");
 
-    JavaType INT_ARRAY = new JavaTypeImpl("int", 1);
+    JavaType INT_ARRAY = new ArrayType(INT);
 
-    JavaType LONG = new JavaTypeImpl("long");
+    JavaType LONG = new PrimitiveType("long");
 
-    JavaType J_L_LONG = new JavaTypeImpl("java.lang.Long");
+    JavaType J_L_LONG = new ClassType("java.lang.Long");
 
-    JavaType LONG_ARRAY = new JavaTypeImpl("long", 1);
+    JavaType LONG_ARRAY = new ArrayType(LONG);
 
-    JavaType FLOAT = new JavaTypeImpl("float");
+    JavaType FLOAT = new PrimitiveType("float");
 
-    JavaType J_L_FLOAT = new JavaTypeImpl("java.lang.Float");
+    JavaType J_L_FLOAT = new ClassType("java.lang.Float");
 
-    JavaType FLOAT_ARRAY = new JavaTypeImpl("float", 1);
+    JavaType FLOAT_ARRAY = new ArrayType(FLOAT);
 
-    JavaType DOUBLE = new JavaTypeImpl("double");
+    JavaType DOUBLE = new PrimitiveType("double");
 
-    JavaType J_L_DOUBLE = new JavaTypeImpl("java.lang.Double");
+    JavaType J_L_DOUBLE = new ClassType("java.lang.Double");
 
-    JavaType DOUBLE_ARRAY = new JavaTypeImpl("double", 1);
+    JavaType DOUBLE_ARRAY = new ArrayType(DOUBLE);
 
-    JavaType J_L_OBJECT = new JavaTypeImpl("java.lang.Object");
+    JavaType J_L_OBJECT = new ClassType("java.lang.Object");
 
-    JavaType J_L_OBJECT_ARRAY = new JavaTypeImpl("java.lang.Object", 1);
+    JavaType J_L_OBJECT_ARRAY = new ArrayType(J_L_OBJECT);
 
-    JavaType J_L_CLASS = new JavaTypeImpl("java.lang.Class");
+    JavaType J_L_CLASS = new ClassType("java.lang.Class");
 
-    JavaType J_L_STRING = new JavaTypeImpl("java.lang.String");
+    JavaType J_L_STRING = new ClassType("java.lang.String");
 
-    JavaType J_L_STRING_TEMPLATE = new JavaTypeImpl("java.lang.StringTemplate");
+    JavaType J_L_STRING_TEMPLATE = new ClassType("java.lang.StringTemplate");
 
-    JavaType J_L_STRING_TEMPLATE_PROCESSOR = new JavaTypeImpl("java.lang.StringTemplate$Processor");
+    JavaType J_L_STRING_TEMPLATE_PROCESSOR = new ClassType("java.lang.StringTemplate$Processor");
 
-    JavaType J_U_LIST = new JavaTypeImpl("java.util.List");
+    JavaType J_U_LIST = new ClassType("java.util.List");
 
     //
 
@@ -124,25 +124,10 @@ public sealed interface JavaType extends TypeElement permits JavaTypeImpl {
         return primitiveToWrapper.get(te);
     };
 
-    boolean isArray();
-
-    int dimensions();
-
-    JavaType componentType();
-
-    JavaType rawType();
-
-    boolean hasTypeArguments();
-
-    List<JavaType> typeArguments();
-
     // Conversions
 
     JavaType toBasicType();
 
-    String toClassName();
-
-    String toInternalName();
 
     String toNominalDescriptorString();
 
@@ -154,17 +139,24 @@ public sealed interface JavaType extends TypeElement permits JavaTypeImpl {
         return (Class<?>) toNominalDescriptor().resolveConstantDesc(l);
     }
 
+    // Predicates
+
+    boolean isClass();
+
+    boolean isArray();
+
+    boolean isPrimitive();
+
     // Factories
 
     static JavaType type(Class<?> c) {
-        int dims = 0;
-        if (c.isArray()) {
-            while (c.isArray()) {
-                c = c.getComponentType();
-                dims++;
-            }
+        if (c.isPrimitive()) {
+            return new PrimitiveType(c.getName());
+        } else if (c.isArray()) {
+            return array(type(c.getComponentType()));
+        } else {
+            return new ClassType(c.getName());
         }
-        return new JavaTypeImpl(c.getName(), dims);
     }
 
     static JavaType type(Class<?> c, Class<?>... typeArguments) {
@@ -172,47 +164,46 @@ public sealed interface JavaType extends TypeElement permits JavaTypeImpl {
     }
 
     static JavaType type(Class<?> c, List<Class<?>> typeArguments) {
-        int dims = 0;
-        if (c.isArray()) {
-            while (c.isArray()) {
-                c = c.getComponentType();
-                dims++;
-            }
+        if (c.isPrimitive()) {
+            throw new IllegalArgumentException("Cannot parameterize a primitive type");
+        } else if (c.isArray()) {
+            return array(type(c.getComponentType(), typeArguments));
+        } else {
+            return new ClassType(c.getName(),
+                    typeArguments.stream().map(JavaType::type).toList());
         }
-        return new JavaTypeImpl(c.getName(), dims, typeArguments.stream().map(JavaType::type).toList());
     }
 
     static JavaType ofNominalDescriptor(ClassDesc d) {
-        String descriptor = d.descriptorString();
-        int i = 0;
-        while (descriptor.charAt(i) == '[') {
-            i++;
-        }
-        int dims = i;
-
-        JavaType td = switch (descriptor.charAt(i)) {
-            case 'V' -> JavaType.VOID;
-            case 'I' -> JavaType.INT;
-            case 'J' -> JavaType.LONG;
-            case 'C' -> JavaType.CHAR;
-            case 'S' -> JavaType.SHORT;
-            case 'B' -> JavaType.BYTE;
-            case 'F' -> JavaType.FLOAT;
-            case 'D' -> JavaType.DOUBLE;
-            case 'Z' -> JavaType.BOOLEAN;
-            case 'L' -> {
-                // La.b.c.Class;
-                String typeName = descriptor.substring(i + 1, descriptor.length() - 1).replace('/', '.');
-                yield new JavaTypeImpl(typeName, 0);
-            }
-            default -> throw new InternalError();
-        };
-
-        return JavaType.type(td, dims);
+        return ofNominalDescriptorStringInternal(d.descriptorString(), 0);
     }
 
     static JavaType ofNominalDescriptorString(String d) {
         return ofNominalDescriptor(ClassDesc.ofDescriptor(d));
+    }
+
+    private static JavaType ofNominalDescriptorStringInternal(String descriptor, int i) {
+        if (descriptor.charAt(i) == '[') {
+            return new ArrayType(ofNominalDescriptorStringInternal(descriptor, i + 1));
+        } else {
+            return switch (descriptor.charAt(i)) {
+                case 'V' -> JavaType.VOID;
+                case 'I' -> JavaType.INT;
+                case 'J' -> JavaType.LONG;
+                case 'C' -> JavaType.CHAR;
+                case 'S' -> JavaType.SHORT;
+                case 'B' -> JavaType.BYTE;
+                case 'F' -> JavaType.FLOAT;
+                case 'D' -> JavaType.DOUBLE;
+                case 'Z' -> JavaType.BOOLEAN;
+                case 'L' -> {
+                    // La.b.c.Class;
+                    String typeName = descriptor.substring(i + 1, descriptor.length() - 1).replace('/', '.');
+                    yield new ClassType(typeName);
+                }
+                default -> throw new InternalError();
+            };
+        }
     }
 
     static JavaType type(JavaType t, JavaType... typeArguments) {
@@ -220,26 +211,47 @@ public sealed interface JavaType extends TypeElement permits JavaTypeImpl {
     }
 
     static JavaType type(JavaType t, List<JavaType> typeArguments) {
-        if (t.hasTypeArguments()) {
-            throw new IllegalArgumentException("Type must not have type arguments: " + t);
+        if (t.isPrimitive()) {
+            throw new IllegalArgumentException("Cannot parameterize a primitive type");
+        } else if (t.isArray()) {
+            return array(type(((ArrayType)t).componentType(), typeArguments));
+        } else {
+            ClassType ct = (ClassType)t;
+            if (ct.hasTypeArguments()) {
+                throw new IllegalArgumentException("Type must not have type arguments: " + ct);
+            }
+            return new ClassType(ct.toClassName(), typeArguments);
         }
-        JavaTypeImpl timpl = (JavaTypeImpl) t;
-        return new JavaTypeImpl(timpl.type, timpl.dims, typeArguments);
     }
 
-    static JavaType type(JavaType t, int dims, JavaType... typeArguments) {
-        return type(t, dims, List.of(typeArguments));
+    /**
+     * Constructs an array type.
+     *
+     * @param elementType the array type's element type.
+     * @return an array type.
+     */
+    static ArrayType array(JavaType elementType) {
+        Objects.requireNonNull(elementType);
+        return new ArrayType(elementType);
     }
 
-    static JavaType type(JavaType t, int dims, List<JavaType> typeArguments) {
-        if (t.isArray()) {
-            throw new IllegalArgumentException("Type must not be an array: " + t);
+    /**
+     * Constructs an array type.
+     *
+     * @param elementType the array type's element type.
+     * @param dims the array type dimension
+     * @return an array type.
+     * @throws IllegalArgumentException if {@code dims < 1}.
+     */
+    static ArrayType array(JavaType elementType, int dims) {
+        Objects.requireNonNull(elementType);
+        if (dims < 1) {
+            throw new IllegalArgumentException("Invalid dimension: " + dims);
         }
-        if (t.hasTypeArguments()) {
-            throw new IllegalArgumentException("Type must not have type arguments: " + t);
+        for (int i = 1 ; i < dims ; i++) {
+            elementType = array(elementType);
         }
-        JavaTypeImpl timpl = (JavaTypeImpl) t;
-        return new JavaTypeImpl(timpl.type, dims, typeArguments);
+        return array(elementType);
     }
 
     // Copied code in jdk.compiler module throws UOE

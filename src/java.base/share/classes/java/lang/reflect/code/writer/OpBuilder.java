@@ -88,7 +88,7 @@ public class OpBuilder {
     static final JavaType J_U_LIST = type(List.class);
 
     static final MethodRef LIST_OF_ARRAY = MethodRef.method(J_U_LIST, "of",
-            J_U_LIST, type(J_L_OBJECT, 1));
+            J_U_LIST, array(J_L_OBJECT, 1));
 
     static final JavaType J_U_MAP = type(Map.class);
 
@@ -103,7 +103,7 @@ public class OpBuilder {
             J_U_MAP);
 
     static final MethodRef MAP_OF_ARRAY = MethodRef.method(J_U_MAP, "of",
-            J_U_MAP, type(J_U_MAP_ENTRY, 1));
+            J_U_MAP, array(J_U_MAP_ENTRY, 1));
 
     static final MethodRef MAP_PUT = MethodRef.method(J_U_MAP, "put",
             J_L_OBJECT, J_L_OBJECT, J_L_OBJECT);

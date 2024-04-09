@@ -1,7 +1,7 @@
 package java.lang.reflect.code.type;
 
+import java.lang.constant.ClassDesc;
 import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.type.impl.JavaTypeImpl;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -114,7 +114,23 @@ public final class CoreTypeFactory {
                 }
                 typeArguments.add(a);
             }
-            return new JavaTypeImpl(identifier, dimensions, typeArguments);
+            JavaType t = switch (identifier) {
+                case "boolean" -> JavaType.BOOLEAN;
+                case "byte" -> JavaType.BYTE;
+                case "char" -> JavaType.CHAR;
+                case "short" -> JavaType.SHORT;
+                case "int" -> JavaType.INT;
+                case "long" -> JavaType.LONG;
+                case "float" -> JavaType.FLOAT;
+                case "double" -> JavaType.DOUBLE;
+                case "void" -> JavaType.VOID;
+                default -> JavaType.ofNominalDescriptor(ClassDesc.of(identifier));
+            };
+            if (!typeArguments.isEmpty()) {
+                t = JavaType.type(t, typeArguments);
+            }
+            return dimensions == 0 ?
+                    t : JavaType.array(t, dimensions);
         }
     };
 

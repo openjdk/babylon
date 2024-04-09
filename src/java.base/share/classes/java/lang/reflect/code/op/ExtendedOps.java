@@ -25,7 +25,10 @@
 
 package java.lang.reflect.code.op;
 
+import java.lang.constant.ClassDesc;
 import java.lang.reflect.code.*;
+import java.lang.reflect.code.type.ArrayType;
+import java.lang.reflect.code.type.ClassType;
 import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.type.RecordTypeRef;
 import java.lang.reflect.code.type.FunctionType;
@@ -33,7 +36,6 @@ import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.type.TupleType;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.type.VarType;
-import java.lang.reflect.code.type.impl.JavaTypeImpl;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -1196,7 +1198,7 @@ public class ExtendedOps {
         @Override
         public Block.Builder lower(Block.Builder b, OpTransformer opT) {
             JavaType elementType = (JavaType) init.entryBlock().parameters().get(0).type();
-            boolean isArray = ((JavaType) expression.bodyType().returnType()).isArray();
+            boolean isArray = expression.bodyType().returnType() instanceof ArrayType;
 
             Block.Builder preHeader = b.block(expression.bodyType().returnType());
             Block.Builder header = b.block(isArray ? List.of(INT) : List.of());
@@ -2390,10 +2392,10 @@ public class ExtendedOps {
 
         // @@@ Pattern types
 
-        JavaType PATTERN_BINDING_TYPE = new JavaTypeImpl(Pattern_CLASS_NAME +
-                "$" + Binding.class.getSimpleName());
-        JavaType PATTERN_RECORD_TYPE = new JavaTypeImpl(Pattern_CLASS_NAME +
-                "$" + Pattern.Record.class.getSimpleName());
+        JavaType PATTERN_BINDING_TYPE = JavaType.ofNominalDescriptor(ClassDesc.of(Pattern_CLASS_NAME +
+                "$" + Binding.class.getSimpleName()));
+        JavaType PATTERN_RECORD_TYPE = JavaType.ofNominalDescriptor(ClassDesc.of(Pattern_CLASS_NAME +
+                "$" + Pattern.Record.class.getSimpleName()));
 
         static JavaType bindingType(TypeElement t) {
             return type(PATTERN_BINDING_TYPE, (JavaType) t);
@@ -2404,7 +2406,7 @@ public class ExtendedOps {
         }
 
         static TypeElement targetType(TypeElement t) {
-            return ((JavaType) t).typeArguments().get(0);
+            return ((ClassType) t).typeArguments().get(0);
         }
     }
 

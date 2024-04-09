@@ -46,6 +46,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.analysis.Liveness;
+import java.lang.reflect.code.type.ArrayType;
 import java.lang.reflect.code.type.FieldRef;
 import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.type.FunctionType;
@@ -581,34 +582,34 @@ public final class BytecodeGenerator {
                     case NewOp op -> {
                         TypeElement t_ = op.constructorType().returnType();
                         JavaType t = (JavaType) t_;
-                        switch (t.dimensions()) {
-                            case 0 -> {
-                                if (isLastOpResultOnStack) {
-                                    storeIfUsed(oprOnStack);
-                                    isLastOpResultOnStack = false;
-                                    oprOnStack = null;
-                                }
-                                cob.new_(t.toNominalDescriptor())
-                                   .dup();
-                                processOperands(op, false);
-                                cob.invokespecial(
-                                        ((JavaType) op.resultType()).toNominalDescriptor(),
-                                        ConstantDescs.INIT_NAME,
-                                        MethodRef.toNominalDescriptor(op.constructorType())
-                                                .changeReturnType(ConstantDescs.CD_void));
-                            }
-                            case 1 -> {
+                        switch (t) {
+                            case ArrayType at when at.dimensions() == 1 -> {
                                 processOperands(op, isLastOpResultOnStack);
-                                ClassDesc ctd = t.componentType().toNominalDescriptor();
+                                ClassDesc ctd = at.componentType().toNominalDescriptor();
                                 if (ctd.isPrimitive()) {
                                     cob.newarray(TypeKind.from(ctd));
                                 } else {
                                     cob.anewarray(ctd);
                                 }
                             }
-                            default -> {
+                            case ArrayType at -> {
                                 processOperands(op, isLastOpResultOnStack);
                                 cob.multianewarray(t.toNominalDescriptor(), op.operands().size());
+                            }
+                            default -> {
+                                if (isLastOpResultOnStack) {
+                                    storeIfUsed(oprOnStack);
+                                    isLastOpResultOnStack = false;
+                                    oprOnStack = null;
+                                }
+                                cob.new_(t.toNominalDescriptor())
+                                        .dup();
+                                processOperands(op, false);
+                                cob.invokespecial(
+                                        ((JavaType) op.resultType()).toNominalDescriptor(),
+                                        ConstantDescs.INIT_NAME,
+                                        MethodRef.toNominalDescriptor(op.constructorType())
+                                                .changeReturnType(ConstantDescs.CD_void));
                             }
                         }
                     }
