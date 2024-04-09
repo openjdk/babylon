@@ -2737,6 +2737,81 @@ public final class CoreOps {
     }
 
     /**
+     * The shift left operation, that can model the Java language binary {@code <<} operator for integral types
+     */
+    @OpDeclaration(LeftShiftOp.NAME)
+    public static final class LeftShiftOp extends BinaryOp {
+        public static final String NAME = "leftShift";
+
+        public LeftShiftOp(OpDefinition opdef) {
+            super(opdef);
+        }
+
+        LeftShiftOp(LeftShiftOp that, CopyContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public LeftShiftOp transform(CopyContext cc, OpTransformer ot) {
+            return new LeftShiftOp(this, cc);
+        }
+
+        LeftShiftOp(Value lhs, Value rhs) {
+            super(NAME, lhs, rhs);
+        }
+    }
+
+    /**
+     * The shift right operation, that can model the Java language binary {@code >>} operator for integral types
+     */
+    @OpDeclaration(RightShiftOp.NAME)
+    public static final class RightShiftOp extends CoreOps.BinaryOp {
+        public static final String NAME = "rightShift";
+
+        public RightShiftOp(OpDefinition opdef) {
+            super(opdef);
+        }
+
+        RightShiftOp(RightShiftOp that, CopyContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public RightShiftOp transform(CopyContext cc, OpTransformer ot) {
+            return new RightShiftOp(this, cc);
+        }
+
+        RightShiftOp(Value lhs, Value rhs) {
+            super(NAME, lhs, rhs);
+        }
+    }
+
+    /**
+     * The unsigned shift right operation, that can model the Java language binary {@code >>>} operator for integral types
+     */
+    @OpDeclaration(UnsignedRightShiftOp.NAME)
+    public static final class UnsignedRightShiftOp extends CoreOps.BinaryOp {
+        public static final String NAME = "unsignedRightShift";
+
+        public UnsignedRightShiftOp(OpDefinition opdef) {
+            super(opdef);
+        }
+
+        UnsignedRightShiftOp(UnsignedRightShiftOp that, CopyContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public UnsignedRightShiftOp transform(CopyContext cc, OpTransformer ot) {
+            return new UnsignedRightShiftOp(this, cc);
+        }
+
+        UnsignedRightShiftOp(Value lhs, Value rhs) {
+            super(NAME, lhs, rhs);
+        }
+    }
+
+    /**
      * The neg operation, that can model the Java language unary {@code -} operator for numeric types
      */
     @OpDeclaration(NegOp.NAME)
@@ -3676,6 +3751,39 @@ public final class CoreOps {
      */
     public static BinaryOp xor(Value lhs, Value rhs) {
         return new XorOp(lhs, rhs);
+    }
+
+    /**
+     * Creates a left shift operation.
+     *
+     * @param lhs the first operand
+     * @param rhs the second operand
+     * @return the xor operation
+     */
+    public static BinaryOp leftShift(Value lhs, Value rhs) {
+        return new LeftShiftOp(lhs, rhs);
+    }
+
+    /**
+     * Creates a right shift operation.
+     *
+     * @param lhs the first operand
+     * @param rhs the second operand
+     * @return the xor operation
+     */
+    public static BinaryOp rightShift(Value lhs, Value rhs) {
+        return new RightShiftOp(lhs, rhs);
+    }
+
+    /**
+     * Creates an unsigned right shift operation.
+     *
+     * @param lhs the first operand
+     * @param rhs the second operand
+     * @return the xor operation
+     */
+    public static BinaryOp unsignedRightShift(Value lhs, Value rhs) {
+        return new UnsignedRightShiftOp(lhs, rhs);
     }
 
     /**

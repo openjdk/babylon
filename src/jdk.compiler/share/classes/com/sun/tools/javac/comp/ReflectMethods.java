@@ -423,6 +423,7 @@ public class ReflectMethods extends TreeTranslator {
                         Tag.PLUS, Tag.MINUS, Tag.MUL, Tag.DIV, Tag.MOD,
                         Tag.NEG, Tag.NOT,
                         Tag.BITOR, Tag.BITAND, Tag.BITXOR,
+                        Tag.SL, Tag.SR, Tag.USR, Tag.SL_ASG, Tag.SR_ASG, Tag.USR_ASG,
                         Tag.PLUS_ASG, Tag.MINUS_ASG, Tag.MUL_ASG, Tag.DIV_ASG, Tag.MOD_ASG,
                         Tag.POSTINC, Tag.PREINC, Tag.POSTDEC, Tag.PREDEC,
                         Tag.EQ, Tag.NE, Tag.LT, Tag.LE, Tag.GT, Tag.GE,
@@ -768,6 +769,11 @@ public class ReflectMethods extends TreeTranslator {
                     case MUL_ASG -> append(CoreOps.mul(lhs, rhs));
                     case DIV_ASG -> append(CoreOps.div(lhs, rhs));
                     case MOD_ASG -> append(CoreOps.mod(lhs, rhs));
+
+                    // Shift operations
+                    case SL_ASG -> append(CoreOps.leftShift(lhs, rhs));
+                    case SR_ASG -> append(CoreOps.rightShift(lhs, rhs));
+                    case USR_ASG -> append(CoreOps.unsignedRightShift(lhs, rhs));
 
                     default -> throw unsupported(tree);
                 };
@@ -2068,9 +2074,10 @@ public class ReflectMethods extends TreeTranslator {
                 result = append(CoreOps.concat(lhs, rhs));
             }
             else {
-                Type opType = tree.operator.type.getParameterTypes().get(0);
+                Type opType = tree.operator.type.getParameterTypes().getFirst();
+                boolean isShift = tag == Tag.SL || tag == Tag.SR || tag == Tag.USR;
                 Value lhs = toValue(tree.lhs, opType);
-                Value rhs = toValue(tree.rhs, opType);
+                Value rhs = toValue(tree.rhs, isShift ? tree.operator.type.getParameterTypes().getLast() : opType);
 
                 result = switch (tag) {
                     // Arithmetic operations
@@ -2093,6 +2100,10 @@ public class ReflectMethods extends TreeTranslator {
                     case BITOR -> append(CoreOps.or(lhs, rhs));
                     case BITAND -> append(CoreOps.and(lhs, rhs));
                     case BITXOR -> append(CoreOps.xor(lhs, rhs));
+
+                    case SL -> append(CoreOps.leftShift(lhs, rhs));
+                    case SR -> append(CoreOps.rightShift(lhs, rhs));
+                    case USR -> append(CoreOps.unsignedRightShift(lhs, rhs));
 
                     default -> throw unsupported(tree);
                 };
