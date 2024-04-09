@@ -42,6 +42,7 @@ import com.sun.tools.javac.code.Type.WildcardType;
 import com.sun.tools.javac.code.TypeTag;
 import com.sun.tools.javac.code.Types;
 import com.sun.tools.javac.comp.DeferredAttr.FilterScanner;
+import com.sun.tools.javac.jvm.ByteCodes;
 import com.sun.tools.javac.jvm.Gen;
 import com.sun.tools.javac.resources.CompilerProperties.Notes;
 import com.sun.tools.javac.tree.JCTree;
@@ -2056,7 +2057,17 @@ public class ReflectMethods extends TreeTranslator {
                 result = append(tag == Tag.AND
                         ? ExtendedOps.conditionalAnd(bodies)
                         : ExtendedOps.conditionalOr(bodies));
-            } else {
+            } else if (tag == Tag.PLUS && tree.operator.opcode == ByteCodes.string_add) {
+                //Ignore the operator and query both subexpressions for their type with concats
+                Type lhsType = tree.lhs.type;
+                Type rhsType = tree.rhs.type;
+
+                Value lhs = toValue(tree.lhs, lhsType);
+                Value rhs = toValue(tree.rhs, rhsType);
+
+                result = append(CoreOps.concat(lhs, rhs));
+            }
+            else {
                 Type opType = tree.operator.type.getParameterTypes().get(0);
                 Value lhs = toValue(tree.lhs, opType);
                 Value rhs = toValue(tree.rhs, opType);
