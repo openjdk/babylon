@@ -46,7 +46,6 @@ public class TestConcat {
     @CodeReflection
     static String f() {
        int test = 1;
-       //String res = TESTINT + TESTSTR + test;
        String res = "HI " + TESTSTR + test;
        return res;
     }
