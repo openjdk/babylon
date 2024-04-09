@@ -43,7 +43,6 @@ public class TestConcat {
 
     static final String TESTSTR = "TESTING STRING";
 
-    static final int TESTINT = 42;
     @CodeReflection
     static String f() {
        int test = 1;
