@@ -21,12 +21,15 @@
  * questions.
  */
 
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.components.ClassPrinter;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import org.testng.Assert;
+import org.testng.SkipException;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -275,6 +278,35 @@ public class TestBytecode {
         return counter;
     }
 
+    public interface Func {
+        int apply(int a);
+    }
+
+    static int consume(int i, Func f) {
+        return f.apply(i + 1);
+    }
+
+    @CodeReflection
+    @SkipLift
+    static int lambda(int i) {
+        return consume(i, a -> -a);
+    }
+
+    @CodeReflection
+    @SkipLift
+    static int lambdaWithCapture(int i, int j) {
+        return consume(i, a -> a + j);
+    }
+
+    @CodeReflection
+    @SkipLift
+    static int nestedLambdasWithCaptures(int i, int j) {
+        return consume(i, a -> consume(a, b -> a + b + j) + j);
+    }
+
+    @Retention(RetentionPolicy.RUNTIME)
+    @interface SkipLift {}
+
     record TestData(Method testMethod) {
         @Override
         public String toString() {
@@ -347,6 +379,9 @@ public class TestBytecode {
 
     @Test(dataProvider = "testMethods")
     public void testLift(TestData d) throws Throwable {
+        if (d.testMethod.getAnnotation(SkipLift.class) != null) {
+            throw new SkipException("skipped");
+        }
         CoreOps.FuncOp flift;
         try {
             flift = BytecodeLift.lift(CLASS_DATA, d.testMethod.getName(), toMethodTypeDesc(d.testMethod));
