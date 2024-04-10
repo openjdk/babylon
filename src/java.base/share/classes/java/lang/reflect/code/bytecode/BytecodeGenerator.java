@@ -33,9 +33,11 @@ import java.lang.reflect.code.op.CoreOps.*;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.StringWriter;
 import java.lang.classfile.ClassBuilder;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
+import java.lang.classfile.attribute.ConstantValueAttribute;
 import java.lang.classfile.components.ClassPrinter;
 import java.lang.invoke.LambdaMetafactory;
 import java.lang.reflect.code.Block;
@@ -71,8 +73,8 @@ public final class BytecodeGenerator {
     private static final DirectMethodHandleDesc DMHD_LAMBDA_METAFACTORY = MethodHandleDesc.ofMethod(
             DirectMethodHandleDesc.Kind.STATIC,
             LambdaMetafactory.class.describeConstable().orElseThrow(),
-            "metafactory",
-            MethodTypeDesc.of(CD_CallSite, CD_MethodHandles_Lookup, CD_String, CD_MethodType, CD_MethodType, CD_MethodHandle, CD_MethodType));
+            "altMetafactory",
+            MethodTypeDesc.of(CD_CallSite, CD_MethodHandles_Lookup, CD_String, CD_MethodType, CD_Object.arrayType()));
 
     /**
      * Transforms the invokable operation to bytecode encapsulated in a method of hidden class and exposed
@@ -153,7 +155,14 @@ public final class BytecodeGenerator {
             List<LambdaOp> lambdaSink = new ArrayList<>();
             generateMethod(lookup, className, name, iop, clb, lambdaSink);
             for (int i = 0; i < lambdaSink.size(); i++) {
-                generateMethod(lookup, className, "lambda$" + i, lambdaSink.get(i), clb, lambdaSink);
+                LambdaOp lop = lambdaSink.get(i);
+                clb.withField("lambda$" + i + "$op", CD_String, fb -> {
+                    fb.withFlags(ClassFile.ACC_STATIC);
+                    StringWriter sw = new StringWriter();
+                    lop.writeTo(sw);
+                    fb.with(ConstantValueAttribute.of(sw.toString()));
+                });
+                generateMethod(lookup, className, "lambda$" + i, lop, clb, lambdaSink);
             }
         });
         return classBytes;
@@ -741,7 +750,10 @@ public final class BytecodeGenerator {
                                 MethodTypeDesc.of(intfType.toNominalDescriptor(), captureTypes),
                                 mtd,
                                 MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC, className, "lambda$" + lambdaSink.size(), mtd.insertParameterTypes(mtd.parameterCount(), captureTypes)),
-                                mtd));
+                                mtd,
+                                0));
+//                                LambdaMetafactory.FLAG_QUOTABLE,
+//                                MethodHandleDesc.ofField(DirectMethodHandleDesc.Kind.STATIC_GETTER, className, "lambda$" + lambdaSink.size() + "$op", CD_String)));
                         lambdaSink.add(op);
                     }
                     default ->
