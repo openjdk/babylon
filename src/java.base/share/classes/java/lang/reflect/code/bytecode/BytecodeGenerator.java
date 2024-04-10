@@ -60,6 +60,8 @@ import java.util.Map;
 import java.util.Set;
 
 import static java.lang.constant.ConstantDescs.*;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 
 /**
  * Transformer of code models to bytecode.
@@ -151,16 +153,19 @@ public final class BytecodeGenerator {
             List<LambdaOp> lambdaSink = new ArrayList<>();
             generateMethod(lookup, className, name, iop, clb, lambdaSink);
             for (int i = 0; i < lambdaSink.size(); i++) {
-                generateMethod(lookup, className, name + "$lambda$" + i, lambdaSink.get(i), clb, lambdaSink);
+                generateMethod(lookup, className, "lambda$" + i, lambdaSink.get(i), clb, lambdaSink);
             }
         });
         return classBytes;
     }
 
     private static <O extends Op & Op.Invokable> void generateMethod(MethodHandles.Lookup lookup, ClassDesc className, String methodName, O iop, ClassBuilder clb, List<LambdaOp> lambdaSink) {
-        clb.withMethodBody(methodName, MethodRef.toNominalDescriptor(iop.invokableType()), ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC,
+        List<Value> capturedValues = iop instanceof LambdaOp lop ? lop.capturedValues() : List.of();
+        MethodTypeDesc mtd = MethodRef.toNominalDescriptor(iop.invokableType());
+        mtd = mtd.insertParameterTypes(mtd.parameterCount(), capturedValues.stream().map(Value::type).map(BytecodeGenerator::toClassDesc).toArray(ClassDesc[]::new));
+        clb.withMethodBody(methodName, mtd, ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC,
                 cb -> cb.transforming(new BranchCompactor(), cob ->
-                    new BytecodeGenerator(lookup, className, new Liveness(iop), iop.body().blocks(), cob, lambdaSink).generate()));
+                    new BytecodeGenerator(lookup, className, capturedValues, new Liveness(iop), iop.body().blocks(), cob, lambdaSink).generate()));
     }
 
     private record Slot(int slot, TypeKind typeKind) {}
@@ -168,6 +173,7 @@ public final class BytecodeGenerator {
 
     private final MethodHandles.Lookup lookup;
     private final ClassDesc className;
+    private final List<Value> capturedValues;
     private final List<Block> blocks;
     private final CodeBuilder cob;
     private final Label[] blockLabels;
@@ -177,9 +183,10 @@ public final class BytecodeGenerator {
     private final Map<Value, Slot> slots;
     private final List<LambdaOp> lambdaSink;
 
-    private BytecodeGenerator(MethodHandles.Lookup lookup, ClassDesc className, Liveness liveness, List<Block> blocks, CodeBuilder cob, List<LambdaOp> lambdaSink) {
+    private BytecodeGenerator(MethodHandles.Lookup lookup, ClassDesc className, List<Value> capturedValues, Liveness liveness, List<Block> blocks, CodeBuilder cob, List<LambdaOp> lambdaSink) {
         this.lookup = lookup;
         this.className = className;
+        this.capturedValues = capturedValues;
         this.blocks = blocks;
         this.cob = cob;
         this.blockLabels = new Label[blocks.size()];
@@ -315,6 +322,15 @@ public final class BytecodeGenerator {
         return use.op() instanceof CoreOps.ConditionalBranchOp;
     }
 
+    private static ClassDesc toClassDesc(TypeElement t) {
+        return switch (t) {
+            case VarType vt -> toClassDesc(vt.valueType());
+            case JavaType jt -> jt.toNominalDescriptor();
+            default ->
+                throw new IllegalArgumentException("Bad type: " + t);
+        };
+    }
+
     private static TypeKind toTypeKind(TypeElement t) {
         return switch (t) {
             case VarType vt -> toTypeKind(vt.valueType());
@@ -424,9 +440,13 @@ public final class BytecodeGenerator {
             // Some unused parameters might be declared before others that are used
             if (b.isEntryBlock()) {
                 List<Block.Parameter> parameters = b.parameters();
-                for (int i = 0; i < parameters.size(); i++) {
-                    Block.Parameter bp = parameters.get(i);
-                    slots.put(bp, new Slot(cob.parameterSlot(i), toTypeKind(bp.type())));
+                int i = 0;
+                for (Block.Parameter bp : parameters) {
+                    slots.put(bp, new Slot(cob.parameterSlot(i++), toTypeKind(bp.type())));
+                }
+                // Captured values follow block parameters in lambda impl methods
+                for (Value cv : capturedValues) {
+                    slots.put(cv, new Slot(cob.parameterSlot(i++), toTypeKind(cv.type())));
                 }
             }
 
@@ -708,16 +728,21 @@ public final class BytecodeGenerator {
                         cob.checkcast(((JavaType) op.type()).toNominalDescriptor());
                     }
                     case LambdaOp op -> {
-                        lambdaSink.add(op);
                         processOperands(op, isLastOpResultOnStack);
+                        for (Value cv : op.capturedValues()) {
+                            load(cv);
+                        }
+                        MethodTypeDesc mtd = MethodRef.toNominalDescriptor(op.invokableType());
+                        ClassDesc[] captureTypes = op.capturedValues().stream().map(Value::type).map(BytecodeGenerator::toClassDesc).toArray(ClassDesc[]::new);
+                        JavaType intfType = (JavaType)op.functionalInterface();
                         cob.invokedynamic(DynamicCallSiteDesc.of(
                                 DMHD_LAMBDA_METAFACTORY,
-                                // @@@ compose DynamicCallSiteDesc from the LambdaOp
-                                "apply",
-                                MethodTypeDesc.ofDescriptor("()LTestLambda$Func;"),
-                                MethodTypeDesc.of(CD_int, CD_int),
-                                MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC, className, "lambda$lambda$0", MethodTypeDesc.of(CD_int, CD_int)),
-                                MethodTypeDesc.of(CD_int, CD_int)));
+                                funcIntfMethodName(intfType),
+                                MethodTypeDesc.of(intfType.toNominalDescriptor(), captureTypes),
+                                mtd,
+                                MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC, className, "lambda$" + lambdaSink.size(), mtd.insertParameterTypes(mtd.parameterCount(), captureTypes)),
+                                mtd));
+                        lambdaSink.add(op);
                     }
                     default ->
                         throw new UnsupportedOperationException("Unsupported operation: " + ops.get(i));
@@ -798,6 +823,33 @@ public final class BytecodeGenerator {
         } else {
             return null;
         }
+    }
+
+    private String funcIntfMethodName(JavaType intfc) {
+        String uniqueName = null;
+        try {
+            for (Method m : intfc.resolve(lookup).getMethods()) {
+                // ensure it's SAM interface
+                String methodName = m.getName();
+                if (Modifier.isAbstract(m.getModifiers())
+                        && (m.getReturnType() != String.class || m.getParameterCount() != 0 || !methodName.equals("toString"))
+                        && (m.getReturnType() != int.class || m.getParameterCount() != 0 || !methodName.equals("hashCode"))
+                        && (m.getReturnType() != boolean.class || m.getParameterCount() != 1 || m.getParameterTypes()[0] != Object.class || !methodName.equals("equals"))) {
+                    if (uniqueName == null) {
+                        uniqueName = methodName;
+                    } else if (!uniqueName.equals(methodName)) {
+                        // too many abstract methods
+                        throw new IllegalArgumentException("Not a single-method interface: " + intfc.toClassName());
+                    }
+                }
+            }
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalArgumentException(e);
+        }
+        if (uniqueName == null) {
+            throw new IllegalArgumentException("No method in: " + intfc.toClassName());
+        }
+        return uniqueName;
     }
 
     private void conditionalBranch(BinaryTestOp op, Block.Reference trueBlock, Block.Reference falseBlock) {

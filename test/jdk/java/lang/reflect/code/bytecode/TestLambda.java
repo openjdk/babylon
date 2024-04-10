@@ -48,12 +48,12 @@ public class TestLambda {
     }
 
     static int consume(int i, Func f) {
-        return f.apply(i);
+        return f.apply(i + 1);
     }
 
     @CodeReflection
-    static int lambda(int i) {
-        return consume(i, a -> -a);
+    static int lambda(int i, int j) {
+        return consume(i, a -> a + j);
     }
 
     @Test
@@ -63,7 +63,7 @@ public class TestLambda {
         CoreOps.FuncOp f = getFuncOp("lambda");
 //        f.writeTo(System.out);
         MethodHandle mh = BytecodeGenerator.generate(MethodHandles.lookup(), f);
-        Assert.assertEquals(mh.invoke(1), -1);
+        Assert.assertEquals(mh.invoke(1, 2), lambda(1, 2));
 
     }
 
