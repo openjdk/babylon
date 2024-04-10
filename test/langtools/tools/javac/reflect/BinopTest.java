@@ -269,15 +269,4 @@ public class BinopTest {
 
         d %= 1;
     }
-
-    @CodeReflection
-    @IR("""
-            TODO
-            """)
-    int test9(short s) {
-        s <<= 1;
-        s <<= 2L;
-        return s << s;
-    }
-
 }

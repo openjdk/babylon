@@ -423,7 +423,7 @@ public class ReflectMethods extends TreeTranslator {
                         Tag.PLUS, Tag.MINUS, Tag.MUL, Tag.DIV, Tag.MOD,
                         Tag.NEG, Tag.NOT,
                         Tag.BITOR, Tag.BITAND, Tag.BITXOR,
-                        Tag.SL, Tag.SR, Tag.USR, Tag.SL_ASG, Tag.SR_ASG, Tag.USR_ASG,
+                        Tag.SL, Tag.SR, Tag.USR,
                         Tag.PLUS_ASG, Tag.MINUS_ASG, Tag.MUL_ASG, Tag.DIV_ASG, Tag.MOD_ASG,
                         Tag.POSTINC, Tag.PREINC, Tag.POSTDEC, Tag.PREDEC,
                         Tag.EQ, Tag.NE, Tag.LT, Tag.LE, Tag.GT, Tag.GE,
@@ -769,11 +769,6 @@ public class ReflectMethods extends TreeTranslator {
                     case MUL_ASG -> append(CoreOps.mul(lhs, rhs));
                     case DIV_ASG -> append(CoreOps.div(lhs, rhs));
                     case MOD_ASG -> append(CoreOps.mod(lhs, rhs));
-
-                    // Shift operations
-                    case SL_ASG -> append(CoreOps.leftShift(lhs, rhs));
-                    case SR_ASG -> append(CoreOps.rightShift(lhs, rhs));
-                    case USR_ASG -> append(CoreOps.unsignedRightShift(lhs, rhs));
 
                     default -> throw unsupported(tree);
                 };
