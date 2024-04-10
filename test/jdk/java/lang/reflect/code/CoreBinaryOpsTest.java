@@ -314,8 +314,7 @@ public class CoreBinaryOpsTest {
         private static Stream<Method> codeReflectionMethods(Class<?> testClass) {
             return Arrays.stream(testClass.getDeclaredMethods())
                     .filter(method -> method.accessFlags().contains(AccessFlag.STATIC))
-                    .filter(method -> method.isAnnotationPresent(CodeReflection.class))
-                    .peek(m -> m.getCodeModel().ifPresent(f -> System.out.println(f.toText())));
+                    .filter(method -> method.isAnnotationPresent(CodeReflection.class));
         }
 
     }
