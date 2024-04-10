@@ -95,6 +95,18 @@ final class InvokableLeafOps {
         return l >>> r;
     }
 
+    public static int leftShift(int l, long r) {
+        return l << r;
+    }
+
+    public static int rightShift(int l, long r) {
+        return l >> r;
+    }
+
+    public static int unsignedRightShift(int l, long r) {
+        return l >>> r;
+    }
+
     public static boolean eq(int l, int r) {
         return l == r;
     }
@@ -166,6 +178,18 @@ final class InvokableLeafOps {
     }
 
     public static long unsignedRightShift(long l, long r) {
+        return l >>> r;
+    }
+
+    public static long leftShift(long l, int r) {
+        return l << r;
+    }
+
+    public static long rightShift(long l, int r) {
+        return l >> r;
+    }
+
+    public static long unsignedRightShift(long l, int r) {
         return l >>> r;
     }
 
