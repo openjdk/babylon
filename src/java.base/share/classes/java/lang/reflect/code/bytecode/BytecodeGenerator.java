@@ -33,7 +33,6 @@ import java.lang.reflect.code.op.CoreOps.*;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.StringWriter;
 import java.lang.classfile.ClassBuilder;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
@@ -156,12 +155,9 @@ public final class BytecodeGenerator {
             generateMethod(lookup, className, name, iop, clb, lambdaSink);
             for (int i = 0; i < lambdaSink.size(); i++) {
                 LambdaOp lop = lambdaSink.get(i);
-                clb.withField("lambda$" + i + "$op", CD_String, fb -> {
-                    fb.withFlags(ClassFile.ACC_STATIC);
-                    StringWriter sw = new StringWriter();
-                    lop.writeTo(sw);
-                    fb.with(ConstantValueAttribute.of(sw.toString()));
-                });
+                clb.withField("lambda$" + i + "$op", CD_String, fb -> fb
+                        .withFlags(ClassFile.ACC_STATIC)
+                        .with(ConstantValueAttribute.of(quote(lop).toText())));
                 generateMethod(lookup, className, "lambda$" + i, lop, clb, lambdaSink);
             }
         });
@@ -751,9 +747,8 @@ public final class BytecodeGenerator {
                                 mtd,
                                 MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC, className, "lambda$" + lambdaSink.size(), mtd.insertParameterTypes(mtd.parameterCount(), captureTypes)),
                                 mtd,
-                                0));
-//                                LambdaMetafactory.FLAG_QUOTABLE,
-//                                MethodHandleDesc.ofField(DirectMethodHandleDesc.Kind.STATIC_GETTER, className, "lambda$" + lambdaSink.size() + "$op", CD_String)));
+                                LambdaMetafactory.FLAG_QUOTABLE,
+                                MethodHandleDesc.ofField(DirectMethodHandleDesc.Kind.STATIC_GETTER, className, "lambda$" + lambdaSink.size() + "$op", CD_String)));
                         lambdaSink.add(op);
                     }
                     default ->
@@ -974,5 +969,44 @@ public final class BytecodeGenerator {
         }
 
         return dmhd;
+    }
+
+    static CoreOps.FuncOp quote(CoreOps.LambdaOp lop) {
+        List<Value> captures = lop.capturedValues();
+
+        // Build the function type
+        List<TypeElement> params = captures.stream()
+                .map(v -> v.type() instanceof VarType vt ? vt.valueType() : v.type())
+                .toList();
+        FunctionType ft = FunctionType.functionType(CoreOps.QuotedOp.QUOTED_TYPE, params);
+
+        // Build the function that quotes the lambda
+        return CoreOps.func("q", ft).body(b -> {
+            // Create variables as needed and obtain the captured values
+            // for the copied lambda
+            List<Value> outputCaptures = new ArrayList<>();
+            for (int i = 0; i < captures.size(); i++) {
+                Value c = captures.get(i);
+                Block.Parameter p = b.parameters().get(i);
+                if (c.type() instanceof VarType _) {
+                    Value var = b.op(CoreOps.var(p));
+                    outputCaptures.add(var);
+                } else {
+                    outputCaptures.add(p);
+                }
+            }
+
+            // Quoted the lambda expression
+            Value q = b.op(CoreOps.quoted(b.parentBody(), qb -> {
+                // Map the lambda's parent block to the quoted block
+                // We are copying lop in the context of the quoted block
+                qb.context().mapBlock(lop.parentBlock(), qb);
+                // Map the lambda's captured values
+                qb.context().mapValues(captures, outputCaptures);
+                // Return the lambda to be copied in the quoted operation
+                return lop;
+            }));
+            b.op(CoreOps._return(q));
+        });
     }
 }

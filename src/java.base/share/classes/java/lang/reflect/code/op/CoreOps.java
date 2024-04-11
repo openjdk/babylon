@@ -1857,6 +1857,7 @@ public final class CoreOps {
             String name = def.extractAttributeValue(ATTRIBUTE_NAME, true,
                     v -> switch (v) {
                         case String s -> s;
+                        case null -> null;
                         default -> throw new UnsupportedOperationException("Unsupported var name value:" + v);
                     });
             return new VarOp(def, name);
