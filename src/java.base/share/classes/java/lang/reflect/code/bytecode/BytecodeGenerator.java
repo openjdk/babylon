@@ -63,6 +63,8 @@ import java.util.Set;
 import static java.lang.constant.ConstantDescs.*;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.Arrays;
+import java.util.stream.Stream;
 
 /**
  * Transformer of code models to bytecode.
@@ -733,6 +735,10 @@ public final class BytecodeGenerator {
                         cob.checkcast(((JavaType) op.type()).toNominalDescriptor());
                     }
                     case LambdaOp op -> {
+                        // @@@ double the captured values to enable LambdaMetafactory.FLAG_QUOTABLE
+                        for (Value cv : op.capturedValues()) {
+                            load(cv);
+                        }
                         for (Value cv : op.capturedValues()) {
                             load(cv);
                         }
@@ -742,13 +748,13 @@ public final class BytecodeGenerator {
                         cob.invokedynamic(DynamicCallSiteDesc.of(
                                 DMHD_LAMBDA_METAFACTORY,
                                 funcIntfMethodName(intfType),
-                                MethodTypeDesc.of(intfType.toNominalDescriptor(), captureTypes),
+                                // @@@ double the descriptor parameters to enable LambdaMetafactory.FLAG_QUOTABLE
+                                MethodTypeDesc.of(intfType.toNominalDescriptor(), Stream.concat(Stream.of(captureTypes), Stream.of(captureTypes)).toList()),
                                 mtd,
                                 MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC, className, "lambda$" + lambdaSink.size(), mtd.insertParameterTypes(0, captureTypes)),
                                 mtd,
-                                0));
-//                                LambdaMetafactory.FLAG_QUOTABLE,
-//                                MethodHandleDesc.ofField(DirectMethodHandleDesc.Kind.STATIC_GETTER, className, "lambda$" + lambdaSink.size() + "$op", CD_String)));
+                                LambdaMetafactory.FLAG_QUOTABLE,
+                                MethodHandleDesc.ofField(DirectMethodHandleDesc.Kind.STATIC_GETTER, className, "lambda$" + lambdaSink.size() + "$op", CD_String)));
                         lambdaSink.add(op);
                     }
                     default ->
