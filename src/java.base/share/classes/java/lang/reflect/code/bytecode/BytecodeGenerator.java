@@ -167,7 +167,7 @@ public final class BytecodeGenerator {
     private static <O extends Op & Op.Invokable> void generateMethod(MethodHandles.Lookup lookup, ClassDesc className, String methodName, O iop, ClassBuilder clb, List<LambdaOp> lambdaSink) {
         List<Value> capturedValues = iop instanceof LambdaOp lop ? lop.capturedValues() : List.of();
         MethodTypeDesc mtd = MethodRef.toNominalDescriptor(iop.invokableType());
-        mtd = mtd.insertParameterTypes(mtd.parameterCount(), capturedValues.stream().map(Value::type).map(BytecodeGenerator::toClassDesc).toArray(ClassDesc[]::new));
+        mtd = mtd.insertParameterTypes(0, capturedValues.stream().map(Value::type).map(BytecodeGenerator::toClassDesc).toArray(ClassDesc[]::new));
         clb.withMethodBody(methodName, mtd, ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC,
                 cb -> cb.transforming(new BranchCompactor(), cob ->
                     new BytecodeGenerator(lookup, className, capturedValues, new Liveness(iop), iop.body().blocks(), cob, lambdaSink).generate()));
@@ -446,12 +446,12 @@ public final class BytecodeGenerator {
             if (b.isEntryBlock()) {
                 List<Block.Parameter> parameters = b.parameters();
                 int i = 0;
-                for (Block.Parameter bp : parameters) {
-                    slots.put(bp, new Slot(cob.parameterSlot(i++), toTypeKind(bp.type())));
-                }
-                // Captured values follow block parameters in lambda impl methods
+                // Captured values prepend parameters in lambda impl methods
                 for (Value cv : capturedValues) {
                     slots.put(cv, new Slot(cob.parameterSlot(i++), toTypeKind(cv.type())));
+                }
+                for (Block.Parameter bp : parameters) {
+                    slots.put(bp, new Slot(cob.parameterSlot(i++), toTypeKind(bp.type())));
                 }
             }
 
@@ -733,7 +733,6 @@ public final class BytecodeGenerator {
                         cob.checkcast(((JavaType) op.type()).toNominalDescriptor());
                     }
                     case LambdaOp op -> {
-                        processOperands(op, isLastOpResultOnStack);
                         for (Value cv : op.capturedValues()) {
                             load(cv);
                         }
@@ -745,10 +744,11 @@ public final class BytecodeGenerator {
                                 funcIntfMethodName(intfType),
                                 MethodTypeDesc.of(intfType.toNominalDescriptor(), captureTypes),
                                 mtd,
-                                MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC, className, "lambda$" + lambdaSink.size(), mtd.insertParameterTypes(mtd.parameterCount(), captureTypes)),
+                                MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC, className, "lambda$" + lambdaSink.size(), mtd.insertParameterTypes(0, captureTypes)),
                                 mtd,
-                                LambdaMetafactory.FLAG_QUOTABLE,
-                                MethodHandleDesc.ofField(DirectMethodHandleDesc.Kind.STATIC_GETTER, className, "lambda$" + lambdaSink.size() + "$op", CD_String)));
+                                0));
+//                                LambdaMetafactory.FLAG_QUOTABLE,
+//                                MethodHandleDesc.ofField(DirectMethodHandleDesc.Kind.STATIC_GETTER, className, "lambda$" + lambdaSink.size() + "$op", CD_String)));
                         lambdaSink.add(op);
                     }
                     default ->

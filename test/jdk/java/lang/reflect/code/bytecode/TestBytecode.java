@@ -294,14 +294,14 @@ public class TestBytecode {
 
     @CodeReflection
     @SkipLift
-    static int lambdaWithCapture(int i, int j) {
-        return consume(i, a -> a + j);
+    static int lambdaWithCapture(int i, String s) {
+        return consume(i, a -> a + s.length());
     }
 
     @CodeReflection
     @SkipLift
-    static int nestedLambdasWithCaptures(int i, int j) {
-        return consume(i, a -> consume(a, b -> a + b + j) + j);
+    static int nestedLambdasWithCaptures(int i, int j, String s) {
+        return consume(i, a -> consume(a, b -> a + b + j) + s.length());
     }
 
     @Retention(RetentionPolicy.RUNTIME)
