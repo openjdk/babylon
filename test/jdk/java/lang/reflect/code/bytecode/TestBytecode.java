@@ -48,6 +48,8 @@ import java.util.Arrays;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.IntFunction;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -302,6 +304,12 @@ public class TestBytecode {
     @SkipLift
     static int nestedLambdasWithCaptures(int i, int j, String s) {
         return consume(i, a -> consume(a, b -> a + b + j) + s.length());
+    }
+
+    @CodeReflection
+    @SkipLift
+    static int methodHandle(int i) {
+        return consume(i, Math::negateExact);
     }
 
     @Retention(RetentionPolicy.RUNTIME)
