@@ -36,8 +36,10 @@ import com.sun.tools.javac.code.Symtab;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.Type.ArrayType;
 import com.sun.tools.javac.code.Type.ClassType;
+import com.sun.tools.javac.code.Type.IntersectionClassType;
 import com.sun.tools.javac.code.Type.MethodType;
 import com.sun.tools.javac.code.Type.TypeVar;
+import com.sun.tools.javac.code.Type.UnionClassType;
 import com.sun.tools.javac.code.Type.WildcardType;
 import com.sun.tools.javac.code.TypeTag;
 import com.sun.tools.javac.code.Types;
@@ -83,6 +85,7 @@ import jdk.internal.java.lang.reflect.code.*;
 import jdk.internal.java.lang.reflect.code.op.CoreOps;
 import jdk.internal.java.lang.reflect.code.op.ExtendedOps;
 import jdk.internal.java.lang.reflect.code.type.*;
+import jdk.internal.java.lang.reflect.code.type.WildcardType.BoundKind;
 
 import javax.lang.model.element.Modifier;
 import java.lang.constant.ClassDesc;
@@ -487,12 +490,7 @@ public class ReflectMethods extends TreeTranslator {
             this.isQuoted = true;
 
             com.sun.tools.javac.util.List<Type> nil = com.sun.tools.javac.util.List.nil();
-            Type quotedOpType = kind == FunctionalExpressionKind.QUOTABLE
-                    ? syms.lambdaOpType
-                    : syms.closureOpType;
-            Type quotedReturnType = new ClassType(null,
-                    com.sun.tools.javac.util.List.of(quotedOpType), syms.quotedType.tsym);
-            MethodType mtype = new MethodType(nil, quotedReturnType, nil, syms.methodClass);
+            MethodType mtype = new MethodType(nil, syms.quotedType, nil, syms.methodClass);
             FunctionType mtDesc = FunctionType.functionType(typeToTypeElement(mtype.restype),
                     mtype.getParameterTypes().map(this::typeToTypeElement));
 
@@ -2204,7 +2202,21 @@ public class ReflectMethods extends TreeTranslator {
                     Type et = ((ArrayType)t).elemtype;
                     yield JavaType.array(typeToTypeElement(et));
                 }
+                case WILDCARD -> {
+                    Type.WildcardType wt = (Type.WildcardType)t;
+                    yield wt.isUnbound() ?
+                            JavaType.wildcard() :
+                            JavaType.wildcard(wt.isExtendsBound() ? BoundKind.EXTENDS : BoundKind.SUPER, typeToTypeElement(wt.type));
+                }
+                case TYPEVAR -> JavaType.typeVarRef(t.tsym.name.toString());
                 case CLASS -> {
+                    if (t.isIntersection()) {
+                        yield JavaType.intersection(((IntersectionClassType)t).getComponents().stream()
+                                .map(this::typeToTypeElement).toList());
+                    } else if (t.isUnion()) {
+                        yield JavaType.union(((UnionClassType)t).getAlternatives().stream()
+                                .map(a -> typeToTypeElement((Type)a)).toList());
+                    }
                     // @@@ Need to clean this up, probably does not work inner generic classes
                     // whose enclosing class is also generic
                     List<JavaType> typeArguments;
@@ -2258,7 +2270,7 @@ public class ReflectMethods extends TreeTranslator {
             // @@@ Made Gen::binaryQualifier public, duplicate logic?
             // Ensure correct qualifying class is used in the reference, see JLS 13.1
             // https://docs.oracle.com/javase/specs/jls/se20/html/jls-13.html#jls-13.1
-            return symbolToErasedMethodRef(gen.binaryQualifier(s, site));
+            return symbolToErasedMethodRef(gen.binaryQualifier(s, types.erasure(site)));
         }
 
         MethodRef symbolToErasedMethodRef(Symbol s) {
@@ -2315,12 +2327,10 @@ public class ReflectMethods extends TreeTranslator {
         }
 
         Type normalizeType(Type t) {
-            return switch (t.getTag()) {
-                case METHOD -> new MethodType(t.getParameterTypes().map(this::normalizeType),
-                        normalizeType(t.getReturnType()), t.getThrownTypes().map(this::normalizeType),
-                        syms.methodClass);
-                default -> checkDenotableInTypeDesc(t) ? t : types.erasure(t);
-            };
+            Type upward = types.upward(t, types.captures(t));
+            return upward.hasTag(BOT) ?
+                    types.erasure(t) :
+                    upward;
         }
 
         Type typeElementToType(TypeElement desc) {

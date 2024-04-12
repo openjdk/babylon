@@ -2,6 +2,7 @@ package java.lang.reflect.code.type;
 
 import java.lang.constant.ClassDesc;
 import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.type.WildcardType.BoundKind;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -113,6 +114,21 @@ public final class CoreTypeFactory {
                     throw new IllegalArgumentException("Bad type: " + tree);
                 }
                 typeArguments.add(a);
+            }
+            if (identifier.equals("+") || identifier.equals("-")) {
+                // wildcard type
+                BoundKind kind = identifier.equals("+") ?
+                        BoundKind.EXTENDS : BoundKind.SUPER;
+                return JavaType.wildcard(kind, typeArguments.get(0));
+            } else if (identifier.startsWith("::")) {
+                // type-var
+                return JavaType.typeVarRef(identifier.substring(2));
+            } else if (identifier.equals("&")) {
+                // intersection type
+                return JavaType.intersection(typeArguments);
+            } else if (identifier.equals("|")) {
+                // union type
+                return JavaType.union(typeArguments);
             }
             JavaType t = switch (identifier) {
                 case "boolean" -> JavaType.BOOLEAN;

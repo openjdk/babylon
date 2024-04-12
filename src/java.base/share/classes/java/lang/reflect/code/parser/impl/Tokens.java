@@ -99,6 +99,7 @@ public final class Tokens {
         PLUS("+"),
         SUB("-"),
         AMP("&"),
+        OR("|"),
         CARET("^"),
         MONKEYS_AT("@"),
         CUSTOM;

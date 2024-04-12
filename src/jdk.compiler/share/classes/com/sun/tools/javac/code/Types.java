@@ -244,6 +244,18 @@ public class Types {
         }
 
         @Override
+        public Type visitMethodType(MethodType mt, ProjectionKind pkind) {
+            Type res1 = visit(mt.restype, pkind);
+            List<Type> args1 = visit(mt.argtypes, pkind.complement());
+            if (args1.stream().anyMatch(t -> t.hasTag(BOT))) {
+                // not defined
+                return syms.botType;
+            }
+            List<Type> thrown1 = visit(mt.thrown, pkind);
+            return new MethodType(args1, res1, thrown1, syms.methodClass);
+        }
+
+        @Override
         public Type visitClassType(ClassType t, ProjectionKind pkind) {
             if (t.isCompound()) {
                 List<Type> components = directSupertypes(t);

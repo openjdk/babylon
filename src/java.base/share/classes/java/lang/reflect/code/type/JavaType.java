@@ -28,6 +28,7 @@ package java.lang.reflect.code.type;
 import java.lang.constant.ClassDesc;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.type.WildcardType.BoundKind;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -36,7 +37,9 @@ import java.util.Objects;
  * The symbolic description of a Java type.
  */
 // @@@ Extend from this interface to model Java types with more fidelity
-public sealed interface JavaType extends TypeElement permits ClassType, ArrayType, PrimitiveType {
+public sealed interface JavaType extends TypeElement permits ClassType, ArrayType,
+                                                             PrimitiveType, WildcardType, TypeVarRef,
+                                                             IntersectionType, UnionType {
 
     // @@@ Share with general void type?
     JavaType VOID = new PrimitiveType("void");
@@ -252,6 +255,51 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
             elementType = array(elementType);
         }
         return array(elementType);
+    }
+
+    /**
+     * Constructs an unbounded wildcard type.
+     *
+     * @return an unbounded wildcard type.
+     */
+    static WildcardType wildcard() {
+        return new WildcardType(BoundKind.EXTENDS, JavaType.J_L_OBJECT);
+    }
+
+    /**
+     * Constructs a bounded wildcard type of the given kind.
+     *
+     * @return a bounded wildcard type.
+     */
+    static WildcardType wildcard(BoundKind kind, JavaType bound) {
+        return new WildcardType(kind, bound);
+    }
+
+    /**
+     * Constructs a type-variable reference.
+     *
+     * @return a type-variable reference.
+     */
+    static TypeVarRef typeVarRef(String name) {
+        return new TypeVarRef(name);
+    }
+
+    /**
+     * Constructs an intersection type with given components.
+     *
+     * @return an intersection type.
+     */
+    static IntersectionType intersection(List<JavaType> components) {
+        return new IntersectionType(components);
+    }
+
+    /**
+     * Constructs a union type with given components.
+     *
+     * @return a union type.
+     */
+    static UnionType union(List<JavaType> components) {
+        return new UnionType(components);
     }
 
     // Copied code in jdk.compiler module throws UOE

@@ -25,6 +25,7 @@
 
 package java.lang.reflect.code.parser.impl;
 
+import java.lang.reflect.code.parser.impl.Tokens.TokenKind;
 import java.lang.reflect.code.type.*;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.type.RecordTypeRef;
@@ -86,9 +87,12 @@ public final class DescParser {
 
     public static TypeDefinition parseTypeDefinition(Lexer l) {
         // Type
-        Tokens.Token t = l.accept(Tokens.TokenKind.IDENTIFIER);
+        Tokens.Token t = l.accept(TokenKind.IDENTIFIER,
+                TokenKind.PLUS, TokenKind.SUB,
+                TokenKind.AMP, TokenKind.OR,
+                TokenKind.COLCOL);
         StringBuilder identifier = new StringBuilder();
-        identifier.append(t.name());
+        identifier.append(t.kind == TokenKind.IDENTIFIER ? t.name() : t.kind.name);
         while (l.acceptIf(Tokens.TokenKind.DOT)) {
             identifier.append(Tokens.TokenKind.DOT.name);
             t = l.accept(Tokens.TokenKind.IDENTIFIER);
