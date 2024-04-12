@@ -90,7 +90,7 @@ public final class BytecodeGenerator {
     public static <O extends Op & Op.Invokable> MethodHandle generate(MethodHandles.Lookup l, O iop) {
         String name = iop instanceof FuncOp fop ? fop.funcName() : "m";
         byte[] classBytes = generateClassData(l, name, iop);
-        ClassPrinter.toYaml(ClassFile.of().parse(classBytes), ClassPrinter.Verbosity.TRACE_ALL, System.out::print);
+//        ClassPrinter.toYaml(ClassFile.of().parse(classBytes), ClassPrinter.Verbosity.TRACE_ALL, System.out::print);
 
         {
             try {
