@@ -40,6 +40,7 @@ import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.Op;
+import java.lang.reflect.code.Quotable;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.reflect.code.type.JavaType;
@@ -48,8 +49,6 @@ import java.util.Arrays;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.function.IntFunction;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -284,7 +283,15 @@ public class TestBytecode {
         int apply(int a);
     }
 
+    public interface QuotableFunc extends Quotable {
+        int apply(int a);
+    }
+
     static int consume(int i, Func f) {
+        return f.apply(i + 1);
+    }
+
+    static int consumeQuotable(int i, QuotableFunc f) {
         return f.apply(i + 1);
     }
 
@@ -296,14 +303,32 @@ public class TestBytecode {
 
     @CodeReflection
     @SkipLift
+    static int quotableLambda(int i) {
+        return consumeQuotable(i, a -> -a);
+    }
+
+    @CodeReflection
+    @SkipLift
     static int lambdaWithCapture(int i, String s) {
         return consume(i, a -> a + s.length());
     }
 
     @CodeReflection
     @SkipLift
+    static int quotableLambdaWithCapture(int i, String s) {
+        return consumeQuotable(i, a -> a + s.length());
+    }
+
+    @CodeReflection
+    @SkipLift
     static int nestedLambdasWithCaptures(int i, int j, String s) {
         return consume(i, a -> consume(a, b -> a + b + j) + s.length());
+    }
+
+    @CodeReflection
+    @SkipLift
+    static int nestedQuotableLambdasWithCaptures(int i, int j, String s) {
+        return consumeQuotable(i, a -> consumeQuotable(a, b -> a + b + j) + s.length());
     }
 
     @CodeReflection
@@ -375,7 +400,6 @@ public class TestBytecode {
             for (int i = 0; i < argn; i++) {
                 args[i] = argValues[i][argIndexes[i]];
             }
-//            System.out.println(Arrays.toString(args));
             executor.execute(args);
             int i = argn - 1;
             while (i >= 0 && argIndexes[i] == argValues[i].length - 1) i--;

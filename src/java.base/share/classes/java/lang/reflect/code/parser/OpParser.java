@@ -383,7 +383,7 @@ public final class OpParser {
         if (lexer.is(Tokens.TokenKind.MONKEYS_AT)) {
             attributes = parseAttributes();
         } else {
-            attributes = new HashMap<>();
+            attributes = Map.of();
         }
 
         // Bodies

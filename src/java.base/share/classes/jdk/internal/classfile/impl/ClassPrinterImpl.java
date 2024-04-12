@@ -817,15 +817,13 @@ public final class ClassPrinterImpl {
                                 "owner", inv.owner().name().stringValue(),
                                 "method name", inv.name().stringValue(),
                                 "method type", inv.type().stringValue()));
-                        case InvokeDynamicInstruction invd -> {
-                            in.with(leafs(
+                        case InvokeDynamicInstruction invd -> in.with(leafs(
                                 "name", invd.name().stringValue(),
                                 "descriptor", invd.type().stringValue(),
-                                "bootstrap method", invd.bootstrapMethod().kind().name()
-                                     + " " + Util.toInternalName(invd.bootstrapMethod().owner())
-                                     + "::" + invd.bootstrapMethod().methodName()));
-                            in.with(list("arguments", "arg", invd.bootstrapArgs().stream()));
-                        }
+                                "kind", invd.bootstrapMethod().kind().name(),
+                                "owner", invd.bootstrapMethod().owner().descriptorString(),
+                                "method name", invd.bootstrapMethod().methodName(),
+                                "invocation type", invd.bootstrapMethod().invocationType().descriptorString()));
                         case NewObjectInstruction newo -> in.with(leaf(
                                 "type", newo.className().name().stringValue()));
                         case NewPrimitiveArrayInstruction newa -> in.with(leafs(
@@ -886,15 +884,12 @@ public final class ClassPrinterImpl {
                     bm -> {
                         var mh = bm.bootstrapMethod();
                         var mref = mh.reference();
-                        var bmNode = new MapNodeImpl(FLOW, "bm");
-                        bmNode.with(leafs(
-                                "index", bm.bsmIndex(),
+                        return map("bm",
                                 "kind", DirectMethodHandleDesc.Kind.valueOf(mh.kind(),
                                         mref instanceof InterfaceMethodRefEntry).name(),
-                                "owner", mref.owner().asInternalName(),
-                                "name", mref.nameAndType().name().stringValue()));
-                        bmNode.with(list("args", "arg", bm.arguments().stream().map(LoadableConstantEntry::constantValue)));
-                        return bmNode;
+                                "owner", mref.owner().name().stringValue(),
+                                "name", mref.nameAndType().name().stringValue(),
+                                "type", mref.nameAndType().type().stringValue());
                     })));
                 case ConstantValueAttribute cva ->
                     nodes.add(leaf("constant value", cva.constant().constantValue()));

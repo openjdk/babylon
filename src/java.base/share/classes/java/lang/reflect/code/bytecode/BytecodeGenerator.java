@@ -63,6 +63,7 @@ import java.util.Set;
 import static java.lang.constant.ConstantDescs.*;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.code.Quotable;
 import java.util.Arrays;
 import java.util.stream.Stream;
 
@@ -89,7 +90,7 @@ public final class BytecodeGenerator {
     public static <O extends Op & Op.Invokable> MethodHandle generate(MethodHandles.Lookup l, O iop) {
         String name = iop instanceof FuncOp fop ? fop.funcName() : "m";
         byte[] classBytes = generateClassData(l, name, iop);
-//        ClassPrinter.toYaml(ClassFile.of().parse(classBytes), ClassPrinter.Verbosity.TRACE_ALL, System.out::print);
+        ClassPrinter.toYaml(ClassFile.of().parse(classBytes), ClassPrinter.Verbosity.TRACE_ALL, System.out::print);
 
         {
             try {
@@ -154,25 +155,28 @@ public final class BytecodeGenerator {
                 : packageName + "." + name);
         byte[] classBytes = ClassFile.of().build(className, clb -> {
             List<LambdaOp> lambdaSink = new ArrayList<>();
-            generateMethod(lookup, className, name, iop, clb, lambdaSink);
+            BitSet quotable = new BitSet();
+            generateMethod(lookup, className, name, iop, clb, lambdaSink, quotable);
             for (int i = 0; i < lambdaSink.size(); i++) {
                 LambdaOp lop = lambdaSink.get(i);
-                clb.withField("lambda$" + i + "$op", CD_String, fb -> fb
-                        .withFlags(ClassFile.ACC_STATIC)
-                        .with(ConstantValueAttribute.of(quote(lop).toText())));
-                generateMethod(lookup, className, "lambda$" + i, lop, clb, lambdaSink);
+                if (quotable.get(i)) {
+                    clb.withField("lambda$" + i + "$op", CD_String, fb -> fb
+                            .withFlags(ClassFile.ACC_STATIC)
+                            .with(ConstantValueAttribute.of(quote(lop).toText())));
+                }
+                generateMethod(lookup, className, "lambda$" + i, lop, clb, lambdaSink, quotable);
             }
         });
         return classBytes;
     }
 
-    private static <O extends Op & Op.Invokable> void generateMethod(MethodHandles.Lookup lookup, ClassDesc className, String methodName, O iop, ClassBuilder clb, List<LambdaOp> lambdaSink) {
+    private static <O extends Op & Op.Invokable> void generateMethod(MethodHandles.Lookup lookup, ClassDesc className, String methodName, O iop, ClassBuilder clb, List<LambdaOp> lambdaSink, BitSet quotable) {
         List<Value> capturedValues = iop instanceof LambdaOp lop ? lop.capturedValues() : List.of();
         MethodTypeDesc mtd = MethodRef.toNominalDescriptor(iop.invokableType());
         mtd = mtd.insertParameterTypes(0, capturedValues.stream().map(Value::type).map(BytecodeGenerator::toClassDesc).toArray(ClassDesc[]::new));
         clb.withMethodBody(methodName, mtd, ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC,
                 cb -> cb.transforming(new BranchCompactor(), cob ->
-                    new BytecodeGenerator(lookup, className, capturedValues, new Liveness(iop), iop.body().blocks(), cob, lambdaSink).generate()));
+                    new BytecodeGenerator(lookup, className, capturedValues, new Liveness(iop), iop.body().blocks(), cob, lambdaSink, quotable).generate()));
     }
 
     private record Slot(int slot, TypeKind typeKind) {}
@@ -189,8 +193,9 @@ public final class BytecodeGenerator {
     private final BitSet blocksToVisit, catchingBlocks;
     private final Map<Value, Slot> slots;
     private final List<LambdaOp> lambdaSink;
+    private final BitSet quotable;
 
-    private BytecodeGenerator(MethodHandles.Lookup lookup, ClassDesc className, List<Value> capturedValues, Liveness liveness, List<Block> blocks, CodeBuilder cob, List<LambdaOp> lambdaSink) {
+    private BytecodeGenerator(MethodHandles.Lookup lookup, ClassDesc className, List<Value> capturedValues, Liveness liveness, List<Block> blocks, CodeBuilder cob, List<LambdaOp> lambdaSink, BitSet quotable) {
         this.lookup = lookup;
         this.className = className;
         this.capturedValues = capturedValues;
@@ -203,6 +208,7 @@ public final class BytecodeGenerator {
         this.catchingBlocks = new BitSet();
         this.slots = new HashMap<>();
         this.lambdaSink = lambdaSink;
+        this.quotable = quotable;
     }
 
     private void setExceptionRegionStack(Block.Reference target, BitSet activeRegionStack) {
@@ -735,27 +741,44 @@ public final class BytecodeGenerator {
                         cob.checkcast(((JavaType) op.type()).toNominalDescriptor());
                     }
                     case LambdaOp op -> {
-                        // @@@ double the captured values to enable LambdaMetafactory.FLAG_QUOTABLE
-                        for (Value cv : op.capturedValues()) {
-                            load(cv);
-                        }
-                        for (Value cv : op.capturedValues()) {
-                            load(cv);
-                        }
-                        MethodTypeDesc mtd = MethodRef.toNominalDescriptor(op.invokableType());
-                        ClassDesc[] captureTypes = op.capturedValues().stream().map(Value::type).map(BytecodeGenerator::toClassDesc).toArray(ClassDesc[]::new);
                         JavaType intfType = (JavaType)op.functionalInterface();
-                        cob.invokedynamic(DynamicCallSiteDesc.of(
-                                DMHD_LAMBDA_METAFACTORY,
-                                funcIntfMethodName(intfType),
-                                // @@@ double the descriptor parameters to enable LambdaMetafactory.FLAG_QUOTABLE
-                                MethodTypeDesc.of(intfType.toNominalDescriptor(), Stream.concat(Stream.of(captureTypes), Stream.of(captureTypes)).toList()),
-                                mtd,
-                                MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC, className, "lambda$" + lambdaSink.size(), mtd.insertParameterTypes(0, captureTypes)),
-                                mtd,
-                                LambdaMetafactory.FLAG_QUOTABLE,
-                                MethodHandleDesc.ofField(DirectMethodHandleDesc.Kind.STATIC_GETTER, className, "lambda$" + lambdaSink.size() + "$op", CD_String)));
-                        lambdaSink.add(op);
+                        try {
+                            Class<?> intfClass = intfType.resolve(lookup);
+                            for (Value cv : op.capturedValues()) {
+                                load(cv);
+                            }
+                            MethodTypeDesc mtd = MethodRef.toNominalDescriptor(op.invokableType());
+                            ClassDesc[] captureTypes = op.capturedValues().stream().map(Value::type).map(BytecodeGenerator::toClassDesc).toArray(ClassDesc[]::new);
+                            if (Quotable.class.isAssignableFrom(intfClass)) {
+                                // @@@ double the captured values to enable LambdaMetafactory.FLAG_QUOTABLE
+                                for (Value cv : op.capturedValues()) {
+                                    load(cv);
+                                }
+                                cob.invokedynamic(DynamicCallSiteDesc.of(
+                                        DMHD_LAMBDA_METAFACTORY,
+                                        funcIntfMethodName(intfClass),
+                                        // @@@ double the descriptor parameters to enable LambdaMetafactory.FLAG_QUOTABLE
+                                        MethodTypeDesc.of(intfType.toNominalDescriptor(), Stream.concat(Stream.of(captureTypes), Stream.of(captureTypes)).toList()),
+                                        mtd,
+                                        MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC, className, "lambda$" + lambdaSink.size(), mtd.insertParameterTypes(0, captureTypes)),
+                                        mtd,
+                                        LambdaMetafactory.FLAG_QUOTABLE,
+                                        MethodHandleDesc.ofField(DirectMethodHandleDesc.Kind.STATIC_GETTER, className, "lambda$" + lambdaSink.size() + "$op", CD_String)));
+                                quotable.set(lambdaSink.size());
+                            } else {
+                                cob.invokedynamic(DynamicCallSiteDesc.of(
+                                        DMHD_LAMBDA_METAFACTORY,
+                                        funcIntfMethodName(intfClass),
+                                        MethodTypeDesc.of(intfType.toNominalDescriptor(), captureTypes),
+                                        mtd,
+                                        MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC, className, "lambda$" + lambdaSink.size(), mtd.insertParameterTypes(0, captureTypes)),
+                                        mtd,
+                                        0));
+                            }
+                            lambdaSink.add(op);
+                        } catch (ReflectiveOperationException e) {
+                            throw new IllegalArgumentException(e);
+                        }
                     }
                     default ->
                         throw new UnsupportedOperationException("Unsupported operation: " + ops.get(i));
@@ -838,29 +861,25 @@ public final class BytecodeGenerator {
         }
     }
 
-    private String funcIntfMethodName(JavaType intfc) {
+    private String funcIntfMethodName(Class<?> intfc) {
         String uniqueName = null;
-        try {
-            for (Method m : intfc.resolve(lookup).getMethods()) {
-                // ensure it's SAM interface
-                String methodName = m.getName();
-                if (Modifier.isAbstract(m.getModifiers())
-                        && (m.getReturnType() != String.class || m.getParameterCount() != 0 || !methodName.equals("toString"))
-                        && (m.getReturnType() != int.class || m.getParameterCount() != 0 || !methodName.equals("hashCode"))
-                        && (m.getReturnType() != boolean.class || m.getParameterCount() != 1 || m.getParameterTypes()[0] != Object.class || !methodName.equals("equals"))) {
-                    if (uniqueName == null) {
-                        uniqueName = methodName;
-                    } else if (!uniqueName.equals(methodName)) {
-                        // too many abstract methods
-                        throw new IllegalArgumentException("Not a single-method interface: " + intfc.toClassName());
-                    }
+        for (Method m : intfc.getMethods()) {
+            // ensure it's SAM interface
+            String methodName = m.getName();
+            if (Modifier.isAbstract(m.getModifiers())
+                    && (m.getReturnType() != String.class || m.getParameterCount() != 0 || !methodName.equals("toString"))
+                    && (m.getReturnType() != int.class || m.getParameterCount() != 0 || !methodName.equals("hashCode"))
+                    && (m.getReturnType() != boolean.class || m.getParameterCount() != 1 || m.getParameterTypes()[0] != Object.class || !methodName.equals("equals"))) {
+                if (uniqueName == null) {
+                    uniqueName = methodName;
+                } else if (!uniqueName.equals(methodName)) {
+                    // too many abstract methods
+                    throw new IllegalArgumentException("Not a single-method interface: " + intfc.getName());
                 }
             }
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalArgumentException(e);
         }
         if (uniqueName == null) {
-            throw new IllegalArgumentException("No method in: " + intfc.toClassName());
+            throw new IllegalArgumentException("No method in: " + intfc.getName());
         }
         return uniqueName;
     }
@@ -995,7 +1014,7 @@ public final class BytecodeGenerator {
                 Value c = captures.get(i);
                 Block.Parameter p = b.parameters().get(i);
                 if (c.type() instanceof VarType _) {
-                    Value var = b.op(CoreOps.var(p));
+                    Value var = b.op(CoreOps.var(String.valueOf(i), p));
                     outputCaptures.add(var);
                 } else {
                     outputCaptures.add(p);
