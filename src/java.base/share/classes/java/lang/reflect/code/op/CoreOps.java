@@ -2737,76 +2737,76 @@ public final class CoreOps {
     }
 
     /**
-     * The shift left operation, that can model the Java language binary {@code <<} operator for integral types
+     * The (logical) shift left operation, that can model the Java language binary {@code <<} operator for integral types
      */
-    @OpDeclaration(LeftShiftOp.NAME)
-    public static final class LeftShiftOp extends BinaryOp {
-        public static final String NAME = "leftShift";
+    @OpDeclaration(LshlOp.NAME)
+    public static final class LshlOp extends BinaryOp {
+        public static final String NAME = "lshl";
 
-        public LeftShiftOp(OpDefinition opdef) {
+        public LshlOp(OpDefinition opdef) {
             super(opdef);
         }
 
-        LeftShiftOp(LeftShiftOp that, CopyContext cc) {
+        LshlOp(LshlOp that, CopyContext cc) {
             super(that, cc);
         }
 
         @Override
-        public LeftShiftOp transform(CopyContext cc, OpTransformer ot) {
-            return new LeftShiftOp(this, cc);
+        public LshlOp transform(CopyContext cc, OpTransformer ot) {
+            return new LshlOp(this, cc);
         }
 
-        LeftShiftOp(Value lhs, Value rhs) {
+        LshlOp(Value lhs, Value rhs) {
             super(NAME, lhs, rhs);
         }
     }
 
     /**
-     * The shift right operation, that can model the Java language binary {@code >>} operator for integral types
+     * The (arithmetic) shift right operation, that can model the Java language binary {@code >>} operator for integral types
      */
-    @OpDeclaration(RightShiftOp.NAME)
-    public static final class RightShiftOp extends CoreOps.BinaryOp {
-        public static final String NAME = "rightShift";
+    @OpDeclaration(AshrOp.NAME)
+    public static final class AshrOp extends CoreOps.BinaryOp {
+        public static final String NAME = "ashr";
 
-        public RightShiftOp(OpDefinition opdef) {
+        public AshrOp(OpDefinition opdef) {
             super(opdef);
         }
 
-        RightShiftOp(RightShiftOp that, CopyContext cc) {
+        AshrOp(AshrOp that, CopyContext cc) {
             super(that, cc);
         }
 
         @Override
-        public RightShiftOp transform(CopyContext cc, OpTransformer ot) {
-            return new RightShiftOp(this, cc);
+        public AshrOp transform(CopyContext cc, OpTransformer ot) {
+            return new AshrOp(this, cc);
         }
 
-        RightShiftOp(Value lhs, Value rhs) {
+        AshrOp(Value lhs, Value rhs) {
             super(NAME, lhs, rhs);
         }
     }
 
     /**
-     * The unsigned shift right operation, that can model the Java language binary {@code >>>} operator for integral types
+     * The unsigned (logical) shift right operation, that can model the Java language binary {@code >>>} operator for integral types
      */
-    @OpDeclaration(UnsignedRightShiftOp.NAME)
-    public static final class UnsignedRightShiftOp extends CoreOps.BinaryOp {
-        public static final String NAME = "unsignedRightShift";
+    @OpDeclaration(LshrOp.NAME)
+    public static final class LshrOp extends CoreOps.BinaryOp {
+        public static final String NAME = "lshr";
 
-        public UnsignedRightShiftOp(OpDefinition opdef) {
+        public LshrOp(OpDefinition opdef) {
             super(opdef);
         }
 
-        UnsignedRightShiftOp(UnsignedRightShiftOp that, CopyContext cc) {
+        LshrOp(LshrOp that, CopyContext cc) {
             super(that, cc);
         }
 
         @Override
-        public UnsignedRightShiftOp transform(CopyContext cc, OpTransformer ot) {
-            return new UnsignedRightShiftOp(this, cc);
+        public LshrOp transform(CopyContext cc, OpTransformer ot) {
+            return new LshrOp(this, cc);
         }
 
-        UnsignedRightShiftOp(Value lhs, Value rhs) {
+        LshrOp(Value lhs, Value rhs) {
             super(NAME, lhs, rhs);
         }
     }
@@ -3760,8 +3760,8 @@ public final class CoreOps {
      * @param rhs the second operand
      * @return the xor operation
      */
-    public static BinaryOp leftShift(Value lhs, Value rhs) {
-        return new LeftShiftOp(lhs, rhs);
+    public static BinaryOp lshl(Value lhs, Value rhs) {
+        return new LshlOp(lhs, rhs);
     }
 
     /**
@@ -3771,8 +3771,8 @@ public final class CoreOps {
      * @param rhs the second operand
      * @return the xor operation
      */
-    public static BinaryOp rightShift(Value lhs, Value rhs) {
-        return new RightShiftOp(lhs, rhs);
+    public static BinaryOp ashr(Value lhs, Value rhs) {
+        return new AshrOp(lhs, rhs);
     }
 
     /**
@@ -3782,8 +3782,8 @@ public final class CoreOps {
      * @param rhs the second operand
      * @return the xor operation
      */
-    public static BinaryOp unsignedRightShift(Value lhs, Value rhs) {
-        return new UnsignedRightShiftOp(lhs, rhs);
+    public static BinaryOp lshr(Value lhs, Value rhs) {
+        return new LshrOp(lhs, rhs);
     }
 
     /**

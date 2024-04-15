@@ -557,7 +557,7 @@ public final class BytecodeGenerator {
                             default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
                         }
                     }
-                    case LeftShiftOp op -> {
+                    case LshlOp op -> {
                         processOperands(op, isLastOpResultOnStack);
                         adjustRightTypeToInt(op);
                         switch (rvt) { //this can be moved to CodeBuilder::shl(TypeKind)
@@ -566,7 +566,7 @@ public final class BytecodeGenerator {
                             default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
                         }
                     }
-                    case RightShiftOp op -> {
+                    case AshrOp op -> {
                         processOperands(op, isLastOpResultOnStack);
                         adjustRightTypeToInt(op);
                         switch (rvt) { //this can be moved to CodeBuilder::shr(TypeKind)
@@ -575,7 +575,7 @@ public final class BytecodeGenerator {
                             default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
                         }
                     }
-                    case UnsignedRightShiftOp op -> {
+                    case LshrOp op -> {
                         processOperands(op, isLastOpResultOnStack);
                         adjustRightTypeToInt(op);
                         switch (rvt) { //this can be moved to CodeBuilder::ushr(TypeKind)
