@@ -153,14 +153,14 @@ public class DenotableTypesTest {
 
     @CodeReflection
     @IR("""
-            func @"test8" (%0 : java.util.List)void -> {
-                  %1 : Var<java.util.List> = var %0 @"list";
-                  %2 : java.util.List = var.load %1;
+            func @"test8" (%0 : java.util.List<+<DenotableTypesTest$Adder<java.lang.Integer>>>)void -> {
+                  %1 : Var<java.util.List<+<DenotableTypesTest$Adder<java.lang.Integer>>>> = var %0 @"list";
+                  %2 : java.util.List<+<DenotableTypesTest$Adder<java.lang.Integer>>> = var.load %1;
                   %3 : int = constant @"0";
-                  %4 : DenotableTypesTest$Adder = invoke %2 %3 @"java.util.List::get(int)java.lang.Object";
-                  %5 : java.util.List = var.load %1;
+                  %4 : DenotableTypesTest$Adder<java.lang.Integer> = invoke %2 %3 @"java.util.List::get(int)java.lang.Object";
+                  %5 : java.util.List<+<DenotableTypesTest$Adder<java.lang.Integer>>> = var.load %1;
                   %6 : int = constant @"1";
-                  %7 : DenotableTypesTest$Adder = invoke %5 %6 @"java.util.List::get(int)java.lang.Object";
+                  %7 : DenotableTypesTest$Adder<java.lang.Integer> = invoke %5 %6 @"java.util.List::get(int)java.lang.Object";
                   invoke %4 %7 @"DenotableTypesTest$Adder::add(DenotableTypesTest$Adder)void";
                   return;
             };
@@ -175,12 +175,12 @@ public class DenotableTypesTest {
 
     @CodeReflection
     @IR("""
-            func @"test9" (%0 : java.util.List)void -> {
-                  %1 : Var<java.util.List> = var %0 @"list";
-                  %2 : java.util.List = var.load %1;
+            func @"test9" (%0 : java.util.List<+<DenotableTypesTest$Box<java.lang.Integer>>>)void -> {
+                  %1 : Var<java.util.List<+<DenotableTypesTest$Box<java.lang.Integer>>>> = var %0 @"list";
+                  %2 : java.util.List<+<DenotableTypesTest$Box<java.lang.Integer>>> = var.load %1;
                   %3 : int = constant @"0";
-                  %4 : DenotableTypesTest$Box = invoke %2 %3 @"java.util.List::get(int)java.lang.Object";
-                  %5 : java.lang.Integer = field.load %4 @"DenotableTypesTest$Box::x()java.lang.Object";
+                  %4 : DenotableTypesTest$Box<java.lang.Integer> = invoke %2 %3 @"java.util.List::get(int)java.lang.Object";
+                  %5 : java.lang.Integer = field.load %4 @"DenotableTypesTest$Box<::X>::x()::X";
                   %6 : Var<java.lang.Integer> = var %5 @"i";
                   return;
             };
@@ -201,7 +201,7 @@ public class DenotableTypesTest {
 
     @CodeReflection
     @IR("""
-            func @"test8" ()void -> {
+            func @"test10" ()void -> {
                   java.try
                       ()void -> {
                           invoke @"DenotableTypesTest::g()void";
