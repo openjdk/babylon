@@ -21,12 +21,15 @@
  * questions.
  */
 
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.components.ClassPrinter;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import org.testng.Assert;
+import org.testng.SkipException;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -37,6 +40,7 @@ import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.Op;
+import java.lang.reflect.code.Quotable;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.reflect.code.type.JavaType;
@@ -275,10 +279,75 @@ public class TestBytecode {
         return counter;
     }
 
+    public interface Func {
+        int apply(int a);
+    }
+
+    public interface QuotableFunc extends Quotable {
+        int apply(int a);
+    }
+
+    static int consume(int i, Func f) {
+        return f.apply(i + 1);
+    }
+
+    static int consumeQuotable(int i, QuotableFunc f) {
+        Assert.assertNotNull(f.quoted());
+        Assert.assertNotNull(f.quoted().op());
+        Assert.assertTrue(f.quoted().op() instanceof CoreOps.LambdaOp);
+        return f.apply(i + 1);
+    }
+
+    @CodeReflection
+    @SkipLift
+    static int lambda(int i) {
+        return consume(i, a -> -a);
+    }
+
+    @CodeReflection
+    @SkipLift
+    static int quotableLambda(int i) {
+        return consumeQuotable(i, a -> -a);
+    }
+
+    @CodeReflection
+    @SkipLift
+    static int lambdaWithCapture(int i, String s) {
+        return consume(i, a -> a + s.length());
+    }
+
+    @CodeReflection
+    @SkipLift
+    static int quotableLambdaWithCapture(int i, String s) {
+        return consumeQuotable(i, a -> a + s.length());
+    }
+
+    @CodeReflection
+    @SkipLift
+    static int nestedLambdasWithCaptures(int i, int j, String s) {
+        return consume(i, a -> consume(a, b -> a + b + j) + s.length());
+    }
+
+    @CodeReflection
+    @SkipLift
+    static int nestedQuotableLambdasWithCaptures(int i, int j, String s) {
+        return consumeQuotable(i, a -> consumeQuotable(a, b -> a + b + j) + s.length());
+    }
+
+    @CodeReflection
+    @SkipLift
+    static int methodHandle(int i) {
+        return consume(i, Math::negateExact);
+    }
+
+    @Retention(RetentionPolicy.RUNTIME)
+    @interface SkipLift {}
+
     record TestData(Method testMethod) {
         @Override
         public String toString() {
-            String s = testMethod.getName() + Arrays.stream(testMethod.getParameterTypes()).map(Class::getSimpleName).collect(Collectors.joining(",", "(", ")"));
+            String s = testMethod.getName() + Arrays.stream(testMethod.getParameterTypes())
+                    .map(Class::getSimpleName).collect(Collectors.joining(",", "(", ")"));
             if (s.length() > 30) s = s.substring(0, 27) + "...";
             return s;
         }
@@ -286,7 +355,9 @@ public class TestBytecode {
 
     @DataProvider(name = "testMethods")
     public static TestData[]testMethods() {
-        return Stream.of(TestBytecode.class.getDeclaredMethods()).filter(m -> m.isAnnotationPresent(CodeReflection.class)).map(TestData::new).toArray(TestData[]::new);
+        return Stream.of(TestBytecode.class.getDeclaredMethods())
+                .filter(m -> m.isAnnotationPresent(CodeReflection.class))
+                .map(TestData::new).toArray(TestData[]::new);
     }
 
     private static byte[] CLASS_DATA;
@@ -298,8 +369,10 @@ public class TestBytecode {
     }
 
     private static MethodTypeDesc toMethodTypeDesc(Method m) {
-        return MethodTypeDesc.of(m.getReturnType().describeConstable().orElseThrow(),
-                                 Arrays.stream(m.getParameterTypes()).map(cls -> cls.describeConstable().orElseThrow()).toList());
+        return MethodTypeDesc.of(
+                m.getReturnType().describeConstable().orElseThrow(),
+                Arrays.stream(m.getParameterTypes())
+                        .map(cls -> cls.describeConstable().orElseThrow()).toList());
     }
 
 
@@ -311,7 +384,8 @@ public class TestBytecode {
         for (var argType : argTypes) TEST_ARGS.put(argType, values);
     }
     static {
-        initTestArgs(values(1, 2, 3, 4), int.class, Integer.class, byte.class, Byte.class, short.class, Short.class, char.class, Character.class);
+        initTestArgs(values(1, 2, 3, 4), int.class, Integer.class, byte.class,
+                Byte.class, short.class, Short.class, char.class, Character.class);
         initTestArgs(values(false, true), boolean.class, Boolean.class);
         initTestArgs(values("Hello World"), String.class);
         initTestArgs(values(1l, 2l, 3l, 4l), long.class, Long.class);
@@ -335,7 +409,6 @@ public class TestBytecode {
             for (int i = 0; i < argn; i++) {
                 args[i] = argValues[i][argIndexes[i]];
             }
-//            System.out.println(Arrays.toString(args));
             executor.execute(args);
             int i = argn - 1;
             while (i >= 0 && argIndexes[i] == argValues[i].length - 1) i--;
@@ -347,6 +420,9 @@ public class TestBytecode {
 
     @Test(dataProvider = "testMethods")
     public void testLift(TestData d) throws Throwable {
+        if (d.testMethod.getAnnotation(SkipLift.class) != null) {
+            throw new SkipException("skipped");
+        }
         CoreOps.FuncOp flift;
         try {
             flift = BytecodeLift.lift(CLASS_DATA, d.testMethod.getName(), toMethodTypeDesc(d.testMethod));

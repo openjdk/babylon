@@ -25,20 +25,21 @@
 
 package java.lang.reflect.code.bytecode;
 
-import java.lang.classfile.ClassModel;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.CodeBuilder;
 import java.lang.classfile.Label;
-import java.lang.classfile.components.ClassPrinter;
 import java.lang.constant.*;
 import java.lang.reflect.code.op.CoreOps.*;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.lang.classfile.ClassBuilder;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
+import java.lang.classfile.attribute.ConstantValueAttribute;
+import java.lang.classfile.components.ClassPrinter;
+import java.lang.invoke.LambdaMetafactory;
 import java.lang.reflect.code.Block;
-import java.lang.reflect.code.Body;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.Op;
 import java.lang.invoke.MethodHandle;
@@ -53,34 +54,33 @@ import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.type.VarType;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static java.lang.constant.ConstantDescs.*;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.code.Quotable;
+import java.util.stream.Stream;
 
 /**
  * Transformer of code models to bytecode.
  */
 public final class BytecodeGenerator {
 
-    final MethodHandles.Lookup lookup;
-    final CodeBuilder cob;
-    final Map<Object, Label> labels;
-    final Set<Block> catchingBlocks;
-    final Map<Value, Slot> slots;
+    private static final DirectMethodHandleDesc DMHD_LAMBDA_METAFACTORY = ofCallsiteBootstrap(
+            LambdaMetafactory.class.describeConstable().orElseThrow(),
+            "metafactory",
+            CD_CallSite, CD_MethodType, CD_MethodHandle, CD_MethodType);
 
-    private BytecodeGenerator(MethodHandles.Lookup lookup, Liveness liveness, CodeBuilder cob) {
-        this.lookup = lookup;
-        this.cob = cob;
-        this.labels = new HashMap<>();
-        this.slots = new HashMap<>();
-        this.catchingBlocks = new HashSet<>();
-    }
+    private static final DirectMethodHandleDesc DMHD_LAMBDA_ALT_METAFACTORY = ofCallsiteBootstrap(
+            LambdaMetafactory.class.describeConstable().orElseThrow(),
+            "altMetafactory",
+            CD_CallSite, CD_Object.arrayType());
 
     /**
      * Transforms the invokable operation to bytecode encapsulated in a method of hidden class and exposed
@@ -94,9 +94,9 @@ public final class BytecodeGenerator {
     public static <O extends Op & Op.Invokable> MethodHandle generate(MethodHandles.Lookup l, O iop) {
         String name = iop instanceof FuncOp fop ? fop.funcName() : "m";
         byte[] classBytes = generateClassData(l, name, iop);
+//        ClassPrinter.toYaml(ClassFile.of().parse(classBytes), ClassPrinter.Verbosity.TRACE_ALL, System.out::print);
 
         {
-//            print(classBytes);
             try {
                 File f = new File("f.class");
                 try (FileOutputStream fos = new FileOutputStream(f)) {
@@ -109,7 +109,9 @@ public final class BytecodeGenerator {
 
         MethodHandles.Lookup hcl;
         try {
-            hcl = l.defineHiddenClass(classBytes, true);
+            hcl = l.in(l.defineClass(classBytes));
+// @@@ lambdas do not work in hidden classes
+//            hcl = l.defineHiddenClass(classBytes, true);
         } catch (IllegalAccessException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
@@ -122,11 +124,6 @@ public final class BytecodeGenerator {
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private static void print(byte[] classBytes) {
-        ClassModel cm = ClassFile.of().parse(classBytes);
-        ClassPrinter.toYaml(cm, ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES, System.out::print);
     }
 
     /**
@@ -152,31 +149,112 @@ public final class BytecodeGenerator {
      * @param <O> the type of the invokable operation
      */
     public static <O extends Op & Op.Invokable> byte[] generateClassData(MethodHandles.Lookup lookup,
-                                                                         String name, O iop) {
+                                                                         String name,
+                                                                         O iop) {
         if (!iop.capturedValues().isEmpty()) {
             throw new UnsupportedOperationException("Operation captures values");
         }
 
         String packageName = lookup.lookupClass().getPackageName();
-        String className = packageName.isEmpty()
+        ClassDesc className = ClassDesc.of(packageName.isEmpty()
                 ? name
-                : packageName + "." + name;
-        Liveness liveness = new Liveness(iop);
-        MethodTypeDesc mtd = MethodRef.toNominalDescriptor(iop.invokableType());
-        byte[] classBytes = ClassFile.of().build(ClassDesc.of(className), clb ->
-                clb.withMethodBody(
-                        name,
-                        mtd,
-                        ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC,
-                        cb -> cb.transforming(new BranchCompactor(), cob ->
-                            new BytecodeGenerator(lookup, liveness, cob).generateBody(iop.body()))));
+                : packageName + "." + name);
+        byte[] classBytes = ClassFile.of().build(className, clb -> {
+            List<LambdaOp> lambdaSink = new ArrayList<>();
+            BitSet quotable = new BitSet();
+            generateMethod(lookup, className, name, iop, clb, lambdaSink, quotable);
+            for (int i = 0; i < lambdaSink.size(); i++) {
+                LambdaOp lop = lambdaSink.get(i);
+                if (quotable.get(i)) {
+                    clb.withField("lambda$" + i + "$op", CD_String, fb -> fb
+                            .withFlags(ClassFile.ACC_STATIC)
+                            .with(ConstantValueAttribute.of(quote(lop).toText())));
+                }
+                generateMethod(lookup, className, "lambda$" + i, lop, clb, lambdaSink, quotable);
+            }
+        });
         return classBytes;
     }
 
-    private record Slot(int slot, TypeKind typeKind) {}
+    private static <O extends Op & Op.Invokable> void generateMethod(MethodHandles.Lookup lookup,
+                                                                     ClassDesc className,
+                                                                     String methodName,
+                                                                     O iop,
+                                                                     ClassBuilder clb,
+                                                                     List<LambdaOp> lambdaSink,
+                                                                     BitSet quotable) {
 
-    private Label getLabel(Object b) {
-        return labels.computeIfAbsent(b, _b -> cob.newLabel());
+        List<Value> capturedValues = iop instanceof LambdaOp lop ? lop.capturedValues() : List.of();
+        MethodTypeDesc mtd = MethodRef.toNominalDescriptor(
+                iop.invokableType()).insertParameterTypes(0, capturedValues.stream()
+                        .map(Value::type).map(BytecodeGenerator::toClassDesc).toArray(ClassDesc[]::new));
+        clb.withMethodBody(methodName, mtd, ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC,
+                cb -> cb.transforming(new BranchCompactor(), cob ->
+                    new BytecodeGenerator(lookup, className, capturedValues, new Liveness(iop),
+                                          iop.body().blocks(), cob, lambdaSink, quotable).generate()));
+    }
+
+    private record Slot(int slot, TypeKind typeKind) {}
+    private record ExceptionRegionWithBlocks(CoreOps.ExceptionRegionEnter ere, BitSet blocks) {}
+
+    private final MethodHandles.Lookup lookup;
+    private final ClassDesc className;
+    private final List<Value> capturedValues;
+    private final List<Block> blocks;
+    private final CodeBuilder cob;
+    private final Label[] blockLabels;
+    private final List<ExceptionRegionWithBlocks> allExceptionRegions;
+    private final BitSet[] blocksRegionStack;
+    private final BitSet blocksToVisit, catchingBlocks;
+    private final Map<Value, Slot> slots;
+    private final List<LambdaOp> lambdaSink;
+    private final BitSet quotable;
+
+    private BytecodeGenerator(MethodHandles.Lookup lookup,
+                              ClassDesc className,
+                              List<Value> capturedValues,
+                              Liveness liveness,
+                              List<Block> blocks,
+                              CodeBuilder cob,
+                              List<LambdaOp> lambdaSink,
+                              BitSet quotable) {
+        this.lookup = lookup;
+        this.className = className;
+        this.capturedValues = capturedValues;
+        this.blocks = blocks;
+        this.cob = cob;
+        this.blockLabels = new Label[blocks.size()];
+        this.allExceptionRegions = new ArrayList<>();
+        this.blocksRegionStack = new BitSet[blocks.size()];
+        this.blocksToVisit = new BitSet(blocks.size());
+        this.catchingBlocks = new BitSet();
+        this.slots = new HashMap<>();
+        this.lambdaSink = lambdaSink;
+        this.quotable = quotable;
+    }
+
+    private void setExceptionRegionStack(Block.Reference target, BitSet activeRegionStack) {
+        setExceptionRegionStack(target.targetBlock().index(), activeRegionStack);
+    }
+
+    private void setExceptionRegionStack(int blockIndex, BitSet activeRegionStack) {
+        if (blocksRegionStack[blockIndex] == null) {
+            blocksToVisit.set(blockIndex);
+            blocksRegionStack[blockIndex] = activeRegionStack;
+            activeRegionStack.stream().forEach(r -> allExceptionRegions.get(r).blocks.set(blockIndex));
+        }
+    }
+
+    private Label getLabel(Block.Reference target) {
+        return getLabel(target.targetBlock().index());
+    }
+
+    private Label getLabel(int blockIndex) {
+        Label l = blockLabels[blockIndex];
+        if (l == null) {
+            blockLabels[blockIndex] = l = cob.newLabel();
+        }
+        return l;
     }
 
     private Slot allocateSlot(Value v) {
@@ -189,10 +267,8 @@ public final class BytecodeGenerator {
     private void storeIfUsed(Value v) {
         if (!v.uses().isEmpty()) {
             Slot slot = allocateSlot(v);
-//            System.out.println("Stored " + hash(v) + " in " + slot);
             cob.storeInstruction(slot.typeKind(), slot.slot());
         } else {
-//            System.out.println("Popped " + hash(v));
             // Only pop results from stack if the value has no further use (no valid slot)
             switch (toTypeKind(v.type()).slotSize()) {
                 case 1 -> cob.pop();
@@ -201,20 +277,14 @@ public final class BytecodeGenerator {
         }
     }
 
-    private static String hash(Value v) {
-        return Integer.toHexString(v.hashCode());
-    }
-
     private Slot load(Value v) {
         if (v instanceof Op.Result or &&
                 or.op() instanceof CoreOps.ConstantOp constantOp &&
                 !constantOp.resultType().equals(JavaType.J_L_CLASS)) {
-//            System.out.println("Loaded constant " + hash(v) + " value " + fromValue(constantOp.value()));
             cob.constantInstruction(fromValue(constantOp.value()));
             return null;
         } else {
             Slot slot = slots.get(v);
-//            System.out.println("Loaded " + hash(v) + " from " + slot);
             cob.loadInstruction(slot.typeKind(), slot.slot());
             return slot;
         }
@@ -287,21 +357,40 @@ public final class BytecodeGenerator {
         return use.op() instanceof CoreOps.ConditionalBranchOp;
     }
 
+    private static ClassDesc toClassDesc(TypeElement t) {
+        return switch (t) {
+            case VarType vt -> toClassDesc(vt.valueType());
+            case JavaType jt -> jt.toNominalDescriptor();
+            default ->
+                throw new IllegalArgumentException("Bad type: " + t);
+        };
+    }
+
     private static TypeKind toTypeKind(TypeElement t) {
         return switch (t) {
             case VarType vt -> toTypeKind(vt.valueType());
             case JavaType jt -> {
                 TypeElement bt = jt.toBasicType();
-                if (bt.equals(JavaType.INT)) {
+                if (bt.equals(JavaType.VOID)) {
+                    yield TypeKind.VoidType;
+                } else if (bt.equals(JavaType.INT)) {
                     yield TypeKind.IntType;
-                } else if (bt.equals(JavaType.LONG)) {
-                    yield TypeKind.LongType;
-                } else if (bt.equals(JavaType.FLOAT)) {
-                    yield TypeKind.FloatType;
-                } else if (bt.equals(JavaType.DOUBLE)) {
-                    yield TypeKind.DoubleType;
                 } else if (bt.equals(JavaType.J_L_OBJECT)) {
                     yield TypeKind.ReferenceType;
+                } else if (bt.equals(JavaType.LONG)) {
+                    yield TypeKind.LongType;
+                } else if (bt.equals(JavaType.DOUBLE)) {
+                    yield TypeKind.DoubleType;
+                } else if (bt.equals(JavaType.BOOLEAN)) {
+                    yield TypeKind.BooleanType;
+                } else if (bt.equals(JavaType.BYTE)) {
+                    yield TypeKind.ByteType;
+                } else if (bt.equals(JavaType.CHAR)) {
+                    yield TypeKind.CharType;
+                } else if (bt.equals(JavaType.FLOAT)) {
+                    yield TypeKind.FloatType;
+                } else if (bt.equals(JavaType.SHORT)) {
+                    yield TypeKind.ShortType;
                 } else {
                     throw new IllegalArgumentException("Bad type: " + t);
                 }
@@ -311,111 +400,93 @@ public final class BytecodeGenerator {
         };
     }
 
-    private void computeExceptionRegionMembership(Body body) {
-        record ExceptionRegionWithBlocks(CoreOps.ExceptionRegionEnter ere, BitSet blocks) {
-        }
-        // List of all regions
-        final List<ExceptionRegionWithBlocks> allRegions = new ArrayList<>();
-        class BlockWithActiveExceptionRegions {
-            final Block block;
-            final BitSet activeRegionStack;
-            BlockWithActiveExceptionRegions(Block block, BitSet activeRegionStack) {
-                this.block = block;
-                this.activeRegionStack = activeRegionStack;
-                activeRegionStack.stream().forEach(r -> allRegions.get(r).blocks.set(block.index()));
-            }
-        }
-        final Set<Block> visited = new HashSet<>();
-        final Deque<BlockWithActiveExceptionRegions> stack = new ArrayDeque<>();
-        stack.push(new BlockWithActiveExceptionRegions(body.entryBlock(), new BitSet()));
+    private void generate() {
         // Compute exception region membership
-        while (!stack.isEmpty()) {
-            BlockWithActiveExceptionRegions bm = stack.pop();
-            Block b = bm.block;
-            if (!visited.add(b)) {
-                continue;
-            }
+        setExceptionRegionStack(0, new BitSet());
+        int blockIndex;
+        while ((blockIndex = blocksToVisit.nextSetBit(0)) >= 0) {
+            blocksToVisit.clear(blockIndex);
+            BitSet activeRegionStack = blocksRegionStack[blockIndex];
+            Block b = blocks.get(blockIndex);
             Op top = b.terminatingOp();
             switch (top) {
                 case CoreOps.BranchOp bop ->
-                    stack.push(new BlockWithActiveExceptionRegions(bop.branch().targetBlock(), bm.activeRegionStack));
+                    setExceptionRegionStack(bop.branch(), activeRegionStack);
                 case CoreOps.ConditionalBranchOp cop -> {
-                    stack.push(new BlockWithActiveExceptionRegions(cop.falseBranch().targetBlock(), bm.activeRegionStack));
-                    stack.push(new BlockWithActiveExceptionRegions(cop.trueBranch().targetBlock(), bm.activeRegionStack));
+                    setExceptionRegionStack(cop.falseBranch(), activeRegionStack);
+                    setExceptionRegionStack(cop.trueBranch(), activeRegionStack);
                 }
                 case CoreOps.ExceptionRegionEnter er -> {
                     for (Block.Reference catchBlock : er.catchBlocks().reversed()) {
-                        catchingBlocks.add(catchBlock.targetBlock());
-                        stack.push(new BlockWithActiveExceptionRegions(catchBlock.targetBlock(), bm.activeRegionStack));
+                        catchingBlocks.set(catchBlock.targetBlock().index());
+                        setExceptionRegionStack(catchBlock, activeRegionStack);
                     }
-                    BitSet activeRegionStack = (BitSet)bm.activeRegionStack.clone();
-                    activeRegionStack.set(allRegions.size());
+                    activeRegionStack = (BitSet)activeRegionStack.clone();
+                    activeRegionStack.set(allExceptionRegions.size());
                     ExceptionRegionWithBlocks newNode = new ExceptionRegionWithBlocks(er, new BitSet());
-                    allRegions.add(newNode);
-                    stack.push(new BlockWithActiveExceptionRegions(er.start().targetBlock(), activeRegionStack));
+                    allExceptionRegions.add(newNode);
+                    setExceptionRegionStack(er.start(), activeRegionStack);
                 }
                 case CoreOps.ExceptionRegionExit er -> {
-                    BitSet activeRegionStack = (BitSet)bm.activeRegionStack.clone();
+                    activeRegionStack = (BitSet)activeRegionStack.clone();
                     activeRegionStack.clear(activeRegionStack.length() - 1);
-                    stack.push(new BlockWithActiveExceptionRegions(er.end().targetBlock(), activeRegionStack));
+                    setExceptionRegionStack(er.end(), activeRegionStack);
                 }
                 default -> {
                 }
             }
         }
+
         // Declare the exception regions
-        final List<Block> blocks = body.blocks();
-        for (ExceptionRegionWithBlocks erNode : allRegions.reversed()) {
+        for (ExceptionRegionWithBlocks erNode : allExceptionRegions.reversed()) {
             int start  = erNode.blocks.nextSetBit(0);
             while (start >= 0) {
                 int end = erNode.blocks.nextClearBit(start);
-                Label startLabel = getLabel(blocks.get(start));
-                Label endLabel = getLabel(blocks.get(end));
+                Label startLabel = getLabel(start);
+                Label endLabel = getLabel(end);
                 for (Block.Reference cbr : erNode.ere.catchBlocks()) {
-                    Block cb = cbr.targetBlock();
-                    if (!cb.parameters().isEmpty()) {
-                        JavaType jt = (JavaType) cb.parameters().get(0).type();
-                        ClassDesc type = jt.toNominalDescriptor();
-                        cob.exceptionCatch(startLabel, endLabel, getLabel(cb), type);
+                    List<Block.Parameter> params = cbr.targetBlock().parameters();
+                    if (!params.isEmpty()) {
+                        JavaType jt = (JavaType) params.get(0).type();
+                        cob.exceptionCatch(startLabel, endLabel, getLabel(cbr), jt.toNominalDescriptor());
                     } else {
-                        cob.exceptionCatchAll(startLabel, endLabel, getLabel(cb));
+                        cob.exceptionCatchAll(startLabel, endLabel, getLabel(cbr));
                     }
                 }
                 start = erNode.blocks.nextSetBit(end);
             }
         }
-    }
-
-    private void generateBody(Body body) {
-        computeExceptionRegionMembership(body);
 
         // Process blocks in topological order
         // A jump instruction assumes the false successor block is
         // immediately after, in sequence, to the predecessor
         // since the jump instructions branch on a true condition
         // Conditions are inverted when lowered to bytecode
-        List<Block> blocks = body.blocks();
         for (Block b : blocks) {
             // Ignore any non-entry blocks that have no predecessors
-            if (body.entryBlock() != b && b.predecessors().isEmpty()) {
+            if (!b.isEntryBlock() && b.predecessors().isEmpty()) {
                 continue;
             }
 
-            Label blockLabel = getLabel(b);
+            Label blockLabel = getLabel(b.index());
             cob.labelBinding(blockLabel);
 
             // If b is the entry block then all its parameters conservatively require slots
             // Some unused parameters might be declared before others that are used
             if (b.isEntryBlock()) {
                 List<Block.Parameter> parameters = b.parameters();
-                for (int i = 0; i < parameters.size(); i++) {
-                    Block.Parameter bp = parameters.get(i);
-                    slots.put(bp, new Slot(cob.parameterSlot(i), toTypeKind(bp.type())));
+                int i = 0;
+                // Captured values prepend parameters in lambda impl methods
+                for (Value cv : capturedValues) {
+                    slots.put(cv, new Slot(cob.parameterSlot(i++), toTypeKind(cv.type())));
+                }
+                for (Block.Parameter bp : parameters) {
+                    slots.put(bp, new Slot(cob.parameterSlot(i++), toTypeKind(bp.type())));
                 }
             }
 
             // If b is a catch block then the exception argument will be represented on the stack
-            if (catchingBlocks.contains(b)) {
+            if (catchingBlocks.get(b.index())) {
                 // Retain block argument for exception table generation
                 storeIfUsed(b.parameters().get(0));
             }
@@ -427,8 +498,7 @@ public final class BytecodeGenerator {
             for (int i = 0; i < ops.size() - 1; i++) {
                 Op o = ops.get(i);
                 TypeElement oprType = o.resultType();
-                TypeKind rvt = oprType.equals(JavaType.VOID) ? null : toTypeKind(oprType);
-//                System.out.println(o.getClass().getSimpleName() + " result: " + hash(o.result()));
+                TypeKind rvt = toTypeKind(oprType);
                 switch (o) {
                     case ConstantOp op -> {
                         if (op.resultType().equals(JavaType.J_L_CLASS)) {
@@ -437,7 +507,7 @@ public final class BytecodeGenerator {
                         } else {
                           // Defer process to use, where constants are inlined
                           // This applies to both operands and successor arguments
-                          rvt = null;
+                          rvt = TypeKind.VoidType;
                         }
                     }
                     case VarOp op -> {
@@ -447,7 +517,7 @@ public final class BytecodeGenerator {
                         // Use slot of variable result
                         storeIfUsed(op.result());
                         // Ignore result
-                        rvt = null;
+                        rvt = TypeKind.VoidType;
                     }
                     case VarAccessOp.VarLoadOp op -> {
                         // Use slot of variable result
@@ -472,7 +542,7 @@ public final class BytecodeGenerator {
                     case NegOp op -> {
                         processOperands(op, isLastOpResultOnStack);
                         switch (rvt) { //this can be moved to CodeBuilder::neg(TypeKind)
-                            case IntType -> cob.ineg();
+                            case IntType, BooleanType, ByteType, ShortType, CharType -> cob.ineg();
                             case LongType -> cob.lneg();
                             case FloatType -> cob.fneg();
                             case DoubleType -> cob.dneg();
@@ -486,7 +556,7 @@ public final class BytecodeGenerator {
                     case AddOp op -> {
                         processOperands(op, isLastOpResultOnStack);
                         switch (rvt) { //this can be moved to CodeBuilder::add(TypeKind)
-                            case IntType -> cob.iadd();
+                            case IntType, BooleanType, ByteType, ShortType, CharType -> cob.iadd();
                             case LongType -> cob.ladd();
                             case FloatType -> cob.fadd();
                             case DoubleType -> cob.dadd();
@@ -496,7 +566,7 @@ public final class BytecodeGenerator {
                     case SubOp op -> {
                         processOperands(op, isLastOpResultOnStack);
                         switch (rvt) { //this can be moved to CodeBuilder::sub(TypeKind)
-                            case IntType -> cob.isub();
+                            case IntType, BooleanType, ByteType, ShortType, CharType -> cob.isub();
                             case LongType -> cob.lsub();
                             case FloatType -> cob.fsub();
                             case DoubleType -> cob.dsub();
@@ -506,7 +576,7 @@ public final class BytecodeGenerator {
                     case MulOp op -> {
                         processOperands(op, isLastOpResultOnStack);
                         switch (rvt) { //this can be moved to CodeBuilder::mul(TypeKind)
-                            case IntType -> cob.imul();
+                            case IntType, BooleanType, ByteType, ShortType, CharType -> cob.imul();
                             case LongType -> cob.lmul();
                             case FloatType -> cob.fmul();
                             case DoubleType -> cob.dmul();
@@ -516,7 +586,7 @@ public final class BytecodeGenerator {
                     case DivOp op -> {
                         processOperands(op, isLastOpResultOnStack);
                         switch (rvt) { //this can be moved to CodeBuilder::div(TypeKind)
-                            case IntType -> cob.idiv();
+                            case IntType, BooleanType, ByteType, ShortType, CharType -> cob.idiv();
                             case LongType -> cob.ldiv();
                             case FloatType -> cob.fdiv();
                             case DoubleType -> cob.ddiv();
@@ -526,7 +596,7 @@ public final class BytecodeGenerator {
                     case ModOp op -> {
                         processOperands(op, isLastOpResultOnStack);
                         switch (rvt) { //this can be moved to CodeBuilder::rem(TypeKind)
-                            case IntType -> cob.irem();
+                            case IntType, BooleanType, ByteType, ShortType, CharType -> cob.irem();
                             case LongType -> cob.lrem();
                             case FloatType -> cob.frem();
                             case DoubleType -> cob.drem();
@@ -536,7 +606,7 @@ public final class BytecodeGenerator {
                     case AndOp op -> {
                         processOperands(op, isLastOpResultOnStack);
                         switch (rvt) { //this can be moved to CodeBuilder::and(TypeKind)
-                            case IntType, BooleanType -> cob.iand();
+                            case IntType, BooleanType, ByteType, ShortType, CharType -> cob.iand();
                             case LongType -> cob.land();
                             default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
                         }
@@ -544,7 +614,7 @@ public final class BytecodeGenerator {
                     case OrOp op -> {
                         processOperands(op, isLastOpResultOnStack);
                         switch (rvt) { //this can be moved to CodeBuilder::or(TypeKind)
-                            case IntType, BooleanType -> cob.ior();
+                            case IntType, BooleanType, ByteType, ShortType, CharType -> cob.ior();
                             case LongType -> cob.lor();
                             default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
                         }
@@ -552,7 +622,7 @@ public final class BytecodeGenerator {
                     case XorOp op -> {
                         processOperands(op, isLastOpResultOnStack);
                         switch (rvt) { //this can be moved to CodeBuilder::xor(TypeKind)
-                            case IntType, BooleanType -> cob.ixor();
+                            case IntType, BooleanType, ByteType, ShortType, CharType -> cob.ixor();
                             case LongType -> cob.lxor();
                             default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
                         }
@@ -576,7 +646,7 @@ public final class BytecodeGenerator {
                             cob.ifThenElse(prepareReverseCondition(op), CodeBuilder::iconst_0, CodeBuilder::iconst_1);
                         } else {
                             // Processing is deferred to the CondBrOp, do not process the op result
-                            rvt = null;
+                            rvt = TypeKind.VoidType;
                         }
                     }
                     case NewOp op -> {
@@ -639,7 +709,8 @@ public final class BytecodeGenerator {
                                     case INTERFACE_VIRTUAL          -> Opcode.INVOKEINTERFACE;
                                     case SPECIAL, INTERFACE_SPECIAL -> Opcode.INVOKESPECIAL;
                                     default ->
-                                        throw new IllegalStateException("Bad method descriptor resolution: " + op.opType() + " > " + op.invokeDescriptor());
+                                        throw new IllegalStateException("Bad method descriptor resolution: "
+                                                                        + op.opType() + " > " + op.invokeDescriptor());
                                 },
                                 ((JavaType) md.refType()).toNominalDescriptor(),
                                 md.name(),
@@ -692,11 +763,63 @@ public final class BytecodeGenerator {
                         processOperands(op, isLastOpResultOnStack);
                         cob.checkcast(((JavaType) op.type()).toNominalDescriptor());
                     }
+                    case LambdaOp op -> {
+                        JavaType intfType = (JavaType)op.functionalInterface();
+                        try {
+                            Class<?> intfClass = intfType.resolve(lookup);
+                            for (Value cv : op.capturedValues()) {
+                                load(cv);
+                            }
+                            MethodTypeDesc mtd = MethodRef.toNominalDescriptor(op.invokableType());
+                            ClassDesc[] captureTypes = op.capturedValues().stream()
+                                    .map(Value::type).map(BytecodeGenerator::toClassDesc).toArray(ClassDesc[]::new);
+                            int lambdaIndex = lambdaSink.size();
+                            if (Quotable.class.isAssignableFrom(intfClass)) {
+                                // @@@ double the captured values to enable LambdaMetafactory.FLAG_QUOTABLE
+                                for (Value cv : op.capturedValues()) {
+                                    load(cv);
+                                }
+                                cob.invokedynamic(DynamicCallSiteDesc.of(
+                                        DMHD_LAMBDA_ALT_METAFACTORY,
+                                        funcIntfMethodName(intfClass),
+                                        // @@@ double the descriptor parameters
+                                        MethodTypeDesc.of(intfType.toNominalDescriptor(),
+                                                          Stream.concat(Stream.of(captureTypes),
+                                                                        Stream.of(captureTypes)).toList()),
+                                        mtd,
+                                        MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,
+                                                                  className,
+                                                                  "lambda$" + lambdaIndex,
+                                                                  mtd.insertParameterTypes(0, captureTypes)),
+                                        mtd,
+                                        LambdaMetafactory.FLAG_QUOTABLE,
+                                        MethodHandleDesc.ofField(DirectMethodHandleDesc.Kind.STATIC_GETTER,
+                                                                 className,
+                                                                 "lambda$" + lambdaIndex + "$op",
+                                                                 CD_String)));
+                                quotable.set(lambdaSink.size());
+                            } else {
+                                cob.invokedynamic(DynamicCallSiteDesc.of(
+                                        DMHD_LAMBDA_METAFACTORY,
+                                        funcIntfMethodName(intfClass),
+                                        MethodTypeDesc.of(intfType.toNominalDescriptor(), captureTypes),
+                                        mtd,
+                                        MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,
+                                                                  className,
+                                                                  "lambda$" + lambdaIndex,
+                                                                  mtd.insertParameterTypes(0, captureTypes)),
+                                        mtd));
+                            }
+                            lambdaSink.add(op);
+                        } catch (ReflectiveOperationException e) {
+                            throw new IllegalArgumentException(e);
+                        }
+                    }
                     default ->
                         throw new UnsupportedOperationException("Unsupported operation: " + ops.get(i));
                 }
                 // Assign slot to operation result
-                if (rvt != null) {
+                if (rvt != TypeKind.VoidType) {
                     if (!isResultOnlyUse(o.result())) {
                         isLastOpResultOnStack = false;
                         oprOnStack = null;
@@ -724,7 +847,7 @@ public final class BytecodeGenerator {
                 }
                 case BranchOp op -> {
                     assignBlockArguments(op.branch());
-                    cob.goto_(getLabel(op.branch().targetBlock()));
+                    cob.goto_(getLabel(op.branch()));
                 }
                 case ConditionalBranchOp op -> {
                     if (getConditionForCondBrOp(op) instanceof CoreOps.BinaryTestOp btop) {
@@ -741,7 +864,7 @@ public final class BytecodeGenerator {
                 }
                 case ExceptionRegionExit op -> {
                     assignBlockArguments(op.end());
-                    cob.goto_(getLabel(op.end().targetBlock()));
+                    cob.goto_(getLabel(op.end()));
                 }
                 default ->
                     throw new UnsupportedOperationException("Terminating operation not supported: " + top);
@@ -773,22 +896,52 @@ public final class BytecodeGenerator {
         }
     }
 
+    private String funcIntfMethodName(Class<?> intfc) {
+        String uniqueName = null;
+        for (Method m : intfc.getMethods()) {
+            // ensure it's SAM interface
+            String methodName = m.getName();
+            if (Modifier.isAbstract(m.getModifiers())
+                    && (m.getReturnType() != String.class
+                        || m.getParameterCount() != 0
+                        || !methodName.equals("toString"))
+                    && (m.getReturnType() != int.class
+                        || m.getParameterCount() != 0
+                        || !methodName.equals("hashCode"))
+                    && (m.getReturnType() != boolean.class
+                        || m.getParameterCount() != 1
+                        || m.getParameterTypes()[0] != Object.class
+                        || !methodName.equals("equals"))) {
+                if (uniqueName == null) {
+                    uniqueName = methodName;
+                } else if (!uniqueName.equals(methodName)) {
+                    // too many abstract methods
+                    throw new IllegalArgumentException("Not a single-method interface: " + intfc.getName());
+                }
+            }
+        }
+        if (uniqueName == null) {
+            throw new IllegalArgumentException("No method in: " + intfc.getName());
+        }
+        return uniqueName;
+    }
+
     private void conditionalBranch(BinaryTestOp op, Block.Reference trueBlock, Block.Reference falseBlock) {
         conditionalBranch(prepareReverseCondition(op), op, trueBlock, falseBlock);
     }
 
     private void conditionalBranch(Opcode reverseOpcode, Op op, Block.Reference trueBlock, Block.Reference falseBlock) {
         if (!needToAssignBlockArguments(falseBlock)) {
-            cob.branchInstruction(reverseOpcode, getLabel(falseBlock.targetBlock()));
+            cob.branchInstruction(reverseOpcode, getLabel(falseBlock));
         } else {
             cob.ifThen(reverseOpcode,
                 bb -> {
                     assignBlockArguments(falseBlock);
-                    bb.goto_(getLabel(falseBlock.targetBlock()));
+                    bb.goto_(getLabel(falseBlock));
                 });
         }
         assignBlockArguments(trueBlock);
-        cob.goto_(getLabel(trueBlock.targetBlock()));
+        cob.goto_(getLabel(trueBlock));
     }
 
     private Opcode prepareReverseCondition(BinaryTestOp op) {
@@ -870,7 +1023,8 @@ public final class BytecodeGenerator {
         }
     }
 
-    static DirectMethodHandleDesc resolveToMethodHandleDesc(MethodHandles.Lookup l, MethodRef d) throws ReflectiveOperationException {
+    static DirectMethodHandleDesc resolveToMethodHandleDesc(MethodHandles.Lookup l,
+                                                            MethodRef d) throws ReflectiveOperationException {
         MethodHandle mh = d.resolveToHandle(l);
 
         if (mh.describeConstable().isEmpty()) {
@@ -883,5 +1037,44 @@ public final class BytecodeGenerator {
         }
 
         return dmhd;
+    }
+
+    static CoreOps.FuncOp quote(CoreOps.LambdaOp lop) {
+        List<Value> captures = lop.capturedValues();
+
+        // Build the function type
+        List<TypeElement> params = captures.stream()
+                .map(v -> v.type() instanceof VarType vt ? vt.valueType() : v.type())
+                .toList();
+        FunctionType ft = FunctionType.functionType(CoreOps.QuotedOp.QUOTED_TYPE, params);
+
+        // Build the function that quotes the lambda
+        return CoreOps.func("q", ft).body(b -> {
+            // Create variables as needed and obtain the captured values
+            // for the copied lambda
+            List<Value> outputCaptures = new ArrayList<>();
+            for (int i = 0; i < captures.size(); i++) {
+                Value c = captures.get(i);
+                Block.Parameter p = b.parameters().get(i);
+                if (c.type() instanceof VarType _) {
+                    Value var = b.op(CoreOps.var(String.valueOf(i), p));
+                    outputCaptures.add(var);
+                } else {
+                    outputCaptures.add(p);
+                }
+            }
+
+            // Quoted the lambda expression
+            Value q = b.op(CoreOps.quoted(b.parentBody(), qb -> {
+                // Map the lambda's parent block to the quoted block
+                // We are copying lop in the context of the quoted block
+                qb.context().mapBlock(lop.parentBlock(), qb);
+                // Map the lambda's captured values
+                qb.context().mapValues(captures, outputCaptures);
+                // Return the lambda to be copied in the quoted operation
+                return lop;
+            }));
+            b.op(CoreOps._return(q));
+        });
     }
 }
