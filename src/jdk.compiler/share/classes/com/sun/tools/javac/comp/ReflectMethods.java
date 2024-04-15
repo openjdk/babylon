@@ -96,6 +96,7 @@ import java.util.function.Supplier;
 import static com.sun.tools.javac.code.Flags.PARAMETER;
 import static com.sun.tools.javac.code.Flags.SYNTHETIC;
 import static com.sun.tools.javac.code.TypeTag.BOT;
+import static com.sun.tools.javac.code.TypeTag.METHOD;
 import static com.sun.tools.javac.code.TypeTag.NONE;
 
 /**
@@ -2327,10 +2328,8 @@ public class ReflectMethods extends TreeTranslator {
         }
 
         Type normalizeType(Type t) {
-            Type upward = types.upward(t, types.captures(t));
-            return upward.hasTag(BOT) ?
-                    types.erasure(t) :
-                    upward;
+            Assert.check(!t.hasTag(METHOD));
+            return types.upward(t, types.captures(t));
         }
 
         Type typeElementToType(TypeElement desc) {
