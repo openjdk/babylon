@@ -71,19 +71,15 @@ import java.util.stream.Stream;
  */
 public final class BytecodeGenerator {
 
-    private static final DirectMethodHandleDesc DMHD_LAMBDA_METAFACTORY = MethodHandleDesc.ofMethod(
-            DirectMethodHandleDesc.Kind.STATIC,
+    private static final DirectMethodHandleDesc DMHD_LAMBDA_METAFACTORY = ofCallsiteBootstrap(
             LambdaMetafactory.class.describeConstable().orElseThrow(),
             "metafactory",
-            MethodTypeDesc.of(CD_CallSite, CD_MethodHandles_Lookup, CD_String, CD_MethodType,
-                              CD_MethodType, CD_MethodHandle, CD_MethodType));
+            CD_CallSite, CD_MethodType, CD_MethodHandle, CD_MethodType);
 
-    private static final DirectMethodHandleDesc DMHD_LAMBDA_ALT_METAFACTORY = MethodHandleDesc.ofMethod(
-            DirectMethodHandleDesc.Kind.STATIC,
+    private static final DirectMethodHandleDesc DMHD_LAMBDA_ALT_METAFACTORY = ofCallsiteBootstrap(
             LambdaMetafactory.class.describeConstable().orElseThrow(),
             "altMetafactory",
-            MethodTypeDesc.of(CD_CallSite, CD_MethodHandles_Lookup, CD_String, CD_MethodType,
-                              CD_Object.arrayType()));
+            CD_CallSite, CD_Object.arrayType());
 
     /**
      * Transforms the invokable operation to bytecode encapsulated in a method of hidden class and exposed
