@@ -292,6 +292,8 @@ public class TestBytecode {
     }
 
     static int consumeQuotable(int i, QuotableFunc f) {
+        Assert.assertNotNull(f.quoted());
+        Assert.assertNotNull(f.quoted().op());
         return f.apply(i + 1);
     }
 
@@ -343,7 +345,8 @@ public class TestBytecode {
     record TestData(Method testMethod) {
         @Override
         public String toString() {
-            String s = testMethod.getName() + Arrays.stream(testMethod.getParameterTypes()).map(Class::getSimpleName).collect(Collectors.joining(",", "(", ")"));
+            String s = testMethod.getName() + Arrays.stream(testMethod.getParameterTypes())
+                    .map(Class::getSimpleName).collect(Collectors.joining(",", "(", ")"));
             if (s.length() > 30) s = s.substring(0, 27) + "...";
             return s;
         }
@@ -351,7 +354,9 @@ public class TestBytecode {
 
     @DataProvider(name = "testMethods")
     public static TestData[]testMethods() {
-        return Stream.of(TestBytecode.class.getDeclaredMethods()).filter(m -> m.isAnnotationPresent(CodeReflection.class)).map(TestData::new).toArray(TestData[]::new);
+        return Stream.of(TestBytecode.class.getDeclaredMethods())
+                .filter(m -> m.isAnnotationPresent(CodeReflection.class))
+                .map(TestData::new).toArray(TestData[]::new);
     }
 
     private static byte[] CLASS_DATA;
@@ -363,8 +368,10 @@ public class TestBytecode {
     }
 
     private static MethodTypeDesc toMethodTypeDesc(Method m) {
-        return MethodTypeDesc.of(m.getReturnType().describeConstable().orElseThrow(),
-                                 Arrays.stream(m.getParameterTypes()).map(cls -> cls.describeConstable().orElseThrow()).toList());
+        return MethodTypeDesc.of(
+                m.getReturnType().describeConstable().orElseThrow(),
+                Arrays.stream(m.getParameterTypes())
+                        .map(cls -> cls.describeConstable().orElseThrow()).toList());
     }
 
 
@@ -376,7 +383,8 @@ public class TestBytecode {
         for (var argType : argTypes) TEST_ARGS.put(argType, values);
     }
     static {
-        initTestArgs(values(1, 2, 3, 4), int.class, Integer.class, byte.class, Byte.class, short.class, Short.class, char.class, Character.class);
+        initTestArgs(values(1, 2, 3, 4), int.class, Integer.class, byte.class,
+                Byte.class, short.class, Short.class, char.class, Character.class);
         initTestArgs(values(false, true), boolean.class, Boolean.class);
         initTestArgs(values("Hello World"), String.class);
         initTestArgs(values(1l, 2l, 3l, 4l), long.class, Long.class);
