@@ -2236,7 +2236,7 @@ public class ReflectMethods extends TreeTranslator {
             // @@@ Made Gen::binaryQualifier public, duplicate logic?
             // Ensure correct qualifying class is used in the reference, see JLS 13.1
             // https://docs.oracle.com/javase/specs/jls/se20/html/jls-13.html#jls-13.1
-            return symbolToFieldRef(gen.binaryQualifier(s, site));
+            return symbolToFieldRef(gen.binaryQualifier(s, types.erasure(site)));
         }
 
         FieldRef symbolToFieldRef(Symbol s) {
@@ -2258,7 +2258,7 @@ public class ReflectMethods extends TreeTranslator {
             // @@@ Made Gen::binaryQualifier public, duplicate logic?
             // Ensure correct qualifying class is used in the reference, see JLS 13.1
             // https://docs.oracle.com/javase/specs/jls/se20/html/jls-13.html#jls-13.1
-            return symbolToErasedMethodRef(gen.binaryQualifier(s, site));
+            return symbolToErasedMethodRef(gen.binaryQualifier(s, types.erasure(site)));
         }
 
         MethodRef symbolToErasedMethodRef(Symbol s) {
