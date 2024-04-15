@@ -2737,6 +2737,81 @@ public final class CoreOps {
     }
 
     /**
+     * The (logical) shift left operation, that can model the Java language binary {@code <<} operator for integral types
+     */
+    @OpDeclaration(LshlOp.NAME)
+    public static final class LshlOp extends BinaryOp {
+        public static final String NAME = "lshl";
+
+        public LshlOp(OpDefinition opdef) {
+            super(opdef);
+        }
+
+        LshlOp(LshlOp that, CopyContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public LshlOp transform(CopyContext cc, OpTransformer ot) {
+            return new LshlOp(this, cc);
+        }
+
+        LshlOp(Value lhs, Value rhs) {
+            super(NAME, lhs, rhs);
+        }
+    }
+
+    /**
+     * The (arithmetic) shift right operation, that can model the Java language binary {@code >>} operator for integral types
+     */
+    @OpDeclaration(AshrOp.NAME)
+    public static final class AshrOp extends CoreOps.BinaryOp {
+        public static final String NAME = "ashr";
+
+        public AshrOp(OpDefinition opdef) {
+            super(opdef);
+        }
+
+        AshrOp(AshrOp that, CopyContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public AshrOp transform(CopyContext cc, OpTransformer ot) {
+            return new AshrOp(this, cc);
+        }
+
+        AshrOp(Value lhs, Value rhs) {
+            super(NAME, lhs, rhs);
+        }
+    }
+
+    /**
+     * The unsigned (logical) shift right operation, that can model the Java language binary {@code >>>} operator for integral types
+     */
+    @OpDeclaration(LshrOp.NAME)
+    public static final class LshrOp extends CoreOps.BinaryOp {
+        public static final String NAME = "lshr";
+
+        public LshrOp(OpDefinition opdef) {
+            super(opdef);
+        }
+
+        LshrOp(LshrOp that, CopyContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public LshrOp transform(CopyContext cc, OpTransformer ot) {
+            return new LshrOp(this, cc);
+        }
+
+        LshrOp(Value lhs, Value rhs) {
+            super(NAME, lhs, rhs);
+        }
+    }
+
+    /**
      * The neg operation, that can model the Java language unary {@code -} operator for numeric types
      */
     @OpDeclaration(NegOp.NAME)
@@ -3676,6 +3751,39 @@ public final class CoreOps {
      */
     public static BinaryOp xor(Value lhs, Value rhs) {
         return new XorOp(lhs, rhs);
+    }
+
+    /**
+     * Creates a left shift operation.
+     *
+     * @param lhs the first operand
+     * @param rhs the second operand
+     * @return the xor operation
+     */
+    public static BinaryOp lshl(Value lhs, Value rhs) {
+        return new LshlOp(lhs, rhs);
+    }
+
+    /**
+     * Creates a right shift operation.
+     *
+     * @param lhs the first operand
+     * @param rhs the second operand
+     * @return the xor operation
+     */
+    public static BinaryOp ashr(Value lhs, Value rhs) {
+        return new AshrOp(lhs, rhs);
+    }
+
+    /**
+     * Creates an unsigned right shift operation.
+     *
+     * @param lhs the first operand
+     * @param rhs the second operand
+     * @return the xor operation
+     */
+    public static BinaryOp lshr(Value lhs, Value rhs) {
+        return new LshrOp(lhs, rhs);
     }
 
     /**

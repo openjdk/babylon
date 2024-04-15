@@ -83,6 +83,30 @@ final class InvokableLeafOps {
         return l ^ r;
     }
 
+    public static int lshl(int l, int r) {
+        return l << r;
+    }
+
+    public static int ashr(int l, int r) {
+        return l >> r;
+    }
+
+    public static int lshr(int l, int r) {
+        return l >>> r;
+    }
+
+    public static int lshl(int l, long r) {
+        return l << r;
+    }
+
+    public static int ashr(int l, long r) {
+        return l >> r;
+    }
+
+    public static int lshr(int l, long r) {
+        return l >>> r;
+    }
+
     public static boolean eq(int l, int r) {
         return l == r;
     }
@@ -145,6 +169,29 @@ final class InvokableLeafOps {
         return l ^ r;
     }
 
+    public static long lshl(long l, long r) {
+        return l << r;
+    }
+
+    public static long ashr(long l, long r) {
+        return l >> r;
+    }
+
+    public static long lshr(long l, long r) {
+        return l >>> r;
+    }
+
+    public static long lshl(long l, int r) {
+        return l << r;
+    }
+
+    public static long ashr(long l, int r) {
+        return l >> r;
+    }
+
+    public static long lshr(long l, int r) {
+        return l >>> r;
+    }
 
     public static boolean eq(long l, long r) {
         return l == r;

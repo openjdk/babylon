@@ -423,6 +423,7 @@ public class ReflectMethods extends TreeTranslator {
                         Tag.PLUS, Tag.MINUS, Tag.MUL, Tag.DIV, Tag.MOD,
                         Tag.NEG, Tag.NOT,
                         Tag.BITOR, Tag.BITAND, Tag.BITXOR,
+                        Tag.SL, Tag.SR, Tag.USR,
                         Tag.PLUS_ASG, Tag.MINUS_ASG, Tag.MUL_ASG, Tag.DIV_ASG, Tag.MOD_ASG,
                         Tag.POSTINC, Tag.PREINC, Tag.POSTDEC, Tag.PREDEC,
                         Tag.EQ, Tag.NE, Tag.LT, Tag.LE, Tag.GT, Tag.GE,
@@ -2068,9 +2069,11 @@ public class ReflectMethods extends TreeTranslator {
                 result = append(CoreOps.concat(lhs, rhs));
             }
             else {
-                Type opType = tree.operator.type.getParameterTypes().get(0);
+                Type opType = tree.operator.type.getParameterTypes().getFirst();
+                // @@@ potentially handle shift input conversion like other binary ops
+                boolean isShift = tag == Tag.SL || tag == Tag.SR || tag == Tag.USR;
                 Value lhs = toValue(tree.lhs, opType);
-                Value rhs = toValue(tree.rhs, opType);
+                Value rhs = toValue(tree.rhs, isShift ? tree.operator.type.getParameterTypes().getLast() : opType);
 
                 result = switch (tag) {
                     // Arithmetic operations
@@ -2093,6 +2096,11 @@ public class ReflectMethods extends TreeTranslator {
                     case BITOR -> append(CoreOps.or(lhs, rhs));
                     case BITAND -> append(CoreOps.and(lhs, rhs));
                     case BITXOR -> append(CoreOps.xor(lhs, rhs));
+
+                    // Shift operations
+                    case SL -> append(CoreOps.lshl(lhs, rhs));
+                    case SR -> append(CoreOps.ashr(lhs, rhs));
+                    case USR -> append(CoreOps.lshr(lhs, rhs));
 
                     default -> throw unsupported(tree);
                 };

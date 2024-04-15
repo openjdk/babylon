@@ -627,6 +627,33 @@ public final class BytecodeGenerator {
                             default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
                         }
                     }
+                    case LshlOp op -> {
+                        processOperands(op, isLastOpResultOnStack);
+                        adjustRightTypeToInt(op);
+                        switch (rvt) { //this can be moved to CodeBuilder::shl(TypeKind)
+                            case IntType -> cob.ishl();
+                            case LongType -> cob.lshl();
+                            default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
+                        }
+                    }
+                    case AshrOp op -> {
+                        processOperands(op, isLastOpResultOnStack);
+                        adjustRightTypeToInt(op);
+                        switch (rvt) { //this can be moved to CodeBuilder::shr(TypeKind)
+                            case IntType -> cob.ishr();
+                            case LongType -> cob.lshr();
+                            default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
+                        }
+                    }
+                    case LshrOp op -> {
+                        processOperands(op, isLastOpResultOnStack);
+                        adjustRightTypeToInt(op);
+                        switch (rvt) { //this can be moved to CodeBuilder::ushr(TypeKind)
+                            case IntType -> cob.iushr();
+                            case LongType -> cob.lushr();
+                            default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
+                        }
+                    }
                     case ArrayAccessOp.ArrayLoadOp op -> {
                         processOperands(op, isLastOpResultOnStack);
                         cob.arrayLoadInstruction(rvt);
@@ -869,6 +896,14 @@ public final class BytecodeGenerator {
                 default ->
                     throw new UnsupportedOperationException("Terminating operation not supported: " + top);
             }
+        }
+    }
+
+    // the rhs of any shift instruction must be int or smaller -> convert longs
+    private void adjustRightTypeToInt(Op op) {
+        TypeElement right = op.operands().getLast().type();
+        if (right.equals(JavaType.LONG)) {
+            cob.convertInstruction(toTypeKind(right), TypeKind.IntType);
         }
     }
 

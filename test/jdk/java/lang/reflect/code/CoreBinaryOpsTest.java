@@ -80,6 +80,24 @@ public class CoreBinaryOpsTest {
     }
 
     @CodeReflection
+    @SupportedTypes(types = {int.class, long.class})
+    static int leftShift(int left, int right) {
+        return left << right;
+    }
+
+    @CodeReflection
+    @Direct
+    static int leftShiftIL(int left, long right) {
+        return left << right;
+    }
+
+    @CodeReflection
+    @Direct
+    static long leftShiftLI(long left, int right) {
+        return left << right;
+    }
+
+    @CodeReflection
     @SupportedTypes(types = {int.class, long.class, float.class, double.class})
     static int mod(int left, int right) {
         return left % right;
@@ -98,11 +116,46 @@ public class CoreBinaryOpsTest {
     }
 
     @CodeReflection
+    @SupportedTypes(types = {int.class, long.class})
+    static int signedRightShift(int left, int right) {
+        return left >> right;
+    }
+
+    @CodeReflection
+    @Direct
+    static int signedRightShiftIL(int left, long right) {
+        return left >> right;
+    }
+
+    @CodeReflection
+    @Direct
+    static long signedRightShiftLI(long left, int right) {
+        return left >> right;
+    }
+
+    @CodeReflection
     @SupportedTypes(types = {int.class, long.class, float.class, double.class})
     static int sub(int left, int right) {
         return left - right;
     }
 
+    @CodeReflection
+    @SupportedTypes(types = {int.class, long.class})
+    static int unsignedRightShift(int left, int right) {
+        return left >>> right;
+    }
+
+    @CodeReflection
+    @Direct
+    static int unsignedRightShiftIL(int left, long right) {
+        return left >>> right;
+    }
+
+    @CodeReflection
+    @Direct
+    static long unsignedRightShiftLI(long left, int right) {
+        return left >>> right;
+    }
 
     @CodeReflection
     @SupportedTypes(types = {int.class, long.class, boolean.class})
@@ -124,6 +177,12 @@ public class CoreBinaryOpsTest {
         Class<?>[] types();
     }
 
+    // mark as "do not transform"
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.METHOD)
+    @interface Direct {
+    }
+
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.METHOD)
     @ArgumentsSource(CodeReflectionSourceProvider.class)
@@ -131,12 +190,12 @@ public class CoreBinaryOpsTest {
     }
 
     static class CodeReflectionSourceProvider implements ArgumentsProvider {
-        private static final Map<Class<?>, List<Object>> INTERESTING_INPUTS = Map.of(
-                int.class, List.of(Integer.MIN_VALUE, Integer.MAX_VALUE, 1, 0, -1),
-                long.class, List.of(Long.MIN_VALUE, Long.MAX_VALUE, 1, 0, -1),
-                double.class, List.of(Double.MIN_VALUE, Double.MAX_VALUE, Double.NaN, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, Double.MIN_NORMAL, 1, 0, -1),
-                float.class, List.of(Float.MIN_VALUE, Float.MAX_VALUE, Float.NaN, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY, Float.MIN_NORMAL, 1, 0, -1),
-                boolean.class, List.of(true, false)
+        private static final Map<JavaType, List<Object>> INTERESTING_INPUTS = Map.of(
+                JavaType.INT, List.of(Integer.MIN_VALUE, Integer.MAX_VALUE, 1, 0, -1),
+                JavaType.LONG, List.of(Long.MIN_VALUE, Long.MAX_VALUE, 1, 0, -1),
+                JavaType.DOUBLE, List.of(Double.MIN_VALUE, Double.MAX_VALUE, Double.NaN, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, Double.MIN_NORMAL, 1, 0, -1),
+                JavaType.FLOAT, List.of(Float.MIN_VALUE, Float.MAX_VALUE, Float.NaN, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY, Float.MIN_NORMAL, 1, 0, -1),
+                JavaType.BOOLEAN, List.of(true, false)
         );
 
         @Override
@@ -144,26 +203,35 @@ public class CoreBinaryOpsTest {
             Method testMethod = extensionContext.getRequiredTestMethod();
             return codeReflectionMethods(extensionContext.getRequiredTestClass())
                     .flatMap(method -> {
-                        CoreOps.FuncOp funcOp = method.getCodeModel().orElseThrow(() -> new IllegalStateException("Expected code model to be present"));
+                        CoreOps.FuncOp funcOp = method.getCodeModel().orElseThrow(
+                                () -> new IllegalStateException("Expected code model to be present for method " + method)
+                        );
                         SupportedTypes supportedTypes = method.getAnnotation(SupportedTypes.class);
+                        if (method.isAnnotationPresent(Direct.class)) {
+                            if (supportedTypes != null) {
+                                throw new IllegalArgumentException("Direct should not be combined with SupportedTypes");
+                            }
+                            return Stream.of(funcOp);
+                        }
                         if (supportedTypes == null || supportedTypes.types().length == 0) {
                             throw new IllegalArgumentException("Missing supported types");
                         }
                         return Arrays.stream(supportedTypes.types())
-                                .map(type -> new TransformedFunc(retype(funcOp, type), type));
+                                .map(type -> retype(funcOp, type));
                     })
-                    .flatMap(tf -> argumentsForMethod(tf, testMethod));
+                    .flatMap(transformedFunc -> argumentsForMethod(transformedFunc, testMethod));
         }
 
-        private static <T> Stream<List<T>> cartesianPower(List<T> source, int n) {
-            if (n == 0) {
+        private static <T> Stream<List<T>> cartesianProduct(List<List<T>> source) {
+            if (source.isEmpty()) {
                 return Stream.of(new ArrayList<>());
             }
-            return source.stream().flatMap(e -> cartesianPower(source, n - 1).map(l -> {
-                ArrayList<T> newList = new ArrayList<>(l);
-                newList.add(e);
-                return newList;
-            }));
+            return source.getFirst().stream()
+                    .flatMap(e -> cartesianProduct(source.subList(1, source.size())).map(l -> {
+                        ArrayList<T> newList = new ArrayList<>(l);
+                        newList.add(e);
+                        return newList;
+                    }));
         }
 
         private static CoreOps.FuncOp retype(CoreOps.FuncOp original, Class<?> newType) {
@@ -196,28 +264,42 @@ public class CoreBinaryOpsTest {
             };
         }
 
-        private static Stream<Arguments> argumentsForMethod(TransformedFunc tf, Method testMethod) {
-            Parameter[] parameters = testMethod.getParameters();
-            List<Object> inputs = INTERESTING_INPUTS.get(tf.type());
-            if (parameters.length == 0) {
-                throw new IllegalArgumentException("method " + testMethod + " does not take any arguments");
+        private static Stream<Arguments> argumentsForMethod(CoreOps.FuncOp funcOp, Method testMethod) {
+            Parameter[] testMethodParameters = testMethod.getParameters();
+            List<TypeElement> funcParameters = funcOp.invokableType().parameterTypes();
+            if (testMethodParameters.length - 1 != funcParameters.size()) {
+                throw new IllegalArgumentException("method " + testMethod + " does not take the correct number of parameters");
             }
-            if (parameters[0].getType() != CoreOps.FuncOp.class) {
+            if (testMethodParameters[0].getType() != CoreOps.FuncOp.class) {
                 throw new IllegalArgumentException("method " + testMethod + " does not take a leading FuncOp argument");
             }
-            Named<CoreOps.FuncOp> opNamed = Named.of(tf.funcOp().funcName() + "{" + tf.funcOp().invokableType() + "}", tf.funcOp());
-            for (int i = 1; i < parameters.length; i++) {
-                if (!isCompatible(tf.type(), parameters[i].getType())) {
-                    System.out.println(testMethod + " does not accept inputs of type " + tf.type());
+            Named<CoreOps.FuncOp> opNamed = Named.of(funcOp.funcName() + "{" + funcOp.invokableType() + "}", funcOp);
+            MethodHandles.Lookup lookup = MethodHandles.lookup();
+            for (int i = 1; i < testMethodParameters.length; i++) {
+                Class<?> resolved = resolveParameter(funcParameters.get(i - 1), lookup);
+                if (!isCompatible(resolved, testMethodParameters[i].getType())) {
+                    System.out.println(testMethod + " does not accept inputs of type " + resolved + " at index " + i);
                     return Stream.empty();
                 }
             }
-            return cartesianPower(inputs, parameters.length - 1)
+            List<List<Object>> allInputs = new ArrayList<>();
+            for (TypeElement parameterType : funcParameters) {
+                allInputs.add(INTERESTING_INPUTS.get((JavaType) parameterType));
+            }
+            return cartesianProduct(allInputs)
                     .map(objects -> {
                         objects.add(opNamed);
                         return objects.reversed().toArray(); // reverse so FuncOp is at the beginning
                     })
                     .map(Arguments::of);
+        }
+
+        private static Class<?> resolveParameter(TypeElement typeElement, MethodHandles.Lookup lookup) {
+            try {
+                return ((JavaType) typeElement).resolve(lookup);
+            } catch (ReflectiveOperationException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         // check whether elements of type sourceType can be passed to a parameter of parameterType
@@ -232,10 +314,7 @@ public class CoreBinaryOpsTest {
         private static Stream<Method> codeReflectionMethods(Class<?> testClass) {
             return Arrays.stream(testClass.getDeclaredMethods())
                     .filter(method -> method.accessFlags().contains(AccessFlag.STATIC))
-                    .filter(method -> method.getCodeModel().isPresent());
-        }
-
-        record TransformedFunc(CoreOps.FuncOp funcOp, Class<?> type) {
+                    .filter(method -> method.isAnnotationPresent(CodeReflection.class));
         }
 
     }
@@ -262,8 +341,8 @@ public class CoreBinaryOpsTest {
         System.out.println("second: " + second);
         // either the same error occurred on both or no error occurred
         if (first.throwable != null || second.throwable != null) {
-            assertNotNull(first.throwable);
-            assertNotNull(second.throwable);
+            assertNotNull(first.throwable, "only second threw an exception");
+            assertNotNull(second.throwable, "only first threw an exception");
             if (first.throwable.getClass() != second.throwable.getClass()) {
                 first.throwable.printStackTrace();
                 second.throwable.printStackTrace();
