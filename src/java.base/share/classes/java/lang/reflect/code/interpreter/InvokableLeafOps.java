@@ -83,27 +83,27 @@ final class InvokableLeafOps {
         return l ^ r;
     }
 
-    public static int leftShift(int l, int r) {
+    public static int lshl(int l, int r) {
         return l << r;
     }
 
-    public static int rightShift(int l, int r) {
+    public static int ashr(int l, int r) {
         return l >> r;
     }
 
-    public static int unsignedRightShift(int l, int r) {
+    public static int lshr(int l, int r) {
         return l >>> r;
     }
 
-    public static int leftShift(int l, long r) {
+    public static int lshl(int l, long r) {
         return l << r;
     }
 
-    public static int rightShift(int l, long r) {
+    public static int ashr(int l, long r) {
         return l >> r;
     }
 
-    public static int unsignedRightShift(int l, long r) {
+    public static int lshr(int l, long r) {
         return l >>> r;
     }
 
@@ -169,27 +169,27 @@ final class InvokableLeafOps {
         return l ^ r;
     }
 
-    public static long leftShift(long l, long r) {
+    public static long lshl(long l, long r) {
         return l << r;
     }
 
-    public static long rightShift(long l, long r) {
+    public static long ashr(long l, long r) {
         return l >> r;
     }
 
-    public static long unsignedRightShift(long l, long r) {
+    public static long lshr(long l, long r) {
         return l >>> r;
     }
 
-    public static long leftShift(long l, int r) {
+    public static long lshl(long l, int r) {
         return l << r;
     }
 
-    public static long rightShift(long l, int r) {
+    public static long ashr(long l, int r) {
         return l >> r;
     }
 
-    public static long unsignedRightShift(long l, int r) {
+    public static long lshr(long l, int r) {
         return l >>> r;
     }
 
