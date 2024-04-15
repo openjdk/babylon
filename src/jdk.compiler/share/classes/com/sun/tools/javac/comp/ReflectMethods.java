@@ -1945,11 +1945,6 @@ public class ReflectMethods extends TreeTranslator {
 
             List<Body.Builder> catchers = new ArrayList<>();
             for (JCTree.JCCatch catcher : tree.catchers) {
-                // @@@ Support union types, how to express that plus lub?
-                if (catcher.param.type.isUnion()) {
-                    throw unsupported(tree);
-                }
-
                 // Push body
                 pushBody(catcher.body, FunctionType.functionType(JavaType.VOID, typeToTypeElement(catcher.param.type)));
                 Op.Result exVariable = append(CoreOps.var(

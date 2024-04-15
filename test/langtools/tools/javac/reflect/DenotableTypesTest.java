@@ -146,4 +146,39 @@ public class DenotableTypesTest {
         X x = null;
         consume(x);
     }
+
+    static class XA extends Exception {
+        public void m() { }
+    }
+
+    static class XB extends Exception {
+        public void m() { }
+    }
+
+    static void g() throws XA, XB { }
+
+    @CodeReflection
+    @IR("""
+            func @"test8" ()void -> {
+                  java.try
+                      ()void -> {
+                          invoke @"DenotableTypesTest::g()void";
+                          yield;
+                      }
+                      (%0 : |<DenotableTypesTest$XA, DenotableTypesTest$XB>)void -> {
+                          %1 : Var<|<DenotableTypesTest$XA, DenotableTypesTest$XB>> = var %0 @"x";
+                          %2 : |<DenotableTypesTest$XA, DenotableTypesTest$XB> = var.load %1;
+                          %3 : java.lang.Throwable = invoke %2 @"java.lang.Exception::getCause()java.lang.Throwable";
+                          yield;
+                      };
+                  return;
+            };
+            """)
+    static void test8() {
+        try {
+            g();
+        } catch (XA | XB x) {
+            x.getCause();
+        }
+    }
 }
