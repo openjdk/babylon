@@ -86,7 +86,7 @@ public final class UnionType implements JavaType {
 
     @Override
     public boolean isArray() {
-        return true;
+        return false;
     }
 
     @Override

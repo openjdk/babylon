@@ -92,6 +92,11 @@ public final class DescParser {
                 TokenKind.AMP, TokenKind.OR,
                 TokenKind.COLCOL);
         StringBuilder identifier = new StringBuilder();
+        if (t.kind == TokenKind.COLCOL) {
+            // type var, add '::' and parse next ident
+            identifier.append(t.kind.name);
+            t = l.accept(TokenKind.IDENTIFIER);
+        }
         identifier.append(t.kind == TokenKind.IDENTIFIER ? t.name() : t.kind.name);
         while (l.acceptIf(Tokens.TokenKind.DOT)) {
             identifier.append(Tokens.TokenKind.DOT.name);

@@ -135,6 +135,6 @@ public class TestClosureOps {
         Assert.assertTrue(top instanceof CoreOps.FuncOp);
 
         CoreOps.FuncOp fop = (CoreOps.FuncOp) top;
-        Assert.assertEquals(JavaType.type(Quoted.class, CoreOps.ClosureOp.class), fop.invokableType().returnType());
+        Assert.assertEquals(JavaType.type(Quoted.class), fop.invokableType().returnType());
     }
 }

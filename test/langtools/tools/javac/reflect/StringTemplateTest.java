@@ -128,8 +128,8 @@ public class StringTemplateTest {
     @IR("""
             func @"f4" ()void -> {
                   %0 : java.lang.StringTemplate$Processor<java.lang.String, java.lang.RuntimeException> = field.load @"java.lang.StringTemplate::STR()java.lang.StringTemplate$Processor<java.lang.String, java.lang.RuntimeException>";
-                  %1 : Var<java.lang.StringTemplate$Processor> = var %0 @"X";
-                  %2 : java.lang.StringTemplate$Processor = var.load %1;
+                  %1 : Var<java.lang.StringTemplate$Processor<+<java.lang.Object>, java.lang.RuntimeException>> = var %0 @"X";
+                  %2 : java.lang.StringTemplate$Processor<+<java.lang.Object>, java.lang.RuntimeException> = var.load %1;
                   %3 : java.lang.String = constant @"some template";
                   %4 : java.lang.Object = java.stringTemplate %2 %3;
                   %5 : Var<java.lang.Object> = var %4 @"o";

@@ -647,14 +647,14 @@ public class FieldAccessTest {
     @CodeReflection
     @IR("""
             func @"test25" ()void -> {
-                  %0 : java.lang.String = constant @"abc";
-                  %1 : FieldAccessTest$Box<java.lang.String> = new %0 @"func<FieldAccessTest$Box, java.lang.Object>";
-                  %2 : Var<FieldAccessTest$Box<java.lang.String>> = var %1 @"b";
-                  %3 : FieldAccessTest$Box<java.lang.String> = var.load %2;
-                  %4 : java.lang.String = field.load %3 @"FieldAccessTest$Box::v()java.lang.Object";
-                  %5 : Var<java.lang.String> = var %4 @"s";
-                  return;
-              };
+                    %0 : java.lang.String = constant @"abc";
+                    %1 : FieldAccessTest$Box<java.lang.String> = new %0 @"func<FieldAccessTest$Box, java.lang.Object>";
+                    %2 : Var<FieldAccessTest$Box<java.lang.String>> = var %1 @"b";
+                    %3 : FieldAccessTest$Box<java.lang.String> = var.load %2;
+                    %4 : java.lang.String = field.load %3 @"FieldAccessTest$Box<::T>::v()::T";
+                    %5 : Var<java.lang.String> = var %4 @"s";
+                    return;
+            };
             """)
     static void test25() {
         Box<String> b = new Box<>("abc");

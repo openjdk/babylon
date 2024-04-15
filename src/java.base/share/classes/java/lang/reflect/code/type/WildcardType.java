@@ -96,7 +96,7 @@ public final class WildcardType implements JavaType {
 
     @Override
     public boolean isArray() {
-        return true;
+        return false;
     }
 
     @Override

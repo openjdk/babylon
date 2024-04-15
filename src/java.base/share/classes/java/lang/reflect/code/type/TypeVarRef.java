@@ -85,7 +85,7 @@ public final class TypeVarRef implements JavaType {
 
     @Override
     public boolean isArray() {
-        return true;
+        return false;
     }
 
     @Override

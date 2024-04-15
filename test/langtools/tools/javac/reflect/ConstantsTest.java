@@ -72,7 +72,7 @@ public class ConstantsTest {
     @IR("""
             func @"test4" (%0 : ConstantsTest)void -> {
                 %1 : java.lang.Class = constant @"java.util.function.Function";
-                %2 : Var<java.lang.Class> = var %1 @"s";
+                %2 : Var<java.lang.Class<+<java.lang.Object>>> = var %1 @"s";
                 return;
             };
             """)
@@ -207,7 +207,7 @@ public class ConstantsTest {
     @IR("""
             func @"test13" (%0 : ConstantsTest)void -> {
                 %1 : java.lang.Class = constant @"float";
-                %2 : Var<java.lang.Class> = var %1 @"s";
+                %2 : Var<java.lang.Class<+<java.lang.Object>>> = var %1 @"s";
                 return;
             };
             """)
@@ -219,7 +219,7 @@ public class ConstantsTest {
     @IR("""
             func @"test14" (%0 : ConstantsTest)void -> {
                 %1 : java.lang.Class = constant @"java.lang.String[]";
-                %2 : Var<java.lang.Class> = var %1 @"s";
+                %2 : Var<java.lang.Class<+<java.lang.Object>>> = var %1 @"s";
                 return;
             };
             """)
@@ -231,7 +231,7 @@ public class ConstantsTest {
     @IR("""
             func @"test15" (%0 : ConstantsTest)void -> {
                 %1 : java.lang.Class = constant @"java.lang.String[][]";
-                %2 : Var<java.lang.Class> = var %1 @"s";
+                %2 : Var<java.lang.Class<+<java.lang.Object>>> = var %1 @"s";
                 return;
             };
             """)
@@ -243,7 +243,7 @@ public class ConstantsTest {
     @IR("""
             func @"test16" (%0 : ConstantsTest)void -> {
                 %1 : java.lang.Class = constant @"java.lang.String[][][]";
-                %2 : Var<java.lang.Class> = var %1 @"s";
+                %2 : Var<java.lang.Class<+<java.lang.Object>>> = var %1 @"s";
                 return;
             };
             """)
@@ -255,7 +255,7 @@ public class ConstantsTest {
     @IR("""
             func @"test17" (%0 : ConstantsTest)void -> {
                 %1 : java.lang.Class = constant @"boolean[]";
-                %2 : Var<java.lang.Class> = var %1 @"s";
+                %2 : Var<java.lang.Class<+<java.lang.Object>>> = var %1 @"s";
                 return;
             };
             """)
@@ -267,7 +267,7 @@ public class ConstantsTest {
     @IR("""
             func @"test18" (%0 : ConstantsTest)void -> {
                 %1 : java.lang.Class = constant @"boolean[][][]";
-                %2 : Var<java.lang.Class> = var %1 @"s";
+                %2 : Var<java.lang.Class<+<java.lang.Object>>> = var %1 @"s";
                 return;
             };
             """)
