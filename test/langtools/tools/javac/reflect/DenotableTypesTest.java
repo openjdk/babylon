@@ -147,6 +147,48 @@ public class DenotableTypesTest {
         consume(x);
     }
 
+    interface Adder<X> {
+        void add(Adder<X> adder);
+    }
+
+    @CodeReflection
+    @IR("""
+            func @"test8" (%0 : java.util.List)void -> {
+                  %1 : Var<java.util.List> = var %0 @"list";
+                  %2 : java.util.List = var.load %1;
+                  %3 : int = constant @"0";
+                  %4 : DenotableTypesTest$Adder = invoke %2 %3 @"java.util.List::get(int)java.lang.Object";
+                  %5 : java.util.List = var.load %1;
+                  %6 : int = constant @"1";
+                  %7 : DenotableTypesTest$Adder = invoke %5 %6 @"java.util.List::get(int)java.lang.Object";
+                  invoke %4 %7 @"DenotableTypesTest$Adder::add(DenotableTypesTest$Adder)void";
+                  return;
+            };
+            """)
+    static void test8(List<? extends Adder<Integer>> list) {
+        list.get(0).add(list.get(1));
+    }
+
+    static class Box<X> {
+        X x;
+    }
+
+    @CodeReflection
+    @IR("""
+            func @"test9" (%0 : java.util.List)void -> {
+                  %1 : Var<java.util.List> = var %0 @"list";
+                  %2 : java.util.List = var.load %1;
+                  %3 : int = constant @"0";
+                  %4 : DenotableTypesTest$Box = invoke %2 %3 @"java.util.List::get(int)java.lang.Object";
+                  %5 : java.lang.Integer = field.load %4 @"DenotableTypesTest$Box::x()java.lang.Object";
+                  %6 : Var<java.lang.Integer> = var %5 @"i";
+                  return;
+            };
+            """)
+    static void test9(List<? extends Box<Integer>> list) {
+        Integer i = list.get(0).x;
+    }
+
     static class XA extends Exception {
         public void m() { }
     }
@@ -174,7 +216,7 @@ public class DenotableTypesTest {
                   return;
             };
             """)
-    static void test8() {
+    static void test10() {
         try {
             g();
         } catch (XA | XB x) {
