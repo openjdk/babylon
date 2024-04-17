@@ -624,12 +624,7 @@ import static jdk.internal.org.objectweb.asm.Opcodes.*;
             if (useImplMethodHandle) {
                 visitLdcInsn(implMethodCondy);
             }
-            int argCount = argNames.length;
-            if (quotableOpField != null) {
-                // @@@ quotable doubles the parameters so here we must cut them
-                argCount /= 2;
-            }
-            for (int i = 0; i < argCount; i++) {
+            for (int i = 0; i < argNames.length - reflectiveCaptureCount(); i++) {
                 visitVarInsn(ALOAD, 0);
                 visitFieldInsn(GETFIELD, lambdaClassName, argNames[i], argDescs[i]);
             }
