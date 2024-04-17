@@ -109,9 +109,7 @@ public final class BytecodeGenerator {
 
         MethodHandles.Lookup hcl;
         try {
-            hcl = l.in(l.defineClass(classBytes));
-// @@@ lambdas do not work in hidden classes
-//            hcl = l.defineHiddenClass(classBytes, true);
+            hcl = l.defineHiddenClass(classBytes, true);
         } catch (IllegalAccessException e) {
             e.printStackTrace();
             throw new RuntimeException(e);

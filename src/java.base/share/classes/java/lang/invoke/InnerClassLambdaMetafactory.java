@@ -212,7 +212,8 @@ import static jdk.internal.org.objectweb.asm.Opcodes.*;
         // generating bridges in the target class)
         useImplMethodHandle = (Modifier.isProtected(implInfo.getModifiers()) &&
                                !VerifyAccess.isSamePackage(targetClass, implInfo.getDeclaringClass())) ||
-                               implKind == H_INVOKESPECIAL;
+                               implKind == H_INVOKESPECIAL ||
+                               implInfo.getDeclaringClass().isHidden();
         cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
         int parameterCount = factoryType.parameterCount();
         if (parameterCount > 0) {
@@ -623,7 +624,12 @@ import static jdk.internal.org.objectweb.asm.Opcodes.*;
             if (useImplMethodHandle) {
                 visitLdcInsn(implMethodCondy);
             }
-            for (int i = 0; i < argNames.length; i++) {
+            int argCount = argNames.length;
+            if (quotableOpField != null) {
+                // @@@ quotable doubles the parameters so here we must cut them
+                argCount /= 2;
+            }
+            for (int i = 0; i < argCount; i++) {
                 visitVarInsn(ALOAD, 0);
                 visitFieldInsn(GETFIELD, lambdaClassName, argNames[i], argDescs[i]);
             }
