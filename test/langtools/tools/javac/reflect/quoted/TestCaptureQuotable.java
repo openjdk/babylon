@@ -36,6 +36,7 @@ import java.lang.reflect.code.Quoted;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
 import java.util.function.IntUnaryOperator;
+import java.util.function.ToIntFunction;
 import java.util.stream.IntStream;
 
 import static org.testng.Assert.*;
@@ -51,6 +52,19 @@ public class TestCaptureQuotable {
         int res = (int)Interpreter.invoke(MethodHandles.lookup(), (Op & Op.Invokable) quoted.op(),
                 quoted.capturedValues(), 1);
         assertEquals(res, x + 1);
+    }
+
+    @Test
+    public void testCaptureRefAndIntConstant() {
+        final int x = 100;
+        String hello = "hello";
+        Quotable quotable = (Quotable & ToIntFunction<Number>)y -> y.intValue() + hello.length() + x;
+        Quoted quoted = quotable.quoted();
+        assertEquals(quoted.capturedValues().size(), 2);
+        assertEquals(((Var)quoted.capturedValues().values().iterator().next()).value(), x);
+        int res = (int)Interpreter.invoke(MethodHandles.lookup(), (Op & Op.Invokable) quoted.op(),
+                quoted.capturedValues(), 1);
+        assertEquals(res, x + 1 + hello.length());
     }
 
     @Test(dataProvider = "ints")
