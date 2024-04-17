@@ -179,6 +179,9 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     // Set when op is bound to block, otherwise null when unbound
     Result result;
 
+    // null if not specified
+    Location location;
+
     final String name;
 
     final List<Value> operands;
@@ -193,6 +196,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      */
     protected Op(Op that, CopyContext cc) {
         this(that.name, cc.getValues(that.operands));
+        this.location = that.location;
     }
 
     /**
@@ -241,6 +245,28 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     protected Op(String name, List<? extends Value> operands) {
         this.name = name;
         this.operands = List.copyOf(operands);
+    }
+
+    /**
+     * Sets the originating source location of this operation, if unbound.
+     *
+     * @param l the location, a {@code null} value indicates the location is not specified.
+     * @throws IllegalStateException if this operation is bound
+     */
+    public final void setLocation(Location l) {
+        // @@@ Fail if location != null?
+        if (result != null && result.block.isBound()) {
+            throw new IllegalStateException();
+        }
+
+        location = l;
+    }
+
+    /**
+     * {@return the originating source location of this operation, otherwise {@code null} if not specified}
+     */
+    public final Location location() {
+        return location;
     }
 
     /**
