@@ -213,7 +213,7 @@ import static jdk.internal.org.objectweb.asm.Opcodes.*;
         useImplMethodHandle = (Modifier.isProtected(implInfo.getModifiers()) &&
                                !VerifyAccess.isSamePackage(targetClass, implInfo.getDeclaringClass())) ||
                                implKind == H_INVOKESPECIAL ||
-                               implInfo.getDeclaringClass().isHidden();
+                               implKind == H_INVOKESTATIC && implClass.isHidden();
         cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
         int parameterCount = factoryType.parameterCount();
         if (parameterCount > 0) {
