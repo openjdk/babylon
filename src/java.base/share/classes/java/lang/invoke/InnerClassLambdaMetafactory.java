@@ -623,7 +623,7 @@ import static jdk.internal.org.objectweb.asm.Opcodes.*;
             if (useImplMethodHandle) {
                 visitLdcInsn(implMethodCondy);
             }
-            for (int i = 0; i < argNames.length; i++) {
+            for (int i = 0; i < argNames.length - reflectiveCaptureCount(); i++) {
                 visitVarInsn(ALOAD, 0);
                 visitFieldInsn(GETFIELD, lambdaClassName, argNames[i], argDescs[i]);
             }

@@ -303,7 +303,12 @@ public class ReflectMethods extends TreeTranslator {
                 capturedArgs.add(make.at(pos).Ident(recvDecl.sym));
             } else if (capturedSym.kind == Kind.VAR) {
                 // captured var
-                capturedArgs.add(make.at(pos).Ident(capturedSym));
+                VarSymbol var = (VarSymbol)capturedSym;
+                if (var.getConstValue() == null) {
+                    capturedArgs.add(make.at(pos).Ident(capturedSym));
+                } else {
+                    capturedArgs.add(make.at(pos).Literal(var.getConstValue()));
+                }
             } else {
                 throw new AssertionError("Unexpected captured symbol: " + capturedSym);
             }
