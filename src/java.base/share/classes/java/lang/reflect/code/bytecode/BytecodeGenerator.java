@@ -263,7 +263,7 @@ public final class BytecodeGenerator {
         if (v instanceof Op.Result or &&
                 or.op() instanceof CoreOps.ConstantOp constantOp &&
                 !constantOp.resultType().equals(JavaType.J_L_CLASS)) {
-            cob.constantInstruction(fromValue(constantOp.value()));
+            cob.constantInstruction(((Constable)constantOp.value()).describeConstable().orElseThrow());
             return null;
         } else {
             Slot slot = slots.get(v);
@@ -276,14 +276,6 @@ public final class BytecodeGenerator {
         for (int i = isLastOpResultOnStack ? 1 : 0; i < op.operands().size(); i++) {
             load(op.operands().get(i));
         }
-    }
-
-    private static ConstantDesc fromValue(Object value) {
-        return switch (value) {
-            case ConstantDesc cd -> cd;
-            case JavaType td -> td.toNominalDescriptor();
-            default -> throw new IllegalArgumentException("Unsupported constant value: " + value);
-        };
     }
 
     // Determines if the operation result used only by the next operation as the first operand
@@ -485,7 +477,7 @@ public final class BytecodeGenerator {
                     case ConstantOp op -> {
                         if (op.resultType().equals(JavaType.J_L_CLASS)) {
                             // Loading a class constant may throw an exception so it cannot be deferred
-                            cob.ldc(fromValue(op.value()));
+                            cob.ldc(((JavaType)op.value()).toNominalDescriptor());
                         } else {
                           // Defer process to use, where constants are inlined
                           // This applies to both operands and successor arguments

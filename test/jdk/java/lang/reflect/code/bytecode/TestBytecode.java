@@ -21,9 +21,11 @@
  * questions.
  */
 
+import java.io.IOException;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.classfile.ClassFile;
+import java.lang.classfile.ClassModel;
 import java.lang.classfile.components.ClassPrinter;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.MethodHandle;
@@ -45,6 +47,8 @@ import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.runtime.CodeReflection;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -55,7 +59,7 @@ import java.util.stream.Stream;
 /*
  * @test
  * @enablePreview
- * @run testng TestBytecode
+ * @run testng/othervm -Djdk.invoke.MethodHandle.dumpClassFiles=true TestBytecode
  */
 
 public class TestBytecode {
@@ -64,6 +68,33 @@ public class TestBytecode {
     static int intNumOps(int i, int j, int k) {
         k++;
         i = (i + j) / k - i % j;
+        i--;
+        return i;
+    }
+
+    @CodeReflection
+    @SkipLift
+    static byte byteNumOps(byte i, byte j, byte k) {
+        k++;
+        i = (byte) ((i + j) / k - i % j);
+        i--;
+        return i;
+    }
+
+    @CodeReflection
+    @SkipLift
+    static short shortNumOps(short i, short j, short k) {
+        k++;
+        i = (short) ((i + j) / k - i % j);
+        i--;
+        return i;
+    }
+
+    @CodeReflection
+    @SkipLift
+    static char charNumOps(char i, char j, char k) {
+        k++;
+        i = (char) ((i + j) / k - i % j);
         i--;
         return i;
     }
@@ -361,11 +392,12 @@ public class TestBytecode {
     }
 
     private static byte[] CLASS_DATA;
+    private static ClassModel CLASS_MODEL;
 
     @BeforeClass
     public static void setup() throws Exception {
         CLASS_DATA = TestBytecode.class.getResourceAsStream("TestBytecode.class").readAllBytes();
-//        ClassPrinter.toYaml(ClassFile.of().parse(CLASS_DATA), ClassPrinter.Verbosity.TRACE_ALL, System.out::print);
+        CLASS_MODEL = ClassFile.of().parse(CLASS_DATA);
     }
 
     private static MethodTypeDesc toMethodTypeDesc(Method m) {
@@ -384,8 +416,10 @@ public class TestBytecode {
         for (var argType : argTypes) TEST_ARGS.put(argType, values);
     }
     static {
-        initTestArgs(values(1, 2, 3, 4), int.class, Integer.class, byte.class,
-                Byte.class, short.class, Short.class, char.class, Character.class);
+        initTestArgs(values(1, 2, 3, 4), int.class, Integer.class);
+        initTestArgs(values((byte)1, (byte)2, (byte)3, (byte)4), byte.class, Byte.class);
+        initTestArgs(values((short)1, (short)2, (short)3, (short)4), short.class, Short.class);
+        initTestArgs(values((char)1, (char)2, (char)3, (char)4), char.class, Character.class);
         initTestArgs(values(false, true), boolean.class, Boolean.class);
         initTestArgs(values("Hello World"), String.class);
         initTestArgs(values(1l, 2l, 3l, 4l), long.class, Long.class);
@@ -477,6 +511,17 @@ public class TestBytecode {
         } catch (Throwable e) {
             func.writeTo(System.out);
             lfunc.writeTo(System.out);
+            String methodName = d.testMethod().getName();
+            for (var mm : CLASS_MODEL.methods()) {
+                if (mm.methodName().equalsString(methodName) || mm.methodName().stringValue().startsWith("lambda$" + methodName + "$")) {
+                    ClassPrinter.toYaml(mm, ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES, System.out::print);
+                }
+            }
+            Files.list(Path.of("DUMP_CLASS_FILES")).forEach(p -> {
+                if (p.getFileName().toString().matches(methodName + "\\.0x[0-9a-f]+\\.class")) try {
+                    ClassPrinter.toYaml(ClassFile.of().parse(p), ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES, System.out::print);
+                } catch (IOException ignore) {}
+            });
             throw e;
         }
     }
