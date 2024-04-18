@@ -394,7 +394,7 @@ public final class CoreOps {
 
         /**
          * Computes the values captured by this quoted operation's body.
-         * 
+         *
          * @return the captured values.
          * @see Body#capturedValues()
          */
