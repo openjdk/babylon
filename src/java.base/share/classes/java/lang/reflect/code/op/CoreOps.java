@@ -390,14 +390,7 @@ public final class CoreOps {
             return quotedOp;
         }
 
-        // Returns the set of values used in but declared outside the lambda's body
-
-        /**
-         * Computes the values captured by this quoted operation's body.
-         *
-         * @return the captured values.
-         * @see Body#capturedValues()
-         */
+        @Override
         public List<Value> capturedValues() {
             return quotedBody.capturedValues();
         }
@@ -491,12 +484,6 @@ public final class CoreOps {
             return body;
         }
 
-        /**
-         * Computes the values captured by this lambda operation's body.
-         *
-         * @return the captured values.
-         * @see Body#capturedValues()
-         */
         @Override
         public List<Value> capturedValues() {
             return body.capturedValues();
@@ -588,12 +575,6 @@ public final class CoreOps {
             return body;
         }
 
-        /**
-         * Computes the values captured by this closure operation's body.
-         *
-         * @return the captured values.
-         * @see Body#capturedValues()
-         */
         @Override
         public List<Value> capturedValues() {
             return body.capturedValues();
