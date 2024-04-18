@@ -31,13 +31,10 @@ import java.lang.classfile.Label;
 import java.lang.constant.*;
 import java.lang.reflect.code.op.CoreOps.*;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.lang.classfile.ClassBuilder;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
 import java.lang.classfile.attribute.ConstantValueAttribute;
-import java.lang.classfile.components.ClassPrinter;
 import java.lang.invoke.LambdaMetafactory;
 import java.lang.reflect.code.Block;
 import java.lang.reflect.code.op.CoreOps;
@@ -94,26 +91,11 @@ public final class BytecodeGenerator {
     public static <O extends Op & Op.Invokable> MethodHandle generate(MethodHandles.Lookup l, O iop) {
         String name = iop instanceof FuncOp fop ? fop.funcName() : "m";
         byte[] classBytes = generateClassData(l, name, iop);
-//        ClassPrinter.toYaml(ClassFile.of().parse(classBytes), ClassPrinter.Verbosity.TRACE_ALL, System.out::print);
-
-        {
-            try {
-                File f = new File("f.class");
-                try (FileOutputStream fos = new FileOutputStream(f)) {
-                    fos.write(classBytes);
-                }
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
 
         MethodHandles.Lookup hcl;
         try {
-            hcl = l.in(l.defineClass(classBytes));
-// @@@ lambdas do not work in hidden classes
-//            hcl = l.defineHiddenClass(classBytes, true);
+            hcl = l.defineHiddenClass(classBytes, true);
         } catch (IllegalAccessException e) {
-            e.printStackTrace();
             throw new RuntimeException(e);
         }
 
