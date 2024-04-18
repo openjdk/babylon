@@ -486,10 +486,12 @@ public final class BytecodeGenerator {
                     }
                     case VarOp op -> {
                         //     %1 : Var<int> = var %0 @"i";
-                        processOperands(op, isLastOpResultOnStack);
-                        isLastOpResultOnStack = false;
-                        // Use slot of variable result
-                        storeIfUsed(op.result());
+                        if (isLastOpResultOnStack || !op.result().uses().isEmpty()) {
+                            processOperands(op, isLastOpResultOnStack);
+                            isLastOpResultOnStack = false;
+                            // Use slot of variable result
+                            storeIfUsed(op.result());
+                        }
                         // Ignore result
                         rvt = TypeKind.VoidType;
                     }
