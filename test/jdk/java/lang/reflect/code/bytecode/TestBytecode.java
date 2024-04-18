@@ -129,6 +129,24 @@ public class TestBytecode {
     }
 
     @CodeReflection
+    @SkipLift
+    static byte byteBitOps(byte i, byte j, byte k) {
+        return (byte) (i & j | k ^ j);
+    }
+
+    @CodeReflection
+    @SkipLift
+    static short shortBitOps(short i, short j, short k) {
+        return (short) (i & j | k ^ j);
+    }
+
+    @CodeReflection
+    @SkipLift
+    static char charBitOps(char i, char j, char k) {
+        return (char) (i & j | k ^ j);
+    }
+
+    @CodeReflection
     static long longBitOps(long i, long j, long k) {
         return i & j | k ^ j;
     }
@@ -136,6 +154,17 @@ public class TestBytecode {
     @CodeReflection
     static boolean boolBitOps(boolean i, boolean j, boolean k) {
         return i & j | k ^ j;
+    }
+
+    @CodeReflection
+    @SkipLift
+    static Object[] boxingAndUnboxing(int i, byte b, short s, char c, Integer ii, Byte bb, Short ss, Character cc) {
+        ii += i; ii += b; ii += s; ii += c;
+        i += ii; i += bb; i += ss; i += cc;
+        b += ii; b += bb; b += ss; b += cc;
+        s += ii; s += bb; s += ss; s += cc;
+        c += ii; c += bb; c += ss; c += cc;
+        return new Object[]{i, b, s, c};
     }
 
     @CodeReflection
@@ -282,7 +311,13 @@ public class TestBytecode {
     }
 
     @CodeReflection
-    static boolean not(int i, int j) {
+    @SkipLift
+    static boolean not(boolean b) {
+        return !b;
+    }
+
+    @CodeReflection
+    static boolean notCompare(int i, int j) {
         boolean b = i < j;
         return !b;
     }
@@ -518,7 +553,7 @@ public class TestBytecode {
                 }
             }
             Files.list(Path.of("DUMP_CLASS_FILES")).forEach(p -> {
-                if (p.getFileName().toString().matches(methodName + "\\.0x[0-9a-f]+\\.class")) try {
+                if (p.getFileName().toString().matches(methodName + "\\..+\\.class")) try {
                     ClassPrinter.toYaml(ClassFile.of().parse(p), ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES, System.out::print);
                 } catch (IOException ignore) {}
             });
