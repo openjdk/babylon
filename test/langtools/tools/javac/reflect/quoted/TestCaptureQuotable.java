@@ -29,12 +29,14 @@
 
 import org.testng.annotations.*;
 
+import java.lang.reflect.code.Value;
 import java.lang.reflect.code.op.CoreOps.Var;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Quotable;
 import java.lang.reflect.code.Quoted;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
+import java.util.Iterator;
 import java.util.function.IntUnaryOperator;
 import java.util.function.ToIntFunction;
 import java.util.stream.IntStream;
@@ -61,7 +63,9 @@ public class TestCaptureQuotable {
         Quotable quotable = (Quotable & ToIntFunction<Number>)y -> y.intValue() + hello.length() + x;
         Quoted quoted = quotable.quoted();
         assertEquals(quoted.capturedValues().size(), 2);
-        assertEquals(((Var)quoted.capturedValues().values().iterator().next()).value(), x);
+        Iterator<Object> it = quoted.capturedValues().values().iterator();
+        assertEquals(((Var)it.next()).value(), hello);
+        assertEquals(((Var)it.next()).value(), x);
         int res = (int)Interpreter.invoke(MethodHandles.lookup(), (Op & Op.Invokable) quoted.op(),
                 quoted.capturedValues(), 1);
         assertEquals(res, x + 1 + hello.length());

@@ -2021,11 +2021,11 @@ public class ReflectMethods extends TreeTranslator {
                     applyCompoundAssign(tree.arg, scanRhs);
                 }
                 case NEG -> {
-                    Value rhs = toValue(tree.arg);
+                    Value rhs = toValue(tree.arg, tree.type);
                     result = append(CoreOps.neg(rhs));
                 }
                 case NOT -> {
-                    Value rhs = toValue(tree.arg);
+                    Value rhs = toValue(tree.arg, tree.type);
                     result = append(CoreOps.not(rhs));
                 }
                 default -> throw unsupported(tree);
