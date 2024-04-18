@@ -288,6 +288,50 @@ public final class Body implements CodeElement<Body, Block> {
     }
 
     /**
+     * Computes values captured by this body. A captured value is a value that dominates
+     * this body and is used by a descendant operation of this body.
+     * <p>
+     * The order of the captured values is first use encountered in depth
+     * first search of this body's descendant operations.
+     *
+     * @return the list of captured values, modifiable
+     */
+    public List<Value> capturedValues() {
+        Set<Value> cvs = new LinkedHashSet<>();
+
+        capturedValues(cvs, new ArrayDeque<>(), this);
+        return new ArrayList<>(cvs);
+    }
+
+    static void capturedValues(Set<Value> capturedValues, Deque<Body> bodyStack, Body body) {
+        bodyStack.push(body);
+
+        for (Block b : body.blocks()) {
+            for (Op op : b.ops()) {
+                for (Body childBody : op.bodies()) {
+                    capturedValues(capturedValues, bodyStack, childBody);
+                }
+
+                for (Value a : op.operands()) {
+                    if (!bodyStack.contains(a.declaringBlock().parentBody())) {
+                        capturedValues.add(a);
+                    }
+                }
+
+                for (Block.Reference s : op.successors()) {
+                    for (Value a : s.arguments()) {
+                        if (!bodyStack.contains(a.declaringBlock().parentBody())) {
+                            capturedValues.add(a);
+                        }
+                    }
+                }
+            }
+        }
+
+        bodyStack.pop();
+    }
+
+    /**
      * A builder of a body.
      * <p>
      * When the body builder is built any associated block builders are also considered built.

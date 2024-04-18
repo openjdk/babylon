@@ -39,7 +39,7 @@ public final class Quoted {
     private final Map<Value, Object> capturedValues;
 
     /**
-     * Constructs the quoted form of a given invokable operation.
+     * Constructs the quoted form of a given operation.
      *
      * @param op the invokable operation.
      */
@@ -48,20 +48,31 @@ public final class Quoted {
     }
 
     /**
-     * Constructs the quoted form of a given invokable operation.
+     * Constructs the quoted form of a given operation.
+     * <p>
+     * The captured values key set should contain all the operation's captured values,
+     * specifically the following expression should evaluate to true:
+     * {@snippet lang=java :
+     * capturedValues.keySet().containsAll(op.capturedValues());
+     * }
+     * The captured values key set is not required to preserve the encounter
+     * order of the operation's captured values.
      *
-     * @param op             the invokable operation.
-     * @param capturedValues the capture values referred to by the operation
+     * @param op             the operation.
+     * @param capturedValues the captured values referred to by the operation
+     * @see Op#capturedValues()
      */
     public Quoted(Op op, Map<Value, Object> capturedValues) {
+        // @@@ This check is potentially expensive, remove or keep as assert?
+        assert capturedValues.keySet().containsAll(op.capturedValues());
         this.op = op;
         this.capturedValues = Map.copyOf(capturedValues);
     }
 
     /**
-     * Returns the invokable operation.
+     * Returns the operation.
      *
-     * @return the invokable operation.
+     * @return the operation.
      */
     public Op op() {
         return op;
@@ -74,9 +85,5 @@ public final class Quoted {
      */
     public Map<Value, Object> capturedValues() {
         return capturedValues;
-    }
-
-    public static Quoted quote(Op t) {
-        return new Quoted(t);
     }
 }
