@@ -56,8 +56,6 @@ public final class Quoted {
      * {@snippet lang=java :
      * op.capturedValues().equals(new ArrayList<>(capturedValues.keySet()));
      * }
-     * The captured values key set is not required to preserve the encounter
-     * order of the operation's captured values.
      *
      * @param op             the operation.
      * @param capturedValues the captured values referred to by the operation

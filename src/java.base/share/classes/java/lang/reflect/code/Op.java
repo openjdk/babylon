@@ -95,7 +95,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         }
 
         /**
-         * Computes the values captured by this invokable operation's body.
+         * Computes values captured by this invokable operation's body.
          *
          * @return the captured values.
          * @see Body#capturedValues()
