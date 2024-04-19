@@ -25,6 +25,7 @@
 
 package java.lang.reflect.code;
 
+import java.util.ArrayList;
 import java.util.Map;
 
 /**
@@ -50,10 +51,10 @@ public final class Quoted {
     /**
      * Constructs the quoted form of a given operation.
      * <p>
-     * The captured values key set should contain all the operation's captured values,
-     * specifically the following expression should evaluate to true:
+     * The captured values key set must have the same elements and same encounter order as
+     * operation's captured values, specifically the following expression should evaluate to true:
      * {@snippet lang=java :
-     * capturedValues.keySet().containsAll(op.capturedValues());
+     * op.capturedValues().equals(new ArrayList<>(capturedValues.keySet()));
      * }
      * The captured values key set is not required to preserve the encounter
      * order of the operation's captured values.
@@ -64,7 +65,8 @@ public final class Quoted {
      */
     public Quoted(Op op, Map<Value, Object> capturedValues) {
         // @@@ This check is potentially expensive, remove or keep as assert?
-        assert capturedValues.keySet().containsAll(op.capturedValues());
+        // @@@ Or make Quoted an interface, with a module private implementation?
+        assert op.capturedValues().equals(new ArrayList<>(capturedValues.keySet()));
         this.op = op;
         this.capturedValues = Map.copyOf(capturedValues);
     }
@@ -80,6 +82,12 @@ public final class Quoted {
 
     /**
      * Returns the captured values.
+     * <p>
+     * The captured values key set has the same elements and same encounter order as
+     * operation's captured values, specifically the following expression should evaluate to true:
+     * {@snippet lang=java :
+     * op().capturedValues().equals(new ArrayList<>(capturedValues().keySet()));
+     * }
      *
      * @return the captured values, as an unmodifiable map.
      */
