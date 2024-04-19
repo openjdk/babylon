@@ -305,17 +305,26 @@ public final class BytecodeGenerator {
     // Some of the operations can be deferred
     private static boolean canDefer(Op op) {
         return switch (op) {
-            case ConstantOp _ ->
-                // Constant can be deferred, except for loading of a class constant, which  may throw an exception
-                !op.resultType().equals(JavaType.J_L_CLASS);
-            case VarOp _ ->
-                // Var with a single-use block parameter operand can be deferred
-                op.operands().getFirst() instanceof Block.Parameter bp && bp.uses().size() == 1;
-            case VarAccessOp.VarLoadOp _ ->
-                // Var load can be deferred when not used as immediate operand
-                !isNextUse(op.result());
+            case ConstantOp cop -> canDefer(cop);
+            case VarOp vop -> canDefer(vop);
+            case VarAccessOp.VarLoadOp vlop -> canDefer(vlop);
             default -> false;
         };
+    }
+
+    // Constant can be deferred, except for loading of a class constant, which  may throw an exception
+    private static boolean canDefer(ConstantOp op) {
+        return !op.resultType().equals(JavaType.J_L_CLASS);
+    }
+
+    // Var with a single-use block parameter operand can be deferred
+    private static boolean canDefer(VarOp op) {
+        return op.operands().getFirst() instanceof Block.Parameter bp && bp.uses().size() == 1;
+    }
+
+    // Var load can be deferred when not used as immediate operand
+    private static boolean canDefer(VarAccessOp.VarLoadOp op) {
+        return !isNextUse(op.result());
     }
 
     // This method narrows the first operand inconveniences of some operations
