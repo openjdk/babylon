@@ -318,7 +318,7 @@ public final class BytecodeGenerator {
         };
     }
 
-    // This method narrows inconveniences in the first operand of some operations
+    // This method narrows the first operand inconveniences of some operations
     private static boolean isFirstOperand(Op nextOp, Op.Result opr) {
         return switch (nextOp) {
             // When there is no next operation
@@ -341,7 +341,7 @@ public final class BytecodeGenerator {
         };
     }
 
-    // Determines if the operation result used by the next operation as the first operand
+    // Determines if the operation result is immediatelly used by the next operation and so can stay on stack
     private static boolean isNextUse(Op.Result opr) {
         // Pass over deferred operations
         Op nextOp = opr.op();
