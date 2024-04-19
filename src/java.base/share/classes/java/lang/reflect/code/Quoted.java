@@ -84,7 +84,7 @@ public final class Quoted {
      * Returns the captured values.
      * <p>
      * The captured values key set has the same elements and same encounter order as
-     * operation's captured values, specifically the following expression should evaluate to true:
+     * operation's captured values, specifically the following expression evaluates to true:
      * {@snippet lang=java :
      * op().capturedValues().equals(new ArrayList<>(capturedValues().keySet()));
      * }
