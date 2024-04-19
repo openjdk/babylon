@@ -309,7 +309,7 @@ public final class BytecodeGenerator {
                 // Loading a class constant may throw an exception so it cannot be deferred
                 !op.resultType().equals(JavaType.J_L_CLASS);
             case VarOp _ ->
-                // Var with a single use block parameter operand can be deferred
+                // Var with a single-use block parameter operand can be deferred
                 op.operands().getFirst() instanceof Block.Parameter bp && bp.uses().size() == 1;
             case VarAccessOp.VarLoadOp _ ->
                 // Var load can be deferred when not used as immediate operand
@@ -321,18 +321,18 @@ public final class BytecodeGenerator {
     // This method narrows inconveniences in the first operand of some operations
     private static boolean isFirstOperand(Op nextOp, Op.Result opr) {
         return switch (nextOp) {
-            // When there is no next Op
+            // When there is no next operation
             case null -> false;
             // New object cannot use first operand from stack, new array fall through to the default
             case NewOp op when !(op.constructorType().returnType() instanceof ArrayType) ->
                 false;
-            // Lambda effective operands are captured values
+            // For lambda the effective operands are captured values
             case LambdaOp op ->
                 !op.capturedValues().isEmpty() && op.capturedValues().getFirst() == opr;
-            // Conditional branch may delegate to its BinaryTestOp
+            // Conditional branch may delegate to its binary test operation
             case ConditionalBranchOp op when getConditionForCondBrOp(op) instanceof CoreOps.BinaryTestOp bto ->
                 isFirstOperand(bto, opr);
-            // Var store effective first operand is the second
+            // Var store effective first operand is not the first one
             case VarAccessOp.VarStoreOp op ->
                 op.operands().get(1) == opr;
             // regular check of the first operand
@@ -526,7 +526,7 @@ public final class BytecodeGenerator {
                     case VarOp op -> {
                         //     %1 : Var<int> = var %0 @"i";
                         if (canDefer(op)) {
-                            // Var with a single use block parameter operand can delegate
+                            // Var with a single-use block parameter operand can be deferred
                             slots.put(op.result(), slots.get(op.operands().getFirst()));
                         } else {
                             processOperand(op.operands().getFirst());
@@ -666,7 +666,7 @@ public final class BytecodeGenerator {
                         processOperands(op);
                         adjustRightTypeToInt(op);
                         switch (rvt) { //this can be moved to CodeBuilder::shr(TypeKind)
-                            case IntType -> cob.ishr();
+                            case IntType, ByteType, ShortType, CharType -> cob.ishr();
                             case LongType -> cob.lshr();
                             default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
                         }
@@ -676,7 +676,7 @@ public final class BytecodeGenerator {
                         processOperands(op);
                         adjustRightTypeToInt(op);
                         switch (rvt) { //this can be moved to CodeBuilder::ushr(TypeKind)
-                            case IntType -> cob.iushr();
+                            case IntType, ByteType, ShortType, CharType -> cob.iushr();
                             case LongType -> cob.lushr();
                             default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
                         }

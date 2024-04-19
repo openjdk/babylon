@@ -158,6 +158,36 @@ public class TestBytecode {
 
     @CodeReflection
     @SkipLift
+    static int intShiftOps(int i, int j, int k) {
+        return ((-1 >> i) << (j << k)) >>> (k - j);
+    }
+
+    @CodeReflection
+    @SkipLift
+    static byte byteShiftOps(byte i, byte j, byte k) {
+        return (byte) (((-1 >> i) << (j << k)) >>> (k - j));
+    }
+
+    @CodeReflection
+    @SkipLift
+    static short shortShiftOps(short i, short j, short k) {
+        return (short) (((-1 >> i) << (j << k)) >>> (k - j));
+    }
+
+    @CodeReflection
+    @SkipLift
+    static char charShiftOps(char i, char j, char k) {
+        return (char) (((-1 >> i) << (j << k)) >>> (k - j));
+    }
+
+    @CodeReflection
+    @SkipLift
+    static long longShiftOps(long i, long j, long k) {
+        return ((-1 >> i) << (j << k)) >>> (k - j);
+    }
+
+    @CodeReflection
+    @SkipLift
     static Object[] boxingAndUnboxing(int i, byte b, short s, char c, Integer ii, Byte bb, Short ss, Character cc) {
         ii += i; ii += b; ii += s; ii += c;
         i += ii; i += bb; i += ss; i += cc;
