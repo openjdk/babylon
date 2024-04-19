@@ -302,22 +302,53 @@ public final class BytecodeGenerator {
         }
     }
 
+    // Some of the operations can be deferred
+    private static boolean canDefer(Op op) {
+        return switch (op) {
+            case ConstantOp _ ->
+                // Loading a class constant may throw an exception so it cannot be deferred
+                !op.resultType().equals(JavaType.J_L_CLASS);
+            case VarOp _ ->
+                // Var with a single use block parameter operand can be deferred
+                op.operands().getFirst() instanceof Block.Parameter bp && bp.uses().size() == 1;
+            case VarAccessOp.VarLoadOp _ ->
+                // Var load can be deferred when not used as immediate operand
+                !isNextUse(op.result());
+            default -> false;
+        };
+    }
+
+    // This method narrows inconveniences in the first operand of some operations
+    private static boolean isFirstOperand(Op nextOp, Op.Result opr) {
+        return switch (nextOp) {
+            // When there is no next Op
+            case null -> false;
+            // New object cannot use first operand from stack, new array fall through to the default
+            case NewOp op when !(op.constructorType().returnType() instanceof ArrayType) ->
+                false;
+            // Lambda effective operands are captured values
+            case LambdaOp op ->
+                !op.capturedValues().isEmpty() && op.capturedValues().getFirst() == opr;
+            // Conditional branch may delegate to its BinaryTestOp
+            case ConditionalBranchOp op when getConditionForCondBrOp(op) instanceof CoreOps.BinaryTestOp bto ->
+                isFirstOperand(bto, opr);
+            // Var store effective first operand is the second
+            case VarAccessOp.VarStoreOp op ->
+                op.operands().get(1) == opr;
+            // regular check of the first operand
+            default ->
+                !nextOp.operands().isEmpty() && nextOp.operands().getFirst() == opr;
+        };
+    }
+
     // Determines if the operation result used by the next operation as the first operand
     private static boolean isNextUse(Op.Result opr) {
-        // Pass over constant operations
+        // Pass over deferred operations
         Op nextOp = opr.op();
         do {
             nextOp = opr.declaringBlock().nextOp(nextOp);
-        } while (nextOp instanceof CoreOps.ConstantOp op && !op.resultType().equals(JavaType.J_L_CLASS));
-
-        return switch (nextOp) {
-            case NewOp op when !(op.constructorType().returnType() instanceof ArrayType) -> false;
-            case LambdaOp op -> !op.capturedValues().isEmpty() && op.capturedValues().getFirst() == opr;
-            case ConditionalBranchOp op -> !(getConditionForCondBrOp(op) instanceof CoreOps.BinaryTestOp);
-            case VarAccessOp.VarStoreOp op -> op.operands().get(1) == opr;
-            case null -> false;
-            default -> !nextOp.operands().isEmpty() && nextOp.operands().getFirst() == opr;
-        };
+        } while (canDefer(nextOp));
+        return isFirstOperand(nextOp, opr);
     }
 
     private static boolean isConditionForCondBrOp(CoreOps.BinaryTestOp op) {
@@ -486,23 +517,31 @@ public final class BytecodeGenerator {
                 final TypeKind rvt = toTypeKind(oprType);
                 switch (o) {
                     case ConstantOp op -> {
-                        if (op.resultType().equals(JavaType.J_L_CLASS)) {
+                        if (!canDefer(op)) {
                             // Loading a class constant may throw an exception so it cannot be deferred
                             cob.ldc(((JavaType)op.value()).toNominalDescriptor());
                             push(op.result());
-                        } // Defer process to use, where constants are inlined
+                        }
                     }
                     case VarOp op -> {
                         //     %1 : Var<int> = var %0 @"i";
-                        processFirstOperand(op);
-                        allocateSlot(op.result());
-                        push(op.result());
+                        if (canDefer(op)) {
+                            // Var with a single use block parameter operand can delegate
+                            slots.put(op.result(), slots.get(op.operands().getFirst()));
+                        } else {
+                            processOperand(op.operands().getFirst());
+                            allocateSlot(op.result());
+                            push(op.result());
+                        }
                     }
                     case VarAccessOp.VarLoadOp op -> {
-                        processFirstOperand(op);
-                        // Share slot of the Var
-                        slots.computeIfAbsent(op.result(), r -> slots.get(op.operands().get(0)));
-                        push(op.result());
+                        if (canDefer(op)) {
+                            // Var load can be deferred when not used as immediate operand
+                            slots.computeIfAbsent(op.result(), r -> slots.get(op.operands().getFirst()));
+                        } else {
+                            processFirstOperand(op);
+                            push(op.result());
+                        }
                     }
                     case VarAccessOp.VarStoreOp op -> {
                         processOperand(op.operands().get(1));
@@ -516,7 +555,7 @@ public final class BytecodeGenerator {
                         push(op.result());
                     }
                     case NegOp op -> {
-                        processFirstOperand(op);;
+                        processFirstOperand(op);
                         switch (rvt) { //this can be moved to CodeBuilder::neg(TypeKind)
                             case IntType, BooleanType, ByteType, ShortType, CharType -> cob.ineg();
                             case LongType -> cob.lneg();
@@ -527,7 +566,7 @@ public final class BytecodeGenerator {
                         push(op.result());
                     }
                     case NotOp op -> {
-                        processFirstOperand(op);;
+                        processFirstOperand(op);
                         cob.ifThenElse(CodeBuilder::iconst_0, CodeBuilder::iconst_1);
                         push(op.result());
                     }
