@@ -191,6 +191,7 @@ public final class BytecodeGenerator {
     private final Map<Value, Slot> slots;
     private final List<LambdaOp> lambdaSink;
     private final BitSet quotable;
+    private Op.Result oprOnStack;
 
     private BytecodeGenerator(MethodHandles.Lookup lookup,
                               ClassDesc className,
@@ -272,39 +273,51 @@ public final class BytecodeGenerator {
         }
     }
 
-    private void processOperands(Op op, boolean isLastOpResultOnStack) {
-        for (int i = isLastOpResultOnStack ? 1 : 0; i < op.operands().size(); i++) {
-            load(op.operands().get(i));
+    private void processFirstOperand(Op op) {
+        processOperand(op.operands().getFirst());;
+    }
+
+    private void processOperand(Value operand) {
+        if (oprOnStack == null) {
+            load(operand);
+        } else {
+            assert oprOnStack == operand;
+            oprOnStack = null;
         }
     }
 
-    // Determines if the operation result used only by the next operation as the first operand
-    private static boolean isResultOnlyUse(Op.Result opr) {
-        Set<Op.Result> uses = opr.uses();
-        if (uses.size() != 1) {
-            return false;
-        }
+    private void processOperands(Op op) {
+        processOperands(op.operands());
+    }
 
+    private void processOperands(List<Value> operands) {
+        if (oprOnStack == null) {
+            operands.forEach(this::load);
+        } else {
+            assert !operands.isEmpty() && oprOnStack == operands.getFirst();
+            oprOnStack = null;
+            for (int i = 1; i < operands.size(); i++) {
+                load(operands.get(i));
+            }
+        }
+    }
+
+    // Determines if the operation result used by the next operation as the first operand
+    private static boolean isNextUse(Op.Result opr) {
         // Pass over constant operations
-        Op.Result use = uses.iterator().next();
         Op nextOp = opr.op();
         do {
             nextOp = opr.declaringBlock().nextOp(nextOp);
-        } while (nextOp instanceof CoreOps.ConstantOp);
+        } while (nextOp instanceof CoreOps.ConstantOp op && !op.resultType().equals(JavaType.J_L_CLASS));
 
-        if (nextOp == null || use != nextOp.result()) {
-            return false;
-        }
-
-        // Check if used in successor
-        for (Block.Reference s : nextOp.successors()) {
-            if (s.arguments().contains(opr)) {
-                return false;
-            }
-        }
-
-        List<Value> operands = nextOp.operands();
-        return !operands.isEmpty() && opr == operands.get(0);
+        return switch (nextOp) {
+            case NewOp op when !(op.constructorType().returnType() instanceof ArrayType) -> false;
+            case LambdaOp op -> !op.capturedValues().isEmpty() && op.capturedValues().getFirst() == opr;
+            case ConditionalBranchOp op -> !(getConditionForCondBrOp(op) instanceof CoreOps.BinaryTestOp);
+            case VarAccessOp.VarStoreOp op -> op.operands().get(1) == opr;
+            case null -> false;
+            default -> !nextOp.operands().isEmpty() && nextOp.operands().getFirst() == opr;
+        };
     }
 
     private static boolean isConditionForCondBrOp(CoreOps.BinaryTestOp op) {
@@ -466,57 +479,44 @@ public final class BytecodeGenerator {
             }
 
             List<Op> ops = b.ops();
-            // True if the last result is retained on the stack for use as first operand of current operation
-            boolean isLastOpResultOnStack = false;
-            Op.Result oprOnStack = null;
+            oprOnStack = null;
             for (int i = 0; i < ops.size() - 1; i++) {
-                Op o = ops.get(i);
-                TypeElement oprType = o.resultType();
-                TypeKind rvt = toTypeKind(oprType);
+                final Op o = ops.get(i);
+                final TypeElement oprType = o.resultType();
+                final TypeKind rvt = toTypeKind(oprType);
                 switch (o) {
                     case ConstantOp op -> {
                         if (op.resultType().equals(JavaType.J_L_CLASS)) {
                             // Loading a class constant may throw an exception so it cannot be deferred
                             cob.ldc(((JavaType)op.value()).toNominalDescriptor());
-                        } else {
-                          // Defer process to use, where constants are inlined
-                          // This applies to both operands and successor arguments
-                          rvt = TypeKind.VoidType;
-                        }
+                            push(op.result());
+                        } // Defer process to use, where constants are inlined
                     }
                     case VarOp op -> {
                         //     %1 : Var<int> = var %0 @"i";
-                        if (isLastOpResultOnStack || !op.result().uses().isEmpty()) {
-                            processOperands(op, isLastOpResultOnStack);
-                            isLastOpResultOnStack = false;
-                            // Use slot of variable result
-                            storeIfUsed(op.result());
-                        }
-                        // Ignore result
-                        rvt = TypeKind.VoidType;
+                        processFirstOperand(op);
+                        allocateSlot(op.result());
+                        push(op.result());
                     }
                     case VarAccessOp.VarLoadOp op -> {
-                        // Use slot of variable result
-                        Slot slot = load(op.operands().get(0));
-                        if (slot != null) {
-                            slots.putIfAbsent(op.result(), slot);
-                        }
+                        processFirstOperand(op);
+                        // Share slot of the Var
+                        slots.computeIfAbsent(op.result(), r -> slots.get(op.operands().get(0)));
+                        push(op.result());
                     }
                     case VarAccessOp.VarStoreOp op -> {
-                        if (!isLastOpResultOnStack) {
-                            load(op.operands().get(1));
-                            isLastOpResultOnStack = false;
-                        }
-                        // Use slot of variable result
+                        processOperand(op.operands().get(1));
                         storeIfUsed(op.operands().get(0));
                     }
                     case ConvOp op -> {
-                        processOperands(op, isLastOpResultOnStack);
-                        TypeKind tk = toTypeKind(op.operands().get(0).type());
+                        Value first = op.operands().getFirst();
+                        processOperand(first);
+                        TypeKind tk = toTypeKind(first.type());
                         if (tk != rvt) cob.convertInstruction(tk, rvt);
+                        push(op.result());
                     }
                     case NegOp op -> {
-                        processOperands(op, isLastOpResultOnStack);
+                        processFirstOperand(op);;
                         switch (rvt) { //this can be moved to CodeBuilder::neg(TypeKind)
                             case IntType, BooleanType, ByteType, ShortType, CharType -> cob.ineg();
                             case LongType -> cob.lneg();
@@ -524,13 +524,15 @@ public final class BytecodeGenerator {
                             case DoubleType -> cob.dneg();
                             default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
                         }
+                        push(op.result());
                     }
                     case NotOp op -> {
-                        processOperands(op, isLastOpResultOnStack);
+                        processFirstOperand(op);;
                         cob.ifThenElse(CodeBuilder::iconst_0, CodeBuilder::iconst_1);
+                        push(op.result());
                     }
                     case AddOp op -> {
-                        processOperands(op, isLastOpResultOnStack);
+                        processOperands(op);
                         switch (rvt) { //this can be moved to CodeBuilder::add(TypeKind)
                             case IntType, BooleanType, ByteType, ShortType, CharType -> cob.iadd();
                             case LongType -> cob.ladd();
@@ -538,9 +540,10 @@ public final class BytecodeGenerator {
                             case DoubleType -> cob.dadd();
                             default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
                         }
+                        push(op.result());
                     }
                     case SubOp op -> {
-                        processOperands(op, isLastOpResultOnStack);
+                        processOperands(op);
                         switch (rvt) { //this can be moved to CodeBuilder::sub(TypeKind)
                             case IntType, BooleanType, ByteType, ShortType, CharType -> cob.isub();
                             case LongType -> cob.lsub();
@@ -548,9 +551,10 @@ public final class BytecodeGenerator {
                             case DoubleType -> cob.dsub();
                             default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
                         }
+                        push(op.result());
                     }
                     case MulOp op -> {
-                        processOperands(op, isLastOpResultOnStack);
+                        processOperands(op);
                         switch (rvt) { //this can be moved to CodeBuilder::mul(TypeKind)
                             case IntType, BooleanType, ByteType, ShortType, CharType -> cob.imul();
                             case LongType -> cob.lmul();
@@ -558,9 +562,10 @@ public final class BytecodeGenerator {
                             case DoubleType -> cob.dmul();
                             default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
                         }
+                        push(op.result());
                     }
                     case DivOp op -> {
-                        processOperands(op, isLastOpResultOnStack);
+                        processOperands(op);
                         switch (rvt) { //this can be moved to CodeBuilder::div(TypeKind)
                             case IntType, BooleanType, ByteType, ShortType, CharType -> cob.idiv();
                             case LongType -> cob.ldiv();
@@ -568,9 +573,10 @@ public final class BytecodeGenerator {
                             case DoubleType -> cob.ddiv();
                             default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
                         }
+                        push(op.result());
                     }
                     case ModOp op -> {
-                        processOperands(op, isLastOpResultOnStack);
+                        processOperands(op);
                         switch (rvt) { //this can be moved to CodeBuilder::rem(TypeKind)
                             case IntType, BooleanType, ByteType, ShortType, CharType -> cob.irem();
                             case LongType -> cob.lrem();
@@ -578,116 +584,120 @@ public final class BytecodeGenerator {
                             case DoubleType -> cob.drem();
                             default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
                         }
+                        push(op.result());
                     }
                     case AndOp op -> {
-                        processOperands(op, isLastOpResultOnStack);
+                        processOperands(op);
                         switch (rvt) { //this can be moved to CodeBuilder::and(TypeKind)
                             case IntType, BooleanType, ByteType, ShortType, CharType -> cob.iand();
                             case LongType -> cob.land();
                             default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
                         }
+                        push(op.result());
                     }
                     case OrOp op -> {
-                        processOperands(op, isLastOpResultOnStack);
+                        processOperands(op);
                         switch (rvt) { //this can be moved to CodeBuilder::or(TypeKind)
                             case IntType, BooleanType, ByteType, ShortType, CharType -> cob.ior();
                             case LongType -> cob.lor();
                             default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
                         }
+                        push(op.result());
                     }
                     case XorOp op -> {
-                        processOperands(op, isLastOpResultOnStack);
+                        processOperands(op);
                         switch (rvt) { //this can be moved to CodeBuilder::xor(TypeKind)
                             case IntType, BooleanType, ByteType, ShortType, CharType -> cob.ixor();
                             case LongType -> cob.lxor();
                             default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
                         }
+                        push(op.result());
                     }
                     case LshlOp op -> {
-                        processOperands(op, isLastOpResultOnStack);
+                        processOperands(op);
                         adjustRightTypeToInt(op);
                         switch (rvt) { //this can be moved to CodeBuilder::shl(TypeKind)
                             case IntType -> cob.ishl();
                             case LongType -> cob.lshl();
                             default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
                         }
+                        push(op.result());
                     }
                     case AshrOp op -> {
-                        processOperands(op, isLastOpResultOnStack);
+                        processOperands(op);
                         adjustRightTypeToInt(op);
                         switch (rvt) { //this can be moved to CodeBuilder::shr(TypeKind)
                             case IntType -> cob.ishr();
                             case LongType -> cob.lshr();
                             default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
                         }
+                        push(op.result());
                     }
                     case LshrOp op -> {
-                        processOperands(op, isLastOpResultOnStack);
+                        processOperands(op);
                         adjustRightTypeToInt(op);
                         switch (rvt) { //this can be moved to CodeBuilder::ushr(TypeKind)
                             case IntType -> cob.iushr();
                             case LongType -> cob.lushr();
                             default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
                         }
+                        push(op.result());
                     }
                     case ArrayAccessOp.ArrayLoadOp op -> {
-                        processOperands(op, isLastOpResultOnStack);
+                        processOperands(op);
                         cob.arrayLoadInstruction(rvt);
+                        push(op.result());
                     }
                     case ArrayAccessOp.ArrayStoreOp op -> {
-                        processOperands(op, isLastOpResultOnStack);
-                        TypeKind evt = toTypeKind(op.operands().get(2).type());
-                        cob.arrayStoreInstruction(evt);
+                        processOperands(op);
+                        cob.arrayStoreInstruction(toTypeKind(op.operands().get(2).type()));
+                        push(op.result());
                     }
                     case ArrayLengthOp op -> {
-                        processOperands(op, isLastOpResultOnStack);
+                        processFirstOperand(op);
                         cob.arraylength();
+                        push(op.result());
                     }
                     case BinaryTestOp op -> {
                         if (!isConditionForCondBrOp(op)) {
-                            processOperands(op, isLastOpResultOnStack);
+                            processOperands(op);
                             cob.ifThenElse(prepareReverseCondition(op), CodeBuilder::iconst_0, CodeBuilder::iconst_1);
-                        } else {
-                            // Processing is deferred to the CondBrOp, do not process the op result
-                            rvt = TypeKind.VoidType;
+                            push(op.result());
                         }
+                        // Processing is deferred to the CondBrOp, do not process the op result
                     }
                     case NewOp op -> {
-                        TypeElement t_ = op.constructorType().returnType();
-                        JavaType t = (JavaType) t_;
-                        switch (t) {
-                            case ArrayType at when at.dimensions() == 1 -> {
-                                processOperands(op, isLastOpResultOnStack);
-                                ClassDesc ctd = at.componentType().toNominalDescriptor();
-                                if (ctd.isPrimitive()) {
-                                    cob.newarray(TypeKind.from(ctd));
-                                } else {
-                                    cob.anewarray(ctd);
-                                }
-                            }
+                        switch (op.constructorType().returnType()) {
                             case ArrayType at -> {
-                                processOperands(op, isLastOpResultOnStack);
-                                cob.multianewarray(t.toNominalDescriptor(), op.operands().size());
-                            }
-                            default -> {
-                                if (isLastOpResultOnStack) {
-                                    storeIfUsed(oprOnStack);
-                                    isLastOpResultOnStack = false;
-                                    oprOnStack = null;
+                                processOperands(op);
+                                if (at.dimensions() == 1) {
+                                    ClassDesc ctd = at.componentType().toNominalDescriptor();
+                                    if (ctd.isPrimitive()) {
+                                        cob.newarray(TypeKind.from(ctd));
+                                    } else {
+                                        cob.anewarray(ctd);
+                                    }
+                                } else {
+                                    cob.multianewarray(at.toNominalDescriptor(), op.operands().size());
                                 }
-                                cob.new_(t.toNominalDescriptor())
-                                        .dup();
-                                processOperands(op, false);
+                            }
+                            case JavaType jt -> {
+                                cob.new_(jt.toNominalDescriptor())
+                                    .dup();
+                                processOperands(op);
                                 cob.invokespecial(
                                         ((JavaType) op.resultType()).toNominalDescriptor(),
                                         ConstantDescs.INIT_NAME,
                                         MethodRef.toNominalDescriptor(op.constructorType())
-                                                .changeReturnType(ConstantDescs.CD_void));
+                                                 .changeReturnType(ConstantDescs.CD_void));
                             }
+                            default ->
+                                throw new IllegalArgumentException("Invalid return type: " + op.constructorType().returnType());
                         }
+                        push(op.result());
                     }
                     case InvokeOp op -> {
-                        processOperands(op, isLastOpResultOnStack);
+                        processOperands(op);
                         // @@@ Enhance method descriptor to include how the method is to be invoked
                         // Example result of DirectMethodHandleDesc.toString()
                         //   INTERFACE_VIRTUAL/IntBinaryOperator::applyAsInt(IntBinaryOperator,int,int)int
@@ -723,12 +733,10 @@ public final class BytecodeGenerator {
                                     default -> false;
                                 });
 
-                        if (op.resultType().equals(JavaType.VOID) && !op.operands().isEmpty()) {
-                            isLastOpResultOnStack = false;
-                        }
+                        push(op.result());
                     }
                     case FieldAccessOp.FieldLoadOp op -> {
-                        processOperands(op, isLastOpResultOnStack);
+                        processOperands(op);
                         FieldRef fd = op.fieldDescriptor();
                         if (op.operands().isEmpty()) {
                             cob.getstatic(
@@ -741,10 +749,10 @@ public final class BytecodeGenerator {
                                     fd.name(),
                                     ((JavaType) fd.type()).toNominalDescriptor());
                         }
+                        push(op.result());
                     }
                     case FieldAccessOp.FieldStoreOp op -> {
-                        processOperands(op, isLastOpResultOnStack);
-                        isLastOpResultOnStack = false;
+                        processOperands(op);
                         FieldRef fd = op.fieldDescriptor();
                         if (op.operands().size() == 1) {
                             cob.putstatic(
@@ -759,21 +767,21 @@ public final class BytecodeGenerator {
                         }
                     }
                     case InstanceOfOp op -> {
-                        processOperands(op, isLastOpResultOnStack);
+                        processFirstOperand(op);
                         cob.instanceof_(((JavaType) op.type()).toNominalDescriptor());
+                        push(op.result());
                     }
                     case CastOp op -> {
-                        processOperands(op, isLastOpResultOnStack);
+                        processFirstOperand(op);
                         cob.checkcast(((JavaType) op.type()).toNominalDescriptor());
+                        push(op.result());
                     }
                     case LambdaOp op -> {
                         JavaType intfType = (JavaType)op.functionalInterface();
+                        MethodTypeDesc mtd = MethodRef.toNominalDescriptor(op.invokableType());
                         try {
                             Class<?> intfClass = intfType.resolve(lookup);
-                            for (Value cv : op.capturedValues()) {
-                                load(cv);
-                            }
-                            MethodTypeDesc mtd = MethodRef.toNominalDescriptor(op.invokableType());
+                            processOperands(op.capturedValues());
                             ClassDesc[] captureTypes = op.capturedValues().stream()
                                     .map(Value::type).map(BytecodeGenerator::toClassDesc).toArray(ClassDesc[]::new);
                             int lambdaIndex = lambdaSink.size();
@@ -817,20 +825,10 @@ public final class BytecodeGenerator {
                         } catch (ReflectiveOperationException e) {
                             throw new IllegalArgumentException(e);
                         }
+                        push(op.result());
                     }
                     default ->
                         throw new UnsupportedOperationException("Unsupported operation: " + ops.get(i));
-                }
-                // Assign slot to operation result
-                if (rvt != TypeKind.VoidType) {
-                    if (!isResultOnlyUse(o.result())) {
-                        isLastOpResultOnStack = false;
-                        oprOnStack = null;
-                        storeIfUsed(o.result());
-                    } else {
-                        isLastOpResultOnStack = true;
-                        oprOnStack = o.result();
-                    }
                 }
             }
             Op top = b.terminatingOp();
@@ -840,12 +838,12 @@ public final class BytecodeGenerator {
                     if (a == null) {
                         cob.return_();
                     } else {
-                        processOperands(op, isLastOpResultOnStack);
+                        processFirstOperand(op);
                         cob.returnInstruction(toTypeKind(a.type()));
                     }
                 }
                 case ThrowOp op -> {
-                    processOperands(op, isLastOpResultOnStack);
+                    processFirstOperand(op);
                     cob.athrow();
                 }
                 case BranchOp op -> {
@@ -855,10 +853,10 @@ public final class BytecodeGenerator {
                 case ConditionalBranchOp op -> {
                     if (getConditionForCondBrOp(op) instanceof CoreOps.BinaryTestOp btop) {
                         // Processing of the BinaryTestOp was deferred, so it can be merged with CondBrOp
-                        processOperands(btop, isLastOpResultOnStack);
+                        processOperands(btop);
                         conditionalBranch(btop, op.trueBranch(), op.falseBranch());
                     } else {
-                        processOperands(op, isLastOpResultOnStack);
+                        processOperands(op);
                         conditionalBranch(Opcode.IFEQ, op, op.trueBranch(), op.falseBranch());
                     }
                 }
@@ -875,6 +873,33 @@ public final class BytecodeGenerator {
         }
     }
 
+    private boolean inBlockArgs(Op.Result res) {
+        // Check if used in successor
+        for (Block.Reference s : res.declaringBlock().successors()) {
+            if (s.arguments().contains(res)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void push(Op.Result res) {
+        assert oprOnStack == null;
+        if (res.type().equals(JavaType.VOID)) return;
+        if (isNextUse(res)) {
+            if (res.uses().size() > 1 || inBlockArgs(res)) {
+                switch (toTypeKind(res.type()).slotSize()) {
+                    case 1 -> cob.dup();
+                    case 2 -> cob.dup2();
+                }
+                storeIfUsed(res);
+            }
+            oprOnStack = res;
+        } else {
+            storeIfUsed(res);
+            oprOnStack = null;
+        }
+    }
     // the rhs of any shift instruction must be int or smaller -> convert longs
     private void adjustRightTypeToInt(Op op) {
         TypeElement right = op.operands().getLast().type();
@@ -1028,7 +1053,11 @@ public final class BytecodeGenerator {
             Block.Parameter barg = bargs.get(i);
             Value value = sargs.get(i);
             if (!barg.uses().isEmpty() && !barg.equals(value)) {
-                load(value);
+                if (oprOnStack == value) {
+                    oprOnStack = null;
+                } else {
+                    load(value);
+                }
                 storeIfUsed(barg);
             }
         }
