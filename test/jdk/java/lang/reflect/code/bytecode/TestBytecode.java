@@ -578,13 +578,18 @@ public class TestBytecode {
             lfunc.writeTo(System.out);
             String methodName = d.testMethod().getName();
             for (var mm : CLASS_MODEL.methods()) {
-                if (mm.methodName().equalsString(methodName) || mm.methodName().stringValue().startsWith("lambda$" + methodName + "$")) {
-                    ClassPrinter.toYaml(mm, ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES, System.out::print);
+                if (mm.methodName().equalsString(methodName)
+                        || mm.methodName().stringValue().startsWith("lambda$" + methodName + "$")) {
+                    ClassPrinter.toYaml(mm,
+                                        ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES,
+                                        System.out::print);
                 }
             }
             Files.list(Path.of("DUMP_CLASS_FILES")).forEach(p -> {
                 if (p.getFileName().toString().matches(methodName + "\\..+\\.class")) try {
-                    ClassPrinter.toYaml(ClassFile.of().parse(p), ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES, System.out::print);
+                    ClassPrinter.toYaml(ClassFile.of().parse(p),
+                                        ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES,
+                                        System.out::print);
                 } catch (IOException ignore) {}
             });
             throw e;

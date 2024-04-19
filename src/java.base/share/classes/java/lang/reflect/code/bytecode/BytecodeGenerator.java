@@ -731,7 +731,8 @@ public final class BytecodeGenerator {
                                                  .changeReturnType(ConstantDescs.CD_void));
                             }
                             default ->
-                                throw new IllegalArgumentException("Invalid return type: " + op.constructorType().returnType());
+                                throw new IllegalArgumentException("Invalid return type: "
+                                                                    + op.constructorType().returnType());
                         }
                         push(op.result());
                     }
@@ -939,6 +940,7 @@ public final class BytecodeGenerator {
             oprOnStack = null;
         }
     }
+
     // the rhs of any shift instruction must be int or smaller -> convert longs
     private void adjustRightTypeToInt(Op op) {
         TypeElement right = op.operands().getLast().type();
