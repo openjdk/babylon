@@ -306,7 +306,7 @@ public final class BytecodeGenerator {
     private static boolean canDefer(Op op) {
         return switch (op) {
             case ConstantOp _ ->
-                // Loading a class constant may throw an exception so it cannot be deferred
+                // Constant can be deferred, except for loading of a class constant, which  may throw an exception
                 !op.resultType().equals(JavaType.J_L_CLASS);
             case VarOp _ ->
                 // Var with a single-use block parameter operand can be deferred
@@ -518,7 +518,7 @@ public final class BytecodeGenerator {
                 switch (o) {
                     case ConstantOp op -> {
                         if (!canDefer(op)) {
-                            // Loading a class constant may throw an exception so it cannot be deferred
+                            // Constant can be deferred, except for a class constant, which  may throw an exception
                             cob.ldc(((JavaType)op.value()).toNominalDescriptor());
                             push(op.result());
                         }
