@@ -37,8 +37,8 @@ public class DenotableTypesTest {
     @CodeReflection
     @IR("""
             func @"test1" ()void -> {
-                  %0 : &<java.lang.Number, java.lang.Runnable> = constant @null;
-                  %1 : &<java.lang.Number, java.lang.Runnable> = invoke %0 @"DenotableTypesTest::m1(java.lang.Number)java.lang.Number";
+                  %0 : java.lang.Number = constant @null;
+                  %1 : java.lang.Number = invoke %0 @"DenotableTypesTest::m1(java.lang.Number)java.lang.Number";
                   return;
             };
             """)
@@ -53,7 +53,7 @@ public class DenotableTypesTest {
                   %1 : java.lang.Integer = invoke %0 @"java.lang.Integer::valueOf(int)java.lang.Integer";
                   %2 : double = constant @"3.0";
                   %3 : java.lang.Double = invoke %2 @"java.lang.Double::valueOf(double)java.lang.Double";
-                  %4 : java.util.List<&<java.lang.Number, java.lang.Comparable<+<&<java.lang.Number, java.lang.Comparable<+<java.lang.Object>>, java.lang.constant.Constable, java.lang.constant.ConstantDesc>>>, java.lang.constant.Constable, java.lang.constant.ConstantDesc>> = invoke %1 %3 @"java.util.List::of(java.lang.Object, java.lang.Object)java.util.List";
+                  %4 : java.util.List<+<java.lang.Number>> = invoke %1 %3 @"java.util.List::of(java.lang.Object, java.lang.Object)java.util.List";
                   return;
             };
             """)
@@ -89,7 +89,7 @@ public class DenotableTypesTest {
                   %1 : DenotableTypesTest$C = cast %0 @"DenotableTypesTest$C";
                   %2 : java.lang.Object = constant @null;
                   %3 : DenotableTypesTest$D = cast %2 @"DenotableTypesTest$D";
-                  %4 : &<java.lang.Object, DenotableTypesTest$A, DenotableTypesTest$B> = invoke %1 %3 @"DenotableTypesTest::pick(java.lang.Object, java.lang.Object)java.lang.Object";
+                  %4 : DenotableTypesTest$A = invoke %1 %3 @"DenotableTypesTest::pick(java.lang.Object, java.lang.Object)java.lang.Object";
                   return;
             };
             """)
@@ -189,11 +189,15 @@ public class DenotableTypesTest {
         Integer i = list.get(0).x;
     }
 
-    static class XA extends Exception {
+    interface E {
+        void m();
+    }
+
+    static class XA extends Exception implements E {
         public void m() { }
     }
 
-    static class XB extends Exception {
+    static class XB extends Exception implements E {
         public void m() { }
     }
 
@@ -207,10 +211,11 @@ public class DenotableTypesTest {
                           invoke @"DenotableTypesTest::g()void";
                           yield;
                       }
-                      (%0 : |<DenotableTypesTest$XA, DenotableTypesTest$XB>)void -> {
-                          %1 : Var<|<DenotableTypesTest$XA, DenotableTypesTest$XB>> = var %0 @"x";
-                          %2 : |<DenotableTypesTest$XA, DenotableTypesTest$XB> = var.load %1;
-                          %3 : java.lang.Throwable = invoke %2 @"java.lang.Exception::getCause()java.lang.Throwable";
+                      (%0 : java.lang.Exception)void -> {
+                          %1 : Var<java.lang.Exception> = var %0 @"x";
+                          %2 : java.lang.Exception = var.load %1;
+                          %3 : DenotableTypesTest$E = cast %2 @"DenotableTypesTest$E";
+                          invoke %3 @"DenotableTypesTest$E::m()void";
                           yield;
                       };
                   return;
@@ -220,7 +225,7 @@ public class DenotableTypesTest {
         try {
             g();
         } catch (XA | XB x) {
-            x.getCause();
+            x.m();
         }
     }
 }

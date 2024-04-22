@@ -183,14 +183,14 @@ class IntersectionTypeTest {
                     %3 : Var<IntersectionTypeTest$E2> = var %1 @"e2";
                     %4 : IntersectionTypeTest$E1 = var.load %2;
                     %5 : IntersectionTypeTest$E2 = var.load %3;
-                    %6 : &<java.lang.Object, IntersectionTypeTest$A, IntersectionTypeTest$B, IntersectionTypeTest$C> = invoke %4 %5 @"IntersectionTypeTest::makeIntersection(IntersectionTypeTest$A, IntersectionTypeTest$A)IntersectionTypeTest$A";
-                    %7 : Var<&<java.lang.Object, IntersectionTypeTest$A, IntersectionTypeTest$B, IntersectionTypeTest$C>> = var %6 @"x";
-                    %8 : &<java.lang.Object, IntersectionTypeTest$A, IntersectionTypeTest$B, IntersectionTypeTest$C> = var.load %7;
+                    %6 : IntersectionTypeTest$A = invoke %4 %5 @"IntersectionTypeTest::makeIntersection(IntersectionTypeTest$A, IntersectionTypeTest$A)IntersectionTypeTest$A";
+                    %7 : Var<IntersectionTypeTest$A> = var %6 @"x";
+                    %8 : IntersectionTypeTest$A = var.load %7;
                     invoke %8 @"IntersectionTypeTest$A::m_A()void";
-                    %9 : &<java.lang.Object, IntersectionTypeTest$A, IntersectionTypeTest$B, IntersectionTypeTest$C> = var.load %7;
+                    %9 : IntersectionTypeTest$A = var.load %7;
                     %10 : IntersectionTypeTest$B = cast %9 @"IntersectionTypeTest$B";
                     invoke %10 @"IntersectionTypeTest$B::m_B()void";
-                    %11 : &<java.lang.Object, IntersectionTypeTest$A, IntersectionTypeTest$B, IntersectionTypeTest$C> = var.load %7;
+                    %11 : IntersectionTypeTest$A = var.load %7;
                     %12 : IntersectionTypeTest$C = cast %11 @"IntersectionTypeTest$C";
                     invoke %12 @"IntersectionTypeTest$C::m_C()void";
                     return;
@@ -210,15 +210,15 @@ class IntersectionTypeTest {
                   %3 : Var<IntersectionTypeTest$E2> = var %1 @"e2";
                   %4 : IntersectionTypeTest$E1 = var.load %2;
                   %5 : IntersectionTypeTest$E2 = var.load %3;
-                  %6 : &<java.lang.Object, IntersectionTypeTest$A, IntersectionTypeTest$B, IntersectionTypeTest$C> = invoke %4 %5 @"IntersectionTypeTest::makeIntersection(IntersectionTypeTest$A, IntersectionTypeTest$A)IntersectionTypeTest$A";
-                  %7 : Var<&<java.lang.Object, IntersectionTypeTest$A, IntersectionTypeTest$B, IntersectionTypeTest$C>> = var %6 @"x";
-                  %8 : &<java.lang.Object, IntersectionTypeTest$A, IntersectionTypeTest$B, IntersectionTypeTest$C> = var.load %7;
+                  %6 : IntersectionTypeTest$A = invoke %4 %5 @"IntersectionTypeTest::makeIntersection(IntersectionTypeTest$A, IntersectionTypeTest$A)IntersectionTypeTest$A";
+                  %7 : Var<IntersectionTypeTest$A> = var %6 @"x";
+                  %8 : IntersectionTypeTest$A = var.load %7;
                   %9 : java.lang.Object = field.load @"IntersectionTypeTest$A::f_A()java.lang.Object";
                   %10 : Var<java.lang.Object> = var %9 @"oA";
-                  %11 : &<java.lang.Object, IntersectionTypeTest$A, IntersectionTypeTest$B, IntersectionTypeTest$C> = var.load %7;
+                  %11 : IntersectionTypeTest$A = var.load %7;
                   %12 : java.lang.Object = field.load @"IntersectionTypeTest$B::f_B()java.lang.Object";
                   %13 : Var<java.lang.Object> = var %12 @"oB";
-                  %14 : &<java.lang.Object, IntersectionTypeTest$A, IntersectionTypeTest$B, IntersectionTypeTest$C> = var.load %7;
+                  %14 : IntersectionTypeTest$A = var.load %7;
                   %15 : java.lang.Object = field.load @"IntersectionTypeTest$C::f_C()java.lang.Object";
                   %16 : Var<java.lang.Object> = var %15 @"oC";
                   return;
@@ -238,9 +238,9 @@ class IntersectionTypeTest {
                   %3 : Var<IntersectionTypeTest$E2> = var %1 @"e2";
                   %4 : IntersectionTypeTest$E1 = var.load %2;
                   %5 : IntersectionTypeTest$E2 = var.load %3;
-                  %6 : &<java.lang.Object, IntersectionTypeTest$A, IntersectionTypeTest$B, IntersectionTypeTest$C> = invoke %4 %5 @"IntersectionTypeTest::makeIntersection(IntersectionTypeTest$A, IntersectionTypeTest$A)IntersectionTypeTest$A";
-                  %7 : Var<&<java.lang.Object, IntersectionTypeTest$A, IntersectionTypeTest$B, IntersectionTypeTest$C>> = var %6 @"x";
-                  %8 : &<java.lang.Object, IntersectionTypeTest$A, IntersectionTypeTest$B, IntersectionTypeTest$C> = var.load %7;
+                  %6 : IntersectionTypeTest$A = invoke %4 %5 @"IntersectionTypeTest::makeIntersection(IntersectionTypeTest$A, IntersectionTypeTest$A)IntersectionTypeTest$A";
+                  %7 : Var<IntersectionTypeTest$A> = var %6 @"x";
+                  %8 : IntersectionTypeTest$A = var.load %7;
                   %9 : Var<IntersectionTypeTest$A> = var %8 @"rec$";
                   %10 : java.lang.Runnable = lambda ()void -> {
                       %11 : IntersectionTypeTest$A = var.load %9;
@@ -248,7 +248,7 @@ class IntersectionTypeTest {
                       return;
                   };
                   %12 : Var<java.lang.Runnable> = var %10 @"rA";
-                  %13 : &<java.lang.Object, IntersectionTypeTest$A, IntersectionTypeTest$B, IntersectionTypeTest$C> = var.load %7;
+                  %13 : IntersectionTypeTest$A = var.load %7;
                   %14 : IntersectionTypeTest$B = cast %13 @"IntersectionTypeTest$B";
                   %15 : Var<IntersectionTypeTest$B> = var %14 @"rec$";
                   %16 : java.lang.Runnable = lambda ()void -> {
@@ -257,7 +257,7 @@ class IntersectionTypeTest {
                       return;
                   };
                   %18 : Var<java.lang.Runnable> = var %16 @"rB";
-                  %19 : &<java.lang.Object, IntersectionTypeTest$A, IntersectionTypeTest$B, IntersectionTypeTest$C> = var.load %7;
+                  %19 : IntersectionTypeTest$A = var.load %7;
                   %20 : IntersectionTypeTest$C = cast %19 @"IntersectionTypeTest$C";
                   %21 : Var<IntersectionTypeTest$C> = var %20 @"rec$";
                   %22 : java.lang.Runnable = lambda ()void -> {
@@ -283,14 +283,14 @@ class IntersectionTypeTest {
                   %3 : Var<IntersectionTypeTest$E2> = var %1 @"e2";
                   %4 : IntersectionTypeTest$E1 = var.load %2;
                   %5 : IntersectionTypeTest$E2 = var.load %3;
-                  %6 : &<java.lang.Object, IntersectionTypeTest$A, IntersectionTypeTest$B, IntersectionTypeTest$C> = invoke %4 %5 @"IntersectionTypeTest::makeIntersection(IntersectionTypeTest$A, IntersectionTypeTest$A)IntersectionTypeTest$A";
-                  %7 : Var<&<java.lang.Object, IntersectionTypeTest$A, IntersectionTypeTest$B, IntersectionTypeTest$C>> = var %6 @"x";
-                  %8 : &<java.lang.Object, IntersectionTypeTest$A, IntersectionTypeTest$B, IntersectionTypeTest$C> = var.load %7;
+                  %6 : IntersectionTypeTest$A = invoke %4 %5 @"IntersectionTypeTest::makeIntersection(IntersectionTypeTest$A, IntersectionTypeTest$A)IntersectionTypeTest$A";
+                  %7 : Var<IntersectionTypeTest$A> = var %6 @"x";
+                  %8 : IntersectionTypeTest$A = var.load %7;
                   invoke %8 @"IntersectionTypeTest::g_A(IntersectionTypeTest$A)void";
-                  %9 : &<java.lang.Object, IntersectionTypeTest$A, IntersectionTypeTest$B, IntersectionTypeTest$C> = var.load %7;
+                  %9 : IntersectionTypeTest$A = var.load %7;
                   %10 : IntersectionTypeTest$B = cast %9 @"IntersectionTypeTest$B";
                   invoke %10 @"IntersectionTypeTest::g_B(IntersectionTypeTest$B)void";
-                  %11 : &<java.lang.Object, IntersectionTypeTest$A, IntersectionTypeTest$B, IntersectionTypeTest$C> = var.load %7;
+                  %11 : IntersectionTypeTest$A = var.load %7;
                   %12 : IntersectionTypeTest$C = cast %11 @"IntersectionTypeTest$C";
                   invoke %12 @"IntersectionTypeTest::g_C(IntersectionTypeTest$C)void";
                   return;

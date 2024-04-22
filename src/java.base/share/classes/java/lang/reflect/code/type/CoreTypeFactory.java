@@ -123,12 +123,6 @@ public final class CoreTypeFactory {
             } else if (identifier.startsWith("::")) {
                 // type-var
                 return JavaType.typeVarRef(identifier.substring(2));
-            } else if (identifier.equals("&")) {
-                // intersection type
-                return JavaType.intersection(typeArguments);
-            } else if (identifier.equals("|")) {
-                // union type
-                return JavaType.union(typeArguments);
             }
             JavaType t = switch (identifier) {
                 case "boolean" -> JavaType.BOOLEAN;

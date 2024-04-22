@@ -38,8 +38,7 @@ import java.util.Objects;
  */
 // @@@ Extend from this interface to model Java types with more fidelity
 public sealed interface JavaType extends TypeElement permits ClassType, ArrayType,
-                                                             PrimitiveType, WildcardType, TypeVarRef,
-                                                             IntersectionType, UnionType {
+                                                             PrimitiveType, WildcardType, TypeVarRef {
 
     // @@@ Share with general void type?
     JavaType VOID = new PrimitiveType("void");
@@ -282,24 +281,6 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
      */
     static TypeVarRef typeVarRef(String name) {
         return new TypeVarRef(name);
-    }
-
-    /**
-     * Constructs an intersection type with given components.
-     *
-     * @return an intersection type.
-     */
-    static IntersectionType intersection(List<JavaType> components) {
-        return new IntersectionType(components);
-    }
-
-    /**
-     * Constructs a union type with given components.
-     *
-     * @return a union type.
-     */
-    static UnionType union(List<JavaType> components) {
-        return new UnionType(components);
     }
 
     // Copied code in jdk.compiler module throws UOE

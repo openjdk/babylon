@@ -2206,13 +2206,7 @@ public class ReflectMethods extends TreeTranslator {
                 }
                 case TYPEVAR -> JavaType.typeVarRef(t.tsym.name.toString());
                 case CLASS -> {
-                    if (t.isIntersection()) {
-                        yield JavaType.intersection(((IntersectionClassType)t).getComponents().stream()
-                                .map(this::typeToTypeElement).toList());
-                    } else if (t.isUnion()) {
-                        yield JavaType.union(((UnionClassType)t).getAlternatives().stream()
-                                .map(a -> typeToTypeElement((Type)a)).toList());
-                    }
+                    Assert.check(!t.isIntersection() && !t.isUnion());
                     // @@@ Need to clean this up, probably does not work inner generic classes
                     // whose enclosing class is also generic
                     List<JavaType> typeArguments;
@@ -2324,7 +2318,7 @@ public class ReflectMethods extends TreeTranslator {
 
         Type normalizeType(Type t) {
             Assert.check(!t.hasTag(METHOD));
-            return types.upward(t, types.captures(t));
+            return types.upward(t, false, types.captures(t));
         }
 
         Type typeElementToType(TypeElement desc) {
