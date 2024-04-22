@@ -835,11 +835,6 @@ final class JavaBasedTokenizer extends UnicodeReader {
                         tk = Tokens.TokenKind.AMP;
                         break loop;
 
-                    case '|':
-                        next();
-                        tk = Tokens.TokenKind.OR;
-                        break loop;
-
                     case '@':
                         next();
                         tk = Tokens.TokenKind.MONKEYS_AT;

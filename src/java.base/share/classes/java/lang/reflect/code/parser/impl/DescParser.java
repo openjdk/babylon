@@ -89,7 +89,6 @@ public final class DescParser {
         // Type
         Tokens.Token t = l.accept(TokenKind.IDENTIFIER,
                 TokenKind.PLUS, TokenKind.SUB,
-                TokenKind.AMP, TokenKind.OR,
                 TokenKind.COLCOL);
         StringBuilder identifier = new StringBuilder();
         if (t.kind == TokenKind.COLCOL) {
