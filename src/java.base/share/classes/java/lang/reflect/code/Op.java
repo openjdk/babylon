@@ -95,7 +95,10 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         }
 
         /**
-         * {@return the captured values}
+         * Computes values captured by this invokable operation's body.
+         *
+         * @return the captured values.
+         * @see Body#capturedValues()
          */
         default List<Value> capturedValues() {
             return List.of();
@@ -388,6 +391,29 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         }
 
         return t;
+    }
+
+    /**
+     * Computes values captured by this operation. A captured value is a value that dominates
+     * this operation and is used by a descendant operation.
+     * <p>
+     * The order of the captured values is first use encountered in depth
+     * first search of this operation's descendant operations.
+     *
+     * @return the list of captured values, modifiable
+     * @see Body#capturedValues()
+     */
+    public List<Value> capturedValues() {
+        Set<Value> cvs = new LinkedHashSet<>();
+
+        capturedValues(cvs, new ArrayDeque<>(), this);
+        return new ArrayList<>(cvs);
+    }
+
+    static void capturedValues(Set<Value> capturedValues, Deque<Body> bodyStack, Op op) {
+        for (Body childBody : op.bodies()) {
+            Body.capturedValues(capturedValues, bodyStack, childBody);
+        }
     }
 
     /**

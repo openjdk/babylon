@@ -390,32 +390,9 @@ public final class CoreOps {
             return quotedOp;
         }
 
-        // Returns the set of values used in but declared outside the lambda's body
+        @Override
         public List<Value> capturedValues() {
-            Set<Value> cvs = new LinkedHashSet<>();
-
-            capturedValues(cvs, new ArrayDeque<>(), quotedBody);
-            return new ArrayList<>(cvs);
-        }
-
-        void capturedValues(Set<Value> capturedValues, Deque<Body> bodyStack, Body body) {
-            bodyStack.push(body);
-
-            for (Block b : body.blocks()) {
-                for (Op op : b.ops()) {
-                    for (Body childBody : op.bodies()) {
-                        capturedValues(capturedValues, bodyStack, childBody);
-                    }
-
-                    for (Value a : op.operands()) {
-                        if (!bodyStack.contains(a.declaringBlock().parentBody())) {
-                            capturedValues.add(a);
-                        }
-                    }
-                }
-            }
-
-            bodyStack.pop();
+            return quotedBody.capturedValues();
         }
 
         @Override
@@ -507,34 +484,9 @@ public final class CoreOps {
             return body;
         }
 
-        // Returns the set of values used in but declared outside the lambda's body
         @Override
         public List<Value> capturedValues() {
-            Set<Value> cvs = new LinkedHashSet<>();
-            Body body = body();
-
-            capturedValues(cvs, new ArrayDeque<>(), body);
-            return new ArrayList<>(cvs);
-        }
-
-        void capturedValues(Set<Value> capturedValues, Deque<Body> bodyStack, Body body) {
-            bodyStack.push(body);
-
-            for (Block b : body.blocks()) {
-                for (Op op : b.ops()) {
-                    for (Body childBody : op.bodies()) {
-                        capturedValues(capturedValues, bodyStack, childBody);
-                    }
-
-                    for (Value a : op.operands()) {
-                        if (!bodyStack.contains(a.declaringBlock().parentBody())) {
-                            capturedValues.add(a);
-                        }
-                    }
-                }
-            }
-
-            bodyStack.pop();
+            return body.capturedValues();
         }
 
         @Override
@@ -623,34 +575,9 @@ public final class CoreOps {
             return body;
         }
 
-        // Returns the set of values used in but declared outside the lambda's body
         @Override
         public List<Value> capturedValues() {
-            Set<Value> cvs = new LinkedHashSet<>();
-            Body body = body();
-
-            capturedValues(cvs, new ArrayDeque<>(), body);
-            return new ArrayList<>(cvs);
-        }
-
-        void capturedValues(Set<Value> capturedValues, Deque<Body> bodyStack, Body body) {
-            bodyStack.push(body);
-
-            for (Block b : body.blocks()) {
-                for (Op op : b.ops()) {
-                    for (Body childBody : op.bodies()) {
-                        capturedValues(capturedValues, bodyStack, childBody);
-                    }
-
-                    for (Value a : op.operands()) {
-                        if (!bodyStack.contains(a.declaringBlock().parentBody())) {
-                            capturedValues.add(a);
-                        }
-                    }
-                }
-            }
-
-            bodyStack.pop();
+            return body.capturedValues();
         }
 
         @Override
