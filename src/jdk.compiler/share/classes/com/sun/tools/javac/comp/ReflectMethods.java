@@ -2303,6 +2303,7 @@ public class ReflectMethods extends TreeTranslator {
 
         Op defaultValue(Type t) {
             return switch (t.getTag()) {
+                case BYTE -> CoreOps.constant(typeToTypeElement(t), (byte)0);
                 case CHAR -> CoreOps.constant(typeToTypeElement(t), (char)0);
                 case BOOLEAN -> CoreOps.constant(typeToTypeElement(t), false);
                 case SHORT -> CoreOps.constant(typeToTypeElement(t), (short)0);
@@ -2316,6 +2317,7 @@ public class ReflectMethods extends TreeTranslator {
 
         Op numericOneValue(Type t) {
             return switch (t.getTag()) {
+                case BYTE -> CoreOps.constant(typeToTypeElement(t), (byte)1);
                 case CHAR -> CoreOps.constant(typeToTypeElement(t), (char)1);
                 case SHORT -> CoreOps.constant(typeToTypeElement(t), (short)1);
                 case INT -> CoreOps.constant(typeToTypeElement(t), 1);
