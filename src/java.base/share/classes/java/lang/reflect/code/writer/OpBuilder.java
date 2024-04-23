@@ -318,6 +318,10 @@ public class OpBuilder {
             case TypeElement f -> {
                 yield buildType(f);
             }
+            case Location l -> {
+                // @@@ Construct location explicitly
+                yield builder.op(constant(J_L_STRING, l.toString()));
+            }
             case Object o when value == Op.NULL_ATTRIBUTE_VALUE -> {
                 yield builder.op(fieldLoad(FieldRef.field(Op.class, "NULL_ATTRIBUTE_VALUE", Object.class)));
             }

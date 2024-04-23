@@ -84,7 +84,7 @@ public class TestNaming {
         Map<CodeItem, String> cNamer = OpWriter.computeGlobalNames(op);
 
         StringWriter w = new StringWriter();
-        new OpWriter(w, cNamer::get).writeOp(op);
+        new OpWriter(w, OpWriter.CodeItemNamerOption.of(cNamer::get)).writeOp(op);
         w.write("\n");
         String actual = w.toString();
 

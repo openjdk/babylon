@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.lang.reflect.code.*;
+import java.lang.reflect.code.op.OpWithDefinition;
 import java.lang.reflect.code.type.JavaType;
 import java.util.HashMap;
 import java.util.Map;
@@ -161,9 +162,6 @@ public final class OpWriter {
         }
     }
 
-    final Function<CodeItem, String> namer;
-    final IndentWriter w;
-
     /**
      * Computes global names for blocks and values in a code model.
      * <p>
@@ -227,24 +225,95 @@ public final class OpWriter {
         }
     }
 
+    public static void writeTo(Writer w, Op op, Option... options) {
+        OpWriter ow = new OpWriter(w, options);
+        ow.writeOp(op);
+        ow.write("\n");
+        try {
+            w.flush();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    /**
+     * An option that affects the writing operations.
+     */
+    public sealed interface Option {
+    }
+
+    /**
+     * An option describing the function to use for naming code items.
+     */
+    public sealed interface CodeItemNamerOption extends Option
+            permits NamerOptionImpl {
+
+        static CodeItemNamerOption of(Function<CodeItem, String> named) {
+            return new NamerOptionImpl(named);
+        }
+
+        static CodeItemNamerOption defaultValue() {
+            return of(new GlobalValueBlockNaming());
+        }
+
+        Function<CodeItem, String> namer();
+    }
+    private record NamerOptionImpl(Function<CodeItem, String> namer) implements CodeItemNamerOption {
+    }
+
+    /**
+     * An option describing whether location information should be written or dropped.
+     */
+    public enum LocationOption implements Option {
+        /** Writes location */
+        WRITE_LOCATION,
+        /** Drops location */
+        DROP_LOCATION;
+
+        public static LocationOption defaultValue() {
+            return WRITE_LOCATION;
+        }
+    }
+
+    final Function<CodeItem, String> namer;
+    final IndentWriter w;
+    final boolean dropLocation;
+
     /**
      * Creates a writer of code models (operations) to their textual form.
      *
      * @param w the character stream writer to write the textual form.
      */
     public OpWriter(Writer w) {
-        this(w, new GlobalValueBlockNaming());
+        this.w = new IndentWriter(w);
+        this.namer = new GlobalValueBlockNaming();
+        this.dropLocation = false;
     }
 
     /**
      * Creates a writer of code models (operations) to their textual form.
      *
-     * @param w     the character stream writer to write the textual form.
-     * @param namer the function that computes names for blocks and values.
+     * @param w the character stream writer to write the textual form.
+     * @param options the writer options
      */
-    public OpWriter(Writer w, Function<CodeItem, String> namer) {
-        this.namer = namer;
+    public OpWriter(Writer w, Option... options) {
+        Function<CodeItem, String> namer = null;
+        boolean dropLocation = false;
+        for (Option option : options) {
+            switch (option) {
+                case CodeItemNamerOption namerOption -> {
+                    namer = namerOption.namer();
+                }
+                case LocationOption locationOption -> {
+                    dropLocation = locationOption ==
+                            LocationOption.DROP_LOCATION;
+                }
+            }
+        }
+
         this.w = new IndentWriter(w);
+        this.namer = (namer == null) ? new GlobalValueBlockNaming() : namer;
+        this.dropLocation = dropLocation;
     }
 
     /**
@@ -272,9 +341,15 @@ public final class OpWriter {
             writeSpaceSeparatedList(op.successors(), this::writeSuccessor);
         }
 
-        if (!op.attributes().isEmpty()) {
+        Map<String, Object> attributes = op.attributes();
+        if (dropLocation && !attributes.isEmpty() &&
+                attributes.containsKey(OpWithDefinition.ATTRIBUTE_LOCATION)) {
+            attributes = new HashMap<>(attributes);
+            attributes.remove(OpWithDefinition.ATTRIBUTE_LOCATION);
+        }
+        if (!attributes.isEmpty()) {
             write(" ");
-            writeSpaceSeparatedList(op.attributes().entrySet(), e -> writeAttribute(e.getKey(), e.getValue()));
+            writeSpaceSeparatedList(attributes.entrySet(), e -> writeAttribute(e.getKey(), e.getValue()));
         }
 
         if (!op.bodies().isEmpty()) {
