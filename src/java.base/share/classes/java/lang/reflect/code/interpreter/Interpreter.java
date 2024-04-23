@@ -436,11 +436,11 @@ public final class Interpreter {
             }
         } else if (o instanceof CoreOps.QuotedOp qo) {
             Map<Value, Object> capturedValues = qo.capturedValues().stream()
-                    .collect(toMap(v -> v, oc::getValue));
+                    .collect(toMap(v -> v, oc::getValue, (v, _) -> v, LinkedHashMap::new));
             return new Quoted(qo.quotedOp(), capturedValues);
         } else if (o instanceof CoreOps.LambdaOp lo) {
             Map<Value, Object> capturedValues = lo.capturedValues().stream()
-                    .collect(toMap(v -> v, oc::getValue));
+                    .collect(toMap(v -> v, oc::getValue, (v, _) -> v, LinkedHashMap::new));
             Class<?> fi = resolveToClass(l, lo.functionalInterface());
 
             MethodHandle fProxy = INVOKE_LAMBDA_MH.bindTo(l).bindTo(lo).bindTo(capturedValues)
@@ -450,7 +450,7 @@ public final class Interpreter {
             // If a quotable lambda proxy again to implement Quotable
             if (Quotable.class.isAssignableFrom(fi)) {
                 return Proxy.newProxyInstance(l.lookupClass().getClassLoader(), new Class<?>[]{fi},
-                        (proxy, method, args) -> {
+                        (_, method, args) -> {
                             if (method.getDeclaringClass() == Quotable.class) {
                                 // Implement Quotable::quoted
                                 return new Quoted(lo, capturedValues);

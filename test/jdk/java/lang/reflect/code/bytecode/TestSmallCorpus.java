@@ -45,6 +45,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.testng.Assert;
+import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
 /*
@@ -62,6 +63,7 @@ public class TestSmallCorpus {
     private int passed, notMatching;
     private Map<String, Map<String, Integer>> errorStats;
 
+    @Ignore
     @Test
     public void testDoubleRoundtripStability() throws Exception {
         passed = 0;

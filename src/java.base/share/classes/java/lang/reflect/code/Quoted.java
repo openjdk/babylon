@@ -25,6 +25,7 @@
 
 package java.lang.reflect.code;
 
+import java.util.ArrayList;
 import java.util.Map;
 
 /**
@@ -39,7 +40,7 @@ public final class Quoted {
     private final Map<Value, Object> capturedValues;
 
     /**
-     * Constructs the quoted form of a given invokable operation.
+     * Constructs the quoted form of a given operation.
      *
      * @param op the invokable operation.
      */
@@ -48,20 +49,30 @@ public final class Quoted {
     }
 
     /**
-     * Constructs the quoted form of a given invokable operation.
+     * Constructs the quoted form of a given operation.
+     * <p>
+     * The captured values key set must have the same elements and same encounter order as
+     * operation's captured values, specifically the following expression should evaluate to true:
+     * {@snippet lang=java :
+     * op.capturedValues().equals(new ArrayList<>(capturedValues.keySet()));
+     * }
      *
-     * @param op             the invokable operation.
-     * @param capturedValues the capture values referred to by the operation
+     * @param op             the operation.
+     * @param capturedValues the captured values referred to by the operation
+     * @see Op#capturedValues()
      */
     public Quoted(Op op, Map<Value, Object> capturedValues) {
+        // @@@ This check is potentially expensive, remove or keep as assert?
+        // @@@ Or make Quoted an interface, with a module private implementation?
+        assert op.capturedValues().equals(new ArrayList<>(capturedValues.keySet()));
         this.op = op;
         this.capturedValues = Map.copyOf(capturedValues);
     }
 
     /**
-     * Returns the invokable operation.
+     * Returns the operation.
      *
-     * @return the invokable operation.
+     * @return the operation.
      */
     public Op op() {
         return op;
@@ -69,14 +80,16 @@ public final class Quoted {
 
     /**
      * Returns the captured values.
+     * <p>
+     * The captured values key set has the same elements and same encounter order as
+     * operation's captured values, specifically the following expression evaluates to true:
+     * {@snippet lang=java :
+     * op().capturedValues().equals(new ArrayList<>(capturedValues().keySet()));
+     * }
      *
      * @return the captured values, as an unmodifiable map.
      */
     public Map<Value, Object> capturedValues() {
         return capturedValues;
-    }
-
-    public static Quoted quote(Op t) {
-        return new Quoted(t);
     }
 }

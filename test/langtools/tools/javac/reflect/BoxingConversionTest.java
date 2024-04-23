@@ -650,4 +650,64 @@ public class BoxingConversionTest {
     void test29(int i) {
         new Box2(i, i, i, i);
     }
+
+    @CodeReflection
+    @IR("""
+            func @"test30" (%0 : java.lang.Integer)void -> {
+                  %1 : Var<java.lang.Integer> = var %0 @"i";
+                  %2 : java.lang.Integer = var.load %1;
+                  %3 : int = invoke %2 @"java.lang.Integer::intValue()int";
+                  %4 : int = neg %3;
+                  %5 : Var<int> = var %4 @"j";
+                  return;
+            };
+            """)
+    static void test30(Integer i) {
+        int j = -i;
+    }
+
+    @CodeReflection
+    @IR("""
+            func @"test31" (%0 : int)void -> {
+                  %1 : Var<int> = var %0 @"i";
+                  %2 : int = var.load %1;
+                  %3 : int = neg %2;
+                  %4 : java.lang.Integer = invoke %3 @"java.lang.Integer::valueOf(int)java.lang.Integer";
+                  %5 : Var<java.lang.Integer> = var %4 @"j";
+                  return;
+            };
+            """)
+    static void test31(int i) {
+        Integer j = -i;
+    }
+
+    @CodeReflection
+    @IR("""
+            func @"test32" (%0 : boolean)void -> {
+                  %1 : Var<boolean> = var %0 @"i";
+                  %2 : boolean = var.load %1;
+                  %3 : boolean = not %2;
+                  %4 : java.lang.Boolean = invoke %3 @"java.lang.Boolean::valueOf(boolean)java.lang.Boolean";
+                  %5 : Var<java.lang.Boolean> = var %4 @"j";
+                  return;
+            };
+            """)
+    static void test32(boolean i) {
+        Boolean j = !i;
+    }
+
+    @CodeReflection
+    @IR("""
+            func @"test33" (%0 : java.lang.Boolean)void -> {
+                  %1 : Var<java.lang.Boolean> = var %0 @"i";
+                  %2 : java.lang.Boolean = var.load %1;
+                  %3 : boolean = invoke %2 @"java.lang.Boolean::booleanValue()boolean";
+                  %4 : boolean = not %3;
+                  %5 : Var<boolean> = var %4 @"j";
+                  return;
+            };
+            """)
+    static void test33(Boolean i) {
+        boolean j = !i;
+    }
 }

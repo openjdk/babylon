@@ -33,6 +33,7 @@ import java.lang.reflect.code.type.*;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * The set of core operations. A code model, produced by the Java compiler from Java program source and lowered to
@@ -390,32 +391,9 @@ public final class CoreOps {
             return quotedOp;
         }
 
-        // Returns the set of values used in but declared outside the lambda's body
+        @Override
         public List<Value> capturedValues() {
-            Set<Value> cvs = new LinkedHashSet<>();
-
-            capturedValues(cvs, new ArrayDeque<>(), quotedBody);
-            return new ArrayList<>(cvs);
-        }
-
-        void capturedValues(Set<Value> capturedValues, Deque<Body> bodyStack, Body body) {
-            bodyStack.push(body);
-
-            for (Block b : body.blocks()) {
-                for (Op op : b.ops()) {
-                    for (Body childBody : op.bodies()) {
-                        capturedValues(capturedValues, bodyStack, childBody);
-                    }
-
-                    for (Value a : op.operands()) {
-                        if (!bodyStack.contains(a.declaringBlock().parentBody())) {
-                            capturedValues.add(a);
-                        }
-                    }
-                }
-            }
-
-            bodyStack.pop();
+            return quotedBody.capturedValues();
         }
 
         @Override
@@ -507,34 +485,9 @@ public final class CoreOps {
             return body;
         }
 
-        // Returns the set of values used in but declared outside the lambda's body
         @Override
         public List<Value> capturedValues() {
-            Set<Value> cvs = new LinkedHashSet<>();
-            Body body = body();
-
-            capturedValues(cvs, new ArrayDeque<>(), body);
-            return new ArrayList<>(cvs);
-        }
-
-        void capturedValues(Set<Value> capturedValues, Deque<Body> bodyStack, Body body) {
-            bodyStack.push(body);
-
-            for (Block b : body.blocks()) {
-                for (Op op : b.ops()) {
-                    for (Body childBody : op.bodies()) {
-                        capturedValues(capturedValues, bodyStack, childBody);
-                    }
-
-                    for (Value a : op.operands()) {
-                        if (!bodyStack.contains(a.declaringBlock().parentBody())) {
-                            capturedValues.add(a);
-                        }
-                    }
-                }
-            }
-
-            bodyStack.pop();
+            return body.capturedValues();
         }
 
         @Override
@@ -554,6 +507,139 @@ public final class CoreOps {
         @Override
         public TypeElement resultType() {
             return functionalInterface();
+        }
+
+        /**
+         * Determines if this lambda operation could have originated from a
+         * method reference declared in Java source code.
+         * <p>
+         * Such a lambda operation is one with the following constraints:
+         * <ol>
+         *     <li>Zero or one captured value (assuming correspondence to the {@code this} variable).
+         *     <li>A body with only one (entry) block that contains only variable declaration
+         *     operations, variable load operations, invoke operations to box or unbox
+         *     primitive values, a single invoke operation to the method that is
+         *     referenced, and a return operation.
+         *     <li>if the return operation returns a non-void result then that result is,
+         *     or uniquely depends on, the result of the referencing invoke operation.
+         *     <li>If the lambda operation captures one value then the first operand corresponds
+         *     to captured the value, and subsequent operands of the referencing invocation
+         *     operation are, or uniquely depend on, the lambda operation's parameters, in order.
+         *     Otherwise, the first and subsequent operands of the referencing invocation
+         *     operation are, or uniquely depend on, the lambda operation's parameters, in order.
+         * </ol>
+         * A value, V2, uniquely depends on another value, V1, if the graph of what V2 depends on
+         * contains only nodes with single edges terminating in V1, and the graph of what depends on V1
+         * is bidirectionally equal to the graph of what V2 depends on.
+         *
+         * @return the invocation operation to the method referenced by the lambda
+         * operation, otherwise empty.
+         */
+        public Optional<InvokeOp> methodReference() {
+            // Single block
+            if (body().blocks().size() > 1) {
+                return Optional.empty();
+            }
+
+            // Zero or one (this) capture
+            List<Value> cvs = capturedValues();
+            if (cvs.size() > 1) {
+                return Optional.empty();
+            }
+
+            Map<Value, Value> valueMapping = new HashMap<>();
+            CoreOps.InvokeOp methodRefInvokeOp = extractMethodInvoke(valueMapping, body().entryBlock().ops());
+            if (methodRefInvokeOp == null) {
+                return Optional.empty();
+            }
+
+            // Lambda's parameters map in encounter order with the invocation's operands
+            List<Value> lambdaParameters = new ArrayList<>();
+            if (cvs.size() == 1) {
+                lambdaParameters.add(cvs.getFirst());
+            }
+            lambdaParameters.addAll(parameters());
+            List<Value> methodRefOperands = methodRefInvokeOp.operands().stream().map(valueMapping::get).toList();
+            if (!lambdaParameters.equals(methodRefOperands)) {
+                return Optional.empty();
+            }
+
+            return Optional.of(methodRefInvokeOp);
+        }
+
+        static CoreOps.InvokeOp extractMethodInvoke(Map<Value, Value> valueMapping, List<Op> ops) {
+            CoreOps.InvokeOp methodRefInvokeOp = null;
+            for (Op op : ops) {
+                switch (op) {
+                    case CoreOps.VarOp varOp -> {
+                        if (isValueUsedWithOp(varOp.result(), o -> o instanceof CoreOps.VarAccessOp.VarStoreOp)) {
+                            return null;
+                        }
+                    }
+                    case CoreOps.VarAccessOp.VarLoadOp varLoadOp -> {
+                        Value v = varLoadOp.varOp().operands().getFirst();
+                        valueMapping.put(varLoadOp.result(), valueMapping.getOrDefault(v, v));
+                    }
+                    case CoreOps.InvokeOp iop when isBoxOrUnboxInvocation(iop) -> {
+                        Value v = iop.operands().getFirst();
+                        valueMapping.put(iop.result(), valueMapping.getOrDefault(v, v));
+                    }
+                    case CoreOps.InvokeOp iop -> {
+                        if (methodRefInvokeOp != null) {
+                            return null;
+                        }
+
+                        for (Value o : iop.operands()) {
+                            valueMapping.put(o, valueMapping.getOrDefault(o, o));
+                        }
+                        methodRefInvokeOp = iop;
+                    }
+                    case CoreOps.ReturnOp rop -> {
+                        if (methodRefInvokeOp == null) {
+                            return null;
+                        }
+                        Value r = rop.returnValue();
+                        if (!(valueMapping.getOrDefault(r, r) instanceof Op.Result invokeResult)) {
+                            return null;
+                        }
+                        if (invokeResult.op() != methodRefInvokeOp) {
+                            return null;
+                        }
+                        assert methodRefInvokeOp.result().uses().size() == 1;
+                    }
+                    default -> {
+                        return null;
+                    }
+                }
+            }
+
+            return methodRefInvokeOp;
+        }
+
+        private static boolean isValueUsedWithOp(Value value, Predicate<Op> opPredicate) {
+            for (Op.Result user : value.uses()) {
+                if (opPredicate.test(user.op())) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // @@@ Move to functionality on JavaType(s)
+        static final Set<String> UNBOX_NAMES = Set.of(
+                "byteValue",
+                "shortValue",
+                "charValue",
+                "intValue",
+                "longValue",
+                "floatValue",
+                "doubleValue",
+                "booleanValue");
+
+        private static boolean isBoxOrUnboxInvocation(CoreOps.InvokeOp iop) {
+            MethodRef mr = iop.invokeDescriptor();
+            Collection<TypeElement> boxTypes = JavaType.primitiveToWrapper.values();
+            return boxTypes.contains(mr.refType()) && (UNBOX_NAMES.contains(mr.name()) || mr.name().equals("valueOf"));
         }
     }
 
@@ -623,34 +709,9 @@ public final class CoreOps {
             return body;
         }
 
-        // Returns the set of values used in but declared outside the lambda's body
         @Override
         public List<Value> capturedValues() {
-            Set<Value> cvs = new LinkedHashSet<>();
-            Body body = body();
-
-            capturedValues(cvs, new ArrayDeque<>(), body);
-            return new ArrayList<>(cvs);
-        }
-
-        void capturedValues(Set<Value> capturedValues, Deque<Body> bodyStack, Body body) {
-            bodyStack.push(body);
-
-            for (Block b : body.blocks()) {
-                for (Op op : b.ops()) {
-                    for (Body childBody : op.bodies()) {
-                        capturedValues(capturedValues, bodyStack, childBody);
-                    }
-
-                    for (Value a : op.operands()) {
-                        if (!bodyStack.contains(a.declaringBlock().parentBody())) {
-                            capturedValues.add(a);
-                        }
-                    }
-                }
-            }
-
-            bodyStack.pop();
+            return body.capturedValues();
         }
 
         @Override
@@ -675,7 +736,6 @@ public final class CoreOps {
 
     /**
      * The closure call operation, that models a call to a closure, by reference
-     *
      */
 //  @@@ stack effects equivalent to the invocation of an SAM of on an instance of an anonymous functional interface
 //  that is the target of the closures lambda expression.
@@ -1066,7 +1126,7 @@ public final class CoreOps {
                 throw new IllegalArgumentException("Operation must have zero operands");
             }
 
-            Object value = def.extractAttributeValue(ATTRIBUTE_CONSTANT_VALUE,true,
+            Object value = def.extractAttributeValue(ATTRIBUTE_CONSTANT_VALUE, true,
                     v -> processConstantValue(def.resultType(), v));
             return new ConstantOp(def, value);
         }
@@ -1197,7 +1257,7 @@ public final class CoreOps {
 
         public static InvokeOp create(OpDefinition def) {
             MethodRef invokeDescriptor = def.extractAttributeValue(ATTRIBUTE_INVOKE_DESCRIPTOR,
-                    true, v -> switch(v) {
+                    true, v -> switch (v) {
                         case String s -> MethodRef.ofString(s);
                         case MethodRef md -> md;
                         default -> throw new UnsupportedOperationException("Unsupported invoke descriptor value:" + v);
@@ -1308,8 +1368,8 @@ public final class CoreOps {
         final TypeElement resultType;
 
         public static NewOp create(OpDefinition def) {
-            FunctionType constructorType = def.extractAttributeValue(ATTRIBUTE_NEW_DESCRIPTOR,true,
-                    v -> switch(v) {
+            FunctionType constructorType = def.extractAttributeValue(ATTRIBUTE_NEW_DESCRIPTOR, true,
+                    v -> switch (v) {
                         case String s -> {
                             TypeElement te = CoreTypeFactory.CORE_TYPE_FACTORY
                                     .constructType(TypeDefinition.ofString(s));
@@ -1434,11 +1494,12 @@ public final class CoreOps {
                     throw new IllegalArgumentException("Operation must accept zero or one operand");
                 }
 
-                FieldRef fieldDescriptor = def.extractAttributeValue(ATTRIBUTE_FIELD_DESCRIPTOR,true,
-                        v -> switch(v) {
+                FieldRef fieldDescriptor = def.extractAttributeValue(ATTRIBUTE_FIELD_DESCRIPTOR, true,
+                        v -> switch (v) {
                             case String s -> FieldRef.ofString(s);
                             case FieldRef fd -> fd;
-                            default -> throw new UnsupportedOperationException("Unsupported field descriptor value:" + v);
+                            default ->
+                                    throw new UnsupportedOperationException("Unsupported field descriptor value:" + v);
                         });
                 return new FieldLoadOp(def, fieldDescriptor);
             }
@@ -1493,11 +1554,12 @@ public final class CoreOps {
                     throw new IllegalArgumentException("Operation must accept one or two operands");
                 }
 
-                FieldRef fieldDescriptor = def.extractAttributeValue(ATTRIBUTE_FIELD_DESCRIPTOR,true,
-                        v -> switch(v) {
+                FieldRef fieldDescriptor = def.extractAttributeValue(ATTRIBUTE_FIELD_DESCRIPTOR, true,
+                        v -> switch (v) {
                             case String s -> FieldRef.ofString(s);
                             case FieldRef fd -> fd;
-                            default -> throw new UnsupportedOperationException("Unsupported field descriptor value:" + v);
+                            default ->
+                                    throw new UnsupportedOperationException("Unsupported field descriptor value:" + v);
                         });
                 return new FieldStoreOp(def, fieldDescriptor);
             }
@@ -1695,7 +1757,7 @@ public final class CoreOps {
             }
 
             TypeElement typeDescriptor = def.extractAttributeValue(ATTRIBUTE_TYPE_DESCRIPTOR, true,
-                    v -> switch(v) {
+                    v -> switch (v) {
                         case String s -> JavaType.ofString(s);
                         case JavaType td -> td;
                         default -> throw new UnsupportedOperationException("Unsupported type descriptor value:" + v);
@@ -1761,7 +1823,7 @@ public final class CoreOps {
             }
 
             TypeElement type = def.extractAttributeValue(ATTRIBUTE_TYPE_DESCRIPTOR, true,
-                    v -> switch(v) {
+                    v -> switch (v) {
                         case String s -> JavaType.ofString(s);
                         case JavaType td -> td;
                         default -> throw new UnsupportedOperationException("Unsupported type descriptor value:" + v);
@@ -1828,9 +1890,10 @@ public final class CoreOps {
 
         /**
          * Constructs an instance of a var.
+         *
          * @param value the initial value of the var.
+         * @param <T>   the type of the var's value.
          * @return the var
-         * @param <T> the type of the var's value.
          */
         static <T> Var<T> of(T value) {
             return () -> value;
@@ -2382,8 +2445,9 @@ public final class CoreOps {
         }
 
         public ConcatOp(Value lhs, Value rhs) {
-            super(ConcatOp.NAME, List.of(lhs,rhs));
+            super(ConcatOp.NAME, List.of(lhs, rhs));
         }
+
         @Override
         public Op transform(CopyContext cc, OpTransformer ot) {
             return new ConcatOp(this, cc);
@@ -3031,6 +3095,7 @@ public final class CoreOps {
 
     /**
      * Creates a function operation builder
+     *
      * @param funcName the function name
      * @param funcType the function type
      * @return the function operation builder
@@ -3041,8 +3106,9 @@ public final class CoreOps {
 
     /**
      * Creates a function operation
+     *
      * @param funcName the function name
-     * @param body the function body
+     * @param body     the function body
      * @return the function operation
      */
     public static FuncOp func(String funcName, Body.Builder body) {
@@ -3051,9 +3117,10 @@ public final class CoreOps {
 
     /**
      * Creates a function call operation
+     *
      * @param funcName the name of the function operation
      * @param funcType the function type
-     * @param args the function arguments
+     * @param args     the function arguments
      * @return the function call operation
      */
     public static FuncCallOp funcCall(String funcName, FunctionType funcType, Value... args) {
@@ -3062,9 +3129,10 @@ public final class CoreOps {
 
     /**
      * Creates a function call operation
+     *
      * @param funcName the name of the function operation
      * @param funcType the function type
-     * @param args the function arguments
+     * @param args     the function arguments
      * @return the function call operation
      */
     public static FuncCallOp funcCall(String funcName, FunctionType funcType, List<Value> args) {
@@ -3073,6 +3141,7 @@ public final class CoreOps {
 
     /**
      * Creates a function call operation
+     *
      * @param func the target function
      * @param args the function arguments
      * @return the function call operation
@@ -3083,6 +3152,7 @@ public final class CoreOps {
 
     /**
      * Creates a function call operation
+     *
      * @param func the target function
      * @param args the function argments
      * @return the function call operation
@@ -3093,6 +3163,7 @@ public final class CoreOps {
 
     /**
      * Creates a module operation.
+     *
      * @param functions the functions of the module operation
      * @return the module operation
      */
@@ -3102,6 +3173,7 @@ public final class CoreOps {
 
     /**
      * Creates a module operation.
+     *
      * @param functions the functions of the module operation
      * @return the module operation
      */
@@ -3111,8 +3183,9 @@ public final class CoreOps {
 
     /**
      * Creates a quoted operation.
+     *
      * @param ancestorBody the ancestor of the body of the quoted operation
-     * @param opFunc a function that accepts the body of the quoted operation and returns the operation to be quoted
+     * @param opFunc       a function that accepts the body of the quoted operation and returns the operation to be quoted
      * @return the quoted operation
      */
     public static QuotedOp quoted(Body.Builder ancestorBody,
@@ -3126,6 +3199,7 @@ public final class CoreOps {
 
     /**
      * Creates a quoted operation.
+     *
      * @param body quoted operation body
      * @return the quoted operation
      */
@@ -3135,8 +3209,9 @@ public final class CoreOps {
 
     /**
      * Creates a lambda operation.
-     * @param ancestorBody the ancestor of the body of the lambda operation
-     * @param funcType the lambda operation's function type
+     *
+     * @param ancestorBody        the ancestor of the body of the lambda operation
+     * @param funcType            the lambda operation's function type
      * @param functionalInterface the lambda operation's functional interface type
      * @return the lambda operation
      */
@@ -3147,8 +3222,9 @@ public final class CoreOps {
 
     /**
      * Creates a lambda operation.
+     *
      * @param functionalInterface the lambda operation's functional interface type
-     * @param body the body of the lambda operation
+     * @param body                the body of the lambda operation
      * @return the lambda operation
      */
     public static LambdaOp lambda(TypeElement functionalInterface, Body.Builder body) {
@@ -3157,8 +3233,9 @@ public final class CoreOps {
 
     /**
      * Creates a closure operation.
+     *
      * @param ancestorBody the ancestor of the body of the closure operation
-     * @param funcType the closure operation's function type
+     * @param funcType     the closure operation's function type
      * @return the closure operation
      */
     public static ClosureOp.Builder closure(Body.Builder ancestorBody,
@@ -3168,6 +3245,7 @@ public final class CoreOps {
 
     /**
      * Creates a closure operation.
+     *
      * @param body the body of the closure operation
      * @return the closure operation
      */
@@ -3177,6 +3255,7 @@ public final class CoreOps {
 
     /**
      * Creates a closure call operation.
+     *
      * @param args the closure arguments. The first argument is the closure operation to be called
      * @return the closure call operation
      */
@@ -3187,6 +3266,7 @@ public final class CoreOps {
 
     /**
      * Creates a closure call operation.
+     *
      * @param args the closure arguments. The first argument is the closure operation to be called
      * @return the closure call operation
      */
@@ -3197,7 +3277,8 @@ public final class CoreOps {
 
     /**
      * Creates an exception region enter operation
-     * @param start the exception region block
+     *
+     * @param start    the exception region block
      * @param catchers the blocks handling exceptions thrown by the region block
      * @return the exception region enter operation
      */
@@ -3207,7 +3288,8 @@ public final class CoreOps {
 
     /**
      * Creates an exception region enter operation
-     * @param start the exception region block
+     *
+     * @param start    the exception region block
      * @param catchers the blocks handling exceptions thrown by the region block
      * @return the exception region enter operation
      */
@@ -3220,8 +3302,9 @@ public final class CoreOps {
 
     /**
      * Creates an exception region exit operation
+     *
      * @param exceptionRegion the exception region to be exited
-     * @param end the block to which control is transferred after the exception region is exited
+     * @param end             the block to which control is transferred after the exception region is exited
      * @return the exception region exit operation
      */
     public static ExceptionRegionExit exceptionRegionExit(Value exceptionRegion, Block.Reference end) {
@@ -3230,6 +3313,7 @@ public final class CoreOps {
 
     /**
      * Creates a return operation.
+     *
      * @return the return operation
      */
     public static ReturnOp _return() {
@@ -3238,6 +3322,7 @@ public final class CoreOps {
 
     /**
      * Creates a return operation.
+     *
      * @param returnValue the return value
      * @return the return operation
      */
@@ -3247,6 +3332,7 @@ public final class CoreOps {
 
     /**
      * Creates a throw operation.
+     *
      * @param exceptionValue the thrown value
      * @return the throw operation
      */
@@ -3256,6 +3342,7 @@ public final class CoreOps {
 
     /**
      * Creates an unreachable operation.
+     *
      * @return the unreachable operation
      */
     public static UnreachableOp unreachable() {
@@ -3264,6 +3351,7 @@ public final class CoreOps {
 
     /**
      * Creates a yield operation.
+     *
      * @return the yield operation
      */
     public static YieldOp _yield() {
@@ -3272,6 +3360,7 @@ public final class CoreOps {
 
     /**
      * Creates a yield operation.
+     *
      * @param yieldValue the yielded value
      * @return the yield operation
      */
@@ -3281,6 +3370,7 @@ public final class CoreOps {
 
     /**
      * Creates an assert operation.
+     *
      * @param bodies the nested bodies
      * @return the assert operation
      */
@@ -3290,6 +3380,7 @@ public final class CoreOps {
 
     /**
      * Creates an unconditional break operation.
+     *
      * @param target the jump target
      * @return the unconditional break operation
      */
@@ -3299,8 +3390,9 @@ public final class CoreOps {
 
     /**
      * Creates a conditional break operation.
-     * @param condValue the test value of the conditional break operation
-     * @param trueTarget the jump target when the test value evaluates to true
+     *
+     * @param condValue   the test value of the conditional break operation
+     * @param trueTarget  the jump target when the test value evaluates to true
      * @param falseTarget the jump target when the test value evaluates to false
      * @return the conditional break operation
      */
@@ -3311,7 +3403,8 @@ public final class CoreOps {
 
     /**
      * Creates a constant operation.
-     * @param type the constant type
+     *
+     * @param type  the constant type
      * @param value the constant value
      * @return the constant operation
      */
@@ -3323,7 +3416,7 @@ public final class CoreOps {
      * Creates an invoke operation.
      *
      * @param invokeDescriptor the invocation descriptor
-     * @param args the invoke parameters
+     * @param args             the invoke parameters
      * @return the invoke operation
      */
     public static InvokeOp invoke(MethodRef invokeDescriptor, Value... args) {
@@ -3334,7 +3427,7 @@ public final class CoreOps {
      * Creates an invoke operation.
      *
      * @param invokeDescriptor the invocation descriptor
-     * @param args the invoke parameters
+     * @param args             the invoke parameters
      * @return the invoke operation
      */
     public static InvokeOp invoke(MethodRef invokeDescriptor, List<Value> args) {
@@ -3344,9 +3437,9 @@ public final class CoreOps {
     /**
      * Creates an invoke operation.
      *
-     * @param returnType the invocation return type
+     * @param returnType       the invocation return type
      * @param invokeDescriptor the invocation descriptor
-     * @param args the invoke parameters
+     * @param args             the invoke parameters
      * @return the invoke operation
      */
     public static InvokeOp invoke(TypeElement returnType, MethodRef invokeDescriptor, Value... args) {
@@ -3356,9 +3449,9 @@ public final class CoreOps {
     /**
      * Creates an invoke operation.
      *
-     * @param returnType the invocation return type
+     * @param returnType       the invocation return type
      * @param invokeDescriptor the invocation descriptor
-     * @param args the invoke parameters
+     * @param args             the invoke parameters
      * @return the invoke operation
      */
     public static InvokeOp invoke(TypeElement returnType, MethodRef invokeDescriptor, List<Value> args) {
@@ -3368,7 +3461,7 @@ public final class CoreOps {
     /**
      * Creates a conversion operation.
      *
-     * @param to the conversion target type
+     * @param to   the conversion target type
      * @param from the value to be converted
      * @return the conversion operation
      */
@@ -3380,7 +3473,7 @@ public final class CoreOps {
      * Creates an instance creation operation.
      *
      * @param constructorType the constructor type
-     * @param args the constructor arguments
+     * @param args            the constructor arguments
      * @return the instance creation operation
      */
     public static NewOp _new(FunctionType constructorType, Value... args) {
@@ -3391,7 +3484,7 @@ public final class CoreOps {
      * Creates an instance creation operation.
      *
      * @param constructorType the constructor type
-     * @param args the constructor arguments
+     * @param args            the constructor arguments
      * @return the instance creation operation
      */
     public static NewOp _new(FunctionType constructorType, List<Value> args) {
@@ -3401,9 +3494,9 @@ public final class CoreOps {
     /**
      * Creates an instance creation operation.
      *
-     * @param returnType the instance type
+     * @param returnType      the instance type
      * @param constructorType the constructor type
-     * @param args the constructor arguments
+     * @param args            the constructor arguments
      * @return the instance creation operation
      */
     public static NewOp _new(TypeElement returnType, FunctionType constructorType,
@@ -3414,9 +3507,9 @@ public final class CoreOps {
     /**
      * Creates an instance creation operation.
      *
-     * @param returnType the instance type
+     * @param returnType      the instance type
      * @param constructorType the constructor type
-     * @param args the constructor arguments
+     * @param args            the constructor arguments
      * @return the instance creation operation
      */
     public static NewOp _new(TypeElement returnType, FunctionType constructorType,
@@ -3428,7 +3521,7 @@ public final class CoreOps {
      * Creates an array creation operation.
      *
      * @param arrayType the array type
-     * @param length the array size
+     * @param length    the array size
      * @return the array creation operation
      */
     public static NewOp newArray(TypeElement arrayType, Value length) {
@@ -3441,7 +3534,7 @@ public final class CoreOps {
      * Creates a field load operation to a non-static field.
      *
      * @param descriptor the field descriptor
-     * @param receiver the receiver value
+     * @param receiver   the receiver value
      * @return the field load operation
      */
     public static FieldAccessOp.FieldLoadOp fieldLoad(FieldRef descriptor, Value receiver) {
@@ -3453,7 +3546,7 @@ public final class CoreOps {
      *
      * @param resultType the result type of the operation
      * @param descriptor the field descriptor
-     * @param receiver the receiver value
+     * @param receiver   the receiver value
      * @return the field load operation
      */
     public static FieldAccessOp.FieldLoadOp fieldLoad(TypeElement resultType, FieldRef descriptor, Value receiver) {
@@ -3485,8 +3578,8 @@ public final class CoreOps {
      * Creates a field store operation to a non-static field.
      *
      * @param descriptor the field descriptor
-     * @param receiver the receiver value
-     * @param v the value to store
+     * @param receiver   the receiver value
+     * @param v          the value to store
      * @return the field store operation
      */
     public static FieldAccessOp.FieldStoreOp fieldStore(FieldRef descriptor, Value receiver, Value v) {
@@ -3497,7 +3590,7 @@ public final class CoreOps {
      * Creates a field load operation to a static field.
      *
      * @param descriptor the field descriptor
-     * @param v the value to store
+     * @param v          the value to store
      * @return the field store operation
      */
     public static FieldAccessOp.FieldStoreOp fieldStore(FieldRef descriptor, Value v) {
@@ -3530,7 +3623,7 @@ public final class CoreOps {
      *
      * @param array the array value
      * @param index the index value
-     * @param v the value to store
+     * @param v     the value to store
      * @return the array store operation
      */
     public static ArrayAccessOp.ArrayStoreOp arrayStoreOp(Value array, Value index, Value v) {
@@ -3552,7 +3645,7 @@ public final class CoreOps {
      * Creates a cast operation.
      *
      * @param resultType the result type of the operation
-     * @param v the value to cast
+     * @param v          the value to cast
      * @return the cast operation
      */
     public static CastOp cast(TypeElement resultType, Value v) {
@@ -3563,8 +3656,8 @@ public final class CoreOps {
      * Creates a cast operation.
      *
      * @param resultType the result type of the operation
-     * @param t the type to cast to
-     * @param v the value to cast
+     * @param t          the type to cast to
+     * @param v          the value to cast
      * @return the cast operation
      */
     public static CastOp cast(TypeElement resultType, JavaType t, Value v) {
@@ -3618,7 +3711,7 @@ public final class CoreOps {
      * Creates a var store operation.
      *
      * @param varValue the var value
-     * @param v the value to store in the var
+     * @param v        the value to store in the var
      * @return the var store operation
      */
     public static VarAccessOp.VarStoreOp varStore(Value varValue, Value v) {
@@ -3886,5 +3979,7 @@ public final class CoreOps {
      * @param rhs the second operand
      * @return the string concatenation operation
      */
-    public static ConcatOp concat(Value lhs, Value rhs) { return new ConcatOp(lhs, rhs); }
+    public static ConcatOp concat(Value lhs, Value rhs) {
+        return new ConcatOp(lhs, rhs);
+    }
 }
