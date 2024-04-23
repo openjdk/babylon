@@ -85,19 +85,26 @@ public class CodeReflectionTester {
         return f;
     }
 
-    // serializes dropping location information, parses, and then serializes
+    // serializes dropping location information, parses, and then serializes, dropping location information
     static String canonicalizeModel(Member m, Op o) {
-        StringWriter w = new StringWriter();
-        OpWriter.writeTo(w, o, OpWriter.LocationOption.DROP_LOCATION);
-        return canonicalizeModel(m, w.toString());
+        return canonicalizeModel(m, serialize(o));
     }
 
-    // parses and then serializes
+    // parses, and then serializes, dropping location information
     static String canonicalizeModel(Member m, String d) {
+        Op o;
         try {
-            return OpParser.fromString(ExtendedOps.FACTORY, d).get(0).toText();
+            o = OpParser.fromString(ExtendedOps.FACTORY, d).get(0);
         } catch (Exception e) {
             throw new IllegalStateException(m.toString(), e);
         }
+        return serialize(o);
+    }
+
+    // serializes, dropping location information
+    static String serialize(Op o) {
+        StringWriter w = new StringWriter();
+        OpWriter.writeTo(w, o, OpWriter.LocationOption.DROP_LOCATION);
+        return w.toString();
     }
 }
