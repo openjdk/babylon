@@ -524,7 +524,7 @@ public final class CoreOps {
          *     <li>if the return operation returns a non-void result then that result is,
          *     or uniquely depends on, the result of the referencing invoke operation.
          *     <li>If the lambda operation captures one value then the first operand corresponds
-         *     to captured value, and subsequent operands of the referencing invocation
+         *     to captured the value, and subsequent operands of the referencing invocation
          *     operation are, or uniquely depend on, the lambda operation's parameters, in order.
          *     Otherwise, the first and subsequent operands of the referencing invocation
          *     operation are, or uniquely depend on, the lambda operation's parameters, in order.
