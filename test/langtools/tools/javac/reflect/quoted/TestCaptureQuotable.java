@@ -36,9 +36,13 @@ import java.lang.reflect.code.Quotable;
 import java.lang.reflect.code.Quoted;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Random;
+import java.util.function.IntSupplier;
 import java.util.function.IntUnaryOperator;
 import java.util.function.ToIntFunction;
+import java.util.random.RandomGenerator;
 import java.util.stream.IntStream;
 
 import static org.testng.Assert.*;
@@ -69,6 +73,35 @@ public class TestCaptureQuotable {
         int res = (int)Interpreter.invoke(MethodHandles.lookup(), (Op & Op.Invokable) quoted.op(),
                 quoted.capturedValues(), 1);
         assertEquals(res, x + 1 + hello.length());
+    }
+
+    interface FManyParams {
+        void m(int i1, int i2, int i3, int i4, int i5, int i6, int i7, int i8);
+    }
+
+    @Test
+    public void testCaptureMany() {
+        RandomGenerator rg = RandomGenerator.getDefault();
+        int[] ia = new int[8];
+        int i1 = ia[0] = rg.nextInt();
+        int i2 = ia[1] = rg.nextInt();
+        int i3 = ia[2] = rg.nextInt();
+        int i4 = ia[3] = rg.nextInt();
+        int i5 = ia[4] = rg.nextInt();
+        int i6 = ia[5] = rg.nextInt();
+        int i7 = ia[6] = rg.nextInt();
+        int i8 = ia[7] = rg.nextInt();
+
+        Quotable quotable = (Quotable & IntSupplier) () -> i1 + i2 + i3 + i4 + i5 + i6 + i7 + i8;
+        Quoted quoted = quotable.quoted();
+        assertEquals(quoted.capturedValues().size(), ia.length);
+        assertEquals(quoted.op().capturedValues(), new ArrayList<>(quoted.capturedValues().keySet()));
+        Iterator<Object> it = quoted.capturedValues().values().iterator();
+        int i = 0;
+        while (it.hasNext()) {
+            int actual = (int) ((Var)it.next()).value();
+            assertEquals(actual, ia[i++]);
+        }
     }
 
     @Test(dataProvider = "ints")
