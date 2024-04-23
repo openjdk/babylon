@@ -94,6 +94,7 @@ import static com.sun.tools.javac.code.Flags.PARAMETER;
 import static com.sun.tools.javac.code.Flags.SYNTHETIC;
 import static com.sun.tools.javac.code.TypeTag.BOT;
 import static com.sun.tools.javac.code.TypeTag.NONE;
+import static com.sun.tools.javac.main.Option.G_CUSTOM;
 
 /**
  * This a tree translator that adds the code model to all method declaration marked
@@ -116,6 +117,7 @@ public class ReflectMethods extends TreeTranslator {
     private final Gen gen;
     private final Log log;
     private final boolean dumpIR;
+    private final boolean lineDebugInfo;
 
     // @@@ Separate out mutable state
     private TreeMaker make;
@@ -129,11 +131,16 @@ public class ReflectMethods extends TreeTranslator {
         context.put(reflectMethodsKey, this);
         Options options = Options.instance(context);
         dumpIR = options.isSet("dumpIR");
+        lineDebugInfo =
+                options.isUnset(G_CUSTOM) ||
+                        options.isSet(G_CUSTOM, "lines");
         names = Names.instance(context);
         syms = Symtab.instance(context);
         types = Types.instance(context);
         gen = Gen.instance(context);
         log = Log.instance(context);
+
+
     }
 
     // Cannot compute within constructor due to circular dependencies on bootstrap compilation
@@ -578,7 +585,7 @@ public class ReflectMethods extends TreeTranslator {
         }
 
         private Op.Result append(Op op) {
-            return append(op, createLocation(currentNode, false), stack);
+            return append(op, generateLocation(currentNode, false), stack);
         }
 
         private Op.Result append(Op op, Location l) {
@@ -591,7 +598,11 @@ public class ReflectMethods extends TreeTranslator {
             return stack.block.apply(op);
         }
 
-        Location createLocation(JCTree node, boolean includeSourceReference) {
+        Location generateLocation(JCTree node, boolean includeSourceReference) {
+            if (!lineDebugInfo) {
+                return Location.NO_LOCATION;
+            }
+
             int pos = node.getStartPosition();
             int line = log.currentSource().getLineNumber(pos);
             int col = log.currentSource().getColumnNumber(pos, false);
@@ -1348,7 +1359,7 @@ public class ReflectMethods extends TreeTranslator {
 
             Value lambdaResult;
             if (isQuoted) {
-                lambdaResult = append(lambdaOp, createLocation(tree, true));
+                lambdaResult = append(lambdaOp, generateLocation(tree, true));
             } else {
                 lambdaResult = append(lambdaOp);
             }
@@ -2218,7 +2229,7 @@ public class ReflectMethods extends TreeTranslator {
             // @@@ Check if unreachable
             appendTerminating(CoreOps::_return);
             CoreOps.FuncOp func = CoreOps.func(name.toString(), stack.body);
-            func.setLocation(createLocation(currentNode, true));
+            func.setLocation(generateLocation(currentNode, true));
             return func;
         }
 

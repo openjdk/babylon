@@ -9,6 +9,11 @@ package java.lang.reflect.code;
  */
 public record Location(String sourceRef, int line, int column) {
 
+    /**
+     * The location value, {@code null}, indicating no location information.
+     */
+    public static final Location NO_LOCATION = null;
+
     public Location(int line, int column) {
         this(null, line, column);
     }
