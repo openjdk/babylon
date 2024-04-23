@@ -54,7 +54,7 @@ public class CodeReflectionTester {
     static void check(Method method) throws ReflectiveOperationException {
         if (!method.isAnnotationPresent(CodeReflection.class)) return;
         Field field = method.getDeclaringClass().getDeclaredField(method.getName() + "$op");
-        String found = canonicalizeModel(method, (String)field.get(null));
+        String found = canonicalizeModel(method, (String) field.get(null));
         IR ir = method.getAnnotation(IR.class);
         if (ir == null) {
             throw new AssertionError("No @IR annotation found on reflective method");
