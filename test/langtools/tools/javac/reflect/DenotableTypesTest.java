@@ -134,9 +134,9 @@ public class DenotableTypesTest {
     @CodeReflection
     @IR("""
             func @"test7" ()void -> {
-                  %0 : ::X = constant @null;
-                  %1 : Var<::X> = var %0 @"x";
-                  %2 : ::X = var.load %1;
+                  %0 : ::X<java.lang.Object> = constant @null;
+                  %1 : Var<::X<java.lang.Object>> = var %0 @"x";
+                  %2 : ::X<java.lang.Object> = var.load %1;
                   %3 : java.lang.Runnable = cast %2 @"java.lang.Runnable";
                   invoke %3 @"DenotableTypesTest::consume(java.lang.Runnable)void";
                   return;
@@ -180,7 +180,7 @@ public class DenotableTypesTest {
                   %2 : java.util.List<+<DenotableTypesTest$Box<java.lang.Integer>>> = var.load %1;
                   %3 : int = constant @"0";
                   %4 : DenotableTypesTest$Box<java.lang.Integer> = invoke %2 %3 @"java.util.List::get(int)java.lang.Object";
-                  %5 : java.lang.Integer = field.load %4 @"DenotableTypesTest$Box<::X>::x()::X";
+                  %5 : java.lang.Integer = field.load %4 @"DenotableTypesTest$Box::x()java.lang.Object";
                   %6 : Var<java.lang.Integer> = var %5 @"i";
                   return;
             };

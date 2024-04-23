@@ -85,6 +85,11 @@ public final class ClassType implements JavaType {
     }
 
     @Override
+    public JavaType erasure() {
+        return rawType();
+    }
+
+    @Override
     public boolean isArray() {
         return false;
     }

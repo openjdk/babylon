@@ -65,6 +65,11 @@ import java.util.Map;
     }
 
     @Override
+    public JavaType erasure() {
+        return this;
+    }
+
+    @Override
     public boolean isArray() {
         return false;
     }

@@ -80,6 +80,11 @@ public final class WildcardType implements JavaType {
     }
 
     @Override
+    public JavaType erasure() {
+        throw new UnsupportedOperationException("Wildcard type");
+    }
+
+    @Override
     public JavaType toBasicType() {
         throw new UnsupportedOperationException("Wildcard type");
     }

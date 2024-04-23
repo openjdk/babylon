@@ -41,7 +41,7 @@ public class StringTemplateTest {
     @IR("""
             func @"f" (%0 : int)void -> {
                   %1 : Var<int> = var %0 @"y";
-                  %2 : java.lang.StringTemplate$Processor<java.lang.String, java.lang.RuntimeException> = field.load @"java.lang.StringTemplate::STR()java.lang.StringTemplate$Processor<java.lang.String, java.lang.RuntimeException>";
+                  %2 : java.lang.StringTemplate$Processor<java.lang.String, java.lang.RuntimeException> = field.load @"java.lang.StringTemplate::STR()java.lang.StringTemplate$Processor";
                   %3 : java.lang.String = constant @"y = ";
                   %4 : java.lang.String = constant @"";
                   %5 : java.lang.String = java.stringTemplate %2 %3 %4 ()int -> {
@@ -60,7 +60,7 @@ public class StringTemplateTest {
     @IR("""
             func @"f2" (%0 : int)void -> {
                   %1 : Var<int> = var %0 @"y";
-                  %2 : java.lang.StringTemplate$Processor<java.lang.StringTemplate, java.lang.RuntimeException> = field.load @"java.lang.StringTemplate::RAW()java.lang.StringTemplate$Processor<java.lang.StringTemplate, java.lang.RuntimeException>";
+                  %2 : java.lang.StringTemplate$Processor<java.lang.StringTemplate, java.lang.RuntimeException> = field.load @"java.lang.StringTemplate::RAW()java.lang.StringTemplate$Processor";
                   %3 : java.lang.String = constant @"y = ";
                   %4 : java.lang.String = constant @"";
                   %5 : java.lang.StringTemplate = java.stringTemplate %2 %3 %4 ()int -> {
@@ -81,7 +81,7 @@ public class StringTemplateTest {
                   %3 : Var<int> = var %0 @"x";
                   %4 : Var<int> = var %1 @"y";
                   %5 : Var<int> = var %2 @"z";
-                  %6 : java.lang.StringTemplate$Processor<java.lang.String, java.lang.RuntimeException> = field.load @"java.lang.StringTemplate::STR()java.lang.StringTemplate$Processor<java.lang.String, java.lang.RuntimeException>";
+                  %6 : java.lang.StringTemplate$Processor<java.lang.String, java.lang.RuntimeException> = field.load @"java.lang.StringTemplate::STR()java.lang.StringTemplate$Processor";
                   %7 : java.lang.String = constant @"x = ";
                   %8 : java.lang.String = constant @", z = ";
                   %9 : java.lang.String = constant @", x + z = ";
@@ -102,7 +102,7 @@ public class StringTemplateTest {
                           yield %16;
                       };
                   %17 : Var<java.lang.String> = var %11 @"s";
-                  %18 : java.lang.StringTemplate$Processor<java.lang.String, java.lang.RuntimeException> = field.load @"java.lang.StringTemplate::STR()java.lang.StringTemplate$Processor<java.lang.String, java.lang.RuntimeException>";
+                  %18 : java.lang.StringTemplate$Processor<java.lang.String, java.lang.RuntimeException> = field.load @"java.lang.StringTemplate::STR()java.lang.StringTemplate$Processor";
                   %19 : java.lang.String = constant @"y = ";
                   %20 : java.lang.String = constant @", ";
                   %21 : java.lang.String = constant @"";
@@ -127,7 +127,7 @@ public class StringTemplateTest {
     @CodeReflection
     @IR("""
             func @"f4" ()void -> {
-                  %0 : java.lang.StringTemplate$Processor<java.lang.String, java.lang.RuntimeException> = field.load @"java.lang.StringTemplate::STR()java.lang.StringTemplate$Processor<java.lang.String, java.lang.RuntimeException>";
+                  %0 : java.lang.StringTemplate$Processor<java.lang.String, java.lang.RuntimeException> = field.load @"java.lang.StringTemplate::STR()java.lang.StringTemplate$Processor";
                   %1 : Var<java.lang.StringTemplate$Processor<+<java.lang.Object>, java.lang.RuntimeException>> = var %0 @"X";
                   %2 : java.lang.StringTemplate$Processor<+<java.lang.Object>, java.lang.RuntimeException> = var.load %1;
                   %3 : java.lang.String = constant @"some template";

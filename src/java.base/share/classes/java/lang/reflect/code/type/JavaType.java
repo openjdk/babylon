@@ -149,6 +149,11 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
 
     boolean isPrimitive();
 
+    /**
+     * {@return the erasure of this Java type, as per JLS 4.6}
+     */
+    JavaType erasure();
+
     // Factories
 
     static JavaType type(Class<?> c) {
@@ -277,10 +282,11 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
     /**
      * Constructs a type-variable reference.
      *
+     * @param bound the type-variable bound.
      * @return a type-variable reference.
      */
-    static TypeVarRef typeVarRef(String name) {
-        return new TypeVarRef(name);
+    static TypeVarRef typeVarRef(String name, JavaType bound) {
+        return new TypeVarRef(name, bound);
     }
 
     // Copied code in jdk.compiler module throws UOE

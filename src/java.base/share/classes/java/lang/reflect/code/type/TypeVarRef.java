@@ -34,9 +34,11 @@ public final class TypeVarRef implements JavaType {
 
     // @@@: how do we encode tvar owner?
     final String name;
+    final JavaType bound;
 
-    TypeVarRef(String name) {
+    TypeVarRef(String name, JavaType bound) {
         this.name = name;
+        this.bound = bound;
     }
 
     /**
@@ -46,9 +48,22 @@ public final class TypeVarRef implements JavaType {
         return name;
     }
 
+    /**
+     * {@return the type-variable bound}
+     */
+    public JavaType bound() {
+        return bound;
+    }
+
+    @Override
+    public JavaType erasure() {
+        return bound.erasure();
+    }
+
     @Override
     public TypeDefinition toTypeDefinition() {
-        return new TypeDefinition("::" + name, List.of());
+        return new TypeDefinition("::" + name,
+                List.of(bound.toTypeDefinition()));
     }
 
     @Override
@@ -60,7 +75,8 @@ public final class TypeVarRef implements JavaType {
     public boolean equals(Object o) {
         if (this == o) return true;
         return o instanceof TypeVarRef that &&
-                name.equals(that.name);
+                name.equals(that.name) &&
+                bound.equals(that.bound);
     }
 
     @Override

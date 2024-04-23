@@ -49,14 +49,14 @@ class IntersectionTypeTest {
 
     @CodeReflection
     @IR("""
-              func @"test1" (%0 : ::X)void -> {
-                    %1 : Var<::X> = var %0 @"x";
-                    %2 : ::X = var.load %1;
+              func @"test1" (%0 : ::X<IntersectionTypeTest$A>)void -> {
+                    %1 : Var<::X<IntersectionTypeTest$A>> = var %0 @"x";
+                    %2 : ::X<IntersectionTypeTest$A> = var.load %1;
                     invoke %2 @"IntersectionTypeTest$A::m_A()void";
-                    %3 : ::X = var.load %1;
+                    %3 : ::X<IntersectionTypeTest$A> = var.load %1;
                     %4 : IntersectionTypeTest$B = cast %3 @"IntersectionTypeTest$B";
                     invoke %4 @"IntersectionTypeTest$B::m_B()void";
-                    %5 : ::X = var.load %1;
+                    %5 : ::X<IntersectionTypeTest$A> = var.load %1;
                     %6 : IntersectionTypeTest$C = cast %5 @"IntersectionTypeTest$C";
                     invoke %6 @"IntersectionTypeTest$C::m_C()void";
                     return;
@@ -70,15 +70,15 @@ class IntersectionTypeTest {
 
     @CodeReflection
     @IR("""
-            func @"test2" (%0 : ::X)void -> {
-                  %1 : Var<::X> = var %0 @"x";
-                  %2 : ::X = var.load %1;
+            func @"test2" (%0 : ::X<IntersectionTypeTest$A>)void -> {
+                  %1 : Var<::X<IntersectionTypeTest$A>> = var %0 @"x";
+                  %2 : ::X<IntersectionTypeTest$A> = var.load %1;
                   %3 : java.lang.Object = field.load @"IntersectionTypeTest$A::f_A()java.lang.Object";
                   %4 : Var<java.lang.Object> = var %3 @"oA";
-                  %5 : ::X = var.load %1;
+                  %5 : ::X<IntersectionTypeTest$A> = var.load %1;
                   %6 : java.lang.Object = field.load @"IntersectionTypeTest$B::f_B()java.lang.Object";
                   %7 : Var<java.lang.Object> = var %6 @"oB";
-                  %8 : ::X = var.load %1;
+                  %8 : ::X<IntersectionTypeTest$A> = var.load %1;
                   %9 : java.lang.Object = field.load @"IntersectionTypeTest$C::f_C()java.lang.Object";
                   %10 : Var<java.lang.Object> = var %9 @"oC";
                   return;
@@ -92,9 +92,9 @@ class IntersectionTypeTest {
 
     @CodeReflection
     @IR("""
-            func @"test3" (%0 : ::X)void -> {
-                  %1 : Var<::X> = var %0 @"x";
-                  %2 : ::X = var.load %1;
+            func @"test3" (%0 : ::X<IntersectionTypeTest$A>)void -> {
+                  %1 : Var<::X<IntersectionTypeTest$A>> = var %0 @"x";
+                  %2 : ::X<IntersectionTypeTest$A> = var.load %1;
                   %3 : Var<IntersectionTypeTest$A> = var %2 @"rec$";
                   %4 : java.lang.Runnable = lambda ()void -> {
                       %5 : IntersectionTypeTest$A = var.load %3;
@@ -102,7 +102,7 @@ class IntersectionTypeTest {
                       return;
                   };
                   %6 : Var<java.lang.Runnable> = var %4 @"rA";
-                  %7 : ::X = var.load %1;
+                  %7 : ::X<IntersectionTypeTest$A> = var.load %1;
                   %8 : IntersectionTypeTest$B = cast %7 @"IntersectionTypeTest$B";
                   %9 : Var<IntersectionTypeTest$B> = var %8 @"rec$";
                   %10 : java.lang.Runnable = lambda ()void -> {
@@ -111,7 +111,7 @@ class IntersectionTypeTest {
                       return;
                   };
                   %12 : Var<java.lang.Runnable> = var %10 @"rB";
-                  %13 : ::X = var.load %1;
+                  %13 : ::X<IntersectionTypeTest$A> = var.load %1;
                   %14 : IntersectionTypeTest$C = cast %13 @"IntersectionTypeTest$C";
                   %15 : Var<IntersectionTypeTest$C> = var %14 @"rec$";
                   %16 : java.lang.Runnable = lambda ()void -> {
@@ -135,14 +135,14 @@ class IntersectionTypeTest {
 
     @CodeReflection
     @IR("""
-              func @"test4" (%0 : ::X)void -> {
-                    %1 : Var<::X> = var %0 @"x";
-                    %2 : ::X = var.load %1;
+              func @"test4" (%0 : ::X<IntersectionTypeTest$A>)void -> {
+                    %1 : Var<::X<IntersectionTypeTest$A>> = var %0 @"x";
+                    %2 : ::X<IntersectionTypeTest$A> = var.load %1;
                     invoke %2 @"IntersectionTypeTest::g_A(IntersectionTypeTest$A)void";
-                    %3 : ::X = var.load %1;
+                    %3 : ::X<IntersectionTypeTest$A> = var.load %1;
                     %4 : IntersectionTypeTest$B = cast %3 @"IntersectionTypeTest$B";
                     invoke %4 @"IntersectionTypeTest::g_B(IntersectionTypeTest$B)void";
-                    %5 : ::X = var.load %1;
+                    %5 : ::X<IntersectionTypeTest$A> = var.load %1;
                     %6 : IntersectionTypeTest$C = cast %5 @"IntersectionTypeTest$C";
                     invoke %6 @"IntersectionTypeTest::g_C(IntersectionTypeTest$C)void";
                     return;

@@ -122,7 +122,10 @@ public final class CoreTypeFactory {
                 return JavaType.wildcard(kind, typeArguments.get(0));
             } else if (identifier.startsWith("::")) {
                 // type-var
-                return JavaType.typeVarRef(identifier.substring(2));
+                if (typeArguments.size() != 1) {
+                    throw new IllegalArgumentException("Bad type-variable bounds: " + tree);
+                }
+                return JavaType.typeVarRef(identifier.substring(2), typeArguments.get(0));
             }
             JavaType t = switch (identifier) {
                 case "boolean" -> JavaType.BOOLEAN;

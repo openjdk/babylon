@@ -2204,7 +2204,9 @@ public class ReflectMethods extends TreeTranslator {
                             JavaType.wildcard() :
                             JavaType.wildcard(wt.isExtendsBound() ? BoundKind.EXTENDS : BoundKind.SUPER, typeToTypeElement(wt.type));
                 }
-                case TYPEVAR -> JavaType.typeVarRef(t.tsym.name.toString());
+                case TYPEVAR -> JavaType.typeVarRef(t.tsym.name.toString(),
+                        typeToTypeElement(t.getUpperBound()));
+
                 case CLASS -> {
                     Assert.check(!t.isIntersection() && !t.isUnion());
                     // @@@ Need to clean this up, probably does not work inner generic classes
@@ -2238,22 +2240,15 @@ public class ReflectMethods extends TreeTranslator {
             // @@@ Made Gen::binaryQualifier public, duplicate logic?
             // Ensure correct qualifying class is used in the reference, see JLS 13.1
             // https://docs.oracle.com/javase/specs/jls/se20/html/jls-13.html#jls-13.1
-            return symbolToFieldRef(gen.binaryQualifier(s, types.erasure(site)));
+            return symbolToErasedFieldRef(gen.binaryQualifier(s, types.erasure(site)));
         }
 
-        FieldRef symbolToFieldRef(Symbol s) {
+        FieldRef symbolToErasedFieldRef(Symbol s) {
+            Type erasedType = s.erasure(types);
             return FieldRef.field(
-                    typeToTypeElement(s.owner.type),
+                    typeToTypeElement(s.owner.erasure(types)),
                     s.name.toString(),
-                    typeToTypeElement(s.type));
-        }
-
-        MethodRef symbolToMethodRef(Symbol s) {
-            return MethodRef.method(
-                    typeToTypeElement(s.owner.type),
-                    s.name.toString(),
-                    typeToTypeElement(s.type.getReturnType()),
-                    s.type.getParameterTypes().stream().map(this::typeToTypeElement).toArray(TypeElement[]::new));
+                    typeToTypeElement(erasedType));
         }
 
         MethodRef symbolToErasedMethodRef(Symbol s, Type site) {
