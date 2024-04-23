@@ -27,6 +27,7 @@
  */
 
 import org.testng.Assert;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.code.*;
@@ -38,9 +39,9 @@ import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.lang.runtime.CodeReflection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.IntSupplier;
 import java.util.function.IntUnaryOperator;
 import java.util.stream.Stream;
@@ -212,6 +213,49 @@ public class TestLambdaOps {
             Assert.assertEquals(r, 0);
         }
     }
+
+
+    interface QuotableIntUnaryOperator extends IntUnaryOperator, Quotable {}
+
+    interface QuotableFunction<T, R> extends Function<T, R>, Quotable {}
+
+    interface QuotableBiFunction<T, U, R> extends BiFunction<T, U, R>, Quotable {}
+
+    @DataProvider
+    Iterator<Quotable> methodRefLambdas() {
+        return List.of(
+                (QuotableIntUnaryOperator) TestLambdaOps::m1,
+                (QuotableIntUnaryOperator) TestLambdaOps::m2,
+                (QuotableFunction<Integer, Integer>) TestLambdaOps::m1,
+                (QuotableFunction<Integer, Integer>) TestLambdaOps::m2,
+                (QuotableIntUnaryOperator) this::m3,
+                (QuotableBiFunction<TestLambdaOps, Integer, Integer>) TestLambdaOps::m4
+        ).iterator();
+    }
+
+    @Test(dataProvider = "methodRefLambdas")
+    public void testIsMethodReference(Quotable q) {
+        Quoted quoted = q.quoted();
+        CoreOps.LambdaOp lop = (CoreOps.LambdaOp) quoted.op();
+        Assert.assertTrue(lop.methodReference().isPresent());
+    }
+
+    static int m1(int i) {
+        return i;
+    }
+
+    static Integer m2(Integer i) {
+        return i;
+    }
+
+    int m3(int i) {
+        return i;
+    }
+
+    static int m4(TestLambdaOps tl, int i) {
+        return i;
+    }
+
 
     static CoreOps.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestLambdaOps.class.getDeclaredMethods())
