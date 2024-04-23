@@ -2030,7 +2030,6 @@ public final class CoreOps {
 
             VarLoadOp(VarLoadOp that, CopyContext cc) {
                 super(that, cc);
-//                this(cc.getValues(that.operands()));
             }
 
             VarLoadOp(List<Value> varValue) {
@@ -2072,7 +2071,6 @@ public final class CoreOps {
 
             VarStoreOp(VarStoreOp that, CopyContext cc) {
                 super(that, cc);
-//                this(cc.getValues(that.operands()));
             }
 
             VarStoreOp(List<Value> values) {

@@ -253,7 +253,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     /**
      * Sets the originating source location of this operation, if unbound.
      *
-     * @param l the location, a {@code null} value indicates the location is not specified.
+     * @param l the location, the {@link Location#NO_LOCATION} value indicates the location is not specified.
      * @throws IllegalStateException if this operation is bound
      */
     public final void setLocation(Location l) {
