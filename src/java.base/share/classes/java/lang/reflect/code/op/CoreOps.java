@@ -26,7 +26,6 @@
 package java.lang.reflect.code.op;
 
 import java.lang.constant.ClassDesc;
-import java.lang.reflect.Method;
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.type.FieldRef;
 import java.lang.reflect.code.type.MethodRef;
@@ -533,14 +532,10 @@ public final class CoreOps {
          * contains only nodes with single edges terminating in V1, and the graph of what depends on V1
          * is bidirectionally equal to the graph of what V2 depends on.
          *
-         *
-         * and the graph of what
-         * depends on V1 are equal
-         *
          * @return the invocation operation to the method referenced by the lambda
-         * expression operation, otherwise empty.
+         * operation, otherwise empty.
          */
-        public Optional<InvokeOp> isMethodReference() {
+        public Optional<InvokeOp> methodReference() {
             // Single block
             if (body().blocks().size() > 1) {
                 return Optional.empty();

@@ -237,7 +237,7 @@ public class TestLambdaOps {
     public void testIsMethodReference(Quotable q) {
         Quoted quoted = q.quoted();
         CoreOps.LambdaOp lop = (CoreOps.LambdaOp) quoted.op();
-        Assert.assertTrue(lop.isMethodReference().isPresent());
+        Assert.assertTrue(lop.methodReference().isPresent());
     }
 
     static int m1(int i) {
