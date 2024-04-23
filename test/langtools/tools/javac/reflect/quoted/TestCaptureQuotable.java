@@ -75,10 +75,6 @@ public class TestCaptureQuotable {
         assertEquals(res, x + 1 + hello.length());
     }
 
-    interface FManyParams {
-        void m(int i1, int i2, int i3, int i4, int i5, int i6, int i7, int i8);
-    }
-
     @Test
     public void testCaptureMany() {
         RandomGenerator rg = RandomGenerator.getDefault();
