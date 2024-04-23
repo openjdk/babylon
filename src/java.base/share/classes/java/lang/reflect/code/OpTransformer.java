@@ -47,9 +47,9 @@ public interface OpTransformer extends BiFunction<Block.Builder, Op, Block.Build
     OpTransformer NOOP_TRANSFORMER = (block, op) -> block;
 
     /**
-     * A transformer that removes location information from operations.
+     * A transformer that drops location information from operations.
      */
-    OpTransformer REMOVE_LOCATION = (block, op) -> {
+    OpTransformer DROP_LOCATION_TRANSFORMER = (block, op) -> {
         Op.Result r = block.op(op);
         r.op().setLocation(Location.NO_LOCATION);
         return block;

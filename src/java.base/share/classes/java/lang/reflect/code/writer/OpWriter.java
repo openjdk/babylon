@@ -212,7 +212,7 @@ public final class OpWriter {
      * then character stream will be flushed.
      *
      * @param w the character stream
-     * @param op the code modelz
+     * @param op the code model
      */
     public static void writeTo(Writer w, Op op) {
         OpWriter ow = new OpWriter(w);
@@ -225,6 +225,16 @@ public final class OpWriter {
         }
     }
 
+    /**
+     * Writes a code model (an operation) to the character stream.
+     * <p>
+     * A carriage return will be written after the model is writen, and
+     * then character stream will be flushed.
+     *
+     * @param w the character stream
+     * @param op the code model
+     * @param options the writer options
+     */
     public static void writeTo(Writer w, Op op, Option... options) {
         OpWriter ow = new OpWriter(w, options);
         ow.writeOp(op);
