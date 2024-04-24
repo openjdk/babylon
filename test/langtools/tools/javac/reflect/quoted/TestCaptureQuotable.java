@@ -29,14 +29,15 @@
 
 import org.testng.annotations.*;
 
-import java.lang.reflect.code.Value;
 import java.lang.reflect.code.op.CoreOps.Var;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Quotable;
 import java.lang.reflect.code.Quoted;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.function.IntSupplier;
 import java.util.function.IntUnaryOperator;
 import java.util.function.ToIntFunction;
 import java.util.stream.IntStream;
@@ -69,6 +70,30 @@ public class TestCaptureQuotable {
         int res = (int)Interpreter.invoke(MethodHandles.lookup(), (Op & Op.Invokable) quoted.op(),
                 quoted.capturedValues(), 1);
         assertEquals(res, x + 1 + hello.length());
+    }
+
+    @Test
+    public void testCaptureMany() {
+        int[] ia = new int[8];
+        int i1 = ia[0] = 0;
+        int i2 = ia[1] = 1;
+        int i3 = ia[2] = 2;
+        int i4 = ia[3] = 3;
+        int i5 = ia[4] = 4;
+        int i6 = ia[5] = 5;
+        int i7 = ia[6] = 6;
+        int i8 = ia[7] = 7;
+
+        Quotable quotable = (Quotable & IntSupplier) () -> i1 + i2 + i3 + i4 + i5 + i6 + i7 + i8;
+        Quoted quoted = quotable.quoted();
+        assertEquals(quoted.capturedValues().size(), ia.length);
+        assertEquals(quoted.op().capturedValues(), new ArrayList<>(quoted.capturedValues().keySet()));
+        Iterator<Object> it = quoted.capturedValues().values().iterator();
+        int i = 0;
+        while (it.hasNext()) {
+            int actual = (int) ((Var)it.next()).value();
+            assertEquals(actual, ia[i++]);
+        }
     }
 
     @Test(dataProvider = "ints")

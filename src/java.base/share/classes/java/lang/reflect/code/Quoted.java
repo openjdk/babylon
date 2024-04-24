@@ -26,6 +26,8 @@
 package java.lang.reflect.code;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -66,7 +68,7 @@ public final class Quoted {
         // @@@ Or make Quoted an interface, with a module private implementation?
         assert op.capturedValues().equals(new ArrayList<>(capturedValues.keySet()));
         this.op = op;
-        this.capturedValues = Map.copyOf(capturedValues);
+        this.capturedValues = Collections.unmodifiableMap(new LinkedHashMap<>(capturedValues));
     }
 
     /**
