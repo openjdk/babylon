@@ -33,26 +33,24 @@ import java.util.Map;
 import java.util.function.Function;
 
 /**
- * An operation in an external form (a record) that can be utilized to construct an instance
+ * An operation's external content (a record) that can be utilized to construct an instance
  * of an {@link ExternalizableOp} associated with the operation's name.
- * <p>
- * The externalized contents of the operation are represented as record components.
  *
  * @param name            the operation name
  * @param operands        the list of operands
  * @param successors      the list of successors
  * @param resultType      the operation result type
- * @param attributes      the operation's specific state as an attribute map, modifiable
+ * @param attributes      the operation's specific content as an attributes map, modifiable
  * @param bodyDefinitions the list of body builders for building the operation's bodies
  * @apiNote Deserializers of operations may utilize this record to construct operations,
  * thereby separating the specifics of deserializing from construction.
  */
-public record ExternalOpContents(String name,
-                                 List<Value> operands,
-                                 List<Block.Reference> successors,
-                                 TypeElement resultType,
-                                 Map<String, Object> attributes,
-                                 List<Body.Builder> bodyDefinitions) {
+public record ExternalOpContent(String name,
+                                List<Value> operands,
+                                List<Block.Reference> successors,
+                                TypeElement resultType,
+                                Map<String, Object> attributes,
+                                List<Body.Builder> bodyDefinitions) {
 
     /**
      * Removes an attribute value from the attributes map, converts the value by applying it
@@ -87,14 +85,14 @@ public record ExternalOpContents(String name,
     }
 
     /**
-     * Externalizes an operation to its external operation definition.
+     * Externalizes an operation to its external content.
      *
      * @param cc the copy context
      * @param op the operation
-     * @return the copied operation definition.
+     * @return the operation's external content.
      */
-    public static ExternalOpContents fromOp(CopyContext cc, Op op) {
-        return new ExternalOpContents(
+    public static ExternalOpContent fromOp(CopyContext cc, Op op) {
+        return new ExternalOpContent(
                 op.opName(),
                 cc.getValues(op.operands()),
                 op.successors().stream().map(cc::getSuccessorOrCreate).toList(),

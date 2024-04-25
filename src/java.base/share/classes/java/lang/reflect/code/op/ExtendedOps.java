@@ -73,7 +73,7 @@ public class ExtendedOps {
      * The label operation, that can model Java language statements with label identifiers.
      */
     public static sealed abstract class JavaLabelOp extends ExternalizableOp implements Op.Lowerable, Op.BodyTerminating {
-        JavaLabelOp(ExternalOpContents def) {
+        JavaLabelOp(ExternalOpContent def) {
             super(def);
 
             if (def.operands().size() > 1) {
@@ -166,7 +166,7 @@ public class ExtendedOps {
     public static final class JavaBreakOp extends JavaLabelOp {
         public static final String NAME = "java.break";
 
-        public JavaBreakOp(ExternalOpContents def) {
+        public JavaBreakOp(ExternalOpContent def) {
             super(def);
         }
 
@@ -196,7 +196,7 @@ public class ExtendedOps {
     public static final class JavaContinueOp extends JavaLabelOp {
         public static final String NAME = "java.continue";
 
-        public JavaContinueOp(ExternalOpContents def) {
+        public JavaContinueOp(ExternalOpContent def) {
             super(def);
         }
 
@@ -248,7 +248,7 @@ public class ExtendedOps {
     public static final class JavaYieldOp extends ExternalizableOp implements Op.BodyTerminating {
         public static final String NAME = "java.yield";
 
-        public JavaYieldOp(ExternalOpContents def) {
+        public JavaYieldOp(ExternalOpContent def) {
             super(def);
         }
 
@@ -295,7 +295,7 @@ public class ExtendedOps {
 
         final Body body;
 
-        public JavaBlockOp(ExternalOpContents def) {
+        public JavaBlockOp(ExternalOpContent def) {
             super(def);
 
             if (!def.operands().isEmpty()) {
@@ -376,7 +376,7 @@ public class ExtendedOps {
 
         final Body body;
 
-        public JavaLabeledOp(ExternalOpContents def) {
+        public JavaLabeledOp(ExternalOpContent def) {
             super(def);
 
             if (!def.operands().isEmpty()) {
@@ -550,7 +550,7 @@ public class ExtendedOps {
 
         final List<Body> bodies;
 
-        public JavaIfOp(ExternalOpContents def) {
+        public JavaIfOp(ExternalOpContent def) {
             super(def);
 
             if (!def.operands().isEmpty()) {
@@ -693,7 +693,7 @@ public class ExtendedOps {
         final TypeElement resultType;
         final List<Body> bodies;
 
-        public JavaSwitchExpressionOp(ExternalOpContents def) {
+        public JavaSwitchExpressionOp(ExternalOpContent def) {
             super(def);
 
             if (def.operands().size() != 1) {
@@ -757,7 +757,7 @@ public class ExtendedOps {
     public static final class JavaSwitchFallthroughOp extends ExternalizableOp implements Op.BodyTerminating {
         public static final String NAME = "java.switch.fallthrough";
 
-        public JavaSwitchFallthroughOp(ExternalOpContents def) {
+        public JavaSwitchFallthroughOp(ExternalOpContent def) {
             super(def);
         }
 
@@ -885,11 +885,11 @@ public class ExtendedOps {
         final Body update;
         final Body body;
 
-        public static JavaForOp create(ExternalOpContents def) {
+        public static JavaForOp create(ExternalOpContent def) {
             return new JavaForOp(def);
         }
 
-        public JavaForOp(ExternalOpContents def) {
+        public JavaForOp(ExternalOpContent def) {
             super(def);
 
             this.init = def.bodyDefinitions().get(0).build(this);
@@ -1120,11 +1120,11 @@ public class ExtendedOps {
         final Body init;
         final Body body;
 
-        public static JavaEnhancedForOp create(ExternalOpContents def) {
+        public static JavaEnhancedForOp create(ExternalOpContent def) {
             return new JavaEnhancedForOp(def);
         }
 
-        public JavaEnhancedForOp(ExternalOpContents def) {
+        public JavaEnhancedForOp(ExternalOpContent def) {
             super(def);
 
             this.expression = def.bodyDefinitions().get(0).build(this);
@@ -1341,7 +1341,7 @@ public class ExtendedOps {
 
         private final List<Body> bodies;
 
-        public JavaWhileOp(ExternalOpContents def) {
+        public JavaWhileOp(ExternalOpContent def) {
             super(def);
 
             // @@@ Validate
@@ -1486,7 +1486,7 @@ public class ExtendedOps {
 
         private final List<Body> bodies;
 
-        public JavaDoWhileOp(ExternalOpContents def) {
+        public JavaDoWhileOp(ExternalOpContent def) {
             super(def);
 
             // @@@ Validate
@@ -1593,7 +1593,7 @@ public class ExtendedOps {
     public static sealed abstract class JavaConditionalOp extends ExternalizableOp implements Op.Nested, Op.Lowerable {
         final List<Body> bodies;
 
-        public JavaConditionalOp(ExternalOpContents def) {
+        public JavaConditionalOp(ExternalOpContent def) {
             super(def);
 
             if (!def.operands().isEmpty()) {
@@ -1731,7 +1731,7 @@ public class ExtendedOps {
 
         public static final String NAME = "java.cand";
 
-        public JavaConditionalAndOp(ExternalOpContents def) {
+        public JavaConditionalAndOp(ExternalOpContent def) {
             super(def);
         }
 
@@ -1786,7 +1786,7 @@ public class ExtendedOps {
 
         public static final String NAME = "java.cor";
 
-        public JavaConditionalOrOp(ExternalOpContents def) {
+        public JavaConditionalOrOp(ExternalOpContent def) {
             super(def);
         }
 
@@ -1821,7 +1821,7 @@ public class ExtendedOps {
         // {cond, truepart, falsepart}
         final List<Body> bodies;
 
-        public JavaConditionalExpressionOp(ExternalOpContents def) {
+        public JavaConditionalExpressionOp(ExternalOpContent def) {
             super(def);
 
             if (!def.operands().isEmpty()) {
@@ -1982,11 +1982,11 @@ public class ExtendedOps {
         final List<Body> catchers;
         final Body finalizer;
 
-        public static JavaTryOp create(ExternalOpContents def) {
+        public static JavaTryOp create(ExternalOpContent def) {
             return new JavaTryOp(def);
         }
 
-        public JavaTryOp(ExternalOpContents def) {
+        public JavaTryOp(ExternalOpContent def) {
             super(def);
 
             List<Body> bodies = def.bodyDefinitions().stream().map(b -> b.build(this)).toList();
@@ -2421,7 +2421,7 @@ public class ExtendedOps {
          * The pattern operation.
          */
         public static sealed abstract class PatternOp extends ExternalizableOp implements Op.Pure {
-            PatternOp(ExternalOpContents def) {
+            PatternOp(ExternalOpContent def) {
                 super(def);
             }
 
@@ -2446,7 +2446,7 @@ public class ExtendedOps {
             final TypeElement resultType;
             final String bindingName;
 
-            public static BindingPatternOp create(ExternalOpContents def) {
+            public static BindingPatternOp create(ExternalOpContent def) {
                 String name = def.extractAttributeValue(ATTRIBUTE_BINDING_NAME, true,
                         v -> switch (v) {
                             case String s -> s;
@@ -2455,7 +2455,7 @@ public class ExtendedOps {
                 return new BindingPatternOp(def, name);
             }
 
-            BindingPatternOp(ExternalOpContents def, String bindingName) {
+            BindingPatternOp(ExternalOpContent def, String bindingName) {
                 super(def);
 
                 this.bindingName = bindingName;
@@ -2513,7 +2513,7 @@ public class ExtendedOps {
 
             final RecordTypeRef recordDescriptor;
 
-            public static RecordPatternOp create(ExternalOpContents def) {
+            public static RecordPatternOp create(ExternalOpContent def) {
                 RecordTypeRef recordDescriptor = def.extractAttributeValue(ATTRIBUTE_RECORD_DESCRIPTOR,true,
                         v -> switch (v) {
                             case String s -> RecordTypeRef.ofString(s);
@@ -2524,7 +2524,7 @@ public class ExtendedOps {
                 return new RecordPatternOp(def, recordDescriptor);
             }
 
-            RecordPatternOp(ExternalOpContents def, RecordTypeRef recordDescriptor) {
+            RecordPatternOp(ExternalOpContent def, RecordTypeRef recordDescriptor) {
                 super(def);
 
                 this.recordDescriptor = recordDescriptor;
@@ -2580,7 +2580,7 @@ public class ExtendedOps {
             final Body pattern;
             final Body match;
 
-            public MatchOp(ExternalOpContents def) {
+            public MatchOp(ExternalOpContent def) {
                 super(def);
 
                 this.pattern = def.bodyDefinitions().get(0).build(this);
@@ -2742,7 +2742,7 @@ public class ExtendedOps {
         private final TypeElement resultType;
         private final List<Body> expressions;
 
-        public StringTemplateOp(ExternalOpContents def) {
+        public StringTemplateOp(ExternalOpContent def) {
             super(def);
 
             this.expressions = def.bodyDefinitions().stream().map(bd -> bd.build(this)).toList();

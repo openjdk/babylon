@@ -81,7 +81,7 @@ public final class CoreOps {
         final String funcName;
         final Body body;
 
-        public static FuncOp create(ExternalOpContents def) {
+        public static FuncOp create(ExternalOpContent def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalStateException("Bad op " + def.name());
             }
@@ -94,7 +94,7 @@ public final class CoreOps {
             return new FuncOp(def, funcName);
         }
 
-        FuncOp(ExternalOpContents def, String funcName) {
+        FuncOp(ExternalOpContent def, String funcName) {
             super(def);
 
             this.funcName = funcName;
@@ -186,7 +186,7 @@ public final class CoreOps {
         final String funcName;
         final TypeElement resultType;
 
-        public static FuncCallOp create(ExternalOpContents def) {
+        public static FuncCallOp create(ExternalOpContent def) {
             String funcName = def.extractAttributeValue(ATTRIBUTE_FUNC_NAME, true,
                     v -> switch (v) {
                         case String s -> s;
@@ -196,7 +196,7 @@ public final class CoreOps {
             return new FuncCallOp(def, funcName);
         }
 
-        FuncCallOp(ExternalOpContents def, String funcName) {
+        FuncCallOp(ExternalOpContent def, String funcName) {
             super(def);
 
             this.funcName = funcName;
@@ -251,7 +251,7 @@ public final class CoreOps {
         final Map<String, FuncOp> table;
         final Body body;
 
-        public static ModuleOp create(ExternalOpContents def) {
+        public static ModuleOp create(ExternalOpContent def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalStateException("Bad op " + def.name());
             }
@@ -259,7 +259,7 @@ public final class CoreOps {
             return new ModuleOp(def);
         }
 
-        ModuleOp(ExternalOpContents def) {
+        ModuleOp(ExternalOpContent def) {
             super(def);
 
             this.body = def.bodyDefinitions().get(0).build(this);
@@ -340,7 +340,7 @@ public final class CoreOps {
 
         final Op quotedOp;
 
-        public QuotedOp(ExternalOpContents def) {
+        public QuotedOp(ExternalOpContent def) {
             super(def);
 
             this.quotedBody = def.bodyDefinitions().get(0).build(this);
@@ -439,7 +439,7 @@ public final class CoreOps {
         final TypeElement functionalInterface;
         final Body body;
 
-        public LambdaOp(ExternalOpContents def) {
+        public LambdaOp(ExternalOpContent def) {
             super(def);
 
             this.functionalInterface = def.resultType();
@@ -670,7 +670,7 @@ public final class CoreOps {
 
         final Body body;
 
-        public ClosureOp(ExternalOpContents def) {
+        public ClosureOp(ExternalOpContent def) {
             super(def);
 
             this.body = def.bodyDefinitions().get(0).build(this);
@@ -743,7 +743,7 @@ public final class CoreOps {
     public static final class ClosureCallOp extends ExternalizableOp {
         public static final String NAME = "closure.call";
 
-        public ClosureCallOp(ExternalOpContents def) {
+        public ClosureCallOp(ExternalOpContent def) {
             super(def);
         }
 
@@ -776,7 +776,7 @@ public final class CoreOps {
     public static final class ReturnOp extends ExternalizableOp implements Op.BodyTerminating {
         public static final String NAME = "return";
 
-        public ReturnOp(ExternalOpContents def) {
+        public ReturnOp(ExternalOpContent def) {
             super(def);
 
             if (def.operands().size() > 1) {
@@ -823,7 +823,7 @@ public final class CoreOps {
     public static final class ThrowOp extends ExternalizableOp implements Op.BodyTerminating {
         public static final String NAME = "throw";
 
-        public ThrowOp(ExternalOpContents def) {
+        public ThrowOp(ExternalOpContent def) {
             super(def);
 
             if (def.operands().size() != 1) {
@@ -862,7 +862,7 @@ public final class CoreOps {
         public static final String NAME = "assert";
         public final List<Body> bodies;
 
-        public AssertOp(ExternalOpContents def) {
+        public AssertOp(ExternalOpContent def) {
             super(def);
             var bodies = def.bodyDefinitions().stream().map(b -> b.build(this)).toList();
             checkBodies(bodies);
@@ -912,7 +912,7 @@ public final class CoreOps {
     public static class UnreachableOp extends ExternalizableOp implements Op.BodyTerminating {
         public static final String NAME = "unreachable";
 
-        public UnreachableOp(ExternalOpContents def) {
+        public UnreachableOp(ExternalOpContent def) {
             super(def);
 
             if (!def.operands().isEmpty()) {
@@ -949,7 +949,7 @@ public final class CoreOps {
     public static class YieldOp extends ExternalizableOp implements Op.BodyTerminating {
         public static final String NAME = "yield";
 
-        public YieldOp(ExternalOpContents def) {
+        public YieldOp(ExternalOpContent def) {
             super(def);
 
             if (def.operands().size() > 1) {
@@ -1000,7 +1000,7 @@ public final class CoreOps {
 
         final Block.Reference b;
 
-        public BranchOp(ExternalOpContents def) {
+        public BranchOp(ExternalOpContent def) {
             super(def);
 
             if (!def.operands().isEmpty() || def.successors().size() != 1) {
@@ -1056,7 +1056,7 @@ public final class CoreOps {
         final Block.Reference t;
         final Block.Reference f;
 
-        public ConditionalBranchOp(ExternalOpContents def) {
+        public ConditionalBranchOp(ExternalOpContent def) {
             super(def);
 
             if (def.operands().size() != 1 || def.successors().size() != 2) {
@@ -1121,7 +1121,7 @@ public final class CoreOps {
         final Object value;
         final TypeElement type;
 
-        public static ConstantOp create(ExternalOpContents def) {
+        public static ConstantOp create(ExternalOpContent def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalArgumentException("Operation must have zero operands");
             }
@@ -1192,7 +1192,7 @@ public final class CoreOps {
             throw new UnsupportedOperationException("Unsupported constant type and value: " + t + " " + value);
         }
 
-        ConstantOp(ExternalOpContents def, Object value) {
+        ConstantOp(ExternalOpContent def, Object value) {
             super(def);
 
             this.type = def.resultType();
@@ -1255,7 +1255,7 @@ public final class CoreOps {
         final MethodRef invokeDescriptor;
         final TypeElement resultType;
 
-        public static InvokeOp create(ExternalOpContents def) {
+        public static InvokeOp create(ExternalOpContent def) {
             MethodRef invokeDescriptor = def.extractAttributeValue(ATTRIBUTE_INVOKE_DESCRIPTOR,
                     true, v -> switch (v) {
                         case String s -> MethodRef.ofString(s);
@@ -1266,7 +1266,7 @@ public final class CoreOps {
             return new InvokeOp(def, invokeDescriptor);
         }
 
-        InvokeOp(ExternalOpContents def, MethodRef invokeDescriptor) {
+        InvokeOp(ExternalOpContent def, MethodRef invokeDescriptor) {
             super(def);
 
             this.invokeDescriptor = invokeDescriptor;
@@ -1327,7 +1327,7 @@ public final class CoreOps {
 
         final TypeElement resultType;
 
-        public ConvOp(ExternalOpContents def) {
+        public ConvOp(ExternalOpContent def) {
             super(def);
 
             this.resultType = def.resultType();
@@ -1367,7 +1367,7 @@ public final class CoreOps {
         final FunctionType constructorType;
         final TypeElement resultType;
 
-        public static NewOp create(ExternalOpContents def) {
+        public static NewOp create(ExternalOpContent def) {
             FunctionType constructorType = def.extractAttributeValue(ATTRIBUTE_NEW_DESCRIPTOR, true,
                     v -> switch (v) {
                         case String s -> {
@@ -1384,7 +1384,7 @@ public final class CoreOps {
             return new NewOp(def, constructorType);
         }
 
-        NewOp(ExternalOpContents def, FunctionType constructorType) {
+        NewOp(ExternalOpContent def, FunctionType constructorType) {
             super(def);
 
             this.constructorType = constructorType;
@@ -1449,7 +1449,7 @@ public final class CoreOps {
 
         final FieldRef fieldDescriptor;
 
-        FieldAccessOp(ExternalOpContents def, FieldRef fieldDescriptor) {
+        FieldAccessOp(ExternalOpContent def, FieldRef fieldDescriptor) {
             super(def);
 
             this.fieldDescriptor = fieldDescriptor;
@@ -1489,7 +1489,7 @@ public final class CoreOps {
 
             final TypeElement resultType;
 
-            public static FieldLoadOp create(ExternalOpContents def) {
+            public static FieldLoadOp create(ExternalOpContent def) {
                 if (def.operands().size() > 1) {
                     throw new IllegalArgumentException("Operation must accept zero or one operand");
                 }
@@ -1504,7 +1504,7 @@ public final class CoreOps {
                 return new FieldLoadOp(def, fieldDescriptor);
             }
 
-            FieldLoadOp(ExternalOpContents opdef, FieldRef fieldDescriptor) {
+            FieldLoadOp(ExternalOpContent opdef, FieldRef fieldDescriptor) {
                 super(opdef, fieldDescriptor);
 
                 resultType = opdef.resultType();
@@ -1549,7 +1549,7 @@ public final class CoreOps {
         public static final class FieldStoreOp extends FieldAccessOp {
             public static final String NAME = "field.store";
 
-            public static FieldStoreOp create(ExternalOpContents def) {
+            public static FieldStoreOp create(ExternalOpContent def) {
                 if (def.operands().size() > 2) {
                     throw new IllegalArgumentException("Operation must accept one or two operands");
                 }
@@ -1564,7 +1564,7 @@ public final class CoreOps {
                 return new FieldStoreOp(def, fieldDescriptor);
             }
 
-            FieldStoreOp(ExternalOpContents opdef, FieldRef fieldDescriptor) {
+            FieldStoreOp(ExternalOpContent opdef, FieldRef fieldDescriptor) {
                 super(opdef, fieldDescriptor);
             }
 
@@ -1604,7 +1604,7 @@ public final class CoreOps {
     public static final class ArrayLengthOp extends ExternalizableOp implements ReflectiveOp {
         public static final String NAME = "array.length";
 
-        public ArrayLengthOp(ExternalOpContents def) {
+        public ArrayLengthOp(ExternalOpContent def) {
             super(def);
         }
 
@@ -1631,7 +1631,7 @@ public final class CoreOps {
      * The array access operation, that can model Java language array access expressions.
      */
     public abstract static sealed class ArrayAccessOp extends ExternalizableOp implements AccessOp, ReflectiveOp {
-        ArrayAccessOp(ExternalOpContents def) {
+        ArrayAccessOp(ExternalOpContent def) {
             super(def);
 
             if (def.operands().size() != 2 && def.operands().size() != 3) {
@@ -1683,7 +1683,7 @@ public final class CoreOps {
         public static final class ArrayLoadOp extends ArrayAccessOp implements Op.Pure {
             public static final String NAME = "array.load";
 
-            public ArrayLoadOp(ExternalOpContents def) {
+            public ArrayLoadOp(ExternalOpContent def) {
                 super(def);
             }
 
@@ -1716,7 +1716,7 @@ public final class CoreOps {
         public static final class ArrayStoreOp extends ArrayAccessOp {
             public static final String NAME = "array.store";
 
-            public ArrayStoreOp(ExternalOpContents def) {
+            public ArrayStoreOp(ExternalOpContent def) {
                 super(def);
             }
 
@@ -1751,7 +1751,7 @@ public final class CoreOps {
 
         final TypeElement typeDescriptor;
 
-        public static InstanceOfOp create(ExternalOpContents def) {
+        public static InstanceOfOp create(ExternalOpContent def) {
             if (def.operands().size() != 1) {
                 throw new IllegalArgumentException("Operation must have one operand " + def.name());
             }
@@ -1765,7 +1765,7 @@ public final class CoreOps {
             return new InstanceOfOp(def, typeDescriptor);
         }
 
-        InstanceOfOp(ExternalOpContents def, TypeElement typeDescriptor) {
+        InstanceOfOp(ExternalOpContent def, TypeElement typeDescriptor) {
             super(def);
 
             this.typeDescriptor = typeDescriptor;
@@ -1817,7 +1817,7 @@ public final class CoreOps {
         final TypeElement resultType;
         final TypeElement typeDescriptor;
 
-        public static CastOp create(ExternalOpContents def) {
+        public static CastOp create(ExternalOpContent def) {
             if (def.operands().size() != 1) {
                 throw new IllegalArgumentException("Operation must have one operand " + def.name());
             }
@@ -1831,7 +1831,7 @@ public final class CoreOps {
             return new CastOp(def, type);
         }
 
-        CastOp(ExternalOpContents def, TypeElement typeDescriptor) {
+        CastOp(ExternalOpContent def, TypeElement typeDescriptor) {
             super(def);
 
             this.resultType = def.resultType();
@@ -1912,7 +1912,7 @@ public final class CoreOps {
         final String varName;
         final TypeElement resultType;
 
-        public static VarOp create(ExternalOpContents def) {
+        public static VarOp create(ExternalOpContent def) {
             if (def.operands().size() != 1) {
                 throw new IllegalStateException("Operation must have one operand");
             }
@@ -1925,7 +1925,7 @@ public final class CoreOps {
             return new VarOp(def, name);
         }
 
-        VarOp(ExternalOpContents def, String varName) {
+        VarOp(ExternalOpContent def, String varName) {
             super(def);
 
             this.varName = varName;
@@ -1985,7 +1985,7 @@ public final class CoreOps {
      * lambda parameters.
      */
     public abstract static sealed class VarAccessOp extends ExternalizableOp implements AccessOp {
-        VarAccessOp(ExternalOpContents opdef) {
+        VarAccessOp(ExternalOpContent opdef) {
             super(opdef);
         }
 
@@ -2019,7 +2019,7 @@ public final class CoreOps {
         public static final class VarLoadOp extends VarAccessOp {
             public static final String NAME = "var.load";
 
-            public VarLoadOp(ExternalOpContents opdef) {
+            public VarLoadOp(ExternalOpContent opdef) {
                 super(opdef);
 
                 if (opdef.operands().size() != 1) {
@@ -2060,7 +2060,7 @@ public final class CoreOps {
         public static final class VarStoreOp extends VarAccessOp {
             public static final String NAME = "var.store";
 
-            public VarStoreOp(ExternalOpContents opdef) {
+            public VarStoreOp(ExternalOpContent opdef) {
                 super(opdef);
 
                 if (opdef.operands().size() != 2) {
@@ -2105,7 +2105,7 @@ public final class CoreOps {
     public static final class TupleOp extends ExternalizableOp {
         public static final String NAME = "tuple";
 
-        public TupleOp(ExternalOpContents def) {
+        public TupleOp(ExternalOpContent def) {
             super(def);
         }
 
@@ -2138,7 +2138,7 @@ public final class CoreOps {
 
         final int index;
 
-        public static TupleLoadOp create(ExternalOpContents def) {
+        public static TupleLoadOp create(ExternalOpContent def) {
             if (def.operands().size() != 1) {
                 throw new IllegalStateException("Operation must have one operand");
             }
@@ -2152,7 +2152,7 @@ public final class CoreOps {
             return new TupleLoadOp(def, index);
         }
 
-        TupleLoadOp(ExternalOpContents def, int index) {
+        TupleLoadOp(ExternalOpContent def, int index) {
             super(def);
 
             // @@@ Validate tuple type and index
@@ -2209,7 +2209,7 @@ public final class CoreOps {
 
         final int index;
 
-        public static TupleWithOp create(ExternalOpContents def) {
+        public static TupleWithOp create(ExternalOpContent def) {
             if (def.operands().size() != 2) {
                 throw new IllegalStateException("Operation must have two operands");
             }
@@ -2223,7 +2223,7 @@ public final class CoreOps {
             return new TupleWithOp(def, index);
         }
 
-        TupleWithOp(ExternalOpContents def, int index) {
+        TupleWithOp(ExternalOpContent def, int index) {
             super(def);
 
             // @@@ Validate tuple type and index
@@ -2301,7 +2301,7 @@ public final class CoreOps {
         // each of which have one block argument whose type is an exception type.
         final List<Block.Reference> s;
 
-        public ExceptionRegionEnter(ExternalOpContents def) {
+        public ExceptionRegionEnter(ExternalOpContent def) {
             super(def);
 
             if (def.successors().size() < 2) {
@@ -2360,7 +2360,7 @@ public final class CoreOps {
 
         final Block.Reference end;
 
-        public ExceptionRegionExit(ExternalOpContents def) {
+        public ExceptionRegionExit(ExternalOpContent def) {
             super(def);
 
             if (def.operands().size() != 1) {
@@ -2435,7 +2435,7 @@ public final class CoreOps {
             super(that, cc);
         }
 
-        public ConcatOp(ExternalOpContents def) {
+        public ConcatOp(ExternalOpContent def) {
             super(def);
             if (def.operands().size() != 2) {
                 throw new IllegalArgumentException("Concatenation Operation must have two operands.");
@@ -2464,7 +2464,7 @@ public final class CoreOps {
      * The arithmetic operation.
      */
     public static abstract class ArithmeticOperation extends ExternalizableOp implements Op.Pure {
-        protected ArithmeticOperation(ExternalOpContents def) {
+        protected ArithmeticOperation(ExternalOpContent def) {
             super(def);
 
             if (def.operands().isEmpty()) {
@@ -2485,7 +2485,7 @@ public final class CoreOps {
      * The test operation.
      */
     public static abstract class TestOperation extends ExternalizableOp implements Op.Pure {
-        protected TestOperation(ExternalOpContents def) {
+        protected TestOperation(ExternalOpContent def) {
             super(def);
 
             if (def.operands().isEmpty()) {
@@ -2506,7 +2506,7 @@ public final class CoreOps {
      * The binary arithmetic operation.
      */
     public static abstract class BinaryOp extends ArithmeticOperation {
-        protected BinaryOp(ExternalOpContents def) {
+        protected BinaryOp(ExternalOpContent def) {
             super(def);
 
             if (def.operands().size() != 2) {
@@ -2532,7 +2532,7 @@ public final class CoreOps {
      * The unary arithmetic operation.
      */
     public static abstract class UnaryOp extends ArithmeticOperation {
-        protected UnaryOp(ExternalOpContents def) {
+        protected UnaryOp(ExternalOpContent def) {
             super(def);
 
             if (def.operands().size() != 1) {
@@ -2558,7 +2558,7 @@ public final class CoreOps {
      * The unary test operation.
      */
     public static abstract class UnaryTestOp extends TestOperation {
-        protected UnaryTestOp(ExternalOpContents def) {
+        protected UnaryTestOp(ExternalOpContent def) {
             super(def);
 
             if (def.operands().size() != 1) {
@@ -2579,7 +2579,7 @@ public final class CoreOps {
      * The binary test operation.
      */
     public static abstract class BinaryTestOp extends TestOperation {
-        protected BinaryTestOp(ExternalOpContents def) {
+        protected BinaryTestOp(ExternalOpContent def) {
             super(def);
 
             if (def.operands().size() != 2) {
@@ -2608,7 +2608,7 @@ public final class CoreOps {
     public static final class AddOp extends BinaryOp {
         public static final String NAME = "add";
 
-        public AddOp(ExternalOpContents def) {
+        public AddOp(ExternalOpContent def) {
             super(def);
         }
 
@@ -2633,7 +2633,7 @@ public final class CoreOps {
     public static final class SubOp extends BinaryOp {
         public static final String NAME = "sub";
 
-        public SubOp(ExternalOpContents opdef) {
+        public SubOp(ExternalOpContent opdef) {
             super(opdef);
         }
 
@@ -2658,7 +2658,7 @@ public final class CoreOps {
     public static final class MulOp extends BinaryOp {
         public static final String NAME = "mul";
 
-        public MulOp(ExternalOpContents opdef) {
+        public MulOp(ExternalOpContent opdef) {
             super(opdef);
         }
 
@@ -2683,7 +2683,7 @@ public final class CoreOps {
     public static final class DivOp extends BinaryOp {
         public static final String NAME = "div";
 
-        public DivOp(ExternalOpContents opdef) {
+        public DivOp(ExternalOpContent opdef) {
             super(opdef);
         }
 
@@ -2708,7 +2708,7 @@ public final class CoreOps {
     public static final class ModOp extends BinaryOp {
         public static final String NAME = "mod";
 
-        public ModOp(ExternalOpContents opdef) {
+        public ModOp(ExternalOpContent opdef) {
             super(opdef);
         }
 
@@ -2734,7 +2734,7 @@ public final class CoreOps {
     public static final class OrOp extends BinaryOp {
         public static final String NAME = "or";
 
-        public OrOp(ExternalOpContents opdef) {
+        public OrOp(ExternalOpContent opdef) {
             super(opdef);
         }
 
@@ -2760,7 +2760,7 @@ public final class CoreOps {
     public static final class AndOp extends BinaryOp {
         public static final String NAME = "and";
 
-        public AndOp(ExternalOpContents opdef) {
+        public AndOp(ExternalOpContent opdef) {
             super(opdef);
         }
 
@@ -2786,7 +2786,7 @@ public final class CoreOps {
     public static final class XorOp extends BinaryOp {
         public static final String NAME = "xor";
 
-        public XorOp(ExternalOpContents opdef) {
+        public XorOp(ExternalOpContent opdef) {
             super(opdef);
         }
 
@@ -2811,7 +2811,7 @@ public final class CoreOps {
     public static final class LshlOp extends BinaryOp {
         public static final String NAME = "lshl";
 
-        public LshlOp(ExternalOpContents opdef) {
+        public LshlOp(ExternalOpContent opdef) {
             super(opdef);
         }
 
@@ -2836,7 +2836,7 @@ public final class CoreOps {
     public static final class AshrOp extends CoreOps.BinaryOp {
         public static final String NAME = "ashr";
 
-        public AshrOp(ExternalOpContents opdef) {
+        public AshrOp(ExternalOpContent opdef) {
             super(opdef);
         }
 
@@ -2861,7 +2861,7 @@ public final class CoreOps {
     public static final class LshrOp extends CoreOps.BinaryOp {
         public static final String NAME = "lshr";
 
-        public LshrOp(ExternalOpContents opdef) {
+        public LshrOp(ExternalOpContent opdef) {
             super(opdef);
         }
 
@@ -2886,7 +2886,7 @@ public final class CoreOps {
     public static final class NegOp extends UnaryOp {
         public static final String NAME = "neg";
 
-        public NegOp(ExternalOpContents opdef) {
+        public NegOp(ExternalOpContent opdef) {
             super(opdef);
         }
 
@@ -2911,7 +2911,7 @@ public final class CoreOps {
     public static final class NotOp extends UnaryOp {
         public static final String NAME = "not";
 
-        public NotOp(ExternalOpContents opdef) {
+        public NotOp(ExternalOpContent opdef) {
             super(opdef);
         }
 
@@ -2937,7 +2937,7 @@ public final class CoreOps {
     public static final class EqOp extends BinaryTestOp {
         public static final String NAME = "eq";
 
-        public EqOp(ExternalOpContents opdef) {
+        public EqOp(ExternalOpContent opdef) {
             super(opdef);
         }
 
@@ -2963,7 +2963,7 @@ public final class CoreOps {
     public static final class NeqOp extends BinaryTestOp {
         public static final String NAME = "neq";
 
-        public NeqOp(ExternalOpContents opdef) {
+        public NeqOp(ExternalOpContent opdef) {
             super(opdef);
         }
 
@@ -2988,7 +2988,7 @@ public final class CoreOps {
     public static final class GtOp extends BinaryTestOp {
         public static final String NAME = "gt";
 
-        public GtOp(ExternalOpContents opdef) {
+        public GtOp(ExternalOpContent opdef) {
             super(opdef);
         }
 
@@ -3014,7 +3014,7 @@ public final class CoreOps {
     public static final class GeOp extends BinaryTestOp {
         public static final String NAME = "ge";
 
-        public GeOp(ExternalOpContents opdef) {
+        public GeOp(ExternalOpContent opdef) {
             super(opdef);
         }
 
@@ -3040,7 +3040,7 @@ public final class CoreOps {
     public static final class LtOp extends BinaryTestOp {
         public static final String NAME = "lt";
 
-        public LtOp(ExternalOpContents opdef) {
+        public LtOp(ExternalOpContent opdef) {
             super(opdef);
         }
 
@@ -3066,7 +3066,7 @@ public final class CoreOps {
     public static final class LeOp extends BinaryTestOp {
         public static final String NAME = "le";
 
-        public LeOp(ExternalOpContents opdef) {
+        public LeOp(ExternalOpContent opdef) {
             super(opdef);
         }
 

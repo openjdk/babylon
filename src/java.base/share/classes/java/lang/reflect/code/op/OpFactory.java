@@ -36,7 +36,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 /**
- * An operation factory for constructing an {@link Op operation} from its {@link ExternalOpContents operation definition}.
+ * An operation factory for constructing an {@link Op operation} from its {@link ExternalOpContent external content}.
  */
 @FunctionalInterface
 public interface OpFactory {
@@ -45,9 +45,9 @@ public interface OpFactory {
      * annotated with {@link OpDeclaration} and enclosed within a given class to compute over.
      * <p>
      * Each enclosed class annotated with {@code OpDeclaration} must declare a public static method named {@code create}
-     * with one parameter type of {@link ExternalOpContents} and return type that is the concrete class type.
+     * with one parameter type of {@link ExternalOpContent} and return type that is the concrete class type.
      * Alternatively, the concrete class must declare public constructor with one parameter type of
-     * {@link ExternalOpContents}.
+     * {@link ExternalOpContent}.
      */
     ClassValue<OpFactory> OP_FACTORY = new ClassValue<>() {
         @Override
@@ -67,28 +67,28 @@ public interface OpFactory {
     };
 
     /**
-     * Constructs an {@link Op operation} from its operation definition.
+     * Constructs an {@link Op operation} from its external content.
      * <p>
-     * If there is no mapping from the operation definition's name to a concrete
+     * If there is no mapping from the operation's name to a concrete
      * class of an {@code Op} then this method returns null.
      *
-     * @param def the operation definition
+     * @param def the operation's external content
      * @return the operation, otherwise null
      */
-    Op constructOp(ExternalOpContents def);
+    Op constructOp(ExternalOpContent def);
 
     /**
-     * Constructs an {@link Op operation} from its operation definition.
+     * Constructs an {@link Op operation} from its external content.
      * <p>
-     * If there is no mapping from the operation definition's name to a concrete
+     * If there is no mapping from the operation's name to a concrete
      * class of an {@code Op} then this method throws UnsupportedOperationException.
      *
-     * @param def the operation definition
+     * @param def the operation's external content
      * @return the operation, otherwise null
-     * @throws UnsupportedOperationException if there is no mapping from the operation definition's
+     * @throws UnsupportedOperationException if there is no mapping from the operation's
      *                                       name to a concrete class of an {@code Op}
      */
-    default Op constructOpOrFail(ExternalOpContents def) {
+    default Op constructOpOrFail(ExternalOpContent def) {
         Op op = constructOp(def);
         if (op == null) {
             throw new UnsupportedOperationException("Unsupported operation: " + def.name());
@@ -146,7 +146,7 @@ public interface OpFactory {
     private static MethodHandle getOpConstructorMethodHandle(Class<?> opClass) {
         Method method = null;
         try {
-            method = opClass.getMethod("create", ExternalOpContents.class);
+            method = opClass.getMethod("create", ExternalOpContent.class);
         } catch (NoSuchMethodException e) {
         }
 
@@ -165,7 +165,7 @@ public interface OpFactory {
 
         Constructor<?> constructor;
         try {
-            constructor = opClass.getConstructor(ExternalOpContents.class);
+            constructor = opClass.getConstructor(ExternalOpContent.class);
         } catch (NoSuchMethodException e) {
             return null;
         }
@@ -178,11 +178,11 @@ public interface OpFactory {
         }
     }
 
-    private static Op constructOp(Class<? extends Op> opClass, ExternalOpContents opDef) {
+    private static Op constructOp(Class<? extends Op> opClass, ExternalOpContent opDef) {
         class Enclosed {
-            private static final ClassValue<Function<ExternalOpContents, Op>> OP_CONSTRUCTOR = new ClassValue<>() {
+            private static final ClassValue<Function<ExternalOpContent, Op>> OP_CONSTRUCTOR = new ClassValue<>() {
                 @Override
-                protected Function<ExternalOpContents, Op> computeValue(Class<?> opClass) {
+                protected Function<ExternalOpContent, Op> computeValue(Class<?> opClass) {
                     final MethodHandle opConstructorMH = getOpConstructorMethodHandle(opClass);
                     assert opConstructorMH != null;
 

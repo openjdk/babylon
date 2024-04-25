@@ -31,16 +31,17 @@ import java.util.Map;
 
 /**
  * An operation that supports externalization of its content and reconstruction
- * via an instance of {@link ExternalOpContents}.
+ * via an instance of {@link ExternalOpContent}.
  * <p>
- * The specific state of an externalizable operation can is externalized to a
+ * The specific content of an externalizable operation can be externalized to a
  * map of {@link #attributes attributes}, and is reconstructed from the
- * attributes component by an instance of {@link ExternalOpContents}.
+ * attributes component of an instance of {@link ExternalOpContent}.
  * <p>
  * An externalizable operation could be externalized via serialization to
  * a textual representation. That textual representation could then be deserialized,
- * via parsing, into an instance of {@link ExternalOpContents} from which a new
- * externalizable operation can be reconstructed that is identical to the original.
+ * via parsing, into an instance of {@link ExternalOpContent} from which a new
+ * externalizable operation can be reconstructed that is identical to one that
+ * was serialized.
  */
 public abstract class ExternalizableOp extends Op {
 
@@ -77,23 +78,22 @@ public abstract class ExternalizableOp extends Op {
     }
 
     /**
-     * Constructs an operation from its externalized operation definition.
+     * Constructs an operation from its external content.
      *
-     * @param def the operation definition.
+     * @param def the operation's external content.
      * @implSpec This implementation invokes the {@link Op#Op(String, List) constructor}
-     * accepting the non-optional components of the operation definition, {@code name}, {@code resultType},
+     * accepting the non-optional components of the operation's content, {@code name},
      * and {@code operands}:
      * <pre> {@code
-     *  this(def.name(), def.resultType(), def.operands());
+     *  this(def.name(), def.operands());
      * }</pre>
-     * If the attributes component of the operation definition is copied as if by {@code Map.copyOf}.
      */
-    protected ExternalizableOp(ExternalOpContents def) {
+    protected ExternalizableOp(ExternalOpContent def) {
         super(def.name(), def.operands());
         setLocation(extractLocation(def));
     }
 
-    static Location extractLocation(ExternalOpContents def) {
+    static Location extractLocation(ExternalOpContent def) {
         Object v = def.attributes().get(ATTRIBUTE_LOCATION);
         return switch (v) {
             case String s -> Location.fromString(s);
@@ -104,8 +104,7 @@ public abstract class ExternalizableOp extends Op {
     }
 
     /**
-     * Returns the operation's specific state as a map of attributes,
-     * such that the specific state can be externalized.
+     * Externalizes the operation's specific content as a map of attributes.
      *
      * <p>A null attribute value is represented by the constant
      * value {@link #NULL_ATTRIBUTE_VALUE}.

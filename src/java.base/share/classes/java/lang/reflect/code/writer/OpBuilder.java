@@ -26,7 +26,7 @@
 package java.lang.reflect.code.writer;
 
 import java.lang.reflect.code.*;
-import java.lang.reflect.code.op.ExternalOpContents;
+import java.lang.reflect.code.op.ExternalOpContent;
 import java.lang.reflect.code.op.OpFactory;
 import java.lang.reflect.code.op.ExternalizableOp;
 import java.lang.reflect.code.type.*;
@@ -44,10 +44,10 @@ import static java.lang.reflect.code.type.JavaType.*;
  */
 public class OpBuilder {
 
-    static final JavaType J_C_O_OP_DEFINITION = type(ExternalOpContents.class);
+    static final JavaType J_C_O_OP_DEFINITION = type(ExternalOpContent.class);
 
     static final MethodRef OP_FACTORY_CONSTRUCT = MethodRef.method(OpFactory.class, "constructOp",
-            Op.class, ExternalOpContents.class);
+            Op.class, ExternalOpContent.class);
 
     static final MethodRef TYPE_ELEMENT_FACTORY_CONSTRUCT = MethodRef.method(TypeElementFactory.class, "constructType",
             TypeElement.class, TypeDefinition.class);

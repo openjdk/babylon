@@ -239,18 +239,18 @@ public final class OpParser {
     }
 
     static Op nodeToOp(OpNode opNode, TypeDefinition rtype, Context c, Body.Builder ancestorBody) {
-        ExternalOpContents opdef = nodeToOpDef(opNode, rtype, c, ancestorBody);
+        ExternalOpContent opdef = nodeToOpDef(opNode, rtype, c, ancestorBody);
         return c.opFactory.constructOpOrFail(opdef);
     }
 
-    static ExternalOpContents nodeToOpDef(OpNode opNode, TypeDefinition rtype, Context c, Body.Builder ancestorBody) {
+    static ExternalOpContent nodeToOpDef(OpNode opNode, TypeDefinition rtype, Context c, Body.Builder ancestorBody) {
         String operationName = opNode.name;
         List<Value> operands = opNode.operands.stream().map(c::getValue).toList();
         List<Block.Reference> successors = opNode.successors.stream()
                 .map(n -> nodeToSuccessor(n, c)).toList();
         List<Body.Builder> bodies = opNode.bodies.stream()
                 .map(n -> nodeToBody(n, c.fork(false), ancestorBody)).toList();
-        return new ExternalOpContents(operationName,
+        return new ExternalOpContent(operationName,
                 operands,
                 successors,
                 c.typeFactory.constructType(rtype),
