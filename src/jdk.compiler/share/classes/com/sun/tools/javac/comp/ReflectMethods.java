@@ -94,6 +94,7 @@ import static com.sun.tools.javac.code.Flags.PARAMETER;
 import static com.sun.tools.javac.code.Flags.SYNTHETIC;
 import static com.sun.tools.javac.code.TypeTag.BOT;
 import static com.sun.tools.javac.code.TypeTag.NONE;
+import static com.sun.tools.javac.main.Option.G_CUSTOM;
 
 /**
  * This a tree translator that adds the code model to all method declaration marked
@@ -116,6 +117,7 @@ public class ReflectMethods extends TreeTranslator {
     private final Gen gen;
     private final Log log;
     private final boolean dumpIR;
+    private final boolean lineDebugInfo;
 
     // @@@ Separate out mutable state
     private TreeMaker make;
@@ -129,11 +131,16 @@ public class ReflectMethods extends TreeTranslator {
         context.put(reflectMethodsKey, this);
         Options options = Options.instance(context);
         dumpIR = options.isSet("dumpIR");
+        lineDebugInfo =
+                options.isUnset(G_CUSTOM) ||
+                        options.isSet(G_CUSTOM, "lines");
         names = Names.instance(context);
         syms = Symtab.instance(context);
         types = Types.instance(context);
         gen = Gen.instance(context);
         log = Log.instance(context);
+
+
     }
 
     // Cannot compute within constructor due to circular dependencies on bootstrap compilation
@@ -420,6 +427,7 @@ public class ReflectMethods extends TreeTranslator {
         private Type pt = Type.noType;
         private boolean isQuoted;
         private Type bodyTarget;
+        private JCTree currentNode;
 
         // Only few AST nodes supported for now
         private static final Set<JCTree.Tag> SUPPORTED_TAGS =
@@ -452,6 +460,8 @@ public class ReflectMethods extends TreeTranslator {
 
         BodyScanner(JCMethodDecl tree, JCBlock body) {
             super(SUPPORTED_TAGS);
+
+            this.currentNode = tree;
             this.body = body;
             this.name = tree.name;
             this.isQuoted = false;
@@ -488,6 +498,7 @@ public class ReflectMethods extends TreeTranslator {
             super(SUPPORTED_TAGS);
             assert kind != FunctionalExpressionKind.NOT_QUOTED;
 
+            this.currentNode = tree;
             this.body = tree;
             this.name = names.fromString("quotedLambda");
             this.isQuoted = true;
@@ -505,6 +516,17 @@ public class ReflectMethods extends TreeTranslator {
             this.stack = this.top = new BodyStack(null, tree.body, mtDesc);
 
             bodyTarget = tree.target.getReturnType();
+        }
+
+        @Override
+        public void scan(JCTree tree) {
+            JCTree prev = currentNode;
+            currentNode = tree;
+            try {
+                super.scan(tree);
+            } finally {
+                currentNode = prev;
+            }
         }
 
         void pushBody(JCTree tree, FunctionType bodyType) {
@@ -568,12 +590,34 @@ public class ReflectMethods extends TreeTranslator {
         }
 
         private Op.Result append(Op op) {
-            return append(op, stack);
+            return append(op, generateLocation(currentNode, false), stack);
         }
 
-        private Op.Result append(Op op, BodyStack stack) {
+        private Op.Result append(Op op, Location l) {
+            return append(op, l, stack);
+        }
+
+        private Op.Result append(Op op, Location l, BodyStack stack) {
             lastOp = op;
+            op.setLocation(l);
             return stack.block.apply(op);
+        }
+
+        Location generateLocation(JCTree node, boolean includeSourceReference) {
+            if (!lineDebugInfo) {
+                return Location.NO_LOCATION;
+            }
+
+            int pos = node.getStartPosition();
+            int line = log.currentSource().getLineNumber(pos);
+            int col = log.currentSource().getColumnNumber(pos, false);
+            String path;
+            if (includeSourceReference) {
+                path = log.currentSource().getFile().toUri().toString();
+            } else {
+                path = null;
+            }
+            return new Location(path, line, col);
         }
 
         private <O extends Op & Op.Terminating> void appendTerminating(Supplier<O> sop) {
@@ -1318,7 +1362,12 @@ public class ReflectMethods extends TreeTranslator {
             // Pop lambda body
             popBody();
 
-            Value lambdaResult = append(lambdaOp);
+            Value lambdaResult;
+            if (isQuoted) {
+                lambdaResult = append(lambdaOp, generateLocation(tree, true));
+            } else {
+                lambdaResult = append(lambdaOp);
+            }
 
             if (isQuoted || kind == FunctionalExpressionKind.QUOTED_STRUCTURAL) {
                 append(CoreOps._yield(lambdaResult));
@@ -2184,7 +2233,9 @@ public class ReflectMethods extends TreeTranslator {
             scan(body);
             // @@@ Check if unreachable
             appendTerminating(CoreOps::_return);
-            return CoreOps.func(name.toString(), stack.body);
+            CoreOps.FuncOp func = CoreOps.func(name.toString(), stack.body);
+            func.setLocation(generateLocation(currentNode, true));
+            return func;
         }
 
         CoreOps.FuncOp scanLambda() {

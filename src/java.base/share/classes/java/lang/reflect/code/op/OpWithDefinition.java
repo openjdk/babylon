@@ -25,9 +25,7 @@
 
 package java.lang.reflect.code.op;
 
-import java.lang.reflect.code.CopyContext;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.Value;
+import java.lang.reflect.code.*;
 import java.util.List;
 import java.util.Map;
 
@@ -35,7 +33,11 @@ import java.util.Map;
  * An operation that may be constructed with an operation {@link OpDefinition definition}.
  */
 public abstract class OpWithDefinition extends Op {
-    final Map<String, Object> attributes;
+
+    /**
+     * The attribute name associated with the location attribute.
+     */
+    public static final String ATTRIBUTE_LOCATION = "loc";
 
     /**
      * Constructs an operation by copying given operation.
@@ -47,8 +49,6 @@ public abstract class OpWithDefinition extends Op {
      */
     protected OpWithDefinition(Op that, CopyContext cc) {
         super(that, cc);
-
-        this.attributes = Map.of();
     }
 
     /**
@@ -59,8 +59,6 @@ public abstract class OpWithDefinition extends Op {
      */
     protected OpWithDefinition(String name, List<? extends Value> operands) {
         super(name, operands);
-
-        this.attributes = Map.of();
     }
 
     /**
@@ -77,12 +75,22 @@ public abstract class OpWithDefinition extends Op {
      */
     protected OpWithDefinition(OpDefinition def) {
         super(def.name(), def.operands());
+        setLocation(extractLocation(def));
+    }
 
-        this.attributes = Map.copyOf(def.attributes());
+    static Location extractLocation(OpDefinition def) {
+        Object v = def.attributes().get(ATTRIBUTE_LOCATION);
+        return switch(v) {
+            case String s -> Location.fromString(s);
+            case Location loc -> loc;
+            case null -> null;
+            default -> throw new UnsupportedOperationException("Unsupported location value:" + v);
+        };
     }
 
     @Override
     public Map<String, Object> attributes() {
-        return attributes;
+        Location l = location();
+        return l == null ? Map.of() : Map.of(ATTRIBUTE_LOCATION, l);
     }
 }

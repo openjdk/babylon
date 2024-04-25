@@ -21,12 +21,14 @@
  * questions.
  */
 
+import java.io.StringWriter;
 import java.lang.reflect.Field;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.op.ExtendedOps;
 import java.lang.reflect.code.parser.OpParser;
+import java.lang.reflect.code.writer.OpWriter;
 import java.lang.runtime.CodeReflection;
 
 import static java.lang.reflect.code.op.CoreOps._return;
@@ -52,7 +54,7 @@ public class CodeReflectionTester {
     static void check(Method method) throws ReflectiveOperationException {
         if (!method.isAnnotationPresent(CodeReflection.class)) return;
         Field field = method.getDeclaringClass().getDeclaredField(method.getName() + "$op");
-        String found = canonicalizeModel(method, (String)field.get(null));
+        String found = canonicalizeModel(method, (String) field.get(null));
         IR ir = method.getAnnotation(IR.class);
         if (ir == null) {
             throw new AssertionError("No @IR annotation found on reflective method");
@@ -68,15 +70,15 @@ public class CodeReflectionTester {
         if (ir == null) return;
         if (field.getType().equals(Quoted.class)) {
             // transitional
-            Quoted quoted = (Quoted)field.get(null);
-            String found = getModelOfQuotedOp(quoted);
+            Quoted quoted = (Quoted) field.get(null);
+            String found = canonicalizeModel(field, getModelOfQuotedOp(quoted));
             String expected = canonicalizeModel(field, ir.value());
             if (!found.equals(expected)) {
                 throw new AssertionError(String.format("Bad IR\nFound:\n%s\n\nExpected:\n%s", found, expected));
             }
         } else if (Quotable.class.isAssignableFrom(field.getType())) {
             Quotable quotable = (Quotable) field.get(null);
-            String found = getModelOfQuotedOp(quotable.quoted());
+            String found = canonicalizeModel(field, getModelOfQuotedOp(quotable.quoted()));
             String expected = canonicalizeModel(field, ir.value());
             if (!found.equals(expected)) {
                 throw new AssertionError(String.format("Bad IR\nFound:\n%s\n\nExpected:\n%s", found, expected));
@@ -86,16 +88,30 @@ public class CodeReflectionTester {
         }
     }
 
-    // parses and then serializes
+    // serializes dropping location information, parses, and then serializes, dropping location information
+    static String canonicalizeModel(Member m, Op o) {
+        return canonicalizeModel(m, serialize(o));
+    }
+
+    // parses, and then serializes, dropping location information
     static String canonicalizeModel(Member m, String d) {
+        Op o;
         try {
-            return OpParser.fromString(ExtendedOps.FACTORY, d).get(0).toText();
+            o = OpParser.fromString(ExtendedOps.FACTORY, d).get(0);
         } catch (Exception e) {
             throw new IllegalStateException(m.toString(), e);
         }
+        return serialize(o);
     }
 
-    static String getModelOfQuotedOp(Quoted quoted) {
+    // serializes, dropping location information
+    static String serialize(Op o) {
+        StringWriter w = new StringWriter();
+        OpWriter.writeTo(w, o, OpWriter.LocationOption.DROP_LOCATION);
+        return w.toString();
+    }
+
+    static Op getModelOfQuotedOp(Quoted quoted) {
         return func("f", VOID).body(fblock -> {
             CopyContext cc = fblock.context();
             for (Value cv : quoted.capturedValues().keySet()) {
@@ -112,6 +128,6 @@ public class CodeReflectionTester {
             fblock.op(qOp);
 
             fblock.op(_return());
-        }).toText();
+        });
     }
 }

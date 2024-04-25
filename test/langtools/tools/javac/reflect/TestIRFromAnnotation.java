@@ -34,9 +34,12 @@ import com.sun.source.util.JavacTask;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.StringWriter;
+import java.lang.reflect.code.Op;
 import java.lang.reflect.code.op.CoreOps.FuncOp;
 import java.lang.reflect.code.op.ExtendedOps;
 import java.lang.reflect.code.parser.OpParser;
+import java.lang.reflect.code.writer.OpWriter;
 import java.nio.charset.Charset;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -136,8 +139,8 @@ public class TestIRFromAnnotation {
                         throw new AssertionError(String.format("No body found in method %s annotated with @IR",
                                 toMethodString(e)));
                     }
-                    String actualOp = ((FuncOp)body.get()).toText();
-                    String expectedOp = OpParser.fromString(ExtendedOps.FACTORY, ir.value()).get(0).toText();
+                    String actualOp = canonicalizeModel((FuncOp)body.get());
+                    String expectedOp = canonicalizeModel(ir.value());
                     if (!actualOp.equals(expectedOp)) {
                         throw new AssertionError(String.format("Bad IR found in %s:\n%s\nExpected:\n%s",
                                 toMethodString(e), actualOp, expectedOp));
@@ -151,6 +154,23 @@ public class TestIRFromAnnotation {
             }
             return true;
         }
+    }
+
+    // serializes dropping location information, parses, and then serializes, dropping location information
+    static String canonicalizeModel(Op o) {
+        return canonicalizeModel(serialize(o));
+    }
+
+    // parses, and then serializes, dropping location information
+    static String canonicalizeModel(String d) {
+        return serialize(OpParser.fromString(ExtendedOps.FACTORY, d).get(0));
+    }
+
+    // serializes, dropping location information
+    static String serialize(Op o) {
+        StringWriter w = new StringWriter();
+        OpWriter.writeTo(w, o, OpWriter.LocationOption.DROP_LOCATION);
+        return w.toString();
     }
 
     static String toMethodString(ExecutableElement e) {

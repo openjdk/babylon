@@ -1989,6 +1989,10 @@ public final class CoreOps {
             super(opdef);
         }
 
+        VarAccessOp(VarAccessOp that, CopyContext cc) {
+            super(that, cc);
+        }
+
         VarAccessOp(String name, List<Value> operands) {
             super(name, operands);
         }
@@ -2025,7 +2029,7 @@ public final class CoreOps {
             }
 
             VarLoadOp(VarLoadOp that, CopyContext cc) {
-                this(cc.getValues(that.operands()));
+                super(that, cc);
             }
 
             VarLoadOp(List<Value> varValue) {
@@ -2066,7 +2070,7 @@ public final class CoreOps {
             }
 
             VarStoreOp(VarStoreOp that, CopyContext cc) {
-                this(cc.getValues(that.operands()));
+                super(that, cc);
             }
 
             VarStoreOp(List<Value> values) {
