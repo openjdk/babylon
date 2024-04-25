@@ -34,10 +34,10 @@ import java.util.Map;
 
 public class ArithMathOps {
 
-    static abstract class ArithMathOp extends OpWithDefinition {
+    static abstract class ArithMathOp extends ExternalizableOp {
         final TypeElement resultType;
 
-        public ArithMathOp(OpDefinition def) {
+        public ArithMathOp(ExternalOpContent def) {
             super(def);
 
             this.resultType = def.resultType();
@@ -68,7 +68,7 @@ public class ArithMathOps {
 
         final Object value;
 
-        public static ConstantOp create(OpDefinition def) {
+        public static ConstantOp create(ExternalOpContent def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalArgumentException("Operation must have zero operands");
             }
@@ -134,7 +134,7 @@ public class ArithMathOps {
             throw new UnsupportedOperationException("Unsupported constant type and value: " + t + " " + value);
         }
 
-        ConstantOp(OpDefinition def, Object value) {
+        ConstantOp(ExternalOpContent def, Object value) {
             super(def);
 
             this.value = value;
@@ -173,7 +173,7 @@ public class ArithMathOps {
     public static class AddOp extends ArithMathOp implements Op.Pure {
         public static final String NAME = "arith.add";
 
-        public AddOp(OpDefinition def) {
+        public AddOp(ExternalOpContent def) {
             super(def);
         }
 
@@ -195,7 +195,7 @@ public class ArithMathOps {
     public static class SubOp extends ArithMathOp implements Op.Pure {
         public static final String NAME = "arith.sub";
 
-        public SubOp(OpDefinition def) {
+        public SubOp(ExternalOpContent def) {
             super(def);
         }
 
@@ -217,7 +217,7 @@ public class ArithMathOps {
     public static class MulOp extends ArithMathOp implements Op.Pure {
         public static final String NAME = "arith.mul";
 
-        public MulOp(OpDefinition def) {
+        public MulOp(ExternalOpContent def) {
             super(def);
         }
 
@@ -239,7 +239,7 @@ public class ArithMathOps {
     public static class DivOp extends ArithMathOp implements Op.Pure {
         public static final String NAME = "arith.div";
 
-        public DivOp(OpDefinition def) {
+        public DivOp(ExternalOpContent def) {
             super(def);
         }
 
@@ -261,7 +261,7 @@ public class ArithMathOps {
     public static class RemOp extends ArithMathOp implements Op.Pure {
         public static final String NAME = "arith.rem";
 
-        public RemOp(OpDefinition def) {
+        public RemOp(ExternalOpContent def) {
             super(def);
         }
 
@@ -283,7 +283,7 @@ public class ArithMathOps {
     public static class AndOp extends ArithMathOp implements Op.Pure {
         public static final String NAME = "arith.andi";
 
-        public AndOp(OpDefinition def) {
+        public AndOp(ExternalOpContent def) {
             super(def);
         }
 
@@ -305,7 +305,7 @@ public class ArithMathOps {
     public static class MaxOp extends ArithMathOp implements Op.Pure {
         public static final String NAME = "arith.max";
 
-        public MaxOp(OpDefinition def) {
+        public MaxOp(ExternalOpContent def) {
             super(def);
         }
 
@@ -328,7 +328,7 @@ public class ArithMathOps {
     public static class MinOp extends ArithMathOp implements Op.Pure {
         public static final String NAME = "arith.min";
 
-        public MinOp(OpDefinition def) {
+        public MinOp(ExternalOpContent def) {
             super(def);
         }
 
@@ -351,7 +351,7 @@ public class ArithMathOps {
     public static class TruncOp extends ArithMathOp implements Op.Pure {
         public static final String NAME = "arith.trunc";
 
-        public TruncOp(OpDefinition def) {
+        public TruncOp(ExternalOpContent def) {
             super(def);
         }
 
@@ -374,7 +374,7 @@ public class ArithMathOps {
     public static class ExpOp extends ArithMathOp implements Op.Pure {
         public static final String NAME = "math.exp";
 
-        public ExpOp(OpDefinition def) {
+        public ExpOp(ExternalOpContent def) {
             super(def);
         }
 
@@ -403,7 +403,7 @@ public class ArithMathOps {
 
         final CompareKind ck;
 
-        public static CompareOp create(OpDefinition def) {
+        public static CompareOp create(ExternalOpContent def) {
             CompareKind ck = def.extractAttributeValue(ATTRIBUTE_CONSTANT_VALUE, true,
                     v -> switch (v) {
                         case String s -> CompareKind.valueOf(s);
@@ -413,7 +413,7 @@ public class ArithMathOps {
             return new CompareOp(def, ck);
         }
 
-        CompareOp(OpDefinition def, CompareKind ck) {
+        CompareOp(ExternalOpContent def, CompareKind ck) {
             super(def);
 
             this.ck = ck;
