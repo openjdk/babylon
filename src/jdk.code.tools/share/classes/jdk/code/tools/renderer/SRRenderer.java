@@ -32,6 +32,7 @@ import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
 
 import java.io.*;
+import java.lang.reflect.code.op.ExternalizableOp;
 import java.lang.reflect.code.type.JavaType;
 import java.nio.charset.StandardCharsets;
 
@@ -149,15 +150,17 @@ public final class SRRenderer extends CommonRenderer<SRRenderer> {
             }
         }
 
-        if (!op.attributes().isEmpty()) {
-            space().spaceSeparatedList();
-            for (var e : op.attributes().entrySet()) {
-                spaceSeparator();
-                String name = e.getKey();
-                if (!name.isEmpty()) {
-                    atIdentifier(name).equal().identifier(AttributeMapper.toString(e.getValue()));
-                } else {
-                    atIdentifier(AttributeMapper.toString(e.getValue()));
+        if (op instanceof ExternalizableOp exop) {
+            if (!exop.attributes().isEmpty()) {
+                space().spaceSeparatedList();
+                for (var e : exop.attributes().entrySet()) {
+                    spaceSeparator();
+                    String name = e.getKey();
+                    if (!name.isEmpty()) {
+                        atIdentifier(name).equal().identifier(AttributeMapper.toString(e.getValue()));
+                    } else {
+                        atIdentifier(AttributeMapper.toString(e.getValue()));
+                    }
                 }
             }
         }

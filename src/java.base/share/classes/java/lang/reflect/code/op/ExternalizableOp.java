@@ -30,14 +30,29 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * An operation that may be constructed with an operation {@link OpDefinition definition}.
+ * An operation that supports externalization of its content and reconstruction
+ * via an instance of {@link ExternalOpContents}.
+ * <p>
+ * The specific state of an externalizable operation can is externalized to a
+ * map of {@link #attributes attributes}, and is reconstructed from the
+ * attributes component by an instance of {@link ExternalOpContents}.
+ * <p>
+ * An externalizable operation could be externalized via serialization to
+ * a textual representation. That textual representation could then be deserialized,
+ * via parsing, into an instance of {@link ExternalOpContents} from which a new
+ * externalizable operation can be reconstructed that is identical to the original.
  */
-public abstract class OpWithDefinition extends Op {
+public abstract class ExternalizableOp extends Op {
 
     /**
      * The attribute name associated with the location attribute.
      */
     public static final String ATTRIBUTE_LOCATION = "loc";
+
+    /**
+     * The attribute value that represents the external null value.
+     */
+    public static final Object NULL_ATTRIBUTE_VALUE = new Object();
 
     /**
      * Constructs an operation by copying given operation.
@@ -47,7 +62,7 @@ public abstract class OpWithDefinition extends Op {
      * @implSpec The default implementation calls the constructor with the operation's name, result type, and a list
      * values computed, in order, by mapping the operation's operands using the copy context.
      */
-    protected OpWithDefinition(Op that, CopyContext cc) {
+    protected ExternalizableOp(Op that, CopyContext cc) {
         super(that, cc);
     }
 
@@ -57,12 +72,12 @@ public abstract class OpWithDefinition extends Op {
      * @param name     the operation name.
      * @param operands the list of operands, a copy of the list is performed if required.
      */
-    protected OpWithDefinition(String name, List<? extends Value> operands) {
+    protected ExternalizableOp(String name, List<? extends Value> operands) {
         super(name, operands);
     }
 
     /**
-     * Constructs an operation from its operation definition.
+     * Constructs an operation from its externalized operation definition.
      *
      * @param def the operation definition.
      * @implSpec This implementation invokes the {@link Op#Op(String, List) constructor}
@@ -73,14 +88,14 @@ public abstract class OpWithDefinition extends Op {
      * }</pre>
      * If the attributes component of the operation definition is copied as if by {@code Map.copyOf}.
      */
-    protected OpWithDefinition(OpDefinition def) {
+    protected ExternalizableOp(ExternalOpContents def) {
         super(def.name(), def.operands());
         setLocation(extractLocation(def));
     }
 
-    static Location extractLocation(OpDefinition def) {
+    static Location extractLocation(ExternalOpContents def) {
         Object v = def.attributes().get(ATTRIBUTE_LOCATION);
-        return switch(v) {
+        return switch (v) {
             case String s -> Location.fromString(s);
             case Location loc -> loc;
             case null -> null;
@@ -88,7 +103,15 @@ public abstract class OpWithDefinition extends Op {
         };
     }
 
-    @Override
+    /**
+     * Returns the operation's specific state as a map of attributes,
+     * such that the specific state can be externalized.
+     *
+     * <p>A null attribute value is represented by the constant
+     * value {@link #NULL_ATTRIBUTE_VALUE}.
+     *
+     * @return the operation's attributes, as an unmodifiable map
+     */
     public Map<String, Object> attributes() {
         Location l = location();
         return l == null ? Map.of() : Map.of(ATTRIBUTE_LOCATION, l);

@@ -55,7 +55,7 @@ public final class CoreOps {
      * The function operation, that can model a Java method.
      */
     @OpDeclaration(FuncOp.NAME)
-    public static final class FuncOp extends OpWithDefinition implements Op.Invokable, Op.Isolated, Op.Lowerable {
+    public static final class FuncOp extends ExternalizableOp implements Op.Invokable, Op.Isolated, Op.Lowerable {
 
         public static class Builder {
             final Body.Builder ancestorBody;
@@ -81,7 +81,7 @@ public final class CoreOps {
         final String funcName;
         final Body body;
 
-        public static FuncOp create(OpDefinition def) {
+        public static FuncOp create(ExternalOpContents def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalStateException("Bad op " + def.name());
             }
@@ -94,7 +94,7 @@ public final class CoreOps {
             return new FuncOp(def, funcName);
         }
 
-        FuncOp(OpDefinition def, String funcName) {
+        FuncOp(ExternalOpContents def, String funcName) {
             super(def);
 
             this.funcName = funcName;
@@ -179,14 +179,14 @@ public final class CoreOps {
      */
     // @@@ stack effects equivalent to the call operation as if the function were a Java method?
     @OpDeclaration(FuncCallOp.NAME)
-    public static final class FuncCallOp extends OpWithDefinition {
+    public static final class FuncCallOp extends ExternalizableOp {
         public static final String NAME = "func.call";
         public static final String ATTRIBUTE_FUNC_NAME = NAME + ".name";
 
         final String funcName;
         final TypeElement resultType;
 
-        public static FuncCallOp create(OpDefinition def) {
+        public static FuncCallOp create(ExternalOpContents def) {
             String funcName = def.extractAttributeValue(ATTRIBUTE_FUNC_NAME, true,
                     v -> switch (v) {
                         case String s -> s;
@@ -196,7 +196,7 @@ public final class CoreOps {
             return new FuncCallOp(def, funcName);
         }
 
-        FuncCallOp(OpDefinition def, String funcName) {
+        FuncCallOp(ExternalOpContents def, String funcName) {
             super(def);
 
             this.funcName = funcName;
@@ -244,14 +244,14 @@ public final class CoreOps {
      * and creating a symbol table of function name to function
      */
     @OpDeclaration(ModuleOp.NAME)
-    public static final class ModuleOp extends OpWithDefinition implements Op.Isolated {
+    public static final class ModuleOp extends ExternalizableOp implements Op.Isolated {
 
         public static final String NAME = "module";
 
         final Map<String, FuncOp> table;
         final Body body;
 
-        public static ModuleOp create(OpDefinition def) {
+        public static ModuleOp create(ExternalOpContents def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalStateException("Bad op " + def.name());
             }
@@ -259,7 +259,7 @@ public final class CoreOps {
             return new ModuleOp(def);
         }
 
-        ModuleOp(OpDefinition def) {
+        ModuleOp(ExternalOpContents def) {
             super(def);
 
             this.body = def.bodyDefinitions().get(0).build(this);
@@ -328,7 +328,7 @@ public final class CoreOps {
      * The quoted operation, that models the quoting of an operation.
      */
     @OpDeclaration(QuotedOp.NAME)
-    public static final class QuotedOp extends OpWithDefinition implements Op.Nested, Op.Lowerable, Op.Pure {
+    public static final class QuotedOp extends ExternalizableOp implements Op.Nested, Op.Lowerable, Op.Pure {
         public static final String NAME = "quoted";
 
         // Type name must be the same in the java.base and jdk.compiler module
@@ -340,7 +340,7 @@ public final class CoreOps {
 
         final Op quotedOp;
 
-        public QuotedOp(OpDefinition def) {
+        public QuotedOp(ExternalOpContents def) {
             super(def);
 
             this.quotedBody = def.bodyDefinitions().get(0).build(this);
@@ -414,7 +414,7 @@ public final class CoreOps {
      * The lambda operation, that can model a Java lambda expression.
      */
     @OpDeclaration(LambdaOp.NAME)
-    public static final class LambdaOp extends OpWithDefinition implements Op.Invokable, Op.Lowerable {
+    public static final class LambdaOp extends ExternalizableOp implements Op.Invokable, Op.Lowerable {
 
         public static class Builder {
             final Body.Builder ancestorBody;
@@ -439,7 +439,7 @@ public final class CoreOps {
         final TypeElement functionalInterface;
         final Body body;
 
-        public LambdaOp(OpDefinition def) {
+        public LambdaOp(ExternalOpContents def) {
             super(def);
 
             this.functionalInterface = def.resultType();
@@ -648,7 +648,7 @@ public final class CoreOps {
      * that has no target type (a functional interface).
      */
     @OpDeclaration(ClosureOp.NAME)
-    public static final class ClosureOp extends OpWithDefinition implements Op.Invokable, Op.Lowerable {
+    public static final class ClosureOp extends ExternalizableOp implements Op.Invokable, Op.Lowerable {
 
         public static class Builder {
             final Body.Builder ancestorBody;
@@ -670,7 +670,7 @@ public final class CoreOps {
 
         final Body body;
 
-        public ClosureOp(OpDefinition def) {
+        public ClosureOp(ExternalOpContents def) {
             super(def);
 
             this.body = def.bodyDefinitions().get(0).build(this);
@@ -740,10 +740,10 @@ public final class CoreOps {
 //  @@@ stack effects equivalent to the invocation of an SAM of on an instance of an anonymous functional interface
 //  that is the target of the closures lambda expression.
     @OpDeclaration(ClosureCallOp.NAME)
-    public static final class ClosureCallOp extends OpWithDefinition {
+    public static final class ClosureCallOp extends ExternalizableOp {
         public static final String NAME = "closure.call";
 
-        public ClosureCallOp(OpDefinition def) {
+        public ClosureCallOp(ExternalOpContents def) {
             super(def);
         }
 
@@ -773,10 +773,10 @@ public final class CoreOps {
      * This operation exits an isolated body.
      */
     @OpDeclaration(ReturnOp.NAME)
-    public static final class ReturnOp extends OpWithDefinition implements Op.BodyTerminating {
+    public static final class ReturnOp extends ExternalizableOp implements Op.BodyTerminating {
         public static final String NAME = "return";
 
-        public ReturnOp(OpDefinition def) {
+        public ReturnOp(ExternalOpContents def) {
             super(def);
 
             if (def.operands().size() > 1) {
@@ -820,10 +820,10 @@ public final class CoreOps {
      * The terminating throw operation, that can model the Java language throw statement.
      */
     @OpDeclaration(ThrowOp.NAME)
-    public static final class ThrowOp extends OpWithDefinition implements Op.BodyTerminating {
+    public static final class ThrowOp extends ExternalizableOp implements Op.BodyTerminating {
         public static final String NAME = "throw";
 
-        public ThrowOp(OpDefinition def) {
+        public ThrowOp(ExternalOpContents def) {
             super(def);
 
             if (def.operands().size() != 1) {
@@ -858,11 +858,11 @@ public final class CoreOps {
      * The assertion operation. Supporting assertions in statement form.
      */
     @OpDeclaration(AssertOp.NAME)
-    public static final class AssertOp extends OpWithDefinition implements Op.Nested {
+    public static final class AssertOp extends ExternalizableOp implements Op.Nested {
         public static final String NAME = "assert";
         public final List<Body> bodies;
 
-        public AssertOp(OpDefinition def) {
+        public AssertOp(ExternalOpContents def) {
             super(def);
             var bodies = def.bodyDefinitions().stream().map(b -> b.build(this)).toList();
             checkBodies(bodies);
@@ -909,10 +909,10 @@ public final class CoreOps {
      * This operation models termination that is unreachable.
      */
     @OpDeclaration(UnreachableOp.NAME)
-    public static class UnreachableOp extends OpWithDefinition implements Op.BodyTerminating {
+    public static class UnreachableOp extends ExternalizableOp implements Op.BodyTerminating {
         public static final String NAME = "unreachable";
 
-        public UnreachableOp(OpDefinition def) {
+        public UnreachableOp(ExternalOpContents def) {
             super(def);
 
             if (!def.operands().isEmpty()) {
@@ -946,10 +946,10 @@ public final class CoreOps {
      * or void)
      */
     @OpDeclaration(YieldOp.NAME)
-    public static class YieldOp extends OpWithDefinition implements Op.BodyTerminating {
+    public static class YieldOp extends ExternalizableOp implements Op.BodyTerminating {
         public static final String NAME = "yield";
 
-        public YieldOp(OpDefinition def) {
+        public YieldOp(ExternalOpContents def) {
             super(def);
 
             if (def.operands().size() > 1) {
@@ -995,12 +995,12 @@ public final class CoreOps {
      * This operation accepts a successor to the next block to branch to.
      */
     @OpDeclaration(BranchOp.NAME)
-    public static class BranchOp extends OpWithDefinition implements Op.BlockTerminating {
+    public static class BranchOp extends ExternalizableOp implements Op.BlockTerminating {
         public static final String NAME = "branch";
 
         final Block.Reference b;
 
-        public BranchOp(OpDefinition def) {
+        public BranchOp(ExternalOpContents def) {
             super(def);
 
             if (!def.operands().isEmpty() || def.successors().size() != 1) {
@@ -1050,13 +1050,13 @@ public final class CoreOps {
      * The selected successor refers to the next block to branch to.
      */
     @OpDeclaration(ConditionalBranchOp.NAME)
-    public static class ConditionalBranchOp extends OpWithDefinition implements Op.BlockTerminating {
+    public static class ConditionalBranchOp extends ExternalizableOp implements Op.BlockTerminating {
         public static final String NAME = "cbranch";
 
         final Block.Reference t;
         final Block.Reference f;
 
-        public ConditionalBranchOp(OpDefinition def) {
+        public ConditionalBranchOp(ExternalOpContents def) {
             super(def);
 
             if (def.operands().size() != 1 || def.successors().size() != 2) {
@@ -1113,7 +1113,7 @@ public final class CoreOps {
      * The constant operation, that can model Java language literal and constant expressions.
      */
     @OpDeclaration(ConstantOp.NAME)
-    public static class ConstantOp extends OpWithDefinition implements Op.Pure {
+    public static class ConstantOp extends ExternalizableOp implements Op.Pure {
         public static final String NAME = "constant";
 
         public static final String ATTRIBUTE_CONSTANT_VALUE = NAME + ".value";
@@ -1121,7 +1121,7 @@ public final class CoreOps {
         final Object value;
         final TypeElement type;
 
-        public static ConstantOp create(OpDefinition def) {
+        public static ConstantOp create(ExternalOpContents def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalArgumentException("Operation must have zero operands");
             }
@@ -1192,7 +1192,7 @@ public final class CoreOps {
             throw new UnsupportedOperationException("Unsupported constant type and value: " + t + " " + value);
         }
 
-        ConstantOp(OpDefinition def, Object value) {
+        ConstantOp(ExternalOpContents def, Object value) {
             super(def);
 
             this.type = def.resultType();
@@ -1248,14 +1248,14 @@ public final class CoreOps {
      * The invoke operation, that can model Java language method invocation expressions.
      */
     @OpDeclaration(InvokeOp.NAME)
-    public static final class InvokeOp extends OpWithDefinition implements ReflectiveOp {
+    public static final class InvokeOp extends ExternalizableOp implements ReflectiveOp {
         public static final String NAME = "invoke";
         public static final String ATTRIBUTE_INVOKE_DESCRIPTOR = NAME + ".descriptor";
 
         final MethodRef invokeDescriptor;
         final TypeElement resultType;
 
-        public static InvokeOp create(OpDefinition def) {
+        public static InvokeOp create(ExternalOpContents def) {
             MethodRef invokeDescriptor = def.extractAttributeValue(ATTRIBUTE_INVOKE_DESCRIPTOR,
                     true, v -> switch (v) {
                         case String s -> MethodRef.ofString(s);
@@ -1266,7 +1266,7 @@ public final class CoreOps {
             return new InvokeOp(def, invokeDescriptor);
         }
 
-        InvokeOp(OpDefinition def, MethodRef invokeDescriptor) {
+        InvokeOp(ExternalOpContents def, MethodRef invokeDescriptor) {
             super(def);
 
             this.invokeDescriptor = invokeDescriptor;
@@ -1322,12 +1322,12 @@ public final class CoreOps {
      * conversions such as widening and narrowing.
      */
     @OpDeclaration(ConvOp.NAME)
-    public static final class ConvOp extends OpWithDefinition implements Op.Pure {
+    public static final class ConvOp extends ExternalizableOp implements Op.Pure {
         public static final String NAME = "conv";
 
         final TypeElement resultType;
 
-        public ConvOp(OpDefinition def) {
+        public ConvOp(ExternalOpContents def) {
             super(def);
 
             this.resultType = def.resultType();
@@ -1360,14 +1360,14 @@ public final class CoreOps {
      * The new operation, that can models Java language instance creation expressions.
      */
     @OpDeclaration(NewOp.NAME)
-    public static final class NewOp extends OpWithDefinition implements ReflectiveOp {
+    public static final class NewOp extends ExternalizableOp implements ReflectiveOp {
         public static final String NAME = "new";
         public static final String ATTRIBUTE_NEW_DESCRIPTOR = NAME + ".descriptor";
 
         final FunctionType constructorType;
         final TypeElement resultType;
 
-        public static NewOp create(OpDefinition def) {
+        public static NewOp create(ExternalOpContents def) {
             FunctionType constructorType = def.extractAttributeValue(ATTRIBUTE_NEW_DESCRIPTOR, true,
                     v -> switch (v) {
                         case String s -> {
@@ -1384,7 +1384,7 @@ public final class CoreOps {
             return new NewOp(def, constructorType);
         }
 
-        NewOp(OpDefinition def, FunctionType constructorType) {
+        NewOp(ExternalOpContents def, FunctionType constructorType) {
             super(def);
 
             this.constructorType = constructorType;
@@ -1444,12 +1444,12 @@ public final class CoreOps {
     /**
      * A field access operation, that can model Java langauge field access expressions.
      */
-    public abstract static sealed class FieldAccessOp extends OpWithDefinition implements AccessOp, ReflectiveOp {
+    public abstract static sealed class FieldAccessOp extends ExternalizableOp implements AccessOp, ReflectiveOp {
         public static final String ATTRIBUTE_FIELD_DESCRIPTOR = "field.descriptor";
 
         final FieldRef fieldDescriptor;
 
-        FieldAccessOp(OpDefinition def, FieldRef fieldDescriptor) {
+        FieldAccessOp(ExternalOpContents def, FieldRef fieldDescriptor) {
             super(def);
 
             this.fieldDescriptor = fieldDescriptor;
@@ -1489,7 +1489,7 @@ public final class CoreOps {
 
             final TypeElement resultType;
 
-            public static FieldLoadOp create(OpDefinition def) {
+            public static FieldLoadOp create(ExternalOpContents def) {
                 if (def.operands().size() > 1) {
                     throw new IllegalArgumentException("Operation must accept zero or one operand");
                 }
@@ -1504,7 +1504,7 @@ public final class CoreOps {
                 return new FieldLoadOp(def, fieldDescriptor);
             }
 
-            FieldLoadOp(OpDefinition opdef, FieldRef fieldDescriptor) {
+            FieldLoadOp(ExternalOpContents opdef, FieldRef fieldDescriptor) {
                 super(opdef, fieldDescriptor);
 
                 resultType = opdef.resultType();
@@ -1549,7 +1549,7 @@ public final class CoreOps {
         public static final class FieldStoreOp extends FieldAccessOp {
             public static final String NAME = "field.store";
 
-            public static FieldStoreOp create(OpDefinition def) {
+            public static FieldStoreOp create(ExternalOpContents def) {
                 if (def.operands().size() > 2) {
                     throw new IllegalArgumentException("Operation must accept one or two operands");
                 }
@@ -1564,7 +1564,7 @@ public final class CoreOps {
                 return new FieldStoreOp(def, fieldDescriptor);
             }
 
-            FieldStoreOp(OpDefinition opdef, FieldRef fieldDescriptor) {
+            FieldStoreOp(ExternalOpContents opdef, FieldRef fieldDescriptor) {
                 super(opdef, fieldDescriptor);
             }
 
@@ -1601,10 +1601,10 @@ public final class CoreOps {
      * array.
      */
     @OpDeclaration(ArrayLengthOp.NAME)
-    public static final class ArrayLengthOp extends OpWithDefinition implements ReflectiveOp {
+    public static final class ArrayLengthOp extends ExternalizableOp implements ReflectiveOp {
         public static final String NAME = "array.length";
 
-        public ArrayLengthOp(OpDefinition def) {
+        public ArrayLengthOp(ExternalOpContents def) {
             super(def);
         }
 
@@ -1630,8 +1630,8 @@ public final class CoreOps {
     /**
      * The array access operation, that can model Java language array access expressions.
      */
-    public abstract static sealed class ArrayAccessOp extends OpWithDefinition implements AccessOp, ReflectiveOp {
-        ArrayAccessOp(OpDefinition def) {
+    public abstract static sealed class ArrayAccessOp extends ExternalizableOp implements AccessOp, ReflectiveOp {
+        ArrayAccessOp(ExternalOpContents def) {
             super(def);
 
             if (def.operands().size() != 2 && def.operands().size() != 3) {
@@ -1683,7 +1683,7 @@ public final class CoreOps {
         public static final class ArrayLoadOp extends ArrayAccessOp implements Op.Pure {
             public static final String NAME = "array.load";
 
-            public ArrayLoadOp(OpDefinition def) {
+            public ArrayLoadOp(ExternalOpContents def) {
                 super(def);
             }
 
@@ -1716,7 +1716,7 @@ public final class CoreOps {
         public static final class ArrayStoreOp extends ArrayAccessOp {
             public static final String NAME = "array.store";
 
-            public ArrayStoreOp(OpDefinition def) {
+            public ArrayStoreOp(ExternalOpContents def) {
                 super(def);
             }
 
@@ -1745,13 +1745,13 @@ public final class CoreOps {
      * type comparison operator.
      */
     @OpDeclaration(InstanceOfOp.NAME)
-    public static final class InstanceOfOp extends OpWithDefinition implements Op.Pure, ReflectiveOp {
+    public static final class InstanceOfOp extends ExternalizableOp implements Op.Pure, ReflectiveOp {
         public static final String NAME = "instanceof";
         public static final String ATTRIBUTE_TYPE_DESCRIPTOR = NAME + ".descriptor";
 
         final TypeElement typeDescriptor;
 
-        public static InstanceOfOp create(OpDefinition def) {
+        public static InstanceOfOp create(ExternalOpContents def) {
             if (def.operands().size() != 1) {
                 throw new IllegalArgumentException("Operation must have one operand " + def.name());
             }
@@ -1765,7 +1765,7 @@ public final class CoreOps {
             return new InstanceOfOp(def, typeDescriptor);
         }
 
-        InstanceOfOp(OpDefinition def, TypeElement typeDescriptor) {
+        InstanceOfOp(ExternalOpContents def, TypeElement typeDescriptor) {
             super(def);
 
             this.typeDescriptor = typeDescriptor;
@@ -1810,14 +1810,14 @@ public final class CoreOps {
      * The cast operation, that can model Java language cast expressions.
      */
     @OpDeclaration(CastOp.NAME)
-    public static final class CastOp extends OpWithDefinition implements Op.Pure, ReflectiveOp {
+    public static final class CastOp extends ExternalizableOp implements Op.Pure, ReflectiveOp {
         public static final String NAME = "cast";
         public static final String ATTRIBUTE_TYPE_DESCRIPTOR = NAME + ".descriptor";
 
         final TypeElement resultType;
         final TypeElement typeDescriptor;
 
-        public static CastOp create(OpDefinition def) {
+        public static CastOp create(ExternalOpContents def) {
             if (def.operands().size() != 1) {
                 throw new IllegalArgumentException("Operation must have one operand " + def.name());
             }
@@ -1831,7 +1831,7 @@ public final class CoreOps {
             return new CastOp(def, type);
         }
 
-        CastOp(OpDefinition def, TypeElement typeDescriptor) {
+        CastOp(ExternalOpContents def, TypeElement typeDescriptor) {
             super(def);
 
             this.resultType = def.resultType();
@@ -1905,14 +1905,14 @@ public final class CoreOps {
      * lambda parameters.
      */
     @OpDeclaration(VarOp.NAME)
-    public static final class VarOp extends OpWithDefinition {
+    public static final class VarOp extends ExternalizableOp {
         public static final String NAME = "var";
         public static final String ATTRIBUTE_NAME = NAME + ".name";
 
         final String varName;
         final TypeElement resultType;
 
-        public static VarOp create(OpDefinition def) {
+        public static VarOp create(ExternalOpContents def) {
             if (def.operands().size() != 1) {
                 throw new IllegalStateException("Operation must have one operand");
             }
@@ -1925,7 +1925,7 @@ public final class CoreOps {
             return new VarOp(def, name);
         }
 
-        VarOp(OpDefinition def, String varName) {
+        VarOp(ExternalOpContents def, String varName) {
             super(def);
 
             this.varName = varName;
@@ -1984,8 +1984,8 @@ public final class CoreOps {
      * The var access operation, that can model access to Java language local variables, method parameters, or
      * lambda parameters.
      */
-    public abstract static sealed class VarAccessOp extends OpWithDefinition implements AccessOp {
-        VarAccessOp(OpDefinition opdef) {
+    public abstract static sealed class VarAccessOp extends ExternalizableOp implements AccessOp {
+        VarAccessOp(ExternalOpContents opdef) {
             super(opdef);
         }
 
@@ -2019,7 +2019,7 @@ public final class CoreOps {
         public static final class VarLoadOp extends VarAccessOp {
             public static final String NAME = "var.load";
 
-            public VarLoadOp(OpDefinition opdef) {
+            public VarLoadOp(ExternalOpContents opdef) {
                 super(opdef);
 
                 if (opdef.operands().size() != 1) {
@@ -2060,7 +2060,7 @@ public final class CoreOps {
         public static final class VarStoreOp extends VarAccessOp {
             public static final String NAME = "var.store";
 
-            public VarStoreOp(OpDefinition opdef) {
+            public VarStoreOp(ExternalOpContents opdef) {
                 super(opdef);
 
                 if (opdef.operands().size() != 2) {
@@ -2102,10 +2102,10 @@ public final class CoreOps {
      * The tuple operation. A tuple contain a fixed set of values accessible by their component index.
      */
     @OpDeclaration(TupleOp.NAME)
-    public static final class TupleOp extends OpWithDefinition {
+    public static final class TupleOp extends ExternalizableOp {
         public static final String NAME = "tuple";
 
-        public TupleOp(OpDefinition def) {
+        public TupleOp(ExternalOpContents def) {
             super(def);
         }
 
@@ -2132,13 +2132,13 @@ public final class CoreOps {
      * The tuple component load operation, that access the component of a tuple at a given, constant, component index.
      */
     @OpDeclaration(TupleLoadOp.NAME)
-    public static final class TupleLoadOp extends OpWithDefinition {
+    public static final class TupleLoadOp extends ExternalizableOp {
         public static final String NAME = "tuple.load";
         public static final String ATTRIBUTE_INDEX = NAME + ".index";
 
         final int index;
 
-        public static TupleLoadOp create(OpDefinition def) {
+        public static TupleLoadOp create(ExternalOpContents def) {
             if (def.operands().size() != 1) {
                 throw new IllegalStateException("Operation must have one operand");
             }
@@ -2152,7 +2152,7 @@ public final class CoreOps {
             return new TupleLoadOp(def, index);
         }
 
-        TupleLoadOp(OpDefinition def, int index) {
+        TupleLoadOp(ExternalOpContents def, int index) {
             super(def);
 
             // @@@ Validate tuple type and index
@@ -2203,13 +2203,13 @@ public final class CoreOps {
      * The tuple component set operation, that access the component of a tuple at a given, constant, component index.
      */
     @OpDeclaration(TupleWithOp.NAME)
-    public static final class TupleWithOp extends OpWithDefinition {
+    public static final class TupleWithOp extends ExternalizableOp {
         public static final String NAME = "tuple.with";
         public static final String ATTRIBUTE_INDEX = NAME + ".index";
 
         final int index;
 
-        public static TupleWithOp create(OpDefinition def) {
+        public static TupleWithOp create(ExternalOpContents def) {
             if (def.operands().size() != 2) {
                 throw new IllegalStateException("Operation must have two operands");
             }
@@ -2223,7 +2223,7 @@ public final class CoreOps {
             return new TupleWithOp(def, index);
         }
 
-        TupleWithOp(OpDefinition def, int index) {
+        TupleWithOp(ExternalOpContents def, int index) {
             super(def);
 
             // @@@ Validate tuple type and index
@@ -2292,7 +2292,7 @@ public final class CoreOps {
      * The exception region start operation.
      */
     @OpDeclaration(ExceptionRegionEnter.NAME)
-    public static final class ExceptionRegionEnter extends OpWithDefinition implements Op.BlockTerminating {
+    public static final class ExceptionRegionEnter extends ExternalizableOp implements Op.BlockTerminating {
         public static final String NAME = "exception.region.enter";
 
         // First successor is the non-exceptional successor whose target indicates
@@ -2301,7 +2301,7 @@ public final class CoreOps {
         // each of which have one block argument whose type is an exception type.
         final List<Block.Reference> s;
 
-        public ExceptionRegionEnter(OpDefinition def) {
+        public ExceptionRegionEnter(ExternalOpContents def) {
             super(def);
 
             if (def.successors().size() < 2) {
@@ -2355,12 +2355,12 @@ public final class CoreOps {
      * The exception region end operation.
      */
     @OpDeclaration(ExceptionRegionExit.NAME)
-    public static final class ExceptionRegionExit extends OpWithDefinition implements Op.BlockTerminating {
+    public static final class ExceptionRegionExit extends ExternalizableOp implements Op.BlockTerminating {
         public static final String NAME = "exception.region.exit";
 
         final Block.Reference end;
 
-        public ExceptionRegionExit(OpDefinition def) {
+        public ExceptionRegionExit(ExternalOpContents def) {
             super(def);
 
             if (def.operands().size() != 1) {
@@ -2428,14 +2428,14 @@ public final class CoreOps {
      */
 
     @OpDeclaration(ConcatOp.NAME)
-    public static final class ConcatOp extends OpWithDefinition implements Op.Pure {
+    public static final class ConcatOp extends ExternalizableOp implements Op.Pure {
         public static final String NAME = "concat";
 
         public ConcatOp(ConcatOp that, CopyContext cc) {
             super(that, cc);
         }
 
-        public ConcatOp(OpDefinition def) {
+        public ConcatOp(ExternalOpContents def) {
             super(def);
             if (def.operands().size() != 2) {
                 throw new IllegalArgumentException("Concatenation Operation must have two operands.");
@@ -2463,8 +2463,8 @@ public final class CoreOps {
     /**
      * The arithmetic operation.
      */
-    public static abstract class ArithmeticOperation extends OpWithDefinition implements Op.Pure {
-        protected ArithmeticOperation(OpDefinition def) {
+    public static abstract class ArithmeticOperation extends ExternalizableOp implements Op.Pure {
+        protected ArithmeticOperation(ExternalOpContents def) {
             super(def);
 
             if (def.operands().isEmpty()) {
@@ -2484,8 +2484,8 @@ public final class CoreOps {
     /**
      * The test operation.
      */
-    public static abstract class TestOperation extends OpWithDefinition implements Op.Pure {
-        protected TestOperation(OpDefinition def) {
+    public static abstract class TestOperation extends ExternalizableOp implements Op.Pure {
+        protected TestOperation(ExternalOpContents def) {
             super(def);
 
             if (def.operands().isEmpty()) {
@@ -2506,7 +2506,7 @@ public final class CoreOps {
      * The binary arithmetic operation.
      */
     public static abstract class BinaryOp extends ArithmeticOperation {
-        protected BinaryOp(OpDefinition def) {
+        protected BinaryOp(ExternalOpContents def) {
             super(def);
 
             if (def.operands().size() != 2) {
@@ -2532,7 +2532,7 @@ public final class CoreOps {
      * The unary arithmetic operation.
      */
     public static abstract class UnaryOp extends ArithmeticOperation {
-        protected UnaryOp(OpDefinition def) {
+        protected UnaryOp(ExternalOpContents def) {
             super(def);
 
             if (def.operands().size() != 1) {
@@ -2558,7 +2558,7 @@ public final class CoreOps {
      * The unary test operation.
      */
     public static abstract class UnaryTestOp extends TestOperation {
-        protected UnaryTestOp(OpDefinition def) {
+        protected UnaryTestOp(ExternalOpContents def) {
             super(def);
 
             if (def.operands().size() != 1) {
@@ -2579,7 +2579,7 @@ public final class CoreOps {
      * The binary test operation.
      */
     public static abstract class BinaryTestOp extends TestOperation {
-        protected BinaryTestOp(OpDefinition def) {
+        protected BinaryTestOp(ExternalOpContents def) {
             super(def);
 
             if (def.operands().size() != 2) {
@@ -2608,7 +2608,7 @@ public final class CoreOps {
     public static final class AddOp extends BinaryOp {
         public static final String NAME = "add";
 
-        public AddOp(OpDefinition def) {
+        public AddOp(ExternalOpContents def) {
             super(def);
         }
 
@@ -2633,7 +2633,7 @@ public final class CoreOps {
     public static final class SubOp extends BinaryOp {
         public static final String NAME = "sub";
 
-        public SubOp(OpDefinition opdef) {
+        public SubOp(ExternalOpContents opdef) {
             super(opdef);
         }
 
@@ -2658,7 +2658,7 @@ public final class CoreOps {
     public static final class MulOp extends BinaryOp {
         public static final String NAME = "mul";
 
-        public MulOp(OpDefinition opdef) {
+        public MulOp(ExternalOpContents opdef) {
             super(opdef);
         }
 
@@ -2683,7 +2683,7 @@ public final class CoreOps {
     public static final class DivOp extends BinaryOp {
         public static final String NAME = "div";
 
-        public DivOp(OpDefinition opdef) {
+        public DivOp(ExternalOpContents opdef) {
             super(opdef);
         }
 
@@ -2708,7 +2708,7 @@ public final class CoreOps {
     public static final class ModOp extends BinaryOp {
         public static final String NAME = "mod";
 
-        public ModOp(OpDefinition opdef) {
+        public ModOp(ExternalOpContents opdef) {
             super(opdef);
         }
 
@@ -2734,7 +2734,7 @@ public final class CoreOps {
     public static final class OrOp extends BinaryOp {
         public static final String NAME = "or";
 
-        public OrOp(OpDefinition opdef) {
+        public OrOp(ExternalOpContents opdef) {
             super(opdef);
         }
 
@@ -2760,7 +2760,7 @@ public final class CoreOps {
     public static final class AndOp extends BinaryOp {
         public static final String NAME = "and";
 
-        public AndOp(OpDefinition opdef) {
+        public AndOp(ExternalOpContents opdef) {
             super(opdef);
         }
 
@@ -2786,7 +2786,7 @@ public final class CoreOps {
     public static final class XorOp extends BinaryOp {
         public static final String NAME = "xor";
 
-        public XorOp(OpDefinition opdef) {
+        public XorOp(ExternalOpContents opdef) {
             super(opdef);
         }
 
@@ -2811,7 +2811,7 @@ public final class CoreOps {
     public static final class LshlOp extends BinaryOp {
         public static final String NAME = "lshl";
 
-        public LshlOp(OpDefinition opdef) {
+        public LshlOp(ExternalOpContents opdef) {
             super(opdef);
         }
 
@@ -2836,7 +2836,7 @@ public final class CoreOps {
     public static final class AshrOp extends CoreOps.BinaryOp {
         public static final String NAME = "ashr";
 
-        public AshrOp(OpDefinition opdef) {
+        public AshrOp(ExternalOpContents opdef) {
             super(opdef);
         }
 
@@ -2861,7 +2861,7 @@ public final class CoreOps {
     public static final class LshrOp extends CoreOps.BinaryOp {
         public static final String NAME = "lshr";
 
-        public LshrOp(OpDefinition opdef) {
+        public LshrOp(ExternalOpContents opdef) {
             super(opdef);
         }
 
@@ -2886,7 +2886,7 @@ public final class CoreOps {
     public static final class NegOp extends UnaryOp {
         public static final String NAME = "neg";
 
-        public NegOp(OpDefinition opdef) {
+        public NegOp(ExternalOpContents opdef) {
             super(opdef);
         }
 
@@ -2911,7 +2911,7 @@ public final class CoreOps {
     public static final class NotOp extends UnaryOp {
         public static final String NAME = "not";
 
-        public NotOp(OpDefinition opdef) {
+        public NotOp(ExternalOpContents opdef) {
             super(opdef);
         }
 
@@ -2937,7 +2937,7 @@ public final class CoreOps {
     public static final class EqOp extends BinaryTestOp {
         public static final String NAME = "eq";
 
-        public EqOp(OpDefinition opdef) {
+        public EqOp(ExternalOpContents opdef) {
             super(opdef);
         }
 
@@ -2963,7 +2963,7 @@ public final class CoreOps {
     public static final class NeqOp extends BinaryTestOp {
         public static final String NAME = "neq";
 
-        public NeqOp(OpDefinition opdef) {
+        public NeqOp(ExternalOpContents opdef) {
             super(opdef);
         }
 
@@ -2988,7 +2988,7 @@ public final class CoreOps {
     public static final class GtOp extends BinaryTestOp {
         public static final String NAME = "gt";
 
-        public GtOp(OpDefinition opdef) {
+        public GtOp(ExternalOpContents opdef) {
             super(opdef);
         }
 
@@ -3014,7 +3014,7 @@ public final class CoreOps {
     public static final class GeOp extends BinaryTestOp {
         public static final String NAME = "ge";
 
-        public GeOp(OpDefinition opdef) {
+        public GeOp(ExternalOpContents opdef) {
             super(opdef);
         }
 
@@ -3040,7 +3040,7 @@ public final class CoreOps {
     public static final class LtOp extends BinaryTestOp {
         public static final String NAME = "lt";
 
-        public LtOp(OpDefinition opdef) {
+        public LtOp(ExternalOpContents opdef) {
             super(opdef);
         }
 
@@ -3066,7 +3066,7 @@ public final class CoreOps {
     public static final class LeOp extends BinaryTestOp {
         public static final String NAME = "le";
 
-        public LeOp(OpDefinition opdef) {
+        public LeOp(ExternalOpContents opdef) {
             super(opdef);
         }
 

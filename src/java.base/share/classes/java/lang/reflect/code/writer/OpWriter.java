@@ -29,7 +29,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.lang.reflect.code.*;
-import java.lang.reflect.code.op.OpWithDefinition;
+import java.lang.reflect.code.op.ExternalizableOp;
 import java.lang.reflect.code.type.JavaType;
 import java.util.HashMap;
 import java.util.Map;
@@ -65,7 +65,7 @@ public final class OpWriter {
 
     static final class AttributeMapper {
         static String toString(Object value) {
-            return value == Op.NULL_ATTRIBUTE_VALUE
+            return value == ExternalizableOp.NULL_ATTRIBUTE_VALUE
                     ? "null"
                     : "\"" + quote(value.toString()) + "\"";
         }
@@ -351,11 +351,11 @@ public final class OpWriter {
             writeSpaceSeparatedList(op.successors(), this::writeSuccessor);
         }
 
-        Map<String, Object> attributes = op.attributes();
+        Map<String, Object> attributes = op instanceof ExternalizableOp exop ? exop.attributes() : Map.of();
         if (dropLocation && !attributes.isEmpty() &&
-                attributes.containsKey(OpWithDefinition.ATTRIBUTE_LOCATION)) {
+                attributes.containsKey(ExternalizableOp.ATTRIBUTE_LOCATION)) {
             attributes = new HashMap<>(attributes);
-            attributes.remove(OpWithDefinition.ATTRIBUTE_LOCATION);
+            attributes.remove(ExternalizableOp.ATTRIBUTE_LOCATION);
         }
         if (!attributes.isEmpty()) {
             write(" ");

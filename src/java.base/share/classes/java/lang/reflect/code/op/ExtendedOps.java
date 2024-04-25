@@ -72,8 +72,8 @@ public class ExtendedOps {
     /**
      * The label operation, that can model Java language statements with label identifiers.
      */
-    public static sealed abstract class JavaLabelOp extends OpWithDefinition implements Op.Lowerable, Op.BodyTerminating {
-        JavaLabelOp(OpDefinition def) {
+    public static sealed abstract class JavaLabelOp extends ExternalizableOp implements Op.Lowerable, Op.BodyTerminating {
+        JavaLabelOp(ExternalOpContents def) {
             super(def);
 
             if (def.operands().size() > 1) {
@@ -166,7 +166,7 @@ public class ExtendedOps {
     public static final class JavaBreakOp extends JavaLabelOp {
         public static final String NAME = "java.break";
 
-        public JavaBreakOp(OpDefinition def) {
+        public JavaBreakOp(ExternalOpContents def) {
             super(def);
         }
 
@@ -196,7 +196,7 @@ public class ExtendedOps {
     public static final class JavaContinueOp extends JavaLabelOp {
         public static final String NAME = "java.continue";
 
-        public JavaContinueOp(OpDefinition def) {
+        public JavaContinueOp(ExternalOpContents def) {
             super(def);
         }
 
@@ -245,10 +245,10 @@ public class ExtendedOps {
      * The yield operation, that can model Java language yield statements.
      */
     @OpDeclaration(JavaYieldOp.NAME)
-    public static final class JavaYieldOp extends OpWithDefinition implements Op.BodyTerminating {
+    public static final class JavaYieldOp extends ExternalizableOp implements Op.BodyTerminating {
         public static final String NAME = "java.yield";
 
-        public JavaYieldOp(OpDefinition def) {
+        public JavaYieldOp(ExternalOpContents def) {
             super(def);
         }
 
@@ -290,12 +290,12 @@ public class ExtendedOps {
      */
     @OpDeclaration(JavaBlockOp.NAME)
     // @@@ Support synchronized attribute
-    public static final class JavaBlockOp extends OpWithDefinition implements Op.Nested, Op.Lowerable {
+    public static final class JavaBlockOp extends ExternalizableOp implements Op.Nested, Op.Lowerable {
         public static final String NAME = "java.block";
 
         final Body body;
 
-        public JavaBlockOp(OpDefinition def) {
+        public JavaBlockOp(ExternalOpContents def) {
             super(def);
 
             if (!def.operands().isEmpty()) {
@@ -371,12 +371,12 @@ public class ExtendedOps {
      * The labeled operation, that can model Java language labeled statements.
      */
     @OpDeclaration(JavaLabeledOp.NAME)
-    public static final class JavaLabeledOp extends OpWithDefinition implements Op.Nested, Op.Lowerable {
+    public static final class JavaLabeledOp extends ExternalizableOp implements Op.Nested, Op.Lowerable {
         public static final String NAME = "java.labeled";
 
         final Body body;
 
-        public JavaLabeledOp(OpDefinition def) {
+        public JavaLabeledOp(ExternalOpContents def) {
             super(def);
 
             if (!def.operands().isEmpty()) {
@@ -462,7 +462,7 @@ public class ExtendedOps {
      * The if operation, that can model Java language if, if-then, and if-then-else statements.
      */
     @OpDeclaration(JavaIfOp.NAME)
-    public static final class JavaIfOp extends OpWithDefinition implements Op.Nested, Op.Lowerable {
+    public static final class JavaIfOp extends ExternalizableOp implements Op.Nested, Op.Lowerable {
 
         static final FunctionType PREDICATE_TYPE = FunctionType.functionType(BOOLEAN);
 
@@ -550,7 +550,7 @@ public class ExtendedOps {
 
         final List<Body> bodies;
 
-        public JavaIfOp(OpDefinition def) {
+        public JavaIfOp(ExternalOpContents def) {
             super(def);
 
             if (!def.operands().isEmpty()) {
@@ -687,13 +687,13 @@ public class ExtendedOps {
      * The switch expression operation, that can model Java language switch expressions.
      */
     @OpDeclaration(JavaSwitchExpressionOp.NAME)
-    public static final class JavaSwitchExpressionOp extends OpWithDefinition implements Op.Nested, Op.Lowerable {
+    public static final class JavaSwitchExpressionOp extends ExternalizableOp implements Op.Nested, Op.Lowerable {
         public static final String NAME = "java.switch.expression";
 
         final TypeElement resultType;
         final List<Body> bodies;
 
-        public JavaSwitchExpressionOp(OpDefinition def) {
+        public JavaSwitchExpressionOp(ExternalOpContents def) {
             super(def);
 
             if (def.operands().size() != 1) {
@@ -754,10 +754,10 @@ public class ExtendedOps {
      * the last statement of the current switch label.
      */
     @OpDeclaration(JavaSwitchFallthroughOp.NAME)
-    public static final class JavaSwitchFallthroughOp extends OpWithDefinition implements Op.BodyTerminating {
+    public static final class JavaSwitchFallthroughOp extends ExternalizableOp implements Op.BodyTerminating {
         public static final String NAME = "java.switch.fallthrough";
 
-        public JavaSwitchFallthroughOp(OpDefinition def) {
+        public JavaSwitchFallthroughOp(ExternalOpContents def) {
             super(def);
         }
 
@@ -784,7 +784,7 @@ public class ExtendedOps {
      * The for operation, that can model a Java language for statement.
      */
     @OpDeclaration(JavaForOp.NAME)
-    public static final class JavaForOp extends OpWithDefinition implements Op.Loop, Op.Lowerable {
+    public static final class JavaForOp extends ExternalizableOp implements Op.Loop, Op.Lowerable {
 
         public static final class InitBuilder {
             final Body.Builder ancestorBody;
@@ -885,11 +885,11 @@ public class ExtendedOps {
         final Body update;
         final Body body;
 
-        public static JavaForOp create(OpDefinition def) {
+        public static JavaForOp create(ExternalOpContents def) {
             return new JavaForOp(def);
         }
 
-        public JavaForOp(OpDefinition def) {
+        public JavaForOp(ExternalOpContents def) {
             super(def);
 
             this.init = def.bodyDefinitions().get(0).build(this);
@@ -1043,7 +1043,7 @@ public class ExtendedOps {
      * The enhanced for operation, that can model a Java language enhanced for statement.
      */
     @OpDeclaration(JavaEnhancedForOp.NAME)
-    public static final class JavaEnhancedForOp extends OpWithDefinition implements Op.Loop, Op.Lowerable {
+    public static final class JavaEnhancedForOp extends ExternalizableOp implements Op.Loop, Op.Lowerable {
 
         public static final class ExpressionBuilder {
             final Body.Builder ancestorBody;
@@ -1120,11 +1120,11 @@ public class ExtendedOps {
         final Body init;
         final Body body;
 
-        public static JavaEnhancedForOp create(OpDefinition def) {
+        public static JavaEnhancedForOp create(ExternalOpContents def) {
             return new JavaEnhancedForOp(def);
         }
 
-        public JavaEnhancedForOp(OpDefinition def) {
+        public JavaEnhancedForOp(ExternalOpContents def) {
             super(def);
 
             this.expression = def.bodyDefinitions().get(0).build(this);
@@ -1303,7 +1303,7 @@ public class ExtendedOps {
      * The while operation, that can model a Java language while statement.
      */
     @OpDeclaration(JavaWhileOp.NAME)
-    public static final class JavaWhileOp extends OpWithDefinition implements Op.Loop, Op.Lowerable {
+    public static final class JavaWhileOp extends ExternalizableOp implements Op.Loop, Op.Lowerable {
 
         public static class PredicateBuilder {
             final Body.Builder ancestorBody;
@@ -1341,7 +1341,7 @@ public class ExtendedOps {
 
         private final List<Body> bodies;
 
-        public JavaWhileOp(OpDefinition def) {
+        public JavaWhileOp(ExternalOpContents def) {
             super(def);
 
             // @@@ Validate
@@ -1448,7 +1448,7 @@ public class ExtendedOps {
      */
     // @@@ Unify JavaDoWhileOp and JavaWhileOp with common abstract superclass
     @OpDeclaration(JavaDoWhileOp.NAME)
-    public static final class JavaDoWhileOp extends OpWithDefinition implements Op.Loop, Op.Lowerable {
+    public static final class JavaDoWhileOp extends ExternalizableOp implements Op.Loop, Op.Lowerable {
 
         public static class PredicateBuilder {
             final Body.Builder ancestorBody;
@@ -1486,7 +1486,7 @@ public class ExtendedOps {
 
         private final List<Body> bodies;
 
-        public JavaDoWhileOp(OpDefinition def) {
+        public JavaDoWhileOp(ExternalOpContents def) {
             super(def);
 
             // @@@ Validate
@@ -1590,10 +1590,10 @@ public class ExtendedOps {
     /**
      * The conditional-and-or operation, that can model Java language condition-or or conditional-and expressions.
      */
-    public static sealed abstract class JavaConditionalOp extends OpWithDefinition implements Op.Nested, Op.Lowerable {
+    public static sealed abstract class JavaConditionalOp extends ExternalizableOp implements Op.Nested, Op.Lowerable {
         final List<Body> bodies;
 
-        public JavaConditionalOp(OpDefinition def) {
+        public JavaConditionalOp(ExternalOpContents def) {
             super(def);
 
             if (!def.operands().isEmpty()) {
@@ -1731,7 +1731,7 @@ public class ExtendedOps {
 
         public static final String NAME = "java.cand";
 
-        public JavaConditionalAndOp(OpDefinition def) {
+        public JavaConditionalAndOp(ExternalOpContents def) {
             super(def);
         }
 
@@ -1786,7 +1786,7 @@ public class ExtendedOps {
 
         public static final String NAME = "java.cor";
 
-        public JavaConditionalOrOp(OpDefinition def) {
+        public JavaConditionalOrOp(ExternalOpContents def) {
             super(def);
         }
 
@@ -1813,7 +1813,7 @@ public class ExtendedOps {
      * The conditional operation, that can model Java language conditional operator {@code ?} expressions.
      */
     @OpDeclaration(JavaConditionalExpressionOp.NAME)
-    public static final class JavaConditionalExpressionOp extends OpWithDefinition implements Op.Nested, Op.Lowerable {
+    public static final class JavaConditionalExpressionOp extends ExternalizableOp implements Op.Nested, Op.Lowerable {
 
         public static final String NAME = "java.cexpression";
 
@@ -1821,7 +1821,7 @@ public class ExtendedOps {
         // {cond, truepart, falsepart}
         final List<Body> bodies;
 
-        public JavaConditionalExpressionOp(OpDefinition def) {
+        public JavaConditionalExpressionOp(ExternalOpContents def) {
             super(def);
 
             if (!def.operands().isEmpty()) {
@@ -1918,7 +1918,7 @@ public class ExtendedOps {
      * The try operation, that can model Java language try statements.
      */
     @OpDeclaration(JavaTryOp.NAME)
-    public static final class JavaTryOp extends OpWithDefinition implements Op.Nested, Op.Lowerable {
+    public static final class JavaTryOp extends ExternalizableOp implements Op.Nested, Op.Lowerable {
 
         public static final class BodyBuilder {
             final Body.Builder ancestorBody;
@@ -1982,11 +1982,11 @@ public class ExtendedOps {
         final List<Body> catchers;
         final Body finalizer;
 
-        public static JavaTryOp create(OpDefinition def) {
+        public static JavaTryOp create(ExternalOpContents def) {
             return new JavaTryOp(def);
         }
 
-        public JavaTryOp(OpDefinition def) {
+        public JavaTryOp(ExternalOpContents def) {
             super(def);
 
             List<Body> bodies = def.bodyDefinitions().stream().map(b -> b.build(this)).toList();
@@ -2420,8 +2420,8 @@ public class ExtendedOps {
         /**
          * The pattern operation.
          */
-        public static sealed abstract class PatternOp extends OpWithDefinition implements Op.Pure {
-            PatternOp(OpDefinition def) {
+        public static sealed abstract class PatternOp extends ExternalizableOp implements Op.Pure {
+            PatternOp(ExternalOpContents def) {
                 super(def);
             }
 
@@ -2446,7 +2446,7 @@ public class ExtendedOps {
             final TypeElement resultType;
             final String bindingName;
 
-            public static BindingPatternOp create(OpDefinition def) {
+            public static BindingPatternOp create(ExternalOpContents def) {
                 String name = def.extractAttributeValue(ATTRIBUTE_BINDING_NAME, true,
                         v -> switch (v) {
                             case String s -> s;
@@ -2455,7 +2455,7 @@ public class ExtendedOps {
                 return new BindingPatternOp(def, name);
             }
 
-            BindingPatternOp(OpDefinition def, String bindingName) {
+            BindingPatternOp(ExternalOpContents def, String bindingName) {
                 super(def);
 
                 this.bindingName = bindingName;
@@ -2513,7 +2513,7 @@ public class ExtendedOps {
 
             final RecordTypeRef recordDescriptor;
 
-            public static RecordPatternOp create(OpDefinition def) {
+            public static RecordPatternOp create(ExternalOpContents def) {
                 RecordTypeRef recordDescriptor = def.extractAttributeValue(ATTRIBUTE_RECORD_DESCRIPTOR,true,
                         v -> switch (v) {
                             case String s -> RecordTypeRef.ofString(s);
@@ -2524,7 +2524,7 @@ public class ExtendedOps {
                 return new RecordPatternOp(def, recordDescriptor);
             }
 
-            RecordPatternOp(OpDefinition def, RecordTypeRef recordDescriptor) {
+            RecordPatternOp(ExternalOpContents def, RecordTypeRef recordDescriptor) {
                 super(def);
 
                 this.recordDescriptor = recordDescriptor;
@@ -2574,13 +2574,13 @@ public class ExtendedOps {
          * The match operation, that can model Java language pattern matching.
          */
         @OpDeclaration(MatchOp.NAME)
-        public static final class MatchOp extends OpWithDefinition implements Op.Isolated, Op.Lowerable {
+        public static final class MatchOp extends ExternalizableOp implements Op.Isolated, Op.Lowerable {
             public static final String NAME = "pattern.match";
 
             final Body pattern;
             final Body match;
 
-            public MatchOp(OpDefinition def) {
+            public MatchOp(ExternalOpContents def) {
                 super(def);
 
                 this.pattern = def.bodyDefinitions().get(0).build(this);
@@ -2735,14 +2735,14 @@ public class ExtendedOps {
     }
 
     @OpDeclaration(StringTemplateOp.NAME)
-    public static final class StringTemplateOp extends OpWithDefinition implements Op.Nested, Op.Lowerable {
+    public static final class StringTemplateOp extends ExternalizableOp implements Op.Nested, Op.Lowerable {
 
         public static final String NAME = "java.stringTemplate";
 
         private final TypeElement resultType;
         private final List<Body> expressions;
 
-        public StringTemplateOp(OpDefinition def) {
+        public StringTemplateOp(ExternalOpContents def) {
             super(def);
 
             this.expressions = def.bodyDefinitions().stream().map(bd -> bd.build(this)).toList();

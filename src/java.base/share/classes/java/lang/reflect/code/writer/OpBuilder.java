@@ -26,8 +26,9 @@
 package java.lang.reflect.code.writer;
 
 import java.lang.reflect.code.*;
-import java.lang.reflect.code.op.OpDefinition;
+import java.lang.reflect.code.op.ExternalOpContents;
 import java.lang.reflect.code.op.OpFactory;
+import java.lang.reflect.code.op.ExternalizableOp;
 import java.lang.reflect.code.type.*;
 import java.util.*;
 
@@ -43,10 +44,10 @@ import static java.lang.reflect.code.type.JavaType.*;
  */
 public class OpBuilder {
 
-    static final JavaType J_C_O_OP_DEFINITION = type(OpDefinition.class);
+    static final JavaType J_C_O_OP_DEFINITION = type(ExternalOpContents.class);
 
     static final MethodRef OP_FACTORY_CONSTRUCT = MethodRef.method(OpFactory.class, "constructOp",
-            Op.class, OpDefinition.class);
+            Op.class, ExternalOpContents.class);
 
     static final MethodRef TYPE_ELEMENT_FACTORY_CONSTRUCT = MethodRef.method(TypeElementFactory.class, "constructType",
             TypeElement.class, TypeDefinition.class);
@@ -197,7 +198,7 @@ public class OpBuilder {
                 operands,
                 successors,
                 inputOp.resultType(),
-                inputOp.attributes(),
+                inputOp instanceof ExternalizableOp exop ? exop.attributes() : Map.of(),
                 bodies);
         return builder.op(invoke(OP_FACTORY_CONSTRUCT, opFactory, opDef));
     }
@@ -322,8 +323,9 @@ public class OpBuilder {
                 // @@@ Construct location explicitly
                 yield builder.op(constant(J_L_STRING, l.toString()));
             }
-            case Object o when value == Op.NULL_ATTRIBUTE_VALUE -> {
-                yield builder.op(fieldLoad(FieldRef.field(Op.class, "NULL_ATTRIBUTE_VALUE", Object.class)));
+            case Object o when value == ExternalizableOp.NULL_ATTRIBUTE_VALUE -> {
+                yield builder.op(fieldLoad(FieldRef.field(ExternalizableOp.class,
+                        "NULL_ATTRIBUTE_VALUE", Object.class)));
             }
             default -> {
                 // @@@ use the result of value.toString()?

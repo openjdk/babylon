@@ -33,24 +33,26 @@ import java.util.Map;
 import java.util.function.Function;
 
 /**
- * An operation in general form that is utilized to construct a concrete subclass of {@link Op},
- * such as a subclass of {@link OpWithDefinition}, associated with the operation name.
+ * An operation in an external form (a record) that can be utilized to construct an instance
+ * of an {@link ExternalizableOp} associated with the operation's name.
+ * <p>
+ * The externalized contents of the operation are represented as record components.
  *
  * @param name            the operation name
  * @param operands        the list of operands
  * @param successors      the list of successors
  * @param resultType      the operation result type
- * @param attributes      the attribute map, modifiable
- * @param bodyDefinitions the list of body builders for building the bodies
+ * @param attributes      the operation's specific state as an attribute map, modifiable
+ * @param bodyDefinitions the list of body builders for building the operation's bodies
  * @apiNote Deserializers of operations may utilize this record to construct operations,
  * thereby separating the specifics of deserializing from construction.
  */
-public record OpDefinition(String name,
-                           List<Value> operands,
-                           List<Block.Reference> successors,
-                           TypeElement resultType,
-                           Map<String, Object> attributes,
-                           List<Body.Builder> bodyDefinitions) {
+public record ExternalOpContents(String name,
+                                 List<Value> operands,
+                                 List<Block.Reference> successors,
+                                 TypeElement resultType,
+                                 Map<String, Object> attributes,
+                                 List<Body.Builder> bodyDefinitions) {
 
     /**
      * Removes an attribute value from the attributes map, converts the value by applying it
@@ -64,10 +66,10 @@ public record OpDefinition(String name,
      * <p>On successful removal of the attribute its value is converted by applying the value
      * to the mapping function.
      *
-     * @param name the attribute name.
+     * @param name      the attribute name.
      * @param isDefault true if the attribute is a default attribute
+     * @param <T>       the converted attribute value type
      * @return the converted attribute value
-     * @param <T> the converted attribute value type
      * @throws IllegalArgumentException if there is no attribute present
      */
     public <T> T extractAttributeValue(String name, boolean isDefault, Function<Object, T> mapper) {
@@ -85,19 +87,19 @@ public record OpDefinition(String name,
     }
 
     /**
-     * Copies an operation to its operation definition.
+     * Externalizes an operation to its external operation definition.
      *
      * @param cc the copy context
      * @param op the operation
      * @return the copied operation definition.
      */
-    public static OpDefinition fromOp(CopyContext cc, Op op) {
-        return new OpDefinition(
+    public static ExternalOpContents fromOp(CopyContext cc, Op op) {
+        return new ExternalOpContents(
                 op.opName(),
                 cc.getValues(op.operands()),
                 op.successors().stream().map(cc::getSuccessorOrCreate).toList(),
                 op.resultType(),
-                new HashMap<>(op.attributes()),
+                op instanceof ExternalizableOp exop ? new HashMap<>(exop.attributes()) : new HashMap<>(),
                 op.bodies().stream().map(b -> b.copy(cc)).toList()
         );
     }
