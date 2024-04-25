@@ -60,7 +60,7 @@ class IntersectionTypeTest {
                   %6 : IntersectionTypeTest$C = cast %5 @"IntersectionTypeTest$C";
                   invoke %6 @"IntersectionTypeTest$C::m_C()void";
                   return;
-            };  
+            };
             """)
     static <X extends A & B & C> void test1(X x) {
         x.m_A();
