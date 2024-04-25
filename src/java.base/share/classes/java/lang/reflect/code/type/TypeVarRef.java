@@ -26,18 +26,20 @@
 package java.lang.reflect.code.type;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * A type-variable reference.
  */
 public final class TypeVarRef implements JavaType {
 
-    // @@@: how do we encode tvar owner?
     final String name;
+    final Object owner;
     final JavaType bound;
 
-    TypeVarRef(String name, JavaType bound) {
+    TypeVarRef(String name, Object owner, JavaType bound) {
         this.name = name;
+        this.owner = owner;
         this.bound = bound;
     }
 
@@ -55,6 +57,22 @@ public final class TypeVarRef implements JavaType {
         return bound;
     }
 
+    /**
+     * {@return the method owner of this type-variable}
+     */
+    public Optional<MethodRef> methodOwner() {
+        return owner instanceof MethodRef methodRef ?
+                Optional.of(methodRef) : Optional.empty();
+    }
+
+    /**
+     * {@return the class owner of this type-variable}
+     */
+    public Optional<JavaType> classOwner() {
+        return owner instanceof JavaType typeRef ?
+                Optional.of(typeRef) : Optional.empty();
+    }
+
     @Override
     public JavaType erasure() {
         return bound.erasure();
@@ -62,7 +80,7 @@ public final class TypeVarRef implements JavaType {
 
     @Override
     public TypeDefinition toTypeDefinition() {
-        return new TypeDefinition("::" + name,
+        return new TypeDefinition(String.format("#%s::%s", owner, name),
                 List.of(bound.toTypeDefinition()));
     }
 

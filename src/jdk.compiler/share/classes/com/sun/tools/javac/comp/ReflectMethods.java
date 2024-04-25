@@ -2174,10 +2174,6 @@ public class ReflectMethods extends TreeTranslator {
             return CoreOps.func(name.toString(), stack.body);
         }
 
-        JavaType symbolToDesc(Symbol s) {
-            return typeToTypeElement(s.type);
-        }
-
         JavaType symbolToErasedDesc(Symbol s) {
             return typeToTypeElement(s.erasure(types));
         }
@@ -2204,9 +2200,11 @@ public class ReflectMethods extends TreeTranslator {
                             JavaType.wildcard() :
                             JavaType.wildcard(wt.isExtendsBound() ? BoundKind.EXTENDS : BoundKind.SUPER, typeToTypeElement(wt.type));
                 }
-                case TYPEVAR -> JavaType.typeVarRef(t.tsym.name.toString(),
-                        typeToTypeElement(t.getUpperBound()));
-
+                case TYPEVAR -> t.tsym.owner.kind == Kind.MTH ?
+                        JavaType.typeVarRef(t.tsym.name.toString(), symbolToErasedMethodRef(t.tsym.owner),
+                                typeToTypeElement(t.getUpperBound())) :
+                        JavaType.typeVarRef(t.tsym.name.toString(), symbolToErasedDesc(t.tsym.owner),
+                                typeToTypeElement(t.getUpperBound()));
                 case CLASS -> {
                     Assert.check(!t.isIntersection() && !t.isUnion());
                     // @@@ Need to clean this up, probably does not work inner generic classes

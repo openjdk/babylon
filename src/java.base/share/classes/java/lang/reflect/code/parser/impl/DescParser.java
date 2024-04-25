@@ -25,6 +25,7 @@
 
 package java.lang.reflect.code.parser.impl;
 
+import java.lang.reflect.code.parser.impl.Tokens.Token;
 import java.lang.reflect.code.parser.impl.Tokens.TokenKind;
 import java.lang.reflect.code.type.*;
 import java.lang.reflect.code.TypeElement;
@@ -34,6 +35,7 @@ import java.lang.reflect.code.type.impl.MethodRefImpl;
 import java.lang.reflect.code.type.impl.RecordTypeRefImpl;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public final class DescParser {
     private DescParser() {}
@@ -86,21 +88,40 @@ public final class DescParser {
     }
 
     public static TypeDefinition parseTypeDefinition(Lexer l) {
+        boolean isTypeVar = false;
+        if (l.token().kind == TokenKind.HASH) {
+            l.accept(TokenKind.HASH);
+            isTypeVar = true;
+        }
         // Type
         Tokens.Token t = l.accept(TokenKind.IDENTIFIER,
-                TokenKind.PLUS, TokenKind.SUB,
-                TokenKind.COLCOL);
+                TokenKind.PLUS, TokenKind.SUB);
         StringBuilder identifier = new StringBuilder();
-        if (t.kind == TokenKind.COLCOL) {
-            // type var, add '::' and parse next ident
-            identifier.append(t.kind.name);
-            t = l.accept(TokenKind.IDENTIFIER);
-        }
         identifier.append(t.kind == TokenKind.IDENTIFIER ? t.name() : t.kind.name);
         while (l.acceptIf(Tokens.TokenKind.DOT)) {
             identifier.append(Tokens.TokenKind.DOT.name);
             t = l.accept(Tokens.TokenKind.IDENTIFIER);
             identifier.append(t.name());
+        }
+
+        if (l.token().kind == TokenKind.COLCOL && isTypeVar) {
+            // type-variable
+            l.accept(TokenKind.COLCOL);
+            identifier.append(TokenKind.COLCOL.name);
+            t = l.accept(TokenKind.IDENTIFIER); // type-var or method name
+            identifier.append(t.name());
+            if (l.token().kind == TokenKind.LPAREN) {
+                FunctionType functionType = parseMethodType(l);
+                // we need to serialize the function type back as part of the tvar identifier
+                identifier.append(functionType.parameterTypes().stream()
+                                .map(TypeElement::toString)
+                                .collect(Collectors.joining(",", "(", ")")));
+                identifier.append(functionType.returnType().toString());
+                l.accept(TokenKind.COLCOL);
+                identifier.append(TokenKind.COLCOL.name);
+                t = l.accept(TokenKind.IDENTIFIER); // type-var name
+                identifier.append(t.name());
+            }
         }
 
         // Type parameters

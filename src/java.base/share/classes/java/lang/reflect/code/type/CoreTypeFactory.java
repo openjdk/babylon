@@ -120,12 +120,23 @@ public final class CoreTypeFactory {
                 BoundKind kind = identifier.equals("+") ?
                         BoundKind.EXTENDS : BoundKind.SUPER;
                 return JavaType.wildcard(kind, typeArguments.get(0));
-            } else if (identifier.startsWith("::")) {
+            } else if (identifier.contains("::")) {
                 // type-var
                 if (typeArguments.size() != 1) {
                     throw new IllegalArgumentException("Bad type-variable bounds: " + tree);
                 }
-                return JavaType.typeVarRef(identifier.substring(2), typeArguments.get(0));
+                String[] parts = identifier.split("::");
+                if (parts.length == 2) {
+                    // class type-var
+                    return JavaType.typeVarRef(parts[1],
+                            (JavaType)constructType(parseTypeDef(parts[0])),
+                            typeArguments.get(0));
+                } else {
+                    // method type-var
+                    return JavaType.typeVarRef(parts[2],
+                            parseMethodRef(String.format("%s::%s", parts[0], parts[1])),
+                            typeArguments.get(0));
+                }
             }
             JavaType t = switch (identifier) {
                 case "boolean" -> JavaType.BOOLEAN;
@@ -154,4 +165,14 @@ public final class CoreTypeFactory {
      * may contain instances of those types.
      */
     public static final TypeElementFactory CORE_TYPE_FACTORY = codeModelTypeFactory(JAVA_TYPE_FACTORY);
+
+    // Copied code in jdk.compiler module throws UOE
+    static MethodRef parseMethodRef(String desc) {
+/*__throw new UnsupportedOperationException();__*/        return java.lang.reflect.code.parser.impl.DescParser.parseMethodRef(desc);
+    }
+
+    // Copied code in jdk.compiler module throws UOE
+    static TypeDefinition parseTypeDef(String desc) {
+/*__throw new UnsupportedOperationException();__*/        return java.lang.reflect.code.parser.impl.DescParser.parseTypeDefinition(desc);
+    }
 }

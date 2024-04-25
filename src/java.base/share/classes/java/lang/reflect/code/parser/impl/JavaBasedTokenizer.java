@@ -25,6 +25,7 @@
 
 package java.lang.reflect.code.parser.impl;
 
+import java.lang.reflect.code.parser.impl.Tokens.TokenKind;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -858,6 +859,11 @@ final class JavaBasedTokenizer extends UnicodeReader {
                     case '>':
                         next();
                         tk = Tokens.TokenKind.GT;
+                        break loop;
+
+                    case '#':
+                        next();
+                        tk = TokenKind.HASH;
                         break loop;
 
                     case '+':
