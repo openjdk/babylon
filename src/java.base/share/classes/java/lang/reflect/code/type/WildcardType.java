@@ -26,22 +26,39 @@
 package java.lang.reflect.code.type;
 
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 
 /**
- * A primitive type.
+ * A wildcard type.
  */
-/* package */ final class PrimitiveType implements JavaType {
-    // Fully qualified name
-    private final String type;
+public final class WildcardType implements JavaType {
 
-    PrimitiveType(String type) {
-        this.type = type;
+    final BoundKind kind;
+    final JavaType boundType;
+
+    WildcardType(BoundKind kind, JavaType boundType) {
+        this.kind = kind;
+        this.boundType = boundType;
+    }
+
+    /**
+     * {@return the wildcard type's bound type}
+     */
+    public JavaType boundType() {
+        return boundType;
+    }
+
+    /**
+     * {@return the wildcard type's bound kind}
+     */
+    public BoundKind boundKind() {
+        return kind;
     }
 
     @Override
     public TypeDefinition toTypeDefinition() {
-        return new TypeDefinition(type, List.of());
+        String prefix = kind == BoundKind.EXTENDS ? "+" : "-";
+        return new TypeDefinition(prefix, List.of(boundType.toTypeDefinition()));
     }
 
     @Override
@@ -52,21 +69,34 @@ import java.util.Map;
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        PrimitiveType typeDesc = (PrimitiveType) o;
-
-        return type.equals(typeDesc.type);
+        return o instanceof WildcardType that &&
+                kind.equals(that.kind) &&
+                boundType.equals(that.boundType);
     }
 
     @Override
     public int hashCode() {
-        return type.hashCode();
+        return Objects.hash(boundType, kind);
     }
 
     @Override
     public JavaType erasure() {
-        return this;
+        throw new UnsupportedOperationException("Wildcard type");
+    }
+
+    @Override
+    public JavaType toBasicType() {
+        throw new UnsupportedOperationException("Wildcard type");
+    }
+
+    @Override
+    public String toNominalDescriptorString() {
+        throw new UnsupportedOperationException("Wildcard type");
+    }
+
+    @Override
+    public boolean isClass() {
+        return false;
     }
 
     @Override
@@ -76,49 +106,11 @@ import java.util.Map;
 
     @Override
     public boolean isPrimitive() {
-        return true;
-    }
-
-    @Override
-    public boolean isClass() {
         return false;
     }
 
-    @Override
-    public JavaType toBasicType() {
-        Character bytecodeKind = PRIMITIVE_TYPE_MAP.get(type);
-        return switch (bytecodeKind) {
-            case 'V' -> JavaType.VOID;
-            case 'J' -> JavaType.LONG;
-            case 'F' -> JavaType.FLOAT;
-            case 'D' -> JavaType.DOUBLE;
-            default -> JavaType.INT;
-        };
-    }
-
-    @Override
-    public String toNominalDescriptorString() {
-        return toBytecodeDescriptor(type);
-    }
-
-    static String toBytecodeDescriptor(String type) {
-        Character bytecodeKind = PRIMITIVE_TYPE_MAP.get(type);
-        return bytecodeKind.toString();
-    }
-
-    static Map<String, Character> PRIMITIVE_TYPE_MAP;
-
-    static {
-        PRIMITIVE_TYPE_MAP = Map.of(
-                "boolean", 'Z',
-                "byte", 'B',
-                "short", 'S',
-                "char", 'C',
-                "int", 'I',
-                "long", 'J',
-                "float", 'F',
-                "double", 'D',
-                "void", 'V'
-        );
+    public enum BoundKind {
+        EXTENDS,
+        SUPER
     }
 }

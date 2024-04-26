@@ -26,22 +26,62 @@
 package java.lang.reflect.code.type;
 
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 
 /**
- * A primitive type.
+ * A type-variable reference.
  */
-/* package */ final class PrimitiveType implements JavaType {
-    // Fully qualified name
-    private final String type;
+public final class TypeVarRef implements JavaType {
 
-    PrimitiveType(String type) {
-        this.type = type;
+    final String name;
+    final Object owner;
+    final JavaType bound;
+
+    TypeVarRef(String name, Object owner, JavaType bound) {
+        this.name = name;
+        this.owner = owner;
+        this.bound = bound;
+    }
+
+    /**
+     * {@return the type-variable name}
+     */
+    public String name() {
+        return name;
+    }
+
+    /**
+     * {@return the type-variable bound}
+     */
+    public JavaType bound() {
+        return bound;
+    }
+
+    /**
+     * {@return the method owner of this type-variable}
+     */
+    public Optional<MethodRef> methodOwner() {
+        return owner instanceof MethodRef methodRef ?
+                Optional.of(methodRef) : Optional.empty();
+    }
+
+    /**
+     * {@return the class owner of this type-variable}
+     */
+    public Optional<JavaType> classOwner() {
+        return owner instanceof JavaType typeRef ?
+                Optional.of(typeRef) : Optional.empty();
+    }
+
+    @Override
+    public JavaType erasure() {
+        return bound.erasure();
     }
 
     @Override
     public TypeDefinition toTypeDefinition() {
-        return new TypeDefinition(type, List.of());
+        return new TypeDefinition(String.format("#%s::%s", owner, name),
+                List.of(bound.toTypeDefinition()));
     }
 
     @Override
@@ -52,21 +92,29 @@ import java.util.Map;
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        PrimitiveType typeDesc = (PrimitiveType) o;
-
-        return type.equals(typeDesc.type);
+        return o instanceof TypeVarRef that &&
+                name.equals(that.name) &&
+                bound.equals(that.bound);
     }
 
     @Override
     public int hashCode() {
-        return type.hashCode();
+        return name.hashCode();
     }
 
     @Override
-    public JavaType erasure() {
-        return this;
+    public JavaType toBasicType() {
+        throw new UnsupportedOperationException("Type var");
+    }
+
+    @Override
+    public String toNominalDescriptorString() {
+        throw new UnsupportedOperationException("Type var");
+    }
+
+    @Override
+    public boolean isClass() {
+        return false;
     }
 
     @Override
@@ -76,49 +124,6 @@ import java.util.Map;
 
     @Override
     public boolean isPrimitive() {
-        return true;
-    }
-
-    @Override
-    public boolean isClass() {
         return false;
-    }
-
-    @Override
-    public JavaType toBasicType() {
-        Character bytecodeKind = PRIMITIVE_TYPE_MAP.get(type);
-        return switch (bytecodeKind) {
-            case 'V' -> JavaType.VOID;
-            case 'J' -> JavaType.LONG;
-            case 'F' -> JavaType.FLOAT;
-            case 'D' -> JavaType.DOUBLE;
-            default -> JavaType.INT;
-        };
-    }
-
-    @Override
-    public String toNominalDescriptorString() {
-        return toBytecodeDescriptor(type);
-    }
-
-    static String toBytecodeDescriptor(String type) {
-        Character bytecodeKind = PRIMITIVE_TYPE_MAP.get(type);
-        return bytecodeKind.toString();
-    }
-
-    static Map<String, Character> PRIMITIVE_TYPE_MAP;
-
-    static {
-        PRIMITIVE_TYPE_MAP = Map.of(
-                "boolean", 'Z',
-                "byte", 'B',
-                "short", 'S',
-                "char", 'C',
-                "int", 'I',
-                "long", 'J',
-                "float", 'F',
-                "double", 'D',
-                "void", 'V'
-        );
     }
 }

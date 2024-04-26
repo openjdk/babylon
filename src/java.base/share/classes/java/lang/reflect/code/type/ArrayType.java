@@ -86,6 +86,11 @@ public final class ArrayType implements JavaType {
     }
 
     @Override
+    public JavaType erasure() {
+        return JavaType.array(componentType.erasure());
+    }
+
+    @Override
     public JavaType toBasicType() {
         return JavaType.J_L_OBJECT;
     }

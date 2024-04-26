@@ -101,6 +101,7 @@ public final class Tokens {
         AMP("&"),
         CARET("^"),
         MONKEYS_AT("@"),
+        HASH("#"),
         CUSTOM;
 
         public final String name;

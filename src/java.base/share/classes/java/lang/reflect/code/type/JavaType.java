@@ -28,6 +28,7 @@ package java.lang.reflect.code.type;
 import java.lang.constant.ClassDesc;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.type.WildcardType.BoundKind;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -36,7 +37,8 @@ import java.util.Objects;
  * The symbolic description of a Java type.
  */
 // @@@ Extend from this interface to model Java types with more fidelity
-public sealed interface JavaType extends TypeElement permits ClassType, ArrayType, PrimitiveType {
+public sealed interface JavaType extends TypeElement permits ClassType, ArrayType,
+                                                             PrimitiveType, WildcardType, TypeVarRef {
 
     // @@@ Share with general void type?
     JavaType VOID = new PrimitiveType("void");
@@ -147,6 +149,11 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
 
     boolean isPrimitive();
 
+    /**
+     * {@return the erasure of this Java type, as per JLS 4.6}
+     */
+    JavaType erasure();
+
     // Factories
 
     static JavaType type(Class<?> c) {
@@ -252,6 +259,46 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
             elementType = array(elementType);
         }
         return array(elementType);
+    }
+
+    /**
+     * Constructs an unbounded wildcard type.
+     *
+     * @return an unbounded wildcard type.
+     */
+    static WildcardType wildcard() {
+        return new WildcardType(BoundKind.EXTENDS, JavaType.J_L_OBJECT);
+    }
+
+    /**
+     * Constructs a bounded wildcard type of the given kind.
+     *
+     * @return a bounded wildcard type.
+     */
+    static WildcardType wildcard(BoundKind kind, JavaType bound) {
+        return new WildcardType(kind, bound);
+    }
+
+    /**
+     * Constructs a reference to a class type-variable.
+     *
+     * @param bound the type-variable bound.
+     * @param owner the class where the type-variable is declared.
+     * @return a type-variable reference.
+     */
+    static TypeVarRef typeVarRef(String name, JavaType owner, JavaType bound) {
+        return new TypeVarRef(name, owner, bound);
+    }
+
+    /**
+     * Constructs a reference to a method type-variable.
+     *
+     * @param bound the type-variable bound.
+     * @param owner the method where the type-variable is declared.
+     * @return a type-variable reference.
+     */
+    static TypeVarRef typeVarRef(String name, MethodRef owner, JavaType bound) {
+        return new TypeVarRef(name, owner, bound);
     }
 
     // Copied code in jdk.compiler module throws UOE

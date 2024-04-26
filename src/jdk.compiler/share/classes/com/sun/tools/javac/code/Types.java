@@ -198,15 +198,69 @@ public class Types {
             ProjectionKind complement() {
                 return DOWNWARDS;
             }
+
+            @Override
+            boolean allowIntersectionTypes() {
+                return true;
+            }
+
+            @Override
+            ProjectionKind withIntersectionTypes(boolean allowIntersectionTypes) {
+                return allowIntersectionTypes ? this : UPWARDS_NO_INTERSECTION;
+            }
         },
         DOWNWARDS() {
             @Override
             ProjectionKind complement() {
                 return UPWARDS;
             }
+
+            @Override
+            boolean allowIntersectionTypes() {
+                return true;
+            }
+
+            @Override
+            ProjectionKind withIntersectionTypes(boolean allowIntersectionTypes) {
+                return allowIntersectionTypes ? this : DOWNWARDS_NO_INTERSECTION;
+            }
+        },
+        UPWARDS_NO_INTERSECTION() {
+            @Override
+            ProjectionKind complement() {
+                return DOWNWARDS_NO_INTERSECTION;
+            }
+
+            @Override
+            boolean allowIntersectionTypes() {
+                return false;
+            }
+
+            @Override
+            ProjectionKind withIntersectionTypes(boolean allowIntersectionTypes) {
+                return allowIntersectionTypes ? UPWARDS : this;
+            }
+        },
+        DOWNWARDS_NO_INTERSECTION() {
+            @Override
+            ProjectionKind complement() {
+                return UPWARDS_NO_INTERSECTION;
+            }
+
+            @Override
+            boolean allowIntersectionTypes() {
+                return false;
+            }
+
+            @Override
+            ProjectionKind withIntersectionTypes(boolean allowIntersectionTypes) {
+                return allowIntersectionTypes ? DOWNWARDS : this;
+            }
         };
 
         abstract ProjectionKind complement();
+        abstract boolean allowIntersectionTypes();
+        abstract ProjectionKind withIntersectionTypes(boolean allowIntersectionTypes);
     }
 
     /**
@@ -245,11 +299,18 @@ public class Types {
 
         @Override
         public Type visitClassType(ClassType t, ProjectionKind pkind) {
-            if (t.isCompound()) {
-                List<Type> components = directSupertypes(t);
-                List<Type> components1 = components.map(c -> c.map(this, pkind));
-                if (components == components1) return t;
-                else return makeIntersectionType(components1);
+            if (t.isUnion() || t.isIntersection()) {
+                if (pkind.allowIntersectionTypes()) {
+                    List<Type> components = directSupertypes(t);
+                    List<Type> components1 = components.map(c -> c.map(this, pkind));
+                    if (components == components1) return t;
+                    else return makeIntersectionType(components1);
+                } else if (t.isIntersection()) {
+                    return visit(((IntersectionClassType)t).getExplicitComponents().head, pkind);
+                } else {
+                    Assert.check(t.isUnion());
+                    return visit(((UnionClassType)t).getLub(), pkind);
+                }
             } else {
                 Type outer = t.getEnclosingType();
                 Type outer1 = visit(outer, pkind);
@@ -304,9 +365,11 @@ public class Types {
                         final Type bound;
                         switch (pkind) {
                             case UPWARDS:
+                            case UPWARDS_NO_INTERSECTION:
                                 bound = t.getUpperBound();
                                 break;
                             case DOWNWARDS:
+                            case DOWNWARDS_NO_INTERSECTION:
                                 bound = (t.getLowerBound() == null) ?
                                         syms.botType :
                                         t.getLowerBound();
@@ -321,7 +384,7 @@ public class Types {
                     }
                 } else {
                     //cycle
-                    return pkind == ProjectionKind.UPWARDS ?
+                    return (pkind == ProjectionKind.UPWARDS || pkind == ProjectionKind.UPWARDS_NO_INTERSECTION) ?
                             syms.objectType : syms.botType;
                 }
             } else {
@@ -330,7 +393,7 @@ public class Types {
         }
 
         private Type mapTypeArgument(Type site, Type declaredBound, Type t, ProjectionKind pkind) {
-            return t.containsAny(vars) ?
+            return (t.containsAny(vars) || (!pkind.allowIntersectionTypes() && !chk.checkDenotable(t))) ?
                     t.map(new TypeArgumentProjection(site, declaredBound), pkind) :
                     t;
         }
@@ -348,11 +411,11 @@ public class Types {
             @Override
             public Type visitType(Type t, ProjectionKind pkind) {
                 //type argument is some type containing restricted vars
-                if (pkind == ProjectionKind.DOWNWARDS) {
+                if (pkind == ProjectionKind.DOWNWARDS || pkind == ProjectionKind.DOWNWARDS_NO_INTERSECTION) {
                     //not defined
                     return syms.botType;
                 }
-                Type upper = t.map(TypeProjection.this, ProjectionKind.UPWARDS);
+                Type upper = t.map(TypeProjection.this, ProjectionKind.UPWARDS.withIntersectionTypes(pkind.allowIntersectionTypes()));
                 Type lower = t.map(TypeProjection.this, ProjectionKind.DOWNWARDS);
                 List<Type> formals = site.tsym.type.getTypeArguments();
                 BoundKind bk;
@@ -362,7 +425,7 @@ public class Types {
                          !isSubtype(declaredBound, upper))) {
                     bound = upper;
                     bk = EXTENDS;
-                } else if (!lower.hasTag(BOT)) {
+                } else if (!lower.hasTag(BOT) && (!lower.isIntersection() || pkind.allowIntersectionTypes())) {
                     bound = lower;
                     bk = SUPER;
                 } else {
@@ -385,8 +448,8 @@ public class Types {
                         }
                         break;
                     case SUPER:
-                        bound = wt.type.map(TypeProjection.this, pkind.complement());
-                        if (bound.hasTag(BOT)) {
+                        bound = wt.type.map(TypeProjection.this, pkind.withIntersectionTypes(true).complement());
+                        if (bound.hasTag(BOT) || (bound.isIntersection() && !pkind.allowIntersectionTypes())) {
                             bound = syms.objectType;
                             bk = UNBOUND;
                         }
@@ -414,7 +477,20 @@ public class Types {
      * @return the type obtained as result of the projection
      */
     public Type upward(Type t, List<Type> vars) {
-        return t.map(new TypeProjection(vars), ProjectionKind.UPWARDS);
+        return upward(t, true, vars);
+    }
+
+    /**
+     * Computes an upward projection of given type, and vars. See {@link TypeProjection}.
+     *
+     * @param t the type to be projected
+     * @param allowIntersection whether intersection types should be allowed in the projection
+     * @param vars the set of type variables to be mapped
+     * @return the type obtained as result of the projection
+     */
+    public Type upward(Type t, boolean allowIntersection, List<Type> vars) {
+        return t.map(new TypeProjection(vars),
+                allowIntersection ? ProjectionKind.UPWARDS : ProjectionKind.UPWARDS_NO_INTERSECTION);
     }
 
     /**

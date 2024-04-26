@@ -2,6 +2,7 @@ package java.lang.reflect.code.type;
 
 import java.lang.constant.ClassDesc;
 import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.type.WildcardType.BoundKind;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -114,6 +115,29 @@ public final class CoreTypeFactory {
                 }
                 typeArguments.add(a);
             }
+            if (identifier.equals("+") || identifier.equals("-")) {
+                // wildcard type
+                BoundKind kind = identifier.equals("+") ?
+                        BoundKind.EXTENDS : BoundKind.SUPER;
+                return JavaType.wildcard(kind, typeArguments.get(0));
+            } else if (identifier.startsWith("#")) {
+                // type-var
+                if (typeArguments.size() != 1) {
+                    throw new IllegalArgumentException("Bad type-variable bounds: " + tree);
+                }
+                String[] parts = identifier.split("::");
+                if (parts.length == 2) {
+                    // class type-var
+                    return JavaType.typeVarRef(parts[1],
+                            (JavaType)constructType(parseTypeDef(parts[0])),
+                            typeArguments.get(0));
+                } else {
+                    // method type-var
+                    return JavaType.typeVarRef(parts[2],
+                            parseMethodRef(String.format("%s::%s", parts[0], parts[1])),
+                            typeArguments.get(0));
+                }
+            }
             JavaType t = switch (identifier) {
                 case "boolean" -> JavaType.BOOLEAN;
                 case "byte" -> JavaType.BYTE;
@@ -141,4 +165,14 @@ public final class CoreTypeFactory {
      * may contain instances of those types.
      */
     public static final TypeElementFactory CORE_TYPE_FACTORY = codeModelTypeFactory(JAVA_TYPE_FACTORY);
+
+    // Copied code in jdk.compiler module throws UOE
+    static MethodRef parseMethodRef(String desc) {
+/*__throw new UnsupportedOperationException();__*/        return java.lang.reflect.code.parser.impl.DescParser.parseMethodRef(desc);
+    }
+
+    // Copied code in jdk.compiler module throws UOE
+    static TypeDefinition parseTypeDef(String desc) {
+/*__throw new UnsupportedOperationException();__*/        return java.lang.reflect.code.parser.impl.DescParser.parseTypeDefinition(desc);
+    }
 }
