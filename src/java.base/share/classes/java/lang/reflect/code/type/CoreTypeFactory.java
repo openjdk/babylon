@@ -120,7 +120,7 @@ public final class CoreTypeFactory {
                 BoundKind kind = identifier.equals("+") ?
                         BoundKind.EXTENDS : BoundKind.SUPER;
                 return JavaType.wildcard(kind, typeArguments.get(0));
-            } else if (identifier.contains("::")) {
+            } else if (identifier.startsWith("#")) {
                 // type-var
                 if (typeArguments.size() != 1) {
                     throw new IllegalArgumentException("Bad type-variable bounds: " + tree);
