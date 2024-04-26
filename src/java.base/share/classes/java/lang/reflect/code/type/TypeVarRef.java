@@ -111,19 +111,4 @@ public final class TypeVarRef implements JavaType {
     public String toNominalDescriptorString() {
         throw new UnsupportedOperationException("Type var");
     }
-
-    @Override
-    public boolean isClass() {
-        return false;
-    }
-
-    @Override
-    public boolean isArray() {
-        return false;
-    }
-
-    @Override
-    public boolean isPrimitive() {
-        return false;
-    }
 }
