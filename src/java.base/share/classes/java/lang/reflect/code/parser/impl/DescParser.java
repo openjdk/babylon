@@ -91,7 +91,6 @@ public final class DescParser {
         StringBuilder identifier = new StringBuilder();
         if (l.token().kind == TokenKind.HASH) {
             // Quoted identifier
-            l.accept(TokenKind.HASH);
             Token t = l.token();
             while (t.kind != TokenKind.LT) {
                 identifier.append(t.kind == TokenKind.IDENTIFIER ? t.name() : t.kind.name);

@@ -125,7 +125,7 @@ public final class CoreTypeFactory {
                 if (typeArguments.size() != 1) {
                     throw new IllegalArgumentException("Bad type-variable bounds: " + tree);
                 }
-                String[] parts = identifier.split("::");
+                String[] parts = identifier.substring(1).split("::");
                 if (parts.length == 2) {
                     // class type-var
                     return JavaType.typeVarRef(parts[1],
