@@ -30,6 +30,7 @@ import java.lang.reflect.code.*;
 import java.lang.reflect.code.type.ArrayType;
 import java.lang.reflect.code.type.ClassType;
 import java.lang.reflect.code.type.MethodRef;
+import java.lang.reflect.code.type.PrimitiveType;
 import java.lang.reflect.code.type.RecordTypeRef;
 import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
@@ -2856,8 +2857,8 @@ public class ExtendedOps {
             Value array = builder.op(newArray(J_L_OBJECT_ARRAY, builder.op(constant(INT, elements.size()))));
             for (int i = 0; i < elements.size(); i++) {
                 Value ele = elements.get(i);
-                if (isPrimitive(ele.type())) {
-                    TypeElement wt = getWrapperType(ele.type());
+                if (ele.type() instanceof PrimitiveType pt) {
+                    TypeElement wt = pt.box();
                     MethodRef valueOf = MethodRef.method(wt, "valueOf", wt, ele.type());
                     ele = builder.op(invoke(valueOf, ele));
                 }

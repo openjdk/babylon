@@ -638,8 +638,8 @@ public final class CoreOps {
 
         private static boolean isBoxOrUnboxInvocation(CoreOps.InvokeOp iop) {
             MethodRef mr = iop.invokeDescriptor();
-            Collection<TypeElement> boxTypes = JavaType.primitiveToWrapper.values();
-            return boxTypes.contains(mr.refType()) && (UNBOX_NAMES.contains(mr.name()) || mr.name().equals("valueOf"));
+            return mr.refType() instanceof ClassType ct && ct.unbox().isPresent() &&
+                    (UNBOX_NAMES.contains(mr.name()) || mr.name().equals("valueOf"));
         }
     }
 

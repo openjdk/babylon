@@ -25,6 +25,7 @@
 
 package java.lang.reflect.code.type;
 
+import java.lang.reflect.code.TypeElement;
 import java.util.List;
 import java.util.Map;
 
@@ -80,6 +81,25 @@ public final class PrimitiveType implements JavaType {
             default -> JavaType.INT;
         };
     }
+
+    /**
+     * {@return the boxed class type associated with this primitive type}
+     */
+    public ClassType box() {
+        class LazyHolder {
+            static final Map<PrimitiveType, ClassType> primitiveToWrapper = Map.of(
+                    BYTE, J_L_BYTE,
+                    SHORT, J_L_SHORT,
+                    INT, J_L_INTEGER,
+                    LONG, J_L_LONG,
+                    FLOAT, J_L_FLOAT,
+                    DOUBLE, J_L_DOUBLE,
+                    CHAR, J_L_CHARACTER,
+                    BOOLEAN, J_L_BOOLEAN
+            );
+        }
+        return LazyHolder.primitiveToWrapper.get(this);
+    };
 
     @Override
     public String toNominalDescriptorString() {
