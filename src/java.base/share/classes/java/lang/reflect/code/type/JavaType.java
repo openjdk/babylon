@@ -265,24 +265,13 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
     }
 
     /**
-     * Constructs a reference to a class type-variable.
+     * Constructs a reference to a type-variable with the given owner.
      *
      * @param bound the type-variable bound.
-     * @param owner the class where the type-variable is declared.
+     * @param owner the type-variable owner.
      * @return a type-variable reference.
      */
-    static TypeVarRef typeVarRef(String name, ClassType owner, JavaType bound) {
-        return new TypeVarRef(name, owner, bound);
-    }
-
-    /**
-     * Constructs a reference to a method type-variable.
-     *
-     * @param bound the type-variable bound.
-     * @param owner the method where the type-variable is declared.
-     * @return a type-variable reference.
-     */
-    static TypeVarRef typeVarRef(String name, MethodRef owner, JavaType bound) {
+    static TypeVarRef typeVarRef(String name, TypeVarRef.Owner owner, JavaType bound) {
         return new TypeVarRef(name, owner, bound);
     }
 
