@@ -3463,7 +3463,7 @@ public final class CoreOps {
      * @return the conversion operation
      */
     public static ConvOp conv(TypeElement to, Value from) {
-        throw new IllegalArgumentException();
+        return new ConvOp(to, from);
     }
 
     /**
