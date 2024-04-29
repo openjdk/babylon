@@ -2267,7 +2267,8 @@ public class ReflectMethods extends TreeTranslator {
                 case TYPEVAR -> t.tsym.owner.kind == Kind.MTH ?
                         JavaType.typeVarRef(t.tsym.name.toString(), symbolToErasedMethodRef(t.tsym.owner),
                                 typeToTypeElement(t.getUpperBound())) :
-                        JavaType.typeVarRef(t.tsym.name.toString(), symbolToErasedDesc(t.tsym.owner),
+                        JavaType.typeVarRef(t.tsym.name.toString(),
+                                (jdk.internal.java.lang.reflect.code.type.ClassType)symbolToErasedDesc(t.tsym.owner),
                                 typeToTypeElement(t.getUpperBound()));
                 case CLASS -> {
                     Assert.check(!t.isIntersection() && !t.isUnion());

@@ -129,7 +129,7 @@ public class TestJavaType {
         JavaType jt = JavaType.ofString(tds);
         Assert.assertEquals(jt.toString(), tds);
 
-        while (jt.isArray()) {
+        while (jt instanceof ArrayType) {
             jt = ((ArrayType)jt).componentType();
         }
         ClassType ct = (ClassType)jt;

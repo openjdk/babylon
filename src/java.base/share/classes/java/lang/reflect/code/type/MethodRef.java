@@ -51,7 +51,7 @@ import static java.lang.reflect.code.type.FunctionType.functionType;
 //  constant pool entry of CONSTANT_Methodref_info or CONSTANT_InterfaceMethodref_info.
 //
 //  We can infer the kind, if we can resolve the types and lookup the declared method
-public sealed interface MethodRef permits MethodRefImpl {
+public sealed interface MethodRef extends TypeVarRef.Owner permits MethodRefImpl {
 
     TypeElement refType();
 

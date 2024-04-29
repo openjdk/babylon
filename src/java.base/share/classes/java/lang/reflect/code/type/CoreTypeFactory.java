@@ -129,7 +129,7 @@ public final class CoreTypeFactory {
                 if (parts.length == 2) {
                     // class type-var
                     return JavaType.typeVarRef(parts[1],
-                            (JavaType)constructType(parseTypeDef(parts[0])),
+                            (ClassType)constructType(parseTypeDef(parts[0])),
                             typeArguments.get(0));
                 } else {
                     // method type-var
