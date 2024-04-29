@@ -34,10 +34,10 @@ import java.util.Optional;
 public final class TypeVarRef implements JavaType {
 
     final String name;
-    final Object owner;
+    final Owner owner;
     final JavaType bound;
 
-    TypeVarRef(String name, Object owner, JavaType bound) {
+    TypeVarRef(String name, Owner owner, JavaType bound) {
         this.name = name;
         this.owner = owner;
         this.bound = bound;
@@ -58,19 +58,10 @@ public final class TypeVarRef implements JavaType {
     }
 
     /**
-     * {@return the method owner of this type-variable}
+     * {@return the owner of this type-variable}
      */
-    public Optional<MethodRef> methodOwner() {
-        return owner instanceof MethodRef methodRef ?
-                Optional.of(methodRef) : Optional.empty();
-    }
-
-    /**
-     * {@return the class owner of this type-variable}
-     */
-    public Optional<JavaType> classOwner() {
-        return owner instanceof JavaType typeRef ?
-                Optional.of(typeRef) : Optional.empty();
+    public Owner owner() {
+        return owner;
     }
 
     @Override
@@ -111,4 +102,9 @@ public final class TypeVarRef implements JavaType {
     public String toNominalDescriptorString() {
         throw new UnsupportedOperationException("Type var");
     }
+
+    /**
+     * The owner of a type-variable - either a class or a method.
+     */
+    public sealed interface Owner permits ClassType, MethodRef { }
 }
