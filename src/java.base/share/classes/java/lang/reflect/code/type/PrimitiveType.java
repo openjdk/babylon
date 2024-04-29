@@ -31,7 +31,7 @@ import java.util.Map;
 /**
  * A primitive type.
  */
-/* package */ final class PrimitiveType implements JavaType {
+public final class PrimitiveType implements JavaType {
     // Fully qualified name
     private final String type;
 
@@ -67,21 +67,6 @@ import java.util.Map;
     @Override
     public JavaType erasure() {
         return this;
-    }
-
-    @Override
-    public boolean isArray() {
-        return false;
-    }
-
-    @Override
-    public boolean isPrimitive() {
-        return true;
-    }
-
-    @Override
-    public boolean isClass() {
-        return false;
     }
 
     @Override

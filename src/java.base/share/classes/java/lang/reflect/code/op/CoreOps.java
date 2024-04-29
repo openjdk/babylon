@@ -1661,9 +1661,8 @@ public final class CoreOps {
         }
 
         static TypeElement resultType(Value array, Value v) {
-            ArrayType arrayType = (ArrayType) array.type();
-            if (!arrayType.isArray()) {
-                throw new IllegalArgumentException("Type is not an array type: " + arrayType);
+            if (!(array.type() instanceof ArrayType arrayType)) {
+                throw new IllegalArgumentException("Type is not an array type: " + array.type());
             }
 
             // @@@ restrict to indexes of int?

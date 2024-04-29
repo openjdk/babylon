@@ -36,7 +36,6 @@ import java.util.Objects;
 /**
  * The symbolic description of a Java type.
  */
-// @@@ Extend from this interface to model Java types with more fidelity
 public sealed interface JavaType extends TypeElement permits ClassType, ArrayType,
                                                              PrimitiveType, WildcardType, TypeVarRef {
 
@@ -141,14 +140,6 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
         return (Class<?>) toNominalDescriptor().resolveConstantDesc(l);
     }
 
-    // Predicates
-
-    boolean isClass();
-
-    boolean isArray();
-
-    boolean isPrimitive();
-
     /**
      * {@return the erasure of this Java type, as per JLS 4.6}
      */
@@ -218,17 +209,11 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
     }
 
     static JavaType type(JavaType t, List<JavaType> typeArguments) {
-        if (t.isPrimitive()) {
-            throw new IllegalArgumentException("Cannot parameterize a primitive type");
-        } else if (t.isArray()) {
-            return array(type(((ArrayType)t).componentType(), typeArguments));
-        } else {
-            ClassType ct = (ClassType)t;
-            if (ct.hasTypeArguments()) {
-                throw new IllegalArgumentException("Type must not have type arguments: " + ct);
-            }
-            return new ClassType(ct.toClassName(), typeArguments);
-        }
+        return switch (t) {
+            case ArrayType at -> array(type(at.componentType(), typeArguments));
+            case ClassType ct when !ct.hasTypeArguments() -> new ClassType(ct.toClassName(), typeArguments);
+            default -> throw new IllegalArgumentException("Cannot parameterize type: " + t);
+        };
     }
 
     /**

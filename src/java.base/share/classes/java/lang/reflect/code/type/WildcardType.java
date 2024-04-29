@@ -94,21 +94,6 @@ public final class WildcardType implements JavaType {
         throw new UnsupportedOperationException("Wildcard type");
     }
 
-    @Override
-    public boolean isClass() {
-        return false;
-    }
-
-    @Override
-    public boolean isArray() {
-        return false;
-    }
-
-    @Override
-    public boolean isPrimitive() {
-        return false;
-    }
-
     public enum BoundKind {
         EXTENDS,
         SUPER

@@ -99,19 +99,4 @@ public final class ArrayType implements JavaType {
     public String toNominalDescriptorString() {
         return "[" + componentType.toNominalDescriptorString();
     }
-
-    @Override
-    public boolean isClass() {
-        return false;
-    }
-
-    @Override
-    public boolean isArray() {
-        return true;
-    }
-
-    @Override
-    public boolean isPrimitive() {
-        return false;
-    }
 }

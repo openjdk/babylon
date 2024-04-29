@@ -89,21 +89,6 @@ public final class ClassType implements JavaType {
         return rawType();
     }
 
-    @Override
-    public boolean isArray() {
-        return false;
-    }
-
-    @Override
-    public boolean isPrimitive() {
-        return false;
-    }
-
-    @Override
-    public boolean isClass() {
-        return true;
-    }
-
     // Conversions
 
     public ClassType rawType() {
