@@ -28,6 +28,7 @@ package java.lang.reflect.code.type;
 import java.lang.reflect.code.TypeElement;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * A primitive type.
@@ -83,9 +84,9 @@ public final class PrimitiveType implements JavaType {
     }
 
     /**
-     * {@return the boxed class type associated with this primitive type}
+     * {@return the boxed class type associated with this primitive type (if any)}
      */
-    public ClassType box() {
+    public Optional<ClassType> box() {
         class LazyHolder {
             static final Map<PrimitiveType, ClassType> primitiveToWrapper = Map.of(
                     BYTE, J_L_BYTE,
@@ -98,7 +99,7 @@ public final class PrimitiveType implements JavaType {
                     BOOLEAN, J_L_BOOLEAN
             );
         }
-        return LazyHolder.primitiveToWrapper.get(this);
+        return Optional.ofNullable(LazyHolder.primitiveToWrapper.get(this));
     };
 
     @Override

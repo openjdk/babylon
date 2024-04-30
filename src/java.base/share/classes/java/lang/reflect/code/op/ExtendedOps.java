@@ -2857,8 +2857,8 @@ public class ExtendedOps {
             Value array = builder.op(newArray(J_L_OBJECT_ARRAY, builder.op(constant(INT, elements.size()))));
             for (int i = 0; i < elements.size(); i++) {
                 Value ele = elements.get(i);
-                if (ele.type() instanceof PrimitiveType pt) {
-                    TypeElement wt = pt.box();
+                if (ele.type() instanceof PrimitiveType pt && pt.box().isPresent()) {
+                    ClassType wt = pt.box().get();
                     MethodRef valueOf = MethodRef.method(wt, "valueOf", wt, ele.type());
                     ele = builder.op(invoke(valueOf, ele));
                 }
