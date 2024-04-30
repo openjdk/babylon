@@ -154,7 +154,7 @@ public class TestLambdaOps {
         Assert.assertTrue(top instanceof CoreOps.FuncOp);
 
         CoreOps.FuncOp fop = (CoreOps.FuncOp) top;
-        Assert.assertEquals(type(Quoted.class, LambdaOp.class), fop.invokableType().returnType());
+        Assert.assertEquals(type(Quoted.class), fop.invokableType().returnType());
     }
 
     @FunctionalInterface

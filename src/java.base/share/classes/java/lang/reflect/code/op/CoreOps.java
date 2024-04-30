@@ -638,8 +638,8 @@ public final class CoreOps {
 
         private static boolean isBoxOrUnboxInvocation(CoreOps.InvokeOp iop) {
             MethodRef mr = iop.invokeDescriptor();
-            Collection<TypeElement> boxTypes = JavaType.primitiveToWrapper.values();
-            return boxTypes.contains(mr.refType()) && (UNBOX_NAMES.contains(mr.name()) || mr.name().equals("valueOf"));
+            return mr.refType() instanceof ClassType ct && ct.unbox().isPresent() &&
+                    (UNBOX_NAMES.contains(mr.name()) || mr.name().equals("valueOf"));
         }
     }
 
@@ -1661,9 +1661,8 @@ public final class CoreOps {
         }
 
         static TypeElement resultType(Value array, Value v) {
-            ArrayType arrayType = (ArrayType) array.type();
-            if (!arrayType.isArray()) {
-                throw new IllegalArgumentException("Type is not an array type: " + arrayType);
+            if (!(array.type() instanceof ArrayType arrayType)) {
+                throw new IllegalArgumentException("Type is not an array type: " + array.type());
             }
 
             // @@@ restrict to indexes of int?

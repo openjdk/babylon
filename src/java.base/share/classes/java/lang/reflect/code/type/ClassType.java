@@ -28,11 +28,12 @@ package java.lang.reflect.code.type;
 import java.lang.reflect.code.TypeElement;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * A class type.
  */
-public final class ClassType implements JavaType {
+public final class ClassType implements TypeVarRef.Owner, JavaType {
     // Fully qualified name
     private final String type;
 
@@ -84,19 +85,28 @@ public final class ClassType implements JavaType {
         return result;
     }
 
-    @Override
-    public boolean isArray() {
-        return false;
+    /**
+     * {@return the unboxed primitive type associated with this class type (if any)}
+     */
+    public Optional<PrimitiveType> unbox() {
+        class LazyHolder {
+            static final Map<ClassType, PrimitiveType> wrapperToPrimitive = Map.of(
+                    J_L_BYTE, BYTE,
+                    J_L_SHORT, SHORT,
+                    J_L_INTEGER, INT,
+                    J_L_LONG, LONG,
+                    J_L_FLOAT, FLOAT,
+                    J_L_DOUBLE, DOUBLE,
+                    J_L_CHARACTER, CHAR,
+                    J_L_BOOLEAN, BOOLEAN
+            );
+        }
+        return Optional.ofNullable(LazyHolder.wrapperToPrimitive.get(this));
     }
 
     @Override
-    public boolean isPrimitive() {
-        return false;
-    }
-
-    @Override
-    public boolean isClass() {
-        return true;
+    public JavaType erasure() {
+        return rawType();
     }
 
     // Conversions

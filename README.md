@@ -23,8 +23,6 @@ and serialize code models. Due to bootstrapping constraints, compiling
 the compiler it cannot depend on all code in `java.base`. In the future
 we may come up with a better solution. For now the build has been modified
 to copy the code, which leverages the script `cr-util/copy-to-compiler.sh`.
-If there are issues where code in `java.base` has been modified but is
-not being copied then doing `make clean-gensrc` should resolve the issue.
 
 ### Testing
 

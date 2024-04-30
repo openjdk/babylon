@@ -25,47 +25,54 @@
 
 package java.lang.reflect.code.type;
 
-import java.lang.reflect.code.TypeElement;
 import java.util.List;
+import java.util.Optional;
 
 /**
- * An array type.
+ * A type-variable reference.
  */
-public final class ArrayType implements JavaType {
-    static final String NAME = "[";
+public final class TypeVarRef implements JavaType {
 
-    final JavaType componentType;
+    final String name;
+    final Owner owner;
+    final JavaType bound;
 
-    ArrayType(JavaType componentType) {
-        this.componentType = componentType;
+    TypeVarRef(String name, Owner owner, JavaType bound) {
+        this.name = name;
+        this.owner = owner;
+        this.bound = bound;
     }
 
     /**
-     * {@return the array type's component type}
+     * {@return the type-variable name}
      */
-    public JavaType componentType() {
-        return componentType;
+    public String name() {
+        return name;
     }
 
-    public int dimensions() {
-        int dims = 0;
-        JavaType current = this;
-        while (current instanceof ArrayType at) {
-            dims++;
-            current = at.componentType();
-        }
-        return dims;
+    /**
+     * {@return the type-variable bound}
+     */
+    public JavaType bound() {
+        return bound;
+    }
+
+    /**
+     * {@return the owner of this type-variable}
+     */
+    public Owner owner() {
+        return owner;
+    }
+
+    @Override
+    public JavaType erasure() {
+        return bound.erasure();
     }
 
     @Override
     public TypeDefinition toTypeDefinition() {
-        int dims = 0;
-        TypeElement current = this;
-        while (current instanceof ArrayType at) {
-            dims++;
-            current = at.componentType();
-        }
-        return new TypeDefinition("[".repeat(dims), List.of(current.toTypeDefinition()));
+        return new TypeDefinition(String.format("#%s::%s", owner, name),
+                List.of(bound.toTypeDefinition()));
     }
 
     @Override
@@ -76,27 +83,28 @@ public final class ArrayType implements JavaType {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        return o instanceof ArrayType that &&
-                componentType.equals(that.componentType);
+        return o instanceof TypeVarRef that &&
+                name.equals(that.name) &&
+                bound.equals(that.bound);
     }
 
     @Override
     public int hashCode() {
-        return 17 * componentType.hashCode();
-    }
-
-    @Override
-    public JavaType erasure() {
-        return JavaType.array(componentType.erasure());
+        return name.hashCode();
     }
 
     @Override
     public JavaType toBasicType() {
-        return JavaType.J_L_OBJECT;
+        throw new UnsupportedOperationException("Type var");
     }
 
     @Override
     public String toNominalDescriptorString() {
-        return "[" + componentType.toNominalDescriptorString();
+        throw new UnsupportedOperationException("Type var");
     }
+
+    /**
+     * The owner of a type-variable - either a class or a method.
+     */
+    public sealed interface Owner permits ClassType, MethodRef { }
 }

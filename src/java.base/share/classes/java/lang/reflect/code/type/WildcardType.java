@@ -25,47 +25,40 @@
 
 package java.lang.reflect.code.type;
 
-import java.lang.reflect.code.TypeElement;
 import java.util.List;
+import java.util.Objects;
 
 /**
- * An array type.
+ * A wildcard type.
  */
-public final class ArrayType implements JavaType {
-    static final String NAME = "[";
+public final class WildcardType implements JavaType {
 
-    final JavaType componentType;
+    final BoundKind kind;
+    final JavaType boundType;
 
-    ArrayType(JavaType componentType) {
-        this.componentType = componentType;
+    WildcardType(BoundKind kind, JavaType boundType) {
+        this.kind = kind;
+        this.boundType = boundType;
     }
 
     /**
-     * {@return the array type's component type}
+     * {@return the wildcard type's bound type}
      */
-    public JavaType componentType() {
-        return componentType;
+    public JavaType boundType() {
+        return boundType;
     }
 
-    public int dimensions() {
-        int dims = 0;
-        JavaType current = this;
-        while (current instanceof ArrayType at) {
-            dims++;
-            current = at.componentType();
-        }
-        return dims;
+    /**
+     * {@return the wildcard type's bound kind}
+     */
+    public BoundKind boundKind() {
+        return kind;
     }
 
     @Override
     public TypeDefinition toTypeDefinition() {
-        int dims = 0;
-        TypeElement current = this;
-        while (current instanceof ArrayType at) {
-            dims++;
-            current = at.componentType();
-        }
-        return new TypeDefinition("[".repeat(dims), List.of(current.toTypeDefinition()));
+        String prefix = kind == BoundKind.EXTENDS ? "+" : "-";
+        return new TypeDefinition(prefix, List.of(boundType.toTypeDefinition()));
     }
 
     @Override
@@ -76,27 +69,33 @@ public final class ArrayType implements JavaType {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        return o instanceof ArrayType that &&
-                componentType.equals(that.componentType);
+        return o instanceof WildcardType that &&
+                kind.equals(that.kind) &&
+                boundType.equals(that.boundType);
     }
 
     @Override
     public int hashCode() {
-        return 17 * componentType.hashCode();
+        return Objects.hash(boundType, kind);
     }
 
     @Override
     public JavaType erasure() {
-        return JavaType.array(componentType.erasure());
+        throw new UnsupportedOperationException("Wildcard type");
     }
 
     @Override
     public JavaType toBasicType() {
-        return JavaType.J_L_OBJECT;
+        throw new UnsupportedOperationException("Wildcard type");
     }
 
     @Override
     public String toNominalDescriptorString() {
-        return "[" + componentType.toNominalDescriptorString();
+        throw new UnsupportedOperationException("Wildcard type");
+    }
+
+    public enum BoundKind {
+        EXTENDS,
+        SUPER
     }
 }
