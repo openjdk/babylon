@@ -162,6 +162,7 @@ public class Liveness {
      *
      * @param op the operation.
      */
+    @SuppressWarnings("this-escape")
     public Liveness(Op op) {
         this.op = op;
         this.livenessMapping = new HashMap<>();

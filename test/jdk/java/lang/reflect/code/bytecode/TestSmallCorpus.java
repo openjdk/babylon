@@ -76,23 +76,27 @@ public class TestSmallCorpus {
         }
 
         for (var stats : errorStats.entrySet()) {
-            System.out.println(STR."""
+            System.out.println(String.format("""
 
-            \{stats.getKey()} errors:
+            %s errors:
             -----------------------------------------------------
-            """);
+            """, stats.getKey()));
             stats.getValue().entrySet().stream().sorted((e1, e2) -> Integer.compare(e2.getValue(), e1.getValue())).forEach(e -> System.out.println(e.getValue() +"x " + e.getKey() + "\n"));
         }
 
-
         // @@@ There is still several failing cases and a lot of errors
-        Assert.assertTrue(notMatching < 31 && passed > 5400, STR."""
+        Assert.assertTrue(notMatching < 31 && passed > 5400, String.format("""
 
-                    passed: \{passed}
-                    not matching: \{notMatching}
-                    \{errorStats.entrySet().stream().map(e -> e.getKey() + " errors: "
-                            + e.getValue().values().stream().collect(Collectors.summingInt(Integer::intValue))).collect(Collectors.joining("\n    "))}
-                """);
+                    passed: %d
+                    not matching: %d
+                    %s
+                """,
+                passed,
+                notMatching,
+                errorStats.entrySet().stream().map(e -> e.getKey() +
+                        " errors: "
+                        + e.getValue().values().stream().mapToInt(Integer::intValue).sum()).collect(Collectors.joining("\n    "))
+                ));
     }
 
     private void testDoubleRoundtripStability(Path path) throws Exception {

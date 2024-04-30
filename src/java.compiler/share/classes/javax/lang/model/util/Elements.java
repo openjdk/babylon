@@ -688,6 +688,24 @@ public interface Elements {
      *          elements.getTypeElement("C")); }
      * </blockquote>
      *
+     * Consistent with the usage of the {@link Override @Override}
+     * annotation, if an interface declares a method
+     * override-equivalent to a {@code public} method of {@link Object
+     * java.lang.Object}, such a method of the interface is regarded
+     * as overriding the corresponding {@code Object} method; for
+     * example:
+     *
+     * {@snippet lang=java :
+     * interface I {
+     *   @Override
+     *   String toString();
+     * }
+     * ...
+     * assert elements.overrides(elementForItoString,
+     *                           elementForObjecttoString,
+     *                           elements.getTypeElement("I"));
+     * }
+     *
      * @param overrider  the first method, possible overrider
      * @param overridden  the second method, possibly being overridden
      * @param type   the class or interface of which the first method is a member
