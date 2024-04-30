@@ -33,7 +33,7 @@ import java.util.Optional;
 /**
  * A class type.
  */
-public final class ClassType implements JavaType {
+public final class ClassType implements TypeVarRef.Owner, JavaType {
     // Fully qualified name
     private final String type;
 

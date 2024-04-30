@@ -77,13 +77,20 @@ TARGETS += $(PARSEPROPERTIES)
 #
 # Copy stubs of code reflection API in langtools
 
+GENSTUBS_DEST_ROOT := $(SUPPORT_OUTPUTDIR)/gensrc/$(MODULE)
+
+GENSTUBS_SRC := $(TOPDIR)/src/java.base/share/classes/java/lang/reflect/code
+
+GENSTUBS_DEST := $(GENSTUBS_DEST_ROOT)/jdk/internal/java/lang/reflect/code
+
 GENSTUBS_SCRIPT := $(TOPDIR)/cr-util/copy-to-compiler.sh
 
-GENSTUBS_CMD := $(BASH) $(GENSTUBS_SCRIPT) $(TOPDIR)/src/java.base/share/classes $(SUPPORT_OUTPUTDIR)/gensrc/$(MODULE)
+GENSTUBS_CMD := $(BASH) $(GENSTUBS_SCRIPT) $(TOPDIR)/src/java.base/share/classes $(GENSTUBS_DEST_ROOT)
 
 $(eval $(call SetupExecute, GENSTUBS, \
     WARN := Generating compiler stubs for code reflection, \
-    OUTPUT_DIR := $(SUPPORT_OUTPUTDIR)/gensrc/$(MODULE), \
+    DEPS := $(call FindFiles, $(GENSTUBS_SRC), *.java), \
+    OUTPUT_DIR := $(GENSTUBS_DEST), \
     COMMAND := $(GENSTUBS_CMD), \
 ))
 

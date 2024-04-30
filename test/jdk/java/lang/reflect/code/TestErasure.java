@@ -29,6 +29,7 @@
 import static org.testng.Assert.*;
 import org.testng.annotations.*;
 
+import java.lang.reflect.code.type.ClassType;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.type.WildcardType.BoundKind;
 import java.util.ArrayList;
@@ -117,13 +118,13 @@ public class TestErasure {
         List<TypeAndErasure> typeVars = new ArrayList<>();
         for (int dims = 1 ; dims <= 3 ; dims++) {
             for (TypeAndErasure t : references()) {
-                typeVars.add(new TypeAndErasure(JavaType.typeVarRef("X", JavaType.J_L_OBJECT, t.type), t.erasure));
+                typeVars.add(new TypeAndErasure(JavaType.typeVarRef("X", (ClassType)JavaType.J_L_OBJECT, t.type), t.erasure));
             }
             for (TypeAndErasure t : genericReferences()) {
-                typeVars.add(new TypeAndErasure(JavaType.typeVarRef("X", JavaType.J_L_OBJECT, t.type), t.erasure));
+                typeVars.add(new TypeAndErasure(JavaType.typeVarRef("X", (ClassType)JavaType.J_L_OBJECT, t.type), t.erasure));
             }
             for (TypeAndErasure t : arrays()) {
-                typeVars.add(new TypeAndErasure(JavaType.typeVarRef("X", JavaType.J_L_OBJECT, t.type), t.erasure));
+                typeVars.add(new TypeAndErasure(JavaType.typeVarRef("X", (ClassType)JavaType.J_L_OBJECT, t.type), t.erasure));
             }
         }
         return typeVars;
