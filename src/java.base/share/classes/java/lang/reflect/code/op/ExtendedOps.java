@@ -34,7 +34,7 @@ import java.lang.reflect.code.type.RecordTypeRef;
 import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.type.TupleType;
-import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.CodeType;
 import java.lang.reflect.code.type.VarType;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -154,7 +154,7 @@ public class ExtendedOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return VOID;
         }
     }
@@ -280,7 +280,7 @@ public class ExtendedOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return VOID;
         }
     }
@@ -362,7 +362,7 @@ public class ExtendedOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return VOID;
         }
     }
@@ -453,7 +453,7 @@ public class ExtendedOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return VOID;
         }
     }
@@ -678,7 +678,7 @@ public class ExtendedOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return VOID;
         }
     }
@@ -690,7 +690,7 @@ public class ExtendedOps {
     public static final class JavaSwitchExpressionOp extends ExternalizableOp implements Op.Nested, Op.Lowerable {
         public static final String NAME = "java.switch.expression";
 
-        final TypeElement resultType;
+        final CodeType resultType;
         final List<Body> bodies;
 
         public JavaSwitchExpressionOp(ExternalizedOp def) {
@@ -720,7 +720,7 @@ public class ExtendedOps {
             return new JavaSwitchExpressionOp(this, cc, ot);
         }
 
-        JavaSwitchExpressionOp(TypeElement resultType, Value target, List<Body.Builder> bodyCs) {
+        JavaSwitchExpressionOp(CodeType resultType, Value target, List<Body.Builder> bodyCs) {
             super(NAME, List.of(target));
 
             // Each case is modelled as a contiguous pair of bodies
@@ -744,7 +744,7 @@ public class ExtendedOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return resultType;
         }
     }
@@ -775,7 +775,7 @@ public class ExtendedOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return VOID;
         }
     }
@@ -788,10 +788,10 @@ public class ExtendedOps {
 
         public static final class InitBuilder {
             final Body.Builder ancestorBody;
-            final List<? extends TypeElement> initTypes;
+            final List<? extends CodeType> initTypes;
 
             InitBuilder(Body.Builder ancestorBody,
-                        List<? extends TypeElement> initTypes) {
+                        List<? extends CodeType> initTypes) {
                 this.ancestorBody = ancestorBody;
                 this.initTypes = initTypes.stream().map(VarType::varType).toList();
             }
@@ -807,11 +807,11 @@ public class ExtendedOps {
 
         public static final class CondBuilder {
             final Body.Builder ancestorBody;
-            final List<? extends TypeElement> initTypes;
+            final List<? extends CodeType> initTypes;
             final Body.Builder init;
 
             public CondBuilder(Body.Builder ancestorBody,
-                               List<? extends TypeElement> initTypes,
+                               List<? extends CodeType> initTypes,
                                Body.Builder init) {
                 this.ancestorBody = ancestorBody;
                 this.initTypes = initTypes;
@@ -829,12 +829,12 @@ public class ExtendedOps {
 
         public static final class UpdateBuilder {
             final Body.Builder ancestorBody;
-            final List<? extends TypeElement> initTypes;
+            final List<? extends CodeType> initTypes;
             final Body.Builder init;
             final Body.Builder cond;
 
             public UpdateBuilder(Body.Builder ancestorBody,
-                                 List<? extends TypeElement> initTypes,
+                                 List<? extends CodeType> initTypes,
                                  Body.Builder init, Body.Builder cond) {
                 this.ancestorBody = ancestorBody;
                 this.initTypes = initTypes;
@@ -854,13 +854,13 @@ public class ExtendedOps {
 
         public static final class BodyBuilder {
             final Body.Builder ancestorBody;
-            final List<? extends TypeElement> initTypes;
+            final List<? extends CodeType> initTypes;
             final Body.Builder init;
             final Body.Builder cond;
             final Body.Builder update;
 
             public BodyBuilder(Body.Builder ancestorBody,
-                               List<? extends TypeElement> initTypes,
+                               List<? extends CodeType> initTypes,
                                Body.Builder init, Body.Builder cond, Body.Builder update) {
                 this.ancestorBody = ancestorBody;
                 this.initTypes = initTypes;
@@ -1034,7 +1034,7 @@ public class ExtendedOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return VOID;
         }
     }
@@ -1047,11 +1047,11 @@ public class ExtendedOps {
 
         public static final class ExpressionBuilder {
             final Body.Builder ancestorBody;
-            final TypeElement iterableType;
-            final TypeElement elementType;
+            final CodeType iterableType;
+            final CodeType elementType;
 
             ExpressionBuilder(Body.Builder ancestorBody,
-                              TypeElement iterableType, TypeElement elementType) {
+                              CodeType iterableType, CodeType elementType) {
                 this.ancestorBody = ancestorBody;
                 this.iterableType = iterableType;
                 this.elementType = elementType;
@@ -1068,11 +1068,11 @@ public class ExtendedOps {
 
         public static final class DefinitionBuilder {
             final Body.Builder ancestorBody;
-            final TypeElement elementType;
+            final CodeType elementType;
             final Body.Builder expression;
 
             DefinitionBuilder(Body.Builder ancestorBody,
-                              TypeElement elementType, Body.Builder expression) {
+                              CodeType elementType, Body.Builder expression) {
                 this.ancestorBody = ancestorBody;
                 this.elementType = elementType;
                 this.expression = expression;
@@ -1082,7 +1082,7 @@ public class ExtendedOps {
                 return definition(elementType, c);
             }
 
-            public BodyBuilder definition(TypeElement bodyElementType, Consumer<Block.Builder> c) {
+            public BodyBuilder definition(CodeType bodyElementType, Consumer<Block.Builder> c) {
                 Body.Builder definition = Body.Builder.of(ancestorBody,
                         FunctionType.functionType(bodyElementType, elementType));
                 c.accept(definition.entryBlock());
@@ -1093,12 +1093,12 @@ public class ExtendedOps {
 
         public static final class BodyBuilder {
             final Body.Builder ancestorBody;
-            final TypeElement elementType;
+            final CodeType elementType;
             final Body.Builder expression;
             final Body.Builder definition;
 
             BodyBuilder(Body.Builder ancestorBody,
-                        TypeElement elementType, Body.Builder expression, Body.Builder definition) {
+                        CodeType elementType, Body.Builder expression, Body.Builder definition) {
                 this.ancestorBody = ancestorBody;
                 this.elementType = elementType;
                 this.expression = expression;
@@ -1294,7 +1294,7 @@ public class ExtendedOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return VOID;
         }
     }
@@ -1438,7 +1438,7 @@ public class ExtendedOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return VOID;
         }
     }
@@ -1582,7 +1582,7 @@ public class ExtendedOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return VOID;
         }
     }
@@ -1636,7 +1636,7 @@ public class ExtendedOps {
             List<Body> bodies = cop.bodies();
 
             Block.Builder exit = startBlock.block();
-            TypeElement oprType = cop.result().type();
+            CodeType oprType = cop.result().type();
             Block.Parameter arg = exit.parameter(oprType);
             startBlock.context().mapValue(cop.result(), arg);
 
@@ -1694,7 +1694,7 @@ public class ExtendedOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return BOOLEAN;
         }
     }
@@ -1817,7 +1817,7 @@ public class ExtendedOps {
 
         public static final String NAME = "java.cexpression";
 
-        final TypeElement resultType;
+        final CodeType resultType;
         // {cond, truepart, falsepart}
         final List<Body> bodies;
 
@@ -1848,7 +1848,7 @@ public class ExtendedOps {
             return new JavaConditionalExpressionOp(this, cc, ot);
         }
 
-        JavaConditionalExpressionOp(TypeElement expressionType, List<Body.Builder> bodyCs) {
+        JavaConditionalExpressionOp(CodeType expressionType, List<Body.Builder> bodyCs) {
             super(NAME, List.of());
 
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
@@ -1909,7 +1909,7 @@ public class ExtendedOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return resultType;
         }
     }
@@ -1922,10 +1922,10 @@ public class ExtendedOps {
 
         public static final class BodyBuilder {
             final Body.Builder ancestorBody;
-            final List<? extends TypeElement> resourceTypes;
+            final List<? extends CodeType> resourceTypes;
             final Body.Builder resources;
 
-            BodyBuilder(Body.Builder ancestorBody, List<? extends TypeElement> resourceTypes, Body.Builder resources) {
+            BodyBuilder(Body.Builder ancestorBody, List<? extends CodeType> resourceTypes, Body.Builder resources) {
                 this.ancestorBody = ancestorBody;
                 this.resourceTypes = resourceTypes;
                 this.resources = resources;
@@ -1954,7 +1954,7 @@ public class ExtendedOps {
             }
 
             // @@@ multi-catch
-            public CatchBuilder _catch(TypeElement exceptionType, Consumer<Block.Builder> c) {
+            public CatchBuilder _catch(CodeType exceptionType, Consumer<Block.Builder> c) {
                 Body.Builder _catch = Body.Builder.of(ancestorBody,
                         FunctionType.functionType(VOID, exceptionType));
                 c.accept(_catch.entryBlock());
@@ -2352,7 +2352,7 @@ public class ExtendedOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return VOID;
         }
     }
@@ -2366,7 +2366,7 @@ public class ExtendedOps {
 
     /**
      * Synthetic pattern types
-     * // @@@ Replace with types extending from TypeElement
+     * // @@@ Replace with types extending from CodeType
      */
     public sealed interface Pattern {
 
@@ -2397,15 +2397,15 @@ public class ExtendedOps {
         JavaType PATTERN_RECORD_TYPE = JavaType.ofNominalDescriptor(ClassDesc.of(Pattern_CLASS_NAME +
                 "$" + Pattern.Record.class.getSimpleName()));
 
-        static JavaType bindingType(TypeElement t) {
+        static JavaType bindingType(CodeType t) {
             return type(PATTERN_BINDING_TYPE, (JavaType) t);
         }
 
-        static JavaType recordType(TypeElement t) {
+        static JavaType recordType(CodeType t) {
             return type(PATTERN_RECORD_TYPE, (JavaType) t);
         }
 
-        static TypeElement targetType(TypeElement t) {
+        static CodeType targetType(CodeType t) {
             return ((ClassType) t).typeArguments().get(0);
         }
     }
@@ -2443,7 +2443,7 @@ public class ExtendedOps {
 
             public static final String ATTRIBUTE_BINDING_NAME = NAME + ".binding.name";
 
-            final TypeElement resultType;
+            final CodeType resultType;
             final String bindingName;
 
             public static BindingPatternOp create(ExternalizedOp def) {
@@ -2474,7 +2474,7 @@ public class ExtendedOps {
                 return new BindingPatternOp(this, cc);
             }
 
-            BindingPatternOp(TypeElement targetType, String bindingName) {
+            BindingPatternOp(CodeType targetType, String bindingName) {
                 super(NAME, List.of());
 
                 this.bindingName = bindingName;
@@ -2492,12 +2492,12 @@ public class ExtendedOps {
                 return bindingName;
             }
 
-            public TypeElement targetType() {
+            public CodeType targetType() {
                 return Pattern.targetType(resultType());
             }
 
             @Override
-            public TypeElement resultType() {
+            public CodeType resultType() {
                 return resultType;
             }
         }
@@ -2560,12 +2560,12 @@ public class ExtendedOps {
                 return recordDescriptor;
             }
 
-            public TypeElement targetType() {
+            public CodeType targetType() {
                 return Pattern.targetType(resultType());
             }
 
             @Override
-            public TypeElement resultType() {
+            public CodeType resultType() {
                 return Pattern.recordType(recordDescriptor.recordType());
             }
         }
@@ -2683,7 +2683,7 @@ public class ExtendedOps {
             static Block.Builder lowerRecordPattern(Block.Builder endNoMatchBlock, Block.Builder currentBlock,
                                        List<Value> bindings,
                                        ExtendedOps.PatternOps.RecordPatternOp rpOp, Value target) {
-                TypeElement targetType = rpOp.targetType();
+                CodeType targetType = rpOp.targetType();
 
                 Block.Builder nextBlock = currentBlock.block();
 
@@ -2711,7 +2711,7 @@ public class ExtendedOps {
             static Block.Builder lowerBindingPattern(Block.Builder endNoMatchBlock, Block.Builder currentBlock,
                                        List<Value> bindings,
                                        ExtendedOps.PatternOps.BindingPatternOp bpOp, Value target) {
-                TypeElement targetType = bpOp.targetType();
+                CodeType targetType = bpOp.targetType();
 
                 Block.Builder nextBlock = currentBlock.block();
 
@@ -2728,7 +2728,7 @@ public class ExtendedOps {
             }
 
             @Override
-            public TypeElement resultType() {
+            public CodeType resultType() {
                 return BOOLEAN;
             }
         }
@@ -2854,7 +2854,7 @@ public class ExtendedOps {
      * @param bodies the body builders of the operation to be built and become its children
      * @return the switch expression operation
      */
-    public static JavaSwitchExpressionOp switchExpression(TypeElement resultType, Value target,
+    public static JavaSwitchExpressionOp switchExpression(CodeType resultType, Value target,
                                                           List<Body.Builder> bodies) {
         Objects.requireNonNull(resultType);
         return new JavaSwitchExpressionOp(resultType, target, bodies);
@@ -2875,7 +2875,7 @@ public class ExtendedOps {
      * @param initTypes the types of initialized variables
      * @return the for operation builder
      */
-    public static JavaForOp.InitBuilder _for(Body.Builder ancestorBody, TypeElement... initTypes) {
+    public static JavaForOp.InitBuilder _for(Body.Builder ancestorBody, CodeType... initTypes) {
         return _for(ancestorBody, List.of(initTypes));
     }
 
@@ -2886,7 +2886,7 @@ public class ExtendedOps {
      * @param initTypes the types of initialized variables
      * @return the for operation builder
      */
-    public static JavaForOp.InitBuilder _for(Body.Builder ancestorBody, List<? extends TypeElement> initTypes) {
+    public static JavaForOp.InitBuilder _for(Body.Builder ancestorBody, List<? extends CodeType> initTypes) {
         return new JavaForOp.InitBuilder(ancestorBody, initTypes);
     }
 
@@ -2919,7 +2919,7 @@ public class ExtendedOps {
      * @return the enhanced for operation builder
      */
     public static JavaEnhancedForOp.ExpressionBuilder enhancedFor(Body.Builder ancestorBody,
-                                                                  TypeElement iterableType, TypeElement elementType) {
+                                                                  CodeType iterableType, CodeType elementType) {
         return new JavaEnhancedForOp.ExpressionBuilder(ancestorBody, iterableType, elementType);
     }
 
@@ -3034,7 +3034,7 @@ public class ExtendedOps {
      * @param bodies the body builders of operation to be built and become its children
      * @return the conditional operation
      */
-    public static JavaConditionalExpressionOp conditionalExpression(TypeElement expressionType,
+    public static JavaConditionalExpressionOp conditionalExpression(CodeType expressionType,
                                                                     List<Body.Builder> bodies) {
         Objects.requireNonNull(expressionType);
         return new JavaConditionalExpressionOp(expressionType, bodies);
@@ -3072,7 +3072,7 @@ public class ExtendedOps {
      * @return the try-with-resources operation builder
      */
     public static JavaTryOp.BodyBuilder tryWithResources(Body.Builder ancestorBody,
-                                                         List<? extends TypeElement> resourceTypes,
+                                                         List<? extends CodeType> resourceTypes,
                                                          Consumer<Block.Builder> c) {
         resourceTypes = resourceTypes.stream().map(VarType::varType).toList();
         Body.Builder resources = Body.Builder.of(ancestorBody,
@@ -3123,7 +3123,7 @@ public class ExtendedOps {
      * @param bindingName the binding name
      * @return the pattern binding operation
      */
-    public static PatternOps.BindingPatternOp bindingPattern(TypeElement type, String bindingName) {
+    public static PatternOps.BindingPatternOp bindingPattern(CodeType type, String bindingName) {
         return new PatternOps.BindingPatternOp(type, bindingName);
     }
 

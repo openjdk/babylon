@@ -53,7 +53,7 @@ public final class Body implements CodeElement<Body, Block> {
     // When non-null and body is built, ancestorBody == parentOp.result.block.parentBody
     final Body ancestorBody;
 
-    final TypeElement yieldType;
+    final CodeType yieldType;
 
     // Sorted in reverse postorder
     final List<Block> blocks;
@@ -65,7 +65,7 @@ public final class Body implements CodeElement<Body, Block> {
     /**
      * Constructs a body, whose ancestor is the given ancestor body.
      */
-    Body(Body ancestorBody, TypeElement yieldType) {
+    Body(Body ancestorBody, CodeType yieldType) {
         this.ancestorBody = ancestorBody;
         this.yieldType = yieldType;
         this.blocks = new ArrayList<>();
@@ -107,7 +107,7 @@ public final class Body implements CodeElement<Body, Block> {
     /**
      * {@return the yield type of this body}
      */
-    public TypeElement yieldType() {
+    public CodeType yieldType() {
         return yieldType;
     }
 
@@ -500,7 +500,7 @@ public final class Body implements CodeElement<Body, Block> {
          * @return the body builder's function type
          */
         public FunctionType bodyType() {
-            TypeElement returnType = Body.this.yieldType();
+            CodeType returnType = Body.this.yieldType();
             Block eb = Body.this.entryBlock();
             return FunctionType.functionType(returnType, eb.parameterTypes());
         }
@@ -541,7 +541,7 @@ public final class Body implements CodeElement<Body, Block> {
         }
 
         // Build new block in body
-        Block.Builder block(List<TypeElement> params, CopyContext cc, OpTransformer ot) {
+        Block.Builder block(List<CodeType> params, CopyContext cc, OpTransformer ot) {
             check();
             Block block = Body.this.createBlock(params);
 
@@ -647,7 +647,7 @@ public final class Body implements CodeElement<Body, Block> {
     // Modifying methods
 
     // Create block
-    private Block createBlock(List<TypeElement> params) {
+    private Block createBlock(List<CodeType> params) {
         Block b = new Block(this, params);
         blocks.add(b);
         return b;

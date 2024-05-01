@@ -35,7 +35,7 @@ import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
-import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.CodeType;
 import java.lang.reflect.code.type.VarType;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -193,7 +193,7 @@ public final class Interpreter {
                 if (args.size() != 1) {
                     throw interpreterException(new IllegalStateException("Catch block must have one argument"));
                 }
-                TypeElement et = args.get(0).type();
+                CodeType et = args.get(0).type();
                 if (et instanceof VarType vt) {
                     et = vt.valueType();
                 }
@@ -622,12 +622,12 @@ public final class Interpreter {
         return resolveToVarHandle(l, d);
     }
 
-    static Object isInstance(MethodHandles.Lookup l, TypeElement d, Object v) {
+    static Object isInstance(MethodHandles.Lookup l, CodeType d, Object v) {
         Class<?> c = resolveToClass(l, d);
         return c.isInstance(v);
     }
 
-    static Object cast(MethodHandles.Lookup l, TypeElement d, Object v) {
+    static Object cast(MethodHandles.Lookup l, CodeType d, Object v) {
         Class<?> c = resolveToClass(l, d);
         return c.cast(v);
     }
@@ -656,7 +656,7 @@ public final class Interpreter {
         }
     }
 
-    public static Class<?> resolveToClass(MethodHandles.Lookup l, TypeElement d) {
+    public static Class<?> resolveToClass(MethodHandles.Lookup l, CodeType d) {
         try {
             if (d instanceof JavaType jt) {
                 return jt.resolve(l);

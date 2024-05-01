@@ -55,8 +55,8 @@ public final class TritonTransformer {
 
     public static <O extends Op & Op.Invokable>
     TritonOps.ModuleOp tritonModule(O kernel,
-                                    TypeElement rType,
-                                    List<? extends TypeElement> argTypes) {
+                                    CodeType rType,
+                                    List<? extends CodeType> argTypes) {
         Map<String, TritonOps.FuncOp> fsymTable = new LinkedHashMap<>();
         tritonFunction(kernel, rType, argTypes, fsymTable);
         return TritonOps.module(fsymTable.values().stream().toList());
@@ -64,8 +64,8 @@ public final class TritonTransformer {
 
     public static <O extends Op & Op.Invokable>
     TritonOps.FuncOp tritonFunction(O javaKernel,
-                                    TypeElement rType,
-                                    List<? extends TypeElement> argTypes,
+                                    CodeType rType,
+                                    List<? extends CodeType> argTypes,
                                     Map<String, TritonOps.FuncOp> fsymTable) {
         String name = (javaKernel instanceof FuncOp f) ? f.funcName() : "kernel";
         String signature = signature(name, rType, argTypes);
@@ -75,7 +75,7 @@ public final class TritonTransformer {
 
         System.out.println(javaKernel.toText());
 
-        Map<Value, TypeElement> valueTypeMap = new HashMap<>();
+        Map<Value, CodeType> valueTypeMap = new HashMap<>();
         Map<Op, Object> opData = new HashMap<>();
         TritonTransformer.typeCheckKernel(javaKernel, argTypes, valueTypeMap, opData);
         TritonTransformer.printTypeMap(javaKernel, valueTypeMap);
@@ -85,10 +85,10 @@ public final class TritonTransformer {
                 fsymTable);
     }
 
-    static String signature(String name, TypeElement rType, List<? extends TypeElement> argTypes) {
+    static String signature(String name, CodeType rType, List<? extends CodeType> argTypes) {
         StringBuilder sb = new StringBuilder(name);
 
-        for (TypeElement argType : argTypes) {
+        for (CodeType argType : argTypes) {
             sb.append("_");
             if (argType instanceof ConstantType ct) {
                 sb.append(ct.value());
@@ -102,8 +102,8 @@ public final class TritonTransformer {
     }
 
     public static <O extends Op & Op.Invokable> void typeCheckKernel(
-            O kernel, List<? extends TypeElement> argTypes,
-            Map<Value, TypeElement> valueTypeMap, Map<Op, Object> opData) {
+            O kernel, List<? extends CodeType> argTypes,
+            Map<Value, CodeType> valueTypeMap, Map<Op, Object> opData) {
         kernel.traverse(null, CodeElement.opVisitor((o, op) -> {
             switch (op) {
                 case Op.Invokable fop -> {
@@ -118,9 +118,9 @@ public final class TritonTransformer {
                 }
                 case VarAccessOp.VarStoreOp _ -> {
                     Value var = op.operands().get(0);
-                    TypeElement varType = valueTypeMap.get(var);
+                    CodeType varType = valueTypeMap.get(var);
                     Value v = op.operands().get(1);
-                    TypeElement vType = valueTypeMap.get(v);
+                    CodeType vType = valueTypeMap.get(v);
                     if (!varType.equals(vType)) {
                         throw new IllegalStateException("Storing to variable with different type: "
                                 + varType + " <- " + vType);
@@ -132,7 +132,7 @@ public final class TritonTransformer {
                     valueTypeMap.put(op.result(), new ConstantType(op.result().type(), cop.value()));
                 }
                 case ArithmeticOperation _ -> {
-                    TypeElement t = checkWithTypeInterpreter(op, op.opName(), valueTypeMap);
+                    CodeType t = checkWithTypeInterpreter(op, op.opName(), valueTypeMap);
                     valueTypeMap.put(op.result(), t);
                 }
                 case FieldAccessOp.FieldLoadOp flop -> {
@@ -181,18 +181,18 @@ public final class TritonTransformer {
                     }
                 }
                 case InvokeOp iop when iop.invokeDescriptor().refType().equals(TYPE_Triton) -> {
-                    TypeElement t = checkWithTypeInterpreter(op, iop.invokeDescriptor().name(), valueTypeMap);
+                    CodeType t = checkWithTypeInterpreter(op, iop.invokeDescriptor().name(), valueTypeMap);
                     valueTypeMap.put(op.result(), t);
                 }
                 case InvokeOp iop when iop.invokeDescriptor().refType().equals(TYPE_Triton_Test) -> {
-                    TypeElement t = checkWithTypeInterpreter(op, iop.invokeDescriptor().name(), valueTypeMap);
+                    CodeType t = checkWithTypeInterpreter(op, iop.invokeDescriptor().name(), valueTypeMap);
                     valueTypeMap.put(op.result(), t);
                 }
                 case ExtendedOps.JavaForOp fop -> {
                     SimpleCountedForLoopInfo li = new SimpleCountedForLoopInfo(fop);
                     opData.put(fop, li);
 
-                    TypeElement type = fop.init().yieldType();
+                    CodeType type = fop.init().yieldType();
                     if (type instanceof VarType vt && vt.valueType().equals(JavaType.INT)) {
                         for (Body b : List.of(fop.cond(), fop.update(), fop.loopBody())) {
                             valueTypeMap.put(b.entryBlock().parameters().get(0), JavaType.INT);
@@ -216,7 +216,7 @@ public final class TritonTransformer {
         }));
     }
 
-    static TypeElement checkWithTypeInterpreter(Op op, String name, Map<Value, TypeElement> valueTypeMap) {
+    static CodeType checkWithTypeInterpreter(Op op, String name, Map<Value, CodeType> valueTypeMap) {
         // Obtain associated type-based method
         MethodHandle mh;
         try {
@@ -230,9 +230,9 @@ public final class TritonTransformer {
         }
 
         // Invoke with the values' types
-        List<TypeElement> operandTypes = op.operands().stream().map(valueTypeMap::get).toList();
+        List<CodeType> operandTypes = op.operands().stream().map(valueTypeMap::get).toList();
         try {
-            return (TypeElement) mh.invokeWithArguments(operandTypes.toArray(Object[]::new));
+            return (CodeType) mh.invokeWithArguments(operandTypes.toArray(Object[]::new));
         } catch (Throwable e) {
             throw new IllegalStateException(mh.toString(), e);
         }
@@ -301,11 +301,11 @@ public final class TritonTransformer {
         //                Tensor zeros(TensorType type)
         public static TensorType zeros(ConstantType eType, ConstantType... cShape) {
             List<Integer> shape = Stream.of(cShape).map(s -> (int) s.value()).toList();
-            return new TensorType((TypeElement) eType.value(), shape);
+            return new TensorType((CodeType) eType.value(), shape);
         }
 
         //                Tensor broadcast(Object o, TensorType type)
-        public static TensorType broadcast(TypeElement o, TensorType type) {
+        public static TensorType broadcast(CodeType o, TensorType type) {
             if (o instanceof TensorType ot) {
                 // @@@
                 if (ot.shape().size() != type.shape().size()) {
@@ -324,32 +324,32 @@ public final class TritonTransformer {
 
         //          Tensor add(Number a, Number b)
         //             Ptr add(Ptr a, int offset)
-        public static TypeElement add(TypeElement a, TypeElement b) {
+        public static CodeType add(CodeType a, CodeType b) {
             // @@@ Pass additional argument for checking ptr
             return binary(a, b);
         }
 
-        public static TypeElement sub(TypeElement a, TypeElement b) {
+        public static CodeType sub(CodeType a, CodeType b) {
             return binary(a, b);
         }
 
-        public static TypeElement mul(TypeElement a, TypeElement b) {
+        public static CodeType mul(CodeType a, CodeType b) {
             return binary(a, b);
         }
 
-        public static TypeElement div(TypeElement a, TypeElement b) {
+        public static CodeType div(CodeType a, CodeType b) {
             return binary(a, b);
         }
 
-        public static TypeElement mod(TypeElement a, TypeElement b) {
+        public static CodeType mod(CodeType a, CodeType b) {
             return binary(a, b);
         }
 
-        public static TypeElement and(TypeElement a, TypeElement b) {
+        public static CodeType and(CodeType a, CodeType b) {
             return binary(a, b);
         }
 
-        public static TypeElement cdiv(TypeElement a, TypeElement b) {
+        public static CodeType cdiv(CodeType a, CodeType b) {
             a = reduceScalarType(a);
             b = reduceScalarType(b);
             if (!a.equals(JavaType.INT) && !b.equals(JavaType.INT)) {
@@ -359,21 +359,21 @@ public final class TritonTransformer {
         }
 
         //          Number conv(Type t, Number a) {
-        public static TypeElement conv(ConstantType eType, TypeElement a) {
+        public static CodeType conv(ConstantType eType, CodeType a) {
             return convTypes(eType, a);
         }
 
-        public static TypeElement convTypes(ConstantType eType, TypeElement a) {
+        public static CodeType convTypes(ConstantType eType, CodeType a) {
             if (a instanceof TensorType tb) {
-                TypeElement e = convScalarTypes(eType, tb.eType());
+                CodeType e = convScalarTypes(eType, tb.eType());
                 return new TensorType(e, tb.shape());
             } else {
                 return convScalarTypes(eType, a);
             }
         }
 
-        public static TypeElement convScalarTypes(ConstantType eType, TypeElement a) {
-            TypeElement t = (TypeElement) eType.value();
+        public static CodeType convScalarTypes(ConstantType eType, CodeType a) {
+            CodeType t = (CodeType) eType.value();
             if (t.equals(Float16.FLOAT_16_TYPE) && a.equals(JavaType.FLOAT)) {
                 return Float16.FLOAT_16_TYPE;
             } else if (t.equals(a)) {
@@ -385,16 +385,16 @@ public final class TritonTransformer {
         }
 
         //          Tensor exp(Tensor a)
-        public static TypeElement exp(TypeElement a) {
+        public static CodeType exp(CodeType a) {
             return unary(a);
         }
 
-        static TypeElement unary(TypeElement a) {
+        static CodeType unary(CodeType a) {
             return a;
         }
 
         //                Tensor compare(Number a, Number b, @Constant CompareKind ck) {
-        public static TypeElement compare(TypeElement a, TypeElement b, ConstantType kind) {
+        public static CodeType compare(CodeType a, CodeType b, ConstantType kind) {
             assert kind.cType().equals(JavaType.type(Triton.CompareKind.class));
 
             return binary(a, b);
@@ -421,16 +421,16 @@ public final class TritonTransformer {
 
 
         //                Tensor max(Tensor a, @Constant int axis) {
-        public static TypeElement max(TensorType a, ConstantType axis) {
+        public static CodeType max(TensorType a, ConstantType axis) {
             return reduce(a, axis);
         }
 
         //                Tensor sum(Tensor a, @Constant int axis) {
-        public static TypeElement sum(TensorType a, ConstantType axis) {
+        public static CodeType sum(TensorType a, ConstantType axis) {
             return reduce(a, axis);
         }
 
-        static TypeElement reduce(TensorType a, ConstantType axis) {
+        static CodeType reduce(TensorType a, ConstantType axis) {
             assert axis.cType().equals(JavaType.INT);
             int axisValue = (int) axis.value();
             if (axisValue < 0 || axisValue > 3) {
@@ -454,11 +454,11 @@ public final class TritonTransformer {
         }
 
         // @@@ Test
-        public static void consume(TypeElement a) {
+        public static void consume(CodeType a) {
         }
 
 
-        static TypeElement binary(TypeElement a, TypeElement b) {
+        static CodeType binary(CodeType a, CodeType b) {
             if (a instanceof TensorType ta && b instanceof TensorType tb) {
                 return checkTensorTypes(ta, tb);
             } else if (a instanceof TensorType ta) {
@@ -472,7 +472,7 @@ public final class TritonTransformer {
 
         static TensorType checkTensorTypes(TensorType a, TensorType b) {
             List<Integer> s = checkTensorShape(a, b);
-            TypeElement e = checkScalarTypes(a.eType(), b.eType());
+            CodeType e = checkScalarTypes(a.eType(), b.eType());
             return new TensorType(e, s);
         }
 
@@ -508,7 +508,7 @@ public final class TritonTransformer {
             return s;
         }
 
-        static TypeElement checkScalarTypes(TypeElement a, TypeElement b) {
+        static CodeType checkScalarTypes(CodeType a, CodeType b) {
             // @@@ Optional ptr checking
             if (a instanceof PtrType) {
                 if (!b.equals(JavaType.INT)) {
@@ -526,7 +526,7 @@ public final class TritonTransformer {
             return a;
         }
 
-        static TypeElement reduceScalarType(TypeElement a) {
+        static CodeType reduceScalarType(CodeType a) {
             return a instanceof ConstantType ct ? ct.cType() : a;
         }
     }
@@ -534,15 +534,15 @@ public final class TritonTransformer {
     public static <O extends Op & Op.Invokable> TritonOps.FuncOp transformToTritonFunction(
             O kernel,
             String signature,
-            TypeElement rType,
-            Map<Value, TypeElement> valueTypeMap, Map<Op, Object> opData,
+            CodeType rType,
+            Map<Value, CodeType> valueTypeMap, Map<Op, Object> opData,
             Map<String, TritonOps.FuncOp> fsymTable) {
         TritonOps.FuncOp ttKernel = TritonOps.func(signature, functionType(rType))
                 .body(fblock -> {
                     // Process kernel parameters
                     List<Value> args = new ArrayList<>();
                     for (Block.Parameter kp : kernel.body().entryBlock().parameters()) {
-                        TypeElement type = valueTypeMap.get(kp);
+                        CodeType type = valueTypeMap.get(kp);
                         if (type instanceof ConstantType ct) {
                             // Constant
                             Op.Result cr = fblock.op(ArithMathOps.constant(
@@ -565,7 +565,7 @@ public final class TritonTransformer {
     }
 
     static Block.Builder transformToTritonOperation(Block.Builder kblock, Op op,
-                                                    Map<Value, TypeElement> valueTypeMap, Map<Op, Object> opData,
+                                                    Map<Value, CodeType> valueTypeMap, Map<Op, Object> opData,
                                                     Map<String, TritonOps.FuncOp> fsymTable) {
         // @@@ Avoid constructing for each operation -- block builder passed as argument or a scoped value
         TritonBuilderInterpreter tbi = new TritonBuilderInterpreter(fsymTable, kblock);
@@ -579,7 +579,7 @@ public final class TritonTransformer {
                 cc.mapValue(op.result(), r);
             }
             case ConstantOp cop -> {
-                TypeElement t = valueTypeMap.get(cop.result());
+                CodeType t = valueTypeMap.get(cop.result());
                 if (t instanceof ConstantType ct) {
                     Op.Result r = kblock.op(ArithMathOps.constant(
                             ct.cType(), ct.value()));
@@ -657,7 +657,7 @@ public final class TritonTransformer {
     }
 
     static void transformToSCFFor(CopyContext cc, Block.Builder kblock, ExtendedOps.JavaForOp fop,
-                                  Map<Value, TypeElement> valueTypeMap, Map<Op, Object> opData,
+                                  Map<Value, CodeType> valueTypeMap, Map<Op, Object> opData,
                                   Map<String, TritonOps.FuncOp> fsymTable) {
         Body body = fop.loopBody();
 
@@ -716,7 +716,7 @@ public final class TritonTransformer {
                     // Create iter vars initialized from entry block parameters
                     int pi = 1;
                     for (Value v : capturedAndStoredVars) {
-                        TypeElement type = valueTypeMap.get(v);
+                        CodeType type = valueTypeMap.get(v);
                         Value iter = builder.parameters().get(pi++);
                         valueTypeMap.put(iter, type);
                         Value varIter = builder.op(var(Integer.toString(pi), iter));
@@ -836,7 +836,7 @@ public final class TritonTransformer {
             this.block = block;
         }
 
-        Value build(Op op, String name, Map<Value, TypeElement> valueTypeMap) {
+        Value build(Op op, String name, Map<Value, CodeType> valueTypeMap) {
             // Obtain associated type-based method
             MethodHandle mh;
             try {
@@ -865,7 +865,7 @@ public final class TritonTransformer {
         }
 
 
-        public Value programId(TypeElement rType, Op.Result r,
+        public Value programId(CodeType rType, Op.Result r,
                                ConstantType axisType, Value axis) {
             return block.op(TritonOps.getProgramId(
                     (int) axisType.value()));
@@ -924,7 +924,7 @@ public final class TritonTransformer {
         }
 
         public Value broadcast(TensorType rType, Op.Result r,
-                               TypeElement oType, Value o,
+                               CodeType oType, Value o,
                                TensorType tensorTypeType, Value tensorType) {
             // @@@ tt.splat with scalar operand, tt.broadcast with tensor operand
             if (oType instanceof TensorType) {
@@ -948,9 +948,9 @@ public final class TritonTransformer {
         }
 
 
-        public Value add(TypeElement rType, Op.Result r,
-                         TypeElement aType, Value a,
-                         TypeElement bType, Value b) {
+        public Value add(CodeType rType, Op.Result r,
+                         CodeType aType, Value a,
+                         CodeType bType, Value b) {
             broadcastConversion(rType, aType, a, bType, b);
             a = block.context().getValue(a);
             b = block.context().getValue(b);
@@ -963,9 +963,9 @@ public final class TritonTransformer {
             }
         }
 
-        public Value sub(TypeElement rType, Op.Result r,
-                         TypeElement aType, Value a,
-                         TypeElement bType, Value b) {
+        public Value sub(CodeType rType, Op.Result r,
+                         CodeType aType, Value a,
+                         CodeType bType, Value b) {
             broadcastConversion(rType, aType, a, bType, b);
             a = block.context().getValue(a);
             b = block.context().getValue(b);
@@ -973,9 +973,9 @@ public final class TritonTransformer {
             return block.op(ArithMathOps.sub(a, b));
         }
 
-        public Value mul(TypeElement rType, Op.Result r,
-                         TypeElement aType, Value a,
-                         TypeElement bType, Value b) {
+        public Value mul(CodeType rType, Op.Result r,
+                         CodeType aType, Value a,
+                         CodeType bType, Value b) {
             broadcastConversion(rType, aType, a, bType, b);
             a = block.context().getValue(a);
             b = block.context().getValue(b);
@@ -983,9 +983,9 @@ public final class TritonTransformer {
             return block.op(ArithMathOps.mul(a, b));
         }
 
-        public Value div(TypeElement rType, Op.Result r,
-                         TypeElement aType, Value a,
-                         TypeElement bType, Value b) {
+        public Value div(CodeType rType, Op.Result r,
+                         CodeType aType, Value a,
+                         CodeType bType, Value b) {
             broadcastConversion(rType, aType, a, bType, b);
             a = block.context().getValue(a);
             b = block.context().getValue(b);
@@ -993,9 +993,9 @@ public final class TritonTransformer {
             return block.op(ArithMathOps.div(a, b));
         }
 
-        public Value mod(TypeElement rType, Op.Result r,
-                         TypeElement aType, Value a,
-                         TypeElement bType, Value b) {
+        public Value mod(CodeType rType, Op.Result r,
+                         CodeType aType, Value a,
+                         CodeType bType, Value b) {
             broadcastConversion(rType, aType, a, bType, b);
             a = block.context().getValue(a);
             b = block.context().getValue(b);
@@ -1003,9 +1003,9 @@ public final class TritonTransformer {
             return block.op(ArithMathOps.rem(a, b));
         }
 
-        public Value and(TypeElement rType, Op.Result r,
-                         TypeElement aType, Value a,
-                         TypeElement bType, Value b) {
+        public Value and(CodeType rType, Op.Result r,
+                         CodeType aType, Value a,
+                         CodeType bType, Value b) {
             broadcastConversion(rType, aType, a, bType, b);
             a = block.context().getValue(a);
             b = block.context().getValue(b);
@@ -1014,17 +1014,17 @@ public final class TritonTransformer {
         }
 
         public Value dot(TensorType rType, Op.Result r,
-                         TypeElement aType, Value a,
-                         TypeElement bType, Value b) {
+                         CodeType aType, Value a,
+                         CodeType bType, Value b) {
             a = block.context().getValue(a);
             b = block.context().getValue(b);
 
             return block.op(TritonOps.dot(rType, a, b));
         }
 
-        public Value cdiv(TypeElement rType, Op.Result r,
-                          TypeElement aType, Value a,
-                          TypeElement bType, Value b) {
+        public Value cdiv(CodeType rType, Op.Result r,
+                          CodeType aType, Value a,
+                          CodeType bType, Value b) {
             a = block.context().getValue(a);
             b = block.context().getValue(b);
 
@@ -1042,13 +1042,13 @@ public final class TritonTransformer {
             return block.op(TritonOps.call(cdiv, args));
         }
 
-        public Value conv(TypeElement rType, Op.Result r,
+        public Value conv(CodeType rType, Op.Result r,
                           ConstantType tType, Value t,
-                          TypeElement aType, Value a) {
+                          CodeType aType, Value a) {
             a = block.context().getValue(a);
 
-            TypeElement rScalarType;
-            TypeElement aScalarType;
+            CodeType rScalarType;
+            CodeType aScalarType;
             if (rType instanceof TensorType rTensorType && aType instanceof TensorType aTensorType) {
                 rScalarType = rTensorType.eType();
                 aScalarType = aTensorType.eType();
@@ -1073,8 +1073,8 @@ public final class TritonTransformer {
         }
 
         public Value compare(TensorType rType, Op.Result r,
-                             TypeElement aType, Value a,
-                             TypeElement bType, Value b,
+                             CodeType aType, Value a,
+                             CodeType bType, Value b,
                              ConstantType compareType, Value compare) {
             Triton.CompareKind ck = (Triton.CompareKind) compareType.value();
 
@@ -1091,7 +1091,7 @@ public final class TritonTransformer {
         }
 
 
-        public Value max(TypeElement rType, Op.Result r,
+        public Value max(CodeType rType, Op.Result r,
                          TensorType xType, Value x,
                          ConstantType axisType, Value axis) {
             TritonOps.FuncOp f = tritonFunction(Functions.getJavaCodeModel("max"),
@@ -1099,7 +1099,7 @@ public final class TritonTransformer {
             return reduce(rType, r, xType, x, axisType, axis, f);
         }
 
-        public Value sum(TypeElement rType, Op.Result r,
+        public Value sum(CodeType rType, Op.Result r,
                          TensorType xType, Value x,
                          ConstantType axisType, Value axis) {
             TritonOps.FuncOp f = tritonFunction(Functions.getJavaCodeModel("sum"),
@@ -1107,7 +1107,7 @@ public final class TritonTransformer {
             return reduce(rType, r, xType, x, axisType, axis, f);
         }
 
-        Value reduce(TypeElement rType, Op.Result r,
+        Value reduce(CodeType rType, Op.Result r,
                      TensorType xType, Value x,
                      ConstantType axisType, Value axis,
                      TritonOps.FuncOp f) {
@@ -1120,7 +1120,7 @@ public final class TritonTransformer {
             return block.op(TritonOps.call(rf, block.context().getValue(x)));
         }
 
-        static TritonOps.FuncOp reduce(TypeElement elementType,
+        static TritonOps.FuncOp reduce(CodeType elementType,
                                        TensorType tensorType,
                                        int axisConstant,
                                        String name, TritonOps.FuncOp scalarFunc) {
@@ -1143,14 +1143,14 @@ public final class TritonTransformer {
         }
 
         // @@@ Test
-        public Value consume(TypeElement rType, Op.Result r,
-                             TypeElement aType, Value a) {
+        public Value consume(CodeType rType, Op.Result r,
+                             CodeType aType, Value a) {
             return block.op(TritonTestOps.consume(block.context().getValue(a)));
         }
 
-        void broadcastConversion(TypeElement rType,
-                                 TypeElement aType, Value a,
-                                 TypeElement bType, Value b) {
+        void broadcastConversion(CodeType rType,
+                                 CodeType aType, Value a,
+                                 CodeType bType, Value b) {
             Value ma = block.context().getValue(a);
             Value mb = block.context().getValue(b);
             if (aType instanceof TensorType at && bType instanceof TensorType bTensorType) {
@@ -1182,8 +1182,8 @@ public final class TritonTransformer {
             block.context().mapValue(b, mb);
         }
 
-        void broadcastConversionRight(TypeElement aType,
-                                      TypeElement bType, Value b) {
+        void broadcastConversionRight(CodeType aType,
+                                      CodeType bType, Value b) {
             Value mb = block.context().getValue(b);
             if (aType instanceof TensorType aTensorType && bType instanceof TensorType bTensorType) {
                 if (!bTensorType.shape().equals(aTensorType.shape())) {
@@ -1207,7 +1207,7 @@ public final class TritonTransformer {
     }
 
     public static <O extends Op & Op.Invokable> void printTypeMap(
-            O kernel, Map<Value, TypeElement> valueTypeMap) {
+            O kernel, Map<Value, CodeType> valueTypeMap) {
         AtomicInteger valueId = new AtomicInteger();
         Map<Value, Integer> valueIdMap = new LinkedHashMap<>();
         kernel.traverse(null, (o, codeElement) -> {
@@ -1230,7 +1230,7 @@ public final class TritonTransformer {
         });
 
         valueIdMap.forEach((value, id) -> {
-            TypeElement type = valueTypeMap.get(value);
+            CodeType type = valueTypeMap.get(value);
             if (type != null) {
                 System.out.println("%" + id + " : " + value.type() + " -> " + type);
             }

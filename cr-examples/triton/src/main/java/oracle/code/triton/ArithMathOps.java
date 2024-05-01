@@ -35,7 +35,7 @@ import java.util.Map;
 public class ArithMathOps {
 
     static abstract class ArithMathOp extends ExternalizableOp {
-        final TypeElement resultType;
+        final CodeType resultType;
 
         public ArithMathOp(ExternalizedOp def) {
             super(def);
@@ -49,14 +49,14 @@ public class ArithMathOps {
             this.resultType = that.resultType;
         }
 
-        ArithMathOp(String name, TypeElement resultType, List<? extends Value> operands) {
+        ArithMathOp(String name, CodeType resultType, List<? extends Value> operands) {
             super(name, operands);
 
             this.resultType = resultType;
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return resultType;
         }
     }
@@ -78,7 +78,7 @@ public class ArithMathOps {
             return new ConstantOp(def, value);
         }
 
-        static Object processConstantValue(TypeElement t, Object value) {
+        static Object processConstantValue(CodeType t, Object value) {
             if (t.equals(JavaType.BOOLEAN)) {
                 if (value instanceof String s) {
                     return Boolean.valueOf(s);
@@ -151,7 +151,7 @@ public class ArithMathOps {
             return new ConstantOp(this, cc);
         }
 
-        ConstantOp(TypeElement type, Object value) {
+        ConstantOp(CodeType type, Object value) {
             super(NAME, type, List.of());
 
             this.value = value;
@@ -364,7 +364,7 @@ public class ArithMathOps {
             return new TruncOp(this, cc);
         }
 
-        TruncOp(TypeElement t, Value a) {
+        TruncOp(CodeType t, Value a) {
             super(NAME + nameSuffixFromType(a.type(), false),
                     t, List.of(a));
         }
@@ -448,7 +448,7 @@ public class ArithMathOps {
         }
     }
 
-    static String maxMinSuffixFromType(TypeElement t) {
+    static String maxMinSuffixFromType(CodeType t) {
         if (t instanceof TensorType tt) {
             return maxMinSuffixFromType(tt.eType());
         } else if (t instanceof PtrType pt) {
@@ -462,7 +462,7 @@ public class ArithMathOps {
         }
     }
 
-    static String nameSuffixFromType(TypeElement t, boolean signed) {
+    static String nameSuffixFromType(CodeType t, boolean signed) {
         if (t instanceof TensorType tt) {
             return nameSuffixFromType(tt.eType(), signed);
         } else if (t instanceof PtrType pt) {
@@ -497,7 +497,7 @@ public class ArithMathOps {
 
     // Arith
 
-    public static ConstantOp constant(TypeElement type, Object value) {
+    public static ConstantOp constant(CodeType type, Object value) {
         return new ConstantOp(type, value);
     }
 
@@ -537,7 +537,7 @@ public class ArithMathOps {
         return new CompareOp(ck, a, b);
     }
 
-    public static TruncOp trunc(TypeElement type, Value a) {
+    public static TruncOp trunc(CodeType type, Value a) {
         return new TruncOp(type, a);
     }
 

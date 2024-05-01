@@ -27,7 +27,7 @@ package java.lang.reflect.code.type;
 
 import java.lang.constant.ClassDesc;
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.CodeType;
 import java.lang.reflect.code.type.WildcardType.BoundKind;
 import java.util.List;
 import java.util.Objects;
@@ -35,8 +35,8 @@ import java.util.Objects;
 /**
  * The symbolic description of a Java type.
  */
-public sealed interface JavaType extends TypeElement permits ClassType, ArrayType,
-                                                             PrimitiveType, WildcardType, TypeVarRef {
+public sealed interface JavaType extends CodeType permits ClassType, ArrayType,
+        PrimitiveType, WildcardType, TypeVarRef {
 
     // @@@ Share with general void type?
     PrimitiveType VOID = new PrimitiveType("void");
@@ -255,6 +255,6 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
 
     // Copied code in jdk.compiler module throws UOE
     static JavaType ofString(String s) {
-/*__throw new UnsupportedOperationException();__*/        return (JavaType) CoreTypeFactory.JAVA_TYPE_FACTORY.constructType(java.lang.reflect.code.parser.impl.DescParser.parseTypeDefinition(s));
+/*__throw new UnsupportedOperationException();__*/        return (JavaType) CoreTypeFactory.JAVA_TYPE_FACTORY.constructType(java.lang.reflect.code.parser.impl.DescParser.parseExternalizedCodeType(s));
     }
 }

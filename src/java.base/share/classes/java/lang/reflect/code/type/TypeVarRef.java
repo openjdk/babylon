@@ -26,7 +26,6 @@
 package java.lang.reflect.code.type;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * A type-variable reference.
@@ -70,14 +69,14 @@ public final class TypeVarRef implements JavaType {
     }
 
     @Override
-    public TypeDefinition toTypeDefinition() {
-        return new TypeDefinition(String.format("#%s::%s", owner, name),
-                List.of(bound.toTypeDefinition()));
+    public ExternalizedCodeType externalize() {
+        return new ExternalizedCodeType(String.format("#%s::%s", owner, name),
+                List.of(bound.externalize()));
     }
 
     @Override
     public String toString() {
-        return toTypeDefinition().toString();
+        return externalize().toString();
     }
 
     @Override

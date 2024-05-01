@@ -91,7 +91,7 @@ public class SCFOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return body.yieldType();
         }
 
@@ -128,11 +128,11 @@ public class SCFOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
 
-        static TypeElement yieldType(List<Value> values) {
+        static CodeType yieldType(List<Value> values) {
             if (values.size() == 1) {
                 return values.get(0).type();
             } else {
@@ -144,11 +144,11 @@ public class SCFOps {
     static public ForOp.Builder for_(Body.Builder ancestorBody,
                                      Value start, Value end, Value step,
                                      List<Value> iterValues) {
-        TypeElement yieldType = (iterValues.size() == 1)
+        CodeType yieldType = (iterValues.size() == 1)
                 ? iterValues.get(0).type()
                 : TupleType.tupleTypeFromValues(iterValues);
 
-        List<TypeElement> bodyParameterTypes = new ArrayList<>();
+        List<CodeType> bodyParameterTypes = new ArrayList<>();
         bodyParameterTypes.add(start.type());
         bodyParameterTypes.addAll(iterValues.stream().map(Value::type).toList());
         FunctionType bodyType = FunctionType.functionType(yieldType, bodyParameterTypes);

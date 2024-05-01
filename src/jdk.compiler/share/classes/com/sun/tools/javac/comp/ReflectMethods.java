@@ -36,10 +36,8 @@ import com.sun.tools.javac.code.Symtab;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.Type.ArrayType;
 import com.sun.tools.javac.code.Type.ClassType;
-import com.sun.tools.javac.code.Type.IntersectionClassType;
 import com.sun.tools.javac.code.Type.MethodType;
 import com.sun.tools.javac.code.Type.TypeVar;
-import com.sun.tools.javac.code.Type.UnionClassType;
 import com.sun.tools.javac.code.Type.WildcardType;
 import com.sun.tools.javac.code.TypeTag;
 import com.sun.tools.javac.code.Types;
@@ -469,20 +467,20 @@ public class ReflectMethods extends TreeTranslator {
             this.name = tree.name;
             this.isQuoted = false;
 
-            List<TypeElement> parameters = new ArrayList<>();
+            List<CodeType> parameters = new ArrayList<>();
             int blockArgOffset = 0;
             // Instance methods model "this" as an additional argument occurring
             // before all other arguments.
             // @@@ Inner classes.
             // We need to capture all "this", in nested order, as arguments.
             if (!tree.getModifiers().getFlags().contains(Modifier.STATIC)) {
-                parameters.add(typeToTypeElement(tree.sym.owner.type));
+                parameters.add(typeToCodeType(tree.sym.owner.type));
                 blockArgOffset++;
             }
-            tree.sym.type.getParameterTypes().stream().map(this::typeToTypeElement).forEach(parameters::add);
+            tree.sym.type.getParameterTypes().stream().map(this::typeToCodeType).forEach(parameters::add);
 
             FunctionType bodyType = FunctionType.functionType(
-                    typeToTypeElement(tree.sym.type.getReturnType()), parameters);
+                    typeToCodeType(tree.sym.type.getReturnType()), parameters);
 
             this.stack = this.top = new BodyStack(null, tree.body, bodyType);
 
@@ -508,8 +506,8 @@ public class ReflectMethods extends TreeTranslator {
 
             com.sun.tools.javac.util.List<Type> nil = com.sun.tools.javac.util.List.nil();
             MethodType mtype = new MethodType(nil, syms.quotedType, nil, syms.methodClass);
-            FunctionType mtDesc = FunctionType.functionType(typeToTypeElement(mtype.restype),
-                    mtype.getParameterTypes().map(this::typeToTypeElement));
+            FunctionType mtDesc = FunctionType.functionType(typeToCodeType(mtype.restype),
+                    mtype.getParameterTypes().map(this::typeToCodeType));
 
             this.stack = this.top = new BodyStack(null, tree.body, mtDesc);
 
@@ -555,7 +553,7 @@ public class ReflectMethods extends TreeTranslator {
         Value capturedOpValue(Symbol sym) {
             var capturedVar = top.localToOp.get(sym);
             if (capturedVar == null) {
-                var capturedArg = top.block.parameter(typeToTypeElement(sym.type));
+                var capturedArg = top.block.parameter(typeToCodeType(sym.type));
                 capturedVar = top.block.op(CoreOps.var(sym.name.toString(), capturedArg));
                 top.localToOp.put(sym, capturedVar);
             }
@@ -567,7 +565,7 @@ public class ReflectMethods extends TreeTranslator {
                 // capture this - add captured class symbol to the stack top local mappings
                 var capturedThis = top.localToOp.get(currentClassSym);
                 if (capturedThis == null) {
-                    capturedThis = top.block.parameter(typeToTypeElement(currentClassSym.type));
+                    capturedThis = top.block.parameter(typeToCodeType(currentClassSym.type));
                     top.localToOp.put(currentClassSym, capturedThis);
                 }
                 return capturedThis;
@@ -646,26 +644,26 @@ public class ReflectMethods extends TreeTranslator {
         Value coerce(Value sourceValue, Type sourceType, Type targetType) {
             if (sourceType.isReference() && targetType.isReference() &&
                     !types.isSubtype(types.erasure(sourceType), types.erasure(targetType))) {
-                return append(CoreOps.cast(typeToTypeElement(targetType), sourceValue));
+                return append(CoreOps.cast(typeToCodeType(targetType), sourceValue));
             } else {
                 return convert(sourceValue, targetType);
             }
         }
 
         Value boxIfNeeded(Value exprVal) {
-            Type source = typeElementToType(exprVal.type());
+            Type source = codeTypeToType(exprVal.type());
             return source.hasTag(NONE) ?
                     exprVal : convert(exprVal, types.boxedTypeOrType(source));
         }
 
         Value unboxIfNeeded(Value exprVal) {
-            Type source = typeElementToType(exprVal.type());
+            Type source = codeTypeToType(exprVal.type());
             return source.hasTag(NONE) ?
                     exprVal : convert(exprVal, types.unboxedTypeOrType(source));
         }
 
         Value convert(Value exprVal, Type target) {
-            Type source = typeElementToType(exprVal.type());
+            Type source = codeTypeToType(exprVal.type());
             boolean sourcePrimitive = source.isPrimitive();
             boolean targetPrimitive = target.isPrimitive();
             if (target.hasTag(NONE)) {
@@ -675,7 +673,7 @@ public class ReflectMethods extends TreeTranslator {
                     return exprVal;
                 } else {
                     // implicit primitive conversion
-                    return append(CoreOps.conv(typeToTypeElement(target), exprVal));
+                    return append(CoreOps.conv(typeToCodeType(target), exprVal));
                 }
             } else if (sourcePrimitive) {
                 // we need to box
@@ -695,8 +693,8 @@ public class ReflectMethods extends TreeTranslator {
 
         Value box(Value valueExpr, Type box) {
             // Boxing is a static method e.g., java.lang.Integer::valueOf(int)java.lang.Integer
-            MethodRef boxMethod = MethodRef.method(typeToTypeElement(box), names.valueOf.toString(),
-                    FunctionType.functionType(typeToTypeElement(box), typeToTypeElement(types.unboxedType(box))));
+            MethodRef boxMethod = MethodRef.method(typeToCodeType(box), names.valueOf.toString(),
+                    FunctionType.functionType(typeToCodeType(box), typeToCodeType(types.unboxedType(box))));
             return append(CoreOps.invoke(boxMethod, valueExpr));
         }
 
@@ -705,12 +703,12 @@ public class ReflectMethods extends TreeTranslator {
                 // Object target, first downcast to correct wrapper type
                 unboxedType = primitive;
                 box = types.boxedClass(unboxedType).type;
-                valueExpr = append(CoreOps.cast(typeToTypeElement(box), valueExpr));
+                valueExpr = append(CoreOps.cast(typeToCodeType(box), valueExpr));
             }
             // Unboxing is a virtual method e.g., java.lang.Integer::intValue()int
-            MethodRef unboxMethod = MethodRef.method(typeToTypeElement(box),
+            MethodRef unboxMethod = MethodRef.method(typeToCodeType(box),
                     unboxedType.tsym.name.append(names.Value).toString(),
-                    FunctionType.functionType(typeToTypeElement(unboxedType)));
+                    FunctionType.functionType(typeToCodeType(unboxedType)));
             return append(CoreOps.invoke(unboxMethod, valueExpr));
         }
 
@@ -728,7 +726,7 @@ public class ReflectMethods extends TreeTranslator {
             } else {
                 initOp = append(defaultValue(tree.type));
             }
-            result = append(CoreOps.var(tree.name.toString(), typeToTypeElement(tree.type), initOp));
+            result = append(CoreOps.var(tree.name.toString(), typeToCodeType(tree.type), initOp));
             stack.localToOp.put(tree.sym, result);
         }
 
@@ -804,7 +802,7 @@ public class ReflectMethods extends TreeTranslator {
             // Capture applying rhs and operation
             Function<Value, Value> scanRhs = (lhs) -> {
                 Type unboxedType = types.unboxedTypeOrType(tree.type);
-                JavaType resultType = typeToTypeElement(unboxedType);
+                JavaType resultType = typeToCodeType(unboxedType);
                 Value rhs = toValue(tree.rhs, unboxedType);
                 lhs = unboxIfNeeded(lhs);
 
@@ -847,7 +845,7 @@ public class ReflectMethods extends TreeTranslator {
                             FieldRef fr = symbolToFieldRef(sym, symbolSiteType(sym));
 
                             Op.Result lhsOpValue;
-                            TypeElement resultType = typeToTypeElement(sym.type);
+                            CodeType resultType = typeToCodeType(sym.type);
                             if (sym.isStatic()) {
                                 lhsOpValue = append(CoreOps.fieldLoad(resultType, fr));
                             } else {
@@ -877,7 +875,7 @@ public class ReflectMethods extends TreeTranslator {
                     FieldRef fr = symbolToFieldRef(sym, assign.selected.type);
 
                     Op.Result lhsOpValue;
-                    TypeElement resultType = typeToTypeElement(sym.type);
+                    CodeType resultType = typeToCodeType(sym.type);
                     if (sym.isStatic()) {
                         lhsOpValue = append(CoreOps.fieldLoad(resultType, fr));
                     } else {
@@ -929,7 +927,7 @@ public class ReflectMethods extends TreeTranslator {
                         result = thisValue();
                     } else {
                         FieldRef fr = symbolToFieldRef(sym, symbolSiteType(sym));
-                        TypeElement resultType = typeToTypeElement(sym.type);
+                        CodeType resultType = typeToCodeType(sym.type);
                         if (sym.isStatic()) {
                             result = append(CoreOps.fieldLoad(resultType, fr));
                         } else {
@@ -966,7 +964,7 @@ public class ReflectMethods extends TreeTranslator {
             Value receiver = toValue(tree.selected);
 
             if (tree.name.equals(names._class)) {
-                result = append(CoreOps.constant(JavaType.J_L_CLASS, typeToTypeElement(tree.selected.type)));
+                result = append(CoreOps.constant(JavaType.J_L_CLASS, typeToCodeType(tree.selected.type)));
             } else if (types.isArray(tree.selected.type)) {
                 if (tree.sym.equals(syms.lengthVar)) {
                     result = append(CoreOps.arrayLength(receiver));
@@ -980,7 +978,7 @@ public class ReflectMethods extends TreeTranslator {
                     case FIELD, ENUM_CONSTANT -> {
                         FieldRef fr = symbolToFieldRef(sym, qualifierTarget.hasTag(NONE) ?
                                 tree.selected.type : qualifierTarget);
-                        TypeElement resultType = typeToTypeElement(types.memberType(tree.selected.type, sym));
+                        CodeType resultType = typeToCodeType(types.memberType(tree.selected.type, sym));
                         if (sym.isStatic()) {
                             result = append(CoreOps.fieldLoad(resultType, fr));
                         } else {
@@ -1033,7 +1031,7 @@ public class ReflectMethods extends TreeTranslator {
                     args.addAll(scanMethodArguments(tree.args, tree.meth.type, tree.varargsElement));
 
                     MethodRef mr = symbolToErasedMethodRef(sym, symbolSiteType(sym));
-                    Value res = append(CoreOps.invoke(typeToTypeElement(meth.type.getReturnType()), mr, args));
+                    Value res = append(CoreOps.invoke(typeToCodeType(meth.type.getReturnType()), mr, args));
                     if (sym.type.getReturnType().getTag() != TypeTag.VOID) {
                         result = res;
                     }
@@ -1055,7 +1053,7 @@ public class ReflectMethods extends TreeTranslator {
 
                     MethodRef mr = symbolToErasedMethodRef(sym, qualifierTarget.hasTag(NONE) ?
                             access.selected.type : qualifierTarget);
-                    Value res = append(CoreOps.invoke(typeToTypeElement(meth.type.getReturnType()), mr, args));
+                    Value res = append(CoreOps.invoke(typeToCodeType(meth.type.getReturnType()), mr, args));
                     if (sym.type.getReturnType().getTag() != TypeTag.VOID) {
                         result = res;
                     }
@@ -1112,7 +1110,7 @@ public class ReflectMethods extends TreeTranslator {
                     // Redundant cast
                     result = v;
                 } else {
-                    result = append(CoreOps.conv(typeToTypeElement(type), v));
+                    result = append(CoreOps.conv(typeToCodeType(type), v));
                 }
             } else if (expressionType.isPrimitive() || type.isPrimitive()) {
                 result = convert(v, tree.type);
@@ -1122,8 +1120,8 @@ public class ReflectMethods extends TreeTranslator {
                 result = v;
             } else {
                 // Reference cast
-                JavaType jt = typeToTypeElement(types.erasure(type));
-                result = append(CoreOps.cast(typeToTypeElement(type), jt, v));
+                JavaType jt = typeToCodeType(types.erasure(type));
+                result = append(CoreOps.cast(typeToCodeType(type), jt, v));
             }
         }
 
@@ -1134,7 +1132,7 @@ public class ReflectMethods extends TreeTranslator {
             if (tree.pattern.getTag() != Tag.IDENT) {
                 result = scanPattern(tree.getPattern(), target);
             } else {
-                result = append(CoreOps.instanceOf(typeToTypeElement(tree.pattern.type), target));
+                result = append(CoreOps.instanceOf(typeToCodeType(tree.pattern.type), target));
             }
         }
 
@@ -1142,9 +1140,9 @@ public class ReflectMethods extends TreeTranslator {
             // Type of pattern
             JavaType patternType;
             if (pattern instanceof JCTree.JCBindingPattern p) {
-                patternType = ExtendedOps.Pattern.bindingType(typeToTypeElement(p.type));
+                patternType = ExtendedOps.Pattern.bindingType(typeToCodeType(p.type));
             } else if (pattern instanceof JCTree.JCRecordPattern p) {
-                patternType = ExtendedOps.Pattern.recordType(typeToTypeElement(p.record.type));
+                patternType = ExtendedOps.Pattern.recordType(typeToCodeType(p.record.type));
             } else {
                 throw unsupported(pattern);
             }
@@ -1168,7 +1166,7 @@ public class ReflectMethods extends TreeTranslator {
                     JCVariableDecl var = binding.var;
                     variables.add(var);
 
-                    result = append(ExtendedOps.bindingPattern(typeToTypeElement(var.type), var.name.toString()));
+                    result = append(ExtendedOps.bindingPattern(typeToCodeType(var.type), var.name.toString()));
                 }
 
                 @Override
@@ -1210,12 +1208,12 @@ public class ReflectMethods extends TreeTranslator {
             // builder associated with the nearest statement tree
             for (JCVariableDecl jcVar : variables) {
                 Value init = variablesStack.block.op(defaultValue(jcVar.type));
-                Op.Result op = variablesStack.block.op(CoreOps.var(jcVar.name.toString(), typeToTypeElement(jcVar.type), init));
+                Op.Result op = variablesStack.block.op(CoreOps.var(jcVar.name.toString(), typeToCodeType(jcVar.type), init));
                 variablesStack.localToOp.put(jcVar.sym, op);
             }
 
             // Create pattern descriptor
-            List<JavaType> patternDescParams = variables.stream().map(var -> typeToTypeElement(var.type)).toList();
+            List<JavaType> patternDescParams = variables.stream().map(var -> typeToCodeType(var.type)).toList();
             FunctionType matchFuncType = FunctionType.functionType(JavaType.VOID, patternDescParams);
 
             // Create the match body, assigning pattern values to pattern variables
@@ -1264,7 +1262,7 @@ public class ReflectMethods extends TreeTranslator {
 
             args.addAll(scanMethodArguments(tree.args, tree.constructorType, tree.varargsElement));
 
-            result = append(CoreOps._new(typeToTypeElement(type), constructorType, args));
+            result = append(CoreOps._new(typeToCodeType(type), constructorType, args));
         }
 
         @Override
@@ -1272,7 +1270,7 @@ public class ReflectMethods extends TreeTranslator {
             if (tree.elems != null) {
                 int length = tree.elems.size();
                 Op.Result a = append(CoreOps.newArray(
-                        typeToTypeElement(tree.type),
+                        typeToCodeType(tree.type),
                         append(CoreOps.constant(JavaType.INT, length))));
                 int i = 0;
                 for (JCExpression elem : tree.elems) {
@@ -1291,7 +1289,7 @@ public class ReflectMethods extends TreeTranslator {
                     indexes.add(toValue(dim));
                 }
 
-                JavaType arrayType = typeToTypeElement(tree.type);
+                JavaType arrayType = typeToCodeType(tree.type);
                 FunctionType constructorType = FunctionType.functionType(arrayType,
                         indexes.stream().map(Value::type).toList());
                 result = append(CoreOps._new(arrayType, constructorType, indexes));
@@ -1351,7 +1349,7 @@ public class ReflectMethods extends TreeTranslator {
                 }
                 case QUOTABLE, NOT_QUOTED -> {
                     // Get the functional interface type
-                    JavaType fiType = typeToTypeElement(tree.target);
+                    JavaType fiType = typeToCodeType(tree.target);
                     // build functional lambda
                     yield CoreOps.lambda(fiType, stack.body);
                 }
@@ -1442,7 +1440,7 @@ public class ReflectMethods extends TreeTranslator {
 
             FunctionType caseLabelType = FunctionType.functionType(JavaType.BOOLEAN, target.type());
             Type switchType = adaptBottom(tree.type);
-            FunctionType actionType = FunctionType.functionType(typeToTypeElement(switchType));
+            FunctionType actionType = FunctionType.functionType(typeToCodeType(switchType));
             List<Body.Builder> bodies = new ArrayList<>();
             for (JCTree.JCCase c : tree.cases) {
                 // Labels body
@@ -1657,7 +1655,7 @@ public class ReflectMethods extends TreeTranslator {
         @Override
         public void visitForeachLoop(JCTree.JCEnhancedForLoop tree) {
             // Push expression
-            pushBody(tree.expr, FunctionType.functionType(typeToTypeElement(tree.expr.type)));
+            pushBody(tree.expr, FunctionType.functionType(typeToCodeType(tree.expr.type)));
             Value last = toValue(tree.expr);
             // Yield the Iterable result of the expression
             append(CoreOps._yield(last));
@@ -1667,8 +1665,8 @@ public class ReflectMethods extends TreeTranslator {
             popBody();
 
             JCVariableDecl var = tree.getVariable();
-            JavaType eType = typeToTypeElement(var.type);
-            VarType varEType = VarType.varType(typeToTypeElement(var.type));
+            JavaType eType = typeToCodeType(var.type);
+            VarType varEType = VarType.varType(typeToCodeType(var.type));
 
             // Push init
             // @@@ When lhs assignment is a pattern we embed the pattern match into the init body and
@@ -1717,7 +1715,7 @@ public class ReflectMethods extends TreeTranslator {
 
                 List<VarType> varTypes() {
                     return decls.stream()
-                            .map(t -> VarType.varType(typeToTypeElement(t.type)))
+                            .map(t -> VarType.varType(typeToCodeType(t.type)))
                             .toList();
                 }
 
@@ -1826,7 +1824,7 @@ public class ReflectMethods extends TreeTranslator {
 
             // Push true body
             pushBody(truepart,
-                    FunctionType.functionType(typeToTypeElement(condType)));
+                    FunctionType.functionType(typeToCodeType(condType)));
 
             Value trueVal = toValue(truepart, condType);
             // Yield the result
@@ -1840,7 +1838,7 @@ public class ReflectMethods extends TreeTranslator {
 
             // Push false body
             pushBody(falsepart,
-                    FunctionType.functionType(typeToTypeElement(condType)));
+                    FunctionType.functionType(typeToCodeType(condType)));
 
             Value falseVal = toValue(falsepart, condType);
             // Yield the result
@@ -1850,7 +1848,7 @@ public class ReflectMethods extends TreeTranslator {
             // Pop false body
             popBody();
 
-            result = append(ExtendedOps.conditionalExpression(typeToTypeElement(condType), bodies));
+            result = append(ExtendedOps.conditionalExpression(typeToCodeType(condType), bodies));
         }
 
         private Type condType(JCExpression tree, Type type) {
@@ -1890,7 +1888,7 @@ public class ReflectMethods extends TreeTranslator {
                 JCTree.JCExpression detail = TreeInfo.skipParens(tree.detail);
 
                 pushBody(detail,
-                         FunctionType.functionType(typeToTypeElement(tree.detail.type)));
+                         FunctionType.functionType(typeToCodeType(tree.detail.type)));
                 Value detailVal = toValue(detail);
 
                 append(CoreOps._yield(detailVal));
@@ -1948,7 +1946,7 @@ public class ReflectMethods extends TreeTranslator {
         @Override
         public void visitTry(JCTree.JCTry tree) {
             List<JCVariableDecl> rVariableDecls = new ArrayList<>();
-            List<TypeElement> rTypes = new ArrayList<>();
+            List<CodeType> rTypes = new ArrayList<>();
             Body.Builder resources;
             if (!tree.resources.isEmpty()) {
                 // Resources body returns a tuple that contains the resource variables/values
@@ -1956,9 +1954,9 @@ public class ReflectMethods extends TreeTranslator {
                 for (JCTree resource : tree.resources) {
                     if (resource instanceof JCVariableDecl vdecl) {
                         rVariableDecls.add(vdecl);
-                        rTypes.add(VarType.varType(typeToTypeElement(vdecl.type)));
+                        rTypes.add(VarType.varType(typeToCodeType(vdecl.type)));
                     } else {
-                        rTypes.add(typeToTypeElement(resource.type));
+                        rTypes.add(typeToCodeType(resource.type));
                     }
                 }
 
@@ -2000,7 +1998,7 @@ public class ReflectMethods extends TreeTranslator {
             List<Body.Builder> catchers = new ArrayList<>();
             for (JCTree.JCCatch catcher : tree.catchers) {
                 // Push body
-                pushBody(catcher.body, FunctionType.functionType(JavaType.VOID, typeToTypeElement(catcher.param.type)));
+                pushBody(catcher.body, FunctionType.functionType(JavaType.VOID, typeToCodeType(catcher.param.type)));
                 Op.Result exVariable = append(CoreOps.var(
                         catcher.param.name.toString(),
                         stack.block.parameters().get(0)));
@@ -2162,7 +2160,7 @@ public class ReflectMethods extends TreeTranslator {
                 default -> tree.value;
             };
             Type constantType = adaptBottom(tree.type);
-            result = append(CoreOps.constant(typeToTypeElement(constantType), value));
+            result = append(CoreOps.constant(typeToCodeType(constantType), value));
         }
 
         @Override
@@ -2223,10 +2221,10 @@ public class ReflectMethods extends TreeTranslator {
         }
 
         JavaType symbolToErasedDesc(Symbol s) {
-            return typeToTypeElement(s.erasure(types));
+            return typeToCodeType(s.erasure(types));
         }
 
-        JavaType typeToTypeElement(Type t) {
+        JavaType typeToCodeType(Type t) {
             t = normalizeType(t);
             return switch (t.getTag()) {
                 case VOID -> JavaType.VOID;
@@ -2240,20 +2238,20 @@ public class ReflectMethods extends TreeTranslator {
                 case DOUBLE -> JavaType.DOUBLE;
                 case ARRAY -> {
                     Type et = ((ArrayType)t).elemtype;
-                    yield JavaType.array(typeToTypeElement(et));
+                    yield JavaType.array(typeToCodeType(et));
                 }
                 case WILDCARD -> {
                     Type.WildcardType wt = (Type.WildcardType)t;
                     yield wt.isUnbound() ?
                             JavaType.wildcard() :
-                            JavaType.wildcard(wt.isExtendsBound() ? BoundKind.EXTENDS : BoundKind.SUPER, typeToTypeElement(wt.type));
+                            JavaType.wildcard(wt.isExtendsBound() ? BoundKind.EXTENDS : BoundKind.SUPER, typeToCodeType(wt.type));
                 }
                 case TYPEVAR -> t.tsym.owner.kind == Kind.MTH ?
                         JavaType.typeVarRef(t.tsym.name.toString(), symbolToErasedMethodRef(t.tsym.owner),
-                                typeToTypeElement(t.getUpperBound())) :
+                                typeToCodeType(t.getUpperBound())) :
                         JavaType.typeVarRef(t.tsym.name.toString(),
                                 (jdk.internal.java.lang.reflect.code.type.ClassType)symbolToErasedDesc(t.tsym.owner),
-                                typeToTypeElement(t.getUpperBound()));
+                                typeToCodeType(t.getUpperBound()));
                 case CLASS -> {
                     Assert.check(!t.isIntersection() && !t.isUnion());
                     // @@@ Need to clean this up, probably does not work inner generic classes
@@ -2262,7 +2260,7 @@ public class ReflectMethods extends TreeTranslator {
                     if (t.getTypeArguments().nonEmpty()) {
                         typeArguments = new ArrayList<>();
                         for (Type ta : t.getTypeArguments()) {
-                            typeArguments.add(typeToTypeElement(ta));
+                            typeArguments.add(typeToCodeType(ta));
                         }
                     } else {
                         typeArguments = List.of();
@@ -2293,9 +2291,9 @@ public class ReflectMethods extends TreeTranslator {
         FieldRef symbolToErasedFieldRef(Symbol s) {
             Type erasedType = s.erasure(types);
             return FieldRef.field(
-                    typeToTypeElement(s.owner.erasure(types)),
+                    typeToCodeType(s.owner.erasure(types)),
                     s.name.toString(),
-                    typeToTypeElement(erasedType));
+                    typeToCodeType(erasedType));
         }
 
         MethodRef symbolToErasedMethodRef(Symbol s, Type site) {
@@ -2308,10 +2306,10 @@ public class ReflectMethods extends TreeTranslator {
         MethodRef symbolToErasedMethodRef(Symbol s) {
             Type erasedType = s.erasure(types);
             return MethodRef.method(
-                    typeToTypeElement(s.owner.erasure(types)),
+                    typeToCodeType(s.owner.erasure(types)),
                     s.name.toString(),
-                    typeToTypeElement(erasedType.getReturnType()),
-                    erasedType.getParameterTypes().stream().map(this::typeToTypeElement).toArray(TypeElement[]::new));
+                    typeToCodeType(erasedType.getReturnType()),
+                    erasedType.getParameterTypes().stream().map(this::typeToCodeType).toArray(CodeType[]::new));
         }
 
         FunctionType symbolToFunctionType(Symbol s) {
@@ -2320,41 +2318,41 @@ public class ReflectMethods extends TreeTranslator {
 
         FunctionType typeToFunctionType(Type t) {
             return FunctionType.functionType(
-                    typeToTypeElement(t.getReturnType()),
-                    t.getParameterTypes().stream().map(this::typeToTypeElement).toArray(TypeElement[]::new));
+                    typeToCodeType(t.getReturnType()),
+                    t.getParameterTypes().stream().map(this::typeToCodeType).toArray(CodeType[]::new));
         }
 
         RecordTypeRef symbolToRecordTypeRef(Symbol.ClassSymbol s) {
-            TypeElement recordType = typeToTypeElement(s.type);
+            CodeType recordType = typeToCodeType(s.type);
             List<RecordTypeRef.ComponentRef> components = s.getRecordComponents().stream()
-                    .map(rc -> new RecordTypeRef.ComponentRef(typeToTypeElement(rc.type), rc.name.toString()))
+                    .map(rc -> new RecordTypeRef.ComponentRef(typeToCodeType(rc.type), rc.name.toString()))
                     .toList();
             return RecordTypeRef.recordType(recordType, components);
         }
 
         Op defaultValue(Type t) {
             return switch (t.getTag()) {
-                case BYTE -> CoreOps.constant(typeToTypeElement(t), (byte)0);
-                case CHAR -> CoreOps.constant(typeToTypeElement(t), (char)0);
-                case BOOLEAN -> CoreOps.constant(typeToTypeElement(t), false);
-                case SHORT -> CoreOps.constant(typeToTypeElement(t), (short)0);
-                case INT -> CoreOps.constant(typeToTypeElement(t), 0);
-                case FLOAT -> CoreOps.constant(typeToTypeElement(t), 0f);
-                case LONG -> CoreOps.constant(typeToTypeElement(t), 0L);
-                case DOUBLE -> CoreOps.constant(typeToTypeElement(t), 0d);
-                default -> CoreOps.constant(typeToTypeElement(t), null);
+                case BYTE -> CoreOps.constant(typeToCodeType(t), (byte)0);
+                case CHAR -> CoreOps.constant(typeToCodeType(t), (char)0);
+                case BOOLEAN -> CoreOps.constant(typeToCodeType(t), false);
+                case SHORT -> CoreOps.constant(typeToCodeType(t), (short)0);
+                case INT -> CoreOps.constant(typeToCodeType(t), 0);
+                case FLOAT -> CoreOps.constant(typeToCodeType(t), 0f);
+                case LONG -> CoreOps.constant(typeToCodeType(t), 0L);
+                case DOUBLE -> CoreOps.constant(typeToCodeType(t), 0d);
+                default -> CoreOps.constant(typeToCodeType(t), null);
             };
         }
 
         Op numericOneValue(Type t) {
             return switch (t.getTag()) {
-                case BYTE -> CoreOps.constant(typeToTypeElement(t), (byte)1);
-                case CHAR -> CoreOps.constant(typeToTypeElement(t), (char)1);
-                case SHORT -> CoreOps.constant(typeToTypeElement(t), (short)1);
-                case INT -> CoreOps.constant(typeToTypeElement(t), 1);
-                case FLOAT -> CoreOps.constant(typeToTypeElement(t), 1f);
-                case LONG -> CoreOps.constant(typeToTypeElement(t), 1L);
-                case DOUBLE -> CoreOps.constant(typeToTypeElement(t), 1d);
+                case BYTE -> CoreOps.constant(typeToCodeType(t), (byte)1);
+                case CHAR -> CoreOps.constant(typeToCodeType(t), (char)1);
+                case SHORT -> CoreOps.constant(typeToCodeType(t), (short)1);
+                case INT -> CoreOps.constant(typeToCodeType(t), 1);
+                case FLOAT -> CoreOps.constant(typeToCodeType(t), 1f);
+                case LONG -> CoreOps.constant(typeToCodeType(t), 1L);
+                case DOUBLE -> CoreOps.constant(typeToCodeType(t), 1d);
                 case CLASS -> numericOneValue(types.unboxedType(t));
                 default -> throw new UnsupportedOperationException(t.toString());
             };
@@ -2365,7 +2363,7 @@ public class ReflectMethods extends TreeTranslator {
             return types.upward(t, false, types.captures(t));
         }
 
-        Type typeElementToType(TypeElement desc) {
+        Type codeTypeToType(CodeType desc) {
             return primitiveAndBoxTypeMap().getOrDefault(desc, Type.noType);
         }
 

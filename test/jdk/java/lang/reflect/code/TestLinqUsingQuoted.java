@@ -31,7 +31,7 @@ import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.code.type.JavaType;
-import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.CodeType;
 import java.util.stream.Stream;
 
 import static java.lang.reflect.code.type.MethodRef.method;
@@ -48,7 +48,7 @@ public class TestLinqUsingQuoted {
     // Query interfaces
 
     public interface Queryable {
-        TypeElement elementType();
+        CodeType elementType();
 
         // Queryable<T> -> Queryable<U>
         FuncOp expression();
@@ -71,7 +71,7 @@ public class TestLinqUsingQuoted {
             return insertQuery(c.invokableType().returnType(), "select", c);
         }
 
-        private Queryable insertQuery(TypeElement et, String name, ClosureOp c) {
+        private Queryable insertQuery(CodeType et, String name, ClosureOp c) {
             QueryProvider qp = provider();
 
             FuncOp currentQueryExpression = expression();
@@ -98,7 +98,7 @@ public class TestLinqUsingQuoted {
         // Iterate
         // Queryable -> Stream
         default QueryResult elements() {
-            TypeElement resultType = JavaType.type(JavaType.type(Stream.class), (JavaType) elementType());
+            CodeType resultType = JavaType.type(JavaType.type(Stream.class), (JavaType) elementType());
             return insertQueryResult("elements", resultType);
         }
 
@@ -108,7 +108,7 @@ public class TestLinqUsingQuoted {
             return insertQueryResult("count", JavaType.LONG);
         }
 
-        private QueryResult insertQueryResult(String name, TypeElement resultType) {
+        private QueryResult insertQueryResult(String name, CodeType resultType) {
             QueryProvider qp = provider();
 
             // Copy function expression, replacing return type
@@ -126,7 +126,7 @@ public class TestLinqUsingQuoted {
     }
 
     public interface QueryResult {
-        TypeElement resultType();
+        CodeType resultType();
 
         // Queryable -> QueryResult
         FuncOp expression();
@@ -135,26 +135,26 @@ public class TestLinqUsingQuoted {
     }
 
     public interface QueryProvider {
-        TypeElement queryableType();
+        CodeType queryableType();
 
-        TypeElement queryResultType();
+        CodeType queryResultType();
 
-        Queryable createQuery(TypeElement elementType, FuncOp expression);
+        Queryable createQuery(CodeType elementType, FuncOp expression);
 
-        QueryResult createQueryResult(TypeElement resultType, FuncOp expression);
+        QueryResult createQueryResult(CodeType resultType, FuncOp expression);
 
-        Queryable newQuery(TypeElement elementType);
+        Queryable newQuery(CodeType elementType);
     }
 
 
     // Query implementation
 
     public static final class TestQueryable implements Queryable {
-        final TypeElement elementType;
+        final CodeType elementType;
         final TestQueryProvider provider;
         final FuncOp expression;
 
-        TestQueryable(TypeElement elementType, TestQueryProvider provider) {
+        TestQueryable(CodeType elementType, TestQueryProvider provider) {
             this.elementType = elementType;
             this.provider = provider;
 
@@ -164,14 +164,14 @@ public class TestLinqUsingQuoted {
                     .body(b -> b.op(_return(b.parameters().get(0))));
         }
 
-        TestQueryable(TypeElement elementType, TestQueryProvider provider, FuncOp expression) {
+        TestQueryable(CodeType elementType, TestQueryProvider provider, FuncOp expression) {
             this.elementType = elementType;
             this.provider = provider;
             this.expression = expression;
         }
 
         @Override
-        public TypeElement elementType() {
+        public CodeType elementType() {
             return elementType;
         }
 
@@ -186,7 +186,7 @@ public class TestLinqUsingQuoted {
         }
     }
 
-    public record TestQueryResult(TypeElement resultType, FuncOp expression) implements QueryResult {
+    public record TestQueryResult(CodeType resultType, FuncOp expression) implements QueryResult {
         @Override
         public Object execute() {
             // @@@ Compile/translate the expression and execute it
@@ -195,8 +195,8 @@ public class TestLinqUsingQuoted {
     }
 
     public static final class TestQueryProvider implements QueryProvider {
-        final TypeElement queryableType;
-        final TypeElement queryResultType;
+        final CodeType queryableType;
+        final CodeType queryResultType;
 
         TestQueryProvider() {
             this.queryableType = JavaType.type(Queryable.class);
@@ -204,27 +204,27 @@ public class TestLinqUsingQuoted {
         }
 
         @Override
-        public TypeElement queryableType() {
+        public CodeType queryableType() {
             return queryableType;
         }
 
         @Override
-        public TypeElement queryResultType() {
+        public CodeType queryResultType() {
             return queryResultType;
         }
 
         @Override
-        public TestQueryable createQuery(TypeElement elementType, FuncOp expression) {
+        public TestQueryable createQuery(CodeType elementType, FuncOp expression) {
             return new TestQueryable(elementType, this, expression);
         }
 
         @Override
-        public QueryResult createQueryResult(TypeElement resultType, FuncOp expression) {
+        public QueryResult createQueryResult(CodeType resultType, FuncOp expression) {
             return new TestQueryResult(resultType, expression);
         }
 
         @Override
-        public Queryable newQuery(TypeElement elementType) {
+        public Queryable newQuery(CodeType elementType) {
             return new TestQueryable(elementType, this);
         }
     }

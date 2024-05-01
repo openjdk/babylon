@@ -27,19 +27,16 @@ package java.lang.reflect.code.parser;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.code.Block;
-import java.lang.reflect.code.Body;
+import java.lang.reflect.code.*;
 import java.lang.reflect.code.type.FunctionType;
-import java.lang.reflect.code.type.TypeDefinition;
 import java.lang.reflect.code.op.*;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.Value;
 import java.lang.reflect.code.parser.impl.DescParser;
 import java.lang.reflect.code.parser.impl.Lexer;
 import java.lang.reflect.code.parser.impl.Scanner;
 import java.lang.reflect.code.parser.impl.Tokens;
 import java.lang.reflect.code.type.CoreTypeFactory;
-import java.lang.reflect.code.type.TypeElementFactory;
+import java.lang.reflect.code.type.CodeTypeFactory;
+import java.lang.reflect.code.type.PrimitiveType;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -125,6 +122,8 @@ import java.util.Map;
  */
 public final class OpParser {
 
+    static final CodeType.ExternalizedCodeType VOID = PrimitiveType.VOID.externalize();
+
     /**
      * Parse a code model from its serialized textual form obtained from an input stream.
      *
@@ -137,7 +136,7 @@ public final class OpParser {
         return fromStream(opFactory, CoreTypeFactory.CORE_TYPE_FACTORY, in);
     }
 
-    public static List<Op> fromStream(OpFactory opFactory, TypeElementFactory typeFactory, InputStream in) throws IOException {
+    public static List<Op> fromStream(OpFactory opFactory, CodeTypeFactory typeFactory, InputStream in) throws IOException {
         String s = new String(in.readAllBytes(), StandardCharsets.UTF_8);
         return fromString(opFactory, typeFactory, s);
     }
@@ -153,7 +152,7 @@ public final class OpParser {
         return parse(opFactory, CoreTypeFactory.CORE_TYPE_FACTORY, in);
     }
 
-    public static List<Op> fromString(OpFactory opFactory, TypeElementFactory typeFactory, String in) {
+    public static List<Op> fromString(OpFactory opFactory, CodeTypeFactory typeFactory, String in) {
         return parse(opFactory, typeFactory, in);
     }
 
@@ -171,21 +170,21 @@ public final class OpParser {
         return op;
     }
 
-    static List<Op> parse(OpFactory opFactory, TypeElementFactory typeFactory, String in) {
+    static List<Op> parse(OpFactory opFactory, CodeTypeFactory typeFactory, String in) {
         Lexer lexer = Scanner.factory().newScanner(in);
         lexer.nextToken();
 
         List<OpNode> opNodes = new OpParser(lexer).parseNodes();
 
         Context c = new Context(opFactory, typeFactory);
-        return opNodes.stream().map(n -> nodeToOp(n, TypeDefinition.VOID, c, null)).toList();
+        return opNodes.stream().map(n -> nodeToOp(n, VOID, c, null)).toList();
     }
 
 
     static final class Context {
         final Context parent;
         final OpFactory opFactory;
-        final TypeElementFactory typeFactory;
+        final CodeTypeFactory typeFactory;
         final Map<String, Value> valueMap;
         final Map<String, Block.Builder> blockMap;
 
@@ -197,7 +196,7 @@ public final class OpParser {
             this.blockMap = new HashMap<>();
         }
 
-        Context(OpFactory opFactory, TypeElementFactory typeFactory) {
+        Context(OpFactory opFactory, CodeTypeFactory typeFactory) {
             this.parent = null;
             this.opFactory = opFactory;
             this.typeFactory = typeFactory;
@@ -238,12 +237,12 @@ public final class OpParser {
         }
     }
 
-    static Op nodeToOp(OpNode opNode, TypeDefinition rtype, Context c, Body.Builder ancestorBody) {
+    static Op nodeToOp(OpNode opNode, CodeType.ExternalizedCodeType rtype, Context c, Body.Builder ancestorBody) {
         ExternalizableOp.ExternalizedOp opdef = nodeToOpDef(opNode, rtype, c, ancestorBody);
         return c.opFactory.constructOpOrFail(opdef);
     }
 
-    static ExternalizableOp.ExternalizedOp nodeToOpDef(OpNode opNode, TypeDefinition rtype, Context c, Body.Builder ancestorBody) {
+    static ExternalizableOp.ExternalizedOp nodeToOpDef(OpNode opNode, CodeType.ExternalizedCodeType rtype, Context c, Body.Builder ancestorBody) {
         String operationName = opNode.name;
         List<Value> operands = opNode.operands.stream().map(c::getValue).toList();
         List<Block.Reference> successors = opNode.successors.stream()
@@ -297,7 +296,7 @@ public final class OpParser {
                     Op.Result v = b.op(nodeToOp(on, r.type, c, body));
                     c.putValue(r.name, v);
                 } else {
-                    b.op(nodeToOp(on, TypeDefinition.VOID, c, body));
+                    b.op(nodeToOp(on, VOID, c, body));
                 }
             }
         }
@@ -323,7 +322,7 @@ public final class OpParser {
                          List<String> arguments) {
     }
 
-    record BodyNode(TypeDefinition rtype,
+    record BodyNode(CodeType.ExternalizedCodeType rtype,
                     List<BlockNode> blocks) {
     }
 
@@ -333,7 +332,7 @@ public final class OpParser {
     }
 
     record ValueNode(String name,
-                     TypeDefinition type) {
+                     CodeType.ExternalizedCodeType type) {
     }
 
     final Lexer lexer;
@@ -515,7 +514,7 @@ public final class OpParser {
         // Entry block header
         List<ValueNode> arguments = parseBlockHeaderArguments(true);
         // Body return type
-        TypeDefinition rtype = parseTypeDef();
+        CodeType.ExternalizedCodeType rtype = parseExternalizedCodeType();
 
         lexer.accept(Tokens.TokenKind.ARROW);
         lexer.accept(Tokens.TokenKind.LBRACE);
@@ -553,7 +552,7 @@ public final class OpParser {
 
         lexer.accept(Tokens.TokenKind.COLON);
 
-        TypeDefinition type = parseTypeDef();
+        CodeType.ExternalizedCodeType type = parseExternalizedCodeType();
 
         return new ValueNode(valueName, type);
     }
@@ -600,8 +599,8 @@ public final class OpParser {
         return name.toString();
     }
 
-    TypeDefinition parseTypeDef() {
-        return DescParser.parseTypeDefinition(lexer);
+    CodeType.ExternalizedCodeType parseExternalizedCodeType() {
+        return DescParser.parseExternalizedCodeType(lexer);
     }
 }
 

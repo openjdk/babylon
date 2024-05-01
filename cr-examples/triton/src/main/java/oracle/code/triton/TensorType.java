@@ -25,8 +25,7 @@
 
 package oracle.code.triton;
 
-import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.type.TypeDefinition;
+import java.lang.reflect.code.CodeType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -34,11 +33,11 @@ import java.util.Objects;
 public final class TensorType extends TritonType {
     static final String NAME = "tensor";
 
-    final TypeElement eType;
+    final CodeType eType;
     final List<Integer> shape;
     final int size;
 
-    public TensorType(TypeElement eType, List<Integer> shape) {
+    public TensorType(CodeType eType, List<Integer> shape) {
         this.eType = eType;
         this.shape = List.copyOf(shape);
         int s = 1;
@@ -48,7 +47,7 @@ public final class TensorType extends TritonType {
         this.size = s;
     }
 
-    public TypeElement eType() {
+    public CodeType eType() {
         return eType;
     }
 
@@ -74,17 +73,17 @@ public final class TensorType extends TritonType {
     }
 
     @Override
-    public TypeDefinition toTypeDefinition() {
-        List<TypeDefinition> args = new ArrayList<>();
+    public ExternalizedCodeType externalize() {
+        List<ExternalizedCodeType> args = new ArrayList<>();
         for (int i : shape) {
-            args.add(new TypeDefinition("x" + i, List.of()));
+            args.add(new ExternalizedCodeType("x" + i, List.of()));
         }
-        args.add(eType.toTypeDefinition());
-        return new TypeDefinition(NAME, args);
+        args.add(eType.externalize());
+        return new ExternalizedCodeType(NAME, args);
     }
 
     @Override
     public String toString() {
-        return toTypeDefinition().toString();
+        return externalize().toString();
     }
 }

@@ -30,23 +30,23 @@ import java.util.Map;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.CopyContext;
-import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.CodeType;
 import java.lang.reflect.code.type.JavaType;
 
 public abstract class SpirvOp extends Op {
-    private final TypeElement type;
+    private final CodeType type;
 
     SpirvOp(String opName) {
         super(opName, List.of());
         this.type = JavaType.VOID;
     }
 
-    SpirvOp(String opName, TypeElement type, List<Value> operands) {
+    SpirvOp(String opName, CodeType type, List<Value> operands) {
         super(opName, operands);
         this.type = type;
     }
 
-    SpirvOp(String opName, TypeElement type, List<Value> operands, Map<String, Object> attributes) {
+    SpirvOp(String opName, CodeType type, List<Value> operands, Map<String, Object> attributes) {
         super(opName, operands);
         this.type = type;
     }
@@ -57,7 +57,7 @@ public abstract class SpirvOp extends Op {
     }
 
     @Override
-    public TypeElement resultType() {
+    public CodeType resultType() {
         return type;
     }
 }

@@ -34,7 +34,7 @@ import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.CodeType;
 import java.lang.runtime.CodeReflection;
 import java.util.List;
 import java.util.Optional;
@@ -319,7 +319,7 @@ public class TestLocalTransformationsAdaption {
         return vs.stream().map(v -> formatString(v.type())).collect(Collectors.joining(","));
     }
 
-    static String formatString(TypeElement t) {
+    static String formatString(CodeType t) {
         if (t.equals(INT)) {
             return "%d";
         } else {

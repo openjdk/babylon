@@ -43,7 +43,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Quotable;
-import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.CodeType;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.runtime.CodeReflection;
@@ -542,7 +542,7 @@ public class TestBytecode {
     private static Object invokeAndConvert(CoreOps.FuncOp func, Object[] args) {
         Object ret = Interpreter.invoke(func, args);
         if (ret instanceof Integer i) {
-            TypeElement rt = func.invokableType().returnType();
+            CodeType rt = func.invokableType().returnType();
             if (rt.equals(JavaType.BOOLEAN)) {
                 return i != 0;
             } else if (rt.equals(JavaType.BYTE)) {

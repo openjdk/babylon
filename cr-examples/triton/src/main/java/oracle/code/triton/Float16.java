@@ -25,12 +25,12 @@
 
 package oracle.code.triton;
 
-import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.CodeType;
 import java.lang.reflect.code.type.JavaType;
 
 // Fake float 16 type
 public final class Float16 extends TritonNumber {
-    static final TypeElement FLOAT_16_TYPE = JavaType.type(Float16.class);
+    static final CodeType FLOAT_16_TYPE = JavaType.type(Float16.class);
 
     private Float16() {
     }

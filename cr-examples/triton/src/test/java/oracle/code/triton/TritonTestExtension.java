@@ -33,7 +33,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.CodeType;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.parser.OpParser;
 import java.lang.reflect.code.type.JavaType;
@@ -74,7 +74,7 @@ public class TritonTestExtension implements ParameterResolver {
             this.javaKernelName = javaKernelName;
         }
 
-        public void test(List<? extends TypeElement> argTypes) {
+        public void test(List<? extends CodeType> argTypes) {
             Optional<Method> om = Stream.of(testClass.getDeclaredMethods())
                     .filter(m -> m.getName().equals(javaKernelName))
                     .filter(m -> m.getAnnotation(CodeReflection.class) != null)
@@ -100,7 +100,7 @@ public class TritonTestExtension implements ParameterResolver {
         }
 
         void test(CoreOps.FuncOp javaKernel,
-                  List<? extends TypeElement> argTypes,
+                  List<? extends CodeType> argTypes,
                   TritonOps.ModuleOp expectedTritonKernel,
                   boolean doSSA) {
             TritonOps.ModuleOp actualTritonKernel = ScopedValue.getWhere(TritonTransformer.SV_SSA, doSSA,() -> {

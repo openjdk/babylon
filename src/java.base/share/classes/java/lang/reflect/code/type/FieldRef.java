@@ -29,17 +29,17 @@ import java.lang.reflect.code.type.impl.FieldRefImpl;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.lang.reflect.Field;
-import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.CodeType;
 
 /**
  * The symbolic reference to a Java field.
  */
 public sealed interface FieldRef permits FieldRefImpl {
-    TypeElement refType();
+    CodeType refType();
 
     String name();
 
-    TypeElement type();
+    CodeType type();
 
     // Conversions
 
@@ -57,7 +57,7 @@ public sealed interface FieldRef permits FieldRefImpl {
         return field(JavaType.type(refType), name, JavaType.type(type));
     }
 
-    static FieldRef field(TypeElement refType, String name, TypeElement type) {
+    static FieldRef field(CodeType refType, String name, CodeType type) {
         return new FieldRefImpl(refType, name, type);
     }
 

@@ -27,22 +27,22 @@ package java.lang.reflect.code.type.impl;
 
 import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.type.RecordTypeRef;
-import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.CodeType;
 import java.util.List;
 
 import static java.util.stream.Collectors.joining;
 
 public final class RecordTypeRefImpl implements RecordTypeRef {
-    final TypeElement recordType;
+    final CodeType recordType;
     final List<ComponentRef> components;
 
-    public RecordTypeRefImpl(TypeElement recordType, List<ComponentRef> components) {
+    public RecordTypeRefImpl(CodeType recordType, List<ComponentRef> components) {
         this.recordType = recordType;
         this.components = List.copyOf(components);
     }
 
     @Override
-    public TypeElement recordType() {
+    public CodeType recordType() {
         return recordType;
     }
 

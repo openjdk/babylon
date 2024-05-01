@@ -46,7 +46,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.Op;
-import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.CodeType;
 import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.reflect.code.interpreter.Interpreter;
@@ -245,7 +245,7 @@ public class CoreBinaryOpsTest {
                 throw new IllegalArgumentException("Only FuncOps with exactly one distinct parameter type are supported");
             }
             // if the return type does not match the input types, we keep it
-            TypeElement retType = functionType.returnType().equals(functionType.parameterTypes().getFirst())
+            CodeType retType = functionType.returnType().equals(functionType.parameterTypes().getFirst())
                     ? type
                     : functionType.returnType();
             return CoreOps.func(original.funcName(), FunctionType.functionType(retType, type, type))
@@ -266,7 +266,7 @@ public class CoreBinaryOpsTest {
 
         private static Stream<Arguments> argumentsForMethod(CoreOps.FuncOp funcOp, Method testMethod) {
             Parameter[] testMethodParameters = testMethod.getParameters();
-            List<TypeElement> funcParameters = funcOp.invokableType().parameterTypes();
+            List<CodeType> funcParameters = funcOp.invokableType().parameterTypes();
             if (testMethodParameters.length - 1 != funcParameters.size()) {
                 throw new IllegalArgumentException("method " + testMethod + " does not take the correct number of parameters");
             }
@@ -283,7 +283,7 @@ public class CoreBinaryOpsTest {
                 }
             }
             List<List<Object>> allInputs = new ArrayList<>();
-            for (TypeElement parameterType : funcParameters) {
+            for (CodeType parameterType : funcParameters) {
                 allInputs.add(INTERESTING_INPUTS.get((JavaType) parameterType));
             }
             return cartesianProduct(allInputs)
@@ -294,9 +294,9 @@ public class CoreBinaryOpsTest {
                     .map(Arguments::of);
         }
 
-        private static Class<?> resolveParameter(TypeElement typeElement, MethodHandles.Lookup lookup) {
+        private static Class<?> resolveParameter(CodeType codeType, MethodHandles.Lookup lookup) {
             try {
-                return ((JavaType) typeElement).resolve(lookup);
+                return ((JavaType) codeType).resolve(lookup);
             } catch (ReflectiveOperationException e) {
                 throw new RuntimeException(e);
             }

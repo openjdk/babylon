@@ -41,7 +41,7 @@ import java.lang.constant.ConstantDescs;
 import java.lang.reflect.AccessFlag;
 
 import java.lang.reflect.code.Block;
-import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.CodeType;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
@@ -76,7 +76,7 @@ public final class BytecodeLift {
         return tk.typeName() + slot;
     }
 
-    private static TypeElement toTypeElement(StackMapFrameInfo.VerificationTypeInfo vti) {
+    private static CodeType toCodeType(StackMapFrameInfo.VerificationTypeInfo vti) {
         return switch (vti) {
             case ITEM_INTEGER -> JavaType.INT;
             case ITEM_FLOAT -> JavaType.FLOAT;
@@ -93,7 +93,7 @@ public final class BytecodeLift {
         };
     }
 
-    private TypeElement toTypeElement(ClassEntry ce) {
+    private CodeType toCodeType(ClassEntry ce) {
         return JavaType.ofNominalDescriptor(ce.asSymbol());
     }
 
@@ -116,7 +116,7 @@ public final class BytecodeLift {
         this.blockMap = codeModel.findAttribute(Attributes.STACK_MAP_TABLE).map(sma ->
                 sma.entries().stream().collect(Collectors.toUnmodifiableMap(
                         StackMapFrameInfo::target,
-                        smfi -> entryBlock.block(smfi.stack().stream().map(BytecodeLift::toTypeElement).toList())))).orElse(Map.of());
+                        smfi -> entryBlock.block(smfi.stack().stream().map(BytecodeLift::toCodeType).toList())))).orElse(Map.of());
     }
 
     private void varStore(int slot, TypeKind tk, Value value) {

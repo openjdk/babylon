@@ -49,7 +49,7 @@ import java.lang.reflect.code.type.FieldRef;
 import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
-import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.CodeType;
 import java.lang.reflect.code.type.VarType;
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -384,7 +384,7 @@ public final class BytecodeGenerator {
         return use.op() instanceof CoreOps.ConditionalBranchOp;
     }
 
-    private static ClassDesc toClassDesc(TypeElement t) {
+    private static ClassDesc toClassDesc(CodeType t) {
         return switch (t) {
             case VarType vt -> toClassDesc(vt.valueType());
             case JavaType jt -> jt.toNominalDescriptor();
@@ -393,11 +393,11 @@ public final class BytecodeGenerator {
         };
     }
 
-    private static TypeKind toTypeKind(TypeElement t) {
+    private static TypeKind toTypeKind(CodeType t) {
         return switch (t) {
             case VarType vt -> toTypeKind(vt.valueType());
             case JavaType jt -> {
-                TypeElement bt = jt.toBasicType();
+                CodeType bt = jt.toBasicType();
                 if (bt.equals(JavaType.VOID)) {
                     yield TypeKind.VoidType;
                 } else if (bt.equals(JavaType.INT)) {
@@ -522,7 +522,7 @@ public final class BytecodeGenerator {
             oprOnStack = null;
             for (int i = 0; i < ops.size() - 1; i++) {
                 final Op o = ops.get(i);
-                final TypeElement oprType = o.resultType();
+                final CodeType oprType = o.resultType();
                 final TypeKind rvt = toTypeKind(oprType);
                 switch (o) {
                     case ConstantOp op -> {
@@ -952,7 +952,7 @@ public final class BytecodeGenerator {
 
     // the rhs of any shift instruction must be int or smaller -> convert longs
     private void adjustRightTypeToInt(Op op) {
-        TypeElement right = op.operands().getLast().type();
+        CodeType right = op.operands().getLast().type();
         if (right.equals(JavaType.LONG)) {
             cob.convertInstruction(toTypeKind(right), TypeKind.IntType);
         }
@@ -1133,7 +1133,7 @@ public final class BytecodeGenerator {
         List<Value> captures = lop.capturedValues();
 
         // Build the function type
-        List<TypeElement> params = captures.stream()
+        List<CodeType> params = captures.stream()
                 .map(v -> v.type() instanceof VarType vt ? vt.valueType() : v.type())
                 .toList();
         FunctionType ft = FunctionType.functionType(CoreOps.QuotedOp.QUOTED_TYPE, params);

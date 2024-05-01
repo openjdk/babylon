@@ -30,21 +30,21 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.lang.reflect.Field;
 import java.lang.reflect.code.type.JavaType;
-import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.CodeType;
 
 public final class FieldRefImpl implements FieldRef {
-    final TypeElement refType;
+    final CodeType refType;
     final String name;
-    final TypeElement type;
+    final CodeType type;
 
-    public FieldRefImpl(TypeElement refType, String name, TypeElement type) {
+    public FieldRefImpl(CodeType refType, String name, CodeType type) {
         this.refType = refType;
         this.name = name;
         this.type = type;
     }
 
     @Override
-    public TypeElement refType() {
+    public CodeType refType() {
         return refType;
     }
 
@@ -54,7 +54,7 @@ public final class FieldRefImpl implements FieldRef {
     }
 
     @Override
-    public TypeElement type() {
+    public CodeType type() {
         return type;
     }
 
@@ -102,7 +102,7 @@ public final class FieldRefImpl implements FieldRef {
         return vh;
     }
 
-    static Class<?> resolve(MethodHandles.Lookup l, TypeElement t) throws ReflectiveOperationException {
+    static Class<?> resolve(MethodHandles.Lookup l, CodeType t) throws ReflectiveOperationException {
         if (t instanceof JavaType jt) {
             return jt.resolve(l);
         } else {

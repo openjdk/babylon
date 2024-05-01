@@ -26,7 +26,7 @@
 package java.lang.reflect.code.type;
 
 import java.lang.reflect.code.type.impl.RecordTypeRefImpl;
-import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.CodeType;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -34,14 +34,14 @@ import java.util.stream.Stream;
  * The symbolic reference to a Java record type.
  */
 public sealed interface RecordTypeRef permits RecordTypeRefImpl {
-    TypeElement recordType();
+    CodeType recordType();
 
     /**
      * The symbolic reference to a Java record component.
      * @param type the type of the component
      * @param name the name of the component
      */
-    record ComponentRef(TypeElement type, String name) {}
+    record ComponentRef(CodeType type, String name) {}
 
     List<ComponentRef> components();
 
@@ -56,11 +56,11 @@ public sealed interface RecordTypeRef permits RecordTypeRefImpl {
         return recordType(JavaType.type(c), components);
     }
 
-    static RecordTypeRef recordType(TypeElement recordType, ComponentRef... components) {
+    static RecordTypeRef recordType(CodeType recordType, ComponentRef... components) {
         return recordType(recordType, List.of(components));
     }
 
-    static RecordTypeRef recordType(TypeElement recordType, List<ComponentRef> components) {
+    static RecordTypeRef recordType(CodeType recordType, List<ComponentRef> components) {
         return new RecordTypeRefImpl(recordType, components);
     }
 

@@ -1,6 +1,6 @@
 package java.lang.reflect.code.type;
 
-import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.CodeType;
 import java.lang.reflect.code.Value;
 import java.util.List;
 import java.util.Objects;
@@ -9,30 +9,30 @@ import java.util.stream.Stream;
 /**
  * A tuple type.
  */
-public final class TupleType implements TypeElement {
+public final class TupleType implements CodeType {
     static final String NAME = "Tuple";
 
-    final List<TypeElement> componentTypes;
+    final List<CodeType> componentTypes;
 
-    TupleType(List<? extends TypeElement> componentTypes) {
+    TupleType(List<? extends CodeType> componentTypes) {
         this.componentTypes = List.copyOf(componentTypes);
     }
 
     /**
      * {@return the tuple's component types, in order}
      */
-    public List<TypeElement> componentTypes() {
+    public List<CodeType> componentTypes() {
         return componentTypes;
     }
 
     @Override
-    public TypeDefinition toTypeDefinition() {
-        return new TypeDefinition(NAME, componentTypes.stream().map(TypeElement::toTypeDefinition).toList());
+    public ExternalizedCodeType externalize() {
+        return new ExternalizedCodeType(NAME, componentTypes.stream().map(CodeType::externalize).toList());
     }
 
     @Override
     public String toString() {
-        return toTypeDefinition().toString();
+        return externalize().toString();
     }
 
     @Override
@@ -52,7 +52,7 @@ public final class TupleType implements TypeElement {
      * @param componentTypes the tuple type's component types.
      * @return a tuple type.
      */
-    public static TupleType tupleType(List<? extends TypeElement> componentTypes) {
+    public static TupleType tupleType(List<? extends CodeType> componentTypes) {
         Objects.requireNonNull(componentTypes);
         return new TupleType(componentTypes);
     }
@@ -63,7 +63,7 @@ public final class TupleType implements TypeElement {
      * @param componentTypes the tuple type's component types.
      * @return a tuple type.
      */
-    public static TupleType tupleType(TypeElement... componentTypes) {
+    public static TupleType tupleType(CodeType... componentTypes) {
         return tupleType(List.of(componentTypes));
     }
 

@@ -56,14 +56,14 @@ public final class WildcardType implements JavaType {
     }
 
     @Override
-    public TypeDefinition toTypeDefinition() {
+    public ExternalizedCodeType externalize() {
         String prefix = kind == BoundKind.EXTENDS ? "+" : "-";
-        return new TypeDefinition(prefix, List.of(boundType.toTypeDefinition()));
+        return new ExternalizedCodeType(prefix, List.of(boundType.externalize()));
     }
 
     @Override
     public String toString() {
-        return toTypeDefinition().toString();
+        return externalize().toString();
     }
 
     @Override

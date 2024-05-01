@@ -53,7 +53,7 @@ import java.lang.reflect.code.Body;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.op.CoreOps;
-import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.CodeType;
 import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.type.ClassType;
 import java.lang.reflect.code.type.JavaType;
@@ -124,10 +124,10 @@ public class SpirvModuleGenerator {
     }
 
     private void generateFunction(String moduleName, String fnName, SpirvOps.FuncOp func) {
-        TypeElement returnType = func.invokableType().returnType();
+        CodeType returnType = func.invokableType().returnType();
         SPIRVId functionID = nextId(fnName);
         String signature = func.invokableType().returnType().toString();
-        List<TypeElement> paramTypes = func.invokableType().parameterTypes();
+        List<CodeType> paramTypes = func.invokableType().parameterTypes();
         // build signature string
         for (int i = 0; i < paramTypes.size(); i++) {
             signature += "_" + paramTypes.get(i).toString();

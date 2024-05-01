@@ -25,7 +25,7 @@
 
 package java.lang.reflect.code.type;
 
-import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.CodeType;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -53,18 +53,18 @@ public final class ClassType implements TypeVarRef.Owner, JavaType {
     }
 
     @Override
-    public TypeDefinition toTypeDefinition() {
-        List<TypeDefinition> args = typeArguments.stream()
-                .map(TypeElement::toTypeDefinition)
+    public ExternalizedCodeType externalize() {
+        List<ExternalizedCodeType> args = typeArguments.stream()
+                .map(CodeType::externalize)
                 .toList();
 
-        TypeDefinition td = new TypeDefinition(type, args);
+        ExternalizedCodeType td = new ExternalizedCodeType(type, args);
         return td;
     }
 
     @Override
     public String toString() {
-        return toTypeDefinition().toString();
+        return externalize().toString();
     }
 
     @Override

@@ -28,14 +28,13 @@ package java.lang.reflect.code.parser.impl;
 import java.lang.reflect.code.parser.impl.Tokens.Token;
 import java.lang.reflect.code.parser.impl.Tokens.TokenKind;
 import java.lang.reflect.code.type.*;
-import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.CodeType;
 import java.lang.reflect.code.type.RecordTypeRef;
 import java.lang.reflect.code.type.impl.FieldRefImpl;
 import java.lang.reflect.code.type.impl.MethodRefImpl;
 import java.lang.reflect.code.type.impl.RecordTypeRefImpl;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public final class DescParser {
     private DescParser() {}
@@ -45,10 +44,10 @@ public final class DescParser {
      * @param desc the serialized type definition
      * @return the type definition
      */
-    public static TypeDefinition parseTypeDefinition(String desc) {
+    public static CodeType.ExternalizedCodeType parseExternalizedCodeType(String desc) {
         Scanner s = Scanner.factory().newScanner(desc);
         s.nextToken();
-        return parseTypeDefinition(s);
+        return parseExternalizedCodeType(s);
     }
 
     /**
@@ -87,7 +86,7 @@ public final class DescParser {
         return parseRecordTypeRef(s);
     }
 
-    public static TypeDefinition parseTypeDefinition(Lexer l) {
+    public static CodeType.ExternalizedCodeType parseExternalizedCodeType(Lexer l) {
         StringBuilder identifier = new StringBuilder();
         if (l.token().kind == TokenKind.HASH) {
             // Quoted identifier
@@ -110,12 +109,12 @@ public final class DescParser {
         }
 
         // Type parameters
-        List<TypeDefinition> args;
+        List<CodeType.ExternalizedCodeType> args;
         if (l.token().kind == Tokens.TokenKind.LT) {
             args = new ArrayList<>();
             do {
                 l.nextToken();
-                TypeDefinition arg = parseTypeDefinition(l);
+                CodeType.ExternalizedCodeType arg = parseExternalizedCodeType(l);
                 args.add(arg);
             } while (l.token().kind == Tokens.TokenKind.COMMA);
             l.accept(Tokens.TokenKind.GT);
@@ -132,37 +131,37 @@ public final class DescParser {
             dims++;
         }
 
-        TypeDefinition td = new TypeDefinition(identifier.toString(), args);
+        CodeType.ExternalizedCodeType td = new CodeType.ExternalizedCodeType(identifier.toString(), args);
         if (dims > 0) {
             // If array-like then type definition becomes a child with identifier [+
-            return new TypeDefinition("[".repeat(dims), List.of(td));
+            return new CodeType.ExternalizedCodeType("[".repeat(dims), List.of(td));
         } else {
             return td;
         }
     }
 
-    static TypeElement parseTypeElement(Lexer l) {
-        TypeDefinition typeDesc = parseTypeDefinition(l);
+    static CodeType parseCodeType(Lexer l) {
+        CodeType.ExternalizedCodeType typeDesc = parseExternalizedCodeType(l);
         return CoreTypeFactory.CORE_TYPE_FACTORY.constructType(typeDesc);
     }
 
     // (T, T, T, T)R
     static FunctionType parseMethodType(Lexer l) {
-        List<TypeElement> ptypes = new ArrayList<>();
+        List<CodeType> ptypes = new ArrayList<>();
         l.accept(Tokens.TokenKind.LPAREN);
         if (l.token().kind != Tokens.TokenKind.RPAREN) {
-            ptypes.add(parseTypeElement(l));
+            ptypes.add(parseCodeType(l));
             while (l.acceptIf(Tokens.TokenKind.COMMA)) {
-                ptypes.add(parseTypeElement(l));
+                ptypes.add(parseCodeType(l));
             }
         }
         l.accept(Tokens.TokenKind.RPAREN);
-        TypeElement rtype = parseTypeElement(l);
+        CodeType rtype = parseCodeType(l);
         return FunctionType.functionType(rtype, ptypes);
     }
 
     static MethodRef parseMethodRef(Lexer l) {
-        TypeElement refType = parseTypeElement(l);
+        CodeType refType = parseCodeType(l);
 
         l.accept(Tokens.TokenKind.COLCOL);
 
@@ -182,7 +181,7 @@ public final class DescParser {
     }
 
     static FieldRef parseFieldRef(Lexer l) {
-        TypeElement refType = parseTypeElement(l);
+        CodeType refType = parseCodeType(l);
 
         l.accept(Tokens.TokenKind.COLCOL);
 
@@ -200,14 +199,14 @@ public final class DescParser {
         l.accept(Tokens.TokenKind.LPAREN);
         if (l.token().kind != Tokens.TokenKind.RPAREN) {
             do {
-                TypeElement componentType = parseTypeElement(l);
+                CodeType componentType = parseCodeType(l);
                 String componentName = l.accept(Tokens.TokenKind.IDENTIFIER).name();
 
                 components.add(new RecordTypeRef.ComponentRef(componentType, componentName));
             } while(l.acceptIf(Tokens.TokenKind.COMMA));
         }
         l.accept(Tokens.TokenKind.RPAREN);
-        TypeElement recordType = parseTypeElement(l);
+        CodeType recordType = parseCodeType(l);
         return new RecordTypeRefImpl(recordType, components);
     }
 }

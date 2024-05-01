@@ -34,7 +34,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Executable;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.CodeType;
 import java.util.List;
 import java.util.Optional;
 
@@ -53,7 +53,7 @@ import static java.lang.reflect.code.type.FunctionType.functionType;
 //  We can infer the kind, if we can resolve the types and lookup the declared method
 public sealed interface MethodRef extends TypeVarRef.Owner permits MethodRefImpl {
 
-    TypeElement refType();
+    CodeType refType();
 
     String name();
 
@@ -86,15 +86,15 @@ public sealed interface MethodRef extends TypeVarRef.Owner permits MethodRefImpl
     }
 
 
-    static MethodRef method(TypeElement refType, String name, FunctionType type) {
+    static MethodRef method(CodeType refType, String name, FunctionType type) {
         return new MethodRefImpl(refType, name, type);
     }
 
-    static MethodRef method(TypeElement refType, String name, TypeElement retType, TypeElement... params) {
+    static MethodRef method(CodeType refType, String name, CodeType retType, CodeType... params) {
         return method(refType, name, functionType(retType, params));
     }
 
-    static MethodRef method(TypeElement refType, String name, TypeElement retType, List<? extends TypeElement> params) {
+    static MethodRef method(CodeType refType, String name, CodeType retType, List<? extends CodeType> params) {
         return method(refType, name, functionType(retType, params));
     }
 
@@ -119,7 +119,7 @@ public sealed interface MethodRef extends TypeVarRef.Owner permits MethodRefImpl
                 t.parameterTypes().stream().map(MethodRef::toClassDesc).toList());
     }
 
-    private static ClassDesc toClassDesc(TypeElement e) {
+    private static ClassDesc toClassDesc(CodeType e) {
         if (!(e instanceof JavaType jt)) {
             throw new IllegalArgumentException();
         }

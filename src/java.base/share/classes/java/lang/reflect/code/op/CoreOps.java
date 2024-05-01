@@ -168,7 +168,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
     }
@@ -184,7 +184,7 @@ public final class CoreOps {
         public static final String ATTRIBUTE_FUNC_NAME = NAME + ".name";
 
         final String funcName;
-        final TypeElement resultType;
+        final CodeType resultType;
 
         public static FuncCallOp create(ExternalizedOp def) {
             String funcName = def.extractAttributeValue(ATTRIBUTE_FUNC_NAME, true,
@@ -215,7 +215,7 @@ public final class CoreOps {
             return new FuncCallOp(this, cc);
         }
 
-        FuncCallOp(String funcName, TypeElement resultType, List<Value> args) {
+        FuncCallOp(String funcName, CodeType resultType, List<Value> args) {
             super(NAME, args);
 
             this.funcName = funcName;
@@ -234,7 +234,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return resultType;
         }
     }
@@ -319,7 +319,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
     }
@@ -405,7 +405,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return QUOTED_TYPE;
         }
     }
@@ -419,9 +419,9 @@ public final class CoreOps {
         public static class Builder {
             final Body.Builder ancestorBody;
             final FunctionType funcType;
-            final TypeElement functionalInterface;
+            final CodeType functionalInterface;
 
-            Builder(Body.Builder ancestorBody, FunctionType funcType, TypeElement functionalInterface) {
+            Builder(Body.Builder ancestorBody, FunctionType funcType, CodeType functionalInterface) {
                 this.ancestorBody = ancestorBody;
                 this.funcType = funcType;
                 this.functionalInterface = functionalInterface;
@@ -436,7 +436,7 @@ public final class CoreOps {
 
         public static final String NAME = "lambda";
 
-        final TypeElement functionalInterface;
+        final CodeType functionalInterface;
         final Body body;
 
         public LambdaOp(ExternalizedOp def) {
@@ -458,7 +458,7 @@ public final class CoreOps {
             return new LambdaOp(this, cc, ot);
         }
 
-        LambdaOp(TypeElement functionalInterface, Body.Builder bodyC) {
+        LambdaOp(CodeType functionalInterface, Body.Builder bodyC) {
             super(NAME,
                     List.of());
 
@@ -476,7 +476,7 @@ public final class CoreOps {
             return body.bodyType();
         }
 
-        public TypeElement functionalInterface() {
+        public CodeType functionalInterface() {
             return functionalInterface;
         }
 
@@ -505,7 +505,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return functionalInterface();
         }
 
@@ -729,7 +729,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return body.bodyType();
         }
     }
@@ -761,7 +761,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             FunctionType ft = (FunctionType) operands().getFirst().type();
             return ft.returnType();
         }
@@ -811,7 +811,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
     }
@@ -849,7 +849,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
     }
@@ -893,7 +893,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
 
@@ -934,7 +934,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
     }
@@ -984,7 +984,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
     }
@@ -1037,7 +1037,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
     }
@@ -1104,7 +1104,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
     }
@@ -1119,7 +1119,7 @@ public final class CoreOps {
         public static final String ATTRIBUTE_CONSTANT_VALUE = NAME + ".value";
 
         final Object value;
-        final TypeElement type;
+        final CodeType type;
 
         public static ConstantOp create(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
@@ -1131,7 +1131,7 @@ public final class CoreOps {
             return new ConstantOp(def, value);
         }
 
-        static Object processConstantValue(TypeElement t, Object value) {
+        static Object processConstantValue(CodeType t, Object value) {
             if (t.equals(JavaType.BOOLEAN)) {
                 if (value instanceof String s) {
                     return Boolean.valueOf(s);
@@ -1211,7 +1211,7 @@ public final class CoreOps {
             return new ConstantOp(this, cc);
         }
 
-        ConstantOp(TypeElement type, Object value) {
+        ConstantOp(CodeType type, Object value) {
             super(NAME, List.of());
 
             this.type = type;
@@ -1230,7 +1230,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return type;
         }
     }
@@ -1253,7 +1253,7 @@ public final class CoreOps {
         public static final String ATTRIBUTE_INVOKE_DESCRIPTOR = NAME + ".descriptor";
 
         final MethodRef invokeDescriptor;
-        final TypeElement resultType;
+        final CodeType resultType;
 
         public static InvokeOp create(ExternalizedOp def) {
             MethodRef invokeDescriptor = def.extractAttributeValue(ATTRIBUTE_INVOKE_DESCRIPTOR,
@@ -1289,7 +1289,7 @@ public final class CoreOps {
             this(invokeDescriptor.type().returnType(), invokeDescriptor, args);
         }
 
-        InvokeOp(TypeElement resultType, MethodRef invokeDescriptor, List<Value> args) {
+        InvokeOp(CodeType resultType, MethodRef invokeDescriptor, List<Value> args) {
             super(NAME, args);
 
             this.invokeDescriptor = invokeDescriptor;
@@ -1312,7 +1312,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return resultType;
         }
     }
@@ -1325,7 +1325,7 @@ public final class CoreOps {
     public static final class ConvOp extends ExternalizableOp implements Op.Pure {
         public static final String NAME = "conv";
 
-        final TypeElement resultType;
+        final CodeType resultType;
 
         public ConvOp(ExternalizedOp def) {
             super(def);
@@ -1344,14 +1344,14 @@ public final class CoreOps {
             return new ConvOp(this, cc);
         }
 
-        ConvOp(TypeElement resultType, Value arg) {
+        ConvOp(CodeType resultType, Value arg) {
             super(NAME, List.of(arg));
 
             this.resultType = resultType;
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return resultType;
         }
     }
@@ -1365,14 +1365,14 @@ public final class CoreOps {
         public static final String ATTRIBUTE_NEW_DESCRIPTOR = NAME + ".descriptor";
 
         final FunctionType constructorType;
-        final TypeElement resultType;
+        final CodeType resultType;
 
         public static NewOp create(ExternalizedOp def) {
             FunctionType constructorType = def.extractAttributeValue(ATTRIBUTE_NEW_DESCRIPTOR, true,
                     v -> switch (v) {
                         case String s -> {
-                            TypeElement te = CoreTypeFactory.CORE_TYPE_FACTORY
-                                    .constructType(TypeDefinition.ofString(s));
+                            CodeType te = CoreTypeFactory.CORE_TYPE_FACTORY
+                                    .constructType(CodeType.ExternalizedCodeType.ofString(s));
                             if (!(te instanceof FunctionType ft)) {
                                 throw new UnsupportedOperationException("Unsupported new descriptor value:" + v);
                             }
@@ -1407,7 +1407,7 @@ public final class CoreOps {
             this(constructorType.returnType(), constructorType, args);
         }
 
-        NewOp(TypeElement resultType, FunctionType constructorType, List<Value> args) {
+        NewOp(CodeType resultType, FunctionType constructorType, List<Value> args) {
             super(NAME, args);
 
             this.constructorType = constructorType;
@@ -1421,7 +1421,7 @@ public final class CoreOps {
             return Collections.unmodifiableMap(m);
         }
 
-        public TypeElement type() {
+        public CodeType type() {
             return opType().returnType();
         }
 
@@ -1430,7 +1430,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return resultType;
         }
     }
@@ -1487,7 +1487,7 @@ public final class CoreOps {
         public static final class FieldLoadOp extends FieldAccessOp implements Op.Pure {
             public static final String NAME = "field.load";
 
-            final TypeElement resultType;
+            final CodeType resultType;
 
             public static FieldLoadOp create(ExternalizedOp def) {
                 if (def.operands().size() > 1) {
@@ -1522,21 +1522,21 @@ public final class CoreOps {
             }
 
             // instance
-            FieldLoadOp(TypeElement resultType, FieldRef descriptor, Value receiver) {
+            FieldLoadOp(CodeType resultType, FieldRef descriptor, Value receiver) {
                 super(NAME, List.of(receiver), descriptor);
 
                 this.resultType = resultType;
             }
 
             // static
-            FieldLoadOp(TypeElement resultType, FieldRef descriptor) {
+            FieldLoadOp(CodeType resultType, FieldRef descriptor) {
                 super(NAME, List.of(), descriptor);
 
                 this.resultType = resultType;
             }
 
             @Override
-            public TypeElement resultType() {
+            public CodeType resultType() {
                 return resultType;
             }
         }
@@ -1590,7 +1590,7 @@ public final class CoreOps {
             }
 
             @Override
-            public TypeElement resultType() {
+            public CodeType resultType() {
                 return JavaType.VOID;
             }
         }
@@ -1622,7 +1622,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.INT;
         }
     }
@@ -1660,13 +1660,13 @@ public final class CoreOps {
                     : List.of(array, index, v);
         }
 
-        static TypeElement resultType(Value array, Value v) {
+        static CodeType resultType(Value array, Value v) {
             if (!(array.type() instanceof ArrayType arrayType)) {
                 throw new IllegalArgumentException("Type is not an array type: " + array.type());
             }
 
             // @@@ restrict to indexes of int?
-            TypeElement componentType = arrayType.componentType();
+            CodeType componentType = arrayType.componentType();
             if (v == null) {
                 return componentType;
             } else {
@@ -1700,7 +1700,7 @@ public final class CoreOps {
             }
 
             @Override
-            public TypeElement resultType() {
+            public CodeType resultType() {
                 Value array = operands().get(0);
                 ArrayType t = (ArrayType) array.type();
                 return t.componentType();
@@ -1733,7 +1733,7 @@ public final class CoreOps {
             }
 
             @Override
-            public TypeElement resultType() {
+            public CodeType resultType() {
                 return JavaType.VOID;
             }
         }
@@ -1748,14 +1748,14 @@ public final class CoreOps {
         public static final String NAME = "instanceof";
         public static final String ATTRIBUTE_TYPE_DESCRIPTOR = NAME + ".descriptor";
 
-        final TypeElement typeDescriptor;
+        final CodeType typeDescriptor;
 
         public static InstanceOfOp create(ExternalizedOp def) {
             if (def.operands().size() != 1) {
                 throw new IllegalArgumentException("Operation must have one operand " + def.name());
             }
 
-            TypeElement typeDescriptor = def.extractAttributeValue(ATTRIBUTE_TYPE_DESCRIPTOR, true,
+            CodeType typeDescriptor = def.extractAttributeValue(ATTRIBUTE_TYPE_DESCRIPTOR, true,
                     v -> switch (v) {
                         case String s -> JavaType.ofString(s);
                         case JavaType td -> td;
@@ -1764,7 +1764,7 @@ public final class CoreOps {
             return new InstanceOfOp(def, typeDescriptor);
         }
 
-        InstanceOfOp(ExternalizedOp def, TypeElement typeDescriptor) {
+        InstanceOfOp(ExternalizedOp def, CodeType typeDescriptor) {
             super(def);
 
             this.typeDescriptor = typeDescriptor;
@@ -1781,7 +1781,7 @@ public final class CoreOps {
             return new InstanceOfOp(this, cc);
         }
 
-        InstanceOfOp(TypeElement t, Value v) {
+        InstanceOfOp(CodeType t, Value v) {
             super(NAME,
                     List.of(v));
 
@@ -1795,12 +1795,12 @@ public final class CoreOps {
             return Collections.unmodifiableMap(m);
         }
 
-        public TypeElement type() {
+        public CodeType type() {
             return typeDescriptor;
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.BOOLEAN;
         }
     }
@@ -1813,15 +1813,15 @@ public final class CoreOps {
         public static final String NAME = "cast";
         public static final String ATTRIBUTE_TYPE_DESCRIPTOR = NAME + ".descriptor";
 
-        final TypeElement resultType;
-        final TypeElement typeDescriptor;
+        final CodeType resultType;
+        final CodeType typeDescriptor;
 
         public static CastOp create(ExternalizedOp def) {
             if (def.operands().size() != 1) {
                 throw new IllegalArgumentException("Operation must have one operand " + def.name());
             }
 
-            TypeElement type = def.extractAttributeValue(ATTRIBUTE_TYPE_DESCRIPTOR, true,
+            CodeType type = def.extractAttributeValue(ATTRIBUTE_TYPE_DESCRIPTOR, true,
                     v -> switch (v) {
                         case String s -> JavaType.ofString(s);
                         case JavaType td -> td;
@@ -1830,7 +1830,7 @@ public final class CoreOps {
             return new CastOp(def, type);
         }
 
-        CastOp(ExternalizedOp def, TypeElement typeDescriptor) {
+        CastOp(ExternalizedOp def, CodeType typeDescriptor) {
             super(def);
 
             this.resultType = def.resultType();
@@ -1849,7 +1849,7 @@ public final class CoreOps {
             return new CastOp(this, cc);
         }
 
-        CastOp(TypeElement resultType, TypeElement t, Value v) {
+        CastOp(CodeType resultType, CodeType t, Value v) {
             super(NAME, List.of(v));
 
             this.resultType = resultType;
@@ -1863,12 +1863,12 @@ public final class CoreOps {
             return Collections.unmodifiableMap(m);
         }
 
-        public TypeElement type() {
+        public CodeType type() {
             return typeDescriptor;
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return resultType;
         }
     }
@@ -1909,7 +1909,7 @@ public final class CoreOps {
         public static final String ATTRIBUTE_NAME = NAME + ".name";
 
         final String varName;
-        final TypeElement resultType;
+        final CodeType resultType;
 
         public static VarOp create(ExternalizedOp def) {
             if (def.operands().size() != 1) {
@@ -1947,7 +1947,7 @@ public final class CoreOps {
             this(varName, init.type(), init);
         }
 
-        VarOp(String varName, TypeElement type, Value init) {
+        VarOp(String varName, CodeType type, Value init) {
             super(NAME, List.of(init));
 
             this.varName = varName;
@@ -1969,12 +1969,12 @@ public final class CoreOps {
             return varName;
         }
 
-        public TypeElement varType() {
+        public CodeType varType() {
             return ((VarType) resultType).valueType();
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return resultType;
         }
     }
@@ -2046,7 +2046,7 @@ public final class CoreOps {
             }
 
             @Override
-            public TypeElement resultType() {
+            public CodeType resultType() {
                 VarType vt = (VarType) operands().get(0).type();
                 return vt.valueType();
             }
@@ -2089,7 +2089,7 @@ public final class CoreOps {
             }
 
             @Override
-            public TypeElement resultType() {
+            public CodeType resultType() {
                 return JavaType.VOID;
             }
         }
@@ -2122,7 +2122,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return TupleType.tupleTypeFromValues(operands());
         }
     }
@@ -2191,7 +2191,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             Value tupleValue = operands().get(0);
             TupleType t = (TupleType) tupleValue.type();
             return t.componentTypes().get(index);
@@ -2263,12 +2263,12 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             Value tupleValue = operands().get(0);
             TupleType tupleType = (TupleType) tupleValue.type();
             Value value = operands().get(2);
 
-            List<TypeElement> tupleComponentTypes = new ArrayList<>(tupleType.componentTypes());
+            List<CodeType> tupleComponentTypes = new ArrayList<>(tupleType.componentTypes());
             tupleComponentTypes.set(index, value.type());
             return TupleType.tupleType(tupleComponentTypes);
         }
@@ -2284,7 +2284,7 @@ public final class CoreOps {
      */
     // @@@: Create as new type element
     public interface ExceptionRegion {
-        TypeElement EXCEPTION_REGION_TYPE = JavaType.ofNominalDescriptor(ClassDesc.of("ExceptionRegion"));
+        CodeType EXCEPTION_REGION_TYPE = JavaType.ofNominalDescriptor(ClassDesc.of("ExceptionRegion"));
     }
 
     /**
@@ -2345,7 +2345,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return ExceptionRegion.EXCEPTION_REGION_TYPE;
         }
     }
@@ -2417,7 +2417,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
     }
@@ -2451,7 +2451,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.J_L_STRING;
         }
     }
@@ -2522,7 +2522,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return operands().get(0).type();
         }
     }
@@ -2548,7 +2548,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return operands().get(0).type();
         }
     }
@@ -2595,7 +2595,7 @@ public final class CoreOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.BOOLEAN;
         }
     }
@@ -3213,7 +3213,7 @@ public final class CoreOps {
      * @return the lambda operation
      */
     public static LambdaOp.Builder lambda(Body.Builder ancestorBody,
-                                          FunctionType funcType, TypeElement functionalInterface) {
+                                          FunctionType funcType, CodeType functionalInterface) {
         return new LambdaOp.Builder(ancestorBody, funcType, functionalInterface);
     }
 
@@ -3224,7 +3224,7 @@ public final class CoreOps {
      * @param body                the body of the lambda operation
      * @return the lambda operation
      */
-    public static LambdaOp lambda(TypeElement functionalInterface, Body.Builder body) {
+    public static LambdaOp lambda(CodeType functionalInterface, Body.Builder body) {
         return new LambdaOp(functionalInterface, body);
     }
 
@@ -3405,7 +3405,7 @@ public final class CoreOps {
      * @param value the constant value
      * @return the constant operation
      */
-    public static ConstantOp constant(TypeElement type, Object value) {
+    public static ConstantOp constant(CodeType type, Object value) {
         return new ConstantOp(type, value);
     }
 
@@ -3439,7 +3439,7 @@ public final class CoreOps {
      * @param args             the invoke parameters
      * @return the invoke operation
      */
-    public static InvokeOp invoke(TypeElement returnType, MethodRef invokeDescriptor, Value... args) {
+    public static InvokeOp invoke(CodeType returnType, MethodRef invokeDescriptor, Value... args) {
         return new InvokeOp(returnType, invokeDescriptor, List.of(args));
     }
 
@@ -3451,7 +3451,7 @@ public final class CoreOps {
      * @param args             the invoke parameters
      * @return the invoke operation
      */
-    public static InvokeOp invoke(TypeElement returnType, MethodRef invokeDescriptor, List<Value> args) {
+    public static InvokeOp invoke(CodeType returnType, MethodRef invokeDescriptor, List<Value> args) {
         return new InvokeOp(returnType, invokeDescriptor, args);
     }
 
@@ -3462,7 +3462,7 @@ public final class CoreOps {
      * @param from the value to be converted
      * @return the conversion operation
      */
-    public static ConvOp conv(TypeElement to, Value from) {
+    public static ConvOp conv(CodeType to, Value from) {
         return new ConvOp(to, from);
     }
 
@@ -3496,7 +3496,7 @@ public final class CoreOps {
      * @param args            the constructor arguments
      * @return the instance creation operation
      */
-    public static NewOp _new(TypeElement returnType, FunctionType constructorType,
+    public static NewOp _new(CodeType returnType, FunctionType constructorType,
                              Value... args) {
         return _new(returnType, constructorType, List.of(args));
     }
@@ -3509,7 +3509,7 @@ public final class CoreOps {
      * @param args            the constructor arguments
      * @return the instance creation operation
      */
-    public static NewOp _new(TypeElement returnType, FunctionType constructorType,
+    public static NewOp _new(CodeType returnType, FunctionType constructorType,
                              List<Value> args) {
         return new NewOp(returnType, constructorType, args);
     }
@@ -3521,7 +3521,7 @@ public final class CoreOps {
      * @param length    the array size
      * @return the array creation operation
      */
-    public static NewOp newArray(TypeElement arrayType, Value length) {
+    public static NewOp newArray(CodeType arrayType, Value length) {
         return _new(FunctionType.functionType(arrayType, JavaType.INT), length);
     }
 
@@ -3546,7 +3546,7 @@ public final class CoreOps {
      * @param receiver   the receiver value
      * @return the field load operation
      */
-    public static FieldAccessOp.FieldLoadOp fieldLoad(TypeElement resultType, FieldRef descriptor, Value receiver) {
+    public static FieldAccessOp.FieldLoadOp fieldLoad(CodeType resultType, FieldRef descriptor, Value receiver) {
         return new FieldAccessOp.FieldLoadOp(resultType, descriptor, receiver);
     }
 
@@ -3567,7 +3567,7 @@ public final class CoreOps {
      * @param descriptor the field descriptor
      * @return the field load operation
      */
-    public static FieldAccessOp.FieldLoadOp fieldLoad(TypeElement resultType, FieldRef descriptor) {
+    public static FieldAccessOp.FieldLoadOp fieldLoad(CodeType resultType, FieldRef descriptor) {
         return new FieldAccessOp.FieldLoadOp(resultType, descriptor);
     }
 
@@ -3634,7 +3634,7 @@ public final class CoreOps {
      * @param v the value to test
      * @return the instanceof operation
      */
-    public static InstanceOfOp instanceOf(TypeElement t, Value v) {
+    public static InstanceOfOp instanceOf(CodeType t, Value v) {
         return new InstanceOfOp(t, v);
     }
 
@@ -3645,7 +3645,7 @@ public final class CoreOps {
      * @param v          the value to cast
      * @return the cast operation
      */
-    public static CastOp cast(TypeElement resultType, Value v) {
+    public static CastOp cast(CodeType resultType, Value v) {
         return new CastOp(resultType, resultType, v);
     }
 
@@ -3657,7 +3657,7 @@ public final class CoreOps {
      * @param v          the value to cast
      * @return the cast operation
      */
-    public static CastOp cast(TypeElement resultType, JavaType t, Value v) {
+    public static CastOp cast(CodeType resultType, JavaType t, Value v) {
         return new CastOp(resultType, t, v);
     }
 
@@ -3690,7 +3690,7 @@ public final class CoreOps {
      * @param init the initial value of the var
      * @return the var operation
      */
-    public static VarOp var(String name, TypeElement type, Value init) {
+    public static VarOp var(String name, CodeType type, Value init) {
         return new VarOp(name, type, init);
     }
 

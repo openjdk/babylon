@@ -26,7 +26,7 @@ package oracle.code.triton;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.CodeType;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.runtime.CodeReflection;
 import java.util.List;
@@ -300,7 +300,7 @@ public class TestMatrix {
     @TritonTestExtension.Kernel("matmul_kernel_broadcast")
     @Test
     public void testWithBroadcast(TritonTestExtension.TritonTestData t) {
-        List<TypeElement> argTypes = List.of(
+        List<CodeType> argTypes = List.of(
                 new PtrType(JavaType.FLOAT),
                 new PtrType(JavaType.FLOAT),
                 new PtrType(JavaType.FLOAT),
@@ -547,7 +547,7 @@ public class TestMatrix {
     @TritonTestExtension.Kernel("matmul_kernel")
     @Test
     public void test(TritonTestExtension.TritonTestData t) {
-        List<TypeElement> argTypes = List.of(
+        List<CodeType> argTypes = List.of(
                 new PtrType(Float16.FLOAT_16_TYPE),
                 new PtrType(Float16.FLOAT_16_TYPE),
                 new PtrType(Float16.FLOAT_16_TYPE),

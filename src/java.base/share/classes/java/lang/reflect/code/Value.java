@@ -36,12 +36,12 @@ import java.util.Set;
 public abstract sealed class Value implements Comparable<Value>, CodeItem
         permits Block.Parameter, Op.Result {
     final Block block;
-    final TypeElement type;
+    final CodeType type;
     // @@@ In topological order?
     //     Can the representation be more efficient e.g. an array?
     final Set<Op.Result> uses;
 
-    Value(Block block, TypeElement type) {
+    Value(Block block, CodeType type) {
         this.block = block;
         this.type = type;
         this.uses = new LinkedHashSet<>();
@@ -67,7 +67,7 @@ public abstract sealed class Value implements Comparable<Value>, CodeItem
      *
      * @return the type of the value.
      */
-    public TypeElement type() {
+    public CodeType type() {
         return type;
     }
 

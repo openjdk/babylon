@@ -48,11 +48,11 @@ public class OpBuilder {
     static final MethodRef OP_FACTORY_CONSTRUCT = MethodRef.method(OpFactory.class, "constructOp",
             Op.class, ExternalizableOp.ExternalizedOp.class);
 
-    static final MethodRef TYPE_ELEMENT_FACTORY_CONSTRUCT = MethodRef.method(TypeElementFactory.class, "constructType",
-            TypeElement.class, TypeDefinition.class);
+    static final MethodRef CODE_TYPE_FACTORY_CONSTRUCT = MethodRef.method(CodeTypeFactory.class, "constructType",
+            CodeType.class, ExternalizedCodeType.class);
 
-    static final MethodRef TYPE_DEFINITION_OF_STRING = MethodRef.method(TypeDefinition.class, "ofString",
-            TypeDefinition.class, String.class);
+    static final MethodRef EX_CODE_TYPE_OF_STRING = MethodRef.method(ExternalizedCodeType.class, "ofString",
+            ExternalizedCodeType.class, String.class);
 
     static final MethodRef BODY_BUILDER_OF = MethodRef.method(Body.Builder.class, "of",
             Body.Builder.class, Body.Builder.class, FunctionType.class);
@@ -67,13 +67,13 @@ public class OpBuilder {
             Op.Result.class, Op.class);
 
     static final MethodRef BLOCK_BUILDER_BLOCK = MethodRef.method(Block.Builder.class, "block",
-            Block.Builder.class, TypeElement[].class);
+            Block.Builder.class, CodeType[].class);
 
     static final MethodRef BLOCK_BUILDER_PARAMETER = MethodRef.method(Block.Builder.class, "parameter",
-            Block.Parameter.class, TypeElement.class);
+            Block.Parameter.class, CodeType.class);
 
     static final MethodRef FUNCTION_TYPE_FUNCTION_TYPE = MethodRef.method(FunctionType.class, "functionType",
-            FunctionType.class, TypeElement.class, TypeElement[].class);
+            FunctionType.class, CodeType.class, CodeType[].class);
 
     static final MethodRef METHOD_REF_OF_STRING = MethodRef.method(MethodRef.class, "ofString",
             MethodRef.class, String.class);
@@ -114,13 +114,13 @@ public class OpBuilder {
             J_L_STRING,
             J_U_LIST,
             J_U_LIST,
-            type(TypeElement.class),
+            type(CodeType.class),
             J_U_MAP,
             J_U_LIST);
 
     static final FunctionType BUILDER_F_TYPE = functionType(type(Op.class),
             type(OpFactory.class),
-            type(TypeElementFactory.class));
+            type(CodeTypeFactory.class));
 
 
     Map<Value, Value> valueMap;
@@ -131,7 +131,7 @@ public class OpBuilder {
 
     Value opFactory;
 
-    Value typeElementFactory;
+    Value codeTypeFactory;
 
     /**
      * Transform the given code model to one that builds it.
@@ -153,7 +153,7 @@ public class OpBuilder {
 
         builder = body.entryBlock();
         opFactory = builder.parameters().get(0);
-        typeElementFactory = builder.parameters().get(1);
+        codeTypeFactory = builder.parameters().get(1);
 
         Value ancestorBody = builder.op(constant(type(Body.Builder.class), null));
         Value result = buildOp(ancestorBody, op);
@@ -206,7 +206,7 @@ public class OpBuilder {
     Value buildOpDefinition(String name,
                             List<Value> operands,
                             List<Value> successors,
-                            TypeElement resultType,
+                            CodeType resultType,
                             Map<String, Object> attributes,
                             List<Value> bodies) {
         List<Value> args = List.of(
@@ -254,10 +254,10 @@ public class OpBuilder {
         return body;
     }
 
-    Value buildType(TypeElement t) {
+    Value buildType(CodeType t) {
         Value typeString = builder.op(constant(J_L_STRING, t.toString()));
-        Value typeDef = builder.op(invoke(TYPE_DEFINITION_OF_STRING, typeString));
-        return builder.op(invoke(TYPE_ELEMENT_FACTORY_CONSTRUCT, typeElementFactory, typeDef));
+        Value exType = builder.op(invoke(EX_CODE_TYPE_OF_STRING, typeString));
+        return builder.op(invoke(CODE_TYPE_FACTORY_CONSTRUCT, codeTypeFactory, exType));
     }
 
     Value buildAttributeMap(Map<String, Object> attributes) {
@@ -315,7 +315,7 @@ public class OpBuilder {
                 Value string = builder.op(constant(J_L_STRING, value.toString()));
                 yield builder.op(invoke(RECORD_TYPE_REF_OF_STRING, string));
             }
-            case TypeElement f -> {
+            case CodeType f -> {
                 yield buildType(f);
             }
             case Location l -> {

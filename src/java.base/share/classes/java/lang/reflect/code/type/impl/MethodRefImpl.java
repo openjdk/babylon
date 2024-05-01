@@ -34,24 +34,24 @@ import java.lang.invoke.MethodType;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
-import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.CodeType;
 import java.util.Optional;
 
 import static java.util.stream.Collectors.joining;
 
 public final class MethodRefImpl implements MethodRef {
-    final TypeElement refType;
+    final CodeType refType;
     final String name;
     final FunctionType type;
 
-    public MethodRefImpl(TypeElement refType, String name, FunctionType type) {
+    public MethodRefImpl(CodeType refType, String name, FunctionType type) {
         this.refType = refType;
         this.name = name;
         this.type = type;
     }
 
     @Override
-    public TypeElement refType() {
+    public CodeType refType() {
         return refType;
     }
 
@@ -105,7 +105,7 @@ public final class MethodRefImpl implements MethodRef {
         return mh;
     }
 
-    static Class<?> resolve(MethodHandles.Lookup l, TypeElement t) throws ReflectiveOperationException {
+    static Class<?> resolve(MethodHandles.Lookup l, CodeType t) throws ReflectiveOperationException {
         if (t instanceof JavaType jt) {
             return jt.resolve(l);
         } else {
@@ -123,7 +123,7 @@ public final class MethodRefImpl implements MethodRef {
     @Override
     public String toString() {
         return refType + "::" + name +
-            type.parameterTypes().stream().map(TypeElement::toString)
+            type.parameterTypes().stream().map(CodeType::toString)
                     .collect(joining(", ", "(", ")")) + type.returnType();
     }
 

@@ -1,36 +1,36 @@
 package java.lang.reflect.code.type;
 
-import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.CodeType;
 import java.util.List;
 import java.util.Objects;
 
 /**
  * A variable type.
  */
-public final class VarType implements TypeElement {
+public final class VarType implements CodeType {
     static final String NAME = "Var";
 
-    final TypeElement variableType;
+    final CodeType variableType;
 
-    VarType(TypeElement variableType) {
+    VarType(CodeType variableType) {
         this.variableType = variableType;
     }
 
     /**
      * {@return the variable type's value type}
      */
-    public TypeElement valueType() {
+    public CodeType valueType() {
         return variableType;
     }
 
     @Override
-    public TypeDefinition toTypeDefinition() {
-        return new TypeDefinition(NAME, List.of(variableType.toTypeDefinition()));
+    public ExternalizedCodeType externalize() {
+        return new ExternalizedCodeType(NAME, List.of(variableType.externalize()));
     }
 
     @Override
     public String toString() {
-        return toTypeDefinition().toString();
+        return externalize().toString();
     }
 
     @Override
@@ -51,7 +51,7 @@ public final class VarType implements TypeElement {
      * @param valueType the variable's value type.
      * @return a variable type.
      */
-    public static VarType varType(TypeElement valueType) {
+    public static VarType varType(CodeType valueType) {
         Objects.requireNonNull(valueType);
         return new VarType(valueType);
     }

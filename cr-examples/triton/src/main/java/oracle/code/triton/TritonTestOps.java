@@ -25,10 +25,7 @@
 
 package oracle.code.triton;
 
-import java.lang.reflect.code.CopyContext;
-import java.lang.reflect.code.OpTransformer;
-import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.Value;
+import java.lang.reflect.code.*;
 import java.lang.reflect.code.op.OpFactory;
 import java.lang.reflect.code.op.ExternalizableOp;
 import java.lang.reflect.code.type.JavaType;
@@ -58,7 +55,7 @@ public class TritonTestOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
     }

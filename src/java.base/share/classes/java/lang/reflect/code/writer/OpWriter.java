@@ -483,8 +483,8 @@ public final class OpWriter {
         }
     }
 
-    void writeType(TypeElement te) {
-        write(te.toTypeDefinition().toString());
+    void writeType(CodeType te) {
+        write(te.externalize().toString());
     }
 
     void write(String s) {

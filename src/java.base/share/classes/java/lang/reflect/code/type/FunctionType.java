@@ -1,15 +1,14 @@
 package java.lang.reflect.code.type;
 
-import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.CodeType;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
  * A function type.
  */
-public final class FunctionType implements TypeElement {
+public final class FunctionType implements CodeType {
     // @@@ Change to "->" when the textual form supports it
     static final String NAME = "func";
 
@@ -19,10 +18,10 @@ public final class FunctionType implements TypeElement {
     // @@@ Uses JavaType
     public static final FunctionType VOID = functionType(JavaType.VOID);
 
-    final TypeElement returnType;
-    final List<TypeElement> parameterTypes;
+    final CodeType returnType;
+    final List<CodeType> parameterTypes;
 
-    FunctionType(TypeElement returnType, List<? extends TypeElement> parameterTypes) {
+    FunctionType(CodeType returnType, List<? extends CodeType> parameterTypes) {
         this.returnType = returnType;
         this.parameterTypes = List.copyOf(parameterTypes);
     }
@@ -30,27 +29,27 @@ public final class FunctionType implements TypeElement {
     /**
      * {@return the function type's return type}
      */
-    public TypeElement returnType() {
+    public CodeType returnType() {
         return returnType;
     }
 
     /**
      * {@return the function type's parameter types}
      */
-    public List<TypeElement> parameterTypes() {
+    public List<CodeType> parameterTypes() {
         return parameterTypes;
     }
 
     @Override
-    public TypeDefinition toTypeDefinition() {
-        return new TypeDefinition(NAME,
+    public ExternalizedCodeType externalize() {
+        return new ExternalizedCodeType(NAME,
                 Stream.concat(Stream.of(returnType), parameterTypes.stream())
-                        .map(TypeElement::toTypeDefinition).toList());
+                        .map(CodeType::externalize).toList());
     }
 
     @Override
     public String toString() {
-        return toTypeDefinition().toString();
+        return externalize().toString();
     }
 
     @Override
@@ -75,7 +74,7 @@ public final class FunctionType implements TypeElement {
      * @param parameterTypes the function type's parameter types.
      * @return a function type.
      */
-    public static FunctionType functionType(TypeElement returnType, List<? extends TypeElement> parameterTypes) {
+    public static FunctionType functionType(CodeType returnType, List<? extends CodeType> parameterTypes) {
         Objects.requireNonNull(returnType);
         Objects.requireNonNull(parameterTypes);
         return new FunctionType(returnType, parameterTypes);
@@ -87,7 +86,7 @@ public final class FunctionType implements TypeElement {
      * @param parameterTypes the function type's parameter types.
      * @return a function type.
      */
-    public static FunctionType functionType(TypeElement returnType, TypeElement... parameterTypes) {
+    public static FunctionType functionType(CodeType returnType, CodeType... parameterTypes) {
         return functionType(returnType, List.of(parameterTypes));
     }
 

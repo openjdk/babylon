@@ -34,7 +34,7 @@ import java.util.function.Consumer;
 public class TritonOps {
 
     static abstract class TritonOp extends ExternalizableOp {
-        final TypeElement resultType;
+        final CodeType resultType;
 
         public TritonOp(ExternalizedOp def) {
             super(def);
@@ -48,14 +48,14 @@ public class TritonOps {
             this.resultType = that.resultType;
         }
 
-        TritonOp(String name, TypeElement resultType, List<? extends Value> operands) {
+        TritonOp(String name, CodeType resultType, List<? extends Value> operands) {
             super(name, operands);
 
             this.resultType = resultType;
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return resultType;
         }
     }
@@ -278,7 +278,7 @@ public class TritonOps {
             return new CallOp(this, cc);
         }
 
-        CallOp(String funcName, TypeElement resultType, List<Value> args) {
+        CallOp(String funcName, CodeType resultType, List<Value> args) {
             super(NAME, resultType, args);
 
             this.funcName = funcName;
@@ -556,7 +556,7 @@ public class TritonOps {
             return new ExpandOp(this, cc);
         }
 
-        ExpandOp(int axis, TypeElement tensorType, Value v) {
+        ExpandOp(int axis, CodeType tensorType, Value v) {
             super(NAME, tensorType, List.of(v));
 
             this.axis = axis;
@@ -591,7 +591,7 @@ public class TritonOps {
             return new SplatOp(this, cc);
         }
 
-        SplatOp(TypeElement tensorType, Value v) {
+        SplatOp(CodeType tensorType, Value v) {
             super(NAME, tensorType, List.of(v));
         }
     }
@@ -613,7 +613,7 @@ public class TritonOps {
             return new BroadcastOp(this, cc);
         }
 
-        BroadcastOp(TypeElement tensorType, Value v) {
+        BroadcastOp(CodeType tensorType, Value v) {
             super(NAME, tensorType, List.of(v));
         }
     }
@@ -657,7 +657,7 @@ public class TritonOps {
             return new LoadOp(this, cc);
         }
 
-        LoadOp(TypeElement tensorType, Value ptr, Value mask) {
+        LoadOp(CodeType tensorType, Value ptr, Value mask) {
             super(NAME, tensorType, List.of(ptr, mask));
         }
     }
@@ -727,7 +727,7 @@ public class TritonOps {
             return new DotOp(this, cc);
         }
 
-        DotOp(TypeElement tensorType, Value a, Value b) {
+        DotOp(CodeType tensorType, Value a, Value b) {
             super(NAME, tensorType, List.of(a, b));
         }
     }
@@ -780,17 +780,17 @@ public class TritonOps {
         return new MakeRangeOp(start, end);
     }
 
-    public static ExpandOp expand(int axis, TypeElement tensorType, Value v) {
+    public static ExpandOp expand(int axis, CodeType tensorType, Value v) {
         return new ExpandOp(axis, tensorType, v);
     }
 
     // v is scalar
-    public static SplatOp splat(TypeElement tensorType, Value v) {
+    public static SplatOp splat(CodeType tensorType, Value v) {
         return new SplatOp(tensorType, v);
     }
 
     // v is tensor
-    public static BroadcastOp broadcast(TypeElement tensorType, Value v) {
+    public static BroadcastOp broadcast(CodeType tensorType, Value v) {
         return new BroadcastOp(tensorType, v);
     }
 
@@ -798,7 +798,7 @@ public class TritonOps {
         return new AddPtrOp(ptr, offset);
     }
 
-    public static LoadOp load(TypeElement tensorType, Value ptr, Value mask) {
+    public static LoadOp load(CodeType tensorType, Value ptr, Value mask) {
         return new LoadOp(tensorType, ptr, mask);
     }
 
@@ -814,7 +814,7 @@ public class TritonOps {
         return new ReturnOp(v);
     }
 
-    public static DotOp dot(TypeElement tensorType, Value a, Value b) {
+    public static DotOp dot(CodeType tensorType, Value a, Value b) {
         return new DotOp(tensorType, a, b);
     }
 
@@ -823,16 +823,16 @@ public class TritonOps {
 
     public static final OpFactory FACTORY = OpFactory.OP_FACTORY.get(TritonOps.class);
 
-    static final TypeElementFactory TRITON_TYPE_FACTORY = new TypeElementFactory() {
+    static final CodeTypeFactory TRITON_TYPE_FACTORY = new CodeTypeFactory() {
         @Override
-        public TypeElement constructType(TypeDefinition tree) {
+        public CodeType constructType(CodeType.ExternalizedCodeType tree) {
             return switch (tree.identifier()) {
                 case PtrType.NAME -> {
                     if (tree.arguments().size() != 1) {
                         throw new IllegalArgumentException();
                     }
 
-                    TypeElement v = TRITON_JAVA_TYPE_FACTORY.constructType(tree.arguments().getFirst());
+                    CodeType v = TRITON_JAVA_TYPE_FACTORY.constructType(tree.arguments().getFirst());
                     if (v == null) {
                         throw new IllegalArgumentException("Bad type: " + tree);
                     }
@@ -849,7 +849,7 @@ public class TritonOps {
 
                     List<Integer> shape = new ArrayList<>();
                     for (int i = 0; i < tree.arguments().size() - 1; i++) {
-                        TypeDefinition a = tree.arguments().get(i);
+                        CodeType.ExternalizedCodeType a = tree.arguments().get(i);
                         if (!a.identifier().startsWith("x")) {
                             throw new IllegalArgumentException("Bad type: " + tree);
                         }
@@ -862,7 +862,7 @@ public class TritonOps {
                         shape.add(d);
                     }
 
-                    TypeElement v = TRITON_JAVA_TYPE_FACTORY.constructType(tree.arguments().getLast());
+                    CodeType v = TRITON_JAVA_TYPE_FACTORY.constructType(tree.arguments().getLast());
                     if (v == null) {
                         throw new IllegalArgumentException("Bad type: " + tree);
                     }
@@ -878,11 +878,11 @@ public class TritonOps {
     };
 
     // Triton types then Java types
-    static final TypeElementFactory TRITON_JAVA_TYPE_FACTORY =
+    static final CodeTypeFactory TRITON_JAVA_TYPE_FACTORY =
             TRITON_TYPE_FACTORY.andThen(CoreTypeFactory.JAVA_TYPE_FACTORY);
 
     // Triton types then Java types, combined with code model types
-    public static final TypeElementFactory TYPE_FACTORY =
+    public static final CodeTypeFactory TYPE_FACTORY =
             CoreTypeFactory.codeModelTypeFactory(TRITON_JAVA_TYPE_FACTORY);
 
 }
