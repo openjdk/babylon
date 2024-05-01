@@ -24,10 +24,13 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.io.StringWriter;
+import java.lang.reflect.Method;
+import java.lang.reflect.code.Op;
 import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.op.ExtendedOps;
 import java.lang.reflect.code.parser.OpParser;
-import java.lang.reflect.Method;
+import java.lang.reflect.code.writer.OpWriter;
 import java.lang.runtime.CodeReflection;
 import java.util.Optional;
 
@@ -62,11 +65,7 @@ public class TreeAccessTest {
                 };
                 """;
 
-        Assert.assertEquals(canonicalizeDescription(methodTree.toText()), canonicalizeDescription(expectedTree));
-    }
-
-    static String canonicalizeDescription(String d) {
-        return OpParser.fromString(ExtendedOps.FACTORY, d).get(0).toText();
+        Assert.assertEquals(canonicalizeModel(methodTree), canonicalizeModel(expectedTree));
     }
 
     @Test
@@ -80,5 +79,29 @@ public class TreeAccessTest {
 
         Optional<CoreOps.FuncOp> tree = m.getCodeModel();
         Assert.assertTrue(tree.isEmpty());
+    }
+
+
+    // serializes dropping location information, parses, and then serializes, dropping location information
+    static String canonicalizeModel(Op o) {
+        return canonicalizeModel(serialize(o));
+    }
+
+    // parses, and then serializes, dropping location information
+    static String canonicalizeModel(String d) {
+        Op o;
+        try {
+            o = OpParser.fromString(ExtendedOps.FACTORY, d).get(0);
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+        return serialize(o);
+    }
+
+    // serializes, dropping location information
+    static String serialize(Op o) {
+        StringWriter w = new StringWriter();
+        OpWriter.writeTo(w, o, OpWriter.LocationOption.DROP_LOCATION);
+        return w.toString();
     }
 }
