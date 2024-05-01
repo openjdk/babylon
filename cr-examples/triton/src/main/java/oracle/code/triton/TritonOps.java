@@ -36,7 +36,7 @@ public class TritonOps {
     static abstract class TritonOp extends ExternalizableOp {
         final TypeElement resultType;
 
-        public TritonOp(ExternalOpContent def) {
+        public TritonOp(ExternalizedOp def) {
             super(def);
 
             this.resultType = def.resultType();
@@ -60,14 +60,14 @@ public class TritonOps {
         }
     }
 
-    @OpDeclaration(ModuleOp.NAME)
+    @OpFactory.OpDeclaration(ModuleOp.NAME)
     public static final class ModuleOp extends TritonOp implements Op.Isolated {
         public static final String NAME = "module";
 
         final Map<String, FuncOp> table;
         final Body body;
 
-        public ModuleOp(ExternalOpContent def) {
+        public ModuleOp(ExternalizedOp def) {
             super(def);
 
             this.body = def.bodyDefinitions().get(0).build(this);
@@ -130,7 +130,7 @@ public class TritonOps {
         }
     }
 
-    @OpDeclaration(FuncOp.NAME)
+    @OpFactory.OpDeclaration(FuncOp.NAME)
     public static final class FuncOp extends TritonOp implements Op.Invokable, Op.Isolated, Op.Lowerable {
 
         public static class Builder {
@@ -157,7 +157,7 @@ public class TritonOps {
         final String funcName;
         final Body body;
 
-        public static FuncOp create(ExternalOpContent def) {
+        public static FuncOp create(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalStateException("Bad op " + def.name());
             }
@@ -170,7 +170,7 @@ public class TritonOps {
             return new FuncOp(def, funcName);
         }
 
-        FuncOp(ExternalOpContent def, String funcName) {
+        FuncOp(ExternalizedOp def, String funcName) {
             super(def);
 
             this.funcName = funcName;
@@ -244,14 +244,14 @@ public class TritonOps {
         }
     }
 
-    @OpDeclaration(CallOp.NAME)
+    @OpFactory.OpDeclaration(CallOp.NAME)
     public static final class CallOp extends TritonOp {
         public static final String NAME = "tt.call";
         public static final String ATTRIBUTE_FUNC_NAME = NAME + ".name";
 
         final String funcName;
 
-        public static CallOp create(ExternalOpContent def) {
+        public static CallOp create(ExternalizedOp def) {
             String funcName = def.extractAttributeValue(ATTRIBUTE_FUNC_NAME, true,
                     v -> switch (v) {
                         case String s -> s;
@@ -261,7 +261,7 @@ public class TritonOps {
             return new CallOp(def, funcName);
         }
 
-        CallOp(ExternalOpContent def, String funcName) {
+        CallOp(ExternalizedOp def, String funcName) {
             super(def);
 
             this.funcName = funcName;
@@ -296,7 +296,7 @@ public class TritonOps {
         }
     }
 
-    @OpDeclaration(ReduceOp.NAME)
+    @OpFactory.OpDeclaration(ReduceOp.NAME)
     public static final class ReduceOp extends TritonOp {
         // @@@ SSA transformation does not work with nested ops
         // implements Op.Nested {
@@ -327,7 +327,7 @@ public class TritonOps {
         final int axis;
         final Body reducer;
 
-        public static ReduceOp create(ExternalOpContent def) {
+        public static ReduceOp create(ExternalizedOp def) {
             int axis = def.extractAttributeValue(ATTRIBUTE_AXIS, true,
                     v -> switch (v) {
                         case String s -> Integer.valueOf(s);
@@ -337,7 +337,7 @@ public class TritonOps {
             return new ReduceOp(def, axis);
         }
 
-        ReduceOp(ExternalOpContent def, int axis) {
+        ReduceOp(ExternalizedOp def, int axis) {
             super(def);
 
             this.axis = axis;
@@ -384,11 +384,11 @@ public class TritonOps {
         }
     }
 
-    @OpDeclaration(ReduceReturnOp.NAME)
+    @OpFactory.OpDeclaration(ReduceReturnOp.NAME)
     public static class ReduceReturnOp extends TritonOp implements Op.Terminating {
         public static final String NAME = "tt.reduce.return";
 
-        public ReduceReturnOp(ExternalOpContent def) {
+        public ReduceReturnOp(ExternalizedOp def) {
             super(def);
         }
 
@@ -406,14 +406,14 @@ public class TritonOps {
         }
     }
 
-    @OpDeclaration(GetProgramIdOp.NAME)
+    @OpFactory.OpDeclaration(GetProgramIdOp.NAME)
     public static class GetProgramIdOp extends TritonOp implements Op.Pure {
         public static final String NAME = "tt.get_program_id";
         public static final String ATTRIBUTE_AXIS = "axis";
 
         final int axis;
 
-        public static GetProgramIdOp create(ExternalOpContent def) {
+        public static GetProgramIdOp create(ExternalizedOp def) {
             int axis = def.extractAttributeValue(ATTRIBUTE_AXIS, true,
                     v -> switch (v) {
                         case String s -> Integer.valueOf(s);
@@ -423,7 +423,7 @@ public class TritonOps {
             return new GetProgramIdOp(def, axis);
         }
 
-        GetProgramIdOp(ExternalOpContent def, int axis) {
+        GetProgramIdOp(ExternalizedOp def, int axis) {
             super(def);
 
             this.axis = axis;
@@ -458,7 +458,7 @@ public class TritonOps {
         }
     }
 
-    @OpDeclaration(MakeRangeOp.NAME)
+    @OpFactory.OpDeclaration(MakeRangeOp.NAME)
     public static class MakeRangeOp extends TritonOp implements Op.Pure {
         public static final String NAME = "tt.make_range";
         public static final String ATTRIBUTE_START = "start";
@@ -467,7 +467,7 @@ public class TritonOps {
         final int start;
         final int end;
 
-        public static MakeRangeOp create(ExternalOpContent def) {
+        public static MakeRangeOp create(ExternalizedOp def) {
             int start = def.extractAttributeValue(ATTRIBUTE_START, false,
                     v -> switch (v) {
                         case String s -> Integer.valueOf(s);
@@ -483,7 +483,7 @@ public class TritonOps {
             return new MakeRangeOp(def, start, end);
         }
 
-        MakeRangeOp(ExternalOpContent def, int start, int end) {
+        MakeRangeOp(ExternalizedOp def, int start, int end) {
             super(def);
 
             this.start = start;
@@ -522,14 +522,14 @@ public class TritonOps {
         }
     }
 
-    @OpDeclaration(ExpandOp.NAME)
+    @OpFactory.OpDeclaration(ExpandOp.NAME)
     public static class ExpandOp extends TritonOp implements Op.Pure {
         public static final String NAME = "tt.expand_dims";
         public static final String ATTRIBUTE_AXIS = "axis";
 
         final int axis;
 
-        public static ExpandOp create(ExternalOpContent def) {
+        public static ExpandOp create(ExternalizedOp def) {
             int axis = def.extractAttributeValue(ATTRIBUTE_AXIS, true,
                     v -> switch (v) {
                         case String s -> Integer.valueOf(s);
@@ -539,7 +539,7 @@ public class TritonOps {
             return new ExpandOp(def, axis);
         }
 
-        ExpandOp(ExternalOpContent def, int axis) {
+        ExpandOp(ExternalizedOp def, int axis) {
             super(def);
 
             this.axis = axis;
@@ -574,11 +574,11 @@ public class TritonOps {
         }
     }
 
-    @OpDeclaration(SplatOp.NAME)
+    @OpFactory.OpDeclaration(SplatOp.NAME)
     public static class SplatOp extends TritonOp implements Op.Pure {
         public static final String NAME = "tt.splat";
 
-        public SplatOp(ExternalOpContent def) {
+        public SplatOp(ExternalizedOp def) {
             super(def);
         }
 
@@ -596,11 +596,11 @@ public class TritonOps {
         }
     }
 
-    @OpDeclaration(BroadcastOp.NAME)
+    @OpFactory.OpDeclaration(BroadcastOp.NAME)
     public static class BroadcastOp extends TritonOp implements Op.Pure {
         public static final String NAME = "tt.broadcast";
 
-        public BroadcastOp(ExternalOpContent def) {
+        public BroadcastOp(ExternalizedOp def) {
             super(def);
         }
 
@@ -618,11 +618,11 @@ public class TritonOps {
         }
     }
 
-    @OpDeclaration(AddPtrOp.NAME)
+    @OpFactory.OpDeclaration(AddPtrOp.NAME)
     public static class AddPtrOp extends TritonOp implements Op.Pure {
         public static final String NAME = "tt.addptr";
 
-        public AddPtrOp(ExternalOpContent def) {
+        public AddPtrOp(ExternalizedOp def) {
             super(def);
         }
 
@@ -640,11 +640,11 @@ public class TritonOps {
         }
     }
 
-    @OpDeclaration(LoadOp.NAME)
+    @OpFactory.OpDeclaration(LoadOp.NAME)
     public static class LoadOp extends TritonOp implements Op.Pure {
         public static final String NAME = "tt.load";
 
-        public LoadOp(ExternalOpContent def) {
+        public LoadOp(ExternalizedOp def) {
             super(def);
         }
 
@@ -662,11 +662,11 @@ public class TritonOps {
         }
     }
 
-    @OpDeclaration(StoreOp.NAME)
+    @OpFactory.OpDeclaration(StoreOp.NAME)
     public static class StoreOp extends TritonOp {
         public static final String NAME = "tt.store";
 
-        public StoreOp(ExternalOpContent def) {
+        public StoreOp(ExternalizedOp def) {
             super(def);
         }
 
@@ -684,11 +684,11 @@ public class TritonOps {
         }
     }
 
-    @OpDeclaration(ReturnOp.NAME)
+    @OpFactory.OpDeclaration(ReturnOp.NAME)
     public static class ReturnOp extends TritonOp implements Op.Terminating {
         public static final String NAME = "tt.return";
 
-        public ReturnOp(ExternalOpContent def) {
+        public ReturnOp(ExternalizedOp def) {
             super(def);
         }
 
@@ -710,11 +710,11 @@ public class TritonOps {
         }
     }
 
-    @OpDeclaration(DotOp.NAME)
+    @OpFactory.OpDeclaration(DotOp.NAME)
     public static class DotOp extends TritonOp implements Op.Pure {
         public static final String NAME = "tt.dot";
 
-        public DotOp(ExternalOpContent def) {
+        public DotOp(ExternalizedOp def) {
             super(def);
         }
 

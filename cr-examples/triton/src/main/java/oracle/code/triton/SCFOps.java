@@ -36,7 +36,7 @@ import java.util.function.Consumer;
 
 public class SCFOps {
 
-    @OpDeclaration(ForOp.NAME)
+    @OpFactory.OpDeclaration(ForOp.NAME)
     public static final class ForOp extends ExternalizableOp implements Op.Loop {
 
         public static class Builder {
@@ -67,7 +67,7 @@ public class SCFOps {
 
         final Body body;
 
-        public ForOp(ExternalOpContent def) {
+        public ForOp(ExternalizedOp def) {
             super(def);
 
             this.body = def.bodyDefinitions().get(0).build(this);
@@ -106,11 +106,11 @@ public class SCFOps {
         }
     }
 
-    @OpDeclaration(YieldOp.NAME)
+    @OpFactory.OpDeclaration(YieldOp.NAME)
     public static class YieldOp extends ExternalizableOp implements Op.Terminating {
         public static final String NAME = "scf.yield";
 
-        public YieldOp(ExternalOpContent def) {
+        public YieldOp(ExternalizedOp def) {
             super(def);
         }
 
