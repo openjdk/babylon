@@ -74,7 +74,7 @@ public final class ForwardDifferentiation {
         int indI = fcm.body().entryBlock().parameters().indexOf(ind);
 
         AtomicBoolean first = new AtomicBoolean(true);
-        FuncOp dfcm = fcm.transform(STR."d\{fcm.funcName()}_darg\{indI}",
+        FuncOp dfcm = fcm.transform(String.format("d%s_darg%d", fcm.funcName(), indI),
                 (block, op) -> {
                     if (first.getAndSet(false)) {
                         // Initialize

@@ -215,7 +215,7 @@ import static jdk.internal.org.objectweb.asm.Opcodes.*;
                                !VerifyAccess.isSamePackage(targetClass, implInfo.getDeclaringClass())) ||
                                implKind == H_INVOKESPECIAL ||
                                implKind == H_INVOKESTATIC && implClass.isHidden();
-        cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
+        cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
         int parameterCount = factoryType.parameterCount();
         if (parameterCount > 0) {
             argNames = new String[parameterCount];
@@ -288,7 +288,7 @@ import static jdk.internal.org.objectweb.asm.Opcodes.*;
     private Class<?> spinInnerClass() throws LambdaConversionException {
         // CDS does not handle disableEagerInitialization or useImplMethodHandle
         if (!disableEagerInitialization && !useImplMethodHandle) {
-            if (CDS.isSharingEnabled()) {
+            if (CDS.isUsingArchive()) {
                 // load from CDS archive if present
                 Class<?> innerClass = LambdaProxyClassArchive.find(targetClass,
                                                                    interfaceMethodName,

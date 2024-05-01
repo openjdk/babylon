@@ -88,6 +88,7 @@ public abstract class ExternalizableOp extends Op {
      *  this(def.name(), def.operands());
      * }</pre>
      */
+    @SuppressWarnings("this-escape")
     protected ExternalizableOp(ExternalOpContent def) {
         super(def.name(), def.operands());
         setLocation(extractLocation(def));
