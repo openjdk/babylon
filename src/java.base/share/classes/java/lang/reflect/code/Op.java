@@ -362,22 +362,6 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * The attribute value that represents null.
-     */
-    public static final Object NULL_ATTRIBUTE_VALUE = new Object();
-
-    /**
-     * Returns the operation's attributes.
-     *
-     * <p>A null attribute value is represented by the constant value {@link #NULL_ATTRIBUTE_VALUE}.
-     *
-     * @return the operation's attributes, as an unmodifiable map
-     */
-    public Map<String, Object> attributes() {
-        return Map.of();
-    }
-
-    /**
      * {@return the operation's result type}
      */
     public abstract TypeElement resultType();

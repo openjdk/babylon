@@ -25,6 +25,10 @@
 
 package java.lang.reflect.code.op;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Constructor;
@@ -36,18 +40,37 @@ import java.util.Map;
 import java.util.function.Function;
 
 /**
- * An operation factory for constructing an {@link Op operation} from its {@link OpDefinition operation definition}.
+ * An operation factory for constructing an {@link Op operation} from its
+ * {@link ExternalizableOp.ExternalizedOp external content}.
  */
 @FunctionalInterface
 public interface OpFactory {
+
+    /**
+     * An operation declaration annotation.
+     * <p>
+     * This annotation may be declared on a concrete class implementing an {@link Op operation} whose name is a constant
+     * that can be declared as this attribute's value.
+     * <p>
+     * Tooling can process declarations of this annotation to build a factory for constructing operations from their name.
+     */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.TYPE)
+    @interface OpDeclaration {
+        /**
+         * {@return the operation name}
+         */
+        String value();
+    }
+
     /**
      * A class value for lazily computing an operation factory for {@link Op operation} classes
      * annotated with {@link OpDeclaration} and enclosed within a given class to compute over.
      * <p>
      * Each enclosed class annotated with {@code OpDeclaration} must declare a public static method named {@code create}
-     * with one parameter type of {@link OpDefinition} and return type that is the concrete class type.
+     * with one parameter type of {@link ExternalizableOp.ExternalizedOp} and return type that is the concrete class type.
      * Alternatively, the concrete class must declare public constructor with one parameter type of
-     * {@link OpDefinition}.
+     * {@link ExternalizableOp.ExternalizedOp}.
      */
     ClassValue<OpFactory> OP_FACTORY = new ClassValue<>() {
         @Override
@@ -67,28 +90,28 @@ public interface OpFactory {
     };
 
     /**
-     * Constructs an {@link Op operation} from its operation definition.
+     * Constructs an {@link Op operation} from its external content.
      * <p>
-     * If there is no mapping from the operation definition's name to a concrete
+     * If there is no mapping from the operation's name to a concrete
      * class of an {@code Op} then this method returns null.
      *
-     * @param def the operation definition
+     * @param def the operation's external content
      * @return the operation, otherwise null
      */
-    Op constructOp(OpDefinition def);
+    Op constructOp(ExternalizableOp.ExternalizedOp def);
 
     /**
-     * Constructs an {@link Op operation} from its operation definition.
+     * Constructs an {@link Op operation} from its external content.
      * <p>
-     * If there is no mapping from the operation definition's name to a concrete
+     * If there is no mapping from the operation's name to a concrete
      * class of an {@code Op} then this method throws UnsupportedOperationException.
      *
-     * @param def the operation definition
+     * @param def the operation's external content
      * @return the operation, otherwise null
-     * @throws UnsupportedOperationException if there is no mapping from the operation definition's
+     * @throws UnsupportedOperationException if there is no mapping from the operation's
      *                                       name to a concrete class of an {@code Op}
      */
-    default Op constructOpOrFail(OpDefinition def) {
+    default Op constructOpOrFail(ExternalizableOp.ExternalizedOp def) {
         Op op = constructOp(def);
         if (op == null) {
             throw new UnsupportedOperationException("Unsupported operation: " + def.name());
@@ -146,7 +169,7 @@ public interface OpFactory {
     private static MethodHandle getOpConstructorMethodHandle(Class<?> opClass) {
         Method method = null;
         try {
-            method = opClass.getMethod("create", OpDefinition.class);
+            method = opClass.getMethod("create", ExternalizableOp.ExternalizedOp.class);
         } catch (NoSuchMethodException e) {
         }
 
@@ -165,7 +188,7 @@ public interface OpFactory {
 
         Constructor<?> constructor;
         try {
-            constructor = opClass.getConstructor(OpDefinition.class);
+            constructor = opClass.getConstructor(ExternalizableOp.ExternalizedOp.class);
         } catch (NoSuchMethodException e) {
             return null;
         }
@@ -178,11 +201,11 @@ public interface OpFactory {
         }
     }
 
-    private static Op constructOp(Class<? extends Op> opClass, OpDefinition opDef) {
+    private static Op constructOp(Class<? extends Op> opClass, ExternalizableOp.ExternalizedOp opDef) {
         class Enclosed {
-            private static final ClassValue<Function<OpDefinition, Op>> OP_CONSTRUCTOR = new ClassValue<>() {
+            private static final ClassValue<Function<ExternalizableOp.ExternalizedOp, Op>> OP_CONSTRUCTOR = new ClassValue<>() {
                 @Override
-                protected Function<OpDefinition, Op> computeValue(Class<?> opClass) {
+                protected Function<ExternalizableOp.ExternalizedOp, Op> computeValue(Class<?> opClass) {
                     final MethodHandle opConstructorMH = getOpConstructorMethodHandle(opClass);
                     assert opConstructorMH != null;
 
