@@ -73,6 +73,7 @@ public abstract class OpWithDefinition extends Op {
      * }</pre>
      * If the attributes component of the operation definition is copied as if by {@code Map.copyOf}.
      */
+    @SuppressWarnings("this-escape")
     protected OpWithDefinition(OpDefinition def) {
         super(def.name(), def.operands());
         setLocation(extractLocation(def));
