@@ -33,7 +33,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.op.CoreOps;
-import java.lang.reflect.code.op.ExternalOpContent;
+import java.lang.reflect.code.op.ExternalizableOp;
 import java.lang.runtime.CodeReflection;
 import java.util.Optional;
 import java.util.function.IntUnaryOperator;
@@ -60,7 +60,7 @@ public class TestCopy {
     public void testCopyWithDefinition() {
         CoreOps.FuncOp f = getFuncOp("f");
 
-        ExternalOpContent odef = ExternalOpContent.fromOp(CopyContext.create(), f);
+        ExternalizableOp.ExternalizedOp odef = ExternalizableOp.ExternalizedOp.externalizeOp(CopyContext.create(), f);
         Op copy = CoreOps.FACTORY.constructOp(odef);
 
         Assert.assertEquals(f.toText(), copy.toText());

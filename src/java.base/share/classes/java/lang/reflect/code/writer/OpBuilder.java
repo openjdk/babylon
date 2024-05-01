@@ -26,7 +26,6 @@
 package java.lang.reflect.code.writer;
 
 import java.lang.reflect.code.*;
-import java.lang.reflect.code.op.ExternalOpContent;
 import java.lang.reflect.code.op.OpFactory;
 import java.lang.reflect.code.op.ExternalizableOp;
 import java.lang.reflect.code.type.*;
@@ -44,10 +43,10 @@ import static java.lang.reflect.code.type.JavaType.*;
  */
 public class OpBuilder {
 
-    static final JavaType J_C_O_OP_DEFINITION = type(ExternalOpContent.class);
+    static final JavaType J_C_O_EXTERNALIZED_OP = type(ExternalizableOp.ExternalizedOp.class);
 
     static final MethodRef OP_FACTORY_CONSTRUCT = MethodRef.method(OpFactory.class, "constructOp",
-            Op.class, ExternalOpContent.class);
+            Op.class, ExternalizableOp.ExternalizedOp.class);
 
     static final MethodRef TYPE_ELEMENT_FACTORY_CONSTRUCT = MethodRef.method(TypeElementFactory.class, "constructType",
             TypeElement.class, TypeDefinition.class);
@@ -110,8 +109,8 @@ public class OpBuilder {
             J_L_OBJECT, J_L_OBJECT, J_L_OBJECT);
 
 
-    static final FunctionType OP_DEFINITION_F_TYPE = functionType(
-            J_C_O_OP_DEFINITION,
+    static final FunctionType EXTERNALIZED_OP_F_TYPE = functionType(
+            J_C_O_EXTERNALIZED_OP,
             J_L_STRING,
             J_U_LIST,
             J_U_LIST,
@@ -217,7 +216,7 @@ public class OpBuilder {
                 buildType(resultType),
                 buildAttributeMap(attributes),
                 buildList(type(Body.Builder.class), bodies));
-        return builder.op(_new(OP_DEFINITION_F_TYPE, args));
+        return builder.op(_new(EXTERNALIZED_OP_F_TYPE, args));
     }
 
     Value buildBody(Value ancestorBodyValue, Body inputBody) {
