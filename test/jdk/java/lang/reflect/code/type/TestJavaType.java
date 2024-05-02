@@ -181,7 +181,7 @@ public class TestJavaType {
         }
         return types.stream().toArray(Object[][]::new);
     }
-    
+
     static class TypeHolder<X extends Number> {
         boolean p1;
         char p2;
@@ -209,7 +209,7 @@ public class TestJavaType {
         long[][] aap6;
         float[][] aap7;
         double[][] aap8;
-        
+
         String r1;
         Map<String, String> r2;
         Map<String, ?  extends String> r3;
