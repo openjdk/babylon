@@ -72,7 +72,7 @@ public final class Block implements CodeElement<Block, Op> {
          * @apiNote
          * This method may be used to pattern match on the returned result:
          * {@snippet lang = "java":
-         *     import java.lang.reflect.code.op.CoreOp;if (p.invokableOperation() instanceof CoreOp.FuncOp f) {
+         *     if (p.invokableOperation() instanceof CoreOp.FuncOp f) {
          *         assert f.parameters().indexOf(p) == p.index(); // @link substring="parameters()" target="Op.Invokable#parameters()"
          *     }
          *}
