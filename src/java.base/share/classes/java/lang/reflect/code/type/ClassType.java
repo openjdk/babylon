@@ -111,14 +111,25 @@ public final class ClassType implements TypeVarRef.Owner, JavaType {
 
     // Conversions
 
+    /**
+     * {@return a class type whose base type is the same as this class type, but without any
+     * type arguments}
+     */
     public ClassType rawType() {
         return new ClassType(type);
     }
 
+    /**
+     * {@return {@code true} if this class type has a non-empty type argument list}
+     * @see ClassType#typeArguments()
+     */
     public boolean hasTypeArguments() {
         return !typeArguments.isEmpty();
     }
 
+    /**
+     * {@return the type argument list associated with this class type}
+     */
     public List<JavaType> typeArguments() {
         return typeArguments;
     }
@@ -128,15 +139,14 @@ public final class ClassType implements TypeVarRef.Owner, JavaType {
         return JavaType.J_L_OBJECT;
     }
 
+    /**
+     * {@return a human-readable name for this class type}
+     */
     public String toClassName() {
         String pkg = type.packageName();
         return pkg.isEmpty() ?
                 type.displayName() :
                 String.format("%s.%s", pkg, type.displayName());
-    }
-
-    public String toInternalName() {
-        return toClassName().replace('.', '/');
     }
 
     @Override

@@ -48,6 +48,9 @@ public final class ArrayType implements JavaType {
         return componentType;
     }
 
+    /**
+     * {@return the dimensions associated with this array type}
+     */
     public int dimensions() {
         int dims = 0;
         JavaType current = this;

@@ -95,8 +95,13 @@ public final class WildcardType implements JavaType {
         throw new UnsupportedOperationException("Wildcard type");
     }
 
+    /**
+     * The bound kind of a wildcard type.
+     */
     public enum BoundKind {
+        /** A bound kind representing a {@code ? extends} wildcard type*/
         EXTENDS,
+        /** A bound kind representing a {@code ? super} wildcard type*/
         SUPER
     }
 }
