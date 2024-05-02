@@ -85,14 +85,14 @@ public class TestErasure {
                 if (kind != null) {
                     arg = JavaType.wildcard(kind, arg);
                 }
-                genericTypes.add(new TypeAndErasure(JavaType.type(LIST, arg), LIST));
+                genericTypes.add(new TypeAndErasure(JavaType.parameterized(LIST, arg), LIST));
             }
             for (TypeAndErasure t : primitives()) {
                 JavaType arg = JavaType.array(t.type);
                 if (kind != null) {
                     arg = JavaType.wildcard(kind, arg);
                 }
-                genericTypes.add(new TypeAndErasure(JavaType.type(LIST, arg), LIST));
+                genericTypes.add(new TypeAndErasure(JavaType.parameterized(LIST, arg), LIST));
             }
         }
         return genericTypes;

@@ -25,6 +25,7 @@
 
 package java.lang.reflect.code.type;
 
+import java.lang.constant.ClassDesc;
 import java.lang.reflect.code.TypeElement;
 import java.util.List;
 import java.util.Map;
@@ -35,18 +36,17 @@ import java.util.Optional;
  */
 public final class ClassType implements TypeVarRef.Owner, JavaType {
     // Fully qualified name
-    private final String type;
+    private final ClassDesc type;
 
     private final List<JavaType> typeArguments;
 
-    ClassType(String type) {
+    ClassType(ClassDesc type) {
         this(type, List.of());
     }
 
-    ClassType(String type, List<JavaType> typeArguments) {
-        switch (type) {
-            case "boolean", "char", "byte", "short", "int", "long",
-                    "float", "double", "void" -> throw new IllegalArgumentException();
+    ClassType(ClassDesc type, List<JavaType> typeArguments) {
+        if (!type.isClassOrInterface()) {
+            throw new IllegalArgumentException("Invalid base type: " + type);
         }
         this.type = type;
         this.typeArguments = List.copyOf(typeArguments);
@@ -58,7 +58,7 @@ public final class ClassType implements TypeVarRef.Owner, JavaType {
                 .map(TypeElement::toTypeDefinition)
                 .toList();
 
-        TypeDefinition td = new TypeDefinition(type, args);
+        TypeDefinition td = new TypeDefinition(toClassName(), args);
         return td;
     }
 
@@ -129,27 +129,18 @@ public final class ClassType implements TypeVarRef.Owner, JavaType {
     }
 
     public String toClassName() {
-        return type;
+        String pkg = type.packageName();
+        return pkg.isEmpty() ?
+                type.displayName() :
+                String.format("%s.%s", pkg, type.displayName());
     }
 
     public String toInternalName() {
-        return toClassDescriptor(type);
+        return toClassName().replace('.', '/');
     }
 
     @Override
-    public String toNominalDescriptorString() {
-        return toBytecodeDescriptor(type);
-    }
-
-    static String toBytecodeDescriptor(String type) {
-        if (type.equals("null")) {
-            type = Object.class.getName();
-        }
-
-        return "L" + type.replace('.', '/') + ";";
-    }
-
-    static String toClassDescriptor(String type) {
-        return type.replace('.', '/');
+    public ClassDesc toNominalDescriptor() {
+        return type;
     }
 }

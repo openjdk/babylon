@@ -25,6 +25,7 @@
 
 package java.lang.reflect.code.type;
 
+import java.lang.constant.ClassDesc;
 import java.util.List;
 import java.util.Objects;
 
@@ -90,7 +91,7 @@ public final class WildcardType implements JavaType {
     }
 
     @Override
-    public String toNominalDescriptorString() {
+    public ClassDesc toNominalDescriptor() {
         throw new UnsupportedOperationException("Wildcard type");
     }
 

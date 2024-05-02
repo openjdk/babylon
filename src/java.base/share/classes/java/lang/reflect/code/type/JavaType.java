@@ -26,7 +26,13 @@
 package java.lang.reflect.code.type;
 
 import java.lang.constant.ClassDesc;
+import java.lang.constant.ConstantDescs;
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Executable;
+import java.lang.reflect.GenericArrayType;
+import java.lang.reflect.GenericDeclaration;
+import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.type.WildcardType.BoundKind;
 import java.util.List;
@@ -39,83 +45,74 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
                                                              PrimitiveType, WildcardType, TypeVarRef {
 
     // @@@ Share with general void type?
-    PrimitiveType VOID = new PrimitiveType("void");
+    PrimitiveType VOID = new PrimitiveType(ConstantDescs.CD_void);
 
-    PrimitiveType BOOLEAN = new PrimitiveType("boolean");
+    PrimitiveType BOOLEAN = new PrimitiveType(ConstantDescs.CD_boolean);
 
-    ClassType J_L_BOOLEAN = new ClassType("java.lang.Boolean");
+    ClassType J_L_BOOLEAN = new ClassType(ConstantDescs.CD_Boolean);
 
     ArrayType BOOLEAN_ARRAY = new ArrayType(BOOLEAN);
 
-    PrimitiveType BYTE = new PrimitiveType("byte");
+    PrimitiveType BYTE = new PrimitiveType(ConstantDescs.CD_byte);
 
-    ClassType J_L_BYTE = new ClassType("java.lang.Byte");
+    ClassType J_L_BYTE = new ClassType(ConstantDescs.CD_Byte);
 
     ArrayType BYTE_ARRAY = new ArrayType(BYTE);
 
-    PrimitiveType CHAR = new PrimitiveType("char");
+    PrimitiveType CHAR = new PrimitiveType(ConstantDescs.CD_char);
 
-    ClassType J_L_CHARACTER = new ClassType("java.lang.Character");
+    ClassType J_L_CHARACTER = new ClassType(ConstantDescs.CD_Character);
 
     ArrayType CHAR_ARRAY = new ArrayType(CHAR);
 
-    PrimitiveType SHORT = new PrimitiveType("short");
+    PrimitiveType SHORT = new PrimitiveType(ConstantDescs.CD_short);
 
-    ClassType J_L_SHORT = new ClassType("java.lang.Short");
+    ClassType J_L_SHORT = new ClassType(ConstantDescs.CD_Short);
 
     ArrayType SHORT_ARRAY = new ArrayType(SHORT);
 
-    PrimitiveType INT = new PrimitiveType("int");
+    PrimitiveType INT = new PrimitiveType(ConstantDescs.CD_int);
 
-    ClassType J_L_INTEGER = new ClassType("java.lang.Integer");
+    ClassType J_L_INTEGER = new ClassType(ConstantDescs.CD_Integer);
 
     ArrayType INT_ARRAY = new ArrayType(INT);
 
-    PrimitiveType LONG = new PrimitiveType("long");
+    PrimitiveType LONG = new PrimitiveType(ConstantDescs.CD_long);
 
-    ClassType J_L_LONG = new ClassType("java.lang.Long");
+    ClassType J_L_LONG = new ClassType(ConstantDescs.CD_Long);
 
     ArrayType LONG_ARRAY = new ArrayType(LONG);
 
-    PrimitiveType FLOAT = new PrimitiveType("float");
+    PrimitiveType FLOAT = new PrimitiveType(ConstantDescs.CD_float);
 
-    ClassType J_L_FLOAT = new ClassType("java.lang.Float");
+    ClassType J_L_FLOAT = new ClassType(ConstantDescs.CD_Float);
 
     ArrayType FLOAT_ARRAY = new ArrayType(FLOAT);
 
-    PrimitiveType DOUBLE = new PrimitiveType("double");
+    PrimitiveType DOUBLE = new PrimitiveType(ConstantDescs.CD_double);
 
-    ClassType J_L_DOUBLE = new ClassType("java.lang.Double");
+    ClassType J_L_DOUBLE = new ClassType(ConstantDescs.CD_Double);
 
     ArrayType DOUBLE_ARRAY = new ArrayType(DOUBLE);
 
-    ClassType J_L_OBJECT = new ClassType("java.lang.Object");
+    ClassType J_L_OBJECT = new ClassType(ConstantDescs.CD_Object);
 
     ArrayType J_L_OBJECT_ARRAY = new ArrayType(J_L_OBJECT);
 
-    ClassType J_L_CLASS = new ClassType("java.lang.Class");
+    ClassType J_L_CLASS = new ClassType(ConstantDescs.CD_Class);
 
-    ClassType J_L_STRING = new ClassType("java.lang.String");
+    ClassType J_L_STRING = new ClassType(ConstantDescs.CD_String);
 
-    ClassType J_L_STRING_TEMPLATE = new ClassType("java.lang.StringTemplate");
-
-    ClassType J_L_STRING_TEMPLATE_PROCESSOR = new ClassType("java.lang.StringTemplate$Processor");
-
-    ClassType J_U_LIST = new ClassType("java.util.List");
+    ClassType J_U_LIST = new ClassType(ConstantDescs.CD_List);
 
     // Conversions
 
     JavaType toBasicType();
 
-
-    String toNominalDescriptorString();
-
-    default ClassDesc toNominalDescriptor() {
-        return ClassDesc.ofDescriptor(toNominalDescriptorString());
-    }
+    ClassDesc toNominalDescriptor();
 
     default Class<?> resolve(MethodHandles.Lookup l) throws ReflectiveOperationException {
-        return (Class<?>) toNominalDescriptor().resolveConstantDesc(l);
+        return toNominalDescriptor().resolveConstantDesc(l);
     }
 
     /**
@@ -125,44 +122,29 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
 
     // Factories
 
-    static JavaType type(Class<?> c) {
-        if (c.isPrimitive()) {
-            return new PrimitiveType(c.getName());
-        } else if (c.isArray()) {
-            return array(type(c.getComponentType()));
-        } else {
-            return new ClassType(c.getName());
-        }
+    static JavaType type(Type t) {
+        return switch (t) {
+            case Class<?> c -> type(c.describeConstable().get());
+            case java.lang.reflect.WildcardType wt -> wt.getLowerBounds().length == 0 ?
+                    wildcard(BoundKind.EXTENDS, type(wt.getUpperBounds()[0])) :
+                    wildcard(BoundKind.SUPER, type(wt.getLowerBounds()[0]));
+            case TypeVariable<?> tv -> typeVarRef(tv.getName(), owner(tv.getGenericDeclaration()), type(tv.getBounds()[0]));
+            case GenericArrayType at -> array(type(at.getGenericComponentType()));
+            default -> throw new InternalError();
+        };
     }
 
-    static JavaType type(Class<?> c, Class<?>... typeArguments) {
-        return type(c, List.of(typeArguments));
+    private static TypeVarRef.Owner owner(GenericDeclaration genDecl) {
+        return switch (genDecl) {
+            case Executable e -> MethodRef.method(e);
+            case Class<?> t -> (ClassType)type(t);
+            default -> throw new InternalError();
+        };
     }
 
-    static JavaType type(Class<?> c, List<Class<?>> typeArguments) {
-        if (c.isPrimitive()) {
-            throw new IllegalArgumentException("Cannot parameterize a primitive type");
-        } else if (c.isArray()) {
-            return array(type(c.getComponentType(), typeArguments));
-        } else {
-            return new ClassType(c.getName(),
-                    typeArguments.stream().map(JavaType::type).toList());
-        }
-    }
-
-    static JavaType ofNominalDescriptor(ClassDesc d) {
-        return ofNominalDescriptorStringInternal(d.descriptorString(), 0);
-    }
-
-    static JavaType ofNominalDescriptorString(String d) {
-        return ofNominalDescriptor(ClassDesc.ofDescriptor(d));
-    }
-
-    private static JavaType ofNominalDescriptorStringInternal(String descriptor, int i) {
-        if (descriptor.charAt(i) == '[') {
-            return new ArrayType(ofNominalDescriptorStringInternal(descriptor, i + 1));
-        } else {
-            return switch (descriptor.charAt(i)) {
+    static JavaType type(ClassDesc d) {
+        if (d.isPrimitive()) {
+            return switch (d.descriptorString().charAt(0)) {
                 case 'V' -> JavaType.VOID;
                 case 'I' -> JavaType.INT;
                 case 'J' -> JavaType.LONG;
@@ -172,26 +154,28 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
                 case 'F' -> JavaType.FLOAT;
                 case 'D' -> JavaType.DOUBLE;
                 case 'Z' -> JavaType.BOOLEAN;
-                case 'L' -> {
-                    // La.b.c.Class;
-                    String typeName = descriptor.substring(i + 1, descriptor.length() - 1).replace('/', '.');
-                    yield new ClassType(typeName);
-                }
                 default -> throw new InternalError();
             };
+        } else if (d.isArray()) {
+            return array(type(d.componentType()));
+        } else {
+            // class
+            return new ClassType(d, List.of());
         }
     }
 
-    static JavaType type(JavaType t, JavaType... typeArguments) {
-        return type(t, List.of(typeArguments));
+    static ClassType parameterized(JavaType type, JavaType... typeArguments) {
+        return parameterized(type, List.of(typeArguments));
     }
 
-    static JavaType type(JavaType t, List<JavaType> typeArguments) {
-        return switch (t) {
-            case ArrayType at -> array(type(at.componentType(), typeArguments));
-            case ClassType ct when !ct.hasTypeArguments() -> new ClassType(ct.toClassName(), typeArguments);
-            default -> throw new IllegalArgumentException("Cannot parameterize type: " + t);
-        };
+    static ClassType parameterized(JavaType type, List<JavaType> typeArguments) {
+        if (!(type instanceof ClassType ct)) {
+            throw new IllegalArgumentException("Not a class type: " + type);
+        }
+        if (ct.hasTypeArguments()) {
+            throw new IllegalArgumentException("Already parameterized: " + type);
+        }
+        return new ClassType(type.toNominalDescriptor(), typeArguments);
     }
 
     /**

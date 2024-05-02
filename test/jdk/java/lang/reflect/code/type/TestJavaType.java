@@ -25,6 +25,7 @@ import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import java.lang.constant.ClassDesc;
 import java.lang.reflect.code.type.ArrayType;
 import java.lang.reflect.code.type.ClassType;
 import java.lang.reflect.code.type.JavaType;
@@ -62,8 +63,8 @@ public class TestJavaType {
     public void testJavaType(String tds, String bcd) {
         JavaType jt = JavaType.ofString(tds);
         Assert.assertEquals(jt.toString(), tds);
-        Assert.assertEquals(jt.toNominalDescriptorString(), bcd);
-        Assert.assertEquals(jt, JavaType.ofNominalDescriptorString(bcd));
+        Assert.assertEquals(jt.toNominalDescriptor().descriptorString(), bcd);
+        Assert.assertEquals(jt, JavaType.type(ClassDesc.ofDescriptor(bcd)));
     }
 
     @DataProvider

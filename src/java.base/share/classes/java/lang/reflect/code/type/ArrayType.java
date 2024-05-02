@@ -25,6 +25,7 @@
 
 package java.lang.reflect.code.type;
 
+import java.lang.constant.ClassDesc;
 import java.lang.reflect.code.TypeElement;
 import java.util.List;
 
@@ -96,7 +97,7 @@ public final class ArrayType implements JavaType {
     }
 
     @Override
-    public String toNominalDescriptorString() {
-        return "[" + componentType.toNominalDescriptorString();
+    public ClassDesc toNominalDescriptor() {
+        return componentType.toNominalDescriptor().arrayType();
     }
 }

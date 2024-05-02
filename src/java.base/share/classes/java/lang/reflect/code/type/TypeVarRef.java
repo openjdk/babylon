@@ -25,6 +25,7 @@
 
 package java.lang.reflect.code.type;
 
+import java.lang.constant.ClassDesc;
 import java.util.List;
 import java.util.Optional;
 
@@ -95,12 +96,12 @@ public final class TypeVarRef implements JavaType {
 
     @Override
     public JavaType toBasicType() {
-        throw new UnsupportedOperationException("Type var");
+        return erasure().toBasicType();
     }
 
     @Override
-    public String toNominalDescriptorString() {
-        throw new UnsupportedOperationException("Type var");
+    public ClassDesc toNominalDescriptor() {
+        return erasure().toNominalDescriptor();
     }
 
     /**
