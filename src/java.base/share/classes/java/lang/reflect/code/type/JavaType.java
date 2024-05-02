@@ -32,12 +32,14 @@ import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.reflect.Executable;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.GenericDeclaration;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.type.WildcardType.BoundKind;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 /**
  * The symbolic description of a Java type. Java types can be classified as follows:
@@ -192,6 +194,8 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
     static JavaType type(Type reflectiveType) {
         return switch (reflectiveType) {
             case Class<?> c -> type(c.describeConstable().get());
+            case ParameterizedType pt -> parameterized(type(pt.getRawType()),
+                    Stream.of(pt.getActualTypeArguments()).map(JavaType::type).toList());
             case java.lang.reflect.WildcardType wt -> wt.getLowerBounds().length == 0 ?
                     wildcard(BoundKind.EXTENDS, type(wt.getUpperBounds()[0])) :
                     wildcard(BoundKind.SUPER, type(wt.getLowerBounds()[0]));

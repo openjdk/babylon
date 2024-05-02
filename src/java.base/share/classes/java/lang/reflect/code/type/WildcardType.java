@@ -47,7 +47,7 @@ public final class WildcardType implements JavaType {
     @Override
     public Type resolve(Lookup lookup) throws ReflectiveOperationException {
         Type[] upperBounds = kind == BoundKind.EXTENDS ?
-                new Type[] { boundType.resolve(lookup) } : new Type[0];
+                new Type[] { boundType.resolve(lookup) } : new Type[] { Object.class };
         Type[] lowerBounds = kind == BoundKind.SUPER ?
                 new Type[] { boundType.resolve(lookup) } : new Type[0];
         return makeReflectiveWildcard(upperBounds, lowerBounds);
