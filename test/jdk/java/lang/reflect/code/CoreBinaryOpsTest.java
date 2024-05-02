@@ -50,7 +50,7 @@ import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.reflect.code.interpreter.Interpreter;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.runtime.CodeReflection;
@@ -165,7 +165,7 @@ public class CoreBinaryOpsTest {
 
     @ParameterizedTest
     @CodeReflectionExecutionSource
-    void test(CoreOps.FuncOp funcOp, Object left, Object right) {
+    void test(CoreOp.FuncOp funcOp, Object left, Object right) {
         Result interpret = runCatching(() -> interpret(left, right, funcOp));
         Result bytecode = runCatching(() -> bytecode(left, right, funcOp));
         assertResults(interpret, bytecode);
@@ -203,7 +203,7 @@ public class CoreBinaryOpsTest {
             Method testMethod = extensionContext.getRequiredTestMethod();
             return codeReflectionMethods(extensionContext.getRequiredTestClass())
                     .flatMap(method -> {
-                        CoreOps.FuncOp funcOp = method.getCodeModel().orElseThrow(
+                        CoreOp.FuncOp funcOp = method.getCodeModel().orElseThrow(
                                 () -> new IllegalStateException("Expected code model to be present for method " + method)
                         );
                         SupportedTypes supportedTypes = method.getAnnotation(SupportedTypes.class);
@@ -234,7 +234,7 @@ public class CoreBinaryOpsTest {
                     }));
         }
 
-        private static CoreOps.FuncOp retype(CoreOps.FuncOp original, Class<?> newType) {
+        private static CoreOp.FuncOp retype(CoreOp.FuncOp original, Class<?> newType) {
             JavaType type = JavaType.type(newType);
             FunctionType functionType = original.invokableType();
             if (functionType.parameterTypes().stream().allMatch(t -> t.equals(type))) {
@@ -248,7 +248,7 @@ public class CoreBinaryOpsTest {
             TypeElement retType = functionType.returnType().equals(functionType.parameterTypes().getFirst())
                     ? type
                     : functionType.returnType();
-            return CoreOps.func(original.funcName(), FunctionType.functionType(retType, type, type))
+            return CoreOp.func(original.funcName(), FunctionType.functionType(retType, type, type))
                     .body(builder -> builder.transformBody(original.body(), builder.parameters(), (block, op) -> {
                                 block.context().mapValue(op.result(), block.op(retype(block.context(), op)));
                                 return block;
@@ -258,22 +258,22 @@ public class CoreBinaryOpsTest {
 
         private static Op retype(CopyContext context, Op op) {
             return switch (op) {
-                case CoreOps.VarOp varOp ->
-                        CoreOps.var(varOp.varName(), context.getValueOrDefault(varOp.operands().getFirst(), varOp.operands().getFirst()));
+                case CoreOp.VarOp varOp ->
+                        CoreOp.var(varOp.varName(), context.getValueOrDefault(varOp.operands().getFirst(), varOp.operands().getFirst()));
                 default -> op;
             };
         }
 
-        private static Stream<Arguments> argumentsForMethod(CoreOps.FuncOp funcOp, Method testMethod) {
+        private static Stream<Arguments> argumentsForMethod(CoreOp.FuncOp funcOp, Method testMethod) {
             Parameter[] testMethodParameters = testMethod.getParameters();
             List<TypeElement> funcParameters = funcOp.invokableType().parameterTypes();
             if (testMethodParameters.length - 1 != funcParameters.size()) {
                 throw new IllegalArgumentException("method " + testMethod + " does not take the correct number of parameters");
             }
-            if (testMethodParameters[0].getType() != CoreOps.FuncOp.class) {
+            if (testMethodParameters[0].getType() != CoreOp.FuncOp.class) {
                 throw new IllegalArgumentException("method " + testMethod + " does not take a leading FuncOp argument");
             }
-            Named<CoreOps.FuncOp> opNamed = Named.of(funcOp.funcName() + "{" + funcOp.invokableType() + "}", funcOp);
+            Named<CoreOp.FuncOp> opNamed = Named.of(funcOp.funcName() + "{" + funcOp.invokableType() + "}", funcOp);
             MethodHandles.Lookup lookup = MethodHandles.lookup();
             for (int i = 1; i < testMethodParameters.length; i++) {
                 Class<?> resolved = resolveParameter(funcParameters.get(i - 1), lookup);
@@ -319,12 +319,12 @@ public class CoreBinaryOpsTest {
 
     }
 
-    private static Object interpret(Object left, Object right, CoreOps.FuncOp op) {
+    private static Object interpret(Object left, Object right, CoreOp.FuncOp op) {
         return Interpreter.invoke(MethodHandles.lookup(), op, left, right);
     }
 
-    private static Object bytecode(Object left, Object right, CoreOps.FuncOp op) throws Throwable {
-        CoreOps.FuncOp func = SSA.transform(op.transform((block, o) -> {
+    private static Object bytecode(Object left, Object right, CoreOp.FuncOp op) throws Throwable {
+        CoreOp.FuncOp func = SSA.transform(op.transform((block, o) -> {
             if (o instanceof Op.Lowerable lowerable) {
                 return lowerable.lower(block);
             } else {

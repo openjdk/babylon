@@ -24,7 +24,7 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
@@ -64,7 +64,7 @@ public class TestConditionalOp {
         }
     }
 
-    static CoreOps.FuncOp getFuncOp(String name) {
+    static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestConditionalOp.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
                 .findFirst();
@@ -75,11 +75,11 @@ public class TestConditionalOp {
 
     @Test
     public void testf() {
-        CoreOps.FuncOp f = getFuncOp("f");
+        CoreOp.FuncOp f = getFuncOp("f");
 
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
+        CoreOp.FuncOp lf = f.transform((block, op) -> {
             if (op instanceof Op.Lowerable lop) {
                 return lop.lower(block);
             } else {

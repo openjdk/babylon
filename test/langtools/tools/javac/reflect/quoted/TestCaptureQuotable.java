@@ -29,7 +29,7 @@
 
 import org.testng.annotations.*;
 
-import java.lang.reflect.code.op.CoreOps.Var;
+import java.lang.reflect.code.op.CoreOp.Var;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Quotable;
 import java.lang.reflect.code.Quoted;

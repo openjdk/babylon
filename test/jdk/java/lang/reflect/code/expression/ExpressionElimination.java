@@ -22,11 +22,11 @@
  */
 
 import java.lang.reflect.code.*;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.util.HashMap;
 import java.util.function.BiConsumer;
 
-import static java.lang.reflect.code.op.CoreOps.sub;
+import static java.lang.reflect.code.op.CoreOp.sub;
 import static java.lang.reflect.code.analysis.Patterns.*;
 
 public final class ExpressionElimination {
@@ -34,15 +34,15 @@ public final class ExpressionElimination {
     }
 
     static OpPattern negP(Pattern operand) {
-        return opP(CoreOps.NegOp.class, operand);
+        return opP(CoreOp.NegOp.class, operand);
     }
 
     static OpPattern addP(Pattern lhs, Pattern rhs) {
-        return opP(CoreOps.AddOp.class, lhs, rhs);
+        return opP(CoreOp.AddOp.class, lhs, rhs);
     }
 
     static OpPattern mulP(Pattern lhs, Pattern rhs) {
-        return opP(CoreOps.MulOp.class, lhs, rhs);
+        return opP(CoreOp.MulOp.class, lhs, rhs);
     }
 
     public static <T extends Op> T eliminate(T f) {

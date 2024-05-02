@@ -29,7 +29,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.interpreter.Interpreter;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.runtime.CodeReflection;
 import java.util.*;
 import java.util.stream.Stream;
@@ -212,7 +212,7 @@ public class TestConcat {
             Object[] args = new Object[] {valMap.get(t.first), valMap.get(t.second)};
             Class<TestConcat> clazz = TestConcat.class;
             Method method = clazz.getDeclaredMethod(t.third, t.first, t.second);
-            CoreOps.FuncOp f = method.getCodeModel().orElseThrow();
+            CoreOp.FuncOp f = method.getCodeModel().orElseThrow();
             var res1 = Interpreter.invoke(MethodHandles.lookup(), f, args);
             var res2 = method.invoke(null, args);
 

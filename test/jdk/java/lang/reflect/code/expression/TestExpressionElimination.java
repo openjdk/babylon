@@ -25,7 +25,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.code.CopyContext;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Quoted;
 import java.lang.reflect.code.analysis.SSA;
@@ -40,20 +40,20 @@ public class TestExpressionElimination {
 
     @Test
     public void testAddZero() {
-        CoreOps.ClosureOp lf = generate((double a) -> a + 0.0);
+        CoreOp.ClosureOp lf = generate((double a) -> a + 0.0);
 
         Assert.assertEquals((double) Interpreter.invoke(lf, 1.0d), 1.0d);
     }
 
     @Test
     public void testF() {
-        CoreOps.ClosureOp lf = generate((double a, double b) -> -a + b);
+        CoreOp.ClosureOp lf = generate((double a, double b) -> -a + b);
 
         Assert.assertEquals((double) Interpreter.invoke(lf, 1.0d, 1.0d), 0.0d);
     }
 
-    static CoreOps.ClosureOp generate(Quoted q) {
-        return generateF((CoreOps.ClosureOp) q.op());
+    static CoreOp.ClosureOp generate(Quoted q) {
+        return generateF((CoreOp.ClosureOp) q.op());
     }
 
     static <T extends Op & Op.Invokable> T generateF(T f) {

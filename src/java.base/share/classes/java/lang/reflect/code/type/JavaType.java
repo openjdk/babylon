@@ -34,6 +34,7 @@ import java.util.Objects;
 
 /**
  * The symbolic description of a Java type.
+ * @sealedGraph
  */
 public sealed interface JavaType extends TypeElement permits ClassType, ArrayType,
                                                              PrimitiveType, WildcardType, TypeVarRef {

@@ -32,8 +32,9 @@ import java.util.Set;
 
 /**
  * A value, that is the result of an operation or a block parameter.
+ * @sealedGraph
  */
-public abstract sealed class Value implements Comparable<Value>, CodeItem
+public sealed abstract class Value implements Comparable<Value>, CodeItem
         permits Block.Parameter, Op.Result {
     final Block block;
     final TypeElement type;

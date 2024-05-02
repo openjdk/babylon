@@ -31,7 +31,7 @@ import java.lang.reflect.code.op.ExternalizableOp;
 import java.lang.reflect.code.type.*;
 import java.util.*;
 
-import static java.lang.reflect.code.op.CoreOps.*;
+import static java.lang.reflect.code.op.CoreOp.*;
 import static java.lang.reflect.code.type.FunctionType.functionType;
 import static java.lang.reflect.code.type.JavaType.*;
 

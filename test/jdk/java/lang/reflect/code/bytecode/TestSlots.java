@@ -24,7 +24,7 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.invoke.MethodHandle;
@@ -51,7 +51,7 @@ public class TestSlots {
 
     @Test
     public void testF() throws Throwable {
-        CoreOps.FuncOp f = getFuncOp("f");
+        CoreOp.FuncOp f = getFuncOp("f");
 
         MethodHandle mh = generate(f);
 
@@ -65,7 +65,7 @@ public class TestSlots {
 
     @Test
     public void testF2() throws Throwable {
-        CoreOps.FuncOp f = getFuncOp("f2");
+        CoreOp.FuncOp f = getFuncOp("f2");
 
         MethodHandle mh = generate(f);
 
@@ -88,7 +88,7 @@ public class TestSlots {
 
     @Test
     public void testF3() throws Throwable {
-        CoreOps.FuncOp f = getFuncOp("f3");
+        CoreOp.FuncOp f = getFuncOp("f3");
 
         MethodHandle mh = generate(f);
 
@@ -104,7 +104,7 @@ public class TestSlots {
 
     @Test
     public void testF4() throws Throwable {
-        CoreOps.FuncOp f = getFuncOp("f4");
+        CoreOp.FuncOp f = getFuncOp("f4");
 
         MethodHandle mh;
         try {
@@ -124,7 +124,7 @@ public class TestSlots {
 
     @Test
     public void testF5() throws Throwable {
-        CoreOps.FuncOp f = getFuncOp("f5");
+        CoreOp.FuncOp f = getFuncOp("f5");
 
         MethodHandle mh;
         try {
@@ -137,10 +137,10 @@ public class TestSlots {
         Assert.assertEquals(f5(1.0, 2.0), (double) mh.invoke(1.0, 2.0));
     }
 
-    static MethodHandle generate(CoreOps.FuncOp f) {
+    static MethodHandle generate(CoreOp.FuncOp f) {
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
+        CoreOp.FuncOp lf = f.transform((block, op) -> {
             if (op instanceof Op.Lowerable lop) {
                 return lop.lower(block);
             } else {
@@ -153,7 +153,7 @@ public class TestSlots {
         return BytecodeGenerator.generate(MethodHandles.lookup(), lf);
     }
 
-    static CoreOps.FuncOp getFuncOp(String name) {
+    static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestSlots.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
                 .findFirst();

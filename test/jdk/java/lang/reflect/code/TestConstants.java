@@ -30,7 +30,7 @@ import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.Method;
@@ -157,7 +157,7 @@ public class TestConstants {
                 .toList();
 
         for (Method m : ms) {
-            CoreOps.FuncOp f = m.getCodeModel().get();
+            CoreOp.FuncOp f = m.getCodeModel().get();
 
             f.writeTo(System.out);
 
@@ -176,11 +176,11 @@ public class TestConstants {
 
     @Test
     public void testCompareNull() {
-        CoreOps.FuncOp f = getFuncOp("compareNull");
+        CoreOp.FuncOp f = getFuncOp("compareNull");
 
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
+        CoreOp.FuncOp lf = f.transform((block, op) -> {
             if (op instanceof Op.Lowerable lop) {
                 return lop.lower(block);
             } else {
@@ -194,7 +194,7 @@ public class TestConstants {
         Assert.assertEquals(Interpreter.invoke(lf, (Object) null), compareNull(null));
     }
 
-    static CoreOps.FuncOp getFuncOp(String name) {
+    static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestConstants.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
                 .findFirst();

@@ -36,8 +36,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.lang.reflect.code.Op;
-import java.lang.reflect.code.op.CoreOps.FuncOp;
-import java.lang.reflect.code.op.ExtendedOps;
+import java.lang.reflect.code.op.CoreOp.FuncOp;
+import java.lang.reflect.code.op.ExtendedOp;
 import java.lang.reflect.code.parser.OpParser;
 import java.lang.reflect.code.writer.OpWriter;
 import java.nio.charset.Charset;
@@ -163,7 +163,7 @@ public class TestIRFromAnnotation {
 
     // parses, and then serializes, dropping location information
     static String canonicalizeModel(String d) {
-        return serialize(OpParser.fromString(ExtendedOps.FACTORY, d).get(0));
+        return serialize(OpParser.fromString(ExtendedOp.FACTORY, d).get(0));
     }
 
     // serializes, dropping location information

@@ -31,9 +31,9 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.code.*;
-import java.lang.reflect.code.op.CoreOps;
-import java.lang.reflect.code.op.CoreOps.FuncOp;
-import java.lang.reflect.code.op.CoreOps.LambdaOp;
+import java.lang.reflect.code.op.CoreOp;
+import java.lang.reflect.code.op.CoreOp.FuncOp;
+import java.lang.reflect.code.op.CoreOp.LambdaOp;
 import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
@@ -46,8 +46,8 @@ import java.util.function.IntSupplier;
 import java.util.function.IntUnaryOperator;
 import java.util.stream.Stream;
 
-import static java.lang.reflect.code.op.CoreOps.*;
-import static java.lang.reflect.code.op.CoreOps.constant;
+import static java.lang.reflect.code.op.CoreOp.*;
+import static java.lang.reflect.code.op.CoreOp.constant;
 import static java.lang.reflect.code.type.FunctionType.functionType;
 import static java.lang.reflect.code.type.JavaType.INT;
 import static java.lang.reflect.code.type.JavaType.type;
@@ -56,7 +56,7 @@ import static java.lang.reflect.code.type.JavaType.type;
 public class TestLambdaOps {
     static class Builder {
         static final MethodRef ACCEPT_METHOD = MethodRef.method(type(Builder.class), "accept",
-                INT, CoreOps.QuotedOp.QUOTED_TYPE);
+                INT, CoreOp.QuotedOp.QUOTED_TYPE);
 
         static int accept(Quoted l) {
             Assert.assertEquals(1, l.capturedValues().size());
@@ -151,9 +151,9 @@ public class TestLambdaOps {
         Quotable quotable = (Runnable & Quotable) () -> {};
         Op qop = quotable.quoted().op();
         Op top = qop.ancestorBody().parentOp().ancestorBody().parentOp();
-        Assert.assertTrue(top instanceof CoreOps.FuncOp);
+        Assert.assertTrue(top instanceof CoreOp.FuncOp);
 
-        CoreOps.FuncOp fop = (CoreOps.FuncOp) top;
+        CoreOp.FuncOp fop = (CoreOp.FuncOp) top;
         Assert.assertEquals(type(Quoted.class), fop.invokableType().returnType());
     }
 
@@ -186,7 +186,7 @@ public class TestLambdaOps {
 
             Map<Value, Object> cvs = Map.of(
                     q.capturedValues().keySet().iterator().next(),
-                    CoreOps.Var.of(0)
+                    CoreOp.Var.of(0)
             );
             r = (int) Interpreter.invoke(MethodHandles.lookup(), (LambdaOp) q.op(), cvs, List.of());
             Assert.assertEquals(r, 0);
@@ -207,7 +207,7 @@ public class TestLambdaOps {
 
             Map<Value, Object> cvs = Map.of(
                     q.capturedValues().keySet().iterator().next(),
-                    CoreOps.Var.of(0)
+                    CoreOp.Var.of(0)
             );
             r = (int) Interpreter.invoke(MethodHandles.lookup(), (LambdaOp) q.op(), cvs, List.of());
             Assert.assertEquals(r, 0);
@@ -236,7 +236,7 @@ public class TestLambdaOps {
     @Test(dataProvider = "methodRefLambdas")
     public void testIsMethodReference(Quotable q) {
         Quoted quoted = q.quoted();
-        CoreOps.LambdaOp lop = (CoreOps.LambdaOp) quoted.op();
+        CoreOp.LambdaOp lop = (CoreOp.LambdaOp) quoted.op();
         Assert.assertTrue(lop.methodReference().isPresent());
     }
 
@@ -257,7 +257,7 @@ public class TestLambdaOps {
     }
 
 
-    static CoreOps.FuncOp getFuncOp(String name) {
+    static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestLambdaOps.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
                 .findFirst();

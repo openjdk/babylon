@@ -31,18 +31,18 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.code.Block;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.parser.OpParser;
 import java.util.List;
 import java.util.function.IntUnaryOperator;
 
-import static java.lang.reflect.code.op.CoreOps._return;
-import static java.lang.reflect.code.op.CoreOps.add;
-import static java.lang.reflect.code.op.CoreOps.constant;
-import static java.lang.reflect.code.op.CoreOps.func;
-import static java.lang.reflect.code.op.CoreOps.lambda;
+import static java.lang.reflect.code.op.CoreOp._return;
+import static java.lang.reflect.code.op.CoreOp.add;
+import static java.lang.reflect.code.op.CoreOp.constant;
+import static java.lang.reflect.code.op.CoreOp.func;
+import static java.lang.reflect.code.op.CoreOp.lambda;
 import static java.lang.reflect.code.type.FunctionType.functionType;
 import static java.lang.reflect.code.type.JavaType.INT;
 import static java.lang.reflect.code.type.JavaType.type;
@@ -56,14 +56,14 @@ public class TestParse {
     @Test
     public void testParseLambdaOp() {
         // functional type = (int)int
-        CoreOps.FuncOp f = func("f", functionType(INT, INT))
+        CoreOp.FuncOp f = func("f", functionType(INT, INT))
                 .body(block -> {
                     Block.Parameter i = block.parameters().get(0);
 
                     // functional type = (int)int
                     // op type = ()IntUnaryOperator
                     //   captures i
-                    CoreOps.LambdaOp lambda = lambda(block.parentBody(),
+                    CoreOp.LambdaOp lambda = lambda(block.parentBody(),
                             functionType(INT, INT), type(IntUnaryOperator.class))
                             .body(lbody -> {
                                 Block.Builder lblock = lbody.entryBlock();
@@ -75,11 +75,11 @@ public class TestParse {
 
                     Op.Result fi = block.op(lambda);
                     Op.Result fortyTwo = block.op(constant(INT, 42));
-                    Op.Result or = block.op(CoreOps.invoke(INT_UNARY_OPERATOR_METHOD, fi, fortyTwo));
+                    Op.Result or = block.op(CoreOp.invoke(INT_UNARY_OPERATOR_METHOD, fi, fortyTwo));
                     block.op(_return(or));
                 });
 
-        List<Op> ops = OpParser.fromString(CoreOps.FACTORY, f.toText());
+        List<Op> ops = OpParser.fromString(CoreOp.FACTORY, f.toText());
         assertTextEquals(f, ops.get(0));
     }
 
@@ -96,8 +96,8 @@ public class TestParse {
             """;
     @Test
     void testParseNamedBody() {
-        Op opE = OpParser.fromString(CoreOps.FACTORY, NAMED_BODY).get(0);
-        Op opA = OpParser.fromString(CoreOps.FACTORY, opE.toText()).get(0);
+        Op opE = OpParser.fromString(CoreOp.FACTORY, NAMED_BODY).get(0);
+        Op opA = OpParser.fromString(CoreOp.FACTORY, opE.toText()).get(0);
         assertTextEquals(opA, opE);
     }
 
@@ -110,11 +110,11 @@ public class TestParse {
             """;
     @Test
     void testEscapedString() {
-        Op opE = OpParser.fromString(CoreOps.FACTORY, ESCAPED_STRING).get(0);
-        Op opA = OpParser.fromString(CoreOps.FACTORY, opE.toText()).get(0);
+        Op opE = OpParser.fromString(CoreOp.FACTORY, ESCAPED_STRING).get(0);
+        Op opA = OpParser.fromString(CoreOp.FACTORY, opE.toText()).get(0);
         assertTextEquals(opA, opE);
 
-        CoreOps.ConstantOp cop = (CoreOps.ConstantOp) opE.bodies().get(0).entryBlock().firstOp();
+        CoreOp.ConstantOp cop = (CoreOp.ConstantOp) opE.bodies().get(0).entryBlock().firstOp();
         String v = (String) cop.value();
         Assert.assertEquals(v, "\b \f \n \r \t \' \" \\");
     }

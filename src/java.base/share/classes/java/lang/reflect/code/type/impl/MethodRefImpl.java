@@ -25,7 +25,7 @@
 
 package java.lang.reflect.code.type.impl;
 
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.type.MethodRef;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandleInfo;
@@ -116,7 +116,7 @@ public final class MethodRefImpl implements MethodRef {
 
     // Copied code in jdk.compiler module throws UOE
     @Override
-    public Optional<CoreOps.FuncOp> codeModel(MethodHandles.Lookup l) throws ReflectiveOperationException {
+    public Optional<CoreOp.FuncOp> codeModel(MethodHandles.Lookup l) throws ReflectiveOperationException {
 /*__throw new UnsupportedOperationException();__*/        return resolveToMember(l).getCodeModel();
     }
 

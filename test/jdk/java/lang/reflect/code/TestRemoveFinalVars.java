@@ -13,10 +13,10 @@ import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import static java.lang.reflect.code.op.CoreOps.FuncOp;
-import static java.lang.reflect.code.op.CoreOps.VarAccessOp.VarLoadOp;
-import static java.lang.reflect.code.op.CoreOps.VarAccessOp.VarStoreOp;
-import static java.lang.reflect.code.op.CoreOps.VarOp;
+import static java.lang.reflect.code.op.CoreOp.FuncOp;
+import static java.lang.reflect.code.op.CoreOp.VarAccessOp.VarLoadOp;
+import static java.lang.reflect.code.op.CoreOp.VarAccessOp.VarStoreOp;
+import static java.lang.reflect.code.op.CoreOp.VarOp;
 
 /*
  * @test

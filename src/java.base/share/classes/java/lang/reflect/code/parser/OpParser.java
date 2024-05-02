@@ -164,8 +164,8 @@ public final class OpParser {
      * @return the func operation
      */
     public static Op fromStringOfFuncOp(String in) {
-        Op op = fromString(ExtendedOps.FACTORY, in).get(0);
-        if (!(op instanceof CoreOps.FuncOp)) {
+        Op op = fromString(ExtendedOp.FACTORY, in).get(0);
+        if (!(op instanceof CoreOp.FuncOp)) {
             throw new IllegalArgumentException("Op is not a FuncOp: " + op);
         }
         return op;

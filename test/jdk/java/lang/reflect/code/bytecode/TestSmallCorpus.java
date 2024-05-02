@@ -35,7 +35,7 @@ import java.lang.reflect.code.Op;
 import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.reflect.code.bytecode.BytecodeLift;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -103,15 +103,15 @@ public class TestSmallCorpus {
         var clm = CF.parse(path);
         for (var originalModel : clm.methods()) {
             if (originalModel.flags().has(AccessFlag.STATIC) && originalModel.code().isPresent()) try {
-                CoreOps.FuncOp firstLift = lift(originalModel);
+                CoreOp.FuncOp firstLift = lift(originalModel);
                 try {
-                    CoreOps.FuncOp firstTransform = transform(firstLift);
+                    CoreOp.FuncOp firstTransform = transform(firstLift);
                     try {
                         MethodModel firstModel = lower(firstTransform);
                         try {
-                            CoreOps.FuncOp secondLift = lift(firstModel);
+                            CoreOp.FuncOp secondLift = lift(firstModel);
                             try {
-                                CoreOps.FuncOp secondTransform = transform(secondLift);
+                                CoreOp.FuncOp secondTransform = transform(secondLift);
                                 try {
                                     MethodModel secondModel = lower(secondTransform);
 
@@ -148,7 +148,7 @@ public class TestSmallCorpus {
             }
         }
     }
-    private static void printInColumns(CoreOps.FuncOp first, CoreOps.FuncOp second) {
+    private static void printInColumns(CoreOp.FuncOp first, CoreOp.FuncOp second) {
         StringWriter fw = new StringWriter();
         first.writeTo(fw);
         StringWriter sw = new StringWriter();
@@ -165,11 +165,11 @@ public class TestSmallCorpus {
         }
     }
 
-    private static CoreOps.FuncOp lift(MethodModel mm) {
+    private static CoreOp.FuncOp lift(MethodModel mm) {
         return BytecodeLift.lift(mm);
     }
 
-    private static CoreOps.FuncOp transform(CoreOps.FuncOp func) {
+    private static CoreOp.FuncOp transform(CoreOp.FuncOp func) {
         return SSA.transform(func.transform((block, op) -> {
                     if (op instanceof Op.Lowerable lop) {
                         return lop.lower(block);
@@ -180,7 +180,7 @@ public class TestSmallCorpus {
                 }));
     }
 
-    private static MethodModel lower(CoreOps.FuncOp func) {
+    private static MethodModel lower(CoreOp.FuncOp func) {
         return CF.parse(BytecodeGenerator.generateClassData(
                 MethodHandles.lookup(),
                 func)).methods().get(0);

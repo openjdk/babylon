@@ -24,7 +24,7 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.Method;
@@ -49,7 +49,7 @@ public class TestEnhancedForOp {
         return j;
     }
 
-    static CoreOps.FuncOp getFuncOp(String name) {
+    static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestEnhancedForOp.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
                 .findFirst();
@@ -60,11 +60,11 @@ public class TestEnhancedForOp {
 
     @Test
     public void testf() {
-        CoreOps.FuncOp f = getFuncOp("f");
+        CoreOp.FuncOp f = getFuncOp("f");
 
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
+        CoreOp.FuncOp lf = f.transform((block, op) -> {
             if (op instanceof Op.Lowerable lop) {
                 return lop.lower(block);
             } else {
@@ -90,11 +90,11 @@ public class TestEnhancedForOp {
 
     @Test
     public void testArray() {
-        CoreOps.FuncOp f = getFuncOp("array");
+        CoreOp.FuncOp f = getFuncOp("array");
 
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
+        CoreOp.FuncOp lf = f.transform((block, op) -> {
             if (op instanceof Op.Lowerable lop) {
                 return lop.lower(block);
             } else {

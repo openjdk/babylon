@@ -25,8 +25,8 @@ import java.lang.reflect.code.Block;
 import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.type.MethodRef;
-import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
 import java.util.HashMap;
@@ -35,7 +35,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static java.lang.reflect.code.op.CoreOps.*;
+import static java.lang.reflect.code.op.CoreOp.*;
 import static java.lang.reflect.code.type.JavaType.DOUBLE;
 
 public final class ForwardDifferentiation {
@@ -128,7 +128,7 @@ public final class ForwardDifferentiation {
     Value diffOp(Block.Builder block, Op op) {
         // Switch on the op, using pattern matching
         return switch (op) {
-            case CoreOps.NegOp _ -> {
+            case CoreOp.NegOp _ -> {
                 // Copy input operation
                 block.op(op);
 
@@ -137,7 +137,7 @@ public final class ForwardDifferentiation {
                 Value da = diffValueMapping.getOrDefault(a, zero);
                 yield block.op(neg(da));
             }
-            case CoreOps.AddOp _ -> {
+            case CoreOp.AddOp _ -> {
                 // Copy input operation
                 block.op(op);
 
@@ -148,7 +148,7 @@ public final class ForwardDifferentiation {
                 Value drhs = diffValueMapping.getOrDefault(rhs, zero);
                 yield block.op(add(dlhs, drhs));
             }
-            case CoreOps.MulOp _ -> {
+            case CoreOp.MulOp _ -> {
                 // Copy input operation
                 block.op(op);
 
@@ -164,13 +164,13 @@ public final class ForwardDifferentiation {
                         block.op(mul(dlhs, outputRhs)),
                         block.op(mul(outputLhs, drhs))));
             }
-            case CoreOps.ConstantOp _ -> {
+            case CoreOp.ConstantOp _ -> {
                 // Copy input operation
                 block.op(op);
                 // Differential of constant is zero
                 yield zero;
             }
-            case CoreOps.InvokeOp c -> {
+            case CoreOp.InvokeOp c -> {
                 MethodRef md = c.invokeDescriptor();
                 String operationName = null;
                 if (md.refType().equals(J_L_MATH)) {
@@ -192,7 +192,7 @@ public final class ForwardDifferentiation {
                     throw new UnsupportedOperationException("Operation not supported: " + op.opName());
                 }
             }
-            case CoreOps.ReturnOp _ -> {
+            case CoreOp.ReturnOp _ -> {
                 // Replace with return of differentiated value
                 Value a = op.operands().get(0);
                 Value da = diffValueMapping.getOrDefault(a, zero);

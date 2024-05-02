@@ -22,7 +22,7 @@
  */
 
 import java.lang.reflect.code.*;
-import java.lang.reflect.code.op.ExtendedOps.JavaEnhancedForOp;
+import java.lang.reflect.code.op.ExtendedOp.JavaEnhancedForOp;
 import java.lang.reflect.code.type.ClassType;
 import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
@@ -30,9 +30,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.*;
 
-import static java.lang.reflect.code.op.CoreOps.*;
-import static java.lang.reflect.code.op.ExtendedOps._continue;
-import static java.lang.reflect.code.op.ExtendedOps.enhancedFor;
+import static java.lang.reflect.code.op.CoreOp.*;
+import static java.lang.reflect.code.op.ExtendedOp._continue;
+import static java.lang.reflect.code.op.ExtendedOp.enhancedFor;
 import static java.lang.reflect.code.type.JavaType.type;
 
 public final class StreamFuserUsingQuotable {

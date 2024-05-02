@@ -52,7 +52,7 @@ import java.lang.reflect.code.Block;
 import java.lang.reflect.code.Body;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.type.ClassType;
@@ -68,7 +68,7 @@ import uk.ac.manchester.beehivespirvtoolkit.lib.disassembler.SPIRVDisassemblerOp
 import uk.ac.manchester.beehivespirvtoolkit.lib.disassembler.SPVByteStreamReader;
 
 public class SpirvModuleGenerator {
-    public static MemorySegment generateModule(String moduleName, CoreOps.FuncOp func) {
+    public static MemorySegment generateModule(String moduleName, CoreOp.FuncOp func) {
         SpirvOps.FuncOp spirvFunc = TranslateToSpirvModel.translateFunction(func);
         MemorySegment module = SpirvModuleGenerator.generateModule(moduleName, spirvFunc);
         return module;

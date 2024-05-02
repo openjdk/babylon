@@ -29,7 +29,7 @@ import java.lang.reflect.code.Block;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.CodeElement;
 import java.lang.reflect.code.Value;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
@@ -305,7 +305,7 @@ public final class Patterns {
     /**
      * A pattern matching against a value or operation.
      */
-    public static sealed abstract class Pattern {
+    public sealed static abstract class Pattern {
         Pattern() {
         }
 
@@ -494,7 +494,7 @@ public final class Patterns {
     }
 
     /**
-     * Creates an operation pattern that tests if the operation is a {@link CoreOps.ConstantOp constant} operation
+     * Creates an operation pattern that tests if the operation is a {@link CoreOp.ConstantOp constant} operation
      * and whose constant value is equal to the given value.
      * This operation pattern matches an operation if the test returns {@code true}.
      *
@@ -503,7 +503,7 @@ public final class Patterns {
      */
     public static OpPattern constantP(Object value) {
         return opP(op -> {
-            if (op instanceof CoreOps.ConstantOp cop) {
+            if (op instanceof CoreOp.ConstantOp cop) {
                 return Objects.equals(value, cop.value());
             }
 
