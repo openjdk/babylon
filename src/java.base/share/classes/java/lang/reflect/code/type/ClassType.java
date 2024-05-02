@@ -53,18 +53,18 @@ public final class ClassType implements TypeVarRef.Owner, JavaType {
     }
 
     @Override
-    public TypeDefinition toTypeDefinition() {
-        List<TypeDefinition> args = typeArguments.stream()
-                .map(TypeElement::toTypeDefinition)
+    public ExternalizedTypeElement externalize() {
+        List<ExternalizedTypeElement> args = typeArguments.stream()
+                .map(TypeElement::externalize)
                 .toList();
 
-        TypeDefinition td = new TypeDefinition(type, args);
+        ExternalizedTypeElement td = new ExternalizedTypeElement(type, args);
         return td;
     }
 
     @Override
     public String toString() {
-        return toTypeDefinition().toString();
+        return externalize().toString();
     }
 
     @Override

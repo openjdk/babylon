@@ -58,19 +58,19 @@ public final class ArrayType implements JavaType {
     }
 
     @Override
-    public TypeDefinition toTypeDefinition() {
+    public ExternalizedTypeElement externalize() {
         int dims = 0;
         TypeElement current = this;
         while (current instanceof ArrayType at) {
             dims++;
             current = at.componentType();
         }
-        return new TypeDefinition("[".repeat(dims), List.of(current.toTypeDefinition()));
+        return new ExternalizedTypeElement("[".repeat(dims), List.of(current.externalize()));
     }
 
     @Override
     public String toString() {
-        return toTypeDefinition().toString();
+        return externalize().toString();
     }
 
     @Override

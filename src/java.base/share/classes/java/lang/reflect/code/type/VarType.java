@@ -24,13 +24,13 @@ public final class VarType implements TypeElement {
     }
 
     @Override
-    public TypeDefinition toTypeDefinition() {
-        return new TypeDefinition(NAME, List.of(variableType.toTypeDefinition()));
+    public ExternalizedTypeElement externalize() {
+        return new ExternalizedTypeElement(NAME, List.of(variableType.externalize()));
     }
 
     @Override
     public String toString() {
-        return toTypeDefinition().toString();
+        return externalize().toString();
     }
 
     @Override

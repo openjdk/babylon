@@ -25,7 +25,6 @@
 
 package java.lang.reflect.code.type;
 
-import java.lang.reflect.code.TypeElement;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -42,13 +41,13 @@ public final class PrimitiveType implements JavaType {
     }
 
     @Override
-    public TypeDefinition toTypeDefinition() {
-        return new TypeDefinition(type, List.of());
+    public ExternalizedTypeElement externalize() {
+        return new ExternalizedTypeElement(type, List.of());
     }
 
     @Override
     public String toString() {
-        return toTypeDefinition().toString();
+        return externalize().toString();
     }
 
     @Override

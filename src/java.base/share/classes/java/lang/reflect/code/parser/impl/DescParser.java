@@ -35,20 +35,19 @@ import java.lang.reflect.code.type.impl.MethodRefImpl;
 import java.lang.reflect.code.type.impl.RecordTypeRefImpl;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public final class DescParser {
     private DescParser() {}
 
     /**
-     * Parse a type definition from its serialized textual form.
-     * @param desc the serialized type definition
-     * @return the type definition
+     * Parse an externalized type element from its serialized textual form.
+     * @param desc the serialized externalized type element
+     * @return the externalized type element
      */
-    public static TypeDefinition parseTypeDefinition(String desc) {
+    public static TypeElement.ExternalizedTypeElement parseExTypeElem(String desc) {
         Scanner s = Scanner.factory().newScanner(desc);
         s.nextToken();
-        return parseTypeDefinition(s);
+        return parseExTypeElem(s);
     }
 
     /**
@@ -87,7 +86,7 @@ public final class DescParser {
         return parseRecordTypeRef(s);
     }
 
-    public static TypeDefinition parseTypeDefinition(Lexer l) {
+    public static TypeElement.ExternalizedTypeElement parseExTypeElem(Lexer l) {
         StringBuilder identifier = new StringBuilder();
         if (l.token().kind == TokenKind.HASH) {
             // Quoted identifier
@@ -110,12 +109,12 @@ public final class DescParser {
         }
 
         // Type parameters
-        List<TypeDefinition> args;
+        List<TypeElement.ExternalizedTypeElement> args;
         if (l.token().kind == Tokens.TokenKind.LT) {
             args = new ArrayList<>();
             do {
                 l.nextToken();
-                TypeDefinition arg = parseTypeDefinition(l);
+                TypeElement.ExternalizedTypeElement arg = parseExTypeElem(l);
                 args.add(arg);
             } while (l.token().kind == Tokens.TokenKind.COMMA);
             l.accept(Tokens.TokenKind.GT);
@@ -132,17 +131,17 @@ public final class DescParser {
             dims++;
         }
 
-        TypeDefinition td = new TypeDefinition(identifier.toString(), args);
+        TypeElement.ExternalizedTypeElement td = new TypeElement.ExternalizedTypeElement(identifier.toString(), args);
         if (dims > 0) {
             // If array-like then type definition becomes a child with identifier [+
-            return new TypeDefinition("[".repeat(dims), List.of(td));
+            return new TypeElement.ExternalizedTypeElement("[".repeat(dims), List.of(td));
         } else {
             return td;
         }
     }
 
     static TypeElement parseTypeElement(Lexer l) {
-        TypeDefinition typeDesc = parseTypeDefinition(l);
+        TypeElement.ExternalizedTypeElement typeDesc = parseExTypeElem(l);
         return CoreTypeFactory.CORE_TYPE_FACTORY.constructType(typeDesc);
     }
 

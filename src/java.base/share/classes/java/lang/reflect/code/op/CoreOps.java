@@ -1372,7 +1372,7 @@ public final class CoreOps {
                     v -> switch (v) {
                         case String s -> {
                             TypeElement te = CoreTypeFactory.CORE_TYPE_FACTORY
-                                    .constructType(TypeDefinition.ofString(s));
+                                    .constructType(TypeElement.ExternalizedTypeElement.ofString(s));
                             if (!(te instanceof FunctionType ft)) {
                                 throw new UnsupportedOperationException("Unsupported new descriptor value:" + v);
                             }
