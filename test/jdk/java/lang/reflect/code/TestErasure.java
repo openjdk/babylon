@@ -41,6 +41,8 @@ public class TestErasure {
     @Test(dataProvider = "typesAndErasures")
     public void testErasure(String testName, TypeAndErasure typeAndErasure) {
         assertEquals(typeAndErasure.type.erasure(), typeAndErasure.erasure);
+        assertEquals(typeAndErasure.type.toBasicType(), typeAndErasure.erasure.toBasicType());
+        assertEquals(typeAndErasure.type.toNominalDescriptor(), typeAndErasure.erasure.toNominalDescriptor());
     }
 
     @DataProvider
@@ -102,6 +104,7 @@ public class TestErasure {
         List<TypeAndErasure> arrayTypes = new ArrayList<>();
         for (int dims = 1 ; dims <= 3 ; dims++) {
             for (TypeAndErasure t : primitives()) {
+                if (t.type.equals(JavaType.VOID)) continue; // void is not a valid array component type
                 arrayTypes.add(new TypeAndErasure(JavaType.array(t.type, dims), JavaType.array(t.erasure, dims)));
             }
             for (TypeAndErasure t : references()) {

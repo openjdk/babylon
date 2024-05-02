@@ -106,4 +106,11 @@ public final class PrimitiveType implements JavaType {
     public ClassDesc toNominalDescriptor() {
         return type;
     }
+
+    /**
+     * {@return {@code true} if this type is {@link JavaType#VOID}}
+     */
+    public boolean isVoid() {
+        return toBasicType() == JavaType.VOID;
+    }
 }
