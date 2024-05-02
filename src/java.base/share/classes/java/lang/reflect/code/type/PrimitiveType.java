@@ -26,7 +26,8 @@
 package java.lang.reflect.code.type;
 
 import java.lang.constant.ClassDesc;
-import java.lang.reflect.code.TypeElement;
+import java.lang.invoke.MethodHandles.Lookup;
+import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -40,6 +41,11 @@ public final class PrimitiveType implements JavaType {
 
     PrimitiveType(ClassDesc type) {
         this.type = type;
+    }
+
+    @Override
+    public Type resolve(Lookup lookup) throws ReflectiveOperationException {
+        return type.resolveConstantDesc(lookup);
     }
 
     @Override

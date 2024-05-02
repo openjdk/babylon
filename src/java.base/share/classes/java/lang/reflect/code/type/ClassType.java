@@ -26,7 +26,11 @@
 package java.lang.reflect.code.type;
 
 import java.lang.constant.ClassDesc;
+import java.lang.invoke.MethodHandles.Lookup;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.lang.reflect.code.TypeElement;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -50,6 +54,24 @@ public final class ClassType implements TypeVarRef.Owner, JavaType {
         }
         this.type = type;
         this.typeArguments = List.copyOf(typeArguments);
+    }
+
+    @Override
+    public Type resolve(Lookup lookup) throws ReflectiveOperationException {
+        Class<?> baseType = type.resolveConstantDesc(lookup);
+        List<Type> resolvedTypeArgs = new ArrayList<>();
+        for (JavaType typearg : typeArguments) {
+            resolvedTypeArgs.add(typearg.resolve(lookup));
+        }
+        return resolvedTypeArgs.isEmpty() ?
+                baseType :
+                makeReflectiveParameterizedType(baseType,
+                        resolvedTypeArgs.toArray(new Type[0]), baseType.getDeclaringClass()); // @@@: generic owner is erased here
+    }
+
+    // Copied code in jdk.compiler module throws UOE
+    private static ParameterizedType makeReflectiveParameterizedType(Class<?> base, Type[] typeArgs, Class<?> owner) {
+/*__throw new UnsupportedOperationException();__*/        return sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl.make(base, typeArgs, owner);
     }
 
     @Override

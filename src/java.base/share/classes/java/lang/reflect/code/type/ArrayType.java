@@ -26,6 +26,10 @@
 package java.lang.reflect.code.type;
 
 import java.lang.constant.ClassDesc;
+import java.lang.invoke.MethodHandles.Lookup;
+import java.lang.reflect.Array;
+import java.lang.reflect.GenericArrayType;
+import java.lang.reflect.Type;
 import java.lang.reflect.code.TypeElement;
 import java.util.List;
 
@@ -33,12 +37,26 @@ import java.util.List;
  * An array type.
  */
 public final class ArrayType implements JavaType {
-    static final String NAME = "[";
 
     final JavaType componentType;
 
     ArrayType(JavaType componentType) {
         this.componentType = componentType;
+    }
+
+    @Override
+    public Type resolve(Lookup lookup) throws ReflectiveOperationException {
+        Type resolvedComponent = componentType.resolve(lookup);
+        if (resolvedComponent instanceof Class<?> resolvedComponentClass) {
+            return Array.newInstance(resolvedComponentClass, 0).getClass();
+        } else { // generic array
+            return makeReflectiveGenericArray(resolvedComponent);
+        }
+    }
+
+    // Copied code in jdk.compiler module throws UOE
+    private static GenericArrayType makeReflectiveGenericArray(Type component) {
+/*__throw new UnsupportedOperationException();__*/        return sun.reflect.generics.reflectiveObjects.GenericArrayTypeImpl.make(component);
     }
 
     /**

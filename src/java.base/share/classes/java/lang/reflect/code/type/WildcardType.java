@@ -26,6 +26,8 @@
 package java.lang.reflect.code.type;
 
 import java.lang.constant.ClassDesc;
+import java.lang.invoke.MethodHandles.Lookup;
+import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Objects;
 
@@ -40,6 +42,20 @@ public final class WildcardType implements JavaType {
     WildcardType(BoundKind kind, JavaType boundType) {
         this.kind = kind;
         this.boundType = boundType;
+    }
+
+    @Override
+    public Type resolve(Lookup lookup) throws ReflectiveOperationException {
+        Type[] upperBounds = kind == BoundKind.EXTENDS ?
+                new Type[] { boundType.resolve(lookup) } : new Type[0];
+        Type[] lowerBounds = kind == BoundKind.SUPER ?
+                new Type[] { boundType.resolve(lookup) } : new Type[0];
+        return makeReflectiveWildcard(upperBounds, lowerBounds);
+    }
+
+    // Copied code in jdk.compiler module throws UOE
+    private static java.lang.reflect.WildcardType makeReflectiveWildcard(Type[] upper, Type[] lower) {
+/*__throw new UnsupportedOperationException();__*/        return sun.reflect.generics.reflectiveObjects.WildcardTypeImpl.make(upper, lower);
     }
 
     /**

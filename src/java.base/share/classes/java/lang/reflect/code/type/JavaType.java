@@ -175,10 +175,7 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
      * @return a reflective type mirror for this type
      * @throws ReflectiveOperationException if this Java type cannot be resolved
      */
-    // @@@: this should return a reflective type mirror
-    default Class<?> resolve(MethodHandles.Lookup lookup) throws ReflectiveOperationException {
-        return toNominalDescriptor().resolveConstantDesc(lookup);
-    }
+    Type resolve(MethodHandles.Lookup lookup) throws ReflectiveOperationException;
 
     /**
      * {@return the erasure of this Java type, as per JLS 4.6}
