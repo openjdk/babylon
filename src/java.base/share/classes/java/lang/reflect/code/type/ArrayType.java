@@ -48,7 +48,7 @@ public final class ArrayType implements JavaType {
     public Type resolve(Lookup lookup) throws ReflectiveOperationException {
         Type resolvedComponent = componentType.resolve(lookup);
         if (resolvedComponent instanceof Class<?> resolvedComponentClass) {
-            return Array.newInstance(resolvedComponentClass, 0).getClass();
+            return resolvedComponentClass.arrayType();
         } else { // generic array
             return makeReflectiveGenericArray(resolvedComponent);
         }
