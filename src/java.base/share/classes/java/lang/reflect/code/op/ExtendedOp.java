@@ -46,7 +46,7 @@ import static java.lang.reflect.code.op.CoreOp.*;
 import static java.lang.reflect.code.type.JavaType.*;
 
 /**
- * The top-level operation class for the set of extended operations.
+ * The top-level operation class for the enclosed set of extended operations.
  * <p>
  * A code model, produced by the Java compiler from Java program source, may consist of extended operations and core
  * operations. Such a model represents the same Java program and preserves the program meaning as defined by the

@@ -36,7 +36,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
- * The top-level operation class for the set of core operations.
+ * The top-level operation class for the set of enclosed core operations.
  * <p>
  * A code model, produced by the Java compiler from Java program source, may consist of extended operations and core
  * operations. Such a model represents the same Java program and preserves the program meaning as defined by the
