@@ -34,7 +34,7 @@ import sun.security.action.GetBooleanAction;
 
 import java.io.Serializable;
 import java.lang.constant.ConstantDescs;
-import java.lang.reflect.code.op.CoreOps.FuncOp;
+import java.lang.reflect.code.op.CoreOp.FuncOp;
 import java.lang.reflect.code.Quoted;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.code.parser.OpParser;

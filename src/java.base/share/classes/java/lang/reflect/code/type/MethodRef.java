@@ -27,8 +27,7 @@ package java.lang.reflect.code.type;
 
 import java.lang.constant.ClassDesc;
 import java.lang.constant.MethodTypeDesc;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.type.impl.MethodRefImpl;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -66,7 +65,7 @@ public sealed interface MethodRef extends TypeVarRef.Owner permits MethodRefImpl
 
     MethodHandle resolveToHandle(MethodHandles.Lookup l) throws ReflectiveOperationException;
 
-    Optional<CoreOps.FuncOp> codeModel(MethodHandles.Lookup l) throws ReflectiveOperationException;
+    Optional<CoreOp.FuncOp> codeModel(MethodHandles.Lookup l) throws ReflectiveOperationException;
 
     // Factories
 

@@ -25,7 +25,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.code.Block;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
@@ -48,7 +48,7 @@ public class TestForwardAutoDiff {
 
     @Test
     public void testExpression() throws Throwable {
-        CoreOps.FuncOp f = getFuncOp("f");
+        CoreOp.FuncOp f = getFuncOp("f");
         f.writeTo(System.out);
 
         f = SSA.transform(f);
@@ -60,13 +60,13 @@ public class TestForwardAutoDiff {
         Block.Parameter x = f.body().entryBlock().parameters().get(0);
         Block.Parameter y = f.body().entryBlock().parameters().get(1);
 
-        CoreOps.FuncOp dff_dx = ExpressionElimination.eliminate(ForwardDifferentiation.partialDiff(f, x));
+        CoreOp.FuncOp dff_dx = ExpressionElimination.eliminate(ForwardDifferentiation.partialDiff(f, x));
         dff_dx.writeTo(System.out);
         MethodHandle dff_dx_mh = generate(dff_dx);
         Assert.assertEquals((double) dff_dx_mh.invoke(0.0, 1.0), df_dx(0.0, 1.0));
         Assert.assertEquals((double) dff_dx_mh.invoke(PI_4, PI_4), df_dx(PI_4, PI_4));
 
-        CoreOps.FuncOp dff_dy = ExpressionElimination.eliminate(ForwardDifferentiation.partialDiff(f, y));
+        CoreOp.FuncOp dff_dy = ExpressionElimination.eliminate(ForwardDifferentiation.partialDiff(f, y));
         dff_dy.writeTo(System.out);
         MethodHandle dff_dy_mh = generate(dff_dy);
         Assert.assertEquals((double) dff_dy_mh.invoke(0.0, 1.0), df_dy(0.0, 1.0));
@@ -88,7 +88,7 @@ public class TestForwardAutoDiff {
 
     @Test
     public void testControlFlow() throws Throwable {
-        CoreOps.FuncOp f = getFuncOp("fcf");
+        CoreOp.FuncOp f = getFuncOp("fcf");
         f.writeTo(System.out);
 
         f = f.transform((block, op) -> {
@@ -110,7 +110,7 @@ public class TestForwardAutoDiff {
 
         Block.Parameter x = f.body().entryBlock().parameters().get(0);
 
-        CoreOps.FuncOp df_dx = ForwardDifferentiation.partialDiff(f, x);
+        CoreOp.FuncOp df_dx = ForwardDifferentiation.partialDiff(f, x);
         df_dx.writeTo(System.out);
         MethodHandle df_dx_mh = generate(df_dx);
 
@@ -147,11 +147,11 @@ public class TestForwardAutoDiff {
         return d_o;
     }
 
-    static MethodHandle generate(CoreOps.FuncOp f) {
+    static MethodHandle generate(CoreOp.FuncOp f) {
         return BytecodeGenerator.generate(MethodHandles.lookup(), f);
     }
 
-    static CoreOps.FuncOp getFuncOp(String name) {
+    static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestForwardAutoDiff.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
                 .findFirst();

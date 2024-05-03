@@ -24,7 +24,7 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.Method;
@@ -50,11 +50,11 @@ public class TestWhileOp {
 
     @Test
     public void testWhileLoop() {
-        CoreOps.FuncOp f = getFuncOp("whileLoop");
+        CoreOp.FuncOp f = getFuncOp("whileLoop");
 
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
+        CoreOp.FuncOp lf = f.transform((block, op) -> {
             if (op instanceof Op.Lowerable lop) {
                 return lop.lower(block);
             } else {
@@ -79,11 +79,11 @@ public class TestWhileOp {
 
     @Test
     public void testDpWhileLoop() {
-        CoreOps.FuncOp f = getFuncOp("doWhileLoop");
+        CoreOp.FuncOp f = getFuncOp("doWhileLoop");
 
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
+        CoreOp.FuncOp lf = f.transform((block, op) -> {
             if (op instanceof Op.Lowerable lop) {
                 return lop.lower(block);
             } else {
@@ -97,7 +97,7 @@ public class TestWhileOp {
         Assert.assertEquals(Interpreter.invoke(lf), doWhileLoop());
     }
 
-    static CoreOps.FuncOp getFuncOp(String name) {
+    static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestWhileOp.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
                 .findFirst();

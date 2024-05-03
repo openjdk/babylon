@@ -29,7 +29,7 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
@@ -62,11 +62,11 @@ public class TestTryFinally {
 
     @Test
     public void testCatchFinally() {
-        CoreOps.FuncOp f = getFuncOp("tryCatchFinally");
+        CoreOp.FuncOp f = getFuncOp("tryCatchFinally");
 
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
+        CoreOp.FuncOp lf = f.transform((block, op) -> {
             if (op instanceof Op.Lowerable lop) {
                 return lop.lower(block);
             } else {
@@ -105,11 +105,11 @@ public class TestTryFinally {
 
     @Test
     public void testTryReturn() {
-        CoreOps.FuncOp f = getFuncOp("tryReturn");
+        CoreOp.FuncOp f = getFuncOp("tryReturn");
 
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
+        CoreOp.FuncOp lf = f.transform((block, op) -> {
             if (op instanceof Op.Lowerable lop) {
                 return lop.lower(block);
             } else {
@@ -148,11 +148,11 @@ public class TestTryFinally {
 
     @Test
     public void testCatchThrow() {
-        CoreOps.FuncOp f = getFuncOp("catchThrow");
+        CoreOp.FuncOp f = getFuncOp("catchThrow");
 
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
+        CoreOp.FuncOp lf = f.transform((block, op) -> {
             if (op instanceof Op.Lowerable lop) {
                 return lop.lower(block);
             } else {
@@ -189,11 +189,11 @@ public class TestTryFinally {
 
     @Test
     public void finallyReturn() {
-        CoreOps.FuncOp f = getFuncOp("finallyReturn");
+        CoreOp.FuncOp f = getFuncOp("finallyReturn");
 
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
+        CoreOp.FuncOp lf = f.transform((block, op) -> {
             if (op instanceof Op.Lowerable lop) {
                 return lop.lower(block);
             } else {
@@ -233,7 +233,7 @@ public class TestTryFinally {
         });
     }
 
-    static CoreOps.FuncOp getFuncOp(String name) {
+    static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestTryFinally.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
                 .findFirst();

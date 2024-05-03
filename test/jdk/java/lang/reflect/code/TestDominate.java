@@ -25,7 +25,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.code.Block;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
@@ -36,11 +36,11 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static java.lang.reflect.code.op.CoreOps._return;
-import static java.lang.reflect.code.op.CoreOps.branch;
-import static java.lang.reflect.code.op.CoreOps.conditionalBranch;
-import static java.lang.reflect.code.op.CoreOps.constant;
-import static java.lang.reflect.code.op.CoreOps.func;
+import static java.lang.reflect.code.op.CoreOp._return;
+import static java.lang.reflect.code.op.CoreOp.branch;
+import static java.lang.reflect.code.op.CoreOp.conditionalBranch;
+import static java.lang.reflect.code.op.CoreOp.constant;
+import static java.lang.reflect.code.op.CoreOp.func;
 
 /*
  * @test
@@ -51,7 +51,7 @@ public class TestDominate {
 
     @Test
     public void testIfElse() {
-        CoreOps.FuncOp f = func("f", FunctionType.VOID).body(entry -> {
+        CoreOp.FuncOp f = func("f", FunctionType.VOID).body(entry -> {
             Block.Builder ifBlock = entry.block();
             Block.Builder elseBlock = entry.block();
             Block.Builder end = entry.block();
@@ -78,7 +78,7 @@ public class TestDominate {
 
     @Test
     public void testForwardSuccessors() {
-        CoreOps.FuncOp f = func("f", FunctionType.VOID).body(entry -> {
+        CoreOp.FuncOp f = func("f", FunctionType.VOID).body(entry -> {
             Block.Builder b1 = entry.block();
             Block.Builder b2 = entry.block();
             Block.Builder b3 = entry.block();
@@ -114,7 +114,7 @@ public class TestDominate {
 
     @Test
     public void testBackbranch() {
-        CoreOps.FuncOp f = func("f", FunctionType.VOID).body(entry -> {
+        CoreOp.FuncOp f = func("f", FunctionType.VOID).body(entry -> {
             Block.Builder cond = entry.block();
             Block.Builder body = entry.block();
             Block.Builder update = entry.block();
@@ -143,7 +143,7 @@ public class TestDominate {
         test(f, bvs);
     }
 
-    static void test(CoreOps.FuncOp f, boolean[][] bvs) {
+    static void test(CoreOp.FuncOp f, boolean[][] bvs) {
         Block[] bs = f.body().blocks().toArray(Block[]::new);
         for (int i = 0; i < bs.length; i++) {
             for (int j = 0; j < bs.length; j++) {
@@ -157,7 +157,7 @@ public class TestDominate {
 
     @Test
     public void testImmediateDominators() {
-        CoreOps.FuncOp f = func("f", FunctionType.VOID).body(entry -> {
+        CoreOp.FuncOp f = func("f", FunctionType.VOID).body(entry -> {
             Block.Builder b6 = entry.block();
             Block.Builder b5 = entry.block();
             Block.Builder b4 = entry.block();
@@ -198,7 +198,7 @@ public class TestDominate {
 
     @Test
     public void testCytronExample() {
-        CoreOps.FuncOp f = func("f", FunctionType.VOID).body(entry -> {
+        CoreOp.FuncOp f = func("f", FunctionType.VOID).body(entry -> {
             Block.Builder exit = entry.block();
             Block.Builder b12 = entry.block();
             Block.Builder b11 = entry.block();

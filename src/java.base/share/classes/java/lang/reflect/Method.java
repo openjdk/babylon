@@ -45,8 +45,7 @@ import sun.reflect.annotation.AnnotationType;
 import sun.reflect.annotation.AnnotationParser;
 import java.lang.annotation.Annotation;
 import java.lang.annotation.AnnotationFormatError;
-import java.lang.reflect.code.op.CoreOps;
-import java.lang.reflect.code.op.ExtendedOps;
+import java.lang.reflect.code.op.ExtendedOp;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.parser.OpParser;
 import java.nio.ByteBuffer;
@@ -54,7 +53,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.StringJoiner;
 
-import static java.lang.reflect.code.op.CoreOps.*;
+import static java.lang.reflect.code.op.CoreOp.*;
 
 /**
  * A {@code Method} provides information about, and access to, a single method
@@ -297,7 +296,7 @@ public final class Method extends Executable {
 
         FuncOp op;
         try {
-            List<Op> ops = OpParser.fromString(ExtendedOps.FACTORY, modelText);
+            List<Op> ops = OpParser.fromString(ExtendedOp.FACTORY, modelText);
             op = (FuncOp) ops.get(0);
         } catch (RuntimeException e) {
             // @@@ Error or Exception?

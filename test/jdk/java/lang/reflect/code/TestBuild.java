@@ -28,7 +28,7 @@ import java.lang.reflect.code.*;
 import java.lang.reflect.code.analysis.SSA;
 import java.util.function.IntBinaryOperator;
 
-import static java.lang.reflect.code.op.CoreOps.*;
+import static java.lang.reflect.code.op.CoreOp.*;
 import static java.lang.reflect.code.type.FunctionType.functionType;
 import static java.lang.reflect.code.type.FunctionType.VOID;
 import static java.lang.reflect.code.type.JavaType.INT;

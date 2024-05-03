@@ -34,7 +34,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.code.CodeItem;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.analysis.SSA;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.writer.OpWriter;
 import java.lang.runtime.CodeReflection;
 import java.util.Map;
@@ -57,14 +57,14 @@ public class TestNaming {
 
     @Test
     public void testHigh() {
-        CoreOps.FuncOp f = getFuncOp("f");
+        CoreOp.FuncOp f = getFuncOp("f");
 
         testModel(f);
     }
 
     @Test
     public void testLow() {
-        CoreOps.FuncOp f = getFuncOp("f");
+        CoreOp.FuncOp f = getFuncOp("f");
 
         f = f.transform((block, op) -> {
             if (op instanceof Op.Lowerable lop) {
@@ -93,7 +93,7 @@ public class TestNaming {
         Assert.assertEquals(actual, expected);
     }
 
-    static CoreOps.FuncOp getFuncOp(String name) {
+    static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestNaming.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
                 .findFirst();

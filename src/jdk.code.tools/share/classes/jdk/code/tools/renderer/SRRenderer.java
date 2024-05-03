@@ -27,7 +27,7 @@ package jdk.code.tools.renderer;
 
 import java.lang.reflect.code.Block;
 import java.lang.reflect.code.Body;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
 
@@ -241,7 +241,7 @@ public final class SRRenderer extends CommonRenderer<SRRenderer> {
     }
 
     // @@@ Not used
-    public void write(GlobalValueBlockNaming gn, CoreOps.FuncOp fRep) {
+    public void write(GlobalValueBlockNaming gn, CoreOp.FuncOp fRep) {
         this.append(fRep.opName());// w.write(name);
         if (!fRep.operands().isEmpty()) {
             space().spaceSeparatedList();

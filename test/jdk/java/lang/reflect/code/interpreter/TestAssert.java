@@ -22,16 +22,13 @@
  */
 import java.lang.reflect.code.Op;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Stream;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.interpreter.Interpreter;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.runtime.CodeReflection;
 
 import org.testng.Assert;
-import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 /*
@@ -161,7 +158,7 @@ public class TestAssert {
         try {
             Class<TestAssert> clazz = TestAssert.class;
             Method method = clazz.getDeclaredMethod(methodName,params.toArray(new Class[params.size()]));
-            CoreOps.FuncOp f = method.getCodeModel().orElseThrow();
+            CoreOp.FuncOp f = method.getCodeModel().orElseThrow();
 
             //Ensure we're fully lowered before testing.
             final var fz = f.transform((b, o) -> {
@@ -183,7 +180,7 @@ public class TestAssert {
         try {
             Class<TestAssert> clazz = TestAssert.class;
             Method method = clazz.getDeclaredMethod(methodName,params.toArray(new Class[params.size()]));
-            CoreOps.FuncOp f = method.getCodeModel().orElseThrow();
+            CoreOp.FuncOp f = method.getCodeModel().orElseThrow();
 
             //Ensure we're fully lowered before testing.
             final var fz = f.transform((b, o) -> {

@@ -26,8 +26,8 @@ import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.analysis.SSA;
-import java.lang.reflect.code.op.CoreOps;
-import java.lang.reflect.code.op.ExtendedOps;
+import java.lang.reflect.code.op.CoreOp;
+import java.lang.reflect.code.op.ExtendedOp;
 import java.lang.reflect.code.parser.OpParser;
 import java.lang.reflect.code.writer.OpWriter;
 import java.lang.runtime.CodeReflection;
@@ -55,7 +55,7 @@ public class CodeReflectionTester {
             throw new AssertionError("No @IR annotation found on reflective method");
         }
 
-        CoreOps.FuncOp f = method.getCodeModel().orElseThrow(() ->
+        CoreOp.FuncOp f = method.getCodeModel().orElseThrow(() ->
                 new AssertionError("No code model for reflective method"));
         f = lower(f, lma.ssa());
 
@@ -66,7 +66,7 @@ public class CodeReflectionTester {
         }
     }
 
-    static CoreOps.FuncOp lower(CoreOps.FuncOp f, boolean ssa) {
+    static CoreOp.FuncOp lower(CoreOp.FuncOp f, boolean ssa) {
         f = f.transform((block, op) -> {
             if (op instanceof Op.Lowerable lop) {
                 return lop.lower(block);
@@ -94,7 +94,7 @@ public class CodeReflectionTester {
     static String canonicalizeModel(Member m, String d) {
         Op o;
         try {
-            o = OpParser.fromString(ExtendedOps.FACTORY, d).get(0);
+            o = OpParser.fromString(ExtendedOp.FACTORY, d).get(0);
         } catch (Exception e) {
             throw new IllegalStateException(m.toString(), e);
         }

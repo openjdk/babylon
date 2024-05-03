@@ -82,7 +82,7 @@ import static com.sun.tools.javac.code.TypeTag.CLASS;
 import com.sun.tools.javac.comp.Modules;
 import com.sun.tools.javac.comp.Resolve;
 import com.sun.tools.javac.resources.CompilerProperties.Notes;
-import jdk.internal.java.lang.reflect.code.op.CoreOps;
+import jdk.internal.java.lang.reflect.code.op.CoreOp;
 
 import static com.sun.tools.javac.tree.JCTree.Tag.*;
 
@@ -814,7 +814,7 @@ public class JavacElements implements Elements {
             return Optional.empty();
         }
 
-        CoreOps.FuncOp funcOp;
+        CoreOp.FuncOp funcOp;
         try {
             JCMethodDecl methodTree = (JCMethodDecl)getTree(e);
             JavacScope scope = javacTrees.getScope(javacTrees.getPath(e));

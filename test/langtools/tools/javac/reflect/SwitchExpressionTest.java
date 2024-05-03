@@ -337,9 +337,9 @@ public class SwitchExpressionTest {
                 %7 : java.lang.Object = java.switch.expression %2
                     ^patternCaseLabel(%8 : java.lang.Object)boolean -> {
                         %9 : boolean = pattern.match %8
-                            ^pattern()java.lang.reflect.code.ExtendedOps$Pattern$Record<SwitchExpressionTest$A> -> {
-                                %10 : java.lang.reflect.code.ExtendedOps$Pattern$Binding<java.lang.Number> = pattern.binding @"n";
-                                %11 : java.lang.reflect.code.ExtendedOps$Pattern$Record<SwitchExpressionTest$A> = pattern.record %10 @"(java.lang.Number n)SwitchExpressionTest$A";
+                            ^pattern()java.lang.reflect.code.ExtendedOp$Pattern$Record<SwitchExpressionTest$A> -> {
+                                %10 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Number> = pattern.binding @"n";
+                                %11 : java.lang.reflect.code.ExtendedOp$Pattern$Record<SwitchExpressionTest$A> = pattern.record %10 @"(java.lang.Number n)SwitchExpressionTest$A";
                                 yield %11;
                             }
                             ^match(%12 : java.lang.Number)void -> {
@@ -354,8 +354,8 @@ public class SwitchExpressionTest {
                     }
                     ^patternCaseLabel(%14 : java.lang.Object)boolean -> {
                         %15 : boolean = pattern.match %14
-                            ^pattern()java.lang.reflect.code.ExtendedOps$Pattern$Binding<java.lang.String> -> {
-                                %16 : java.lang.reflect.code.ExtendedOps$Pattern$Binding<java.lang.String> = pattern.binding @"s";
+                            ^pattern()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
+                                %16 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.binding @"s";
                                 yield %16;
                             }
                             ^match(%17 : java.lang.String)void -> {
@@ -406,9 +406,9 @@ public class SwitchExpressionTest {
                 %9 : java.lang.Object = java.switch.expression %2
                     ^patternCaseLabel(%10 : java.lang.Object)boolean -> {
                         %11 : boolean = pattern.match %10
-                            ^pattern()java.lang.reflect.code.ExtendedOps$Pattern$Record<SwitchExpressionTest$A> -> {
-                                %12 : java.lang.reflect.code.ExtendedOps$Pattern$Binding<java.lang.Number> = pattern.binding @"n";
-                                %13 : java.lang.reflect.code.ExtendedOps$Pattern$Record<SwitchExpressionTest$A> = pattern.record %12 @"(java.lang.Number n)SwitchExpressionTest$A";
+                            ^pattern()java.lang.reflect.code.ExtendedOp$Pattern$Record<SwitchExpressionTest$A> -> {
+                                %12 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Number> = pattern.binding @"n";
+                                %13 : java.lang.reflect.code.ExtendedOp$Pattern$Record<SwitchExpressionTest$A> = pattern.record %12 @"(java.lang.Number n)SwitchExpressionTest$A";
                                 yield %13;
                             }
                             ^match(%14 : java.lang.Number)void -> {
@@ -425,8 +425,8 @@ public class SwitchExpressionTest {
                         %17 : boolean = java.cand
                             ()boolean -> {
                                 %18 : boolean = pattern.match %16
-                                    ^pattern()java.lang.reflect.code.ExtendedOps$Pattern$Binding<java.lang.String> -> {
-                                        %19 : java.lang.reflect.code.ExtendedOps$Pattern$Binding<java.lang.String> = pattern.binding @"s";
+                                    ^pattern()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
+                                        %19 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.binding @"s";
                                         yield %19;
                                     }
                                     ^match(%20 : java.lang.String)void -> {
@@ -452,8 +452,8 @@ public class SwitchExpressionTest {
                         %27 : boolean = java.cand
                             ()boolean -> {
                                 %28 : boolean = pattern.match %26
-                                    ^pattern()java.lang.reflect.code.ExtendedOps$Pattern$Binding<java.lang.String> -> {
-                                        %29 : java.lang.reflect.code.ExtendedOps$Pattern$Binding<java.lang.String> = pattern.binding @"s";
+                                    ^pattern()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
+                                        %29 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.binding @"s";
                                         yield %29;
                                     }
                                     ^match(%30 : java.lang.String)void -> {

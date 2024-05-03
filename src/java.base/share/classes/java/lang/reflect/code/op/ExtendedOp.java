@@ -42,13 +42,15 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-import static java.lang.reflect.code.op.CoreOps.*;
+import static java.lang.reflect.code.op.CoreOp.*;
 import static java.lang.reflect.code.type.JavaType.*;
 
 /**
- * The set of extended operations. A code model, produced by the Java compiler from Java program source, may consist of
- * extended operations and core operations. Such a model represents the same Java program and preserves the program
- * meaning as defined by the Java Language Specification
+ * The top-level operation class for the enclosed set of extended operations.
+ * <p>
+ * A code model, produced by the Java compiler from Java program source, may consist of extended operations and core
+ * operations. Such a model represents the same Java program and preserves the program meaning as defined by the
+ * Java Language Specification
  * <p>
  * Extended operations model specific Java language constructs, often those with structured control flow and nested
  * code. Each operation is transformable into a sequence of core operations, commonly referred to as lowering. Those
@@ -59,20 +61,30 @@ import static java.lang.reflect.code.type.JavaType.*;
  * can be transformed to one consisting only of core operations, where all extended operations are lowered. This
  * transformation preserves programing meaning. The resulting lowered code model also represents the same Java program.
  */
-public class ExtendedOps {
+public sealed abstract class ExtendedOp extends ExternalizableOp {
     // Split string to ensure the name does not get rewritten
     // when the script copies this source to the jdk.compiler module
     static final String PACKAGE_NAME = "java.lang" + ".reflect.code";
 
-    static final String ExtendedOps_CLASS_NAME = PACKAGE_NAME + "." + ExtendedOps.class.getSimpleName();
+    static final String ExtendedOp_CLASS_NAME = PACKAGE_NAME + "." + ExtendedOp.class.getSimpleName();
 
-    ExtendedOps() {
+    protected ExtendedOp(Op that, CopyContext cc) {
+        super(that, cc);
     }
+
+    protected ExtendedOp(String name, List<? extends Value> operands) {
+        super(name, operands);
+    }
+
+    protected ExtendedOp(ExternalizableOp.ExternalizedOp def) {
+        super(def);
+    }
+
 
     /**
      * The label operation, that can model Java language statements with label identifiers.
      */
-    public static sealed abstract class JavaLabelOp extends ExternalizableOp implements Op.Lowerable, Op.BodyTerminating {
+    public sealed static abstract class JavaLabelOp extends ExtendedOp implements Op.Lowerable, Op.BodyTerminating {
         JavaLabelOp(ExternalizedOp def) {
             super(def);
 
@@ -245,7 +257,7 @@ public class ExtendedOps {
      * The yield operation, that can model Java language yield statements.
      */
     @OpFactory.OpDeclaration(JavaYieldOp.NAME)
-    public static final class JavaYieldOp extends ExternalizableOp implements Op.BodyTerminating {
+    public static final class JavaYieldOp extends ExtendedOp implements Op.BodyTerminating {
         public static final String NAME = "java.yield";
 
         public JavaYieldOp(ExternalizedOp def) {
@@ -290,7 +302,7 @@ public class ExtendedOps {
      */
     @OpFactory.OpDeclaration(JavaBlockOp.NAME)
     // @@@ Support synchronized attribute
-    public static final class JavaBlockOp extends ExternalizableOp implements Op.Nested, Op.Lowerable {
+    public static final class JavaBlockOp extends ExtendedOp implements Op.Nested, Op.Lowerable {
         public static final String NAME = "java.block";
 
         final Body body;
@@ -371,7 +383,7 @@ public class ExtendedOps {
      * The labeled operation, that can model Java language labeled statements.
      */
     @OpFactory.OpDeclaration(JavaLabeledOp.NAME)
-    public static final class JavaLabeledOp extends ExternalizableOp implements Op.Nested, Op.Lowerable {
+    public static final class JavaLabeledOp extends ExtendedOp implements Op.Nested, Op.Lowerable {
         public static final String NAME = "java.labeled";
 
         final Body body;
@@ -462,7 +474,7 @@ public class ExtendedOps {
      * The if operation, that can model Java language if, if-then, and if-then-else statements.
      */
     @OpFactory.OpDeclaration(JavaIfOp.NAME)
-    public static final class JavaIfOp extends ExternalizableOp implements Op.Nested, Op.Lowerable {
+    public static final class JavaIfOp extends ExtendedOp implements Op.Nested, Op.Lowerable {
 
         static final FunctionType PREDICATE_TYPE = FunctionType.functionType(BOOLEAN);
 
@@ -687,7 +699,7 @@ public class ExtendedOps {
      * The switch expression operation, that can model Java language switch expressions.
      */
     @OpFactory.OpDeclaration(JavaSwitchExpressionOp.NAME)
-    public static final class JavaSwitchExpressionOp extends ExternalizableOp implements Op.Nested, Op.Lowerable {
+    public static final class JavaSwitchExpressionOp extends ExtendedOp implements Op.Nested, Op.Lowerable {
         public static final String NAME = "java.switch.expression";
 
         final TypeElement resultType;
@@ -754,7 +766,7 @@ public class ExtendedOps {
      * the last statement of the current switch label.
      */
     @OpFactory.OpDeclaration(JavaSwitchFallthroughOp.NAME)
-    public static final class JavaSwitchFallthroughOp extends ExternalizableOp implements Op.BodyTerminating {
+    public static final class JavaSwitchFallthroughOp extends ExtendedOp implements Op.BodyTerminating {
         public static final String NAME = "java.switch.fallthrough";
 
         public JavaSwitchFallthroughOp(ExternalizedOp def) {
@@ -784,7 +796,7 @@ public class ExtendedOps {
      * The for operation, that can model a Java language for statement.
      */
     @OpFactory.OpDeclaration(JavaForOp.NAME)
-    public static final class JavaForOp extends ExternalizableOp implements Op.Loop, Op.Lowerable {
+    public static final class JavaForOp extends ExtendedOp implements Op.Loop, Op.Lowerable {
 
         public static final class InitBuilder {
             final Body.Builder ancestorBody;
@@ -966,7 +978,7 @@ public class ExtendedOps {
             // @@@ Init body has one yield operation yielding
             //  void, a single variable, or a tuple of one or more variables
             b.transformBody(init, List.of(), opT.andThen((block, op) -> {
-                if (op instanceof CoreOps.TupleOp) {
+                if (op instanceof CoreOp.TupleOp) {
                     // Drop Tuple if a yielded
                     boolean isResult = op.result().uses().size() == 1 &&
                             op.result().uses().stream().allMatch(r -> r.op() instanceof YieldOp);
@@ -978,7 +990,7 @@ public class ExtendedOps {
                         block.op(branch(header.successor()));
                         return block;
                     } else if (yop.yieldValue() instanceof Result or) {
-                        if (or.op() instanceof CoreOps.TupleOp top) {
+                        if (or.op() instanceof CoreOp.TupleOp top) {
                             initValues.addAll(block.context().getValues(top.operands()));
                         } else {
                             initValues.addAll(block.context().getValues(yop.operands()));
@@ -1043,7 +1055,7 @@ public class ExtendedOps {
      * The enhanced for operation, that can model a Java language enhanced for statement.
      */
     @OpFactory.OpDeclaration(JavaEnhancedForOp.NAME)
-    public static final class JavaEnhancedForOp extends ExternalizableOp implements Op.Loop, Op.Lowerable {
+    public static final class JavaEnhancedForOp extends ExtendedOp implements Op.Loop, Op.Lowerable {
 
         public static final class ExpressionBuilder {
             final Body.Builder ancestorBody;
@@ -1258,13 +1270,13 @@ public class ExtendedOps {
                 update.op(branch(header.successor(i)));
             } else {
                 JavaType iterable = parameterized(type(Iterator.class), elementType);
-                Value iterator = preHeader.op(CoreOps.invoke(iterable, ITERABLE_ITERATOR, preHeader.parameters().get(0)));
+                Value iterator = preHeader.op(CoreOp.invoke(iterable, ITERABLE_ITERATOR, preHeader.parameters().get(0)));
                 preHeader.op(branch(header.successor()));
 
-                Value p = header.op(CoreOps.invoke(ITERATOR_HAS_NEXT, iterator));
+                Value p = header.op(CoreOp.invoke(ITERATOR_HAS_NEXT, iterator));
                 header.op(conditionalBranch(p, init.successor(), exit.successor()));
 
-                Value e = init.op(CoreOps.invoke(elementType, ITERATOR_NEXT, iterator));
+                Value e = init.op(CoreOp.invoke(elementType, ITERATOR_NEXT, iterator));
                 List<Value> initValues = new ArrayList<>();
                 init.transformBody(this.init, List.of(e), opT.andThen((block, op) -> {
                     if (op instanceof YieldOp yop) {
@@ -1303,7 +1315,7 @@ public class ExtendedOps {
      * The while operation, that can model a Java language while statement.
      */
     @OpFactory.OpDeclaration(JavaWhileOp.NAME)
-    public static final class JavaWhileOp extends ExternalizableOp implements Op.Loop, Op.Lowerable {
+    public static final class JavaWhileOp extends ExtendedOp implements Op.Loop, Op.Lowerable {
 
         public static class PredicateBuilder {
             final Body.Builder ancestorBody;
@@ -1410,7 +1422,7 @@ public class ExtendedOps {
             b.op(branch(header.successor()));
 
             header.transformBody(predicateBody(), List.of(), opT.andThen((block, op) -> {
-                if (op instanceof CoreOps.YieldOp yo) {
+                if (op instanceof CoreOp.YieldOp yo) {
                     block.op(conditionalBranch(block.context().getValue(yo.yieldValue()),
                             body.successor(), exit.successor()));
                 } else if (op instanceof Lowerable lop) {
@@ -1448,7 +1460,7 @@ public class ExtendedOps {
      */
     // @@@ Unify JavaDoWhileOp and JavaWhileOp with common abstract superclass
     @OpFactory.OpDeclaration(JavaDoWhileOp.NAME)
-    public static final class JavaDoWhileOp extends ExternalizableOp implements Op.Loop, Op.Lowerable {
+    public static final class JavaDoWhileOp extends ExtendedOp implements Op.Loop, Op.Lowerable {
 
         public static class PredicateBuilder {
             final Body.Builder ancestorBody;
@@ -1566,7 +1578,7 @@ public class ExtendedOps {
             }));
 
             header.transformBody(predicateBody(), List.of(), opT.andThen((block, op) -> {
-                if (op instanceof CoreOps.YieldOp yo) {
+                if (op instanceof CoreOp.YieldOp yo) {
                     block.op(conditionalBranch(block.context().getValue(yo.yieldValue()),
                             body.successor(), exit.successor()));
                 } else if (op instanceof Lowerable lop) {
@@ -1590,7 +1602,7 @@ public class ExtendedOps {
     /**
      * The conditional-and-or operation, that can model Java language condition-or or conditional-and expressions.
      */
-    public static sealed abstract class JavaConditionalOp extends ExternalizableOp implements Op.Nested, Op.Lowerable {
+    public sealed static abstract class JavaConditionalOp extends ExtendedOp implements Op.Nested, Op.Lowerable {
         final List<Body> bodies;
 
         public JavaConditionalOp(ExternalizedOp def) {
@@ -1648,7 +1660,7 @@ public class ExtendedOps {
                 OpTransformer opt;
                 if (i == bodies.size() - 1) {
                     opt = (block, op) -> {
-                        if (op instanceof CoreOps.YieldOp yop) {
+                        if (op instanceof CoreOp.YieldOp yop) {
                             Value p = block.context().getValue(yop.yieldValue());
                             block.op(branch(exit.successor(p)));
                         } else if (op instanceof Lowerable lop) {
@@ -1663,7 +1675,7 @@ public class ExtendedOps {
                 } else {
                     Block.Builder nextPred = pred;
                     opt = (block, op) -> {
-                        if (op instanceof CoreOps.YieldOp yop) {
+                        if (op instanceof CoreOp.YieldOp yop) {
                             Value p = block.context().getValue(yop.yieldValue());
                             if (cop instanceof JavaConditionalAndOp) {
                                 block.op(conditionalBranch(p, nextPred.successor(), exit.successor(p)));
@@ -1813,7 +1825,7 @@ public class ExtendedOps {
      * The conditional operation, that can model Java language conditional operator {@code ?} expressions.
      */
     @OpFactory.OpDeclaration(JavaConditionalExpressionOp.NAME)
-    public static final class JavaConditionalExpressionOp extends ExternalizableOp implements Op.Nested, Op.Lowerable {
+    public static final class JavaConditionalExpressionOp extends ExtendedOp implements Op.Nested, Op.Lowerable {
 
         public static final String NAME = "java.cexpression";
 
@@ -1918,7 +1930,7 @@ public class ExtendedOps {
      * The try operation, that can model Java language try statements.
      */
     @OpFactory.OpDeclaration(JavaTryOp.NAME)
-    public static final class JavaTryOp extends ExternalizableOp implements Op.Nested, Op.Lowerable {
+    public static final class JavaTryOp extends ExtendedOp implements Op.Nested, Op.Lowerable {
 
         public static final class BodyBuilder {
             final Body.Builder ancestorBody;
@@ -2159,9 +2171,9 @@ public class ExtendedOps {
             OpTransformer tryExitTransformer;
             if (finalizer != null) {
                 tryExitTransformer = opT.compose((block, op) -> {
-                    if (op instanceof CoreOps.ReturnOp) {
+                    if (op instanceof CoreOp.ReturnOp) {
                         return inlineFinalizer(block, tryExceptionRegion, opT);
-                    } else if (op instanceof ExtendedOps.JavaLabelOp lop && ifExitFromTry(lop)) {
+                    } else if (op instanceof ExtendedOp.JavaLabelOp lop && ifExitFromTry(lop)) {
                         return inlineFinalizer(block, tryExceptionRegion, opT);
                     } else {
                         return block;
@@ -2171,7 +2183,7 @@ public class ExtendedOps {
                 tryExitTransformer = opT.compose((block, op) -> {
                     // @@@ break and continue
                     // when target break/continue is enclosing the try
-                    if (op instanceof CoreOps.ReturnOp) {
+                    if (op instanceof CoreOp.ReturnOp) {
                         Block.Builder tryRegionReturnExit = block.block();
                         block.op(exceptionRegionExit(tryExceptionRegion, tryRegionReturnExit.successor()));
                         return tryRegionReturnExit;
@@ -2225,9 +2237,9 @@ public class ExtendedOps {
                             exceptionRegionEnter(catchRegionEnter.successor(), catcherFinally.successor()));
 
                     OpTransformer catchExitTransformer = opT.compose((block, op) -> {
-                        if (op instanceof CoreOps.ReturnOp) {
+                        if (op instanceof CoreOp.ReturnOp) {
                             return inlineFinalizer(block, catchExceptionRegion, opT);
-                        } else if (op instanceof ExtendedOps.JavaLabelOp lop && ifExitFromTry(lop)) {
+                        } else if (op instanceof ExtendedOp.JavaLabelOp lop && ifExitFromTry(lop)) {
                             return inlineFinalizer(block, catchExceptionRegion, opT);
                         } else {
                             return block;
@@ -2360,7 +2372,7 @@ public class ExtendedOps {
     //
     // Patterns
 
-    static final String Pattern_CLASS_NAME = ExtendedOps_CLASS_NAME + "$" + Pattern.class.getSimpleName();
+    static final String Pattern_CLASS_NAME = ExtendedOp_CLASS_NAME + "$" + Pattern.class.getSimpleName();
 
     // Reified pattern nodes
 
@@ -2420,7 +2432,7 @@ public class ExtendedOps {
         /**
          * The pattern operation.
          */
-        public static sealed abstract class PatternOp extends ExternalizableOp implements Op.Pure {
+        public sealed static abstract class PatternOp extends ExtendedOp implements Op.Pure {
             PatternOp(ExternalizedOp def) {
                 super(def);
             }
@@ -2450,7 +2462,8 @@ public class ExtendedOps {
                 String name = def.extractAttributeValue(ATTRIBUTE_BINDING_NAME, true,
                         v -> switch (v) {
                             case String s -> s;
-                            default -> throw new UnsupportedOperationException("Unsupported pattern binding name value:" + v);
+                            default ->
+                                    throw new UnsupportedOperationException("Unsupported pattern binding name value:" + v);
                         });
                 return new BindingPatternOp(def, name);
             }
@@ -2514,11 +2527,12 @@ public class ExtendedOps {
             final RecordTypeRef recordDescriptor;
 
             public static RecordPatternOp create(ExternalizedOp def) {
-                RecordTypeRef recordDescriptor = def.extractAttributeValue(ATTRIBUTE_RECORD_DESCRIPTOR,true,
+                RecordTypeRef recordDescriptor = def.extractAttributeValue(ATTRIBUTE_RECORD_DESCRIPTOR, true,
                         v -> switch (v) {
                             case String s -> RecordTypeRef.ofString(s);
                             case RecordTypeRef rtd -> rtd;
-                            default -> throw new UnsupportedOperationException("Unsupported record type descriptor value:" + v);
+                            default ->
+                                    throw new UnsupportedOperationException("Unsupported record type descriptor value:" + v);
                         });
 
                 return new RecordPatternOp(def, recordDescriptor);
@@ -2574,7 +2588,7 @@ public class ExtendedOps {
          * The match operation, that can model Java language pattern matching.
          */
         @OpFactory.OpDeclaration(MatchOp.NAME)
-        public static final class MatchOp extends ExternalizableOp implements Op.Isolated, Op.Lowerable {
+        public static final class MatchOp extends ExtendedOp implements Op.Isolated, Op.Lowerable {
             public static final String NAME = "pattern.match";
 
             final Body pattern;
@@ -2671,9 +2685,9 @@ public class ExtendedOps {
             static Block.Builder lower(Block.Builder endNoMatchBlock, Block.Builder currentBlock,
                                        List<Value> bindings,
                                        Op pattern, Value target) {
-                if (pattern instanceof ExtendedOps.PatternOps.RecordPatternOp rp) {
+                if (pattern instanceof ExtendedOp.PatternOps.RecordPatternOp rp) {
                     return lowerRecordPattern(endNoMatchBlock, currentBlock, bindings, rp, target);
-                } else if (pattern instanceof ExtendedOps.PatternOps.BindingPatternOp bp) {
+                } else if (pattern instanceof ExtendedOp.PatternOps.BindingPatternOp bp) {
                     return lowerBindingPattern(endNoMatchBlock, currentBlock, bindings, bp, target);
                 } else {
                     throw new UnsupportedOperationException("Unknown pattern op: " + pattern);
@@ -2681,26 +2695,26 @@ public class ExtendedOps {
             }
 
             static Block.Builder lowerRecordPattern(Block.Builder endNoMatchBlock, Block.Builder currentBlock,
-                                       List<Value> bindings,
-                                       ExtendedOps.PatternOps.RecordPatternOp rpOp, Value target) {
+                                                    List<Value> bindings,
+                                                    ExtendedOp.PatternOps.RecordPatternOp rpOp, Value target) {
                 TypeElement targetType = rpOp.targetType();
 
                 Block.Builder nextBlock = currentBlock.block();
 
                 // Check if instance of target type
-                Op.Result isInstance = currentBlock.op(CoreOps.instanceOf(targetType, target));
+                Op.Result isInstance = currentBlock.op(CoreOp.instanceOf(targetType, target));
                 currentBlock.op(conditionalBranch(isInstance, nextBlock.successor(), endNoMatchBlock.successor()));
 
                 currentBlock = nextBlock;
 
-                target = currentBlock.op(CoreOps.cast(targetType, target));
+                target = currentBlock.op(CoreOp.cast(targetType, target));
 
                 // Access component values of record and match on each as nested target
                 List<Value> dArgs = rpOp.operands();
                 for (int i = 0; i < dArgs.size(); i++) {
                     Op.Result nestedPattern = (Op.Result) dArgs.get(i);
                     // @@@ Handle exceptions?
-                    Value nestedTarget = currentBlock.op(CoreOps.invoke(rpOp.recordDescriptor().methodForComponent(i), target));
+                    Value nestedTarget = currentBlock.op(CoreOp.invoke(rpOp.recordDescriptor().methodForComponent(i), target));
 
                     currentBlock = lower(endNoMatchBlock, currentBlock, bindings, nestedPattern.op(), nestedTarget);
                 }
@@ -2709,19 +2723,19 @@ public class ExtendedOps {
             }
 
             static Block.Builder lowerBindingPattern(Block.Builder endNoMatchBlock, Block.Builder currentBlock,
-                                       List<Value> bindings,
-                                       ExtendedOps.PatternOps.BindingPatternOp bpOp, Value target) {
+                                                     List<Value> bindings,
+                                                     ExtendedOp.PatternOps.BindingPatternOp bpOp, Value target) {
                 TypeElement targetType = bpOp.targetType();
 
                 Block.Builder nextBlock = currentBlock.block();
 
                 // Check if instance of target type
-                currentBlock.op(conditionalBranch(currentBlock.op(CoreOps.instanceOf(targetType, target)),
+                currentBlock.op(conditionalBranch(currentBlock.op(CoreOp.instanceOf(targetType, target)),
                         nextBlock.successor(), endNoMatchBlock.successor()));
 
                 currentBlock = nextBlock;
 
-                target = currentBlock.op(CoreOps.cast(targetType, target));
+                target = currentBlock.op(CoreOp.cast(targetType, target));
                 bindings.add(target);
 
                 return currentBlock;
@@ -2739,11 +2753,12 @@ public class ExtendedOps {
      * A factory for extended and core operations.
      */
     // @@@ Compute lazily
-    public static final OpFactory FACTORY = CoreOps.FACTORY.andThen(OpFactory.OP_FACTORY.get(ExtendedOps.class));
+    public static final OpFactory FACTORY = CoreOp.FACTORY.andThen(OpFactory.OP_FACTORY.get(ExtendedOp.class));
 
 
     /**
      * Creates a continue operation.
+     *
      * @return the continue operation
      */
     public static JavaContinueOp _continue() {
@@ -2752,6 +2767,7 @@ public class ExtendedOps {
 
     /**
      * Creates a continue operation.
+     *
      * @param label the value associated with where to continue from
      * @return the continue operation
      */
@@ -2761,6 +2777,7 @@ public class ExtendedOps {
 
     /**
      * Creates a break operation.
+     *
      * @return the break operation
      */
     public static JavaBreakOp _break() {
@@ -2769,6 +2786,7 @@ public class ExtendedOps {
 
     /**
      * Creates a break operation.
+     *
      * @param label the value associated with where to continue from
      * @return the break operation
      */
@@ -2778,6 +2796,7 @@ public class ExtendedOps {
 
     /**
      * Creates a yield operation.
+     *
      * @return the yield operation
      */
     public static JavaYieldOp java_yield() {
@@ -2786,6 +2805,7 @@ public class ExtendedOps {
 
     /**
      * Creates a yield operation.
+     *
      * @param operand the value to yield
      * @return the yield operation
      */
@@ -2795,6 +2815,7 @@ public class ExtendedOps {
 
     /**
      * Creates a block operation.
+     *
      * @param body the body builder of the operation to be built and become its child
      * @return the block operation
      */
@@ -2804,6 +2825,7 @@ public class ExtendedOps {
 
     /**
      * Creates a labeled operation.
+     *
      * @param body the body builder of the operation to be built and become its child
      * @return the block operation
      */
@@ -2813,8 +2835,9 @@ public class ExtendedOps {
 
     /**
      * Creates an if operation builder.
+     *
      * @param ancestorBody the nearest ancestor body builder from which to construct
-     *                             body builders for this operation
+     *                     body builders for this operation
      * @return the if operation builder
      */
     public static JavaIfOp.IfBuilder _if(Body.Builder ancestorBody) {
@@ -2827,6 +2850,7 @@ public class ExtendedOps {
 
     /**
      * Creates an if operation.
+     *
      * @param bodies the body builders of operation to be built and become its children
      * @return the if operation
      */
@@ -2838,6 +2862,7 @@ public class ExtendedOps {
      * Creates a switch expression operation.
      * <p>
      * The result type of the operation will be derived from the yield type of the second body
+     *
      * @param target the switch target value
      * @param bodies the body builders of the operation to be built and become its children
      * @return the switch expression operation
@@ -2850,8 +2875,8 @@ public class ExtendedOps {
      * Creates a switch expression operation.
      *
      * @param resultType the result type of the expression
-     * @param target the switch target value
-     * @param bodies the body builders of the operation to be built and become its children
+     * @param target     the switch target value
+     * @param bodies     the body builders of the operation to be built and become its children
      * @return the switch expression operation
      */
     public static JavaSwitchExpressionOp switchExpression(TypeElement resultType, Value target,
@@ -2862,6 +2887,7 @@ public class ExtendedOps {
 
     /**
      * Creates a switch fallthrough operation.
+     *
      * @return the switch fallthrough operation
      */
     public static JavaSwitchFallthroughOp switchFallthroughOp() {
@@ -2870,9 +2896,10 @@ public class ExtendedOps {
 
     /**
      * Creates a for operation builder.
+     *
      * @param ancestorBody the nearest ancestor body builder from which to construct
-     *                             body builders for this operation
-     * @param initTypes the types of initialized variables
+     *                     body builders for this operation
+     * @param initTypes    the types of initialized variables
      * @return the for operation builder
      */
     public static JavaForOp.InitBuilder _for(Body.Builder ancestorBody, TypeElement... initTypes) {
@@ -2881,9 +2908,10 @@ public class ExtendedOps {
 
     /**
      * Creates a for operation builder.
+     *
      * @param ancestorBody the nearest ancestor body builder from which to construct
-     *                             body builders for this operation
-     * @param initTypes the types of initialized variables
+     *                     body builders for this operation
+     * @param initTypes    the types of initialized variables
      * @return the for operation builder
      */
     public static JavaForOp.InitBuilder _for(Body.Builder ancestorBody, List<? extends TypeElement> initTypes) {
@@ -2893,10 +2921,11 @@ public class ExtendedOps {
 
     /**
      * Creates a for operation.
-     * @param init the init body builder of the operation to be built and become its child
-     * @param cond the cond body builder of the operation to be built and become its child
+     *
+     * @param init   the init body builder of the operation to be built and become its child
+     * @param cond   the cond body builder of the operation to be built and become its child
      * @param update the update body builder of the operation to be built and become its child
-     * @param body the main body builder of the operation to be built and become its child
+     * @param body   the main body builder of the operation to be built and become its child
      * @return the for operation
      */
     // init ()Tuple<Var<T1>, Var<T2>, ..., Var<TN>>, or init ()void
@@ -2912,10 +2941,11 @@ public class ExtendedOps {
 
     /**
      * Creates an enhanced for operation builder.
+     *
      * @param ancestorBody the nearest ancestor body builder from which to construct
-     *                             body builders for this operation
+     *                     body builders for this operation
      * @param iterableType the iterable type
-     * @param elementType the element type
+     * @param elementType  the element type
      * @return the enhanced for operation builder
      */
     public static JavaEnhancedForOp.ExpressionBuilder enhancedFor(Body.Builder ancestorBody,
@@ -2929,9 +2959,10 @@ public class ExtendedOps {
 
     /**
      * Creates an enhanced for operation.
+     *
      * @param expression the expression body builder of the operation to be built and become its child
-     * @param init the init body builder of the operation to be built and become its child
-     * @param body the main body builder of the operation to be built and become its child
+     * @param init       the init body builder of the operation to be built and become its child
+     * @param body       the main body builder of the operation to be built and become its child
      * @return the enhanced for operation
      */
     public static JavaEnhancedForOp enhancedFor(Body.Builder expression,
@@ -2942,8 +2973,9 @@ public class ExtendedOps {
 
     /**
      * Creates a while operation builder.
+     *
      * @param ancestorBody the nearest ancestor body builder from which to construct
-     *                             body builders for this operation
+     *                     body builders for this operation
      * @return the while operation builder
      */
     public static JavaWhileOp.PredicateBuilder _while(Body.Builder ancestorBody) {
@@ -2952,8 +2984,9 @@ public class ExtendedOps {
 
     /**
      * Creates a while operation.
+     *
      * @param predicate the predicate body builder of the operation to be built and become its child
-     * @param body the main body builder of the operation to be built and become its child
+     * @param body      the main body builder of the operation to be built and become its child
      * @return the while operation
      */
     // predicate, ()boolean, may be null for predicate returning true
@@ -2964,8 +2997,9 @@ public class ExtendedOps {
 
     /**
      * Creates a do operation builder.
+     *
      * @param ancestorBody the nearest ancestor body builder from which to construct
-     *                             body builders for this operation
+     *                     body builders for this operation
      * @return the do operation builder
      */
     public static JavaDoWhileOp.BodyBuilder doWhile(Body.Builder ancestorBody) {
@@ -2974,8 +3008,9 @@ public class ExtendedOps {
 
     /**
      * Creates a do operation.
+     *
      * @param predicate the predicate body builder of the operation to be built and become its child
-     * @param body the main body builder of the operation to be built and become its child
+     * @param body      the main body builder of the operation to be built and become its child
      * @return the do operation
      */
     public static JavaDoWhileOp doWhile(Body.Builder body, Body.Builder predicate) {
@@ -2984,10 +3019,11 @@ public class ExtendedOps {
 
     /**
      * Creates a conditional-and operation builder.
+     *
      * @param ancestorBody the nearest ancestor body builder from which to construct
-     *                             body builders for this operation
-     * @param lhs a consumer that builds the left-hand side body
-     * @param rhs a consumer that builds the right-hand side body
+     *                     body builders for this operation
+     * @param lhs          a consumer that builds the left-hand side body
+     * @param rhs          a consumer that builds the right-hand side body
      * @return the conditional-and operation builder
      */
     public static JavaConditionalAndOp.Builder conditionalAnd(Body.Builder ancestorBody,
@@ -2997,10 +3033,11 @@ public class ExtendedOps {
 
     /**
      * Creates a conditional-or operation builder.
+     *
      * @param ancestorBody the nearest ancestor body builder from which to construct
-     *                             body builders for this operation
-     * @param lhs a consumer that builds the left-hand side body
-     * @param rhs a consumer that builds the right-hand side body
+     *                     body builders for this operation
+     * @param lhs          a consumer that builds the left-hand side body
+     * @param rhs          a consumer that builds the right-hand side body
      * @return the conditional-or operation builder
      */
     public static JavaConditionalOrOp.Builder conditionalOr(Body.Builder ancestorBody,
@@ -3010,6 +3047,7 @@ public class ExtendedOps {
 
     /**
      * Creates a conditional-and operation
+     *
      * @param bodies the body builders of operation to be built and become its children
      * @return the conditional-and operation
      */
@@ -3020,6 +3058,7 @@ public class ExtendedOps {
 
     /**
      * Creates a conditional-or operation
+     *
      * @param bodies the body builders of operation to be built and become its children
      * @return the conditional-or operation
      */
@@ -3030,8 +3069,9 @@ public class ExtendedOps {
 
     /**
      * Creates a conditional operation
+     *
      * @param expressionType the result type of the expression
-     * @param bodies the body builders of operation to be built and become its children
+     * @param bodies         the body builders of operation to be built and become its children
      * @return the conditional operation
      */
     public static JavaConditionalExpressionOp conditionalExpression(TypeElement expressionType,
@@ -3044,6 +3084,7 @@ public class ExtendedOps {
      * Creates a conditional operation
      * <p>
      * The result type of the operation will be derived from the yield type of the second body
+     *
      * @param bodies the body builders of operation to be built and become its children
      * @return the conditional operation
      */
@@ -3053,9 +3094,10 @@ public class ExtendedOps {
 
     /**
      * Creates try operation builder.
+     *
      * @param ancestorBody the nearest ancestor body builder from which to construct
-     *                             body builders for this operation
-     * @param c a consumer that builds the try body
+     *                     body builders for this operation
+     * @param c            a consumer that builds the try body
      * @return the try operation builder
      */
     public static JavaTryOp.CatchBuilder _try(Body.Builder ancestorBody, Consumer<Block.Builder> c) {
@@ -3066,9 +3108,10 @@ public class ExtendedOps {
 
     /**
      * Creates try-with-resources operation builder.
+     *
      * @param ancestorBody the nearest ancestor body builder from which to construct
-     *                             body builders for this operation
-     * @param c a consumer that builds the resources body
+     *                     body builders for this operation
+     * @param c            a consumer that builds the resources body
      * @return the try-with-resources operation builder
      */
     public static JavaTryOp.BodyBuilder tryWithResources(Body.Builder ancestorBody,
@@ -3088,10 +3131,11 @@ public class ExtendedOps {
 
     /**
      * Creates a try or try-with-resources operation.
+     *
      * @param resources the try body builder of the operation to be built and become its child,
      *                  may be null
-     * @param body the try body builder of the operation to be built and become its child
-     * @param catchers the catch body builders of the operation to be built and become its children
+     * @param body      the try body builder of the operation to be built and become its child
+     * @param catchers  the catch body builders of the operation to be built and become its children
      * @param finalizer the finalizer body builder of the operation to be built and become its child
      * @return the try or try-with-resources operation
      */
@@ -3107,9 +3151,10 @@ public class ExtendedOps {
 
     /**
      * Creates a pattern match operation.
-     * @param target the target value
+     *
+     * @param target  the target value
      * @param pattern the pattern body builder of the operation to be built and become its child
-     * @param match the match body builder of the operation to be built and become its child
+     * @param match   the match body builder of the operation to be built and become its child
      * @return the pattern match operation
      */
     public static PatternOps.MatchOp match(Value target,
@@ -3119,7 +3164,8 @@ public class ExtendedOps {
 
     /**
      * Creates a pattern binding operation.
-     * @param type the type of value to be bound
+     *
+     * @param type        the type of value to be bound
      * @param bindingName the binding name
      * @return the pattern binding operation
      */
@@ -3129,8 +3175,9 @@ public class ExtendedOps {
 
     /**
      * Creates a record pattern operation.
+     *
      * @param recordDescriptor the record descriptor
-     * @param nestedPatterns the nested pattern values
+     * @param nestedPatterns   the nested pattern values
      * @return the record pattern operation
      */
     public static PatternOps.RecordPatternOp recordPattern(RecordTypeRef recordDescriptor, Value... nestedPatterns) {
@@ -3139,8 +3186,9 @@ public class ExtendedOps {
 
     /**
      * Creates a record pattern operation.
+     *
      * @param recordDescriptor the record descriptor
-     * @param nestedPatterns the nested pattern values
+     * @param nestedPatterns   the nested pattern values
      * @return the record pattern operation
      */
     public static PatternOps.RecordPatternOp recordPattern(RecordTypeRef recordDescriptor, List<Value> nestedPatterns) {

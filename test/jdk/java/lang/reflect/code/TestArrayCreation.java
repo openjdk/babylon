@@ -24,7 +24,7 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.Method;
 import java.lang.runtime.CodeReflection;
@@ -44,7 +44,7 @@ public class TestArrayCreation {
 
     @Test
     public void testf() {
-        CoreOps.FuncOp f = getFuncOp("f");
+        CoreOp.FuncOp f = getFuncOp("f");
 
         f.writeTo(System.out);
 
@@ -58,7 +58,7 @@ public class TestArrayCreation {
 
     @Test
     public void testf2() {
-        CoreOps.FuncOp f = getFuncOp("f2");
+        CoreOp.FuncOp f = getFuncOp("f2");
 
         f.writeTo(System.out);
 
@@ -72,14 +72,14 @@ public class TestArrayCreation {
 
     @Test
     public void testf3() {
-        CoreOps.FuncOp f = getFuncOp("f3");
+        CoreOp.FuncOp f = getFuncOp("f3");
 
         f.writeTo(System.out);
 
         Assert.assertEquals(Interpreter.invoke(f), f3());
     }
 
-    static CoreOps.FuncOp getFuncOp(String name) {
+    static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestArrayCreation.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
                 .findFirst();

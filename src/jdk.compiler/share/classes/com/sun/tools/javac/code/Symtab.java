@@ -642,8 +642,8 @@ public class Symtab {
         codeReflectionType = enterClass("java.lang.runtime.CodeReflection");
         quotedType = enterClass("java.lang.reflect.code.Quoted");
         quotableType = enterClass("java.lang.reflect.code.Quotable");
-        closureOpType = enterClass("java.lang.reflect.code.op.CoreOps$ClosureOp");
-        lambdaOpType = enterClass("java.lang.reflect.code.op.CoreOps$LambdaOp");
+        closureOpType = enterClass("java.lang.reflect.code.op.CoreOp$ClosureOp");
+        lambdaOpType = enterClass("java.lang.reflect.code.op.CoreOp$LambdaOp");
         opInterpreterType = enterClass("java.lang.reflect.code.interpreter.Interpreter");
         opType = enterClass("java.lang.reflect.code.Op");
         opInterpreterInvoke = new MethodSymbol(PUBLIC | STATIC | VARARGS,

@@ -27,7 +27,7 @@
  * @run testng TestCaptureQuoted
  */
 
-import java.lang.reflect.code.op.CoreOps.Var;
+import java.lang.reflect.code.op.CoreOp.Var;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Quoted;
 import java.lang.reflect.code.interpreter.Interpreter;

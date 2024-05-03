@@ -25,14 +25,14 @@
 
 package java.lang.reflect.code;
 
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import static java.lang.reflect.code.op.CoreOps._return;
-import static java.lang.reflect.code.op.CoreOps.branch;
+import static java.lang.reflect.code.op.CoreOp._return;
+import static java.lang.reflect.code.op.CoreOp.branch;
 
 /**
  * A (basic) block containing an ordered sequence of operations, where the last operation is
@@ -71,11 +71,11 @@ public final class Block implements CodeElement<Block, Op> {
          *
          * @apiNote
          * This method may be used to pattern match on the returned result:
-         * {@snippet lang = "java" :
-         *     if (p.invokableOperation() instanceof CoreOps.FuncOp f) {
+         * {@snippet lang = "java":
+         *     if (p.invokableOperation() instanceof CoreOp.FuncOp f) {
          *         assert f.parameters().indexOf(p) == p.index(); // @link substring="parameters()" target="Op.Invokable#parameters()"
          *     }
-         * }
+         *}
          *
          * @return the invokable operation, otherwise {@code null} if the operation
          * is not an instance of {@link Op.Invokable}.
@@ -630,7 +630,7 @@ public final class Block implements CodeElement<Block, Op> {
             // Create new context, ensuring inlining is isolated
             transformBody(invokableOp.body(), args, CopyContext.create(), (block, op) -> {
                 // If the return operation is associated with the invokable operation
-                if (op instanceof CoreOps.ReturnOp rop && getNearestInvokeableAncestorOp(op) == invokableOp) {
+                if (op instanceof CoreOp.ReturnOp rop && getNearestInvokeableAncestorOp(op) == invokableOp) {
                     // Compute the return block
                     Block.Builder returnBlock = returnBlocks.computeIfAbsent(rop.ancestorBody(), _body -> {
                         Block.Builder rb;

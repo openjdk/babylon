@@ -86,7 +86,7 @@ public class TritonOps {
             for (var op : body.entryBlock().ops()) {
                 if (op instanceof FuncOp fop) {
                     table.put(fop.funcName(), fop);
-                } else if (op instanceof CoreOps.UnreachableOp _) {
+                } else if (op instanceof CoreOp.UnreachableOp _) {
                     // no operation
                 } else {
                     throw new IllegalArgumentException("Bad operation in module: " + op);
@@ -115,7 +115,7 @@ public class TritonOps {
                 entryBlock.op(f);
                 table.put(f.funcName(), f);
             }
-            entryBlock.op(CoreOps.unreachable());
+            entryBlock.op(CoreOp.unreachable());
             this.table = Collections.unmodifiableMap(table);
             this.body = bodyC.build(this);
         }
