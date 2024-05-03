@@ -504,14 +504,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         @Override
         public Block.Builder lower(Block.Builder b, OpTransformer _ignore) {
             // Isolate body with respect to ancestor transformations
-            b.op(this, (block, op) -> {
-                if (op instanceof Op.Lowerable lop) {
-                    return lop.lower(block);
-                } else {
-                    block.op(op);
-                    return block;
-                }
-            });
+            b.op(this, OpTransformer.LOWERING_TRANSFORMER);
             return b;
         }
 
@@ -728,14 +721,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         @Override
         public Block.Builder lower(Block.Builder b, OpTransformer _ignore) {
             // Isolate body with respect to ancestor transformations
-            b.op(this, (block, op) -> {
-                if (op instanceof Op.Lowerable lop) {
-                    return lop.lower(block);
-                } else {
-                    block.op(op);
-                    return block;
-                }
-            });
+            b.op(this, OpTransformer.LOWERING_TRANSFORMER);
             return b;
         }
 

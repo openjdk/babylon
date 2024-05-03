@@ -27,6 +27,7 @@ import org.testng.annotations.Test;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.Block;
 import java.lang.reflect.code.Op;
+import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.runtime.CodeReflection;
 import java.util.Optional;
@@ -52,14 +53,7 @@ public class TestBlockIndexes {
     @Test
     public void testBlockIndexes() {
         CoreOp.FuncOp f = getFuncOp("f");
-        f = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
         assertBlockIndexes(f);
 
         AtomicBoolean first = new AtomicBoolean(true);

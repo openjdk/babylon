@@ -95,14 +95,7 @@ public class TestLocation {
     }
 
     static CoreOp.FuncOp lower(CoreOp.FuncOp f) {
-        return f.transform((b, op) -> {
-            if (op instanceof Op.Lowerable l) {
-                return l.lower(b);
-            } else {
-                b.op(op);
-                return b;
-            }
-        });
+        return f.transform(OpTransformer.LOWERING_TRANSFORMER);
     }
 
     static void testNoLocations(Op op) {

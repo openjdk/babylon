@@ -25,16 +25,13 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.io.PrintStream;
-import java.lang.reflect.code.CopyContext;
+import java.lang.reflect.code.*;
 import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.Value;
 import java.lang.reflect.code.type.FieldRef;
 import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.TypeElement;
 import java.lang.runtime.CodeReflection;
 import java.util.List;
 import java.util.Optional;
@@ -96,14 +93,7 @@ public class TestLocalTransformationsAdaption {
         CoreOp.FuncOp f = getFuncOp("f");
         f.writeTo(System.out);
 
-        f = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
         f.writeTo(System.out);
 
         int x = (int) Interpreter.invoke(MethodHandles.lookup(), f, 2);
@@ -147,14 +137,7 @@ public class TestLocalTransformationsAdaption {
         });
         fc.writeTo(System.out);
 
-        fc = fc.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        fc = fc.transform(OpTransformer.LOWERING_TRANSFORMER);
         fc.writeTo(System.out);
 
         int x = (int) Interpreter.invoke(MethodHandles.lookup(), fc, 2);
@@ -206,14 +189,7 @@ public class TestLocalTransformationsAdaption {
         });
         fc.writeTo(System.out);
 
-        fc = fc.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        fc = fc.transform(OpTransformer.LOWERING_TRANSFORMER);
         fc.writeTo(System.out);
 
         int x = (int) Interpreter.invoke(MethodHandles.lookup(), fc, 2);
@@ -240,14 +216,7 @@ public class TestLocalTransformationsAdaption {
         });
         fc.writeTo(System.out);
 
-        fc = fc.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        fc = fc.transform(OpTransformer.LOWERING_TRANSFORMER);
         fc.writeTo(System.out);
 
         int x = (int) Interpreter.invoke(MethodHandles.lookup(), fc, 2);

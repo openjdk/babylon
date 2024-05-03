@@ -2,10 +2,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.code.Block;
-import java.lang.reflect.code.CopyContext;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.Value;
+import java.lang.reflect.code.*;
 import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.runtime.CodeReflection;
@@ -52,14 +49,7 @@ public class TestRemoveFinalVars {
     }
 
     static FuncOp lower(FuncOp funcOp) {
-        return funcOp.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        return funcOp.transform(OpTransformer.LOWERING_TRANSFORMER);
     }
 
     static Block.Builder rmFinalVars(Block.Builder block, Op op) {
