@@ -36,10 +36,8 @@ import com.sun.tools.javac.code.Symtab;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.Type.ArrayType;
 import com.sun.tools.javac.code.Type.ClassType;
-import com.sun.tools.javac.code.Type.IntersectionClassType;
 import com.sun.tools.javac.code.Type.MethodType;
 import com.sun.tools.javac.code.Type.TypeVar;
-import com.sun.tools.javac.code.Type.UnionClassType;
 import com.sun.tools.javac.code.Type.WildcardType;
 import com.sun.tools.javac.code.TypeTag;
 import com.sun.tools.javac.code.Types;
@@ -2269,7 +2267,7 @@ public class ReflectMethods extends TreeTranslator {
                     }
 
                     // Use flat name to ensure demarcation of nested classes
-                    yield JavaType.type(JavaType.ofNominalDescriptor(ClassDesc.of(t.tsym.flatName().toString())), typeArguments);
+                    yield JavaType.parameterized(JavaType.type(ClassDesc.of(t.tsym.flatName().toString())), typeArguments);
                 }
                 default -> {
                     throw new UnsupportedOperationException("Unsupported type: kind=" + t.getKind() + " type=" + t);

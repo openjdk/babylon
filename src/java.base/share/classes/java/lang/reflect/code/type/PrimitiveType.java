@@ -25,7 +25,9 @@
 
 package java.lang.reflect.code.type;
 
-import java.lang.reflect.code.TypeElement;
+import java.lang.constant.ClassDesc;
+import java.lang.invoke.MethodHandles.Lookup;
+import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -35,15 +37,20 @@ import java.util.Optional;
  */
 public final class PrimitiveType implements JavaType {
     // Fully qualified name
-    private final String type;
+    private final ClassDesc type;
 
-    PrimitiveType(String type) {
+    PrimitiveType(ClassDesc type) {
         this.type = type;
     }
 
     @Override
+    public Type resolve(Lookup lookup) throws ReflectiveOperationException {
+        return type.resolveConstantDesc(lookup);
+    }
+
+    @Override
     public TypeDefinition toTypeDefinition() {
-        return new TypeDefinition(type, List.of());
+        return new TypeDefinition(type.displayName(), List.of());
     }
 
     @Override
@@ -73,8 +80,7 @@ public final class PrimitiveType implements JavaType {
 
     @Override
     public JavaType toBasicType() {
-        Character bytecodeKind = PRIMITIVE_TYPE_MAP.get(type);
-        return switch (bytecodeKind) {
+        return switch (type.descriptorString().charAt(0)) {
             case 'V' -> JavaType.VOID;
             case 'J' -> JavaType.LONG;
             case 'F' -> JavaType.FLOAT;
@@ -103,28 +109,14 @@ public final class PrimitiveType implements JavaType {
     };
 
     @Override
-    public String toNominalDescriptorString() {
-        return toBytecodeDescriptor(type);
+    public ClassDesc toNominalDescriptor() {
+        return type;
     }
 
-    static String toBytecodeDescriptor(String type) {
-        Character bytecodeKind = PRIMITIVE_TYPE_MAP.get(type);
-        return bytecodeKind.toString();
-    }
-
-    static Map<String, Character> PRIMITIVE_TYPE_MAP;
-
-    static {
-        PRIMITIVE_TYPE_MAP = Map.of(
-                "boolean", 'Z',
-                "byte", 'B',
-                "short", 'S',
-                "char", 'C',
-                "int", 'I',
-                "long", 'J',
-                "float", 'F',
-                "double", 'D',
-                "void", 'V'
-        );
+    /**
+     * {@return {@code true} if this type is {@link JavaType#VOID}}
+     */
+    public boolean isVoid() {
+        return toBasicType() == JavaType.VOID;
     }
 }
