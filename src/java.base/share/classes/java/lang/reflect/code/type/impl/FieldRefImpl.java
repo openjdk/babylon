@@ -104,7 +104,7 @@ public final class FieldRefImpl implements FieldRef {
 
     static Class<?> resolve(MethodHandles.Lookup l, TypeElement t) throws ReflectiveOperationException {
         if (t instanceof JavaType jt) {
-            return (Class<?>)jt.resolve(l);
+            return (Class<?>)jt.erasure().resolve(l);
         } else {
             // @@@
             throw new ReflectiveOperationException();
