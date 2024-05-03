@@ -26,13 +26,13 @@ public final class TupleType implements TypeElement {
     }
 
     @Override
-    public TypeDefinition toTypeDefinition() {
-        return new TypeDefinition(NAME, componentTypes.stream().map(TypeElement::toTypeDefinition).toList());
+    public ExternalizedTypeElement externalize() {
+        return new ExternalizedTypeElement(NAME, componentTypes.stream().map(TypeElement::externalize).toList());
     }
 
     @Override
     public String toString() {
-        return toTypeDefinition().toString();
+        return externalize().toString();
     }
 
     @Override

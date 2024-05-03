@@ -49,10 +49,10 @@ public class OpBuilder {
             Op.class, ExternalizableOp.ExternalizedOp.class);
 
     static final MethodRef TYPE_ELEMENT_FACTORY_CONSTRUCT = MethodRef.method(TypeElementFactory.class, "constructType",
-            TypeElement.class, TypeDefinition.class);
+            TypeElement.class, ExternalizedTypeElement.class);
 
-    static final MethodRef TYPE_DEFINITION_OF_STRING = MethodRef.method(TypeDefinition.class, "ofString",
-            TypeDefinition.class, String.class);
+    static final MethodRef EX_TYPE_ELEMENT_OF_STRING = MethodRef.method(ExternalizedTypeElement.class, "ofString",
+            ExternalizedTypeElement.class, String.class);
 
     static final MethodRef BODY_BUILDER_OF = MethodRef.method(Body.Builder.class, "of",
             Body.Builder.class, Body.Builder.class, FunctionType.class);
@@ -256,8 +256,8 @@ public class OpBuilder {
 
     Value buildType(TypeElement t) {
         Value typeString = builder.op(constant(J_L_STRING, t.toString()));
-        Value typeDef = builder.op(invoke(TYPE_DEFINITION_OF_STRING, typeString));
-        return builder.op(invoke(TYPE_ELEMENT_FACTORY_CONSTRUCT, typeElementFactory, typeDef));
+        Value exTypeElem = builder.op(invoke(EX_TYPE_ELEMENT_OF_STRING, typeString));
+        return builder.op(invoke(TYPE_ELEMENT_FACTORY_CONSTRUCT, typeElementFactory, exTypeElem));
     }
 
     Value buildAttributeMap(Map<String, Object> attributes) {
