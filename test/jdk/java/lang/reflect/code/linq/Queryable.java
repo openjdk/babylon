@@ -27,6 +27,7 @@ import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.type.JavaType;
 import java.util.stream.Stream;
 
+import static java.lang.reflect.code.type.JavaType.parameterized;
 import static java.lang.reflect.code.type.MethodRef.method;
 import static java.lang.reflect.code.op.CoreOp.*;
 import static java.lang.reflect.code.type.FunctionType.functionType;
@@ -58,7 +59,7 @@ public interface Queryable<T> {
     private Queryable<?> insertQuery(JavaType elementType, String methodName, LambdaOp lambdaOp) {
         // Copy function expression, replacing return operation
         FuncOp queryExpression = expression();
-        JavaType queryableType = type(Queryable.TYPE, elementType);
+        JavaType queryableType = parameterized(Queryable.TYPE, elementType);
         FuncOp nextQueryExpression = func("query",
                 functionType(queryableType, queryExpression.invokableType().parameterTypes()))
                 .body(b -> b.inline(queryExpression, b.parameters(), (block, query) -> {
@@ -76,7 +77,7 @@ public interface Queryable<T> {
 
     @SuppressWarnings("unchecked")
     default QueryResult<Stream<T>> elements() {
-        JavaType resultType = type(type(Stream.class), elementType());
+        JavaType resultType = parameterized(type(Stream.class), elementType());
         return (QueryResult<Stream<T>>) insertQueryResult(resultType, "elements");
     }
 
@@ -89,7 +90,7 @@ public interface Queryable<T> {
     private QueryResult<?> insertQueryResult(JavaType resultType, String methodName) {
         // Copy function expression, replacing return operation
         FuncOp queryExpression = expression();
-        JavaType queryResultType = JavaType.type(QueryResult.TYPE, resultType);
+        JavaType queryResultType = parameterized(QueryResult.TYPE, resultType);
         FuncOp queryResultExpression = func("queryResult",
                 functionType(queryResultType, queryExpression.invokableType().parameterTypes()))
                 .body(b -> b.inline(queryExpression, b.parameters(), (block, query) -> {

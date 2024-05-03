@@ -27,6 +27,7 @@ import java.lang.reflect.code.type.JavaType;
 import static java.lang.reflect.code.op.CoreOp._return;
 import static java.lang.reflect.code.op.CoreOp.func;
 import static java.lang.reflect.code.type.FunctionType.functionType;
+import static java.lang.reflect.code.type.JavaType.parameterized;
 import static java.lang.reflect.code.type.JavaType.type;
 
 public final class TestQueryProvider extends QueryProvider {
@@ -57,7 +58,7 @@ public final class TestQueryProvider extends QueryProvider {
             this.elementType = type(tableClass);
             this.provider = qp;
 
-            JavaType queryableType = type(Queryable.TYPE, elementType);
+            JavaType queryableType = parameterized(Queryable.TYPE, elementType);
             // Initial expression is an identity function
             var funType = functionType(queryableType, queryableType);
             this.expression = func("query", funType)

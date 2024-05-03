@@ -829,7 +829,7 @@ public final class BytecodeGenerator {
                         JavaType intfType = (JavaType)op.functionalInterface();
                         MethodTypeDesc mtd = MethodRef.toNominalDescriptor(op.invokableType());
                         try {
-                            Class<?> intfClass = intfType.resolve(lookup);
+                            Class<?> intfClass = (Class<?>)intfType.erasure().resolve(lookup);
                             processOperands(op.capturedValues());
                             ClassDesc[] captureTypes = op.capturedValues().stream()
                                     .map(Value::type).map(BytecodeGenerator::toClassDesc).toArray(ClassDesc[]::new);

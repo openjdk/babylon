@@ -33,6 +33,7 @@ import java.util.function.*;
 import static java.lang.reflect.code.op.CoreOp.*;
 import static java.lang.reflect.code.op.ExtendedOp._continue;
 import static java.lang.reflect.code.op.ExtendedOp.enhancedFor;
+import static java.lang.reflect.code.type.JavaType.parameterized;
 import static java.lang.reflect.code.type.JavaType.type;
 
 public final class StreamFuserUsingQuotable {
@@ -60,7 +61,7 @@ public final class StreamFuserUsingQuotable {
     public static <T> StreamExprBuilder<T> fromList(Class<T> elementClass) {
         JavaType elementType = type(elementClass);
         // java.util.List<E>
-        JavaType listType = type(type(List.class), elementType);
+        JavaType listType = parameterized(type(List.class), elementType);
         return new StreamExprBuilder<>(listType, elementType,
                 (b, v) -> StreamExprBuilder.enhancedForLoop(b, elementType, v)::body);
     }

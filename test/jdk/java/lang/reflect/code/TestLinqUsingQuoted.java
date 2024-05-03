@@ -98,7 +98,7 @@ public class TestLinqUsingQuoted {
         // Iterate
         // Queryable -> Stream
         default QueryResult elements() {
-            TypeElement resultType = JavaType.type(JavaType.type(Stream.class), (JavaType) elementType());
+            TypeElement resultType = JavaType.parameterized(JavaType.type(Stream.class), (JavaType) elementType());
             return insertQueryResult("elements", resultType);
         }
 

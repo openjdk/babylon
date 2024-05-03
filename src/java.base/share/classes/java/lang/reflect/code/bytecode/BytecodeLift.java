@@ -84,7 +84,7 @@ public final class BytecodeLift {
             case ITEM_LONG -> JavaType.LONG;
             case ITEM_NULL -> JavaType.J_L_OBJECT;
             case StackMapFrameInfo.ObjectVerificationTypeInfo ovti ->
-                    JavaType.ofNominalDescriptor(ovti.classSymbol());
+                    JavaType.type(ovti.classSymbol());
             case StackMapFrameInfo.UninitializedVerificationTypeInfo _ ->
                     JavaType.J_L_OBJECT;
             default ->
@@ -94,7 +94,7 @@ public final class BytecodeLift {
     }
 
     private TypeElement toTypeElement(ClassEntry ce) {
-        return JavaType.ofNominalDescriptor(ce.asSymbol());
+        return JavaType.type(ce.asSymbol());
     }
 
     private BytecodeLift(Block.Builder entryBlock, MethodModel methodModel) {
@@ -302,7 +302,7 @@ public final class BytecodeLift {
                 }
                 case ConstantInstruction inst -> {
                     stack.push(op(switch (inst.constantValue()) {
-                        case ClassDesc v -> CoreOp.constant(JavaType.J_L_CLASS, JavaType.ofNominalDescriptor(v));
+                        case ClassDesc v -> CoreOp.constant(JavaType.J_L_CLASS, JavaType.type(v));
                         case Double v -> CoreOp.constant(JavaType.DOUBLE, v);
                         case Float v -> CoreOp.constant(JavaType.FLOAT, v);
                         case Integer v -> CoreOp.constant(JavaType.INT, v);
@@ -356,9 +356,9 @@ public final class BytecodeLift {
                 }
                 case FieldInstruction inst -> {
                         FieldRef fd = FieldRef.field(
-                                JavaType.ofNominalDescriptor(inst.owner().asSymbol()),
+                                JavaType.type(inst.owner().asSymbol()),
                                 inst.name().stringValue(),
-                                JavaType.ofNominalDescriptor(inst.typeSymbol()));
+                                JavaType.type(inst.typeSymbol()));
                         switch (inst.opcode()) {
                             case GETFIELD ->
                                 stack.push(op(CoreOp.fieldLoad(fd, stack.pop())));
@@ -390,7 +390,7 @@ public final class BytecodeLift {
                         operands.add(stack.pop());
                     }
                     MethodRef mDesc = MethodRef.method(
-                            JavaType.ofNominalDescriptor(inst.owner().asSymbol()),
+                            JavaType.type(inst.owner().asSymbol()),
                             inst.name().stringValue(),
                             mType);
                     Op.Result result = switch (inst.opcode()) {
@@ -447,18 +447,18 @@ public final class BytecodeLift {
                 }
                 case NewReferenceArrayInstruction inst -> {
                     stack.push(op(CoreOp.newArray(
-                            JavaType.ofNominalDescriptor(inst.componentType().asSymbol().arrayType()),
+                            JavaType.type(inst.componentType().asSymbol().arrayType()),
                             stack.pop())));
                 }
                 case NewMultiArrayInstruction inst -> {
                     stack.push(op(CoreOp._new(
                             FunctionType.functionType(
-                                    JavaType.ofNominalDescriptor(inst.arrayType().asSymbol()),
+                                    JavaType.type(inst.arrayType().asSymbol()),
                                     Collections.nCopies(inst.dimensions(), JavaType.INT)),
                             IntStream.range(0, inst.dimensions()).mapToObj(_ -> stack.pop()).toList().reversed())));
                 }
                 case TypeCheckInstruction inst when inst.opcode() == Opcode.CHECKCAST -> {
-                    stack.push(op(CoreOp.cast(JavaType.ofNominalDescriptor(inst.type().asSymbol()), stack.pop())));
+                    stack.push(op(CoreOp.cast(JavaType.type(inst.type().asSymbol()), stack.pop())));
                 }
                 case StackInstruction inst -> {
                     switch (inst.opcode()) {
