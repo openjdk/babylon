@@ -148,10 +148,10 @@ public final class CoreTypeFactory {
                 case "float" -> JavaType.FLOAT;
                 case "double" -> JavaType.DOUBLE;
                 case "void" -> JavaType.VOID;
-                default -> JavaType.ofNominalDescriptor(ClassDesc.of(identifier));
+                default -> JavaType.type(ClassDesc.of(identifier));
             };
             if (!typeArguments.isEmpty()) {
-                t = JavaType.type(t, typeArguments);
+                t = JavaType.parameterized(t, typeArguments);
             }
             return dimensions == 0 ?
                     t : JavaType.array(t, dimensions);

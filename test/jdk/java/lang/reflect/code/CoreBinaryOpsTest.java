@@ -296,7 +296,7 @@ public class CoreBinaryOpsTest {
 
         private static Class<?> resolveParameter(TypeElement typeElement, MethodHandles.Lookup lookup) {
             try {
-                return ((JavaType) typeElement).resolve(lookup);
+                return (Class<?>)((JavaType) typeElement).erasure().resolve(lookup);
             } catch (ReflectiveOperationException e) {
                 throw new RuntimeException(e);
             }

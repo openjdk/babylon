@@ -1257,7 +1257,7 @@ public class ExtendedOps {
                 i = update.op(add(i, update.op(constant(INT, 1))));
                 update.op(branch(header.successor(i)));
             } else {
-                JavaType iterable = type(type(Iterator.class), elementType);
+                JavaType iterable = parameterized(type(Iterator.class), elementType);
                 Value iterator = preHeader.op(CoreOps.invoke(iterable, ITERABLE_ITERATOR, preHeader.parameters().get(0)));
                 preHeader.op(branch(header.successor()));
 
@@ -2392,17 +2392,17 @@ public class ExtendedOps {
 
         // @@@ Pattern types
 
-        JavaType PATTERN_BINDING_TYPE = JavaType.ofNominalDescriptor(ClassDesc.of(Pattern_CLASS_NAME +
+        JavaType PATTERN_BINDING_TYPE = JavaType.type(ClassDesc.of(Pattern_CLASS_NAME +
                 "$" + Binding.class.getSimpleName()));
-        JavaType PATTERN_RECORD_TYPE = JavaType.ofNominalDescriptor(ClassDesc.of(Pattern_CLASS_NAME +
+        JavaType PATTERN_RECORD_TYPE = JavaType.type(ClassDesc.of(Pattern_CLASS_NAME +
                 "$" + Pattern.Record.class.getSimpleName()));
 
         static JavaType bindingType(TypeElement t) {
-            return type(PATTERN_BINDING_TYPE, (JavaType) t);
+            return parameterized(PATTERN_BINDING_TYPE, (JavaType) t);
         }
 
         static JavaType recordType(TypeElement t) {
-            return type(PATTERN_RECORD_TYPE, (JavaType) t);
+            return parameterized(PATTERN_RECORD_TYPE, (JavaType) t);
         }
 
         static TypeElement targetType(TypeElement t) {

@@ -37,6 +37,7 @@ import java.util.function.Function;
 import static java.lang.reflect.code.op.CoreOps.*;
 import static java.lang.reflect.code.op.ExtendedOps._continue;
 import static java.lang.reflect.code.op.ExtendedOps.enhancedFor;
+import static java.lang.reflect.code.type.JavaType.parameterized;
 import static java.lang.reflect.code.type.JavaType.type;
 
 public final class StreamFuser {
@@ -45,7 +46,7 @@ public final class StreamFuser {
 
     public static StreamExprBuilder fromList(JavaType elementType) {
         // java.util.List<E>
-        JavaType listType = type(type(List.class), elementType);
+        JavaType listType = parameterized(type(List.class), elementType);
         return new StreamExprBuilder(listType, elementType,
                 (b, v) -> StreamExprBuilder.enhancedForLoop(b, elementType, v)::body);
     }

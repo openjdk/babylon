@@ -334,7 +334,7 @@ public final class CoreOps {
         // Type name must be the same in the java.base and jdk.compiler module
         static final String Quoted_CLASS_NAME = PACKAGE_NAME +
                 "." + Quoted.class.getSimpleName();
-        public static final JavaType QUOTED_TYPE = JavaType.ofNominalDescriptor(ClassDesc.of(Quoted_CLASS_NAME));
+        public static final JavaType QUOTED_TYPE = JavaType.type(ClassDesc.of(Quoted_CLASS_NAME));
 
         final Body quotedBody;
 
@@ -2284,7 +2284,7 @@ public final class CoreOps {
      */
     // @@@: Create as new type element
     public interface ExceptionRegion {
-        TypeElement EXCEPTION_REGION_TYPE = JavaType.ofNominalDescriptor(ClassDesc.of("ExceptionRegion"));
+        TypeElement EXCEPTION_REGION_TYPE = JavaType.type(ExceptionRegion.class);
     }
 
     /**

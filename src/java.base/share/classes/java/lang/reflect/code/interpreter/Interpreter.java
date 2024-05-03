@@ -659,7 +659,7 @@ public final class Interpreter {
     public static Class<?> resolveToClass(MethodHandles.Lookup l, TypeElement d) {
         try {
             if (d instanceof JavaType jt) {
-                return jt.resolve(l);
+                return (Class<?>)jt.erasure().resolve(l);
             } else {
                 throw new ReflectiveOperationException();
             }
