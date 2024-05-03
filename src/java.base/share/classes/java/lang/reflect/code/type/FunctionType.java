@@ -3,7 +3,6 @@ package java.lang.reflect.code.type;
 import java.lang.reflect.code.TypeElement;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -42,15 +41,15 @@ public final class FunctionType implements TypeElement {
     }
 
     @Override
-    public TypeDefinition toTypeDefinition() {
-        return new TypeDefinition(NAME,
+    public ExternalizedTypeElement externalize() {
+        return new ExternalizedTypeElement(NAME,
                 Stream.concat(Stream.of(returnType), parameterTypes.stream())
-                        .map(TypeElement::toTypeDefinition).toList());
+                        .map(TypeElement::externalize).toList());
     }
 
     @Override
     public String toString() {
-        return toTypeDefinition().toString();
+        return externalize().toString();
     }
 
     @Override

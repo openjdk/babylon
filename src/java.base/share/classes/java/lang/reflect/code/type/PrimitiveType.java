@@ -49,13 +49,13 @@ public final class PrimitiveType implements JavaType {
     }
 
     @Override
-    public TypeDefinition toTypeDefinition() {
-        return new TypeDefinition(type.displayName(), List.of());
+    public ExternalizedTypeElement externalize() {
+        return new ExternalizedTypeElement(type.displayName(), List.of());
     }
 
     @Override
     public String toString() {
-        return toTypeDefinition().toString();
+        return externalize().toString();
     }
 
     @Override

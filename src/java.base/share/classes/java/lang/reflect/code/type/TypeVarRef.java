@@ -94,14 +94,14 @@ public final class TypeVarRef implements JavaType {
     }
 
     @Override
-    public TypeDefinition toTypeDefinition() {
-        return new TypeDefinition(String.format("#%s::%s", owner, name),
-                List.of(bound.toTypeDefinition()));
+    public ExternalizedTypeElement externalize() {
+        return new ExternalizedTypeElement(String.format("#%s::%s", owner, name),
+                List.of(bound.externalize()));
     }
 
     @Override
     public String toString() {
-        return toTypeDefinition().toString();
+        return externalize().toString();
     }
 
     @Override

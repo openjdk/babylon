@@ -25,7 +25,7 @@ public final class CoreTypeFactory {
             final TypeElementFactory thisThenF = this.andThen(f);
 
             @Override
-            public TypeElement constructType(TypeDefinition tree) {
+            public TypeElement constructType(TypeElement.ExternalizedTypeElement tree) {
                 return switch (tree.identifier()) {
                     case VarType.NAME -> {
                         if (tree.arguments().size() != 1) {
@@ -44,7 +44,7 @@ public final class CoreTypeFactory {
                         }
 
                         List<TypeElement> cs = new ArrayList<>(tree.arguments().size());
-                        for (TypeDefinition child : tree.arguments()) {
+                        for (TypeElement.ExternalizedTypeElement child : tree.arguments()) {
                             TypeElement c = thisThenF.constructType(child);
                             if (c == null) {
                                 throw new IllegalArgumentException("Bad type: " + tree);
@@ -63,7 +63,7 @@ public final class CoreTypeFactory {
                             throw new IllegalArgumentException("Bad type: " + tree);
                         }
                         List<TypeElement> pts = new ArrayList<>(tree.arguments().size() - 1);
-                        for (TypeDefinition child : tree.arguments().subList(1, tree.arguments().size())) {
+                        for (TypeElement.ExternalizedTypeElement child : tree.arguments().subList(1, tree.arguments().size())) {
                             TypeElement c = thisThenF.constructType(child);
                             if (c == null) {
                                 throw new IllegalArgumentException("Bad type: " + tree);
@@ -90,7 +90,7 @@ public final class CoreTypeFactory {
      */
     public static final TypeElementFactory JAVA_TYPE_FACTORY = new TypeElementFactory() {
         @Override
-        public TypeElement constructType(TypeDefinition tree) {
+        public TypeElement constructType(TypeElement.ExternalizedTypeElement tree) {
             String identifier = tree.identifier();
             int dimensions = 0;
             if (identifier.startsWith("[")) {
@@ -108,7 +108,7 @@ public final class CoreTypeFactory {
             }
 
             List<JavaType> typeArguments = new ArrayList<>(tree.arguments().size());
-            for (TypeDefinition child : tree.arguments()) {
+            for (TypeElement.ExternalizedTypeElement child : tree.arguments()) {
                 TypeElement t = JAVA_TYPE_FACTORY.constructType(child);
                 if (!(t instanceof JavaType a)) {
                     throw new IllegalArgumentException("Bad type: " + tree);
@@ -129,7 +129,7 @@ public final class CoreTypeFactory {
                 if (parts.length == 2) {
                     // class type-var
                     return JavaType.typeVarRef(parts[1],
-                            (ClassType)constructType(parseTypeDef(parts[0])),
+                            (ClassType)constructType(parseExTypeElem(parts[0])),
                             typeArguments.get(0));
                 } else {
                     // method type-var
@@ -172,7 +172,7 @@ public final class CoreTypeFactory {
     }
 
     // Copied code in jdk.compiler module throws UOE
-    static TypeDefinition parseTypeDef(String desc) {
-/*__throw new UnsupportedOperationException();__*/        return java.lang.reflect.code.parser.impl.DescParser.parseTypeDefinition(desc);
+    static TypeElement.ExternalizedTypeElement parseExTypeElem(String desc) {
+/*__throw new UnsupportedOperationException();__*/        return java.lang.reflect.code.parser.impl.DescParser.parseExTypeElem(desc);
     }
 }
