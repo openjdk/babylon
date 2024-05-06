@@ -350,6 +350,12 @@ public final class BytecodeLift {
                                 CoreOp.or(stack.pop(), operand);
                         case IXOR, LXOR ->
                                 CoreOp.xor(stack.pop(), operand);
+                        case ISHL, LSHL ->
+                                CoreOp.lshl(stack.pop(), operand);
+                        case ISHR, LSHR ->
+                                CoreOp.ashr(stack.pop(), operand);
+                        case IUSHR, LUSHR ->
+                                CoreOp.lshr(stack.pop(), operand);
                         default ->
                             throw new IllegalArgumentException("Unsupported operator opcode: " + inst.opcode());
                     }));
