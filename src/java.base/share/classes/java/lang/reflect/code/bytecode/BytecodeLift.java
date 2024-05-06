@@ -468,9 +468,94 @@ public final class BytecodeLift {
                 }
                 case StackInstruction inst -> {
                     switch (inst.opcode()) {
-                        case POP, POP2 -> stack.pop(); // @@@ check the type width
-                        case DUP, DUP2 -> stack.push(stack.peek());
-                        //@@@ implement all other stack ops
+                        case POP -> {
+                            stack.pop();
+                        }
+                        case POP2 -> {
+                            if (isCategory1(stack.pop())) {
+                                stack.pop();
+                            }
+                        }
+                        case DUP -> {
+                            stack.push(stack.peek());
+                        }
+                        case DUP_X1 -> {
+                            var value1 = stack.pop();
+                            var value2 = stack.pop();
+                            stack.push(value1);
+                            stack.push(value2);
+                            stack.push(value1);
+                        }
+                        case DUP_X2 -> {
+                            var value1 = stack.pop();
+                            var value2 = stack.pop();
+                            if (isCategory1(value2)) {
+                                var value3 = stack.pop();
+                                stack.push(value1);
+                                stack.push(value3);
+                            } else {
+                                stack.push(value1);
+                            }
+                            stack.push(value2);
+                            stack.push(value1);
+                        }
+                        case DUP2 -> {
+                            var value1 = stack.peek();
+                            if (isCategory1(value1)) {
+                                stack.pop();
+                                var value2 = stack.peek();
+                                stack.push(value1);
+                                stack.push(value2);
+                            }
+                            stack.push(value1);
+                        }
+                        case DUP2_X1 -> {
+                            var value1 = stack.pop();
+                            var value2 = stack.pop();
+                            if (isCategory1(value1)) {
+                                var value3 = stack.pop();
+                                stack.push(value2);
+                                stack.push(value1);
+                                stack.push(value3);
+                            } else {
+                                stack.push(value1);
+                            }
+                            stack.push(value2);
+                            stack.push(value1);
+                        }
+                        case DUP2_X2 -> {
+                            var value1 = stack.pop();
+                            var value2 = stack.pop();
+                            if (isCategory1(value1)) {
+                                var value3 = stack.pop();
+                                if (isCategory1(value3)) {
+                                    var value4 = stack.pop();
+                                    stack.push(value2);
+                                    stack.push(value1);
+                                    stack.push(value4);
+                                } else {
+                                    stack.push(value2);
+                                    stack.push(value1);
+                                }
+                                stack.push(value3);
+                            } else {
+                                if (isCategory1(value2)) {
+                                    var value3 = stack.pop();
+                                    stack.push(value1);
+                                    stack.push(value3);
+                                } else {
+                                    stack.push(value1);
+                                }
+                            }
+                            stack.push(value2);
+                            stack.push(value1);
+                        }
+                        case SWAP -> {
+                            var value1 = stack.pop();
+                            var value2 = stack.pop();
+                            stack.push(value1);
+                            stack.push(value2);
+                        }
                         default ->
                             throw new UnsupportedOperationException("Unsupported stack instruction: " + inst);
                     }
@@ -481,5 +566,9 @@ public final class BytecodeLift {
                     throw new UnsupportedOperationException("Unsupported code element: " + elements.get(i));
             }
         }
+    }
+
+    private static boolean isCategory1(Value v) {
+        return BytecodeGenerator.toTypeKind(v.type()).slotSize() == 1;
     }
 }

@@ -387,7 +387,7 @@ public final class BytecodeGenerator {
         return use.op() instanceof CoreOp.ConditionalBranchOp;
     }
 
-    private static ClassDesc toClassDesc(TypeElement t) {
+    static ClassDesc toClassDesc(TypeElement t) {
         return switch (t) {
             case VarType vt -> toClassDesc(vt.valueType());
             case JavaType jt -> jt.toNominalDescriptor();
@@ -396,7 +396,7 @@ public final class BytecodeGenerator {
         };
     }
 
-    private static TypeKind toTypeKind(TypeElement t) {
+    static TypeKind toTypeKind(TypeElement t) {
         return switch (t) {
             case VarType vt -> toTypeKind(vt.valueType());
             case PrimitiveType pt -> TypeKind.from(pt.toNominalDescriptor());
