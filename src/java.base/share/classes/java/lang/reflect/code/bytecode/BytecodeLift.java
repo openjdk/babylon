@@ -258,13 +258,10 @@ public final class BytecodeLift {
                         case IF_ACMPNE -> CoreOp.eq(stack.pop(), operand);
                         default -> throw new UnsupportedOperationException("Unsupported branch instruction: " + inst);
                     };
-                    if (!stack.isEmpty()) {
-                        throw new UnsupportedOperationException("Operands on stack for branch not supported");
-                    }
-                    Block.Builder next = currentBlock.block();
+                    Block.Builder next = newBlock();
                     op(CoreOp.conditionalBranch(op(cop),
-                            next.successor(),
-                            getBlock(inst.target()).successor()));
+                            next.successor(List.copyOf(stack)),
+                            getBlock(inst.target()).successor(List.copyOf(stack))));
                     moveTo(next);
                 }
     //                case LookupSwitchInstruction si -> {
@@ -465,6 +462,9 @@ public final class BytecodeLift {
                 }
                 case TypeCheckInstruction inst when inst.opcode() == Opcode.CHECKCAST -> {
                     stack.push(op(CoreOp.cast(JavaType.type(inst.type().asSymbol()), stack.pop())));
+                }
+                case TypeCheckInstruction inst -> {
+                    stack.push(op(CoreOp.instanceOf(JavaType.type(inst.type().asSymbol()), stack.pop())));
                 }
                 case StackInstruction inst -> {
                     switch (inst.opcode()) {
