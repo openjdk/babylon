@@ -27,6 +27,7 @@ import org.testng.annotations.Test;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.Op;
+import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.code.op.CoreOp;
@@ -111,14 +112,7 @@ public class TestCodeBuilder {
     public void testWithTransforms(CoreOp.FuncOp f) {
         test(f);
 
-        f = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable l) {
-                return l.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
         test(f);
 
         f = SSA.transform(f);

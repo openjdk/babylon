@@ -24,6 +24,7 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.analysis.SSA;
@@ -132,14 +133,7 @@ public class TestSSA {
     static CoreOp.FuncOp generate(CoreOp.FuncOp f) {
         f.writeTo(System.out);
 
-        CoreOp.FuncOp lf = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
         lf.writeTo(System.out);
 
         lf = SSA.transform(lf);

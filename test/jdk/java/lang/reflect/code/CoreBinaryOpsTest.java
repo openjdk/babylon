@@ -46,6 +46,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.Op;
+import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
@@ -324,14 +325,7 @@ public class CoreBinaryOpsTest {
     }
 
     private static Object bytecode(Object left, Object right, CoreOp.FuncOp op) throws Throwable {
-        CoreOp.FuncOp func = SSA.transform(op.transform((block, o) -> {
-            if (o instanceof Op.Lowerable lowerable) {
-                return lowerable.lower(block);
-            } else {
-                block.op(o);
-                return block;
-            }
-        }));
+        CoreOp.FuncOp func = SSA.transform(op.transform(OpTransformer.LOWERING_TRANSFORMER));
         MethodHandle handle = BytecodeGenerator.generate(MethodHandles.lookup(), func);
         return handle.invoke(left, right);
     }

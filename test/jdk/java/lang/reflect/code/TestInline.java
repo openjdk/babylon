@@ -24,11 +24,8 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.Block;
-import java.lang.reflect.code.CopyContext;
+import java.lang.reflect.code.*;
 import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.Quoted;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.code.type.JavaType;
@@ -106,14 +103,7 @@ public class TestInline {
         };
         CoreOp.ClosureOp cop = (CoreOp.ClosureOp) q.op();
         cop.writeTo(System.out);
-        CoreOp.ClosureOp lcop = cop.transform(CopyContext.create(), (block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        CoreOp.ClosureOp lcop = cop.transform(CopyContext.create(), OpTransformer.LOWERING_TRANSFORMER);
         lcop.writeTo(System.out);
 
         // functional type = (int)int
@@ -142,14 +132,7 @@ public class TestInline {
         };
         CoreOp.ClosureOp cop = (CoreOp.ClosureOp) q.op();
         cop.writeTo(System.out);
-        CoreOp.ClosureOp lcop = cop.transform(CopyContext.create(), (block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        CoreOp.ClosureOp lcop = cop.transform(CopyContext.create(), OpTransformer.LOWERING_TRANSFORMER);
         lcop.writeTo(System.out);
 
         // functional type = (int)int
@@ -196,14 +179,7 @@ public class TestInline {
                 });
         f.writeTo(System.out);
 
-        f = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
         f.writeTo(System.out);
 
         int ir = (int) Interpreter.invoke(MethodHandles.lookup(), f, 1);
