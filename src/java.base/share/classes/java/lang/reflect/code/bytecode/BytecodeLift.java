@@ -35,6 +35,7 @@ import java.lang.classfile.MethodModel;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.PseudoInstruction;
 import java.lang.classfile.TypeKind;
+import java.lang.classfile.attribute.CodeAttribute;
 import java.lang.classfile.attribute.StackMapFrameInfo;
 import java.lang.classfile.instruction.*;
 import java.lang.constant.ClassDesc;
@@ -62,6 +63,9 @@ import java.util.stream.IntStream;
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
 import java.lang.classfile.constantpool.ClassEntry;
 import java.lang.constant.MethodTypeDesc;
+import java.util.HashSet;
+import java.util.Set;
+import jdk.internal.classfile.impl.CodeImpl;
 
 
 public final class BytecodeLift {
@@ -70,12 +74,10 @@ public final class BytecodeLift {
     private final CodeModel codeModel;
     private final Map<Label, Block.Builder> blockMap;
     private final Map<String, Op.Result> varMap;
+    private final Set<Label> passedLabels;
+    private final List<LocalVariable> lvInfos;
     private final Deque<Value> stack;
     private Block.Builder currentBlock;
-
-    private static String varName(int slot, TypeKind tk) {
-        return tk.typeName() + slot;
-    }
 
     private static TypeElement toTypeElement(StackMapFrameInfo.VerificationTypeInfo vti) {
         return switch (vti) {
@@ -106,24 +108,44 @@ public final class BytecodeLift {
         this.currentBlock = entryBlock;
         this.codeModel = methodModel.code().orElseThrow();
         this.varMap = new HashMap<>();
+        this.passedLabels = new HashSet<>();
+        this.lvInfos = codeModel.elementStream().filter(LocalVariable.class::isInstance).map(LocalVariable.class::cast).toList();
         this.stack = new ArrayDeque<>();
-        List<Block.Parameter> bps = entryBlock.parameters();
-        List<ClassDesc> mps = methodModel.methodTypeSymbol().parameterList();
-        for (int i = 0, slot = 0; i < bps.size(); i++) {
-            TypeKind tk = TypeKind.from(mps.get(i)).asLoadable();
-            varStore(slot, tk, bps.get(i));
-            slot += tk.slotSize();
-        }
         this.blockMap = codeModel.findAttribute(Attributes.STACK_MAP_TABLE).map(sma ->
                 sma.entries().stream().collect(Collectors.toUnmodifiableMap(
                         StackMapFrameInfo::target,
                         smfi -> entryBlock.block(smfi.stack().stream().map(BytecodeLift::toTypeElement).toList())))).orElse(Map.of());
+        List<Block.Parameter> bps = entryBlock.parameters();
+        MethodTypeDesc mtd = methodModel.methodTypeSymbol();
+        for (int i = 0, slot = 0; i < bps.size(); i++) {
+            TypeKind tk = TypeKind.from(mtd.parameterType(i)).asLoadable();
+            varStore(slot, tk, bps.get(i));
+            slot += tk.slotSize();
+        }
+    }
+
+    private String varName(int slot, TypeKind tk) {
+        for (var lvi : lvInfos) {
+            if (lvi.slot() == slot && !passedLabels.contains(lvi.endScope())) {
+                return lvi.name().stringValue();
+            }
+        }
+        return tk.typeName() + slot;
+    }
+
+    private TypeElement varType(int slot, TypeElement initType) {
+        for (var lvi : lvInfos) {
+            if (lvi.slot() == slot && !passedLabels.contains(lvi.endScope())) {
+                return JavaType.type(lvi.typeSymbol());
+            }
+        }
+        return initType;
     }
 
     private void varStore(int slot, TypeKind tk, Value value) {
         varMap.compute(varName(slot, tk), (varName, var) -> {
             if (var == null) {
-                return op(CoreOp.var(varName, value));
+                return op(CoreOp.var(varName, varType(slot, value.type()), value));
             } else {
                 op(CoreOp.varStore(var, value));
                 return var;
@@ -132,9 +154,9 @@ public final class BytecodeLift {
     }
 
     private Op.Result var(int slot, TypeKind tk) {
-        Op.Result r = varMap.get(varName(slot, tk));
-        if (r == null) throw new IllegalArgumentException("Undeclared variable: " + slot + "-" + tk); // @@@ these cases may need lazy var injection
-        return r;
+        return varMap.computeIfAbsent(varName(slot, tk), name -> {
+            throw new IllegalArgumentException("Undeclared variable: " + name);
+        });
     }
 
     private Op.Result op(Op op) {
@@ -202,6 +224,7 @@ public final class BytecodeLift {
                     // Exception blocks are inserted by label target (below)
                 }
                 case LabelTarget lt -> {
+                    passedLabels.add(lt.label());
                     Block.Builder next = blockMap.get(lt.label());
                     // Start of a new block if defined by stack maps
                     if (next != null) {
