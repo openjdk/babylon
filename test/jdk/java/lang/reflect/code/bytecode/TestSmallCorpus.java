@@ -54,8 +54,7 @@ import org.testng.annotations.Test;
 public class TestSmallCorpus {
 
     private static final FileSystem JRT = FileSystems.getFileSystem(URI.create("jrt:/"));
-    private static final ClassFile CF = ClassFile.of(ClassFile.DebugElementsOption.DROP_DEBUG,
-                                                     ClassFile.LineNumbersOption.DROP_LINE_NUMBERS);
+    private static final ClassFile CF = ClassFile.of();
     private static final int COLUMN_WIDTH = 150;
 
     private int passed, notMatching;

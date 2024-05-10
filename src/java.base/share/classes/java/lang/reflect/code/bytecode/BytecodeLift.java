@@ -33,6 +33,7 @@ import java.lang.classfile.Instruction;
 import java.lang.classfile.Label;
 import java.lang.classfile.MethodModel;
 import java.lang.classfile.Opcode;
+import java.lang.classfile.PseudoInstruction;
 import java.lang.classfile.TypeKind;
 import java.lang.classfile.attribute.StackMapFrameInfo;
 import java.lang.classfile.instruction.*;
@@ -201,34 +202,36 @@ public final class BytecodeLift {
                     // Exception blocks are inserted by label target (below)
                 }
                 case LabelTarget lt -> {
-                    // Start of a new block
-                    Block.Builder next = getBlock(lt.label());
-                    if (currentBlock != null) {
-                        // Implicit goto next block, add explicitly
-                        // Use stack content as next block arguments
-                        op(CoreOp.branch(next.successor(List.copyOf(stack))));
-                    }
-                    moveTo(next);
-                    // Insert relevant tryStart and construct handler blocks, all in reversed order
-                    for (ExceptionCatch ec : codeModel.exceptionHandlers().reversed()) {
-                        if (lt.label() == ec.tryStart()) {
-                            Block.Builder handler = getBlock(ec.handler());
-                            // Create start block
-                            next = newBlock();
-                            Op ere = CoreOp.exceptionRegionEnter(next.successor(List.copyOf(stack)), handler.successor());
-                            op(ere);
-                            // Store ERE into map for exit
-                            exceptionRegionsMap.put(ec, ere.result());
-                            moveTo(next);
+                    Block.Builder next = blockMap.get(lt.label());
+                    // Start of a new block if defined by stack maps
+                    if (next != null) {
+                        if (currentBlock != null) {
+                            // Implicit goto next block, add explicitly
+                            // Use stack content as next block arguments
+                            op(CoreOp.branch(next.successor(List.copyOf(stack))));
                         }
-                    }
-                    // Insert relevant tryEnd blocks in normal order
-                    for (ExceptionCatch ec : codeModel.exceptionHandlers()) {
-                        if (lt.label() == ec.tryEnd()) {
-                            // Create exit block with parameters constructed from the stack
-                            next = newBlock();
-                            op(CoreOp.exceptionRegionExit(exceptionRegionsMap.get(ec), next.successor()));
-                            moveTo(next);
+                        moveTo(next);
+                        // Insert relevant tryStart and construct handler blocks, all in reversed order
+                        for (ExceptionCatch ec : codeModel.exceptionHandlers().reversed()) {
+                            if (lt.label() == ec.tryStart()) {
+                                Block.Builder handler = getBlock(ec.handler());
+                                // Create start block
+                                next = newBlock();
+                                Op ere = CoreOp.exceptionRegionEnter(next.successor(List.copyOf(stack)), handler.successor());
+                                op(ere);
+                                // Store ERE into map for exit
+                                exceptionRegionsMap.put(ec, ere.result());
+                                moveTo(next);
+                            }
+                        }
+                        // Insert relevant tryEnd blocks in normal order
+                        for (ExceptionCatch ec : codeModel.exceptionHandlers()) {
+                            if (lt.label() == ec.tryEnd()) {
+                                // Create exit block with parameters constructed from the stack
+                                next = newBlock();
+                                op(CoreOp.exceptionRegionExit(exceptionRegionsMap.get(ec), next.successor()));
+                                moveTo(next);
+                            }
                         }
                     }
                 }
@@ -560,6 +563,7 @@ public final class BytecodeLift {
                             throw new UnsupportedOperationException("Unsupported stack instruction: " + inst);
                     }
                 }
+                case PseudoInstruction _ -> {}
                 case Instruction inst ->
                     throw new UnsupportedOperationException("Unsupported instruction: " + inst.opcode().name());
                 default ->
