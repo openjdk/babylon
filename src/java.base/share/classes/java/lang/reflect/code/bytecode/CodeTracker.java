@@ -25,11 +25,13 @@
 package java.lang.reflect.code.bytecode;
 
 import java.lang.classfile.CodeElement;
+import java.lang.classfile.Instruction;
 import java.lang.classfile.Label;
 import java.lang.classfile.MethodModel;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
-import java.lang.classfile.constantpool.ClassEntry;
+import java.lang.classfile.attribute.StackMapFrameInfo;
+import java.lang.classfile.attribute.StackMapTableAttribute;
 import java.lang.classfile.instruction.*;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
@@ -39,31 +41,63 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public final class CodeTracker implements Consumer<CodeElement> {
 
-    public record Frame(List<ClassDesc> stack, List<ClassDesc> locals) {};
-
-    public Frame frame;
-    private final Map<Label, Frame> stackMap;
-
-    public CodeTracker(MethodModel mm) {
-        this.frame = new Frame(new ArrayList<>(), new ArrayList<>());
-        if (!mm.flags().has(AccessFlag.STATIC)) frame.locals.add(mm.parent().orElseThrow().thisClass().asSymbol());
-        for (var pt : mm.methodTypeSymbol().parameterList()) {
-            frame.locals.add(pt);
-            if (TypeKind.from(pt).slotSize() == 2) frame.locals.add(null);
+    public static final class Local {
+        ClassDesc type;
+        Local(ClassDesc type) {
+            this.type = type;
         }
-        this.stackMap = new HashMap<>();
+    }
+
+    public final List<Local> initLocals;
+    public final Map<Instruction, Local> insMap;
+
+    private final ClassDesc thisClass;
+    private List<ClassDesc> stack;
+    private List<Local> locals;
+
+    private final Map<Label, StackMapFrameInfo> stackMap;
+
+    public CodeTracker(MethodModel mm, Optional<StackMapTableAttribute> smta) {
+        this.stack = new ArrayList<>();
+        this.initLocals = new ArrayList<>();
+        this.thisClass = mm.parent().orElseThrow().thisClass().asSymbol();
+        if (!mm.flags().has(AccessFlag.STATIC)) initLocals.add(new Local(thisClass));
+        for (var pt : mm.methodTypeSymbol().parameterList()) {
+            initLocals.add(new Local(pt));
+            if (TypeKind.from(pt).slotSize() == 2) initLocals.add(null);
+        }
+        this.locals = new ArrayList<>(initLocals);
+        this.stackMap = smta.map(a -> a.entries().stream().collect(Collectors.toUnmodifiableMap(
+                StackMapFrameInfo::target,
+                Function.identity()))).orElse(Map.of());
+        this.insMap = new HashMap<>();
+    }
+
+    private ClassDesc vtiToDesc(StackMapFrameInfo.VerificationTypeInfo vti) {
+        return switch (vti) {
+            case StackMapFrameInfo.SimpleVerificationTypeInfo.ITEM_INTEGER -> ConstantDescs.CD_int;
+            case StackMapFrameInfo.SimpleVerificationTypeInfo.ITEM_FLOAT -> ConstantDescs.CD_float;
+            case StackMapFrameInfo.SimpleVerificationTypeInfo.ITEM_DOUBLE -> ConstantDescs.CD_double;
+            case StackMapFrameInfo.SimpleVerificationTypeInfo.ITEM_LONG -> ConstantDescs.CD_long;
+            case StackMapFrameInfo.SimpleVerificationTypeInfo.ITEM_UNINITIALIZED_THIS -> thisClass;
+            case StackMapFrameInfo.ObjectVerificationTypeInfo ovti -> ovti.classSymbol();
+            default -> null;
+        };
     }
 
     private void push(ClassDesc type) {
-        if (!type.equals(ConstantDescs.CD_void)) frame.stack.addLast(type);
+        if (!type.equals(ConstantDescs.CD_void)) stack.addLast(type);
     }
 
     private ClassDesc pop() {
-        return frame.stack.removeLast();
+        return stack.removeLast();
     }
 
     private void pop(int i) {
@@ -71,16 +105,12 @@ public final class CodeTracker implements Consumer<CodeElement> {
     }
 
     private void store(int slot, ClassDesc type) {
-        for (int i = frame.locals.size(); i <= slot; i++) frame.locals.add(null);
-        frame.locals.set(slot, type);
+        for (int i = locals.size(); i <= slot; i++) locals.add(null);
+        locals.set(slot, new Local(type));
     }
 
     private ClassDesc load(int slot) {
-        return frame.locals.get(slot);
-    }
-
-    private Frame fork() {
-        return new Frame(new ArrayList<>(frame.stack), new ArrayList<>(frame.locals));
+        return locals.get(slot).type;
     }
 
     @Override
@@ -93,11 +123,10 @@ public final class CodeTracker implements Consumer<CodeElement> {
                 pop(3);
             case BranchInstruction i -> {
                 if (i.opcode() == Opcode.GOTO || i.opcode() == Opcode.GOTO_W) {
-                    stackMap.put(i.target(), frame);
-                    frame = null;
+                    stack = null;
+                    locals = null;
                 } else {
                     pop(1);
-                    stackMap.put(i.target(), fork());
                 }
             }
             case ConstantInstruction i ->
@@ -129,16 +158,16 @@ public final class CodeTracker implements Consumer<CodeElement> {
                 if (i.opcode() != Opcode.INVOKESTATIC) pop(1);
                 push(type.returnType());
             }
-            case LoadInstruction i ->
+            case IncrementInstruction i -> {
+                insMap.put(i, locals.get(i.slot()));
+            }
+            case LoadInstruction i -> {
                 push(load(i.slot()));
-            case StoreInstruction i ->
+                insMap.put(i, locals.get(i.slot()));
+            }
+            case StoreInstruction i -> {
                 store(i.slot(), pop());
-            case LookupSwitchInstruction i -> {
-                stackMap.put(i.defaultTarget(), frame);
-                for (var c : i.cases()) {
-                    stackMap.put(c.target(), fork());
-                }
-                frame = null;
+                insMap.put(i, locals.get(i.slot()));
             }
             case MonitorInstruction _ ->
                 pop(1);
@@ -160,8 +189,6 @@ public final class CodeTracker implements Consumer<CodeElement> {
                 }
                 push(ClassDesc.ofDescriptor(i.typeKind().descriptor()));
             }
-            case ReturnInstruction _, ThrowInstruction _ ->
-                frame = null;
             case StackInstruction i -> {
                 switch (i.opcode()) {
                     case POP -> pop(1);
@@ -233,13 +260,6 @@ public final class CodeTracker implements Consumer<CodeElement> {
                     }
                 }
             }
-            case TableSwitchInstruction i -> {
-                stackMap.put(i.defaultTarget(), frame);
-                for (var c : i.cases()) {
-                    stackMap.put(c.target(), fork());
-                }
-                frame = null;
-            }
             case TypeCheckInstruction i -> {
                 switch (i.opcode()) {
                     case CHECKCAST -> {
@@ -250,10 +270,35 @@ public final class CodeTracker implements Consumer<CodeElement> {
                     }
                 }
             }
-            case ExceptionCatch i ->
-                stackMap.put(i.handler(), new Frame(new ArrayList<>(List.of(i.catchType().map(ClassEntry::asSymbol).orElse(ConstantDescs.CD_Throwable))), new ArrayList<>(frame.locals)));
-            case LabelTarget i ->
-                frame = stackMap.getOrDefault(i.label(), frame);
+            case LookupSwitchInstruction _, TableSwitchInstruction _, ReturnInstruction _, ThrowInstruction _ -> {
+                stack = null;
+                locals = null;
+            }
+            case LabelTarget lt -> {
+                var smfi = stackMap.get(lt.label());
+                if (smfi != null) {
+                    stack = new ArrayList<>();
+                    for (var vti : smfi.stack()) {
+                        var cd = vtiToDesc(vti);
+                        if (cd != null) stack.add(cd);
+                    }
+                    if (locals == null) {
+                        locals = new ArrayList<>();
+                        for (var vti : smfi.locals()) {
+                            locals.add(new Local(vtiToDesc(vti)));
+                        }
+                    } else {
+                        for (int i = 0; i < smfi.locals().size(); i++) {
+                            var cd = vtiToDesc(smfi.locals().get(i));
+                            if (cd == null) locals.set(i, null);
+                            else locals.get(i).type = cd;
+                        }
+                        for (int i = smfi.locals().size(); i < locals.size(); i++) {
+                            locals.removeLast();
+                        }
+                    }
+                }
+            }
             default -> {}
         }
     }

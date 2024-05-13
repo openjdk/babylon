@@ -108,27 +108,36 @@ public final class BytecodeLift {
         this.elements = codeModel.elementList();
         this.varMap = new HashMap<>();
         this.stack = new ArrayDeque<>();
-        this.blockMap = codeModel.findAttribute(Attributes.STACK_MAP_TABLE).map(sma ->
+        var smta = codeModel.findAttribute(Attributes.STACK_MAP_TABLE);
+        this.blockMap = smta.map(sma ->
                 sma.entries().stream().collect(Collectors.toUnmodifiableMap(
                         StackMapFrameInfo::target,
                         smfi -> entryBlock.block(smfi.stack().stream().map(BytecodeLift::toTypeElement).toList())))).orElse(Map.of());
         MethodTypeDesc mtd = methodModel.methodTypeSymbol();
-        this.codeTracker = new CodeTracker(methodModel);
+        this.codeTracker = new CodeTracker(methodModel, smta);
+        elements.forEach(codeTracker);
+
         List<Block.Parameter> bps = entryBlock.parameters();
         for (int i = 0, slot = 0; i < bps.size(); i++) {
-            TypeKind tk = TypeKind.from(mtd.parameterType(i)).asLoadable();
-            varStore(slot, bps.get(i));
-            slot += tk.slotSize();
+            CodeTracker.Local local = codeTracker.initLocals.get(slot);
+            if (local != null) {
+                VarID varID = getVarID(local.type, slot);
+                varMap.put(varID, op(CoreOp.var(varID.name(), JavaType.type(local.type), bps.get(i))));
+            }
+            slot += TypeKind.from(mtd.parameterType(i)).slotSize();
         }
     }
 
-    private VarID findVarID(int slot) {
-        ClassDesc varType = codeTracker.frame.locals().get(slot);
+    private VarID getVarID(ClassDesc varType, int slot) {
         return new VarID(varType.displayName() + "-" + slot, varType);
     }
+    private VarID findVarID(Instruction i, int slot) {
+        ClassDesc varType = codeTracker.insMap.get(i).type;
+        return getVarID(varType, slot);
+    }
 
-    private void varStore(int slot, Value value) {
-        varMap.compute(findVarID(slot), (varID, varOp) -> {
+    private void varStore(Instruction i, int slot, Value value) {
+        varMap.compute(findVarID(i, slot), (varID, varOp) -> {
             if (varOp == null) {
                 return op(CoreOp.var(varID.name(), JavaType.type(varID.type()), value));
             } else {
@@ -138,8 +147,8 @@ public final class BytecodeLift {
         });
     }
 
-    private Op.Result var(int slot) {
-        return varMap.computeIfAbsent(findVarID(slot), name -> {
+    private Op.Result var(Instruction i, int slot) {
+        return varMap.computeIfAbsent(findVarID(i, slot), name -> {
             throw new IllegalArgumentException("Undeclared variable: " + name);
         });
     }
@@ -202,9 +211,7 @@ public final class BytecodeLift {
     private void lift() {
         final Map<ExceptionCatch, Op.Result> exceptionRegionsMap = new HashMap<>();
         for (int i = 0; i < elements.size(); i++) {
-            CodeElement el =elements.get(i);
-            codeTracker.accept(el);
-            switch (el) {
+            switch (elements.get(i)) {
                 case ExceptionCatch _ -> {
                     // Exception blocks are inserted by label target (below)
                 }
@@ -297,13 +304,13 @@ public final class BytecodeLift {
                     endOfFlow();
                 }
                 case LoadInstruction inst -> {
-                    stack.push(op(CoreOp.varLoad(var(inst.slot()))));
+                    stack.push(op(CoreOp.varLoad(var(inst, inst.slot()))));
                 }
                 case StoreInstruction inst -> {
-                    varStore(inst.slot(), stack.pop());
+                    varStore(inst, inst.slot(), stack.pop());
                 }
                 case IncrementInstruction inst -> {
-                    Op.Result v = var(inst.slot());
+                    Op.Result v = var(inst, inst.slot());
                     op(CoreOp.varStore(v, op(CoreOp.add(
                             op(CoreOp.varLoad(v)),
                             op(CoreOp.constant(JavaType.INT, inst.constant()))))));
