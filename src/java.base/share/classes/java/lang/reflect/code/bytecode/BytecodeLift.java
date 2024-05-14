@@ -122,7 +122,7 @@ public final class BytecodeLift {
             CodeTracker.Local local = codeTracker.initLocals.get(slot);
             if (local != null) {
                 VarID varID = getVarID(local.type, slot);
-                varMap.put(varID, op(CoreOp.var(varID.name(), JavaType.type(local.type), bps.get(i))));
+                varMap.put(varID, op(CoreOp.var(varID.name(), JavaType.type(varID.type), bps.get(i))));
             }
             slot += TypeKind.from(mtd.parameterType(i)).slotSize();
         }
