@@ -129,6 +129,9 @@ public final class BytecodeLift {
     }
 
     private VarID getVarID(ClassDesc varType, int slot) {
+        if (varType.isPrimitive()) switch (varType.descriptorString().charAt(0)) {
+            case 'B', 'S', 'C', 'Z' -> varType = ConstantDescs.CD_int;
+        }
         return new VarID(varType.displayName() + "-" + slot, varType);
     }
     private VarID findVarID(Instruction i, int slot) {

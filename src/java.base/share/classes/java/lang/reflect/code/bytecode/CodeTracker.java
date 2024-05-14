@@ -88,6 +88,7 @@ public final class CodeTracker implements Consumer<CodeElement> {
             case StackMapFrameInfo.SimpleVerificationTypeInfo.ITEM_LONG -> ConstantDescs.CD_long;
             case StackMapFrameInfo.SimpleVerificationTypeInfo.ITEM_UNINITIALIZED_THIS -> thisClass;
             case StackMapFrameInfo.ObjectVerificationTypeInfo ovti -> ovti.classSymbol();
+            case null -> null;
             default -> null;
         };
     }
@@ -129,8 +130,11 @@ public final class CodeTracker implements Consumer<CodeElement> {
                     pop(1);
                 }
             }
-            case ConstantInstruction i ->
-                push(i.constantValue().getClass().describeConstable().orElseThrow());
+            case ConstantInstruction i -> {
+                var tk = i.typeKind();
+                push(ClassDesc.ofDescriptor(tk == TypeKind.ReferenceType ?
+                        i.constantValue().getClass().descriptorString() : tk.descriptor()));
+            }
             case ConvertInstruction i -> {
                 pop(1);push(ClassDesc.ofDescriptor(i.toType().descriptor()));
             }
@@ -285,15 +289,26 @@ public final class CodeTracker implements Consumer<CodeElement> {
                     if (locals == null) {
                         locals = new ArrayList<>();
                         for (var vti : smfi.locals()) {
-                            locals.add(new Local(vtiToDesc(vti)));
+                            ClassDesc ltype = vtiToDesc(vti);
+                            if (ltype == null) {
+                                locals.add(null);
+                            } else {
+                                locals.add(new Local(ltype));
+                                if (TypeKind.from(ltype).slotSize() == 2) locals.add(null);
+                            }
                         }
                     } else {
+                        int slot = 0;
                         for (int i = 0; i < smfi.locals().size(); i++) {
                             var cd = vtiToDesc(smfi.locals().get(i));
-                            if (cd == null) locals.set(i, null);
-                            else locals.get(i).type = cd;
+                            if (cd == null) {
+                                locals.set(slot++, null);
+                            } else {
+                                locals.get(slot).type = cd;
+                                slot += TypeKind.from(cd).slotSize();
+                            }
                         }
-                        for (int i = smfi.locals().size(); i < locals.size(); i++) {
+                        for (int i = slot; i < locals.size(); i++) {
                             locals.removeLast();
                         }
                     }
