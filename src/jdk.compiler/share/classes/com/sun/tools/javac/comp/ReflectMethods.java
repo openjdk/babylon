@@ -817,14 +817,14 @@ public class ReflectMethods extends TreeTranslator {
                     case MOD_ASG -> append(CoreOp.mod(lhs, rhs));
 
                     // Bitwise operations (including their boolean variants)
-                    case BITOR_ASG -> append(CoreOps.or(lhs, rhs));
-                    case BITAND_ASG -> append(CoreOps.and(lhs, rhs));
-                    case BITXOR_ASG -> append(CoreOps.xor(lhs, rhs));
+                    case BITOR_ASG -> append(CoreOp.or(lhs, rhs));
+                    case BITAND_ASG -> append(CoreOp.and(lhs, rhs));
+                    case BITXOR_ASG -> append(CoreOp.xor(lhs, rhs));
 
                     // Shift operations
-                    case SL_ASG -> append(CoreOps.lshl(lhs, rhs));
-                    case SR_ASG -> append(CoreOps.ashr(lhs, rhs));
-                    case USR_ASG -> append(CoreOps.lshr(lhs, rhs));
+                    case SL_ASG -> append(CoreOp.lshl(lhs, rhs));
+                    case SR_ASG -> append(CoreOp.ashr(lhs, rhs));
+                    case USR_ASG -> append(CoreOp.lshr(lhs, rhs));
 
 
                     default -> throw unsupported(tree);
