@@ -63,19 +63,19 @@ import static org.junit.jupiter.api.Assertions.*;
 public class CoreBinaryOpsTest {
 
     @CodeReflection
-    @SupportedTypes(types = {int.class, long.class, boolean.class})
+    @SupportedTypes(types = {int.class, long.class, byte.class, short.class, char.class, boolean.class})
     static int and(int left, int right) {
         return left & right;
     }
 
     @CodeReflection
-    @SupportedTypes(types = {int.class, long.class, float.class, double.class})
+    @SupportedTypes(types = {int.class, long.class, byte.class, short.class, char.class, float.class, double.class})
     static int add(int left, int right) {
         return left + right;
     }
 
     @CodeReflection
-    @SupportedTypes(types = {int.class, long.class, float.class, double.class})
+    @SupportedTypes(types = {int.class, long.class, byte.class, short.class, char.class, float.class, double.class})
     static int div(int left, int right) {
         return left / right;
     }
@@ -99,19 +99,19 @@ public class CoreBinaryOpsTest {
     }
 
     @CodeReflection
-    @SupportedTypes(types = {int.class, long.class, float.class, double.class})
+    @SupportedTypes(types = {int.class, long.class, byte.class, short.class, char.class, float.class, double.class})
     static int mod(int left, int right) {
         return left % right;
     }
 
     @CodeReflection
-    @SupportedTypes(types = {int.class, long.class, float.class, double.class})
+    @SupportedTypes(types = {int.class, long.class, byte.class, short.class, char.class, float.class, double.class})
     static int mul(int left, int right) {
         return left * right;
     }
 
     @CodeReflection
-    @SupportedTypes(types = {int.class, long.class, boolean.class})
+    @SupportedTypes(types = {int.class, long.class, byte.class, short.class, char.class, boolean.class})
     static int or(int left, int right) {
         return left | right;
     }
@@ -135,7 +135,7 @@ public class CoreBinaryOpsTest {
     }
 
     @CodeReflection
-    @SupportedTypes(types = {int.class, long.class, float.class, double.class})
+    @SupportedTypes(types = {int.class, long.class, byte.class, short.class, char.class, float.class, double.class})
     static int sub(int left, int right) {
         return left - right;
     }
@@ -159,7 +159,7 @@ public class CoreBinaryOpsTest {
     }
 
     @CodeReflection
-    @SupportedTypes(types = {int.class, long.class, boolean.class})
+    @SupportedTypes(types = {int.class, long.class, byte.class, short.class, char.class, boolean.class})
     static int xor(int left, int right) {
         return left ^ right;
     }
@@ -191,12 +191,16 @@ public class CoreBinaryOpsTest {
     }
 
     static class CodeReflectionSourceProvider implements ArgumentsProvider {
-        private static final Map<JavaType, List<Object>> INTERESTING_INPUTS = Map.of(
-                JavaType.INT, List.of(Integer.MIN_VALUE, Integer.MAX_VALUE, 1, 0, -1),
-                JavaType.LONG, List.of(Long.MIN_VALUE, Long.MAX_VALUE, 1, 0, -1),
-                JavaType.DOUBLE, List.of(Double.MIN_VALUE, Double.MAX_VALUE, Double.NaN, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, Double.MIN_NORMAL, 1, 0, -1),
-                JavaType.FLOAT, List.of(Float.MIN_VALUE, Float.MAX_VALUE, Float.NaN, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY, Float.MIN_NORMAL, 1, 0, -1),
-                JavaType.BOOLEAN, List.of(true, false)
+        private static final Map<JavaType, List<?>> INTERESTING_INPUTS = Map.of(
+                // explicit type parameters to ensure boxing results in the expected type
+                JavaType.INT, List.<Integer>of(Integer.MIN_VALUE, Integer.MAX_VALUE, 1, 0, -1),
+                JavaType.LONG, List.<Long>of(Long.MIN_VALUE, Long.MAX_VALUE, 1L, 0L, -1L),
+                JavaType.BYTE, List.<Byte>of(Byte.MIN_VALUE, Byte.MAX_VALUE, (byte) 1, (byte) 0, (byte) -1),
+                JavaType.SHORT, List.<Short>of(Short.MIN_VALUE, Short.MAX_VALUE, (short) 1, (short) 0, (short) -1),
+                JavaType.CHAR, List.<Character>of(Character.MIN_VALUE, Character.MAX_VALUE, (char) 1, (char) 0, (char) -1),
+                JavaType.DOUBLE, List.<Double>of(Double.MIN_VALUE, Double.MAX_VALUE, Double.NaN, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, Double.MIN_NORMAL, 1d, 0d, -1d),
+                JavaType.FLOAT, List.<Float>of(Float.MIN_VALUE, Float.MAX_VALUE, Float.NaN, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY, Float.MIN_NORMAL, 1f, 0f, -1f),
+                JavaType.BOOLEAN, List.<Boolean>of(true, false)
         );
 
         @Override
@@ -223,7 +227,7 @@ public class CoreBinaryOpsTest {
                     .flatMap(transformedFunc -> argumentsForMethod(transformedFunc, testMethod));
         }
 
-        private static <T> Stream<List<T>> cartesianProduct(List<List<T>> source) {
+        private static <T> Stream<List<T>> cartesianProduct(List<List<? extends T>> source) {
             if (source.isEmpty()) {
                 return Stream.of(new ArrayList<>());
             }
@@ -283,7 +287,7 @@ public class CoreBinaryOpsTest {
                     return Stream.empty();
                 }
             }
-            List<List<Object>> allInputs = new ArrayList<>();
+            List<List<?>> allInputs = new ArrayList<>();
             for (TypeElement parameterType : funcParameters) {
                 allInputs.add(INTERESTING_INPUTS.get((JavaType) parameterType));
             }
@@ -335,8 +339,8 @@ public class CoreBinaryOpsTest {
         System.out.println("second: " + second);
         // either the same error occurred on both or no error occurred
         if (first.throwable != null || second.throwable != null) {
-            assertNotNull(first.throwable, "only second threw an exception");
-            assertNotNull(second.throwable, "only first threw an exception");
+            assertNotNull(first.throwable, () -> "only second threw an exception: " + second.throwable);
+            assertNotNull(second.throwable, () -> "only first threw an exception: " + first.throwable);
             if (first.throwable.getClass() != second.throwable.getClass()) {
                 first.throwable.printStackTrace();
                 second.throwable.printStackTrace();
