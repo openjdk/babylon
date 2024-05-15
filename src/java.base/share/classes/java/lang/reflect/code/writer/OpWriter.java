@@ -173,36 +173,10 @@ public final class OpWriter {
      * @param root the code model
      * @return the map of computed names, modifiable
      */
-    public static Map<CodeItem, String> computeGlobalNames(Op root) {
-        GlobalValueBlockNaming gn = root.traverse(new GlobalValueBlockNaming(), (n, e) -> {
-            switch (e) {
-                case Op op -> {
-                    for (Block.Reference r : op.successors()) {
-                        n.apply(r.targetBlock());
-                    }
-
-                    if (root != op) {
-                        Op.Result opr = op.result();
-                        if (!opr.type().equals(JavaType.VOID)) {
-                            n.apply(opr);
-                        }
-                    }
-                }
-                case Block block -> {
-                    if (!block.isEntryBlock()) {
-                        n.apply(block);
-                    }
-                    for (Block.Parameter p : block.parameters()) {
-                        n.apply(p);
-                    }
-                }
-                default -> {
-                }
-            }
-            return n;
-        });
-
-        return gn.gn;
+    public static Function<CodeItem, String> computeGlobalNames(Op root) {
+        OpWriter w = new OpWriter(Writer.nullWriter());
+        w.writeOp(root);
+        return w.namer();
     }
 
     /**
@@ -285,9 +259,39 @@ public final class OpWriter {
         }
     }
 
+    /**
+     * An option describing whether an operation's descendant code elements should be written or dropped.
+     */
+    public enum OpDescendantsOption implements Option {
+        /** Writes descendants of an operation, if any */
+        WRITE_DESCENDANTS,
+        /** Drops descendants of an operation, if any */
+        DROP_DESCENDANTS;
+
+        public static OpDescendantsOption defaultValue() {
+            return WRITE_DESCENDANTS;
+        }
+    }
+
+    /**
+     * An option describing whether an operation's result be written or dropped if its type is void.
+     */
+    public enum VoidOpResultOption implements Option {
+        /** Writes void operation result */
+        WRITE_VOID,
+        /** Drops void operation result */
+        DROP_VOID;
+
+        public static VoidOpResultOption defaultValue() {
+            return DROP_VOID;
+        }
+    }
+
     final Function<CodeItem, String> namer;
     final IndentWriter w;
     final boolean dropLocation;
+    final boolean dropOpDescendants;
+    final boolean writeVoidOpResult;
 
     /**
      * Creates a writer of code models (operations) to their textual form.
@@ -298,6 +302,8 @@ public final class OpWriter {
         this.w = new IndentWriter(w);
         this.namer = new GlobalValueBlockNaming();
         this.dropLocation = false;
+        this.dropOpDescendants = false;
+        this.writeVoidOpResult = false;
     }
 
     /**
@@ -309,6 +315,8 @@ public final class OpWriter {
     public OpWriter(Writer w, Option... options) {
         Function<CodeItem, String> namer = null;
         boolean dropLocation = false;
+        boolean dropOpDescendants = false;
+        boolean writeVoidOpResult = false;
         for (Option option : options) {
             switch (option) {
                 case CodeItemNamerOption namerOption -> {
@@ -318,12 +326,21 @@ public final class OpWriter {
                     dropLocation = locationOption ==
                             LocationOption.DROP_LOCATION;
                 }
+                case OpDescendantsOption opDescendantsOption -> {
+                    dropOpDescendants = opDescendantsOption ==
+                            OpDescendantsOption.DROP_DESCENDANTS;
+                }
+                case VoidOpResultOption voidOpResultOption -> {
+                    writeVoidOpResult = voidOpResultOption == VoidOpResultOption.WRITE_VOID;
+                }
             }
         }
 
         this.w = new IndentWriter(w);
         this.namer = (namer == null) ? new GlobalValueBlockNaming() : namer;
         this.dropLocation = dropLocation;
+        this.dropOpDescendants = dropOpDescendants;
+        this.writeVoidOpResult = writeVoidOpResult;
     }
 
     /**
@@ -339,6 +356,13 @@ public final class OpWriter {
      * @param op the code model
      */
     public void writeOp(Op op) {
+        if (op.parent() != null) {
+            Op.Result opr = op.result();
+            if (writeVoidOpResult || !opr.type().equals(JavaType.VOID)) {
+                writeValueDeclaration(opr);
+                write(" = ");
+            }
+        }
         write(op.opName());
 
         if (!op.operands().isEmpty()) {
@@ -362,7 +386,7 @@ public final class OpWriter {
             writeSpaceSeparatedList(attributes.entrySet(), e -> writeAttribute(e.getKey(), e.getValue()));
         }
 
-        if (!op.bodies().isEmpty()) {
+        if (!dropOpDescendants && !op.bodies().isEmpty()) {
             int nBodies = op.bodies().size();
             if (nBodies == 1) {
                 write(" ");
@@ -436,11 +460,6 @@ public final class OpWriter {
         }
         w.in();
         for (Op op : block.ops()) {
-            Op.Result opr = op.result();
-            if (!opr.type().equals(JavaType.VOID)) {
-                writeValueDeclaration(opr);
-                write(" = ");
-            }
             writeOp(op);
             write("\n");
         }

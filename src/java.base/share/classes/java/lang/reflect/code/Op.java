@@ -444,6 +444,10 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         OpWriter.writeTo(w, this);
     }
 
+    public void writeTo(Writer w, OpWriter.Option... options) {
+        OpWriter.writeTo(w, this, options);
+    }
+
     /**
      * Returns the textual form of this operation.
      *
@@ -452,6 +456,12 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     public String toText() {
         StringWriter w = new StringWriter();
         writeTo(w);
+        return w.toString();
+    }
+
+    public String toText(OpWriter.Option... options) {
+        StringWriter w = new StringWriter();
+        writeTo(w, options);
         return w.toString();
     }
 }

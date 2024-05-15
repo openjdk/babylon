@@ -40,6 +40,7 @@ import java.lang.reflect.code.writer.OpWriter;
 import java.lang.runtime.CodeReflection;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 public class TestNaming {
@@ -75,10 +76,10 @@ public class TestNaming {
     }
 
     static void testModel(Op op) {
-        Map<CodeItem, String> cNamer = OpWriter.computeGlobalNames(op);
+        Function<CodeItem, String> cNamer = OpWriter.computeGlobalNames(op);
 
         StringWriter w = new StringWriter();
-        new OpWriter(w, OpWriter.CodeItemNamerOption.of(cNamer::get)).writeOp(op);
+        new OpWriter(w, OpWriter.CodeItemNamerOption.of(cNamer::apply)).writeOp(op);
         w.write("\n");
         String actual = w.toString();
 
