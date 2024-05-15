@@ -31,10 +31,11 @@ import java.lang.classfile.MethodModel;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
 import java.lang.classfile.attribute.StackMapFrameInfo;
+import java.lang.classfile.attribute.StackMapFrameInfo.ObjectVerificationTypeInfo;
 import java.lang.classfile.attribute.StackMapTableAttribute;
+import java.lang.classfile.components.ClassPrinter;
 import java.lang.classfile.instruction.*;
 import java.lang.constant.ClassDesc;
-import java.lang.constant.ConstantDescs;
 import java.lang.reflect.AccessFlag;
 
 import java.util.ArrayList;
@@ -46,6 +47,11 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
+import java.lang.classfile.attribute.StackMapFrameInfo.UninitializedVerificationTypeInfo;
+import java.lang.constant.ConstantDescs;
+import static java.lang.constant.ConstantDescs.*;
+
 public final class CodeTracker implements Consumer<CodeElement> {
 
     public static final class Local {
@@ -53,18 +59,24 @@ public final class CodeTracker implements Consumer<CodeElement> {
         Local(ClassDesc type) {
             this.type = type;
         }
+
+        boolean isDouble() {
+            return CD_long.equals(type) || CD_double.equals(type);
+        }
     }
 
     public final List<Local> initLocals;
     public final Map<Instruction, Local> insMap;
 
     private final ClassDesc thisClass;
+    private final MethodModel mm;
     private List<ClassDesc> stack;
     private List<Local> locals;
 
     private final Map<Label, StackMapFrameInfo> stackMap;
 
     public CodeTracker(MethodModel mm, Optional<StackMapTableAttribute> smta) {
+        this.mm = mm;
         this.stack = new ArrayList<>();
         this.initLocals = new ArrayList<>();
         this.thisClass = mm.parent().orElseThrow().thisClass().asSymbol();
@@ -80,16 +92,17 @@ public final class CodeTracker implements Consumer<CodeElement> {
         this.insMap = new HashMap<>();
     }
 
-    private ClassDesc vtiToDesc(StackMapFrameInfo.VerificationTypeInfo vti) {
+    private ClassDesc vtiToStackType(StackMapFrameInfo.VerificationTypeInfo vti) {
         return switch (vti) {
-            case StackMapFrameInfo.SimpleVerificationTypeInfo.ITEM_INTEGER -> ConstantDescs.CD_int;
-            case StackMapFrameInfo.SimpleVerificationTypeInfo.ITEM_FLOAT -> ConstantDescs.CD_float;
-            case StackMapFrameInfo.SimpleVerificationTypeInfo.ITEM_DOUBLE -> ConstantDescs.CD_double;
-            case StackMapFrameInfo.SimpleVerificationTypeInfo.ITEM_LONG -> ConstantDescs.CD_long;
-            case StackMapFrameInfo.SimpleVerificationTypeInfo.ITEM_UNINITIALIZED_THIS -> thisClass;
-            case StackMapFrameInfo.ObjectVerificationTypeInfo ovti -> ovti.classSymbol();
-            case null -> null;
-            default -> null;
+            case ITEM_INTEGER -> CD_int;
+            case ITEM_FLOAT -> CD_float;
+            case ITEM_DOUBLE -> CD_double;
+            case ITEM_LONG -> CD_long;
+            case ITEM_UNINITIALIZED_THIS -> thisClass;
+            case ITEM_NULL -> null;
+            case ObjectVerificationTypeInfo ovti -> ovti.classSymbol();
+            case UninitializedVerificationTypeInfo _ -> null;
+            default -> throw new IllegalArgumentException("Invalid type on stack: " + vti);
         };
     }
 
@@ -106,14 +119,24 @@ public final class CodeTracker implements Consumer<CodeElement> {
     }
 
     private void store(int slot, ClassDesc type) {
+        store(slot, new Local(type));
+    }
+
+    private void store(int slot, Local l) {
         for (int i = locals.size(); i <= slot; i++) locals.add(null);
-        locals.set(slot, new Local(type));
+        locals.set(slot, l);
+        if (l.isDouble()) remove(slot + 1);
     }
 
     private ClassDesc load(int slot) {
         return locals.get(slot).type;
     }
 
+    private void remove(int slot) {
+        if (slot < locals.size()) {
+            locals.set(slot, null);
+        }
+    }
     @Override
     public void accept(CodeElement el) {
         switch (el) {
@@ -283,30 +306,35 @@ public final class CodeTracker implements Consumer<CodeElement> {
                 if (smfi != null) {
                     stack = new ArrayList<>();
                     for (var vti : smfi.stack()) {
-                        var cd = vtiToDesc(vti);
-                        if (cd != null) stack.add(cd);
+                        stack.add(vtiToStackType(vti));
                     }
                     if (locals == null) {
                         locals = new ArrayList<>();
+                        // init locals
+                        int slot = 0;
                         for (var vti : smfi.locals()) {
-                            ClassDesc ltype = vtiToDesc(vti);
-                            if (ltype == null) {
-                                locals.add(null);
-                            } else {
-                                locals.add(new Local(ltype));
-                                if (TypeKind.from(ltype).slotSize() == 2) locals.add(null);
+                            if (vti != ITEM_TOP) {
+                                store(slot, vtiToStackType(vti));
                             }
+                            if (vti == ITEM_DOUBLE || vti == ITEM_LONG) {
+                                slot++;
+                            }
+                            slot++;
                         }
                     } else {
+                        // merge locals
                         int slot = 0;
-                        for (int i = 0; i < smfi.locals().size(); i++) {
-                            var cd = vtiToDesc(smfi.locals().get(i));
-                            if (cd == null) {
-                                locals.set(slot++, null);
+                        for (var vti : smfi.locals()) {
+                            if (vti == ITEM_TOP) {
+                                remove(slot);
                             } else {
-                                locals.get(slot).type = cd;
-                                slot += TypeKind.from(cd).slotSize();
+                                // merge local type
+                                locals.get(slot).type = vtiToStackType(vti);
                             }
+                            if (vti == ITEM_DOUBLE || vti == ITEM_LONG) {
+                                remove(++slot);
+                            }
+                            slot++;
                         }
                         for (int i = slot; i < locals.size(); i++) {
                             locals.removeLast();
