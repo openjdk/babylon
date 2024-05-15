@@ -54,7 +54,7 @@ import static java.lang.constant.ConstantDescs.*;
 
 public final class CodeTracker implements Consumer<CodeElement> {
 
-    public static final class Local {
+    public static class Local {
         ClassDesc type;
         Local(ClassDesc type) {
             this.type = type;
@@ -63,7 +63,23 @@ public final class CodeTracker implements Consumer<CodeElement> {
         boolean isDouble() {
             return CD_long.equals(type) || CD_double.equals(type);
         }
+
+        void merge(ClassDesc newType) {
+            this.type = newType;
+        }
     }
+
+    public static class FinalLocal extends Local {
+        FinalLocal(ClassDesc type) {
+            super(type);
+        }
+
+        @Override
+        void merge(ClassDesc newType) {
+            // do nothing
+        }
+    }
+
 
     public final List<Local> initLocals;
     public final Map<Instruction, Local> insMap;
@@ -82,7 +98,7 @@ public final class CodeTracker implements Consumer<CodeElement> {
         this.thisClass = mm.parent().orElseThrow().thisClass().asSymbol();
         if (!mm.flags().has(AccessFlag.STATIC)) initLocals.add(new Local(thisClass));
         for (var pt : mm.methodTypeSymbol().parameterList()) {
-            initLocals.add(new Local(pt));
+            initLocals.add(new FinalLocal(pt));
             if (TypeKind.from(pt).slotSize() == 2) initLocals.add(null);
         }
         this.locals = new ArrayList<>(initLocals);
@@ -107,7 +123,7 @@ public final class CodeTracker implements Consumer<CodeElement> {
     }
 
     private void push(ClassDesc type) {
-        if (!type.equals(ConstantDescs.CD_void)) stack.addLast(type);
+        if (!ConstantDescs.CD_void.equals(type)) stack.addLast(type);
     }
 
     private ClassDesc pop() {
@@ -137,6 +153,7 @@ public final class CodeTracker implements Consumer<CodeElement> {
             locals.set(slot, null);
         }
     }
+
     @Override
     public void accept(CodeElement el) {
         switch (el) {
@@ -329,7 +346,7 @@ public final class CodeTracker implements Consumer<CodeElement> {
                                 remove(slot);
                             } else {
                                 // merge local type
-                                locals.get(slot).type = vtiToStackType(vti);
+                                locals.get(slot).merge(vtiToStackType(vti));
                             }
                             if (vti == ITEM_DOUBLE || vti == ITEM_LONG) {
                                 remove(++slot);
