@@ -450,8 +450,6 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * @return the textual form of this operation.
      */
     public String toText() {
-        StringWriter w = new StringWriter();
-        writeTo(w);
-        return w.toString();
+        return OpWriter.toText(this);
     }
 }

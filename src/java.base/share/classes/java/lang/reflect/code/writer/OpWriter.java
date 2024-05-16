@@ -183,8 +183,7 @@ public final class OpWriter {
     /**
      * Writes a code model (an operation) to the character stream.
      * <p>
-     * A carriage return will be written after the model is writen, and
-     * then character stream will be flushed.
+     * The character stream will be flushed after the model is writen.
      *
      * @param w the character stream
      * @param op the code model
@@ -192,7 +191,6 @@ public final class OpWriter {
     public static void writeTo(Writer w, Op op) {
         OpWriter ow = new OpWriter(w);
         ow.writeOp(op);
-        ow.write("\n");
         try {
             w.flush();
         } catch (IOException e) {
@@ -218,6 +216,17 @@ public final class OpWriter {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    /**
+     * Writes a code model (an operation) to a string.
+     *
+     * @param op the code model
+     */
+    public static String toText(Op op) {
+        StringWriter w = new StringWriter();
+        writeTo(w, op);
+        return w.toString();
     }
 
     /**

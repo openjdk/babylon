@@ -78,11 +78,7 @@ public class TestNaming {
     static void testModel(Op op) {
         Function<CodeItem, String> cNamer = OpWriter.computeGlobalNames(op);
 
-        StringWriter w = new StringWriter();
-        new OpWriter(w, OpWriter.CodeItemNamerOption.of(cNamer::apply)).writeOp(op);
-        w.write("\n");
-        String actual = w.toString();
-
+        String actual = OpWriter.toText(op, OpWriter.CodeItemNamerOption.of(cNamer));
         String expected = op.toText();
 
         Assert.assertEquals(actual, expected);
