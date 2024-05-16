@@ -26,6 +26,7 @@
 package java.lang.reflect.code.writer;
 
 import java.io.IOException;
+import java.io.StringWriter;
 import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.lang.reflect.code.*;
@@ -202,8 +203,7 @@ public final class OpWriter {
     /**
      * Writes a code model (an operation) to the character stream.
      * <p>
-     * A carriage return will be written after the model is writen, and
-     * then character stream will be flushed.
+     * The character stream will be flushed after the model is writen.
      *
      * @param w the character stream
      * @param op the code model
@@ -212,12 +212,24 @@ public final class OpWriter {
     public static void writeTo(Writer w, Op op, Option... options) {
         OpWriter ow = new OpWriter(w, options);
         ow.writeOp(op);
-        ow.write("\n");
         try {
+            // @@@ Is this needed?
             w.flush();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    /**
+     * Writes a code model (an operation) to a string.
+     *
+     * @param op the code model
+     * @param options the writer options
+     */
+    public static String toText(Op op, OpWriter.Option... options) {
+        StringWriter w = new StringWriter();
+        writeTo(w, op, options);
+        return w.toString();
     }
 
     /**
