@@ -894,7 +894,7 @@ public final class TritonTransformer {
             Object zero;
             try {
                 JavaType zeroType = (JavaType) aType.value();
-                zero = MethodHandles.zero(zeroType.resolve(MethodHandles.lookup())).invoke();
+                zero = MethodHandles.zero((Class<?>) zeroType.resolve(MethodHandles.lookup())).invoke();
             } catch (Throwable e) {
                 throw new RuntimeException(e);
             }
