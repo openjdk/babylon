@@ -63,25 +63,25 @@ import static org.junit.jupiter.api.Assertions.*;
 public class CoreBinaryOpsTest {
 
     @CodeReflection
-    @SupportedTypes(types = {int.class, long.class, byte.class, short.class, char.class, boolean.class})
+    @SupportedTypes(TypeList.INTEGRAL_BOOLEAN)
     static int and(int left, int right) {
         return left & right;
     }
 
     @CodeReflection
-    @SupportedTypes(types = {int.class, long.class, byte.class, short.class, char.class, float.class, double.class})
+    @SupportedTypes(TypeList.INTEGRAL_FLOATING_POINT)
     static int add(int left, int right) {
         return left + right;
     }
 
     @CodeReflection
-    @SupportedTypes(types = {int.class, long.class, byte.class, short.class, char.class, float.class, double.class})
+    @SupportedTypes(TypeList.INTEGRAL_FLOATING_POINT)
     static int div(int left, int right) {
         return left / right;
     }
 
     @CodeReflection
-    @SupportedTypes(types = {int.class, long.class})
+    @SupportedTypes(TypeList.INT_LONG)
     static int leftShift(int left, int right) {
         return left << right;
     }
@@ -99,25 +99,25 @@ public class CoreBinaryOpsTest {
     }
 
     @CodeReflection
-    @SupportedTypes(types = {int.class, long.class, byte.class, short.class, char.class, float.class, double.class})
+    @SupportedTypes(TypeList.INTEGRAL_FLOATING_POINT)
     static int mod(int left, int right) {
         return left % right;
     }
 
     @CodeReflection
-    @SupportedTypes(types = {int.class, long.class, byte.class, short.class, char.class, float.class, double.class})
+    @SupportedTypes(TypeList.INTEGRAL_FLOATING_POINT)
     static int mul(int left, int right) {
         return left * right;
     }
 
     @CodeReflection
-    @SupportedTypes(types = {int.class, long.class, byte.class, short.class, char.class, boolean.class})
+    @SupportedTypes(TypeList.INTEGRAL_BOOLEAN)
     static int or(int left, int right) {
         return left | right;
     }
 
     @CodeReflection
-    @SupportedTypes(types = {int.class, long.class})
+    @SupportedTypes(TypeList.INT_LONG)
     static int signedRightShift(int left, int right) {
         return left >> right;
     }
@@ -135,13 +135,13 @@ public class CoreBinaryOpsTest {
     }
 
     @CodeReflection
-    @SupportedTypes(types = {int.class, long.class, byte.class, short.class, char.class, float.class, double.class})
+    @SupportedTypes(TypeList.INTEGRAL_FLOATING_POINT)
     static int sub(int left, int right) {
         return left - right;
     }
 
     @CodeReflection
-    @SupportedTypes(types = {int.class, long.class})
+    @SupportedTypes(TypeList.INT_LONG)
     static int unsignedRightShift(int left, int right) {
         return left >>> right;
     }
@@ -159,7 +159,7 @@ public class CoreBinaryOpsTest {
     }
 
     @CodeReflection
-    @SupportedTypes(types = {int.class, long.class, byte.class, short.class, char.class, boolean.class})
+    @SupportedTypes(TypeList.INTEGRAL_BOOLEAN)
     static int xor(int left, int right) {
         return left ^ right;
     }
@@ -175,7 +175,23 @@ public class CoreBinaryOpsTest {
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.METHOD)
     @interface SupportedTypes {
-        Class<?>[] types();
+        TypeList value();
+    }
+
+    enum TypeList {
+        INT_LONG(int.class, long.class),
+        INTEGRAL_BOOLEAN(int.class, long.class, byte.class, short.class, char.class, boolean.class),
+        INTEGRAL_FLOATING_POINT(int.class, long.class, byte.class, short.class, char.class, float.class, double.class);
+
+        private final Class<?>[] types;
+
+        TypeList(Class<?>... types) {
+            this.types = types;
+        }
+
+        public Class<?>[] types() {
+            return types;
+        }
     }
 
     // mark as "do not transform"
@@ -218,10 +234,10 @@ public class CoreBinaryOpsTest {
                             }
                             return Stream.of(funcOp);
                         }
-                        if (supportedTypes == null || supportedTypes.types().length == 0) {
+                        if (supportedTypes == null || supportedTypes.value().types().length == 0) {
                             throw new IllegalArgumentException("Missing supported types");
                         }
-                        return Arrays.stream(supportedTypes.types())
+                        return Arrays.stream(supportedTypes.value().types())
                                 .map(type -> retype(funcOp, type));
                     })
                     .flatMap(transformedFunc -> argumentsForMethod(transformedFunc, testMethod));
