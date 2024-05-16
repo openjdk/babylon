@@ -438,7 +438,9 @@ public class ReflectMethods extends TreeTranslator {
                         Tag.PLUS, Tag.MINUS, Tag.MUL, Tag.DIV, Tag.MOD,
                         Tag.NEG, Tag.NOT,
                         Tag.BITOR, Tag.BITAND, Tag.BITXOR,
+                        Tag.BITOR_ASG, Tag.BITAND_ASG, Tag.BITXOR_ASG,
                         Tag.SL, Tag.SR, Tag.USR,
+                        Tag.SL_ASG, Tag.SR_ASG, Tag.USR_ASG,
                         Tag.PLUS_ASG, Tag.MINUS_ASG, Tag.MUL_ASG, Tag.DIV_ASG, Tag.MOD_ASG,
                         Tag.POSTINC, Tag.PREINC, Tag.POSTDEC, Tag.PREDEC,
                         Tag.EQ, Tag.NE, Tag.LT, Tag.LE, Tag.GT, Tag.GE,
@@ -802,7 +804,6 @@ public class ReflectMethods extends TreeTranslator {
             // Capture applying rhs and operation
             Function<Value, Value> scanRhs = (lhs) -> {
                 Type unboxedType = types.unboxedTypeOrType(tree.type);
-                JavaType resultType = typeToTypeElement(unboxedType);
                 Value rhs = toValue(tree.rhs, unboxedType);
                 lhs = unboxIfNeeded(lhs);
 
@@ -814,6 +815,17 @@ public class ReflectMethods extends TreeTranslator {
                     case MUL_ASG -> append(CoreOp.mul(lhs, rhs));
                     case DIV_ASG -> append(CoreOp.div(lhs, rhs));
                     case MOD_ASG -> append(CoreOp.mod(lhs, rhs));
+
+                    // Bitwise operations (including their boolean variants)
+                    case BITOR_ASG -> append(CoreOp.or(lhs, rhs));
+                    case BITAND_ASG -> append(CoreOp.and(lhs, rhs));
+                    case BITXOR_ASG -> append(CoreOp.xor(lhs, rhs));
+
+                    // Shift operations
+                    case SL_ASG -> append(CoreOp.lshl(lhs, rhs));
+                    case SR_ASG -> append(CoreOp.ashr(lhs, rhs));
+                    case USR_ASG -> append(CoreOp.lshr(lhs, rhs));
+
 
                     default -> throw unsupported(tree);
                 };
