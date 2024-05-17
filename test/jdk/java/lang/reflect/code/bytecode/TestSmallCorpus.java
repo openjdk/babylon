@@ -99,7 +99,7 @@ public class TestSmallCorpus {
     private void testRoundtrip(Path path) throws Exception {
         var clm = CF.parse(path);
         for (var original : clm.methods()) {
-            if (original.flags().has(AccessFlag.STATIC) && original.code().isPresent()) try {
+            if (original.flags().has(AccessFlag.STATIC) && original.code().isPresent()) try {// && original.methodName().equalsString("parallelSort") && original.methodType().equalsString("([Ljava/lang/Comparable;)V")) try {
                 CoreOp.FuncOp lift = lift(original);
                 try {
                     MethodModel model = lower(lift);

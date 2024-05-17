@@ -66,13 +66,10 @@ import java.lang.constant.MethodTypeDesc;
 
 public final class BytecodeLift {
 
-    record VarID(String name, ClassDesc type) {};
-
     private final Block.Builder entryBlock;
     private final CodeModel codeModel;
     private final Map<Label, Block.Builder> blockMap;
     private final CodeTracker codeTracker;
-    private final Map<VarID, Op.Result> varMap;
     private final List<CodeElement> elements;
     private final Deque<Value> stack;
     private Block.Builder currentBlock;
@@ -106,7 +103,6 @@ public final class BytecodeLift {
         this.currentBlock = entryBlock;
         this.codeModel = methodModel.code().orElseThrow();
         this.elements = codeModel.elementList();
-        this.varMap = new HashMap<>();
         this.stack = new ArrayDeque<>();
         var smta = codeModel.findAttribute(Attributes.STACK_MAP_TABLE);
         this.blockMap = smta.map(sma ->
@@ -116,41 +112,6 @@ public final class BytecodeLift {
         MethodTypeDesc mtd = methodModel.methodTypeSymbol();
         this.codeTracker = new CodeTracker(methodModel, smta);
         elements.forEach(codeTracker);
-
-        List<Block.Parameter> bps = entryBlock.parameters();
-        for (int i = 0, slot = 0; i < bps.size(); i++) {
-            CodeTracker.Local local = codeTracker.initLocals.get(slot);
-            if (local != null) {
-                VarID varID = getVarID(local.type, slot);
-                varMap.put(varID, op(CoreOp.var(varID.name(), JavaType.type(varID.type), bps.get(i))));
-            }
-            slot += TypeKind.from(mtd.parameterType(i)).slotSize();
-        }
-    }
-
-    private VarID getVarID(ClassDesc varType, int slot) {
-        return new VarID(varType.displayName() + "-" + slot, varType);
-    }
-    private VarID findVarID(Instruction i, int slot) {
-        ClassDesc varType = codeTracker.insMap.get(i).type;
-        return getVarID(varType, slot);
-    }
-
-    private void varStore(Instruction i, int slot, Value value) {
-        varMap.compute(findVarID(i, slot), (varID, varOp) -> {
-            if (varOp == null) {
-                return op(CoreOp.var(varID.name(), JavaType.type(varID.type()), value));
-            } else {
-                op(CoreOp.varStore(varOp, value));
-                return varOp;
-            }
-        });
-    }
-
-    private Op.Result var(Instruction i, int slot) {
-        return varMap.computeIfAbsent(findVarID(i, slot), name -> {
-            throw new IllegalArgumentException("Undeclared variable: " + name);
-        });
     }
 
     private Op.Result op(Op op) {
@@ -171,10 +132,10 @@ public final class BytecodeLift {
     }
 
     public static CoreOp.FuncOp lift(MethodModel methodModel) {
-        return CoreOp.func(
+        return SlotSSA.transform(CoreOp.func(
                 methodModel.methodName().stringValue(),
                 MethodRef.ofNominalDescriptor(methodModel.methodTypeSymbol())).body(entryBlock ->
-                        new BytecodeLift(entryBlock, methodModel).lift());
+                        new BytecodeLift(entryBlock, methodModel).lift()));
     }
 
     private Block.Builder getBlock(Label l) {
@@ -304,15 +265,17 @@ public final class BytecodeLift {
                     endOfFlow();
                 }
                 case LoadInstruction inst -> {
-                    stack.push(op(CoreOp.varLoad(var(inst, inst.slot()))));
+                    stack.push(op(SlotOp.load(inst.slot(), JavaType.type(
+                            inst.typeKind() == TypeKind.ReferenceType
+                            ? codeTracker.insMap.get(inst)
+                            : ClassDesc.ofDescriptor(inst.typeKind().descriptor())))));
                 }
                 case StoreInstruction inst -> {
-                    varStore(inst, inst.slot(), stack.pop());
+                    op(SlotOp.store(inst.slot(), stack.pop()));
                 }
                 case IncrementInstruction inst -> {
-                    Op.Result v = var(inst, inst.slot());
-                    op(CoreOp.varStore(v, op(CoreOp.add(
-                            op(CoreOp.varLoad(v)),
+                    op(SlotOp.store(inst.slot(), op(CoreOp.add(
+                            op(SlotOp.load(inst.slot(), JavaType.INT)),
                             op(CoreOp.constant(JavaType.INT, inst.constant()))))));
                 }
                 case ConstantInstruction inst -> {
