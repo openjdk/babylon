@@ -269,4 +269,55 @@ public class BinopTest {
 
         d %= 1;
     }
+
+    @CodeReflection
+    @IR("""
+            func @"test9" (%0 : BinopTest, %1 : byte, %2 : byte, %3 : short)void -> {
+                %4 : Var<byte> = var %1 @"a";
+                %5 : Var<byte> = var %2 @"b";
+                %6 : Var<short> = var %3 @"s";
+                %7 : byte = var.load %4;
+                %8 : byte = var.load %5;
+                %9 : byte = add %7 %8;
+                var.store %4 %9;
+                %10 : byte = var.load %4;
+                %11 : short = var.load %6;
+                %12 : byte = conv %11;
+                %13 : byte = div %10 %12;
+                var.store %4 %13;
+                %14 : byte = var.load %4;
+                %15 : double = constant @"3.5";
+                %16 : byte = conv %15;
+                %17 : byte = mul %14 %16;
+                var.store %4 %17;
+                %18 : byte = var.load %4;
+                %19 : byte = var.load %5;
+                %20 : byte = lshl %18 %19;
+                var.store %4 %20;
+                %21 : byte = var.load %4;
+                %22 : int = constant @"1";
+                %23 : byte = conv %22;
+                %24 : byte = ashr %21 %23;
+                var.store %4 %24;
+                %25 : byte = var.load %4;
+                %26 : long = constant @"1";
+                %27 : byte = conv %26;
+                %28 : byte = ashr %25 %27;
+                var.store %4 %28;
+                return;
+            };
+            """)
+    void test9(byte a, byte b, short s) {
+        a += b;
+
+        a /= s;
+
+        a *= 3.5d;
+
+        a <<= b;
+
+        a >>= 1;
+
+        a >>= 1L;
+    }
 }
