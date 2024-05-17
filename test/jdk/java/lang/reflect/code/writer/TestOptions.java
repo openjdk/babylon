@@ -23,69 +23,47 @@
 
 /*
  * @test
- * @run testng TestNaming
+ * @run testng TestOptions
  */
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.io.StringWriter;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.CodeItem;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.OpTransformer;
-import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.writer.OpWriter;
 import java.lang.runtime.CodeReflection;
-import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Stream;
 
-public class TestNaming {
+public class TestOptions {
 
     @CodeReflection
-    static int f(int n, int m) {
-        int sum = 0;
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                sum += i;
-                sum += j;
-            }
-        }
-        return sum;
+    static int f(int n) {
+        return n;
     }
 
     @Test
-    public void testHigh() {
+    public void testDropWriteVoid() {
         CoreOp.FuncOp f = getFuncOp("f");
 
-        testModel(f);
+        Assert.assertFalse(OpWriter.toText(f).contains("void"));
+        Assert.assertFalse(OpWriter.toText(f, OpWriter.VoidOpResultOption.DROP_VOID).contains("void"));
+        Assert.assertTrue(OpWriter.toText(f, OpWriter.VoidOpResultOption.WRITE_VOID).contains("void"));
     }
 
     @Test
-    public void testLow() {
+    public void testDropWriteDescendants() {
         CoreOp.FuncOp f = getFuncOp("f");
 
-        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
-
-        f = SSA.transform(f);
-
-        testModel(f);
+        Assert.assertTrue(OpWriter.toText(f).lines().count() > 1);
+        Assert.assertTrue(OpWriter.toText(f, OpWriter.OpDescendantsOption.WRITE_DESCENDANTS).lines().count() > 1);
+        Assert.assertTrue(OpWriter.toText(f, OpWriter.OpDescendantsOption.DROP_DESCENDANTS).lines().count() == 1);
     }
 
-    static void testModel(Op op) {
-        Function<CodeItem, String> cNamer = OpWriter.computeGlobalNames(op);
-
-        String actual = OpWriter.toText(op, OpWriter.CodeItemNamerOption.of(cNamer));
-        String expected = op.toText();
-
-        Assert.assertEquals(actual, expected);
-    }
 
     static CoreOp.FuncOp getFuncOp(String name) {
-        Optional<Method> om = Stream.of(TestNaming.class.getDeclaredMethods())
+        Optional<Method> om = Stream.of(TestOptions.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
                 .findFirst();
 
