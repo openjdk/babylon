@@ -55,7 +55,7 @@ public final class SlotSSA {
     public static <T extends Op & Op.Invokable> T transform(T iop) {
         Map<Block, Set<Integer>> joinPoints = new HashMap<>();
         Map<SlotOp.SlotLoadOp, Object> loadValues = new HashMap<>();
-        Map<Block.Reference, List<Object>> joinSuccessorValues = new HashMap<>();
+        Map<Block.Reference, List<SlotValue>> joinSuccessorValues = new HashMap<>();
 
         Map<Body, Boolean> visited = new HashMap<>();
         Map<Block, Map<Integer, Block.Parameter>> joinBlockArguments = new HashMap<>();
@@ -81,7 +81,7 @@ public final class SlotSSA {
                 }
             } else if (op instanceof Op.Terminating) {
                 for (Block.Reference s : op.successors()) {
-                    List<Object> joinValues = joinSuccessorValues.get(s);
+                    List<SlotValue> joinValues = joinSuccessorValues.get(s);
                     // Successor has join values
                     if (joinValues != null) {
                         CopyContext cc = block.context();
@@ -92,15 +92,18 @@ public final class SlotSSA {
                             return joinPoints.get(b).stream().collect(Collectors.toMap(
                                     slot -> slot,
                                     // @@@
-                                    slot -> bb.parameter(JavaType.J_L_OBJECT)));
+                                    slot -> bb.parameter(joinValues.stream().filter(sv -> sv.slot == slot).findAny().map(sv ->
+                                            (sv.value instanceof SlotBlockArgument vba
+                                                ? joinBlockArguments.get(vba.b()).get(vba.slot())
+                                                : cc.getValue((Value) sv.value)).type()).orElseThrow())));
                         });
 
                         // Append successor arguments
                         List<Value> values = new ArrayList<>();
-                        for (Object o : joinValues) {
-                            Value v = o instanceof SlotBlockArgument vba
+                        for (SlotValue sv : joinValues) {
+                            Value v = sv.value instanceof SlotBlockArgument vba
                                     ? joinBlockArguments.get(vba.b()).get(vba.slot())
-                                    : cc.getValue((Value) o);
+                                    : cc.getValue((Value) sv.value);
                             values.add(v);
                         }
 
@@ -125,6 +128,9 @@ public final class SlotSSA {
     record SlotBlockArgument(Block b, int slot) {
     }
 
+    record SlotValue(int slot, Object value) {
+    }
+
     // @@@ Check for var uses in exception regions
     //     A variable cannot be converted to SAA form if the variable is stored
     //     to in an exception region and accessed from an associated catch region
@@ -132,7 +138,7 @@ public final class SlotSSA {
     static void variableToValue(Body body,
                                 Map<Block, Set<Integer>> joinPoints,
                                 Map<SlotOp.SlotLoadOp, Object> loadValues,
-                                Map<Block.Reference, List<Object>> joinSuccessorValues) {
+                                Map<Block.Reference, List<SlotValue>> joinSuccessorValues) {
         Map<Integer, Deque<Object>> variableStack = new HashMap<>();
         Node top = buildDomTree(body.entryBlock(), body.immediateDominators());
         variableToValue(top, variableStack, joinPoints, loadValues, joinSuccessorValues);
@@ -156,7 +162,7 @@ public final class SlotSSA {
                                 Map<Integer, Deque<Object>> variableStack,
                                 Map<Block, Set<Integer>> joinPoints,
                                 Map<SlotOp.SlotLoadOp, Object> loadValues,
-                                Map<Block.Reference, List<Object>> joinSuccessorValues) {
+                                Map<Block.Reference, List<SlotValue>> joinSuccessorValues) {
         int size = n.b().ops().size();
 
         // Check if slot is associated with block argument (phi)
@@ -190,8 +196,8 @@ public final class SlotSSA {
             for (Block.Reference succ : n.b().successors()) {
                 Set<Integer> slots = joinPoints.get(succ.targetBlock());
                 if (slots != null) {
-                    List<Object> joinValues = slots.stream()
-                            .map(vop -> variableStack.get(vop).peek()).toList();
+                    List<SlotValue> joinValues = slots.stream()
+                            .map(vop -> new SlotValue(vop, variableStack.get(vop).peek())).toList();
                     joinSuccessorValues.put(succ, joinValues);
                 }
             }
