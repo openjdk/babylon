@@ -109,7 +109,14 @@ public final class BytecodeLift {
                 sma.entries().stream().collect(Collectors.toUnmodifiableMap(
                         StackMapFrameInfo::target,
                         smfi -> entryBlock.block(smfi.stack().stream().map(BytecodeLift::toTypeElement).toList())))).orElse(Map.of());
+
+        List<Block.Parameter> bps = entryBlock.parameters();
         MethodTypeDesc mtd = methodModel.methodTypeSymbol();
+        for (int i = 0, slot = 0; i < bps.size(); i++) {
+            op(SlotOp.store(slot, bps.get(i)));
+            slot += TypeKind.from(mtd.parameterType(i)).slotSize();
+        }
+
         this.codeTracker = new CodeTracker(methodModel, smta);
         elements.forEach(codeTracker);
     }
@@ -132,10 +139,13 @@ public final class BytecodeLift {
     }
 
     public static CoreOp.FuncOp lift(MethodModel methodModel) {
-        return SlotSSA.transform(CoreOp.func(
+        var lifted = CoreOp.func(
                 methodModel.methodName().stringValue(),
                 MethodRef.ofNominalDescriptor(methodModel.methodTypeSymbol())).body(entryBlock ->
-                        new BytecodeLift(entryBlock, methodModel).lift()));
+                        new BytecodeLift(entryBlock, methodModel).lift());
+        System.out.println("Lifted code:");
+        lifted.writeTo(System.out);
+        return SlotSSA.transform(lifted);
     }
 
     private Block.Builder getBlock(Label l) {
