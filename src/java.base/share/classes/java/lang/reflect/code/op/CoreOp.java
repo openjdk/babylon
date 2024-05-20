@@ -43,6 +43,58 @@ import java.util.function.Predicate;
  * Java Language Specification
  */
 public sealed abstract class CoreOp extends ExternalizableOp {
+    /**
+     * An operation that models a Java expression
+     */
+    sealed interface JavaExpression permits
+            ArithmeticOperation,
+            ArrayAccessOp.ArrayLoadOp,
+            ArrayAccessOp.ArrayStoreOp,
+            ArrayLengthOp,
+            CastOp,
+            ConvOp,
+            ClosureOp,
+            ConcatOp,
+            ConstantOp,
+            FieldAccessOp.FieldLoadOp,
+            FieldAccessOp.FieldStoreOp,
+            InstanceOfOp,
+            InvokeOp,
+            LambdaOp,
+            NewOp,
+            TestOperation,
+            VarAccessOp.VarLoadOp,
+            VarAccessOp.VarStoreOp,
+            ExtendedOp.JavaConditionalExpressionOp,
+            ExtendedOp.JavaConditionalOp,
+            ExtendedOp.JavaSwitchExpressionOp {
+    }
+
+    /**
+     * An operation that models a Java statement
+     */
+    sealed interface JavaStatement permits
+            ArrayAccessOp.ArrayStoreOp,
+            AssertOp,
+            FieldAccessOp.FieldStoreOp,
+            InvokeOp,
+            NewOp,
+            ReturnOp,
+            ThrowOp,
+            VarAccessOp.VarStoreOp,
+            VarOp,
+            ExtendedOp.JavaBlockOp,
+            ExtendedOp.JavaDoWhileOp,
+            ExtendedOp.JavaEnhancedForOp,
+            ExtendedOp.JavaForOp,
+            ExtendedOp.JavaIfOp,
+            ExtendedOp.JavaLabelOp,
+            ExtendedOp.JavaLabeledOp,
+            ExtendedOp.JavaTryOp,
+            ExtendedOp.JavaWhileOp,
+            ExtendedOp.JavaYieldOp {
+    }
+
     // Split string to ensure the name does not get rewritten
     // when the script copies this source to the jdk.compiler module
     static final String PACKAGE_NAME = "java.lang" + ".reflect.code";
@@ -61,12 +113,12 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         super(def);
     }
 
-
     /**
-     * The function operation, that can model a Java method.
+     * The function operation, that can model a Java method declaration.
      */
     @OpFactory.OpDeclaration(FuncOp.NAME)
-    public static final class FuncOp extends CoreOp implements Op.Invokable, Op.Isolated, Op.Lowerable {
+    public static final class FuncOp extends CoreOp
+            implements Op.Invokable, Op.Isolated, Op.Lowerable {
 
         public static class Builder {
             final Body.Builder ancestorBody;
@@ -255,7 +307,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      * and creating a symbol table of function name to function
      */
     @OpFactory.OpDeclaration(ModuleOp.NAME)
-    public static final class ModuleOp extends CoreOp implements Op.Isolated {
+    public static final class ModuleOp extends CoreOp
+            implements Op.Isolated {
 
         public static final String NAME = "module";
 
@@ -339,7 +392,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      * The quoted operation, that models the quoting of an operation.
      */
     @OpFactory.OpDeclaration(QuotedOp.NAME)
-    public static final class QuotedOp extends CoreOp implements Op.Nested, Op.Lowerable, Op.Pure {
+    public static final class QuotedOp extends CoreOp
+            implements Op.Nested, Op.Lowerable, Op.Pure {
         public static final String NAME = "quoted";
 
         // Type name must be the same in the java.base and jdk.compiler module
@@ -425,7 +479,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      * The lambda operation, that can model a Java lambda expression.
      */
     @OpFactory.OpDeclaration(LambdaOp.NAME)
-    public static final class LambdaOp extends CoreOp implements Op.Invokable, Op.Lowerable {
+    public static final class LambdaOp extends CoreOp
+            implements Op.Invokable, Op.Lowerable, JavaExpression {
 
         public static class Builder {
             final Body.Builder ancestorBody;
@@ -504,14 +559,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         @Override
         public Block.Builder lower(Block.Builder b, OpTransformer _ignore) {
             // Isolate body with respect to ancestor transformations
-            b.op(this, (block, op) -> {
-                if (op instanceof Op.Lowerable lop) {
-                    return lop.lower(block);
-                } else {
-                    block.op(op);
-                    return block;
-                }
-            });
+            b.op(this, OpTransformer.LOWERING_TRANSFORMER);
             return b;
         }
 
@@ -659,7 +707,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      * that has no target type (a functional interface).
      */
     @OpFactory.OpDeclaration(ClosureOp.NAME)
-    public static final class ClosureOp extends CoreOp implements Op.Invokable, Op.Lowerable {
+    public static final class ClosureOp extends CoreOp
+            implements Op.Invokable, Op.Lowerable, JavaExpression {
 
         public static class Builder {
             final Body.Builder ancestorBody;
@@ -728,14 +777,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         @Override
         public Block.Builder lower(Block.Builder b, OpTransformer _ignore) {
             // Isolate body with respect to ancestor transformations
-            b.op(this, (block, op) -> {
-                if (op instanceof Op.Lowerable lop) {
-                    return lop.lower(block);
-                } else {
-                    block.op(op);
-                    return block;
-                }
-            });
+            b.op(this, OpTransformer.LOWERING_TRANSFORMER);
             return b;
         }
 
@@ -784,7 +826,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      * This operation exits an isolated body.
      */
     @OpFactory.OpDeclaration(ReturnOp.NAME)
-    public static final class ReturnOp extends CoreOp implements Op.BodyTerminating {
+    public static final class ReturnOp extends CoreOp
+            implements Op.BodyTerminating, JavaStatement {
         public static final String NAME = "return";
 
         public ReturnOp(ExternalizedOp def) {
@@ -831,7 +874,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      * The terminating throw operation, that can model the Java language throw statement.
      */
     @OpFactory.OpDeclaration(ThrowOp.NAME)
-    public static final class ThrowOp extends CoreOp implements Op.BodyTerminating {
+    public static final class ThrowOp extends CoreOp
+            implements Op.BodyTerminating, JavaStatement {
         public static final String NAME = "throw";
 
         public ThrowOp(ExternalizedOp def) {
@@ -869,7 +913,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      * The assertion operation. Supporting assertions in statement form.
      */
     @OpFactory.OpDeclaration(AssertOp.NAME)
-    public static final class AssertOp extends CoreOp implements Op.Nested {
+    public static final class AssertOp extends CoreOp
+            implements Op.Nested, JavaStatement {
         public static final String NAME = "assert";
         public final List<Body> bodies;
 
@@ -920,7 +965,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      * This operation models termination that is unreachable.
      */
     @OpFactory.OpDeclaration(UnreachableOp.NAME)
-    public static final class UnreachableOp extends CoreOp implements Op.BodyTerminating {
+    public static final class UnreachableOp extends CoreOp
+            implements Op.BodyTerminating {
         public static final String NAME = "unreachable";
 
         public UnreachableOp(ExternalizedOp def) {
@@ -957,7 +1003,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      * or void)
      */
     @OpFactory.OpDeclaration(YieldOp.NAME)
-    public static final class YieldOp extends CoreOp implements Op.BodyTerminating {
+    public static final class YieldOp extends CoreOp
+            implements Op.BodyTerminating {
         public static final String NAME = "yield";
 
         public YieldOp(ExternalizedOp def) {
@@ -1006,7 +1053,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      * This operation accepts a successor to the next block to branch to.
      */
     @OpFactory.OpDeclaration(BranchOp.NAME)
-    public static final class BranchOp extends CoreOp implements Op.BlockTerminating {
+    public static final class BranchOp extends CoreOp
+            implements Op.BlockTerminating {
         public static final String NAME = "branch";
 
         final Block.Reference b;
@@ -1061,7 +1109,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      * The selected successor refers to the next block to branch to.
      */
     @OpFactory.OpDeclaration(ConditionalBranchOp.NAME)
-    public static final class ConditionalBranchOp extends CoreOp implements Op.BlockTerminating {
+    public static final class ConditionalBranchOp extends CoreOp
+            implements Op.BlockTerminating {
         public static final String NAME = "cbranch";
 
         final Block.Reference t;
@@ -1124,7 +1173,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      * The constant operation, that can model Java language literal and constant expressions.
      */
     @OpFactory.OpDeclaration(ConstantOp.NAME)
-    public static final class ConstantOp extends CoreOp implements Op.Pure {
+    public static final class ConstantOp extends CoreOp
+            implements Op.Pure, JavaExpression {
         public static final String NAME = "constant";
 
         public static final String ATTRIBUTE_CONSTANT_VALUE = NAME + ".value";
@@ -1259,7 +1309,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      * The invoke operation, that can model Java language method invocation expressions.
      */
     @OpFactory.OpDeclaration(InvokeOp.NAME)
-    public static final class InvokeOp extends CoreOp implements ReflectiveOp {
+    public static final class InvokeOp extends CoreOp
+            implements ReflectiveOp, JavaExpression, JavaStatement {
         public static final String NAME = "invoke";
         public static final String ATTRIBUTE_INVOKE_DESCRIPTOR = NAME + ".descriptor";
 
@@ -1329,11 +1380,12 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     }
 
     /**
-     * The conversion operation, that can model Java language implicit and explicit
-     * conversions such as widening and narrowing.
+     * The conversion operation, that can model Java language cast expressions
+     * for numerical conversion, or such implicit conversion.
      */
     @OpFactory.OpDeclaration(ConvOp.NAME)
-    public static final class ConvOp extends CoreOp implements Op.Pure {
+    public static final class ConvOp extends CoreOp
+            implements Op.Pure, JavaExpression {
         public static final String NAME = "conv";
 
         final TypeElement resultType;
@@ -1371,7 +1423,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      * The new operation, that can models Java language instance creation expressions.
      */
     @OpFactory.OpDeclaration(NewOp.NAME)
-    public static final class NewOp extends CoreOp implements ReflectiveOp {
+    public static final class NewOp extends CoreOp
+            implements ReflectiveOp, JavaExpression, JavaStatement {
         public static final String NAME = "new";
         public static final String ATTRIBUTE_NEW_DESCRIPTOR = NAME + ".descriptor";
 
@@ -1455,7 +1508,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     /**
      * A field access operation, that can model Java langauge field access expressions.
      */
-    public sealed abstract static class FieldAccessOp extends CoreOp implements AccessOp, ReflectiveOp {
+    public sealed abstract static class FieldAccessOp extends CoreOp
+            implements AccessOp, ReflectiveOp {
         public static final String ATTRIBUTE_FIELD_DESCRIPTOR = "field.descriptor";
 
         final FieldRef fieldDescriptor;
@@ -1495,7 +1549,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
          * field instance variables.
          */
         @OpFactory.OpDeclaration(FieldLoadOp.NAME)
-        public static final class FieldLoadOp extends FieldAccessOp implements Op.Pure {
+        public static final class FieldLoadOp extends FieldAccessOp
+                implements Op.Pure, JavaExpression {
             public static final String NAME = "field.load";
 
             final TypeElement resultType;
@@ -1557,7 +1612,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
          * to field instance variables.
          */
         @OpFactory.OpDeclaration(FieldStoreOp.NAME)
-        public static final class FieldStoreOp extends FieldAccessOp {
+        public static final class FieldStoreOp extends FieldAccessOp
+                implements JavaExpression, JavaStatement {
             public static final String NAME = "field.store";
 
             public static FieldStoreOp create(ExternalizedOp def) {
@@ -1612,7 +1668,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      * array.
      */
     @OpFactory.OpDeclaration(ArrayLengthOp.NAME)
-    public static final class ArrayLengthOp extends CoreOp implements ReflectiveOp {
+    public static final class ArrayLengthOp extends CoreOp
+            implements ReflectiveOp, JavaExpression {
         public static final String NAME = "array.length";
 
         public ArrayLengthOp(ExternalizedOp def) {
@@ -1641,7 +1698,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     /**
      * The array access operation, that can model Java language array access expressions.
      */
-    public sealed abstract static class ArrayAccessOp extends CoreOp implements AccessOp, ReflectiveOp {
+    public sealed abstract static class ArrayAccessOp extends CoreOp
+            implements AccessOp, ReflectiveOp {
         ArrayAccessOp(ExternalizedOp def) {
             super(def);
 
@@ -1690,7 +1748,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
          * components of an array.
          */
         @OpFactory.OpDeclaration(ArrayLoadOp.NAME)
-        public static final class ArrayLoadOp extends ArrayAccessOp implements Op.Pure {
+        public static final class ArrayLoadOp extends ArrayAccessOp
+                implements Op.Pure, JavaExpression {
             public static final String NAME = "array.load";
 
             public ArrayLoadOp(ExternalizedOp def) {
@@ -1723,7 +1782,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
          * components of an array.
          */
         @OpFactory.OpDeclaration(ArrayStoreOp.NAME)
-        public static final class ArrayStoreOp extends ArrayAccessOp {
+        public static final class ArrayStoreOp extends ArrayAccessOp
+                implements JavaExpression, JavaStatement {
             public static final String NAME = "array.store";
 
             public ArrayStoreOp(ExternalizedOp def) {
@@ -1755,7 +1815,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      * type comparison operator.
      */
     @OpFactory.OpDeclaration(InstanceOfOp.NAME)
-    public static final class InstanceOfOp extends CoreOp implements Op.Pure, ReflectiveOp {
+    public static final class InstanceOfOp extends CoreOp
+            implements Op.Pure, ReflectiveOp, JavaExpression {
         public static final String NAME = "instanceof";
         public static final String ATTRIBUTE_TYPE_DESCRIPTOR = NAME + ".descriptor";
 
@@ -1817,10 +1878,11 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     }
 
     /**
-     * The cast operation, that can model Java language cast expressions.
+     * The cast operation, that can model Java language cast expressions for reference types.
      */
     @OpFactory.OpDeclaration(CastOp.NAME)
-    public static final class CastOp extends CoreOp implements Op.Pure, ReflectiveOp {
+    public static final class CastOp extends CoreOp
+            implements Op.Pure, ReflectiveOp, JavaExpression {
         public static final String NAME = "cast";
         public static final String ATTRIBUTE_TYPE_DESCRIPTOR = NAME + ".descriptor";
 
@@ -1915,7 +1977,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      * lambda parameters.
      */
     @OpFactory.OpDeclaration(VarOp.NAME)
-    public static final class VarOp extends CoreOp {
+    public static final class VarOp extends CoreOp
+            implements JavaStatement {
         public static final String NAME = "var";
         public static final String ATTRIBUTE_NAME = NAME + ".name";
 
@@ -1994,7 +2057,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      * The var access operation, that can model access to Java language local variables, method parameters, or
      * lambda parameters.
      */
-    public sealed abstract static class VarAccessOp extends CoreOp implements AccessOp {
+    public sealed abstract static class VarAccessOp extends CoreOp
+            implements AccessOp {
         VarAccessOp(ExternalizedOp opdef) {
             super(opdef);
         }
@@ -2026,7 +2090,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
          * The variable load operation, that models a reading variable.
          */
         @OpFactory.OpDeclaration(VarLoadOp.NAME)
-        public static final class VarLoadOp extends VarAccessOp {
+        public static final class VarLoadOp extends VarAccessOp
+                implements JavaExpression {
             public static final String NAME = "var.load";
 
             public VarLoadOp(ExternalizedOp opdef) {
@@ -2067,7 +2132,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
          * The variable store operation, that can model a variable assignment.
          */
         @OpFactory.OpDeclaration(VarStoreOp.NAME)
-        public static final class VarStoreOp extends VarAccessOp {
+        public static final class VarStoreOp extends VarAccessOp
+                implements JavaExpression, JavaStatement {
             public static final String NAME = "var.store";
 
             public VarStoreOp(ExternalizedOp opdef) {
@@ -2302,7 +2368,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      * The exception region start operation.
      */
     @OpFactory.OpDeclaration(ExceptionRegionEnter.NAME)
-    public static final class ExceptionRegionEnter extends CoreOp implements Op.BlockTerminating {
+    public static final class ExceptionRegionEnter extends CoreOp
+            implements Op.BlockTerminating {
         public static final String NAME = "exception.region.enter";
 
         // First successor is the non-exceptional successor whose target indicates
@@ -2365,7 +2432,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      * The exception region end operation.
      */
     @OpFactory.OpDeclaration(ExceptionRegionExit.NAME)
-    public static final class ExceptionRegionExit extends CoreOp implements Op.BlockTerminating {
+    public static final class ExceptionRegionExit extends CoreOp
+            implements Op.BlockTerminating {
         public static final String NAME = "exception.region.exit";
 
         final Block.Reference end;
@@ -2438,7 +2506,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      */
 
     @OpFactory.OpDeclaration(ConcatOp.NAME)
-    public static final class ConcatOp extends CoreOp implements Op.Pure {
+    public static final class ConcatOp extends CoreOp
+            implements Op.Pure, JavaExpression {
         public static final String NAME = "concat";
 
         public ConcatOp(ConcatOp that, CopyContext cc) {
@@ -2473,7 +2542,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     /**
      * The arithmetic operation.
      */
-    public sealed static abstract class ArithmeticOperation extends CoreOp implements Op.Pure {
+    public sealed static abstract class ArithmeticOperation extends CoreOp
+            implements Op.Pure, JavaExpression {
         protected ArithmeticOperation(ExternalizedOp def) {
             super(def);
 
@@ -2494,7 +2564,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     /**
      * The test operation.
      */
-    public sealed static abstract class TestOperation extends CoreOp implements Op.Pure {
+    public sealed static abstract class TestOperation extends CoreOp
+            implements Op.Pure, JavaExpression {
         protected TestOperation(ExternalizedOp def) {
             super(def);
 

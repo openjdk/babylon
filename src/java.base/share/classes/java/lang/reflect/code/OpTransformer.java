@@ -56,6 +56,19 @@ public interface OpTransformer extends BiFunction<Block.Builder, Op, Block.Build
     };
 
     /**
+     * A transformer that lowers operations that are {@link Op.Lowerable lowerable},
+     * and copies other operations.
+     */
+    OpTransformer LOWERING_TRANSFORMER = (block, op) -> {
+        if (op instanceof Op.Lowerable lop) {
+            return lop.lower(block);
+        } else {
+            block.op(op);
+            return block;
+        }
+    };
+
+    /**
      * Transforms a given operation to zero or more other operations appended to the
      * given block builder. Returns a block builder to be used for appending further operations, such
      * as subsequent operations from the same block as the given operation.

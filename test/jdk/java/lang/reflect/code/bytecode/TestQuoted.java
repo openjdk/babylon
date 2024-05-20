@@ -25,6 +25,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.code.CopyContext;
+import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.Quoted;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.Op;
@@ -56,14 +57,7 @@ public class TestQuoted {
         f.writeTo(System.out);
 
         @SuppressWarnings("unchecked")
-        O lf = (O) f.transform(CopyContext.create(), (block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        O lf = (O) f.transform(CopyContext.create(), OpTransformer.LOWERING_TRANSFORMER);
         lf.writeTo(System.out);
 
         return BytecodeGenerator.generate(MethodHandles.lookup(), lf);

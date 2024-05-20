@@ -84,7 +84,8 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
     /**
      * The label operation, that can model Java language statements with label identifiers.
      */
-    public sealed static abstract class JavaLabelOp extends ExtendedOp implements Op.Lowerable, Op.BodyTerminating {
+    public sealed static abstract class JavaLabelOp extends ExtendedOp
+            implements Op.Lowerable, Op.BodyTerminating, JavaStatement {
         JavaLabelOp(ExternalizedOp def) {
             super(def);
 
@@ -257,7 +258,8 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
      * The yield operation, that can model Java language yield statements.
      */
     @OpFactory.OpDeclaration(JavaYieldOp.NAME)
-    public static final class JavaYieldOp extends ExtendedOp implements Op.BodyTerminating {
+    public static final class JavaYieldOp extends ExtendedOp
+            implements Op.BodyTerminating, JavaStatement {
         public static final String NAME = "java.yield";
 
         public JavaYieldOp(ExternalizedOp def) {
@@ -302,7 +304,8 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
      */
     @OpFactory.OpDeclaration(JavaBlockOp.NAME)
     // @@@ Support synchronized attribute
-    public static final class JavaBlockOp extends ExtendedOp implements Op.Nested, Op.Lowerable {
+    public static final class JavaBlockOp extends ExtendedOp
+            implements Op.Nested, Op.Lowerable, JavaStatement {
         public static final String NAME = "java.block";
 
         final Body body;
@@ -383,7 +386,8 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
      * The labeled operation, that can model Java language labeled statements.
      */
     @OpFactory.OpDeclaration(JavaLabeledOp.NAME)
-    public static final class JavaLabeledOp extends ExtendedOp implements Op.Nested, Op.Lowerable {
+    public static final class JavaLabeledOp extends ExtendedOp
+            implements Op.Nested, Op.Lowerable, JavaStatement {
         public static final String NAME = "java.labeled";
 
         final Body body;
@@ -474,7 +478,8 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
      * The if operation, that can model Java language if, if-then, and if-then-else statements.
      */
     @OpFactory.OpDeclaration(JavaIfOp.NAME)
-    public static final class JavaIfOp extends ExtendedOp implements Op.Nested, Op.Lowerable {
+    public static final class JavaIfOp extends ExtendedOp
+            implements Op.Nested, Op.Lowerable, JavaStatement {
 
         static final FunctionType PREDICATE_TYPE = FunctionType.functionType(BOOLEAN);
 
@@ -699,7 +704,8 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
      * The switch expression operation, that can model Java language switch expressions.
      */
     @OpFactory.OpDeclaration(JavaSwitchExpressionOp.NAME)
-    public static final class JavaSwitchExpressionOp extends ExtendedOp implements Op.Nested, Op.Lowerable {
+    public static final class JavaSwitchExpressionOp extends ExtendedOp
+            implements Op.Nested, Op.Lowerable, JavaExpression {
         public static final String NAME = "java.switch.expression";
 
         final TypeElement resultType;
@@ -766,7 +772,8 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
      * the last statement of the current switch label.
      */
     @OpFactory.OpDeclaration(JavaSwitchFallthroughOp.NAME)
-    public static final class JavaSwitchFallthroughOp extends ExtendedOp implements Op.BodyTerminating {
+    public static final class JavaSwitchFallthroughOp extends ExtendedOp
+            implements Op.BodyTerminating {
         public static final String NAME = "java.switch.fallthrough";
 
         public JavaSwitchFallthroughOp(ExternalizedOp def) {
@@ -796,7 +803,8 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
      * The for operation, that can model a Java language for statement.
      */
     @OpFactory.OpDeclaration(JavaForOp.NAME)
-    public static final class JavaForOp extends ExtendedOp implements Op.Loop, Op.Lowerable {
+    public static final class JavaForOp extends ExtendedOp
+            implements Op.Loop, Op.Lowerable, JavaStatement {
 
         public static final class InitBuilder {
             final Body.Builder ancestorBody;
@@ -1055,7 +1063,8 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
      * The enhanced for operation, that can model a Java language enhanced for statement.
      */
     @OpFactory.OpDeclaration(JavaEnhancedForOp.NAME)
-    public static final class JavaEnhancedForOp extends ExtendedOp implements Op.Loop, Op.Lowerable {
+    public static final class JavaEnhancedForOp extends ExtendedOp
+            implements Op.Loop, Op.Lowerable, JavaStatement {
 
         public static final class ExpressionBuilder {
             final Body.Builder ancestorBody;
@@ -1315,7 +1324,8 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
      * The while operation, that can model a Java language while statement.
      */
     @OpFactory.OpDeclaration(JavaWhileOp.NAME)
-    public static final class JavaWhileOp extends ExtendedOp implements Op.Loop, Op.Lowerable {
+    public static final class JavaWhileOp extends ExtendedOp
+            implements Op.Loop, Op.Lowerable, JavaStatement {
 
         public static class PredicateBuilder {
             final Body.Builder ancestorBody;
@@ -1460,7 +1470,8 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
      */
     // @@@ Unify JavaDoWhileOp and JavaWhileOp with common abstract superclass
     @OpFactory.OpDeclaration(JavaDoWhileOp.NAME)
-    public static final class JavaDoWhileOp extends ExtendedOp implements Op.Loop, Op.Lowerable {
+    public static final class JavaDoWhileOp extends ExtendedOp
+            implements Op.Loop, Op.Lowerable, JavaStatement {
 
         public static class PredicateBuilder {
             final Body.Builder ancestorBody;
@@ -1602,7 +1613,8 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
     /**
      * The conditional-and-or operation, that can model Java language condition-or or conditional-and expressions.
      */
-    public sealed static abstract class JavaConditionalOp extends ExtendedOp implements Op.Nested, Op.Lowerable {
+    public sealed static abstract class JavaConditionalOp extends ExtendedOp
+            implements Op.Nested, Op.Lowerable, JavaExpression {
         final List<Body> bodies;
 
         public JavaConditionalOp(ExternalizedOp def) {
@@ -1825,7 +1837,8 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
      * The conditional operation, that can model Java language conditional operator {@code ?} expressions.
      */
     @OpFactory.OpDeclaration(JavaConditionalExpressionOp.NAME)
-    public static final class JavaConditionalExpressionOp extends ExtendedOp implements Op.Nested, Op.Lowerable {
+    public static final class JavaConditionalExpressionOp extends ExtendedOp
+            implements Op.Nested, Op.Lowerable, JavaExpression {
 
         public static final String NAME = "java.cexpression";
 
@@ -1930,7 +1943,8 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
      * The try operation, that can model Java language try statements.
      */
     @OpFactory.OpDeclaration(JavaTryOp.NAME)
-    public static final class JavaTryOp extends ExtendedOp implements Op.Nested, Op.Lowerable {
+    public static final class JavaTryOp extends ExtendedOp
+            implements Op.Nested, Op.Lowerable, JavaStatement {
 
         public static final class BodyBuilder {
             final Body.Builder ancestorBody;

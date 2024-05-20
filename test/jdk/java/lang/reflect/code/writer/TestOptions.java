@@ -21,59 +21,53 @@
  * questions.
  */
 
+/*
+ * @test
+ * @run testng TestOptions
+ */
+
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.OpTransformer;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.Method;
+import java.lang.reflect.code.op.CoreOp;
+import java.lang.reflect.code.writer.OpWriter;
 import java.lang.runtime.CodeReflection;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-/*
- * @test
- * @run testng TestBlockOp
- */
-
-public class TestBlockOp {
+public class TestOptions {
 
     @CodeReflection
-    public static int f() {
-        int i = 0;
-
-        {
-            i++;
-        }
-
-        {
-            i += 2;
-        }
-
-        return i;
+    static int f(int n) {
+        return n;
     }
 
+    @Test
+    public void testDropWriteVoid() {
+        CoreOp.FuncOp f = getFuncOp("f");
+
+        Assert.assertFalse(OpWriter.toText(f).contains("void"));
+        Assert.assertFalse(OpWriter.toText(f, OpWriter.VoidOpResultOption.DROP_VOID).contains("void"));
+        Assert.assertTrue(OpWriter.toText(f, OpWriter.VoidOpResultOption.WRITE_VOID).contains("void"));
+    }
+
+    @Test
+    public void testDropWriteDescendants() {
+        CoreOp.FuncOp f = getFuncOp("f");
+
+        Assert.assertTrue(OpWriter.toText(f).lines().count() > 1);
+        Assert.assertTrue(OpWriter.toText(f, OpWriter.OpDescendantsOption.WRITE_DESCENDANTS).lines().count() > 1);
+        Assert.assertTrue(OpWriter.toText(f, OpWriter.OpDescendantsOption.DROP_DESCENDANTS).lines().count() == 1);
+    }
+
+
     static CoreOp.FuncOp getFuncOp(String name) {
-        Optional<Method> om = Stream.of(TestBlockOp.class.getDeclaredMethods())
+        Optional<Method> om = Stream.of(TestOptions.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
                 .findFirst();
 
         Method m = om.get();
         return m.getCodeModel().get();
-    }
-
-    @Test
-    public void testf() {
-        CoreOp.FuncOp f = getFuncOp("f");
-
-        f.writeTo(System.out);
-
-        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
-
-        lf.writeTo(System.out);
-
-        Assert.assertEquals(Interpreter.invoke(lf), f());
     }
 }

@@ -21,6 +21,7 @@
  * questions.
  */
 import java.lang.reflect.code.Op;
+import java.lang.reflect.code.OpTransformer;
 import java.util.List;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
@@ -161,14 +162,7 @@ public class TestAssert {
             CoreOp.FuncOp f = method.getCodeModel().orElseThrow();
 
             //Ensure we're fully lowered before testing.
-            final var fz = f.transform((b, o) -> {
-                if (o instanceof Op.Lowerable l) {
-                    b = l.lower(b);
-                } else {
-                    b.op(o);
-                }
-                return b;
-            });
+            final var fz = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
             Interpreter.invoke(MethodHandles.lookup(), fz ,args);
         } catch (NoSuchMethodException e) {
@@ -183,14 +177,7 @@ public class TestAssert {
             CoreOp.FuncOp f = method.getCodeModel().orElseThrow();
 
             //Ensure we're fully lowered before testing.
-            final var fz = f.transform((b, o) -> {
-                if (o instanceof Op.Lowerable l) {
-                    b = l.lower(b);
-                } else {
-                    b.op(o);
-                }
-                return b;
-            });
+            final var fz = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
 
             AssertionError ae = (AssertionError) retCatch(() -> Interpreter.invoke(MethodHandles.lookup(), fz ,args));

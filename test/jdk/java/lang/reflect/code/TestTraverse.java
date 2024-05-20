@@ -32,6 +32,7 @@ import org.testng.annotations.Test;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.CodeElement;
 import java.lang.reflect.code.Op;
+import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.runtime.CodeReflection;
@@ -64,14 +65,7 @@ public class TestTraverse {
         CoreOp.FuncOp f = getFuncOp("f");
         testTraverse(f);
 
-        f = f.transform((b, o) -> {
-            if (o instanceof Op.Lowerable l) {
-                return l.lower(b);
-            } else {
-                b.op(o);
-                return b;
-            }
-        });
+        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
         testTraverse(f);
 
         f = SSA.transform(f);

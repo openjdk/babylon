@@ -46,6 +46,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.Op;
+import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
@@ -62,25 +63,25 @@ import static org.junit.jupiter.api.Assertions.*;
 public class CoreBinaryOpsTest {
 
     @CodeReflection
-    @SupportedTypes(types = {int.class, long.class, boolean.class})
+    @SupportedTypes(TypeList.INTEGRAL_BOOLEAN)
     static int and(int left, int right) {
         return left & right;
     }
 
     @CodeReflection
-    @SupportedTypes(types = {int.class, long.class, float.class, double.class})
+    @SupportedTypes(TypeList.INTEGRAL_FLOATING_POINT)
     static int add(int left, int right) {
         return left + right;
     }
 
     @CodeReflection
-    @SupportedTypes(types = {int.class, long.class, float.class, double.class})
+    @SupportedTypes(TypeList.INTEGRAL_FLOATING_POINT)
     static int div(int left, int right) {
         return left / right;
     }
 
     @CodeReflection
-    @SupportedTypes(types = {int.class, long.class})
+    @SupportedTypes(TypeList.INT_LONG)
     static int leftShift(int left, int right) {
         return left << right;
     }
@@ -98,25 +99,25 @@ public class CoreBinaryOpsTest {
     }
 
     @CodeReflection
-    @SupportedTypes(types = {int.class, long.class, float.class, double.class})
+    @SupportedTypes(TypeList.INTEGRAL_FLOATING_POINT)
     static int mod(int left, int right) {
         return left % right;
     }
 
     @CodeReflection
-    @SupportedTypes(types = {int.class, long.class, float.class, double.class})
+    @SupportedTypes(TypeList.INTEGRAL_FLOATING_POINT)
     static int mul(int left, int right) {
         return left * right;
     }
 
     @CodeReflection
-    @SupportedTypes(types = {int.class, long.class, boolean.class})
+    @SupportedTypes(TypeList.INTEGRAL_BOOLEAN)
     static int or(int left, int right) {
         return left | right;
     }
 
     @CodeReflection
-    @SupportedTypes(types = {int.class, long.class})
+    @SupportedTypes(TypeList.INT_LONG)
     static int signedRightShift(int left, int right) {
         return left >> right;
     }
@@ -134,13 +135,13 @@ public class CoreBinaryOpsTest {
     }
 
     @CodeReflection
-    @SupportedTypes(types = {int.class, long.class, float.class, double.class})
+    @SupportedTypes(TypeList.INTEGRAL_FLOATING_POINT)
     static int sub(int left, int right) {
         return left - right;
     }
 
     @CodeReflection
-    @SupportedTypes(types = {int.class, long.class})
+    @SupportedTypes(TypeList.INT_LONG)
     static int unsignedRightShift(int left, int right) {
         return left >>> right;
     }
@@ -158,7 +159,7 @@ public class CoreBinaryOpsTest {
     }
 
     @CodeReflection
-    @SupportedTypes(types = {int.class, long.class, boolean.class})
+    @SupportedTypes(TypeList.INTEGRAL_BOOLEAN)
     static int xor(int left, int right) {
         return left ^ right;
     }
@@ -174,7 +175,23 @@ public class CoreBinaryOpsTest {
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.METHOD)
     @interface SupportedTypes {
-        Class<?>[] types();
+        TypeList value();
+    }
+
+    enum TypeList {
+        INT_LONG(int.class, long.class),
+        INTEGRAL_BOOLEAN(int.class, long.class, byte.class, short.class, char.class, boolean.class),
+        INTEGRAL_FLOATING_POINT(int.class, long.class, byte.class, short.class, char.class, float.class, double.class);
+
+        private final Class<?>[] types;
+
+        TypeList(Class<?>... types) {
+            this.types = types;
+        }
+
+        public Class<?>[] types() {
+            return types;
+        }
     }
 
     // mark as "do not transform"
@@ -190,12 +207,16 @@ public class CoreBinaryOpsTest {
     }
 
     static class CodeReflectionSourceProvider implements ArgumentsProvider {
-        private static final Map<JavaType, List<Object>> INTERESTING_INPUTS = Map.of(
-                JavaType.INT, List.of(Integer.MIN_VALUE, Integer.MAX_VALUE, 1, 0, -1),
-                JavaType.LONG, List.of(Long.MIN_VALUE, Long.MAX_VALUE, 1, 0, -1),
-                JavaType.DOUBLE, List.of(Double.MIN_VALUE, Double.MAX_VALUE, Double.NaN, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, Double.MIN_NORMAL, 1, 0, -1),
-                JavaType.FLOAT, List.of(Float.MIN_VALUE, Float.MAX_VALUE, Float.NaN, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY, Float.MIN_NORMAL, 1, 0, -1),
-                JavaType.BOOLEAN, List.of(true, false)
+        private static final Map<JavaType, List<?>> INTERESTING_INPUTS = Map.of(
+                // explicit type parameters to ensure boxing results in the expected type
+                JavaType.INT, List.<Integer>of(Integer.MIN_VALUE, Integer.MAX_VALUE, 1, 0, -1),
+                JavaType.LONG, List.<Long>of(Long.MIN_VALUE, Long.MAX_VALUE, 1L, 0L, -1L),
+                JavaType.BYTE, List.<Byte>of(Byte.MIN_VALUE, Byte.MAX_VALUE, (byte) 1, (byte) 0, (byte) -1),
+                JavaType.SHORT, List.<Short>of(Short.MIN_VALUE, Short.MAX_VALUE, (short) 1, (short) 0, (short) -1),
+                JavaType.CHAR, List.<Character>of(Character.MIN_VALUE, Character.MAX_VALUE, (char) 1, (char) 0, (char) -1),
+                JavaType.DOUBLE, List.<Double>of(Double.MIN_VALUE, Double.MAX_VALUE, Double.NaN, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, Double.MIN_NORMAL, 1d, 0d, -1d),
+                JavaType.FLOAT, List.<Float>of(Float.MIN_VALUE, Float.MAX_VALUE, Float.NaN, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY, Float.MIN_NORMAL, 1f, 0f, -1f),
+                JavaType.BOOLEAN, List.<Boolean>of(true, false)
         );
 
         @Override
@@ -213,16 +234,16 @@ public class CoreBinaryOpsTest {
                             }
                             return Stream.of(funcOp);
                         }
-                        if (supportedTypes == null || supportedTypes.types().length == 0) {
+                        if (supportedTypes == null || supportedTypes.value().types().length == 0) {
                             throw new IllegalArgumentException("Missing supported types");
                         }
-                        return Arrays.stream(supportedTypes.types())
+                        return Arrays.stream(supportedTypes.value().types())
                                 .map(type -> retype(funcOp, type));
                     })
                     .flatMap(transformedFunc -> argumentsForMethod(transformedFunc, testMethod));
         }
 
-        private static <T> Stream<List<T>> cartesianProduct(List<List<T>> source) {
+        private static <T> Stream<List<T>> cartesianProduct(List<List<? extends T>> source) {
             if (source.isEmpty()) {
                 return Stream.of(new ArrayList<>());
             }
@@ -282,7 +303,7 @@ public class CoreBinaryOpsTest {
                     return Stream.empty();
                 }
             }
-            List<List<Object>> allInputs = new ArrayList<>();
+            List<List<?>> allInputs = new ArrayList<>();
             for (TypeElement parameterType : funcParameters) {
                 allInputs.add(INTERESTING_INPUTS.get((JavaType) parameterType));
             }
@@ -324,14 +345,7 @@ public class CoreBinaryOpsTest {
     }
 
     private static Object bytecode(Object left, Object right, CoreOp.FuncOp op) throws Throwable {
-        CoreOp.FuncOp func = SSA.transform(op.transform((block, o) -> {
-            if (o instanceof Op.Lowerable lowerable) {
-                return lowerable.lower(block);
-            } else {
-                block.op(o);
-                return block;
-            }
-        }));
+        CoreOp.FuncOp func = SSA.transform(op.transform(OpTransformer.LOWERING_TRANSFORMER));
         MethodHandle handle = BytecodeGenerator.generate(MethodHandles.lookup(), func);
         return handle.invoke(left, right);
     }
@@ -341,8 +355,8 @@ public class CoreBinaryOpsTest {
         System.out.println("second: " + second);
         // either the same error occurred on both or no error occurred
         if (first.throwable != null || second.throwable != null) {
-            assertNotNull(first.throwable, "only second threw an exception");
-            assertNotNull(second.throwable, "only first threw an exception");
+            assertNotNull(first.throwable, () -> "only second threw an exception: " + second.throwable);
+            assertNotNull(second.throwable, () -> "only first threw an exception: " + first.throwable);
             if (first.throwable.getClass() != second.throwable.getClass()) {
                 first.throwable.printStackTrace();
                 second.throwable.printStackTrace();
