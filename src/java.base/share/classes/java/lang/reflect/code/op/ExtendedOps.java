@@ -243,7 +243,7 @@ public class ExtendedOps {
      * The yield operation, that can model Java language yield statements.
      */
     @OpDeclaration(JavaYieldOp.NAME)
-    public static final class JavaYieldOp extends OpWithDefinition implements Op.BodyTerminating {
+    public static final class JavaYieldOp extends OpWithDefinition implements Op.BodyTerminating, Op.Lowerable {
         public static final String NAME = "java.yield";
 
         public JavaYieldOp(OpDefinition def) {
@@ -280,6 +280,40 @@ public class ExtendedOps {
         @Override
         public TypeElement resultType() {
             return VOID;
+        }
+
+        @Override
+        public Block.Builder lower(Block.Builder b, OpTransformer opT) {
+            // for now, we will use breakBlock field to indicate java.yield target block
+            return lower(b, BranchTarget::breakBlock);
+        }
+
+        Block.Builder lower(Block.Builder b, Function<BranchTarget, Block.Builder> f) {
+            Op opt = target();
+            BranchTarget t = getBranchTarget(b.context(), opt);
+            if (t != null) {
+                b.op(branch(f.apply(t).successor(b.context().getValue(yieldValue()))));
+            } else {
+                throw new IllegalStateException("No branch target for operation: " + opt);
+            }
+            return b;
+        }
+
+        Op target() {
+            return innerMostEnclosingTarget();
+        }
+
+        Op innerMostEnclosingTarget() {
+            Op op = this;
+            Body b;
+            do {
+                b = op.ancestorBody();
+                op = b.parentOp();
+                if (op == null) {
+                    throw new IllegalStateException("No enclosing switch");
+                }
+            } while (!(op instanceof JavaSwitchExpressionOp));
+            return op;
         }
     }
 
@@ -792,6 +826,8 @@ public class ExtendedOps {
                 exit.context().mapValue(result(), exit.parameters().get(0));
             }
 
+            setBranchTarget(b.context(), this, new BranchTarget(exit, null));
+
             for (int i = 0; i < bodies().size(); i++) {
                 boolean isLabelBody = i % 2 == 0;
                 Block.Builder curr = blocks.get(i);
@@ -817,14 +853,15 @@ public class ExtendedOps {
                         }
                         return block;
                     }));
-                } else {
+                } else { // expression body
+                    Block.Builder nextExpression = i < blocks.size() - 2 ? blocks.get(i + 2) : null;
                     curr.transformBody(bodies().get(i), blocks.get(i).parameters(), opT.andThen((block, op) -> {
-                        if (op instanceof YieldOp yop) {
-                            block.op(branch(exit.successor(block.context().getValue(yop.yieldValue()))));
-                        } else if (op instanceof Lowerable lop) {
-                            block = lop.lower(block);
-                        } else {
-                            block.op(op);
+                        switch (op) {
+                            case YieldOp yop -> block.op(branch(exit.successor(block.context().getValue(yop.yieldValue()))));
+                            case JavaSwitchFallthroughOp jsftop -> block.op(branch(nextExpression.successor()));
+//                            case JavaYieldOp jyop -> block.op(branch(exit.successor(block.context().getValue(jyop.yieldValue()))));
+                            case Lowerable lop -> block = lop.lower(block);
+                            default -> block.op(op);
                         }
                         return block;
                     }));
