@@ -17,7 +17,7 @@ import java.util.stream.Stream;
 public class TestSwitchExpressionOp {
 
     @CodeReflection
-    public static Object f(String r) {
+    public static Object f1(String r) {
         return switch (r) {
             case "FOO" -> "FOO";
             case "BAR" -> "FOO";
@@ -27,8 +27,8 @@ public class TestSwitchExpressionOp {
     }
 
     @Test
-    public void test() throws InvocationTargetException, IllegalAccessException {
-        CoreOps.FuncOp f = getFuncOp("f");
+    public void test1() throws InvocationTargetException, IllegalAccessException {
+        CoreOps.FuncOp f = getFuncOp("f1");
 
         f.writeTo(System.out);
 
@@ -43,7 +43,47 @@ public class TestSwitchExpressionOp {
 
         lf.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(lf, "BAZ"), f("BAZ"));
+        Assert.assertEquals(Interpreter.invoke(lf, "FOO"), f1("FOO"));
+        Assert.assertEquals(Interpreter.invoke(lf, "BAR"), f1("BAR"));
+        Assert.assertEquals(Interpreter.invoke(lf, "BAZ"), f1("BAZ"));
+        Assert.assertEquals(Interpreter.invoke(lf, "ELSE"), f1("ELSE"));
+    }
+
+    @CodeReflection
+    // fallthrough case
+    public static Object f2(String r) {
+        return switch (r) {
+            case "FOO" : {
+            }
+            case "BAR" : {
+                yield "2";
+            }
+            default : yield "";
+        };
+    }
+
+    @Test
+    public void test2() throws InvocationTargetException, IllegalAccessException {
+        CoreOps.FuncOp f = getFuncOp("f2");
+
+        f.writeTo(System.out);
+
+        CoreOps.FuncOp lf = f.transform((block, op) -> {
+            if (op instanceof Op.Lowerable lop) {
+                return lop.lower(block);
+            } else {
+                block.op(op);
+                return block;
+            }
+        });
+
+        lf.writeTo(System.out);
+
+        System.out.println("f2(\"FOO\"): " + f2("FOO"));
+
+        Assert.assertEquals(Interpreter.invoke(lf, "FOO"), f2("FOO"));
+        Assert.assertEquals(Interpreter.invoke(lf, "BAR"), f2("BAR"));
+        Assert.assertEquals(Interpreter.invoke(lf, "ELSE"), f2("ELSE"));
     }
 
     static CoreOps.FuncOp getFuncOp(String name) {
