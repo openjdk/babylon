@@ -188,7 +188,7 @@ public class ExtendedOps {
     }
 
     /**
-     * The break operation, that can model Java language continue statements with label identifiers.
+     * The continue operation, that can model Java language continue statements with label identifiers.
      */
     @OpDeclaration(JavaContinueOp.NAME)
     public static final class JavaContinueOp extends JavaLabelOp {
