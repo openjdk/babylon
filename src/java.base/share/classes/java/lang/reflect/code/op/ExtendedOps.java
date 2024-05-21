@@ -801,19 +801,19 @@ public class ExtendedOps {
             // if it's an expression body
             //      inline it, convert yield to branch ^exit %yield_val
 
-            Value target = b.context().getValue(operands().get(0));
+            Value swTarget = b.context().getValue(operands().get(0));
 
             List<Block.Builder> blocks = new ArrayList<>();
             for (int i = 0; i < bodies().size(); i++) {
                 Block.Builder bb;
                 boolean isLabelBody = i % 2 == 0;
                 if (isLabelBody) {
-                    bb = b.block(target.type());
+                    bb = b.block(swTarget.type());
                 } else {
                     bb = b.block();
                 }
                 if (i == 0) {
-                    b.op(branch(bb.successor(target)));
+                    b.op(branch(bb.successor(swTarget)));
                 }
                 blocks.add(bb);
             }
