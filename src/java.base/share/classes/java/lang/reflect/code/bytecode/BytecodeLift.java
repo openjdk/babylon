@@ -69,7 +69,7 @@ public final class BytecodeLift {
     private final Block.Builder entryBlock;
     private final CodeModel codeModel;
     private final Map<Label, Block.Builder> blockMap;
-    private final CodeTracker codeTracker;
+    private final LocalsTypeMapper codeTracker;
     private final List<CodeElement> elements;
     private final Deque<Value> stack;
     private Block.Builder currentBlock;
@@ -117,8 +117,7 @@ public final class BytecodeLift {
             slot += TypeKind.from(mtd.parameterType(i)).slotSize();
         }
 
-        this.codeTracker = new CodeTracker(methodModel, smta);
-        elements.forEach(codeTracker);
+        this.codeTracker = new LocalsTypeMapper(methodModel.parent().get().thisClass().asSymbol(), mtd, methodModel.flags().has(AccessFlag.STATIC), smta, elements);
     }
 
     private Op.Result op(Op op) {
@@ -145,7 +144,10 @@ public final class BytecodeLift {
                         new BytecodeLift(entryBlock, methodModel).lift());
         System.out.println("Lifted code:");
         lifted.writeTo(System.out);
-        return SlotSSA.transform(lifted);
+        var tr = SlotSSA.transform(lifted);
+        System.out.println("Transformed code:");
+        tr.writeTo(System.out);
+        return tr;
     }
 
     private Block.Builder getBlock(Label l) {
@@ -275,10 +277,7 @@ public final class BytecodeLift {
                     endOfFlow();
                 }
                 case LoadInstruction inst -> {
-                    stack.push(op(SlotOp.load(inst.slot(), JavaType.type(
-                            inst.typeKind() == TypeKind.ReferenceType
-                            ? codeTracker.insMap.get(inst)
-                            : ClassDesc.ofDescriptor(inst.typeKind().descriptor())))));
+                    stack.push(op(SlotOp.load(inst.slot(), JavaType.type(codeTracker.getTypeOf(inst)))));
                 }
                 case StoreInstruction inst -> {
                     op(SlotOp.store(inst.slot(), stack.pop()));
