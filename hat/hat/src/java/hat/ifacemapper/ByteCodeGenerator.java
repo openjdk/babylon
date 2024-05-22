@@ -127,29 +127,29 @@ final class ByteCodeGenerator {
         final int OFFSET_VAR_SLOT = 3;
         cb.withMethodBody(INIT_NAME, MethodTypeDesc.of(CD_void, MEMORY_SEGMENT_CLASS_DESC, LAYOUT_CLASS_DESC, CD_long), ACC_PUBLIC,
                 cob -> cob
-                    .aload(THIS_VAR_SLOT)
-                    .invokespecial(CD_Object, INIT_NAME, MTD_void, false) // Call Object's constructor
+                        .aload(THIS_VAR_SLOT)
+                        .invokespecial(CD_Object, INIT_NAME, MTD_void, false) // Call Object's constructor
 
-                    .aload(THIS_VAR_SLOT)
-                    .aload(SEGMENT_VAR_SLOT)
-                    .checkcast(MEMORY_SEGMENT_CLASS_DESC)
-                    .putfield(classDesc, SEGMENT_FIELD_NAME, MEMORY_SEGMENT_CLASS_DESC) // this.segment = segment
+                        .aload(THIS_VAR_SLOT)
+                        .aload(SEGMENT_VAR_SLOT)
+                        .checkcast(MEMORY_SEGMENT_CLASS_DESC)
+                        .putfield(classDesc, SEGMENT_FIELD_NAME, MEMORY_SEGMENT_CLASS_DESC) // this.segment = segment
 
-                    .aload(THIS_VAR_SLOT)
-                    .aload(LAYOUT_VAR_SLOT)
-                    .checkcast(LAYOUT_CLASS_DESC)
-                    .putfield(classDesc, LAYOUT_FIELD_NAME, LAYOUT_CLASS_DESC) // this.layout = layout
+                        .aload(THIS_VAR_SLOT)
+                        .aload(LAYOUT_VAR_SLOT)
+                        .checkcast(LAYOUT_CLASS_DESC)
+                        .putfield(classDesc, LAYOUT_FIELD_NAME, LAYOUT_CLASS_DESC) // this.layout = layout
 
-                    .aload(THIS_VAR_SLOT)
-                    .lload(OFFSET_VAR_SLOT) // offset
-                    .ldc(layoutByteSize)    // size
-                    .aload(SEGMENT_VAR_SLOT) // segment
-                    .invokeinterface(desc(MemorySegment.class), "byteSize", MethodTypeDesc.of(CD_long))
+                        .aload(THIS_VAR_SLOT)
+                        .lload(OFFSET_VAR_SLOT) // offset
+                        .ldc(layoutByteSize)    // size
+                        .aload(SEGMENT_VAR_SLOT) // segment
+                        .invokeinterface(desc(MemorySegment.class), "byteSize", MethodTypeDesc.of(CD_long))
 
-                    .invokestatic(desc(Objects.class), "checkFromIndexSize", MethodTypeDesc.of(CD_long, CD_long, CD_long, CD_long))
+                        .invokestatic(desc(Objects.class), "checkFromIndexSize", MethodTypeDesc.of(CD_long, CD_long, CD_long, CD_long))
 
-                    .putfield(classDesc, OFFSET_FIELD_NAME, CD_long) // this.offset = offset
-                    .return_()
+                        .putfield(classDesc, OFFSET_FIELD_NAME, CD_long) // this.offset = offset
+                        .return_()
         );
 
     }
@@ -169,6 +169,7 @@ final class ByteCodeGenerator {
                         .areturn()
         );
     }
+
     void obscuredOffset() {
         cb.withMethodBody(SECRET_OFFSET_METHOD_NAME, MethodTypeDesc.of(CD_long), ACC_PUBLIC, cob ->
                 cob.aload(0)
@@ -176,6 +177,7 @@ final class ByteCodeGenerator {
                         .lreturn()
         );
     }
+
     void valueGetter(AccessorInfo info) {
         String name = info.method().getName();
         ClassDesc returnDesc = desc(info.type());
@@ -243,7 +245,8 @@ final class ByteCodeGenerator {
 
          */
 
-        cb.withMethodBody(name, MethodTypeDesc.of(returnDesc, parameterDesc), ACC_PUBLIC, cob -> {cob
+        cb.withMethodBody(name, MethodTypeDesc.of(returnDesc, parameterDesc), ACC_PUBLIC, cob -> {
+                    cob
                             .ldc(desc)
                             .checkcast(desc(MethodHandle.class)) // MethodHandle
                             .aload(0)

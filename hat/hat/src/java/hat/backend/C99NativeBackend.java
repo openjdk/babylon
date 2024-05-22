@@ -31,7 +31,6 @@ import hat.backend.c99codebuilders.Typedef;
 import hat.buffer.ArgArray;
 import hat.buffer.Buffer;
 import hat.callgraph.KernelCallGraph;
-import hat.callgraph.KernelEntrypoint;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -42,36 +41,39 @@ public abstract class C99NativeBackend extends NativeBackend {
     public C99NativeBackend(String libName) {
         super(libName);
     }
+
     static class CompiledKernel {
         public final C99NativeBackend c99NativeBackend;
         public final KernelCallGraph kernelCallGraph;
         public final String text;
         public final long kernelHandle;
         public final ArgArray argArray;
-        CompiledKernel(C99NativeBackend c99NativeBackend, KernelCallGraph kernelCallGraph, String text, long kernelHandle,Object[] ndRangeAndArgs ){
+
+        CompiledKernel(C99NativeBackend c99NativeBackend, KernelCallGraph kernelCallGraph, String text, long kernelHandle, Object[] ndRangeAndArgs) {
             this.c99NativeBackend = c99NativeBackend;
             this.kernelCallGraph = kernelCallGraph;
             this.text = text;
             this.kernelHandle = kernelHandle;
 
-            Object[] args = new Object[ndRangeAndArgs.length-1];
-            System.arraycopy(ndRangeAndArgs,1,args,0,ndRangeAndArgs.length-1);
+            Object[] args = new Object[ndRangeAndArgs.length - 1];
+            System.arraycopy(ndRangeAndArgs, 1, args, 0, ndRangeAndArgs.length - 1);
             this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator, args);
         }
 
-        public void dispatch( Object[] ndRangeAndArgs) {
+        public void dispatch(Object[] ndRangeAndArgs) {
             // Strip arg0 NDRange.
             NDRange ndRange = (NDRange) ndRangeAndArgs[0];
 
-            Object[] args = new Object[ndRangeAndArgs.length-1];
-            System.arraycopy(ndRangeAndArgs,1,args,0,ndRangeAndArgs.length-1);
+            Object[] args = new Object[ndRangeAndArgs.length - 1];
+            System.arraycopy(ndRangeAndArgs, 1, args, 0, ndRangeAndArgs.length - 1);
             ArgArray.update(argArray, args);
-        //    System.out.println(this.argArray.dump());
-           // c99NativeBackend.dumpArgArray(argArray);
-            c99NativeBackend.ndRange(kernelHandle,ndRange.kid.maxX,this.argArray);
+            //    System.out.println(this.argArray.dump());
+            // c99NativeBackend.dumpArgArray(argArray);
+            c99NativeBackend.ndRange(kernelHandle, ndRange.kid.maxX, this.argArray);
 
         }
     }
+
     Map<KernelCallGraph, CompiledKernel> kernelCallGraphCompiledCodeMap = new HashMap<>();
 
     public <T extends C99HatKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object[] args) {
@@ -80,7 +82,7 @@ public abstract class C99NativeBackend extends NativeBackend {
         Arrays.stream(args)
                 .filter(arg -> arg instanceof Buffer)
                 .map(arg -> (Buffer) arg)
-                .forEach(ifaceBuffer -> builder.typedef(scope,ifaceBuffer));
+                .forEach(ifaceBuffer -> builder.typedef(scope, ifaceBuffer));
 
         // The sort below ensures we don't need forward declarations
         kernelCallGraph.kernelReachableResolvedStream().sorted((lhs, rhs) -> rhs.rank - lhs.rank)

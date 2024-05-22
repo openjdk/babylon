@@ -32,6 +32,7 @@ public abstract class FieldAccessOpWrapper<T extends CoreOp.FieldAccessOp> exten
     FieldAccessOpWrapper(T op) {
         super(op);
     }
+
     public boolean isKernelContextAccess() {
         var refType = fieldRef().refType();
         if (refType instanceof ClassType classType) {
@@ -48,4 +49,4 @@ public abstract class FieldAccessOpWrapper<T extends CoreOp.FieldAccessOp> exten
         return fieldRef().name();
     }
 
-   }
+}

@@ -2,7 +2,7 @@ package hat;
 
 /**
  * Created by a dispatch call to a kernel from within a Compute method and 'conceptually' passed to a kernel.
- *
+ * <p>
  * In reality the backend decides how to pass the information contained in the KernelContext.
  *
  * <pre>

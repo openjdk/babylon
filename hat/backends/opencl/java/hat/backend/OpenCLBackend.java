@@ -25,27 +25,20 @@
 package hat.backend;
 
 
-
-import hat.Accelerator;
 import hat.ComputeContext;
-import hat.buffer.BackendConfig;
-import hat.buffer.Buffer;
-import hat.callgraph.KernelCallGraph;
 import hat.NDRange;
+import hat.buffer.BackendConfig;
+import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.SegmentMapper;
 
 import java.lang.foreign.Arena;
-import java.lang.foreign.MemoryLayout;
 import java.lang.invoke.MethodHandles;
-import java.util.HashMap;
-import java.util.Map;
 
 import static java.lang.foreign.ValueLayout.JAVA_BOOLEAN;
-import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public class OpenCLBackend extends C99NativeBackend {
 
-    interface  OpenCLConfig extends BackendConfig {
+    interface OpenCLConfig extends BackendConfig {
         // See backends/opencl/include/opencl_backend.h
         //  class OpenCLConfig{
         //       public:
@@ -60,18 +53,21 @@ public class OpenCLBackend extends C99NativeBackend {
             config.gpu(gpu);
             return config;
         }
+
         boolean gpu();
-        void gpu(boolean gpu );
+
+        void gpu(boolean gpu);
+
         boolean junk();
-        void junk(boolean junk );
+
+        void junk(boolean junk);
     }
 
     public OpenCLBackend() {
         super("opencl_backend");
-        getBackend(OpenCLConfig.create(arena(),MethodHandles.lookup(), true));
+        getBackend(OpenCLConfig.create(arena(), MethodHandles.lookup(), true));
         info();
     }
-
 
 
     @Override
@@ -81,19 +77,19 @@ public class OpenCLBackend extends C99NativeBackend {
     }
 
     @Override
-    public void dispatchKernel( KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
+    public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
         //System.out.println("OpenCL backend dispatching kernel " + kernelCallGraph.entrypoint.method);
-        CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_)->{
-                String code = createCode(kernelCallGraph, new OpenCLHatKernelBuilder(), args);
-                long programHandle = compileProgram(code);
-                if (programOK(programHandle)) {
-                    long kernelHandle = getKernel(programHandle, kernelCallGraph.entrypoint.method.getName());
-                    return new CompiledKernel(this, kernelCallGraph, code, kernelHandle, args);
-                }else{
-                    throw new IllegalStateException("opencl failed to compile ");
-                }
+        CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
+            String code = createCode(kernelCallGraph, new OpenCLHatKernelBuilder(), args);
+            long programHandle = compileProgram(code);
+            if (programOK(programHandle)) {
+                long kernelHandle = getKernel(programHandle, kernelCallGraph.entrypoint.method.getName());
+                return new CompiledKernel(this, kernelCallGraph, code, kernelHandle, args);
+            } else {
+                throw new IllegalStateException("opencl failed to compile ");
+            }
         });
-        compiledKernel.dispatch( args);
+        compiledKernel.dispatch(args);
 
     }
 }

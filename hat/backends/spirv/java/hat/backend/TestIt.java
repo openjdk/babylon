@@ -26,16 +26,16 @@
      * questions.
      */
 
-package hat.backend;
+    package hat.backend;
 
-import intel.code.spirv.SpirvModuleGenerator;
-import intel.code.spirv.SpirvOps;
-import intel.code.spirv.TranslateToSpirvModel;
+    import intel.code.spirv.SpirvModuleGenerator;
+    import intel.code.spirv.SpirvOps;
+    import intel.code.spirv.TranslateToSpirvModel;
 
-import java.lang.reflect.Method;
-import java.lang.foreign.MemorySegment;
-import java.lang.runtime.CodeReflection;
-import java.lang.reflect.code.op.CoreOp;
+    import java.lang.foreign.MemorySegment;
+    import java.lang.reflect.Method;
+    import java.lang.reflect.code.op.CoreOp;
+    import java.lang.runtime.CodeReflection;
 
 
     public class TestIt {
@@ -57,7 +57,7 @@ import java.lang.reflect.code.op.CoreOp;
         static public void main(String[] args) throws Exception {
             String methodName = "matrixMultiply";
             Method method = TestIt.class.getDeclaredMethod(methodName, float[].class, float[].class, float[].class, int.class);
-          //  Method method = Mand.class.getDeclaredMethod(methodName, float[].class, float[].class, float[].class, int.class);
+            //  Method method = Mand.class.getDeclaredMethod(methodName, float[].class, float[].class, float[].class, int.class);
 
             CoreOp.FuncOp javaFunc = method.getCodeModel().get();
             SpirvOps.FuncOp spirvFunc = TranslateToSpirvModel.translateFunction(javaFunc);

@@ -23,6 +23,7 @@
  * questions.
  */
 package hat.backend;
+
 public class OpenCLDeviceInfo {
 
     public static void main(String[] args) {

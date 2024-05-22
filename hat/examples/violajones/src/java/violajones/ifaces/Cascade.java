@@ -25,7 +25,6 @@
 package violajones.ifaces;
 
 import hat.Accelerator;
-import hat.buffer.Buffer;
 import hat.buffer.CompleteBuffer;
 import hat.ifacemapper.SegmentMapper;
 import violajones.XMLHaarCascadeModel;
@@ -53,14 +52,23 @@ public interface Cascade extends CompleteBuffer {
             ).withName("Rect");
 
             byte x();
+
             byte y();
+
             byte width();
+
             byte height();
+
             float weight();
+
             void x(byte x);
+
             void y(byte y);
+
             void width(byte width);
+
             void height(byte height);
+
             void weight(float height);
         }
 
@@ -71,9 +79,13 @@ public interface Cascade extends CompleteBuffer {
                         JAVA_INT.withName("featureId"),
                         JAVA_FLOAT.withName("value")
                 ).withName("Anon");
+
                 int featureId();
+
                 float value();
+
                 void featureId(int featureId);
+
                 void value(float value);
             }
 
@@ -81,10 +93,12 @@ public interface Cascade extends CompleteBuffer {
                     JAVA_BOOLEAN.withName("hasValue"),
                     MemoryLayout.paddingLayout(3),
                     Feature.LinkOrValue.Anon.layout.withName("anon")
-                ).withName("LinkOrValue");
+            ).withName("LinkOrValue");
 
             boolean hasValue();
+
             void hasValue(boolean hasValue);
+
             Feature.LinkOrValue.Anon anon();
         }
 
@@ -138,12 +152,14 @@ public interface Cascade extends CompleteBuffer {
 
         void treeCount(short treeCount);
     }
+
     interface Tree {
         StructLayout layout = MemoryLayout.structLayout(
                 JAVA_INT.withName("id"),
                 JAVA_SHORT.withName("firstFeatureId"),
                 JAVA_SHORT.withName("featureCount")
         ).withName("Tree");
+
         void id(int id);
 
         void firstFeatureId(short firstFeatureId);
@@ -161,7 +177,7 @@ public interface Cascade extends CompleteBuffer {
 
     static Cascade create(Accelerator accelerator, XMLHaarCascadeModel haarCascade) {
 
-        Cascade cascade= SegmentMapper.of(accelerator.lookup, Cascade.class,
+        Cascade cascade = SegmentMapper.of(accelerator.lookup, Cascade.class,
                 JAVA_INT.withName("width"),
                 JAVA_INT.withName("height"),
                 JAVA_INT.withName("featureCount"),
@@ -227,19 +243,29 @@ public interface Cascade extends CompleteBuffer {
     }
 
     Feature feature(long idx);
+
     int featureCount();
+
     void featureCount(int featureCount);
 
     Stage stage(long idx);
+
     int stageCount();
+
     void stageCount(int stageCount);
+
     Tree tree(long idx);
+
     int treeCount();
+
     void treeCount(int treeCount);
 
     int width();
+
     void width(int width);
+
     int height();
+
     void height(int height);
 
 

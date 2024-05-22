@@ -23,6 +23,7 @@
  * questions.
  */
 package hat.backend;
+
 public class MockDeviceInfo {
 
     public static void main(String[] args) {

@@ -26,10 +26,9 @@
 package hat.backend;
 
 import hat.Accelerator;
-import hat.callgraph.KernelCallGraph;
-import hat.NDRange;
-import hat.ComputeContext;
 import hat.KernelContext;
+import hat.NDRange;
+import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
 
 import java.lang.reflect.InvocationTargetException;
@@ -39,13 +38,13 @@ public class JavaMultiThreadedBackend extends JavaBackend {
 
 
     @Override
-    public void dispatchKernel( KernelCallGraph kernelCallGraph, NDRange ndRange, Object ... args){
+    public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
         KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
-       instance(ndRange.accelerator).forEachInRange(ndRange, (range)->{
+        instance(ndRange.accelerator).forEachInRange(ndRange, (range) -> {
             Object[] a = Arrays.copyOf(args, args.length); // Annoying.  we need to replace the args[0] but don't want to race other threads.
             try {
                 KernelContext c = range.kid;
-                a[0]=c;
+                a[0] = c;
                 kernelEntrypoint.method.invoke(null, a);
             } catch (IllegalAccessException e) {
                 throw new RuntimeException(e);
@@ -57,9 +56,10 @@ public class JavaMultiThreadedBackend extends JavaBackend {
     }
 
     WorkStealer workStealer = null;
-    synchronized  WorkStealer instance(Accelerator accelerator){
-        if (workStealer == null){
-            workStealer =  WorkStealer.usingAllProcessors(accelerator);
+
+    synchronized WorkStealer instance(Accelerator accelerator) {
+        if (workStealer == null) {
+            workStealer = WorkStealer.usingAllProcessors(accelerator);
         }
         return workStealer;
     }

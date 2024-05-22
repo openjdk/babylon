@@ -27,11 +27,8 @@ package hat.backend;
 
 import hat.buffer.ArgArray;
 import hat.buffer.BackendConfig;
-import hat.buffer.Buffer;
-import hat.buffer.S32Array;
 
 import java.lang.foreign.Arena;
-import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
 
@@ -84,12 +81,13 @@ public abstract class NativeBackendDriver implements Backend {
         this.getBackend_MH = nativeLibrary.longFunc("getBackend", ADDRESS, JAVA_INT, ADDRESS);
 
     }
-    public long getBackend(BackendConfig backendConfig){
+
+    public long getBackend(BackendConfig backendConfig) {
 
         try {
-            if (backendConfig==null){
+            if (backendConfig == null) {
                 backendHandle = (long) getBackend_MH.invoke(MemorySegment.NULL, 0, MemorySegment.NULL);
-            }else {
+            } else {
                 String schema = backendConfig.schema();
                 var arena = Arena.global();
                 var cstr = arena.allocateFrom(schema);
@@ -98,10 +96,11 @@ public abstract class NativeBackendDriver implements Backend {
         } catch (Throwable throwable) {
             throw new IllegalStateException(throwable);
         }
-        return  backendHandle;
+        return backendHandle;
     }
+
     public int getGetMaxComputeUnits() {
-        if (backendHandle == 0L){
+        if (backendHandle == 0L) {
             throw new IllegalStateException("no backend handle");
         }
         try {
@@ -110,8 +109,9 @@ public abstract class NativeBackendDriver implements Backend {
             throw new RuntimeException(e);
         }
     }
+
     public void info() {
-        if (backendHandle == 0L){
+        if (backendHandle == 0L) {
             throw new IllegalStateException("no backend handle");
         }
         try {
@@ -130,7 +130,7 @@ public abstract class NativeBackendDriver implements Backend {
     }
 
     public long compileProgram(String source) {
-        if (backendHandle == 0L){
+        if (backendHandle == 0L) {
             throw new IllegalStateException("no backend handle");
         }
         try {
@@ -143,9 +143,9 @@ public abstract class NativeBackendDriver implements Backend {
         }
     }
 
-    public void  ndRange(long kernelHandle, int range, ArgArray argArray ) {
+    public void ndRange(long kernelHandle, int range, ArgArray argArray) {
         try {
-             this.ndrange_MH.invoke(kernelHandle, range, argArray.memorySegment());
+            this.ndrange_MH.invoke(kernelHandle, range, argArray.memorySegment());
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
@@ -187,7 +187,7 @@ public abstract class NativeBackendDriver implements Backend {
 
 
     public void release() {
-        if (backendHandle == 0L){
+        if (backendHandle == 0L) {
             throw new IllegalStateException("no backend handle");
         }
         try {

@@ -26,7 +26,6 @@
 package hat.ifacemapper;
 
 
-
 import hat.ifacemapper.accessor.Accessors;
 import hat.ifacemapper.accessor.ValueType;
 import hat.ifacemapper.accessor.AccessorInfo;

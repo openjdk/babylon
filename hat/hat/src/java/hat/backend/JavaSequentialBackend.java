@@ -26,22 +26,20 @@
 package hat.backend;
 
 
-import hat.callgraph.KernelCallGraph;
 import hat.NDRange;
-import hat.ComputeContext;
+import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
 
 import java.lang.reflect.InvocationTargetException;
 
 
-
 public class JavaSequentialBackend extends JavaBackend {
     @Override
-    public void dispatchKernel( KernelCallGraph kernelCallGraph, NDRange ndRange, Object ... args){
+    public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
         KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
-        for (ndRange.kid.x=0; ndRange.kid.x<ndRange.kid.maxX; ndRange.kid.x++){
+        for (ndRange.kid.x = 0; ndRange.kid.x < ndRange.kid.maxX; ndRange.kid.x++) {
             try {
-                args[0]=ndRange.kid;
+                args[0] = ndRange.kid;
                 kernelEntrypoint.method.invoke(null, args);
             } catch (IllegalAccessException e) {
                 throw new RuntimeException(e);

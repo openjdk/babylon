@@ -54,7 +54,7 @@ public class CoreJavaViolaJones {
         byte r = rgbImage.data(id * 3L + 0);
         byte g = rgbImage.data(id * 3L + 1);
         byte b = rgbImage.data(id * 3L + 2);
-        float grey = grey(r,g,b);
+        float grey = grey(r, g, b);
         floatImage.array(id, grey);
     }
 
@@ -82,6 +82,7 @@ public class CoreJavaViolaJones {
         integral.array(id, integral.array(id) + integral.array(id - 1));
         integralSq.array(id, integralSq.array(id) + integralSq.array(id - 1));
     }
+
     /*
                         A +-------+ B
                           |       |       D-B-C+A
@@ -114,6 +115,7 @@ public class CoreJavaViolaJones {
         float B = image.get(JAVA_FLOAT, (((long) y * imageWidth) + x + w) * 4);
         return D - B - C + A;
     }
+
     /*
                            A +-------+ B
                              |       |       D-B-C+A
@@ -125,10 +127,10 @@ public class CoreJavaViolaJones {
             int y,
             int w,
             int h) {
-        float A = image.get(x,y);
-        float D = image.get(x+w, y+h);
-        float C = image.get(x,y+h);
-        float B = image.get(x+w,y);
+        float A = image.get(x, y);
+        float D = image.get(x + w, y + h);
+        float C = image.get(x, y + h);
+        float B = image.get(x + w, y);
         return D - B - C + A;
     }
 
@@ -140,9 +142,10 @@ public class CoreJavaViolaJones {
 
         return System.currentTimeMillis() - start;
     }
+
     static long rgbToGreyScale(RgbS08x3Image rgb, F32Array2D grey) {
         long start = System.currentTimeMillis();
-        int size = grey.width()*grey.height();
+        int size = grey.width() * grey.height();
 
         for (int i = 0; i < size; i++) {
             rgbToGreyKernel(i, rgb, grey);
@@ -194,6 +197,7 @@ public class CoreJavaViolaJones {
         }
         return System.currentTimeMillis() - start;
     }
+
     public static long createIntegralImage(F32Array2D greyFloats, F32Array2D integral, F32Array2D integralSq) {
         long start = System.currentTimeMillis();
         int width = greyFloats.width();
@@ -202,7 +206,7 @@ public class CoreJavaViolaJones {
         // The col pass can create the integral and intergralsq cols and populate the 'square'
         for (int x = 0; x < width; x++) {
             for (int y = 1; y < height; y++) {
-                integralColKernel((y * width) + x,width, greyFloats, integral, integralSq);
+                integralColKernel((y * width) + x, width, greyFloats, integral, integralSq);
             }
         }
 

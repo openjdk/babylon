@@ -35,8 +35,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 public class WorkStealer {
-    final  int threadCount;
-     AtomicInteger taskCount;
+    final int threadCount;
+    AtomicInteger taskCount;
     Thread[] threads;
 
     CyclicBarrier setupBarrier;
@@ -73,7 +73,7 @@ public class WorkStealer {
                         //  System.out.println("Thread #"+Thread.currentThread()+" started");
 
                         int myChunk;
-                        ndRange.kid = new KernelContext(ndRange,range,0);
+                        ndRange.kid = new KernelContext(ndRange, range, 0);
 
                         while ((myChunk = taskCount.getAndIncrement()) < (range / chunkSize) + 1) {
 

@@ -21,19 +21,21 @@ https://github.com/openjdk/babylon/tree/code-reflection/test/jdk/java/lang/refle
 */
 
 public class QuotedTest {
-    public static void quotedTest(){
-        Quoted quoted = ()->{}; //See TestClosureOps:132
+    public static void quotedTest() {
+        Quoted quoted = () -> {
+        }; //See TestClosureOps:132
         Op qop = quoted.op();
         Op top = qop.ancestorBody().parentOp().ancestorBody().parentOp();
 
 
         CoreOp.FuncOp fop = (CoreOp.FuncOp) top;
     }
-    public static void main(String[] args ) {
+
+    public static void main(String[] args) {
         quotedTest();
         CoreOp.FuncOp f = func("f", functionType(INT, INT))
                 .body(block -> {
-                  //  OpWrapper.BodyWrapper.onlyBlock(block, l->{});
+                    //  OpWrapper.BodyWrapper.onlyBlock(block, l->{});
                     Block.Parameter i = block.parameters().get(0);
 
                     // functional type = (int)int

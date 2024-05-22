@@ -54,15 +54,15 @@ public class HaarViewer extends JFrame {
 
 
     public static class IntegralWindow {
-        final  double integralScale = .25;
+        final double integralScale = .25;
         BufferedImage integral;
         BufferedImage integralSq;
         GreyU16Image integralImageU16;
         GreyU16Image integralSqImageU16;
         JComponent integralImageView;
         JComponent integralSqImageView;
-        final  F32Array2D integralImageF32;
-        final  F32Array2D integralSqImageF32;
+        final F32Array2D integralImageF32;
+        final F32Array2D integralSqImageF32;
 
         public IntegralWindow(Container container, Accelerator accelerator, F32Array2D integralImageF32, F32Array2D integralSqImageF32) {
             this.integralImageF32 = integralImageF32;
@@ -150,10 +150,10 @@ public class HaarViewer extends JFrame {
     final JComponent imageView;
 
     ResultTable resultTable;
-     S32Array resultIds;
+    S32Array resultIds;
     ScaleTable scaleTable;
 
-    public void showResults(ResultTable resultTable, ScaleTable scaleTable,S32Array resultIds) {
+    public void showResults(ResultTable resultTable, ScaleTable scaleTable, S32Array resultIds) {
         this.resultTable = resultTable;
         this.scaleTable = scaleTable;
         this.resultIds = resultIds;
@@ -209,9 +209,9 @@ public class HaarViewer extends JFrame {
                     g2.setStroke(new BasicStroke(2f));
                     g2.setColor(Color.red);
                     for (int i = 0; i < resultIds.length(); i++) {
-                       // s32Array.copyTo();
+                        // s32Array.copyTo();
                         int v = resultIds.array(i);
-                        if (v!=0){
+                        if (v != 0) {
                             int scalc = 0;
                             ScaleTable.Scale scale = scaleTable.scale(scalc++);
                             while (i >= scale.accumGridSizeMax()) {
@@ -225,7 +225,7 @@ public class HaarViewer extends JFrame {
                             int h = scale.scaledFeatureHeight();
                             g2.drawString(Integer.toString(i), x - 10, y - 5);
                             g2.draw(new Rectangle(x, y, w, h));
-                           // We have to map v's idx to a scaled x,y,w,h
+                            // We have to map v's idx to a scaled x,y,w,h
 
                         }
 

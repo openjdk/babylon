@@ -9,7 +9,7 @@ public class IfOpWrapper extends StructuralOpWrapper<ExtendedOp.JavaIfOp> {
     }
 
     public boolean hasElseN(int idx) {
-        return hasBodyN(idx) && firstBlockOfBodyN(idx).ops().size()>1;
+        return hasBodyN(idx) && firstBlockOfBodyN(idx).ops().size() > 1;
     }
 
     public Stream<OpWrapper<?>> conditionWrappedYieldOpStream() {
@@ -17,9 +17,10 @@ public class IfOpWrapper extends StructuralOpWrapper<ExtendedOp.JavaIfOp> {
     }
 
     public Stream<OpWrapper<?>> thenWrappedRootOpStream() {
-       return  wrappedRootOpStream(bodyN(1).entryBlock());
+        return wrappedRootOpStream(bodyN(1).entryBlock());
     }
+
     public Stream<OpWrapper<?>> elseWrappedRootOpStream() {
-        return  wrappedRootOpStream(bodyN(2).entryBlock());
+        return wrappedRootOpStream(bodyN(2).entryBlock());
     }
 }

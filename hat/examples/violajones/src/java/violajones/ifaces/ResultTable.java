@@ -37,12 +37,13 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 public interface ResultTable extends Table<ResultTable.Result> {
 
     interface Result {
-         StructLayout layout = MemoryLayout.structLayout(
+        StructLayout layout = MemoryLayout.structLayout(
                 JAVA_FLOAT.withName("x"),
                 JAVA_FLOAT.withName("y"),
                 JAVA_FLOAT.withName("width"),
                 JAVA_FLOAT.withName("height")
-                ).withName("Result");
+        ).withName("Result");
+
         float x();
 
         float y();
@@ -60,6 +61,7 @@ public interface ResultTable extends Table<ResultTable.Result> {
 
         void height(float height);
     }
+
     static ResultTable create(Accelerator accelerator, int length) {
         ResultTable table = SegmentMapper.of(accelerator.lookup, ResultTable.class,
                 JAVA_INT.withName("length"),
@@ -69,14 +71,18 @@ public interface ResultTable extends Table<ResultTable.Result> {
         table.length(length);
         return table;
     }
-    default Result get(int i){
+
+    default Result get(int i) {
         return result(i);
     }
+
     Result result(long idx);
+
     void atomicResultTableCount(int atomicResultTableCount);
+
     int atomicResultTableCount();
 
-    default int atomicResultTableCountInc(){
+    default int atomicResultTableCountInc() {
         int index = atomicResultTableCount();
         atomicResultTableCount(index + 1);
         return index;

@@ -3,7 +3,6 @@ package experiments;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
-import hat.backend.Backend;
 import hat.buffer.F32Array;
 
 import java.lang.invoke.MethodHandles;
@@ -63,7 +62,7 @@ public class ForTests {
     public static void main(String[] args) {
 
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(),
-              //  Backend.JAVA_MULTITHREADED
+                //  Backend.JAVA_MULTITHREADED
                 (backend) -> backend.getClass().getSimpleName().startsWith("OpenCL")
         );
         var a = F32Array.create(accelerator, 100);

@@ -127,10 +127,10 @@ public final class MapperUtil {
                 .map(AccessorInfo::method)
                 .collect(Collectors.toSet());
 
-        var typeMethods =  Arrays.stream(type.getMethods())
-                    .filter(m -> !MapperUtil.isSegmentMapperDiscoverable(type, m))
-                    .filter(m -> Modifier.isAbstract(m.getModifiers()))
-                    .toList();
+        var typeMethods = Arrays.stream(type.getMethods())
+                .filter(m -> !MapperUtil.isSegmentMapperDiscoverable(type, m))
+                .filter(m -> Modifier.isAbstract(m.getModifiers()))
+                .toList();
 
         var missing = typeMethods.stream()
                 .filter(Predicate.not(accessorMethods::contains))

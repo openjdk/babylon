@@ -28,25 +28,28 @@ import hat.Accelerator;
 
 import java.lang.foreign.MemorySegment;
 
-import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface S32Array extends Array1D {
     static S32Array create(Accelerator accelerator, int length) {
         return Array1D.create(accelerator, S32Array.class, length, JAVA_INT);
     }
+
     static S32Array create(Accelerator accelerator, int[] source) {
-        return create(accelerator,source.length).copyfrom(source);
+        return create(accelerator, source.length).copyfrom(source);
     }
+
     int array(long idx);
 
     void array(long idx, int f);
+
     default S32Array copyfrom(int[] floats) {
-        MemorySegment.copy(floats,0,memorySegment(),JAVA_INT,4, length());
+        MemorySegment.copy(floats, 0, memorySegment(), JAVA_INT, 4, length());
         return this;
     }
+
     default S32Array copyTo(int[] floats) {
-        MemorySegment.copy(memorySegment(),JAVA_INT,4,floats,0, length());
+        MemorySegment.copy(memorySegment(), JAVA_INT, 4, floats, 0, length());
         return this;
     }
 }

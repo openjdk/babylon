@@ -37,7 +37,6 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.StructLayout;
 import java.lang.foreign.ValueLayout;
 
-import static java.lang.foreign.MemoryLayout.sequenceLayout;
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_SHORT;
@@ -57,45 +56,54 @@ public interface ImageBuffer extends IncompleteBuffer {
                 JAVA_INT.withName("height"),
                 JAVA_INT.withName("elementsPerPixel"),
                 JAVA_INT.withName("bufferedImageType"),
-                MemoryLayout.sequenceLayout((long) width *height*elementsPerPixel, valueLayout).withName("data")
+                MemoryLayout.sequenceLayout((long) width * height * elementsPerPixel, valueLayout).withName("data")
         ).withName(iface.getSimpleName());
         T rgba = SegmentMapper.of(accelerator.lookup, iface, structLayout).allocate(accelerator.backend.arena());
         MemorySegment segment = rgba.memorySegment();
-        segment.set(JAVA_INT, structLayout.byteOffset(MemoryLayout.PathElement.groupElement("width")),width);
-        segment.set(JAVA_INT, structLayout.byteOffset(MemoryLayout.PathElement.groupElement("height")),height);
-        segment.set(JAVA_INT, structLayout.byteOffset(MemoryLayout.PathElement.groupElement("elementsPerPixel")),elementsPerPixel);
-        segment.set(JAVA_INT, structLayout.byteOffset(MemoryLayout.PathElement.groupElement("bufferedImageType")),bufferedImageType);
+        segment.set(JAVA_INT, structLayout.byteOffset(MemoryLayout.PathElement.groupElement("width")), width);
+        segment.set(JAVA_INT, structLayout.byteOffset(MemoryLayout.PathElement.groupElement("height")), height);
+        segment.set(JAVA_INT, structLayout.byteOffset(MemoryLayout.PathElement.groupElement("elementsPerPixel")), elementsPerPixel);
+        segment.set(JAVA_INT, structLayout.byteOffset(MemoryLayout.PathElement.groupElement("bufferedImageType")), bufferedImageType);
         return rgba;
     }
+
     int elementsPerPixel();
 
-   // void elementsPerPixel(int elementsPerPixel);
+    // void elementsPerPixel(int elementsPerPixel);
 
     int bufferedImageType();
 
-   // void bufferedImageType(int bufferedImageType);
+    // void bufferedImageType(int bufferedImageType);
     @SuppressWarnings("unchecked")
     default <T extends ImageBuffer> T syncToRasterDataBuffer(DataBuffer dataBuffer) { // int[], byte[], short[]
         switch (dataBuffer) {
-            case DataBufferUShort arr -> MemorySegment.copy(memorySegment(), JAVA_SHORT, 16L, arr.getData(), 0, arr.getData().length);
-            case DataBufferInt arr -> MemorySegment.copy(memorySegment(), JAVA_INT, 16L, arr.getData(), 0, arr.getData().length);
-            case DataBufferByte arr  -> MemorySegment.copy(memorySegment(), JAVA_BYTE, 16L, arr.getData(), 0, arr.getData().length);
+            case DataBufferUShort arr ->
+                    MemorySegment.copy(memorySegment(), JAVA_SHORT, 16L, arr.getData(), 0, arr.getData().length);
+            case DataBufferInt arr ->
+                    MemorySegment.copy(memorySegment(), JAVA_INT, 16L, arr.getData(), 0, arr.getData().length);
+            case DataBufferByte arr ->
+                    MemorySegment.copy(memorySegment(), JAVA_BYTE, 16L, arr.getData(), 0, arr.getData().length);
             default -> throw new IllegalStateException("Unexpected value: " + dataBuffer);
         }
-        return (T)this;
+        return (T) this;
     }
-     default <T extends ImageBuffer> T syncToRaster(BufferedImage bufferedImage) { // int[], byte[], short[]
-       return syncToRasterDataBuffer(bufferedImage.getRaster().getDataBuffer());
+
+    default <T extends ImageBuffer> T syncToRaster(BufferedImage bufferedImage) { // int[], byte[], short[]
+        return syncToRasterDataBuffer(bufferedImage.getRaster().getDataBuffer());
     }
+
     @SuppressWarnings("unchecked")
     default <T extends ImageBuffer> T syncFromRasterDataBuffer(DataBuffer dataBuffer) { // int[], byte[], short[]
         switch (dataBuffer) {
-            case DataBufferInt arr -> MemorySegment.copy(arr.getData(), 0, memorySegment(), JAVA_INT, 16L, arr.getData().length);
-            case DataBufferByte arr -> MemorySegment.copy(arr.getData(), 0, memorySegment(), JAVA_BYTE, 16L, arr.getData().length);
-            case DataBufferUShort arr -> MemorySegment.copy(arr.getData(), 0, memorySegment(), JAVA_SHORT, 16L, arr.getData().length);
+            case DataBufferInt arr ->
+                    MemorySegment.copy(arr.getData(), 0, memorySegment(), JAVA_INT, 16L, arr.getData().length);
+            case DataBufferByte arr ->
+                    MemorySegment.copy(arr.getData(), 0, memorySegment(), JAVA_BYTE, 16L, arr.getData().length);
+            case DataBufferUShort arr ->
+                    MemorySegment.copy(arr.getData(), 0, memorySegment(), JAVA_SHORT, 16L, arr.getData().length);
             default -> throw new IllegalStateException("Unexpected value: " + dataBuffer);
         }
-        return (T)this;
+        return (T) this;
     }
 
     default <T extends ImageBuffer> T syncFromRaster(BufferedImage bufferedImage) { // int[], byte[], short[]

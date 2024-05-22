@@ -26,10 +26,10 @@ package violajones.attic;
 
 
 import hat.Accelerator;
-import hat.backend.WorkStealer;
 import hat.backend.JavaMultiThreadedBackend;
-import org.xml.sax.SAXException;
+import hat.backend.WorkStealer;
 import hat.buffer.F32Array2D;
+import org.xml.sax.SAXException;
 import violajones.HaarViewer;
 import violajones.XMLHaarCascadeModel;
 import violajones.buffers.RgbS08x3Image;
@@ -47,19 +47,19 @@ import java.util.Objects;
 public class ViolaJones {
 
     public static void main(String[] _args) throws IOException, ParserConfigurationException, SAXException {
-      //  Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend::isJava);
+        //  Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend::isJava);
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), (backend -> backend instanceof JavaMultiThreadedBackend));
 
 
-        BufferedImage nasa =  ImageIO.read(Objects.requireNonNull(ViolaJones.class.getResourceAsStream("/images/Nasa1996.jpg")));
-        XMLHaarCascadeModel xmlHaarCascade =  XMLHaarCascadeModel.load(ViolaJonesRaw.class.getResourceAsStream("/cascades/haarcascade_frontalface_default.xml"));
+        BufferedImage nasa = ImageIO.read(Objects.requireNonNull(ViolaJones.class.getResourceAsStream("/images/Nasa1996.jpg")));
+        XMLHaarCascadeModel xmlHaarCascade = XMLHaarCascadeModel.load(ViolaJonesRaw.class.getResourceAsStream("/cascades/haarcascade_frontalface_default.xml"));
         Cascade cascade = Cascade.create(accelerator, xmlHaarCascade);
 
         var rgbImage = RgbS08x3Image.create(accelerator, nasa);
 
         var width = nasa.getWidth();
         var height = nasa.getHeight();
-        var scaleTable = ScaleTable.create(accelerator,cascade,width,height);// multiScaleTable.multiScaleCount);
+        var scaleTable = ScaleTable.create(accelerator, cascade, width, height);// multiScaleTable.multiScaleCount);
 
 
         var greyImageF32 = F32Array2D.create(accelerator, width, height);
@@ -71,7 +71,7 @@ public class ViolaJones {
         CoreJavaViolaJones.rgbToGreyScale(rgbImage, greyImageF32);
         CoreJavaViolaJones.createIntegralImage(greyImageF32, integralImageF32, integralSqImageF32);
 
-        HaarViewer harViz = new HaarViewer(accelerator,nasa, rgbImage, cascade, integralImageF32, integralSqImageF32);
+        HaarViewer harViz = new HaarViewer(accelerator, nasa, rgbImage, cascade, integralImageF32, integralSqImageF32);
 
         harViz.showIntegrals();
 
@@ -97,10 +97,8 @@ public class ViolaJones {
         // openCLBridge.dump(cascadeMemorySegment, cascadeLayout.layout);
 
 
-
-
         int groupSize = 256;
-        int rangeModGroupSize =scaleTable.rangeModGroupSize  (groupSize);
+        int rangeModGroupSize = scaleTable.rangeModGroupSize(groupSize);
         //(scaleTable.multiScaleAccumulativeRange() / groupSize) + ((scaleTable.multiScaleAccumulativeRange() % groupSize) == 0 ? 0 : 1)) * groupSize;
 
 /*
@@ -328,21 +326,21 @@ public class ViolaJones {
             long start = System.currentTimeMillis();
 */
 
-          if (true) {
-              long start = System.currentTimeMillis();
-              WorkStealer.usingAllProcessors(accelerator)
-                      .forEachInRange(accelerator.range(scaleTable.multiScaleAccumulativeRange()), r -> {
-                          ReferenceJavaViolaJones.findFeatures(
-                                  r.kid.x,
-                                  xmlHaarCascade,//cascade,//haarCascade, //or cascade
-                                  integralImageF32,
-                                  integralSqImageF32,
-                                  scaleTable,
-                                  resultTable);
-                      });
-              System.out.println("done "+(System.currentTimeMillis()-start)+"ms");
-              harViz.showResults(resultTable,null,null );
-          }
+        if (true) {
+            long start = System.currentTimeMillis();
+            WorkStealer.usingAllProcessors(accelerator)
+                    .forEachInRange(accelerator.range(scaleTable.multiScaleAccumulativeRange()), r -> {
+                        ReferenceJavaViolaJones.findFeatures(
+                                r.kid.x,
+                                xmlHaarCascade,//cascade,//haarCascade, //or cascade
+                                integralImageF32,
+                                integralSqImageF32,
+                                scaleTable,
+                                resultTable);
+                    });
+            System.out.println("done " + (System.currentTimeMillis() - start) + "ms");
+            harViz.showResults(resultTable, null, null);
+        }
         //   } else if (mode.equals("javaSegments")) {
 
       /*  WorkStealer.of(1)

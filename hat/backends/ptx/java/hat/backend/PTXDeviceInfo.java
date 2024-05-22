@@ -23,6 +23,7 @@
  * questions.
  */
 package hat.backend;
+
 public class PTXDeviceInfo {
 
     public static void main(String[] args) {

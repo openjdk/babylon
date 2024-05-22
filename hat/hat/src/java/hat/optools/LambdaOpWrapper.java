@@ -32,24 +32,26 @@ public class LambdaOpWrapper extends OpWrapper<CoreOp.LambdaOp> {
     public Method getQuotableTargetMethod() {
         return getQuotableTargetInvokeOpWrapper().method();
     }
+
     public InvokeOpWrapper getQuotableTargetInvokeOpWrapper() {
-        return  OpWrapper.wrap(op().bodies().get(0).blocks().get(0).ops().stream()
+        return OpWrapper.wrap(op().bodies().get(0).blocks().get(0).ops().stream()
                 .filter(op -> op instanceof CoreOp.InvokeOp)
-                .map(op ->(CoreOp.InvokeOp)op)
+                .map(op -> (CoreOp.InvokeOp) op)
                 .findFirst().get());
     }
+
     public MethodRef getQuotableTargetMethodRef() {
         return getQuotableTargetInvokeOpWrapper().methodRef();
     }
 
     public Object[] getQuotableCapturedValues(Quoted quoted, Method method) {
-        var  block =  op().bodies().get(0).blocks().get(0);
+        var block = op().bodies().get(0).blocks().get(0);
         var ops = block.ops();
         Object[] varLoadNames = ops.stream()
-                .filter(op->op instanceof CoreOp.VarAccessOp.VarLoadOp)
-                .map(op->(CoreOp.VarAccessOp.VarLoadOp)op)
-                .map(varLoadOp->(Op.Result)varLoadOp.operands().get(0))
-                .map(varLoadOp -> (CoreOp.VarOp)varLoadOp.op())
+                .filter(op -> op instanceof CoreOp.VarAccessOp.VarLoadOp)
+                .map(op -> (CoreOp.VarAccessOp.VarLoadOp) op)
+                .map(varLoadOp -> (Op.Result) varLoadOp.operands().get(0))
+                .map(varLoadOp -> (CoreOp.VarOp) varLoadOp.op())
                 .map(varOp -> varOp.varName()).toArray();
 
 
@@ -63,12 +65,12 @@ public class LambdaOpWrapper extends OpWrapper<CoreOp.LambdaOp> {
             }
         });
         Object[] args = new Object[method.getParameterCount()];
-        if (args.length != varLoadNames.length){
+        if (args.length != varLoadNames.length) {
             throw new IllegalStateException("Why don't we have enough captures.!! ");
         }
         for (int i = 1; i < args.length; i++) {
             args[i] = nameValueMap.get(varLoadNames[i].toString());
-            if (args[i] instanceof CoreOp.Var  varbox) {
+            if (args[i] instanceof CoreOp.Var varbox) {
                 args[i] = varbox.value();
             }
         }

@@ -1,7 +1,6 @@
 package hat.optools;
 
 import java.lang.reflect.code.Body;
-import java.lang.reflect.code.op.CoreOp;
 import java.util.function.Consumer;
 
 public class BodyWrapper extends CodeElementWrapper<Body> {
@@ -13,8 +12,8 @@ public class BodyWrapper extends CodeElementWrapper<Body> {
         super(body);
     }
 
-    public static BodyWrapper of(Body body){
-        return  new BodyWrapper(body);
+    public static BodyWrapper of(Body body) {
+        return new BodyWrapper(body);
     }
 
     public static void onlyBlock(Body body, Consumer<BlockWrapper> blockWrapperConsumer) {

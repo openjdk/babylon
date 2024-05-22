@@ -25,8 +25,6 @@
 package hat.optools;
 
 import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.type.ClassType;
-import java.lang.reflect.code.type.FieldRef;
 
 public class FieldLoadOpWrapper extends FieldAccessOpWrapper<CoreOp.FieldAccessOp.FieldLoadOp> implements LoadOpWrapper {
 
@@ -35,4 +33,4 @@ public class FieldLoadOpWrapper extends FieldAccessOpWrapper<CoreOp.FieldAccessO
         super(op);
     }
 
-   }
+}

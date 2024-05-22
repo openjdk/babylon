@@ -45,7 +45,7 @@ public record AccessorInfo(Key key,
                            long offset) {
 
     public AccessorInfo ofMethod(Key key, Method method, Class<?> type, LayoutInfo layoutInfo, long offset) {
-        return new AccessorInfo(key,  method,  type, layoutInfo, offset);
+        return new AccessorInfo(key, method, type, layoutInfo, offset);
     }
 
 
@@ -64,14 +64,14 @@ public record AccessorInfo(Key key,
     public enum Key {
 
         //                                                 Mapping supported for
-        SCALAR_VALUE_GETTER    (SCALAR, VALUE,     GETTER, EnumSet.of(INTERFACE  )),
-        SCALAR_VALUE_SETTER    (SCALAR, VALUE,     SETTER, EnumSet.of(INTERFACE          )),
-        SCALAR_INTERFACE_GETTER(SCALAR, INTERFACE, GETTER, EnumSet.of(INTERFACE          )),
+        SCALAR_VALUE_GETTER(SCALAR, VALUE, GETTER, EnumSet.of(INTERFACE)),
+        SCALAR_VALUE_SETTER(SCALAR, VALUE, SETTER, EnumSet.of(INTERFACE)),
+        SCALAR_INTERFACE_GETTER(SCALAR, INTERFACE, GETTER, EnumSet.of(INTERFACE)),
         SCALAR_INTERFACE_SETTER(SCALAR, INTERFACE, SETTER, EnumSet.noneOf(ValueType.class)),
-        ARRAY_VALUE_GETTER     (ARRAY,  VALUE,     GETTER, EnumSet.of(INTERFACE  )),
-        ARRAY_VALUE_SETTER     (ARRAY,  VALUE,     SETTER, EnumSet.of(INTERFACE          )),
-        ARRAY_INTERFACE_GETTER (ARRAY,  INTERFACE, GETTER, EnumSet.of(INTERFACE          )),
-        ARRAY_INTERFACE_SETTER (ARRAY,  INTERFACE, SETTER, EnumSet.noneOf(ValueType.class));
+        ARRAY_VALUE_GETTER(ARRAY, VALUE, GETTER, EnumSet.of(INTERFACE)),
+        ARRAY_VALUE_SETTER(ARRAY, VALUE, SETTER, EnumSet.of(INTERFACE)),
+        ARRAY_INTERFACE_GETTER(ARRAY, INTERFACE, GETTER, EnumSet.of(INTERFACE)),
+        ARRAY_INTERFACE_SETTER(ARRAY, INTERFACE, SETTER, EnumSet.noneOf(ValueType.class));
 
 
         private final Cardinality cardinality;

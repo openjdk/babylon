@@ -44,7 +44,7 @@
 
     public class Transform {
         @CodeReflection
-        public static void  removeMe(int size, int x, int y) {
+        public static void removeMe(int size, int x, int y) {
 
         }
 
@@ -56,13 +56,14 @@
                     for (int k = 0; k < size; k++) {
                         sum += a[i * size + k] * b[k * size + j];
                     }
-                    removeMe(1,2,3);
+                    removeMe(1, 2, 3);
 
-                    c[ i * size + j]= sum;
+                    c[i * size + j] = sum;
 
                 }
             }
         }
+
         public static abstract class MyOp extends Op {
             private final TypeElement type;
 
@@ -104,7 +105,7 @@
 
             @Override
             public Op transform(CopyContext cc, OpTransformer ot) {
-                    return new RootOp(this, cc);
+                return new RootOp(this, cc);
             }
         }
 
@@ -127,16 +128,16 @@
 
             CoreOp.FuncOp javaFunc = method.getCodeModel().get();
 
-            CoreOp.FuncOp transformed = javaFunc.transform((builder, op)->{
-                if (op instanceof CoreOp.InvokeOp invokeOp){
-                  //  CopyContext cc = builder.context();
-                  //  Block.Builder bb = builder;
-                   // var invokePre = CoreOp.invoke(PRE);
+            CoreOp.FuncOp transformed = javaFunc.transform((builder, op) -> {
+                if (op instanceof CoreOp.InvokeOp invokeOp) {
+                    //  CopyContext cc = builder.context();
+                    //  Block.Builder bb = builder;
+                    // var invokePre = CoreOp.invoke(PRE);
                     RootOp rootOp = new RootOp();
-                   // builder.op(rootOp);
-                  //  builder.op(invokeOp);
-                  //  builder.op(CoreOp.invoke(POST));
-                }else{
+                    // builder.op(rootOp);
+                    //  builder.op(invokeOp);
+                    //  builder.op(CoreOp.invoke(POST));
+                } else {
                     builder.op(op);
                 }
                 return builder;

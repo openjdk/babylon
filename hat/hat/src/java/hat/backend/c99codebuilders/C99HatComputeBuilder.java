@@ -41,12 +41,12 @@ public abstract class C99HatComputeBuilder<T extends C99HatComputeBuilder<T>> ex
     public T compute(FuncOpWrapper funcOpWrapper) {
         computeDeclaration(funcOpWrapper.functionReturnTypeDesc(), funcOpWrapper.functionName());
         parenNlIndented(_ ->
-            commaSeparated(funcOpWrapper.paramTable.list(), (info) -> type((JavaType) info.parameter.type()).space().varName(info.varOp))
+                commaSeparated(funcOpWrapper.paramTable.list(), (info) -> type((JavaType) info.parameter.type()).space().varName(info.varOp))
         );
         C99HatBuildContext buildContext = new C99HatBuildContext(funcOpWrapper);
         braceNlIndented(_ ->
                 funcOpWrapper.wrappedRootOpStream(funcOpWrapper.firstBlockOfFirstBody()).forEach(root ->
-                    recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>)).nl()
+                        recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>)).nl()
                 ));
 
         return self();

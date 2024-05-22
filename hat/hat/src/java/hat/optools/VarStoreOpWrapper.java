@@ -24,13 +24,9 @@
  */
 package hat.optools;
 
-import java.lang.reflect.code.Block;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.Value;
 import java.lang.reflect.code.op.CoreOp;
 
-public class VarStoreOpWrapper extends VarAccessOpWrapper<CoreOp.VarAccessOp.VarStoreOp> implements StoreOpWrapper{
-
+public class VarStoreOpWrapper extends VarAccessOpWrapper<CoreOp.VarAccessOp.VarStoreOp> implements StoreOpWrapper {
 
 
     VarStoreOpWrapper(CoreOp.VarAccessOp.VarStoreOp op) {

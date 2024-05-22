@@ -28,10 +28,7 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
 import hat.backend.Backend;
-import hat.backend.NativeBackend;
-import hat.buffer.F32Array;
 import hat.buffer.F32Array2D;
-import hat.buffer.S32Array;
 import org.xml.sax.SAXException;
 import violajones.attic.ViolaJones;
 import violajones.attic.ViolaJonesRaw;
@@ -174,7 +171,7 @@ public class ViolaJonesCompute {
         float sumOfThisStage = 0;
         int startTreeIdx = stage.firstTreeId();
         int endTreeIdx = startTreeIdx + stage.treeCount();
-       // s.array(gid,stage.id());
+        // s.array(gid,stage.id());
         for (int treeIdx = startTreeIdx; treeIdx < endTreeIdx; treeIdx++) {
             // Todo: Find a way to iterate which is interface mapped segment friendly.
             Cascade.Tree tree = cascade.tree(treeIdx);
@@ -198,9 +195,9 @@ public class ViolaJonesCompute {
                 }
                 // Now either navigate the tree (left or right) or update the sumOfThisStage
                 // with left or right value based on comparison with features Threshold
-                float featureThreshold =  feature.threshold();
+                float featureThreshold = feature.threshold();
                 boolean isLeft = ((featureGradientSum * invArea) < (featureThreshold * vnorm));
-                Cascade.Feature.LinkOrValue leftOrRight = isLeft ?feature.left():feature.right();
+                Cascade.Feature.LinkOrValue leftOrRight = isLeft ? feature.left() : feature.right();
                 Cascade.Feature.LinkOrValue.Anon anon = leftOrRight.anon();
                 if (leftOrRight.hasValue()) {
                     sumOfThisStage += anon.value(); // leftOrRight.anon().value() breaks C99 codegen
@@ -262,11 +259,11 @@ public class ViolaJonesCompute {
             int stageCount = cascade.stageCount();
             for (int stagec = 0; stagec < stageCount && stillLooksLikeAFace; stagec++) {
                 Cascade.Stage stage = cascade.stage(stagec);
-                stillLooksLikeAFace = isAFaceStage(kc.x,scale.scaleValue(), scale.invArea(), x, y, vnorm, integral, stage, cascade);
+                stillLooksLikeAFace = isAFaceStage(kc.x, scale.scaleValue(), scale.invArea(), x, y, vnorm, integral, stage, cascade);
             }
 
             if (stillLooksLikeAFace) {
-                int index =resultTable.atomicResultTableCountInc();
+                int index = resultTable.atomicResultTableCountInc();
                 if (index < resultTable.length()) {
                     ResultTable.Result result = resultTable.result(index);
                     result.x(x);
@@ -280,7 +277,7 @@ public class ViolaJonesCompute {
 
     @CodeReflection
     static public void compute(final ComputeContext cc, Cascade cascade, BufferedImage bufferedImage, RgbS08x3Image rgbS08x3Image, ResultTable resultTable) {
-       long start = System.currentTimeMillis();
+        long start = System.currentTimeMillis();
         int width = rgbS08x3Image.width();
 
         int height = rgbS08x3Image.height();
@@ -292,14 +289,15 @@ public class ViolaJonesCompute {
 
         cc.dispatchKernel(width, kc -> integralColKernel(kc, greyImage, integralImage, integralSqImage));
         cc.dispatchKernel(height, kc -> integralRowKernel(kc, integralImage, integralSqImage));
-       // harViz.showIntegrals();
+        // harViz.showIntegrals();
         ScaleTable scaleTable = ScaleTable.create(accelerator, cascade, width, height);
 
         cc.dispatchKernel(scaleTable.multiScaleAccumulativeRange(), kc ->
                 findFeaturesKernel(kc, cascade, integralImage, integralSqImage, scaleTable, resultTable));
         long end = System.currentTimeMillis();
-        System.out.print(end-start);System.out.println("ms");
-       // harViz.showResults(resultTable, null, null);
+        System.out.print(end - start);
+        System.out.println("ms");
+        // harViz.showResults(resultTable, null, null);
     }
 
     public static void main(String[] args) throws IOException, ParserConfigurationException, SAXException {
@@ -310,10 +308,10 @@ public class ViolaJonesCompute {
         Cascade cascade = Cascade.create(accelerator, haarCascade);
         RgbS08x3Image rgbImage = RgbS08x3Image.create(accelerator, nasa1996);
         ResultTable resultTable = ResultTable.create(accelerator, 1000);
-        HaarViewer harViz = new HaarViewer(accelerator, nasa1996, rgbImage, cascade, null,null);
+        HaarViewer harViz = new HaarViewer(accelerator, nasa1996, rgbImage, cascade, null, null);
 
         //System.out.println("Compute units "+((NativeBackend)accelerator.backend).getGetMaxComputeUnits());
-        for (int i=0; i<10; i++) {
+        for (int i = 0; i < 10; i++) {
             resultTable.atomicResultTableCount(0);
             accelerator.compute(cc ->
                     ViolaJonesCompute.compute(cc, cascade, nasa1996, rgbImage, resultTable)

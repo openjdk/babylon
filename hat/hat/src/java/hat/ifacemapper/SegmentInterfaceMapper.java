@@ -26,7 +26,6 @@
 package hat.ifacemapper;
 
 
-
 import hat.ifacemapper.accessor.AccessorInfo;
 import hat.ifacemapper.accessor.Accessors;
 import hat.ifacemapper.accessor.ValueType;
@@ -39,7 +38,6 @@ import java.lang.classfile.ClassHierarchyResolver;
 import java.lang.constant.ClassDesc;
 import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemorySegment;
-
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
@@ -147,12 +145,12 @@ public final class SegmentInterfaceMapper<T>
         return new Mapped<>(lookup(), newType, layout(), getHandle(), toMapper);
     }
 
-   // @Override
-  //  public <R> SegmentMapper<R> map(Class<R> newType,
-                                    //Function<? super T, ? extends R> toMapper,
-                                   // Function<? super R, ? extends T> fromMapper) {
-      //  throw twoWayMappersUnsupported();
-  //  }
+    // @Override
+    //  public <R> SegmentMapper<R> map(Class<R> newType,
+    //Function<? super T, ? extends R> toMapper,
+    // Function<? super R, ? extends T> fromMapper) {
+    //  throw twoWayMappersUnsupported();
+    //  }
 
     @Override
     protected MethodHandle computeGetHandle() {
@@ -160,7 +158,7 @@ public final class SegmentInterfaceMapper<T>
             // (MemorySegment, long)void
             var ctor = lookup().findConstructor(implClass, MethodType.methodType(void.class, MemorySegment.class, GroupLayout.class, long.class));
 
-           // try? var ctor = lookup().findConstructor(implClass, MethodType.methodType(void.class, MemorySegment.class, long.class));
+            // try? var ctor = lookup().findConstructor(implClass, MethodType.methodType(void.class, MemorySegment.class, long.class));
             // -> (MemorySegment, long)Object
             ctor = ctor.asType(ctor.type().changeReturnType(Object.class));
             return ctor;
@@ -310,13 +308,13 @@ public final class SegmentInterfaceMapper<T>
                     .map(a -> switch (a.key()) {
                                 case SCALAR_INTERFACE_GETTER, ARRAY_INTERFACE_GETTER ->
                                         mapperCache().interfaceGetMethodHandleFor(a, affectedMemories::add);
-                        default -> throw new InternalError("Should not reach here " + a);
+                                default -> throw new InternalError("Should not reach here " + a);
                             }
                     )
                     .toList();
 
             if (MapperUtil.isDebug()) {
-                Path path = Path.of( classDesc.displayName() + ".class");
+                Path path = Path.of(classDesc.displayName() + ".class");
                 try {
                     Files.write(path, bytes, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
                     System.out.println("Wrote class file " + path.toAbsolutePath());
@@ -358,7 +356,7 @@ public final class SegmentInterfaceMapper<T>
                 .orElseThrow(SegmentInterfaceMapper::notImplType);
         long srcOffset = offset(t)
                 .orElseThrow(SegmentInterfaceMapper::notImplType);
-        for (AffectedMemory m: fragments) {
+        for (AffectedMemory m : fragments) {
             MemorySegment.copy(srcSegment, srcOffset + m.offset(), segment, offset + m.offset(), m.size());
         }
     }
@@ -372,11 +370,11 @@ public final class SegmentInterfaceMapper<T>
     record AffectedMemory(long offset,
                           long size) {
 
-      //  AffectedMemory {
+        //  AffectedMemory {
         //   long offset;
-         //  long size; // requireNonNegative(offset);
-           // requireNonNegative(size);
-       // }
+        //  long size; // requireNonNegative(offset);
+        // requireNonNegative(size);
+        // }
 
         static AffectedMemory from(AccessorInfo mi) {
             return new AffectedMemory(mi.offset(), mi.layoutInfo().layout().byteSize());
@@ -389,7 +387,7 @@ public final class SegmentInterfaceMapper<T>
         static List<AffectedMemory> coalesce(List<AffectedMemory> items) {
             List<AffectedMemory> result = new ArrayList<>();
 
-            for (int i =0; i<items.size();i++) {
+            for (int i = 0; i < items.size(); i++) {
                 AffectedMemory current = items.get(i);
                 for (int j = i + 1; j < result.size(); j++) {
                     AffectedMemory next = items.get(j);
@@ -425,13 +423,13 @@ public final class SegmentInterfaceMapper<T>
     /**
      * This class models composed record mappers.
      *
-     * @param lookup       to use for reflective operations
-     * @param type         new type to map to/from
-     * @param layout       original layout
-     * @param getHandle    for get operations
-     * @param toMapper     a function that goes from T to R
-     * @param <T>          original mapper type
-     * @param <R>          composed mapper type
+     * @param lookup    to use for reflective operations
+     * @param type      new type to map to/from
+     * @param layout    original layout
+     * @param getHandle for get operations
+     * @param toMapper  a function that goes from T to R
+     * @param <T>       original mapper type
+     * @param <R>       composed mapper type
      */
     record Mapped<T, R>(
             MethodHandles.Lookup lookup,
@@ -445,8 +443,8 @@ public final class SegmentInterfaceMapper<T>
 
         static {
             try {
-                MethodType methodType=  MethodType.methodType(void.class, MemorySegment.class, long.class, Object.class);
-                SET_OPERATIONS_UNSUPPORTED = LOCAL_LOOKUP.findStatic(Mapped.class, "setOperationsUnsupported",methodType);
+                MethodType methodType = MethodType.methodType(void.class, MemorySegment.class, long.class, Object.class);
+                SET_OPERATIONS_UNSUPPORTED = LOCAL_LOOKUP.findStatic(Mapped.class, "setOperationsUnsupported", methodType);
             } catch (ReflectiveOperationException e) {
                 throw new ExceptionInInitializerError(e);
             }

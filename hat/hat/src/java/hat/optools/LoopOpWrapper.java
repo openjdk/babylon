@@ -27,12 +27,12 @@ package hat.optools;
 import java.lang.reflect.code.Op;
 import java.util.stream.Stream;
 
-public abstract class LoopOpWrapper<T extends Op> extends StructuralOpWrapper<T>  {
+public abstract class LoopOpWrapper<T extends Op> extends StructuralOpWrapper<T> {
     LoopOpWrapper(T op) {
         super(op);
     }
 
     public abstract Stream<OpWrapper<?>> conditionWrappedYieldOpStream();
 
-    public abstract Stream<OpWrapper<?>> loopWrappedRootOpStream() ;
+    public abstract Stream<OpWrapper<?>> loopWrappedRootOpStream();
 }

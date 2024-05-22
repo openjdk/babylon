@@ -26,40 +26,44 @@ package hat.backend;
 
 
 import hat.ComputeContext;
-import hat.callgraph.KernelCallGraph;
 import hat.NDRange;
+import hat.callgraph.KernelCallGraph;
 
 import java.lang.foreign.Arena;
 import java.util.ServiceLoader;
 import java.util.function.Predicate;
 
-public interface Backend  {
+public interface Backend {
     Arena arena();
 
-    default String getName(){
+    default String getName() {
         return this.getClass().getName();
     }
 
-    Predicate<Backend> PROPERTY = (backend)->{
+    Predicate<Backend> PROPERTY = (backend) -> {
         String requestedBackendName = System.getProperty("hat.backend");
-        if (requestedBackendName == null){
+        if (requestedBackendName == null) {
             throw new IllegalStateException("Expecting property hat.backend to name a Backend class");
         }
         String backendName = backend.getName();
         return (backendName.equals(requestedBackendName));
     };
-    Predicate<Backend> FIRST = backend->true;
-    Predicate<Backend> FIRST_NATIVE = backend->backend instanceof NativeBackend nativeBackend && nativeBackend.isAvailable();
-    Predicate<Backend> JAVA_MULTITHREADED = backend->backend instanceof JavaMultiThreadedBackend;
-    Predicate<Backend> JAVA_SEQUENTIAL = backend->backend  instanceof JavaSequentialBackend;
-    static Backend getBackend(Predicate<Backend> backendPredicate){
+    Predicate<Backend> FIRST = backend -> true;
+    Predicate<Backend> FIRST_NATIVE = backend -> backend instanceof NativeBackend nativeBackend && nativeBackend.isAvailable();
+    Predicate<Backend> JAVA_MULTITHREADED = backend -> backend instanceof JavaMultiThreadedBackend;
+    Predicate<Backend> JAVA_SEQUENTIAL = backend -> backend instanceof JavaSequentialBackend;
+
+    static Backend getBackend(Predicate<Backend> backendPredicate) {
         return ServiceLoader.load(Backend.class)
                 .stream()
                 .map(ServiceLoader.Provider::get)
                 .filter(backendPredicate)
                 .findFirst().orElseThrow();
     }
+
     void computeContextHandoff(ComputeContext computeContext);
+
     void dispatchCompute(ComputeContext computeContext, Object... args);
-    void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object ... args);
+
+    void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args);
 }

@@ -8,9 +8,11 @@ public class TernaryOpWrapper extends OpWrapper<ExtendedOp.JavaConditionalExpres
     public TernaryOpWrapper(ExtendedOp.JavaConditionalExpressionOp op) {
         super(op);
     }
+
     public Stream<OpWrapper<?>> conditionWrappedYieldOpStream() {
         return wrappedYieldOpStream(firstBlockOfBodyN(0));
     }
+
     public Stream<OpWrapper<?>> thenWrappedYieldOpStream() {
         return wrappedYieldOpStream(firstBlockOfBodyN(1));
     }

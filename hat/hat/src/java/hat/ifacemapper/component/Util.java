@@ -111,7 +111,8 @@ public final class Util {
         }
     }
 
-    private Util() { }
+    private Util() {
+    }
 
     // Explicitly cast the return type
     static MethodHandle castReturnType(MethodHandle mh,
@@ -194,10 +195,10 @@ public final class Util {
     }
 
     static <R> void fromList(MemorySegment segment,
-                              GroupLayout elementLayout,
-                              long offset,
-                              MethodHandle setMapper,
-                              List<R> records) {
+                             GroupLayout elementLayout,
+                             long offset,
+                             MethodHandle setMapper,
+                             List<R> records) {
         for (int i = 0; i < records.size(); i++) {
             try {
                 setMapper.invokeExact(segment,
@@ -374,7 +375,7 @@ public final class Util {
     }
 
     private static List<Short> arrayToList(ValueLayout.OfShort layout,
-                                          short[] in) {
+                                           short[] in) {
         int size = in.length;
         Short[] arr = new Short[size];
         for (int i = 0; i < size; i++) {

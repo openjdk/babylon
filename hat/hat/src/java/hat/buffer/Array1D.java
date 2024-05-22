@@ -27,12 +27,10 @@ package hat.buffer;
 import hat.Accelerator;
 import hat.ifacemapper.SegmentMapper;
 
-import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.StructLayout;
 
-import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface Array1D extends Array {
@@ -42,17 +40,17 @@ public interface Array1D extends Array {
                 MemoryLayout.sequenceLayout(length, memoryLayout).withName("array")
         ).withName(clazz.getSimpleName());
     }
+
     static <T extends Array1D> T create(Accelerator accelerator, Class<T> clazz, int length, MemoryLayout memoryLayout) {
-        StructLayout structLayout = Array1D.layout(clazz, memoryLayout,length);
-        T buffer = SegmentMapper.of(accelerator.lookup,clazz, structLayout).allocate(accelerator.backend.arena());
-         MemorySegment segment = buffer.memorySegment();
-         segment.set(JAVA_INT, structLayout.byteOffset(MemoryLayout.PathElement.groupElement("length")),length);
+        StructLayout structLayout = Array1D.layout(clazz, memoryLayout, length);
+        T buffer = SegmentMapper.of(accelerator.lookup, clazz, structLayout).allocate(accelerator.backend.arena());
+        MemorySegment segment = buffer.memorySegment();
+        segment.set(JAVA_INT, structLayout.byteOffset(MemoryLayout.PathElement.groupElement("length")), length);
         return buffer;
     }
 
 
     int length();
-
 
 
 }

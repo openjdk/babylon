@@ -45,21 +45,20 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public class MandelViewer extends JFrame {
 
-    public static class PointF32{
+    public static class PointF32 {
         public final float x;
         public final float y;
 
         public PointF32(float x, float y) {
-            this.x =x;
+            this.x = x;
             this.y = y;
         }
     }
 
-    public  final ImageViewer imageViewer;
+    public final ImageViewer imageViewer;
 
 
-
-    public static class ImageViewer extends JComponent{
+    public static class ImageViewer extends JComponent {
 
         public PointF32 getZoomPoint(float scale) {
             waitForDoorbell();
@@ -67,10 +66,12 @@ public class MandelViewer extends JFrame {
                     ((float) (to.x - (image.getWidth() / 2)) / image.getWidth()) * scale,
                     ((float) (to.y - (image.getHeight() / 2)) / image.getHeight()) * scale);
         }
-        final  BufferedImage image;
+
+        final BufferedImage image;
         private final Object doorBell = new Object();
         public Point to = null;
-        ImageViewer(BufferedImage image){
+
+        ImageViewer(BufferedImage image) {
             super();
             this.image = image;
             addMouseListener(new MouseAdapter() {
@@ -84,16 +85,17 @@ public class MandelViewer extends JFrame {
             });
             to = new Point(image.getWidth() / 2, image.getHeight() / 2);
         }
+
         @Override
         public Dimension getPreferredSize() {
-            return new Dimension(image.getWidth(),image.getHeight());
+            return new Dimension(image.getWidth(), image.getHeight());
         }
 
         @Override
         public void paintComponent(Graphics g1d) {
             super.paintComponent(g1d);
             Graphics2D g = (Graphics2D) g1d;
-            g.drawImage(image, 0, 0, image.getWidth(),image.getHeight(), this);
+            g.drawImage(image, 0, 0, image.getWidth(), image.getHeight(), this);
         }
 
         public void waitForDoorbell() {
@@ -108,6 +110,7 @@ public class MandelViewer extends JFrame {
                 }
             }
         }
+
         public void syncWithRGB(S32Array2D s32Array2D) {
             long offset = s32Array2D.layout().byteOffset(MemoryLayout.PathElement.groupElement("array"));
             MemorySegment.copy(s32Array2D.memorySegment(), JAVA_INT, offset, ((DataBufferInt) image.getRaster().getDataBuffer()).getData(), 0, s32Array2D.size());
@@ -116,6 +119,7 @@ public class MandelViewer extends JFrame {
 
 
     }
+
     public MandelViewer(String title, S32Array2D s32Array2D) {
         super(title);
 

@@ -101,7 +101,7 @@ public abstract class C99HatKernelBuilder<T extends C99HatKernelBuilder<T>> exte
         buildContext.scope(buildContext.funcOpWrapper, () -> {
             nl();
             functionDeclaration(buildContext.funcOpWrapper.getReturnType(), buildContext.funcOpWrapper.functionName());
-           // type(buildContext.funcOpWrapper.getReturnType()).space().append(buildContext.funcOpWrapper.functionName());
+            // type(buildContext.funcOpWrapper.getReturnType()).space().append(buildContext.funcOpWrapper.functionName());
 
             var list = buildContext.funcOpWrapper.paramTable.list();
             parenNlIndented(_ ->
@@ -110,7 +110,7 @@ public abstract class C99HatKernelBuilder<T extends C99HatKernelBuilder<T>> exte
 
             braceNlIndented(_ -> {
                 scope();
-                StreamCounter.of(buildContext.funcOpWrapper.wrappedRootOpStream(), (c,root) ->
+                StreamCounter.of(buildContext.funcOpWrapper.wrappedRootOpStream(), (c, root) ->
                         nlIf(c.isNotFirst()).recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>))
                 );
             });
@@ -143,7 +143,7 @@ public abstract class C99HatKernelBuilder<T extends C99HatKernelBuilder<T>> exte
 
             braceNlIndented(_ -> {
                 scope();
-                StreamCounter.of(buildContext.funcOpWrapper.wrappedRootOpStream(),(c,root) ->
+                StreamCounter.of(buildContext.funcOpWrapper.wrappedRootOpStream(), (c, root) ->
                         nlIf(c.isNotFirst()).recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>))
                 );
             });
@@ -158,7 +158,7 @@ public abstract class C99HatKernelBuilder<T extends C99HatKernelBuilder<T>> exte
 
     public abstract T kernelDeclaration(String name);
 
-    public abstract T functionDeclaration(JavaType javaType, String name );
+    public abstract T functionDeclaration(JavaType javaType, String name);
 
     public abstract T globalId();
 

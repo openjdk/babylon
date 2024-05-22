@@ -32,18 +32,23 @@ public abstract class JavaCodeBuilder<T extends JavaCodeBuilder<T>> extends Code
     T importKeyword() {
         return keyword("import");
     }
+
     T classKeyword() {
         return keyword("class");
     }
+
     public T classKeyword(String name) {
         return classKeyword().space().append(name);
     }
+
     T extendsKeyword() {
         return keyword("extends");
     }
+
     public T extendsKeyword(String name) {
         return extendsKeyword().space().append(name);
     }
+
     public T importKeyword(String name) {
         return importKeyword().space().append(name).semicolon().nl();
     }
@@ -51,22 +56,25 @@ public abstract class JavaCodeBuilder<T extends JavaCodeBuilder<T>> extends Code
     T publicKeyword() {
         return keyword("public");
     }
+
     T interfaceKeyword() {
         return keyword("interface");
     }
 
     T publicInterface(String name) {
-        return  publicKeyword().space().interfaceKeyword().space().append(name);
+        return publicKeyword().space().interfaceKeyword().space().append(name);
     }
+
     public T publicInterface(String name, Consumer<T> consumer) {
-       return  publicInterface(name).obrace().indent(consumer).cbrace();
+        return publicInterface(name).obrace().indent(consumer).cbrace();
     }
 
     public T publicFinal(String name) {
-        return  publicKeyword().space().finalKW().space().append(name);
+        return publicKeyword().space().finalKW().space().append(name);
     }
+
     public T finalKW() {
-        return  keyword("final");
+        return keyword("final");
     }
 
     T publicKeyword(String name) {
@@ -76,11 +84,11 @@ public abstract class JavaCodeBuilder<T extends JavaCodeBuilder<T>> extends Code
 
     public T arity(String arityPattern, int start, int n) {
         ochevron();
-        for (int i=start; i<n; i++){
-            if (i>start){
+        for (int i = start; i < n; i++) {
+            if (i > start) {
                 comma().space();
             }
-            append(arityPattern+i);
+            append(arityPattern + i);
         }
         return cchevron();
     }

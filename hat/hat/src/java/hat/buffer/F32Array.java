@@ -26,35 +26,30 @@ package hat.buffer;
 
 import hat.Accelerator;
 
-import java.awt.image.BufferedImage;
-import java.awt.image.DataBuffer;
-import java.awt.image.DataBufferByte;
-import java.awt.image.DataBufferInt;
-import java.awt.image.DataBufferUShort;
 import java.lang.foreign.MemorySegment;
 
-import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
-import static java.lang.foreign.ValueLayout.JAVA_INT;
-import static java.lang.foreign.ValueLayout.JAVA_SHORT;
 
 public interface F32Array extends Array1D {
     static F32Array create(Accelerator accelerator, int length) {
         return Array1D.create(accelerator, F32Array.class, length, JAVA_FLOAT);
     }
+
     static F32Array create(Accelerator accelerator, float[] source) {
-        return create(accelerator,source.length).copyFrom(source);
+        return create(accelerator, source.length).copyFrom(source);
     }
+
     float array(long idx);
 
     void array(long idx, float f);
 
     default F32Array copyFrom(float[] floats) {
-         MemorySegment.copy(floats,0,memorySegment(),JAVA_FLOAT,4, length());
-         return this;
+        MemorySegment.copy(floats, 0, memorySegment(), JAVA_FLOAT, 4, length());
+        return this;
     }
+
     default F32Array copyTo(float[] floats) {
-        MemorySegment.copy(memorySegment(),JAVA_FLOAT,4,floats,0, length());
+        MemorySegment.copy(memorySegment(), JAVA_FLOAT, 4, floats, 0, length());
         return this;
     }
 

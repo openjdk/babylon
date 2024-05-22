@@ -62,21 +62,22 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
     public static class ParamTable {
         public static class Info {
 
-            public static boolean isIfaceBuffer(Class<?> hopefullyABufferClass){
+            public static boolean isIfaceBuffer(Class<?> hopefullyABufferClass) {
 
-                if (Buffer.class.isAssignableFrom(hopefullyABufferClass)){
+                if (Buffer.class.isAssignableFrom(hopefullyABufferClass)) {
                     return true;
-                }else{
+                } else {
                     Class<?> enclosingClass = hopefullyABufferClass.getEnclosingClass();
                     if (enclosingClass != null) {
                         return isIfaceBuffer(enclosingClass);
-                    }else {
+                    } else {
                         return false;
                     }
                 }
             }
-            public static boolean isIfaceBuffer(JavaType javaType){
-                if (javaType instanceof PrimitiveType){
+
+            public static boolean isIfaceBuffer(JavaType javaType) {
+                if (javaType instanceof PrimitiveType) {
                     return false;
                 }
                 try {
@@ -88,13 +89,14 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
                 }
 
             }
-            public  boolean isIfaceBuffer() {
+
+            public boolean isIfaceBuffer() {
                 return isIfaceBuffer(javaType);
 
             }
 
-            public  boolean isKernelContext() {
-                if (javaType instanceof PrimitiveType){
+            public boolean isKernelContext() {
+                if (javaType instanceof PrimitiveType) {
                     return false;
                 }
                 try {
@@ -114,16 +116,19 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
             Value dirtyVar;
             public GroupLayout layout = null;
             public Class<?> clazz = null;
+
             Info(int idx, Block.Parameter parameter, CoreOp.VarOp varOp) {
                 this.idx = idx;
                 this.parameter = parameter;
-                this.javaType = (JavaType)parameter.type();
+                this.javaType = (JavaType) parameter.type();
                 this.varOp = varOp;
                 this.dirtyVar = null;
             }
+
             public void setDirtyVar(Value dirtyVar) {
                 this.dirtyVar = dirtyVar;
             }
+
             public boolean isPrimitive() {
                 return javaType instanceof PrimitiveType;
             }
@@ -153,16 +158,18 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
         void add(Map.Entry<Block.Parameter, CoreOp.VarOp> parameterToVarOp) {
             //We add a new ParameterInfo to both maps using parameter and varOp as keys
             varOpToInfo.put(parameterToVarOp.getValue(),
-                    parameterToInfo.computeIfAbsent(parameterToVarOp.getKey(), (parameterKey) ->{ // always called but convenient because computeIfAbsent returns what we added :)
-                        var info =    new ParamTable.Info(list.size(), parameterKey, parameterToVarOp.getValue()) ;
+                    parameterToInfo.computeIfAbsent(parameterToVarOp.getKey(), (parameterKey) -> { // always called but convenient because computeIfAbsent returns what we added :)
+                        var info = new ParamTable.Info(list.size(), parameterKey, parameterToVarOp.getValue());
                         list.add(info);
                         return info;
                     })
             );
         }
+
         public List<Info> list() {
             return list;
         }
+
         public Stream<Info> stream() {
             return list.stream();
         }
@@ -181,22 +188,25 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
     public Block.Parameter parameter(int idx) {
         return paramInfo(idx).parameter;
     }
+
     public Map<Block.Parameter, CoreOp.VarOp> parameterToVarOpMap = new LinkedHashMap<>();
     public Map<CoreOp.VarOp, Block.Parameter> varOpToParameterMap = new LinkedHashMap<>();
+
     FuncOpWrapper(CoreOp.FuncOp op) {
         super(op);
         op().body().blocks().getFirst().parameters().forEach(parameter -> {
             Optional<Op.Result> optionalResult = parameter.uses().stream().findFirst();
             optionalResult.ifPresentOrElse(result -> {
                 CoreOp.VarOp varOp = (CoreOp.VarOp) result.op();
-                parameterToVarOpMap.put(parameter,varOp);
-                varOpToParameterMap.put(varOp,parameter);
+                parameterToVarOpMap.put(parameter, varOp);
+                varOpToParameterMap.put(varOp, parameter);
                 paramTable.add(Map.entry(parameter, varOp));
             }, () -> {
                 throw new IllegalStateException("no use of param");
             });
         });
     }
+
     public FuncOpWrapper lower() {
         return new FuncOpWrapper(op().transform((block, op) -> {
             if (op instanceof Op.Lowerable lop) {
@@ -207,7 +217,8 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
             }
         }));
     }
-    public Stream<OpWrapper<?>> wrappedRootOpStream(){
+
+    public Stream<OpWrapper<?>> wrappedRootOpStream() {
         return wrappedRootOpStream(firstBlockOfFirstBody());
     }
 
@@ -215,26 +226,28 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
         return op().transform(newName, opTransformer);
     }
 
-     public boolean isParameterVarOp(VarDeclarationOpWrapper varDeclarationOpWrapper) {
-         return paramTable().isParameterVarOp(varDeclarationOpWrapper.op());
-     }
-     public boolean isParameterVarOp(CoreOp.VarOp varOp) {
-         return paramTable().isParameterVarOp(varOp);
-     }
+    public boolean isParameterVarOp(VarDeclarationOpWrapper varDeclarationOpWrapper) {
+        return paramTable().isParameterVarOp(varDeclarationOpWrapper.op());
+    }
 
-     public  interface WrappedInvokeOpTransformer  extends BiFunction<Block.Builder, InvokeOpWrapper, Block.Builder> {
-         Block.Builder apply(Block.Builder block, InvokeOpWrapper op);
-     }
-     public FuncOpWrapper transformInvokes(WrappedInvokeOpTransformer wrappedOpTransformer) {
-          return OpWrapper.wrap(op().transform((b, op)->{
-             if (op instanceof CoreOp.InvokeOp invokeOp){
-                 wrappedOpTransformer.apply(b, OpWrapper.wrap(invokeOp));
-             }else{
-                 b.op(op);
-             }
-             return b;
-         }));
-     }
+    public boolean isParameterVarOp(CoreOp.VarOp varOp) {
+        return paramTable().isParameterVarOp(varOp);
+    }
+
+    public interface WrappedInvokeOpTransformer extends BiFunction<Block.Builder, InvokeOpWrapper, Block.Builder> {
+        Block.Builder apply(Block.Builder block, InvokeOpWrapper op);
+    }
+
+    public FuncOpWrapper transformInvokes(WrappedInvokeOpTransformer wrappedOpTransformer) {
+        return OpWrapper.wrap(op().transform((b, op) -> {
+            if (op instanceof CoreOp.InvokeOp invokeOp) {
+                wrappedOpTransformer.apply(b, OpWrapper.wrap(invokeOp));
+            } else {
+                b.op(op);
+            }
+            return b;
+        }));
+    }
 
     public String functionName() {
         return op().funcName();
@@ -244,4 +257,4 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
         return op().resultType();
     }
 
- }
+}

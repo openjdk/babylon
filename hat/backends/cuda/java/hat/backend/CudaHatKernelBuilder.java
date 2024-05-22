@@ -42,15 +42,16 @@ public class CudaHatKernelBuilder extends C99HatKernelBuilder<CudaHatKernelBuild
         return self();
     }
 
-    public CudaHatKernelBuilder globalId(){
+    public CudaHatKernelBuilder globalId() {
         return identifier("blockIdx").dot().identifier("x")
                 .asterisk()
                 .identifier("blockDim").dot().identifier("x")
                 .plus()
                 .identifier("threadIdx").dot().identifier("x");
     }
+
     @Override
-    public CudaHatKernelBuilder globalSize(){
+    public CudaHatKernelBuilder globalSize() {
         return identifier("gridDim").dot().identifier("x")
                 .asterisk()
                 .identifier("blockDim").dot().identifier("x");

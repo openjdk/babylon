@@ -24,12 +24,11 @@
  */
 package hat.optools;
 
-import java.lang.reflect.code.Block;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.op.CoreOp;
 
- public  abstract  class  VarAccessOpWrapper<T extends CoreOp.VarAccessOp> extends OpWrapper<T> {
+public abstract class VarAccessOpWrapper<T extends CoreOp.VarAccessOp> extends OpWrapper<T> {
     VarAccessOpWrapper(T op) {
         super(op);
     }
@@ -39,8 +38,8 @@ import java.lang.reflect.code.op.CoreOp;
         // @@@ At a high-level a Var value occur as a BlockArgument.
         // Lowering should remove such cases and the var definition should emerge
         // @@@ This method is used when transforming to pure SSA
-        Value value= operands().getFirst();
-        Op.Result variable = (Op.Result)value;
+        Value value = operands().getFirst();
+        Op.Result variable = (Op.Result) value;
         return (CoreOp.VarOp) variable.op();
     }
 }

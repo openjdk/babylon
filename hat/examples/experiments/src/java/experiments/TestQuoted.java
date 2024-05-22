@@ -4,13 +4,10 @@ package experiments;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Quotable;
 import java.lang.reflect.code.Quoted;
-import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.type.MethodRef;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -202,7 +199,7 @@ public class TestQuoted {
                 "doubleValue",
                 "booleanValue");
 
-    //    static final Collection<TypeElement> BOX_TYPES = JavaType.primitiveToWrapper.values();
+        //    static final Collection<TypeElement> BOX_TYPES = JavaType.primitiveToWrapper.values();
 
         private static boolean isBoxOrUnboxInvocation(CoreOp.InvokeOp iop) {
             MethodRef mr = iop.invokeDescriptor();

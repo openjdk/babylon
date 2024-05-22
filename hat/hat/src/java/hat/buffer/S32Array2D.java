@@ -30,7 +30,7 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface S32Array2D extends Array2D {
     static S32Array2D create(Accelerator accelerator, int width, int height) {
-        return Array2D.create(accelerator, S32Array2D.class, width,height,JAVA_INT);
+        return Array2D.create(accelerator, S32Array2D.class, width, height, JAVA_INT);
     }
 
     int array(long idx);

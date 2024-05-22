@@ -36,7 +36,6 @@ import java.lang.reflect.code.op.ExtendedOp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class OpWrapper<T extends Op> {
@@ -83,9 +82,9 @@ public class OpWrapper<T extends Op> {
             case CoreOp.LambdaOp $ -> (OW) new LambdaOpWrapper($);
             case ExtendedOp.JavaConditionalOp $ -> (OW) new LogicalOpWrapper($);
             case ExtendedOp.JavaConditionalExpressionOp $ -> (OW) new TernaryOpWrapper($);
-            case ExtendedOp.JavaLabeledOp $ ->  (OW) new JavaLabeledOpWrapper($);
-            case ExtendedOp.JavaBreakOp $ ->  (OW) new JavaBreakOpWrapper($);
-            case ExtendedOp.JavaContinueOp $ ->  (OW) new JavaContinueOpWrapper($);
+            case ExtendedOp.JavaLabeledOp $ -> (OW) new JavaLabeledOpWrapper($);
+            case ExtendedOp.JavaBreakOp $ -> (OW) new JavaBreakOpWrapper($);
+            case ExtendedOp.JavaContinueOp $ -> (OW) new JavaContinueOpWrapper($);
             default -> (OW) new OpWrapper<>(op);
         };
     }
@@ -198,30 +197,34 @@ public class OpWrapper<T extends Op> {
         return op().toText();
     }
 
-    public  Stream<OpWrapper<?>> wrappedOpStream(Block block) {
+    public Stream<OpWrapper<?>> wrappedOpStream(Block block) {
         return block.ops().stream().map(OpWrapper::wrap);
     }
 
-    public  Stream<OpWrapper<?>> wrappedYieldOpStream(Block block) {
-        return wrappedOpStream(block).filter(wrapped-> wrapped instanceof YieldOpWrapper);
+    public Stream<OpWrapper<?>> wrappedYieldOpStream(Block block) {
+        return wrappedOpStream(block).filter(wrapped -> wrapped instanceof YieldOpWrapper);
     }
 
-    private Stream<OpWrapper<?>> roots(Block block){
-        var rootSet =  RootSet.getRootSet(block.ops().stream());
+    private Stream<OpWrapper<?>> roots(Block block) {
+        var rootSet = RootSet.getRootSet(block.ops().stream());
         return block.ops().stream().filter(rootSet::contains).map(OpWrapper::wrap);
     }
-    private Stream<OpWrapper<?>> rootsWithoutVarFuncDeclarations(Block block){
-        return roots(block).filter(w->!(w instanceof VarFuncDeclarationOpWrapper));
+
+    private Stream<OpWrapper<?>> rootsWithoutVarFuncDeclarations(Block block) {
+        return roots(block).filter(w -> !(w instanceof VarFuncDeclarationOpWrapper));
     }
-    private Stream<OpWrapper<?>> rootsWithoutVarFuncDeclarationsOrYields(Block block){
-        return rootsWithoutVarFuncDeclarations(block).filter(w->!(w instanceof YieldOpWrapper));
+
+    private Stream<OpWrapper<?>> rootsWithoutVarFuncDeclarationsOrYields(Block block) {
+        return rootsWithoutVarFuncDeclarations(block).filter(w -> !(w instanceof YieldOpWrapper));
     }
+
     public Stream<OpWrapper<?>> wrappedRootOpStream(Block block) {
-       return rootsWithoutVarFuncDeclarationsOrYields(block);
+        return rootsWithoutVarFuncDeclarationsOrYields(block);
     }
+
     public Stream<OpWrapper<?>> wrappedRootOpStreamSansFinalContinue(Block block) {
         var list = new ArrayList<>(rootsWithoutVarFuncDeclarationsOrYields(block).toList());
-        if (list.getLast() instanceof JavaContinueOpWrapper javaContinueOpWrapper){
+        if (list.getLast() instanceof JavaContinueOpWrapper javaContinueOpWrapper) {
             list.removeLast();
         }
         return list.stream();

@@ -25,10 +25,8 @@
 package violajones.attic;
 
 
-
 import hat.buffer.F32Array2D;
 import violajones.XMLHaarCascadeModel;
-import violajones.attic.CoreJavaViolaJones;
 import violajones.ifaces.Cascade;
 import violajones.ifaces.ResultTable;
 import violajones.ifaces.ScaleTable;
@@ -42,7 +40,7 @@ public class ReferenceJavaViolaJones extends CoreJavaViolaJones {
             float vnorm,
             F32Array2D integral,
             Cascade.Stage stage,
-           Cascade cascade) {
+            Cascade cascade) {
         float sumOfThisStage = 0;
         int startTreeIdx = stage.firstTreeId();
         int endTreeIdx = startTreeIdx + stage.treeCount();
@@ -67,7 +65,7 @@ public class ReferenceJavaViolaJones extends CoreJavaViolaJones {
                         sumOfThisStage += left.anon().value();
                         feature = null;
                     } else {
-                        feature =cascade.feature(tree.firstFeatureId() + left.anon().featureId());
+                        feature = cascade.feature(tree.firstFeatureId() + left.anon().featureId());
 
                     }
                 } else {//right
@@ -76,7 +74,7 @@ public class ReferenceJavaViolaJones extends CoreJavaViolaJones {
                         sumOfThisStage += right.anon().value();
                         feature = null;
                     } else {
-                        feature =cascade.feature(tree.firstFeatureId() + right.anon().featureId());
+                        feature = cascade.feature(tree.firstFeatureId() + right.anon().featureId());
                     }
                 }
             }
@@ -96,11 +94,11 @@ public class ReferenceJavaViolaJones extends CoreJavaViolaJones {
     ) {
         float sumOfThisStage = 0;
 
-            int startTreeIdx = stage.firstTreeId();
-            int endTreeIdx = startTreeIdx + stage.treeCount();
-            for (int treeIdx = startTreeIdx; treeIdx < endTreeIdx; treeIdx++) {
-                XMLHaarCascadeModel.Tree tree= haarCascade.trees.get(treeIdx);
-              //  Cascade.Tree tree = cascade.tree(treeIdx);
+        int startTreeIdx = stage.firstTreeId();
+        int endTreeIdx = startTreeIdx + stage.treeCount();
+        for (int treeIdx = startTreeIdx; treeIdx < endTreeIdx; treeIdx++) {
+            XMLHaarCascadeModel.Tree tree = haarCascade.trees.get(treeIdx);
+            //  Cascade.Tree tree = cascade.tree(treeIdx);
 
 
             XMLHaarCascadeModel.Feature feature = haarCascade.features.get(tree.firstFeatureId);
@@ -120,15 +118,15 @@ public class ReferenceJavaViolaJones extends CoreJavaViolaJones {
                         sumOfThisStage += feature.left.value();
                         feature = null;
                     } else {
-                        feature = haarCascade.features.get(tree.firstFeatureId()+feature.left.featureId());
+                        feature = haarCascade.features.get(tree.firstFeatureId() + feature.left.featureId());
                     }
                 } else {//right
                     if (feature.right.hasValue()) {
                         sumOfThisStage += feature.right.value();
                         feature = null;
                     } else {
-                        feature = haarCascade.features.get(tree.firstFeatureId()+feature.right.featureId());
-                      //  feature = tree.features.get(feature.right.featureId());
+                        feature = haarCascade.features.get(tree.firstFeatureId() + feature.right.featureId());
+                        //  feature = tree.features.get(feature.right.featureId());
                     }
                 }
             }
@@ -151,13 +149,13 @@ public class ReferenceJavaViolaJones extends CoreJavaViolaJones {
             ScaleTable.Scale scale = scaleTable.scale(scalc++);
             for (;
                  gid >= scale.accumGridSizeMax();
-                 scale=scaleTable.scale(scalc++))
+                 scale = scaleTable.scale(scalc++))
                 ;
             int scaleGid = gid - scale.accumGridSizeMin();
             int x = (int) ((scaleGid % scale.gridWidth()) * scale.scaledXInc());
             int y = (int) ((scaleGid / scale.gridWidth()) * scale.scaledYInc());
-            float integralGradient = gradient(integral,  x, y, scale.scaledFeatureWidth(), scale.scaledFeatureHeight()) * scale.invArea();
-            float integralSqGradient = gradient(integralSq,  x, y, scale.scaledFeatureWidth(), scale.scaledFeatureHeight()) * scale.invArea();
+            float integralGradient = gradient(integral, x, y, scale.scaledFeatureWidth(), scale.scaledFeatureHeight()) * scale.invArea();
+            float integralSqGradient = gradient(integralSq, x, y, scale.scaledFeatureWidth(), scale.scaledFeatureHeight()) * scale.invArea();
 
             float vnorm = integralSqGradient - integralGradient * integralGradient;
             vnorm = (vnorm > 1) ? (float) Math.sqrt(vnorm) : 1;
@@ -170,11 +168,11 @@ public class ReferenceJavaViolaJones extends CoreJavaViolaJones {
                     }
                 }
             } else {
-                int stageCount =  cascade.stageCount();
+                int stageCount = cascade.stageCount();
                 for (int stagec = 0; stagec < stageCount; stagec++) {
                     Cascade.Stage stage = cascade.stage(stagec);
                     if (!(stillLooksLikeAFace = isAFaceStage(
-                            scale.scaleValue(), scale.invArea(), x, y, vnorm, integral, stage, cascade))){
+                            scale.scaleValue(), scale.invArea(), x, y, vnorm, integral, stage, cascade))) {
 
                         break;
                     }

@@ -1,8 +1,8 @@
 package experiments.spirv;
 
 import hat.Accelerator;
-import hat.KernelContext;
 import hat.ComputeContext;
+import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
 
@@ -72,7 +72,7 @@ public class GetBackend {
                 float sum = 0f;
                 for (int k = 0; k < kid.maxX; k++) {
                     //sum += a[kid.x * kid.max + k] * b[k * kid.max + j];
-                    sum += a.array(kid.x * kid.maxX + k)*b.array(k * kid.maxX + j);
+                    sum += a.array(kid.x * kid.maxX + k) * b.array(k * kid.maxX + j);
                     //sum += a[kid.x * kid.max + k] * b[k * kid.max + j];
                     sum += a.array(kid.x * kid.maxX + k) * b.array(k * kid.maxX + j);
                 }
@@ -83,19 +83,19 @@ public class GetBackend {
 
         @CodeReflection
         static void compute(ComputeContext computeContext, F32Array a, F32Array b, F32Array c, int size) {
-            computeContext.dispatchKernel(size*size, kc->MatrixMultiply.kernel(kc,  a, b, c));
+            computeContext.dispatchKernel(size * size, kc -> MatrixMultiply.kernel(kc, a, b, c));
         }
 
     }
 
     public static void main(String[] args) {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), (backend) ->
-            backend.getClass().getSimpleName().startsWith("Spirv")
+                backend.getClass().getSimpleName().startsWith("Spirv")
         );
-        var a =F32Array.create(accelerator, 100);
-        var b =F32Array.create(accelerator, 100);
-        var c =F32Array.create(accelerator, 100);
-        accelerator.compute(cc->MatrixMultiply.compute(cc, a,b,c,100));
+        var a = F32Array.create(accelerator, 100);
+        var b = F32Array.create(accelerator, 100);
+        var c = F32Array.create(accelerator, 100);
+        accelerator.compute(cc -> MatrixMultiply.compute(cc, a, b, c, 100));
     }
 
 }

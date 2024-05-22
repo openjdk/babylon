@@ -54,22 +54,31 @@ public interface ArgArray extends IncompleteBuffer {
                         ADDRESS.withName("vendorPtr"), // CLBuf *buf;   CUdeviceptr buf; void *buf ?
                         JAVA_BYTE.withName("access"), //0=??/1=RO/2=WO/3=RW
                         JAVA_BYTE.withName("state"), //0=UNKNOWN/1=GPUDIRTY/2=JAVADIRTY
-                        MemoryLayout.paddingLayout(16-JAVA_BYTE.byteSize()-JAVA_BYTE.byteSize())
+                        MemoryLayout.paddingLayout(16 - JAVA_BYTE.byteSize() - JAVA_BYTE.byteSize())
                 ).withName("buf");
+
                 MemorySegment address();
+
                 void address(MemorySegment address);
+
                 long bytes();
+
                 void bytes(long bytes);
+
                 MemorySegment vendorPtr();
+
                 void vendorPtr(MemorySegment vendorPtr);
 
                 byte access();
+
                 void access(byte access);
 
                 byte state();
+
                 void state(byte state);
 
             }
+
             MemoryLayout layout = MemoryLayout.unionLayout(
                     JAVA_BOOLEAN.withName("z1"),
                     JAVA_BYTE.withName("s8"),
@@ -83,12 +92,15 @@ public interface ArgArray extends IncompleteBuffer {
                     JAVA_DOUBLE.withName("f64"),
                     Buf.layout.withName("buf")
             ).withName("value");
+
             boolean z1();
 
             void z1(boolean z1);
+
             byte s8();
 
             void s8(byte s8);
+
             char u16();
 
             void u16(char u16);
@@ -127,7 +139,7 @@ public interface ArgArray extends IncompleteBuffer {
         MemoryLayout layout = MemoryLayout.structLayout(
                 JAVA_INT.withName("idx"),      //4
                 JAVA_BYTE.withName("variant"), //5
-                MemoryLayout.paddingLayout(16-JAVA_INT.byteSize()-JAVA_BYTE.byteSize()),
+                MemoryLayout.paddingLayout(16 - JAVA_INT.byteSize() - JAVA_BYTE.byteSize()),
                 Value.layout.withName("value")
         );
 
@@ -138,93 +150,121 @@ public interface ArgArray extends IncompleteBuffer {
         byte variant();
 
         void variant(byte variant);
+
         Value value();
 
-        default  String asString(){
-            switch (variant()){
-                case '&':return Long.toHexString(u64());
-                case 'F':return Float.toString(f32());
-                case 'I':return Integer.toString(s32());
-                case 'J':return Long.toString(s64());
-                case 'D':return Double.toString(f64());
-                case 'Z':return Boolean.toString(z1());
-                case 'B':return Byte.toString(s8());
-                case 'S':return Short.toString(s16());
-                case 'C':return Character.toString(u16());
+        default String asString() {
+            switch (variant()) {
+                case '&':
+                    return Long.toHexString(u64());
+                case 'F':
+                    return Float.toString(f32());
+                case 'I':
+                    return Integer.toString(s32());
+                case 'J':
+                    return Long.toString(s64());
+                case 'D':
+                    return Double.toString(f64());
+                case 'Z':
+                    return Boolean.toString(z1());
+                case 'B':
+                    return Byte.toString(s8());
+                case 'S':
+                    return Short.toString(s16());
+                case 'C':
+                    return Character.toString(u16());
             }
             throw new IllegalStateException("what is this");
         }
-        default  boolean  z1(){
+
+        default boolean z1() {
             return value().z1();
         }
-        default  void  z1(boolean z1){
-            variant((byte)'Z');
+
+        default void z1(boolean z1) {
+            variant((byte) 'Z');
             value().z1(z1);
         }
-        default  byte  s8(){
+
+        default byte s8() {
             return value().s8();
         }
-        default  void  s8(byte s8){
-            variant((byte)'B');
+
+        default void s8(byte s8) {
+            variant((byte) 'B');
             value().s8(s8);
         }
-        default  char  u16(){
+
+        default char u16() {
             return value().u16();
         }
-        default  void  u16(char u16){
-            variant((byte)'C');
+
+        default void u16(char u16) {
+            variant((byte) 'C');
             value().u16(u16);
         }
-        default  short  s16(){
+
+        default short s16() {
             return value().s16();
         }
-        default  void  s16(short s16){
-            variant((byte)'S');
+
+        default void s16(short s16) {
+            variant((byte) 'S');
             value().s16(s16);
         }
-       default  int  s32(){
+
+        default int s32() {
             return value().s32();
         }
-        default  void  s32(int s32){
-            variant((byte)'I');
+
+        default void s32(int s32) {
+            variant((byte) 'I');
             value().s32(s32);
         }
-        default  float  f32(){
+
+        default float f32() {
             return value().f32();
         }
-        default  void  f32(float f32){
-            variant((byte)'F');
+
+        default void f32(float f32) {
+            variant((byte) 'F');
             value().f32(f32);
         }
-        default  long  s64(){
+
+        default long s64() {
             return value().s64();
         }
-        default  void  s64(long s64){
-            variant((byte)'J');
+
+        default void s64(long s64) {
+            variant((byte) 'J');
             value().s64(s64);
         }
-        default  long  u64(){
+
+        default long u64() {
             return value().u64();
         }
-        default  void  u64(long u64){
-            variant((byte)'&');
+
+        default void u64(long u64) {
+            variant((byte) '&');
             value().u64(u64);
         }
-        default  double  f64(){
+
+        default double f64() {
             return value().f64();
         }
-        default  void  f64(double f64){
-            variant((byte)'D');
+
+        default void f64(double f64) {
+            variant((byte) 'D');
             value().f64(f64);
         }
     }
 
-    static ArgArray create(Accelerator accelerator, MemoryLayout ... layouts) {
+    static ArgArray create(Accelerator accelerator, MemoryLayout... layouts) {
 
-        
+
         ArgArray argArray = SegmentMapper.of(accelerator.lookup, ArgArray.class,
                 JAVA_INT.withName("argc"),
-                MemoryLayout.paddingLayout(16-JAVA_INT.byteSize()),
+                MemoryLayout.paddingLayout(16 - JAVA_INT.byteSize()),
                 MemoryLayout.sequenceLayout(layouts.length, Arg.layout.withName(Arg.class.getSimpleName())).withName("arg"),
                 ADDRESS.withName("vendorPtr")
         ).allocate(accelerator.backend.arena());
@@ -233,31 +273,32 @@ public interface ArgArray extends IncompleteBuffer {
             MemoryLayout layout = layouts[i];
             Arg arg = argArray.arg(i);
             arg.idx(i);
-            if (layout.equals(JAVA_BOOLEAN)){
-                arg.variant((byte)'Z');
-            }else if (layout.equals(JAVA_BYTE)){
-                arg.variant((byte)'B');
-            }else if (layout.equals(JAVA_CHAR)){
-                arg.variant((byte)'C');
-            }else if (layout.equals(JAVA_SHORT)) {
+            if (layout.equals(JAVA_BOOLEAN)) {
+                arg.variant((byte) 'Z');
+            } else if (layout.equals(JAVA_BYTE)) {
+                arg.variant((byte) 'B');
+            } else if (layout.equals(JAVA_CHAR)) {
+                arg.variant((byte) 'C');
+            } else if (layout.equals(JAVA_SHORT)) {
                 arg.variant((byte) 'S');
-            }else if (layout.equals(JAVA_INT)) {
+            } else if (layout.equals(JAVA_INT)) {
                 arg.variant((byte) 'I');
-            }else if (layout.equals(JAVA_LONG)){
-                arg.variant((byte)'J');
-            }else if (layout.equals(JAVA_FLOAT)){
-                arg.variant((byte)'F');
-            }else if (layout.equals(JAVA_DOUBLE)){
-                arg.variant((byte)'D');
-            }else if (layout instanceof GroupLayout){
-                arg.variant((byte)'&');
+            } else if (layout.equals(JAVA_LONG)) {
+                arg.variant((byte) 'J');
+            } else if (layout.equals(JAVA_FLOAT)) {
+                arg.variant((byte) 'F');
+            } else if (layout.equals(JAVA_DOUBLE)) {
+                arg.variant((byte) 'D');
+            } else if (layout instanceof GroupLayout) {
+                arg.variant((byte) '&');
             }
         }
         return argArray;
     }
-    static String valueLayoutToSchemaString(ValueLayout valueLayout){
+
+    static String valueLayoutToSchemaString(ValueLayout valueLayout) {
         String descriptor = valueLayout.carrier().descriptorString();
-        String schema =  switch (descriptor){
+        String schema = switch (descriptor) {
             case "Z" -> "Z";
             case "B" -> "S";
             case "C" -> "U";
@@ -267,11 +308,11 @@ public interface ArgArray extends IncompleteBuffer {
             case "D" -> "F";
             case "J" -> "S";
             default -> throw new IllegalStateException("Unexpected value: " + descriptor);
-        }+valueLayout.byteSize()*8;
-        return  (valueLayout.order().equals(ByteOrder.LITTLE_ENDIAN))?schema.toLowerCase():schema;
+        } + valueLayout.byteSize() * 8;
+        return (valueLayout.order().equals(ByteOrder.LITTLE_ENDIAN)) ? schema.toLowerCase() : schema;
     }
 
-    static void update(ArgArray argArray, Object ...args){
+    static void update(ArgArray argArray, Object... args) {
         for (int i = 0; i < args.length; i++) {
             Object argObject = args[i];
             Arg arg = argArray.arg(i);
@@ -281,13 +322,13 @@ public interface ArgArray extends IncompleteBuffer {
                 case Byte s8 -> arg.s8(s8);
                 case Short s16 -> arg.s16(s16);
                 case Character u16 -> arg.u16(u16);
-                case Float f32  -> arg.f32(f32);
-                case Integer s32-> arg.s32(s32);
+                case Float f32 -> arg.f32(f32);
+                case Integer s32 -> arg.s32(s32);
                 case Long s64 -> arg.s64(s64);
-                case Double f64-> arg.f64(f64);
-                case Buffer buffer-> {
+                case Double f64 -> arg.f64(f64);
+                case Buffer buffer -> {
                     MemorySegment segment = buffer.memorySegment();
-                    arg.variant((byte)'&');
+                    arg.variant((byte) '&');
                     Arg.Value value = arg.value();
                     Arg.Value.Buf buf = value.buf();
                     buf.address(segment);
@@ -299,7 +340,7 @@ public interface ArgArray extends IncompleteBuffer {
         }
     }
 
-    static ArgArray create(Accelerator accelerator, Object ... args) {
+    static ArgArray create(Accelerator accelerator, Object... args) {
         String[] schemas = new String[args.length];
         StringBuilder argSchema = new StringBuilder("args:[");
         argSchema.append(args.length).append(":");
@@ -318,7 +359,7 @@ public interface ArgArray extends IncompleteBuffer {
                 case IncompleteBuffer buffer -> "?:" + buffer.schema();
                 default -> throw new IllegalStateException("Unexpected value: " + argObject);
             };
-            if (i>0){
+            if (i > 0) {
                 argSchema.append(",");
             }
             argSchema.append(schemas[i]);
@@ -328,11 +369,11 @@ public interface ArgArray extends IncompleteBuffer {
 
         ArgArray argArray = SegmentMapper.of(accelerator.lookup, ArgArray.class,
                 JAVA_INT.withName("argc"),
-                MemoryLayout.paddingLayout(16-JAVA_INT.byteSize()),
+                MemoryLayout.paddingLayout(16 - JAVA_INT.byteSize()),
                 MemoryLayout.sequenceLayout(args.length, Arg.layout).withName("arg"),
                 ADDRESS.withName("vendorPtr"),
                 JAVA_INT.withName("schemaLen"),
-                MemoryLayout.sequenceLayout(schemaStr.length()+1, JAVA_BYTE).withName("schemaBytes")
+                MemoryLayout.sequenceLayout(schemaStr.length() + 1, JAVA_BYTE).withName("schemaBytes")
         ).allocate(accelerator.backend.arena());
         argArray.argc(args.length);
         argArray.schemaBytes(schemaStr);
@@ -345,13 +386,13 @@ public interface ArgArray extends IncompleteBuffer {
                 case Byte s8 -> arg.s8(s8);
                 case Short s16 -> arg.s16(s16);
                 case Character u16 -> arg.u16(u16);
-                case Float f32  -> arg.f32(f32);
-                case Integer s32-> arg.s32(s32);
+                case Float f32 -> arg.f32(f32);
+                case Integer s32 -> arg.s32(s32);
                 case Long s64 -> arg.s64(s64);
-                case Double f64-> arg.f64(f64);
-                case Buffer buffer-> {
+                case Double f64 -> arg.f64(f64);
+                case Buffer buffer -> {
                     MemorySegment segment = buffer.memorySegment();
-                    arg.variant((byte)'&');
+                    arg.variant((byte) '&');
                     Arg.Value value = arg.value();
                     Arg.Value.Buf buf = value.buf();
                     buf.address(segment);
@@ -367,6 +408,7 @@ public interface ArgArray extends IncompleteBuffer {
     int argc();
 
     void argc(int argc);
+
     int schemaLen();
 
     void schemaLen(int schemaLen);
@@ -375,34 +417,36 @@ public interface ArgArray extends IncompleteBuffer {
 
     void schemaBytes(long idx, byte b);
 
-    default String schemaBytes(){
-        byte[] bytes = new byte[schemaLen()+1];
-        for (int i = 0; i< schemaLen(); i++){
+    default String schemaBytes() {
+        byte[] bytes = new byte[schemaLen() + 1];
+        for (int i = 0; i < schemaLen(); i++) {
             bytes[i] = schemaBytes(i);
         }
-        bytes[bytes.length-1]='0';
+        bytes[bytes.length - 1] = '0';
         return new String(bytes);
     }
-    default void schemaBytes(String schemaStr){
+
+    default void schemaBytes(String schemaStr) {
         byte[] schemaStrBytes = schemaStr.getBytes();
         schemaLen(schemaStrBytes.length);
         // TODO:we should be able to copy into the segment here ;)
-        for (int i=0; i<schemaStrBytes.length; i++){
+        for (int i = 0; i < schemaStrBytes.length; i++) {
             schemaBytes(i, schemaStrBytes[i]);
         }
-        schemaBytes(schemaStrBytes.length, (byte)0);
+        schemaBytes(schemaStrBytes.length, (byte) 0);
     }
 
     Arg arg(long idx);
 
     MemorySegment vendorPtr();
+
     void vendorPtr(MemorySegment vendorPtr);
 
 
-    default String dump(){
+    default String dump() {
         StringBuilder dump = new StringBuilder();
         dump.append("SchemaBytes:").append(schemaBytes()).append("\n");
-        for (int argIndex = 0; argIndex<argc(); argIndex++){
+        for (int argIndex = 0; argIndex < argc(); argIndex++) {
             Arg arg = arg(argIndex);
             dump.append(arg.asString()).append("\n");
         }

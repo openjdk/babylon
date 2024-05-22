@@ -24,7 +24,6 @@
  */
 package hat.optools;
 
-import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.op.ExtendedOp;
 import java.util.stream.Stream;
 
@@ -32,14 +31,20 @@ public class ForOpWrapper extends LoopOpWrapper<ExtendedOp.JavaForOp> {
     ForOpWrapper(ExtendedOp.JavaForOp op) {
         super(op);
     }
+
     public Stream<OpWrapper<?>> initWrappedYieldOpStream() {
         return wrappedYieldOpStream(firstBlockOfBodyN(0));
     }
+
     @Override
     public Stream<OpWrapper<?>> conditionWrappedYieldOpStream() {
         return wrappedYieldOpStream(firstBlockOfBodyN(1));
     }
-    public Stream<OpWrapper<?>> mutateRootWrappedOpStream() {return wrappedRootOpStream(firstBlockOfBodyN(2));}
+
+    public Stream<OpWrapper<?>> mutateRootWrappedOpStream() {
+        return wrappedRootOpStream(firstBlockOfBodyN(2));
+    }
+
     @Override
     public Stream<OpWrapper<?>> loopWrappedRootOpStream() {
         return wrappedRootOpStreamSansFinalContinue(firstBlockOfBodyN(3));

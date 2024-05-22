@@ -26,15 +26,15 @@ package hat.text;
 
 
 public enum TerminalColors {
-        // https://www.lihaoyi.com/post/BuildyourownCommandLinewithANSIescapecodes.html#8-colors
-        NONE("0"),
-        BLACK("38;5;0"), DARKGREEN("38;5;22"), DARKBLUE("38;5;27"),
-        GREY("38;5;247"), RED("38;5;1"), GREEN("38;5;77"), YELLOW("38;5;185"),
-        BLUE("38;5;31"), WHITE("38;5;251"), ORANGE("38;5;208"), PURPLE("38;5;133");
-        public final String escSequence;
+    // https://www.lihaoyi.com/post/BuildyourownCommandLinewithANSIescapecodes.html#8-colors
+    NONE("0"),
+    BLACK("38;5;0"), DARKGREEN("38;5;22"), DARKBLUE("38;5;27"),
+    GREY("38;5;247"), RED("38;5;1"), GREEN("38;5;77"), YELLOW("38;5;185"),
+    BLUE("38;5;31"), WHITE("38;5;251"), ORANGE("38;5;208"), PURPLE("38;5;133");
+    public final String escSequence;
 
-        TerminalColors(String seq) {
-            escSequence = "\u001b[" + seq + "m";
-        }
+    TerminalColors(String seq) {
+        escSequence = "\u001b[" + seq + "m";
     }
+}
 

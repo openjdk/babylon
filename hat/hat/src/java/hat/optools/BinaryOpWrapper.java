@@ -24,17 +24,17 @@
  */
 package hat.optools;
 
-import java.lang.reflect.code.Block;
 import java.lang.reflect.code.Op;
-import java.lang.reflect.code.Value;
-import java.lang.reflect.code.op.CoreOp;
 
-public abstract class BinaryOpWrapper<T extends Op > extends OpWrapper<T> {
+public abstract class BinaryOpWrapper<T extends Op> extends OpWrapper<T> {
     BinaryOpWrapper(T op) {
         super(op);
     }
 
-    public Op lhsAsOp() {return operandNAsResult(0).op();}
+    public Op lhsAsOp() {
+        return operandNAsResult(0).op();
+    }
+
     public Op rhsAsOp() {
         return operandNAsResult(1).op();
     }

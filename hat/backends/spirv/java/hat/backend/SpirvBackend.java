@@ -25,10 +25,9 @@
 package hat.backend;
 
 
-
 import hat.ComputeContext;
-import hat.callgraph.KernelCallGraph;
 import hat.NDRange;
+import hat.callgraph.KernelCallGraph;
 import intel.code.spirv.SpirvModuleGenerator;
 import intel.code.spirv.SpirvOps;
 import intel.code.spirv.TranslateToSpirvModel;
@@ -36,18 +35,18 @@ import intel.code.spirv.TranslateToSpirvModel;
 import java.lang.foreign.MemorySegment;
 
 public class SpirvBackend extends NativeBackend {
-    public SpirvBackend()  {
+    public SpirvBackend() {
         super("spirv_backend");
         getBackend(null);
     }
 
 
     @Override
-    public void computeContextHandoff(ComputeContext computeContext){
+    public void computeContextHandoff(ComputeContext computeContext) {
         System.out.println("Spirv backend recieved closed closure");
-        System.out.println("Spirv backend will mutate  "+ computeContext.computeCallGraph.entrypoint + computeContext.computeCallGraph.entrypoint.method);
+        System.out.println("Spirv backend will mutate  " + computeContext.computeCallGraph.entrypoint + computeContext.computeCallGraph.entrypoint.method);
         injectBufferTracking(computeContext.computeCallGraph.entrypoint);
-        boolean doSpirv= false;
+        boolean doSpirv = false;
         if (doSpirv) {
             TranslateToSpirvModel translateToSpirvModel = new TranslateToSpirvModel();
             computeContext.computeCallGraph.kernelCallGraphStream().forEach(kernelCallGraph -> {
@@ -69,10 +68,11 @@ public class SpirvBackend extends NativeBackend {
 
         }
 
-      //  var codeBuilder = new SpirvCodeReflectionBuilder();
-      //  Code code = createCode(computeContext, codeBuilder);
-       // System.out.println(codeBuilder);
+        //  var codeBuilder = new SpirvCodeReflectionBuilder();
+        //  Code code = createCode(computeContext, codeBuilder);
+        // System.out.println(codeBuilder);
     }
+
     @Override
     public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
         System.out.println("implement spirv dispatch kernel");

@@ -33,7 +33,6 @@ import java.lang.reflect.code.CodeItem;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.Value;
-//import java.lang.reflect.code.writer.OpWriter;
 import java.lang.reflect.code.type.JavaType;
 import java.util.HashMap;
 import java.util.Map;
@@ -62,7 +61,7 @@ public abstract class OpCodeBuilder<T extends OpCodeBuilder<T>> extends CodeBuil
 
     static final class AttributeMapper {
         static String toString(Object value) {
-          throw new IllegalStateException();
+            throw new IllegalStateException();
         }
     }
 
@@ -94,9 +93,11 @@ public abstract class OpCodeBuilder<T extends OpCodeBuilder<T>> extends CodeBuil
                     : String.format("\\u%04x", (int) ch);
         };
     }
+
     static boolean isPrintableAscii(char ch) {
         return ch >= ' ' && ch <= '~';
     }
+
     final GlobalValueBlockNaming gn;
 
     public OpCodeBuilder() {
@@ -136,14 +137,13 @@ public abstract class OpCodeBuilder<T extends OpCodeBuilder<T>> extends CodeBuil
     }
 
 
-
     T attributeValue(Object value) {
         //what is a null?
-      //  if (value == Op.NULL_ATTRIBUTE_VALUE) {
+        //  if (value == Op.NULL_ATTRIBUTE_VALUE) {
         //    return nullKeyword();
-       // } else {
-            return dquote(value.toString());
-       // }
+        // } else {
+        return dquote(value.toString());
+        // }
     }
 
     T attribute(String name, Object value) {
@@ -168,9 +168,11 @@ public abstract class OpCodeBuilder<T extends OpCodeBuilder<T>> extends CodeBuil
         if (!block.isEntryBlock()) {
             blockName(block);
             zeroOrOneOrMore(block.parameters(),
-                    _->{},
-                    (one)->{},
-                    (params)-> paren(_ -> commaSeparated(params, this::valueDeclaration))
+                    _ -> {
+                    },
+                    (one) -> {
+                    },
+                    (params) -> paren(_ -> commaSeparated(params, this::valueDeclaration))
             );
             colon().nl();
         }

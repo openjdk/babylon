@@ -2,8 +2,6 @@ package hat.optools;
 
 import java.lang.reflect.code.Block;
 import java.lang.reflect.code.Op;
-import java.lang.reflect.code.op.CoreOp;
-import java.util.function.Consumer;
 
 public class BlockWrapper extends CodeElementWrapper<Block> {
     public Block block() {

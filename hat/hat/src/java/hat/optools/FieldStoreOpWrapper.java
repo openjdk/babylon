@@ -26,9 +26,8 @@ package hat.optools;
 
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.type.ClassType;
-import java.lang.reflect.code.type.FieldRef;
 
-public class FieldStoreOpWrapper extends FieldAccessOpWrapper<CoreOp.FieldAccessOp.FieldStoreOp> implements StoreOpWrapper{
+public class FieldStoreOpWrapper extends FieldAccessOpWrapper<CoreOp.FieldAccessOp.FieldStoreOp> implements StoreOpWrapper {
 
 
     FieldStoreOpWrapper(CoreOp.FieldAccessOp.FieldStoreOp op) {

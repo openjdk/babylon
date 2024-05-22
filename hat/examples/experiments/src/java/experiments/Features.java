@@ -28,10 +28,7 @@ import hat.buffer.CompleteBuffer;
 
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.StructLayout;
-import java.lang.foreign.UnionLayout;
 
-import static java.lang.foreign.MemoryLayout.sequenceLayout;
-import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 

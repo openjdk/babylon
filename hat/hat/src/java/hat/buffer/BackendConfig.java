@@ -24,15 +24,6 @@
  */
 package hat.buffer;
 
-import java.lang.foreign.GroupLayout;
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.PaddingLayout;
-import java.lang.foreign.SequenceLayout;
-import java.lang.foreign.StructLayout;
-import java.lang.foreign.ValueLayout;
-import java.lang.reflect.InvocationTargetException;
-
-public  interface BackendConfig extends CompleteBuffer{
+public interface BackendConfig extends CompleteBuffer {
 
 }

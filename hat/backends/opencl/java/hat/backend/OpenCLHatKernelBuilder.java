@@ -36,22 +36,24 @@ public class OpenCLHatKernelBuilder extends C99HatKernelBuilder<OpenCLHatKernelB
         hashDefine("NDRANGE_OPENCL");
         pragma("OPENCL", "EXTENSION", "cl_khr_global_int32_base_atomics", ":", "enable");
         pragma("OPENCL", "EXTENSION", "cl_khr_local_int32_base_atomics", ":", "enable");
-        hashIfndef("NULL", _-> hashDefine("NULL", "0"));
+        hashIfndef("NULL", _ -> hashDefine("NULL", "0"));
         return self();
     }
 
     @Override
-    public OpenCLHatKernelBuilder pragmas(){
-         return self().
-                 pragma("OPENCL", "EXTENSION", "cl_khr_global_int32_base_atomics", ":", "enable").
-                 pragma("OPENCL", "EXTENSION", "cl_khr_local_int32_base_atomics", ":", "enable");
+    public OpenCLHatKernelBuilder pragmas() {
+        return self().
+                pragma("OPENCL", "EXTENSION", "cl_khr_global_int32_base_atomics", ":", "enable").
+                pragma("OPENCL", "EXTENSION", "cl_khr_local_int32_base_atomics", ":", "enable");
     }
+
     @Override
-    public OpenCLHatKernelBuilder globalId(){
+    public OpenCLHatKernelBuilder globalId() {
         return identifier("get_global_id").oparen().literal(0).cparen();
     }
+
     @Override
-    public OpenCLHatKernelBuilder globalSize(){
+    public OpenCLHatKernelBuilder globalSize() {
         return identifier("get_global_size").oparen().literal(0).cparen();
     }
 

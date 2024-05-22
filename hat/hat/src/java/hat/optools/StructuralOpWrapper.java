@@ -26,7 +26,7 @@ package hat.optools;
 
 import java.lang.reflect.code.Op;
 
-public abstract class StructuralOpWrapper<T extends Op> extends OpWrapper<T>  {
+public abstract class StructuralOpWrapper<T extends Op> extends OpWrapper<T> {
     StructuralOpWrapper(T op) {
         super(op);
     }

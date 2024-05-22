@@ -29,6 +29,7 @@ import hat.Accelerator;
 import hat.backend.Backend;
 import org.xml.sax.SAXException;
 import violajones.XMLHaarCascadeModel;
+
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.lang.foreign.Arena;

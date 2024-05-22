@@ -27,30 +27,58 @@ package hat.opcodebuilders;
 
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.Value;
+
 public abstract class StyledOpCodeBuilder<T extends StyledOpCodeBuilder<T>> extends OpCodeBuilder<T> {
 
 
-    public   T  defaultStyle(Runnable r){r.run();return self();}
-    public  T valueStyle(Runnable r){return defaultStyle(r);}
-    public  T  opNameStyle(Runnable r){return defaultStyle(r);}
-    public  T dquoteStyle(Runnable r){return defaultStyle(r);}
-    public  T typeNameStyle(Runnable r){return defaultStyle(r);}
-    public   T atStyle(Runnable r){return defaultStyle(r);}
+    public T defaultStyle(Runnable r) {
+        r.run();
+        return self();
+    }
 
-    @Override public T value(Value v){
-        return valueStyle(()->super.value(v));
+    public T valueStyle(Runnable r) {
+        return defaultStyle(r);
     }
-    @Override public T opName(String name){
-        return opNameStyle(()->super.opName(name));
+
+    public T opNameStyle(Runnable r) {
+        return defaultStyle(r);
     }
-    @Override public T dquote(String name){
-        return dquoteStyle(()->super.dquote(name));
+
+    public T dquoteStyle(Runnable r) {
+        return defaultStyle(r);
     }
-    @Override public T typeName(TypeElement typeDesc){
-        return typeNameStyle(()->super.typeName(typeDesc));
+
+    public T typeNameStyle(Runnable r) {
+        return defaultStyle(r);
     }
-    @Override public T at(){
-        return atStyle(()->super.at());
+
+    public T atStyle(Runnable r) {
+        return defaultStyle(r);
+    }
+
+    @Override
+    public T value(Value v) {
+        return valueStyle(() -> super.value(v));
+    }
+
+    @Override
+    public T opName(String name) {
+        return opNameStyle(() -> super.opName(name));
+    }
+
+    @Override
+    public T dquote(String name) {
+        return dquoteStyle(() -> super.dquote(name));
+    }
+
+    @Override
+    public T typeName(TypeElement typeDesc) {
+        return typeNameStyle(() -> super.typeName(typeDesc));
+    }
+
+    @Override
+    public T at() {
+        return atStyle(() -> super.at());
     }
 }
 

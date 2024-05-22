@@ -127,16 +127,16 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
 
 
     public T type(JavaType javaType) {
-        if (FuncOpWrapper.ParamTable.Info.isIfaceBuffer(javaType)  && javaType instanceof ClassType classType){
+        if (FuncOpWrapper.ParamTable.Info.isIfaceBuffer(javaType) && javaType instanceof ClassType classType) {
             String name = classType.toClassName();
             int dotIdx = name.lastIndexOf('.');
             int dollarIdx = name.lastIndexOf('$');
-            int idx = Math.max(dotIdx,dollarIdx);
+            int idx = Math.max(dotIdx, dollarIdx);
             if (idx > 0) {
                 name = name.substring(idx + 1);
             }
             suffix_t(name).asterisk();
-        }else {
+        } else {
             typeName(javaType.toBasicType().toString());
         }
         return self();
@@ -171,7 +171,7 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
 
     @Override
     public T varFuncDeclaration(C99HatBuildContext buildContext, VarFuncDeclarationOpWrapper varFuncDeclarationOpWrapper) {
-       // append("/* skipping ").type(varFuncDeclarationOpWrapper.javaType()).append(" param declaration  */");
+        // append("/* skipping ").type(varFuncDeclarationOpWrapper.javaType()).append(" param declaration  */");
         return self();
     }
 
@@ -180,7 +180,7 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
         if (fieldLoadOpWrapper.isKernelContextAccess()) {
             identifier("kc").dot().identifier(fieldLoadOpWrapper.fieldName());
         } else {
-           // throw new IllegalStateException("What is this field load ?" + fieldLoadOpWrapper.fieldRef());
+            // throw new IllegalStateException("What is this field load ?" + fieldLoadOpWrapper.fieldRef());
         }
         return self();
     }
@@ -242,9 +242,9 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
     @Override
 
     public T conv(C99HatBuildContext buildContext, ConvOpWrapper convOpWrapper) {
-        if (convOpWrapper.resultJavaType() == JavaType.DOUBLE){
+        if (convOpWrapper.resultJavaType() == JavaType.DOUBLE) {
             paren(_ -> type(JavaType.FLOAT));
-        }else{
+        } else {
             paren(_ -> type(convOpWrapper.resultJavaType()));
         }
         //paren(() -> type(convOpWrapper.resultJavaType()));
@@ -255,9 +255,9 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
     @Override
     public T constant(C99HatBuildContext buildContext, ConstantOpWrapper constantOpWrapper) {
         Object object = constantOpWrapper.op().value();
-        if (object == null){
+        if (object == null) {
             nullKeyword();
-        }else {
+        } else {
             literal(constantOpWrapper.op().value().toString());
         }
         return self();
@@ -319,7 +319,7 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
         literal(constantOp.value().toString()).colon().nl();
         var forLoopOp = javaLabeledOpWrapper.firstBlockOfFirstBody().ops().get(1);
         recurse(buildContext, OpWrapper.wrap(forLoopOp));
-       // var yieldOp = javaLabeledOpWrapper.firstBlockOfFirstBody().ops().get(2);
+        // var yieldOp = javaLabeledOpWrapper.firstBlockOfFirstBody().ops().get(2);
         return self();
     }
 
@@ -340,11 +340,11 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
                 && result.op() instanceof CoreOp.ConstantOp c
         ) {
             continueKeyword().space().literal(c.value().toString());
-        }else if (buildContext.scope.parent instanceof C99HatBuildContext.LoopScope<?>) {
-                // nope
-            } else {
-                continueKeyword();
-            }
+        } else if (buildContext.scope.parent instanceof C99HatBuildContext.LoopScope<?>) {
+            // nope
+        } else {
+            continueKeyword();
+        }
 
         return self();
     }
@@ -360,9 +360,9 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
                             elseKeyword();
                         }
                         braceNlIndented(_ ->
-                               StreamCounter.of(ifOpWrapper.wrappedRootOpStream(ifOpWrapper.firstBlockOfBodyN(c.value())),(innerc,root) ->
-                                   nlIf(innerc.isNotFirst())
-                                           .recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>))
+                                StreamCounter.of(ifOpWrapper.wrappedRootOpStream(ifOpWrapper.firstBlockOfBodyN(c.value())), (innerc, root) ->
+                                        nlIf(innerc.isNotFirst())
+                                                .recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>))
                                 )
                         );
                     }
@@ -388,8 +388,8 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
         whileKeyword().paren(_ ->
                 whileOpWrapper.conditionWrappedYieldOpStream().forEach((wrapped) -> recurse(buildContext, wrapped))
         ).braceNlIndented(_ ->
-                StreamCounter.of(whileOpWrapper.loopWrappedRootOpStream(), (c,root) ->
-                    nlIf(c.isNotFirst()).recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>))
+                StreamCounter.of(whileOpWrapper.loopWrappedRootOpStream(), (c, root) ->
+                        nlIf(c.isNotFirst()).recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>))
                 )
         );
         return self();
@@ -398,25 +398,27 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
     @Override
     public T javaFor(C99HatBuildContext buildContext, ForOpWrapper forOpWrapper) {
         buildContext.scope(forOpWrapper, () ->
-            forKeyword().paren(_ -> {
-                forOpWrapper.initWrappedYieldOpStream().forEach((wrapped) -> recurse(buildContext, wrapped));
-                semicolon().space();
-                forOpWrapper.conditionWrappedYieldOpStream().forEach((wrapped) -> recurse(buildContext, wrapped));
-                semicolon().space();
-                StreamCounter.of(forOpWrapper.mutateRootWrappedOpStream(), (c, wrapped) ->
-                    commaSpaceIf(c.isNotFirst()).recurse(buildContext, wrapped)
-                );
-            }).braceNlIndented(_ ->
-                    StreamCounter.of(forOpWrapper.loopWrappedRootOpStream(), (c,root) ->
-                            nlIf(c.isNotFirst()).recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>))
-                    )
-            )
+                forKeyword().paren(_ -> {
+                    forOpWrapper.initWrappedYieldOpStream().forEach((wrapped) -> recurse(buildContext, wrapped));
+                    semicolon().space();
+                    forOpWrapper.conditionWrappedYieldOpStream().forEach((wrapped) -> recurse(buildContext, wrapped));
+                    semicolon().space();
+                    StreamCounter.of(forOpWrapper.mutateRootWrappedOpStream(), (c, wrapped) ->
+                            commaSpaceIf(c.isNotFirst()).recurse(buildContext, wrapped)
+                    );
+                }).braceNlIndented(_ ->
+                        StreamCounter.of(forOpWrapper.loopWrappedRootOpStream(), (c, root) ->
+                                nlIf(c.isNotFirst()).recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>))
+                        )
+                )
         );
         return self();
     }
+
     public T typedef(Map<String, Typedef> scope, Buffer instance) {
         return typedef(scope, new Typedef(instance));
     }
+
     public T typedef(Map<String, Typedef> scope, Typedef typeDef) {
         if (!scope.containsKey(typeDef.name())) {
             // Do the dependencies first, so we get them in the right order
@@ -425,24 +427,24 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
             });
             typedefKeyword().space().structOrUnion(typeDef.isStruct)
                     .space().suffix_s(typeDef.iface.getSimpleName()).braceNlIndented(_ -> {
-                StreamCounter.of(typeDef.nameAndTypes, (c, nameAndType) -> {
-                    nlIf(c.isNotFirst());
-                    if (nameAndType.type.isPrimitive()) {
-                        typeName(nameAndType.type.getSimpleName());
-                    }else{
-                        suffix_t(nameAndType.type.getSimpleName());
-                    }
-                    space().typeName(nameAndType.name);
-                    if (nameAndType instanceof Typedef.NameAndArrayOfType nameAndArrayOfType) {
-                        sbrace(_ -> {
-                            if (nameAndArrayOfType.arraySize >= 0) {
-                                literal(nameAndArrayOfType.arraySize);
+                        StreamCounter.of(typeDef.nameAndTypes, (c, nameAndType) -> {
+                            nlIf(c.isNotFirst());
+                            if (nameAndType.type.isPrimitive()) {
+                                typeName(nameAndType.type.getSimpleName());
+                            } else {
+                                suffix_t(nameAndType.type.getSimpleName());
                             }
+                            space().typeName(nameAndType.name);
+                            if (nameAndType instanceof Typedef.NameAndArrayOfType nameAndArrayOfType) {
+                                sbrace(_ -> {
+                                    if (nameAndArrayOfType.arraySize >= 0) {
+                                        literal(nameAndArrayOfType.arraySize);
+                                    }
+                                });
+                            }
+                            semicolon();
                         });
-                    }
-                    semicolon();
-                });
-            }).suffix_t(typeDef.iface.getSimpleName()).semicolon().nl().nl();
+                    }).suffix_t(typeDef.iface.getSimpleName()).semicolon().nl().nl();
             scope.put(typeDef.name(), typeDef);
         }
         return self();
@@ -456,18 +458,18 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
             var operandCount = invokeOpWrapper.operandCount();
             var returnType = invokeOpWrapper.javaReturnType();
 
-             if (operandCount == 1 && name.startsWith("atomic") && name.endsWith("Inc")
-                 && returnType instanceof PrimitiveType primitiveType && primitiveType.equals(JavaType.INT)){
-                 // this is a bit of a hack for atomics.
-                 if (invokeOpWrapper.operandNAsResult(0) instanceof Op.Result instanceResult) {
-                     identifier("atomic_inc").paren(_ -> {
-                         ampersand().recurse(buildContext, OpWrapper.wrap(instanceResult.op()));
-                         rarrow().identifier(name.substring(0,name.length()-3));
-                     });
-                 }else{
-                     throw new IllegalStateException("bad atomic");
-                 }
-            }else {
+            if (operandCount == 1 && name.startsWith("atomic") && name.endsWith("Inc")
+                    && returnType instanceof PrimitiveType primitiveType && primitiveType.equals(JavaType.INT)) {
+                // this is a bit of a hack for atomics.
+                if (invokeOpWrapper.operandNAsResult(0) instanceof Op.Result instanceResult) {
+                    identifier("atomic_inc").paren(_ -> {
+                        ampersand().recurse(buildContext, OpWrapper.wrap(instanceResult.op()));
+                        rarrow().identifier(name.substring(0, name.length() - 3));
+                    });
+                } else {
+                    throw new IllegalStateException("bad atomic");
+                }
+            } else {
                 if (invokeOpWrapper.operandNAsResult(0) instanceof Op.Result instanceResult) {
                 /*
                 We have three types of returned values from an ifaceBuffer
@@ -558,15 +560,15 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
                 }
 
             }
-        } else  {
+        } else {
             identifier(name).paren(_ ->
-                        commaSeparated(invokeOpWrapper.operands(), (op)->{
-                            if (op instanceof Op.Result result) {
-                                recurse(buildContext, OpWrapper.wrap(result.op()));
-                            } else {
-                                throw new IllegalStateException("wtf?");
-                            }
-                        })
+                    commaSeparated(invokeOpWrapper.operands(), (op) -> {
+                        if (op instanceof Op.Result result) {
+                            recurse(buildContext, OpWrapper.wrap(result.op()));
+                        } else {
+                            throw new IllegalStateException("wtf?");
+                        }
+                    })
             );
         }
         return self();

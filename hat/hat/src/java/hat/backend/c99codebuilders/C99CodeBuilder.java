@@ -31,36 +31,41 @@ import java.util.Arrays;
 import java.util.function.Consumer;
 
 public abstract class C99CodeBuilder<T extends C99CodeBuilder<T>> extends CodeBuilder<T> {
-   public T suffix_t(String name){
+    public T suffix_t(String name) {
         return identifier(name).identifier("_t");
     }
-    public T suffix_u(String name){
+
+    public T suffix_u(String name) {
         return identifier(name).identifier("_u");
     }
-   public T suffix_s(String name){
+
+    public T suffix_s(String name) {
         return identifier(name).identifier("_s");
     }
 
 
     public T intDeclaration(String name) {
-        return  intType().space().identifier(name);
+        return intType().space().identifier(name);
     }
 
     public T floatDeclaration(String name) {
-        return  floatType().space().identifier(name);
+        return floatType().space().identifier(name);
     }
+
     public T booleanDeclaration(String name) {
         return booleanType().space().identifier(name);
     }
+
     public T byteDeclaration(String name) {
         return charType().space().identifier(name);
     }
+
     public T shortDeclaration(String name) {
         return shortType().space().identifier(name);
     }
 
-    public T structOrUnion(boolean isStruct){
-        return (isStruct? structKeyword():union());
+    public T structOrUnion(boolean isStruct) {
+        return (isStruct ? structKeyword() : union());
     }
 
 
@@ -85,12 +90,15 @@ public abstract class C99CodeBuilder<T extends C99CodeBuilder<T>> extends CodeBu
     T hashDefineKeyword() {
         return hash().keyword("define");
     }
+
     T hashIfdefKeyword() {
         return hash().keyword("ifdef");
     }
+
     T hashIfndefKeyword() {
         return hash().keyword("ifndef");
     }
+
     protected T hashEndif() {
         return hash().keyword("endif").nl();
     }
@@ -98,6 +106,7 @@ public abstract class C99CodeBuilder<T extends C99CodeBuilder<T>> extends CodeBu
     T hashIfdef(String value) {
         return hashIfdefKeyword().space().append(value).nl();
     }
+
     protected T hashIfndef(String value) {
         return hashIfndefKeyword().space().append(value).nl();
     }
@@ -105,6 +114,7 @@ public abstract class C99CodeBuilder<T extends C99CodeBuilder<T>> extends CodeBu
     T hashIfdef(String value, Consumer<T> consumer) {
         return hashIfdef(value).accept(consumer).hashEndif();
     }
+
     protected T hashIfndef(String value, Consumer<T> consumer) {
         return hashIfndef(value).accept(consumer).hashEndif();
     }
@@ -142,56 +152,66 @@ public abstract class C99CodeBuilder<T extends C99CodeBuilder<T>> extends CodeBu
     protected T camel(String value) {
         return identifier(Character.toString(Character.toLowerCase(value.charAt(0)))).identifier(value.substring(1));
     }
+
     T camelJoin(String prefix, String suffix) {
         return camel(prefix).identifier(Character.toString(Character.toUpperCase(suffix.charAt(0)))).identifier(suffix.substring(1));
     }
 
-    public final  T unsignedCharType() {
+    public final T unsignedCharType() {
         return typeName("unsigned").space().charType();
     }
 
-    public T charTypeDefs(String ... names){
-        Arrays.stream(names).forEach(name->typedef(_->charType(), _->identifier(name)));
-        return self();
-    }
-    public T unsignedCharTypeDefs(String ... names){
-        Arrays.stream(names).forEach(name->typedef(_->unsignedCharType(), _->identifier(name)));
-        return self();
-    }
-    public T shortTypeDefs(String ... names){
-        Arrays.stream(names).forEach(name->typedef(_->shortType(), _->identifier(name)));
-        return self();
-    }
-    public T unsignedShortTypeDefs(String ... names){
-        Arrays.stream(names).forEach(name->typedef(_->unsignedShortType(), _->identifier(name)));
-        return self();
-    }
-    public T intTypeDefs(String ... names){
-        Arrays.stream(names).forEach(name->typedef(_->intType(), _->identifier(name)));
-        return self();
-    }
-    public T unsignedIntTypeDefs(String ... names){
-        Arrays.stream(names).forEach(name->typedef(_->unsignedIntType(), _->identifier(name)));
-        return self();
-    }
-    public T floatTypeDefs(String ... names){
-        Arrays.stream(names).forEach(name->typedef(_->floatType(), _->identifier(name)));
-        return self();
-    }
-    public T longTypeDefs(String ... names){
-        Arrays.stream(names).forEach(name->typedef(_->longType(), _->identifier(name)));
-        return self();
-    }
-    public T unsignedLongTypeDefs(String ... names){
-        Arrays.stream(names).forEach(name->typedef(_->unsignedLongType(), _->identifier(name)));
-        return self();
-    }
-    public T doubleTypeDefs(String ... names){
-        Arrays.stream(names).forEach(name->typedef(_->doubleType(), _->identifier(name)));
+    public T charTypeDefs(String... names) {
+        Arrays.stream(names).forEach(name -> typedef(_ -> charType(), _ -> identifier(name)));
         return self();
     }
 
-    private T typedef(Consumer<T> lhs, Consumer<T>rhs) {
+    public T unsignedCharTypeDefs(String... names) {
+        Arrays.stream(names).forEach(name -> typedef(_ -> unsignedCharType(), _ -> identifier(name)));
+        return self();
+    }
+
+    public T shortTypeDefs(String... names) {
+        Arrays.stream(names).forEach(name -> typedef(_ -> shortType(), _ -> identifier(name)));
+        return self();
+    }
+
+    public T unsignedShortTypeDefs(String... names) {
+        Arrays.stream(names).forEach(name -> typedef(_ -> unsignedShortType(), _ -> identifier(name)));
+        return self();
+    }
+
+    public T intTypeDefs(String... names) {
+        Arrays.stream(names).forEach(name -> typedef(_ -> intType(), _ -> identifier(name)));
+        return self();
+    }
+
+    public T unsignedIntTypeDefs(String... names) {
+        Arrays.stream(names).forEach(name -> typedef(_ -> unsignedIntType(), _ -> identifier(name)));
+        return self();
+    }
+
+    public T floatTypeDefs(String... names) {
+        Arrays.stream(names).forEach(name -> typedef(_ -> floatType(), _ -> identifier(name)));
+        return self();
+    }
+
+    public T longTypeDefs(String... names) {
+        Arrays.stream(names).forEach(name -> typedef(_ -> longType(), _ -> identifier(name)));
+        return self();
+    }
+
+    public T unsignedLongTypeDefs(String... names) {
+        Arrays.stream(names).forEach(name -> typedef(_ -> unsignedLongType(), _ -> identifier(name)));
+        return self();
+    }
+
+    public T doubleTypeDefs(String... names) {
+        Arrays.stream(names).forEach(name -> typedef(_ -> doubleType(), _ -> identifier(name)));
+        return self();
+    }
+
+    private T typedef(Consumer<T> lhs, Consumer<T> rhs) {
         return semicolonTerminatedLine(_ -> typedefKeyword().space().accept(lhs).space().accept(rhs));
     }
 

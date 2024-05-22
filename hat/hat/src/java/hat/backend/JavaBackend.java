@@ -34,18 +34,21 @@ import java.lang.reflect.InvocationTargetException;
 public abstract class JavaBackend implements Backend {
 
     public final Arena arena = Arena.global();
-    @Override public  Arena arena(){
+
+    @Override
+    public Arena arena() {
         return arena;
     }
 
     @Override
-    public void computeContextHandoff(ComputeContext computeContext){
+    public void computeContextHandoff(ComputeContext computeContext) {
         System.out.println("Java backend received computeContext ");
     }
+
     @Override
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
         try {
-            computeContext.computeCallGraph.entrypoint.method.invoke(null,  args );
+            computeContext.computeCallGraph.entrypoint.method.invoke(null, args);
         } catch (IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
         }

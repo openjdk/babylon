@@ -24,19 +24,17 @@
  */
 package hat.buffer;
 
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.StructLayout;
 import java.util.function.Consumer;
 
-import static java.lang.foreign.ValueLayout.JAVA_INT;
-
-public interface  Table<T> extends IncompleteBuffer{
+public interface Table<T> extends IncompleteBuffer {
 
     default void with(int i, Consumer<T> consumer) {
         T t = get(i);
         consumer.accept(t);
     }
+
     int length();
+
     void length(int length);
 
     T get(int i);

@@ -32,9 +32,8 @@ import java.lang.foreign.SequenceLayout;
 import java.lang.foreign.StructLayout;
 import java.lang.foreign.ValueLayout;
 import java.lang.reflect.InvocationTargetException;
-import java.nio.ByteOrder;
 
-public  interface Buffer  {
+public interface Buffer {
     default MemorySegment memorySegment() {
         try {
             return (MemorySegment) getClass().getDeclaredMethod("$_$_$sEgMeNt$_$_$").invoke(this);
@@ -52,7 +51,7 @@ public  interface Buffer  {
     }
 
     default String buildSchema(StringBuilder sb, MemoryLayout layout, SequenceLayout tailSequenceLayout) {
-        sb.append((layout.name().isPresent())?layout.name().get():"?").append(":");
+        sb.append((layout.name().isPresent()) ? layout.name().get() : "?").append(":");
         switch (layout) {
             case GroupLayout groupLayout -> {
                 String prefix = groupLayout instanceof StructLayout ? "{" : "<";
@@ -79,11 +78,11 @@ public  interface Buffer  {
                 sb.append('[');
                 if (sequenceLayout.equals(tailSequenceLayout) && this instanceof IncompleteBuffer) {
                     sb.append("*");
-                }else{
+                } else {
                     sb.append(sequenceLayout.elementCount());
                 }
                 sb.append(":");
-                buildSchema(sb, sequenceLayout.elementLayout(),tailSequenceLayout);
+                buildSchema(sb, sequenceLayout.elementLayout(), tailSequenceLayout);
                 sb.append(']');
             }
         }

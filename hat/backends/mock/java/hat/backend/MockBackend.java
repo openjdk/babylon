@@ -26,20 +26,19 @@ package hat.backend;
 
 
 import hat.ComputeContext;
+import hat.NDRange;
 import hat.buffer.BackendConfig;
 import hat.callgraph.KernelCallGraph;
-import hat.NDRange;
 import hat.ifacemapper.SegmentMapper;
 
 import java.lang.foreign.Arena;
-import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandles;
 
 import static java.lang.foreign.ValueLayout.JAVA_BOOLEAN;
 
 public class MockBackend extends NativeBackend {
 
-    interface  MockConfig extends BackendConfig {
+    interface MockConfig extends BackendConfig {
         // See backends/mock/include/mock_backend.h
         //  class MockConfig{
         //       public:
@@ -54,20 +53,25 @@ public class MockBackend extends NativeBackend {
             config.gpu(gpu);
             return config;
         }
+
         boolean gpu();
-        void gpu(boolean gpu );
+
+        void gpu(boolean gpu);
+
         boolean junk();
-        void junk(boolean junk );
+
+        void junk(boolean junk);
     }
-    public MockBackend()  {
+
+    public MockBackend() {
         super("mock_backend");
-        getBackend(MockConfig.create(arena(),MethodHandles.lookup(), true));
+        getBackend(MockConfig.create(arena(), MethodHandles.lookup(), true));
     }
 
     @Override
-    public void computeContextHandoff(ComputeContext computeContext){
+    public void computeContextHandoff(ComputeContext computeContext) {
         System.out.println("Mock backend recieved closed closure");
-        System.out.println("Mock backend will mutate  "+ computeContext.computeCallGraph.entrypoint + computeContext.computeCallGraph.entrypoint.method);
+        System.out.println("Mock backend will mutate  " + computeContext.computeCallGraph.entrypoint + computeContext.computeCallGraph.entrypoint.method);
         injectBufferTracking(computeContext.computeCallGraph.entrypoint);
     }
 
@@ -78,7 +82,7 @@ public class MockBackend extends NativeBackend {
         // The first time we see this we need to convert the kernel entrypoint 
         // and rechable methods to a form that our mock backend can execute. 
         kernelCallGraph.kernelReachableResolvedStream().forEach(kr -> {
-           
+
         });
     }
 }

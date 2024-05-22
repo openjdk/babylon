@@ -16,10 +16,12 @@ public class Result<R> {
     public R get() {
         return value.orElseThrow();
     }
-    public Result(R initial){
+
+    public Result(R initial) {
         of(initial);
     }
-    public Result(){
+
+    public Result() {
 
     }
 }

@@ -1,6 +1,5 @@
 package hat.callgraph;
 
-import hat.ComputeContext;
 import hat.buffer.Buffer;
 import hat.optools.FuncOpWrapper;
 import hat.optools.OpWrapper;
@@ -41,14 +40,15 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
     }
 
     public final ComputeCallGraph computeCallGraph;
+
     public Stream<KernelReachableResolvedMethodCall> kernelReachableResolvedStream() {
         return methodRefToMethodCallMap.values().stream()
-                .filter(call->call instanceof KernelReachableResolvedMethodCall)
+                .filter(call -> call instanceof KernelReachableResolvedMethodCall)
                 .map(kernelReachable -> (KernelReachableResolvedMethodCall) kernelReachable);
     }
 
-    KernelCallGraph(ComputeCallGraph computeCallGraph, MethodRef methodRef, Method method,FuncOpWrapper funcOpWrapper) {
-        super(computeCallGraph.computeContext,new KernelEntrypoint(null, methodRef, method, funcOpWrapper));
+    KernelCallGraph(ComputeCallGraph computeCallGraph, MethodRef methodRef, Method method, FuncOpWrapper funcOpWrapper) {
+        super(computeCallGraph.computeContext, new KernelEntrypoint(null, methodRef, method, funcOpWrapper));
         entrypoint.callGraph = this;
         this.computeCallGraph = computeCallGraph;
     }
@@ -71,30 +71,30 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
             Method invokeOpCalledMethod = invokeOpWrapper.method();
             if (Buffer.class.isAssignableFrom(javaRefTypeClass)) {
                 //System.out.println("kernel reachable iface mapped buffer call  -> " + methodRef);
-                kernelReachableResolvedMethodCall.addCall( methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
+                kernelReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
                         new KernelReachableUnresolvedIfaceMappedMethodCall(this, methodRef, invokeOpCalledMethod)
                 ));
             } else if (entrypoint.method.getDeclaringClass().equals(javaRefTypeClass)) {
                 Optional<CoreOp.FuncOp> optionalFuncOp = invokeOpCalledMethod.getCodeModel();
                 if (optionalFuncOp.isPresent()) {
-;                   //System.out.println("A call to a method on the kernel class which we have code model for " + methodRef);
+                    ;                   //System.out.println("A call to a method on the kernel class which we have code model for " + methodRef);
                     kernelReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
                             new KernelReachableResolvedMethodCall(this, methodRef, invokeOpCalledMethod, OpWrapper.wrap(optionalFuncOp.get())
                             )));
                 } else {
-                   // System.out.println("A call to a method on the compute class which we DO NOT have code model for " + methodRef);
-                    kernelReachableResolvedMethodCall.addCall( methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
+                    // System.out.println("A call to a method on the compute class which we DO NOT have code model for " + methodRef);
+                    kernelReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
                             new KernelReachableUnresolvedMethodCall(this, methodRef, invokeOpCalledMethod)
                     ));
 
                 }
             } else {
-              //  System.out.println("A call to a method on the compute class which we DO NOT have code model for " + methodRef);
-                kernelReachableResolvedMethodCall.addCall( methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
+                //  System.out.println("A call to a method on the compute class which we DO NOT have code model for " + methodRef);
+                kernelReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
                         new KernelReachableUnresolvedMethodCall(this, methodRef, invokeOpCalledMethod)
                 ));
 
-               // System.out.println("Were we expecting " + methodRef + " here ");
+                // System.out.println("Were we expecting " + methodRef + " here ");
             }
 
         });
@@ -114,12 +114,13 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
             }
         }
     }
-    KernelCallGraph close(){
+
+    KernelCallGraph close() {
         updateDag(entrypoint);
 
         // now lets sort the MethodCalls into a dependency list
-        calls.forEach(m->m.rank=0);
-        ((MethodCall)entrypoint).rankRecurse();
+        calls.forEach(m -> m.rank = 0);
+        ((MethodCall) entrypoint).rankRecurse();
         return this;
     }
 }

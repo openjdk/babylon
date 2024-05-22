@@ -28,6 +28,7 @@ package hat;
 import hat.backend.Backend;
 import hat.optools.LambdaOpWrapper;
 import hat.optools.OpWrapper;
+
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.Quotable;
@@ -38,6 +39,7 @@ import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+
 /**
  * This class provides the developer facing view of HAT, and wraps a <a href="backend/Backend.html">Backend</a> capable of
  * executing <b>NDRange</b> style execution.
@@ -62,19 +64,21 @@ import java.util.function.Predicate;
  *
  * @author Gary Frost
  */
-public class Accelerator  {
+public class Accelerator {
     public final MethodHandles.Lookup lookup;
-    public  final Backend backend;
-    private final Map<Method, hat.ComputeContext> cache= new HashMap<>();
+    public final Backend backend;
+    private final Map<Method, hat.ComputeContext> cache = new HashMap<>();
 
     public NDRange range(int max) {
         NDRange ndRange = new NDRange(this);
         ndRange.kid = new KernelContext(ndRange, max, 0);
         return ndRange;
     }
+
     protected Accelerator(MethodHandles.Lookup lookup, ServiceLoader.Provider<Backend> provider) {
-        this(lookup,provider.get());
+        this(lookup, provider.get());
     }
+
     /**
      * @param lookup
      * @param backend
@@ -108,8 +112,8 @@ public class Accelerator  {
      *    }
      *  }
      *  </pre>
-     *  The accelerator will be passed the doSomeWork entrypoint, wrapped in a {@code QuotableComputeContextConsumer}
-     *  <pre>
+     * The accelerator will be passed the doSomeWork entrypoint, wrapped in a {@code QuotableComputeContextConsumer}
+     * <pre>
      *  accelerator.compute(cc ->
      *     MyCompute.doSomeWork(cc, arrayOfInt)
      *  );
@@ -120,7 +124,7 @@ public class Accelerator  {
 
     /**
      * This method provides the Accelerator with the {@code Compute Entrypoint} from a Compute class.
-     *
+     * <p>
      * The entrypoint is wrapped in a <a href="QuotableComputeContextConsumer.html">QuotableComputeContextConsumer</a> lambda.
      *
      * <pre>
@@ -132,19 +136,19 @@ public class Accelerator  {
 
     public void compute(QuotableComputeContextConsumer quotableComputeContextConsumer) {
         Quoted quoted = quotableComputeContextConsumer.quoted();
-        LambdaOpWrapper lambda = OpWrapper.wrap((CoreOp.LambdaOp)quoted.op());
+        LambdaOpWrapper lambda = OpWrapper.wrap((CoreOp.LambdaOp) quoted.op());
         Method method = lambda.getQuotableTargetMethod();
 
         // Create (or get cached) a compute context which closes over compute entryppint and reachable kernels.
         // The models of all compute and kernel methods are passed to the backend during creation
         // The backend may well mutate the models.
         // It will also use this opportunity to generate ISA specific code for the kernels.
-        ComputeContext computeContext = cache.computeIfAbsent(method,(_)->
-                new ComputeContext(this,method)
+        ComputeContext computeContext = cache.computeIfAbsent(method, (_) ->
+                new ComputeContext(this, method)
         );
         // Here we get the captured values  from the Quotable
         Object[] args = lambda.getQuotableCapturedValues(quoted, method);
-        args[0]=computeContext;
+        args[0] = computeContext;
 
         // now ask the backend to execute
         backend.dispatchCompute(computeContext, args);

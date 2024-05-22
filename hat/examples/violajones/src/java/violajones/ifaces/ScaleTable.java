@@ -25,7 +25,6 @@
 package violajones.ifaces;
 
 
-
 import hat.Accelerator;
 import hat.buffer.Buffer;
 import hat.buffer.Table;
@@ -38,8 +37,8 @@ import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface ScaleTable extends Table<ScaleTable.Scale> {
-    interface Scale extends  Buffer {
-        StructLayout layout =  MemoryLayout.structLayout(
+    interface Scale extends Buffer {
+        StructLayout layout = MemoryLayout.structLayout(
                 JAVA_FLOAT.withName("scaleValue"),
                 JAVA_FLOAT.withName("scaledXInc"),
                 JAVA_FLOAT.withName("scaledYInc"),
@@ -52,6 +51,7 @@ public interface ScaleTable extends Table<ScaleTable.Scale> {
                 JAVA_INT.withName("accumGridSizeMin"),
                 JAVA_INT.withName("accumGridSizeMax")
         ).withName("Scale");
+
         float scaleValue();
 
         int accumGridSizeMax();
@@ -96,7 +96,7 @@ public interface ScaleTable extends Table<ScaleTable.Scale> {
 
         void accumGridSizeMax(int accumGridSizeMax);
 
-        default void copyFrom(Scale s){
+        default void copyFrom(Scale s) {
             scaleValue(s.scaleValue());
             accumGridSizeMax(s.accumGridSizeMax());
             accumGridSizeMin(s.accumGridSizeMin());
@@ -181,17 +181,17 @@ public interface ScaleTable extends Table<ScaleTable.Scale> {
 
     Scale scale(long idx);
 
-    default Scale get(int i){
+    default Scale get(int i) {
         return scale(i);
     }
 
-     void multiScaleAccumulativeRange(int multiScaleAccumulativeRange);
+    void multiScaleAccumulativeRange(int multiScaleAccumulativeRange);
 
 
-      int multiScaleAccumulativeRange();
+    int multiScaleAccumulativeRange();
 
-      default int rangeModGroupSize(int groupSize) {
-          return ((multiScaleAccumulativeRange() / groupSize) + ((multiScaleAccumulativeRange() % groupSize) == 0 ? 0 : 1)) * groupSize;
-      }
+    default int rangeModGroupSize(int groupSize) {
+        return ((multiScaleAccumulativeRange() / groupSize) + ((multiScaleAccumulativeRange() % groupSize) == 0 ? 0 : 1)) * groupSize;
+    }
 
 }

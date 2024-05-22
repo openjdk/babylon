@@ -24,9 +24,6 @@
  */
 package hat.optools;
 
-import java.lang.reflect.code.Block;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.op.ExtendedOp;
 import java.util.stream.Stream;
 
@@ -38,6 +35,7 @@ public class LogicalOpWrapper extends BinaryOpWrapper<ExtendedOp.JavaConditional
     public Stream<OpWrapper<?>> lhsWrappedYieldOpStream() {
         return wrappedYieldOpStream(firstBlockOfBodyN(0));
     }
+
     public Stream<OpWrapper<?>> rhsWrappedYieldOpStream() {
         return wrappedYieldOpStream(firstBlockOfBodyN(1));
     }

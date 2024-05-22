@@ -1,6 +1,5 @@
 package hat.callgraph;
 
-import hat.ComputeContext;
 import hat.optools.FuncOpWrapper;
 
 import java.lang.invoke.MethodHandle;

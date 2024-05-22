@@ -139,7 +139,7 @@ public final class Accessors {
         AccessorInfo.AccessorType accessorType = isGetter(method)
                 ? AccessorInfo.AccessorType.GETTER
                 : AccessorInfo.AccessorType.SETTER;
-        return accessorInfo(type, layout, method,  accessorType);
+        return accessorInfo(type, layout, method, accessorType);
     }
 
 
@@ -171,25 +171,24 @@ public final class Accessors {
                             "does not match " + element);
                 }
                 yield new AccessorInfo(AccessorInfo.Key.of(Cardinality.SCALAR, valueType, accessorType),
-                        method,  targetType, LayoutInfo.of(vl), offset);
+                        method, targetType, LayoutInfo.of(vl), offset);
             }
-            case GroupLayout gl ->
-                    new AccessorInfo(AccessorInfo.Key.of(Cardinality.SCALAR, valueType, accessorType),
-                            method,  targetType, LayoutInfo.of(gl), offset);
+            case GroupLayout gl -> new AccessorInfo(AccessorInfo.Key.of(Cardinality.SCALAR, valueType, accessorType),
+                    method, targetType, LayoutInfo.of(gl), offset);
             case SequenceLayout sl -> {
                 AccessorInfo info = new AccessorInfo(AccessorInfo.Key.of(Cardinality.ARRAY, valueType, accessorType)
-                        , method,  targetType, LayoutInfo.of(sl), offset);
+                        , method, targetType, LayoutInfo.of(sl), offset);
 
-                    // This is an interface mapper so, check the array access parameter count matches
-                    int noDimensions = info.layoutInfo().arrayInfo().orElseThrow().dimensions().size();
-                    // The last parameter for a setter is the new value
-                    int expectedParameterIndexCount = method.getParameterCount() - (accessorType == AccessorInfo.AccessorType.SETTER ? 1 : 0);
-                    if (expectedParameterIndexCount != noDimensions) {
-                        throw new IllegalArgumentException(
-                                "Sequence layout has a dimension of " + noDimensions +
-                                        " and so, the method parameter count does not" +
-                                        " match for: " + method);
-                    }
+                // This is an interface mapper so, check the array access parameter count matches
+                int noDimensions = info.layoutInfo().arrayInfo().orElseThrow().dimensions().size();
+                // The last parameter for a setter is the new value
+                int expectedParameterIndexCount = method.getParameterCount() - (accessorType == AccessorInfo.AccessorType.SETTER ? 1 : 0);
+                if (expectedParameterIndexCount != noDimensions) {
+                    throw new IllegalArgumentException(
+                            "Sequence layout has a dimension of " + noDimensions +
+                                    " and so, the method parameter count does not" +
+                                    " match for: " + method);
+                }
 
                 yield info;
             }

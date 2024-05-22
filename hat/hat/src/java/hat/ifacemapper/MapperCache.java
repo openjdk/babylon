@@ -59,6 +59,7 @@ final class MapperCache {
                 .forEach(adder);
         return innerMapper.getHandle();
     }
+
     private SegmentMapper<?> cachedInterfaceMapper(AccessorInfo accessorInfo) {
         return subMappers.computeIfAbsent(CacheKey.of(accessorInfo), k ->
                 SegmentMapper.of(lookup, k.type(), k.layout()));

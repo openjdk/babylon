@@ -26,21 +26,19 @@ package hat.backend;
 
 
 import hat.ComputeContext;
-import hat.callgraph.KernelCallGraph;
 import hat.NDRange;
-
-import java.lang.foreign.MemorySegment;
+import hat.callgraph.KernelCallGraph;
 
 public class PTXBackend extends NativeBackend {
-    public PTXBackend()  {
+    public PTXBackend() {
         super("ptx_backend");
         getBackend(null);
     }
 
     @Override
-    public void computeContextHandoff(ComputeContext computeContext){
+    public void computeContextHandoff(ComputeContext computeContext) {
         System.out.println("PTX backend recieved closed closure");
-        System.out.println("PTX backend will mutate  "+ computeContext.computeCallGraph.entrypoint + computeContext.computeCallGraph.entrypoint.method);
+        System.out.println("PTX backend will mutate  " + computeContext.computeCallGraph.entrypoint + computeContext.computeCallGraph.entrypoint.method);
         injectBufferTracking(computeContext.computeCallGraph.entrypoint);
     }
 
@@ -51,7 +49,7 @@ public class PTXBackend extends NativeBackend {
         // The first time we see this we need to convert the kernel entrypoint 
         // and rechable methods to PTX. 
         kernelCallGraph.kernelReachableResolvedStream().forEach(kr -> {
-           
+
         });
     }
 }

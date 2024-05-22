@@ -15,7 +15,8 @@ public abstract class CallGraph<E extends Entrypoint> {
     public final ComputeContext computeContext;
     public final E entrypoint;
     public final Set<MethodCall> calls = new HashSet<>();
-    public final Map<MethodRef,MethodCall> methodRefToMethodCallMap = new LinkedHashMap<>();
+    public final Map<MethodRef, MethodCall> methodRefToMethodCallMap = new LinkedHashMap<>();
+
     public Stream<MethodCall> callStream() {
         return methodRefToMethodCallMap.values().stream();
     }
@@ -42,7 +43,7 @@ public abstract class CallGraph<E extends Entrypoint> {
         public int rank = 0;
 
         MethodCall(CallGraph<?> callGraph, MethodRef targetMethodRef, Method method) {
-            this.callGraph  = callGraph;
+            this.callGraph = callGraph;
             this.targetMethodRef = targetMethodRef;
             this.method = method;
             this.declaringClass = method.getDeclaringClass();
@@ -55,20 +56,20 @@ public abstract class CallGraph<E extends Entrypoint> {
         }
 
 
-
         public void addCall(MethodCall methodCall) {
             callGraph.calls.add(methodCall);
             methodCall.callers.add(this);
             this.calls.add(methodCall);
         }
-        protected void rankRecurse(int value){
-            calls.forEach(c->c.rankRecurse(value+1));
-            if (value>this.rank){
+
+        protected void rankRecurse(int value) {
+            calls.forEach(c -> c.rankRecurse(value + 1));
+            if (value > this.rank) {
                 this.rank = value;
             }
         }
 
-        public void rankRecurse(){
+        public void rankRecurse() {
             rankRecurse(0);
         }
     }
@@ -98,8 +99,6 @@ public abstract class CallGraph<E extends Entrypoint> {
             super(callGraph, targetMethodRef, method);
         }
     }
-
-
 
 
     CallGraph(ComputeContext computeContext, E entrypoint) {

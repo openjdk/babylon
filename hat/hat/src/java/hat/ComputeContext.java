@@ -1,9 +1,8 @@
 package hat;
+
 import hat.buffer.Buffer;
 import hat.callgraph.ComputeCallGraph;
-import hat.callgraph.ComputeEntrypoint;
 import hat.callgraph.KernelCallGraph;
-import hat.callgraph.KernelEntrypoint;
 import hat.optools.FuncOpWrapper;
 import hat.optools.LambdaOpWrapper;
 import hat.optools.OpWrapper;
@@ -50,7 +49,7 @@ public class ComputeContext {
 
     /**
      * Called by the Accelerator when the accelerator is passed a compute entrypoint.
-     *
+     * <p>
      * So given a ComputeClass such as..
      * <pre>
      *  public class MyComputeClass {
@@ -65,6 +64,7 @@ public class ComputeContext {
      *    }
      *  }
      *  </pre>
+     *
      * @param accelerator
      * @param computeMethod
      */
@@ -72,7 +72,7 @@ public class ComputeContext {
     protected ComputeContext(Accelerator accelerator, Method computeMethod) {
         this.accelerator = accelerator;
         FuncOpWrapper funcOpWrapper = OpWrapper.wrap(computeMethod.getCodeModel().orElseThrow());
-        this.computeCallGraph = new ComputeCallGraph(this, computeMethod,funcOpWrapper);
+        this.computeCallGraph = new ComputeCallGraph(this, computeMethod, funcOpWrapper);
 
         this.computeCallGraph.close();
         this.accelerator.backend.computeContextHandoff(this);
@@ -85,9 +85,9 @@ public class ComputeContext {
      * @param quotableKernelContextConsumer
      */
 
-    public void  dispatchKernel(int range, QuotableKernelContextConsumer quotableKernelContextConsumer) {
+    public void dispatchKernel(int range, QuotableKernelContextConsumer quotableKernelContextConsumer) {
         Quoted quoted = quotableKernelContextConsumer.quoted();
-        LambdaOpWrapper lambdaOpWrapper = OpWrapper.wrap((CoreOp.LambdaOp)quoted.op());
+        LambdaOpWrapper lambdaOpWrapper = OpWrapper.wrap((CoreOp.LambdaOp) quoted.op());
         MethodRef methodRef = lambdaOpWrapper.getQuotableTargetMethodRef();
         KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
         try {
@@ -95,12 +95,11 @@ public class ComputeContext {
             NDRange ndRange = accelerator.range(range);
             args[0] = ndRange;
             accelerator.backend.dispatchKernel(kernelCallGraph, ndRange, args);
-        }catch (Throwable t){
-            System.out.print("what?"+methodRef+" "+t);
+        } catch (Throwable t) {
+            System.out.print("what?" + methodRef + " " + t);
             throw t;
         }
     }
-
 
 
     public void preMutate(Buffer b) {
@@ -123,7 +122,6 @@ public class ComputeContext {
 
 
     }
-
 
 
 }

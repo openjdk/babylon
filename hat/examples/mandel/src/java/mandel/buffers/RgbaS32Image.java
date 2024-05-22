@@ -40,6 +40,7 @@ public interface RgbaS32Image extends ImageBuffer {
         return create(accelerator, bufferedImage.getWidth(), bufferedImage.getHeight()).syncFromRaster(bufferedImage);
 
     }
+
     short data(long idx);
 
     void data(long idx, short v);

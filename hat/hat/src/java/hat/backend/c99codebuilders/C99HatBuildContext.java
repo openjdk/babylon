@@ -12,7 +12,6 @@ import java.lang.reflect.code.Value;
 import java.lang.reflect.code.op.CoreOp;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Consumer;
 
 public class C99HatBuildContext {
 
@@ -26,14 +25,14 @@ public class C99HatBuildContext {
             this.opWrapper = opWrapper;
         }
 
-        public  CoreOp.VarOp resolve(Value value){
-            if (value instanceof  Op.Result result && result.op() instanceof CoreOp.VarOp varOp){
+        public CoreOp.VarOp resolve(Value value) {
+            if (value instanceof Op.Result result && result.op() instanceof CoreOp.VarOp varOp) {
                 return varOp;
             }
-            if (parent != null){
+            if (parent != null) {
                 return parent.resolve(value);
             }
-            throw new IllegalStateException("failed to resolve VarOp for value "+value);
+            throw new IllegalStateException("failed to resolve VarOp for value " + value);
         }
     }
 
@@ -46,7 +45,7 @@ public class C99HatBuildContext {
         public CoreOp.VarOp resolve(Value value) {
             if (value instanceof Block.Parameter blockParameter) {
                 if (opWrapper.parameterToVarOpMap.containsKey(blockParameter)) {
-                    return  opWrapper.parameterToVarOpMap.get(blockParameter);
+                    return opWrapper.parameterToVarOpMap.get(blockParameter);
                 } else {
                     throw new IllegalStateException("what ?");
                 }
@@ -56,13 +55,12 @@ public class C99HatBuildContext {
         }
     }
 
-    static abstract class LoopScope<T extends OpWrapper<?>> extends Scope<T>{
+    static abstract class LoopScope<T extends OpWrapper<?>> extends Scope<T> {
 
         public LoopScope(Scope<?> parent, T opWrapper) {
             super(parent, opWrapper);
         }
     }
-
 
 
     static class ForScope extends LoopScope<ForOpWrapper> {
@@ -176,7 +174,7 @@ public class C99HatBuildContext {
         public CoreOp.VarOp resolve(Value value) {
             if (value instanceof Block.Parameter blockParameter) {
                 CoreOp.VarOp varOp = this.blockParamToVarOpMap.get(blockParameter);
-                if (varOp != null){
+                if (varOp != null) {
                     return varOp;
                 }
             }
@@ -189,12 +187,14 @@ public class C99HatBuildContext {
             super(parent, opWrapper);
         }
     }
+
     static class WhileScope extends LoopScope<WhileOpWrapper> {
         WhileScope(Scope<?> parent, WhileOpWrapper opWrapper) {
             super(parent, opWrapper);
         }
 
     }
+
     Scope<?> scope = null;
 
     private void popScope() {
@@ -210,11 +210,13 @@ public class C99HatBuildContext {
             default -> new Scope<>(scope, opWrapper);
         };
     }
+
     public void scope(OpWrapper<?> opWrapper, Runnable r) {
         pushScope(opWrapper);
         r.run();
         popScope();
     }
+
     FuncOpWrapper funcOpWrapper;
 
     C99HatBuildContext(FuncOpWrapper funcOpWrapper) {

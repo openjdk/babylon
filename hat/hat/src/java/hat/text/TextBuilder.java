@@ -26,7 +26,7 @@ package hat.text;
 
 /**
  * The base abstract class for a slew of fluent style builders.
- *
+ * <p>
  * At this level the builder just deals with basic appending, indenting, newline handling
  *
  * <pre>
@@ -40,6 +40,7 @@ package hat.text;
  *        .out();
  *
  * </pre>
+ *
  * @author Gary Frost
  */
 
@@ -47,28 +48,34 @@ package hat.text;
 public abstract class TextBuilder<T extends TextBuilder<T>> {
     public static class State {
         private final StringBuilder stringBuilder = new StringBuilder();
-        final  public boolean indenting = true;
+        final public boolean indenting = true;
         private int indent = 0;
         private final String indentation = "    ";
         private boolean newLined = true;
     }
+
     State state = new State();
-    public T reset(){
+
+    public T reset() {
         state = new State();
-       return self();
+        return self();
     }
-    public String getText(){
+
+    public String getText() {
         return toString();
     }
-    public String getTextAndReset(){
+
+    public String getTextAndReset() {
         String text = getText();
         reset();
         return text;
     }
+
     @SuppressWarnings("unchecked")
     public T self() {
         return (T) this;
     }
+
     private static String escape(char ch) {
         return switch (ch) {
             case '\b' -> "\\b";
@@ -82,19 +89,22 @@ public abstract class TextBuilder<T extends TextBuilder<T>> {
             default -> (ch >= ' ' && ch <= '~') ? String.valueOf(ch) : String.format("\\u%04x", (int) ch);
         };
     }
-    public T escaped(String text){
+
+    public T escaped(String text) {
         StringBuilder buf = new StringBuilder();
         for (int i = 0; i < text.length(); i++) {
             buf.append(escape(text.charAt(i)));
         }
         return append(text);
     }
-     public T indent(){
+
+    public T indent() {
         for (int i = 0; i < state.indent; i++) {
             state.stringBuilder.append(state.indentation);
         }
         return self();
     }
+
     final protected T emitText(String text) {
         if (state.indenting && state.newLined) {
             indent();
@@ -103,33 +113,43 @@ public abstract class TextBuilder<T extends TextBuilder<T>> {
         state.stringBuilder.append(text);
         return self();
     }
+
     public final T commented(String text) {
         return emitText(text);
     }
+
     public T identifier(String text) {
         return emitText(text);
     }
+
     public T append(String text) {
         return emitText(text);
     }
-    public final  T symbol(String text) {
+
+    public final T symbol(String text) {
         return emitText(text);
     }
+
     public final T typeName(String text) {
         return emitText(text);
     }
+
     public final T keyword(String text) {
         return emitText(text);
     }
+
     public final T literal(String text) {
         return emitText(text);
     }
+
     public final T literal(int i) {
         return emitText(Integer.toString(i));
     }
+
     public final T literal(long i) {
         return emitText(Long.toString(i));
     }
+
     public T in() {
         state.indent++;
         return self();
@@ -145,6 +165,7 @@ public abstract class TextBuilder<T extends TextBuilder<T>> {
         state.newLined = true;
         return self();
     }
+
     public T nl() {
         return emitNl();
     }
@@ -153,16 +174,20 @@ public abstract class TextBuilder<T extends TextBuilder<T>> {
     public T space() {
         return emitSpace();
     }
+
     final protected T emitSpace() {
         return emitText(" ");
     }
+
     @Override
     public final String toString() {
         return state.stringBuilder.toString();
     }
-    public static class ConcreteTextBuilder extends TextBuilder<ConcreteTextBuilder>{
+
+    public static class ConcreteTextBuilder extends TextBuilder<ConcreteTextBuilder> {
     }
-    public static ConcreteTextBuilder concreteTextBuilder(){
-        return  new ConcreteTextBuilder();
+
+    public static ConcreteTextBuilder concreteTextBuilder() {
+        return new ConcreteTextBuilder();
     }
 }

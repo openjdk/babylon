@@ -25,7 +25,6 @@
 package hat.text;
 
 
-
 import hat.util.StreamCounter;
 
 import java.util.Collection;
@@ -41,6 +40,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public T semicolon() {
         return symbol(";");
     }
+
     public T semicolonIf(boolean c) {
         if (c) {
             return semicolon();
@@ -48,9 +48,11 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
             return self();
         }
     }
+
     public T semicolonNl() {
         return semicolon().nl();
     }
+
     public T commaIf(boolean c) {
         if (c) {
             return comma();
@@ -58,6 +60,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
             return self();
         }
     }
+
     public T commaSpaceIf(boolean c) {
         if (c) {
             return comma().space();
@@ -65,6 +68,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
             return self();
         }
     }
+
     public T nlIf(boolean c) {
         if (c) {
             return nl();
@@ -72,6 +76,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
             return self();
         }
     }
+
     public T comma() {
         return symbol(",");
     }
@@ -89,6 +94,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public T dollar() {
         return symbol("$");
     }
+
     public T plusplus() {
         return symbol("++");
     }
@@ -199,54 +205,71 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public T asterisk() {
         return symbol("*");
     }
+
     public T mul() {
         return asterisk();
     }
+
     public T percent() {
         return symbol("%");
     }
+
     public T mod() {
         return percent();
     }
+
     public T slash() {
         return symbol("/");
     }
+
     public T div() {
         return slash();
     }
+
     public T plus() {
         return symbol("+");
     }
+
     public T add() {
         return plus();
     }
+
     public T minus() {
         return symbol("-");
     }
+
     public T sub() {
         return minus();
     }
+
     public T lt() {
         return symbol("<");
     }
+
     public T lte() {
         return lt().equals();
     }
+
     public T gte() {
         return gt().equals();
     }
+
     public T pling() {
         return symbol("!");
     }
+
     public T gt() {
         return symbol(">");
     }
+
     public T condAnd() {
         return symbol("&&");
     }
+
     public T condOr() {
         return symbol("||");
     }
+
     public T dqattr(String name, String value) {
         return append(name).equals().dquote(value);
 
@@ -264,6 +287,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public T attr(String name, Integer value) {
         return append(name).equals().append(value.toString());
     }
+
     public T attr(String name, Float value) {
         return append(name).equals().append(value.toString());
     }
@@ -275,37 +299,44 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public final T paren(Consumer<T> consumer) {
         return oparen().accept(consumer).cparen();
     }
-    public T parenWhen(boolean value,Consumer<T> consumer) {
+
+    public T parenWhen(boolean value, Consumer<T> consumer) {
         if (value) {
             oparen().accept(consumer).cparen();
-        }else{
+        } else {
             accept(consumer);
         }
         return self();
     }
+
     public T line(Consumer<T> consumer) {
         return accept(consumer).nl();
     }
+
     public T semicolonTerminatedLine(Consumer<T> consumer) {
         return semicolonTerminatedLineNoNl(consumer).nl();
     }
+
     public T semicolonTerminatedLineNoNl(Consumer<T> consumer) {
         return accept(consumer).semicolon();
     }
+
     public T obrace() {
         return symbol("{");
     }
 
-    public T braceNlIndented(Consumer<T>  ct) {
+    public T braceNlIndented(Consumer<T> ct) {
         return obrace().nl().indent(ct).nl().cbrace();
     }
-    public T parenNlIndented(Consumer<T>  ct) {
+
+    public T parenNlIndented(Consumer<T> ct) {
         return oparen().nl().indent(ct).nl().cparen();
     }
 
     public T brace(Consumer<T> ct) {
         return obrace().indent(ct).cbrace();
     }
+
     public T sbrace(Consumer<T> ct) {
         return osbrace().accept(ct).csbrace();
     }
@@ -315,12 +346,14 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
         return self();
     }
 
-    public T indent(Consumer<T>  ct) {
+    public T indent(Consumer<T> ct) {
         return in().accept(ct).out();
     }
+
     public T ochevron() {
         return rawochevron();
     }
+
     final public T rawochevron() {
         return emitText("<");
     }
@@ -332,9 +365,11 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public T cchevron() {
         return rawcchevron();
     }
+
     final public T rawcchevron() {
         return emitText(">");
     }
+
     public T osbrace() {
         return symbol("[");
     }
@@ -360,6 +395,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public T dquote() {
         return symbol("\"");
     }
+
     public T odquote() {
         return dquote();
     }
@@ -367,9 +403,11 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public T cdquote() {
         return dquote();
     }
+
     public T squote() {
         return symbol("'");
     }
+
     public T osquote() {
         return squote();
     }
@@ -377,16 +415,19 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public T csquote() {
         return squote();
     }
-    public T dquote(String string){
+
+    public T dquote(String string) {
         return odquote().escaped(string).cdquote();
     }
 
     public T at() {
         return symbol("@");
     }
+
     public T hat() {
         return symbol("^");
     }
+
     public T squote(String txt) {
         return osquote().append(txt).csquote();
     }
@@ -398,7 +439,6 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public T larrow() {
         return symbol("<-");
     }
-
 
 
     public T u08_t() {
@@ -451,10 +491,11 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
         }
         return self();
     }
+
     public T either(boolean c, Consumer<T> lhs, Consumer<T> rhs) {
         if (c) {
             accept(lhs);
-        }else{
+        } else {
             accept(rhs);
         }
         return self();
@@ -464,9 +505,9 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public <I> T zeroOrOneOrMore(Collection<I> collection, Consumer<T> zero, Consumer<I> one, Consumer<Iterable<I>> more) {
         if (collection == null || collection.isEmpty()) {
             zero.accept(self());
-        }else if (collection.size()==1){
+        } else if (collection.size() == 1) {
             one.accept(collection.iterator().next());
-        }else{
+        } else {
             more.accept(collection);
         }
         return self();
@@ -474,66 +515,68 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
 
 
     public <I> T commaSeparated(Iterable<I> iterable, Consumer<I> c) {
-        StreamCounter.of(iterable,(counter, t)->{
-            if (counter.isNotFirst()){
+        StreamCounter.of(iterable, (counter, t) -> {
+            if (counter.isNotFirst()) {
                 comma().space();
             }
             c.accept(t);
         });
         return self();
     }
+
     public <I> T nlSeparated(Iterable<I> iterable, Consumer<I> c) {
-        StreamCounter.of(iterable,(countStream, t)->{
-            if (countStream.isNotFirst()){
+        StreamCounter.of(iterable, (countStream, t) -> {
+            if (countStream.isNotFirst()) {
                 nl();
             }
             c.accept(t);
         });
         return self();
     }
-    public static class ConcreteCodeBuilder extends CodeBuilder<ConcreteCodeBuilder>{
-    }
-    public static ConcreteCodeBuilder concreteCodeBuilder(){
-        return  new ConcreteCodeBuilder();
+
+    public static class ConcreteCodeBuilder extends CodeBuilder<ConcreteCodeBuilder> {
     }
 
-    public final  T intType() {
+    public static ConcreteCodeBuilder concreteCodeBuilder() {
+        return new ConcreteCodeBuilder();
+    }
+
+    public final T intType() {
         return append("int");
     }
-    public final  T intZero() {
+
+    public final T intZero() {
         return append("0");
     }
 
 
-    public final  T voidType() {
+    public final T voidType() {
         return typeName("void");
     }
 
-    public final  T charType() {
+    public final T charType() {
         return typeName("char");
     }
 
 
-    public final  T floatType() {
+    public final T floatType() {
         return typeName("float");
     }
 
-    public final  T longType() {
+    public final T longType() {
         return typeName("long");
     }
 
-    public final  T doubleType() {
+    public final T doubleType() {
         return typeName("double");
     }
 
-    public final  T  booleanType() {
+    public final T booleanType() {
         return typeName("char");
     }
 
 
-
-
-    public final  T shortType() {
+    public final T shortType() {
         return typeName("short");
     }
 }

@@ -1,4 +1,4 @@
 package hat.buffer;
 
-public interface Array extends IncompleteBuffer{
+public interface Array extends IncompleteBuffer {
 }

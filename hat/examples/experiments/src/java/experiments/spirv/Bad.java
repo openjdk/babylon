@@ -22,7 +22,8 @@ public class Bad {
     }
 
     public static class MatrixMultiplyCompute {
-        static void compute(AcceleratorProxy.ComputeClosureProxy computeContext, float[] a, float[] b, float[] c, int size) {}
+        static void compute(AcceleratorProxy.ComputeClosureProxy computeContext, float[] a, float[] b, float[] c, int size) {
+        }
     }
 
     //static final int size = 100; // works

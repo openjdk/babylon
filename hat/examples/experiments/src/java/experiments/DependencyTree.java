@@ -6,7 +6,8 @@ import java.lang.reflect.Method;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.runtime.CodeReflection;
-import java.util.*;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 
 public class DependencyTree {
@@ -90,37 +91,38 @@ public class DependencyTree {
     }
 */
 
-/*
-    static void printDependencyTree(CoreOps.FuncOp f) {
-        Map<CodeItem, String> names = OpWriter.computeGlobalNames(f);
+    /*
+        static void printDependencyTree(CoreOps.FuncOp f) {
+            Map<CodeItem, String> names = OpWriter.computeGlobalNames(f);
 
-        f.traverse(null, (o, ce) -> {
-            if (ce instanceof CoreOps.VarOp vop) {
-                Node<String> tree = dependencyTree(vop.result()).transform(names::get);
-                System.out.printf("Var def %s depends on %s\n",
-                        vop.varName(), tree);
-            } else if (ce instanceof CoreOps.VarAccessOp.VarStoreOp vsop) {
-                Node<String> tree = dependencyTree(vsop.result()).transform(names::get);
-                System.out.printf("Var store to %s depends on %s\n",
-                        vsop.varOp().varName(), tree);
-            } else if (ce instanceof CoreOps.ReturnOp rop) {
-                Node<String> tree = dependencyTree(rop.result()).transform(names::get);
-                System.out.printf("Return depends on %s\n",
-                        tree);
-            }
-            return null;
-        });
+            f.traverse(null, (o, ce) -> {
+                if (ce instanceof CoreOps.VarOp vop) {
+                    Node<String> tree = dependencyTree(vop.result()).transform(names::get);
+                    System.out.printf("Var def %s depends on %s\n",
+                            vop.varName(), tree);
+                } else if (ce instanceof CoreOps.VarAccessOp.VarStoreOp vsop) {
+                    Node<String> tree = dependencyTree(vsop.result()).transform(names::get);
+                    System.out.printf("Var store to %s depends on %s\n",
+                            vsop.varOp().varName(), tree);
+                } else if (ce instanceof CoreOps.ReturnOp rop) {
+                    Node<String> tree = dependencyTree(rop.result()).transform(names::get);
+                    System.out.printf("Return depends on %s\n",
+                            tree);
+                }
+                return null;
+            });
+        }
+    */
+    static int g(int i) {
+        return i;
     }
-*/
-static int g(int i) {
-    return i;
-}
+
     @CodeReflection
-    static void  f() {
-        int x =0;
+    static void f() {
+        int x = 0;
         x = 1;
         g(x);
-        int y = g(x) + (x=2);
+        int y = g(x) + (x = 2);
     }
 
     static CoreOp.FuncOp getFuncOp(String name) {
@@ -138,7 +140,7 @@ static int g(int i) {
         System.out.println(f.toText());
 
         Set<Op> roots = RootSet.getRootSet(f.body().entryBlock().ops().stream());
-        f.body().entryBlock().ops().stream().filter(roots::contains).forEach(op->{
+        f.body().entryBlock().ops().stream().filter(roots::contains).forEach(op -> {
             System.out.print(op.toText());
         });
 

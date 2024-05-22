@@ -67,19 +67,22 @@ public class XMLHaarCascadeModel implements Cascade {
             }
         }
     }
+
     static float getFloat(Element element, final String name) {
         return selectChild(element, name).map(value -> Float.parseFloat(value.getTextContent())).orElse(0f);
     }
+
     static short getShort(Element element, final String name) {
-        return selectChild(element, name).map(value -> Short.parseShort(value.getTextContent())).orElse((short)0);
+        return selectChild(element, name).map(value -> Short.parseShort(value.getTextContent())).orElse((short) 0);
     }
-    final  public List<Feature> features = new ArrayList<>();
-    final  public List<Tree> trees = new ArrayList<>();
+
+    final public List<Feature> features = new ArrayList<>();
+    final public List<Tree> trees = new ArrayList<>();
     final public List<Stage> stages = new ArrayList<>();
 
     @Override
     public Cascade.Feature feature(long idx) {
-        return features.get((int)idx);
+        return features.get((int) idx);
     }
 
     @Override
@@ -89,12 +92,12 @@ public class XMLHaarCascadeModel implements Cascade {
 
     @Override
     public void featureCount(int featureCount) {
-       throw new IllegalStateException("featureCount(int featureCount) unimplemented ");
+        throw new IllegalStateException("featureCount(int featureCount) unimplemented ");
     }
 
     @Override
     public Cascade.Stage stage(long idx) {
-        return stages.get((int)idx);
+        return stages.get((int) idx);
     }
 
     @Override
@@ -109,7 +112,7 @@ public class XMLHaarCascadeModel implements Cascade {
 
     @Override
     public Cascade.Tree tree(long idx) {
-        return trees.get((int)idx);
+        return trees.get((int) idx);
     }
 
     @Override
@@ -169,7 +172,7 @@ public class XMLHaarCascadeModel implements Cascade {
         @Override
         public Cascade.Feature.LinkOrValue left() {
             return left;
-           // throw new IllegalStateException("Cascade.Feature.LinkOrValue left() unimplemented ");
+            // throw new IllegalStateException("Cascade.Feature.LinkOrValue left() unimplemented ");
         }
 
         @Override
@@ -180,9 +183,9 @@ public class XMLHaarCascadeModel implements Cascade {
 
         @Override
         public Cascade.Feature.Rect rect(long idx) {
-            if (rects.length>idx){
-                return rects[(int)idx];
-            }else{
+            if (rects.length > idx) {
+                return rects[(int) idx];
+            } else {
                 return null;
             }
         }
@@ -218,7 +221,7 @@ public class XMLHaarCascadeModel implements Cascade {
             @Override
             public Anon anon() {
                 return this;
-               // throw new IllegalStateException("Anon anon() unimplemented ");
+                // throw new IllegalStateException("Anon anon() unimplemented ");
             }
 
             @Override
@@ -245,19 +248,19 @@ public class XMLHaarCascadeModel implements Cascade {
         static public class Rect implements Cascade.Feature.Rect {
             private final Feature feature;
             private final Element rectElement;
-            private final  byte x, y, width, height;
+            private final byte x, y, width, height;
             private final float weight;
 
             public Rect(Feature feature, Element rectElement) {
-                this.feature  = feature;
+                this.feature = feature;
                 this.rectElement = rectElement;
 
                 Scanner rectScanner = new Scanner(this.rectElement.getTextContent());
-                this.x =rectScanner.nextByte();
-                this.y =rectScanner.nextByte();
-                this.width=rectScanner.nextByte();
-                this.height=rectScanner.nextByte();
-                this.weight=rectScanner.nextFloat();
+                this.x = rectScanner.nextByte();
+                this.y = rectScanner.nextByte();
+                this.width = rectScanner.nextByte();
+                this.height = rectScanner.nextByte();
+                this.weight = rectScanner.nextFloat();
             }
 
             @Override
@@ -316,24 +319,24 @@ public class XMLHaarCascadeModel implements Cascade {
         public final Rect[] rects;
         private final float threshold;
 
-        final  public LinkOrValue left;
-        final  public LinkOrValue right;
+        final public LinkOrValue left;
+        final public LinkOrValue right;
 
 
         public Feature(Tree tree, Element featureElement, int id) {
-            this.tree =tree;
+            this.tree = tree;
             this.featureElement = featureElement;
             this.id = (short) id;
             this.rectCount = 0;
-            this.rects =  new Rect[3];
+            this.rects = new Rect[3];
             this.threshold = getFloat(this.featureElement, "threshold");
 
-            left = (selectChild(this.featureElement,"left_val")).isPresent()
-                    ? new Feature.LinkOrValue(getFloat(this.featureElement,"left_val"))
-                    : new Feature.LinkOrValue(getShort(this.featureElement,"left_node"));
+            left = (selectChild(this.featureElement, "left_val")).isPresent()
+                    ? new Feature.LinkOrValue(getFloat(this.featureElement, "left_val"))
+                    : new Feature.LinkOrValue(getShort(this.featureElement, "left_node"));
             right = (selectChild(this.featureElement, "right_val")).isPresent()
                     ? new Feature.LinkOrValue(getFloat(this.featureElement, "right_val"))
-                    : new Feature.LinkOrValue(getShort(this.featureElement,"right_node"));
+                    : new Feature.LinkOrValue(getShort(this.featureElement, "right_node"));
 
             selectChild(this.featureElement, "feature").flatMap(featureXML -> selectChild(featureXML, "rects")).ifPresent(rectsXML -> {
                 forEachElement(rectsXML, e -> e.getNodeName().equals("_"),
@@ -342,10 +345,11 @@ public class XMLHaarCascadeModel implements Cascade {
             });
         }
     }
+
     static public class Tree implements Cascade.Tree {
         private final Stage stage;
-        final  Element treeElement;
-        final  int id;
+        final Element treeElement;
+        final int id;
 
         @Override
         public void id(int id) {
@@ -384,9 +388,9 @@ public class XMLHaarCascadeModel implements Cascade {
             this.stage = stage;
             this.treeElement = treeElement;
             this.id = id;
-            forEachElement(treeElement,e->e.getNodeName().equals("_"),
+            forEachElement(treeElement, e -> e.getNodeName().equals("_"),
                     featureXMLElement -> {
-                        Feature feature= new Feature(this, featureXMLElement, stage.haarCascade.features.size());
+                        Feature feature = new Feature(this, featureXMLElement, stage.haarCascade.features.size());
                         stage.haarCascade.features.add(feature);
                         if (firstFeatureId == -1) {
                             firstFeatureId = feature.id;
@@ -395,10 +399,12 @@ public class XMLHaarCascadeModel implements Cascade {
                     });
         }
     }
+
     public static class Stage implements Cascade.Stage {
 
         private final XMLHaarCascadeModel haarCascade;
         private final Element stageElement;
+
         @Override
         public float threshold() {
             return threshold;
@@ -417,7 +423,7 @@ public class XMLHaarCascadeModel implements Cascade {
 
         @Override
         public int id() {
-           return id;
+            return id;
         }
 
         @Override
@@ -440,9 +446,9 @@ public class XMLHaarCascadeModel implements Cascade {
             throw new IllegalStateException("void treeCount(short  treeCount) unimplemented ");
         }
 
-        final  public int id;
+        final public int id;
 
-        final  public float threshold;
+        final public float threshold;
         public short firstTreeId = -1;
         public short treeCount;
 
@@ -450,9 +456,9 @@ public class XMLHaarCascadeModel implements Cascade {
             this.haarCascade = haarCascade;
             this.stageElement = stageElement;
             this.id = id;
-            this.threshold = getFloat(this.stageElement,"stage_threshold");
-            selectChild(this.stageElement, "trees").ifPresent(treeXML-> {
-                forEachElement(treeXML, e->e.getNodeName().equals("_"), treeXMLElement -> {
+            this.threshold = getFloat(this.stageElement, "stage_threshold");
+            selectChild(this.stageElement, "trees").ifPresent(treeXML -> {
+                forEachElement(treeXML, e -> e.getNodeName().equals("_"), treeXMLElement -> {
                             Tree tree = new Tree(this, treeXMLElement, haarCascade.trees.size());
                             haarCascade.trees.add(tree);
                             if (firstTreeId == -1) {
@@ -467,29 +473,30 @@ public class XMLHaarCascadeModel implements Cascade {
     }
 
     final public int width;
-    final  public int height;
+    final public int height;
+
     public static XMLHaarCascadeModel load(InputStream is) throws IOException, SAXException, ParserConfigurationException {
         if (is == null) {
             throw new IllegalArgumentException("input == null!");
         }
         org.w3c.dom.Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(is);
         doc.getDocumentElement().normalize();
-        Element root  = doc.getDocumentElement();
+        Element root = doc.getDocumentElement();
         Element cascadeElement = selectChild(root, (e) -> e.hasAttribute("type_id")).get();
 
-            return new XMLHaarCascadeModel(cascadeElement);
+        return new XMLHaarCascadeModel(cascadeElement);
     }
 
-    XMLHaarCascadeModel(Element cascadeElement){
+    XMLHaarCascadeModel(Element cascadeElement) {
         this.cascadeElement = cascadeElement;
-        Scanner sizeScanner = new Scanner(selectChild(cascadeElement,"size").get().getTextContent());
+        Scanner sizeScanner = new Scanner(selectChild(cascadeElement, "size").get().getTextContent());
         this.width = sizeScanner.nextInt();
         this.height = sizeScanner.nextInt();
-        selectChild(cascadeElement, "stages").ifPresent(stagesXML->
-                forEachElement(stagesXML,e->e.getNodeName().equals("_"),
+        selectChild(cascadeElement, "stages").ifPresent(stagesXML ->
+                forEachElement(stagesXML, e -> e.getNodeName().equals("_"),
                         (stageXMLElement) ->
-                            stages.add(new Stage(this, stageXMLElement, stages.size()))
-                        )
+                                stages.add(new Stage(this, stageXMLElement, stages.size()))
+                )
         );
 
 

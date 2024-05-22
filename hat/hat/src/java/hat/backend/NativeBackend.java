@@ -26,12 +26,10 @@
 package hat.backend;
 
 import hat.ComputeContext;
-import hat.buffer.Buffer;
 import hat.callgraph.CallGraph;
 import hat.optools.FuncOpWrapper;
 
 import java.lang.foreign.Arena;
-import java.lang.invoke.MethodHandle;
 import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
@@ -62,9 +60,9 @@ public abstract class NativeBackend extends NativeBackendDriver {
         } else {
             try {
                 if (computeContext.computeCallGraph.entrypoint.mh == null) {
-                    computeContext.computeCallGraph.entrypoint.mh  = BytecodeGenerator.generate(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered.op());
+                    computeContext.computeCallGraph.entrypoint.mh = BytecodeGenerator.generate(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered.op());
                 }
-                computeContext.computeCallGraph.entrypoint.mh.invokeWithArguments( args);
+                computeContext.computeCallGraph.entrypoint.mh.invokeWithArguments(args);
             } catch (Throwable e) {
                 computeContext.computeCallGraph.entrypoint.lowered.op().writeTo(System.out);
                 throw new RuntimeException(e);
