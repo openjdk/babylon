@@ -113,22 +113,22 @@ public class ViolaJones {
                 .typedef(ResultTable.Result.class)
                 .typedef(Cascade.class)
                 .append("""
-               
+
                 #define SCOPE_START  ndrange_t ndrange;ndrange.id.x=get_global_id(0);ndrange.id.maxX=get_global_size(0);
                 #ifdef NDRANGE_CUDA
                 #define atomicInc(p) atomicAdd(p, 1)
-                #else 
+                #else
                 #define atomicInc(p) atom_add(p, 1)
                 #endif
-              
-                inline int b2i(i4 v){    
-                   return v < 0 ? 256 + v : v;            
+
+                inline int b2i(i4 v){
+                   return v < 0 ? 256 + v : v;
                 }
                 inline int rgbToGrey(i4 r, i4 g, i4 b){
-                   return (29 * b2i(r) + 60 * b2i(g) + 11 * b2i(b)) / 100;           
+                   return (29 * b2i(r) + 60 * b2i(g) + 11 * b2i(b)) / 100;
                 }
                 inline void integralColById(i4 id, __global cascade_t *cascadeContext, __global b1 *rgb, __global f4 *integral, __global f4 *integralSq){
-                   integralSq[id] = integral[id] = 0.0f;            
+                   integralSq[id] = integral[id] = 0.0f;
                    for (s32_t y = 1; y < cascadeContext->imageHeight; y++) {
                        s32_t monoOffset = (y * cascadeContext->imageWidth) + id;
                        f32_t lastSq = integralSq[monoOffset - cascadeContext->imageWidth];
@@ -139,14 +139,14 @@ public class ViolaJones {
                        f32_t greyValue = rgbToGrey(r, g, b);
                        f32_t greyValueSq = greyValue * greyValue;
                        integralSq[monoOffset] = greyValueSq + lastSq;
-                       integral[monoOffset] = greyValue + last;          
-                   }                
+                       integral[monoOffset] = greyValue + last;
+                   }
                 }
                 __kernel void integralColKernel(__global cascade_t *cascadeContext, __global b1 *rgb, __global f4 *integral, __global f4 *integralSq){
                      SCOPE_START
-                     integralColById(ndrange.id.x, cascadeContext, rgb,  integral, integralSq);        
+                     integralColById(ndrange.id.x, cascadeContext, rgb,  integral, integralSq);
                 }
-                inline void integralRowById(i4 id, __global cascade_t *cascadeContext, __global f4 *integral, __global f4 *integralSq){         
+                inline void integralRowById(i4 id, __global cascade_t *cascadeContext, __global f4 *integral, __global f4 *integralSq){
                      for (s32_t x = 1; x < cascadeContext->imageWidth; x++) {
                         s32_t monoOffset = (id * cascadeContext->imageWidth) + x;
                         integral[monoOffset] = integral[monoOffset] + integral[monoOffset - 1];
@@ -154,19 +154,19 @@ public class ViolaJones {
                      for (s32_t x = 1; x < cascadeContext->imageWidth; x++) {
                         s32_t monoOffset = (id * cascadeContext->imageWidth) + x;
                         integralSq[monoOffset] = integralSq[monoOffset] + integralSq[monoOffset - 1];
-                     }            
+                     }
                 }
                 __kernel void integralRowKernel(__global cascade_t *cascadeContext, __global f4 *integral, __global f4 *integralSq){
                    SCOPE_START
-                   integralRowById(ndrange.id.x,  cascadeContext, integral, integralSq);             
+                   integralRowById(ndrange.id.x,  cascadeContext, integral, integralSq);
                 }
                 __kernel void floatToShortKernel(__global cascade_t *cascadeContext, __global f4 *fromIntegral, __global s2 *toIntegral, __global f4 *fromIntegralSq, __global s2 *toIntegralSq){
                    SCOPE_START
                    toIntegral[ndrange.id.x] = (s16_t)(fromIntegral[ndrange.id.x]*(65536/fromIntegral[ndrange.id.maxX-1]));
-                   toIntegralSq[ndrange.id.x] = (s16_t)(fromIntegralSq[ndrange.id.x]*(65536/fromIntegralSq[ndrange.id.maxX-1]));            
+                   toIntegralSq[ndrange.id.x] = (s16_t)(fromIntegralSq[ndrange.id.x]*(65536/fromIntegralSq[ndrange.id.maxX-1]));
                 }
-                
-         
+
+
                 /
                       A +-------+ B
                         |       |       D-B-C+A
@@ -177,12 +177,12 @@ public class ViolaJones {
                    f32_t D = image[((y + height) * imageWidth) + x + width];
                    f32_t C = image[((y + height) * imageWidth) + x];
                    f32_t B = image[(y * imageWidth) + x + width];
-                   return D-B-C+A;              
+                   return D-B-C+A;
                 }
                 inline boolean isAFaceStage(__global cascade_t *cascadeContext, __global scale_t *scale, i4 x, i4 y, f4 vnorm, __global f4 *integral, __global stage_t *stagePtr, __global tree_t *treeTable, __global feature_t *featureTable){
                    f32_t sumOfThisStage = 0;
                    for (s32_t treeId = stagePtr->firstTreeId; treeId < (stagePtr->firstTreeId+stagePtr->treeCount); treeId++) {
-                       // featureId from 0 to how many roots there are.... we use -1 for none! hence s32_t       
+                       // featureId from 0 to how many roots there are.... we use -1 for none! hence s32_t
                        const __global tree_t *treePtr = &treeTable[treeId];
                        s32_t featureId = treePtr->firstFeatureId;
                        while (featureId >= 0) {
@@ -196,8 +196,8 @@ public class ViolaJones {
                                        y + (int) (rect->y * scale->scaleValue),
                                        (int) (rect->width * scale->scaleValue),
                                        (int) (rect->height * scale->scaleValue)
-                                   ) ; 
-                           }  
+                                   ) ;
+                           }
                            if ((featureGradientSum * scale->invArea) < (featurePtr->threshold * vnorm)) {//left
                               if (featurePtr->left.hasValue) {
                                   sumOfThisStage += featurePtr->left.anon.value;
@@ -215,31 +215,31 @@ public class ViolaJones {
                            }
                        }
                    }
-                   return sumOfThisStage > stagePtr->threshold;              
+                   return sumOfThisStage > stagePtr->threshold;
                 }
                 __kernel void singlePassCascadeKernel(__global cascade_t *cascadeContext, __global f4 *integral, __global f4 *integralSq, __global scale_t *scaleTable, __global result_t *resultTable, __global stage_t *stageTable, __global tree_t *treeTable, __global feature_t *featureTable){
                    SCOPE_START
-                                
+
                    size_t gid = ndrange.id.x;
                    if (gid < cascadeContext->multiScaleAccumulativeRange){
                       s32_t i;
                       // This is where we select the scale to use.
                       for (i=0; gid >=scaleTable[i].accumGridSizeMax; i++)
                          ;
-                                 
+
                       __global scale_t *scale = &scaleTable[i];
-                                 
+
                       s16_t x = (s16_t)(((gid-scale->accumGridSizeMin) % scale->gridWidth) * scale->scaledXInc);
                       s16_t y = (s16_t)(((gid-scale->accumGridSizeMin) / scale->gridWidth) * scale->scaledYInc);
-                                 
+
                       f32_t integralGradient = gradient(integral, cascadeContext->imageWidth, x, y, scale->scaledFeatureWidth, scale->scaledFeatureHeight) * scale->invArea;
                       f32_t integralSqGradient = gradient(integralSq, cascadeContext->imageWidth, x, y, scale->scaledFeatureWidth, scale->scaledFeatureHeight) * scale->invArea;
-                                 
+
                       f32_t vnorm = integralSqGradient - integralGradient * integralGradient;
                       vnorm =  (vnorm > 1) ? sqrt(vnorm) : 1;
-                                 
+
                       bool stillLooksLikeAFace = true;
-                                 
+
                       for (s32_t stageId = 0; stillLooksLikeAFace && (stageId < cascadeContext->stageCount); stageId++) {
                          __global stage_t *stagePtr = &stageTable[stageId];
                          stillLooksLikeAFace =isAFaceStage(cascadeContext, scale,  x, y,  vnorm,  integral,  stagePtr, treeTable, featureTable);
@@ -253,8 +253,8 @@ public class ViolaJones {
                             resultTable[index].height = scale->scaledFeatureHeight;
                          }
                        }
-                   }              
-                }              
+                   }
+                }
                 """
              );
 

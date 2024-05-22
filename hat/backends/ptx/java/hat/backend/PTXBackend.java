@@ -46,8 +46,8 @@ public class PTXBackend extends NativeBackend {
     public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
         System.out.println("PTX dispatch kernel");
         // Here we recieve a callgraph from the kernel entrypoint
-        // The first time we see this we need to convert the kernel entrypoint 
-        // and rechable methods to PTX. 
+        // The first time we see this we need to convert the kernel entrypoint
+        // and rechable methods to PTX.
         kernelCallGraph.kernelReachableResolvedStream().forEach(kr -> {
 
         });

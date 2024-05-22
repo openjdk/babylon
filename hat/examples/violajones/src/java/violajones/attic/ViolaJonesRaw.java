@@ -149,7 +149,7 @@ public class ViolaJonesRaw {
                 .ptr("integralSq", JAVA_FLOAT)
                 .body("""
                                 integralSq[id] = integral[id] = 0.0f;
-                                            
+
                                 for (s32_t y = 1; y < cascadeContext->imageHeight; y++) {
                                     s32_t monoOffset = (y * cascadeContext->imageWidth) + id;
                                     f32_t lastSq = integralSq[monoOffset - cascadeContext->imageWidth];
@@ -161,14 +161,14 @@ public class ViolaJonesRaw {
                                     f32_t greyValueSq = greyValue * greyValue;
                                     integralSq[monoOffset] = greyValueSq + lastSq;
                                     integral[monoOffset] = greyValue + last;
-                                                    
+
                                 }""")
 
                 .kernel("integralColKernel")
                 .ptr("cascadeContext", Cascade.layout)
                 .ptr("rgb", JAVA_BYTE)
                 .ptr("integral", JAVA_FLOAT)
-                .ptr("integralSq", JAVA_FLOAT).body("""              
+                .ptr("integralSq", JAVA_FLOAT).body("""
                                     integralColById(ndrange.id.x, cascadeContext, rgb,  integral, integralSq);
                                 """)
 
@@ -199,10 +199,10 @@ public class ViolaJonesRaw {
                 .ptr("toIntegral", JAVA_SHORT)
                 .ptr("fromIntegralSq", JAVA_FLOAT)
                 .ptr("toIntegralSq", JAVA_SHORT).body("""
-                                
+
                      toIntegral[ndrange.id.x] = (s16_t)(fromIntegral[ndrange.id.x]*(65536/fromIntegral[ndrange.id.maxX-1]));
                      toIntegralSq[ndrange.id.x] = (s16_t)(fromIntegralSq[ndrange.id.x]*(65536/fromIntegralSq[ndrange.id.maxX-1]));
-                                
+
                 """)
 
                 .function(float.class, "gradient")
@@ -213,7 +213,7 @@ public class ViolaJonesRaw {
                 .scalar("width", JAVA_INT)
                 .scalar("height", JAVA_INT)
                 .body("""
-                               
+
                 /
                       A +-------+ B
                         |       |       D-B-C+A
@@ -237,12 +237,12 @@ public class ViolaJonesRaw {
                 .ptr("treeTable", TreeTable.Tree.layout)
                 .ptr("featureTable", FeatureTable.Feature.layout)
                 .body("""
-                                
-                            
+
+
                     f32_t sumOfThisStage = 0;
                     for (s32_t treeId = stagePtr->firstTreeId; treeId < (stagePtr->firstTreeId+stagePtr->treeCount); treeId++) {
                         // featureId from 0 to how many roots there are.... we use -1 for none! hence s32_t
-                     
+
                         const __global tree_t *treePtr = &treeTable[treeId];
                         s32_t featureId = treePtr->firstFeatureId;
                         while (featureId >= 0) {
@@ -259,8 +259,8 @@ public class ViolaJonesRaw {
                                     )
                                     * featurePtr->rects[i].weight;
                             }
-                                
-                        
+
+
                              if ((featureGradientSum * scale->invArea) < (featurePtr->threshold * vnorm)) {//left
                                 if (featurePtr->left.hasValue) {
                                     sumOfThisStage += featurePtr->left.anon.value;
@@ -289,26 +289,26 @@ public class ViolaJonesRaw {
                 .ptr("resultTable", ResultTable.Result.layout)
                 .ptr("stageTable", StageTable.Stage.layout)
                 .ptr("treeTable", TreeTable.Tree.layout)
-                .ptr("featureTable", FeatureTable.Feature.layout).body("""  
+                .ptr("featureTable", FeatureTable.Feature.layout).body("""
                    size_t gid = ndrange.id.x;
                    if (gid < cascadeContext->multiScaleAccumulativeRange){
                      s32_t i;
-                     // This is where we select the scale to use. 
+                     // This is where we select the scale to use.
                      for ( i=0;gid >=scaleTable[i].accumGridSizeMax; i++);
-                     
+
                      __global scale_t *scale = &scaleTable[i];
-                     
+
                      s16_t x = (s16_t)(((gid-scale->accumGridSizeMin) % scale->gridWidth) * scale->scaledXInc);
                      s16_t y = (s16_t)(((gid-scale->accumGridSizeMin) / scale->gridWidth) * scale->scaledYInc);
-                     
+
                      f32_t integralGradient = gradient(integral, cascadeContext->imageWidth, x, y, scale->scaledFeatureWidth, scale->scaledFeatureHeight) * scale->invArea;
                      f32_t integralSqGradient = gradient(integralSq, cascadeContext->imageWidth, x, y, scale->scaledFeatureWidth, scale->scaledFeatureHeight) * scale->invArea;
-                   
+
                      f32_t vnorm = integralSqGradient - integralGradient * integralGradient;
                      vnorm =  (vnorm > 1) ? sqrt(vnorm) : 1;
-                                
+
                      bool stillLooksLikeAFace = true;
-                                
+
                      for (s32_t stageId = 0; stillLooksLikeAFace && (stageId < cascadeContext->stageCount); stageId++) {
                         __global stage_t *stagePtr = &stageTable[stageId];
                         stillLooksLikeAFace =isAFaceStage(cascadeContext, scale,  x, y,  vnorm,  integral,  stagePtr, treeTable, featureTable);
@@ -329,8 +329,8 @@ public class ViolaJonesRaw {
                         }
                       }
                    }
-                                
-                                
+
+
                 """);
 
 

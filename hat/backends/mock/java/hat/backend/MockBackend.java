@@ -79,8 +79,8 @@ public class MockBackend extends NativeBackend {
     public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
         System.out.println("Mock dispatch kernel");
         // Here we receive a callgraph from the kernel entrypoint
-        // The first time we see this we need to convert the kernel entrypoint 
-        // and rechable methods to a form that our mock backend can execute. 
+        // The first time we see this we need to convert the kernel entrypoint
+        // and rechable methods to a form that our mock backend can execute.
         kernelCallGraph.kernelReachableResolvedStream().forEach(kr -> {
 
         });
