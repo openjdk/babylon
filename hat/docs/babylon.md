@@ -18,7 +18,7 @@ make images
 #Coffee time (about 10 mins?)
 ```
 
-In order to run tests we need `jtreg` built using the JDK we just built (I think this is true). 
+In order to run tests we need `jtreg` built using the JDK we just built (I think this is true).
 
 ```bash
 export BABYLON_JDK=${GITHUB}/babylon/build/macosx-aarch64-server-release/jdk
@@ -30,7 +30,7 @@ cd ${GITHUB}/jtreg
 bash make/build.sh --jdk ${BABYLON_JDK}
 ```
 
-Now we can go back and rebuild babylon using `jtreg` in our config  build 
+Now we can go back and rebuild babylon using `jtreg` in our config  build
 
 ```bash
 export JTREG_HOME=${GITHUB}/jtreg/build/images/jtreg
@@ -53,7 +53,7 @@ jdk_lang_reflect_code = \
 ```
 To the file `${GITHUB}/babylon/test/jdk/TEST.groups`
 
-You can see (and add) the tests in this dir. 
-```  
+You can see (and add) the tests in this dir.
+```
 test/jdk/java/lang/reflect/code/TestGRF.java
 ```

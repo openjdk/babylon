@@ -14,11 +14,11 @@ To allow this code to be used with 'babylon jdk' we need to add:-
 
 `--patch-module=java.base=src/main/java.base`
 
-To javac opts (to include this src in the compilation 
+To javac opts (to include this src in the compilation
 
 `--patch-module=java.base=babylon/out/production/babylon`
 
-To the java VM options at runtime, so we can access these classes as if in java.base 
+To the java VM options at runtime, so we can access these classes as if in java.base
 
 In intellij we need to make sure that the following is added to .idea/compiler.xml
 ```xml

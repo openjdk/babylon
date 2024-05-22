@@ -34,7 +34,7 @@ func @"mandel" @loc="39:5:file:/Users/grfrost/orahub/hat/examples/mandel/src/jav
     %9 : Var<float> = var %3 @"offsetx" ;
     %10 : Var<float> = var %4 @"offsety" ;
     %11 : Var<float> = var %5 @"scale" ;
-    java.if 
+    java.if
         ()boolean -> {
             %12 : hat.KernelContext = var.load %6 ;
             %13 : int = field.load %12 @"hat.KernelContext::x()int" ;
@@ -98,9 +98,9 @@ func @"mandel" @loc="39:5:file:/Users/grfrost/orahub/hat/examples/mandel/src/jav
             %68 : Var<float> = var %67 @"new_zx" ;
             %69 : int = constant @"0" ;
             %70 : Var<int> = var %69 @"colorIdx" ;
-            java.while 
+            java.while
                 ()boolean -> {
-                    %71 : boolean = java.cand 
+                    %71 : boolean = java.cand
                         ()boolean -> {
                             %72 : int = var.load %70 ;
                             %73 : hat.buffer.S32Array = var.load %8 ;
@@ -149,7 +149,7 @@ func @"mandel" @loc="39:5:file:/Users/grfrost/orahub/hat/examples/mandel/src/jav
                     var.store %70 %104 ;
                     java.continue ;
                 };
-            %105 : int = java.cexpression 
+            %105 : int = java.cexpression
                 ()boolean -> {
                     %106 : int = var.load %70 ;
                     %107 : hat.buffer.S32Array = var.load %8 ;
@@ -184,7 +184,7 @@ func @"mandel" @loc="39:5:file:/Users/grfrost/orahub/hat/examples/mandel/src/jav
 };
 
 ```
-From the above we can generate C99 style CUDA code 
+From the above we can generate C99 style CUDA code
 
 
 Here is the Cuda C99 code generated
@@ -366,7 +366,7 @@ $L__BB0_7:
 ```
 But we would like to create the ptx directly from the babylon model, without being on an NVidia platform.  Probably the lowered model
 
-We will probably use the lowered babylon model 
+We will probably use the lowered babylon model
 
 ```
 func @"mandel" @loc="39:5:file:/Users/grfrost/orahub/hat/examples/mandel/src/java/mandel/MandelCompute.java"
@@ -383,7 +383,7 @@ func @"mandel" @loc="39:5:file:/Users/grfrost/orahub/hat/examples/mandel/src/jav
     %15 : int = field.load %14 @"hat.KernelContext::maxX()int" ;
     %16 : boolean = lt %13 %15 ;
     cbranch %16 ^block_0 ^block_1;
-  
+
   ^block_0:
     %17 : hat.buffer.S32Array2D = var.load %7 ;
     %18 : int = invoke %17 @"hat.buffer.S32Array2D::width()int" ;
@@ -440,14 +440,14 @@ func @"mandel" @loc="39:5:file:/Users/grfrost/orahub/hat/examples/mandel/src/jav
     %69 : int = constant @"0" ;
     %70 : Var<int> = var %69 @"colorIdx" ;
     branch ^block_2;
-  
+
   ^block_2:
     %71 : int = var.load %70 ;
     %72 : hat.buffer.S32Array = var.load %8 ;
     %73 : int = invoke %72 @"hat.buffer.S32Array::length()int" ;
     %74 : boolean = lt %71 %73 ;
     cbranch %74 ^block_3 ^block_4(%74);
-  
+
   ^block_3:
     %75 : float = var.load %64 ;
     %76 : float = var.load %64 ;
@@ -459,10 +459,10 @@ func @"mandel" @loc="39:5:file:/Users/grfrost/orahub/hat/examples/mandel/src/jav
     %82 : float = constant @"4.0" ;
     %83 : boolean = lt %81 %82 ;
     branch ^block_4(%83);
-  
+
   ^block_4(%84 : boolean):
     cbranch %84 ^block_5 ^block_6;
-  
+
   ^block_5:
     %85 : float = var.load %64 ;
     %86 : float = var.load %64 ;
@@ -489,25 +489,25 @@ func @"mandel" @loc="39:5:file:/Users/grfrost/orahub/hat/examples/mandel/src/jav
     %104 : int = add %102 %103 ;
     var.store %70 %104 ;
     branch ^block_2;
-  
+
   ^block_6:
     %105 : int = var.load %70 ;
     %106 : hat.buffer.S32Array = var.load %8 ;
     %107 : int = invoke %106 @"hat.buffer.S32Array::length()int" ;
     %108 : boolean = lt %105 %107 ;
     cbranch %108 ^block_7 ^block_8;
-  
+
   ^block_7:
     %109 : hat.buffer.S32Array = var.load %8 ;
     %110 : int = var.load %70 ;
     %111 : long = conv %110 ;
     %112 : int = invoke %109 %111 @"hat.buffer.S32Array::array(long)int" ;
     branch ^block_9(%112);
-  
+
   ^block_8:
     %113 : int = constant @"0" ;
     branch ^block_9(%113);
-  
+
   ^block_9(%114 : int):
     %115 : Var<int> = var %114 @"color" ;
     %116 : hat.buffer.S32Array2D = var.load %7 ;
@@ -517,10 +517,10 @@ func @"mandel" @loc="39:5:file:/Users/grfrost/orahub/hat/examples/mandel/src/jav
     %120 : int = var.load %115 ;
     invoke %116 %119 %120 @"hat.buffer.S32Array2D::array(long, int)void" ;
     branch ^block_10;
-  
+
   ^block_1:
     branch ^block_10;
-  
+
   ^block_10:
     return ;
 };
