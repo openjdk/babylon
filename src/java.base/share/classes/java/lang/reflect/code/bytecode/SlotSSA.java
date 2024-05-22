@@ -26,7 +26,6 @@
 package java.lang.reflect.code.bytecode;
 
 import java.lang.reflect.code.*;
-import java.lang.reflect.code.type.JavaType;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -163,6 +162,7 @@ public final class SlotSSA {
                                 Map<Block, Set<Integer>> joinPoints,
                                 Map<SlotOp.SlotLoadOp, Object> loadValues,
                                 Map<Block.Reference, List<SlotValue>> joinSuccessorValues) {
+
         int size = n.b().ops().size();
 
         // Check if slot is associated with block argument (phi)
@@ -268,7 +268,9 @@ public final class SlotSSA {
 
                 for (Block y : df.getOrDefault(x, Set.of())) {
                     if (hasAlready[y.index()] < iterCount) {
-                        joinPoints.computeIfAbsent(y, _ -> new LinkedHashSet<>()).add(slot);
+                        if (isSlotLoadedFirst(y, slot, new boolean[body.blocks().size()])) {
+                            joinPoints.computeIfAbsent(y, _ -> new LinkedHashSet<>()).add(slot);
+                        }
                         hasAlready[y.index()] = iterCount;
 
                         if (work[y.index()] < iterCount) {
@@ -291,6 +293,22 @@ public final class SlotSSA {
             }
             return stores;
         }));
+    }
+
+    static boolean isSlotLoadedFirst(Block b, int slot, boolean[] visited) {
+        if (visited[b.index()]) return false;
+        visited[b.index()] = true;
+        for (Op op : b.ops()) {
+            if (op instanceof SlotOp.SlotStoreOp storeOp) {
+                if (storeOp.slot == slot) return false;
+            } else if (op instanceof SlotOp.SlotLoadOp loadOp) {
+                if (loadOp.slot == slot) return true;
+            }
+        }
+        for (var s : b.successors()) {
+            if (isSlotLoadedFirst(s.targetBlock(), slot, visited)) return true;
+        }
+        return false;
     }
 
     record Node(Block b, Set<Node> children) {
