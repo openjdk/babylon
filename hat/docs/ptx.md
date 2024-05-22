@@ -252,115 +252,115 @@ Which we can convert to ptx using the nvcc compiler (on a NVDIA platform)
 .target sm_52
 .address_size 64
 
-	// .globl	mandel
+        // .globl       mandel
 
 .visible .entry mandel(
-	.param .u64 mandel_param_0,
-	.param .u64 mandel_param_1,
-	.param .f32 mandel_param_2,
-	.param .f32 mandel_param_3,
-	.param .f32 mandel_param_4
+        .param .u64 mandel_param_0,
+        .param .u64 mandel_param_1,
+        .param .f32 mandel_param_2,
+        .param .f32 mandel_param_3,
+        .param .f32 mandel_param_4
 )
 {
-	.reg .pred 	%p<9>;
-	.reg .f32 	%f<29>;
-	.reg .b32 	%r<24>;
-	.reg .f64 	%fd<22>;
-	.reg .b64 	%rd<9>;
+        .reg .pred      %p<9>;
+        .reg .f32       %f<29>;
+        .reg .b32       %r<24>;
+        .reg .f64       %fd<22>;
+        .reg .b64       %rd<9>;
 
 
-	ld.param.u64 	%rd3, [mandel_param_0];
-	ld.param.u64 	%rd4, [mandel_param_1];
-	ld.param.f32 	%f13, [mandel_param_2];
-	ld.param.f32 	%f14, [mandel_param_3];
-	ld.param.f32 	%f15, [mandel_param_4];
-	cvta.to.global.u64 	%rd1, %rd4;
-	cvta.to.global.u64 	%rd2, %rd3;
-	mov.u32 	%r8, %ntid.x;
-	mov.u32 	%r9, %ctaid.x;
-	mov.u32 	%r10, %tid.x;
-	mad.lo.s32 	%r1, %r9, %r8, %r10;
-	mov.u32 	%r11, %nctaid.x;
-	mul.lo.s32 	%r12, %r11, %r8;
-	setp.ge.s32 	%p1, %r1, %r12;
-	@%p1 bra 	$L__BB0_7;
+        ld.param.u64    %rd3, [mandel_param_0];
+        ld.param.u64    %rd4, [mandel_param_1];
+        ld.param.f32    %f13, [mandel_param_2];
+        ld.param.f32    %f14, [mandel_param_3];
+        ld.param.f32    %f15, [mandel_param_4];
+        cvta.to.global.u64      %rd1, %rd4;
+        cvta.to.global.u64      %rd2, %rd3;
+        mov.u32         %r8, %ntid.x;
+        mov.u32         %r9, %ctaid.x;
+        mov.u32         %r10, %tid.x;
+        mad.lo.s32      %r1, %r9, %r8, %r10;
+        mov.u32         %r11, %nctaid.x;
+        mul.lo.s32      %r12, %r11, %r8;
+        setp.ge.s32     %p1, %r1, %r12;
+        @%p1 bra        $L__BB0_7;
 
-	ld.global.u32 	%r14, [%rd2];
-	cvt.rn.f32.s32 	%f16, %r14;
-	ld.global.u32 	%r15, [%rd2+4];
-	cvt.rn.f32.s32 	%f17, %r15;
-	div.s32 	%r16, %r1, %r14;
-	mul.lo.s32 	%r17, %r16, %r14;
-	sub.s32 	%r18, %r1, %r17;
-	cvt.rn.f32.s32 	%f18, %r18;
-	mul.f32 	%f19, %f18, %f15;
-	cvt.f64.f32 	%fd2, %f19;
-	cvt.f64.f32 	%fd3, %f15;
-	mul.f64 	%fd4, %fd3, 0d3FE0000000000000;
-	cvt.f64.f32 	%fd5, %f16;
-	mul.f64 	%fd6, %fd4, %fd5;
-	sub.f64 	%fd7, %fd2, %fd6;
-	div.rn.f64 	%fd8, %fd7, %fd5;
-	cvt.f64.f32 	%fd9, %f13;
-	add.f64 	%fd10, %fd8, %fd9;
-	cvt.rn.f32.f64 	%f1, %fd10;
-	cvt.rn.f32.s32 	%f20, %r16;
-	mul.f32 	%f21, %f20, %f15;
-	cvt.f64.f32 	%fd11, %f21;
-	cvt.f64.f32 	%fd12, %f17;
-	mul.f64 	%fd13, %fd4, %fd12;
-	sub.f64 	%fd14, %fd11, %fd13;
-	div.rn.f64 	%fd15, %fd14, %fd12;
-	cvt.f64.f32 	%fd16, %f14;
-	add.f64 	%fd17, %fd15, %fd16;
-	cvt.rn.f32.f64 	%f27, %fd17;
-	ld.global.u32 	%r2, [%rd1];
-	setp.lt.s32 	%p2, %r2, 1;
-	mov.u32 	%r23, 0;
-	mul.f32 	%f26, %f1, %f1;
-	mul.f32 	%f25, %f27, %f27;
-	add.f32 	%f22, %f26, %f25;
-	setp.geu.f32 	%p3, %f22, 0f40800000;
-	or.pred  	%p4, %p2, %p3;
-	mov.u32 	%r22, %r23;
-	@%p4 bra 	$L__BB0_4;
+        ld.global.u32   %r14, [%rd2];
+        cvt.rn.f32.s32  %f16, %r14;
+        ld.global.u32   %r15, [%rd2+4];
+        cvt.rn.f32.s32  %f17, %r15;
+        div.s32         %r16, %r1, %r14;
+        mul.lo.s32      %r17, %r16, %r14;
+        sub.s32         %r18, %r1, %r17;
+        cvt.rn.f32.s32  %f18, %r18;
+        mul.f32         %f19, %f18, %f15;
+        cvt.f64.f32     %fd2, %f19;
+        cvt.f64.f32     %fd3, %f15;
+        mul.f64         %fd4, %fd3, 0d3FE0000000000000;
+        cvt.f64.f32     %fd5, %f16;
+        mul.f64         %fd6, %fd4, %fd5;
+        sub.f64         %fd7, %fd2, %fd6;
+        div.rn.f64      %fd8, %fd7, %fd5;
+        cvt.f64.f32     %fd9, %f13;
+        add.f64         %fd10, %fd8, %fd9;
+        cvt.rn.f32.f64  %f1, %fd10;
+        cvt.rn.f32.s32  %f20, %r16;
+        mul.f32         %f21, %f20, %f15;
+        cvt.f64.f32     %fd11, %f21;
+        cvt.f64.f32     %fd12, %f17;
+        mul.f64         %fd13, %fd4, %fd12;
+        sub.f64         %fd14, %fd11, %fd13;
+        div.rn.f64      %fd15, %fd14, %fd12;
+        cvt.f64.f32     %fd16, %f14;
+        add.f64         %fd17, %fd15, %fd16;
+        cvt.rn.f32.f64  %f27, %fd17;
+        ld.global.u32   %r2, [%rd1];
+        setp.lt.s32     %p2, %r2, 1;
+        mov.u32         %r23, 0;
+        mul.f32         %f26, %f1, %f1;
+        mul.f32         %f25, %f27, %f27;
+        add.f32         %f22, %f26, %f25;
+        setp.geu.f32    %p3, %f22, 0f40800000;
+        or.pred         %p4, %p2, %p3;
+        mov.u32         %r22, %r23;
+        @%p4 bra        $L__BB0_4;
 
-	cvt.f64.f32 	%fd1, %f27;
-	mov.f32 	%f28, %f1;
+        cvt.f64.f32     %fd1, %f27;
+        mov.f32         %f28, %f1;
 
 $L__BB0_3:
-	sub.f32 	%f23, %f26, %f25;
-	add.f32 	%f9, %f23, %f1;
-	cvt.f64.f32 	%fd18, %f28;
-	add.f64 	%fd19, %fd18, %fd18;
-	cvt.f64.f32 	%fd20, %f27;
-	fma.rn.f64 	%fd21, %fd19, %fd20, %fd1;
-	cvt.rn.f32.f64 	%f27, %fd21;
-	add.s32 	%r22, %r22, 1;
-	setp.lt.s32 	%p5, %r22, %r2;
-	mul.f32 	%f26, %f9, %f9;
-	mul.f32 	%f25, %f27, %f27;
-	add.f32 	%f24, %f26, %f25;
-	setp.lt.f32 	%p6, %f24, 0f40800000;
-	and.pred  	%p7, %p5, %p6;
-	mov.f32 	%f28, %f9;
-	@%p7 bra 	$L__BB0_3;
+        sub.f32         %f23, %f26, %f25;
+        add.f32         %f9, %f23, %f1;
+        cvt.f64.f32     %fd18, %f28;
+        add.f64         %fd19, %fd18, %fd18;
+        cvt.f64.f32     %fd20, %f27;
+        fma.rn.f64      %fd21, %fd19, %fd20, %fd1;
+        cvt.rn.f32.f64  %f27, %fd21;
+        add.s32         %r22, %r22, 1;
+        setp.lt.s32     %p5, %r22, %r2;
+        mul.f32         %f26, %f9, %f9;
+        mul.f32         %f25, %f27, %f27;
+        add.f32         %f24, %f26, %f25;
+        setp.lt.f32     %p6, %f24, 0f40800000;
+        and.pred        %p7, %p5, %p6;
+        mov.f32         %f28, %f9;
+        @%p7 bra        $L__BB0_3;
 
 $L__BB0_4:
-	setp.ge.s32 	%p8, %r22, %r2;
-	@%p8 bra 	$L__BB0_6;
+        setp.ge.s32     %p8, %r22, %r2;
+        @%p8 bra        $L__BB0_6;
 
-	mul.wide.s32 	%rd5, %r22, 4;
-	add.s64 	%rd6, %rd1, %rd5;
-	ld.global.u32 	%r23, [%rd6+4];
+        mul.wide.s32    %rd5, %r22, 4;
+        add.s64         %rd6, %rd1, %rd5;
+        ld.global.u32   %r23, [%rd6+4];
 
 $L__BB0_6:
-	mul.wide.s32 	%rd7, %r1, 4;
-	add.s64 	%rd8, %rd2, %rd7;
-	st.global.u32 	[%rd8+8], %r23;
+        mul.wide.s32    %rd7, %r1, 4;
+        add.s64         %rd8, %rd2, %rd7;
+        st.global.u32   [%rd8+8], %r23;
 
 $L__BB0_7:
-	ret;
+        ret;
 
 }
 ```
