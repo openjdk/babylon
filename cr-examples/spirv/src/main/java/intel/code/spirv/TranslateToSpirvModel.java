@@ -48,7 +48,7 @@ public class TranslateToSpirvModel  {
         return new SpirvOps.FuncOp(lowFunc.funcName(), lowFunc.invokableType(), bodyBuilder);
     }
 
-    private TranslateToSpirvModel() {
+    public TranslateToSpirvModel() {
         blockMap = new HashMap<>();
         valueMap = new HashMap<>();
     }
