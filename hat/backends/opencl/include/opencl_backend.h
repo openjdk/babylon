@@ -62,8 +62,7 @@ public:
 
         class OpenCLBuffer : public Backend::Program::Kernel::Buffer {
             public:
-                void *ptr;
-                size_t sizeInBytes;
+
                 cl_mem clMem;
                 void copyToDevice();
                 void copyFromDevice();

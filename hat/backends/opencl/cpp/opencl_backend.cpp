@@ -25,11 +25,16 @@
 #include "opencl_backend.h"
 
 OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::OpenCLBuffer(void *ptr, size_t sizeInBytes, cl_context context)
-        : ptr(ptr), sizeInBytes(sizeInBytes) {
+        : Backend::Program::Kernel::Buffer(ptr, sizeInBytes) {
     cl_int status;
     clMem = clCreateBuffer(context, CL_MEM_USE_HOST_PTR | CL_MEM_READ_WRITE, sizeInBytes, ptr, &status);
 }
+void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyToDevice() {
 
+}
+void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyFromDevice() {
+
+}
 OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::~OpenCLBuffer() {
     clReleaseMemObject(clMem);
 }
