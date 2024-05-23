@@ -59,13 +59,15 @@ public:
 
     class OpenCLProgram : public Backend::Program {
         class OpenCLKernel : public Backend::Program::Kernel {
-        class OpenCLBuffer  {
+
+        class OpenCLBuffer : public Backend::Program::Kernel::Buffer {
             public:
                 void *ptr;
                 size_t sizeInBytes;
                 cl_mem clMem;
-
-                OpenCLBuffer(cl_context context, void *ptr, size_t sizeInBytes);
+                void copyToDevice();
+                void copyFromDevice();
+                OpenCLBuffer(void *ptr, size_t sizeInBytes, cl_context context);
 
                 virtual ~OpenCLBuffer();
             };

@@ -64,62 +64,13 @@ extern void __checkCudaErrors(CUresult err, const char *file, const int line);
 
 #define checkCudaErrors(err)  __checkCudaErrors (err, __FILE__, __LINE__)
 
-struct Ptx {
+class Ptx {
+public:
     size_t len;
     char *text;
-
-    Ptx(size_t len)
-            : len(len), text(len > 0 ? new char[len] : nullptr) {}
-
-    Ptx() {
-        if (len > 0 && text != nullptr) {
-            delete[] text;
-        }
-    }
-
-    static Ptx *nvcc(const char *cudaSource, size_t len) {
-        Ptx *ptx = nullptr;
-        const char *cudaPath = "./tmp2.cu";
-        const char *ptxPath = "./tmp2.ptx";
-        const char *stderrPath = "./tmp2.stderr";
-        const char *stdoutPath = "./tmp2.stdout";
-        // we are going to fork exec nvcc
-        int pid;
-        if ((pid = fork()) == 0) {
-            std::ofstream cuda;
-            cuda.open(cudaPath);
-            cuda.write(cudaSource, len);
-            cuda.close();
-
-            const char *path = "/usr/local/cuda-12.2/bin/nvcc";
-            // const char *argv[]{"nvcc", "-v", "-ptx", cudaPath, "-o", ptxPath, nullptr};
-            const char *argv[]{"nvcc", "-ptx", cudaPath, "-o", ptxPath, nullptr};
-            // We are the child so exec nvcc.
-            //close(1); // stdout
-            //close(2); // stderr
-            //open(stderrPath, O_RDWR); // stdout
-            //open(stdoutPath, O_RDWR); // stderr
-            execvp(path, (char *const *) argv);
-        } else if (pid < 0) {
-            // fork failed.
-            std::cerr << "fork of nvcc failed" << std::endl;
-            std::exit(1);
-        } else {
-            std::cerr << "fork suceeded" << std::endl;
-            std::ifstream ptxStream(ptxPath);
-            ptxStream.seekg(0, ptxStream.end);
-            size_t ptxLen = ptxStream.tellg();
-            if (ptxLen > 0) {
-                ptx = new Ptx(ptxLen + 1);
-                ptxStream.seekg(0, ptxStream.beg);
-                ptxStream.read(ptx->text, ptx->len);
-                ptx->text[ptx->len] = '\0';
-            }
-            ptxStream.close();
-        }
-        std::cout << "returning PTX" << std::endl;
-        return ptx;
-    }
+    Ptx(size_t len);
+    ~Ptx();
+    static Ptx *nvcc(const char *cudaSource, size_t len);
 };
 
 class CudaBackend : public Backend {
@@ -131,14 +82,14 @@ public:
 
     class CudaProgram : public Backend::Program {
         class CudaKernel : public Backend::Program::Kernel {
-            class CudaBuffer {
+        class CudaBuffer: public Backend::Program::Kernel::Buffer {
             public:
-                void *ptr;
-                size_t sizeInBytes;
+
                 CUdeviceptr devicePtr;
 
                 CudaBuffer(void *ptr, size_t sizeInBytes);
-
+                void copyToDevice();
+                void copyFromDevice();
                 virtual ~CudaBuffer();
             };
 

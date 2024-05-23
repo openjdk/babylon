@@ -482,6 +482,17 @@ public:
     public:
         class Kernel {
         public:
+            class Buffer {
+            public:
+                void *ptr;
+                size_t sizeInBytes;
+                virtual void copyToDevice()=0;
+                virtual void copyFromDevice()=0;
+                Buffer(void *ptr, size_t sizeInBytes):ptr(ptr), sizeInBytes(sizeInBytes) {
+                }
+                virtual ~Buffer() {}
+            };
+
             Program *program;
 
             virtual long ndrange(int range, void *argArray) = 0;

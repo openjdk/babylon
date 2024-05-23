@@ -23,20 +23,102 @@
  * questions.
  */
 
+#include <sys/wait.h>
+#include <chrono>
 #include "cuda_backend.h"
+Ptx::Ptx(size_t len)
+: len(len), text(len > 0 ? new char[len] : nullptr) {}
+
+Ptx::~Ptx() {
+    if (len > 0 && text != nullptr) {
+        delete[] text;
+    }
+}
+uint64_t timeSinceEpochMillisec() {
+    using namespace std::chrono;
+    return duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+}
+ Ptx *Ptx::nvcc(const char *cudaSource, size_t len) {
+
+     uint64_t time = timeSinceEpochMillisec();
+     std::stringstream  timestampCuda;
+     timestampCuda <<"./tmp"<<time<<".cu";
+     std::stringstream  timestampPtx;
+     timestampPtx <<"./tmp"<<time<<".ptx";
+     std::stringstream  timestampStderr;
+     timestampStderr <<"./tmp"<<time<<".stderr";
+     std::stringstream  timestampStdout;
+     timestampStdout <<"./tmp"<<time<<".stdout";
+    Ptx *ptx = nullptr;
+    const char *cudaPath = strdup(timestampCuda.str().c_str());
+    const char *ptxPath = strdup(timestampPtx.str().c_str());
+    std::cout<<"cuda "<<cudaPath<<std::endl;
+     std::cout<<"ptx "<<ptxPath<<std::endl;
+   //const char *stderrPath = timestampStderr.str().c_str();
+   // const char *stdoutPath = timestampStdout.str().c_str();
+    // we are going to fork exec nvcc
+    int pid;
+    if ((pid = fork()) == 0) {
+        std::ofstream cuda;
+        cuda.open(cudaPath, std::ofstream::trunc | std::ofstream::trunc);
+        cuda.write(cudaSource, len);
+        cuda.close();
+
+        const char *path = "/usr/local/cuda-12.2/bin/nvcc";
+        // const char *argv[]{"nvcc", "-v", "-ptx", cudaPath, "-o", ptxPath, nullptr};
+        const char *argv[]{"nvcc", "-ptx", cudaPath, "-o", ptxPath, nullptr};
+        // We are the child so exec nvcc.
+        //close(1); // stdout
+        //close(2); // stderr
+        //open(stderrPath, O_RDWR); // stdout
+        //open(stdoutPath, O_RDWR); // stderr
+        execvp(path, (char *const *) argv);
+    } else if (pid < 0) {
+        // fork failed.
+        std::cerr << "fork of nvcc failed" << std::endl;
+        std::exit(1);
+    } else {
+        int status;
+        std::cerr << "fork suceeded waitikbng for child" << std::endl;
+        pid_t result = wait(&status);
+        std::cerr << "child finished" << std::endl;
+        std::ifstream ptxStream(ptxPath);
+        ptxStream.seekg(0, ptxStream.end);
+        size_t ptxLen = ptxStream.tellg();
+        if (ptxLen > 0) {
+            ptx = new Ptx(ptxLen + 1);
+            ptxStream.seekg(0, ptxStream.beg);
+            ptxStream.read(ptx->text, ptx->len);
+            ptx->text[ptx->len] = '\0';
+            ptx->text[ptx->len-1] = '\0';
+        }
+        ptxStream.close();
+    }
+    std::cout << "returning PTX" << std::endl;
+    return ptx;
+}
 
 /*
 //http://mercury.pr.erau.edu/~siewerts/extra/code/digital-media/CUDA/cuda_work/samples/0_Simple/matrixMulDrv/matrixMulDrv.cpp
  */
 CudaBackend::CudaProgram::CudaKernel::CudaBuffer::CudaBuffer(void *ptr, size_t sizeInBytes)
-        : ptr(ptr), sizeInBytes(sizeInBytes) {
+        :Buffer(ptr,sizeInBytes) {
+    std::cout<<"cuMemAlloc()"<<std::endl;
     cuMemAlloc(&devicePtr, (size_t) sizeInBytes);
 }
 
 CudaBackend::CudaProgram::CudaKernel::CudaBuffer::~CudaBuffer() {
-
+    std::cout<<"cuMemFree()"<<std::endl;
+    checkCudaErrors(cuMemFree(devicePtr));
 }
-
+void CudaBackend::CudaProgram::CudaKernel::CudaBuffer::copyToDevice() {
+    std::cout<<"copyToDevice()"<<std::endl;
+    checkCudaErrors(cuMemcpyHtoD(devicePtr, ptr, sizeInBytes));
+}
+void CudaBackend::CudaProgram::CudaKernel::CudaBuffer::copyFromDevice() {
+    std::cout<<"copyFromDevice()"<<std::endl;
+    checkCudaErrors(cuMemcpyDtoH(ptr, devicePtr, sizeInBytes));
+}
 CudaBackend::CudaProgram::CudaKernel::CudaKernel(Backend::Program *program, CUfunction function)
         : Backend::Program::Kernel(program), function(function) {
 }
@@ -48,28 +130,36 @@ CudaBackend::CudaProgram::CudaKernel::~CudaKernel() {
 long CudaBackend::CudaProgram::CudaKernel::ndrange(int range, void *argArray) {
     //std::cout<<"ndrange("<<range<<") "<< std::endl;
     ArgSled argSled((ArgArray_t *) argArray);
-
-    CudaBackend *backend = (CudaBackend *) program->backend;
-    bool verbose = false;
     void *argslist[argSled.argc()];
-    // #ifdef VERBOSE
+#ifdef VERBOSE
     std::cerr << "there are " << argSled.argc() << "args " << std::endl;
-    // #endif
+#endif
     for (int i = 0; i < argSled.argc(); i++) {
         Arg_t *arg = argSled.arg(i);
-        if (arg->variant == '&') {
+        switch (arg->variant) {
+            case '&': {
+                CudaBuffer *cudaBuffer = new CudaBuffer(
+                        (void *) arg->value.buffer.memorySegment,
+                        (size_t) arg->value.buffer.sizeInBytes);
+                std::cout << "copying out!"<<std::endl;
+                cudaBuffer->copyToDevice();
 
-            CudaBuffer *cudaBuffer = new CudaBuffer(
-                    (void *) arg->value.buffer.memorySegment,
-                    (size_t) arg->value.buffer.sizeInBytes);
-            //std::cout << "copying out!"<<std::endl;
-            checkCudaErrors(cuMemcpyHtoD(cudaBuffer->devicePtr, cudaBuffer->ptr, cudaBuffer->sizeInBytes));
-            argslist[arg->idx] = (void *) &cudaBuffer->devicePtr;
-            arg->value.buffer.vendorPtr = (void *) cudaBuffer;
-        } else if (arg->variant == 'I') {
-            argslist[arg->idx] = &arg->value.s32;
-        } else if (arg->variant == 'F') {
-            argslist[arg->idx] = &arg->value.f32;
+                argslist[arg->idx] = (void *) &cudaBuffer->devicePtr;
+                arg->value.buffer.vendorPtr = (void *) cudaBuffer;
+                break;
+            }
+            case 'I': {
+                argslist[arg->idx] = &arg->value.s32;
+                break;
+            }
+            case 'F': {
+                argslist[arg->idx] = &arg->value.f32;
+                break;
+            }
+            default: {
+                std::cerr << " unhandled variant " << (char) arg->variant << std::endl;
+                break;
+            }
         }
     }
 
@@ -79,10 +169,10 @@ long CudaBackend::CudaProgram::CudaKernel::ndrange(int range, void *argArray) {
 #endif
 
     checkCudaErrors(cuLaunchKernel(function,
-            range / 1024, 1, 1,
-            1024, 1, 1,
-            0, 0,
-            argslist, 0));
+                                   range / 1024, 1, 1,
+                                   1024, 1, 1,
+                                   0, 0,
+                                   argslist, 0));
 
     //cudaError_t t = cudaDeviceSynchronize();
 
@@ -94,38 +184,36 @@ long CudaBackend::CudaProgram::CudaKernel::ndrange(int range, void *argArray) {
 #ifdef VERBOSE
         std::cout << "looking at ! "<<arg->argc<<std::endl;
 #endif
-        if (arg->variant == '&') {
-            //   if ((arg->access &ACCESS_WO || arg->access &ACCESS_RW)){
-            //#ifdef VERBOSE
-            //std::cout << "copying back!"<<std::endl;
-            CudaBuffer *cudaBuffer = (CudaBuffer *) arg->value.buffer.vendorPtr;
-            checkCudaErrors(cuMemcpyDtoH(cudaBuffer->ptr, cudaBuffer->devicePtr, cudaBuffer->sizeInBytes));
-            //#endif
-            //arg->value.buffer.vendorPtr
-            // checkCudaErrors( cuMemcpyDtoH(arg->_1d.ptr, arg->_1d.buf, arg->sizeInBytes) );
-            //hexdump(arg->_1d.ptr, sizeof(int) * arg->_1d.elements);
-            //       }else{
-            //#ifdef VERBOSE
-            //          std::cout << "skipping copying back!"<<std::endl;
-            //#endif
-            //       }
+        switch (arg->variant) {
+            case '&': {
+                std::cout << "copying back!"<<std::endl;
+                CudaBuffer *cudaBuffer = (CudaBuffer *) arg->value.buffer.vendorPtr;
+                cudaBuffer->copyFromDevice();
+
+                break;
+            }
+            default: {
+            }
         }
     }
 
     for (int i = 0; i < argSled.argc(); i++) {
         Arg_t *arg = argSled.arg(i);
-        if (arg->variant == '&') {
+        switch (arg->variant) {
+            case '&': {
 #ifdef VERBOSE
-            std::cout << "releasing arg "<<arg->argc<< " "<<std::endl;
+                std::cout << "releasing arg "<<arg->argc<< " "<<std::endl;
 #endif
-            CudaBuffer *cudaBuffer = (CudaBuffer *) arg->value.buffer.vendorPtr;
-            //  checkCudaErrors( cuMemcpyDtoH(cudaBuffer->ptr, cudaBuffer->devicePtr, cudaBuffer->sizeInBytes) );
+                CudaBuffer *cudaBuffer = (CudaBuffer *) arg->value.buffer.vendorPtr;
 
-            checkCudaErrors(cuMemFree(cudaBuffer->devicePtr));
-            delete cudaBuffer;
-        } else {
+                delete cudaBuffer;
+                break;
+            }
+            default: {
+
+            }
 #ifdef VERBOSE
-            std::cout << "not releasing arg "<<arg->idx<< " "<<std::endl;
+                std::cout << "not releasing arg "<<arg->idx<< " "<<std::endl;
 #endif
         }
     }
@@ -134,7 +222,8 @@ long CudaBackend::CudaProgram::CudaKernel::ndrange(int range, void *argArray) {
 }
 
 
-CudaBackend::CudaProgram::CudaProgram(Backend *backend, BuildInfo *buildInfo, Ptx *ptx, CUmodule module)
+CudaBackend::CudaProgram::CudaProgram(Backend *backend, BuildInfo *buildInfo, Ptx *ptx, CUmodule
+module)
         : Backend::Program(backend, buildInfo), ptx(ptx), module(module) {
 }
 
@@ -155,8 +244,10 @@ bool CudaBackend::CudaProgram::programOK() {
     return true;
 }
 
-CudaBackend::CudaBackend(CudaBackend::CudaConfig *cudaConfig, int configSchemaLen, char *configSchema)
-        : Backend((Backend::Config *) cudaConfig, configSchemaLen, configSchema) {
+CudaBackend::CudaBackend(CudaBackend::CudaConfig *cudaConfig, int
+configSchemaLen, char *configSchema)
+        : Backend((Backend::Config
+*) cudaConfig, configSchemaLen, configSchema) {
     std::cout << "CudaBackend constructor" << std::endl;
     CUresult err = cuInit(0);
     int deviceCount = 0;
@@ -167,9 +258,11 @@ CudaBackend::CudaBackend(CudaBackend::CudaConfig *cudaConfig, int configSchemaLe
     checkCudaErrors(cuCtxCreate(&context, 0, device));
     std::cout << "created context" << std::endl;
 }
-CudaBackend::CudaBackend(): CudaBackend(nullptr, 0, nullptr){
+
+CudaBackend::CudaBackend() : CudaBackend(nullptr, 0, nullptr) {
 
 }
+
 CudaBackend::~CudaBackend() {
     std::cout << "freeing context" << std::endl;
     checkCudaErrors(cuCtxDestroy(context));
@@ -219,11 +312,7 @@ long CudaBackend::compileProgram(int len, char *source) {
     std::cout << "inside compileProgram" << std::endl;
     std::cout << "cuda " << source << std::endl;
     if (ptx->text != nullptr) {
-
-        //ContextDevice *contextDevice= (ContextDevice*) handle;
-
         std::cout << "ptx " << ptx->text << std::endl;
-
 
         // in this branch we use compilation with parameters
         const unsigned int jitNumOptions = 2;
@@ -240,18 +329,20 @@ long CudaBackend::compileProgram(int len, char *source) {
         char *jitLogBuffer = new char[jitLogBufferSize];
         jitOptVals[1] = jitLogBuffer;
         int status = cuModuleLoadDataEx(&module, ptx->text, jitNumOptions, jitOptions, (void **) jitOptVals);
+
         printf("> PTX JIT log:\n%s\n", jitLogBuffer);
-        delete ptx;
-    } else {
-        std::cout << "no ptx content!/" << std::endl;
-    }
-    return (long) new CudaProgram(this, nullptr, ptx, module);
+        return (long) new CudaProgram(this, nullptr, ptx, module);
+
+        //delete ptx;
+   } else {
+       std::cout << "no ptx content!/" << std::endl;
+       exit(1);
+   }
 }
 
 long getBackend(void *config, int configSchemaLen, char *configSchema) {
     // Dynamic cast?
     CudaBackend::CudaConfig *cudaConfig = (CudaBackend::CudaConfig *) config;
-
     return (long) new CudaBackend(cudaConfig, configSchemaLen, configSchema);
 }
 

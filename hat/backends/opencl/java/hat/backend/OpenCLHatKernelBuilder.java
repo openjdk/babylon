@@ -24,8 +24,11 @@
  */
 package hat.backend;
 
+import hat.backend.c99codebuilders.C99HatBuildContext;
 import hat.backend.c99codebuilders.C99HatKernelBuilder;
+import hat.optools.OpWrapper;
 
+import java.lang.reflect.code.Op;
 import java.lang.reflect.code.type.JavaType;
 
 public class OpenCLHatKernelBuilder extends C99HatKernelBuilder<OpenCLHatKernelBuilder> {
@@ -71,5 +74,14 @@ public class OpenCLHatKernelBuilder extends C99HatKernelBuilder<OpenCLHatKernelB
     public OpenCLHatKernelBuilder globalPtrPrefix() {
         return keyword("__global");
     }
+
+    @Override
+    public OpenCLHatKernelBuilder atomicInc(C99HatBuildContext buildContext, Op.Result instanceResult, String name){
+          return identifier("atomic_inc").paren(_ -> {
+              ampersand().recurse(buildContext, OpWrapper.wrap(instanceResult.op()));
+              rarrow().identifier(name);
+          });
+    }
+
 
 }
