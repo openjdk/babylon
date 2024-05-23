@@ -232,11 +232,27 @@ public class ExtendedOps {
         return null;
     }
 
+    static BranchTarget getBranchTarget(CopyContext cc, CodeElement<?, ?> codeElement) {
+        @SuppressWarnings("unchecked")
+        Map<CodeElement<?, ?>, BranchTarget> m = (Map<CodeElement<?, ?>, BranchTarget>) cc.getProperty(BRANCH_TARGET_MAP_PROPERTY_KEY);
+        if (m != null) {
+            return m.get(codeElement);
+        }
+        return null;
+    }
+
     static void setBranchTarget(CopyContext cc, Op label, BranchTarget t) {
         @SuppressWarnings("unchecked")
         Map<Op, BranchTarget> x = (Map<Op, BranchTarget>) cc.computePropertyIfAbsent(
                 BRANCH_TARGET_MAP_PROPERTY_KEY, k -> new HashMap<>());
         x.put(label, t);
+    }
+
+    static void setBranchTarget(CopyContext cc, CodeElement<?, ?> codeElement, BranchTarget t) {
+        @SuppressWarnings("unchecked")
+        Map<CodeElement<?, ?>, BranchTarget> x = (Map<CodeElement<?, ?>, BranchTarget>) cc.computePropertyIfAbsent(
+                BRANCH_TARGET_MAP_PROPERTY_KEY, k -> new HashMap<>());
+        x.put(codeElement, t);
     }
 
     /**
@@ -821,6 +837,11 @@ public class ExtendedOps {
             }
 
             setBranchTarget(b.context(), this, new BranchTarget(exit, null));
+            // map expr body to nextExprBlock
+            // this mapping will be used for lowering SwitchFallThroughOp
+            for (int i = 1; i < bodies().size() - 2; i+=2) {
+                setBranchTarget(b.context(), bodies().get(i), new BranchTarget(null, blocks.get(i + 2)));
+            }
 
             for (int i = 0; i < bodies().size(); i++) {
                 boolean isLabelBody = i % 2 == 0;
@@ -848,11 +869,9 @@ public class ExtendedOps {
                         return block;
                     }));
                 } else { // expression body
-                    Block.Builder nextExpression = i < blocks.size() - 2 ? blocks.get(i + 2) : null;
                     curr.transformBody(bodies().get(i), blocks.get(i).parameters(), opT.andThen((block, op) -> {
                         switch (op) {
                             case YieldOp yop -> block.op(branch(exit.successor(block.context().getValue(yop.yieldValue()))));
-                            case JavaSwitchFallthroughOp jsftop -> block.op(branch(nextExpression.successor()));
 //                            case JavaYieldOp jyop -> block.op(branch(exit.successor(block.context().getValue(jyop.yieldValue()))));
                             case Lowerable lop -> block = lop.lower(block);
                             default -> block.op(op);
@@ -871,7 +890,7 @@ public class ExtendedOps {
      * the last statement of the current switch label.
      */
     @OpDeclaration(JavaSwitchFallthroughOp.NAME)
-    public static final class JavaSwitchFallthroughOp extends OpWithDefinition implements Op.BodyTerminating {
+    public static final class JavaSwitchFallthroughOp extends OpWithDefinition implements Op.BodyTerminating, Op.Lowerable {
         public static final String NAME = "java.switch.fallthrough";
 
         public JavaSwitchFallthroughOp(OpDefinition def) {
@@ -894,6 +913,21 @@ public class ExtendedOps {
         @Override
         public TypeElement resultType() {
             return VOID;
+        }
+
+        @Override
+        public Block.Builder lower(Block.Builder b, OpTransformer opT) {
+            return lower(b, BranchTarget::continueBlock);
+        }
+
+        Block.Builder lower(Block.Builder b, Function<BranchTarget, Block.Builder> f) {
+            BranchTarget t = getBranchTarget(b.context(), parentBlock().parentBody());
+            if (t != null) {
+                b.op(branch(f.apply(t).successor()));
+            } else {
+                throw new IllegalStateException("No branch target for operation: " + this);
+            }
+            return b;
         }
     }
 
