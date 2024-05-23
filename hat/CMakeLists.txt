@@ -340,7 +340,6 @@ if(CUDAToolkit_FOUND)
 
   add_library(cuda_backend SHARED 
      ${CMAKE_SOURCE_DIR}/backends/shared/cpp/shared.cpp
-     ${CMAKE_SOURCE_DIR}/backends/cuda/cpp/cuda_shared.cpp
      ${CMAKE_SOURCE_DIR}/backends/cuda/cpp/cuda_backend.cpp
   )
 
@@ -350,7 +349,6 @@ if(CUDAToolkit_FOUND)
   )
 
   add_executable(cuda_info
-     ${CMAKE_SOURCE_DIR}/backends/cuda/cpp/cuda_shared.cpp
      ${CMAKE_SOURCE_DIR}/backends/cuda/cpp/info.cpp
   )
 

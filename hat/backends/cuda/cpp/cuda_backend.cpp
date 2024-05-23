@@ -167,7 +167,9 @@ CudaBackend::CudaBackend(CudaBackend::CudaConfig *cudaConfig, int configSchemaLe
     checkCudaErrors(cuCtxCreate(&context, 0, device));
     std::cout << "created context" << std::endl;
 }
+CudaBackend::CudaBackend(): CudaBackend(nullptr, 0, nullptr){
 
+}
 CudaBackend::~CudaBackend() {
     std::cout << "freeing context" << std::endl;
     checkCudaErrors(cuCtxDestroy(context));
@@ -254,3 +256,9 @@ long getBackend(void *config, int configSchemaLen, char *configSchema) {
 }
 
 
+void __checkCudaErrors(CUresult err, const char *file, const int line) {
+    if (CUDA_SUCCESS != err) {
+        std::cerr << "CUDA Driver API error = " << err << " from file " << file << " line " << line << std::endl;
+        exit(-1);
+    }
+}
