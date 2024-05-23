@@ -265,7 +265,6 @@ public class TestBytecode {
     }
 
     @CodeReflection
-    @SkipLift
     static int tryFinally(int i, int j) {
         try {
             i = i + j;

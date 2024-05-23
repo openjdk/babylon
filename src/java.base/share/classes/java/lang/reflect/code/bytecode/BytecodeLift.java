@@ -198,27 +198,27 @@ public final class BytecodeLift {
                             op(CoreOp.branch(next.successor(List.copyOf(stack))));
                         }
                         moveTo(next);
-                        // Insert relevant tryStart and construct handler blocks, all in reversed order
-                        for (ExceptionCatch ec : codeModel.exceptionHandlers().reversed()) {
-                            if (lt.label() == ec.tryStart()) {
-                                Block.Builder handler = getBlock(ec.handler());
-                                // Create start block
-                                next = newBlock();
-                                Op ere = CoreOp.exceptionRegionEnter(next.successor(List.copyOf(stack)), handler.successor());
-                                op(ere);
-                                // Store ERE into map for exit
-                                exceptionRegionsMap.put(ec, ere.result());
-                                moveTo(next);
-                            }
+                    }
+                    // Insert relevant tryStart and construct handler blocks, all in reversed order
+                    for (ExceptionCatch ec : codeModel.exceptionHandlers().reversed()) {
+                        if (lt.label() == ec.tryStart()) {
+                            Block.Builder handler = getBlock(ec.handler());
+                            // Create start block
+                            next = newBlock();
+                            Op ere = CoreOp.exceptionRegionEnter(next.successor(List.copyOf(stack)), handler.successor());
+                            op(ere);
+                            // Store ERE into map for exit
+                            exceptionRegionsMap.put(ec, ere.result());
+                            moveTo(next);
                         }
-                        // Insert relevant tryEnd blocks in normal order
-                        for (ExceptionCatch ec : codeModel.exceptionHandlers()) {
-                            if (lt.label() == ec.tryEnd()) {
-                                // Create exit block with parameters constructed from the stack
-                                next = newBlock();
-                                op(CoreOp.exceptionRegionExit(exceptionRegionsMap.get(ec), next.successor()));
-                                moveTo(next);
-                            }
+                    }
+                    // Insert relevant tryEnd blocks in normal order
+                    for (ExceptionCatch ec : codeModel.exceptionHandlers()) {
+                        if (lt.label() == ec.tryEnd()) {
+                            // Create exit block with parameters constructed from the stack
+                            next = newBlock();
+                            op(CoreOp.exceptionRegionExit(exceptionRegionsMap.get(ec), next.successor()));
+                            moveTo(next);
                         }
                     }
                 }
