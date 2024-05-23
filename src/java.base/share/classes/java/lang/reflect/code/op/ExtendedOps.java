@@ -805,15 +805,9 @@ public class ExtendedOps {
 
             List<Block.Builder> blocks = new ArrayList<>();
             for (int i = 0; i < bodies().size(); i++) {
-                Block.Builder bb;
-                boolean isLabelBody = i % 2 == 0;
-                if (isLabelBody) {
-                    bb = b.block(swTarget.type());
-                } else {
-                    bb = b.block();
-                }
+                Block.Builder bb = b.block();
                 if (i == 0) {
-                    b.op(branch(bb.successor(swTarget)));
+                    b.op(branch(bb.successor()));
                 }
                 blocks.add(bb);
             }
@@ -835,7 +829,7 @@ public class ExtendedOps {
                     Block.Builder expression = blocks.get(i + 1);
                     boolean isDefaultLabel = i == blocks.size() - 2;
                     Block.Builder nextLabel = isDefaultLabel ? null : blocks.get(i + 2);
-                    curr.transformBody(bodies().get(i), blocks.get(i).parameters(), opT.andThen((block, op) -> {
+                    curr.transformBody(bodies().get(i), List.of(swTarget), opT.andThen((block, op) -> {
                         if (op instanceof YieldOp yop) {
                             if (isDefaultLabel) {
                                 block.op(branch(expression.successor()));
@@ -843,7 +837,7 @@ public class ExtendedOps {
                                 block.op(conditionalBranch(
                                         block.context().getValue(yop.yieldValue()),
                                         expression.successor(),
-                                        nextLabel.successor(curr.parameters())
+                                        nextLabel.successor()
                                 ));
                             }
                         } else if (op instanceof Lowerable lop) {
