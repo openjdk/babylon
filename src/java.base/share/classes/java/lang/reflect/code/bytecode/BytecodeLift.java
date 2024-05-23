@@ -142,12 +142,7 @@ public final class BytecodeLift {
                 methodModel.methodName().stringValue(),
                 MethodRef.ofNominalDescriptor(methodModel.methodTypeSymbol())).body(entryBlock ->
                         new BytecodeLift(entryBlock, methodModel).lift());
-        System.out.println("Lifted code:");
-        lifted.writeTo(System.out);
-        var tr = SlotSSA.transform(lifted);
-        System.out.println("Transformed code:");
-        tr.writeTo(System.out);
-        return tr;
+        return SlotSSA.transform(lifted);
     }
 
     private Block.Builder getBlock(Label l) {

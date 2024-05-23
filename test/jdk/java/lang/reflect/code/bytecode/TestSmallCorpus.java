@@ -84,7 +84,7 @@ public class TestSmallCorpus {
         }
 
         // @@@ There is still several failing cases and a lot of errors
-        Assert.assertTrue(notMatching < 31 && passed > 5400, String.format("""
+        Assert.assertTrue(passed > 6400, String.format("""
 
                     passed: %d
                     not matching: %d

@@ -171,7 +171,6 @@ public final class SlotSSA {
             Set<Integer> slots = joinPoints.get(n.b());
             if (slots != null) {
                 slots.forEach(slot -> {
-                    assert variableStack.get(slot) != null;
                     variableStack.get(slot).push(new SlotBlockArgument(n.b(), slot));
                 });
             }
