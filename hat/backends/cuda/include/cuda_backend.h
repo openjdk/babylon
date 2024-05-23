@@ -23,8 +23,46 @@
  * questions.
  */
 #pragma once
+#define CUDA_TYPES
+#ifdef __APPLE__
 
-#include "cuda_shared.h"
+#define LongUnsignedNewline "%llu\n"
+#define Size_tNewline "%lu\n"
+#define LongHexNewline "(0x%llx)\n"
+#define alignedMalloc(size, alignment) memalign(alignment, size)
+#define SNPRINTF snprintf
+#else
+
+#include <malloc.h>
+
+#define LongHexNewline "(0x%lx)\n"
+#define LongUnsignedNewline "%lu\n"
+#define Size_tNewline "%lu\n"
+#if defined (_WIN32)
+#include "windows.h"
+#define alignedMalloc(size, alignment) _aligned_malloc(size, alignment)
+#define SNPRINTF _snprintf
+#else
+#define alignedMalloc(size, alignment) memalign(alignment, size)
+#define SNPRINTF  snprintf
+#endif
+#endif
+
+#include <iostream>
+#include <cuda.h>
+#include <builtin_types.h>
+
+#define CUDA_TYPES
+
+#include "shared.h"
+
+#include <fstream>
+
+#include<vector>
+
+extern void __checkCudaErrors(CUresult err, const char *file, const int line);
+
+#define checkCudaErrors(err)  __checkCudaErrors (err, __FILE__, __LINE__)
 
 struct Ptx {
     size_t len;
@@ -134,7 +172,7 @@ private:
 public:
 
     CudaBackend(CudaConfig *config, int configSchemaLen, char *configSchema);
-
+    CudaBackend();
     ~CudaBackend();
 
     int getMaxComputeUnits();
@@ -142,5 +180,6 @@ public:
     void info();
 
     long compileProgram(int len, char *source);
+
 };
 
