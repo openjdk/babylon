@@ -32,6 +32,7 @@ import java.lang.classfile.instruction.*;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.AccessFlag;
 import java.lang.reflect.code.Op;
+import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.reflect.code.bytecode.BytecodeLift;
@@ -169,14 +170,7 @@ public class TestSmallCorpus {
     }
 
     private static CoreOp.FuncOp transform(CoreOp.FuncOp func) {
-        return SSA.transform(func.transform((block, op) -> {
-                    if (op instanceof Op.Lowerable lop) {
-                        return lop.lower(block);
-                    } else {
-                        block.op(op);
-                        return block;
-                    }
-                }));
+        return SSA.transform(func.transform(OpTransformer.LOWERING_TRANSFORMER));
     }
 
     private static MethodModel lower(CoreOp.FuncOp func) {
