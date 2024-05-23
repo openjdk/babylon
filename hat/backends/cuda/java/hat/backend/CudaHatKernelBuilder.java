@@ -24,8 +24,11 @@
  */
 package hat.backend;
 
+import hat.backend.c99codebuilders.C99HatBuildContext;
 import hat.backend.c99codebuilders.C99HatKernelBuilder;
+import hat.optools.OpWrapper;
 
+import java.lang.reflect.code.Op;
 import java.lang.reflect.code.type.JavaType;
 
 public class CudaHatKernelBuilder extends C99HatKernelBuilder<CudaHatKernelBuilder> {
@@ -71,5 +74,14 @@ public class CudaHatKernelBuilder extends C99HatKernelBuilder<CudaHatKernelBuild
     @Override
     public CudaHatKernelBuilder globalPtrPrefix() {
         return self();
+    }
+
+
+    @Override
+    public CudaHatKernelBuilder atomicInc(C99HatBuildContext buildContext, Op.Result instanceResult, String name){
+        return identifier("atomicAdd").paren(_ -> {
+             ampersand().recurse(buildContext, OpWrapper.wrap(instanceResult.op()));
+             rarrow().identifier(name).comma().literal(1);
+        });
     }
 }

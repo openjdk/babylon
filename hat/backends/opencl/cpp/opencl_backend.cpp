@@ -24,7 +24,7 @@
  */
 #include "opencl_backend.h"
 
-OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::OpenCLBuffer(cl_context context, void *ptr, size_t sizeInBytes)
+OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::OpenCLBuffer(void *ptr, size_t sizeInBytes, cl_context context)
         : ptr(ptr), sizeInBytes(sizeInBytes) {
     cl_int status;
     clMem = clCreateBuffer(context, CL_MEM_USE_HOST_PTR | CL_MEM_READ_WRITE, sizeInBytes, ptr, &status);
@@ -58,9 +58,10 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(int range, void *argArr
         Arg_t *arg = argSled.arg(i);
 
         if (arg->variant == '&') {
-            arg->value.buffer.vendorPtr = new OpenCLBuffer(backend->context,
+            arg->value.buffer.vendorPtr = new OpenCLBuffer(
                     (void *) arg->value.buffer.memorySegment,
-                    (size_t) arg->value.buffer.sizeInBytes);
+                    (size_t) arg->value.buffer.sizeInBytes,
+                    backend->context);
             OpenCLBuffer *clbuf = ((OpenCLBuffer *) arg->value.buffer.vendorPtr);
             if ((status = clEnqueueWriteBuffer(backend->command_queue, clbuf->clMem, CL_FALSE, 0, clbuf->sizeInBytes, clbuf->ptr, backend->eventc, ((backend->eventc == 0) ? NULL : backend->events),
                     &(backend->events[backend->eventc]))) !=

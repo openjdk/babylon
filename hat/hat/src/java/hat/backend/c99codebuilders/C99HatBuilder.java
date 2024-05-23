@@ -450,6 +450,10 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
         return self();
     }
 
+    public T atomicInc(C99HatBuildContext buildContext, Op.Result instanceResult, String name){
+         throw new IllegalStateException("atimicInc not implemented");
+    }
+
     @Override
     public T methodCall(C99HatBuildContext buildContext, InvokeOpWrapper invokeOpWrapper) {
         var name = invokeOpWrapper.name();
@@ -462,10 +466,11 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
                     && returnType instanceof PrimitiveType primitiveType && primitiveType.equals(JavaType.INT)) {
                 // this is a bit of a hack for atomics.
                 if (invokeOpWrapper.operandNAsResult(0) instanceof Op.Result instanceResult) {
-                    identifier("atomic_inc").paren(_ -> {
-                        ampersand().recurse(buildContext, OpWrapper.wrap(instanceResult.op()));
-                        rarrow().identifier(name.substring(0, name.length() - 3));
-                    });
+                    atomicInc(buildContext, instanceResult, name.substring(0, name.length() - 3));
+                    //identifier("atomic_inc").paren(_ -> {
+                    //    ampersand().recurse(buildContext, OpWrapper.wrap(instanceResult.op()));
+                    //    rarrow().identifier(name.substring(0, name.length() - 3));
+                    //});
                 } else {
                     throw new IllegalStateException("bad atomic");
                 }

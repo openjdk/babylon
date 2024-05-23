@@ -188,11 +188,13 @@ void hexdump(void *ptr, int buflen) {
 // We need to trampoline through the real backend
 
 extern "C" int getMaxComputeUnits(long backendHandle) {
+    std::cout << "trampolining through backendHandle to backend.getMaxComputeUnits()" <<std::endl;
     Backend *backend = (Backend *) backendHandle;
     return backend->getMaxComputeUnits();
 }
 
 extern "C" void info(long backendHandle) {
+    std::cout << "trampolining through backendHandle to backend.info()" <<std::endl;
     Backend *backend = (Backend *) backendHandle;
     backend->info();
 }
@@ -201,18 +203,18 @@ extern "C" void releaseBackend(long backendHandle) {
     delete backend;
 }
 extern "C" long compileProgram(long backendHandle, int len, char *source) {
-    //std::cout << "trampolining through backendHandle to compileProgram" <<std::endl;
+    std::cout << "trampolining through backendHandle to backend.compileProgram()" <<std::endl;
     Backend *backend = (Backend *) backendHandle;
     return backend->compileProgram(len, source);
 }
 extern "C" long getKernel(long programHandle, int nameLen, char *name) {
-    //std::cout << "trampolining through programHandle to get kernel" <<std::endl;
+    std::cout << "trampolining through programHandle to program.getKernel()" <<std::endl;
     Backend::Program *program = (Backend::Program *) programHandle;
     return program->getKernel(nameLen, name);
 }
 
 extern "C" long ndrange(long kernelHandle, int range, void *argArray) {
-    //std::cout << "trampolining through kernelHandle to dispatch " <<std::endl;
+    std::cout << "trampolining through kernelHandle to kernel.ndrange(...) " <<std::endl;
     Backend::Program::Kernel *kernel = (Backend::Program::Kernel *) kernelHandle;
     kernel->ndrange(range, argArray);
     return (long) 0;
