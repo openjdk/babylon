@@ -1,7 +1,6 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.interpreter.Interpreter;
@@ -27,7 +26,7 @@ public class TestSwitchExpressionOp {
     }
 
     @Test
-    public void test1() throws InvocationTargetException, IllegalAccessException {
+    public void test1() {
         CoreOps.FuncOp f = getFuncOp("f1");
 
         f.writeTo(System.out);
@@ -63,7 +62,7 @@ public class TestSwitchExpressionOp {
     }
 
     @Test
-    public void test2() throws InvocationTargetException, IllegalAccessException {
+    public void test2() {
         CoreOps.FuncOp f = getFuncOp("f2");
 
         f.writeTo(System.out);
@@ -78,8 +77,6 @@ public class TestSwitchExpressionOp {
         });
 
         lf.writeTo(System.out);
-
-        System.out.println("f2(\"FOO\"): " + f2("FOO"));
 
         Assert.assertEquals(Interpreter.invoke(lf, "FOO"), f2("FOO"));
         Assert.assertEquals(Interpreter.invoke(lf, "BAR"), f2("BAR"));
