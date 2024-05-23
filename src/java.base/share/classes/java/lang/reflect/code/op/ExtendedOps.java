@@ -793,29 +793,6 @@ public class ExtendedOps {
 
         @Override
         public Block.Builder lower(Block.Builder b, OpTransformer opT) {
-            // what's the lowered form ?
-            // an exit block with result as parameter
-            // branch to label with target as param
-            // do the check
-            // if true branch to expression, else branch to next label
-            // default label branch unconditionaly to its expression
-            // an expression branch to the exit block
-            // yield in a label body will be converted to cbranch
-            // yield in a expression body will be converted to branch to the exit block with yield value that represent the result
-
-            // input: the switch expression op, block builder (b)
-            // output: the exit block
-
-            // create block for every label body, these blocks will have param of the type of the target
-            // create block for every expression body
-
-            // in b branch to the first block, passing the target
-            // for every body of the switch expression op
-            // if it's a label body
-            //      inline it, convert yield to cbranch %p ^block_i+1 ^block_i+2 %block_i_param
-            //      for default we just branch to the next
-            // if it's an expression body
-            //      inline it, convert yield to branch ^exit %yield_val
 
             Value swTarget = b.context().getValue(operands().get(0));
 
@@ -872,7 +849,6 @@ public class ExtendedOps {
                     curr.transformBody(bodies().get(i), blocks.get(i).parameters(), opT.andThen((block, op) -> {
                         switch (op) {
                             case YieldOp yop -> block.op(branch(exit.successor(block.context().getValue(yop.yieldValue()))));
-//                            case JavaYieldOp jyop -> block.op(branch(exit.successor(block.context().getValue(jyop.yieldValue()))));
                             case Lowerable lop -> block = lop.lower(block);
                             default -> block.op(op);
                         }
