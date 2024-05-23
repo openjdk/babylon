@@ -24,6 +24,6 @@
  */
 #include "shared.h"
 
-int main(){
-   std::cout << "inside SPIRV info" << std::endl;
+int main() {
+    std::cout << "inside SPIRV info" << std::endl;
 }

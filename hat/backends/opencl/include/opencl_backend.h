@@ -23,67 +23,108 @@
  * questions.
  */
 #pragma once
-#include "opencl_shared.h"
+#define CL_TARGET_OPENCL_VERSION 120
 
-class OpenCLBackend: public Backend{
-   public:
-      class OpenCLConfig: public Backend::Config{
-         public:
-            boolean gpu;
-            boolean junk;
-      };
-      class OpenCLProgram : public Backend::Program{
-         class OpenCLKernel : public Backend::Program::Kernel{
-            class OpenCLBuffer {
-               public:
-                  void *ptr;
-                  size_t sizeInBytes;
-                  cl_mem clMem;
-                  OpenCLBuffer(cl_context context, void *ptr, size_t sizeInBytes);
-                  virtual ~OpenCLBuffer();
+#ifdef __APPLE__
+#include <opencl/opencl.h>
+#define LongUnsignedNewline "%llu\n"
+#define Size_tNewline "%lu\n"
+#define LongHexNewline "(0x%llx)\n"
+#define alignedMalloc(size, alignment) memalign(alignment, size)
+#define SNPRINTF snprintf
+#else
+#include <CL/cl.h>
+#include <malloc.h>
+#define LongHexNewline "(0x%lx)\n"
+#define LongUnsignedNewline "%lu\n"
+#define Size_tNewline "%lu\n"
+#if defined (_WIN32)
+#include "windows.h"
+#define alignedMalloc(size, alignment) _aligned_malloc(size, alignment)
+#define SNPRINTF _snprintf
+#else
+#define alignedMalloc(size, alignment) memalign(alignment, size)
+#define SNPRINTF  snprintf
+#endif
+#endif
+#include "shared.h"
+
+class OpenCLBackend : public Backend {
+public:
+    class OpenCLConfig : public Backend::Config {
+    public:
+        boolean gpu;
+        boolean junk;
+    };
+
+    class OpenCLProgram : public Backend::Program {
+        class OpenCLKernel : public Backend::Program::Kernel {
+        class OpenCLBuffer  {
+            public:
+                void *ptr;
+                size_t sizeInBytes;
+                cl_mem clMem;
+
+                OpenCLBuffer(cl_context context, void *ptr, size_t sizeInBytes);
+
+                virtual ~OpenCLBuffer();
             };
 
-            private:
+        private:
             cl_kernel kernel;
-            public:
+        public:
             OpenCLKernel(Backend::Program *program, cl_kernel kernel);
+
             ~OpenCLKernel();
-            long ndrange( int range, void *argArray);
-         };
 
-         private:
-         cl_program program;
+            long ndrange(int range, void *argArray);
+        };
 
-         public:
-         OpenCLProgram(Backend *backend, BuildInfo *buildInfo,cl_program program);
-         ~OpenCLProgram();
-         long getKernel(int nameLen, char *name);
-         bool programOK();
-      };
+    private:
+        cl_program program;
 
-   public:
-      cl_platform_id platform_id;
-      cl_context context;
-      cl_command_queue command_queue;
-      cl_device_id device_id;
-      size_t eventMax;
-      cl_event *events;
-      size_t eventc;
-      OpenCLBackend(OpenCLConfig *config, int configSchemaLen, char *configSchema);
+    public:
+        OpenCLProgram(Backend *backend, BuildInfo *buildInfo, cl_program program);
 
-      ~OpenCLBackend();
+        ~OpenCLProgram();
 
-      void allocEvents(int max) ;
+        long getKernel(int nameLen, char *name);
 
-      void releaseEvents();
+        bool programOK();
+    };
 
-      void waitForEvents() ;
+public:
+    cl_platform_id platform_id;
+    cl_context context;
+    cl_command_queue command_queue;
+    cl_device_id device_id;
+    size_t eventMax;
+    cl_event *events;
+    size_t eventc;
 
-      void showEvents(int width) ;
+    OpenCLBackend();
 
-      int getMaxComputeUnits();
+    OpenCLBackend(OpenCLConfig *config, int configSchemaLen, char *configSchema);
 
-      void info();
-      long compileProgram(int len, char *source);
+    ~OpenCLBackend();
+
+    int getMaxComputeUnits();
+
+    void info();
+
+    long compileProgram(int len, char *source);
+
+protected:
+
+    void allocEvents(int max);
+
+    void releaseEvents();
+
+    void waitForEvents();
+
+    void showEvents(int width);
+
+public:
+    static const char *errorMsg(cl_int status);
 };
 

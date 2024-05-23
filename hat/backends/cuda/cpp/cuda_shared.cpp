@@ -24,10 +24,10 @@
  */
 #include "cuda_shared.h"
 
-void __checkCudaErrors( CUresult err, const char *file, const int line ) {
-   if( CUDA_SUCCESS != err) {
-      std::cerr << "CUDA Driver API error = " << err << " from file "<< file << " line " <<  line  << std::endl;
-      exit(-1);
-   }
+void __checkCudaErrors(CUresult err, const char *file, const int line) {
+    if (CUDA_SUCCESS != err) {
+        std::cerr << "CUDA Driver API error = " << err << " from file " << file << " line " << line << std::endl;
+        exit(-1);
+    }
 }
 

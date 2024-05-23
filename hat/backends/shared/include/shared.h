@@ -24,6 +24,7 @@
  */
 
 #pragma once
+
 #include <iostream>
 #include <map>
 #include <vector>
@@ -35,6 +36,7 @@
 #include <iomanip>
 #include <bitset>
 #include <stack>
+
 #ifdef __APPLE__
 #define LongUnsignedNewline "%llu\n"
 #define Size_tNewline "%lu\n"
@@ -68,125 +70,152 @@ typedef float f32_t;
 typedef double f64_t;
 typedef long s64_t;
 typedef unsigned long u64_t;
+
 extern void hexdump(void *ptr, int buflen);
+
 typedef struct Buffer_s {
-   void * memorySegment;   // Address of a Buffer/MemorySegment
-   long sizeInBytes;     // The size of the memory segment in bytes
-   void * vendorPtr;       // The vendor side can reference vendor into
-   u8_t access;          // 0=??/1=RO/2=WO/3=RW if this is a buffer
-   u8_t state;           // 0=UNKNOWN/1=GPUDIRTY/2=JAVADIRTY
+    void *memorySegment;   // Address of a Buffer/MemorySegment
+    long sizeInBytes;     // The size of the memory segment in bytes
+    void *vendorPtr;       // The vendor side can reference vendor into
+    u8_t access;          // 0=??/1=RO/2=WO/3=RW if this is a buffer
+    u8_t state;           // 0=UNKNOWN/1=GPUDIRTY/2=JAVADIRTY
 } Buffer_t;
 
 typedef union value_u {
-   boolean   z1;  // 'Z'
-   u8_t   s8;  // 'B'
-   u16_t u16;  // 'C'
-   s16_t  s16;  // 'S'
-   s32_t  s32;  // 'I'
-   f32_t f32; // 'F'
-   f64_t f64; // 'D'
-   s64_t   s64; // 'J'
-   Buffer_t  buffer; // '&'
-}Value_t;
+    boolean z1;  // 'Z'
+    u8_t s8;  // 'B'
+    u16_t u16;  // 'C'
+    s16_t s16;  // 'S'
+    s32_t s32;  // 'I'
+    f32_t f32; // 'F'
+    f64_t f64; // 'D'
+    s64_t s64; // 'J'
+    Buffer_t buffer; // '&'
+} Value_t;
 
 typedef struct Arg_s {
-   u32_t idx;          // 0..argc
-   u8_t variant;      // which variant 'I','Z','S','J','F', '&' implies Buffer/MemorySegment
-   u8_t pad1[8];
-   Value_t value;
-   u8_t pad[6];
+    u32_t idx;          // 0..argc
+    u8_t variant;      // which variant 'I','Z','S','J','F', '&' implies Buffer/MemorySegment
+    u8_t pad1[8];
+    Value_t value;
+    u8_t pad[6];
 } Arg_t;
 
-typedef struct ArgArray_s{
-   u32_t argc;
-   u8_t pad[12];
-   Arg_t argv[0/*argc*/];
-   // void * vendorPtr;
-   // int schemaLen
-   // char schema[schemaLen]
+typedef struct ArgArray_s {
+    u32_t argc;
+    u8_t pad[12];
+    Arg_t argv[0/*argc*/];
+    // void * vendorPtr;
+    // int schemaLen
+    // char schema[schemaLen]
 } ArgArray_t;
 
-class ArgSled{
-   private:
-      ArgArray_t * argArray;
-   public:
-      int argc(){
-         return argArray->argc;
-      }
-      Arg_t *arg(int n){
-         Arg_t *a = (argArray->argv+n);
-         return  a;
-      }
+class ArgSled {
+private:
+    ArgArray_t *argArray;
+public:
+    int argc() {
+        return argArray->argc;
+    }
 
-      void hexdumpArg(int n){
-         hexdump(arg(n), sizeof(Arg_t));
-      }
+    Arg_t *arg(int n) {
+        Arg_t *a = (argArray->argv + n);
+        return a;
+    }
 
-      void dumpArg(int n){
-         Arg_t *a= arg(n);
-         int idx = (int)a->idx;
-         std::cout << "arg[" << idx <<"]";
-         char variant = (char)a->variant;
-         switch (variant){
-            case 'F':  std::cout << " f32 " << a->value.f32 <<std::endl;break;
-            case 'I':  std::cout << " s32 " << a->value.s32 <<std::endl;break;
-            case 'D':  std::cout << " f64 " << a->value.f64 <<std::endl;break;
-            case 'J':  std::cout << " s64 " << a->value.s64 <<std::endl;break;
-            case 'C':  std::cout << " u16 " << a->value.u16 <<std::endl;break;
-            case 'S':  std::cout << " s16 " << a->value.s32 <<std::endl;break;
-            case 'Z':  std::cout << " z1 " << a->value.z1 <<std::endl;break;
-            case '&': std::cout << " buffer {"
-                      <<  " void *address = 0x"<<std::hex<<(long)a->value.buffer.memorySegment <<std::dec
-                         <<  ", long bytesSize= 0x"<<std::hex<<(long)a->value.buffer.sizeInBytes <<std::dec
-                         <<"}" <<std::endl;break;
-            default: std::cout << (char)variant <<std::endl;break;
-         }
-      }
-      void *vendorPtrPtr(){
-         Arg_t *a = arg(argc());
-         return (void *)a;
-      }
-      /*  void *vendorPtr(){
-          char *cptr = (char*)vendorPtrPtr();
-          char *cptr2 =  (char*)cptr[0];
-          return (void*)cptr2;
-          }
+    void hexdumpArg(int n) {
+        hexdump(arg(n), sizeof(Arg_t));
+    }
 
-          void vendorPtr(void *vendorPtr){
-       *vendorPtrPtr() =vendorPtr;
-       } */
-      int *schemaLenPtr(){
-         int *schemaLenP = (int*) ((char*)vendorPtrPtr()+sizeof(void *));
-         return schemaLenP;
-      }
-      int schemaLen(){
-         return *schemaLenPtr();
-      }
-      char* schema(){
-         int *schemaLenP = ((int*) ((char*)vendorPtrPtr()+sizeof(void *))+1);
-         return (char*)schemaLenP;
-      }
-      ArgSled(ArgArray_t *argArray): argArray(argArray) {}
+    void dumpArg(int n) {
+        Arg_t *a = arg(n);
+        int idx = (int) a->idx;
+        std::cout << "arg[" << idx << "]";
+        char variant = (char) a->variant;
+        switch (variant) {
+            case 'F':
+                std::cout << " f32 " << a->value.f32 << std::endl;
+                break;
+            case 'I':
+                std::cout << " s32 " << a->value.s32 << std::endl;
+                break;
+            case 'D':
+                std::cout << " f64 " << a->value.f64 << std::endl;
+                break;
+            case 'J':
+                std::cout << " s64 " << a->value.s64 << std::endl;
+                break;
+            case 'C':
+                std::cout << " u16 " << a->value.u16 << std::endl;
+                break;
+            case 'S':
+                std::cout << " s16 " << a->value.s32 << std::endl;
+                break;
+            case 'Z':
+                std::cout << " z1 " << a->value.z1 << std::endl;
+                break;
+            case '&':
+                std::cout << " buffer {"
+                          << " void *address = 0x" << std::hex << (long) a->value.buffer.memorySegment << std::dec
+                          << ", long bytesSize= 0x" << std::hex << (long) a->value.buffer.sizeInBytes << std::dec
+                          << "}" << std::endl;
+                break;
+            default:
+                std::cout << (char) variant << std::endl;
+                break;
+        }
+    }
+
+    void *vendorPtrPtr() {
+        Arg_t *a = arg(argc());
+        return (void *) a;
+    }
+
+    /*  void *vendorPtr(){
+        char *cptr = (char*)vendorPtrPtr();
+        char *cptr2 =  (char*)cptr[0];
+        return (void*)cptr2;
+        }
+
+        void vendorPtr(void *vendorPtr){
+     *vendorPtrPtr() =vendorPtr;
+     } */
+    int *schemaLenPtr() {
+        int *schemaLenP = (int *) ((char *) vendorPtrPtr() + sizeof(void *));
+        return schemaLenP;
+    }
+
+    int schemaLen() {
+        return *schemaLenPtr();
+    }
+
+    char *schema() {
+        int *schemaLenP = ((int *) ((char *) vendorPtrPtr() + sizeof(void *)) + 1);
+        return (char *) schemaLenP;
+    }
+
+    ArgSled(ArgArray_t *argArray)
+            : argArray(argArray) {}
 };
-
 
 
 class Timer {
-   struct timeval startTV, endTV;
-   public:
-   unsigned long elapsed_us;
+    struct timeval startTV, endTV;
+public:
+    unsigned long elapsed_us;
 
-   void start() {
-      gettimeofday(&startTV, NULL);
-   }
+    void start() {
+        gettimeofday(&startTV, NULL);
+    }
 
-   unsigned long end() {
-      gettimeofday(&endTV, NULL);
-      elapsed_us = (endTV.tv_sec - startTV.tv_sec) * 1000000;      // sec to us
-      elapsed_us += (endTV.tv_usec - startTV.tv_usec);
-      return elapsed_us;
-   }
+    unsigned long end() {
+        gettimeofday(&endTV, NULL);
+        elapsed_us = (endTV.tv_sec - startTV.tv_sec) * 1000000;      // sec to us
+        elapsed_us += (endTV.tv_usec - startTV.tv_usec);
+        return elapsed_us;
+    }
 };
+
 /*
 
    using float64_t = double; // std::float64_t in c++23
@@ -417,78 +446,97 @@ struct State {
    }
 };*/
 class BuildInfo {
-   public:
-      char *src;
-      char *log;
-      bool ok;
+public:
+    char *src;
+    char *log;
+    bool ok;
 
-      BuildInfo(char *src, char *log, bool ok)
-         : src(src), log(log), ok(ok) {
-         }
+    BuildInfo(char *src, char *log, bool ok)
+            : src(src), log(log), ok(ok) {
+    }
 
-      ~BuildInfo() {
-         if (src) {
+    ~BuildInfo() {
+        if (src) {
             delete[] src;
-         }
-         if (log) {
+        }
+        if (log) {
             delete[] log;
-         }
-      }
+        }
+    }
 
 };
 
 //extern const char *typeName(int type) ;
 extern "C" void dumpArgArray(void *ptr);
+
 //extern void dumpArg(arg_s *openCLArg);
 extern void hexdump(void *ptr, int buflen);
 
-class Backend{
-   public:
-      class Config{
-         public:
-      };
-      class Program{
-         public:
-            class Kernel{
-               public:
-                  Program *program;
-                  virtual long ndrange( int range, void *argArray)=0 ;
-                  Kernel(Program *program):program(program){
-                  }
-                  virtual ~Kernel(){}
-            };
-         public:
-            Backend *backend;
-            BuildInfo *buildInfo;
-            virtual long getKernel(int nameLen, char *name)=0 ;
-            virtual bool programOK()=0;
-            Program(Backend *backend, BuildInfo *buildInfo):backend(backend), buildInfo(buildInfo){
-            }
-            virtual ~Program(){
-               if (buildInfo != nullptr){
-                  delete buildInfo;
-               }
-            };
+class Backend {
+public:
+    class Config {
+    public:
+    };
 
-      };
-      Config *config;
-      int configSchemaLen;
-      char *configSchema;
-      Backend(Config *config, int configSchemaLen, char *configSchema):config(config),configSchemaLen(configSchemaLen), configSchema(configSchema){}
-      virtual ~Backend(){};
-      virtual void info()=0 ;
-      virtual int getMaxComputeUnits()=0 ;
-      virtual long compileProgram( int len, char *source)=0;
+    class Program {
+    public:
+        class Kernel {
+        public:
+            Program *program;
+
+            virtual long ndrange(int range, void *argArray) = 0;
+
+            Kernel(Program *program)
+                    : program(program) {
+            }
+
+            virtual ~Kernel() {}
+        };
+
+    public:
+        Backend *backend;
+        BuildInfo *buildInfo;
+
+        virtual long getKernel(int nameLen, char *name) = 0;
+
+        virtual bool programOK() = 0;
+
+        Program(Backend *backend, BuildInfo *buildInfo)
+                : backend(backend), buildInfo(buildInfo) {
+        }
+
+        virtual ~Program() {
+            if (buildInfo != nullptr) {
+                delete buildInfo;
+            }
+        };
+
+    };
+
+    Config *config;
+    int configSchemaLen;
+    char *configSchema;
+
+    Backend(Config *config, int configSchemaLen, char *configSchema)
+            : config(config), configSchemaLen(configSchemaLen), configSchema(configSchema) {}
+
+    virtual ~Backend() {};
+
+    virtual void info() = 0;
+
+    virtual int getMaxComputeUnits() = 0;
+
+    virtual long compileProgram(int len, char *source) = 0;
 };
 
-extern "C" long getBackend(void *config, int configSchemaLen, char *configSchema) ;
-extern "C" void info(long backendHandle) ;
-extern "C" int getMaxComputeUnits(long backendHandle) ;
+extern "C" long getBackend(void *config, int configSchemaLen, char *configSchema);
+extern "C" void info(long backendHandle);
+extern "C" int getMaxComputeUnits(long backendHandle);
 extern "C" long compileProgram(long backendHandle, int len, char *source);
-extern "C" long getKernel(long programHandle, int len, char *name) ;
-extern "C" void releaseBackend(long backendHandle) ;
+extern "C" long getKernel(long programHandle, int len, char *name);
+extern "C" void releaseBackend(long backendHandle);
 extern "C" void releaseProgram(long programHandle);
 extern "C" bool programOK(long programHandle);
-extern "C" void releaseKernel(long kernelHandle) ;
-extern "C" long ndrange(long kernelHandle, int range, void *argArray) ;
+extern "C" void releaseKernel(long kernelHandle);
+extern "C" long ndrange(long kernelHandle, int range, void *argArray);
 

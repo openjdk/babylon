@@ -24,7 +24,7 @@
  */
 #include "shared.h"
 
-int main(){
-   std::cout << "inside PTX info" << std::endl;
+int main() {
+    std::cout << "inside PTX info" << std::endl;
 }
 
