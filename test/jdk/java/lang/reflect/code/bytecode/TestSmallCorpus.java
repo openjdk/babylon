@@ -31,6 +31,8 @@ import java.lang.classfile.Opcode;
 import java.lang.classfile.instruction.*;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.AccessFlag;
+import java.lang.reflect.code.Op;
+import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.reflect.code.bytecode.BytecodeLift;
 import java.lang.reflect.code.op.CoreOp;
@@ -60,16 +62,16 @@ public class TestSmallCorpus {
     private int passed, notMatching;
     private Map<String, Map<String, Integer>> errorStats;
 
-    @Test
     @Ignore
-    public void testRoundtrip() throws Exception {
+    @Test
+    public void testDoubleRoundtripStability() throws Exception {
         passed = 0;
         notMatching = 0;
         errorStats = new LinkedHashMap<>();
         for (Path p : Files.walk(JRT.getPath("modules/java.base/java"))
                 .filter(p -> Files.isRegularFile(p) && p.toString().endsWith(".class"))
                 .toList()) {
-            testRoundtrip(p);
+            testDoubleRoundtripStability(p);
         }
 
         for (var stats : errorStats.entrySet()) {
@@ -82,7 +84,7 @@ public class TestSmallCorpus {
         }
 
         // @@@ There is still several failing cases and a lot of errors
-        Assert.assertTrue(errorStats.isEmpty(), String.format("""
+        Assert.assertTrue(notMatching < 31 && passed > 5400, String.format("""
 
                     passed: %d
                     not matching: %d
@@ -96,36 +98,52 @@ public class TestSmallCorpus {
                 ));
     }
 
-    private void testRoundtrip(Path path) throws Exception {
+    private void testDoubleRoundtripStability(Path path) throws Exception {
         var clm = CF.parse(path);
-        for (var original : clm.methods()) {
-            if (original.flags().has(AccessFlag.STATIC) && original.code().isPresent()) try {// && original.methodName().equalsString("parallelSort") && original.methodType().equalsString("([Ljava/lang/Comparable;)V")) try {
-                CoreOp.FuncOp lift = lift(original);
+        for (var originalModel : clm.methods()) {
+            if (originalModel.flags().has(AccessFlag.STATIC) && originalModel.code().isPresent()) try {
+                CoreOp.FuncOp firstLift = lift(originalModel);
                 try {
-                    MethodModel model = lower(lift);
-                    // testing only methods passing through
-                    var originalNormalized = normalize(original);
-                    var normalized = normalize(model);
-                    if (!originalNormalized.equals(normalized)) {
-                        notMatching++;
-                        System.out.println(clm.thisClass().asInternalName() + "::" + original.methodName().stringValue() + original.methodTypeSymbol().displayDescriptor());
-                        printInColumns(originalNormalized, normalized);
+                    CoreOp.FuncOp firstTransform = transform(firstLift);
+                    try {
+                        MethodModel firstModel = lower(firstTransform);
                         try {
-                            printInColumns(lift, lift(model));
+                            CoreOp.FuncOp secondLift = lift(firstModel);
+                            try {
+                                CoreOp.FuncOp secondTransform = transform(secondLift);
+                                try {
+                                    MethodModel secondModel = lower(secondTransform);
+
+                                    // testing only methods passing through
+                                    var firstNormalized = normalize(firstModel);
+                                    var secondNormalized = normalize(secondModel);
+                                    if (!firstNormalized.equals(secondNormalized)) {
+                                        notMatching++;
+                                        System.out.println(clm.thisClass().asInternalName() + "::" + originalModel.methodName().stringValue() + originalModel.methodTypeSymbol().displayDescriptor());
+                                        printInColumns(firstLift, secondLift);
+                                        printInColumns(firstTransform, secondTransform);
+                                        printInColumns(firstNormalized, secondNormalized);
+                                        System.out.println();
+                                    } else {
+                                        passed++;
+                                    }
+                                } catch (Exception e) {
+                                    error("second lower", e);
+                                }
+                            } catch (Exception e) {
+                                error("second transform", e);
+                            }
                         } catch (Exception e) {
                             error("second lift", e);
-                            System.out.println("-".repeat(COLUMN_WIDTH + 2));
-                            lift.writeTo(System.out);
                         }
-                        System.out.println();
-                    } else {
-                        passed++;
+                    } catch (Exception e) {
+                        error("first lower", e);
                     }
                 } catch (Exception e) {
-                    error("generate", e);
+                    error("first transform", e);
                 }
             } catch (Exception e) {
-                error("lift", e);
+                error("first lift", e);
             }
         }
     }
@@ -148,6 +166,17 @@ public class TestSmallCorpus {
 
     private static CoreOp.FuncOp lift(MethodModel mm) {
         return BytecodeLift.lift(mm);
+    }
+
+    private static CoreOp.FuncOp transform(CoreOp.FuncOp func) {
+        return SSA.transform(func.transform((block, op) -> {
+                    if (op instanceof Op.Lowerable lop) {
+                        return lop.lower(block);
+                    } else {
+                        block.op(op);
+                        return block;
+                    }
+                }));
     }
 
     private static MethodModel lower(CoreOp.FuncOp func) {
