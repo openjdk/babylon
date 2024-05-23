@@ -25,70 +25,80 @@
 
 #include "shared.h"
 
-class PTXBackend: public Backend{
-   public:
-      class PTXConfig: public Backend::Config{
-         public :
-      };
-      class PTXProgram : public Backend::Program{
-         class PTXKernel : public Backend::Program::Kernel{
-            public:
-               PTXKernel(Backend::Program *program):Backend::Program::Kernel(program){
-               }
-               ~PTXKernel(){
-               }
-               long ndrange( int range, void *argArray) {
-                  std::cout<<"ptx ndrange("<<range<<") "<< std::endl;
-                  return 0;
-               }
-         };
-         public:
-         PTXProgram(Backend *backend, BuildInfo *buildInfo ):Backend::Program(backend, buildInfo){
-         }
-         ~PTXProgram(){
-         }
-         long getKernel(int nameLen, char *name){
+class PTXBackend : public Backend {
+public:
+    class PTXConfig : public Backend::Config {
+    public :
+    };
+
+    class PTXProgram : public Backend::Program {
+        class PTXKernel : public Backend::Program::Kernel {
+        public:
+            PTXKernel(Backend::Program *program)
+                    : Backend::Program::Kernel(program) {
+            }
+
+            ~PTXKernel() {
+            }
+
+            long ndrange(int range, void *argArray) {
+                std::cout << "ptx ndrange(" << range << ") " << std::endl;
+                return 0;
+            }
+        };
+
+    public:
+        PTXProgram(Backend *backend, BuildInfo *buildInfo)
+                : Backend::Program(backend, buildInfo) {
+        }
+
+        ~PTXProgram() {
+        }
+
+        long getKernel(int nameLen, char *name) {
             return (long) new PTXKernel(this);
-         }
-         bool programOK(){
+        }
+
+        bool programOK() {
             return true;
-         }
-      };
+        }
+    };
 
-   public:
+public:
 
-      PTXBackend(PTXConfig *ptxConfig, int ptxConfigSchemeLen, char *ptxBackendSchema):Backend(ptxConfig,ptxConfigSchemeLen,ptxBackendSchema) {
-         if (ptxConfig == nullptr){
-            std::cout << "ptxConfig == null"<< std::endl;
-         }else{
-            std::cout << "ptxConfig != null" <<std::endl;
-         }
-      }
+    PTXBackend(PTXConfig *ptxConfig, int ptxConfigSchemeLen, char *ptxBackendSchema)
+            : Backend(ptxConfig, ptxConfigSchemeLen, ptxBackendSchema) {
+        if (ptxConfig == nullptr) {
+            std::cout << "ptxConfig == null" << std::endl;
+        } else {
+            std::cout << "ptxConfig != null" << std::endl;
+        }
+    }
 
-      ~PTXBackend() {
-      }
+    ~PTXBackend() {
+    }
 
-      int getMaxComputeUnits(){
-         std::cout << "ptx getMaxComputeUnits()"<<std::endl;
-         return 0;
-      }
+    int getMaxComputeUnits() {
+        std::cout << "ptx getMaxComputeUnits()" << std::endl;
+        return 0;
+    }
 
-      void info(){
-         std::cout << "ptx info()"<<std::endl;
-      }
+    void info() {
+        std::cout << "ptx info()" << std::endl;
+    }
 
-      long compileProgram(int len, char *source){
-         std::cout << "ptx compileProgram()"<<std::endl;
-         size_t srcLen = ::strlen(source);
-         char *src = new char[srcLen + 1];
-         ::strncpy(src, source, srcLen);
-         src[srcLen] = '\0';
-         std::cout << "native compiling " << src << std::endl;
-         return (long) new PTXProgram(this, new BuildInfo(src, nullptr,false));
-      }
+    long compileProgram(int len, char *source) {
+        std::cout << "ptx compileProgram()" << std::endl;
+        size_t srcLen = ::strlen(source);
+        char *src = new char[srcLen + 1];
+        ::strncpy(src, source, srcLen);
+        src[srcLen] = '\0';
+        std::cout << "native compiling " << src << std::endl;
+        return (long) new PTXProgram(this, new BuildInfo(src, nullptr, false));
+    }
 };
 
-long getBackend(void *config, int configSchemaLen, char *configSchema){
-   PTXBackend::PTXConfig *ptxConfig = (PTXBackend::PTXConfig*)config;
-   return (long)new PTXBackend(ptxConfig,configSchemaLen,configSchema);
+long getBackend(void *config, int configSchemaLen, char *configSchema) {
+    PTXBackend::PTXConfig *ptxConfig = (PTXBackend::PTXConfig *) config;
+    return (long) new PTXBackend(ptxConfig, configSchemaLen, configSchema);
 }

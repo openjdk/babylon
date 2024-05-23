@@ -37,6 +37,7 @@
 #else
 
 #include <malloc.h>
+
 #define LongHexNewline "(0x%lx)\n"
 #define LongUnsignedNewline "%lu\n"
 #define Size_tNewline "%lu\n"
@@ -49,15 +50,19 @@
 #define SNPRINTF  snprintf
 #endif
 #endif
+
 #include <iostream>
 #include <cuda.h>
 #include <builtin_types.h>
+
 #define CUDA_TYPES
+
 #include "shared.h"
 
 #include <fstream>
 
 #include<vector>
-extern  void __checkCudaErrors( CUresult err, const char *file, const int line );
+
+extern void __checkCudaErrors(CUresult err, const char *file, const int line);
 
 #define checkCudaErrors(err)  __checkCudaErrors (err, __FILE__, __LINE__)

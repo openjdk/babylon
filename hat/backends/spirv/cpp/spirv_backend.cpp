@@ -24,70 +24,80 @@
  */
 #include "shared.h"
 
-class SpirvBackend: public Backend{
-   public:
-      class SpirvConfig: public Backend::Config{
-         public :
-      };
-      class SpirvProgram : public Backend::Program{
-         class SpirvKernel : public Backend::Program::Kernel{
-            public:
-               SpirvKernel(Backend::Program *program):Backend::Program::Kernel(program){
-               }
-               ~SpirvKernel(){
-               }
-               long ndrange( int range, void *argArray) {
-                  std::cout<<"spirv ndrange("<<range<<") "<< std::endl;
-                  return 0;
-               }
-         };
-         public:
-         SpirvProgram(Backend *backend, BuildInfo *buildInfo ):Backend::Program(backend, buildInfo){
-         }
-         ~SpirvProgram(){
-         }
-         long getKernel(int nameLen, char *name){
+class SpirvBackend : public Backend {
+public:
+    class SpirvConfig : public Backend::Config {
+    public :
+    };
+
+    class SpirvProgram : public Backend::Program {
+        class SpirvKernel : public Backend::Program::Kernel {
+        public:
+            SpirvKernel(Backend::Program *program)
+                    : Backend::Program::Kernel(program) {
+            }
+
+            ~SpirvKernel() {
+            }
+
+            long ndrange(int range, void *argArray) {
+                std::cout << "spirv ndrange(" << range << ") " << std::endl;
+                return 0;
+            }
+        };
+
+    public:
+        SpirvProgram(Backend *backend, BuildInfo *buildInfo)
+                : Backend::Program(backend, buildInfo) {
+        }
+
+        ~SpirvProgram() {
+        }
+
+        long getKernel(int nameLen, char *name) {
             return (long) new SpirvKernel(this);
-         }
-         bool programOK(){
+        }
+
+        bool programOK() {
             return true;
-         }
-      };
+        }
+    };
 
-   public:
+public:
 
-      SpirvBackend(SpirvConfig *spirvConfig, int spirvConfigSchemeLen, char *spirvBackendSchema):Backend(spirvConfig,spirvConfigSchemeLen,spirvBackendSchema) {
-         if (spirvConfig == nullptr){
-            std::cout << "spirvConfig == null"<< std::endl;
-         }else{
-            std::cout << "spirvConfig != null" <<std::endl;
-         }
-      }
+    SpirvBackend(SpirvConfig *spirvConfig, int spirvConfigSchemeLen, char *spirvBackendSchema)
+            : Backend(spirvConfig, spirvConfigSchemeLen, spirvBackendSchema) {
+        if (spirvConfig == nullptr) {
+            std::cout << "spirvConfig == null" << std::endl;
+        } else {
+            std::cout << "spirvConfig != null" << std::endl;
+        }
+    }
 
-      ~SpirvBackend() {
-      }
+    ~SpirvBackend() {
+    }
 
-      int getMaxComputeUnits(){
-         std::cout << "spirv getMaxComputeUnits()"<<std::endl;
-         return 0;
-      }
+    int getMaxComputeUnits() {
+        std::cout << "spirv getMaxComputeUnits()" << std::endl;
+        return 0;
+    }
 
-      void info(){
-         std::cout << "spirv info()"<<std::endl;
-      }
+    void info() {
+        std::cout << "spirv info()" << std::endl;
+    }
 
-      long compileProgram(int len, char *source){
-         std::cout << "spirv compileProgram()"<<std::endl;
-         size_t srcLen = ::strlen(source);
-         char *src = new char[srcLen + 1];
-         ::strncpy(src, source, srcLen);
-         src[srcLen] = '\0';
-         std::cout << "native compiling " << src << std::endl;
-         return (long) new SpirvProgram(this, new BuildInfo(src, nullptr,false));
-      }
+    long compileProgram(int len, char *source) {
+        std::cout << "spirv compileProgram()" << std::endl;
+        size_t srcLen = ::strlen(source);
+        char *src = new char[srcLen + 1];
+        ::strncpy(src, source, srcLen);
+        src[srcLen] = '\0';
+        std::cout << "native compiling " << src << std::endl;
+        return (long) new SpirvProgram(this, new BuildInfo(src, nullptr, false));
+    }
 };
 
-long getBackend(void *config, int configSchemaLen, char *configSchema){
-   SpirvBackend::SpirvConfig *spirvConfig = (SpirvBackend::SpirvConfig*)config;
-   return (long)new SpirvBackend(spirvConfig,configSchemaLen,configSchema);
+long getBackend(void *config, int configSchemaLen, char *configSchema) {
+    SpirvBackend::SpirvConfig *spirvConfig = (SpirvBackend::SpirvConfig *) config;
+    return (long) new SpirvBackend(spirvConfig, configSchemaLen, configSchema);
 }

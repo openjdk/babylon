@@ -24,8 +24,8 @@
  */
 #include "shared.h"
 
-int main(){
+int main() {
 
-   std::cout << "inside MOCK info" << std::endl;
+    std::cout << "inside MOCK info" << std::endl;
 }
 

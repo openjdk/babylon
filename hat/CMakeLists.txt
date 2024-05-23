@@ -244,7 +244,6 @@ if(OPENCL_FOUND)
 
      add_library(opencl_backend SHARED
         ${CMAKE_SOURCE_DIR}/backends/shared/cpp/shared.cpp
-        ${CMAKE_SOURCE_DIR}/backends/opencl/cpp/opencl_shared.cpp
         ${CMAKE_SOURCE_DIR}/backends/opencl/cpp/opencl_backend.cpp
      )
 
@@ -253,11 +252,13 @@ if(OPENCL_FOUND)
      )
 
      add_executable(opencl_info 
-        ${CMAKE_SOURCE_DIR}/backends/shared/cpp/shared.cpp
-        ${CMAKE_SOURCE_DIR}/backends/opencl/cpp/opencl_shared.cpp
         ${CMAKE_SOURCE_DIR}/backends/opencl/cpp/info.cpp
      )
 
+     target_link_libraries(opencl_info
+        opencl_backend
+        "-framework OpenCL"
+     )
      target_link_libraries(opencl_info 
           "-framework OpenCL"
      )

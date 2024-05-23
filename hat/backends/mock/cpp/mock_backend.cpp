@@ -24,70 +24,80 @@
  */
 #include "shared.h"
 
-class MockBackend: public Backend{
-   public:
-      class MockConfig: public Backend::Config{
-         public :
-      };
-      class MockProgram : public Backend::Program{
-         class MockKernel : public Backend::Program::Kernel{
-            public:
-               MockKernel(Backend::Program *program):Backend::Program::Kernel(program){
-               }
-               ~MockKernel(){
-               }
-               long ndrange( int range, void *argArray) {
-                  std::cout<<"mock ndrange("<<range<<") "<< std::endl;
-                  return 0;
-               }
-         };
-         public:
-         MockProgram(Backend *backend, BuildInfo *buildInfo ):Backend::Program(backend, buildInfo){
-         }
-         ~MockProgram(){
-         }
-         long getKernel(int nameLen, char *name){
+class MockBackend : public Backend {
+public:
+    class MockConfig : public Backend::Config {
+    public :
+    };
+
+    class MockProgram : public Backend::Program {
+        class MockKernel : public Backend::Program::Kernel {
+        public:
+            MockKernel(Backend::Program *program)
+                    : Backend::Program::Kernel(program) {
+            }
+
+            ~MockKernel() {
+            }
+
+            long ndrange(int range, void *argArray) {
+                std::cout << "mock ndrange(" << range << ") " << std::endl;
+                return 0;
+            }
+        };
+
+    public:
+        MockProgram(Backend *backend, BuildInfo *buildInfo)
+                : Backend::Program(backend, buildInfo) {
+        }
+
+        ~MockProgram() {
+        }
+
+        long getKernel(int nameLen, char *name) {
             return (long) new MockKernel(this);
-         }
-         bool programOK(){
+        }
+
+        bool programOK() {
             return true;
-         }
-      };
+        }
+    };
 
-   public:
+public:
 
-      MockBackend(MockConfig *mockConfig, int mockConfigSchemeLen, char *mockBackendSchema):Backend(mockConfig,mockConfigSchemeLen,mockBackendSchema) {
-         if (mockConfig == nullptr){
-            std::cout << "mockConfig == null"<< std::endl;
-         }else{
-            std::cout << "mockConfig != null" <<std::endl;
-         }
-      }
+    MockBackend(MockConfig *mockConfig, int mockConfigSchemeLen, char *mockBackendSchema)
+            : Backend(mockConfig, mockConfigSchemeLen, mockBackendSchema) {
+        if (mockConfig == nullptr) {
+            std::cout << "mockConfig == null" << std::endl;
+        } else {
+            std::cout << "mockConfig != null" << std::endl;
+        }
+    }
 
-      ~MockBackend() {
-      }
+    ~MockBackend() {
+    }
 
-      int getMaxComputeUnits(){
-         std::cout << "mock getMaxComputeUnits()"<<std::endl;
-         return 0;
-      }
+    int getMaxComputeUnits() {
+        std::cout << "mock getMaxComputeUnits()" << std::endl;
+        return 0;
+    }
 
-      void info(){
-         std::cout << "mock info()"<<std::endl;
-      }
+    void info() {
+        std::cout << "mock info()" << std::endl;
+    }
 
-      long compileProgram(int len, char *source){
-         std::cout << "mock compileProgram()"<<std::endl;
-         size_t srcLen = ::strlen(source);
-         char *src = new char[srcLen + 1];
-         ::strncpy(src, source, srcLen);
-         src[srcLen] = '\0';
-         std::cout << "native compiling " << src << std::endl;
-         return (long) new MockProgram(this, new BuildInfo(src, nullptr,false));
-      }
+    long compileProgram(int len, char *source) {
+        std::cout << "mock compileProgram()" << std::endl;
+        size_t srcLen = ::strlen(source);
+        char *src = new char[srcLen + 1];
+        ::strncpy(src, source, srcLen);
+        src[srcLen] = '\0';
+        std::cout << "native compiling " << src << std::endl;
+        return (long) new MockProgram(this, new BuildInfo(src, nullptr, false));
+    }
 };
 
-long getBackend(void *config, int configSchemaLen, char *configSchema){
-   MockBackend::MockConfig *mockConfig = (MockBackend::MockConfig*)config;
-   return (long)new MockBackend(mockConfig,configSchemaLen,configSchema);
+long getBackend(void *config, int configSchemaLen, char *configSchema) {
+    MockBackend::MockConfig *mockConfig = (MockBackend::MockConfig *) config;
+    return (long) new MockBackend(mockConfig, configSchemaLen, configSchema);
 }
