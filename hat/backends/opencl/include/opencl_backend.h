@@ -57,7 +57,6 @@ public:
     class OpenCLConfig : public Backend::Config {
     public:
         boolean gpu;
-        boolean junk;
     };
 
     class OpenCLProgram : public Backend::Program {
@@ -78,6 +77,14 @@ public:
 
         private:
             cl_kernel kernel;
+            size_t eventMax;
+            cl_event *events;
+            size_t eventc;
+        protected:
+           // void allocEvents(int max);
+           // void releaseEvents();
+           // void waitForEvents();
+            void showEvents(int width);
         public:
             OpenCLKernel(Backend::Program *program, cl_kernel kernel);
 
@@ -104,9 +111,7 @@ public:
     cl_context context;
     cl_command_queue command_queue;
     cl_device_id device_id;
-    size_t eventMax;
-    cl_event *events;
-    size_t eventc;
+
 
     OpenCLBackend();
 
@@ -120,15 +125,8 @@ public:
 
     long compileProgram(int len, char *source);
 
-protected:
 
-    void allocEvents(int max);
 
-    void releaseEvents();
-
-    void waitForEvents();
-
-    void showEvents(int width);
 
 public:
     static const char *errorMsg(cl_int status);
