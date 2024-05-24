@@ -9,38 +9,41 @@ find_package(CUDAToolkit)
 if(OPENCL_FOUND)
     message("OPENCL")
     if (APPLE)
-        include_directories(
-                ${CMAKE_SOURCE_DIR}/opencl/shared/include
-                ${CMAKE_SOURCE_DIR}/opencl/include
-                ${CMAKE_SOURCE_DIR}/shared/include
-                "-framework OpenCL"
-        )
-        link_directories(
-                ${CMAKE_BINARY_DIR}
-        )
-
-        add_library(opencl_backend SHARED
-                ${CMAKE_SOURCE_DIR}/shared/cpp/shared.cpp
-                ${CMAKE_SOURCE_DIR}/opencl/cpp/opencl_backend.cpp
-        )
-
-        target_link_libraries(opencl_backend
-                "-framework OpenCL"
-        )
-
-        add_executable(opencl_info
-                ${CMAKE_SOURCE_DIR}/opencl/cpp/info.cpp
-        )
-
-        target_link_libraries(opencl_info
-                opencl_backend
-                "-framework OpenCL"
-        )
-        add_custom_target(backends DEPENDS opencl_info opencl_backend)
+       set(OPENCL_INCLUDE_DIR "-framework OpenCL")
+       set(OPENCL_LIB "-framework OpenCL")
     else()
-        message("OPENCL but not on APPLE")
+       #set(OPENCL_INCLUDE_DIR "-framework OpenCL")  
+       set(OPENCL_LIB "OpenCL")
     endif()
 
+    include_directories(
+        ${CMAKE_SOURCE_DIR}/opencl/shared/include
+        ${CMAKE_SOURCE_DIR}/opencl/include
+        ${CMAKE_SOURCE_DIR}/shared/include
+        ${OPENCL_INCLUDE_DIR}
+    )
+    link_directories(
+        ${CMAKE_BINARY_DIR}
+    )
+
+    add_library(opencl_backend SHARED
+        ${CMAKE_SOURCE_DIR}/shared/cpp/shared.cpp
+        ${CMAKE_SOURCE_DIR}/opencl/cpp/opencl_backend.cpp
+    )
+
+    target_link_libraries(opencl_backend
+        ${OPENCL_LIB}
+    )
+
+    add_executable(opencl_info
+        ${CMAKE_SOURCE_DIR}/opencl/cpp/info.cpp
+    )
+
+    target_link_libraries(opencl_info
+        opencl_backend
+        ${OPENCL_LIB}
+    )
+    add_custom_target(opencl_natives DEPENDS opencl_info opencl_backend)
 endif()
 
 if(CUDAToolkit_FOUND)
@@ -76,6 +79,6 @@ if(CUDAToolkit_FOUND)
             -lcudart
             -lcuda
     )
-    add_custom_target(backends DEPENDS cuda_info cuda_backend)
+    add_custom_target(cuda_natives DEPENDS cuda_info cuda_backend)
 
 endif()
