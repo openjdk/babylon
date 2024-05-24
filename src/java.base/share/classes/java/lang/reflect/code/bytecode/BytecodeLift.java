@@ -33,6 +33,7 @@ import java.lang.classfile.Instruction;
 import java.lang.classfile.Label;
 import java.lang.classfile.MethodModel;
 import java.lang.classfile.Opcode;
+import java.lang.classfile.PseudoInstruction;
 import java.lang.classfile.TypeKind;
 import java.lang.classfile.attribute.StackMapFrameInfo;
 import java.lang.classfile.instruction.*;
@@ -68,13 +69,10 @@ public final class BytecodeLift {
     private final Block.Builder entryBlock;
     private final CodeModel codeModel;
     private final Map<Label, Block.Builder> blockMap;
-    private final Map<String, Op.Result> varMap;
+    private final LocalsTypeMapper codeTracker;
+    private final List<CodeElement> elements;
     private final Deque<Value> stack;
     private Block.Builder currentBlock;
-
-    private static String varName(int slot, TypeKind tk) {
-        return tk.typeName() + slot;
-    }
 
     private static TypeElement toTypeElement(StackMapFrameInfo.VerificationTypeInfo vti) {
         return switch (vti) {
@@ -104,36 +102,22 @@ public final class BytecodeLift {
         this.entryBlock = entryBlock;
         this.currentBlock = entryBlock;
         this.codeModel = methodModel.code().orElseThrow();
-        this.varMap = new HashMap<>();
+        this.elements = codeModel.elementList();
         this.stack = new ArrayDeque<>();
-        List<Block.Parameter> bps = entryBlock.parameters();
-        List<ClassDesc> mps = methodModel.methodTypeSymbol().parameterList();
-        for (int i = 0, slot = 0; i < bps.size(); i++) {
-            TypeKind tk = TypeKind.from(mps.get(i)).asLoadable();
-            varStore(slot, tk, bps.get(i));
-            slot += tk.slotSize();
-        }
-        this.blockMap = codeModel.findAttribute(Attributes.STACK_MAP_TABLE).map(sma ->
+        var smta = codeModel.findAttribute(Attributes.STACK_MAP_TABLE);
+        this.blockMap = smta.map(sma ->
                 sma.entries().stream().collect(Collectors.toUnmodifiableMap(
                         StackMapFrameInfo::target,
                         smfi -> entryBlock.block(smfi.stack().stream().map(BytecodeLift::toTypeElement).toList())))).orElse(Map.of());
-    }
 
-    private void varStore(int slot, TypeKind tk, Value value) {
-        varMap.compute(varName(slot, tk), (varName, var) -> {
-            if (var == null) {
-                return op(CoreOp.var(varName, value));
-            } else {
-                op(CoreOp.varStore(var, value));
-                return var;
-            }
-        });
-    }
+        List<Block.Parameter> bps = entryBlock.parameters();
+        MethodTypeDesc mtd = methodModel.methodTypeSymbol();
+        for (int i = 0, slot = 0; i < bps.size(); i++) {
+            op(SlotOp.store(slot, bps.get(i)));
+            slot += TypeKind.from(mtd.parameterType(i)).slotSize();
+        }
 
-    private Op.Result var(int slot, TypeKind tk) {
-        Op.Result r = varMap.get(varName(slot, tk));
-        if (r == null) throw new IllegalArgumentException("Undeclared variable: " + slot + "-" + tk); // @@@ these cases may need lazy var injection
-        return r;
+        this.codeTracker = new LocalsTypeMapper(methodModel.parent().get().thisClass().asSymbol(), mtd, methodModel.flags().has(AccessFlag.STATIC), smta, elements);
     }
 
     private Op.Result op(Op op) {
@@ -154,10 +138,11 @@ public final class BytecodeLift {
     }
 
     public static CoreOp.FuncOp lift(MethodModel methodModel) {
-        return CoreOp.func(
+        var lifted = CoreOp.func(
                 methodModel.methodName().stringValue(),
                 MethodRef.ofNominalDescriptor(methodModel.methodTypeSymbol())).body(entryBlock ->
                         new BytecodeLift(entryBlock, methodModel).lift());
+        return SlotSSA.transform(lifted);
     }
 
     private Block.Builder getBlock(Label l) {
@@ -193,22 +178,22 @@ public final class BytecodeLift {
 
     private void lift() {
         final Map<ExceptionCatch, Op.Result> exceptionRegionsMap = new HashMap<>();
-
-        List<CodeElement> elements = codeModel.elementList();
         for (int i = 0; i < elements.size(); i++) {
             switch (elements.get(i)) {
                 case ExceptionCatch _ -> {
                     // Exception blocks are inserted by label target (below)
                 }
                 case LabelTarget lt -> {
-                    // Start of a new block
-                    Block.Builder next = getBlock(lt.label());
-                    if (currentBlock != null) {
-                        // Implicit goto next block, add explicitly
-                        // Use stack content as next block arguments
-                        op(CoreOp.branch(next.successor(List.copyOf(stack))));
+                    Block.Builder next = blockMap.get(lt.label());
+                    // Start of a new block if defined by stack maps
+                    if (next != null) {
+                        if (currentBlock != null) {
+                            // Implicit goto next block, add explicitly
+                            // Use stack content as next block arguments
+                            op(CoreOp.branch(next.successor(List.copyOf(stack))));
+                        }
+                        moveTo(next);
                     }
-                    moveTo(next);
                     // Insert relevant tryStart and construct handler blocks, all in reversed order
                     for (ExceptionCatch ec : codeModel.exceptionHandlers().reversed()) {
                         if (lt.label() == ec.tryStart()) {
@@ -258,13 +243,10 @@ public final class BytecodeLift {
                         case IF_ACMPNE -> CoreOp.eq(stack.pop(), operand);
                         default -> throw new UnsupportedOperationException("Unsupported branch instruction: " + inst);
                     };
-                    if (!stack.isEmpty()) {
-                        throw new UnsupportedOperationException("Operands on stack for branch not supported");
-                    }
-                    Block.Builder next = currentBlock.block();
+                    Block.Builder next = newBlock();
                     op(CoreOp.conditionalBranch(op(cop),
-                            next.successor(),
-                            getBlock(inst.target()).successor()));
+                            next.successor(List.copyOf(stack)),
+                            getBlock(inst.target()).successor(List.copyOf(stack))));
                     moveTo(next);
                 }
     //                case LookupSwitchInstruction si -> {
@@ -290,15 +272,15 @@ public final class BytecodeLift {
                     endOfFlow();
                 }
                 case LoadInstruction inst -> {
-                    stack.push(op(CoreOp.varLoad(var(inst.slot(), inst.typeKind()))));
+                    stack.push(op(SlotOp.load(inst.slot(), JavaType.type(codeTracker.getTypeOf(inst)))));
                 }
                 case StoreInstruction inst -> {
-                    varStore(inst.slot(), inst.typeKind(), stack.pop());
+                    op(SlotOp.store(inst.slot(), stack.pop()));
                 }
                 case IncrementInstruction inst -> {
-                    varStore(inst.slot(), TypeKind.IntType, op(CoreOp.add(
-                            op(CoreOp.varLoad(var(inst.slot(), TypeKind.IntType))),
-                            op(CoreOp.constant(JavaType.INT, inst.constant())))));
+                    op(SlotOp.store(inst.slot(), op(CoreOp.add(
+                            op(SlotOp.load(inst.slot(), JavaType.INT)),
+                            op(CoreOp.constant(JavaType.INT, inst.constant()))))));
                 }
                 case ConstantInstruction inst -> {
                     stack.push(op(switch (inst.constantValue()) {
@@ -350,6 +332,12 @@ public final class BytecodeLift {
                                 CoreOp.or(stack.pop(), operand);
                         case IXOR, LXOR ->
                                 CoreOp.xor(stack.pop(), operand);
+                        case ISHL, LSHL ->
+                                CoreOp.lshl(stack.pop(), operand);
+                        case ISHR, LSHR ->
+                                CoreOp.ashr(stack.pop(), operand);
+                        case IUSHR, LUSHR ->
+                                CoreOp.lshr(stack.pop(), operand);
                         default ->
                             throw new IllegalArgumentException("Unsupported operator opcode: " + inst.opcode());
                     }));
@@ -460,20 +448,113 @@ public final class BytecodeLift {
                 case TypeCheckInstruction inst when inst.opcode() == Opcode.CHECKCAST -> {
                     stack.push(op(CoreOp.cast(JavaType.type(inst.type().asSymbol()), stack.pop())));
                 }
+                case TypeCheckInstruction inst -> {
+                    stack.push(op(CoreOp.instanceOf(JavaType.type(inst.type().asSymbol()), stack.pop())));
+                }
                 case StackInstruction inst -> {
                     switch (inst.opcode()) {
-                        case POP, POP2 -> stack.pop(); // @@@ check the type width
-                        case DUP, DUP2 -> stack.push(stack.peek());
-                        //@@@ implement all other stack ops
+                        case POP -> {
+                            stack.pop();
+                        }
+                        case POP2 -> {
+                            if (isCategory1(stack.pop())) {
+                                stack.pop();
+                            }
+                        }
+                        case DUP -> {
+                            stack.push(stack.peek());
+                        }
+                        case DUP_X1 -> {
+                            var value1 = stack.pop();
+                            var value2 = stack.pop();
+                            stack.push(value1);
+                            stack.push(value2);
+                            stack.push(value1);
+                        }
+                        case DUP_X2 -> {
+                            var value1 = stack.pop();
+                            var value2 = stack.pop();
+                            if (isCategory1(value2)) {
+                                var value3 = stack.pop();
+                                stack.push(value1);
+                                stack.push(value3);
+                            } else {
+                                stack.push(value1);
+                            }
+                            stack.push(value2);
+                            stack.push(value1);
+                        }
+                        case DUP2 -> {
+                            var value1 = stack.peek();
+                            if (isCategory1(value1)) {
+                                stack.pop();
+                                var value2 = stack.peek();
+                                stack.push(value1);
+                                stack.push(value2);
+                            }
+                            stack.push(value1);
+                        }
+                        case DUP2_X1 -> {
+                            var value1 = stack.pop();
+                            var value2 = stack.pop();
+                            if (isCategory1(value1)) {
+                                var value3 = stack.pop();
+                                stack.push(value2);
+                                stack.push(value1);
+                                stack.push(value3);
+                            } else {
+                                stack.push(value1);
+                            }
+                            stack.push(value2);
+                            stack.push(value1);
+                        }
+                        case DUP2_X2 -> {
+                            var value1 = stack.pop();
+                            var value2 = stack.pop();
+                            if (isCategory1(value1)) {
+                                var value3 = stack.pop();
+                                if (isCategory1(value3)) {
+                                    var value4 = stack.pop();
+                                    stack.push(value2);
+                                    stack.push(value1);
+                                    stack.push(value4);
+                                } else {
+                                    stack.push(value2);
+                                    stack.push(value1);
+                                }
+                                stack.push(value3);
+                            } else {
+                                if (isCategory1(value2)) {
+                                    var value3 = stack.pop();
+                                    stack.push(value1);
+                                    stack.push(value3);
+                                } else {
+                                    stack.push(value1);
+                                }
+                            }
+                            stack.push(value2);
+                            stack.push(value1);
+                        }
+                        case SWAP -> {
+                            var value1 = stack.pop();
+                            var value2 = stack.pop();
+                            stack.push(value1);
+                            stack.push(value2);
+                        }
                         default ->
                             throw new UnsupportedOperationException("Unsupported stack instruction: " + inst);
                     }
                 }
+                case PseudoInstruction _ -> {}
                 case Instruction inst ->
                     throw new UnsupportedOperationException("Unsupported instruction: " + inst.opcode().name());
                 default ->
                     throw new UnsupportedOperationException("Unsupported code element: " + elements.get(i));
             }
         }
+    }
+
+    private static boolean isCategory1(Value v) {
+        return BytecodeGenerator.toTypeKind(v.type()).slotSize() == 1;
     }
 }

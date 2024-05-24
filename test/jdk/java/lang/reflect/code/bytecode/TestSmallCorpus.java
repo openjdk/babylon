@@ -57,8 +57,7 @@ import org.testng.annotations.Test;
 public class TestSmallCorpus {
 
     private static final FileSystem JRT = FileSystems.getFileSystem(URI.create("jrt:/"));
-    private static final ClassFile CF = ClassFile.of(ClassFile.DebugElementsOption.DROP_DEBUG,
-                                                     ClassFile.LineNumbersOption.DROP_LINE_NUMBERS);
+    private static final ClassFile CF = ClassFile.of();
     private static final int COLUMN_WIDTH = 150;
 
     private int passed, notMatching;
@@ -86,7 +85,7 @@ public class TestSmallCorpus {
         }
 
         // @@@ There is still several failing cases and a lot of errors
-        Assert.assertTrue(notMatching < 31 && passed > 5400, String.format("""
+        Assert.assertTrue(passed > 6400, String.format("""
 
                     passed: %d
                     not matching: %d
