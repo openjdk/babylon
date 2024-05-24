@@ -54,10 +54,19 @@ public final class OpWriter {
             this.gn = new HashMap<>();
         }
 
+        private String blockId(Block b) {
+            if (b.index() < 0) return "__" + blockOrdinal++;
+            Op po;
+            Block pb;
+            return (((po = b.parentBody().parentOp()) != null
+                    && (pb = po.parentBlock()) != null)
+                    ? blockId(pb) : "") + "_" + b.index();
+        }
+
         @Override
         public String apply(CodeItem codeItem) {
             return switch (codeItem) {
-                case Block block -> gn.computeIfAbsent(block, _b -> "block_" + blockOrdinal++);
+                case Block block -> gn.computeIfAbsent(block, _b -> "block" + blockId(block));
                 case Value value -> gn.computeIfAbsent(value, _v -> String.valueOf(valueOrdinal++));
                 default -> throw new IllegalStateException("Unexpected code item: " + codeItem);
             };
