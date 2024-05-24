@@ -33,8 +33,10 @@
 #define alignedMalloc(size, alignment) memalign(alignment, size)
 #define SNPRINTF snprintf
 #else
+
 #include <CL/cl.h>
 #include <malloc.h>
+
 #define LongHexNewline "(0x%lx)\n"
 #define LongUnsignedNewline "%lu\n"
 #define Size_tNewline "%lu\n"
@@ -47,6 +49,7 @@
 #define SNPRINTF  snprintf
 #endif
 #endif
+
 #include "shared.h"
 
 class OpenCLBackend : public Backend {
@@ -54,25 +57,34 @@ public:
     class OpenCLConfig : public Backend::Config {
     public:
         boolean gpu;
-        boolean junk;
     };
 
     class OpenCLProgram : public Backend::Program {
         class OpenCLKernel : public Backend::Program::Kernel {
 
-        class OpenCLBuffer : public Backend::Program::Kernel::Buffer {
+            class OpenCLBuffer : public Backend::Program::Kernel::Buffer {
             public:
-
                 cl_mem clMem;
+
                 void copyToDevice();
+
                 void copyFromDevice();
-                OpenCLBuffer(void *ptr, size_t sizeInBytes, cl_context context);
+
+                OpenCLBuffer(Backend::Program::Kernel *kernel, Arg_t *arg);
 
                 virtual ~OpenCLBuffer();
             };
 
         private:
             cl_kernel kernel;
+            size_t eventMax;
+            cl_event *events;
+            size_t eventc;
+        protected:
+           // void allocEvents(int max);
+           // void releaseEvents();
+           // void waitForEvents();
+            void showEvents(int width);
         public:
             OpenCLKernel(Backend::Program *program, cl_kernel kernel);
 
@@ -99,9 +111,7 @@ public:
     cl_context context;
     cl_command_queue command_queue;
     cl_device_id device_id;
-    size_t eventMax;
-    cl_event *events;
-    size_t eventc;
+
 
     OpenCLBackend();
 
@@ -115,15 +125,8 @@ public:
 
     long compileProgram(int len, char *source);
 
-protected:
 
-    void allocEvents(int max);
 
-    void releaseEvents();
-
-    void waitForEvents();
-
-    void showEvents(int width);
 
 public:
     static const char *errorMsg(cl_int status);

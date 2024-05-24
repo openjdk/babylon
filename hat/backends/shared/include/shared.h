@@ -86,24 +86,27 @@ typedef union value_u {
     u8_t s8;  // 'B'
     u16_t u16;  // 'C'
     s16_t s16;  // 'S'
+    u16_t x16;  // 'C' or 'S"
     s32_t s32;  // 'I'
+    s32_t x32;  // 'I' or 'F'
     f32_t f32; // 'F'
     f64_t f64; // 'D'
     s64_t s64; // 'J'
+    s64_t x64; // 'D' or 'J'
     Buffer_t buffer; // '&'
 } Value_t;
 
 typedef struct Arg_s {
     u32_t idx;          // 0..argc
     u8_t variant;      // which variant 'I','Z','S','J','F', '&' implies Buffer/MemorySegment
-    u8_t pad1[8];
+    u8_t pad8[8];
     Value_t value;
-    u8_t pad[6];
+    u8_t pad6[6];
 } Arg_t;
 
 typedef struct ArgArray_s {
     u32_t argc;
-    u8_t pad[12];
+    u8_t pad12[12];
     Arg_t argv[0/*argc*/];
     // void * vendorPtr;
     // int schemaLen
@@ -171,15 +174,6 @@ public:
         return (void *) a;
     }
 
-    /*  void *vendorPtr(){
-        char *cptr = (char*)vendorPtrPtr();
-        char *cptr2 =  (char*)cptr[0];
-        return (void*)cptr2;
-        }
-
-        void vendorPtr(void *vendorPtr){
-     *vendorPtrPtr() =vendorPtr;
-     } */
     int *schemaLenPtr() {
         int *schemaLenP = (int *) ((char *) vendorPtrPtr() + sizeof(void *));
         return schemaLenP;
@@ -484,11 +478,11 @@ public:
         public:
             class Buffer {
             public:
-                void *ptr;
-                size_t sizeInBytes;
+                Kernel *kernel;
+                Arg_t *arg;
                 virtual void copyToDevice()=0;
                 virtual void copyFromDevice()=0;
-                Buffer(void *ptr, size_t sizeInBytes):ptr(ptr), sizeInBytes(sizeInBytes) {
+                Buffer(Kernel *kernel, Arg_t *arg):kernel(kernel),arg(arg){
                 }
                 virtual ~Buffer() {}
             };

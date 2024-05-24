@@ -68,8 +68,11 @@ class Ptx {
 public:
     size_t len;
     char *text;
+
     Ptx(size_t len);
+
     ~Ptx();
+
     static Ptx *nvcc(const char *cudaSource, size_t len);
 };
 
@@ -82,14 +85,16 @@ public:
 
     class CudaProgram : public Backend::Program {
         class CudaKernel : public Backend::Program::Kernel {
-        class CudaBuffer: public Backend::Program::Kernel::Buffer {
+            class CudaBuffer : public Backend::Program::Kernel::Buffer {
             public:
-
                 CUdeviceptr devicePtr;
 
-                CudaBuffer(void *ptr, size_t sizeInBytes);
+                CudaBuffer(Backend::Program::Kernel *kernel, Arg_t *arg);
+
                 void copyToDevice();
+
                 void copyFromDevice();
+
                 virtual ~CudaBuffer();
             };
 
@@ -123,7 +128,9 @@ private:
 public:
 
     CudaBackend(CudaConfig *config, int configSchemaLen, char *configSchema);
+
     CudaBackend();
+
     ~CudaBackend();
 
     int getMaxComputeUnits();
