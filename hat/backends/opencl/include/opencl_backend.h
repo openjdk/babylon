@@ -33,8 +33,10 @@
 #define alignedMalloc(size, alignment) memalign(alignment, size)
 #define SNPRINTF snprintf
 #else
+
 #include <CL/cl.h>
 #include <malloc.h>
+
 #define LongHexNewline "(0x%lx)\n"
 #define LongUnsignedNewline "%lu\n"
 #define Size_tNewline "%lu\n"
@@ -47,6 +49,7 @@
 #define SNPRINTF  snprintf
 #endif
 #endif
+
 #include "shared.h"
 
 class OpenCLBackend : public Backend {
@@ -60,13 +63,15 @@ public:
     class OpenCLProgram : public Backend::Program {
         class OpenCLKernel : public Backend::Program::Kernel {
 
-        class OpenCLBuffer : public Backend::Program::Kernel::Buffer {
+            class OpenCLBuffer : public Backend::Program::Kernel::Buffer {
             public:
-
                 cl_mem clMem;
+
                 void copyToDevice();
+
                 void copyFromDevice();
-                OpenCLBuffer(void *ptr, size_t sizeInBytes, cl_context context);
+
+                OpenCLBuffer(Backend::Program::Kernel *kernel, Arg_t *arg);
 
                 virtual ~OpenCLBuffer();
             };

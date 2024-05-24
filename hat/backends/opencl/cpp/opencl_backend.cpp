@@ -24,17 +24,75 @@
  */
 #include "opencl_backend.h"
 
-OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::OpenCLBuffer(void *ptr, size_t sizeInBytes, cl_context context)
-        : Backend::Program::Kernel::Buffer(ptr, sizeInBytes) {
+OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::OpenCLBuffer(Backend::Program::Kernel *kernel, Arg_t *arg)
+        : Backend::Program::Kernel::Buffer(kernel, arg) {
+    /*
+     *   (void *) arg->value.buffer.memorySegment,
+     *   (size_t) arg->value.buffer.sizeInBytes);
+     */
     cl_int status;
-    clMem = clCreateBuffer(context, CL_MEM_USE_HOST_PTR | CL_MEM_READ_WRITE, sizeInBytes, ptr, &status);
+    OpenCLBackend *openclBackend = (OpenCLBackend *) kernel->program->backend;
+    clMem = clCreateBuffer(openclBackend->context,
+                           CL_MEM_USE_HOST_PTR | CL_MEM_READ_WRITE,
+                           arg->value.buffer.sizeInBytes,
+                           arg->value.buffer.memorySegment,
+                           &status);
+    if (status != CL_SUCCESS) {
+        std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
+        exit(1);
+    }
+    arg->value.buffer.vendorPtr = (void *) this;
+    std::cout << "created buffer "<<std::endl;
 }
+
 void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyToDevice() {
 
-}
-void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyFromDevice() {
+    /*
+     *   (void *) arg->value.buffer.memorySegment,
+     *   (size_t) arg->value.buffer.sizeInBytes);
+     */
+    OpenCLBackend *openclBackend = (OpenCLBackend *) kernel->program->backend;
+    cl_int status = clEnqueueWriteBuffer(openclBackend->command_queue,
+                                         clMem,
+                                         CL_FALSE,
+                                         0,
+                                         arg->value.buffer.sizeInBytes,
+                                         arg->value.buffer.memorySegment,
+                                         openclBackend->eventc,
+                                         ((openclBackend->eventc == 0) ? NULL : openclBackend->events),
+                                         &(openclBackend->events[openclBackend->eventc]));
+
+
+    if (status != CL_SUCCESS) {
+        std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
+        exit(1);
+    }
+
+    openclBackend->eventc++;
+    std::cout << "enqueued buffer copyToDevice "<<std::endl;
 
 }
+
+void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyFromDevice() {
+    OpenCLBackend *openclBackend = (OpenCLBackend *) kernel->program->backend;
+    cl_int status = clEnqueueReadBuffer(openclBackend->command_queue,
+                                        clMem,
+                                        CL_FALSE,
+                                        0,
+                                        arg->value.buffer.sizeInBytes,
+                                        arg->value.buffer.memorySegment,
+                                        openclBackend->eventc,
+                                        ((openclBackend->eventc == 0) ? NULL : openclBackend->events),
+                                        &(openclBackend->events[openclBackend->eventc]));
+
+    if (status != CL_SUCCESS) {
+        std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
+        exit(1);
+    }
+    openclBackend->eventc++;
+    std::cout << "enqueued buffer copyFromDevice "<<std::endl;
+}
+
 OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::~OpenCLBuffer() {
     clReleaseMemObject(clMem);
 }
@@ -48,79 +106,103 @@ OpenCLBackend::OpenCLProgram::OpenCLKernel::~OpenCLKernel() {
 }
 
 long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(int range, void *argArray) {
-    //std::cout<<"ndrange("<<range<<") "<< std::endl;
+    std::cout << "ndrange(" << range << ") " << std::endl;
     ArgSled argSled((ArgArray_t *) argArray);
-    cl_int status;
-    OpenCLBackend *backend = (OpenCLBackend *) program->backend;
 
-    bool verbose = false;
-
-    // std::cout << "allocing events "<< ((argSled.argc()*3)+1)<< std::endl;
-
-    backend->allocEvents(argSled.argc() * 3 + 1);
+    ((OpenCLBackend *) program->backend)->allocEvents(argSled.argc() * 4 + 1);
 
     for (int i = 0; i < argSled.argc(); i++) {
         Arg_t *arg = argSled.arg(i);
+        switch (arg->variant) {
+            case '&': {
+                OpenCLBuffer *openclBuffer = new OpenCLBuffer(this, arg);
 
-        if (arg->variant == '&') {
-            arg->value.buffer.vendorPtr = new OpenCLBuffer(
-                    (void *) arg->value.buffer.memorySegment,
-                    (size_t) arg->value.buffer.sizeInBytes,
-                    backend->context);
-            OpenCLBuffer *clbuf = ((OpenCLBuffer *) arg->value.buffer.vendorPtr);
-            if ((status = clEnqueueWriteBuffer(backend->command_queue, clbuf->clMem, CL_FALSE, 0, clbuf->sizeInBytes, clbuf->ptr, backend->eventc, ((backend->eventc == 0) ? NULL : backend->events),
-                    &(backend->events[backend->eventc]))) !=
-                CL_SUCCESS) {
-                std::cerr << "write failed!" << errorMsg(status) << std::endl;
+                openclBuffer->copyToDevice();
+                cl_int status = clSetKernelArg(kernel, arg->idx, sizeof(cl_mem), &openclBuffer->clMem);
+                if (status != CL_SUCCESS) {
+                    std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
+                    exit(1);
+                }
+                std::cout << "set buffer arg "<<arg->idx<<std::endl;
+                break;
             }
-            backend->eventc++;
-            clSetKernelArg(kernel, arg->idx, sizeof(cl_mem), &((OpenCLBuffer *) arg->value.buffer.vendorPtr)->clMem);
-
-        } else if (arg->variant == 'I') {
-            clSetKernelArg(kernel, arg->idx, sizeof(arg->value.s32), (void *) &arg->value.s32);
-        } else if (arg->variant == 'F') {
-            clSetKernelArg(kernel, arg->idx, sizeof(arg->value.f32), (void *) &arg->value.f32);
+            case 'I': {
+                cl_int status = clSetKernelArg(kernel, arg->idx, sizeof(arg->value.s32), (void *) &arg->value.s32);
+                if (status != CL_SUCCESS) {
+                    std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
+                    exit(1);
+                }
+                std::cout << "set int arg "<<arg->idx<<std::endl;
+                break;
+            }
+            case 'F': {
+                cl_int status = clSetKernelArg(kernel, arg->idx, sizeof(arg->value.f32), (void *) &arg->value.f32);
+                if (status != CL_SUCCESS) {
+                    std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
+                    exit(1);
+                }
+                std::cout << "set float arg "<<arg->idx<<std::endl;
+                break;
+            }
+            default: {
+                std::cout << "unexpected variant " << (char) arg->variant << std::endl;
+                exit(1);
+            }
         }
     }
+
     size_t globalSize = range;
     size_t dims = 1;
-    if ((status = clEnqueueNDRangeKernel(
-            backend->command_queue,
+    cl_int status = clEnqueueNDRangeKernel(
+            ((OpenCLBackend *) program->backend)->command_queue,
             kernel,
             dims,
             nullptr,
             &globalSize,
             nullptr,
-            backend->eventc,
-            ((backend->eventc == 0) ? nullptr : backend->events),
-            &(backend->events[backend->eventc]))) != CL_SUCCESS) {
-#ifdef VERBOSE
-        std::cout <<  " globalSize=" << globalSize << " " << error(status) << std::endl;
-#endif
+            ((OpenCLBackend *) program->backend)->eventc,
+            ((((OpenCLBackend *) program->backend)->eventc == 0) ? nullptr
+                                                                 : ((OpenCLBackend *) program->backend)->events),
+            &(((OpenCLBackend *) program->backend)->events[((OpenCLBackend *) program->backend)->eventc]));
+    if (status != CL_SUCCESS) {
+        std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
+        exit(1);
     }
-    backend->eventc++;
+    std::cout << "enqueued dispatch  "<<std::endl;
+#ifdef VERBOSE
+    std::cout <<  " globalSize=" << globalSize << " " << error(status) << std::endl;
+#endif
+
+    ((OpenCLBackend *) program->backend)->eventc++;
     for (int i = 0; i < argSled.argc(); i++) {
         Arg_t *arg = argSled.arg(i);
 
-        if (arg->variant == '&') {
-            OpenCLBuffer *clBuf = ((OpenCLBuffer *) arg->value.buffer.vendorPtr);
-            if ((status = clEnqueueReadBuffer(backend->command_queue, clBuf->clMem, CL_FALSE, 0,
-                    clBuf->sizeInBytes, clBuf->ptr, backend->eventc, ((backend->eventc == 0) ? NULL : backend->events),
-                    &(backend->events[backend->eventc]))) !=
-                CL_SUCCESS) {
-                std::cout << "read failed!";
+        switch (arg->variant) {
+            case '&': {
+                OpenCLBuffer *openclBuffer = ((OpenCLBuffer *) arg->value.buffer.vendorPtr);
+                openclBuffer->copyFromDevice();
+
+                break;
             }
-            backend->eventc++;
+            default: {
+                //std::cout << "skipping variant " <<(char)arg->variant<<std ::endl;
+            }
         }
     }
-    backend->waitForEvents();
+    ((OpenCLBackend *) program->backend)->waitForEvents();
     for (int i = 0; i < argSled.argc(); i++) {
         Arg_t *arg = argSled.arg(i);
-        if (arg->variant == '&') {
-            delete ((OpenCLBuffer *) arg->value.buffer.vendorPtr);
+        switch (arg->variant) {
+            case '&': {
+                delete ((OpenCLBuffer *) arg->value.buffer.vendorPtr);
+                break;
+            }
+            default: {
+                //std::cout << "skipping variant " <<(char)arg->variant<<std ::endl;
+            }
         }
     }
-    backend->releaseEvents();
+    ((OpenCLBackend *) program->backend)->releaseEvents();
     return 0;
 }
 
@@ -144,7 +226,8 @@ bool OpenCLBackend::OpenCLProgram::programOK() {
 }
 
 OpenCLBackend::OpenCLBackend(OpenCLBackend::OpenCLConfig *openclConfig, int configSchemaLen, char *configSchema)
-        : Backend((Backend::Config *) openclConfig, configSchemaLen, configSchema), eventMax(0), events(nullptr), eventc(0) {
+        : Backend((Backend::Config *) openclConfig, configSchemaLen, configSchema), eventMax(0), events(nullptr),
+          eventc(0) {
 
     if (openclConfig == nullptr) {
         std::cout << "openclConfig == null" << std::endl;
@@ -152,7 +235,8 @@ OpenCLBackend::OpenCLBackend(OpenCLBackend::OpenCLConfig *openclConfig, int conf
         std::cout << "openclConfig->gpu" << (openclConfig->gpu ? "true" : "false") << std::endl;
         std::cout << "openclConfig->schema" << configSchema << std::endl;
     }
-    cl_device_type requestedType = openclConfig == nullptr ? CL_DEVICE_TYPE_GPU : openclConfig->gpu ? CL_DEVICE_TYPE_GPU : CL_DEVICE_TYPE_CPU;
+    cl_device_type requestedType =
+            openclConfig == nullptr ? CL_DEVICE_TYPE_GPU : openclConfig->gpu ? CL_DEVICE_TYPE_GPU : CL_DEVICE_TYPE_CPU;
 
     cl_int status;
     cl_uint platformc = 0;
@@ -190,7 +274,8 @@ OpenCLBackend::OpenCLBackend(OpenCLBackend::OpenCLConfig *openclConfig, int conf
 
     cl_command_queue_properties queue_props = CL_QUEUE_PROFILING_ENABLE;
 
-    if ((command_queue = clCreateCommandQueue(context, device_ids[0], queue_props, &status)) == NULL || status != CL_SUCCESS) {
+    if ((command_queue = clCreateCommandQueue(context, device_ids[0], queue_props, &status)) == NULL ||
+        status != CL_SUCCESS) {
         clReleaseContext(context);
         delete[] platforms;
         delete[] device_ids;
@@ -222,7 +307,11 @@ void OpenCLBackend::allocEvents(int max) {
 
 void OpenCLBackend::releaseEvents() {
     for (int i = 0; i < eventc; i++) {
-        clReleaseEvent(events[i]);
+        cl_int status = clReleaseEvent(events[i]);
+        if (status != CL_SUCCESS) {
+            std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
+            exit(1);
+        }
     }
     delete[] events;
     eventMax = 0;
@@ -231,7 +320,11 @@ void OpenCLBackend::releaseEvents() {
 }
 
 void OpenCLBackend::waitForEvents() {
-    clWaitForEvents(eventc, events);
+    cl_int status = clWaitForEvents(eventc, events);
+    if (status != CL_SUCCESS) {
+        std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
+        exit(1);
+    }
 }
 
 void OpenCLBackend::showEvents(int width) {
@@ -257,7 +350,8 @@ void OpenCLBackend::showEvents(int width) {
                     break;
             }
 
-            if ((clGetEventProfilingInfo(events[event], info, sizeof(samples[sample]), &samples[sample], NULL)) != CL_SUCCESS) {
+            if ((clGetEventProfilingInfo(events[event], info, sizeof(samples[sample]), &samples[sample], NULL)) !=
+                CL_SUCCESS) {
                 std::cerr << "failed to get profile info " << info << std::endl;
             }
             if (sample == 0) {
@@ -312,15 +406,21 @@ void OpenCLBackend::showEvents(int width) {
 int OpenCLBackend::getMaxComputeUnits() {
     std::cout << "getMaxComputeUnits()" << std::endl;
     cl_uint value;
-    clGetDeviceInfo(device_id, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(value), &value, nullptr);
+    cl_int status = clGetDeviceInfo(device_id, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(value), &value, nullptr);
+    if (status != CL_SUCCESS) {
+        std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
+        exit(1);
+    }
     return value;
+
 }
 
 void OpenCLBackend::info() {
     cl_int status;
     fprintf(stderr, "platform{\n");
     char platformVersionName[512];
-    status = clGetPlatformInfo(platform_id, CL_PLATFORM_VERSION, sizeof(platformVersionName), platformVersionName, NULL);
+    status = clGetPlatformInfo(platform_id, CL_PLATFORM_VERSION, sizeof(platformVersionName), platformVersionName,
+                               NULL);
     char platformVendorName[512];
     char platformName[512];
     status = clGetPlatformInfo(platform_id, CL_PLATFORM_VENDOR, sizeof(platformVendorName), platformVendorName, NULL);
@@ -356,17 +456,20 @@ void OpenCLBackend::info() {
     fprintf(stderr, "         CL_DEVICE_MAX_COMPUTE_UNITS........ %u\n", maxComputeUnits);
 
     cl_uint maxWorkItemDimensions;
-    status = clGetDeviceInfo(device_id, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, sizeof(maxWorkItemDimensions), &maxWorkItemDimensions, NULL);
+    status = clGetDeviceInfo(device_id, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, sizeof(maxWorkItemDimensions),
+                             &maxWorkItemDimensions, NULL);
     fprintf(stderr, "         CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS. %u\n", maxWorkItemDimensions);
 
     size_t *maxWorkItemSizes = new size_t[maxWorkItemDimensions];
-    status = clGetDeviceInfo(device_id, CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(size_t) * maxWorkItemDimensions, maxWorkItemSizes, NULL);
+    status = clGetDeviceInfo(device_id, CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(size_t) * maxWorkItemDimensions,
+                             maxWorkItemSizes, NULL);
     for (unsigned dimIdx = 0; dimIdx < maxWorkItemDimensions; dimIdx++) {
         fprintf(stderr, "             dim[%d] = %ld\n", dimIdx, maxWorkItemSizes[dimIdx]);
     }
 
     size_t maxWorkGroupSize;
-    status = clGetDeviceInfo(device_id, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(maxWorkGroupSize), &maxWorkGroupSize, NULL);
+    status = clGetDeviceInfo(device_id, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(maxWorkGroupSize), &maxWorkGroupSize,
+                             NULL);
     fprintf(stderr, "         CL_DEVICE_MAX_WORK_GROUP_SIZE...... " Size_tNewline, maxWorkGroupSize);
 
     cl_ulong maxMemAllocSize;
@@ -418,7 +521,8 @@ long OpenCLBackend::compileProgram(int len, char *source) {
     //std::cout << "native compiling " << src << std::endl;
     cl_int status;
     cl_program program;
-    if ((program = clCreateProgramWithSource(context, 1, (const char **) &src, nullptr, &status)) == nullptr || status != CL_SUCCESS) {
+    if ((program = clCreateProgramWithSource(context, 1, (const char **) &src, nullptr, &status)) == nullptr ||
+        status != CL_SUCCESS) {
         std::cerr << "clCreateProgramWithSource failed" << std::endl;
         delete[] src;
         return 0;
@@ -439,7 +543,8 @@ long OpenCLBackend::compileProgram(int len, char *source) {
         clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_STATUS, sizeof(buildStatus), &buildStatus, nullptr);
         if (logLen > 0) {
             char *log = new char[logLen + 1];
-            if ((status = clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, logLen + 1, (void *) log, nullptr)) != CL_SUCCESS) {
+            if ((status = clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, logLen + 1, (void *) log,
+                                                nullptr)) != CL_SUCCESS) {
                 std::cerr << "clGetBuildInfo (getting log) failed" << std::endl;
                 delete[] log;
                 log = nullptr;
@@ -517,7 +622,7 @@ const char *OpenCLBackend::errorMsg(cl_int status) {
 
     for (ii = 0; error_table[ii].msg != NULL; ii++) {
         if (error_table[ii].code == status) {
-//std::cerr << " clerror '" << error_table[ii].msg << "'" << std::endl;
+            //std::cerr << " clerror '" << error_table[ii].msg << "'" << std::endl;
             return error_table[ii].msg;
         }
     }

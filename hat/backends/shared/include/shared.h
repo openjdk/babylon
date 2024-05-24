@@ -484,11 +484,11 @@ public:
         public:
             class Buffer {
             public:
-                void *ptr;
-                size_t sizeInBytes;
+                Kernel *kernel;
+                Arg_t *arg;
                 virtual void copyToDevice()=0;
                 virtual void copyFromDevice()=0;
-                Buffer(void *ptr, size_t sizeInBytes):ptr(ptr), sizeInBytes(sizeInBytes) {
+                Buffer(Kernel *kernel, Arg_t *arg):kernel(kernel),arg(arg){
                 }
                 virtual ~Buffer() {}
             };
