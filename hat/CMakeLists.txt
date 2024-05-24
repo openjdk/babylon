@@ -302,10 +302,10 @@ if(OPENCL_FOUND)
 
      target_link_libraries(opencl_info
         opencl_backend
-        "-framework OpenCL"
+        "OpenCL"
      )
      target_link_libraries(opencl_info
-          "-framework OpenCL"
+        "OpenCL"
      )
 
      add_custom_target(opencl_info_exec DEPENDS opencl_backend.jar opencl_backend
