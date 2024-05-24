@@ -47,7 +47,7 @@ import static java.lang.constant.ConstantDescs.*;
 import java.lang.constant.MethodTypeDesc;
 import java.util.IdentityHashMap;
 
-public final class LocalsTypeMapper {
+final class LocalsTypeMapper {
 
     private final Map<LoadInstruction, ClassDesc> insMap;
     private final ClassDesc thisClass;

@@ -246,7 +246,7 @@ public final class SlotSSA {
      */
     public static void findJoinPoints(Body body, Map<Block, Set<Integer>> joinPoints) {
         Map<Block, Set<Block>> df = body.dominanceFrontier();
-        Map<Integer, PaC> a = findSlots(body);
+        Map<Integer, SlotAccesses> a = findSlots(body);
 
         int iterCount = 0;
         int[] hasAlready = new int[body.blocks().size()];
@@ -255,38 +255,19 @@ public final class SlotSSA {
         Deque<Block> w = new ArrayDeque<>();
 
         for (int slot : a.keySet()) {
-            PaC pac = a.get(slot);
+            SlotAccesses sa = a.get(slot);
 
             iterCount++;
-            for (Block cb : pac.consumers) {
-                work[cb.index()] = iterCount;
-                w.push(cb);
-            }
-            while (!w.isEmpty()) {
-                Block x = w.pop();
-                // propagate consumers to predecessor blocks
-                for (Block y : x.predecessors()) {
-                    if (work[y.index()] < iterCount){
-                        work[y.index()] = iterCount;
-                        if (!pac.producers.contains(y) && !pac.consumers.contains(y)) {
-                            pac.consumers.add(y);
-                            w.push(y);
-                        }
-                    }
-                }
-            }
-
-            iterCount++;
-            for (Block x : pac.producers) {
+            for (Block x : sa.stores) {
                 work[x.index()] = iterCount;
                 w.push(x);
             }
             while (!w.isEmpty()) {
                 Block x = w.pop();
-                // calculate join points
+
                 for (Block y : df.getOrDefault(x, Set.of())) {
                     if (hasAlready[y.index()] < iterCount) {
-                        if (pac.consumers.contains(y)) {
+                        if (sa.loadsBeforeStores.contains(y)) {
                             joinPoints.computeIfAbsent(y, _ -> new LinkedHashSet<>()).add(slot);
                         }
                         hasAlready[y.index()] = iterCount;
@@ -301,8 +282,8 @@ public final class SlotSSA {
         }
     }
 
-    record PaC(Set<Block> producers, Set<Block> consumers) {
-        public PaC() {
+    record SlotAccesses(Set<Block> stores, Set<Block> loadsBeforeStores) {
+        public SlotAccesses() {
             this(new LinkedHashSet<>(), new LinkedHashSet<>());
         }
     }
@@ -310,16 +291,41 @@ public final class SlotSSA {
     // Returns map of slots to blocks that contain stores and to blocks containing load preceeding store
     // Throws ISE if a descendant store operation is encountered
     // @@@ Compute map for whole tree, then traverse keys with filter
-    static Map<Integer, PaC> findSlots(Body r) {
-        return r.traverse(new LinkedHashMap<>(), CodeElement.opVisitor((slots, op) -> {
+    static Map<Integer, SlotAccesses> findSlots(Body r) {
+        LinkedHashMap<Integer, SlotAccesses> slotMap = r.traverse(new LinkedHashMap<>(), CodeElement.opVisitor((slots, op) -> {
             if (op instanceof SlotOp.SlotStoreOp storeOp) {
-                slots.computeIfAbsent(storeOp.slot(), _ -> new PaC()).producers.add(storeOp.parentBlock());
+                slots.computeIfAbsent(storeOp.slot(), _ -> new SlotAccesses()).stores.add(storeOp.parentBlock());
             } else if (op instanceof SlotOp.SlotLoadOp loadOp) {
-                var sal = slots.computeIfAbsent(loadOp.slot(), _ -> new PaC());
-                if (!sal.producers.contains(loadOp.parentBlock())) sal.consumers.add(loadOp.parentBlock());
+                var sa = slots.computeIfAbsent(loadOp.slot(), _ -> new SlotAccesses());
+                if (!sa.stores.contains(loadOp.parentBlock())) sa.loadsBeforeStores.add(loadOp.parentBlock());
             }
             return slots;
         }));
+
+        int iterCount = 0;
+        int[] work = new int[r.blocks().size()];
+        Deque<Block> w = new ArrayDeque<>();
+        for (SlotAccesses sa : slotMap.values()) {
+            iterCount++;
+            for (Block cb : sa.loadsBeforeStores) {
+                work[cb.index()] = iterCount;
+                w.push(cb);
+            }
+            while (!w.isEmpty()) {
+                Block x = w.pop();
+                // propagate loadsBeforeStores to predecessor blocks
+                for (Block y : x.predecessors()) {
+                    if (work[y.index()] < iterCount){
+                        work[y.index()] = iterCount;
+                        if (!sa.stores.contains(y) && !sa.loadsBeforeStores.contains(y)) {
+                            sa.loadsBeforeStores.add(y);
+                            w.push(y);
+                        }
+                    }
+                }
+            }
+        }
+        return slotMap;
     }
 
     record Node(Block b, Set<Node> children) {
