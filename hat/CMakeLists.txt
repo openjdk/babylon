@@ -60,7 +60,7 @@ endif()
 ## We have JAVA_HOME so now setup clean targets
 
 set_property(DIRECTORY PROPERTY ADDITIONAL_MAKE_CLEAN_FILES
-   ${CMAKE_BINARY_DIR}/hat ${CMAKE_BINARY_DIR}/mandel ${CMAKE_BINARY_DIR}/violajones ${CMAKE_BINARY_DIR}/experiments 
+   ${CMAKE_BINARY_DIR}/hat ${CMAKE_BINARY_DIR}/mandel ${CMAKE_BINARY_DIR}/violajones ${CMAKE_BINARY_DIR}/experiments
    ${CMAKE_BINARY_DIR}/opencl_info ${CMAKE_BINARY_DIR}/cuda_info ${CMAKE_BINARY_DIR}/mock_info ${CMAKE_BINARY_DIR}/spirv_info
    ${CMAKE_BINARY_DIR}/ptx_backend ${CMAKE_BINARY_DIR}/mock_backend ${CMAKE_BINARY_DIR}/opencl_backend ${CMAKE_BINARY_DIR}/cuda_backend ${CMAKE_BINARY_DIR}/spirv_backend
    ${CMAKE_BINARY_DIR}/libmock_backend.dylib ${CMAKE_BINARY_DIR}/libptx_backend.dylib ${CMAKE_BINARY_DIR}/libopencl_backend.dylib ${CMAKE_BINARY_DIR}/libspirv_backend.dylib ${CMAKE_BINARY_DIR}/libcuda_backend.dylib
@@ -74,35 +74,35 @@ add_custom_target(info_executables)
 
 ##WORK STARTS HERE
 
-### Compilation dependencies list is 
+### Compilation dependencies list is
 ###
-###    examples -> hat 
+###    examples -> hat
 ###
 ###    opencl_info(exe)
 ###                   \
-###                     -> libopencl_backend(.so|.dylib)  
+###                     -> libopencl_backend(.so|.dylib)
 ###                                                      \
-###                                                       \ 
-###    spirv_info(exe)  -> libspirv_backend(.so|.dylib) ->     backend(.so|.dylib)                  
+###                                                       \
+###    spirv_info(exe)  -> libspirv_backend(.so|.dylib) ->     backend(.so|.dylib)
 ###                                                       /
 ###                                                     /
-###                     -> libcuda_backend(.so|.dylib) 
+###                     -> libcuda_backend(.so|.dylib)
 ###                   /
 ###    cuda_info(exe)
-###    
+###
 ###
 ### Runtime dependencies depending on the backend ;)
 ###
-###  mandel (opencl) -> examples        > hat   
+###  mandel (opencl) -> examples        > hat
 ###                                      /
-###                     opencl_backend   
+###                     opencl_backend
 ###                                      \
-###                                       libopencl_backend(.so|.dylib)  
+###                                       libopencl_backend(.so|.dylib)
 ###
 
 
 ### build/hat/classes
-### build/hat/hat.jar 
+### build/hat/hat.jar
 ###
 ###  (!hat!)) -> tools
 
@@ -111,15 +111,15 @@ set(HAT_CLASS_DIR ${CMAKE_BINARY_DIR}/hat/classes)
 set(HAT_JAR ${CMAKE_BINARY_DIR}/hat/hat.jar)
 file(GLOB_RECURSE HAT_JAVA_SOURCE_FILES ${HAT_SOURCE_ROOT}/*.java)
 
-add_custom_target(hat.javac 
+add_custom_target(hat.javac
    COMMAND ${DOIT}
      mkdir -p ${HAT_CLASS_DIR}
    COMMAND ${DOIT}
      ${JAVA_HOME}/bin/javac
         --enable-preview --source=23 -g
-        -d ${HAT_CLASS_DIR} 
+        -d ${HAT_CLASS_DIR}
         --source-path ${HAT_SOURCE_ROOT}
-        --add-exports=java.base/jdk.internal=ALL-UNNAMED 
+        --add-exports=java.base/jdk.internal=ALL-UNNAMED
         --add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED
         ${HAT_JAVA_SOURCE_FILES}
 )
@@ -144,12 +144,12 @@ set(MANDEL_JAR ${CMAKE_BINARY_DIR}/mandel/mandel.jar)
 set(MANDEL_SOURCE_ROOT ${CMAKE_SOURCE_DIR}/examples/mandel/src/java)
 file(GLOB_RECURSE MANDEL_JAVA_SOURCE_FILES ${MANDEL_SOURCE_ROOT}/*.java)
 
-add_custom_target(mandel.javac DEPENDS hat.jar 
+add_custom_target(mandel.javac DEPENDS hat.jar
    COMMAND ${DOIT}
      mkdir -p ${MANDEL_CLASS_DIR}
    COMMAND  ${DOIT}
      ${JAVA_HOME}/bin/javac
-       --enable-preview --source=23 -g -Xlint:unchecked  
+       --enable-preview --source=23 -g -Xlint:unchecked
        -d ${MANDEL_CLASS_DIR} --class-path ${HAT_JAR}
        --source-path ${MANDEL_SOURCE_ROOT}
        ${MANDEL_JAVA_SOURCE_FILES}
@@ -157,9 +157,9 @@ add_custom_target(mandel.javac DEPENDS hat.jar
 
 add_custom_target(mandel.jar DEPENDS mandel.javac
    COMMAND  ${DOIT}
-     ${JAVA_HOME}/bin/jar --create --no-manifest 
+     ${JAVA_HOME}/bin/jar --create --no-manifest
        --file  ${MANDEL_JAR}
-       -C ${MANDEL_CLASS_DIR} . 
+       -C ${MANDEL_CLASS_DIR} .
 )
 add_dependencies(example_jars mandel.jar)
 
@@ -171,12 +171,12 @@ set(VIOLAJONES_JAR ${CMAKE_BINARY_DIR}/violajones/violajones.jar)
 set(VIOLAJONES_SOURCE_ROOT ${CMAKE_SOURCE_DIR}/examples/violajones/src/java)
 file(GLOB_RECURSE VIOLAJONES_JAVA_SOURCE_FILES ${VIOLAJONES_SOURCE_ROOT}/*.java)
 
-add_custom_target(violajones.javac DEPENDS hat.jar 
+add_custom_target(violajones.javac DEPENDS hat.jar
    COMMAND ${DOIT}
      mkdir -p ${VIOLAJONES_CLASS_DIR}
    COMMAND  ${DOIT}
      ${JAVA_HOME}/bin/javac
-       --enable-preview --source=23 -g -Xlint:unchecked  
+       --enable-preview --source=23 -g -Xlint:unchecked
        -d ${VIOLAJONES_CLASS_DIR} --class-path ${HAT_JAR}
        --source-path ${VIOLAJONES_SOURCE_ROOT}
        ${VIOLAJONES_JAVA_SOURCE_FILES}
@@ -184,18 +184,18 @@ add_custom_target(violajones.javac DEPENDS hat.jar
 
 add_custom_target(violajones.jar DEPENDS violajones.javac
    COMMAND  ${DOIT}
-     ${JAVA_HOME}/bin/jar --create --no-manifest 
+     ${JAVA_HOME}/bin/jar --create --no-manifest
        --file  ${VIOLAJONES_JAR}
-       -C ${VIOLAJONES_CLASS_DIR} . 
-       -C ${CMAKE_SOURCE_DIR}/examples/violajones/src/resources . 
+       -C ${VIOLAJONES_CLASS_DIR} .
+       -C ${CMAKE_SOURCE_DIR}/examples/violajones/src/resources .
 )
 add_dependencies(example_jars violajones.jar)
 
 
-#### We can always build the Java artifacts for all of our backends 
-#### we do need to guard the building of native artifacts 
+#### We can always build the Java artifacts for all of our backends
+#### we do need to guard the building of native artifacts
 #### with if (CUDAToolkit_FOUND) or if (OpenCL_FOUND) etc because our build
-#### machine may not have the appropriate headers or libs to link to 
+#### machine may not have the appropriate headers or libs to link to
 #### Clearly at runtime the java artifacts will need to load the relevant .so/.dylib
 
 ##OpenCL Backend
@@ -212,7 +212,7 @@ add_custom_target(opencl_backend.javac DEPENDS hat.jar
      mkdir -p ${OPENCL_BACKEND_CLASS_DIR}
    COMMAND ${DOIT}
      ${JAVA_HOME}/bin/javac
-       --enable-preview --source=23 -g -Xlint:unchecked  
+       --enable-preview --source=23 -g -Xlint:unchecked
        -d ${OPENCL_BACKEND_CLASS_DIR} -classpath ${HAT_JAR}
        --source-path ${OPENCL_BACKEND_JAVA_SOURCE_ROOT}
        ${OPENCL_BACKEND_JAVA_SOURCE_FILES}
@@ -233,8 +233,8 @@ add_dependencies(backend_jars opencl_backend.jar)
 if(OPENCL_FOUND)
   message("OPENCL")
   if (APPLE)
-     include_directories( 
-        ${CMAKE_SOURCE_DIR}/backends/shared/include 
+     include_directories(
+        ${CMAKE_SOURCE_DIR}/backends/shared/include
         ${CMAKE_SOURCE_DIR}/backends/opencl/include
         "-framework OpenCL"
      )
@@ -247,11 +247,11 @@ if(OPENCL_FOUND)
         ${CMAKE_SOURCE_DIR}/backends/opencl/cpp/opencl_backend.cpp
      )
 
-     target_link_libraries(opencl_backend 
+     target_link_libraries(opencl_backend
         "-framework OpenCL"
      )
 
-     add_executable(opencl_info 
+     add_executable(opencl_info
         ${CMAKE_SOURCE_DIR}/backends/opencl/cpp/info.cpp
      )
 
@@ -259,7 +259,7 @@ if(OPENCL_FOUND)
         opencl_backend
         "-framework OpenCL"
      )
-     target_link_libraries(opencl_info 
+     target_link_libraries(opencl_info
           "-framework OpenCL"
      )
 
@@ -278,10 +278,53 @@ if(OPENCL_FOUND)
      set(AVAILABLE_BACKEND_JAR ${OPENCL_BACKEND_JAR})
   else()
      message("OPENCL but not on APPLE")
+     include_directories(
+        ${CMAKE_SOURCE_DIR}/backends/shared/include
+        ${CMAKE_SOURCE_DIR}/backends/opencl/include
+        ${OPENCL_INCLUDE_DIR}
+     )
+     link_directories(
+        ${CMAKE_BINARY_DIR}
+     )
+
+     add_library(opencl_backend SHARED
+        ${CMAKE_SOURCE_DIR}/backends/shared/cpp/shared.cpp
+        ${CMAKE_SOURCE_DIR}/backends/opencl/cpp/opencl_backend.cpp
+     )
+
+     target_link_libraries(opencl_backend
+        "OpenCL"
+     )
+
+     add_executable(opencl_info
+        ${CMAKE_SOURCE_DIR}/backends/opencl/cpp/info.cpp
+     )
+
+     target_link_libraries(opencl_info
+        opencl_backend
+        "-framework OpenCL"
+     )
+     target_link_libraries(opencl_info
+          "-framework OpenCL"
+     )
+
+     add_custom_target(opencl_info_exec DEPENDS opencl_backend.jar opencl_backend
+        COMMAND  ${DOIT}
+          ${JAVA_HOME}/bin/java
+            --enable-preview --enable-native-access=ALL-UNNAMED
+            --add-exports=java.base/jdk.internal=ALL-UNNAMED
+            -classpath ${OPENCL_BACKEND_JAR}:${HAT_JAR}
+            -Djava.library.path=${CMAKE_BINARY_DIR}
+            hat.backend.OpenCLDeviceInfo
+     )
+     add_dependencies(info_executables opencl_info)
+     add_dependencies(backend_libs opencl_backend)
+
+     set(AVAILABLE_BACKEND_JAR ${OPENCL_BACKEND_JAR})
   endif()
 
   if(is$ENV{ECHO_ONLY} STREQUAL isON )
-   add_custom_target(echo_only DEPENDS opencl_backend
+     add_custom_target(echo_only DEPENDS opencl_backend add--with-jtreg=${JTREG_HOME}
       COMMAND
          sed -n '/.command.:/ s/.command.: *.\(.*\)./\\\\1/p' ${CMAKE_BINARY_DIR}/compile_commands.json
       COMMAND
@@ -307,7 +350,7 @@ add_custom_target(cuda_backend.javac DEPENDS hat.jar
       mkdir -p ${CUDA_BACKEND_CLASS_DIR}
    COMMAND ${DOIT}
       ${JAVA_HOME}/bin/javac
-        --enable-preview --source=23 -g -Xlint:unchecked  
+        --enable-preview --source=23 -g -Xlint:unchecked
         -d ${CUDA_BACKEND_CLASS_DIR} -classpath ${HAT_JAR}
         --source-path ${CUDA_BACKEND_JAVA_SOURCE_ROOT}
         ${CUDA_BACKEND_JAVA_SOURCE_FILES}
@@ -338,7 +381,7 @@ if(CUDAToolkit_FOUND)
       ${CUDAToolkit_LIBRARY_DIR}
   )
 
-  add_library(cuda_backend SHARED 
+  add_library(cuda_backend SHARED
      ${CMAKE_SOURCE_DIR}/backends/shared/cpp/shared.cpp
      ${CMAKE_SOURCE_DIR}/backends/cuda/cpp/cuda_backend.cpp
   )
@@ -352,8 +395,8 @@ if(CUDAToolkit_FOUND)
      ${CMAKE_SOURCE_DIR}/backends/cuda/cpp/info.cpp
   )
 
-  target_link_libraries(cuda_info 
-     cuda_backend 
+  target_link_libraries(cuda_info
+     cuda_backend
      -lcudart -lcuda
   )
 
@@ -384,7 +427,7 @@ endif()
 ##End of CUDA Backend
 
 if (EXISTS ${BEEHIVE})
-##SPRIV Backend 
+##SPRIV Backend
 ##spirv_backend.jar
 
 set(SPIRV_BACKEND_JAVA_SOURCE_ROOT ${CMAKE_SOURCE_DIR}/backends/spirv/java)
@@ -402,7 +445,7 @@ add_custom_target(spirv_backend.javac DEPENDS hat.jar
       mkdir -p ${SPIRV_BACKEND_CLASS_DIR}
    COMMAND ${DOIT}
       ${JAVA_HOME}/bin/javac
-        --enable-preview --source=23 -g -Xlint:unchecked  
+        --enable-preview --source=23 -g -Xlint:unchecked
         -d ${SPIRV_BACKEND_CLASS_DIR} -classpath ${HAT_JAR}
         --source-path ${SPIRV_BACKEND_JAVA_SOURCE_ROOT}:${SPIRV_INTEL_BACKEND_JAVA_SOURCE_ROOT}:${SPIRV_BEEHIVE_BACKEND_JAVA_SOURCE_ROOT}
         ${SPIRV_BACKEND_JAVA_SOURCE_FILES}
@@ -422,13 +465,13 @@ add_dependencies(backend_jars spirv_backend.jar)
 
 
 ## SPIRV binaries.
-## We dont need to guard this yet because we don't need SPIRV headers or libs to link to 
+## We dont need to guard this yet because we don't need SPIRV headers or libs to link to
 ## if(SPIRV_FOUND)
 
 ### libspirv_backend.so/.dylib
 
-include_directories( 
-    ${CMAKE_SOURCE_DIR}/backends/shared/include 
+include_directories(
+    ${CMAKE_SOURCE_DIR}/backends/shared/include
     ${CMAKE_SOURCE_DIR}/backends/spirv/include
   )
   link_directories(
@@ -440,14 +483,14 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/backends/spirv/cpp/spirv_backend.cpp
   )
 
-  target_link_libraries(spirv_backend 
+  target_link_libraries(spirv_backend
   )
 
-  add_executable(spirv_info 
+  add_executable(spirv_info
       ${CMAKE_SOURCE_DIR}/backends/spirv/cpp/info.cpp
   )
 
-  target_link_libraries(spirv_info 
+  target_link_libraries(spirv_info
        spirv_backend
   )
 
@@ -469,7 +512,7 @@ else()
    message("BEEHIVE! not found")
 endif()
 
-##PTX Backend 
+##PTX Backend
 ##ptx_backend.jar
 
 set(PTX_BACKEND_JAVA_SOURCE_ROOT ${CMAKE_SOURCE_DIR}/backends/ptx/java)
@@ -483,7 +526,7 @@ add_custom_target(ptx_backend.javac DEPENDS hat.jar
       mkdir -p ${PTX_BACKEND_CLASS_DIR}
    COMMAND ${DOIT}
       ${JAVA_HOME}/bin/javac
-        --enable-preview --source=23 -g -Xlint:unchecked  
+        --enable-preview --source=23 -g -Xlint:unchecked
         -d ${PTX_BACKEND_CLASS_DIR} -classpath ${HAT_JAR}
         --source-path ${PTX_BACKEND_JAVA_SOURCE_ROOT}
         ${PTX_BACKEND_JAVA_SOURCE_FILES}
@@ -501,12 +544,12 @@ add_dependencies(backend_jars ptx_backend.jar)
 
 
 ## PTX binaries.
-## We dont need to guard these during initial development because we don't need CUDA headers or libs to link to 
+## We dont need to guard these during initial development because we don't need CUDA headers or libs to link to
 ## if(CUDAToolkit_FOUND)
 ### libptx_backend.so/.dylib
 
-include_directories( 
-    ${CMAKE_SOURCE_DIR}/backends/shared/include 
+include_directories(
+    ${CMAKE_SOURCE_DIR}/backends/shared/include
     ${CMAKE_SOURCE_DIR}/backends/ptx/include
   )
   link_directories(
@@ -518,14 +561,14 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/backends/ptx/cpp/ptx_backend.cpp
   )
 
-  target_link_libraries(ptx_backend 
+  target_link_libraries(ptx_backend
   )
 
-  add_executable(ptx_info 
+  add_executable(ptx_info
       ${CMAKE_SOURCE_DIR}/backends/ptx/cpp/info.cpp
   )
 
-  target_link_libraries(ptx_info 
+  target_link_libraries(ptx_info
        ptx_backend
   )
 
@@ -544,7 +587,7 @@ include_directories(
 
 ## end of PTX
 
-##MOCK Backend 
+##MOCK Backend
 ##mock_backend.jar
 
 set(MOCK_BACKEND_JAVA_SOURCE_ROOT ${CMAKE_SOURCE_DIR}/backends/mock/java)
@@ -558,7 +601,7 @@ add_custom_target(mock_backend.javac DEPENDS hat.jar
       mkdir -p ${MOCK_BACKEND_CLASS_DIR}
    COMMAND ${DOIT}
       ${JAVA_HOME}/bin/javac
-        --enable-preview --source=23 -g -Xlint:unchecked  
+        --enable-preview --source=23 -g -Xlint:unchecked
         -d ${MOCK_BACKEND_CLASS_DIR} -classpath ${HAT_JAR}
         --source-path ${MOCK_BACKEND_JAVA_SOURCE_ROOT}
         ${MOCK_BACKEND_JAVA_SOURCE_FILES}
@@ -576,11 +619,11 @@ add_dependencies(backend_jars mock_backend.jar)
 
 
 ## MOCK binaries.
-## We dont need to guard these because we don't have headers or libs to link to 
+## We dont need to guard these because we don't have headers or libs to link to
 ### libmock_backend.so/.dylib
 
-include_directories( 
-    ${CMAKE_SOURCE_DIR}/backends/shared/include 
+include_directories(
+    ${CMAKE_SOURCE_DIR}/backends/shared/include
     ${CMAKE_SOURCE_DIR}/backends/mock/include
   )
   link_directories(
@@ -592,14 +635,14 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/backends/mock/cpp/mock_backend.cpp
   )
 
-  target_link_libraries(mock_backend 
+  target_link_libraries(mock_backend
   )
 
-  add_executable(mock_info 
+  add_executable(mock_info
       ${CMAKE_SOURCE_DIR}/backends/mock/cpp/info.cpp
   )
 
-  target_link_libraries(mock_info 
+  target_link_libraries(mock_info
        mock_backend
   )
 
@@ -621,7 +664,7 @@ include_directories(
 message("AVAILABLE_BACKEND_JAR = ${AVAILABLE_BACKEND_JAR}")
 
 #  mandel executable
-add_custom_target(mandel_java DEPENDS mandel.jar 
+add_custom_target(mandel_java DEPENDS mandel.jar
    COMMAND  ${DOIT}
      ${JAVA_HOME}/bin/java
        --enable-preview --enable-native-access=ALL-UNNAMED
@@ -639,7 +682,7 @@ add_custom_target(mandel_opencl DEPENDS mandel.jar opencl_backend.jar opencl_bac
        --add-exports=java.base/jdk.internal=ALL-UNNAMED
        -Djava.library.path=${CMAKE_BINARY_DIR}
        mandel.MandelCompute
-) 
+)
 
 add_custom_target(mandel_cuda DEPENDS mandel.jar cuda_backend.jar cuda_backend
    COMMAND  ${DOIT}
@@ -652,7 +695,7 @@ add_custom_target(mandel_cuda DEPENDS mandel.jar cuda_backend.jar cuda_backend
 )
 
 #  violajones executable
-add_custom_target(violajones_java DEPENDS violajones.jar 
+add_custom_target(violajones_java DEPENDS violajones.jar
    COMMAND  ${DOIT}
      ${JAVA_HOME}/bin/java
        --enable-preview --enable-native-access=ALL-UNNAMED
@@ -670,7 +713,7 @@ add_custom_target(violajones_opencl DEPENDS violajones.jar opencl_backend.jar op
        --add-exports=java.base/jdk.internal=ALL-UNNAMED
        -Djava.library.path=${CMAKE_BINARY_DIR}
        violajones.ViolaJonesCompute
-) 
+)
 
 add_custom_target(violajones_cuda DEPENDS violajones.jar cuda_backend.jar cuda_backend
    COMMAND  ${DOIT}
@@ -680,17 +723,17 @@ add_custom_target(violajones_cuda DEPENDS violajones.jar cuda_backend.jar cuda_b
        --add-exports=java.base/jdk.internal=ALL-UNNAMED
        -Djava.library.path=${CMAKE_BINARY_DIR}
        violajones.ViolaJonesCompute
-) 
+)
 
 add_custom_target(mkjar
    COMMAND ${DOIT}
       ${JAVA_HOME}/bin/jar
-      --create 
-      --no-manifest 
+      --create
+      --no-manifest
       --file  ${CMAKE_BINARY_DIR}/hat.jar
       -C ${CMAKE_SOURCE_DIR} CMakeLists.txt
       -C ${CMAKE_SOURCE_DIR} docs
-      -C ${CMAKE_SOURCE_DIR} backends 
+      -C ${CMAKE_SOURCE_DIR} backends
       -C ${CMAKE_SOURCE_DIR} examples
       -C ${CMAKE_SOURCE_DIR} hat
 )
