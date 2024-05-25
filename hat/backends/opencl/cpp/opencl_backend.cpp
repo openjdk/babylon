@@ -68,10 +68,8 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyToDevice() {
         std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
         exit(1);
     }
-
     openclKernel->eventc++;
     std::cout << "enqueued buffer copyToDevice " << std::endl;
-
 }
 
 void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyFromDevice() {
@@ -149,6 +147,7 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(int range, void *argArr
                     std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
                     exit(1);
                 }
+
                 std::cout << "set S or C arg " << arg->idx << std::endl;
                 break;
             }
@@ -185,6 +184,7 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(int range, void *argArr
         std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
         exit(1);
     }
+
     std::cout << "enqueued dispatch  " << std::endl;
 #ifdef VERBOSE
     std::cout <<  " globalSize=" << globalSize << " " << error(status) << std::endl;
@@ -455,8 +455,10 @@ void OpenCLBackend::info() {
     size_t maxWorkGroupSize;
     status = clGetDeviceInfo(device_id, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(maxWorkGroupSize), &maxWorkGroupSize,
                              NULL);
+
     fprintf(stderr, "         CL_DEVICE_MAX_WORK_GROUP_SIZE...... "
     Size_tNewline, maxWorkGroupSize);
+
 
     cl_ulong maxMemAllocSize;
     status = clGetDeviceInfo(device_id, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(maxMemAllocSize), &maxMemAllocSize, NULL);
@@ -631,3 +633,4 @@ void __checkOpenclErrors(cl_int status, const char *file, const int line) {
         exit(-1);
     }
 }
+

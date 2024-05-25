@@ -85,11 +85,7 @@ public:
             cl_event *events;
             size_t eventc;
         protected:
-            // void allocEvents(int max);
-            // void releaseEvents();
-            // void waitForEvents();
             void showEvents(int width);
-
         public:
             OpenCLKernel(Backend::Program *program, cl_kernel kernel);
 
@@ -129,7 +125,6 @@ public:
     void info();
 
     long compileProgram(int len, char *source);
-
 
 public:
     static const char *errorMsg(cl_int status);
