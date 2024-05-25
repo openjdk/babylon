@@ -41,8 +41,8 @@ OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::OpenCLBuffer(Backend::
         std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
         exit(1);
     }
-    arg->value.buffer.vendorPtr = static_cast<void*>(this);
-    std::cout << "created buffer "<<std::endl;
+    arg->value.buffer.vendorPtr = static_cast<void *>(this);
+    std::cout << "created buffer " << std::endl;
 }
 
 void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyToDevice() {
@@ -68,10 +68,8 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyToDevice() {
         std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
         exit(1);
     }
-
     openclKernel->eventc++;
-    std::cout << "enqueued buffer copyToDevice "<<std::endl;
-
+    std::cout << "enqueued buffer copyToDevice " << std::endl;
 }
 
 void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyFromDevice() {
@@ -92,7 +90,7 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyFromDevice() 
         exit(1);
     }
     openclKernel->eventc++;
-    std::cout << "enqueued buffer copyFromDevice "<<std::endl;
+    std::cout << "enqueued buffer copyFromDevice " << std::endl;
 }
 
 OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::~OpenCLBuffer() {
@@ -129,40 +127,38 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(int range, void *argArr
                     std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
                     exit(1);
                 }
-                std::cout << "set buffer arg "<<arg->idx<<std::endl;
+                std::cout << "set buffer arg " << arg->idx << std::endl;
                 break;
             }
             case 'I':
-            case 'F':
-            {
+            case 'F': {
                 cl_int status = clSetKernelArg(kernel, arg->idx, sizeof(arg->value.x32), (void *) &arg->value);
                 if (status != CL_SUCCESS) {
                     std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
                     exit(1);
                 }
-                std::cout << "set I or F arg "<<arg->idx<<std::endl;
+                std::cout << "set I or F arg " << arg->idx << std::endl;
                 break;
             }
             case 'S':
-            case 'C':
-            {
+            case 'C': {
                 cl_int status = clSetKernelArg(kernel, arg->idx, sizeof(arg->value.x16), (void *) &arg->value);
                 if (status != CL_SUCCESS) {
                     std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
                     exit(1);
                 }
-                std::cout << "set S or C arg "<<arg->idx<<std::endl;
+
+                std::cout << "set S or C arg " << arg->idx << std::endl;
                 break;
             }
             case 'J':
-            case 'D':
-            {
+            case 'D': {
                 cl_int status = clSetKernelArg(kernel, arg->idx, sizeof(arg->value.x64), (void *) &arg->value);
                 if (status != CL_SUCCESS) {
                     std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
                     exit(1);
                 }
-                std::cout << "set J or D arg "<<arg->idx<<std::endl;
+                std::cout << "set J or D arg " << arg->idx << std::endl;
                 break;
             }
             default: {
@@ -182,13 +178,14 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(int range, void *argArr
             &globalSize,
             nullptr,
             eventc,
-            ((eventc == 0)?nullptr:events),
+            ((eventc == 0) ? nullptr : events),
             &(events[eventc]));
     if (status != CL_SUCCESS) {
         std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
         exit(1);
     }
-    std::cout << "enqueued dispatch  "<<std::endl;
+
+    std::cout << "enqueued dispatch  " << std::endl;
 #ifdef VERBOSE
     std::cout <<  " globalSize=" << globalSize << " " << error(status) << std::endl;
 #endif
@@ -196,7 +193,7 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(int range, void *argArr
     eventc++;
     for (int i = 0; i < argSled.argc(); i++) {
         Arg_t *arg = argSled.arg(i);
-        if (arg->variant =='&') {
+        if (arg->variant == '&') {
             static_cast<OpenCLBuffer *>(arg->value.buffer.vendorPtr)->copyFromDevice();
         }
     }
@@ -218,9 +215,9 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(int range, void *argArr
     events = nullptr;
     for (int i = 0; i < argSled.argc(); i++) {
         Arg_t *arg = argSled.arg(i);
-        if (arg->variant =='&'){
-            delete static_cast<OpenCLBuffer*>(arg->value.buffer.vendorPtr);
-            arg->value.buffer.vendorPtr= nullptr;
+        if (arg->variant == '&') {
+            delete static_cast<OpenCLBuffer *>(arg->value.buffer.vendorPtr);
+            arg->value.buffer.vendorPtr = nullptr;
         }
     }
     return 0;
@@ -458,19 +455,25 @@ void OpenCLBackend::info() {
     size_t maxWorkGroupSize;
     status = clGetDeviceInfo(device_id, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(maxWorkGroupSize), &maxWorkGroupSize,
                              NULL);
-    fprintf(stderr, "         CL_DEVICE_MAX_WORK_GROUP_SIZE...... " Size_tNewline, maxWorkGroupSize);
+
+    fprintf(stderr, "         CL_DEVICE_MAX_WORK_GROUP_SIZE...... "
+    Size_tNewline, maxWorkGroupSize);
+
 
     cl_ulong maxMemAllocSize;
     status = clGetDeviceInfo(device_id, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(maxMemAllocSize), &maxMemAllocSize, NULL);
-    fprintf(stderr, "         CL_DEVICE_MAX_MEM_ALLOC_SIZE....... " LongUnsignedNewline, maxMemAllocSize);
+    fprintf(stderr, "         CL_DEVICE_MAX_MEM_ALLOC_SIZE....... "
+    LongUnsignedNewline, maxMemAllocSize);
 
     cl_ulong globalMemSize;
     status = clGetDeviceInfo(device_id, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(globalMemSize), &globalMemSize, NULL);
-    fprintf(stderr, "         CL_DEVICE_GLOBAL_MEM_SIZE.......... " LongUnsignedNewline, globalMemSize);
+    fprintf(stderr, "         CL_DEVICE_GLOBAL_MEM_SIZE.......... "
+    LongUnsignedNewline, globalMemSize);
 
     cl_ulong localMemSize;
     status = clGetDeviceInfo(device_id, CL_DEVICE_LOCAL_MEM_SIZE, sizeof(localMemSize), &localMemSize, NULL);
-    fprintf(stderr, "         CL_DEVICE_LOCAL_MEM_SIZE........... " LongUnsignedNewline, localMemSize);
+    fprintf(stderr, "         CL_DEVICE_LOCAL_MEM_SIZE........... "
+    LongUnsignedNewline, localMemSize);
 
     char profile[2048];
     status = clGetDeviceInfo(device_id, CL_DEVICE_PROFILE, sizeof(profile), &profile, NULL);
@@ -603,7 +606,7 @@ const char *OpenCLBackend::errorMsg(cl_int status) {
             {CL_INVALID_BUFFER_SIZE,             "invalid buffer size",},
             {CL_INVALID_MIP_LEVEL,               "invalid mip level",},
             {CL_INVALID_GLOBAL_WORK_SIZE,        "invalid global work size",},
-            {0, NULL},
+            {0,                                  NULL},
     };
     static char unknown[256];
     int ii;
@@ -620,5 +623,14 @@ const char *OpenCLBackend::errorMsg(cl_int status) {
 
 
 long getBackend(void *config, int configSchemaLen, char *configSchema) {
-    return reinterpret_cast<long>(new OpenCLBackend(static_cast<OpenCLBackend::OpenCLConfig*>(config), configSchemaLen, configSchema));
+    return reinterpret_cast<long>(new OpenCLBackend(static_cast<OpenCLBackend::OpenCLConfig *>(config), configSchemaLen,
+                                                    configSchema));
 }
+
+void __checkOpenclErrors(cl_int status, const char *file, const int line) {
+    if (CL_SUCCESS != status) {
+        std::cerr << "Opencl Driver API error = " << cl_int << " from file " << file << " line " << line << std::endl;
+        exit(-1);
+    }
+}
+

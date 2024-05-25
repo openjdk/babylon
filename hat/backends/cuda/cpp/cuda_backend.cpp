@@ -25,6 +25,7 @@
 
 #include <sys/wait.h>
 #include <chrono>
+#include <cuda_runtime_api.h>
 #include "cuda_backend.h"
 
 Ptx::Ptx(size_t len)
@@ -106,7 +107,7 @@ CudaBackend::CudaProgram::CudaKernel::CudaBuffer::CudaBuffer(Backend::Program::K
      */
     std::cout << "cuMemAlloc()" << std::endl;
     checkCudaErrors(cuMemAlloc(&devicePtr, (size_t) arg->value.buffer.sizeInBytes));
-    arg->value.buffer.vendorPtr = static_cast<void*>(this);
+    arg->value.buffer.vendorPtr = static_cast<void *>(this);
 }
 
 CudaBackend::CudaProgram::CudaKernel::CudaBuffer::~CudaBuffer() {
@@ -115,12 +116,16 @@ CudaBackend::CudaProgram::CudaKernel::CudaBuffer::~CudaBuffer() {
 }
 
 void CudaBackend::CudaProgram::CudaKernel::CudaBuffer::copyToDevice() {
-    std::cout << "copyToDevice()" << std::endl;
+    std::cout << "copyToDevice()"
+              << arg->value.buffer.sizeInBytes
+              << std::endl;
     checkCudaErrors(cuMemcpyHtoD(devicePtr, arg->value.buffer.memorySegment, arg->value.buffer.sizeInBytes));
 }
 
 void CudaBackend::CudaProgram::CudaKernel::CudaBuffer::copyFromDevice() {
-    std::cout << "copyFromDevice()" << std::endl;
+    std::cout << "copyFromDevice()"
+              << arg->value.buffer.sizeInBytes
+              << std::endl;
     checkCudaErrors(cuMemcpyDtoH(arg->value.buffer.memorySegment, devicePtr, arg->value.buffer.sizeInBytes));
 
 }
@@ -135,7 +140,7 @@ CudaBackend::CudaProgram::CudaKernel::~CudaKernel() {
 }
 
 long CudaBackend::CudaProgram::CudaKernel::ndrange(int range, void *argArray) {
-    //std::cout<<"ndrange("<<range<<") "<< std::endl;
+    std::cout << "ndrange(" << range << ") " << std::endl;
     ArgSled argSled(static_cast<ArgArray_t *>(argArray));
     void *argslist[argSled.argc()];
 #ifdef VERBOSE
@@ -147,7 +152,8 @@ long CudaBackend::CudaProgram::CudaKernel::ndrange(int range, void *argArray) {
             case '&': {
                 auto cudaBuffer = new CudaBuffer(this, arg);
                 cudaBuffer->copyToDevice();
-                argslist[arg->idx] = static_cast<void*>(&cudaBuffer->devicePtr);
+                cudaError_t t = cudaDeviceSynchronize();
+                argslist[arg->idx] = static_cast<void *>(&cudaBuffer->devicePtr);
                 break;
             }
             case 'I':
@@ -155,9 +161,8 @@ long CudaBackend::CudaProgram::CudaKernel::ndrange(int range, void *argArray) {
             case 'J':
             case 'D':
             case 'C':
-            case 'S':
-            {
-                argslist[arg->idx] = static_cast<void*>(&arg->value);
+            case 'S': {
+                argslist[arg->idx] = static_cast<void *>(&arg->value);
                 break;
             }
             default: {
@@ -168,17 +173,24 @@ long CudaBackend::CudaProgram::CudaKernel::ndrange(int range, void *argArray) {
     }
 
 
-#ifdef VERBOSE
-    std::cout << "Running the kernel... range = "<< range << "range mod 512 " << (range%512)<< std::endl;
-#endif
+    int rangediv1024 = range / 1024;
+    int rangemod1024 = range % 1024;
+    if (rangemod1024 > 0) {
+        rangediv1024++;
+    }
+    std::cout << "Running the kernel..." << std::endl;
+    std::cout << "   Requested range   = " << range << std::endl;
+    std::cout << "   Range mod 1024    = " << rangemod1024 << std::endl;
+    std::cout << "   Actual range 1024 = " << (rangediv1024 * 1024) << std::endl;
+
 
     checkCudaErrors(cuLaunchKernel(function,
-                                   range / 1024, 1, 1,
+                                   rangediv1024, 1, 1,
                                    1024, 1, 1,
                                    0, 0,
                                    argslist, 0));
 
-    //cudaError_t t = cudaDeviceSynchronize();
+    cudaError_t t = cudaDeviceSynchronize();
 
 
     //std::cout << "Kernel complete..."<<cudaGetErrorString(t)<<std::endl;
@@ -187,6 +199,7 @@ long CudaBackend::CudaProgram::CudaKernel::ndrange(int range, void *argArray) {
         Arg_t *arg = argSled.arg(i);
         if (arg->variant == '&') {
             static_cast<CudaBuffer *>(arg->value.buffer.vendorPtr)->copyFromDevice();
+            cudaError_t t = cudaDeviceSynchronize();
         }
     }
 
@@ -194,7 +207,7 @@ long CudaBackend::CudaProgram::CudaKernel::ndrange(int range, void *argArray) {
         Arg_t *arg = argSled.arg(i);
         if (arg->variant == '&') {
             delete static_cast<CudaBuffer *>(arg->value.buffer.vendorPtr);
-            arg->value.buffer.vendorPtr= nullptr;
+            arg->value.buffer.vendorPtr = nullptr;
         }
     }
     return (long) 0;
@@ -305,7 +318,7 @@ long CudaBackend::compileProgram(int len, char *source) {
 
         // set up size of compilation log buffer
         jitOptions[0] = CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES;
-        int jitLogBufferSize = 1024;
+        int jitLogBufferSize = 8192;
         jitOptVals[0] = (void *) (size_t) jitLogBufferSize;
 
         // set up pointer to the compilation log buffer
@@ -325,13 +338,84 @@ long CudaBackend::compileProgram(int len, char *source) {
 }
 
 long getBackend(void *config, int configSchemaLen, char *configSchema) {
-    return reinterpret_cast<long>(new CudaBackend(static_cast<CudaBackend::CudaConfig *>(config), configSchemaLen, configSchema));
+    return reinterpret_cast<long>(new CudaBackend(static_cast<CudaBackend::CudaConfig *>(config), configSchemaLen,
+                                                  configSchema));
 }
 
 
 void __checkCudaErrors(CUresult err, const char *file, const int line) {
     if (CUDA_SUCCESS != err) {
-        std::cerr << "CUDA Driver API error = " << err << " from file " << file << " line " << line << std::endl;
+        std::cerr << "CUDA error = " << err
+                  <<" " << cudaGetErrorString(static_cast<cudaError_t>(err))
+                  <<" " << file << " line " << line << std::endl;
         exit(-1);
     }
 }
+
+const char *CudaBackend::errorMsg(CUresult status) {
+    static struct {
+        CUresult code;
+        const char *msg;
+    } error_table[] = {
+            {CUDA_SUCCESS, "success"},
+            // {CL_DEVICE_NOT_FOUND,                "device not found",},
+            //   {CL_DEVICE_NOT_AVAILABLE,            "device not available",},
+            //   {CL_COMPILER_NOT_AVAILABLE,          "compiler not available",},
+            //   {CL_MEM_OBJECT_ALLOCATION_FAILURE,   "mem object allocation failure",},
+            //   {CL_OUT_OF_RESOURCES,                "out of resources",},
+            //   {CL_OUT_OF_HOST_MEMORY,              "out of host memory",},
+            //   {CL_PROFILING_INFO_NOT_AVAILABLE,    "profiling not available",},
+            //   {CL_MEM_COPY_OVERLAP,                "memcopy overlaps",},
+            //   {CL_IMAGE_FORMAT_MISMATCH,           "image format mismatch",},
+            //   {CL_IMAGE_FORMAT_NOT_SUPPORTED,      "image format not supported",},
+            //   {CL_BUILD_PROGRAM_FAILURE,           "build program failed",},
+            //   {CL_MAP_FAILURE,                     "map failed",},
+            //   {CL_INVALID_VALUE,                   "invalid value",},
+            //   {CL_INVALID_DEVICE_TYPE,             "invalid device type",},
+            //   {CL_INVALID_PLATFORM,                "invlaid platform",},
+            //   {CL_INVALID_DEVICE,                  "invalid device",},
+            //   {CL_INVALID_CONTEXT,                 "invalid context",},
+            //   {CL_INVALID_QUEUE_PROPERTIES,        "invalid queue properties",},
+            //   {CL_INVALID_COMMAND_QUEUE,           "invalid command queue",},
+            //   {CL_INVALID_HOST_PTR,                "invalid host ptr",},
+            //   {CL_INVALID_MEM_OBJECT,              "invalid mem object",},
+            //   {CL_INVALID_IMAGE_FORMAT_DESCRIPTOR, "invalid image format descriptor ",},
+            //   {CL_INVALID_IMAGE_SIZE,              "invalid image size",},
+            //   {CL_INVALID_SAMPLER,                 "invalid sampler",},
+            //   {CL_INVALID_BINARY,                  "invalid binary",},
+            //   {CL_INVALID_BUILD_OPTIONS,           "invalid build options",},
+            //   {CL_INVALID_PROGRAM,                 "invalid program ",},
+            //   {CL_INVALID_PROGRAM_EXECUTABLE,      "invalid program executable",},
+            //   {CL_INVALID_KERNEL_NAME,             "invalid kernel name",},
+            //   {CL_INVALID_KERNEL_DEFINITION,       "invalid definition",},
+            //   {CL_INVALID_KERNEL,                  "invalid kernel",},
+            //   {CL_INVALID_ARG_INDEX,               "invalid arg index",},
+            //   {CL_INVALID_ARG_VALUE,               "invalid arg value",},
+            //   {CL_INVALID_ARG_SIZE,                "invalid arg size",},
+            //   {CL_INVALID_KERNEL_ARGS,             "invalid kernel args",},
+            //   {CL_INVALID_WORK_DIMENSION,          "invalid work dimension",},
+            //   {CL_INVALID_WORK_GROUP_SIZE,         "invalid work group size",},
+            //   {CL_INVALID_WORK_ITEM_SIZE,          "invalid work item size",},
+            //   {CL_INVALID_GLOBAL_OFFSET,           "invalid global offset",},
+            //   {CL_INVALID_EVENT_WAIT_LIST,         "invalid event wait list",},
+            //   {CL_INVALID_EVENT,                   "invalid event",},
+            //   {CL_INVALID_OPERATION,               "invalid operation",},
+            //   {CL_INVALID_GL_OBJECT,               "invalid gl object",},
+            //   {CL_INVALID_BUFFER_SIZE,             "invalid buffer size",},
+            //  {CL_INVALID_MIP_LEVEL,               "invalid mip level",},
+            //   {CL_INVALID_GLOBAL_WORK_SIZE,        "invalid global work size",},
+            {(CUresult) 0, nullptr},
+    };
+    static char unknown[256];
+    int ii;
+
+    for (ii = 0; error_table[ii].msg != NULL; ii++) {
+        if (error_table[ii].code == status) {
+            //std::cerr << " clerror '" << error_table[ii].msg << "'" << std::endl;
+            return error_table[ii].msg;
+        }
+    }
+    SNPRINTF(unknown, sizeof(unknown), "unknown error %d", status);
+    return unknown;
+}
+
