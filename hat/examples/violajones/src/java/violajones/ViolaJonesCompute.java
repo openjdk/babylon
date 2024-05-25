@@ -96,10 +96,12 @@ public class ViolaJonesCompute {
 
     @CodeReflection
     public static void integralColKernel(KernelContext kc, F32Array2D greyImage, F32Array2D integral, F32Array2D integralSq) {
+        if (kc.x <kc.maxX){
         int width = greyImage.width();
         int height = greyImage.height();
         for (int y = 1; y < height; y++) {
             integralCol((y * width) + kc.x, width, greyImage, integral, integralSq);
+        }
         }
     }
 
@@ -111,9 +113,11 @@ public class ViolaJonesCompute {
 
     @CodeReflection
     public static void integralRowKernel(KernelContext kc, F32Array2D integral, F32Array2D integralSq) {
+        if (kc.x <kc.maxX){
         int width = integral.width();
         for (int x = 1; x < width; x++) {
             integralRow((kc.x * width) + x, integral, integralSq);
+        }
         }
     }
 
@@ -262,16 +266,16 @@ public class ViolaJonesCompute {
                 stillLooksLikeAFace = isAFaceStage(kc.x, scale.scaleValue(), scale.invArea(), x, y, vnorm, integral, stage, cascade);
             }
 
-            if (stillLooksLikeAFace) {
-                int index = resultTable.atomicResultTableCountInc();
-                if (index < resultTable.length()) {
-                    ResultTable.Result result = resultTable.result(index);
-                    result.x(x);
-                    result.y(y);
-                    result.width(w);
-                    result.height(h);
-                }
-            }
+           // if (stillLooksLikeAFace) {
+            //    int index = resultTable.atomicResultTableCountInc();
+              //  if (index < resultTable.length()) {
+               //     ResultTable.Result result = resultTable.result(index);
+                //    result.x(x);
+                 //   result.y(y);
+                  //  result.width(w);
+                   // result.height(h);
+              //  }
+           // }
         }
     }
 
@@ -307,15 +311,16 @@ public class ViolaJonesCompute {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         Cascade cascade = Cascade.create(accelerator, haarCascade);
         RgbS08x3Image rgbImage = RgbS08x3Image.create(accelerator, nasa1996);
-        ResultTable resultTable = ResultTable.create(accelerator, 1000);
+        ResultTable resultTable = ResultTable.create(accelerator, 10000);
         HaarViewer harViz = new HaarViewer(accelerator, nasa1996, rgbImage, cascade, null, null);
 
         //System.out.println("Compute units "+((NativeBackend)accelerator.backend).getGetMaxComputeUnits());
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 1; i++) {
             resultTable.atomicResultTableCount(0);
             accelerator.compute(cc ->
                     ViolaJonesCompute.compute(cc, cascade, nasa1996, rgbImage, resultTable)
             );
+            System.out.println("results = "+resultTable.atomicResultTableCount());
         }
         harViz.showResults(resultTable, null, null);
     }
