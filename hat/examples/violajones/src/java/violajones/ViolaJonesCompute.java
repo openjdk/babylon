@@ -266,16 +266,16 @@ public class ViolaJonesCompute {
                 stillLooksLikeAFace = isAFaceStage(kc.x, scale.scaleValue(), scale.invArea(), x, y, vnorm, integral, stage, cascade);
             }
 
-            if (stillLooksLikeAFace) {
-                int index = resultTable.atomicResultTableCountInc();
-                if (index < resultTable.length()) {
-                    ResultTable.Result result = resultTable.result(index);
-                    result.x(x);
-                    result.y(y);
-                    result.width(w);
-                    result.height(h);
-                }
-            }
+           // if (stillLooksLikeAFace) {
+            //    int index = resultTable.atomicResultTableCountInc();
+              //  if (index < resultTable.length()) {
+               //     ResultTable.Result result = resultTable.result(index);
+                //    result.x(x);
+                 //   result.y(y);
+                  //  result.width(w);
+                   // result.height(h);
+              //  }
+           // }
         }
     }
 
@@ -315,7 +315,7 @@ public class ViolaJonesCompute {
         HaarViewer harViz = new HaarViewer(accelerator, nasa1996, rgbImage, cascade, null, null);
 
         //System.out.println("Compute units "+((NativeBackend)accelerator.backend).getGetMaxComputeUnits());
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 1; i++) {
             resultTable.atomicResultTableCount(0);
             accelerator.compute(cc ->
                     ViolaJonesCompute.compute(cc, cascade, nasa1996, rgbImage, resultTable)
