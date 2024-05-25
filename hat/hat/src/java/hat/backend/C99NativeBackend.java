@@ -69,6 +69,7 @@ public abstract class C99NativeBackend extends NativeBackend {
             ArgArray.update(argArray, args);
             //    System.out.println(this.argArray.dump());
             // c99NativeBackend.dumpArgArray(argArray);
+            System.out.println("requesting dispatch range "+ndRange.kid.maxX);
             c99NativeBackend.ndRange(kernelHandle, ndRange.kid.maxX, this.argArray);
 
         }

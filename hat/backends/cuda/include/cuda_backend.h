@@ -139,5 +139,7 @@ public:
 
     long compileProgram(int len, char *source);
 
+    static const char *errorMsg(CUresult status);
+
 };
 
