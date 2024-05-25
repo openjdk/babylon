@@ -629,7 +629,7 @@ long getBackend(void *config, int configSchemaLen, char *configSchema) {
 
 void __checkOpenclErrors(cl_int status, const char *file, const int line) {
     if (CL_SUCCESS != status) {
-        std::cerr << "Opencl Driver API error = " << cl_int << " from file " << file << " line " << line << std::endl;
+        std::cerr << "Opencl Driver API error = " << status << " from file " << file << " line " << line << std::endl;
         exit(-1);
     }
 }
