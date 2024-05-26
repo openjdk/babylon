@@ -137,6 +137,90 @@ add_custom_target(hat.jar DEPENDS hat.javac
 
 ### Examples start here
 
+### Squares
+
+set(SQUARES_CLASS_DIR ${CMAKE_BINARY_DIR}/squares/classes)
+set(SQUARES_JAR ${CMAKE_BINARY_DIR}/squares/squares.jar)
+set(SQUARES_SOURCE_ROOT ${CMAKE_SOURCE_DIR}/examples/squares/src/java)
+file(GLOB_RECURSE SQUARES_JAVA_SOURCE_FILES ${SQUARES_SOURCE_ROOT}/*.java)
+
+add_custom_target(squares.javac DEPENDS hat.jar
+   COMMAND ${DOIT}
+     mkdir -p ${SQUARES_CLASS_DIR}
+   COMMAND  ${DOIT}
+     ${JAVA_HOME}/bin/javac
+       --enable-preview --source=23 -g -Xlint:unchecked
+       -d ${SQUARES_CLASS_DIR} --class-path ${HAT_JAR}
+       --source-path ${SQUARES_SOURCE_ROOT}
+       ${SQUARES_JAVA_SOURCE_FILES}
+)
+
+add_custom_target(squares.jar DEPENDS squares.javac
+   COMMAND  ${DOIT}
+     ${JAVA_HOME}/bin/jar --create --no-manifest
+       --file  ${SQUARES_JAR}
+       -C ${SQUARES_CLASS_DIR} .
+)
+add_dependencies(example_jars squares.jar)
+
+### Heal
+
+set(HEAL_CLASS_DIR ${CMAKE_BINARY_DIR}/heal/classes)
+set(HEAL_JAR ${CMAKE_BINARY_DIR}/heal/heal.jar)
+set(HEAL_SOURCE_ROOT ${CMAKE_SOURCE_DIR}/examples/heal/src/java)
+file(GLOB_RECURSE HEAL_JAVA_SOURCE_FILES ${HEAL_SOURCE_ROOT}/*.java)
+
+add_custom_target(heal.javac DEPENDS hat.jar
+   COMMAND ${DOIT}
+     mkdir -p ${HEAL_CLASS_DIR}
+   COMMAND  ${DOIT}
+     ${JAVA_HOME}/bin/javac
+       --enable-preview --source=23 -g -Xlint:unchecked
+       -d ${HEAL_CLASS_DIR} --class-path ${HAT_JAR}
+       --source-path ${HEAL_SOURCE_ROOT}
+       ${HEAL_JAVA_SOURCE_FILES}
+)
+
+add_custom_target(heal.jar DEPENDS heal.javac
+   COMMAND  ${DOIT}
+     ${JAVA_HOME}/bin/jar --create --no-manifest
+       --file  ${HEAL_JAR}
+       -C ${HEAL_CLASS_DIR} .
+       -C ${CMAKE_SOURCE_DIR}/examples/heal/src/resources .
+
+)
+add_dependencies(example_jars heal.jar)
+
+### View
+
+set(VIEW_CLASS_DIR ${CMAKE_BINARY_DIR}/view/classes)
+set(VIEW_JAR ${CMAKE_BINARY_DIR}/view/view.jar)
+set(VIEW_SOURCE_ROOT ${CMAKE_SOURCE_DIR}/examples/view/src/java)
+file(GLOB_RECURSE VIEW_JAVA_SOURCE_FILES ${VIEW_SOURCE_ROOT}/*.java)
+
+add_custom_target(view.javac DEPENDS hat.jar
+   COMMAND ${DOIT}
+     mkdir -p ${VIEW_CLASS_DIR}
+   COMMAND  ${DOIT}
+     ${JAVA_HOME}/bin/javac
+       --enable-preview --source=23 -g -Xlint:unchecked
+       -d ${VIEW_CLASS_DIR} --class-path ${HAT_JAR}
+       --source-path ${VIEW_SOURCE_ROOT}
+       ${VIEW_JAVA_SOURCE_FILES}
+)
+
+add_custom_target(view.jar DEPENDS view.javac
+   COMMAND  ${DOIT}
+     ${JAVA_HOME}/bin/jar --create --no-manifest
+       --file  ${VIEW_JAR}
+       -C ${VIEW_CLASS_DIR} .
+       -C ${CMAKE_SOURCE_DIR}/examples/view/src/resources .
+
+)
+add_dependencies(example_jars view.jar)
+
+
+
 ### Mandel
 
 set(MANDEL_CLASS_DIR ${CMAKE_BINARY_DIR}/mandel/classes)
@@ -662,6 +746,48 @@ include_directories(
 ## end of MOCK
 
 message("AVAILABLE_BACKEND_JAR = ${AVAILABLE_BACKEND_JAR}")
+
+#  squares executable
+add_custom_target(squares_java DEPENDS squares.jar
+   COMMAND  ${DOIT}
+     ${JAVA_HOME}/bin/java
+       --enable-preview --enable-native-access=ALL-UNNAMED
+       --class-path ${HAT_JAR}:${SQUARES_JAR}:${CMAKE_SOURCE_DIR}/backends/shared/services
+       --add-exports=java.base/jdk.internal=ALL-UNNAMED
+       -Djava.library.path=${CMAKE_BINARY_DIR}
+       squares.Squares
+)
+
+add_custom_target(squares_opencl DEPENDS squares.jar opencl_backend.jar opencl_backend
+   COMMAND  ${DOIT}
+     ${JAVA_HOME}/bin/java
+       --enable-preview --enable-native-access=ALL-UNNAMED
+       --class-path ${HAT_JAR}:${SQUARES_JAR}:${OPENCL_BACKEND_JAR}
+       --add-exports=java.base/jdk.internal=ALL-UNNAMED
+       -Djava.library.path=${CMAKE_BINARY_DIR}
+       squares.Squares
+)
+
+#  heal executable
+add_custom_target(heal_java DEPENDS heal.jar
+   COMMAND  ${DOIT}
+     ${JAVA_HOME}/bin/java
+       --enable-preview --enable-native-access=ALL-UNNAMED
+       --class-path ${HAT_JAR}:${HEAL_JAR}:${CMAKE_SOURCE_DIR}/backends/shared/services
+       --add-exports=java.base/jdk.internal=ALL-UNNAMED
+       -Djava.library.path=${CMAKE_BINARY_DIR}
+       heal.HealingBrushDisplay
+)
+#  view executable
+add_custom_target(view_java DEPENDS view.jar
+   COMMAND  ${DOIT}
+     ${JAVA_HOME}/bin/java
+       --enable-preview --enable-native-access=ALL-UNNAMED
+       --class-path ${HAT_JAR}:${VIEW_JAR}:${CMAKE_SOURCE_DIR}/backends/shared/services
+       --add-exports=java.base/jdk.internal=ALL-UNNAMED
+       -Djava.library.path=${CMAKE_BINARY_DIR}
+       view.Main
+)
 
 #  mandel executable
 add_custom_target(mandel_java DEPENDS mandel.jar
