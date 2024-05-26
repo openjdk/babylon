@@ -10,6 +10,9 @@
       <module fileurl="file://$PROJECT_DIR$/backend_spirv.iml" filepath="$PROJECT_DIR$/backend_spirv.iml" />
       <module fileurl="file://$PROJECT_DIR$/backend_shared.iml" filepath="$PROJECT_DIR$/backend_shared.iml" />
       <module fileurl="file://$PROJECT_DIR$/mandel.iml" filepath="$PROJECT_DIR$/mandel.iml" />
+      <module fileurl="file://$PROJECT_DIR$/heal.iml" filepath="$PROJECT_DIR$/heal.iml" />
+      <module fileurl="file://$PROJECT_DIR$/view.iml" filepath="$PROJECT_DIR$/view.iml" />
+      <module fileurl="file://$PROJECT_DIR$/squares.iml" filepath="$PROJECT_DIR$/squares.iml" />
       <module fileurl="file://$PROJECT_DIR$/experiments.iml" filepath="$PROJECT_DIR$/experiments.iml" />
       <module fileurl="file://$PROJECT_DIR$/violajones.iml" filepath="$PROJECT_DIR$/violajones.iml" />
     </modules>
