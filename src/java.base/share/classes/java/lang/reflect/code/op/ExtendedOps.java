@@ -794,7 +794,7 @@ public class ExtendedOps {
         @Override
         public Block.Builder lower(Block.Builder b, OpTransformer opT) {
 
-            Value swTarget = b.context().getValue(operands().get(0));
+            Value selectorExpression = b.context().getValue(operands().get(0));
 
             List<Block.Builder> blocks = new ArrayList<>();
             for (int i = 0; i < bodies().size(); i++) {
@@ -827,21 +827,21 @@ public class ExtendedOps {
                     Block.Builder expression = blocks.get(i + 1);
                     boolean isDefaultLabel = i == blocks.size() - 2;
                     Block.Builder nextLabel = isDefaultLabel ? null : blocks.get(i + 2);
-                    curr.transformBody(bodies().get(i), List.of(swTarget), opT.andThen((block, op) -> {
-                        if (op instanceof YieldOp yop) {
-                            if (isDefaultLabel) {
-                                block.op(branch(expression.successor()));
-                            } else {
-                                block.op(conditionalBranch(
-                                        block.context().getValue(yop.yieldValue()),
-                                        expression.successor(),
-                                        nextLabel.successor()
-                                ));
+                    curr.transformBody(bodies().get(i), List.of(selectorExpression), opT.andThen((block, op) -> {
+                        switch (op) {
+                            case YieldOp yop -> {
+                                if (isDefaultLabel) {
+                                    block.op(branch(expression.successor()));
+                                } else {
+                                    block.op(conditionalBranch(
+                                            block.context().getValue(yop.yieldValue()),
+                                            expression.successor(),
+                                            nextLabel.successor()
+                                    ));
+                                }
                             }
-                        } else if (op instanceof Lowerable lop) {
-                            block = lop.lower(block);
-                        } else {
-                            block.op(op);
+                            case Lowerable lop -> block = lop.lower(block);
+                            default -> block.op(op);
                         }
                         return block;
                     }));
