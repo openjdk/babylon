@@ -52,7 +52,7 @@ public class F32Mat4 {
             this.entries = new float[max * SIZE];
         }
     }
-    
+
     public static Pool pool = new Pool(100);
 
     public static int createMat4(float x0y0, float x1y0, float x2y0, float x3y0,
