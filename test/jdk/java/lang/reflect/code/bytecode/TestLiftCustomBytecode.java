@@ -29,7 +29,7 @@ import java.lang.classfile.Label;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
 import java.lang.constant.MethodTypeDesc;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.bytecode.BytecodeLift;
 import java.lang.reflect.code.interpreter.Interpreter;
 
@@ -43,7 +43,7 @@ public class TestLiftCustomBytecode {
 
     @Test
     public void testBackJumps() throws Throwable {
-        CoreOps.FuncOp f = getFuncOp(ClassFile.of().build(ClassDesc.of("BackJumps"), clb ->
+        CoreOp.FuncOp f = getFuncOp(ClassFile.of().build(ClassDesc.of("BackJumps"), clb ->
                 clb.withMethodBody("backJumps", MethodTypeDesc.of(ConstantDescs.CD_int, ConstantDescs.CD_int), ClassFile.ACC_STATIC, cob -> {
                     Label l1 = cob.newLabel();
                     Label l2 = cob.newLabel();
@@ -65,8 +65,8 @@ public class TestLiftCustomBytecode {
         Assert.assertEquals((int) Interpreter.invoke(f, 42), 42);
     }
 
-    static CoreOps.FuncOp getFuncOp(byte[] classdata, String method) {
-        CoreOps.FuncOp flift = BytecodeLift.lift(classdata, method);
+    static CoreOp.FuncOp getFuncOp(byte[] classdata, String method) {
+        CoreOp.FuncOp flift = BytecodeLift.lift(classdata, method);
         flift.writeTo(System.out);
         return flift;
     }

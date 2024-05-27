@@ -21,7 +21,7 @@
  * questions.
  */
 
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.type.JavaType;
 
 public interface QueryResult<T> {
@@ -31,5 +31,5 @@ public interface QueryResult<T> {
     JavaType resultType();
 
     // Queryable<T> -> QueryResult<T>
-    CoreOps.FuncOp expression();
+    CoreOp.FuncOp expression();
 }

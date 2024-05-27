@@ -25,7 +25,6 @@
 
 package intel.code.spirv;
 
-import java.lang.reflect.code.type.TypeDefinition;
 import java.util.List;
 import java.util.Objects;
 
@@ -88,12 +87,12 @@ public sealed abstract class StorageType extends SpirvType
     }
 
     @Override
-    public TypeDefinition toTypeDefinition() {
-        return new TypeDefinition(NAME, List.of());
+    public ExternalizedTypeElement externalize() {
+        return new ExternalizedTypeElement(NAME, List.of());
     }
 
     @Override
     public String toString() {
-        return toTypeDefinition().toString();
+        return externalize().toString();
     }
 }

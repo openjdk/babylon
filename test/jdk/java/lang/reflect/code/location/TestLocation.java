@@ -34,8 +34,8 @@ import java.lang.reflect.Method;
 import java.lang.reflect.code.Location;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.OpTransformer;
-import java.lang.reflect.code.op.CoreOps;
-import java.lang.reflect.code.op.ExtendedOps;
+import java.lang.reflect.code.op.CoreOp;
+import java.lang.reflect.code.op.ExtendedOp;
 import java.lang.reflect.code.parser.OpParser;
 import java.lang.reflect.code.writer.OpWriter;
 import java.lang.runtime.CodeReflection;
@@ -45,9 +45,9 @@ import java.util.stream.Stream;
 public class TestLocation {
     @Test
     public void testLocation() {
-        CoreOps.FuncOp f = getFuncOp(ClassWithReflectedMethod.class, "f");
+        CoreOp.FuncOp f = getFuncOp(ClassWithReflectedMethod.class, "f");
         f.traverse(null, (o, ce) -> {
-            if (ce instanceof CoreOps.ConstantOp cop) {
+            if (ce instanceof CoreOp.ConstantOp cop) {
                 Location loc = cop.location();
                 Assert.assertNotNull(loc);
 
@@ -72,37 +72,30 @@ public class TestLocation {
 
     @Test
     public void dropLocationTransform() {
-        CoreOps.FuncOp f = getFuncOp(TestLocation.class, "f");
+        CoreOp.FuncOp f = getFuncOp(TestLocation.class, "f");
 
-        CoreOps.FuncOp tf = f.transform(OpTransformer.DROP_LOCATION_TRANSFORMER);
+        CoreOp.FuncOp tf = f.transform(OpTransformer.DROP_LOCATION_TRANSFORMER);
         tf.setLocation(Location.NO_LOCATION);
         testNoLocations(tf);
 
-        CoreOps.FuncOp tlf = lower(f).transform(OpTransformer.DROP_LOCATION_TRANSFORMER);
+        CoreOp.FuncOp tlf = lower(f).transform(OpTransformer.DROP_LOCATION_TRANSFORMER);
         tlf.setLocation(Location.NO_LOCATION);
         testNoLocations(tlf);
     }
 
     @Test
     public void dropLocationWriter() {
-        CoreOps.FuncOp f = getFuncOp(TestLocation.class, "f");
+        CoreOp.FuncOp f = getFuncOp(TestLocation.class, "f");
 
         StringWriter w = new StringWriter();
         OpWriter.writeTo(w, f, OpWriter.LocationOption.DROP_LOCATION);
         String tfText = w.toString();
-        CoreOps.FuncOp tf = (CoreOps.FuncOp) OpParser.fromString(ExtendedOps.FACTORY, tfText).getFirst();
+        CoreOp.FuncOp tf = (CoreOp.FuncOp) OpParser.fromString(ExtendedOp.FACTORY, tfText).getFirst();
         testNoLocations(tf);
     }
 
-    static CoreOps.FuncOp lower(CoreOps.FuncOp f) {
-        return f.transform((b, op) -> {
-            if (op instanceof Op.Lowerable l) {
-                return l.lower(b);
-            } else {
-                b.op(op);
-                return b;
-            }
-        });
+    static CoreOp.FuncOp lower(CoreOp.FuncOp f) {
+        return f.transform(OpTransformer.LOWERING_TRANSFORMER);
     }
 
     static void testNoLocations(Op op) {
@@ -112,7 +105,7 @@ public class TestLocation {
     }
 
 
-    static CoreOps.FuncOp getFuncOp(Class<?> c, String name) {
+    static CoreOp.FuncOp getFuncOp(Class<?> c, String name) {
         Optional<Method> om = Stream.of(c.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
                 .findFirst();

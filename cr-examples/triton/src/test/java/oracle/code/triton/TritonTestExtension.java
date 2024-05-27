@@ -34,7 +34,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.parser.OpParser;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.runtime.CodeReflection;
@@ -94,12 +94,12 @@ public class TritonTestExtension implements ParameterResolver {
                     TritonOps.FACTORY.andThen(ArithMathOps.FACTORY)
                             .andThen(TritonTestOps.FACTORY)
                             .andThen(SCFOps.FACTORY)
-                            .andThen(CoreOps.FACTORY),
+                            .andThen(CoreOp.FACTORY),
                     TritonOps.TYPE_FACTORY,
                     tcm.value()).get(0);
         }
 
-        void test(CoreOps.FuncOp javaKernel,
+        void test(CoreOp.FuncOp javaKernel,
                   List<? extends TypeElement> argTypes,
                   TritonOps.ModuleOp expectedTritonKernel,
                   boolean doSSA) {

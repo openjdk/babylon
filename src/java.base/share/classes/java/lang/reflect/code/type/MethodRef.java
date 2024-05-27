@@ -27,7 +27,7 @@ package java.lang.reflect.code.type;
 
 import java.lang.constant.ClassDesc;
 import java.lang.constant.MethodTypeDesc;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.type.impl.MethodRefImpl;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -65,12 +65,14 @@ public sealed interface MethodRef extends TypeVarRef.Owner permits MethodRefImpl
 
     MethodHandle resolveToHandle(MethodHandles.Lookup l) throws ReflectiveOperationException;
 
-    Optional<CoreOps.FuncOp> codeModel(MethodHandles.Lookup l) throws ReflectiveOperationException;
+    Optional<CoreOp.FuncOp> codeModel(MethodHandles.Lookup l) throws ReflectiveOperationException;
 
     // Factories
 
-    static MethodRef method(Method m) {
-        return method(m.getDeclaringClass(), m.getName(), m.getReturnType(), m.getParameterTypes());
+    static MethodRef method(Executable e) {
+        return method(e.getDeclaringClass(), e.getName(),
+                e instanceof Method m ? m.getReturnType() : e.getDeclaringClass(),
+                e.getParameterTypes());
     }
 
     static MethodRef method(Class<?> refType, String name, MethodType mt) {
@@ -109,8 +111,8 @@ public sealed interface MethodRef extends TypeVarRef.Owner permits MethodRefImpl
 
     static FunctionType ofNominalDescriptor(MethodTypeDesc d) {
         return FunctionType.functionType(
-                JavaType.ofNominalDescriptor(d.returnType()),
-                d.parameterList().stream().map(JavaType::ofNominalDescriptor).toList());
+                JavaType.type(d.returnType()),
+                d.parameterList().stream().map(JavaType::type).toList());
     }
 
     static MethodTypeDesc toNominalDescriptor(FunctionType t) {

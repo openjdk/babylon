@@ -25,9 +25,8 @@ import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.type.FieldRef;
 import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.type.RecordTypeRef;
@@ -106,7 +105,7 @@ public class TestReferences {
     @Test
     public void testAccessCodeModel() throws ReflectiveOperationException {
         MethodRef xr = MethodRef.method(TestReferences.class, "x", void.class);
-        Optional<CoreOps.FuncOp> m = xr.codeModel(MethodHandles.lookup());
+        Optional<CoreOp.FuncOp> m = xr.codeModel(MethodHandles.lookup());
         Assert.assertTrue(m.isPresent());
     }
 }

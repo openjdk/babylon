@@ -22,8 +22,8 @@
  */
 
 import java.lang.reflect.code.*;
-import java.lang.reflect.code.op.CoreOps;
-import java.lang.reflect.code.op.ExtendedOps.JavaEnhancedForOp;
+import java.lang.reflect.code.op.CoreOp;
+import java.lang.reflect.code.op.ExtendedOp.JavaEnhancedForOp;
 import java.lang.reflect.code.type.ClassType;
 import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
@@ -34,9 +34,10 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import static java.lang.reflect.code.op.CoreOps.*;
-import static java.lang.reflect.code.op.ExtendedOps._continue;
-import static java.lang.reflect.code.op.ExtendedOps.enhancedFor;
+import static java.lang.reflect.code.op.CoreOp.*;
+import static java.lang.reflect.code.op.ExtendedOp._continue;
+import static java.lang.reflect.code.op.ExtendedOp.enhancedFor;
+import static java.lang.reflect.code.type.JavaType.parameterized;
 import static java.lang.reflect.code.type.JavaType.type;
 
 public final class StreamFuser {
@@ -45,7 +46,7 @@ public final class StreamFuser {
 
     public static StreamExprBuilder fromList(JavaType elementType) {
         // java.util.List<E>
-        JavaType listType = type(type(List.class), elementType);
+        JavaType listType = parameterized(type(List.class), elementType);
         return new StreamExprBuilder(listType, elementType,
                 (b, v) -> StreamExprBuilder.enhancedForLoop(b, elementType, v)::body);
     }
@@ -55,14 +56,14 @@ public final class StreamFuser {
             final Quoted quotedClosure;
 
             StreamOp(Quoted quotedClosure) {
-                if (!(quotedClosure.op() instanceof CoreOps.ClosureOp)) {
+                if (!(quotedClosure.op() instanceof CoreOp.ClosureOp)) {
                     throw new IllegalArgumentException("Quoted operation is not closure operation");
                 }
                 this.quotedClosure = quotedClosure;
             }
 
-            CoreOps.ClosureOp op() {
-                return (CoreOps.ClosureOp) quotedClosure.op();
+            CoreOp.ClosureOp op() {
+                return (CoreOp.ClosureOp) quotedClosure.op();
             }
         }
 
@@ -179,7 +180,7 @@ public final class StreamFuser {
         }
 
         public FuncOp forEach(Quoted quotedConsumer) {
-            if (!(quotedConsumer.op() instanceof CoreOps.ClosureOp consumer)) {
+            if (!(quotedConsumer.op() instanceof CoreOp.ClosureOp consumer)) {
                 throw new IllegalArgumentException("Quoted consumer is not closure operation");
             }
 
@@ -204,10 +205,10 @@ public final class StreamFuser {
 
         // Supplier<C> supplier, BiConsumer<C, T> accumulator
         public FuncOp collect(Quoted quotedSupplier, Quoted quotedAccumulator) {
-            if (!(quotedSupplier.op() instanceof CoreOps.ClosureOp supplier)) {
+            if (!(quotedSupplier.op() instanceof CoreOp.ClosureOp supplier)) {
                 throw new IllegalArgumentException("Quoted supplier is not closure operation");
             }
-            if (!(quotedAccumulator.op() instanceof CoreOps.ClosureOp accumulator)) {
+            if (!(quotedAccumulator.op() instanceof CoreOp.ClosureOp accumulator)) {
                 throw new IllegalArgumentException("Quoted accumulator is not closure operation");
             }
 

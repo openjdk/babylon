@@ -28,7 +28,7 @@ package intel.code.spirv;
 import java.lang.reflect.Method;
 import java.lang.foreign.MemorySegment;
 import java.lang.runtime.CodeReflection;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import org.junit.jupiter.api.Test;
 
 public class ExampleUseTest {
@@ -51,7 +51,7 @@ public class ExampleUseTest {
         String methodName = "matrixMultiply";
         Method method = ExampleUseTest.class.getDeclaredMethod(methodName, float[].class, float[].class, float[].class, int.class);
 
-        CoreOps.FuncOp javaFunc = method.getCodeModel().get();
+        CoreOp.FuncOp javaFunc = method.getCodeModel().get();
         SpirvOps.FuncOp spirvFunc = TranslateToSpirvModel.translateFunction(javaFunc);
         MemorySegment spirvBinary = SpirvModuleGenerator.generateModule(methodName, spirvFunc);
 

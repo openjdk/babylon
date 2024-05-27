@@ -36,14 +36,11 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.*;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.bytecode.BytecodeLift;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.CopyContext;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.Quotable;
-import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.runtime.CodeReflection;
@@ -390,7 +387,7 @@ public class TestBytecode {
     static int consumeQuotable(int i, QuotableFunc f) {
         Assert.assertNotNull(f.quoted());
         Assert.assertNotNull(f.quoted().op());
-        Assert.assertTrue(f.quoted().op() instanceof CoreOps.LambdaOp);
+        Assert.assertTrue(f.quoted().op() instanceof CoreOp.LambdaOp);
         return f.apply(i + 1);
     }
 
@@ -522,7 +519,7 @@ public class TestBytecode {
         if (d.testMethod.getAnnotation(SkipLift.class) != null) {
             throw new SkipException("skipped");
         }
-        CoreOps.FuncOp flift;
+        CoreOp.FuncOp flift;
         try {
             flift = BytecodeLift.lift(CLASS_DATA, d.testMethod.getName(), toMethodTypeDesc(d.testMethod));
         } catch (Throwable e) {
@@ -539,7 +536,7 @@ public class TestBytecode {
         }
     }
 
-    private static Object invokeAndConvert(CoreOps.FuncOp func, Object[] args) {
+    private static Object invokeAndConvert(CoreOp.FuncOp func, Object[] args) {
         Object ret = Interpreter.invoke(func, args);
         if (ret instanceof Integer i) {
             TypeElement rt = func.invokableType().returnType();
@@ -558,16 +555,9 @@ public class TestBytecode {
 
     @Test(dataProvider = "testMethods")
     public void testGenerate(TestData d) throws Throwable {
-        CoreOps.FuncOp func = d.testMethod.getCodeModel().get();
+        CoreOp.FuncOp func = d.testMethod.getCodeModel().get();
 
-        CoreOps.FuncOp lfunc = func.transform(CopyContext.create(), (block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        CoreOp.FuncOp lfunc = func.transform(CopyContext.create(), OpTransformer.LOWERING_TRANSFORMER);
 
         try {
             MethodHandle mh = BytecodeGenerator.generate(MethodHandles.lookup(), lfunc);

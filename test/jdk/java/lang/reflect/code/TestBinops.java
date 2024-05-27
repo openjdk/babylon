@@ -29,7 +29,7 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.Method;
 import java.lang.runtime.CodeReflection;
@@ -45,7 +45,7 @@ public class TestBinops {
 
     @Test
     public void testNot() {
-        CoreOps.FuncOp f = getFuncOp("not");
+        CoreOp.FuncOp f = getFuncOp("not");
 
         f.writeTo(System.out);
 
@@ -60,7 +60,7 @@ public class TestBinops {
 
     @Test
     public void testMod() {
-        CoreOps.FuncOp f = getFuncOp("mod");
+        CoreOp.FuncOp f = getFuncOp("mod");
 
         f.writeTo(System.out);
 
@@ -74,7 +74,7 @@ public class TestBinops {
 
     @Test
     public void testBitand() {
-        CoreOps.FuncOp f = getFuncOp("bitand");
+        CoreOp.FuncOp f = getFuncOp("bitand");
 
         f.writeTo(System.out);
 
@@ -88,7 +88,7 @@ public class TestBinops {
 
     @Test
     public void testBitor() {
-        CoreOps.FuncOp f = getFuncOp("bitor");
+        CoreOp.FuncOp f = getFuncOp("bitor");
 
         f.writeTo(System.out);
 
@@ -102,7 +102,7 @@ public class TestBinops {
 
     @Test
     public void testBitxor() {
-        CoreOps.FuncOp f = getFuncOp("bitxor");
+        CoreOp.FuncOp f = getFuncOp("bitxor");
 
         f.writeTo(System.out);
 
@@ -116,7 +116,7 @@ public class TestBinops {
 
     @Test
     public void testBooland() {
-        CoreOps.FuncOp f = getFuncOp("booland");
+        CoreOp.FuncOp f = getFuncOp("booland");
 
         f.writeTo(System.out);
 
@@ -130,7 +130,7 @@ public class TestBinops {
 
     @Test
     public void testBoolor() {
-        CoreOps.FuncOp f = getFuncOp("boolor");
+        CoreOp.FuncOp f = getFuncOp("boolor");
 
         f.writeTo(System.out);
 
@@ -144,7 +144,7 @@ public class TestBinops {
 
     @Test
     public void testBoolxor() {
-        CoreOps.FuncOp f = getFuncOp("boolxor");
+        CoreOp.FuncOp f = getFuncOp("boolxor");
 
         f.writeTo(System.out);
 
@@ -158,14 +158,14 @@ public class TestBinops {
 
     @Test
     public void testDoublemod() {
-        CoreOps.FuncOp f = getFuncOp("doublemod");
+        CoreOp.FuncOp f = getFuncOp("doublemod");
 
         f.writeTo(System.out);
 
         Assert.assertEquals(Interpreter.invoke(f, 15.6, 2.1), doublemod(15.6, 2.1));
     }
 
-    static CoreOps.FuncOp getFuncOp(String name) {
+    static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestBinops.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
                 .findFirst();

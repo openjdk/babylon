@@ -25,18 +25,13 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.code.CopyContext;
+import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.Quoted;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Method;
-import java.lang.runtime.CodeReflection;
-import java.util.Optional;
-import java.util.function.Function;
-import java.util.function.IntBinaryOperator;
-import java.util.stream.Stream;
 
 /*
  * @test
@@ -51,7 +46,7 @@ public class TestQuoted {
             i = i + j;
             return i;
         };
-        CoreOps.ClosureOp cop = (CoreOps.ClosureOp) q.op();
+        CoreOp.ClosureOp cop = (CoreOp.ClosureOp) q.op();
 
         MethodHandle mh = generate(cop);
 
@@ -62,14 +57,7 @@ public class TestQuoted {
         f.writeTo(System.out);
 
         @SuppressWarnings("unchecked")
-        O lf = (O) f.transform(CopyContext.create(), (block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        O lf = (O) f.transform(CopyContext.create(), OpTransformer.LOWERING_TRANSFORMER);
         lf.writeTo(System.out);
 
         return BytecodeGenerator.generate(MethodHandles.lookup(), lf);

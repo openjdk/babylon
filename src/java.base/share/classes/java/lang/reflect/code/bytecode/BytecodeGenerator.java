@@ -29,7 +29,8 @@ import java.lang.classfile.ClassFile;
 import java.lang.classfile.CodeBuilder;
 import java.lang.classfile.Label;
 import java.lang.constant.*;
-import java.lang.reflect.code.op.CoreOps.*;
+import java.lang.reflect.code.op.CoreOp;
+import java.lang.reflect.code.op.CoreOp.*;
 
 import java.lang.classfile.ClassBuilder;
 import java.lang.classfile.Opcode;
@@ -37,7 +38,6 @@ import java.lang.classfile.TypeKind;
 import java.lang.classfile.attribute.ConstantValueAttribute;
 import java.lang.invoke.LambdaMetafactory;
 import java.lang.reflect.code.Block;
-import java.lang.reflect.code.op.CoreOps;
 import java.lang.reflect.code.Op;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -62,6 +62,8 @@ import static java.lang.constant.ConstantDescs.*;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.code.Quotable;
+import java.lang.reflect.code.type.ClassType;
+import java.lang.reflect.code.type.PrimitiveType;
 import java.util.stream.Stream;
 
 /**
@@ -177,7 +179,7 @@ public final class BytecodeGenerator {
     }
 
     private record Slot(int slot, TypeKind typeKind) {}
-    private record ExceptionRegionWithBlocks(CoreOps.ExceptionRegionEnter ere, BitSet blocks) {}
+    private record ExceptionRegionWithBlocks(CoreOp.ExceptionRegionEnter ere, BitSet blocks) {}
 
     private final MethodHandles.Lookup lookup;
     private final ClassDesc className;
@@ -262,9 +264,10 @@ public final class BytecodeGenerator {
 
     private Slot load(Value v) {
         if (v instanceof Op.Result or &&
-                or.op() instanceof CoreOps.ConstantOp constantOp &&
+                or.op() instanceof CoreOp.ConstantOp constantOp &&
                 !constantOp.resultType().equals(JavaType.J_L_CLASS)) {
-            cob.constantInstruction(((Constable)constantOp.value()).describeConstable().orElseThrow());
+            var c = (Constable)constantOp.value();
+            cob.constantInstruction(c == null ? ConstantDescs.NULL : c.describeConstable().orElseThrow());
             return null;
         } else {
             Slot slot = slots.get(v);
@@ -339,7 +342,7 @@ public final class BytecodeGenerator {
             case LambdaOp op ->
                 !op.capturedValues().isEmpty() && op.capturedValues().getFirst() == opr;
             // Conditional branch may delegate to its binary test operation
-            case ConditionalBranchOp op when getConditionForCondBrOp(op) instanceof CoreOps.BinaryTestOp bto ->
+            case ConditionalBranchOp op when getConditionForCondBrOp(op) instanceof CoreOp.BinaryTestOp bto ->
                 isFirstOperand(bto, opr);
             // Var store effective first operand is not the first one
             case VarAccessOp.VarStoreOp op ->
@@ -360,7 +363,7 @@ public final class BytecodeGenerator {
         return isFirstOperand(nextOp, opr);
     }
 
-    private static boolean isConditionForCondBrOp(CoreOps.BinaryTestOp op) {
+    private static boolean isConditionForCondBrOp(CoreOp.BinaryTestOp op) {
         // Result of op has one use as the operand of a CondBrOp op,
         // and both ops are in the same block
 
@@ -381,10 +384,10 @@ public final class BytecodeGenerator {
             }
         }
 
-        return use.op() instanceof CoreOps.ConditionalBranchOp;
+        return use.op() instanceof CoreOp.ConditionalBranchOp;
     }
 
-    private static ClassDesc toClassDesc(TypeElement t) {
+    static ClassDesc toClassDesc(TypeElement t) {
         return switch (t) {
             case VarType vt -> toClassDesc(vt.valueType());
             case JavaType jt -> jt.toNominalDescriptor();
@@ -393,35 +396,11 @@ public final class BytecodeGenerator {
         };
     }
 
-    private static TypeKind toTypeKind(TypeElement t) {
+    static TypeKind toTypeKind(TypeElement t) {
         return switch (t) {
             case VarType vt -> toTypeKind(vt.valueType());
-            case JavaType jt -> {
-                TypeElement bt = jt.toBasicType();
-                if (bt.equals(JavaType.VOID)) {
-                    yield TypeKind.VoidType;
-                } else if (bt.equals(JavaType.INT)) {
-                    yield TypeKind.IntType;
-                } else if (bt.equals(JavaType.J_L_OBJECT)) {
-                    yield TypeKind.ReferenceType;
-                } else if (bt.equals(JavaType.LONG)) {
-                    yield TypeKind.LongType;
-                } else if (bt.equals(JavaType.DOUBLE)) {
-                    yield TypeKind.DoubleType;
-                } else if (bt.equals(JavaType.BOOLEAN)) {
-                    yield TypeKind.BooleanType;
-                } else if (bt.equals(JavaType.BYTE)) {
-                    yield TypeKind.ByteType;
-                } else if (bt.equals(JavaType.CHAR)) {
-                    yield TypeKind.CharType;
-                } else if (bt.equals(JavaType.FLOAT)) {
-                    yield TypeKind.FloatType;
-                } else if (bt.equals(JavaType.SHORT)) {
-                    yield TypeKind.ShortType;
-                } else {
-                    throw new IllegalArgumentException("Bad type: " + t);
-                }
-            }
+            case PrimitiveType pt -> TypeKind.from(pt.toNominalDescriptor());
+            case JavaType _ -> TypeKind.ReferenceType;
             default ->
                 throw new IllegalArgumentException("Bad type: " + t);
         };
@@ -437,13 +416,13 @@ public final class BytecodeGenerator {
             Block b = blocks.get(blockIndex);
             Op top = b.terminatingOp();
             switch (top) {
-                case CoreOps.BranchOp bop ->
+                case CoreOp.BranchOp bop ->
                     setExceptionRegionStack(bop.branch(), activeRegionStack);
-                case CoreOps.ConditionalBranchOp cop -> {
+                case CoreOp.ConditionalBranchOp cop -> {
                     setExceptionRegionStack(cop.falseBranch(), activeRegionStack);
                     setExceptionRegionStack(cop.trueBranch(), activeRegionStack);
                 }
-                case CoreOps.ExceptionRegionEnter er -> {
+                case CoreOp.ExceptionRegionEnter er -> {
                     for (Block.Reference catchBlock : er.catchBlocks().reversed()) {
                         catchingBlocks.set(catchBlock.targetBlock().index());
                         setExceptionRegionStack(catchBlock, activeRegionStack);
@@ -454,7 +433,7 @@ public final class BytecodeGenerator {
                     allExceptionRegions.add(newNode);
                     setExceptionRegionStack(er.start(), activeRegionStack);
                 }
-                case CoreOps.ExceptionRegionExit er -> {
+                case CoreOp.ExceptionRegionExit er -> {
                     activeRegionStack = (BitSet)activeRegionStack.clone();
                     activeRegionStack.clear(activeRegionStack.length() - 1);
                     setExceptionRegionStack(er.end(), activeRegionStack);
@@ -560,7 +539,7 @@ public final class BytecodeGenerator {
                         Value first = op.operands().getFirst();
                         processOperand(first);
                         TypeKind tk = toTypeKind(first.type());
-                        if (tk != rvt) cob.convertInstruction(tk, rvt);
+                        if (tk != rvt) conversion(cob, tk, rvt);
                         push(op.result());
                     }
                     case NegOp op -> {
@@ -829,7 +808,7 @@ public final class BytecodeGenerator {
                         JavaType intfType = (JavaType)op.functionalInterface();
                         MethodTypeDesc mtd = MethodRef.toNominalDescriptor(op.invokableType());
                         try {
-                            Class<?> intfClass = intfType.resolve(lookup);
+                            Class<?> intfClass = (Class<?>)intfType.erasure().resolve(lookup);
                             processOperands(op.capturedValues());
                             ClassDesc[] captureTypes = op.capturedValues().stream()
                                     .map(Value::type).map(BytecodeGenerator::toClassDesc).toArray(ClassDesc[]::new);
@@ -882,7 +861,7 @@ public final class BytecodeGenerator {
             }
             Op top = b.terminatingOp();
             switch (top) {
-                case CoreOps.ReturnOp op -> {
+                case CoreOp.ReturnOp op -> {
                     Value a = op.returnValue();
                     if (a == null) {
                         cob.return_();
@@ -900,7 +879,7 @@ public final class BytecodeGenerator {
                     cob.goto_(getLabel(op.branch()));
                 }
                 case ConditionalBranchOp op -> {
-                    if (getConditionForCondBrOp(op) instanceof CoreOps.BinaryTestOp btop) {
+                    if (getConditionForCondBrOp(op) instanceof CoreOp.BinaryTestOp btop) {
                         // Processing of the BinaryTestOp was deferred, so it can be merged with CondBrOp
                         processOperands(btop);
                         conditionalBranch(btop, op.trueBranch(), op.falseBranch());
@@ -920,6 +899,66 @@ public final class BytecodeGenerator {
                     throw new UnsupportedOperationException("Terminating operation not supported: " + top);
             }
         }
+    }
+
+    // @@@ this method will apperar in CodeBuilder with next merge/update from master
+    static CodeBuilder conversion(CodeBuilder cob, TypeKind fromType, TypeKind toType) {
+        return switch (fromType) {
+            case IntType, ByteType, CharType, ShortType, BooleanType ->
+                    switch (toType) {
+                        case IntType -> cob;
+                        case LongType -> cob.i2l();
+                        case DoubleType -> cob.i2d();
+                        case FloatType -> cob.i2f();
+                        case ByteType -> cob.i2b();
+                        case CharType -> cob.i2c();
+                        case ShortType -> cob.i2s();
+                        case BooleanType -> cob.iconst_1().iand();
+                        case VoidType, ReferenceType ->
+                            throw new IllegalArgumentException(String.format("convert %s -> %s", fromType, toType));
+                    };
+            case LongType ->
+                    switch (toType) {
+                        case IntType -> cob.l2i();
+                        case LongType -> cob;
+                        case DoubleType -> cob.l2d();
+                        case FloatType -> cob.l2f();
+                        case ByteType -> cob.l2i().i2b();
+                        case CharType -> cob.l2i().i2c();
+                        case ShortType -> cob.l2i().i2s();
+                        case BooleanType -> cob.l2i().iconst_1().iand();
+                        case VoidType, ReferenceType ->
+                            throw new IllegalArgumentException(String.format("convert %s -> %s", fromType, toType));
+                    };
+            case DoubleType ->
+                    switch (toType) {
+                        case IntType -> cob.d2i();
+                        case LongType -> cob.d2l();
+                        case DoubleType -> cob;
+                        case FloatType -> cob.d2f();
+                        case ByteType -> cob.d2i().i2b();
+                        case CharType -> cob.d2i().i2c();
+                        case ShortType -> cob.d2i().i2s();
+                        case BooleanType -> cob.d2i().iconst_1().iand();
+                        case VoidType, ReferenceType ->
+                            throw new IllegalArgumentException(String.format("convert %s -> %s", fromType, toType));
+                    };
+            case FloatType ->
+                    switch (toType) {
+                        case IntType -> cob.f2i();
+                        case LongType -> cob.f2l();
+                        case DoubleType -> cob.f2d();
+                        case FloatType -> cob;
+                        case ByteType -> cob.f2i().i2b();
+                        case CharType -> cob.f2i().i2c();
+                        case ShortType -> cob.f2i().i2s();
+                        case BooleanType -> cob.f2i().iconst_1().iand();
+                        case VoidType, ReferenceType ->
+                            throw new IllegalArgumentException(String.format("convert %s -> %s", fromType, toType));
+                    };
+            case VoidType, ReferenceType ->
+                throw new IllegalArgumentException(String.format("convert %s -> %s", fromType, toType));
+        };
     }
 
     private boolean inBlockArgs(Op.Result res) {
@@ -958,7 +997,7 @@ public final class BytecodeGenerator {
         }
     }
 
-    private static Op getConditionForCondBrOp(CoreOps.ConditionalBranchOp op) {
+    private static Op getConditionForCondBrOp(CoreOp.ConditionalBranchOp op) {
         Value p = op.predicate();
         if (p.uses().size() != 1) {
             return null;
@@ -1032,7 +1071,7 @@ public final class BytecodeGenerator {
 
     private Opcode prepareReverseCondition(BinaryTestOp op) {
         return switch (toTypeKind(op.operands().get(0).type())) {
-            case IntType ->
+            case IntType, BooleanType, ByteType, ShortType, CharType ->
                 switch (op) {
                     case EqOp _ -> Opcode.IF_ICMPNE;
                     case NeqOp _ -> Opcode.IF_ICMPEQ;
@@ -1129,17 +1168,17 @@ public final class BytecodeGenerator {
         return dmhd;
     }
 
-    static CoreOps.FuncOp quote(CoreOps.LambdaOp lop) {
+    static CoreOp.FuncOp quote(CoreOp.LambdaOp lop) {
         List<Value> captures = lop.capturedValues();
 
         // Build the function type
         List<TypeElement> params = captures.stream()
                 .map(v -> v.type() instanceof VarType vt ? vt.valueType() : v.type())
                 .toList();
-        FunctionType ft = FunctionType.functionType(CoreOps.QuotedOp.QUOTED_TYPE, params);
+        FunctionType ft = FunctionType.functionType(CoreOp.QuotedOp.QUOTED_TYPE, params);
 
         // Build the function that quotes the lambda
-        return CoreOps.func("q", ft).body(b -> {
+        return CoreOp.func("q", ft).body(b -> {
             // Create variables as needed and obtain the captured values
             // for the copied lambda
             List<Value> outputCaptures = new ArrayList<>();
@@ -1147,7 +1186,7 @@ public final class BytecodeGenerator {
                 Value c = captures.get(i);
                 Block.Parameter p = b.parameters().get(i);
                 if (c.type() instanceof VarType _) {
-                    Value var = b.op(CoreOps.var(String.valueOf(i), p));
+                    Value var = b.op(CoreOp.var(String.valueOf(i), p));
                     outputCaptures.add(var);
                 } else {
                     outputCaptures.add(p);
@@ -1155,7 +1194,7 @@ public final class BytecodeGenerator {
             }
 
             // Quoted the lambda expression
-            Value q = b.op(CoreOps.quoted(b.parentBody(), qb -> {
+            Value q = b.op(CoreOp.quoted(b.parentBody(), qb -> {
                 // Map the lambda's parent block to the quoted block
                 // We are copying lop in the context of the quoted block
                 qb.context().mapBlock(lop.parentBlock(), qb);
@@ -1164,7 +1203,7 @@ public final class BytecodeGenerator {
                 // Return the lambda to be copied in the quoted operation
                 return lop;
             }));
-            b.op(CoreOps._return(q));
+            b.op(CoreOp._return(q));
         });
     }
 }

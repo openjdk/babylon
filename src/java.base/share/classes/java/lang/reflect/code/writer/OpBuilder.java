@@ -31,7 +31,7 @@ import java.lang.reflect.code.op.ExternalizableOp;
 import java.lang.reflect.code.type.*;
 import java.util.*;
 
-import static java.lang.reflect.code.op.CoreOps.*;
+import static java.lang.reflect.code.op.CoreOp.*;
 import static java.lang.reflect.code.type.FunctionType.functionType;
 import static java.lang.reflect.code.type.JavaType.*;
 
@@ -49,10 +49,10 @@ public class OpBuilder {
             Op.class, ExternalizableOp.ExternalizedOp.class);
 
     static final MethodRef TYPE_ELEMENT_FACTORY_CONSTRUCT = MethodRef.method(TypeElementFactory.class, "constructType",
-            TypeElement.class, TypeDefinition.class);
+            TypeElement.class, ExternalizedTypeElement.class);
 
-    static final MethodRef TYPE_DEFINITION_OF_STRING = MethodRef.method(TypeDefinition.class, "ofString",
-            TypeDefinition.class, String.class);
+    static final MethodRef EX_TYPE_ELEMENT_OF_STRING = MethodRef.method(ExternalizedTypeElement.class, "ofString",
+            ExternalizedTypeElement.class, String.class);
 
     static final MethodRef BODY_BUILDER_OF = MethodRef.method(Body.Builder.class, "of",
             Body.Builder.class, Body.Builder.class, FunctionType.class);
@@ -256,8 +256,8 @@ public class OpBuilder {
 
     Value buildType(TypeElement t) {
         Value typeString = builder.op(constant(J_L_STRING, t.toString()));
-        Value typeDef = builder.op(invoke(TYPE_DEFINITION_OF_STRING, typeString));
-        return builder.op(invoke(TYPE_ELEMENT_FACTORY_CONSTRUCT, typeElementFactory, typeDef));
+        Value exTypeElem = builder.op(invoke(EX_TYPE_ELEMENT_OF_STRING, typeString));
+        return builder.op(invoke(TYPE_ELEMENT_FACTORY_CONSTRUCT, typeElementFactory, exTypeElem));
     }
 
     Value buildAttributeMap(Map<String, Object> attributes) {
@@ -335,7 +335,7 @@ public class OpBuilder {
 
 
     Value buildMap(JavaType keyType, JavaType valueType, List<Value> keysAndValues) {
-        JavaType mapType = type(J_U_MAP, keyType, valueType);
+        JavaType mapType = parameterized(J_U_MAP, keyType, valueType);
         if (keysAndValues.isEmpty()) {
             return builder.op(invoke(MAP_OF));
         } else {
@@ -351,7 +351,7 @@ public class OpBuilder {
 
 
     Value buildList(JavaType elementType, List<Value> elements) {
-        JavaType listType = type(J_U_LIST, elementType);
+        JavaType listType = parameterized(J_U_LIST, elementType);
         if (elements.size() < 11) {
             MethodRef listOf = MethodRef.method(J_U_LIST, "of",
                     J_U_LIST, Collections.nCopies(elements.size(), J_L_OBJECT));

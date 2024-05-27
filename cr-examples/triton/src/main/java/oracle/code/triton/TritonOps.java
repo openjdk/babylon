@@ -86,7 +86,7 @@ public class TritonOps {
             for (var op : body.entryBlock().ops()) {
                 if (op instanceof FuncOp fop) {
                     table.put(fop.funcName(), fop);
-                } else if (op instanceof CoreOps.UnreachableOp _) {
+                } else if (op instanceof CoreOp.UnreachableOp _) {
                     // no operation
                 } else {
                     throw new IllegalArgumentException("Bad operation in module: " + op);
@@ -115,7 +115,7 @@ public class TritonOps {
                 entryBlock.op(f);
                 table.put(f.funcName(), f);
             }
-            entryBlock.op(CoreOps.unreachable());
+            entryBlock.op(CoreOp.unreachable());
             this.table = Collections.unmodifiableMap(table);
             this.body = bodyC.build(this);
         }
@@ -825,7 +825,7 @@ public class TritonOps {
 
     static final TypeElementFactory TRITON_TYPE_FACTORY = new TypeElementFactory() {
         @Override
-        public TypeElement constructType(TypeDefinition tree) {
+        public TypeElement constructType(TypeElement.ExternalizedTypeElement tree) {
             return switch (tree.identifier()) {
                 case PtrType.NAME -> {
                     if (tree.arguments().size() != 1) {
@@ -849,7 +849,7 @@ public class TritonOps {
 
                     List<Integer> shape = new ArrayList<>();
                     for (int i = 0; i < tree.arguments().size() - 1; i++) {
-                        TypeDefinition a = tree.arguments().get(i);
+                        TypeElement.ExternalizedTypeElement a = tree.arguments().get(i);
                         if (!a.identifier().startsWith("x")) {
                             throw new IllegalArgumentException("Bad type: " + tree);
                         }

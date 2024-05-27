@@ -29,7 +29,8 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.OpTransformer;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.util.ArrayList;
@@ -42,7 +43,7 @@ public class TestStream {
 
     @Test
     public void testMapFilterForEach() {
-        CoreOps.FuncOp f = StreamFuser.fromList(type(Integer.class))
+        CoreOp.FuncOp f = StreamFuser.fromList(type(Integer.class))
                 .map((Integer i) -> i.toString())
                 .filter((String s) -> s.length() < 10)
                 .map((String s) -> s.concat("_XXX"))
@@ -51,14 +52,7 @@ public class TestStream {
 
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
         lf.writeTo(System.out);
 
@@ -67,7 +61,7 @@ public class TestStream {
 
     @Test
     public void testMapFlatMapFilterCollect() {
-        CoreOps.FuncOp f = StreamFuser.fromList(type(Integer.class))
+        CoreOp.FuncOp f = StreamFuser.fromList(type(Integer.class))
                 .map((Integer i) -> i.toString())
                 .flatMap((String s) -> List.of(s, s))
                 .filter((String s) -> s.length() < 10)
@@ -77,14 +71,7 @@ public class TestStream {
 
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
         lf.writeTo(System.out);
 

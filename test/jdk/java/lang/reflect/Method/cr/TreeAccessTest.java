@@ -27,8 +27,8 @@ import org.testng.annotations.Test;
 import java.io.StringWriter;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.Op;
-import java.lang.reflect.code.op.CoreOps;
-import java.lang.reflect.code.op.ExtendedOps;
+import java.lang.reflect.code.op.CoreOp;
+import java.lang.reflect.code.op.ExtendedOp;
 import java.lang.reflect.code.parser.OpParser;
 import java.lang.reflect.code.writer.OpWriter;
 import java.lang.runtime.CodeReflection;
@@ -51,10 +51,10 @@ public class TreeAccessTest {
     void testTreeAccess() throws Exception {
         Method m = TreeAccessTest.class.getDeclaredMethod("m", String.class);
 
-        Optional<CoreOps.FuncOp> tree = m.getCodeModel();
+        Optional<CoreOp.FuncOp> tree = m.getCodeModel();
         Assert.assertTrue(tree.isPresent());
 
-        CoreOps.FuncOp methodTree = tree.get();
+        CoreOp.FuncOp methodTree = tree.get();
 
         String expectedTree = """
                 func @"m" (%0 : TreeAccessTest, %1 : java.lang.String)int -> {
@@ -77,7 +77,7 @@ public class TreeAccessTest {
     void testNoTree() throws Exception {
         Method m = TreeAccessTest.class.getDeclaredMethod("n", String.class);
 
-        Optional<CoreOps.FuncOp> tree = m.getCodeModel();
+        Optional<CoreOp.FuncOp> tree = m.getCodeModel();
         Assert.assertTrue(tree.isEmpty());
     }
 
@@ -91,7 +91,7 @@ public class TreeAccessTest {
     static String canonicalizeModel(String d) {
         Op o;
         try {
-            o = OpParser.fromString(ExtendedOps.FACTORY, d).get(0);
+            o = OpParser.fromString(ExtendedOp.FACTORY, d).get(0);
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }

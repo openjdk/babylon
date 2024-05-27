@@ -24,17 +24,14 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.Block;
-import java.lang.reflect.code.CopyContext;
-import java.lang.reflect.code.op.CoreOps;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.Quoted;
+import java.lang.reflect.code.*;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.code.type.JavaType;
 import java.util.List;
 
-import static java.lang.reflect.code.op.CoreOps.*;
+import static java.lang.reflect.code.op.CoreOp.*;
 import static java.lang.reflect.code.type.FunctionType.functionType;
 import static java.lang.reflect.code.type.JavaType.INT;
 
@@ -48,10 +45,10 @@ public class TestInline {
     @Test
     public void testInline() {
         Quoted q = (int a, int b) -> a + b;
-        CoreOps.ClosureOp cop = (CoreOps.ClosureOp) q.op();
+        CoreOp.ClosureOp cop = (CoreOp.ClosureOp) q.op();
 
         // functional type = (int)int
-        CoreOps.FuncOp f = func("f", functionType(INT, INT))
+        CoreOp.FuncOp f = func("f", functionType(INT, INT))
                 .body(fblock -> {
                     Block.Parameter i = fblock.parameters().get(0);
 
@@ -70,10 +67,10 @@ public class TestInline {
     @Test
     public void testInlineVar() {
         Quoted q = (int a, int b) -> a + b;
-        CoreOps.ClosureOp cop = (CoreOps.ClosureOp) q.op();
+        CoreOp.ClosureOp cop = (CoreOp.ClosureOp) q.op();
 
         // functional type = (int)int
-        CoreOps.FuncOp f = func("f", functionType(INT, INT))
+        CoreOp.FuncOp f = func("f", functionType(INT, INT))
                 .body(fblock -> {
                     Block.Parameter i = fblock.parameters().get(0);
 
@@ -104,20 +101,13 @@ public class TestInline {
             }
             return a - b;
         };
-        CoreOps.ClosureOp cop = (CoreOps.ClosureOp) q.op();
+        CoreOp.ClosureOp cop = (CoreOp.ClosureOp) q.op();
         cop.writeTo(System.out);
-        CoreOps.ClosureOp lcop = cop.transform(CopyContext.create(), (block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        CoreOp.ClosureOp lcop = cop.transform(CopyContext.create(), OpTransformer.LOWERING_TRANSFORMER);
         lcop.writeTo(System.out);
 
         // functional type = (int)int
-        CoreOps.FuncOp f = func("f", functionType(INT, INT))
+        CoreOp.FuncOp f = func("f", functionType(INT, INT))
                 .body(fblock -> {
                     Block.Parameter i = fblock.parameters().get(0);
 
@@ -140,20 +130,13 @@ public class TestInline {
             }
             return a - b;
         };
-        CoreOps.ClosureOp cop = (CoreOps.ClosureOp) q.op();
+        CoreOp.ClosureOp cop = (CoreOp.ClosureOp) q.op();
         cop.writeTo(System.out);
-        CoreOps.ClosureOp lcop = cop.transform(CopyContext.create(), (block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        CoreOp.ClosureOp lcop = cop.transform(CopyContext.create(), OpTransformer.LOWERING_TRANSFORMER);
         lcop.writeTo(System.out);
 
         // functional type = (int)int
-        CoreOps.FuncOp f = func("f", functionType(INT, INT))
+        CoreOp.FuncOp f = func("f", functionType(INT, INT))
                 .body(fblock -> {
                     Block.Parameter i = fblock.parameters().get(0);
 
@@ -182,10 +165,10 @@ public class TestInline {
             }
             return a - b;
         };
-        CoreOps.ClosureOp cop = (CoreOps.ClosureOp) q.op();
+        CoreOp.ClosureOp cop = (CoreOp.ClosureOp) q.op();
         cop.writeTo(System.out);
 
-        CoreOps.FuncOp f = func("f", functionType(INT, INT))
+        CoreOp.FuncOp f = func("f", functionType(INT, INT))
                 .body(fblock -> {
                     Block.Parameter i = fblock.parameters().get(0);
 
@@ -196,14 +179,7 @@ public class TestInline {
                 });
         f.writeTo(System.out);
 
-        f = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
         f.writeTo(System.out);
 
         int ir = (int) Interpreter.invoke(MethodHandles.lookup(), f, 1);
@@ -216,10 +192,10 @@ public class TestInline {
             a[0] = 42;
             return;
         };
-        CoreOps.ClosureOp cop = (CoreOps.ClosureOp) q.op();
+        CoreOp.ClosureOp cop = (CoreOp.ClosureOp) q.op();
 
         // functional type = (int)int
-        CoreOps.FuncOp f = func("f", functionType(JavaType.VOID, JavaType.type(int[].class)))
+        CoreOp.FuncOp f = func("f", functionType(JavaType.VOID, JavaType.type(int[].class)))
                 .body(fblock -> {
                     Block.Parameter a = fblock.parameters().get(0);
 

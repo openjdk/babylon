@@ -24,7 +24,8 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.OpTransformer;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.Method;
@@ -50,18 +51,11 @@ public class TestForOp {
 
     @Test
     public void testf() {
-        CoreOps.FuncOp f = getFuncOp("f");
+        CoreOp.FuncOp f = getFuncOp("f");
 
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
         lf.writeTo(System.out);
 
@@ -80,18 +74,11 @@ public class TestForOp {
 
     @Test
     public void testf2() {
-        CoreOps.FuncOp f = getFuncOp("f2");
+        CoreOp.FuncOp f = getFuncOp("f2");
 
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
         lf.writeTo(System.out);
 
@@ -112,25 +99,18 @@ public class TestForOp {
 
     @Test
     public void testf3() {
-        CoreOps.FuncOp f = getFuncOp("f3");
+        CoreOp.FuncOp f = getFuncOp("f3");
 
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
         lf.writeTo(System.out);
 
         Assert.assertEquals(Interpreter.invoke(lf), f3());
     }
 
-    static CoreOps.FuncOp getFuncOp(String name) {
+    static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestForOp.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
                 .findFirst();

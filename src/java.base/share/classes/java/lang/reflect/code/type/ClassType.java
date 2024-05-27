@@ -25,7 +25,12 @@
 
 package java.lang.reflect.code.type;
 
+import java.lang.constant.ClassDesc;
+import java.lang.invoke.MethodHandles.Lookup;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.lang.reflect.code.TypeElement;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -35,36 +40,53 @@ import java.util.Optional;
  */
 public final class ClassType implements TypeVarRef.Owner, JavaType {
     // Fully qualified name
-    private final String type;
+    private final ClassDesc type;
 
     private final List<JavaType> typeArguments;
 
-    ClassType(String type) {
+    ClassType(ClassDesc type) {
         this(type, List.of());
     }
 
-    ClassType(String type, List<JavaType> typeArguments) {
-        switch (type) {
-            case "boolean", "char", "byte", "short", "int", "long",
-                    "float", "double", "void" -> throw new IllegalArgumentException();
+    ClassType(ClassDesc type, List<JavaType> typeArguments) {
+        if (!type.isClassOrInterface()) {
+            throw new IllegalArgumentException("Invalid base type: " + type);
         }
         this.type = type;
         this.typeArguments = List.copyOf(typeArguments);
     }
 
     @Override
-    public TypeDefinition toTypeDefinition() {
-        List<TypeDefinition> args = typeArguments.stream()
-                .map(TypeElement::toTypeDefinition)
+    public Type resolve(Lookup lookup) throws ReflectiveOperationException {
+        Class<?> baseType = type.resolveConstantDesc(lookup);
+        List<Type> resolvedTypeArgs = new ArrayList<>();
+        for (JavaType typearg : typeArguments) {
+            resolvedTypeArgs.add(typearg.resolve(lookup));
+        }
+        return resolvedTypeArgs.isEmpty() ?
+                baseType :
+                makeReflectiveParameterizedType(baseType,
+                        resolvedTypeArgs.toArray(new Type[0]), baseType.getDeclaringClass()); // @@@: generic owner is erased here
+    }
+
+    // Copied code in jdk.compiler module throws UOE
+    private static ParameterizedType makeReflectiveParameterizedType(Class<?> base, Type[] typeArgs, Class<?> owner) {
+/*__throw new UnsupportedOperationException();__*/        return sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl.make(base, typeArgs, owner);
+    }
+
+    @Override
+    public ExternalizedTypeElement externalize() {
+        List<ExternalizedTypeElement> args = typeArguments.stream()
+                .map(TypeElement::externalize)
                 .toList();
 
-        TypeDefinition td = new TypeDefinition(type, args);
+        ExternalizedTypeElement td = new ExternalizedTypeElement(toClassName(), args);
         return td;
     }
 
     @Override
     public String toString() {
-        return toTypeDefinition().toString();
+        return externalize().toString();
     }
 
     @Override
@@ -111,14 +133,25 @@ public final class ClassType implements TypeVarRef.Owner, JavaType {
 
     // Conversions
 
+    /**
+     * {@return a class type whose base type is the same as this class type, but without any
+     * type arguments}
+     */
     public ClassType rawType() {
         return new ClassType(type);
     }
 
+    /**
+     * {@return {@code true} if this class type has a non-empty type argument list}
+     * @see ClassType#typeArguments()
+     */
     public boolean hasTypeArguments() {
         return !typeArguments.isEmpty();
     }
 
+    /**
+     * {@return the type argument list associated with this class type}
+     */
     public List<JavaType> typeArguments() {
         return typeArguments;
     }
@@ -128,28 +161,18 @@ public final class ClassType implements TypeVarRef.Owner, JavaType {
         return JavaType.J_L_OBJECT;
     }
 
+    /**
+     * {@return a human-readable name for this class type}
+     */
     public String toClassName() {
-        return type;
-    }
-
-    public String toInternalName() {
-        return toClassDescriptor(type);
+        String pkg = type.packageName();
+        return pkg.isEmpty() ?
+                type.displayName() :
+                String.format("%s.%s", pkg, type.displayName());
     }
 
     @Override
-    public String toNominalDescriptorString() {
-        return toBytecodeDescriptor(type);
-    }
-
-    static String toBytecodeDescriptor(String type) {
-        if (type.equals("null")) {
-            type = Object.class.getName();
-        }
-
-        return "L" + type.replace('.', '/') + ";";
-    }
-
-    static String toClassDescriptor(String type) {
-        return type.replace('.', '/');
+    public ClassDesc toNominalDescriptor() {
+        return type;
     }
 }

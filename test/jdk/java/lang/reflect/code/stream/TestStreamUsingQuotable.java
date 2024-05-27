@@ -30,8 +30,9 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.code.Op;
+import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.interpreter.Interpreter;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
@@ -40,7 +41,7 @@ public class TestStreamUsingQuotable {
 
     @Test
     public void testMapFilterForEach() {
-        CoreOps.FuncOp f = StreamFuserUsingQuotable.fromList(Integer.class)
+        CoreOp.FuncOp f = StreamFuserUsingQuotable.fromList(Integer.class)
                 .map(Object::toString)
                 .filter(s -> s.length() < 10)
                 .map(s -> s.concat("_XXX"))
@@ -50,14 +51,7 @@ public class TestStreamUsingQuotable {
 
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
         lf.writeTo(System.out);
 
@@ -66,7 +60,7 @@ public class TestStreamUsingQuotable {
 
     @Test
     public void testMapFlatMapFilterCollect() {
-        CoreOps.FuncOp f = StreamFuserUsingQuotable.fromList(Integer.class)
+        CoreOp.FuncOp f = StreamFuserUsingQuotable.fromList(Integer.class)
                 .map(Object::toString)
                 .flatMap(s -> List.of(s, s))
                 .filter(s -> s.length() < 10)
@@ -76,14 +70,7 @@ public class TestStreamUsingQuotable {
 
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
         lf.writeTo(System.out);
 

@@ -24,7 +24,7 @@
 import java.lang.reflect.code.Block;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.util.*;
 
 public final class ActiveSet {
@@ -36,7 +36,7 @@ public final class ActiveSet {
     // following its users and following through block arguments
     // to block parameters, and so on until the graph is traversed.
 
-    public static Set<Value> activeSet(CoreOps.FuncOp f, Block.Parameter fv) {
+    public static Set<Value> activeSet(CoreOp.FuncOp f, Block.Parameter fv) {
         if (!f.body().blocks().get(0).parameters().contains(fv)) {
             throw new IllegalArgumentException("Arg is not defined by function");
         }

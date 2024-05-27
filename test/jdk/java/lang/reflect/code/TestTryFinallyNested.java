@@ -29,8 +29,8 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.analysis.SSA;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.OpTransformer;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
@@ -83,18 +83,11 @@ public class TestTryFinallyNested {
 
     @Test
     public void testCatchFinally() {
-        CoreOps.FuncOp f = getFuncOp("tryCatchFinally");
+        CoreOp.FuncOp f = getFuncOp("tryCatchFinally");
 
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
         lf.writeTo(System.out);
 
@@ -159,18 +152,11 @@ public class TestTryFinallyNested {
 
     @Test
     public void testCatchFinallyBreak() {
-        CoreOps.FuncOp f = getFuncOp("tryCatchFinallyBreak");
+        CoreOp.FuncOp f = getFuncOp("tryCatchFinallyBreak");
 
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
         lf.writeTo(System.out);
 
@@ -217,18 +203,11 @@ public class TestTryFinallyNested {
 
     @Test
     public void testTryForLoop() {
-        CoreOps.FuncOp f = getFuncOp("tryForLoop");
+        CoreOp.FuncOp f = getFuncOp("tryForLoop");
 
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
         lf.writeTo(System.out);
 
@@ -267,18 +246,11 @@ public class TestTryFinallyNested {
 
     @Test
     public void testTryLabeledForLoop() {
-        CoreOps.FuncOp f = getFuncOp("tryLabeledForLoop");
+        CoreOp.FuncOp f = getFuncOp("tryLabeledForLoop");
 
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
         lf.writeTo(System.out);
 
@@ -313,18 +285,11 @@ public class TestTryFinallyNested {
 
     @Test
     public void testTryLambda() {
-        CoreOps.FuncOp f = getFuncOp("tryLambda");
+        CoreOp.FuncOp f = getFuncOp("tryLambda");
 
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
         lf.writeTo(System.out);
 
@@ -339,7 +304,7 @@ public class TestTryFinallyNested {
     }
 
 
-    static CoreOps.FuncOp getFuncOp(String name) {
+    static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestTryFinallyNested.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
                 .findFirst();

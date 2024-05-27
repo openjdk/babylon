@@ -35,7 +35,7 @@ import java.lang.reflect.code.TypeElement;
 import java.util.stream.Stream;
 
 import static java.lang.reflect.code.type.MethodRef.method;
-import static java.lang.reflect.code.op.CoreOps.*;
+import static java.lang.reflect.code.op.CoreOp.*;
 import static java.lang.reflect.code.type.FunctionType.functionType;
 
 /*
@@ -98,7 +98,7 @@ public class TestLinqUsingQuoted {
         // Iterate
         // Queryable -> Stream
         default QueryResult elements() {
-            TypeElement resultType = JavaType.type(JavaType.type(Stream.class), (JavaType) elementType());
+            TypeElement resultType = JavaType.parameterized(JavaType.type(Stream.class), (JavaType) elementType());
             return insertQueryResult("elements", resultType);
         }
 

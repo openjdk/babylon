@@ -24,7 +24,8 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.OpTransformer;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.invoke.MethodHandle;
@@ -47,7 +48,7 @@ public class TestArrayCreation {
 
     @Test
     public void testf() throws Throwable {
-        CoreOps.FuncOp f = getFuncOp("f");
+        CoreOp.FuncOp f = getFuncOp("f");
 
         MethodHandle mh = generate(f);
 
@@ -61,7 +62,7 @@ public class TestArrayCreation {
 
     @Test
     public void testf2() throws Throwable {
-        CoreOps.FuncOp f = getFuncOp("f2");
+        CoreOp.FuncOp f = getFuncOp("f2");
 
         MethodHandle mh = generate(f);
 
@@ -75,7 +76,7 @@ public class TestArrayCreation {
 
     @Test
     public void testf3() throws Throwable {
-        CoreOps.FuncOp f = getFuncOp("f3");
+        CoreOp.FuncOp f = getFuncOp("f3");
 
         MethodHandle mh = generate(f);
 
@@ -89,30 +90,23 @@ public class TestArrayCreation {
 
     @Test
     public void testf4() throws Throwable {
-        CoreOps.FuncOp f = getFuncOp("f4");
+        CoreOp.FuncOp f = getFuncOp("f4");
 
         MethodHandle mh = generate(f);
 
         Assert.assertEquals((String[][]) mh.invoke(), f4());
     }
 
-    static MethodHandle generate(CoreOps.FuncOp f) {
+    static MethodHandle generate(CoreOp.FuncOp f) {
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
         lf.writeTo(System.out);
 
         return BytecodeGenerator.generate(MethodHandles.lookup(), lf);
     }
 
-    static CoreOps.FuncOp getFuncOp(String name) {
+    static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestArrayCreation.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
                 .findFirst();

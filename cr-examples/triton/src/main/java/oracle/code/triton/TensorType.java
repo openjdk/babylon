@@ -26,7 +26,6 @@
 package oracle.code.triton;
 
 import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.type.TypeDefinition;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -74,17 +73,17 @@ public final class TensorType extends TritonType {
     }
 
     @Override
-    public TypeDefinition toTypeDefinition() {
-        List<TypeDefinition> args = new ArrayList<>();
+    public ExternalizedTypeElement externalize() {
+        List<ExternalizedTypeElement> args = new ArrayList<>();
         for (int i : shape) {
-            args.add(new TypeDefinition("x" + i, List.of()));
+            args.add(new ExternalizedTypeElement("x" + i, List.of()));
         }
-        args.add(eType.toTypeDefinition());
-        return new TypeDefinition(NAME, args);
+        args.add(eType.externalize());
+        return new ExternalizedTypeElement(NAME, args);
     }
 
     @Override
     public String toString() {
-        return toTypeDefinition().toString();
+        return externalize().toString();
     }
 }

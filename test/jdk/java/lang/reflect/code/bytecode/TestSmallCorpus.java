@@ -32,10 +32,11 @@ import java.lang.classfile.instruction.*;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.AccessFlag;
 import java.lang.reflect.code.Op;
+import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.reflect.code.bytecode.BytecodeLift;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -56,8 +57,7 @@ import org.testng.annotations.Test;
 public class TestSmallCorpus {
 
     private static final FileSystem JRT = FileSystems.getFileSystem(URI.create("jrt:/"));
-    private static final ClassFile CF = ClassFile.of(ClassFile.DebugElementsOption.DROP_DEBUG,
-                                                     ClassFile.LineNumbersOption.DROP_LINE_NUMBERS);
+    private static final ClassFile CF = ClassFile.of();
     private static final int COLUMN_WIDTH = 150;
 
     private int passed, notMatching;
@@ -85,7 +85,7 @@ public class TestSmallCorpus {
         }
 
         // @@@ There is still several failing cases and a lot of errors
-        Assert.assertTrue(notMatching < 31 && passed > 5400, String.format("""
+        Assert.assertTrue(passed > 6400, String.format("""
 
                     passed: %d
                     not matching: %d
@@ -103,15 +103,15 @@ public class TestSmallCorpus {
         var clm = CF.parse(path);
         for (var originalModel : clm.methods()) {
             if (originalModel.flags().has(AccessFlag.STATIC) && originalModel.code().isPresent()) try {
-                CoreOps.FuncOp firstLift = lift(originalModel);
+                CoreOp.FuncOp firstLift = lift(originalModel);
                 try {
-                    CoreOps.FuncOp firstTransform = transform(firstLift);
+                    CoreOp.FuncOp firstTransform = transform(firstLift);
                     try {
                         MethodModel firstModel = lower(firstTransform);
                         try {
-                            CoreOps.FuncOp secondLift = lift(firstModel);
+                            CoreOp.FuncOp secondLift = lift(firstModel);
                             try {
-                                CoreOps.FuncOp secondTransform = transform(secondLift);
+                                CoreOp.FuncOp secondTransform = transform(secondLift);
                                 try {
                                     MethodModel secondModel = lower(secondTransform);
 
@@ -148,7 +148,7 @@ public class TestSmallCorpus {
             }
         }
     }
-    private static void printInColumns(CoreOps.FuncOp first, CoreOps.FuncOp second) {
+    private static void printInColumns(CoreOp.FuncOp first, CoreOp.FuncOp second) {
         StringWriter fw = new StringWriter();
         first.writeTo(fw);
         StringWriter sw = new StringWriter();
@@ -165,22 +165,15 @@ public class TestSmallCorpus {
         }
     }
 
-    private static CoreOps.FuncOp lift(MethodModel mm) {
+    private static CoreOp.FuncOp lift(MethodModel mm) {
         return BytecodeLift.lift(mm);
     }
 
-    private static CoreOps.FuncOp transform(CoreOps.FuncOp func) {
-        return SSA.transform(func.transform((block, op) -> {
-                    if (op instanceof Op.Lowerable lop) {
-                        return lop.lower(block);
-                    } else {
-                        block.op(op);
-                        return block;
-                    }
-                }));
+    private static CoreOp.FuncOp transform(CoreOp.FuncOp func) {
+        return SSA.transform(func.transform(OpTransformer.LOWERING_TRANSFORMER));
     }
 
-    private static MethodModel lower(CoreOps.FuncOp func) {
+    private static MethodModel lower(CoreOp.FuncOp func) {
         return CF.parse(BytecodeGenerator.generateClassData(
                 MethodHandles.lookup(),
                 func)).methods().get(0);

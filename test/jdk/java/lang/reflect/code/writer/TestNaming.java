@@ -33,12 +33,14 @@ import java.io.StringWriter;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.CodeItem;
 import java.lang.reflect.code.Op;
+import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.analysis.SSA;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.writer.OpWriter;
 import java.lang.runtime.CodeReflection;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 public class TestNaming {
@@ -57,23 +59,16 @@ public class TestNaming {
 
     @Test
     public void testHigh() {
-        CoreOps.FuncOp f = getFuncOp("f");
+        CoreOp.FuncOp f = getFuncOp("f");
 
         testModel(f);
     }
 
     @Test
     public void testLow() {
-        CoreOps.FuncOp f = getFuncOp("f");
+        CoreOp.FuncOp f = getFuncOp("f");
 
-        f = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
         f = SSA.transform(f);
 
@@ -81,19 +76,15 @@ public class TestNaming {
     }
 
     static void testModel(Op op) {
-        Map<CodeItem, String> cNamer = OpWriter.computeGlobalNames(op);
+        Function<CodeItem, String> cNamer = OpWriter.computeGlobalNames(op);
 
-        StringWriter w = new StringWriter();
-        new OpWriter(w, OpWriter.CodeItemNamerOption.of(cNamer::get)).writeOp(op);
-        w.write("\n");
-        String actual = w.toString();
-
+        String actual = OpWriter.toText(op, OpWriter.CodeItemNamerOption.of(cNamer));
         String expected = op.toText();
 
         Assert.assertEquals(actual, expected);
     }
 
-    static CoreOps.FuncOp getFuncOp(String name) {
+    static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestNaming.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
                 .findFirst();

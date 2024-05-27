@@ -32,8 +32,9 @@ import org.testng.annotations.Test;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.CodeElement;
 import java.lang.reflect.code.Op;
+import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.analysis.SSA;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.runtime.CodeReflection;
 import java.util.ArrayList;
 import java.util.List;
@@ -61,17 +62,10 @@ public class TestTraverse {
 
     @Test
     public void test() {
-        CoreOps.FuncOp f = getFuncOp("f");
+        CoreOp.FuncOp f = getFuncOp("f");
         testTraverse(f);
 
-        f = f.transform((b, o) -> {
-            if (o instanceof Op.Lowerable l) {
-                return l.lower(b);
-            } else {
-                b.op(o);
-                return b;
-            }
-        });
+        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
         testTraverse(f);
 
         f = SSA.transform(f);
@@ -88,7 +82,7 @@ public class TestTraverse {
         Assert.assertEquals(op.elements().limit(2).toList(), tl.subList(0, 2));
     }
 
-    static CoreOps.FuncOp getFuncOp(String name) {
+    static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestTraverse.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
                 .findFirst();

@@ -31,15 +31,15 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.analysis.SSA;
-import java.lang.reflect.code.op.CoreOps;
-import java.lang.reflect.code.op.ExtendedOps;
+import java.lang.reflect.code.op.CoreOp;
+import java.lang.reflect.code.op.ExtendedOp;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.type.VarType;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
-import static java.lang.reflect.code.op.CoreOps.*;
+import static java.lang.reflect.code.op.CoreOp.*;
 import static java.lang.reflect.code.type.FunctionType.functionType;
 
 public final class TritonTransformer {
@@ -188,7 +188,7 @@ public final class TritonTransformer {
                     TypeElement t = checkWithTypeInterpreter(op, iop.invokeDescriptor().name(), valueTypeMap);
                     valueTypeMap.put(op.result(), t);
                 }
-                case ExtendedOps.JavaForOp fop -> {
+                case ExtendedOp.JavaForOp fop -> {
                     SimpleCountedForLoopInfo li = new SimpleCountedForLoopInfo(fop);
                     opData.put(fop, li);
 
@@ -203,7 +203,7 @@ public final class TritonTransformer {
                 }
                 case TestOperation _ -> {
                 }
-                case ExtendedOps.JavaContinueOp _ -> {
+                case ExtendedOp.JavaContinueOp _ -> {
                 }
                 case YieldOp _ -> {
                 }
@@ -622,7 +622,7 @@ public final class TritonTransformer {
                     // contributing to the computation
                     Value a = op.operands().get(0);
                     TensorType aType = (TensorType) valueTypeMap.get(a);
-                    Op.Result result = kblock.op(CoreOps.constant(iop.resultType(), aType));
+                    Op.Result result = kblock.op(CoreOp.constant(iop.resultType(), aType));
                     cc.mapValue(op.result(), result);
                     valueTypeMap.put(result, aType);
                 }
@@ -640,7 +640,7 @@ public final class TritonTransformer {
                     cc.mapValue(op.result(), result);
                 }
             }
-            case ExtendedOps.JavaForOp fop -> {
+            case ExtendedOp.JavaForOp fop -> {
                 transformToSCFFor(cc, kblock, fop, valueTypeMap, opData, fsymTable);
             }
             case ReturnOp rop -> {
@@ -656,7 +656,7 @@ public final class TritonTransformer {
         return kblock;
     }
 
-    static void transformToSCFFor(CopyContext cc, Block.Builder kblock, ExtendedOps.JavaForOp fop,
+    static void transformToSCFFor(CopyContext cc, Block.Builder kblock, ExtendedOp.JavaForOp fop,
                                   Map<Value, TypeElement> valueTypeMap, Map<Op, Object> opData,
                                   Map<String, TritonOps.FuncOp> fsymTable) {
         Body body = fop.loopBody();
@@ -727,7 +727,7 @@ public final class TritonTransformer {
                     // Transform the Java for body into the SCF for body
                     builder.transformBody(body, List.of(), (block, op) -> {
                         // Yield iter values
-                        if (op instanceof ExtendedOps.JavaContinueOp) {
+                        if (op instanceof ExtendedOp.JavaContinueOp) {
                             // Replace with yield of loaded vars
                             List<Value> yieldValues = new ArrayList<>();
                             for (Value value : capturedAndStoredVars) {
@@ -894,7 +894,7 @@ public final class TritonTransformer {
             Object zero;
             try {
                 JavaType zeroType = (JavaType) aType.value();
-                zero = MethodHandles.zero(zeroType.resolve(MethodHandles.lookup())).invoke();
+                zero = MethodHandles.zero((Class<?>) zeroType.resolve(MethodHandles.lookup())).invoke();
             } catch (Throwable e) {
                 throw new RuntimeException(e);
             }
@@ -944,7 +944,7 @@ public final class TritonTransformer {
             // Replace with constant operation to produce tensor type.
             // Result may be used, but transitively it will be removed due to no uses
             // contributing to the computation
-            return block.op(CoreOps.constant(JavaType.type(TensorType.class), r.type()));
+            return block.op(CoreOp.constant(JavaType.type(TensorType.class), r.type()));
         }
 
 

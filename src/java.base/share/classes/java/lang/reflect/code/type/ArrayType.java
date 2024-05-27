@@ -25,6 +25,11 @@
 
 package java.lang.reflect.code.type;
 
+import java.lang.constant.ClassDesc;
+import java.lang.invoke.MethodHandles.Lookup;
+import java.lang.reflect.Array;
+import java.lang.reflect.GenericArrayType;
+import java.lang.reflect.Type;
 import java.lang.reflect.code.TypeElement;
 import java.util.List;
 
@@ -32,12 +37,26 @@ import java.util.List;
  * An array type.
  */
 public final class ArrayType implements JavaType {
-    static final String NAME = "[";
 
     final JavaType componentType;
 
     ArrayType(JavaType componentType) {
         this.componentType = componentType;
+    }
+
+    @Override
+    public Type resolve(Lookup lookup) throws ReflectiveOperationException {
+        Type resolvedComponent = componentType.resolve(lookup);
+        if (resolvedComponent instanceof Class<?> resolvedComponentClass) {
+            return resolvedComponentClass.arrayType();
+        } else { // generic array
+            return makeReflectiveGenericArray(resolvedComponent);
+        }
+    }
+
+    // Copied code in jdk.compiler module throws UOE
+    private static GenericArrayType makeReflectiveGenericArray(Type component) {
+/*__throw new UnsupportedOperationException();__*/        return sun.reflect.generics.reflectiveObjects.GenericArrayTypeImpl.make(component);
     }
 
     /**
@@ -47,6 +66,9 @@ public final class ArrayType implements JavaType {
         return componentType;
     }
 
+    /**
+     * {@return the dimensions associated with this array type}
+     */
     public int dimensions() {
         int dims = 0;
         JavaType current = this;
@@ -58,19 +80,19 @@ public final class ArrayType implements JavaType {
     }
 
     @Override
-    public TypeDefinition toTypeDefinition() {
+    public ExternalizedTypeElement externalize() {
         int dims = 0;
         TypeElement current = this;
         while (current instanceof ArrayType at) {
             dims++;
             current = at.componentType();
         }
-        return new TypeDefinition("[".repeat(dims), List.of(current.toTypeDefinition()));
+        return new ExternalizedTypeElement("[".repeat(dims), List.of(current.externalize()));
     }
 
     @Override
     public String toString() {
-        return toTypeDefinition().toString();
+        return externalize().toString();
     }
 
     @Override
@@ -96,7 +118,7 @@ public final class ArrayType implements JavaType {
     }
 
     @Override
-    public String toNominalDescriptorString() {
-        return "[" + componentType.toNominalDescriptorString();
+    public ClassDesc toNominalDescriptor() {
+        return componentType.toNominalDescriptor().arrayType();
     }
 }

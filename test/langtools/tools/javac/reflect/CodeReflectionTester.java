@@ -26,13 +26,13 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.*;
-import java.lang.reflect.code.op.ExtendedOps;
+import java.lang.reflect.code.op.ExtendedOp;
 import java.lang.reflect.code.parser.OpParser;
 import java.lang.reflect.code.writer.OpWriter;
 import java.lang.runtime.CodeReflection;
 
-import static java.lang.reflect.code.op.CoreOps._return;
-import static java.lang.reflect.code.op.CoreOps.func;
+import static java.lang.reflect.code.op.CoreOp._return;
+import static java.lang.reflect.code.op.CoreOp.func;
 import static java.lang.reflect.code.type.FunctionType.VOID;
 
 public class CodeReflectionTester {
@@ -97,7 +97,7 @@ public class CodeReflectionTester {
     static String canonicalizeModel(Member m, String d) {
         Op o;
         try {
-            o = OpParser.fromString(ExtendedOps.FACTORY, d).get(0);
+            o = OpParser.fromString(ExtendedOp.FACTORY, d).get(0);
         } catch (Exception e) {
             throw new IllegalStateException(m.toString(), e);
         }
