@@ -48,16 +48,20 @@ public final class OpWriter {
     static final class GlobalValueBlockNaming implements Function<CodeItem, String> {
         final Map<CodeItem, String> gn;
         int valueOrdinal = 0;
-        int blockOrdinal = 0;
 
         GlobalValueBlockNaming() {
             this.gn = new HashMap<>();
         }
 
+        private String name(Block b) {
+            Block p = b.parentBody().parentOp().parentBlock();
+            return (p == null ? "block_" : name(p) + "_") + b.index();
+        }
+
         @Override
         public String apply(CodeItem codeItem) {
             return switch (codeItem) {
-                case Block block -> gn.computeIfAbsent(block, _b -> "block_" + blockOrdinal++);
+                case Block block -> gn.computeIfAbsent(block, _b -> name(block));
                 case Value value -> gn.computeIfAbsent(value, _v -> String.valueOf(valueOrdinal++));
                 default -> throw new IllegalStateException("Unexpected code item: " + codeItem);
             };
