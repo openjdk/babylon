@@ -768,6 +768,16 @@ add_custom_target(squares_opencl DEPENDS squares.jar opencl_backend.jar opencl_b
        squares.Squares
 )
 
+add_custom_target(squares_cuda DEPENDS squares.jar cuda_backend.jar cuda_backend
+   COMMAND  ${DOIT}
+     ${JAVA_HOME}/bin/java
+       --enable-preview --enable-native-access=ALL-UNNAMED
+       --class-path ${HAT_JAR}:${SQUARES_JAR}:${CUDA_BACKEND_JAR}
+       --add-exports=java.base/jdk.internal=ALL-UNNAMED
+       -Djava.library.path=${CMAKE_BINARY_DIR}
+       squares.Squares
+)
+
 #  heal executable
 add_custom_target(heal_java DEPENDS heal.jar
    COMMAND  ${DOIT}
