@@ -61,7 +61,7 @@ public final class OpWriter {
         @Override
         public String apply(CodeItem codeItem) {
             return switch (codeItem) {
-                case Block block -> gn.computeIfAbsent(block, _b -> name(block));
+                case Block block -> gn.computeIfAbsent(block, _b -> name(_b));
                 case Value value -> gn.computeIfAbsent(value, _v -> String.valueOf(valueOrdinal++));
                 default -> throw new IllegalStateException("Unexpected code item: " + codeItem);
             };
