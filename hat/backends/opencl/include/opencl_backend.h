@@ -123,7 +123,8 @@ public:
     int getMaxComputeUnits();
 
     void info();
-
+    void dumpSled(std::ostream &out,void *argArray);
+    char *dumpSchema(std::ostream &out,int depth, char *ptr, void *data);
     long compileProgram(int len, char *source);
 
 public:

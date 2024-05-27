@@ -27,5 +27,8 @@
 int main(){
     OpenCLBackend backend;
     backend.info();
+  //  char *schema = (char*)"args:[1:?:4+S32Array:{length:s32,array:[*:?:s32]}]";
+   // std::cout << "schema = '"<<schema<<"'"<<std::endl;
+   // backend.dumpSchema(std::cout, 0, schema, nullptr);
 }
 
