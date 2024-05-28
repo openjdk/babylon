@@ -81,6 +81,7 @@ public class OpenCLBackend extends C99NativeBackend {
         //System.out.println("OpenCL backend dispatching kernel " + kernelCallGraph.entrypoint.method);
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
             String code = createCode(kernelCallGraph, new OpenCLHatKernelBuilder(), args);
+            System.out.println(code);
             long programHandle = compileProgram(code);
             if (programOK(programHandle)) {
                 long kernelHandle = getKernel(programHandle, kernelCallGraph.entrypoint.method.getName());

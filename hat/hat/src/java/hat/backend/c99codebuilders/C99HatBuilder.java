@@ -437,8 +437,10 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
                             space().typeName(nameAndType.name);
                             if (nameAndType instanceof Typedef.NameAndArrayOfType nameAndArrayOfType) {
                                 sbrace(_ -> {
-                                    if (nameAndArrayOfType.arraySize >= 0) {
+                                    if (nameAndArrayOfType.arraySize > 0) {
                                         literal(nameAndArrayOfType.arraySize);
+                                    }else{
+                                        literal(1);
                                     }
                                 });
                             }
