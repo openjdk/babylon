@@ -225,8 +225,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         @Override
         public Block.Builder lower(Block.Builder b, OpTransformer _ignore) {
             // Isolate body with respect to ancestor transformations
-            // and copy directly without lowering descendant operations
-            b.op(this, OpTransformer.COPYING_TRANSFORMER);
+            b.op(this, OpTransformer.LOWERING_TRANSFORMER);
             return b;
         }
 
@@ -308,11 +307,11 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      */
     @OpFactory.OpDeclaration(ModuleOp.NAME)
     public static final class ModuleOp extends CoreOp
-            implements Op.Isolated {
+            implements Op.Isolated, Op.Lowerable {
 
         public static final String NAME = "module";
 
-        final Map<String, FuncOp> table;
+        final SequencedMap<String, FuncOp> table;
         final Body body;
 
         public static ModuleOp create(ExternalizedOp def) {
@@ -337,16 +336,16 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             this.table = createTable(body);
         }
 
-        static Map<String, FuncOp> createTable(Body body) {
-            Map<String, FuncOp> table = new HashMap<>();
+        static SequencedMap<String, FuncOp> createTable(Body body) {
+            SequencedMap<String, FuncOp> table = new LinkedHashMap<>();
             for (var op : body.entryBlock().ops()) {
                 if (op instanceof FuncOp fop) {
                     table.put(fop.funcName(), fop);
-                } else {
+                } else if (!(op instanceof Op.Terminating)) {
                     throw new IllegalArgumentException("Bad operation in module: " + op);
                 }
             }
-            return Collections.unmodifiableMap(table);
+            return Collections.unmodifiableSequencedMap(table);
         }
 
         @Override
@@ -364,12 +363,13 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
             Body.Builder bodyC = Body.Builder.of(null, FunctionType.VOID);
             Block.Builder entryBlock = bodyC.entryBlock();
-            Map<String, FuncOp> table = new HashMap<>();
+            SequencedMap<String, FuncOp> table = new LinkedHashMap<>();
             for (FuncOp f : functions) {
                 entryBlock.op(f);
                 table.put(f.funcName(), f);
             }
-            this.table = Collections.unmodifiableMap(table);
+            entryBlock.op(CoreOp.unreachable());
+            this.table = Collections.unmodifiableSequencedMap(table);
             this.body = bodyC.build(this);
         }
 
@@ -378,13 +378,19 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             return List.of(body);
         }
 
-        public Map<String, FuncOp> functionTable() {
+        public SequencedMap<String, FuncOp> functionTable() {
             return table;
         }
 
         @Override
         public TypeElement resultType() {
             return JavaType.VOID;
+        }
+
+        @Override
+        public Block.Builder lower(Block.Builder b, OpTransformer _ignore) {
+            b.op(this, OpTransformer.LOWERING_TRANSFORMER);
+            return b;
         }
     }
 

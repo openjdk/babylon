@@ -48,7 +48,7 @@ public final class SSA {
     }
 
     /**
-     * Applies an SSA transformation to an invokable operation, replacing operations that declare variables and
+     * Applies an SSA transformation to an operation with bodies, replacing operations that declare variables and
      * access them with the use of values they depend on or additional block parameters.
      * <p>
      * The operation should first be in lowered form before applying this transformation.
@@ -57,11 +57,11 @@ public final class SSA {
      * region and read from outside as a result of catching an exception. In such cases a complete transformation may be
      * not possible and such variables will need to be retained.
      *
-     * @param iop the invokable operation
+     * @param nestedOp the operation with bodies
      * @return the transformed operation
-     * @param <T> the invokable type
+     * @param <T> the operation type
      */
-    public static <T extends Op & Op.Invokable> T transform(T iop) {
+    public static <T extends Op & Op.Nested> T transform(T nestedOp) {
         Map<Block, Set<CoreOp.VarOp>> joinPoints = new HashMap<>();
         Map<CoreOp.VarAccessOp.VarLoadOp, Object> loadValues = new HashMap<>();
         Map<Block.Reference, List<Object>> joinSuccessorValues = new HashMap<>();
@@ -69,7 +69,7 @@ public final class SSA {
         Map<Body, Boolean> visited = new HashMap<>();
         Map<Block, Map<CoreOp.VarOp, Block.Parameter>> joinBlockArguments = new HashMap<>();
         @SuppressWarnings("unchecked")
-        T liop = (T) iop.transform(CopyContext.create(), (block, op) -> {
+        T ssaOp = (T) nestedOp.transform(CopyContext.create(), (block, op) -> {
             // Compute join points and value mappings for body
             visited.computeIfAbsent(op.ancestorBody(), b -> {
                 findJoinPoints(b, joinPoints);
@@ -127,7 +127,7 @@ public final class SSA {
 
             return block;
         });
-        return liop;
+        return ssaOp;
     }
 
     record VarOpBlockArgument(Block b, CoreOp.VarOp vop) {
