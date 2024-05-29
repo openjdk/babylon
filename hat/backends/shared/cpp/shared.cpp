@@ -521,10 +521,11 @@ extern "C" long getKernel(long programHandle, int nameLen, char *name) {
     return program->getKernel(nameLen, name);
 }
 
-extern "C" long ndrange(long kernelHandle, int range, void *argArray) {
-  //  std::cout << "trampolining through kernelHandle to kernel.ndrange(...) " << std::endl;
+extern "C" long ndrange(long kernelHandle, void *argArray) {
+    std::cout << "trampolining through kernelHandle to kernel.ndrange(...) " << std::endl;
+
     Backend::Program::Kernel *kernel = (Backend::Program::Kernel *) kernelHandle;
-    kernel->ndrange(range, argArray);
+    kernel->ndrange( argArray);
     return (long) 0;
 }
 extern "C" void releaseKernel(long kernelHandle) {

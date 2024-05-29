@@ -178,7 +178,7 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
     @Override
     public T fieldLoad(C99HatBuildContext buildContext, FieldLoadOpWrapper fieldLoadOpWrapper) {
         if (fieldLoadOpWrapper.isKernelContextAccess()) {
-            identifier("kc").dot().identifier(fieldLoadOpWrapper.fieldName());
+            identifier("kc").rarrow().identifier(fieldLoadOpWrapper.fieldName());
         } else {
             // throw new IllegalStateException("What is this field load ?" + fieldLoadOpWrapper.fieldRef());
         }

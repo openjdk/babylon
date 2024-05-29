@@ -56,6 +56,6 @@ public class CudaBackend extends C99NativeBackend {
                 throw new IllegalStateException("cuda failed to compile ");
             }
         });
-        compiledKernel.dispatch(args);
+        compiledKernel.dispatch(ndRange,args);
     }
 }

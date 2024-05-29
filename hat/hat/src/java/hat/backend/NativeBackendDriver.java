@@ -76,7 +76,7 @@ public abstract class NativeBackendDriver implements Backend {
         this.getKernel_MH = nativeLibrary.longFunc("getKernel", JAVA_LONG, JAVA_INT, ADDRESS);
         this.programOK_MH = nativeLibrary.booleanFunc("programOK", JAVA_LONG);
         this.releaseKernel_MH = nativeLibrary.voidFunc("releaseKernel", JAVA_LONG);
-        this.ndrange_MH = nativeLibrary.longFunc("ndrange", JAVA_LONG, JAVA_INT, ADDRESS);
+        this.ndrange_MH = nativeLibrary.longFunc("ndrange", JAVA_LONG,  ADDRESS);
         this.info_MH = nativeLibrary.voidFunc("info", JAVA_LONG);
         this.getBackend_MH = nativeLibrary.longFunc("getBackend", ADDRESS, JAVA_INT, ADDRESS);
 
@@ -143,9 +143,9 @@ public abstract class NativeBackendDriver implements Backend {
         }
     }
 
-    public void ndRange(long kernelHandle, int range, ArgArray argArray) {
+    public void ndRange(long kernelHandle,  ArgArray argArray) {
         try {
-            this.ndrange_MH.invoke(kernelHandle, range, argArray.memorySegment());
+            this.ndrange_MH.invoke(kernelHandle, argArray.memorySegment());
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }

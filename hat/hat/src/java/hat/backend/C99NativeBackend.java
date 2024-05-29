@@ -30,6 +30,7 @@ import hat.backend.c99codebuilders.C99HatKernelBuilder;
 import hat.backend.c99codebuilders.Typedef;
 import hat.buffer.ArgArray;
 import hat.buffer.Buffer;
+import hat.buffer.KernelContext;
 import hat.callgraph.KernelCallGraph;
 
 import java.util.Arrays;
@@ -48,30 +49,23 @@ public abstract class C99NativeBackend extends NativeBackend {
         public final String text;
         public final long kernelHandle;
         public final ArgArray argArray;
-
+        public final KernelContext kernelContext;
         CompiledKernel(C99NativeBackend c99NativeBackend, KernelCallGraph kernelCallGraph, String text, long kernelHandle, Object[] ndRangeAndArgs) {
             this.c99NativeBackend = c99NativeBackend;
             this.kernelCallGraph = kernelCallGraph;
             this.text = text;
             this.kernelHandle = kernelHandle;
-
-            Object[] args = new Object[ndRangeAndArgs.length - 1];
-            System.arraycopy(ndRangeAndArgs, 1, args, 0, ndRangeAndArgs.length - 1);
-            this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator, args);
+            this.kernelContext =KernelContext.create(c99NativeBackend.arena,kernelCallGraph.computeContext.accelerator.lookup,0,0);
+            ndRangeAndArgs[0]=this.kernelContext;
+            this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator, ndRangeAndArgs);
         }
 
-        public void dispatch(Object[] ndRangeAndArgs) {
-            // Strip arg0 NDRange.
-            NDRange ndRange = (NDRange) ndRangeAndArgs[0];
-
-            Object[] args = new Object[ndRangeAndArgs.length - 1];
-            System.arraycopy(ndRangeAndArgs, 1, args, 0, ndRangeAndArgs.length - 1);
+        public void dispatch(NDRange ndRange, Object[] args) {
+         //   KernelContext kernelContext = (KernelContext) args[0];
+            kernelContext.maxX(ndRange.kid.maxX);
+            args[0]=this.kernelContext;
             ArgArray.update(argArray, args);
-            //    System.out.println(this.argArray.dump());
-            // c99NativeBackend.dumpArgArray(argArray);
-            //System.out.println("requesting dispatch range "+ndRange.kid.maxX);
-            c99NativeBackend.ndRange(kernelHandle, ndRange.kid.maxX, this.argArray);
-
+            c99NativeBackend.ndRange(kernelHandle, this.argArray);
         }
     }
 
@@ -91,10 +85,10 @@ public abstract class C99NativeBackend extends NativeBackend {
 
         builder.nl().kernelEntrypoint(kernelCallGraph.entrypoint, args).nl();
 
-        System.out.println("Original");
-        System.out.println(kernelCallGraph.entrypoint.funcOpWrapper().op().toText());
-        System.out.println("Lowered");
-        System.out.println(kernelCallGraph.entrypoint.funcOpWrapper().lower().op().toText());
+       // System.out.println("Original");
+       // System.out.println(kernelCallGraph.entrypoint.funcOpWrapper().op().toText());
+       // System.out.println("Lowered");
+       // System.out.println(kernelCallGraph.entrypoint.funcOpWrapper().lower().op().toText());
 
         return builder.toString();
     }
