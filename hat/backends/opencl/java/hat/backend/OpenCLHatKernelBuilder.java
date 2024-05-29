@@ -32,8 +32,6 @@ import java.lang.reflect.code.Op;
 import java.lang.reflect.code.type.JavaType;
 
 public class OpenCLHatKernelBuilder extends C99HatKernelBuilder<OpenCLHatKernelBuilder> {
-
-
     @Override
     public OpenCLHatKernelBuilder defines() {
         hashDefine("NDRANGE_OPENCL");
@@ -82,6 +80,4 @@ public class OpenCLHatKernelBuilder extends C99HatKernelBuilder<OpenCLHatKernelB
               rarrow().identifier(name);
           });
     }
-
-
 }

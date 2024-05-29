@@ -90,7 +90,7 @@ public class OpenCLBackend extends C99NativeBackend {
                 throw new IllegalStateException("opencl failed to compile ");
             }
         });
-        compiledKernel.dispatch(args);
+        compiledKernel.dispatch(ndRange,args);
 
     }
 }

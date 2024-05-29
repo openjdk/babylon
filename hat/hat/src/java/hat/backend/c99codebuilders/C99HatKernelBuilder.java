@@ -26,6 +26,7 @@ package hat.backend.c99codebuilders;
 
 
 import hat.buffer.Buffer;
+import hat.buffer.KernelContext;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
 import hat.optools.FuncOpWrapper;
@@ -52,7 +53,6 @@ public abstract class C99HatKernelBuilder<T extends C99HatKernelBuilder<T>> exte
                 .floatTypeDefs("f32_t")
                 .longTypeDefs("s64_t")
                 .unsignedLongTypeDefs("u64_t")
-                //  .doubleTypeDefs("f64_t")
                 .typedefStructOrUnion(true, "KernelContext", _ -> {
                     intDeclaration("x").semicolonNl();
                     intDeclaration("maxX").semicolon();
@@ -61,18 +61,18 @@ public abstract class C99HatKernelBuilder<T extends C99HatKernelBuilder<T>> exte
     }
 
     T typedefStructOrUnion(boolean isStruct, String name, Consumer<T> consumer) {
-        return //defonce(name, _->{
+        return
                 typedefKeyword().space().structOrUnion(isStruct).space()
                         .either(isStruct, _ -> suffix_s(name), _ -> suffix_u(name)).braceNlIndented(consumer)
                         .suffix_t(name).semicolon().nl();
-        //});
+
     }
 
 
     public final T scope() {
-        return suffix_t("KernelContext").space().identifier("kc").semicolon().nl()
-                .identifier("kc.x").equals().globalId().semicolon().nl()
-                .identifier("kc.maxX").equals().globalSize().semicolon().nl();
+        return
+                identifier("kc").rarrow().identifier("x").equals().globalId().semicolon().nl()
+                .identifier("kc").rarrow().identifier("maxX").equals().globalSize().semicolon().nl();
     }
 
     public abstract T globalPtrPrefix();
@@ -101,7 +101,6 @@ public abstract class C99HatKernelBuilder<T extends C99HatKernelBuilder<T>> exte
         buildContext.scope(buildContext.funcOpWrapper, () -> {
             nl();
             functionDeclaration(buildContext.funcOpWrapper.getReturnType(), buildContext.funcOpWrapper.functionName());
-            // type(buildContext.funcOpWrapper.getReturnType()).space().append(buildContext.funcOpWrapper.functionName());
 
             var list = buildContext.funcOpWrapper.paramTable.list();
             parenNlIndented(_ ->
@@ -109,7 +108,7 @@ public abstract class C99HatKernelBuilder<T extends C99HatKernelBuilder<T>> exte
             );
 
             braceNlIndented(_ -> {
-                scope();
+                //scope();
                 StreamCounter.of(buildContext.funcOpWrapper.wrappedRootOpStream(), (c, root) ->
                         nlIf(c.isNotFirst()).recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>))
                 );
@@ -135,10 +134,12 @@ public abstract class C99HatKernelBuilder<T extends C99HatKernelBuilder<T>> exte
                     info.setClass(args[arg].getClass());
                 }
             }
-            parenNlIndented(_ ->
-                    commaSeparated(list.stream().skip(1).toList(), (info) ->
-                            type(info.javaType).space().varName(info.varOp)
-                    )
+            parenNlIndented(_ -> {
+                        globalPtrPrefix().space().suffix_t("KernelContext").space().asterisk().identifier("kc");
+                        list.stream().skip(1).forEach(info ->
+                                comma().space().type(info.javaType).space().varName(info.varOp)
+                        );
+                    }
             );
 
             braceNlIndented(_ -> {

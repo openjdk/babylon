@@ -106,8 +106,8 @@ OpenCLBackend::OpenCLProgram::OpenCLKernel::~OpenCLKernel() {
     clReleaseKernel(kernel);
 }
 
-long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(int range, void *argArray) {
-    std::cout << "ndrange(" << range << ") " << std::endl;
+long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
+   // std::cout << "ndrange(" << range << ") " << std::endl;
     ArgSled argSled(static_cast<ArgArray_t *>(argArray));
     Schema::dumpSled(std::cout, argArray);
     if (events != nullptr || eventc != 0) {
@@ -116,10 +116,15 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(int range, void *argArr
     eventMax = argSled.argc() * 4 + 1;
     eventc = 0;
     events = new cl_event[eventMax];
+    NDRange *ndrange = nullptr;
     for (int i = 0; i < argSled.argc(); i++) {
         Arg_t *arg = argSled.arg(i);
         switch (arg->variant) {
             case '&': {
+                if (arg->idx == 0){
+                    ndrange = static_cast<NDRange *>(arg->value.buffer.memorySegment);
+
+                }
                 auto openclBuffer = new OpenCLBuffer(this, arg);
                 openclBuffer->copyToDevice();
                 cl_int status = clSetKernelArg(kernel, arg->idx, sizeof(cl_mem), &openclBuffer->clMem);
@@ -168,7 +173,8 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(int range, void *argArr
         }
     }
 
-    size_t globalSize = range;
+    size_t globalSize = ndrange->maxX;
+    std::cout << "ndrange = " << ndrange->maxX << std::endl;
     size_t dims = 1;
     cl_int status = clEnqueueNDRangeKernel(
             dynamic_cast<OpenCLBackend *>(program->backend)->command_queue,

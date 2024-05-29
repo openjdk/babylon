@@ -318,7 +318,7 @@ public interface SegmentMapper<T> {
      */
     default T allocate(Arena arena) {
 
-        return get(arena.allocate(layout()), layout());
+        return get(arena.allocate(layout().byteSize()), layout());
     }
 
     /**

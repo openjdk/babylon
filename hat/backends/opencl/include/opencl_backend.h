@@ -91,7 +91,7 @@ public:
 
             ~OpenCLKernel();
 
-            long ndrange(int range, void *argArray);
+            long ndrange( void *argArray);
         };
 
     private:

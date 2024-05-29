@@ -424,6 +424,12 @@ public:
     static char *dumpSchema(std::ostream &out, char *ptr);
 };
 
+class NDRange{
+public:
+    int x;
+    int maxX;
+};
+
 class Backend {
 public:
     class Config {
@@ -453,7 +459,7 @@ public:
 
             Program *program;
 
-            virtual long ndrange(int range, void *argArray) = 0;
+            virtual long ndrange( void *argArray) = 0;
 
             Kernel(Program *program, std::string name)
                     : program(program), name(name) {
@@ -509,5 +515,5 @@ extern "C" void releaseBackend(long backendHandle);
 extern "C" void releaseProgram(long programHandle);
 extern "C" bool programOK(long programHandle);
 extern "C" void releaseKernel(long kernelHandle);
-extern "C" long ndrange(long kernelHandle, int range, void *argArray);
+extern "C" long ndrange(long kernelHandle,  void *argArray);
 
