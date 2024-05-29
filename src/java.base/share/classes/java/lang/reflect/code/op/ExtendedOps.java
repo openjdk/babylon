@@ -791,16 +791,58 @@ public class ExtendedOps {
             return resultType;
         }
 
+        private boolean haveNullCase() {
+            /*
+            case null is modeled like this:
+            (%4 : T)boolean -> {
+                %5 : java.lang.Object = constant @null;
+                %6 : boolean = invoke %4 %5 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                yield %6;
+            }
+            * */
+            for (int i = 0; i < bodies().size() - 2; i+=2) {
+                Body labelBody = bodies().get(i);
+                if (labelBody.blocks().size() != 1) {
+                    continue; // we skip, for now
+                }
+                Op terminatingOp = bodies().get(i).entryBlock().terminatingOp();
+                //@@@ when op pattern matching is ready, we can use it
+                if (terminatingOp instanceof YieldOp yieldOp &&
+                        yieldOp.yieldValue() instanceof Op.Result opr &&
+                        opr.op() instanceof InvokeOp invokeOp &&
+                        invokeOp.invokeDescriptor().equals(MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class)) &&
+                        invokeOp.operands().stream().anyMatch(o -> o instanceof Op.Result r && r.op() instanceof ConstantOp cop && cop.value() == null)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         @Override
         public Block.Builder lower(Block.Builder b, OpTransformer opT) {
 
             Value selectorExpression = b.context().getValue(operands().get(0));
 
+            if (!haveNullCase()) {
+                Block.Builder throwBlock = b.block();
+                throwBlock.op(_throw(
+                        throwBlock.op(_new(FunctionType.functionType(JavaType.type(NullPointerException.class))))
+                ));
+
+                Block.Builder continueBlock = b.block();
+
+                Result p = b.op(invoke(MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class),
+                        selectorExpression, b.op(constant(J_L_OBJECT, null))));
+                b.op(conditionalBranch(p, throwBlock.successor(), continueBlock.successor()));
+
+                b = continueBlock;
+            }
+
             List<Block.Builder> blocks = new ArrayList<>();
             for (int i = 0; i < bodies().size(); i++) {
                 Block.Builder bb = b.block();
                 if (i == 0) {
-                    b.op(branch(bb.successor()));
+                    bb = b;
                 }
                 blocks.add(bb);
             }
