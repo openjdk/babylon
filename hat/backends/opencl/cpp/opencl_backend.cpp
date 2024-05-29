@@ -97,199 +97,19 @@ OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::~OpenCLBuffer() {
     clReleaseMemObject(clMem);
 }
 
-OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLKernel(Backend::Program *program, cl_kernel kernel)
-        : Backend::Program::Kernel(program), kernel(kernel), eventMax(0), events(nullptr),
+OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLKernel(Backend::Program *program, std::string name, cl_kernel kernel)
+        : Backend::Program::Kernel(program, name), kernel(kernel), eventMax(0), events(nullptr),
           eventc(0) {
 }
 
 OpenCLBackend::OpenCLProgram::OpenCLKernel::~OpenCLKernel() {
     clReleaseKernel(kernel);
 }
-enum state_e {
-    awaitingName,
-    inName,
-    awaitingArrayLen,
-    haveName,
-    inArrayLen,
-    inAnonName,
-    lastEnum
-};
-const char *stateNames[]={
-        "awaitingName",
-        "inName",
-        "awaitingArrayLen",
-        "haveName",
-        "inArrayLen",
-        "inAnonName",
-        "lastEnum"
-};
-char *strduprange(char *start, char *end ){
-    char *s = new char[end-start+1];
-    std::memcpy(s, start, end-start);
-    s[end-start]='\0';
-    return s;
-}
-
-char * OpenCLBackend::dumpSchema(std::ostream &out, int depth, char *ptr, void *data){
-
-    state_e state = awaitingName;
-    char *nameStart = nullptr;
-    char *numStart = nullptr;
-    char *indent = new char[depth*4+1];
-    for (int i=0; i<depth*4; i++){
-        indent[i]=' ';
-    }
-    indent[depth*4]='\0';
-    out << indent;
-    while (ptr != nullptr && *ptr != '\0' ){
-       // out <<"<"<<stateNames[state] <<"> with '" <<((char)*ptr)<<"'";
-        switch (state){
-            case awaitingName:{
-                if (*ptr=='?') {
-                    nameStart = ptr;
-                    state = inAnonName;
-                    ptr++;
-                }else if (std::isalpha(*ptr)) {
-                    nameStart = ptr;
-                    state = inName;
-                    ptr++;
-                }else{
-                    std::cerr<<"err "<<"<"<<stateNames[state] <<"> with '" <<((char)*ptr)<<"'";
-                    exit(1);
-                }
-                break;
-            }
-            case inName:
-            case inAnonName:{
-                if (state == inName && std::isalnum(*ptr) || *ptr=='_') {
-                    ptr++;
-                }else if (*ptr == ':') {
-                    char *name = strduprange(nameStart, ptr);
-                    out << "name '" << name << "'" << std::endl << indent;
-                    delete[] name;
-                    ptr++;
-                    state = haveName;
-                }else{
-                    std::cerr<<"err "<<"<"<<stateNames[state] <<"> with '" <<((char)*ptr)<<"'";
-                    exit(1);
-                }
-                break;
-            }
-            case haveName:{
-                // we expect a type
-                if (*ptr == '[') {
-                    ptr++;
-                    state = awaitingArrayLen;
-                    // we expect a type
-                }else if (*ptr == '{' ) {
-                        ptr++;
-                        state=awaitingName;
-                }else if (*ptr == '<') {
-                    ptr++;
-                    state=awaitingName;
-                } else{
-                    std::cerr<<"err "<<"<"<<stateNames[state] <<"> with '" <<((char)*ptr)<<"'";
-                    exit(1);
-                }
-                break;
-            }
-            case awaitingArrayLen:{
-                if (std::isdigit(*ptr)) {
-                    numStart = ptr;
-                    ptr++;
-                    state=inArrayLen;
-                } else{
-                    std::cerr<<"err "<<"<"<<stateNames[state] <<"> with '" <<((char)*ptr)<<"'";
-                    exit(1);
-                }
-                break;
-            }
-
-            case inArrayLen:{
-                if (std::isdigit(*ptr)) {
-                    ptr++;
-                }   else if (*ptr == ':') {
-                    char *num = strduprange(numStart, ptr);
-                    out<<"num '"<<num<<"'"<<std::endl<<indent;
-                    delete [] num;
-                    ptr++;
-                    state=awaitingName;
-                    ptr = dumpSchema(out, depth+1, ptr, nullptr);
-                } else{
-                    std::cerr<<"err "<<"<"<<stateNames[state] <<"> with '" <<((char)*ptr)<<"'";
-                    exit(1);
-                }
-                break;
-            }
-            case lastEnum:
-                {
-                    std::cerr<<"err "<<"<"<<stateNames[state] <<"> with '" <<((char)*ptr)<<"'";
-                    exit(1);
-                }
-        }
-    }
-    delete[] indent;
-    return ptr;
-}
-
-void OpenCLBackend::dumpSled(std::ostream &out,void *argArray){
-    ArgSled argSled(static_cast<ArgArray_t *>(argArray));
-    for (int i = 0; i < argSled.argc(); i++) {
-        Arg_t *arg = argSled.arg(i);
-        switch (arg->variant) {
-            case '&': {
-                out << "Buf: of " << arg->value.buffer.sizeInBytes << " bytes "<<std::endl;
-                break;
-            }
-            case 'B':{
-                out << "S8:" << arg->value.s8 << std::endl;
-                break;
-            }
-            case 'Z':{
-                out << "Z:" << arg->value.z1 << std::endl;
-                break;
-            }
-            case 'C':{
-                out << "U16:" << arg->value.u16 << std::endl;
-                break;
-            }
-            case 'S':{
-                out << "S16:" << arg->value.s16 << std::endl;
-                break;
-            }
-            case 'I':{
-                out << "S32:" << arg->value.s32 << std::endl;
-                break;
-            }
-            case 'F':{
-                out << "F32:" << arg->value.s32 << std::endl;
-                break;
-            }
-            case 'J':{
-                out << "S64:" << arg->value.s64 << std::endl;
-                break;
-            }
-            case 'D':{
-                out << "F64:" << arg->value.f64 << std::endl;
-                break;
-            }
-            default: {
-                std::cerr <<"unexpected variant '"<< (char) arg->variant << "'"<< std::endl;
-                exit(1);
-            }
-        }
-    }
-    out << "schema len = " << argSled.schemaLen() <<std::endl;
-
-    out << "schem = " << argSled.schema() <<std::endl;
-
-   // dumpSchema(out, 0, argSled.schema(), nullptr);
-}
 
 long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(int range, void *argArray) {
     std::cout << "ndrange(" << range << ") " << std::endl;
     ArgSled argSled(static_cast<ArgArray_t *>(argArray));
-    dynamic_cast<OpenCLBackend *>(program->backend)->dumpSled(std::cout, argArray);
+    Schema::dumpSled(std::cout, argArray);
     if (events != nullptr || eventc != 0) {
         std::cerr << "opencl state issue, we might have leaked events!" << std::endl;
     }
@@ -415,7 +235,7 @@ OpenCLBackend::OpenCLProgram::~OpenCLProgram() {
 long OpenCLBackend::OpenCLProgram::getKernel(int nameLen, char *name) {
     cl_int status;
     cl_kernel kernel = clCreateKernel(program, name, &status);
-    return (long) new OpenCLKernel(this, kernel);
+    return (long) new OpenCLKernel(this,std::string(name), kernel);
 }
 
 bool OpenCLBackend::OpenCLProgram::programOK() {

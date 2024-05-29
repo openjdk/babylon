@@ -101,7 +101,7 @@ public:
         private:
             CUfunction function;
         public:
-            CudaKernel(Backend::Program *program, CUfunction function);
+            CudaKernel(Backend::Program *program, std::string name, CUfunction function);
 
             ~CudaKernel();
 
