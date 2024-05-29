@@ -469,7 +469,7 @@ void Schema::dumpSled(std::ostream &out, void *argArray) {
                 break;
             }
             case 'F': {
-                out << "F32:" << arg->value.s32 << std::endl;
+                out << "F32:" << arg->value.f32 << std::endl;
                 break;
             }
             case 'J': {
@@ -496,13 +496,13 @@ void Schema::dumpSled(std::ostream &out, void *argArray) {
 // We need to trampoline through the real backend
 
 extern "C" int getMaxComputeUnits(long backendHandle) {
-    std::cout << "trampolining through backendHandle to backend.getMaxComputeUnits()" << std::endl;
+   // std::cout << "trampolining through backendHandle to backend.getMaxComputeUnits()" << std::endl;
     Backend *backend = (Backend *) backendHandle;
     return backend->getMaxComputeUnits();
 }
 
 extern "C" void info(long backendHandle) {
-    std::cout << "trampolining through backendHandle to backend.info()" << std::endl;
+  //  std::cout << "trampolining through backendHandle to backend.info()" << std::endl;
     Backend *backend = (Backend *) backendHandle;
     backend->info();
 }
@@ -516,13 +516,13 @@ extern "C" long compileProgram(long backendHandle, int len, char *source) {
     return backend->compileProgram(len, source);
 }
 extern "C" long getKernel(long programHandle, int nameLen, char *name) {
-    std::cout << "trampolining through programHandle to program.getKernel()" << std::endl;
+  //  std::cout << "trampolining through programHandle to program.getKernel()" << std::endl;
     Backend::Program *program = (Backend::Program *) programHandle;
     return program->getKernel(nameLen, name);
 }
 
 extern "C" long ndrange(long kernelHandle, int range, void *argArray) {
-    std::cout << "trampolining through kernelHandle to kernel.ndrange(...) " << std::endl;
+  //  std::cout << "trampolining through kernelHandle to kernel.ndrange(...) " << std::endl;
     Backend::Program::Kernel *kernel = (Backend::Program::Kernel *) kernelHandle;
     kernel->ndrange(range, argArray);
     return (long) 0;

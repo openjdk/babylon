@@ -100,6 +100,7 @@ public:
 
         private:
             CUfunction function;
+            cudaStream_t cudaStream;
         public:
             CudaKernel(Backend::Program *program, std::string name, CUfunction function);
 
