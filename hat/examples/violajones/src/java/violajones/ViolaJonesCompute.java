@@ -65,12 +65,9 @@ public class ViolaJonesCompute {
     }
 
     /*
-    A pure java implementation sp no @CodeReflection
-
-      ViolaJonesCompute.rgbToGreyScale(rgbS08x3Image, greyImage);
-                ViolaJonesCompute.createIntegralImage(greyImage, integralImage, integralSqImage);
+     * A pure java implementation so no @CodeReflection
      */
-    static long rgbToGreyScale(RgbS08x3Image rgb, F32Array2D grey) {
+    static long javaRgbToGreyScale(RgbS08x3Image rgb, F32Array2D grey) {
         long start = System.currentTimeMillis();
         int size = grey.width() * grey.height();
 
@@ -83,7 +80,9 @@ public class ViolaJonesCompute {
 
     @CodeReflection
     public static void rgbToGreyKernel(KernelContext kc, RgbS08x3Image rgbImage, F32Array2D greyImage) {
-        rgbToGrey(kc.x, rgbImage, greyImage);
+        if (kc.x < kc.maxX){
+           rgbToGrey(kc.x, rgbImage, greyImage);
+        }
     }
 
     @CodeReflection
@@ -97,11 +96,11 @@ public class ViolaJonesCompute {
     @CodeReflection
     public static void integralColKernel(KernelContext kc, F32Array2D greyImage, F32Array2D integral, F32Array2D integralSq) {
         if (kc.x <kc.maxX){
-        int width = greyImage.width();
-        int height = greyImage.height();
-        for (int y = 1; y < height; y++) {
-            integralCol((y * width) + kc.x, width, greyImage, integral, integralSq);
-        }
+           int width = greyImage.width();
+           int height = greyImage.height();
+           for (int y = 1; y < height; y++) {
+               integralCol((y * width) + kc.x, width, greyImage, integral, integralSq);
+           }
         }
     }
 
@@ -114,23 +113,22 @@ public class ViolaJonesCompute {
     @CodeReflection
     public static void integralRowKernel(KernelContext kc, F32Array2D integral, F32Array2D integralSq) {
         if (kc.x <kc.maxX){
-        int width = integral.width();
-        for (int x = 1; x < width; x++) {
-            integralRow((kc.x * width) + x, integral, integralSq);
-        }
+           int width = integral.width();
+           for (int x = 1; x < width; x++) {
+               integralRow((kc.x * width) + x, integral, integralSq);
+           }
         }
     }
 
     /*
-    A pure java implementation so o @CodeReflection
-         ViolaJonesCompute.createIntegralImage(greyImage, integralImage, integralSqImage);
+     * A pure java implementation so no @CodeReflection
      */
-    public static long createIntegralImage(F32Array2D greyFloats, F32Array2D integral, F32Array2D integralSq) {
+    public static long javaCreateIntegralImage(F32Array2D greyFloats, F32Array2D integral, F32Array2D integralSq) {
         long start = System.currentTimeMillis();
         int width = greyFloats.width();
         int height = greyFloats.height();
 
-        // The col pass createw both the integral and integralSq cols and populate the 'square'
+        // The col pass creates both the integral and integralSq cols and populate the 'square'
         for (int x = 0; x < width; x++) {
             for (int y = 1; y < height; y++) {
                 integralCol((y * width) + x, width, greyFloats, integral, integralSq);
@@ -175,7 +173,6 @@ public class ViolaJonesCompute {
         float sumOfThisStage = 0;
         int startTreeIdx = stage.firstTreeId();
         int endTreeIdx = startTreeIdx + stage.treeCount();
-        // s.array(gid,stage.id());
         for (int treeIdx = startTreeIdx; treeIdx < endTreeIdx; treeIdx++) {
             // Todo: Find a way to iterate which is interface mapped segment friendly.
             Cascade.Tree tree = cascade.tree(treeIdx);
@@ -185,7 +182,7 @@ public class ViolaJonesCompute {
                 float featureGradientSum = .0f;
                 // features have 1, 2 or 3 rects to scan  we might be best to unroll
                 // but we made sure that x,y,w,h and weight were all 0 for 'unused' rects.
-                // so this is less wave divergent...
+                // so this is theoretically less wave divergent...
                 for (int r = 0; r < 3; r++) {
                     Cascade.Feature.Rect rect = feature.rect(r);
                     if (rect != null) {
@@ -195,8 +192,9 @@ public class ViolaJonesCompute {
                                 (int) (rect.width() * scale),   //w
                                 (int) (rect.height() * scale)   //h
                         ) * rect.weight();
-                    }// weight is 0 for unused
+                    }// weight is 0 for unused so should not impact featureGradientSum
                 }
+
                 // Now either navigate the tree (left or right) or update the sumOfThisStage
                 // with left or right value based on comparison with features Threshold
                 float featureThreshold = feature.threshold();
@@ -211,7 +209,6 @@ public class ViolaJonesCompute {
                 }
             }
         }
-
 
         return sumOfThisStage > stage.threshold(); // true if this looks like a face
     }
@@ -287,13 +284,15 @@ public class ViolaJonesCompute {
         int height = rgbS08x3Image.height();
         Accelerator accelerator = cc.accelerator;
         F32Array2D greyImage = F32Array2D.create(accelerator, width, height);
-        cc.dispatchKernel(width * height, kc -> rgbToGreyKernel(kc, rgbS08x3Image, greyImage));
+        javaRgbToGreyScale(rgbS08x3Image, greyImage);
+
+        //cc.dispatchKernel(width * height, kc -> rgbToGreyKernel(kc, rgbS08x3Image, greyImage));
         F32Array2D integralImage = F32Array2D.create(accelerator, width, height);
         F32Array2D integralSqImage = F32Array2D.create(accelerator, width, height);
-        // createIntegralImage(greyImage, integralImage, integralSqImage);
+        javaCreateIntegralImage(greyImage, integralImage, integralSqImage);
 
-        cc.dispatchKernel(width, kc -> integralColKernel(kc, greyImage, integralImage, integralSqImage));
-        cc.dispatchKernel(height, kc -> integralRowKernel(kc, integralImage, integralSqImage));
+        //cc.dispatchKernel(width, kc -> integralColKernel(kc, greyImage, integralImage, integralSqImage));
+        //cc.dispatchKernel(height, kc -> integralRowKernel(kc, integralImage, integralSqImage));
         // harViz.showIntegrals();
         ScaleTable scaleTable = ScaleTable.create(accelerator, cascade, width, height);
 
@@ -306,13 +305,16 @@ public class ViolaJonesCompute {
     }
 
     public static void main(String[] args) throws IOException, ParserConfigurationException, SAXException {
-        BufferedImage nasa1996 = ImageIO.read(ViolaJones.class.getResourceAsStream("/images/Nasa1996.jpg"));
+        BufferedImage nasa1996 = ImageIO.read(ViolaJones.class.getResourceAsStream(
+              // "/images/team.jpg"
+               "/images/Nasa1996.jpg"
+        ));
         XMLHaarCascadeModel haarCascade = XMLHaarCascadeModel.load(
                 ViolaJonesRaw.class.getResourceAsStream("/cascades/haarcascade_frontalface_default.xml"));
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         Cascade cascade = Cascade.create(accelerator, haarCascade);
         RgbS08x3Image rgbImage = RgbS08x3Image.create(accelerator, nasa1996);
-        ResultTable resultTable = ResultTable.create(accelerator, 1000);
+        ResultTable resultTable = ResultTable.create(accelerator, 10000);
         HaarViewer harViz = new HaarViewer(accelerator, nasa1996, rgbImage, cascade, null, null);
 
         //System.out.println("Compute units "+((NativeBackend)accelerator.backend).getGetMaxComputeUnits());

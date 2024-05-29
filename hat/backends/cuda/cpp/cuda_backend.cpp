@@ -52,8 +52,8 @@ Ptx *Ptx::nvcc(const char *cudaSource, size_t len) {
     Ptx *ptx = nullptr;
     const char *cudaPath = strdup(timestampCuda.str().c_str());
     const char *ptxPath = strdup(timestampPtx.str().c_str());
-    std::cout << "cuda " << cudaPath << std::endl;
-    std::cout << "ptx " << ptxPath << std::endl;
+ //   std::cout << "cuda " << cudaPath << std::endl;
+ //   std::cout << "ptx " << ptxPath << std::endl;
     // we are going to fork exec nvcc
     int pid;
     if ((pid = fork()) == 0) {
@@ -77,9 +77,9 @@ Ptx *Ptx::nvcc(const char *cudaSource, size_t len) {
         std::exit(1);
     } else {
         int status;
-        std::cerr << "fork suceeded waitikbng for child" << std::endl;
+     //   std::cerr << "fork suceeded waitikbng for child" << std::endl;
         pid_t result = wait(&status);
-        std::cerr << "child finished" << std::endl;
+      //  std::cerr << "child finished" << std::endl;
         std::ifstream ptxStream(ptxPath);
         ptxStream.seekg(0, ptxStream.end);
         size_t ptxLen = ptxStream.tellg();
@@ -92,7 +92,7 @@ Ptx *Ptx::nvcc(const char *cudaSource, size_t len) {
         }
         ptxStream.close();
     }
-    std::cout << "returning PTX" << std::endl;
+  //  std::cout << "returning PTX" << std::endl;
     return ptx;
 }
 
@@ -105,29 +105,79 @@ CudaBackend::CudaProgram::CudaKernel::CudaBuffer::CudaBuffer(Backend::Program::K
      *   (void *) arg->value.buffer.memorySegment,
      *   (size_t) arg->value.buffer.sizeInBytes);
      */
-    std::cout << "cuMemAlloc()" << std::endl;
+  //  std::cout << "cuMemAlloc()" << std::endl;
     checkCudaErrors(cuMemAlloc(&devicePtr, (size_t) arg->value.buffer.sizeInBytes));
+  //  std::cout << "devptr " << std::hex<<  (long)devicePtr <<std::dec <<std::endl;
     arg->value.buffer.vendorPtr = static_cast<void *>(this);
 }
 
 CudaBackend::CudaProgram::CudaKernel::CudaBuffer::~CudaBuffer() {
-    std::cout << "cuMemFree()" << std::endl;
+
+ //   std::cout << "cuMemFree()"
+  //          << "devptr " << std::hex<<  (long)devicePtr <<std::dec
+   //         << std::endl;
     checkCudaErrors(cuMemFree(devicePtr));
+    arg->value.buffer.vendorPtr = nullptr;
 }
 
 void CudaBackend::CudaProgram::CudaKernel::CudaBuffer::copyToDevice() {
-    std::cout << "copyToDevice()" << arg->value.buffer.sizeInBytes
-              << "devptr " << std::hex<<  (long)devicePtr <<std::dec
-              << std::endl;
-    checkCudaErrors(cuMemcpyHtoD(devicePtr, arg->value.buffer.memorySegment, arg->value.buffer.sizeInBytes));
+    CudaKernel * cudaKernel = dynamic_cast<CudaKernel*>(kernel);
+ //   std::cout << "copyToDevice() 0x"   << std::hex<<arg->value.buffer.sizeInBytes<<std::dec << " "<< arg->value.buffer.sizeInBytes << " "
+ //             << "devptr " << std::hex<<  (long)devicePtr <<std::dec
+ //             << std::endl;
+    char *ptr = (char*)arg->value.buffer.memorySegment;
+
+    unsigned long ifacefacade1 = *reinterpret_cast<unsigned long*>(ptr+arg->value.buffer.sizeInBytes-16);
+    unsigned long ifacefacade2 = *reinterpret_cast<unsigned long*>(ptr+arg->value.buffer.sizeInBytes-8);
+
+    if (ifacefacade1 != 0x1face00000facadeL && ifacefacade1 != ifacefacade2) {
+        std::cerr<<"End of buf marker before HtoD"<< std::hex << ifacefacade1 << ifacefacade2<< " buffer corrupt !" <<std::endl
+                <<" " << __FILE__ << " line " << __LINE__ << std::endl;
+        exit(-1);
+    }
+
+
+    checkCudaErrors(cuMemcpyHtoDAsync(devicePtr, arg->value.buffer.memorySegment, arg->value.buffer.sizeInBytes,cudaKernel->cudaStream));
+    cudaError_t t1 = cudaStreamSynchronize(cudaKernel->cudaStream);
+    if (CUDA_SUCCESS != t1) {
+        std::cerr << "CUDA error = " << t1
+                  <<" " << cudaGetErrorString(static_cast<cudaError_t>(t1))
+                  <<" " << __FILE__ << " line " << __LINE__ << std::endl;
+        exit(-1);
+    }
 }
 
 void CudaBackend::CudaProgram::CudaKernel::CudaBuffer::copyFromDevice() {
-    std::cout << "copyFromDevice() " << arg->value.buffer.sizeInBytes
-              << "devptr " << std::hex<<  (long)devicePtr <<std::dec
-              << std::endl;
-    checkCudaErrors(cuMemcpyDtoH(arg->value.buffer.memorySegment, devicePtr, arg->value.buffer.sizeInBytes));
+    CudaKernel * cudaKernel = dynamic_cast<CudaKernel*>(kernel);
+ //   std::cout << "copyFromDevice() 0x" << std::hex<<arg->value.buffer.sizeInBytes<<std::dec << " "<< arg->value.buffer.sizeInBytes << " "
+ //             << "devptr " << std::hex<<  (long)devicePtr <<std::dec
+  //            << std::endl;
+    char *ptr = (char*)arg->value.buffer.memorySegment;
 
+    unsigned long ifacefacade1 = *reinterpret_cast<unsigned long*>(ptr+arg->value.buffer.sizeInBytes-16);
+    unsigned long ifacefacade2 = *reinterpret_cast<unsigned long*>(ptr+arg->value.buffer.sizeInBytes-8);
+
+    if (ifacefacade1 != 0x1face00000facadeL || ifacefacade1 != ifacefacade2) {
+        std::cerr<<"end of buf marker before  DtoH"<< std::hex << ifacefacade1 << ifacefacade2<< std::dec<< " buffer corrupt !"<<std::endl
+                  <<" " << __FILE__ << " line " << __LINE__ << std::endl;
+        exit(-1);
+    }
+    checkCudaErrors(cuMemcpyDtoHAsync(arg->value.buffer.memorySegment, devicePtr, arg->value.buffer.sizeInBytes,cudaKernel->cudaStream));
+    cudaError_t t1 = cudaStreamSynchronize(cudaKernel->cudaStream);
+    if (CUDA_SUCCESS != t1) {
+        std::cerr << "CUDA error = " << t1
+                  <<" " << cudaGetErrorString(static_cast<cudaError_t>(t1))
+                  <<" " << __FILE__ << " line " << __LINE__ << std::endl;
+        exit(-1);
+    }
+    ifacefacade1 = *reinterpret_cast<unsigned long*>(ptr+arg->value.buffer.sizeInBytes-16);
+    ifacefacade2 = *reinterpret_cast<unsigned long*>(ptr+arg->value.buffer.sizeInBytes-8);
+
+    if (ifacefacade1 != 0x1face00000facadeL || ifacefacade1 != ifacefacade2) {
+        std::cerr<<"end of buf marker after  DtoH"<< std::hex << ifacefacade1 << ifacefacade2<< std::dec<< " buffer corrupt !"<<std::endl
+                  <<" " << __FILE__ << " line " << __LINE__ << std::endl;
+        exit(-1);
+    }
 }
 
 CudaBackend::CudaProgram::CudaKernel::CudaKernel(Backend::Program *program,std::string name, CUfunction function)
@@ -140,9 +190,10 @@ CudaBackend::CudaProgram::CudaKernel::~CudaKernel() {
 }
 
 long CudaBackend::CudaProgram::CudaKernel::ndrange(int range, void *argArray) {
-    std::cout << "ndrange(" << range << ") " << name << std::endl;
+  //  std::cout << "ndrange(" << range << ") " << name << std::endl;
+    cudaStreamCreate(&cudaStream);
     ArgSled argSled(static_cast<ArgArray_t *>(argArray));
-    Schema::dumpSled(std::cout, argArray);
+ //   Schema::dumpSled(std::cout, argArray);
     void *argslist[argSled.argc()];
 #ifdef VERBOSE
     std::cerr << "there are " << argSled.argc() << "args " << std::endl;
@@ -153,7 +204,6 @@ long CudaBackend::CudaProgram::CudaKernel::ndrange(int range, void *argArray) {
             case '&': {
                 auto cudaBuffer = new CudaBuffer(this, arg);
                 cudaBuffer->copyToDevice();
-                cudaError_t t = cudaDeviceSynchronize();
                 argslist[arg->idx] = static_cast<void *>(&cudaBuffer->devicePtr);
                 break;
             }
@@ -179,20 +229,32 @@ long CudaBackend::CudaProgram::CudaKernel::ndrange(int range, void *argArray) {
     if (rangemod1024 > 0) {
         rangediv1024++;
     }
-    std::cout << "Running the kernel..." << std::endl;
-    std::cout << "   Requested range   = " << range << std::endl;
-    std::cout << "   Range mod 1024    = " << rangemod1024 << std::endl;
-    std::cout << "   Actual range 1024 = " << (rangediv1024 * 1024) << std::endl;
+   // std::cout << "Running the kernel..." << std::endl;
+  //  std::cout << "   Requested range   = " << range << std::endl;
+  //  std::cout << "   Range mod 1024    = " << rangemod1024 << std::endl;
+   // std::cout << "   Actual range 1024 = " << (rangediv1024 * 1024) << std::endl;
 
+    cudaError_t t0 = cudaStreamSynchronize(cudaStream);
+    if (CUDA_SUCCESS != t0) {
+        std::cerr << "CUDA error = " << t0
+                  <<" " << cudaGetErrorString(static_cast<cudaError_t>(t0))
+                  <<" " << __FILE__ << " line " << __LINE__ << std::endl;
+        exit(-1);
+    }
 
     checkCudaErrors(cuLaunchKernel(function,
                                    rangediv1024, 1, 1,
                                    1024, 1, 1,
-                                   0, 0,
-                                   argslist, 0));
+                                   0, cudaStream,
+                    argslist, 0));
 
-    cudaError_t t = cudaDeviceSynchronize();
-
+    cudaError_t t1 = cudaStreamSynchronize(cudaStream);
+    if (CUDA_SUCCESS != t1) {
+        std::cerr << "CUDA error = " << t1
+                  <<" " << cudaGetErrorString(static_cast<cudaError_t>(t1))
+                  <<" " << __FILE__ << " line " << __LINE__ << std::endl;
+        exit(-1);
+    }
 
     //std::cout << "Kernel complete..."<<cudaGetErrorString(t)<<std::endl;
 
@@ -200,8 +262,15 @@ long CudaBackend::CudaProgram::CudaKernel::ndrange(int range, void *argArray) {
         Arg_t *arg = argSled.arg(i);
         if (arg->variant == '&') {
             static_cast<CudaBuffer *>(arg->value.buffer.vendorPtr)->copyFromDevice();
-            cudaError_t t = cudaDeviceSynchronize();
+
         }
+    }
+    cudaError_t t2 =   cudaStreamSynchronize(cudaStream);
+    if (CUDA_SUCCESS != t2) {
+        std::cerr << "CUDA error = " << t2
+                  <<" " << cudaGetErrorString(static_cast<cudaError_t>(t2))
+                  <<" " << __FILE__ << " line " << __LINE__ << std::endl;
+        exit(-1);
     }
 
     for (int i = 0; i < argSled.argc(); i++) {
@@ -211,6 +280,7 @@ long CudaBackend::CudaProgram::CudaKernel::ndrange(int range, void *argArray) {
             arg->value.buffer.vendorPtr = nullptr;
         }
     }
+    cudaStreamDestroy(cudaStream);
     return (long) 0;
 }
 
@@ -224,7 +294,7 @@ CudaBackend::CudaProgram::~CudaProgram() {
 
 long CudaBackend::CudaProgram::getKernel(int nameLen, char *name) {
     CUfunction function;
-    std::cout << "trying to get kernelFunction " << name << std::endl;
+  //  std::cout << "trying to get kernelFunction " << name << std::endl;
     checkCudaErrors(
             cuModuleGetFunction(&function, module, name)
     );
@@ -239,8 +309,8 @@ CudaBackend::CudaBackend(CudaBackend::CudaConfig *cudaConfig, int
 configSchemaLen, char *configSchema)
         : Backend((Backend::Config
 *) cudaConfig, configSchemaLen, configSchema) {
-    std::cout << "CudaBackend constructor " << ((cudaConfig == nullptr) ? "cudaConfig== null" : "got cudaConfig")
-              << std::endl;
+  //  std::cout << "CudaBackend constructor " << ((cudaConfig == nullptr) ? "cudaConfig== null" : "got cudaConfig")
+    //          << std::endl;
     int deviceCount = 0;
     CUresult err = cuInit(0);
     if (err == CUDA_SUCCESS) {

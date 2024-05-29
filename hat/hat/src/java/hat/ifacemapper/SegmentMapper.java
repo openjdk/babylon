@@ -317,8 +317,21 @@ public interface SegmentMapper<T> {
      *                                   {@code layout().byteSize() > segment.byteSize()}
      */
     default T allocate(Arena arena) {
-
-        return get(arena.allocate(layout()), layout());
+        // To help debug we add a tail marker 
+        // We add 16 bytes and then pad to the next 16 bytes
+        // and request alignment on 16 byte boundary
+        long byteSize = layout().byteSize();
+        long extendedByteSize = byteSize+16;
+        long byteSizePad = extendedByteSize%16;
+        if (byteSizePad != 0){
+            byteSizePad = 16-byteSizePad;
+        }
+        long extendedByteSizePaddedTo16Bytes = extendedByteSize+byteSizePad;
+        //System.out.println("Alloc 16 byte aligned layout + 16 bytes padded to next 16 bytes "+byteSize+"=>"+extendedByteSizePaddedTo16Bytes);
+        var segment = arena.allocate(extendedByteSizePaddedTo16Bytes, 16);
+        segment.set(ValueLayout.JAVA_LONG, extendedByteSizePaddedTo16Bytes-16,0x1face00000facadeL);
+        segment.set(ValueLayout.JAVA_LONG, extendedByteSizePaddedTo16Bytes-8, 0x1face00000facadeL);
+        return get(segment, layout());
     }
 
     /**
