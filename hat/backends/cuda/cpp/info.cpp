@@ -25,7 +25,6 @@
 
 #include "cuda_backend.h"
 
-
 int main(int argc, char **argv) {
     CudaBackend cudaBackend;
     cudaBackend.info();

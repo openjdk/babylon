@@ -290,6 +290,7 @@ public class ViolaJonesCompute {
         cc.dispatchKernel(width * height, kc -> rgbToGreyKernel(kc, rgbS08x3Image, greyImage));
         F32Array2D integralImage = F32Array2D.create(accelerator, width, height);
         F32Array2D integralSqImage = F32Array2D.create(accelerator, width, height);
+        // createIntegralImage(greyImage, integralImage, integralSqImage);
 
         cc.dispatchKernel(width, kc -> integralColKernel(kc, greyImage, integralImage, integralSqImage));
         cc.dispatchKernel(height, kc -> integralRowKernel(kc, integralImage, integralSqImage));
@@ -311,7 +312,7 @@ public class ViolaJonesCompute {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         Cascade cascade = Cascade.create(accelerator, haarCascade);
         RgbS08x3Image rgbImage = RgbS08x3Image.create(accelerator, nasa1996);
-        ResultTable resultTable = ResultTable.create(accelerator, 10000);
+        ResultTable resultTable = ResultTable.create(accelerator, 1000);
         HaarViewer harViz = new HaarViewer(accelerator, nasa1996, rgbImage, cascade, null, null);
 
         //System.out.println("Compute units "+((NativeBackend)accelerator.backend).getGetMaxComputeUnits());

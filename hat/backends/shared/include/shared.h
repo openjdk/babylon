@@ -44,7 +44,9 @@
 #define alignedMalloc(size, alignment) memalign(alignment, size)
 #define SNPRINTF snprintf
 #else
+
 #include <malloc.h>
+
 #define LongHexNewline "(0x%lx)\n"
 #define LongUnsignedNewline "%lu\n"
 #define Size_tNewline "%lu\n"
@@ -211,75 +213,6 @@ public:
 };
 
 /*
-
-   using float64_t = double; // std::float64_t in c++23
-   using float32_t = float;  // std::float32_t in c++23
-#define TYPE_U    0x01
-#define TYPE_S    0x02
-#define TYPE_F    0x04
-#define ACCESS_RW   0x01
-#define ACCESS_WO   0x02
-#define ACCESS_RO   0x04
-
-struct arg_s {
-int32_t argc;
-int8_t type;
-int8_t dims;
-int8_t elementSizeInBytes;
-int8_t access;
-int64_t sizeInBytes;
-union {
-uint16_t u16;
-int16_t s16;
-int32_t s32;
-float32_t f32;
-float64_t f64;
-struct {
-void *ptr;
-size_t elements;
-#ifdef OPENCL_TYPES
-CLBuf *buf;
-#else
-#ifdef CUDA_TYPES
-CUdeviceptr buf;
-#else
-void *buf;
-#endif
-#endif
-} _1d;
-struct {
-void *ptr;
-size_t width;
-size_t height;
-#ifdef OPENCL_TYPES
-CLBuf *buf;
-#else
-#ifdef CUDA_TYPES
-CUdeviceptr buf;
-#else
-void *buf;
-#endif
-#endif
-} _2d;
-struct {
-void *ptr;
-size_t width;
-size_t height;
-size_t depth;
-#ifdef OPENCL_TYPES
-CLBuf *buf;
-#else
-#ifdef CUDA_TYPES
-CUdeviceptr buf;
-#else
-void *buf;
-#endif
-#endif
-} _3d;
-};
-};
-
-
 
 struct State {
    enum StateType {
@@ -460,11 +393,36 @@ public:
 
 };
 
-//extern const char *typeName(int type) ;
+
 extern "C" void dumpArgArray(void *ptr);
 
-//extern void dumpArg(arg_s *openCLArg);
+
 extern void hexdump(void *ptr, int buflen);
+
+class Schema {
+public:
+    static std::map<int, std::string> stateNameMap;
+
+    static int replaceStateBit(int state, int remove, int set);
+    static int newState(int state, int to);
+    static std::ostream &stateType(std::ostream &out, int state);
+    static std::ostream &stateDescribe(std::ostream &out, int state);
+    static char *strduprange(char *start, char *end);
+
+    static std::ostream &indent(std::ostream &out, int depth);
+
+    static std::ostream &dump(std::ostream &out, char *start, char *end);
+
+    static std::ostream &dump(std::ostream &out, char *label, char *start, char *end);
+
+    static void dumpSled(std::ostream &out, void *argArray);
+
+    static char *dumpSchema(std::ostream &out, int, int depth, char *ptr, void *data);
+
+    static char *dumpSchema(std::ostream &out, char *ptr, void *data);
+
+    static char *dumpSchema(std::ostream &out, char *ptr);
+};
 
 class Backend {
 public:
@@ -480,19 +438,25 @@ public:
             public:
                 Kernel *kernel;
                 Arg_t *arg;
-                virtual void copyToDevice()=0;
-                virtual void copyFromDevice()=0;
-                Buffer(Kernel *kernel, Arg_t *arg):kernel(kernel),arg(arg){
+
+                virtual void copyToDevice() = 0;
+
+                virtual void copyFromDevice() = 0;
+
+                Buffer(Kernel *kernel, Arg_t *arg) : kernel(kernel), arg(arg) {
                 }
+
                 virtual ~Buffer() {}
             };
+
+            std::string name;
 
             Program *program;
 
             virtual long ndrange(int range, void *argArray) = 0;
 
-            Kernel(Program *program)
-                    : program(program) {
+            Kernel(Program *program, std::string name)
+                    : program(program), name(name) {
             }
 
             virtual ~Kernel() {}
@@ -532,6 +496,8 @@ public:
     virtual int getMaxComputeUnits() = 0;
 
     virtual long compileProgram(int len, char *source) = 0;
+
+
 };
 
 extern "C" long getBackend(void *config, int configSchemaLen, char *configSchema);

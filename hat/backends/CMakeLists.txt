@@ -82,3 +82,7 @@ if(CUDAToolkit_FOUND)
     add_custom_target(cuda_natives DEPENDS cuda_info cuda_backend)
 
 endif()
+add_executable(schemadump
+        ${CMAKE_SOURCE_DIR}/shared/cpp/shared.cpp
+        ${CMAKE_SOURCE_DIR}/shared/cpp/schemadump.cpp
+)

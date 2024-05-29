@@ -116,22 +116,22 @@ CudaBackend::CudaProgram::CudaKernel::CudaBuffer::~CudaBuffer() {
 }
 
 void CudaBackend::CudaProgram::CudaKernel::CudaBuffer::copyToDevice() {
-    std::cout << "copyToDevice()"
-              << arg->value.buffer.sizeInBytes
+    std::cout << "copyToDevice()" << arg->value.buffer.sizeInBytes
+              << "devptr " << std::hex<<  (long)devicePtr <<std::dec
               << std::endl;
     checkCudaErrors(cuMemcpyHtoD(devicePtr, arg->value.buffer.memorySegment, arg->value.buffer.sizeInBytes));
 }
 
 void CudaBackend::CudaProgram::CudaKernel::CudaBuffer::copyFromDevice() {
-    std::cout << "copyFromDevice()"
-              << arg->value.buffer.sizeInBytes
+    std::cout << "copyFromDevice() " << arg->value.buffer.sizeInBytes
+              << "devptr " << std::hex<<  (long)devicePtr <<std::dec
               << std::endl;
     checkCudaErrors(cuMemcpyDtoH(arg->value.buffer.memorySegment, devicePtr, arg->value.buffer.sizeInBytes));
 
 }
 
-CudaBackend::CudaProgram::CudaKernel::CudaKernel(Backend::Program *program, CUfunction function)
-        : Backend::Program::Kernel(program), function(function) {
+CudaBackend::CudaProgram::CudaKernel::CudaKernel(Backend::Program *program,std::string name, CUfunction function)
+        : Backend::Program::Kernel(program, name), function(function) {
 }
 
 CudaBackend::CudaProgram::CudaKernel::~CudaKernel() {
@@ -140,8 +140,9 @@ CudaBackend::CudaProgram::CudaKernel::~CudaKernel() {
 }
 
 long CudaBackend::CudaProgram::CudaKernel::ndrange(int range, void *argArray) {
-    std::cout << "ndrange(" << range << ") " << std::endl;
+    std::cout << "ndrange(" << range << ") " << name << std::endl;
     ArgSled argSled(static_cast<ArgArray_t *>(argArray));
+    Schema::dumpSled(std::cout, argArray);
     void *argslist[argSled.argc()];
 #ifdef VERBOSE
     std::cerr << "there are " << argSled.argc() << "args " << std::endl;
@@ -227,7 +228,7 @@ long CudaBackend::CudaProgram::getKernel(int nameLen, char *name) {
     checkCudaErrors(
             cuModuleGetFunction(&function, module, name)
     );
-    return reinterpret_cast<long>(new CudaKernel(this, function));
+    return reinterpret_cast<long>(new CudaKernel(this, std::string(name), function));
 }
 
 bool CudaBackend::CudaProgram::programOK() {
