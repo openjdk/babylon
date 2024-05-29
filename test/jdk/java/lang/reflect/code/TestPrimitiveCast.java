@@ -30,7 +30,7 @@ import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
@@ -165,7 +165,7 @@ public class TestPrimitiveCast {
 
     @Test(dataProvider = "fromMethods")
     public void testFromDouble(String name, Object value, Function<Object, String> m) {
-        CoreOps.FuncOp f = getFuncOp(name);
+        CoreOp.FuncOp f = getFuncOp(name);
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f, value), m.apply(value));
     }
 
@@ -174,7 +174,7 @@ public class TestPrimitiveCast {
         return Stream.of(values).map(Object::toString).collect(joining(" "));
     }
 
-    static CoreOps.FuncOp getFuncOp(String name) {
+    static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestPrimitiveCast.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
                 .findFirst();

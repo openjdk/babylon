@@ -34,7 +34,7 @@ import java.lang.reflect.code.CodeElement;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.analysis.Liveness;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.parser.OpParser;
 import java.util.HashMap;
@@ -55,7 +55,7 @@ public class TestLiveness {
 
     @Test
     public void testF() {
-        Op op = OpParser.fromString(CoreOps.FACTORY, F).getFirst();
+        Op op = OpParser.fromString(CoreOp.FACTORY, F).getFirst();
 
         var actual = liveness(op);
         var expected = Map.of(
@@ -87,7 +87,7 @@ public class TestLiveness {
 
     @Test
     public void testIfElse() {
-        Op op = OpParser.fromString(CoreOps.FACTORY, IF_ELSE).getFirst();
+        Op op = OpParser.fromString(CoreOp.FACTORY, IF_ELSE).getFirst();
 
         var actual = liveness(op);
         var expected = Map.of(
@@ -125,7 +125,7 @@ public class TestLiveness {
 
     @Test
     public void testLoop() {
-        Op op = OpParser.fromString(CoreOps.FACTORY, LOOP).getFirst();
+        Op op = OpParser.fromString(CoreOp.FACTORY, LOOP).getFirst();
 
         var actual = liveness(op);
         var expected = Map.of(
@@ -194,7 +194,7 @@ public class TestLiveness {
 
     @Test
     public void testIfElseNested() {
-        Op op = OpParser.fromString(CoreOps.FACTORY, IF_ELSE_NESTED).getFirst();
+        Op op = OpParser.fromString(CoreOp.FACTORY, IF_ELSE_NESTED).getFirst();
 
         var actual = liveness(op);
         var expected = Map.of(
@@ -255,7 +255,7 @@ public class TestLiveness {
 
     @Test
     public void testLoopNested() {
-        Op op = OpParser.fromString(CoreOps.FACTORY, LOOP_NESTED).getFirst();
+        Op op = OpParser.fromString(CoreOp.FACTORY, LOOP_NESTED).getFirst();
 
         var actual = liveness(op);
         var expected = Map.of(

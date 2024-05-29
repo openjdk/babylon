@@ -29,7 +29,8 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.OpTransformer;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.Method;
@@ -59,18 +60,11 @@ public class TestBreakContinue {
 
     @Test
     public void testForLoopBreakContinue() {
-        CoreOps.FuncOp f = getFuncOp("forLoopBreakContinue");
+        CoreOp.FuncOp f = getFuncOp("forLoopBreakContinue");
 
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
         lf.writeTo(System.out);
 
@@ -110,18 +104,11 @@ public class TestBreakContinue {
 
     @Test
     public void testNestedForLoopBreakContinue() {
-        CoreOps.FuncOp f = getFuncOp("nestedForLoopBreakContinue");
+        CoreOp.FuncOp f = getFuncOp("nestedForLoopBreakContinue");
 
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
         lf.writeTo(System.out);
 
@@ -165,18 +152,11 @@ public class TestBreakContinue {
 
     @Test
     public void testForLoopLabeledBreakContinue() {
-        CoreOps.FuncOp f = getFuncOp("forLoopLabeledBreakContinue");
+        CoreOp.FuncOp f = getFuncOp("forLoopLabeledBreakContinue");
 
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
         lf.writeTo(System.out);
 
@@ -222,18 +202,11 @@ public class TestBreakContinue {
 
     @Test
     public void testBlockBreak() {
-        CoreOps.FuncOp f = getFuncOp("blockBreak");
+        CoreOp.FuncOp f = getFuncOp("blockBreak");
 
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
         lf.writeTo(System.out);
 
@@ -245,7 +218,7 @@ public class TestBreakContinue {
     }
 
 
-    static CoreOps.FuncOp getFuncOp(String name) {
+    static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestBreakContinue.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
                 .findFirst();

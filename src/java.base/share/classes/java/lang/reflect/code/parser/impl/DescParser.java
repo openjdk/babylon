@@ -25,6 +25,8 @@
 
 package java.lang.reflect.code.parser.impl;
 
+import java.lang.reflect.code.parser.impl.Tokens.Token;
+import java.lang.reflect.code.parser.impl.Tokens.TokenKind;
 import java.lang.reflect.code.type.*;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.type.RecordTypeRef;
@@ -38,14 +40,14 @@ public final class DescParser {
     private DescParser() {}
 
     /**
-     * Parse a type definition from its serialized textual form.
-     * @param desc the serialized type definition
-     * @return the type definition
+     * Parse an externalized type element from its serialized textual form.
+     * @param desc the serialized externalized type element
+     * @return the externalized type element
      */
-    public static TypeDefinition parseTypeDefinition(String desc) {
+    public static TypeElement.ExternalizedTypeElement parseExTypeElem(String desc) {
         Scanner s = Scanner.factory().newScanner(desc);
         s.nextToken();
-        return parseTypeDefinition(s);
+        return parseExTypeElem(s);
     }
 
     /**
@@ -84,24 +86,35 @@ public final class DescParser {
         return parseRecordTypeRef(s);
     }
 
-    public static TypeDefinition parseTypeDefinition(Lexer l) {
-        // Type
-        Tokens.Token t = l.accept(Tokens.TokenKind.IDENTIFIER);
+    public static TypeElement.ExternalizedTypeElement parseExTypeElem(Lexer l) {
         StringBuilder identifier = new StringBuilder();
-        identifier.append(t.name());
-        while (l.acceptIf(Tokens.TokenKind.DOT)) {
-            identifier.append(Tokens.TokenKind.DOT.name);
-            t = l.accept(Tokens.TokenKind.IDENTIFIER);
-            identifier.append(t.name());
+        if (l.token().kind == TokenKind.HASH) {
+            // Quoted identifier
+            Token t = l.token();
+            while (t.kind != TokenKind.LT) {
+                identifier.append(t.kind == TokenKind.IDENTIFIER ? t.name() : t.kind.name);
+                l.nextToken();
+                t = l.token();
+            }
+        } else {
+            // Qualified identifier
+            Tokens.Token t = l.accept(TokenKind.IDENTIFIER,
+                    TokenKind.PLUS, TokenKind.SUB);
+            identifier.append(t.kind == TokenKind.IDENTIFIER ? t.name() : t.kind.name);
+            while (l.acceptIf(Tokens.TokenKind.DOT)) {
+                identifier.append(Tokens.TokenKind.DOT.name);
+                t = l.accept(Tokens.TokenKind.IDENTIFIER);
+                identifier.append(t.name());
+            }
         }
 
         // Type parameters
-        List<TypeDefinition> args;
+        List<TypeElement.ExternalizedTypeElement> args;
         if (l.token().kind == Tokens.TokenKind.LT) {
             args = new ArrayList<>();
             do {
                 l.nextToken();
-                TypeDefinition arg = parseTypeDefinition(l);
+                TypeElement.ExternalizedTypeElement arg = parseExTypeElem(l);
                 args.add(arg);
             } while (l.token().kind == Tokens.TokenKind.COMMA);
             l.accept(Tokens.TokenKind.GT);
@@ -118,17 +131,17 @@ public final class DescParser {
             dims++;
         }
 
-        TypeDefinition td = new TypeDefinition(identifier.toString(), args);
+        TypeElement.ExternalizedTypeElement td = new TypeElement.ExternalizedTypeElement(identifier.toString(), args);
         if (dims > 0) {
             // If array-like then type definition becomes a child with identifier [+
-            return new TypeDefinition("[".repeat(dims), List.of(td));
+            return new TypeElement.ExternalizedTypeElement("[".repeat(dims), List.of(td));
         } else {
             return td;
         }
     }
 
     static TypeElement parseTypeElement(Lexer l) {
-        TypeDefinition typeDesc = parseTypeDefinition(l);
+        TypeElement.ExternalizedTypeElement typeDesc = parseExTypeElem(l);
         return CoreTypeFactory.CORE_TYPE_FACTORY.constructType(typeDesc);
     }
 

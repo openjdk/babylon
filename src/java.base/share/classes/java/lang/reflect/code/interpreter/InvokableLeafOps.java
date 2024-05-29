@@ -83,6 +83,30 @@ final class InvokableLeafOps {
         return l ^ r;
     }
 
+    public static int lshl(int l, int r) {
+        return l << r;
+    }
+
+    public static int ashr(int l, int r) {
+        return l >> r;
+    }
+
+    public static int lshr(int l, int r) {
+        return l >>> r;
+    }
+
+    public static int lshl(int l, long r) {
+        return l << r;
+    }
+
+    public static int ashr(int l, long r) {
+        return l >> r;
+    }
+
+    public static int lshr(int l, long r) {
+        return l >>> r;
+    }
+
     public static boolean eq(int l, int r) {
         return l == r;
     }
@@ -105,6 +129,180 @@ final class InvokableLeafOps {
 
     public static boolean le(int l, int r) {
         return l <= r;
+    }
+
+    // byte
+
+    public static byte neg(byte l) {
+        return (byte) -l;
+    }
+
+    public static byte add(byte l, byte r) {
+        return (byte) (l + r);
+    }
+
+    public static byte sub(byte l, byte r) {
+        return (byte) (l - r);
+    }
+
+    public static byte mul(byte l, byte r) {
+        return (byte) (l * r);
+    }
+
+    public static byte div(byte l, byte r) {
+        return (byte) (l / r);
+    }
+
+    public static byte mod(byte l, byte r) {
+        return (byte) (l % r);
+    }
+
+    public static byte or(byte l, byte r) {
+        return (byte) (l | r);
+    }
+
+    public static byte and(byte l, byte r) {
+        return (byte) (l & r);
+    }
+
+    public static byte xor(byte l, byte r) {
+        return (byte) (l ^ r);
+    }
+
+    public static byte ashr(byte l, long r) {
+        return (byte) (l >> r);
+    }
+
+    public static byte lshr(byte l, long r) {
+        return (byte) (l >>> r);
+    }
+
+    public static byte lshl(byte l, int r) {
+        return (byte) (l << r);
+    }
+
+    public static byte ashr(byte l, int r) {
+        return (byte) (l >> r);
+    }
+
+    public static byte lshr(byte l, int r) {
+        return (byte) (l >>> r);
+    }
+
+    // short
+
+    public static short neg(short l) {
+        return (short) -l;
+    }
+
+    public static short add(short l, short r) {
+        return (short) (l + r);
+    }
+
+    public static short sub(short l, short r) {
+        return (short) (l - r);
+    }
+
+    public static short mul(short l, short r) {
+        return (short) (l * r);
+    }
+
+    public static short div(short l, short r) {
+        return (short) (l / r);
+    }
+
+    public static short mod(short l, short r) {
+        return (short) (l % r);
+    }
+
+    public static short or(short l, short r) {
+        return (short) (l | r);
+    }
+
+    public static short and(short l, short r) {
+        return (short) (l & r);
+    }
+
+    public static short xor(short l, short r) {
+        return (short) (l ^ r);
+    }
+
+    public static short ashr(short l, long r) {
+        return (short) (l >> r);
+    }
+
+    public static short lshr(short l, long r) {
+        return (short) (l >>> r);
+    }
+
+    public static short lshl(short l, int r) {
+        return (short) (l << r);
+    }
+
+    public static short ashr(short l, int r) {
+        return (short) (l >> r);
+    }
+
+    public static short lshr(short l, int r) {
+        return (short) (l >>> r);
+    }
+
+    // char
+
+    public static char neg(char l) {
+        return (char) -l;
+    }
+
+    public static char add(char l, char r) {
+        return (char) (l + r);
+    }
+
+    public static char sub(char l, char r) {
+        return (char) (l - r);
+    }
+
+    public static char mul(char l, char r) {
+        return (char) (l * r);
+    }
+
+    public static char div(char l, char r) {
+        return (char) (l / r);
+    }
+
+    public static char mod(char l, char r) {
+        return (char) (l % r);
+    }
+
+    public static char or(char l, char r) {
+        return (char) (l | r);
+    }
+
+    public static char and(char l, char r) {
+        return (char) (l & r);
+    }
+
+    public static char xor(char l, char r) {
+        return (char) (l ^ r);
+    }
+
+    public static char ashr(char l, long r) {
+        return (char) (l >> r);
+    }
+
+    public static char lshr(char l, long r) {
+        return (char) (l >>> r);
+    }
+
+    public static char lshl(char l, int r) {
+        return (char) (l << r);
+    }
+
+    public static char ashr(char l, int r) {
+        return (char) (l >> r);
+    }
+
+    public static char lshr(char l, int r) {
+        return (char) (l >>> r);
     }
 
    // long
@@ -145,6 +343,29 @@ final class InvokableLeafOps {
         return l ^ r;
     }
 
+    public static long lshl(long l, long r) {
+        return l << r;
+    }
+
+    public static long ashr(long l, long r) {
+        return l >> r;
+    }
+
+    public static long lshr(long l, long r) {
+        return l >>> r;
+    }
+
+    public static long lshl(long l, int r) {
+        return l << r;
+    }
+
+    public static long ashr(long l, int r) {
+        return l >> r;
+    }
+
+    public static long lshr(long l, int r) {
+        return l >>> r;
+    }
 
     public static boolean eq(long l, long r) {
         return l == r;

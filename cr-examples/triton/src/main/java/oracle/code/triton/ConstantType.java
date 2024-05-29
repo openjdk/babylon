@@ -26,7 +26,6 @@
 package oracle.code.triton;
 
 import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.type.TypeDefinition;
 import java.util.List;
 import java.util.Objects;
 
@@ -63,14 +62,14 @@ public final class ConstantType extends TritonType {
     }
 
     @Override
-    public TypeDefinition toTypeDefinition() {
-        return new TypeDefinition(NAME,
-                List.of(cType.toTypeDefinition(),
-                        new TypeDefinition("c" + value, List.of())));
+    public ExternalizedTypeElement externalize() {
+        return new ExternalizedTypeElement(NAME,
+                List.of(cType.externalize(),
+                        new ExternalizedTypeElement("c" + value, List.of())));
     }
 
     @Override
     public String toString() {
-        return toTypeDefinition().toString();
+        return externalize().toString();
     }
 }

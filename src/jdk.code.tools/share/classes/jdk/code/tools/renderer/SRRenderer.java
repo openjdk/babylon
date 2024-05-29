@@ -27,11 +27,12 @@ package jdk.code.tools.renderer;
 
 import java.lang.reflect.code.Block;
 import java.lang.reflect.code.Body;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
 
 import java.io.*;
+import java.lang.reflect.code.op.ExternalizableOp;
 import java.lang.reflect.code.type.JavaType;
 import java.nio.charset.StandardCharsets;
 
@@ -149,15 +150,17 @@ public final class SRRenderer extends CommonRenderer<SRRenderer> {
             }
         }
 
-        if (!op.attributes().isEmpty()) {
-            space().spaceSeparatedList();
-            for (var e : op.attributes().entrySet()) {
-                spaceSeparator();
-                String name = e.getKey();
-                if (!name.isEmpty()) {
-                    atIdentifier(name).equal().identifier(AttributeMapper.toString(e.getValue()));
-                } else {
-                    atIdentifier(AttributeMapper.toString(e.getValue()));
+        if (op instanceof ExternalizableOp exop) {
+            if (!exop.attributes().isEmpty()) {
+                space().spaceSeparatedList();
+                for (var e : exop.attributes().entrySet()) {
+                    spaceSeparator();
+                    String name = e.getKey();
+                    if (!name.isEmpty()) {
+                        atIdentifier(name).equal().identifier(AttributeMapper.toString(e.getValue()));
+                    } else {
+                        atIdentifier(AttributeMapper.toString(e.getValue()));
+                    }
                 }
             }
         }
@@ -238,7 +241,7 @@ public final class SRRenderer extends CommonRenderer<SRRenderer> {
     }
 
     // @@@ Not used
-    public void write(GlobalValueBlockNaming gn, CoreOps.FuncOp fRep) {
+    public void write(GlobalValueBlockNaming gn, CoreOp.FuncOp fRep) {
         this.append(fRep.opName());// w.write(name);
         if (!fRep.operands().isEmpty()) {
             space().spaceSeparatedList();

@@ -26,12 +26,12 @@
 package java.lang.reflect.code.writer;
 
 import java.lang.reflect.code.*;
-import java.lang.reflect.code.op.OpDefinition;
 import java.lang.reflect.code.op.OpFactory;
+import java.lang.reflect.code.op.ExternalizableOp;
 import java.lang.reflect.code.type.*;
 import java.util.*;
 
-import static java.lang.reflect.code.op.CoreOps.*;
+import static java.lang.reflect.code.op.CoreOp.*;
 import static java.lang.reflect.code.type.FunctionType.functionType;
 import static java.lang.reflect.code.type.JavaType.*;
 
@@ -43,16 +43,16 @@ import static java.lang.reflect.code.type.JavaType.*;
  */
 public class OpBuilder {
 
-    static final JavaType J_C_O_OP_DEFINITION = type(OpDefinition.class);
+    static final JavaType J_C_O_EXTERNALIZED_OP = type(ExternalizableOp.ExternalizedOp.class);
 
     static final MethodRef OP_FACTORY_CONSTRUCT = MethodRef.method(OpFactory.class, "constructOp",
-            Op.class, OpDefinition.class);
+            Op.class, ExternalizableOp.ExternalizedOp.class);
 
     static final MethodRef TYPE_ELEMENT_FACTORY_CONSTRUCT = MethodRef.method(TypeElementFactory.class, "constructType",
-            TypeElement.class, TypeDefinition.class);
+            TypeElement.class, ExternalizedTypeElement.class);
 
-    static final MethodRef TYPE_DEFINITION_OF_STRING = MethodRef.method(TypeDefinition.class, "ofString",
-            TypeDefinition.class, String.class);
+    static final MethodRef EX_TYPE_ELEMENT_OF_STRING = MethodRef.method(ExternalizedTypeElement.class, "ofString",
+            ExternalizedTypeElement.class, String.class);
 
     static final MethodRef BODY_BUILDER_OF = MethodRef.method(Body.Builder.class, "of",
             Body.Builder.class, Body.Builder.class, FunctionType.class);
@@ -88,7 +88,7 @@ public class OpBuilder {
     static final JavaType J_U_LIST = type(List.class);
 
     static final MethodRef LIST_OF_ARRAY = MethodRef.method(J_U_LIST, "of",
-            J_U_LIST, type(J_L_OBJECT, 1));
+            J_U_LIST, array(J_L_OBJECT, 1));
 
     static final JavaType J_U_MAP = type(Map.class);
 
@@ -103,14 +103,14 @@ public class OpBuilder {
             J_U_MAP);
 
     static final MethodRef MAP_OF_ARRAY = MethodRef.method(J_U_MAP, "of",
-            J_U_MAP, type(J_U_MAP_ENTRY, 1));
+            J_U_MAP, array(J_U_MAP_ENTRY, 1));
 
     static final MethodRef MAP_PUT = MethodRef.method(J_U_MAP, "put",
             J_L_OBJECT, J_L_OBJECT, J_L_OBJECT);
 
 
-    static final FunctionType OP_DEFINITION_F_TYPE = functionType(
-            J_C_O_OP_DEFINITION,
+    static final FunctionType EXTERNALIZED_OP_F_TYPE = functionType(
+            J_C_O_EXTERNALIZED_OP,
             J_L_STRING,
             J_U_LIST,
             J_U_LIST,
@@ -197,7 +197,7 @@ public class OpBuilder {
                 operands,
                 successors,
                 inputOp.resultType(),
-                inputOp.attributes(),
+                inputOp instanceof ExternalizableOp exop ? exop.attributes() : Map.of(),
                 bodies);
         return builder.op(invoke(OP_FACTORY_CONSTRUCT, opFactory, opDef));
     }
@@ -216,7 +216,7 @@ public class OpBuilder {
                 buildType(resultType),
                 buildAttributeMap(attributes),
                 buildList(type(Body.Builder.class), bodies));
-        return builder.op(_new(OP_DEFINITION_F_TYPE, args));
+        return builder.op(_new(EXTERNALIZED_OP_F_TYPE, args));
     }
 
     Value buildBody(Value ancestorBodyValue, Body inputBody) {
@@ -256,8 +256,8 @@ public class OpBuilder {
 
     Value buildType(TypeElement t) {
         Value typeString = builder.op(constant(J_L_STRING, t.toString()));
-        Value typeDef = builder.op(invoke(TYPE_DEFINITION_OF_STRING, typeString));
-        return builder.op(invoke(TYPE_ELEMENT_FACTORY_CONSTRUCT, typeElementFactory, typeDef));
+        Value exTypeElem = builder.op(invoke(EX_TYPE_ELEMENT_OF_STRING, typeString));
+        return builder.op(invoke(TYPE_ELEMENT_FACTORY_CONSTRUCT, typeElementFactory, exTypeElem));
     }
 
     Value buildAttributeMap(Map<String, Object> attributes) {
@@ -318,8 +318,13 @@ public class OpBuilder {
             case TypeElement f -> {
                 yield buildType(f);
             }
-            case Object o when value == Op.NULL_ATTRIBUTE_VALUE -> {
-                yield builder.op(fieldLoad(FieldRef.field(Op.class, "NULL_ATTRIBUTE_VALUE", Object.class)));
+            case Location l -> {
+                // @@@ Construct location explicitly
+                yield builder.op(constant(J_L_STRING, l.toString()));
+            }
+            case Object o when value == ExternalizableOp.NULL_ATTRIBUTE_VALUE -> {
+                yield builder.op(fieldLoad(FieldRef.field(ExternalizableOp.class,
+                        "NULL_ATTRIBUTE_VALUE", Object.class)));
             }
             default -> {
                 // @@@ use the result of value.toString()?
@@ -330,7 +335,7 @@ public class OpBuilder {
 
 
     Value buildMap(JavaType keyType, JavaType valueType, List<Value> keysAndValues) {
-        JavaType mapType = type(J_U_MAP, keyType, valueType);
+        JavaType mapType = parameterized(J_U_MAP, keyType, valueType);
         if (keysAndValues.isEmpty()) {
             return builder.op(invoke(MAP_OF));
         } else {
@@ -346,7 +351,7 @@ public class OpBuilder {
 
 
     Value buildList(JavaType elementType, List<Value> elements) {
-        JavaType listType = type(J_U_LIST, elementType);
+        JavaType listType = parameterized(J_U_LIST, elementType);
         if (elements.size() < 11) {
             MethodRef listOf = MethodRef.method(J_U_LIST, "of",
                     J_U_LIST, Collections.nCopies(elements.size(), J_L_OBJECT));

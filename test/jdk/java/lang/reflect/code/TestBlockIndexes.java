@@ -27,7 +27,8 @@ import org.testng.annotations.Test;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.Block;
 import java.lang.reflect.code.Op;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.OpTransformer;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.runtime.CodeReflection;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -51,15 +52,8 @@ public class TestBlockIndexes {
 
     @Test
     public void testBlockIndexes() {
-        CoreOps.FuncOp f = getFuncOp("f");
-        f = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        CoreOp.FuncOp f = getFuncOp("f");
+        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
         assertBlockIndexes(f);
 
         AtomicBoolean first = new AtomicBoolean(true);
@@ -68,7 +62,7 @@ public class TestBlockIndexes {
                 // Create some blocks without predecessors
                 for (int i = 0; i < 5; i++) {
                     Block.Builder redundant = block.block();
-                    redundant.op(CoreOps._return());
+                    redundant.op(CoreOp._return());
                 }
             }
             block.op(op);
@@ -77,13 +71,13 @@ public class TestBlockIndexes {
         assertBlockIndexes(f);
     }
 
-    static void assertBlockIndexes(CoreOps.FuncOp f) {
+    static void assertBlockIndexes(CoreOp.FuncOp f) {
         for (Block b : f.body().blocks()) {
             Assert.assertEquals(b.index(), b.parentBody().blocks().indexOf(b));
         }
     }
 
-    static CoreOps.FuncOp getFuncOp(String name) {
+    static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestBlockIndexes.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
                 .findFirst();

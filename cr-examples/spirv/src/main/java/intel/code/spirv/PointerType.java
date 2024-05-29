@@ -26,7 +26,6 @@
 package intel.code.spirv;
 
 import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.type.TypeDefinition;
 import java.util.Objects;
 import java.util.List;
 
@@ -65,12 +64,12 @@ public final class PointerType extends SpirvType {
     }
 
     @Override
-    public TypeDefinition toTypeDefinition() {
-        return new TypeDefinition(NAME, List.of(referentType.toTypeDefinition(), storageType.toTypeDefinition()));
+    public ExternalizedTypeElement externalize() {
+        return new ExternalizedTypeElement(NAME, List.of(referentType.externalize(), storageType.externalize()));
     }
 
     @Override
     public String toString() {
-        return toTypeDefinition().toString();
+        return externalize().toString();
     }
 }

@@ -4,11 +4,10 @@ import org.testng.annotations.Test;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.interpreter.Interpreter;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.runtime.CodeReflection;
 import java.util.Optional;
 import java.util.stream.Stream;
-
-import static java.lang.reflect.code.op.CoreOps.*;
 
 /*
  * @test
@@ -31,7 +30,7 @@ public class TestSwitchExpressionOp {
 
     @Test
     public void test1() {
-        FuncOp lf = lower("f1");
+        CoreOp.FuncOp lf = lower("f1");
 
         Assert.assertEquals(Interpreter.invoke(lf, "FOO"), f1("FOO"));
         Assert.assertEquals(Interpreter.invoke(lf, "BAR"), f1("BAR"));
@@ -53,7 +52,7 @@ public class TestSwitchExpressionOp {
 
     @Test
     public void test2() {
-        FuncOp lf = lower("f2");
+        CoreOp.FuncOp lf = lower("f2");
 
         Assert.assertEquals(Interpreter.invoke(lf, "FOO"), f2("FOO"));
         Assert.assertEquals(Interpreter.invoke(lf, "BAR"), f2("BAR"));
@@ -71,7 +70,7 @@ public class TestSwitchExpressionOp {
 
     @Test
     public void test3() {
-        FuncOp lf = lower("f3");
+        CoreOp.FuncOp lf = lower("f3");
 
         Assert.assertEquals(Interpreter.invoke(lf, "SOMETHING"), f3("SOMETHING"));
         Assert.assertEquals(Interpreter.invoke(lf, new Object[]{null}), f3(null));
@@ -87,14 +86,14 @@ public class TestSwitchExpressionOp {
 
     @Test
     public void test4() {
-        FuncOp lf = lower("f4");
+        CoreOp.FuncOp lf = lower("f4");
 
         Assert.assertEquals(Interpreter.invoke(lf, "SOMETHING"), f3("SOMETHING"));
         Assert.assertThrows(NullPointerException.class, () -> f4(null));
         Assert.assertThrows(NullPointerException.class, () -> Interpreter.invoke(lf, new Object[]{null}));
     }
 
-    static FuncOp getFuncOp(String name) {
+    static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestSwitchExpressionOp.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
                 .findFirst();
@@ -102,14 +101,14 @@ public class TestSwitchExpressionOp {
         return om.get().getCodeModel().get();
     }
 
-    private static FuncOp lower(String methodName) {
+    private static CoreOp.FuncOp lower(String methodName) {
         return lower(getFuncOp(methodName));
     }
 
-    private static FuncOp lower(FuncOp f) {
+    private static CoreOp.FuncOp lower(CoreOp.FuncOp f) {
         f.writeTo(System.out);
 
-        FuncOp lf = f.transform((block, op) -> {
+        CoreOp.FuncOp lf = f.transform((block, op) -> {
             if (op instanceof Op.Lowerable lop) {
                 return lop.lower(block);
             } else {

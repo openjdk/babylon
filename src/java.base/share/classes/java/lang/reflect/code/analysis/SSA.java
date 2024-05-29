@@ -26,7 +26,7 @@
 package java.lang.reflect.code.analysis;
 
 import java.lang.reflect.code.*;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -48,7 +48,7 @@ public final class SSA {
     }
 
     /**
-     * Applies an SSA transformation to an invokable operation, replacing operations that declare variables and
+     * Applies an SSA transformation to an operation with bodies, replacing operations that declare variables and
      * access them with the use of values they depend on or additional block parameters.
      * <p>
      * The operation should first be in lowered form before applying this transformation.
@@ -57,19 +57,19 @@ public final class SSA {
      * region and read from outside as a result of catching an exception. In such cases a complete transformation may be
      * not possible and such variables will need to be retained.
      *
-     * @param iop the invokable operation
+     * @param nestedOp the operation with bodies
      * @return the transformed operation
-     * @param <T> the invokable type
+     * @param <T> the operation type
      */
-    public static <T extends Op & Op.Invokable> T transform(T iop) {
-        Map<Block, Set<CoreOps.VarOp>> joinPoints = new HashMap<>();
-        Map<CoreOps.VarAccessOp.VarLoadOp, Object> loadValues = new HashMap<>();
+    public static <T extends Op & Op.Nested> T transform(T nestedOp) {
+        Map<Block, Set<CoreOp.VarOp>> joinPoints = new HashMap<>();
+        Map<CoreOp.VarAccessOp.VarLoadOp, Object> loadValues = new HashMap<>();
         Map<Block.Reference, List<Object>> joinSuccessorValues = new HashMap<>();
 
         Map<Body, Boolean> visited = new HashMap<>();
-        Map<Block, Map<CoreOps.VarOp, Block.Parameter>> joinBlockArguments = new HashMap<>();
+        Map<Block, Map<CoreOp.VarOp, Block.Parameter>> joinBlockArguments = new HashMap<>();
         @SuppressWarnings("unchecked")
-        T liop = (T) iop.transform(CopyContext.create(), (block, op) -> {
+        T ssaOp = (T) nestedOp.transform(CopyContext.create(), (block, op) -> {
             // Compute join points and value mappings for body
             visited.computeIfAbsent(op.ancestorBody(), b -> {
                 findJoinPoints(b, joinPoints);
@@ -77,9 +77,9 @@ public final class SSA {
                 return true;
             });
 
-            if (op instanceof CoreOps.VarOp || op instanceof CoreOps.VarAccessOp) {
+            if (op instanceof CoreOp.VarOp || op instanceof CoreOp.VarAccessOp) {
                 // Drop var operations
-                if (op instanceof CoreOps.VarAccessOp.VarLoadOp vl) {
+                if (op instanceof CoreOp.VarAccessOp.VarLoadOp vl) {
                     // Replace result of load
                     Object loadValue = loadValues.get(vl);
                     CopyContext cc = block.context();
@@ -127,10 +127,10 @@ public final class SSA {
 
             return block;
         });
-        return liop;
+        return ssaOp;
     }
 
-    record VarOpBlockArgument(Block b, CoreOps.VarOp vop) {
+    record VarOpBlockArgument(Block b, CoreOp.VarOp vop) {
     }
 
     // @@@ Check for var uses in exception regions
@@ -138,10 +138,10 @@ public final class SSA {
     //     to in an exception region and accessed from an associated catch region
 
     static void variableToValue(Body body,
-                                Map<Block, Set<CoreOps.VarOp>> joinPoints,
-                                Map<CoreOps.VarAccessOp.VarLoadOp, Object> loadValues,
+                                Map<Block, Set<CoreOp.VarOp>> joinPoints,
+                                Map<CoreOp.VarAccessOp.VarLoadOp, Object> loadValues,
                                 Map<Block.Reference, List<Object>> joinSuccessorValues) {
-        Map<CoreOps.VarOp, Deque<Object>> variableStack = new HashMap<>();
+        Map<CoreOp.VarOp, Deque<Object>> variableStack = new HashMap<>();
         Node top = buildDomTree(body.entryBlock(), body.immediateDominators());
         variableToValue(top, variableStack, joinPoints, loadValues, joinSuccessorValues);
     }
@@ -161,16 +161,16 @@ public final class SSA {
      * Section 5.2 and Figure 12.
      */
     static void variableToValue(Node n,
-                                Map<CoreOps.VarOp, Deque<Object>> variableStack,
-                                Map<Block, Set<CoreOps.VarOp>> joinPoints,
-                                Map<CoreOps.VarAccessOp.VarLoadOp, Object> loadValues,
+                                Map<CoreOp.VarOp, Deque<Object>> variableStack,
+                                Map<Block, Set<CoreOp.VarOp>> joinPoints,
+                                Map<CoreOp.VarAccessOp.VarLoadOp, Object> loadValues,
                                 Map<Block.Reference, List<Object>> joinSuccessorValues) {
         int size = n.b().ops().size();
 
         // Check if V is associated with block argument (phi)
         // Push argument onto V's stack
         {
-            Set<CoreOps.VarOp> varOps = joinPoints.get(n.b());
+            Set<CoreOp.VarOp> varOps = joinPoints.get(n.b());
             if (varOps != null) {
                 varOps.forEach(v -> {
                     assert variableStack.get(v) != null;
@@ -183,24 +183,24 @@ public final class SSA {
             for (int i = 0; i < size - 1; i++) {
                 Op op = n.b().ops().get(i);
 
-                if (op instanceof CoreOps.VarOp varOp) {
+                if (op instanceof CoreOp.VarOp varOp) {
                     // Initial value assigned to variable
                     Value current = op.operands().get(0);
                     variableStack.computeIfAbsent(varOp, _k -> new ArrayDeque<>())
                             .push(current);
-                } else if (op instanceof CoreOps.VarAccessOp.VarStoreOp storeOp) {
+                } else if (op instanceof CoreOp.VarAccessOp.VarStoreOp storeOp) {
                     // Value assigned to variable
                     Value current = op.operands().get(1);
                     variableStack.computeIfAbsent(storeOp.varOp(), _k -> new ArrayDeque<>())
                             .push(current);
-                } else if (op instanceof CoreOps.VarAccessOp.VarLoadOp loadOp) {
+                } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp loadOp) {
                     Object to = variableStack.get(loadOp.varOp()).peek();
                     loadValues.put(loadOp, to);
                 } else if (op instanceof Op.Nested) {
                     // Traverse descendant variable loads for variables
                     // declared in the block's parent body
                     op.traverse(null, (o, codeElement) -> {
-                        if (o instanceof CoreOps.VarAccessOp.VarLoadOp loadOp &&
+                        if (o instanceof CoreOp.VarAccessOp.VarLoadOp loadOp &&
                                 loadOp.varOp().ancestorBody() == op.ancestorBody()) {
                             Object to = variableStack.get(loadOp.varOp()).peek();
                             loadValues.put(loadOp, to);
@@ -212,7 +212,7 @@ public final class SSA {
 
             // Add successor args for joint points
             for (Block.Reference succ : n.b().successors()) {
-                Set<CoreOps.VarOp> varOps = joinPoints.get(succ.targetBlock());
+                Set<CoreOp.VarOp> varOps = joinPoints.get(succ.targetBlock());
                 if (varOps != null) {
                     List<Object> joinValues = varOps.stream()
                             .map(vop -> variableStack.get(vop).peek()).toList();
@@ -231,7 +231,7 @@ public final class SSA {
 
         // Pop off values for variables
         {
-            Set<CoreOps.VarOp> varOps = joinPoints.get(n.b());
+            Set<CoreOp.VarOp> varOps = joinPoints.get(n.b());
             if (varOps != null) {
                 varOps.forEach(v -> {
                     variableStack.get(v).pop();
@@ -241,9 +241,9 @@ public final class SSA {
             for (int i = 0; i < size - 1; i++) {
                 Op op = n.b().ops().get(i);
 
-                if (op instanceof CoreOps.VarOp varOp) {
+                if (op instanceof CoreOp.VarOp varOp) {
                     variableStack.get(varOp).pop();
-                } else if (op instanceof CoreOps.VarAccessOp.VarStoreOp storeOp) {
+                } else if (op instanceof CoreOp.VarAccessOp.VarStoreOp storeOp) {
                     variableStack.get(storeOp.varOp()).pop();
                 }
             }
@@ -268,9 +268,9 @@ public final class SSA {
      * @implNote See "Efficiently Computing Static Single Assignment Form and the Control Dependence Graph" by Ron Cytron et. al.
      * Section 5.1 and Figure 11.
      */
-    public static void findJoinPoints(Body body, Map<Block, Set<CoreOps.VarOp>> joinPoints) {
+    public static void findJoinPoints(Body body, Map<Block, Set<CoreOp.VarOp>> joinPoints) {
         Map<Block, Set<Block>> df = body.dominanceFrontier();
-        Map<CoreOps.VarOp, Set<Block>> a = findVarStores(body);
+        Map<CoreOp.VarOp, Set<Block>> a = findVarStores(body);
 
         int iterCount = 0;
         int[] hasAlready = new int[body.blocks().size()];
@@ -278,7 +278,7 @@ public final class SSA {
 
         Deque<Block> w = new ArrayDeque<>();
 
-        for (CoreOps.VarOp v : a.keySet()) {
+        for (CoreOp.VarOp v : a.keySet()) {
             iterCount++;
 
             for (Block x : a.get(v)) {
@@ -310,9 +310,9 @@ public final class SSA {
     // Returns map of variable to blocks that contain stores to the variables declared in the body
     // Throws ISE if a descendant store operation is encountered
     // @@@ Compute map for whole tree, then traverse keys with filter
-    static Map<CoreOps.VarOp, Set<Block>> findVarStores(Body r) {
+    static Map<CoreOp.VarOp, Set<Block>> findVarStores(Body r) {
         return r.traverse(new LinkedHashMap<>(), CodeElement.opVisitor((stores, op) -> {
-            if (op instanceof CoreOps.VarAccessOp.VarStoreOp storeOp) {
+            if (op instanceof CoreOp.VarAccessOp.VarStoreOp storeOp) {
                 if (storeOp.varOp().ancestorBody() != storeOp.ancestorBody()) {
                     throw new IllegalStateException("Descendant variable store operation");
                 }

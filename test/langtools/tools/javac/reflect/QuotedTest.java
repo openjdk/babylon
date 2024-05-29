@@ -35,7 +35,7 @@ import java.lang.runtime.CodeReflection;
 public class QuotedTest {
     @IR("""
             func @"f" ()void -> {
-                 %0 : java.lang.reflect.code.CoreOps$Closure<void> = closure ()void -> {
+                 %0 : func<void> = closure ()void -> {
                     return;
                 };
                 return;
@@ -46,7 +46,7 @@ public class QuotedTest {
 
     @IR("""
             func @"f" ()void -> {
-                %0 : java.lang.reflect.code.CoreOps$Closure<int> = closure ()int -> {
+                %0 : func<int> = closure ()int -> {
                     %2 : int = constant @"1";
                     return %2;
                 };
@@ -57,7 +57,7 @@ public class QuotedTest {
 
     @IR("""
             func @"f" ()void -> {
-                %0 : java.lang.reflect.code.CoreOps$Closure<int, int> = closure (%2 : int)int -> {
+                %0 : func<int, int> = closure (%2 : int)int -> {
                     %3 : Var<int> = var %2 @"x";
                     %4 : int = var.load %3;
                     return %4;
@@ -69,7 +69,7 @@ public class QuotedTest {
 
     @IR("""
             func @"f" ()void -> {
-                %0 : java.lang.reflect.code.CoreOps$Closure<int, int, int> = closure (%2 : int, %3 : int)int -> {
+                %0 : func<int, int, int> = closure (%2 : int, %3 : int)int -> {
                     %4 : Var<int> = var %2 @"x";
                     %5 : Var<int> = var %3 @"y";
                     %6 : int = var.load %4;
@@ -84,7 +84,7 @@ public class QuotedTest {
 
     @IR("""
             func @"f" ()void -> {
-                %0 : java.lang.reflect.code.CoreOps$Closure<java.lang.Object> = closure ()java.lang.Object -> {
+                %0 : func<java.lang.Object> = closure ()java.lang.Object -> {
                     %2 : java.lang.AssertionError = new @"func<java.lang.AssertionError>";
                     throw %2;
                 };
@@ -99,7 +99,7 @@ public class QuotedTest {
 
     @IR("""
             func @"f" (%1: Var<int>)void -> {
-                %0 : java.lang.reflect.code.CoreOps$Closure<int, int> = closure (%4 : int)int -> {
+                %0 : func<int, int> = closure (%4 : int)int -> {
                     %5 : Var<int> = var %4 @"y";
                     %6 : int = var.load %1;
                     %7 : int = var.load %5;
@@ -125,7 +125,7 @@ public class QuotedTest {
 
     @IR("""
             func @"f" (%0 : QuotedTest$Context)void -> {
-                %1 : java.lang.reflect.code.CoreOps$Closure<int, int> = closure (%3 : int)int -> {
+                %1 : func<int, int> = closure (%3 : int)int -> {
                     %4 : Var<int> = var %3 @"z";
                     %5 : int = field.load %0 @"QuotedTest$Context::x()int";
                     %6 : int = field.load %0 @"QuotedTest$Context::y()int";
@@ -144,7 +144,7 @@ public class QuotedTest {
             func @"captureParam" (%0 : int)void -> {
                 %1 : Var<int> = var %0 @"x";
                 %2 : java.lang.reflect.code.Quoted = quoted ()void -> {
-                    %3 : java.lang.reflect.code.CoreOps$Closure<int, int> = closure (%4 : int)int -> {
+                    %3 : func<int, int> = closure (%4 : int)int -> {
                         %5 : Var<int> = var %4 @"y";
                         %6 : int = var.load %1;
                         %7 : int = var.load %5;
@@ -167,7 +167,7 @@ public class QuotedTest {
     @IR("""
             func @"captureField" (%0 : QuotedTest)void -> {
                 %1 : java.lang.reflect.code.Quoted = quoted ()void -> {
-                    %2 : java.lang.reflect.code.CoreOps$Closure<int, int> = closure (%3 : int)int -> {
+                    %2 : func<int, int> = closure (%3 : int)int -> {
                         %4 : Var<int> = var %3 @"z";
                         %5 : int = field.load %0 @"QuotedTest::x()int";
                         %6 : int = field.load %0 @"QuotedTest::y()int";

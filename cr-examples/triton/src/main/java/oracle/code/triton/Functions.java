@@ -26,7 +26,7 @@
 package oracle.code.triton;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.runtime.CodeReflection;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -50,7 +50,7 @@ class Functions {
         return (x + div - 1) / div;
     }
 
-    static CoreOps.FuncOp getJavaCodeModel(String name) {
+    static CoreOp.FuncOp getJavaCodeModel(String name) {
         Optional<Method> om = Stream.of(Functions.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
                 .filter(m -> m.getAnnotation(CodeReflection.class) != null)

@@ -30,7 +30,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.code.Block;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Quoted;
 import java.lang.reflect.code.type.MethodRef;
@@ -38,13 +38,13 @@ import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.code.type.JavaType;
 
-import static java.lang.reflect.code.op.CoreOps._return;
-import static java.lang.reflect.code.op.CoreOps.add;
-import static java.lang.reflect.code.op.CoreOps.closure;
-import static java.lang.reflect.code.op.CoreOps.closureCall;
-import static java.lang.reflect.code.op.CoreOps.constant;
-import static java.lang.reflect.code.op.CoreOps.func;
-import static java.lang.reflect.code.op.CoreOps.quoted;
+import static java.lang.reflect.code.op.CoreOp._return;
+import static java.lang.reflect.code.op.CoreOp.add;
+import static java.lang.reflect.code.op.CoreOp.closure;
+import static java.lang.reflect.code.op.CoreOp.closureCall;
+import static java.lang.reflect.code.op.CoreOp.constant;
+import static java.lang.reflect.code.op.CoreOp.func;
+import static java.lang.reflect.code.op.CoreOp.quoted;
 import static java.lang.reflect.code.type.FunctionType.functionType;
 import static java.lang.reflect.code.type.JavaType.INT;
 import static java.lang.reflect.code.type.JavaType.type;
@@ -53,7 +53,7 @@ public class TestClosureOps {
 
     static class Builder {
         static final MethodRef ACCEPT_METHOD = MethodRef.method(type(TestClosureOps.Builder.class), "accept",
-                INT, CoreOps.QuotedOp.QUOTED_TYPE);
+                INT, CoreOp.QuotedOp.QUOTED_TYPE);
 
         static int accept(Quoted c) {
             Assert.assertEquals(1, c.capturedValues().size());
@@ -68,13 +68,13 @@ public class TestClosureOps {
     @Test
     public void testQuotedWithCapture() {
         // functional type = (int)int
-        CoreOps.FuncOp f = func("f", functionType(INT, INT))
+        CoreOp.FuncOp f = func("f", functionType(INT, INT))
                 .body(block -> {
                     Block.Parameter i = block.parameters().get(0);
 
                     // functional type = (int)int
                     // op descriptor = ()Quoted<ClosureOp>
-                    CoreOps.QuotedOp qop = quoted(block.parentBody(), qblock -> {
+                    CoreOp.QuotedOp qop = quoted(block.parentBody(), qblock -> {
                         return closure(qblock.parentBody(), functionType(INT, INT))
                                 .body(cblock -> {
                                     Block.Parameter ci = cblock.parameters().get(0);
@@ -87,7 +87,7 @@ public class TestClosureOps {
                     });
                     Op.Result cquoted = block.op(qop);
 
-                    Op.Result or = block.op(CoreOps.invoke(TestClosureOps.Builder.ACCEPT_METHOD, cquoted));
+                    Op.Result or = block.op(CoreOp.invoke(TestClosureOps.Builder.ACCEPT_METHOD, cquoted));
                     block.op(_return(or));
                 });
 
@@ -100,13 +100,13 @@ public class TestClosureOps {
     @Test
     public void testWithCapture() {
         // functional type = (int)int
-        CoreOps.FuncOp f = func("f", functionType(INT, INT))
+        CoreOp.FuncOp f = func("f", functionType(INT, INT))
                 .body(block -> {
                     Block.Parameter i = block.parameters().get(0);
 
                     // functional type = (int)int
                     //   captures i
-                    CoreOps.ClosureOp closure = CoreOps.closure(block.parentBody(),
+                    CoreOp.ClosureOp closure = CoreOp.closure(block.parentBody(),
                                     functionType(INT, INT))
                             .body(cblock -> {
                                 Block.Parameter ci = cblock.parameters().get(0);
@@ -132,9 +132,9 @@ public class TestClosureOps {
         Quoted quoted = () -> {};
         Op qop = quoted.op();
         Op top = qop.ancestorBody().parentOp().ancestorBody().parentOp();
-        Assert.assertTrue(top instanceof CoreOps.FuncOp);
+        Assert.assertTrue(top instanceof CoreOp.FuncOp);
 
-        CoreOps.FuncOp fop = (CoreOps.FuncOp) top;
-        Assert.assertEquals(JavaType.type(Quoted.class, CoreOps.ClosureOp.class), fop.invokableType().returnType());
+        CoreOp.FuncOp fop = (CoreOp.FuncOp) top;
+        Assert.assertEquals(JavaType.type(Quoted.class), fop.invokableType().returnType());
     }
 }

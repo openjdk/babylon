@@ -28,10 +28,10 @@ package oracle.code.triton;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.analysis.Patterns;
-import java.lang.reflect.code.op.CoreOps;
-import java.lang.reflect.code.op.CoreOps.VarAccessOp.VarLoadOp;
-import java.lang.reflect.code.op.CoreOps.VarAccessOp.VarStoreOp;
-import java.lang.reflect.code.op.ExtendedOps;
+import java.lang.reflect.code.op.CoreOp;
+import java.lang.reflect.code.op.CoreOp.VarAccessOp.VarLoadOp;
+import java.lang.reflect.code.op.CoreOp.VarAccessOp.VarStoreOp;
+import java.lang.reflect.code.op.ExtendedOp;
 import java.lang.reflect.code.type.JavaType;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,9 +41,9 @@ import static java.lang.reflect.code.analysis.Patterns.*;
 // @@@ Very basic, limited, and partially correct
 public class SimpleCountedForLoopInfo {
 
-    final ExtendedOps.JavaForOp fop;
+    final ExtendedOp.JavaForOp fop;
 
-    SimpleCountedForLoopInfo(ExtendedOps.JavaForOp fop) {
+    SimpleCountedForLoopInfo(ExtendedOp.JavaForOp fop) {
         this.fop = fop;
 
         if (fop.init().yieldType().equals(JavaType.VOID)) {
@@ -63,8 +63,8 @@ public class SimpleCountedForLoopInfo {
         }
          */
 
-        Patterns.OpPattern p = opP(CoreOps.YieldOp.class,
-                opP(CoreOps.VarOp.class,
+        Patterns.OpPattern p = opP(CoreOp.YieldOp.class,
+                opP(CoreOp.VarOp.class,
                         opResultP()));
 
         // match against yieldOp
@@ -90,8 +90,8 @@ public class SimpleCountedForLoopInfo {
         }
          */
 
-        Patterns.OpPattern p = opP(CoreOps.YieldOp.class,
-                opP(CoreOps.LtOp.class,
+        Patterns.OpPattern p = opP(CoreOp.YieldOp.class,
+                opP(CoreOp.LtOp.class,
                         opP(VarLoadOp.class,
                                 blockParameterP()),
                         opResultP()));
@@ -122,7 +122,7 @@ public class SimpleCountedForLoopInfo {
 
         Patterns.OpPattern p = opP(VarStoreOp.class,
                 blockParameterP(),
-                opP(CoreOps.AddOp.class,
+                opP(CoreOp.AddOp.class,
                         opP(VarLoadOp.class, blockParameterP()),
                         opResultP()));
 

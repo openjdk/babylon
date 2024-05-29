@@ -34,7 +34,7 @@ import sun.security.action.GetBooleanAction;
 
 import java.io.Serializable;
 import java.lang.constant.ConstantDescs;
-import java.lang.reflect.code.op.CoreOps.FuncOp;
+import java.lang.reflect.code.op.CoreOp.FuncOp;
 import java.lang.reflect.code.Quoted;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.code.parser.OpParser;
@@ -206,14 +206,16 @@ import static jdk.internal.org.objectweb.asm.Opcodes.*;
         lambdaClassName = lambdaClassName(targetClass);
         // If the target class invokes a protected method inherited from a
         // superclass in a different package, or does 'invokespecial', the
-        // lambda class has no access to the resolved method. Instead, we need
-        // to pass the live implementation method handle to the proxy class
-        // to invoke directly. (javac prefers to avoid this situation by
-        // generating bridges in the target class)
+        // lambda class has no access to the resolved method, or does
+        // 'invokestatic' on a hidden class which cannot be resolved by name.
+        // Instead, we need to pass the live implementation method handle to
+        // the proxy class to invoke directly. (javac prefers to avoid this
+        // situation by generating bridges in the target class)
         useImplMethodHandle = (Modifier.isProtected(implInfo.getModifiers()) &&
                                !VerifyAccess.isSamePackage(targetClass, implInfo.getDeclaringClass())) ||
-                               implKind == H_INVOKESPECIAL;
-        cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
+                               implKind == H_INVOKESPECIAL ||
+                               implKind == H_INVOKESTATIC && implClass.isHidden();
+        cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
         int parameterCount = factoryType.parameterCount();
         if (parameterCount > 0) {
             argNames = new String[parameterCount];
@@ -286,7 +288,7 @@ import static jdk.internal.org.objectweb.asm.Opcodes.*;
     private Class<?> spinInnerClass() throws LambdaConversionException {
         // CDS does not handle disableEagerInitialization or useImplMethodHandle
         if (!disableEagerInitialization && !useImplMethodHandle) {
-            if (CDS.isSharingEnabled()) {
+            if (CDS.isUsingArchive()) {
                 // load from CDS archive if present
                 Class<?> innerClass = LambdaProxyClassArchive.find(targetClass,
                                                                    interfaceMethodName,
@@ -623,7 +625,7 @@ import static jdk.internal.org.objectweb.asm.Opcodes.*;
             if (useImplMethodHandle) {
                 visitLdcInsn(implMethodCondy);
             }
-            for (int i = 0; i < argNames.length; i++) {
+            for (int i = 0; i < argNames.length - reflectiveCaptureCount(); i++) {
                 visitVarInsn(ALOAD, 0);
                 visitFieldInsn(GETFIELD, lambdaClassName, argNames[i], argDescs[i]);
             }

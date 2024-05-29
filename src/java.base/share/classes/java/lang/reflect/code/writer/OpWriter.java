@@ -26,9 +26,11 @@
 package java.lang.reflect.code.writer;
 
 import java.io.IOException;
+import java.io.StringWriter;
 import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.lang.reflect.code.*;
+import java.lang.reflect.code.op.ExternalizableOp;
 import java.lang.reflect.code.type.JavaType;
 import java.util.HashMap;
 import java.util.Map;
@@ -46,16 +48,20 @@ public final class OpWriter {
     static final class GlobalValueBlockNaming implements Function<CodeItem, String> {
         final Map<CodeItem, String> gn;
         int valueOrdinal = 0;
-        int blockOrdinal = 0;
 
         GlobalValueBlockNaming() {
             this.gn = new HashMap<>();
         }
 
+        private String name(Block b) {
+            Block p = b.parentBody().parentOp().parentBlock();
+            return (p == null ? "block_" : name(p) + "_") + b.index();
+        }
+
         @Override
         public String apply(CodeItem codeItem) {
             return switch (codeItem) {
-                case Block block -> gn.computeIfAbsent(block, _b -> "block_" + blockOrdinal++);
+                case Block block -> gn.computeIfAbsent(block, _b -> name(block));
                 case Value value -> gn.computeIfAbsent(value, _v -> String.valueOf(valueOrdinal++));
                 default -> throw new IllegalStateException("Unexpected code item: " + codeItem);
             };
@@ -64,7 +70,7 @@ public final class OpWriter {
 
     static final class AttributeMapper {
         static String toString(Object value) {
-            return value == Op.NULL_ATTRIBUTE_VALUE
+            return value == ExternalizableOp.NULL_ATTRIBUTE_VALUE
                     ? "null"
                     : "\"" + quote(value.toString()) + "\"";
         }
@@ -161,9 +167,6 @@ public final class OpWriter {
         }
     }
 
-    final Function<CodeItem, String> namer;
-    final IndentWriter w;
-
     /**
      * Computes global names for blocks and values in a code model.
      * <p>
@@ -175,51 +178,23 @@ public final class OpWriter {
      * @param root the code model
      * @return the map of computed names, modifiable
      */
-    public static Map<CodeItem, String> computeGlobalNames(Op root) {
-        GlobalValueBlockNaming gn = root.traverse(new GlobalValueBlockNaming(), (n, e) -> {
-            switch (e) {
-                case Op op -> {
-                    for (Block.Reference r : op.successors()) {
-                        n.apply(r.targetBlock());
-                    }
-
-                    if (root != op) {
-                        Op.Result opr = op.result();
-                        if (!opr.type().equals(JavaType.VOID)) {
-                            n.apply(opr);
-                        }
-                    }
-                }
-                case Block block -> {
-                    if (!block.isEntryBlock()) {
-                        n.apply(block);
-                    }
-                    for (Block.Parameter p : block.parameters()) {
-                        n.apply(p);
-                    }
-                }
-                default -> {
-                }
-            }
-            return n;
-        });
-
-        return gn.gn;
+    public static Function<CodeItem, String> computeGlobalNames(Op root) {
+        OpWriter w = new OpWriter(Writer.nullWriter());
+        w.writeOp(root);
+        return w.namer();
     }
 
     /**
      * Writes a code model (an operation) to the character stream.
      * <p>
-     * A carriage return will be written after the model is writen, and
-     * then character stream will be flushed.
+     * The character stream will be flushed after the model is writen.
      *
      * @param w the character stream
-     * @param op the code modelz
+     * @param op the code model
      */
     public static void writeTo(Writer w, Op op) {
         OpWriter ow = new OpWriter(w);
         ow.writeOp(op);
-        ow.write("\n");
         try {
             w.flush();
         } catch (IOException e) {
@@ -228,23 +203,169 @@ public final class OpWriter {
     }
 
     /**
+     * Writes a code model (an operation) to the character stream.
+     * <p>
+     * The character stream will be flushed after the model is writen.
+     *
+     * @param w the character stream
+     * @param op the code model
+     * @param options the writer options
+     */
+    public static void writeTo(Writer w, Op op, Option... options) {
+        OpWriter ow = new OpWriter(w, options);
+        ow.writeOp(op);
+        try {
+            // @@@ Is this needed?
+            w.flush();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    /**
+     * Writes a code model (an operation) to a string.
+     *
+     * @param op the code model
+     */
+    public static String toText(Op op) {
+        StringWriter w = new StringWriter();
+        writeTo(w, op);
+        return w.toString();
+    }
+
+    /**
+     * Writes a code model (an operation) to a string.
+     *
+     * @param op the code model
+     * @param options the writer options
+     */
+    public static String toText(Op op, OpWriter.Option... options) {
+        StringWriter w = new StringWriter();
+        writeTo(w, op, options);
+        return w.toString();
+    }
+
+    /**
+     * An option that affects the writing operations.
+     */
+    public sealed interface Option {
+    }
+
+    /**
+     * An option describing the function to use for naming code items.
+     */
+    public sealed interface CodeItemNamerOption extends Option
+            permits NamerOptionImpl {
+
+        static CodeItemNamerOption of(Function<CodeItem, String> named) {
+            return new NamerOptionImpl(named);
+        }
+
+        static CodeItemNamerOption defaultValue() {
+            return of(new GlobalValueBlockNaming());
+        }
+
+        Function<CodeItem, String> namer();
+    }
+    private record NamerOptionImpl(Function<CodeItem, String> namer) implements CodeItemNamerOption {
+    }
+
+    /**
+     * An option describing whether location information should be written or dropped.
+     */
+    public enum LocationOption implements Option {
+        /** Writes location */
+        WRITE_LOCATION,
+        /** Drops location */
+        DROP_LOCATION;
+
+        public static LocationOption defaultValue() {
+            return WRITE_LOCATION;
+        }
+    }
+
+    /**
+     * An option describing whether an operation's descendant code elements should be written or dropped.
+     */
+    public enum OpDescendantsOption implements Option {
+        /** Writes descendants of an operation, if any */
+        WRITE_DESCENDANTS,
+        /** Drops descendants of an operation, if any */
+        DROP_DESCENDANTS;
+
+        public static OpDescendantsOption defaultValue() {
+            return WRITE_DESCENDANTS;
+        }
+    }
+
+    /**
+     * An option describing whether an operation's result be written or dropped if its type is void.
+     */
+    public enum VoidOpResultOption implements Option {
+        /** Writes void operation result */
+        WRITE_VOID,
+        /** Drops void operation result */
+        DROP_VOID;
+
+        public static VoidOpResultOption defaultValue() {
+            return DROP_VOID;
+        }
+    }
+
+    final Function<CodeItem, String> namer;
+    final IndentWriter w;
+    final boolean dropLocation;
+    final boolean dropOpDescendants;
+    final boolean writeVoidOpResult;
+
+    /**
      * Creates a writer of code models (operations) to their textual form.
      *
      * @param w the character stream writer to write the textual form.
      */
     public OpWriter(Writer w) {
-        this(w, new GlobalValueBlockNaming());
+        this.w = new IndentWriter(w);
+        this.namer = new GlobalValueBlockNaming();
+        this.dropLocation = false;
+        this.dropOpDescendants = false;
+        this.writeVoidOpResult = false;
     }
 
     /**
      * Creates a writer of code models (operations) to their textual form.
      *
-     * @param w     the character stream writer to write the textual form.
-     * @param namer the function that computes names for blocks and values.
+     * @param w the character stream writer to write the textual form.
+     * @param options the writer options
      */
-    public OpWriter(Writer w, Function<CodeItem, String> namer) {
-        this.namer = namer;
+    public OpWriter(Writer w, Option... options) {
+        Function<CodeItem, String> namer = null;
+        boolean dropLocation = false;
+        boolean dropOpDescendants = false;
+        boolean writeVoidOpResult = false;
+        for (Option option : options) {
+            switch (option) {
+                case CodeItemNamerOption namerOption -> {
+                    namer = namerOption.namer();
+                }
+                case LocationOption locationOption -> {
+                    dropLocation = locationOption ==
+                            LocationOption.DROP_LOCATION;
+                }
+                case OpDescendantsOption opDescendantsOption -> {
+                    dropOpDescendants = opDescendantsOption ==
+                            OpDescendantsOption.DROP_DESCENDANTS;
+                }
+                case VoidOpResultOption voidOpResultOption -> {
+                    writeVoidOpResult = voidOpResultOption == VoidOpResultOption.WRITE_VOID;
+                }
+            }
+        }
+
         this.w = new IndentWriter(w);
+        this.namer = (namer == null) ? new GlobalValueBlockNaming() : namer;
+        this.dropLocation = dropLocation;
+        this.dropOpDescendants = dropOpDescendants;
+        this.writeVoidOpResult = writeVoidOpResult;
     }
 
     /**
@@ -260,6 +381,13 @@ public final class OpWriter {
      * @param op the code model
      */
     public void writeOp(Op op) {
+        if (op.parent() != null) {
+            Op.Result opr = op.result();
+            if (writeVoidOpResult || !opr.type().equals(JavaType.VOID)) {
+                writeValueDeclaration(opr);
+                write(" = ");
+            }
+        }
         write(op.opName());
 
         if (!op.operands().isEmpty()) {
@@ -272,12 +400,18 @@ public final class OpWriter {
             writeSpaceSeparatedList(op.successors(), this::writeSuccessor);
         }
 
-        if (!op.attributes().isEmpty()) {
+        Map<String, Object> attributes = op instanceof ExternalizableOp exop ? exop.attributes() : Map.of();
+        if (dropLocation && !attributes.isEmpty() &&
+                attributes.containsKey(ExternalizableOp.ATTRIBUTE_LOCATION)) {
+            attributes = new HashMap<>(attributes);
+            attributes.remove(ExternalizableOp.ATTRIBUTE_LOCATION);
+        }
+        if (!attributes.isEmpty()) {
             write(" ");
-            writeSpaceSeparatedList(op.attributes().entrySet(), e -> writeAttribute(e.getKey(), e.getValue()));
+            writeSpaceSeparatedList(attributes.entrySet(), e -> writeAttribute(e.getKey(), e.getValue()));
         }
 
-        if (!op.bodies().isEmpty()) {
+        if (!dropOpDescendants && !op.bodies().isEmpty()) {
             int nBodies = op.bodies().size();
             if (nBodies == 1) {
                 write(" ");
@@ -351,11 +485,6 @@ public final class OpWriter {
         }
         w.in();
         for (Op op : block.ops()) {
-            Op.Result opr = op.result();
-            if (!opr.type().equals(JavaType.VOID)) {
-                writeValueDeclaration(opr);
-                write(" = ");
-            }
             writeOp(op);
             write("\n");
         }
@@ -399,7 +528,7 @@ public final class OpWriter {
     }
 
     void writeType(TypeElement te) {
-        write(te.toTypeDefinition().toString());
+        write(te.externalize().toString());
     }
 
     void write(String s) {

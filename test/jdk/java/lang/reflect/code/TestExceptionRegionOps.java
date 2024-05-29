@@ -29,7 +29,7 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
@@ -39,13 +39,13 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
-import static java.lang.reflect.code.op.CoreOps._return;
-import static java.lang.reflect.code.op.CoreOps._throw;
-import static java.lang.reflect.code.op.CoreOps.branch;
-import static java.lang.reflect.code.op.CoreOps.constant;
-import static java.lang.reflect.code.op.CoreOps.exceptionRegionEnter;
-import static java.lang.reflect.code.op.CoreOps.exceptionRegionExit;
-import static java.lang.reflect.code.op.CoreOps.func;
+import static java.lang.reflect.code.op.CoreOp._return;
+import static java.lang.reflect.code.op.CoreOp._throw;
+import static java.lang.reflect.code.op.CoreOp.branch;
+import static java.lang.reflect.code.op.CoreOp.constant;
+import static java.lang.reflect.code.op.CoreOp.exceptionRegionEnter;
+import static java.lang.reflect.code.op.CoreOp.exceptionRegionExit;
+import static java.lang.reflect.code.op.CoreOp.func;
 import static java.lang.reflect.code.type.FunctionType.*;
 import static java.lang.reflect.code.type.JavaType.*;
 import static java.lang.reflect.code.type.JavaType.VOID;
@@ -69,7 +69,7 @@ public class TestExceptionRegionOps {
 
     @Test
     public void test() {
-        CoreOps.FuncOp f = func("f", functionType(VOID, type(IntConsumer.class)))
+        CoreOp.FuncOp f = func("f", functionType(VOID, type(IntConsumer.class)))
                 .body(fbody -> {
                     var fblock = fbody.entryBlock();
                     var catchER1ISE = fblock.block(type(IllegalStateException.class));
@@ -85,30 +85,30 @@ public class TestExceptionRegionOps {
 
                     // Start of exception region
                     enterER1.ops(b -> {
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 0))));
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 0))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         // End of exception region
                         b.op(exceptionRegionExit(er1, end.successor()));
                     });
 
                     // First catch block for exception region
                     catchER1ISE.ops(b -> {
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 1))));
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 1))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         b.op(branch(end.successor()));
                     });
 
                     // Second catch for exception region
                     catchER1IAE.ops(b -> {
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 2))));
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 2))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         b.op(branch(end.successor()));
                     });
 
                     //
                     end.ops(b -> {
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 3))));
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 3))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         b.op(_return());
                     });
                 });
@@ -160,7 +160,7 @@ public class TestExceptionRegionOps {
 
     @Test
     public void testCatchThrowable() {
-        CoreOps.FuncOp f = func("f", functionType(VOID, type(IntConsumer.class)))
+        CoreOp.FuncOp f = func("f", functionType(VOID, type(IntConsumer.class)))
                 .body(fbody -> {
                     var fblock = fbody.entryBlock();
                     var catchER1ISE = fblock.block(type(IllegalStateException.class));
@@ -176,30 +176,30 @@ public class TestExceptionRegionOps {
 
                     // Start of exception region
                     enterER1.ops(b -> {
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 0))));
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 0))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         // End of exception region
                         b.op(exceptionRegionExit(er1, end.successor()));
                     });
 
                     // First catch block for exception region
                     catchER1ISE.ops(b -> {
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 1))));
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 1))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         b.op(branch(end.successor()));
                     });
 
                     // Second catch for exception region
                     catchER1T.ops(b -> {
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 2))));
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 2))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         b.op(branch(end.successor()));
                     });
 
                     //
                     end.ops(b -> {
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 3))));
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 3))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         b.op(_return());
                     });
                 });
@@ -254,7 +254,7 @@ public class TestExceptionRegionOps {
 
     @Test
     public void testNested() {
-        CoreOps.FuncOp f = func("f", functionType(VOID, type(IntConsumer.class)))
+        CoreOp.FuncOp f = func("f", functionType(VOID, type(IntConsumer.class)))
                 .body(fbody -> {
                     var fblock = fbody.entryBlock();
                     var catchER1 = fblock.block(type(IllegalArgumentException.class));
@@ -272,8 +272,8 @@ public class TestExceptionRegionOps {
 
                     // Start of first exception region
                     enterER1.ops(b -> {
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 0))));
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 0))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                     });
                     var er2 = enterER1.op(exceptionRegionEnter(
                             enterER2.successor(),
@@ -281,37 +281,37 @@ public class TestExceptionRegionOps {
 
                     // Start of second exception region
                     enterER2.ops(b -> {
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 1))));
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 1))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         // End of second exception region
                         b.op(exceptionRegionExit(er2, b3.successor()));
                     });
 
                     // Catch block for second exception region
                     catchER2.ops(b -> {
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 2))));
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 2))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         b.op(branch(b3.successor()));
                     });
 
                     b3.ops(b -> {
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 3))));
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 3))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         // End of first exception region
                         b.op(exceptionRegionExit(er1, end.successor()));
                     });
 
                     // Catch block for first exception region
                     catchER1.ops(b -> {
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 4))));
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 4))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         b.op(branch(end.successor()));
                     });
 
                     //
                     end.ops(b -> {
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 5))));
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 5))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         b.op(_return());
                     });
                 });
@@ -375,7 +375,7 @@ public class TestExceptionRegionOps {
 
     @Test
     public void testCatchFinally() {
-        CoreOps.FuncOp f = func("f", functionType(VOID, JavaType.type(IntConsumer.class)))
+        CoreOp.FuncOp f = func("f", functionType(VOID, JavaType.type(IntConsumer.class)))
                 .body(fbody -> {
                     var fblock = fbody.entryBlock();
                     var catchRE = fblock.block(type(IllegalStateException.class));
@@ -394,15 +394,15 @@ public class TestExceptionRegionOps {
 
                     // Start of exception region
                     enterER1.ops(b -> {
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 0))));
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 0))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         // End of exception region
                         b.op(exceptionRegionExit(er1, exitER1.successor()));
                     });
                     // Inline finally
                     exitER1.ops(b -> {
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 2))));
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 2))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         b.op(branch(end.successor()));
                     });
 
@@ -412,29 +412,29 @@ public class TestExceptionRegionOps {
                             catchAll.successor()));
                     // Start of exception region
                     enterER2.ops(b -> {
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 1))));
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 1))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         // End of exception region
                         b.op(exceptionRegionExit(er2, exitER2.successor()));
                     });
                     // Inline finally
                     exitER2.ops(b -> {
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 2))));
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 2))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         b.op(branch(end.successor()));
                     });
 
                     // Catch all block for finally
                     catchAll.ops(b -> {
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 2))));
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 2))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         b.op(_throw(catchAll.parameters().get(0)));
                     });
 
                     //
                     end.ops(b -> {
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 3))));
-                        b.op(CoreOps.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 3))));
+                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         b.op(_return());
                     });
                 });

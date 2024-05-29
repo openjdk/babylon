@@ -52,9 +52,10 @@ import java.lang.reflect.code.Block;
 import java.lang.reflect.code.Body;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.type.MethodRef;
+import java.lang.reflect.code.type.ClassType;
 import java.lang.reflect.code.type.JavaType;
 import uk.ac.manchester.beehivespirvtoolkit.lib.SPIRVHeader;
 import uk.ac.manchester.beehivespirvtoolkit.lib.SPIRVModule;
@@ -67,7 +68,7 @@ import uk.ac.manchester.beehivespirvtoolkit.lib.disassembler.SPIRVDisassemblerOp
 import uk.ac.manchester.beehivespirvtoolkit.lib.disassembler.SPVByteStreamReader;
 
 public class SpirvModuleGenerator {
-    public static MemorySegment generateModule(String moduleName, CoreOps.FuncOp func) {
+    public static MemorySegment generateModule(String moduleName, CoreOp.FuncOp func) {
         SpirvOps.FuncOp spirvFunc = TranslateToSpirvModel.translateFunction(func);
         MemorySegment module = SpirvModuleGenerator.generateModule(moduleName, spirvFunc);
         return module;
@@ -317,7 +318,7 @@ public class SpirvModuleGenerator {
                             SpirvResult arrayResult = getResult(call.operands().get(1));
                             String arrayType = arrayResult.type().getName();
                             int laneCount = 8;  //TODO: remove hard code, instruction below needs a literal
-                            String vTypeName = ((JavaType)call.callDescriptor().refType()).toClassName();
+                            String vTypeName = ((ClassType)call.callDescriptor().refType()).toClassName();
                             SPIRVId vType = spirvVectorType(vTypeName, laneCount);
                             SPIRVId array = arrayResult.value();
                             SPIRVId index = getResult(call.operands().get(2)).value();
@@ -338,7 +339,7 @@ public class SpirvModuleGenerator {
                             spirvBlock.add(new SPIRVOpSConvert(getType("long"), lanesLong, species));
                             int laneCount = 8; //TODO: remove hard code, vloadn instruction below needs a literal lane count, get value from env
                             SPIRVId segment = getResult(call.operands().get(1)).value();
-                            String vTypeName = ((JavaType)call.callDescriptor().refType()).toClassName();
+                            String vTypeName = ((ClassType)call.callDescriptor().refType()).toClassName();
                             SPIRVId vType = spirvVectorType(vTypeName, laneCount);
                             SPIRVId temp = nextId();
                             spirvBlock.add(new SPIRVOpConvertPtrToU(getType("long"), temp, segment));
@@ -457,7 +458,7 @@ public class SpirvModuleGenerator {
                         else if (call.callDescriptor().equals(MethodRef.method(IntVector.class, "zero", IntVector.class, VectorSpecies.class))
                              || call.callDescriptor().equals(MethodRef.method(FloatVector.class, "zero", FloatVector.class, VectorSpecies.class))) {
                             SpirvResult speciesResult = getResult(call.operands().get(0));
-                            SPIRVId vType = spirvType(((JavaType)call.callDescriptor().refType()).toClassName());
+                            SPIRVId vType = spirvType(((ClassType)call.callDescriptor().refType()).toClassName());
                             String elementType = vectorElementType(vType).getName();
                             SPIRVId value = getId(elementType + "_ZERO");
                             int laneCount = laneCount(vType.getName());
@@ -559,7 +560,7 @@ public class SpirvModuleGenerator {
                         else if (flo.fieldDescriptor().refType().equals(JavaType.type(ByteOrder.class))) {
                             // currently ignored
                         }
-                        else unsupported("field load", ((JavaType)flo.fieldDescriptor().refType()).toClassName() + "." + flo.fieldDescriptor().name());
+                        else unsupported("field load", ((ClassType)flo.fieldDescriptor().refType()).toClassName() + "." + flo.fieldDescriptor().name());
                     }
                     case SpirvOps.BranchOp bop -> {
                         SPIRVId trueLabel = symbols.getLabel(bop.branch()).getResultId();

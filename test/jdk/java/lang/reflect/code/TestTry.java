@@ -29,7 +29,8 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.OpTransformer;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
@@ -64,18 +65,11 @@ public class TestTry {
 
     @Test
     public void testCatching() {
-        CoreOps.FuncOp f = getFuncOp("catching");
+        CoreOp.FuncOp f = getFuncOp("catching");
 
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
         lf.writeTo(System.out);
 
@@ -128,18 +122,11 @@ public class TestTry {
 
     @Test
     public void testCatchThrowable() {
-        CoreOps.FuncOp f = getFuncOp("catchThrowable");
+        CoreOp.FuncOp f = getFuncOp("catchThrowable");
 
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
         lf.writeTo(System.out);
 
@@ -195,18 +182,11 @@ public class TestTry {
 
     @Test
     public void testCatchNested() {
-        CoreOps.FuncOp f = getFuncOp("catchNested");
+        CoreOp.FuncOp f = getFuncOp("catchNested");
 
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
         lf.writeTo(System.out);
 
@@ -252,7 +232,7 @@ public class TestTry {
     }
 
 
-    static CoreOps.FuncOp getFuncOp(String name) {
+    static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestTry.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
                 .findFirst();

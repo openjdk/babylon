@@ -24,7 +24,8 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.OpTransformer;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.interpreter.Interpreter;
@@ -52,9 +53,9 @@ public class TestSSA {
 
     @Test
     public void testIfelse() throws Throwable {
-        CoreOps.FuncOp f = getFuncOp("ifelse");
+        CoreOp.FuncOp f = getFuncOp("ifelse");
 
-        CoreOps.FuncOp lf = generate(f);
+        CoreOp.FuncOp lf = generate(f);
 
         Assert.assertEquals((int) Interpreter.invoke(lf, 0, 0, 1), ifelse(0, 0, 1));
         Assert.assertEquals((int) Interpreter.invoke(lf, 0, 0, 11), ifelse(0, 0, 11));
@@ -82,9 +83,9 @@ public class TestSSA {
 
     @Test
     public void testIfelseNested() throws Throwable {
-        CoreOps.FuncOp f = getFuncOp("ifelseNested");
+        CoreOp.FuncOp f = getFuncOp("ifelseNested");
 
-        CoreOps.FuncOp lf = generate(f);
+        CoreOp.FuncOp lf = generate(f);
 
         for (int i : new int[]{1, 11, 20, 21}) {
             Assert.assertEquals((int) Interpreter.invoke(lf, 0, 0, 0, 0, i), ifelseNested(0, 0, 0, 0, i));
@@ -102,9 +103,9 @@ public class TestSSA {
 
     @Test
     public void testLoop() throws Throwable {
-        CoreOps.FuncOp f = getFuncOp("loop");
+        CoreOp.FuncOp f = getFuncOp("loop");
 
-        CoreOps.FuncOp lf = generate(f);
+        CoreOp.FuncOp lf = generate(f);
 
         Assert.assertEquals((int) Interpreter.invoke(lf, 10), loop(10));
     }
@@ -122,24 +123,17 @@ public class TestSSA {
 
     @Test
     public void testNestedLoop() throws Throwable {
-        CoreOps.FuncOp f = getFuncOp("nestedLoop");
+        CoreOp.FuncOp f = getFuncOp("nestedLoop");
 
-        CoreOps.FuncOp lf = generate(f);
+        CoreOp.FuncOp lf = generate(f);
 
         Assert.assertEquals((int) Interpreter.invoke(lf, 10), nestedLoop(10));
     }
 
-    static CoreOps.FuncOp generate(CoreOps.FuncOp f) {
+    static CoreOp.FuncOp generate(CoreOp.FuncOp f) {
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
         lf.writeTo(System.out);
 
         lf = SSA.transform(lf);
@@ -147,7 +141,7 @@ public class TestSSA {
         return lf;
     }
 
-    static CoreOps.FuncOp getFuncOp(String name) {
+    static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestSSA.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
                 .findFirst();

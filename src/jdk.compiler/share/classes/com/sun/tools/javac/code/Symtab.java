@@ -164,6 +164,7 @@ public class Symtab {
      */
     public final Type objectType;
     public final Type objectMethodsType;
+    public final Type exactConversionsSupportType;
     public final Type objectsType;
     public final Type classType;
     public final Type classLoaderType;
@@ -241,12 +242,6 @@ public class Symtab {
     public final Type externalizableType;
     public final Type objectInputType;
     public final Type objectOutputType;
-
-    // For string templates
-    public final Type stringTemplateType;
-    public final Type templateRuntimeType;
-    public final Type processorType;
-    public final Type linkageType;
 
     // For code reflection
     public final Type codeReflectionType;
@@ -558,6 +553,7 @@ public class Symtab {
         // Enter predefined classes. All are assumed to be in the java.base module.
         objectType = enterClass("java.lang.Object");
         objectMethodsType = enterClass("java.lang.runtime.ObjectMethods");
+        exactConversionsSupportType = enterClass("java.lang.runtime.ExactConversionsSupport");
         objectsType = enterClass("java.util.Objects");
         classType = enterClass("java.lang.Class");
         stringType = enterClass("java.lang.String");
@@ -646,8 +642,8 @@ public class Symtab {
         codeReflectionType = enterClass("java.lang.runtime.CodeReflection");
         quotedType = enterClass("java.lang.reflect.code.Quoted");
         quotableType = enterClass("java.lang.reflect.code.Quotable");
-        closureOpType = enterClass("java.lang.reflect.code.op.CoreOps$ClosureOp");
-        lambdaOpType = enterClass("java.lang.reflect.code.op.CoreOps$LambdaOp");
+        closureOpType = enterClass("java.lang.reflect.code.op.CoreOp$ClosureOp");
+        lambdaOpType = enterClass("java.lang.reflect.code.op.CoreOp$LambdaOp");
         opInterpreterType = enterClass("java.lang.reflect.code.interpreter.Interpreter");
         opType = enterClass("java.lang.reflect.code.Op");
         opInterpreterInvoke = new MethodSymbol(PUBLIC | STATIC | VARARGS,
@@ -672,12 +668,6 @@ public class Symtab {
         synthesizeBoxTypeIfMissing(doubleType);
         synthesizeBoxTypeIfMissing(floatType);
         synthesizeBoxTypeIfMissing(voidType);
-
-        // For string templates
-        stringTemplateType = enterClass("java.lang.StringTemplate");
-        templateRuntimeType = enterClass("java.lang.runtime.TemplateRuntime");
-        processorType = enterClass("java.lang.StringTemplate$Processor");
-        linkageType = enterClass("java.lang.StringTemplate$Processor$Linkage");
 
         // Enter a synthetic class that is used to mark internal
         // proprietary classes in ct.sym.  This class does not have a

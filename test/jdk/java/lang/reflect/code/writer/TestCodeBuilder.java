@@ -27,10 +27,11 @@ import org.testng.annotations.Test;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.Op;
+import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.interpreter.Interpreter;
-import java.lang.reflect.code.op.CoreOps;
-import java.lang.reflect.code.op.ExtendedOps;
+import java.lang.reflect.code.op.CoreOp;
+import java.lang.reflect.code.op.ExtendedOp;
 import java.lang.reflect.code.type.CoreTypeFactory;
 import java.lang.reflect.code.writer.OpBuilder;
 import java.lang.runtime.CodeReflection;
@@ -108,31 +109,24 @@ public class TestCodeBuilder {
         testWithTransforms(getFuncOp("bodies"));
     }
 
-    public void testWithTransforms(CoreOps.FuncOp f) {
+    public void testWithTransforms(CoreOp.FuncOp f) {
         test(f);
 
-        f = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable l) {
-                return l.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
         test(f);
 
         f = SSA.transform(f);
         test(f);
     }
 
-    static void test(CoreOps.FuncOp fExpected) {
-        CoreOps.FuncOp fb = OpBuilder.createBuilderFunction(fExpected);
-        CoreOps.FuncOp fActual = (CoreOps.FuncOp) Interpreter.invoke(MethodHandles.lookup(),
-                fb, ExtendedOps.FACTORY, CoreTypeFactory.CORE_TYPE_FACTORY);
+    static void test(CoreOp.FuncOp fExpected) {
+        CoreOp.FuncOp fb = OpBuilder.createBuilderFunction(fExpected);
+        CoreOp.FuncOp fActual = (CoreOp.FuncOp) Interpreter.invoke(MethodHandles.lookup(),
+                fb, ExtendedOp.FACTORY, CoreTypeFactory.CORE_TYPE_FACTORY);
         Assert.assertEquals(fActual.toText(), fExpected.toText());
     }
 
-    static CoreOps.FuncOp getFuncOp(String name) {
+    static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestCodeBuilder.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
                 .findFirst();

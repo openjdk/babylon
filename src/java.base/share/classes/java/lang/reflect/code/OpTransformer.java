@@ -37,7 +37,7 @@ public interface OpTransformer extends BiFunction<Block.Builder, Op, Block.Build
      * A copying transformer that applies the operation to the block builder, and returning the block builder.
      */
     OpTransformer COPYING_TRANSFORMER = (block, op) -> {
-        block.apply(op);
+        block.op(op);
         return block;
     };
 
@@ -45,6 +45,28 @@ public interface OpTransformer extends BiFunction<Block.Builder, Op, Block.Build
      * A transformer that performs no action on the block builder.
      */
     OpTransformer NOOP_TRANSFORMER = (block, op) -> block;
+
+    /**
+     * A transformer that drops location information from operations.
+     */
+    OpTransformer DROP_LOCATION_TRANSFORMER = (block, op) -> {
+        Op.Result r = block.op(op);
+        r.op().setLocation(Location.NO_LOCATION);
+        return block;
+    };
+
+    /**
+     * A transformer that lowers operations that are {@link Op.Lowerable lowerable},
+     * and copies other operations.
+     */
+    OpTransformer LOWERING_TRANSFORMER = (block, op) -> {
+        if (op instanceof Op.Lowerable lop) {
+            return lop.lower(block);
+        } else {
+            block.op(op);
+            return block;
+        }
+    };
 
     /**
      * Transforms a given operation to zero or more other operations appended to the

@@ -22,16 +22,18 @@
  */
 
 import java.lang.reflect.code.*;
-import java.lang.reflect.code.op.ExtendedOps.JavaEnhancedForOp;
+import java.lang.reflect.code.op.ExtendedOp.JavaEnhancedForOp;
+import java.lang.reflect.code.type.ClassType;
 import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.*;
 
-import static java.lang.reflect.code.op.CoreOps.*;
-import static java.lang.reflect.code.op.ExtendedOps._continue;
-import static java.lang.reflect.code.op.ExtendedOps.enhancedFor;
+import static java.lang.reflect.code.op.CoreOp.*;
+import static java.lang.reflect.code.op.ExtendedOp._continue;
+import static java.lang.reflect.code.op.ExtendedOp.enhancedFor;
+import static java.lang.reflect.code.type.JavaType.parameterized;
 import static java.lang.reflect.code.type.JavaType.type;
 
 public final class StreamFuserUsingQuotable {
@@ -59,7 +61,7 @@ public final class StreamFuserUsingQuotable {
     public static <T> StreamExprBuilder<T> fromList(Class<T> elementClass) {
         JavaType elementType = type(elementClass);
         // java.util.List<E>
-        JavaType listType = type(type(List.class), elementType);
+        JavaType listType = parameterized(type(List.class), elementType);
         return new StreamExprBuilder<>(listType, elementType,
                 (b, v) -> StreamExprBuilder.enhancedForLoop(b, elementType, v)::body);
     }
@@ -174,7 +176,7 @@ public final class StreamFuserUsingQuotable {
             } else if (sop instanceof FlatMapStreamOp) {
                 body.inline(sop.op(), List.of(element), (block, iterable) -> {
                     JavaEnhancedForOp forOp = enhancedFor(block.parentBody(),
-                            iterable.type(), ((JavaType) iterable.type()).typeArguments().get(0))
+                            iterable.type(), ((ClassType) iterable.type()).typeArguments().get(0))
                             .expression(b -> {
                                 b.op(_yield(iterable));
                             })

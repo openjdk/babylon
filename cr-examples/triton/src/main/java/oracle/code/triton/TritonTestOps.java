@@ -29,20 +29,18 @@ import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.Value;
-import java.lang.reflect.code.op.OpDeclaration;
-import java.lang.reflect.code.op.OpDefinition;
 import java.lang.reflect.code.op.OpFactory;
-import java.lang.reflect.code.op.OpWithDefinition;
+import java.lang.reflect.code.op.ExternalizableOp;
 import java.lang.reflect.code.type.JavaType;
 import java.util.List;
 
 public class TritonTestOps {
 
-    @OpDeclaration(ConsumeOp.NAME)
-    public static class ConsumeOp extends OpWithDefinition {
+    @OpFactory.OpDeclaration(ConsumeOp.NAME)
+    public static class ConsumeOp extends ExternalizableOp {
         public static final String NAME = "tt.consume";
 
-        public ConsumeOp(OpDefinition def) {
+        public ConsumeOp(ExternalizedOp def) {
             super(def);
         }
 

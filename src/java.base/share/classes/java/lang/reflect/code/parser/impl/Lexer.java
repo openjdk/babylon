@@ -26,6 +26,8 @@
 package java.lang.reflect.code.parser.impl;
 
 import java.lang.reflect.code.parser.impl.Position.LineMap;
+import java.lang.reflect.code.parser.impl.Tokens.Token;
+import java.util.Arrays;
 
 /**
  * The lexical analyzer maps an input stream consisting of ASCII
@@ -97,6 +99,21 @@ public sealed interface Lexer permits Scanner {
             throw new IllegalArgumentException("Expected " + tk + " but observed " + t.kind +
                     " " + lineNumber + ":" + columnNumber);
         }
+    }
+
+    default Tokens.Token accept(Tokens.TokenKind... tks) {
+        Token t = token();
+        for (Tokens.TokenKind tk : tks) {
+            if (acceptIf(tk)) {
+                return t;
+            }
+        }
+        // @@@ Exception
+        LineMap lineMap = getLineMap();
+        int lineNumber = lineMap.getLineNumber(t.pos);
+        int columnNumber = lineMap.getColumnNumber(t.pos);
+        throw new IllegalArgumentException("Expected one of " + Arrays.toString(tks) + " but observed " + t.kind +
+                " " + lineNumber + ":" + columnNumber);
     }
 
     default boolean acceptIf(Tokens.TokenKind tk) {

@@ -24,9 +24,9 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.OpTransformer;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.Op;
-import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandle;
@@ -67,7 +67,7 @@ public class TestTry {
 
     @Test
     public void testCatching() {
-        CoreOps.FuncOp f = getFuncOp("catching");
+        CoreOp.FuncOp f = getFuncOp("catching");
 
         MethodHandle mh = generate(f);
 
@@ -119,7 +119,7 @@ public class TestTry {
 
     @Test
     public void testCatchThrowable() {
-        CoreOps.FuncOp f = getFuncOp("catchThrowable");
+        CoreOp.FuncOp f = getFuncOp("catchThrowable");
 
         MethodHandle mh = generate(f);
 
@@ -175,7 +175,7 @@ public class TestTry {
 
     @Test
     public void testCatchNested() {
-        CoreOps.FuncOp f = getFuncOp("catchNested");
+        CoreOp.FuncOp f = getFuncOp("catchNested");
 
         MethodHandle mh = generate(f);
 
@@ -256,20 +256,10 @@ public class TestTry {
         };
     }
 
-    static MethodHandle generate(CoreOps.FuncOp f) {
+    static MethodHandle generate(CoreOp.FuncOp f) {
         f.writeTo(System.out);
 
-        CoreOps.FuncOp lf = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
-        lf.writeTo(System.out);
-
-        lf = SSA.transform(lf);
+        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
         lf.writeTo(System.out);
 
         return BytecodeGenerator.generate(MethodHandles.lookup(), lf);
@@ -290,7 +280,7 @@ public class TestTry {
         return (E) e;
     }
 
-    static CoreOps.FuncOp getFuncOp(String name) {
+    static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestTry.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
                 .findFirst();

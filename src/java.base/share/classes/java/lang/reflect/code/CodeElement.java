@@ -38,6 +38,7 @@ import java.util.stream.Stream;
  *
  * @param <E> the code element type
  * @param <C> the child code element type.
+ * @sealedGraph
  */
 // @@@ E may not be needed
 public sealed interface CodeElement<

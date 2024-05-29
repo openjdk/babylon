@@ -95,7 +95,10 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         }
 
         /**
-         * {@return the captured values}
+         * Computes values captured by this invokable operation's body.
+         *
+         * @return the captured values.
+         * @see Body#capturedValues()
          */
         default List<Value> capturedValues() {
             return List.of();
@@ -179,6 +182,9 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     // Set when op is bound to block, otherwise null when unbound
     Result result;
 
+    // null if not specified
+    Location location;
+
     final String name;
 
     final List<Value> operands;
@@ -193,6 +199,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      */
     protected Op(Op that, CopyContext cc) {
         this(that.name, cc.getValues(that.operands));
+        this.location = that.location;
     }
 
     /**
@@ -241,6 +248,28 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     protected Op(String name, List<? extends Value> operands) {
         this.name = name;
         this.operands = List.copyOf(operands);
+    }
+
+    /**
+     * Sets the originating source location of this operation, if unbound.
+     *
+     * @param l the location, the {@link Location#NO_LOCATION} value indicates the location is not specified.
+     * @throws IllegalStateException if this operation is bound
+     */
+    public final void setLocation(Location l) {
+        // @@@ Fail if location != null?
+        if (result != null && result.block.isBound()) {
+            throw new IllegalStateException();
+        }
+
+        location = l;
+    }
+
+    /**
+     * {@return the originating source location of this operation, otherwise {@code null} if not specified}
+     */
+    public final Location location() {
+        return location;
     }
 
     /**
@@ -333,22 +362,6 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * The attribute value that represents null.
-     */
-    public static final Object NULL_ATTRIBUTE_VALUE = new Object();
-
-    /**
-     * Returns the operation's attributes.
-     *
-     * <p>A null attribute value is represented by the constant value {@link #NULL_ATTRIBUTE_VALUE}.
-     *
-     * @return the operation's attributes, as an unmodifiable map
-     */
-    public Map<String, Object> attributes() {
-        return Map.of();
-    }
-
-    /**
      * {@return the operation's result type}
      */
     public abstract TypeElement resultType();
@@ -391,6 +404,29 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
+     * Computes values captured by this operation. A captured value is a value that dominates
+     * this operation and is used by a descendant operation.
+     * <p>
+     * The order of the captured values is first use encountered in depth
+     * first search of this operation's descendant operations.
+     *
+     * @return the list of captured values, modifiable
+     * @see Body#capturedValues()
+     */
+    public List<Value> capturedValues() {
+        Set<Value> cvs = new LinkedHashSet<>();
+
+        capturedValues(cvs, new ArrayDeque<>(), this);
+        return new ArrayList<>(cvs);
+    }
+
+    static void capturedValues(Set<Value> capturedValues, Deque<Body> bodyStack, Op op) {
+        for (Body childBody : op.bodies()) {
+            Body.capturedValues(capturedValues, bodyStack, childBody);
+        }
+    }
+
+    /**
      * Writes the textual form of this operation to the given output stream, using the UTF-8 character set.
      *
      * @param out the stream to write to.
@@ -414,8 +450,6 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * @return the textual form of this operation.
      */
     public String toText() {
-        StringWriter w = new StringWriter();
-        writeTo(w);
-        return w.toString();
+        return OpWriter.toText(this);
     }
 }

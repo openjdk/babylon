@@ -21,13 +21,16 @@
  * questions.
  */
 
+import java.io.StringWriter;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.Op;
+import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.analysis.SSA;
-import java.lang.reflect.code.op.CoreOps;
-import java.lang.reflect.code.op.ExtendedOps;
+import java.lang.reflect.code.op.CoreOp;
+import java.lang.reflect.code.op.ExtendedOp;
 import java.lang.reflect.code.parser.OpParser;
+import java.lang.reflect.code.writer.OpWriter;
 import java.lang.runtime.CodeReflection;
 
 public class CodeReflectionTester {
@@ -53,26 +56,19 @@ public class CodeReflectionTester {
             throw new AssertionError("No @IR annotation found on reflective method");
         }
 
-        CoreOps.FuncOp f = method.getCodeModel().orElseThrow(() ->
+        CoreOp.FuncOp f = method.getCodeModel().orElseThrow(() ->
                 new AssertionError("No code model for reflective method"));
         f = lower(f, lma.ssa());
 
-        String actual = canonicalizeModel(method, f.toText());
+        String actual = canonicalizeModel(method, f);
         String expected = canonicalizeModel(method, lma.value());
         if (!actual.equals(expected)) {
             throw new AssertionError(String.format("Bad code model\nFound:\n%s\n\nExpected:\n%s", actual, expected));
         }
     }
 
-    static CoreOps.FuncOp lower(CoreOps.FuncOp f, boolean ssa) {
-        f = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+    static CoreOp.FuncOp lower(CoreOp.FuncOp f, boolean ssa) {
+        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
         f.writeTo(System.out);
 
         if (ssa) {
@@ -83,12 +79,26 @@ public class CodeReflectionTester {
         return f;
     }
 
-    // parses and then serializes
+    // serializes dropping location information, parses, and then serializes, dropping location information
+    static String canonicalizeModel(Member m, Op o) {
+        return canonicalizeModel(m, serialize(o));
+    }
+
+    // parses, and then serializes, dropping location information
     static String canonicalizeModel(Member m, String d) {
+        Op o;
         try {
-            return OpParser.fromString(ExtendedOps.FACTORY, d).get(0).toText();
+            o = OpParser.fromString(ExtendedOp.FACTORY, d).get(0);
         } catch (Exception e) {
             throw new IllegalStateException(m.toString(), e);
         }
+        return serialize(o);
+    }
+
+    // serializes, dropping location information
+    static String serialize(Op o) {
+        StringWriter w = new StringWriter();
+        OpWriter.writeTo(w, o, OpWriter.LocationOption.DROP_LOCATION);
+        return w.toString();
     }
 }

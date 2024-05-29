@@ -21,12 +21,13 @@
  * questions.
  */
 
-import java.lang.reflect.code.op.CoreOps;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.type.JavaType;
 
-import static java.lang.reflect.code.op.CoreOps._return;
-import static java.lang.reflect.code.op.CoreOps.func;
+import static java.lang.reflect.code.op.CoreOp._return;
+import static java.lang.reflect.code.op.CoreOp.func;
 import static java.lang.reflect.code.type.FunctionType.functionType;
+import static java.lang.reflect.code.type.JavaType.parameterized;
 import static java.lang.reflect.code.type.JavaType.type;
 
 public final class TestQueryProvider extends QueryProvider {
@@ -39,32 +40,32 @@ public final class TestQueryProvider extends QueryProvider {
     }
 
     @Override
-    protected Queryable<?> createQuery(JavaType elementType, CoreOps.FuncOp expression) {
+    protected Queryable<?> createQuery(JavaType elementType, CoreOp.FuncOp expression) {
         return new TestQueryable<>(elementType, this, expression);
     }
 
     @Override
-    protected QueryResult<?> createQueryResult(JavaType resultType, CoreOps.FuncOp expression) {
+    protected QueryResult<?> createQueryResult(JavaType resultType, CoreOp.FuncOp expression) {
         return new TestQueryResult<>(resultType, expression);
     }
 
     static final class TestQueryable<T> implements Queryable<T> {
         final JavaType elementType;
         final TestQueryProvider provider;
-        final CoreOps.FuncOp expression;
+        final CoreOp.FuncOp expression;
 
         TestQueryable(Class<T> tableClass, TestQueryProvider qp) {
             this.elementType = type(tableClass);
             this.provider = qp;
 
-            JavaType queryableType = type(Queryable.TYPE, elementType);
+            JavaType queryableType = parameterized(Queryable.TYPE, elementType);
             // Initial expression is an identity function
             var funType = functionType(queryableType, queryableType);
             this.expression = func("query", funType)
                     .body(b -> b.op(_return(b.parameters().get(0))));
         }
 
-        TestQueryable(JavaType elementType, TestQueryProvider provider, CoreOps.FuncOp expression) {
+        TestQueryable(JavaType elementType, TestQueryProvider provider, CoreOp.FuncOp expression) {
             this.elementType = elementType;
             this.provider = provider;
             this.expression = expression;
@@ -81,11 +82,11 @@ public final class TestQueryProvider extends QueryProvider {
         }
 
         @Override
-        public CoreOps.FuncOp expression() {
+        public CoreOp.FuncOp expression() {
             return expression;
         }
     }
 
-    record TestQueryResult<T>(JavaType resultType, CoreOps.FuncOp expression) implements QueryResult<T> {
+    record TestQueryResult<T>(JavaType resultType, CoreOp.FuncOp expression) implements QueryResult<T> {
     }
 }

@@ -32,8 +32,8 @@ import org.testng.annotations.Test;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.Op;
-import java.lang.reflect.code.op.CoreOps;
-import java.lang.reflect.code.op.OpDefinition;
+import java.lang.reflect.code.op.CoreOp;
+import java.lang.reflect.code.op.ExternalizableOp;
 import java.lang.runtime.CodeReflection;
 import java.util.Optional;
 import java.util.function.IntUnaryOperator;
@@ -49,7 +49,7 @@ public class TestCopy {
 
     @Test
     public void testCopy() {
-        CoreOps.FuncOp f = getFuncOp("f");
+        CoreOp.FuncOp f = getFuncOp("f");
 
         Op copy = f.copy();
 
@@ -58,15 +58,15 @@ public class TestCopy {
 
     @Test
     public void testCopyWithDefinition() {
-        CoreOps.FuncOp f = getFuncOp("f");
+        CoreOp.FuncOp f = getFuncOp("f");
 
-        OpDefinition odef = OpDefinition.fromOp(CopyContext.create(), f);
-        Op copy = CoreOps.FACTORY.constructOp(odef);
+        ExternalizableOp.ExternalizedOp odef = ExternalizableOp.ExternalizedOp.externalizeOp(CopyContext.create(), f);
+        Op copy = CoreOp.FACTORY.constructOp(odef);
 
         Assert.assertEquals(f.toText(), copy.toText());
     }
 
-    static CoreOps.FuncOp getFuncOp(String name) {
+    static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestCopy.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
                 .findFirst();

@@ -1,7 +1,8 @@
 package java.lang.reflect.code.type;
 
+import java.lang.constant.ClassDesc;
 import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.type.impl.JavaTypeImpl;
+import java.lang.reflect.code.type.WildcardType.BoundKind;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,7 +25,7 @@ public final class CoreTypeFactory {
             final TypeElementFactory thisThenF = this.andThen(f);
 
             @Override
-            public TypeElement constructType(TypeDefinition tree) {
+            public TypeElement constructType(TypeElement.ExternalizedTypeElement tree) {
                 return switch (tree.identifier()) {
                     case VarType.NAME -> {
                         if (tree.arguments().size() != 1) {
@@ -43,7 +44,7 @@ public final class CoreTypeFactory {
                         }
 
                         List<TypeElement> cs = new ArrayList<>(tree.arguments().size());
-                        for (TypeDefinition child : tree.arguments()) {
+                        for (TypeElement.ExternalizedTypeElement child : tree.arguments()) {
                             TypeElement c = thisThenF.constructType(child);
                             if (c == null) {
                                 throw new IllegalArgumentException("Bad type: " + tree);
@@ -62,7 +63,7 @@ public final class CoreTypeFactory {
                             throw new IllegalArgumentException("Bad type: " + tree);
                         }
                         List<TypeElement> pts = new ArrayList<>(tree.arguments().size() - 1);
-                        for (TypeDefinition child : tree.arguments().subList(1, tree.arguments().size())) {
+                        for (TypeElement.ExternalizedTypeElement child : tree.arguments().subList(1, tree.arguments().size())) {
                             TypeElement c = thisThenF.constructType(child);
                             if (c == null) {
                                 throw new IllegalArgumentException("Bad type: " + tree);
@@ -89,7 +90,7 @@ public final class CoreTypeFactory {
      */
     public static final TypeElementFactory JAVA_TYPE_FACTORY = new TypeElementFactory() {
         @Override
-        public TypeElement constructType(TypeDefinition tree) {
+        public TypeElement constructType(TypeElement.ExternalizedTypeElement tree) {
             String identifier = tree.identifier();
             int dimensions = 0;
             if (identifier.startsWith("[")) {
@@ -107,14 +108,53 @@ public final class CoreTypeFactory {
             }
 
             List<JavaType> typeArguments = new ArrayList<>(tree.arguments().size());
-            for (TypeDefinition child : tree.arguments()) {
+            for (TypeElement.ExternalizedTypeElement child : tree.arguments()) {
                 TypeElement t = JAVA_TYPE_FACTORY.constructType(child);
                 if (!(t instanceof JavaType a)) {
                     throw new IllegalArgumentException("Bad type: " + tree);
                 }
                 typeArguments.add(a);
             }
-            return new JavaTypeImpl(identifier, dimensions, typeArguments);
+            if (identifier.equals("+") || identifier.equals("-")) {
+                // wildcard type
+                BoundKind kind = identifier.equals("+") ?
+                        BoundKind.EXTENDS : BoundKind.SUPER;
+                return JavaType.wildcard(kind, typeArguments.get(0));
+            } else if (identifier.startsWith("#")) {
+                // type-var
+                if (typeArguments.size() != 1) {
+                    throw new IllegalArgumentException("Bad type-variable bounds: " + tree);
+                }
+                String[] parts = identifier.substring(1).split("::");
+                if (parts.length == 2) {
+                    // class type-var
+                    return JavaType.typeVarRef(parts[1],
+                            (ClassType)constructType(parseExTypeElem(parts[0])),
+                            typeArguments.get(0));
+                } else {
+                    // method type-var
+                    return JavaType.typeVarRef(parts[2],
+                            parseMethodRef(String.format("%s::%s", parts[0], parts[1])),
+                            typeArguments.get(0));
+                }
+            }
+            JavaType t = switch (identifier) {
+                case "boolean" -> JavaType.BOOLEAN;
+                case "byte" -> JavaType.BYTE;
+                case "char" -> JavaType.CHAR;
+                case "short" -> JavaType.SHORT;
+                case "int" -> JavaType.INT;
+                case "long" -> JavaType.LONG;
+                case "float" -> JavaType.FLOAT;
+                case "double" -> JavaType.DOUBLE;
+                case "void" -> JavaType.VOID;
+                default -> JavaType.type(ClassDesc.of(identifier));
+            };
+            if (!typeArguments.isEmpty()) {
+                t = JavaType.parameterized(t, typeArguments);
+            }
+            return dimensions == 0 ?
+                    t : JavaType.array(t, dimensions);
         }
     };
 
@@ -125,4 +165,14 @@ public final class CoreTypeFactory {
      * may contain instances of those types.
      */
     public static final TypeElementFactory CORE_TYPE_FACTORY = codeModelTypeFactory(JAVA_TYPE_FACTORY);
+
+    // Copied code in jdk.compiler module throws UOE
+    static MethodRef parseMethodRef(String desc) {
+/*__throw new UnsupportedOperationException();__*/        return java.lang.reflect.code.parser.impl.DescParser.parseMethodRef(desc);
+    }
+
+    // Copied code in jdk.compiler module throws UOE
+    static TypeElement.ExternalizedTypeElement parseExTypeElem(String desc) {
+/*__throw new UnsupportedOperationException();__*/        return java.lang.reflect.code.parser.impl.DescParser.parseExTypeElem(desc);
+    }
 }

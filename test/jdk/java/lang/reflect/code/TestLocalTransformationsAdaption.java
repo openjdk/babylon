@@ -25,16 +25,13 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.io.PrintStream;
-import java.lang.reflect.code.CopyContext;
-import java.lang.reflect.code.op.CoreOps;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.Value;
+import java.lang.reflect.code.*;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.type.FieldRef;
 import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.TypeElement;
 import java.lang.runtime.CodeReflection;
 import java.util.List;
 import java.util.Optional;
@@ -45,10 +42,10 @@ import java.util.function.IntUnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static java.lang.reflect.code.op.CoreOps.arrayStoreOp;
-import static java.lang.reflect.code.op.CoreOps.constant;
-import static java.lang.reflect.code.op.CoreOps.fieldLoad;
-import static java.lang.reflect.code.op.CoreOps.newArray;
+import static java.lang.reflect.code.op.CoreOp.arrayStoreOp;
+import static java.lang.reflect.code.op.CoreOp.constant;
+import static java.lang.reflect.code.op.CoreOp.fieldLoad;
+import static java.lang.reflect.code.op.CoreOp.newArray;
 import static java.lang.reflect.code.type.MethodRef.method;
 import static java.lang.reflect.code.type.JavaType.*;
 
@@ -93,17 +90,10 @@ public class TestLocalTransformationsAdaption {
 
     @Test
     public void testInvocation() {
-        CoreOps.FuncOp f = getFuncOp("f");
+        CoreOp.FuncOp f = getFuncOp("f");
         f.writeTo(System.out);
 
-        f = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
         f.writeTo(System.out);
 
         int x = (int) Interpreter.invoke(MethodHandles.lookup(), f, 2);
@@ -119,22 +109,22 @@ public class TestLocalTransformationsAdaption {
 
     @Test
     public void testFuncEntryExit() {
-        CoreOps.FuncOp f = getFuncOp("f");
+        CoreOp.FuncOp f = getFuncOp("f");
         f.writeTo(System.out);
 
         AtomicBoolean first = new AtomicBoolean(true);
-        CoreOps.FuncOp fc = f.transform((block, op) -> {
+        CoreOp.FuncOp fc = f.transform((block, op) -> {
             if (first.get()) {
                 printConstantString(block, "ENTRY");
                 first.set(false);
             }
 
             switch (op) {
-                case CoreOps.ReturnOp returnOp when getNearestInvokeableAncestorOp(returnOp) instanceof CoreOps.FuncOp: {
+                case CoreOp.ReturnOp returnOp when getNearestInvokeableAncestorOp(returnOp) instanceof CoreOp.FuncOp: {
                     printConstantString(block, "EXIT");
                     break;
                 }
-                case CoreOps.ThrowOp throwOp: {
+                case CoreOp.ThrowOp throwOp: {
                     printConstantString(block, "EXIT");
                     break;
                 }
@@ -147,14 +137,7 @@ public class TestLocalTransformationsAdaption {
         });
         fc.writeTo(System.out);
 
-        fc = fc.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        fc = fc.transform(OpTransformer.LOWERING_TRANSFORMER);
         fc.writeTo(System.out);
 
         int x = (int) Interpreter.invoke(MethodHandles.lookup(), fc, 2);
@@ -171,7 +154,7 @@ public class TestLocalTransformationsAdaption {
     static void printConstantString(Function<Op, Op.Result> opBuilder, String s) {
         Op.Result c = opBuilder.apply(constant(J_L_STRING, s));
         Value System_out = opBuilder.apply(fieldLoad(FieldRef.field(System.class, "out", PrintStream.class)));
-        opBuilder.apply(CoreOps.invoke(method(PrintStream.class, "println", void.class, String.class), System_out, c));
+        opBuilder.apply(CoreOp.invoke(method(PrintStream.class, "println", void.class, String.class), System_out, c));
     }
 
     static Op getNearestInvokeableAncestorOp(Op op) {
@@ -184,15 +167,15 @@ public class TestLocalTransformationsAdaption {
 
     @Test
     public void testReplaceCall() {
-        CoreOps.FuncOp f = getFuncOp("f");
+        CoreOp.FuncOp f = getFuncOp("f");
         f.writeTo(System.out);
 
-        CoreOps.FuncOp fc = f.transform((block, op) -> {
+        CoreOp.FuncOp fc = f.transform((block, op) -> {
             switch (op) {
-                case CoreOps.InvokeOp invokeOp when invokeOp.invokeDescriptor().equals(ADD_METHOD): {
+                case CoreOp.InvokeOp invokeOp when invokeOp.invokeDescriptor().equals(ADD_METHOD): {
                     // Get the adapted operands, and pass those to the new call method
                     List<Value> adaptedOperands = block.context().getValues(op.operands());
-                    Op.Result adaptedResult = block.apply(CoreOps.invoke(ADD_WITH_PRINT_METHOD, adaptedOperands));
+                    Op.Result adaptedResult = block.apply(CoreOp.invoke(ADD_WITH_PRINT_METHOD, adaptedOperands));
                     // Map the old call result to the new call result, so existing operations can be
                     // adapted to use the new result
                     block.context().mapValue(invokeOp.result(), adaptedResult);
@@ -206,14 +189,7 @@ public class TestLocalTransformationsAdaption {
         });
         fc.writeTo(System.out);
 
-        fc = fc.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        fc = fc.transform(OpTransformer.LOWERING_TRANSFORMER);
         fc.writeTo(System.out);
 
         int x = (int) Interpreter.invoke(MethodHandles.lookup(), fc, 2);
@@ -223,12 +199,12 @@ public class TestLocalTransformationsAdaption {
 
     @Test
     public void testCallEntryExit() {
-        CoreOps.FuncOp f = getFuncOp("f");
+        CoreOp.FuncOp f = getFuncOp("f");
         f.writeTo(System.out);
 
-        CoreOps.FuncOp fc = f.transform((block, op) -> {
+        CoreOp.FuncOp fc = f.transform((block, op) -> {
             switch (op) {
-                case CoreOps.InvokeOp invokeOp: {
+                case CoreOp.InvokeOp invokeOp: {
                     printCall(block.context(), invokeOp, block);
                     break;
                 }
@@ -240,21 +216,14 @@ public class TestLocalTransformationsAdaption {
         });
         fc.writeTo(System.out);
 
-        fc = fc.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        fc = fc.transform(OpTransformer.LOWERING_TRANSFORMER);
         fc.writeTo(System.out);
 
         int x = (int) Interpreter.invoke(MethodHandles.lookup(), fc, 2);
         Assert.assertEquals(x, f(2));
     }
 
-    static void printCall(CopyContext cc, CoreOps.InvokeOp invokeOp, Function<Op, Op.Result> opBuilder) {
+    static void printCall(CopyContext cc, CoreOp.InvokeOp invokeOp, Function<Op, Op.Result> opBuilder) {
         List<Value> adaptedInvokeOperands = cc.getValues(invokeOp.operands());
 
         String prefix = "ENTER";
@@ -276,7 +245,7 @@ public class TestLocalTransformationsAdaption {
 
             if (operand.type().equals(INT)) {
                 operand = opBuilder.apply(
-                        CoreOps.invoke(method(Integer.class, "valueOf", Integer.class, int.class), operand));
+                        CoreOp.invoke(method(Integer.class, "valueOf", Integer.class, int.class), operand));
                 // @@@ Other primitive types
             }
             opBuilder.apply(
@@ -288,7 +257,7 @@ public class TestLocalTransformationsAdaption {
                         prefix + ": " + invokeOp.invokeDescriptor() + "(" + formatString(adaptedInvokeOperands) + ")%n"));
         Value System_out = opBuilder.apply(fieldLoad(FieldRef.field(System.class, "out", PrintStream.class)));
         opBuilder.apply(
-                CoreOps.invoke(method(PrintStream.class, "printf", PrintStream.class, String.class, Object[].class),
+                CoreOp.invoke(method(PrintStream.class, "printf", PrintStream.class, String.class, Object[].class),
                         System_out, formatString, formatArray));
 
         // Method call
@@ -301,7 +270,7 @@ public class TestLocalTransformationsAdaption {
 
         if (adaptedInvokeResult.type().equals(INT)) {
             adaptedInvokeResult = opBuilder.apply(
-                    CoreOps.invoke(method(Integer.class, "valueOf", Integer.class, int.class), adaptedInvokeResult));
+                    CoreOp.invoke(method(Integer.class, "valueOf", Integer.class, int.class), adaptedInvokeResult));
             // @@@ Other primitive types
         }
         opBuilder.apply(
@@ -311,7 +280,7 @@ public class TestLocalTransformationsAdaption {
                 constant(J_L_STRING,
                         prefix + ": " + invokeOp.invokeDescriptor() + " -> " + formatString(adaptedInvokeResult.type()) + "%n"));
         opBuilder.apply(
-                CoreOps.invoke(method(PrintStream.class, "printf", PrintStream.class, String.class, Object[].class),
+                CoreOp.invoke(method(PrintStream.class, "printf", PrintStream.class, String.class, Object[].class),
                         System_out, formatString, formatArray));
     }
 
@@ -345,7 +314,7 @@ public class TestLocalTransformationsAdaption {
         return a + b;
     }
 
-    static CoreOps.FuncOp getFuncOp(String name) {
+    static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestLocalTransformationsAdaption.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
                 .findFirst();
