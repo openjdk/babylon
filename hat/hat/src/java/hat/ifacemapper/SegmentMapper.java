@@ -317,7 +317,7 @@ public interface SegmentMapper<T> {
      *                                   {@code layout().byteSize() > segment.byteSize()}
      */
     default T allocate(Arena arena) {
-        // To help debug we add a tail marker 
+        // To help debug we add a tail marker
         // We add 16 bytes and then pad to the next 16 bytes
         // and request alignment on 16 byte boundary
         long byteSize = layout().byteSize();
