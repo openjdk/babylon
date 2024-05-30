@@ -86,3 +86,7 @@ add_executable(schemadump
         ${CMAKE_SOURCE_DIR}/shared/cpp/shared.cpp
         ${CMAKE_SOURCE_DIR}/shared/cpp/schemadump.cpp
 )
+add_library(ptx_backend SHARED
+        ${CMAKE_SOURCE_DIR}/shared/cpp/shared.cpp
+        ${CMAKE_SOURCE_DIR}/ptx/cpp/ptx_backend.cpp
+)

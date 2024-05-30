@@ -48,8 +48,18 @@ public class PTXBackend extends NativeBackend {
         // Here we recieve a callgraph from the kernel entrypoint
         // The first time we see this we need to convert the kernel entrypoint
         // and rechable methods to PTX.
-        kernelCallGraph.kernelReachableResolvedStream().forEach(kr -> {
 
-        });
+        // sort the dag by rank means that we get the methods called by the entrypoint in dependency order
+        // of course there may not be any of these
+        kernelCallGraph.kernelReachableResolvedStream()
+                .sorted((lhs, rhs) -> rhs.rank - lhs.rank)
+                .forEach(kernelReachableResolvedMethod ->
+                        System.out.println(" call to -> "+kernelReachableResolvedMethod.method.getName())
+                );
+
+        System.out.println("Entrypoint ->"+kernelCallGraph.entrypoint.method.getName());
+        System.out.println(kernelCallGraph.entrypoint.funcOpWrapper().toText());
+        System.out.println("Add your code to "+PTXBackend.class.getName()+".dispatchKernel() to actually run! :)");
+        System.exit(1);
     }
 }

@@ -12,5 +12,6 @@
     <orderEntry type="module" module-name="backend_opencl" />
     <orderEntry type="module" module-name="backend_cuda" />
     <orderEntry type="module" module-name="backend_spirv" />
+    <orderEntry type="module" module-name="backend_ptx" />
   </component>
 </module>
