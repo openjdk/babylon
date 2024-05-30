@@ -518,13 +518,16 @@ public class TestBytecode {
             permutateAllArgs(d.testMethod.getParameterTypes(), args ->
                 Assert.assertEquals(invokeAndConvert(flift, args), d.testMethod.invoke(null, args)));
         } catch (Throwable e) {
+            System.out.println("Compiled model:");
+            d.testMethod.getCodeModel().ifPresent(f -> f.writeTo(System.out));
+            System.out.println("Lifted model:");
             flift.writeTo(System.out);
             throw e;
         }
     }
 
     private static Object invokeAndConvert(CoreOp.FuncOp func, Object[] args) {
-        Object ret = Interpreter.invoke(func, args);
+        Object ret = Interpreter.invoke(MethodHandles.lookup(), func, args);
         if (ret instanceof Integer i) {
             TypeElement rt = func.invokableType().returnType();
             if (rt.equals(JavaType.BOOLEAN)) {
