@@ -61,7 +61,11 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
 import java.lang.classfile.constantpool.ClassEntry;
+import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodTypeDesc;
+import java.lang.reflect.code.type.PrimitiveType;
+import java.lang.reflect.code.type.VarType;
+import java.util.function.BiFunction;
 
 
 public final class BytecodeLift {
@@ -225,22 +229,22 @@ public final class BytecodeLift {
                     // Conditional branch
                     Value operand = stack.pop();
                     Op cop = switch (inst.opcode()) {
-                        case IFNE -> CoreOp.eq(operand, op(CoreOp.constant(JavaType.INT, 0)));
-                        case IFEQ -> CoreOp.neq(operand, op(CoreOp.constant(JavaType.INT, 0)));
-                        case IFGE -> CoreOp.lt(operand, op(CoreOp.constant(JavaType.INT, 0)));
-                        case IFLE -> CoreOp.gt(operand, op(CoreOp.constant(JavaType.INT, 0)));
-                        case IFGT -> CoreOp.le(operand, op(CoreOp.constant(JavaType.INT, 0)));
-                        case IFLT -> CoreOp.ge(operand, op(CoreOp.constant(JavaType.INT, 0)));
+                        case IFNE -> CoreOp.eq(operand, zero(operand));
+                        case IFEQ -> CoreOp.neq(operand, zero(operand));
+                        case IFGE -> CoreOp.lt(operand, zero(operand));
+                        case IFLE -> CoreOp.gt(operand, zero(operand));
+                        case IFGT -> CoreOp.le(operand, zero(operand));
+                        case IFLT -> CoreOp.ge(operand, zero(operand));
                         case IFNULL -> CoreOp.neq(operand, op(CoreOp.constant(JavaType.J_L_OBJECT, null)));
                         case IFNONNULL -> CoreOp.eq(operand, op(CoreOp.constant(JavaType.J_L_OBJECT, null)));
-                        case IF_ICMPNE -> CoreOp.eq(stack.pop(), operand);
-                        case IF_ICMPEQ -> CoreOp.neq(stack.pop(), operand);
-                        case IF_ICMPGE -> CoreOp.lt(stack.pop(), operand);
-                        case IF_ICMPLE -> CoreOp.gt(stack.pop(), operand);
-                        case IF_ICMPGT -> CoreOp.le(stack.pop(), operand);
-                        case IF_ICMPLT -> CoreOp.ge(stack.pop(), operand);
-                        case IF_ACMPEQ -> CoreOp.neq(stack.pop(), operand);
-                        case IF_ACMPNE -> CoreOp.eq(stack.pop(), operand);
+                        case IF_ICMPNE -> unifyOperands(CoreOp::eq, stack.pop(), operand, TypeKind.IntType);
+                        case IF_ICMPEQ -> unifyOperands(CoreOp::neq, stack.pop(), operand, TypeKind.IntType);
+                        case IF_ICMPGE -> unifyOperands(CoreOp::lt, stack.pop(), operand, TypeKind.IntType);
+                        case IF_ICMPLE -> unifyOperands(CoreOp::gt, stack.pop(), operand, TypeKind.IntType);
+                        case IF_ICMPGT -> unifyOperands(CoreOp::le, stack.pop(), operand, TypeKind.IntType);
+                        case IF_ICMPLT -> unifyOperands(CoreOp::ge, stack.pop(), operand, TypeKind.IntType);
+                        case IF_ACMPEQ -> unifyOperands(CoreOp::neq, stack.pop(), operand, TypeKind.IntType);
+                        case IF_ACMPNE -> unifyOperands(CoreOp::eq, stack.pop(), operand, TypeKind.IntType);
                         default -> throw new UnsupportedOperationException("Unsupported branch instruction: " + inst);
                     };
                     Block.Builder next = newBlock();
@@ -290,6 +294,9 @@ public final class BytecodeLift {
                         case Integer v -> CoreOp.constant(JavaType.INT, v);
                         case Long v -> CoreOp.constant(JavaType.LONG, v);
                         case String v -> CoreOp.constant(JavaType.J_L_STRING, v);
+                        case DynamicConstantDesc<?> v when v.bootstrapMethod().owner().equals(ConstantDescs.CD_ConstantBootstraps)
+                                                     && v.bootstrapMethod().methodName().equals("nullConstant")
+                                -> CoreOp.constant(JavaType.J_L_OBJECT, null);
                         default ->
                             // @@@ MethodType, MethodHandle, ConstantDynamic
                             throw new IllegalArgumentException("Unsupported constant value: " + inst.constantValue());
@@ -310,34 +317,35 @@ public final class BytecodeLift {
                     }, stack.pop())));
                 }
                 case OperatorInstruction inst -> {
+                    TypeKind tk = inst.typeKind();
                     Value operand = stack.pop();
                     stack.push(op(switch (inst.opcode()) {
                         case IADD, LADD, FADD, DADD ->
-                                CoreOp.add(stack.pop(), operand);
+                                unifyOperands(CoreOp::add, stack.pop(), operand, tk);
                         case ISUB, LSUB, FSUB, DSUB ->
-                                CoreOp.sub(stack.pop(), operand);
+                                unifyOperands(CoreOp::sub, stack.pop(), operand, tk);
                         case IMUL, LMUL, FMUL, DMUL ->
-                                CoreOp.mul(stack.pop(), operand);
+                                unifyOperands(CoreOp::mul, stack.pop(), operand, tk);
                         case IDIV, LDIV, FDIV, DDIV ->
-                                CoreOp.div(stack.pop(), operand);
+                                unifyOperands(CoreOp::div, stack.pop(), operand, tk);
                         case IREM, LREM, FREM, DREM ->
-                                CoreOp.mod(stack.pop(), operand);
+                                unifyOperands(CoreOp::mod, stack.pop(), operand, tk);
                         case INEG, LNEG, FNEG, DNEG ->
                                 CoreOp.neg(operand);
                         case ARRAYLENGTH ->
                                 CoreOp.arrayLength(operand);
                         case IAND, LAND ->
-                                CoreOp.and(stack.pop(), operand);
+                                unifyOperands(CoreOp::and, stack.pop(), operand, tk);
                         case IOR, LOR ->
-                                CoreOp.or(stack.pop(), operand);
+                                unifyOperands(CoreOp::or, stack.pop(), operand, tk);
                         case IXOR, LXOR ->
-                                CoreOp.xor(stack.pop(), operand);
+                                unifyOperands(CoreOp::xor, stack.pop(), operand, tk);
                         case ISHL, LSHL ->
-                                CoreOp.lshl(stack.pop(), operand);
+                                CoreOp.lshl(stack.pop(), toInt(operand));
                         case ISHR, LSHR ->
-                                CoreOp.ashr(stack.pop(), operand);
+                                CoreOp.ashr(stack.pop(), toInt(operand));
                         case IUSHR, LUSHR ->
-                                CoreOp.lshr(stack.pop(), operand);
+                                CoreOp.lshr(stack.pop(), toInt(operand));
                         default ->
                             throw new IllegalArgumentException("Unsupported operator opcode: " + inst.opcode());
                     }));
@@ -552,6 +560,26 @@ public final class BytecodeLift {
                     throw new UnsupportedOperationException("Unsupported code element: " + elements.get(i));
             }
         }
+    }
+
+    private static TypeElement valueType(Value v) {
+        var t = v.type();
+        while (t instanceof VarType vt) t = vt.valueType();
+        return t;
+    }
+
+    private Op unifyOperands(BiFunction<Value, Value, Op> operator, Value v1, Value v2, TypeKind tk) {
+        if (tk != TypeKind.IntType || valueType(v1).equals(valueType(v2))) return operator.apply(v1, v2);
+        return operator.apply(toInt(v1), toInt(v2));
+    }
+
+    private Value toInt(Value v) {
+        return valueType(v).equals(PrimitiveType.INT) ? v : op(CoreOp.conv(PrimitiveType.INT, v));
+    }
+
+    private Value zero(Value otherOperand) {
+       var vt = valueType(otherOperand);
+        return op(CoreOp.constant(vt, vt.equals(PrimitiveType.BOOLEAN) ? false : 0));
     }
 
     private static boolean isCategory1(Value v) {

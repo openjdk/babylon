@@ -70,7 +70,6 @@ public class TestBytecode {
     }
 
     @CodeReflection
-    @SkipLift
     static byte byteNumOps(byte i, byte j, byte k) {
         k++;
         i = (byte) ((i + j) / k - i % j);
@@ -79,7 +78,6 @@ public class TestBytecode {
     }
 
     @CodeReflection
-    @SkipLift
     static short shortNumOps(short i, short j, short k) {
         k++;
         i = (short) ((i + j) / k - i % j);
@@ -88,7 +86,6 @@ public class TestBytecode {
     }
 
     @CodeReflection
-    @SkipLift
     static char charNumOps(char i, char j, char k) {
         k++;
         i = (char) ((i + j) / k - i % j);
@@ -126,19 +123,16 @@ public class TestBytecode {
     }
 
     @CodeReflection
-    @SkipLift
     static byte byteBitOps(byte i, byte j, byte k) {
         return (byte) (i & j | k ^ j);
     }
 
     @CodeReflection
-    @SkipLift
     static short shortBitOps(short i, short j, short k) {
         return (short) (i & j | k ^ j);
     }
 
     @CodeReflection
-    @SkipLift
     static char charBitOps(char i, char j, char k) {
         return (char) (i & j | k ^ j);
     }
@@ -154,37 +148,31 @@ public class TestBytecode {
     }
 
     @CodeReflection
-    @SkipLift
     static int intShiftOps(int i, int j, int k) {
         return ((-1 >> i) << (j << k)) >>> (k - j);
     }
 
     @CodeReflection
-    @SkipLift
     static byte byteShiftOps(byte i, byte j, byte k) {
         return (byte) (((-1 >> i) << (j << k)) >>> (k - j));
     }
 
     @CodeReflection
-    @SkipLift
     static short shortShiftOps(short i, short j, short k) {
         return (short) (((-1 >> i) << (j << k)) >>> (k - j));
     }
 
     @CodeReflection
-    @SkipLift
     static char charShiftOps(char i, char j, char k) {
         return (char) (((-1 >> i) << (j << k)) >>> (k - j));
     }
 
     @CodeReflection
-    @SkipLift
     static long longShiftOps(long i, long j, long k) {
         return ((-1 >> i) << (j << k)) >>> (k - j);
     }
 
     @CodeReflection
-    @SkipLift
     static Object[] boxingAndUnboxing(int i, byte b, short s, char c, Integer ii, Byte bb, Short ss, Character cc) {
         ii += i; ii += b; ii += s; ii += c;
         i += ii; i += bb; i += ss; i += cc;
@@ -338,7 +326,6 @@ public class TestBytecode {
     }
 
     @CodeReflection
-    @SkipLift
     static boolean not(boolean b) {
         return !b;
     }
@@ -516,9 +503,7 @@ public class TestBytecode {
 
     @Test(dataProvider = "testMethods")
     public void testLift(TestData d) throws Throwable {
-        if (d.testMethod.getAnnotation(SkipLift.class) != null) {
-            throw new SkipException("skipped");
-        }
+        if (d.testMethod.getAnnotation(SkipLift.class) != null) return;
         CoreOp.FuncOp flift;
         try {
             flift = BytecodeLift.lift(CLASS_DATA, d.testMethod.getName(), toMethodTypeDesc(d.testMethod));
