@@ -497,48 +497,51 @@ void Schema::dumpSled(std::ostream &out, void *argArray) {
 
 extern "C" int getMaxComputeUnits(long backendHandle) {
    // std::cout << "trampolining through backendHandle to backend.getMaxComputeUnits()" << std::endl;
-    Backend *backend = (Backend *) backendHandle;
+    auto *backend = reinterpret_cast<Backend*>(backendHandle);
     return backend->getMaxComputeUnits();
 }
 
 extern "C" void info(long backendHandle) {
   //  std::cout << "trampolining through backendHandle to backend.info()" << std::endl;
-    Backend *backend = (Backend *) backendHandle;
+    auto *backend = reinterpret_cast<Backend*>(backendHandle);
     backend->info();
 }
 extern "C" void releaseBackend(long backendHandle) {
-    Backend *backend = (Backend *) backendHandle;
+    auto *backend = reinterpret_cast<Backend*>(backendHandle);
     delete backend;
 }
 extern "C" long compileProgram(long backendHandle, int len, char *source) {
-    std::cout << "trampolining through backendHandle to backend.compileProgram()" << std::endl;
-    Backend *backend = (Backend *) backendHandle;
-    return backend->compileProgram(len, source);
+    std::cout << "trampolining through backendHandle to backend.compileProgram() "
+        <<std::hex<<backendHandle<< std::dec <<std::endl;
+    auto *backend = reinterpret_cast<Backend*>(backendHandle);
+    auto programHandle = backend->compileProgram(len, source);
+    std::cout << "programHandle = "<<std::hex<<backendHandle<< std::dec <<std::endl;
+    return programHandle;
 }
 extern "C" long getKernel(long programHandle, int nameLen, char *name) {
-  //  std::cout << "trampolining through programHandle to program.getKernel()" << std::endl;
-    Backend::Program *program = (Backend::Program *) programHandle;
+    std::cout << "trampolining through programHandle to program.getKernel()"
+            <<std::hex<<programHandle<< std::dec <<std::endl;
+    auto program = reinterpret_cast<Backend::Program *>(programHandle);
     return program->getKernel(nameLen, name);
 }
 
 extern "C" long ndrange(long kernelHandle, void *argArray) {
     std::cout << "trampolining through kernelHandle to kernel.ndrange(...) " << std::endl;
-
-    Backend::Program::Kernel *kernel = (Backend::Program::Kernel *) kernelHandle;
+    auto kernel = reinterpret_cast<Backend::Program::Kernel *>(kernelHandle);
     kernel->ndrange( argArray);
     return (long) 0;
 }
 extern "C" void releaseKernel(long kernelHandle) {
-    Backend::Program::Kernel *kernel = (Backend::Program::Kernel *) kernelHandle;
+    auto kernel = reinterpret_cast<Backend::Program::Kernel *>(kernelHandle);
     delete kernel;
 }
 
 extern "C" void releaseProgram(long programHandle) {
-    Backend::Program *program = (Backend::Program *) programHandle;
+    auto program = reinterpret_cast<Backend::Program *>(programHandle);
     delete program;
 }
 extern "C" bool programOK(long programHandle) {
-    Backend::Program *program = (Backend::Program *) programHandle;
+    auto program = reinterpret_cast<Backend::Program *>(programHandle);
     return program->programOK();
 }
 

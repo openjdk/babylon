@@ -95,11 +95,24 @@ public class ViolaJonesCompute {
 
     @CodeReflection
     public static void integralColKernel(KernelContext kc, F32Array2D greyImage, F32Array2D integral, F32Array2D integralSq) {
-        if (kc.x <kc.maxX){
-           int width = greyImage.width();
+        if (kc.x <kc.maxX){  // kc.maxX = imageWidth
+           int x = kc.x;
+           int width = kc.maxX;
            int height = greyImage.height();
            for (int y = 1; y < height; y++) {
-               integralCol((y * width) + kc.x, width, greyImage, integral, integralSq);
+               int id =(y * width) + x;
+               integralCol(id, width, greyImage, integral, integralSq);
+           }
+        }
+    }
+
+    public static void javaIntegralCol(F32Array2D greyImage, F32Array2D integral, F32Array2D integralSq) {
+        int height = greyImage.height();
+        int width = greyImage.width();
+        for (int x = 0; x<width; x++){
+           for (int y = 1; y < height; y++) {
+               int id =(y * width) + x;
+               integralCol(id, width, greyImage, integral, integralSq);
            }
         }
     }
@@ -112,10 +125,22 @@ public class ViolaJonesCompute {
 
     @CodeReflection
     public static void integralRowKernel(KernelContext kc, F32Array2D integral, F32Array2D integralSq) {
-        if (kc.x <kc.maxX){
+        if (kc.x <kc.maxX){  // kc.maxX == imageHeight
+           int y = kc.x;
            int width = integral.width();
            for (int x = 1; x < width; x++) {
-               integralRow((kc.x * width) + x, integral, integralSq);
+               int id =(y * width) + x;
+               integralRow(id, integral, integralSq);
+           }
+        }
+    }
+    public static void javaIntegralRow(F32Array2D integral, F32Array2D integralSq) {
+        int height = integral.height();
+        int width = integral.width();
+        for (int y = 0; y<height; y++){
+           for (int x = 1; x < width; x++) {
+               int id =(y * width) + x;
+               integralRow(id, integral, integralSq);
            }
         }
     }
@@ -284,15 +309,18 @@ public class ViolaJonesCompute {
         int height = rgbS08x3Image.height();
         Accelerator accelerator = cc.accelerator;
         F32Array2D greyImage = F32Array2D.create(accelerator, width, height);
-        javaRgbToGreyScale(rgbS08x3Image, greyImage);
+        //javaRgbToGreyScale(rgbS08x3Image, greyImage);
 
-        //cc.dispatchKernel(width * height, kc -> rgbToGreyKernel(kc, rgbS08x3Image, greyImage));
+        cc.dispatchKernel(width * height, kc -> rgbToGreyKernel(kc, rgbS08x3Image, greyImage));
         F32Array2D integralImage = F32Array2D.create(accelerator, width, height);
         F32Array2D integralSqImage = F32Array2D.create(accelerator, width, height);
-        javaCreateIntegralImage(greyImage, integralImage, integralSqImage);
 
-        //cc.dispatchKernel(width, kc -> integralColKernel(kc, greyImage, integralImage, integralSqImage));
-        //cc.dispatchKernel(height, kc -> integralRowKernel(kc, integralImage, integralSqImage));
+        //javaCreateIntegralImage(greyImage, integralImage, integralSqImage);
+
+        //javaIntegralCol(greyImage, integralImage, integralSqImage);
+        //javaIntegralRow(integralImage, integralSqImage);
+        cc.dispatchKernel(width, kc -> integralColKernel(kc, greyImage, integralImage, integralSqImage));
+        cc.dispatchKernel(height, kc -> integralRowKernel(kc, integralImage, integralSqImage));
         // harViz.showIntegrals();
         ScaleTable scaleTable = ScaleTable.create(accelerator, cascade, width, height);
 
@@ -306,15 +334,17 @@ public class ViolaJonesCompute {
 
     public static void main(String[] args) throws IOException, ParserConfigurationException, SAXException {
         BufferedImage nasa1996 = ImageIO.read(ViolaJones.class.getResourceAsStream(
-              // "/images/team.jpg"
-               "/images/Nasa1996.jpg"
+               //"/images/team.jpg"
+              // "/images/eggheads.jpg"
+              // "/images/highett.jpg"
+             "/images/Nasa1996.jpg"
         ));
         XMLHaarCascadeModel haarCascade = XMLHaarCascadeModel.load(
                 ViolaJonesRaw.class.getResourceAsStream("/cascades/haarcascade_frontalface_default.xml"));
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         Cascade cascade = Cascade.create(accelerator, haarCascade);
         RgbS08x3Image rgbImage = RgbS08x3Image.create(accelerator, nasa1996);
-        ResultTable resultTable = ResultTable.create(accelerator, 10000);
+        ResultTable resultTable = ResultTable.create(accelerator, 1000);
         HaarViewer harViz = new HaarViewer(accelerator, nasa1996, rgbImage, cascade, null, null);
 
         //System.out.println("Compute units "+((NativeBackend)accelerator.backend).getGetMaxComputeUnits());

@@ -71,8 +71,8 @@ public abstract class C99HatKernelBuilder<T extends C99HatKernelBuilder<T>> exte
 
     public final T scope() {
         return
-                identifier("kc").rarrow().identifier("x").equals().globalId().semicolon().nl()
-                .identifier("kc").rarrow().identifier("maxX").equals().globalSize().semicolon().nl();
+                identifier("kc").rarrow().identifier("x").equals().globalId().semicolon().nl();
+                //.identifier("kc").rarrow().identifier("maxX").equals().globalSize().semicolon().nl();
     }
 
     public abstract T globalPtrPrefix();

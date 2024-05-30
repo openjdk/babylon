@@ -60,9 +60,9 @@
 
 #include<vector>
 
-extern void __checkCudaErrors(CUresult err, const char *file, const int line);
+//extern void __checkCudaErrors(CUresult err, const char *file, const int line);
 
-#define checkCudaErrors(err)  __checkCudaErrors (err, __FILE__, __LINE__)
+//#define checkCudaErrors(err)  __checkCudaErrors (err, __FILE__, __LINE__)
 
 class Ptx {
 public:
@@ -102,11 +102,11 @@ public:
             CUfunction function;
             cudaStream_t cudaStream;
         public:
-            CudaKernel(Backend::Program *program, std::string name, CUfunction function);
+            CudaKernel(Backend::Program *program, char* name, CUfunction function);
 
-            ~CudaKernel();
+            ~CudaKernel() override;
 
-            long ndrange(int range, void *argArray);
+            long ndrange( void *argArray);
         };
 
     private:
@@ -140,7 +140,7 @@ public:
 
     long compileProgram(int len, char *source);
 
-    static const char *errorMsg(CUresult status);
+    //static const char *errorMsg(CUresult status);
 
 };
 
