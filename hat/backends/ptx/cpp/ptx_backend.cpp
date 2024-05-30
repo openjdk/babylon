@@ -34,7 +34,7 @@ public:
     class PTXProgram : public Backend::Program {
         class PTXKernel : public Backend::Program::Kernel {
         public:
-            PTXKernel(Backend::Program *program, std::string name)
+            PTXKernel(Backend::Program *program, char * name)
                     : Backend::Program::Kernel(program, name) {
             }
 
@@ -56,7 +56,7 @@ public:
         }
 
         long getKernel(int nameLen, char *name) {
-            return (long) new PTXKernel(this, std::string(name));
+            return (long) new PTXKernel(this, name);
         }
 
         bool programOK() {
