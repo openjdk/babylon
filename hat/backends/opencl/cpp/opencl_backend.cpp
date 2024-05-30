@@ -97,7 +97,7 @@ OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::~OpenCLBuffer() {
     clReleaseMemObject(clMem);
 }
 
-OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLKernel(Backend::Program *program, std::string name, cl_kernel kernel)
+OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLKernel(Backend::Program *program, char* name, cl_kernel kernel)
         : Backend::Program::Kernel(program, name), kernel(kernel), eventMax(0), events(nullptr),
           eventc(0) {
 }
@@ -241,7 +241,7 @@ OpenCLBackend::OpenCLProgram::~OpenCLProgram() {
 long OpenCLBackend::OpenCLProgram::getKernel(int nameLen, char *name) {
     cl_int status;
     cl_kernel kernel = clCreateKernel(program, name, &status);
-    return (long) new OpenCLKernel(this,std::string(name), kernel);
+    return (long) new OpenCLKernel(this,name, kernel);
 }
 
 bool OpenCLBackend::OpenCLProgram::programOK() {
