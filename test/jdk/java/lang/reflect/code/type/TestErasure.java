@@ -95,12 +95,12 @@ public class TestErasure {
 
     static List<TypeAndErasure<ClassType>> nestedReferences() {
         List<TypeAndErasure<ClassType>> nestedTypes = new ArrayList<>();
-        ClassType rawCase = JavaType.qualified(Outer.TYPE, "Inner");
+        ClassType rawCase = JavaType.qualified(JavaType.type(Outer.class), "Inner");
         nestedTypes.add(new TypeAndErasure<>(rawCase, rawCase));
         BoundKind[] kinds = new BoundKind[] { null, BoundKind.EXTENDS, BoundKind.SUPER };
         for (JavaType argOuter : typeArguments()) {
             for (JavaType argInner : typeArguments()) {
-                ClassType t = JavaType.parameterized(Outer.TYPE, argOuter);
+                ClassType t = JavaType.parameterized(JavaType.type(Outer.class), argOuter);
                 t = JavaType.qualified(t, "Inner");
                 t = JavaType.parameterized(t, argInner);
                 nestedTypes.add(new TypeAndErasure<>(t, rawCase));
@@ -175,7 +175,5 @@ public class TestErasure {
     // used for the test
     static class Outer<X> {
         class Inner<X> { }
-
-        static final JavaType TYPE = JavaType.type(Outer.class.describeConstable().get());
     }
 }
