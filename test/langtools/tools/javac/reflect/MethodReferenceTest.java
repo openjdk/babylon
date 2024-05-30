@@ -105,13 +105,13 @@ public class MethodReferenceTest {
     @IR("""
             func @"test4" (%0 : MethodReferenceTest)void -> {
                 %1 : java.lang.String = constant @"s";
-                %2 : MethodReferenceTest$A<java.lang.String> = invoke %0 %1 @"MethodReferenceTest::a(java.lang.Object)MethodReferenceTest$A";
-                %3 : Var<MethodReferenceTest$A<java.lang.String>> = var %2 @"rec$";
+                %2 : .<MethodReferenceTest, MethodReferenceTest$A<java.lang.String>> = invoke %0 %1 @"MethodReferenceTest::a(java.lang.Object).<MethodReferenceTest, MethodReferenceTest$A>";
+                %3 : Var<.<MethodReferenceTest, MethodReferenceTest$A<java.lang.String>>> = var %2 @"rec$";
                 %4 : java.util.function.Function<java.lang.String, java.lang.String> = lambda (%5 : java.lang.String)java.lang.String -> {
                     %6 : Var<java.lang.String> = var %5 @"x$0";
-                    %7 : MethodReferenceTest$A<java.lang.String> = var.load %3;
+                    %7 : .<MethodReferenceTest, MethodReferenceTest$A<java.lang.String>> = var.load %3;
                     %8 : java.lang.String = var.load %6;
-                    %9 : java.lang.String = invoke %7 %8 @"MethodReferenceTest$A::m(java.lang.Object)java.lang.Object";
+                    %9 : java.lang.String = invoke %7 %8 @".<MethodReferenceTest, MethodReferenceTest$A>::m(java.lang.Object)java.lang.Object";
                     return %9;
                 };
                 %10 : Var<java.util.function.Function<java.lang.String, java.lang.String>> = var %4 @"f";
@@ -167,11 +167,11 @@ public class MethodReferenceTest {
     @CodeReflection
     @IR("""
             func @"test7" (%0 : MethodReferenceTest)void -> {
-                %1 : java.util.function.Supplier<MethodReferenceTest$A<java.lang.String>> = lambda ()MethodReferenceTest$A<java.lang.String> -> {
-                    %2 : MethodReferenceTest$A<java.lang.String> = new %0 @"func<MethodReferenceTest$A>";
+                %1 : java.util.function.Supplier<.<MethodReferenceTest, MethodReferenceTest$A<java.lang.String>>> = lambda ().<MethodReferenceTest, MethodReferenceTest$A<java.lang.String>> -> {
+                    %2 : .<MethodReferenceTest, MethodReferenceTest$A<java.lang.String>> = new %0 @"func<.<MethodReferenceTest, MethodReferenceTest$A>>";
                     return %2;
                 };
-                %3 : Var<java.util.function.Supplier<MethodReferenceTest$A<java.lang.String>>> = var %1 @"aNew";
+                %3 : Var<java.util.function.Supplier<.<MethodReferenceTest, MethodReferenceTest$A<java.lang.String>>>> = var %1 @"aNew";
                 return;
             };
             """)
@@ -182,13 +182,13 @@ public class MethodReferenceTest {
     @CodeReflection
     @IR("""
             func @"test8" (%0 : MethodReferenceTest)void -> {
-                %1 : java.util.function.IntFunction<MethodReferenceTest$A<java.lang.String>[]> = lambda (%2 : int)MethodReferenceTest$A<java.lang.String>[] -> {
+                %1 : java.util.function.IntFunction<.<MethodReferenceTest, MethodReferenceTest$A<java.lang.String>>> = lambda (%2 : int).<MethodReferenceTest, MethodReferenceTest$A<java.lang.String>> -> {
                     %3 : Var<int> = var %2 @"x$0";
                     %4 : int = var.load %3;
-                    %5 : MethodReferenceTest$A[] = new %4 @"func<MethodReferenceTest$A[], int>";
+                    %5 : .<MethodReferenceTest, MethodReferenceTest$A> = new %4 @"func<.<MethodReferenceTest, MethodReferenceTest$A>, int>";
                     return %5;
                 };
-                %6 : Var<java.util.function.IntFunction<MethodReferenceTest$A<java.lang.String>[]>> = var %1 @"aNewArray";
+                %6 : Var<java.util.function.IntFunction<.<MethodReferenceTest, MethodReferenceTest$A<java.lang.String>>>> = var %1 @"aNewArray";
                 return;
             };
             """)

@@ -29,6 +29,7 @@
  */
 
 import static org.testng.Assert.*;
+
 import org.testng.annotations.*;
 
 import java.lang.reflect.code.type.ArrayType;
@@ -56,6 +57,7 @@ public class TestErasure {
         typeAndErasures.addAll(primitives());
         typeAndErasures.addAll(references());
         typeAndErasures.addAll(genericReferences());
+        typeAndErasures.addAll(nestedReferences());
         typeAndErasures.addAll(arrays());
         typeAndErasures.addAll(typeVars());
         return typeAndErasures.stream()
@@ -85,6 +87,30 @@ public class TestErasure {
     static List<TypeAndErasure<ClassType>> genericReferences() {
         JavaType LIST = JavaType.type(List.class);
         List<TypeAndErasure<ClassType>> genericTypes = new ArrayList<>();
+        for (JavaType arg : typeArguments()) {
+            genericTypes.add(new TypeAndErasure<>(JavaType.parameterized(LIST, arg), LIST));
+        }
+        return genericTypes;
+    }
+
+    static List<TypeAndErasure<ClassType>> nestedReferences() {
+        List<TypeAndErasure<ClassType>> nestedTypes = new ArrayList<>();
+        ClassType rawCase = JavaType.qualified(Outer.TYPE, "Inner");
+        nestedTypes.add(new TypeAndErasure<>(rawCase, rawCase));
+        BoundKind[] kinds = new BoundKind[] { null, BoundKind.EXTENDS, BoundKind.SUPER };
+        for (JavaType argOuter : typeArguments()) {
+            for (JavaType argInner : typeArguments()) {
+                ClassType t = JavaType.parameterized(Outer.TYPE, argOuter);
+                t = JavaType.qualified(t, "Inner");
+                t = JavaType.parameterized(t, argInner);
+                nestedTypes.add(new TypeAndErasure<>(t, rawCase));
+            }
+        }
+        return nestedTypes;
+    }
+
+    static List<JavaType> typeArguments() {
+        List<JavaType> typeArgs = new ArrayList<>();
         BoundKind[] kinds = new BoundKind[] { null, BoundKind.EXTENDS, BoundKind.SUPER };
         for (BoundKind kind : kinds) {
             for (TypeAndErasure<ClassType> t : references()) {
@@ -92,17 +118,17 @@ public class TestErasure {
                 if (kind != null) {
                     arg = JavaType.wildcard(kind, arg);
                 }
-                genericTypes.add(new TypeAndErasure<>(JavaType.parameterized(LIST, arg), LIST));
+                typeArgs.add(arg);
             }
             for (TypeAndErasure<PrimitiveType> t : primitives()) {
                 JavaType arg = JavaType.array(t.type);
                 if (kind != null) {
                     arg = JavaType.wildcard(kind, arg);
                 }
-                genericTypes.add(new TypeAndErasure<>(JavaType.parameterized(LIST, arg), LIST));
+                typeArgs.add(arg);
             }
         }
-        return genericTypes;
+        return typeArgs;
     }
 
     static List<TypeAndErasure<ArrayType>> arrays() {
@@ -118,6 +144,9 @@ public class TestErasure {
             for (TypeAndErasure<ClassType> t : genericReferences()) {
                 arrayTypes.add(new TypeAndErasure<>(JavaType.array(t.type, dims), JavaType.array(t.erasure, dims)));
             }
+            for (TypeAndErasure<ClassType> t : nestedReferences()) {
+                arrayTypes.add(new TypeAndErasure<>(JavaType.array(t.type, dims), JavaType.array(t.erasure, dims)));
+            }
         }
         return arrayTypes;
     }
@@ -131,6 +160,9 @@ public class TestErasure {
             for (TypeAndErasure<ClassType> t : genericReferences()) {
                 typeVars.add(new TypeAndErasure<>(JavaType.typeVarRef("X", JavaType.J_L_OBJECT, t.type), t.erasure));
             }
+            for (TypeAndErasure<ClassType> t : nestedReferences()) {
+                typeVars.add(new TypeAndErasure<>(JavaType.typeVarRef("X", JavaType.J_L_OBJECT, t.type), t.erasure));
+            }
             for (TypeAndErasure<ArrayType> t : arrays()) {
                 typeVars.add(new TypeAndErasure<>(JavaType.typeVarRef("X", JavaType.J_L_OBJECT, t.type), t.erasure));
             }
@@ -139,4 +171,11 @@ public class TestErasure {
     }
 
     record TypeAndErasure<T extends JavaType>(T type, JavaType erasure) { }
+
+    // used for the test
+    static class Outer<X> {
+        class Inner<X> { }
+
+        static final JavaType TYPE = JavaType.type(Outer.class.describeConstable().get());
+    }
 }

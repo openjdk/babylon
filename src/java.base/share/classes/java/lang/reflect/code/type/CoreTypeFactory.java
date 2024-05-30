@@ -137,6 +137,19 @@ public final class CoreTypeFactory {
                             parseMethodRef(String.format("%s::%s", parts[0], parts[1])),
                             typeArguments.get(0));
                 }
+            } else if (identifier.equals(".")) {
+                // qualified type
+                ClassType enclType = (ClassType)typeArguments.get(0);
+                ClassType innerType = (ClassType)typeArguments.get(1);
+                // the inner class name is obtained by subtracting the name of the enclosing type
+                // from the name of the inner type (and also dropping an extra '$')
+                String innerName = innerType.toNominalDescriptor().displayName()
+                        .substring(enclType.toNominalDescriptor().displayName().length() + 1);
+                JavaType qual = JavaType.qualified(enclType, innerName);
+                if (innerType.hasTypeArguments()) {
+                    qual = JavaType.parameterized(qual, innerType.typeArguments());
+                }
+                return qual;
             }
             JavaType t = switch (identifier) {
                 case "boolean" -> JavaType.BOOLEAN;

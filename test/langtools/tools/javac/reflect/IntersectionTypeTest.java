@@ -158,7 +158,7 @@ class IntersectionTypeTest {
         return null;
     }
 
-    class E1 implements A, B, C {
+    static class E1 implements A, B, C {
         @Override
         public void m_A() { }
         @Override
@@ -167,7 +167,7 @@ class IntersectionTypeTest {
         public void m_C() { }
     }
 
-    class E2 implements A, B, C {
+    static class E2 implements A, B, C {
         @Override
         public void m_A() { }
         @Override

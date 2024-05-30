@@ -39,19 +39,26 @@ import java.util.Optional;
  * A class type.
  */
 public final class ClassType implements TypeVarRef.Owner, JavaType {
+    // Enclosing class type (might be null)
+    private final ClassType enclosing;
     // Fully qualified name
     private final ClassDesc type;
 
     private final List<JavaType> typeArguments;
 
     ClassType(ClassDesc type) {
-        this(type, List.of());
+        this(null, type);
     }
 
-    ClassType(ClassDesc type, List<JavaType> typeArguments) {
+    ClassType(ClassType encl, ClassDesc type) {
+        this(encl, type, List.of());
+    }
+
+    ClassType(ClassType encl, ClassDesc type, List<JavaType> typeArguments) {
         if (!type.isClassOrInterface()) {
             throw new IllegalArgumentException("Invalid base type: " + type);
         }
+        this.enclosing = encl;
         this.type = type;
         this.typeArguments = List.copyOf(typeArguments);
     }
@@ -63,14 +70,16 @@ public final class ClassType implements TypeVarRef.Owner, JavaType {
         for (JavaType typearg : typeArguments) {
             resolvedTypeArgs.add(typearg.resolve(lookup));
         }
+        Type encl = enclosing != null ?
+                enclosing.resolve(lookup) : null;
         return resolvedTypeArgs.isEmpty() ?
                 baseType :
                 makeReflectiveParameterizedType(baseType,
-                        resolvedTypeArgs.toArray(new Type[0]), baseType.getDeclaringClass()); // @@@: generic owner is erased here
+                        resolvedTypeArgs.toArray(new Type[0]), encl);
     }
 
     // Copied code in jdk.compiler module throws UOE
-    private static ParameterizedType makeReflectiveParameterizedType(Class<?> base, Type[] typeArgs, Class<?> owner) {
+    private static ParameterizedType makeReflectiveParameterizedType(Class<?> base, Type[] typeArgs, Type owner) {
 /*__throw new UnsupportedOperationException();__*/        return sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl.make(base, typeArgs, owner);
     }
 
@@ -81,6 +90,9 @@ public final class ClassType implements TypeVarRef.Owner, JavaType {
                 .toList();
 
         ExternalizedTypeElement td = new ExternalizedTypeElement(toClassName(), args);
+        if (enclosing != null) {
+            td = new ExternalizedTypeElement(".", List.of(enclosing.externalize(), td));
+        }
         return td;
     }
 
@@ -154,6 +166,13 @@ public final class ClassType implements TypeVarRef.Owner, JavaType {
      */
     public List<JavaType> typeArguments() {
         return typeArguments;
+    }
+
+    /**
+     * {@return the enclosing type associated with this class type (if any)}
+     */
+    public Optional<ClassType> enclosingType() {
+        return Optional.ofNullable(enclosing);
     }
 
     @Override
