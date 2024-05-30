@@ -379,7 +379,6 @@ public class TestBytecode {
     }
 
     @CodeReflection
-    @SkipLift
     static int lambda(int i) {
         return consume(i, a -> -a);
     }
@@ -508,7 +507,10 @@ public class TestBytecode {
         try {
             flift = BytecodeLift.lift(CLASS_DATA, d.testMethod.getName(), toMethodTypeDesc(d.testMethod));
         } catch (Throwable e) {
-            System.out.println("Lift failed, expected:");
+            ClassPrinter.toYaml(ClassFile.of().parse(TestBytecode.class.getResourceAsStream("TestBytecode.class").readAllBytes())
+                    .methods().stream().filter(m -> m.methodName().equalsString(d.testMethod().getName())).findAny().get(),
+                    ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES, System.out::print);
+            System.out.println("Lift failed, compiled model:");
             d.testMethod.getCodeModel().ifPresent(f -> f.writeTo(System.out));
             throw e;
         }

@@ -27,6 +27,7 @@ package java.lang.reflect.code.bytecode;
 
 import java.lang.classfile.Attributes;
 import java.lang.classfile.ClassFile;
+import java.lang.classfile.ClassModel;
 import java.lang.classfile.CodeElement;
 import java.lang.classfile.CodeModel;
 import java.lang.classfile.Instruction;
@@ -61,6 +62,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
 import java.lang.classfile.constantpool.ClassEntry;
+import java.lang.constant.DirectMethodHandleDesc;
 import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.reflect.code.type.PrimitiveType;
@@ -69,6 +71,8 @@ import java.util.function.BiFunction;
 
 
 public final class BytecodeLift {
+
+    private static final ClassDesc CD_LambdaMetafactory = ClassDesc.ofDescriptor("Ljava/lang/invoke/LambdaMetafactory;");
 
     private final Block.Builder entryBlock;
     private final CodeModel codeModel;
@@ -413,6 +417,20 @@ public final class BytecodeLift {
                     };
                     if (!result.type().equals(JavaType.VOID)) {
                         stack.push(result);
+                    }
+                }
+                case InvokeDynamicInstruction inst when inst.bootstrapMethod().kind() == DirectMethodHandleDesc.Kind.STATIC
+                                                     && inst.bootstrapMethod().owner().equals(CD_LambdaMetafactory)
+                                                     && inst.bootstrapMethod().methodName().equals("metafactory") -> {
+                    ClassModel clm = codeModel.parent().orElseThrow().parent().orElseThrow();
+                    if (inst.bootstrapArgs().get(1) instanceof DirectMethodHandleDesc dmhd && dmhd.owner().equals(clm.thisClass().asSymbol())) {
+                        MethodModel implMethod = clm.methods().stream().filter(m -> m.methodName().equalsString(dmhd.methodName())
+                                                                           && m.methodTypeSymbol().equals(dmhd.invocationType())).findFirst().orElseThrow();
+                        MethodTypeDesc invType = dmhd.invocationType();
+                        stack.push(op(CoreOp.lambda(currentBlock.parentBody(),
+                                FunctionType.functionType(JavaType.type(invType.returnType()), invType.parameterList().stream().map(JavaType::type).toList()),
+                                JavaType.type(inst.typeSymbol().returnType())).body(eb -> new BytecodeLift(eb, implMethod).lift())));
+
                     }
                 }
                 case NewObjectInstruction _ -> {
