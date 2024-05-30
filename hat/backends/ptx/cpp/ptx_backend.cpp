@@ -34,15 +34,15 @@ public:
     class PTXProgram : public Backend::Program {
         class PTXKernel : public Backend::Program::Kernel {
         public:
-            PTXKernel(Backend::Program *program)
-                    : Backend::Program::Kernel(program) {
+            PTXKernel(Backend::Program *program, std::string name)
+                    : Backend::Program::Kernel(program, name) {
             }
 
             ~PTXKernel() {
             }
 
-            long ndrange(int range, void *argArray) {
-                std::cout << "ptx ndrange(" << range << ") " << std::endl;
+            long ndrange(void *argArray) {
+                std::cout << "ptx ndrange() " << std::endl;
                 return 0;
             }
         };
@@ -56,7 +56,7 @@ public:
         }
 
         long getKernel(int nameLen, char *name) {
-            return (long) new PTXKernel(this);
+            return (long) new PTXKernel(this, std::string(name));
         }
 
         bool programOK() {

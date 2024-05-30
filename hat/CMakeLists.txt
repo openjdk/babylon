@@ -777,6 +777,15 @@ add_custom_target(squares_cuda DEPENDS squares.jar cuda_backend.jar cuda_backend
        -Djava.library.path=${CMAKE_BINARY_DIR}
        squares.Squares
 )
+add_custom_target(squares_ptx DEPENDS squares.jar ptx_backend.jar ptx_backend
+   COMMAND  ${DOIT}
+     ${JAVA_HOME}/bin/java
+       --enable-preview --enable-native-access=ALL-UNNAMED
+       --class-path ${HAT_JAR}:${SQUARES_JAR}:${PTX_BACKEND_JAR}
+       --add-exports=java.base/jdk.internal=ALL-UNNAMED
+       -Djava.library.path=${CMAKE_BINARY_DIR}
+       squares.Squares
+)
 
 #  heal executable
 add_custom_target(heal_java DEPENDS heal.jar

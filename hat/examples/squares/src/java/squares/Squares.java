@@ -36,14 +36,16 @@ public class Squares {
     @CodeReflection
     public static void squareKernel(KernelContext kc, S32Array s32Array) {
         if (kc.x<s32Array.length()){
-           int value = s32Array.array(kc.x);     // arr[cc.x]
+           int value = s32Array.array(kc.x);        // arr[cc.x]
            s32Array.array(kc.x, value * value);  // arr[cc.x]=value*value
         }
     }
 
     @CodeReflection
     public static void square(ComputeContext cc, S32Array s32Array) {
-        cc.dispatchKernel(s32Array.length(), kc -> squareKernel(kc, s32Array));
+        cc.dispatchKernel(s32Array.length(),
+                kc -> squareKernel(kc, s32Array)
+        );
     }
 
     public static void main(String[] args) {
