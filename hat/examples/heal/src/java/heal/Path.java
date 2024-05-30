@@ -66,26 +66,27 @@ class Path extends XYList {
     }
 
     Path(Path path, int offsetx, int offsety){
-        for (XY xy:path){
-            add(xy.x+offsetx, xy.y+offsety);
+        for (int i=0;i<length();i++){
+            XY xy = (XYList.XY)xy(i);
+            add(xy.x()+offsetx, xy.y()+offsety);
         }
     }
     public Polygon getPolygon() {
         Polygon p = new Polygon();
-        for (XY xy:this){
-            p.addPoint(xy.x, xy.y);
+        for (int i=0;i<length();i++){
+            XY xy = (XYList.XY)xy(i);
+            p.addPoint(xy.x(), xy.y());
         }
         return p;
     }
 
     public void extendTo(int x, int y){
-
-        add(xy[size*2-2],xy[size*2-1], x, y);
+        add(xy[length()*2-2],xy[length()*2-1], x, y);
     }
 
     public Path close(){
         extendTo(xy[0], xy[1]);
-        xy = Arrays.copyOf(xy, size * 2);
+        xy = Arrays.copyOf(xy, length() * 2);
         return this;
     }
 

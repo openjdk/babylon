@@ -58,8 +58,10 @@ public class HealingBrush {
 
     public static int[] getMask(Path path, int width, int height) {
         Polygon polygon = new Polygon();
-        for (XYList.XY xy : path) {
-            polygon.addPoint(xy.x - path.x1 + 1, xy.y - path.y1 + 1);
+        for (int i = 0; i < path.length(); i++) {
+
+        XYList.XY xy= (XYList.XY)path.xy(i);
+            polygon.addPoint(xy.x() - path.x1 + 1, xy.y() - path.y1 + 1);
         }
         BufferedImage maskImg = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         int[] mask = ((DataBufferInt) (maskImg.getRaster().getDataBuffer())).getData();
@@ -198,7 +200,7 @@ start=System.currentTimeMillis();
 
     public static Point getBestMatch(Selection selection) {
         Point offset = null;
-        if (selection.path.size != 0) {
+        if (selection.path.length() != 0) {
             int xmin = Math.max(0, selection.path.x1 - selection.width * 3);
             int ymin = Math.max(0, selection.path.y1 - selection.height * 3);
             int xmax = Math.min(selection.imageData.width, selection.path.x2 + selection.width * 3);
@@ -214,8 +216,15 @@ start=System.currentTimeMillis();
 
             for (int y = ymin; y < ymax - selection.height; y++) {
                 for (int x = xmin; x < xmax - selection.width; x++) {
-                    if (!selection.contains(x, y)) {
-                        extractCurve(comp, selection, x - selection.path.x1, y - selection.path.y1);
+                    if (!selection.contains(x, y)) { // don't search inside the area we are healing
+                        int sdx = x - selection.path.x1;
+                        int sdy = y - selection.path.y1;
+
+                        for (int i=0;i<selection.path.length();i++){
+                            XYList.XY xy= (XYList.XY)selection.path.xy(i);
+                            comp.setRGB(xy.idx(), selection.imageData.data[sdy * selection.imageData.width + sdx + xy.y() * selection.imageData.width + xy.x()]);
+                        }
+
                         float sum = 0;
                         for (RGBList.RGB rgb : orig_rgb) {
                             int dx = comp.rgb[rgb.idx * 3 + 0] - rgb.r;
@@ -240,20 +249,21 @@ start=System.currentTimeMillis();
     }
     static RGBList extractCurve(Selection selection) {
         RGBList rgbList = new RGBList();
-        for (XYList.XY xy : selection.path) {
-            rgbList.addRGB(selection.imageData.data[xy.y * selection.imageData.width + xy.x]);
+        for (int i=0;i<selection.path.length();i++){
+        XYList.XY xy= (XYList.XY)selection.path.xy(i);
+            rgbList.addRGB(selection.imageData.data[xy.y() * selection.imageData.width + xy.x()]);
         }
         return rgbList;
     }
 
-    static RGBList extractCurve(RGBList rgbList, Selection selection,
+    static void extractCurve(RGBList rgbList, Selection selection,
                                 int dx,
                                 int dy) {
-
-        for (XYList.XY xy : selection.path) {
-            rgbList.setRGB(xy.idx, selection.imageData.data[dy * selection.imageData.width + dx + xy.y * selection.imageData.width + xy.x]);
+        for (int i=0;i<selection.path.length();i++){
+            XYList.XY xy= (XYList.XY)selection.path.xy(i);
+            rgbList.setRGB(xy.idx(), selection.imageData.data[dy * selection.imageData.width + dx + xy.y() * selection.imageData.width + xy.x()]);
         }
-        return rgbList;
+
     }
 
 

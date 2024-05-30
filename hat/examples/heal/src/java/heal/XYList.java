@@ -45,65 +45,86 @@
 package heal;
 
 import java.util.Arrays;
-import java.util.Iterator;
 
-class XYList implements Iterable<XYList.XY>{
+class XYList implements S32XYTable {
     final static int INIT= 32;
     final static int STRIDE= 2;
-    final static int X= 0;
-    final static int Y= 1;
+    final static int Xidx = 0;
+    final static int Yidx = 1;
+    private int length;
+    protected int[] xy = new int[INIT*STRIDE];
+    private XY cursor = new XY(this);
+    @Override
+    public S32XYTable.XY xy(long idx) {
+        return cursor.set((int) idx);
+    }
 
-    public class XY implements Iterator<XY>{
-        int idx=-1;
-        int x;
-        int y;
+    @Override
+    public int length() {
+        return length;
+    }
 
-        @Override
-        public boolean hasNext() {
-            return idx+1<size;
+    @Override
+    public void length(int length) {
+        this.length=length;
+    }
+
+    public static class XY implements S32XYTable.XY{
+        XYList xyList;
+        private int idx=-1;
+        public XY(XYList table) {
+            this.xyList=table;
         }
-
         public XY set(int idx) {
             this.idx = idx;
-            x = xy[idx*STRIDE+X];
-            y = xy[idx*STRIDE+Y];
             return this;
         }
 
         @Override
-        public XY next() {
-            idx++;
-            set(idx);
-            return this;
+        public int x() {
+            return xyList.xy[idx*STRIDE+ Xidx];
         }
 
         @Override
-        public void remove() {
-           throw new IllegalStateException("remove not supported");
+        public int y() {
+            return xyList.xy[idx*STRIDE+ Yidx];
+        }
+
+        @Override
+        public int idx() {
+            return idx;
+        }
+
+        @Override
+        public void y(int y) {
+            xyList.xy[idx*STRIDE+ Yidx] =y;
+        }
+
+        @Override
+        public void x(int x) {
+            xyList.xy[idx*STRIDE+ Yidx]=x;
+        }
+
+        @Override
+        public void idx(int idx) {
+            this.idx = idx;
         }
     }
 
-    int size;
-    int xy[] = new int[INIT*STRIDE];
+
     void add(int x,int y){
-        if (size*STRIDE==xy.length){
+        if (length*STRIDE==xy.length){
             xy = Arrays.copyOf(xy, xy.length*STRIDE);
         }
-        xy[size*STRIDE+X]=x;
-        xy[size*STRIDE+Y]=y;
-        size++;
+        xy[length*STRIDE+ Xidx]=x;
+        xy[length*STRIDE+ Yidx]=y;
+        length++;
     }
 
     XYList(){
     }
 
-    XYList(int x, int y){
+   XYList(int x, int y){
         add(x,y);
-    }
-
-
-    @Override
-    public Iterator<XY> iterator() {
-        return new XY();
     }
 }

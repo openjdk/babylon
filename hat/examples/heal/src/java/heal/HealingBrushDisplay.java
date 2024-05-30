@@ -130,8 +130,9 @@ public class HealingBrushDisplay extends Display {
             g.drawPolygon(selectionPatch.getPolygon());
             if (matchPath != null) {
                 g.setColor(Color.BLUE);
-                for (XYList.XY p : matchPath){
-                    g.drawRect(p.x, p.y, 4, 4);
+                for (int i=0; i<matchPath.length();i++){
+                XYList.XY p = (XYList.XY)matchPath.xy(i);
+                    g.drawRect(p.x(), p.y(), 4, 4);
                 }
             }
         }
