@@ -35,8 +35,8 @@ import java.lang.runtime.CodeReflection;
 public class Squares {
     @CodeReflection
     public static void squareKernel(KernelContext kc, S32Array s32Array) {
-        if (kc.x<s32Array.length()){
-           int value = s32Array.array(kc.x);        // arr[cc.x]
+        if (kc.x<kc.maxX){
+           int value = s32Array.array(kc.x);     // arr[cc.x]
            s32Array.array(kc.x, value * value);  // arr[cc.x]=value*value
         }
     }
@@ -57,7 +57,7 @@ public class Squares {
         }
         accelerator.compute(
                 cc -> Squares.square(cc, arr)  //QuotableComputeContextConsumer
-        );                                  //   extends Quotable, Consumer<ComputeContext>
+        );                                     //   extends Quotable, Consumer<ComputeContext>
         for (int i = 0; i < arr.length(); i++) {
             System.out.println(i + " " + arr.array(i));
         }

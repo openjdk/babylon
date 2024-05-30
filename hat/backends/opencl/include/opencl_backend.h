@@ -87,7 +87,7 @@ public:
         protected:
             void showEvents(int width);
         public:
-            OpenCLKernel(Backend::Program *program, std::string name,cl_kernel kernel);
+            OpenCLKernel(Backend::Program *program, char* name,cl_kernel kernel);
 
             ~OpenCLKernel();
 

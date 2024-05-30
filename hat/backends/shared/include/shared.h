@@ -455,17 +455,21 @@ public:
                 virtual ~Buffer() {}
             };
 
-            std::string name;
+            char *name;// strduped!
 
             Program *program;
 
             virtual long ndrange( void *argArray) = 0;
 
-            Kernel(Program *program, std::string name)
-                    : program(program), name(name) {
+            Kernel(Program *program, char * name)
+                    : program(program), name(strdup(name)) {
             }
 
-            virtual ~Kernel() {}
+            virtual ~Kernel(){
+                if (name){
+                    free(name);
+                }
+            }
         };
 
     public:
