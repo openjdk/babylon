@@ -288,7 +288,7 @@ public class TestJavaType {
         static class Outer<X> {
             class Inner<X> { }
         }
-        
+
         Outer<String>.Inner<String> o1;
         Outer<? extends String>.Inner<String> o2;
         Outer<String>.Inner<? extends String> o3;
@@ -299,7 +299,7 @@ public class TestJavaType {
         Outer<?>.Inner<String> o8;
         Outer<String>.Inner<?> o9;
         Outer<?>.Inner<?> o10;
-        
+
         Outer<int[]>.Inner<int[]> oa1;
         Outer<? extends int[]>.Inner<int[]> oa2;
         Outer<int[]>.Inner<? extends int[]> oa3;
