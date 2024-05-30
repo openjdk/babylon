@@ -870,6 +870,40 @@ add_custom_target(violajones_cuda DEPENDS violajones.jar cuda_backend.jar cuda_b
        violajones.ViolaJonesCompute
 )
 
+add_custom_target(violajones_headless_java DEPENDS violajones.jar
+   COMMAND  ${DOIT}
+     ${JAVA_HOME}/bin/java
+       --enable-preview --enable-native-access=ALL-UNNAMED
+       --class-path ${HAT_JAR}:${VIOLAJONES_JAR}:${CMAKE_SOURCE_DIR}/backends/shared/services
+       --add-exports=java.base/jdk.internal=ALL-UNNAMED
+       -Djava.library.path=${CMAKE_BINARY_DIR}
+       -Dheadless=true
+       violajones.ViolaJonesCompute
+)
+
+add_custom_target(violajones_headless_opencl DEPENDS violajones.jar opencl_backend.jar opencl_backend
+   COMMAND  ${DOIT}
+     ${JAVA_HOME}/bin/java
+       --enable-preview --enable-native-access=ALL-UNNAMED
+       --class-path ${HAT_JAR}:${VIOLAJONES_JAR}:${OPENCL_BACKEND_JAR}
+       --add-exports=java.base/jdk.internal=ALL-UNNAMED
+       -Djava.library.path=${CMAKE_BINARY_DIR}
+       -Dheadless=true
+       violajones.ViolaJonesCompute
+)
+
+add_custom_target(violajones_headless_cuda DEPENDS violajones.jar cuda_backend.jar cuda_backend
+   COMMAND  ${DOIT}
+     ${JAVA_HOME}/bin/java
+       --enable-preview --enable-native-access=ALL-UNNAMED
+       --class-path ${HAT_JAR}:${VIOLAJONES_JAR}:${CUDA_BACKEND_JAR}
+       --add-exports=java.base/jdk.internal=ALL-UNNAMED
+       -Djava.library.path=${CMAKE_BINARY_DIR}
+       -Dheadless=true
+       violajones.ViolaJonesCompute
+)
+
+
 add_custom_target(mkjar
    COMMAND ${DOIT}
       ${JAVA_HOME}/bin/jar

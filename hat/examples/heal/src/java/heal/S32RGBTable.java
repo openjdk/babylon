@@ -22,20 +22,48 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.buffer;
+package heal;
 
-import java.util.function.Consumer;
+import hat.Accelerator;
+import hat.buffer.Table;
+import hat.ifacemapper.SegmentMapper;
 
-public interface Table<T> extends IncompleteBuffer {
+import java.lang.foreign.MemoryLayout;
+import java.lang.foreign.StructLayout;
 
-   // default void with(int i, Consumer<T> consumer) {
-     //   T t = get(i);
-       // consumer.accept(t);
-   // }
+import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-    int length();
+public interface S32RGBTable extends Table<S32RGBTable.RGB> {
 
-    void length(int length);
+    interface RGB {
+        StructLayout layout = MemoryLayout.structLayout(
+                JAVA_INT.withName("r"),
+                JAVA_INT.withName("g"),
+                JAVA_INT.withName("b")
+        ).withName("RGB");
+        int r();
 
-   // T get(int i);
+        int g();
+
+        int b();
+
+        void r(int r);
+        void g(int g);
+
+        void b(int b);
+    }
+
+    static S32RGBTable create(Accelerator accelerator, int length) {
+        S32RGBTable table = SegmentMapper.of(accelerator.lookup, S32RGBTable.class,
+                JAVA_INT.withName("length"),
+
+                MemoryLayout.sequenceLayout(length, S32RGBTable.RGB.layout).withName("rgb")
+        ).allocate(accelerator.backend.arena());
+        table.length(length);
+        return table;
+    }
+
+
+    RGB rgb(long idx);
+
 }

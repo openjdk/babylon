@@ -22,20 +22,41 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.buffer;
+package heal;
 
-import java.util.function.Consumer;
+import hat.Accelerator;
+import hat.buffer.Table;
+import hat.ifacemapper.SegmentMapper;
 
-public interface Table<T> extends IncompleteBuffer {
+import java.lang.foreign.MemoryLayout;
+import java.lang.foreign.StructLayout;
 
-   // default void with(int i, Consumer<T> consumer) {
-     //   T t = get(i);
-       // consumer.accept(t);
-   // }
+import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
+import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-    int length();
+public interface S32XYTable extends Table<S32XYTable.XY> {
+    interface XY {
+        StructLayout layout = MemoryLayout.structLayout(
+                JAVA_INT.withName("idx"),
+                JAVA_INT.withName("x"),
+                JAVA_INT.withName("y")
+        ).withName("XY");
+        int x();
+        int y();
+        int idx();
+        void y(int y);
+        void x(int x);
+        void idx(int idx);
+    }
 
-    void length(int length);
+    static S32XYTable create(Accelerator accelerator, int length) {
+        S32XYTable table = SegmentMapper.of(accelerator.lookup, S32XYTable.class,
+                JAVA_INT.withName("length"),
+                MemoryLayout.sequenceLayout(length, S32XYTable.XY.layout).withName("xy")
+        ).allocate(accelerator.backend.arena());
+        table.length(length);
+        return table;
+    }
 
-   // T get(int i);
+    XY xy(long idx);
 }
