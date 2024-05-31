@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * A class type.
@@ -98,7 +99,18 @@ public final class ClassType implements TypeVarRef.Owner, JavaType {
 
     @Override
     public String toString() {
-        return externalize().toString();
+        String prefix = enclosing != null ?
+                enclosing + "$":
+                (!type.packageName().isEmpty() ?
+                        type.packageName() + "." : "");
+        String name = enclosing == null ?
+                type.displayName() :
+                type.displayName().substring(enclosing.type.displayName().length() + 1);
+        String typeArgs = hasTypeArguments() ?
+                typeArguments().stream().map(JavaType::toString)
+                        .collect(Collectors.joining(", ", "<", ">")) :
+                "";
+        return String.format("%s%s%s", prefix, name, typeArgs);
     }
 
     @Override
