@@ -75,6 +75,9 @@ import java.util.function.BiFunction;
 public final class BytecodeLift {
 
     private static final ClassDesc CD_LambdaMetafactory = ClassDesc.ofDescriptor("Ljava/lang/invoke/LambdaMetafactory;");
+    private static final MethodRef LCMP = MethodRef.method(JavaType.J_L_LONG, "compare", JavaType.INT, JavaType.LONG, JavaType.LONG);
+    private static final MethodRef FCMP = MethodRef.method(JavaType.J_L_FLOAT, "compare", JavaType.INT, JavaType.FLOAT, JavaType.FLOAT);
+    private static final MethodRef DCMP = MethodRef.method(JavaType.J_L_DOUBLE, "compare", JavaType.INT, JavaType.DOUBLE, JavaType.DOUBLE);
 
     private final Block.Builder entryBlock;
     private final CodeModel codeModel;
@@ -356,6 +359,12 @@ public final class BytecodeLift {
                                 CoreOp.ashr(stack.pop(), toInt(operand));
                         case IUSHR, LUSHR ->
                                 CoreOp.lshr(stack.pop(), toInt(operand));
+                        case LCMP ->
+                                CoreOp.invoke(LCMP, stack.pop(), operand);
+                        case FCMPL, FCMPG ->
+                                CoreOp.invoke(FCMP, stack.pop(), operand);
+                        case DCMPL, DCMPG ->
+                                CoreOp.invoke(DCMP, stack.pop(), operand);
                         default ->
                             throw new IllegalArgumentException("Unsupported operator opcode: " + inst.opcode());
                     }));

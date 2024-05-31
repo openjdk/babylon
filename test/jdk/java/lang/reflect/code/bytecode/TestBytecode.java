@@ -410,6 +410,21 @@ public class TestBytecode {
         return consume(i, Math::negateExact);
     }
 
+    @CodeReflection
+    static boolean compareLong(long i, long j) {
+        return i > j;
+    }
+
+    @CodeReflection
+    static boolean compareFloat(float i, float j) {
+        return i > j;
+    }
+
+    @CodeReflection
+    static boolean compareDouble(double i, double j) {
+        return i > j;
+    }
+
     record TestData(Method testMethod) {
         @Override
         public String toString() {
