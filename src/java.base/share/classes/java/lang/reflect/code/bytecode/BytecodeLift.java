@@ -65,8 +65,10 @@ import java.lang.classfile.constantpool.ClassEntry;
 import java.lang.constant.DirectMethodHandleDesc;
 import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodTypeDesc;
+import java.lang.reflect.code.Block.Parameter;
 import java.lang.reflect.code.type.PrimitiveType;
 import java.lang.reflect.code.type.VarType;
+import java.util.Arrays;
 import java.util.function.BiFunction;
 
 
@@ -103,7 +105,7 @@ public final class BytecodeLift {
         return JavaType.type(ce.asSymbol());
     }
 
-    private BytecodeLift(Block.Builder entryBlock, MethodModel methodModel) {
+    private BytecodeLift(Block.Builder entryBlock, MethodModel methodModel, Value... capturedValues) {
         if (!methodModel.flags().has(AccessFlag.STATIC)) {
             throw new IllegalArgumentException("Unsuported lift of non-static method: " + methodModel);
         }
@@ -118,11 +120,15 @@ public final class BytecodeLift {
                         StackMapFrameInfo::target,
                         smfi -> entryBlock.block(smfi.stack().stream().map(BytecodeLift::toTypeElement).toList())))).orElse(Map.of());
 
-        List<Block.Parameter> bps = entryBlock.parameters();
         MethodTypeDesc mtd = methodModel.methodTypeSymbol();
-        for (int i = 0, slot = 0; i < bps.size(); i++) {
-            op(SlotOp.store(slot, bps.get(i)));
-            slot += TypeKind.from(mtd.parameterType(i)).slotSize();
+        int slot = 0, i = 0;
+        for (Value cap : capturedValues) {
+            op(SlotOp.store(slot, cap));
+            slot += TypeKind.from(mtd.parameterType(i++)).slotSize();
+        }
+        for (Parameter bp : entryBlock.parameters()) {
+            op(SlotOp.store(slot, bp));
+            slot += TypeKind.from(mtd.parameterType(i++)).slotSize();
         }
 
         this.codeTracker = new LocalsTypeMapper(methodModel.parent().get().thisClass().asSymbol(), mtd, methodModel.flags().has(AccessFlag.STATIC), smta, elements);
@@ -423,13 +429,19 @@ public final class BytecodeLift {
                                                      && inst.bootstrapMethod().owner().equals(CD_LambdaMetafactory)
                                                      && inst.bootstrapMethod().methodName().equals("metafactory") -> {
                     ClassModel clm = codeModel.parent().orElseThrow().parent().orElseThrow();
-                    if (inst.bootstrapArgs().get(1) instanceof DirectMethodHandleDesc dmhd && dmhd.owner().equals(clm.thisClass().asSymbol())) {
+                    if (inst.bootstrapArgs().get(0) instanceof MethodTypeDesc mtd
+                            && inst.bootstrapArgs().get(1) instanceof DirectMethodHandleDesc dmhd
+                            && dmhd.owner().equals(clm.thisClass().asSymbol())) {
+
                         MethodModel implMethod = clm.methods().stream().filter(m -> m.methodName().equalsString(dmhd.methodName())
-                                                                           && m.methodTypeSymbol().equals(dmhd.invocationType())).findFirst().orElseThrow();
-                        MethodTypeDesc invType = dmhd.invocationType();
+                                                                            && m.methodTypeSymbol().equals(dmhd.invocationType())).findFirst().orElseThrow();
+                        var captureTypes = new Value[inst.typeSymbol().parameterCount()];
+                        for (int ci = captureTypes.length - 1; ci >= 0; ci--) {
+                            captureTypes[ci] = stack.pop();
+                        }
                         stack.push(op(CoreOp.lambda(currentBlock.parentBody(),
-                                FunctionType.functionType(JavaType.type(invType.returnType()), invType.parameterList().stream().map(JavaType::type).toList()),
-                                JavaType.type(inst.typeSymbol().returnType())).body(eb -> new BytecodeLift(eb, implMethod).lift())));
+                                FunctionType.functionType(JavaType.type(mtd.returnType()), mtd.parameterList().stream().map(JavaType::type).toList()),
+                                JavaType.type(inst.typeSymbol().returnType())).body(eb -> new BytecodeLift(eb, implMethod, captureTypes).lift())));
 
                     }
                 }

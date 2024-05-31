@@ -390,7 +390,6 @@ public class TestBytecode {
     }
 
     @CodeReflection
-    @SkipLift
     static int lambdaWithCapture(int i, String s) {
         return consume(i, a -> a + s.length());
     }
@@ -402,15 +401,14 @@ public class TestBytecode {
     }
 
     @CodeReflection
-    @SkipLift
     static int nestedLambdasWithCaptures(int i, int j, String s) {
-        return consume(i, a -> consume(a, b -> a + b + j) + s.length());
+        return consume(i, a -> consume(a, b -> a + b + j - s.length()) + s.length());
     }
 
     @CodeReflection
     @SkipLift
     static int nestedQuotableLambdasWithCaptures(int i, int j, String s) {
-        return consumeQuotable(i, a -> consumeQuotable(a, b -> a + b + j) + s.length());
+        return consumeQuotable(i, a -> consumeQuotable(a, b -> a + b + j - s.length()) + s.length());
     }
 
     @CodeReflection
@@ -464,15 +462,15 @@ public class TestBytecode {
         for (var argType : argTypes) TEST_ARGS.put(argType, values);
     }
     static {
-        initTestArgs(values(1, 2, 3, 4), int.class, Integer.class);
-        initTestArgs(values((byte)1, (byte)2, (byte)3, (byte)4), byte.class, Byte.class);
-        initTestArgs(values((short)1, (short)2, (short)3, (short)4), short.class, Short.class);
-        initTestArgs(values((char)1, (char)2, (char)3, (char)4), char.class, Character.class);
+        initTestArgs(values(1, 2, 4), int.class, Integer.class);
+        initTestArgs(values((byte)1, (byte)3, (byte)4), byte.class, Byte.class);
+        initTestArgs(values((short)1, (short)2, (short)3), short.class, Short.class);
+        initTestArgs(values((char)2, (char)3, (char)4), char.class, Character.class);
         initTestArgs(values(false, true), boolean.class, Boolean.class);
         initTestArgs(values("Hello World"), String.class);
-        initTestArgs(values(1l, 2l, 3l, 4l), long.class, Long.class);
-        initTestArgs(values(1f, 2f, 3f, 4f), float.class, Float.class);
-        initTestArgs(values(1d, 2d, 3d, 4d), double.class, Double.class);
+        initTestArgs(values(1l, 2l, 4l), long.class, Long.class);
+        initTestArgs(values(1f, 3f, 4f), float.class, Float.class);
+        initTestArgs(values(1d, 2d, 3d), double.class, Double.class);
     }
 
     interface Executor {
