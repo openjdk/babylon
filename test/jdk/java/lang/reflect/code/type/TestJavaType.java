@@ -32,6 +32,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.lang.reflect.code.type.ArrayType;
 import java.lang.reflect.code.type.ClassType;
+import java.lang.reflect.code.type.CoreTypeFactory;
 import java.lang.reflect.code.type.JavaType;
 import java.util.ArrayList;
 import java.util.List;
@@ -170,7 +171,9 @@ public class TestJavaType {
 
     @Test(dataProvider = "types")
     public void testTypeRoundTrip(Type type) throws ReflectiveOperationException {
-        Assert.assertEquals(type, JavaType.type(type).resolve(MethodHandles.lookup()));
+        JavaType javaType = JavaType.type(type);
+        Assert.assertEquals(type, javaType.resolve(MethodHandles.lookup()));
+        Assert.assertEquals(javaType, CoreTypeFactory.JAVA_TYPE_FACTORY.constructType(javaType.externalize()));
     }
 
     @DataProvider
@@ -284,5 +287,75 @@ public class TestJavaType {
         Map<? extends List<? extends X>, ? super List<? extends X>>[][] aax6;
         Map<? extends List<? extends X>[], ? super List<? extends X>[]>[][] aax7;
         List<X[]>[][] aax8;
+
+        static class Outer<X> {
+            class Inner<X> { }
+        }
+
+        Outer<String>.Inner<String> o1;
+        Outer<? extends String>.Inner<String> o2;
+        Outer<String>.Inner<? extends String> o3;
+        Outer<? extends String>.Inner<? extends String> o4;
+        Outer<? super String>.Inner<String> o5;
+        Outer<String>.Inner<? super String> o6;
+        Outer<? super String>.Inner<? super String> o7;
+        Outer<?>.Inner<String> o8;
+        Outer<String>.Inner<?> o9;
+        Outer<?>.Inner<?> o10;
+
+        Outer<int[]>.Inner<int[]> oa1;
+        Outer<? extends int[]>.Inner<int[]> oa2;
+        Outer<int[]>.Inner<? extends int[]> oa3;
+        Outer<? extends int[]>.Inner<? extends int[]> oa4;
+        Outer<? super int[]>.Inner<int[]> oa5;
+        Outer<int[]>.Inner<? super int[]> oa6;
+        Outer<? super int[]>.Inner<? super int[]> oa7;
+        Outer<?>.Inner<int[]> oa8;
+        Outer<int[]>.Inner<?> oa9;
+        Outer<?>.Inner<?> oa10;
+
+        Outer<String>.Inner<String>[] ao1;
+        Outer<? extends String>.Inner<String>[] ao2;
+        Outer<String>.Inner<? extends String>[] ao3;
+        Outer<? extends String>.Inner<? extends String>[] ao4;
+        Outer<? super String>.Inner<String>[] ao5;
+        Outer<String>.Inner<? super String>[] ao6;
+        Outer<? super String>.Inner<? super String>[] ao7;
+        Outer<?>.Inner<String>[] ao8;
+        Outer<String>.Inner<?>[] ao9;
+        Outer<?>.Inner<?>[] ao10;
+
+        Outer<int[]>.Inner<int[]>[] aoa1;
+        Outer<? extends int[]>.Inner<int[]>[] aoa2;
+        Outer<int[]>.Inner<? extends int[]>[] aoa3;
+        Outer<? extends int[]>.Inner<? extends int[]>[] aoa4;
+        Outer<? super int[]>.Inner<int[]>[] aoa5;
+        Outer<int[]>.Inner<? super int[]>[] aoa6;
+        Outer<? super int[]>.Inner<? super int[]>[] aoa7;
+        Outer<?>.Inner<int[]>[] aoa8;
+        Outer<int[]>.Inner<?>[] aoa9;
+        Outer<?>.Inner<?>[] aoa10;
+
+        Outer<String>.Inner<String>[][] aao1;
+        Outer<? extends String>.Inner<String>[][] aao2;
+        Outer<String>.Inner<? extends String>[][] aao3;
+        Outer<? extends String>.Inner<? extends String>[][] aao4;
+        Outer<? super String>.Inner<String>[][] aao5;
+        Outer<String>.Inner<? super String>[][] aao6;
+        Outer<? super String>.Inner<? super String>[][] aao7;
+        Outer<?>.Inner<String>[][] aao8;
+        Outer<String>.Inner<?>[][] aao9;
+        Outer<?>.Inner<?>[][] aao10;
+
+        Outer<int[]>.Inner<int[]>[][] aaoa1;
+        Outer<? extends int[]>.Inner<int[]>[][] aaoa2;
+        Outer<int[]>.Inner<? extends int[]>[][] aaoa3;
+        Outer<? extends int[]>.Inner<? extends int[]>[][] aaoa4;
+        Outer<? super int[]>.Inner<int[]>[][] aaoa5;
+        Outer<int[]>.Inner<? super int[]>[][] aaoa6;
+        Outer<? super int[]>.Inner<? super int[]>[][] aaoa7;
+        Outer<?>.Inner<int[]>[][] aaoa8;
+        Outer<int[]>.Inner<?>[][] aaoa9;
+        Outer<?>.Inner<?>[][] aaoa10;
     }
 }

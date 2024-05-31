@@ -194,8 +194,11 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
     static JavaType type(Type reflectiveType) {
         return switch (reflectiveType) {
             case Class<?> c -> type(c.describeConstable().get());
-            case ParameterizedType pt -> parameterized(type(pt.getRawType()),
+            case ParameterizedType pt when pt.getOwnerType() == null -> parameterized(type(pt.getRawType()),
                     Stream.of(pt.getActualTypeArguments()).map(JavaType::type).toList());
+            case ParameterizedType pt -> parameterized(
+                        qualified(type(pt.getOwnerType()), ((Class<?>)pt.getRawType()).getSimpleName()),
+                        Stream.of(pt.getActualTypeArguments()).map(JavaType::type).toList());
             case java.lang.reflect.WildcardType wt -> wt.getLowerBounds().length == 0 ?
                     wildcard(BoundKind.EXTENDS, type(wt.getUpperBounds()[0])) :
                     wildcard(BoundKind.SUPER, type(wt.getLowerBounds()[0]));
@@ -236,8 +239,22 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
             return array(type(desc.componentType()));
         } else {
             // class
-            return new ClassType(desc, List.of());
+            return new ClassType(null, desc, List.of());
         }
+    }
+
+    /**
+     * Constructs a qualified Java type.
+     *
+     * @param enclosing the enclosing type
+     * @param nestedName the nested class name
+     * @throws IllegalArgumentException if {@code enclosing} is not a class type
+     */
+    static ClassType qualified(JavaType enclosing, String nestedName) {
+        if (!(enclosing instanceof ClassType ct)) {
+            throw new IllegalArgumentException("Not a class type: " + enclosing);
+        }
+        return new ClassType(ct, ct.toNominalDescriptor().nested(nestedName));
     }
 
     /**
@@ -271,7 +288,7 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
         if (ct.hasTypeArguments()) {
             throw new IllegalArgumentException("Already parameterized: " + type);
         }
-        return new ClassType(type.toNominalDescriptor(), typeArguments);
+        return new ClassType(ct.enclosingType().orElse(null), type.toNominalDescriptor(), typeArguments);
     }
 
     /**

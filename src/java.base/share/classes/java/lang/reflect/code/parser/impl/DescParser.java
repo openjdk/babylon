@@ -97,14 +97,17 @@ public final class DescParser {
                 t = l.token();
             }
         } else {
-            // Qualified identifier
+            // type element identifier
             Tokens.Token t = l.accept(TokenKind.IDENTIFIER,
-                    TokenKind.PLUS, TokenKind.SUB);
+                    TokenKind.PLUS, TokenKind.SUB, TokenKind.DOT);
             identifier.append(t.kind == TokenKind.IDENTIFIER ? t.name() : t.kind.name);
-            while (l.acceptIf(Tokens.TokenKind.DOT)) {
-                identifier.append(Tokens.TokenKind.DOT.name);
-                t = l.accept(Tokens.TokenKind.IDENTIFIER);
-                identifier.append(t.name());
+            if (t.kind == TokenKind.IDENTIFIER) {
+                // keep going if we see "."
+                while (l.acceptIf(Tokens.TokenKind.DOT)) {
+                    identifier.append(Tokens.TokenKind.DOT.name);
+                    t = l.accept(Tokens.TokenKind.IDENTIFIER);
+                    identifier.append(t.name());
+                }
             }
         }
 
@@ -121,8 +124,6 @@ public final class DescParser {
         } else {
             args = List.of();
         }
-
-        // @@@ Enclosed/inner classes, separated by $ which may also be parameterized
 
         // Parse array-like syntax []+
         int dims = 0;

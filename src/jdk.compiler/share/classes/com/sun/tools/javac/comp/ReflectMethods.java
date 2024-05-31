@@ -2271,8 +2271,14 @@ public class ReflectMethods extends TreeTranslator {
                                 typeToTypeElement(t.getUpperBound()));
                 case CLASS -> {
                     Assert.check(!t.isIntersection() && !t.isUnion());
-                    // @@@ Need to clean this up, probably does not work inner generic classes
-                    // whose enclosing class is also generic
+                    JavaType typ;
+                    if (t.getEnclosingType() != Type.noType) {
+                        Name innerName = t.tsym.flatName().subName(t.getEnclosingType().tsym.flatName().length() + 1);
+                        typ = JavaType.qualified(typeToTypeElement(t.getEnclosingType()), innerName.toString());
+                    } else {
+                        typ = JavaType.type(ClassDesc.of(t.tsym.flatName().toString()));
+                    }
+
                     List<JavaType> typeArguments;
                     if (t.getTypeArguments().nonEmpty()) {
                         typeArguments = new ArrayList<>();
@@ -2284,7 +2290,7 @@ public class ReflectMethods extends TreeTranslator {
                     }
 
                     // Use flat name to ensure demarcation of nested classes
-                    yield JavaType.parameterized(JavaType.type(ClassDesc.of(t.tsym.flatName().toString())), typeArguments);
+                    yield JavaType.parameterized(typ, typeArguments);
                 }
                 default -> {
                     throw new UnsupportedOperationException("Unsupported type: kind=" + t.getKind() + " type=" + t);
