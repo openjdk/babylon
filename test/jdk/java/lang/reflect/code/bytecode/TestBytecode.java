@@ -31,7 +31,6 @@ import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import org.testng.Assert;
-import org.testng.SkipException;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -384,7 +383,6 @@ public class TestBytecode {
     }
 
     @CodeReflection
-    @SkipLift
     static int quotableLambda(int i) {
         return consumeQuotable(i, a -> -a);
     }
@@ -395,7 +393,6 @@ public class TestBytecode {
     }
 
     @CodeReflection
-    @SkipLift
     static int quotableLambdaWithCapture(int i, String s) {
         return consumeQuotable(i, a -> a + s.length());
     }
@@ -406,7 +403,6 @@ public class TestBytecode {
     }
 
     @CodeReflection
-    @SkipLift
     static int nestedQuotableLambdasWithCaptures(int i, int j, String s) {
         return consumeQuotable(i, a -> consumeQuotable(a, b -> a + b + j - s.length()) + s.length());
     }

@@ -426,8 +426,7 @@ public final class BytecodeLift {
                     }
                 }
                 case InvokeDynamicInstruction inst when inst.bootstrapMethod().kind() == DirectMethodHandleDesc.Kind.STATIC
-                                                     && inst.bootstrapMethod().owner().equals(CD_LambdaMetafactory)
-                                                     && inst.bootstrapMethod().methodName().equals("metafactory") -> {
+                                                     && inst.bootstrapMethod().owner().equals(CD_LambdaMetafactory) -> {
                     ClassModel clm = codeModel.parent().orElseThrow().parent().orElseThrow();
                     if (inst.bootstrapArgs().get(0) instanceof MethodTypeDesc mtd
                             && inst.bootstrapArgs().get(1) instanceof DirectMethodHandleDesc dmhd
@@ -435,9 +434,12 @@ public final class BytecodeLift {
 
                         MethodModel implMethod = clm.methods().stream().filter(m -> m.methodName().equalsString(dmhd.methodName())
                                                                             && m.methodTypeSymbol().equals(dmhd.invocationType())).findFirst().orElseThrow();
-                        var captureTypes = new Value[inst.typeSymbol().parameterCount()];
+                        var captureTypes = new Value[dmhd.invocationType().parameterCount() - mtd.parameterCount()];
                         for (int ci = captureTypes.length - 1; ci >= 0; ci--) {
                             captureTypes[ci] = stack.pop();
+                        }
+                        for (int ci = captureTypes.length; ci < inst.typeSymbol().parameterCount(); ci++) {
+                            stack.pop();
                         }
                         stack.push(op(CoreOp.lambda(currentBlock.parentBody(),
                                 FunctionType.functionType(JavaType.type(mtd.returnType()), mtd.parameterList().stream().map(JavaType::type).toList()),
