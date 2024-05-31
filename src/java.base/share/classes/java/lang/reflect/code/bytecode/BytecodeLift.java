@@ -66,9 +66,9 @@ import java.lang.constant.DirectMethodHandleDesc;
 import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.reflect.code.Block.Parameter;
+import java.lang.reflect.code.op.CoreOp.LambdaOp;
 import java.lang.reflect.code.type.PrimitiveType;
 import java.lang.reflect.code.type.VarType;
-import java.util.Arrays;
 import java.util.function.BiFunction;
 
 
@@ -426,12 +426,15 @@ public final class BytecodeLift {
                     }
                 }
                 case InvokeDynamicInstruction inst when inst.bootstrapMethod().kind() == DirectMethodHandleDesc.Kind.STATIC
-                                                     && inst.bootstrapMethod().owner().equals(CD_LambdaMetafactory) -> {
+                                                     && inst.bootstrapMethod().owner().equals(CD_LambdaMetafactory)
+                                                     && inst.bootstrapArgs().get(0) instanceof MethodTypeDesc mtd
+                                                     && inst.bootstrapArgs().get(1) instanceof DirectMethodHandleDesc dmhd -> {
+                    LambdaOp.Builder lambda = CoreOp.lambda(currentBlock.parentBody(),
+                            FunctionType.functionType(JavaType.type(mtd.returnType()), mtd.parameterList().stream().map(JavaType::type).toList()),
+                            JavaType.type(inst.typeSymbol().returnType()));
                     ClassModel clm = codeModel.parent().orElseThrow().parent().orElseThrow();
-                    if (inst.bootstrapArgs().get(0) instanceof MethodTypeDesc mtd
-                            && inst.bootstrapArgs().get(1) instanceof DirectMethodHandleDesc dmhd
-                            && dmhd.owner().equals(clm.thisClass().asSymbol())) {
-
+                    if (dmhd.owner().equals(clm.thisClass().asSymbol())) {
+                        // inline lambda impl method
                         MethodModel implMethod = clm.methods().stream().filter(m -> m.methodName().equalsString(dmhd.methodName())
                                                                             && m.methodTypeSymbol().equals(dmhd.invocationType())).findFirst().orElseThrow();
                         var captureTypes = new Value[dmhd.invocationType().parameterCount() - mtd.parameterCount()];
@@ -441,10 +444,19 @@ public final class BytecodeLift {
                         for (int ci = captureTypes.length; ci < inst.typeSymbol().parameterCount(); ci++) {
                             stack.pop();
                         }
-                        stack.push(op(CoreOp.lambda(currentBlock.parentBody(),
-                                FunctionType.functionType(JavaType.type(mtd.returnType()), mtd.parameterList().stream().map(JavaType::type).toList()),
-                                JavaType.type(inst.typeSymbol().returnType())).body(eb -> new BytecodeLift(eb, implMethod, captureTypes).lift())));
-
+                        stack.push(op(lambda.body(eb -> new BytecodeLift(eb, implMethod, captureTypes).lift())));
+                    } else {
+                        // lambda call to a MH
+                        stack.push(op(lambda.body(eb -> {
+                            MethodTypeDesc mt = dmhd.invocationType();
+                            eb.op(CoreOp._return(eb.op(CoreOp.invoke(
+                                    MethodRef.method(
+                                            JavaType.type(dmhd.owner()),
+                                            dmhd.methodName(),
+                                            JavaType.type(mt.returnType()),
+                                            mt.parameterList().stream().map(JavaType::type).toList()),
+                                    eb.parameters().stream().toArray(Value[]::new)))));
+                        })));
                     }
                 }
                 case NewObjectInstruction _ -> {

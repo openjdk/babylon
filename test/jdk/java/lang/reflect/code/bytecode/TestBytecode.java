@@ -22,8 +22,6 @@
  */
 
 import java.io.IOException;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.ClassModel;
 import java.lang.classfile.components.ClassPrinter;
@@ -408,13 +406,9 @@ public class TestBytecode {
     }
 
     @CodeReflection
-    @SkipLift
     static int methodHandle(int i) {
         return consume(i, Math::negateExact);
     }
-
-    @Retention(RetentionPolicy.RUNTIME)
-    @interface SkipLift {}
 
     record TestData(Method testMethod) {
         @Override
@@ -496,7 +490,6 @@ public class TestBytecode {
 
     @Test(dataProvider = "testMethods")
     public void testLift(TestData d) throws Throwable {
-        if (d.testMethod.getAnnotation(SkipLift.class) != null) return;
         CoreOp.FuncOp flift;
         try {
             flift = BytecodeLift.lift(CLASS_DATA, d.testMethod.getName(), toMethodTypeDesc(d.testMethod));
