@@ -217,7 +217,7 @@ public final class BytecodeLift {
                             Block.Builder handler = getBlock(ec.handler());
                             // Create start block
                             next = newBlock();
-                            Op ere = CoreOp.exceptionRegionEnter(next.successor(List.copyOf(stack)), handler.successor());
+                            Op ere = CoreOp.exceptionRegionEnter(next.successor(List.copyOf(stack)), handler.successor(List.copyOf(stack)));
                             op(ere);
                             // Store ERE into map for exit
                             exceptionRegionsMap.put(ec, ere.result());
@@ -229,7 +229,7 @@ public final class BytecodeLift {
                         if (lt.label() == ec.tryEnd()) {
                             // Create exit block with parameters constructed from the stack
                             next = newBlock();
-                            op(CoreOp.exceptionRegionExit(exceptionRegionsMap.get(ec), next.successor()));
+                            op(CoreOp.exceptionRegionExit(exceptionRegionsMap.get(ec), next.successor(List.copyOf(stack))));
                             moveTo(next);
                         }
                     }
@@ -266,16 +266,12 @@ public final class BytecodeLift {
                             getBlock(inst.target()).successor(List.copyOf(stack))));
                     moveTo(next);
                 }
-    //                case LookupSwitchInstruction si -> {
-    //                    // Default label is first successor
-    //                    b.addSuccessor(blockMap.get(si.defaultTarget()));
-    //                    addSuccessors(si.cases(), blockMap, b);
-    //                }
-    //                case TableSwitchInstruction si -> {
-    //                    // Default label is first successor
-    //                    b.addSuccessor(blockMap.get(si.defaultTarget()));
-    //                    addSuccessors(si.cases(), blockMap, b);
-    //                }
+                case LookupSwitchInstruction si -> {
+                    liftSwitch(si.defaultTarget(), si.cases());
+                }
+                case TableSwitchInstruction si -> {
+                    liftSwitch(si.defaultTarget(), si.cases());
+                }
                 case ReturnInstruction inst when inst.typeKind() == TypeKind.VoidType -> {
                     op(CoreOp._return());
                     endOfFlow();
@@ -613,6 +609,20 @@ public final class BytecodeLift {
                     throw new UnsupportedOperationException("Unsupported code element: " + elements.get(i));
             }
         }
+    }
+
+    private void liftSwitch(Label defaultTarget, List<SwitchCase> cases) {
+        Value v = toInt(stack.pop());
+        SwitchCase last = cases.getLast();
+        for (SwitchCase sc : cases) {
+            Block.Builder next = sc == last ? blockMap.get(defaultTarget) : newBlock();
+            op(CoreOp.conditionalBranch(
+                    op(CoreOp.eq(v, op(CoreOp.constant(JavaType.INT, sc.caseValue())))),
+                    blockMap.get(sc.target()).successor(List.copyOf(stack)),
+                    next.successor(List.copyOf(stack))));
+            moveTo(next);
+        }
+        endOfFlow();
     }
 
     private static TypeElement valueType(Value v) {

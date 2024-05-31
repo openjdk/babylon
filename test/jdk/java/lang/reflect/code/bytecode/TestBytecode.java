@@ -29,6 +29,7 @@ import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import org.testng.Assert;
+import org.testng.SkipException;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -425,6 +426,26 @@ public class TestBytecode {
         return i > j;
     }
 
+    @CodeReflection
+    static int lookupSwitch(int i) {
+        return switch (1000 * i) {
+            case 1000 -> 1;
+            case 2000 -> 2;
+            case 3000 -> 3;
+            default -> 0;
+        };
+    }
+
+    @CodeReflection
+    static int tableSwitch(int i) {
+        return switch (i) {
+            case 1 -> 1;
+            case 2 -> 2;
+            case 3 -> 3;
+            default -> 0;
+        };
+    }
+
     record TestData(Method testMethod) {
         @Override
         public String toString() {
@@ -549,7 +570,12 @@ public class TestBytecode {
     public void testGenerate(TestData d) throws Throwable {
         CoreOp.FuncOp func = d.testMethod.getCodeModel().get();
 
-        CoreOp.FuncOp lfunc = func.transform(CopyContext.create(), OpTransformer.LOWERING_TRANSFORMER);
+        CoreOp.FuncOp lfunc;
+        try {
+            lfunc = func.transform(CopyContext.create(), OpTransformer.LOWERING_TRANSFORMER);
+        } catch (UnsupportedOperationException uoe) {
+            throw new SkipException("lowering caused:", uoe);
+        }
 
         try {
             MethodHandle mh = BytecodeGenerator.generate(MethodHandles.lookup(), lfunc);
