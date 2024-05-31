@@ -32,6 +32,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.lang.reflect.code.type.ArrayType;
 import java.lang.reflect.code.type.ClassType;
+import java.lang.reflect.code.type.CoreTypeFactory;
 import java.lang.reflect.code.type.JavaType;
 import java.util.ArrayList;
 import java.util.List;
@@ -170,7 +171,9 @@ public class TestJavaType {
 
     @Test(dataProvider = "types")
     public void testTypeRoundTrip(Type type) throws ReflectiveOperationException {
-        Assert.assertEquals(type, JavaType.type(type).resolve(MethodHandles.lookup()));
+        JavaType javaType = JavaType.type(type);
+        Assert.assertEquals(type, javaType.resolve(MethodHandles.lookup()));
+        Assert.assertEquals(javaType, CoreTypeFactory.JAVA_TYPE_FACTORY.constructType(javaType.externalize()));
     }
 
     @DataProvider

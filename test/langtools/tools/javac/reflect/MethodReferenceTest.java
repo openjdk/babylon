@@ -182,13 +182,13 @@ public class MethodReferenceTest {
     @CodeReflection
     @IR("""
             func @"test8" (%0 : MethodReferenceTest)void -> {
-                %1 : java.util.function.IntFunction<.<MethodReferenceTest, MethodReferenceTest$A<java.lang.String>>> = lambda (%2 : int).<MethodReferenceTest, MethodReferenceTest$A<java.lang.String>> -> {
+                %1 : java.util.function.IntFunction<.<MethodReferenceTest, MethodReferenceTest$A<java.lang.String>>[]> = lambda (%2 : int).<MethodReferenceTest, MethodReferenceTest$A<java.lang.String>>[] -> {
                     %3 : Var<int> = var %2 @"x$0";
                     %4 : int = var.load %3;
-                    %5 : .<MethodReferenceTest, MethodReferenceTest$A> = new %4 @"func<.<MethodReferenceTest, MethodReferenceTest$A>, int>";
+                    %5 : .<MethodReferenceTest, MethodReferenceTest$A>[] = new %4 @"func<.<MethodReferenceTest, MethodReferenceTest$A>[], int>";
                     return %5;
                 };
-                %6 : Var<java.util.function.IntFunction<.<MethodReferenceTest, MethodReferenceTest$A<java.lang.String>>>> = var %1 @"aNewArray";
+                %6 : Var<java.util.function.IntFunction<.<MethodReferenceTest, MethodReferenceTest$A<java.lang.String>>[]>> = var %1 @"aNewArray";
                 return;
             };
             """)
