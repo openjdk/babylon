@@ -27,6 +27,7 @@ package java.lang.reflect.code.bytecode;
 
 import java.lang.classfile.Attributes;
 import java.lang.classfile.ClassFile;
+import java.lang.classfile.ClassModel;
 import java.lang.classfile.CodeElement;
 import java.lang.classfile.CodeModel;
 import java.lang.classfile.Instruction;
@@ -61,10 +62,22 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
 import java.lang.classfile.constantpool.ClassEntry;
+import java.lang.constant.DirectMethodHandleDesc;
+import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodTypeDesc;
+import java.lang.reflect.code.Block.Parameter;
+import java.lang.reflect.code.op.CoreOp.LambdaOp;
+import java.lang.reflect.code.type.PrimitiveType;
+import java.lang.reflect.code.type.VarType;
+import java.util.function.BiFunction;
 
 
 public final class BytecodeLift {
+
+    private static final ClassDesc CD_LambdaMetafactory = ClassDesc.ofDescriptor("Ljava/lang/invoke/LambdaMetafactory;");
+    private static final MethodRef LCMP = MethodRef.method(JavaType.J_L_LONG, "compare", JavaType.INT, JavaType.LONG, JavaType.LONG);
+    private static final MethodRef FCMP = MethodRef.method(JavaType.J_L_FLOAT, "compare", JavaType.INT, JavaType.FLOAT, JavaType.FLOAT);
+    private static final MethodRef DCMP = MethodRef.method(JavaType.J_L_DOUBLE, "compare", JavaType.INT, JavaType.DOUBLE, JavaType.DOUBLE);
 
     private final Block.Builder entryBlock;
     private final CodeModel codeModel;
@@ -95,7 +108,7 @@ public final class BytecodeLift {
         return JavaType.type(ce.asSymbol());
     }
 
-    private BytecodeLift(Block.Builder entryBlock, MethodModel methodModel) {
+    private BytecodeLift(Block.Builder entryBlock, MethodModel methodModel, Value... capturedValues) {
         if (!methodModel.flags().has(AccessFlag.STATIC)) {
             throw new IllegalArgumentException("Unsuported lift of non-static method: " + methodModel);
         }
@@ -110,11 +123,15 @@ public final class BytecodeLift {
                         StackMapFrameInfo::target,
                         smfi -> entryBlock.block(smfi.stack().stream().map(BytecodeLift::toTypeElement).toList())))).orElse(Map.of());
 
-        List<Block.Parameter> bps = entryBlock.parameters();
         MethodTypeDesc mtd = methodModel.methodTypeSymbol();
-        for (int i = 0, slot = 0; i < bps.size(); i++) {
-            op(SlotOp.store(slot, bps.get(i)));
-            slot += TypeKind.from(mtd.parameterType(i)).slotSize();
+        int slot = 0, i = 0;
+        for (Value cap : capturedValues) {
+            op(SlotOp.store(slot, cap));
+            slot += TypeKind.from(mtd.parameterType(i++)).slotSize();
+        }
+        for (Parameter bp : entryBlock.parameters()) {
+            op(SlotOp.store(slot, bp));
+            slot += TypeKind.from(mtd.parameterType(i++)).slotSize();
         }
 
         this.codeTracker = new LocalsTypeMapper(methodModel.parent().get().thisClass().asSymbol(), mtd, methodModel.flags().has(AccessFlag.STATIC), smta, elements);
@@ -200,7 +217,7 @@ public final class BytecodeLift {
                             Block.Builder handler = getBlock(ec.handler());
                             // Create start block
                             next = newBlock();
-                            Op ere = CoreOp.exceptionRegionEnter(next.successor(List.copyOf(stack)), handler.successor());
+                            Op ere = CoreOp.exceptionRegionEnter(next.successor(List.copyOf(stack)), handler.successor(List.copyOf(stack)));
                             op(ere);
                             // Store ERE into map for exit
                             exceptionRegionsMap.put(ec, ere.result());
@@ -212,7 +229,7 @@ public final class BytecodeLift {
                         if (lt.label() == ec.tryEnd()) {
                             // Create exit block with parameters constructed from the stack
                             next = newBlock();
-                            op(CoreOp.exceptionRegionExit(exceptionRegionsMap.get(ec), next.successor()));
+                            op(CoreOp.exceptionRegionExit(exceptionRegionsMap.get(ec), next.successor(List.copyOf(stack))));
                             moveTo(next);
                         }
                     }
@@ -225,22 +242,22 @@ public final class BytecodeLift {
                     // Conditional branch
                     Value operand = stack.pop();
                     Op cop = switch (inst.opcode()) {
-                        case IFNE -> CoreOp.eq(operand, op(CoreOp.constant(JavaType.INT, 0)));
-                        case IFEQ -> CoreOp.neq(operand, op(CoreOp.constant(JavaType.INT, 0)));
-                        case IFGE -> CoreOp.lt(operand, op(CoreOp.constant(JavaType.INT, 0)));
-                        case IFLE -> CoreOp.gt(operand, op(CoreOp.constant(JavaType.INT, 0)));
-                        case IFGT -> CoreOp.le(operand, op(CoreOp.constant(JavaType.INT, 0)));
-                        case IFLT -> CoreOp.ge(operand, op(CoreOp.constant(JavaType.INT, 0)));
+                        case IFNE -> CoreOp.eq(operand, zero(operand));
+                        case IFEQ -> CoreOp.neq(operand, zero(operand));
+                        case IFGE -> CoreOp.lt(operand, zero(operand));
+                        case IFLE -> CoreOp.gt(operand, zero(operand));
+                        case IFGT -> CoreOp.le(operand, zero(operand));
+                        case IFLT -> CoreOp.ge(operand, zero(operand));
                         case IFNULL -> CoreOp.neq(operand, op(CoreOp.constant(JavaType.J_L_OBJECT, null)));
                         case IFNONNULL -> CoreOp.eq(operand, op(CoreOp.constant(JavaType.J_L_OBJECT, null)));
-                        case IF_ICMPNE -> CoreOp.eq(stack.pop(), operand);
-                        case IF_ICMPEQ -> CoreOp.neq(stack.pop(), operand);
-                        case IF_ICMPGE -> CoreOp.lt(stack.pop(), operand);
-                        case IF_ICMPLE -> CoreOp.gt(stack.pop(), operand);
-                        case IF_ICMPGT -> CoreOp.le(stack.pop(), operand);
-                        case IF_ICMPLT -> CoreOp.ge(stack.pop(), operand);
-                        case IF_ACMPEQ -> CoreOp.neq(stack.pop(), operand);
-                        case IF_ACMPNE -> CoreOp.eq(stack.pop(), operand);
+                        case IF_ICMPNE -> unifyOperands(CoreOp::eq, stack.pop(), operand, TypeKind.IntType);
+                        case IF_ICMPEQ -> unifyOperands(CoreOp::neq, stack.pop(), operand, TypeKind.IntType);
+                        case IF_ICMPGE -> unifyOperands(CoreOp::lt, stack.pop(), operand, TypeKind.IntType);
+                        case IF_ICMPLE -> unifyOperands(CoreOp::gt, stack.pop(), operand, TypeKind.IntType);
+                        case IF_ICMPGT -> unifyOperands(CoreOp::le, stack.pop(), operand, TypeKind.IntType);
+                        case IF_ICMPLT -> unifyOperands(CoreOp::ge, stack.pop(), operand, TypeKind.IntType);
+                        case IF_ACMPEQ -> unifyOperands(CoreOp::neq, stack.pop(), operand, TypeKind.IntType);
+                        case IF_ACMPNE -> unifyOperands(CoreOp::eq, stack.pop(), operand, TypeKind.IntType);
                         default -> throw new UnsupportedOperationException("Unsupported branch instruction: " + inst);
                     };
                     Block.Builder next = newBlock();
@@ -249,16 +266,12 @@ public final class BytecodeLift {
                             getBlock(inst.target()).successor(List.copyOf(stack))));
                     moveTo(next);
                 }
-    //                case LookupSwitchInstruction si -> {
-    //                    // Default label is first successor
-    //                    b.addSuccessor(blockMap.get(si.defaultTarget()));
-    //                    addSuccessors(si.cases(), blockMap, b);
-    //                }
-    //                case TableSwitchInstruction si -> {
-    //                    // Default label is first successor
-    //                    b.addSuccessor(blockMap.get(si.defaultTarget()));
-    //                    addSuccessors(si.cases(), blockMap, b);
-    //                }
+                case LookupSwitchInstruction si -> {
+                    liftSwitch(si.defaultTarget(), si.cases());
+                }
+                case TableSwitchInstruction si -> {
+                    liftSwitch(si.defaultTarget(), si.cases());
+                }
                 case ReturnInstruction inst when inst.typeKind() == TypeKind.VoidType -> {
                     op(CoreOp._return());
                     endOfFlow();
@@ -290,6 +303,9 @@ public final class BytecodeLift {
                         case Integer v -> CoreOp.constant(JavaType.INT, v);
                         case Long v -> CoreOp.constant(JavaType.LONG, v);
                         case String v -> CoreOp.constant(JavaType.J_L_STRING, v);
+                        case DynamicConstantDesc<?> v when v.bootstrapMethod().owner().equals(ConstantDescs.CD_ConstantBootstraps)
+                                                     && v.bootstrapMethod().methodName().equals("nullConstant")
+                                -> CoreOp.constant(JavaType.J_L_OBJECT, null);
                         default ->
                             // @@@ MethodType, MethodHandle, ConstantDynamic
                             throw new IllegalArgumentException("Unsupported constant value: " + inst.constantValue());
@@ -310,34 +326,41 @@ public final class BytecodeLift {
                     }, stack.pop())));
                 }
                 case OperatorInstruction inst -> {
+                    TypeKind tk = inst.typeKind();
                     Value operand = stack.pop();
                     stack.push(op(switch (inst.opcode()) {
                         case IADD, LADD, FADD, DADD ->
-                                CoreOp.add(stack.pop(), operand);
+                                unifyOperands(CoreOp::add, stack.pop(), operand, tk);
                         case ISUB, LSUB, FSUB, DSUB ->
-                                CoreOp.sub(stack.pop(), operand);
+                                unifyOperands(CoreOp::sub, stack.pop(), operand, tk);
                         case IMUL, LMUL, FMUL, DMUL ->
-                                CoreOp.mul(stack.pop(), operand);
+                                unifyOperands(CoreOp::mul, stack.pop(), operand, tk);
                         case IDIV, LDIV, FDIV, DDIV ->
-                                CoreOp.div(stack.pop(), operand);
+                                unifyOperands(CoreOp::div, stack.pop(), operand, tk);
                         case IREM, LREM, FREM, DREM ->
-                                CoreOp.mod(stack.pop(), operand);
+                                unifyOperands(CoreOp::mod, stack.pop(), operand, tk);
                         case INEG, LNEG, FNEG, DNEG ->
                                 CoreOp.neg(operand);
                         case ARRAYLENGTH ->
                                 CoreOp.arrayLength(operand);
                         case IAND, LAND ->
-                                CoreOp.and(stack.pop(), operand);
+                                unifyOperands(CoreOp::and, stack.pop(), operand, tk);
                         case IOR, LOR ->
-                                CoreOp.or(stack.pop(), operand);
+                                unifyOperands(CoreOp::or, stack.pop(), operand, tk);
                         case IXOR, LXOR ->
-                                CoreOp.xor(stack.pop(), operand);
+                                unifyOperands(CoreOp::xor, stack.pop(), operand, tk);
                         case ISHL, LSHL ->
-                                CoreOp.lshl(stack.pop(), operand);
+                                CoreOp.lshl(stack.pop(), toInt(operand));
                         case ISHR, LSHR ->
-                                CoreOp.ashr(stack.pop(), operand);
+                                CoreOp.ashr(stack.pop(), toInt(operand));
                         case IUSHR, LUSHR ->
-                                CoreOp.lshr(stack.pop(), operand);
+                                CoreOp.lshr(stack.pop(), toInt(operand));
+                        case LCMP ->
+                                CoreOp.invoke(LCMP, stack.pop(), operand);
+                        case FCMPL, FCMPG ->
+                                CoreOp.invoke(FCMP, stack.pop(), operand);
+                        case DCMPL, DCMPG ->
+                                CoreOp.invoke(DCMP, stack.pop(), operand);
                         default ->
                             throw new IllegalArgumentException("Unsupported operator opcode: " + inst.opcode());
                     }));
@@ -405,6 +428,40 @@ public final class BytecodeLift {
                     };
                     if (!result.type().equals(JavaType.VOID)) {
                         stack.push(result);
+                    }
+                }
+                case InvokeDynamicInstruction inst when inst.bootstrapMethod().kind() == DirectMethodHandleDesc.Kind.STATIC
+                                                     && inst.bootstrapMethod().owner().equals(CD_LambdaMetafactory)
+                                                     && inst.bootstrapArgs().get(0) instanceof MethodTypeDesc mtd
+                                                     && inst.bootstrapArgs().get(1) instanceof DirectMethodHandleDesc dmhd -> {
+                    LambdaOp.Builder lambda = CoreOp.lambda(currentBlock.parentBody(),
+                            FunctionType.functionType(JavaType.type(mtd.returnType()), mtd.parameterList().stream().map(JavaType::type).toList()),
+                            JavaType.type(inst.typeSymbol().returnType()));
+                    ClassModel clm = codeModel.parent().orElseThrow().parent().orElseThrow();
+                    if (dmhd.owner().equals(clm.thisClass().asSymbol())) {
+                        // inline lambda impl method
+                        MethodModel implMethod = clm.methods().stream().filter(m -> m.methodName().equalsString(dmhd.methodName())
+                                                                            && m.methodTypeSymbol().equals(dmhd.invocationType())).findFirst().orElseThrow();
+                        var captureTypes = new Value[dmhd.invocationType().parameterCount() - mtd.parameterCount()];
+                        for (int ci = captureTypes.length - 1; ci >= 0; ci--) {
+                            captureTypes[ci] = stack.pop();
+                        }
+                        for (int ci = captureTypes.length; ci < inst.typeSymbol().parameterCount(); ci++) {
+                            stack.pop();
+                        }
+                        stack.push(op(lambda.body(eb -> new BytecodeLift(eb, implMethod, captureTypes).lift())));
+                    } else {
+                        // lambda call to a MH
+                        stack.push(op(lambda.body(eb -> {
+                            MethodTypeDesc mt = dmhd.invocationType();
+                            eb.op(CoreOp._return(eb.op(CoreOp.invoke(
+                                    MethodRef.method(
+                                            JavaType.type(dmhd.owner()),
+                                            dmhd.methodName(),
+                                            JavaType.type(mt.returnType()),
+                                            mt.parameterList().stream().map(JavaType::type).toList()),
+                                    eb.parameters().stream().toArray(Value[]::new)))));
+                        })));
                     }
                 }
                 case NewObjectInstruction _ -> {
@@ -552,6 +609,40 @@ public final class BytecodeLift {
                     throw new UnsupportedOperationException("Unsupported code element: " + elements.get(i));
             }
         }
+    }
+
+    private void liftSwitch(Label defaultTarget, List<SwitchCase> cases) {
+        Value v = toInt(stack.pop());
+        SwitchCase last = cases.getLast();
+        for (SwitchCase sc : cases) {
+            Block.Builder next = sc == last ? blockMap.get(defaultTarget) : newBlock();
+            op(CoreOp.conditionalBranch(
+                    op(CoreOp.eq(v, op(CoreOp.constant(JavaType.INT, sc.caseValue())))),
+                    blockMap.get(sc.target()).successor(List.copyOf(stack)),
+                    next.successor(List.copyOf(stack))));
+            moveTo(next);
+        }
+        endOfFlow();
+    }
+
+    private static TypeElement valueType(Value v) {
+        var t = v.type();
+        while (t instanceof VarType vt) t = vt.valueType();
+        return t;
+    }
+
+    private Op unifyOperands(BiFunction<Value, Value, Op> operator, Value v1, Value v2, TypeKind tk) {
+        if (tk != TypeKind.IntType || valueType(v1).equals(valueType(v2))) return operator.apply(v1, v2);
+        return operator.apply(toInt(v1), toInt(v2));
+    }
+
+    private Value toInt(Value v) {
+        return valueType(v).equals(PrimitiveType.INT) ? v : op(CoreOp.conv(PrimitiveType.INT, v));
+    }
+
+    private Value zero(Value otherOperand) {
+       var vt = valueType(otherOperand);
+        return op(CoreOp.constant(vt, vt.equals(PrimitiveType.BOOLEAN) ? false : 0));
     }
 
     private static boolean isCategory1(Value v) {

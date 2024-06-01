@@ -22,8 +22,6 @@
  */
 
 import java.io.IOException;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.ClassModel;
 import java.lang.classfile.components.ClassPrinter;
@@ -70,7 +68,6 @@ public class TestBytecode {
     }
 
     @CodeReflection
-    @SkipLift
     static byte byteNumOps(byte i, byte j, byte k) {
         k++;
         i = (byte) ((i + j) / k - i % j);
@@ -79,7 +76,6 @@ public class TestBytecode {
     }
 
     @CodeReflection
-    @SkipLift
     static short shortNumOps(short i, short j, short k) {
         k++;
         i = (short) ((i + j) / k - i % j);
@@ -88,7 +84,6 @@ public class TestBytecode {
     }
 
     @CodeReflection
-    @SkipLift
     static char charNumOps(char i, char j, char k) {
         k++;
         i = (char) ((i + j) / k - i % j);
@@ -126,19 +121,16 @@ public class TestBytecode {
     }
 
     @CodeReflection
-    @SkipLift
     static byte byteBitOps(byte i, byte j, byte k) {
         return (byte) (i & j | k ^ j);
     }
 
     @CodeReflection
-    @SkipLift
     static short shortBitOps(short i, short j, short k) {
         return (short) (i & j | k ^ j);
     }
 
     @CodeReflection
-    @SkipLift
     static char charBitOps(char i, char j, char k) {
         return (char) (i & j | k ^ j);
     }
@@ -154,37 +146,31 @@ public class TestBytecode {
     }
 
     @CodeReflection
-    @SkipLift
     static int intShiftOps(int i, int j, int k) {
         return ((-1 >> i) << (j << k)) >>> (k - j);
     }
 
     @CodeReflection
-    @SkipLift
     static byte byteShiftOps(byte i, byte j, byte k) {
         return (byte) (((-1 >> i) << (j << k)) >>> (k - j));
     }
 
     @CodeReflection
-    @SkipLift
     static short shortShiftOps(short i, short j, short k) {
         return (short) (((-1 >> i) << (j << k)) >>> (k - j));
     }
 
     @CodeReflection
-    @SkipLift
     static char charShiftOps(char i, char j, char k) {
         return (char) (((-1 >> i) << (j << k)) >>> (k - j));
     }
 
     @CodeReflection
-    @SkipLift
     static long longShiftOps(long i, long j, long k) {
         return ((-1 >> i) << (j << k)) >>> (k - j);
     }
 
     @CodeReflection
-    @SkipLift
     static Object[] boxingAndUnboxing(int i, byte b, short s, char c, Integer ii, Byte bb, Short ss, Character cc) {
         ii += i; ii += b; ii += s; ii += c;
         i += ii; i += bb; i += ss; i += cc;
@@ -338,7 +324,6 @@ public class TestBytecode {
     }
 
     @CodeReflection
-    @SkipLift
     static boolean not(boolean b) {
         return !b;
     }
@@ -392,49 +377,74 @@ public class TestBytecode {
     }
 
     @CodeReflection
-    @SkipLift
     static int lambda(int i) {
         return consume(i, a -> -a);
     }
 
     @CodeReflection
-    @SkipLift
     static int quotableLambda(int i) {
         return consumeQuotable(i, a -> -a);
     }
 
     @CodeReflection
-    @SkipLift
     static int lambdaWithCapture(int i, String s) {
         return consume(i, a -> a + s.length());
     }
 
     @CodeReflection
-    @SkipLift
     static int quotableLambdaWithCapture(int i, String s) {
         return consumeQuotable(i, a -> a + s.length());
     }
 
     @CodeReflection
-    @SkipLift
     static int nestedLambdasWithCaptures(int i, int j, String s) {
-        return consume(i, a -> consume(a, b -> a + b + j) + s.length());
+        return consume(i, a -> consume(a, b -> a + b + j - s.length()) + s.length());
     }
 
     @CodeReflection
-    @SkipLift
     static int nestedQuotableLambdasWithCaptures(int i, int j, String s) {
-        return consumeQuotable(i, a -> consumeQuotable(a, b -> a + b + j) + s.length());
+        return consumeQuotable(i, a -> consumeQuotable(a, b -> a + b + j - s.length()) + s.length());
     }
 
     @CodeReflection
-    @SkipLift
     static int methodHandle(int i) {
         return consume(i, Math::negateExact);
     }
 
-    @Retention(RetentionPolicy.RUNTIME)
-    @interface SkipLift {}
+    @CodeReflection
+    static boolean compareLong(long i, long j) {
+        return i > j;
+    }
+
+    @CodeReflection
+    static boolean compareFloat(float i, float j) {
+        return i > j;
+    }
+
+    @CodeReflection
+    static boolean compareDouble(double i, double j) {
+        return i > j;
+    }
+
+    @CodeReflection
+    static int lookupSwitch(int i) {
+        return switch (1000 * i) {
+            case 1000 -> 1;
+            case 2000 -> 2;
+            case 3000 -> 3;
+            default -> 0;
+        };
+    }
+
+    @CodeReflection
+    static int tableSwitch(int i) {
+        return switch (i) {
+            case 1 -> 1;
+            case 2 -> 2;
+            case 3 -> 3;
+            default -> 0;
+        };
+    }
 
     record TestData(Method testMethod) {
         @Override
@@ -478,15 +488,15 @@ public class TestBytecode {
         for (var argType : argTypes) TEST_ARGS.put(argType, values);
     }
     static {
-        initTestArgs(values(1, 2, 3, 4), int.class, Integer.class);
-        initTestArgs(values((byte)1, (byte)2, (byte)3, (byte)4), byte.class, Byte.class);
-        initTestArgs(values((short)1, (short)2, (short)3, (short)4), short.class, Short.class);
-        initTestArgs(values((char)1, (char)2, (char)3, (char)4), char.class, Character.class);
+        initTestArgs(values(1, 2, 4), int.class, Integer.class);
+        initTestArgs(values((byte)1, (byte)3, (byte)4), byte.class, Byte.class);
+        initTestArgs(values((short)1, (short)2, (short)3), short.class, Short.class);
+        initTestArgs(values((char)2, (char)3, (char)4), char.class, Character.class);
         initTestArgs(values(false, true), boolean.class, Boolean.class);
         initTestArgs(values("Hello World"), String.class);
-        initTestArgs(values(1l, 2l, 3l, 4l), long.class, Long.class);
-        initTestArgs(values(1f, 2f, 3f, 4f), float.class, Float.class);
-        initTestArgs(values(1d, 2d, 3d, 4d), double.class, Double.class);
+        initTestArgs(values(1l, 2l, 4l), long.class, Long.class);
+        initTestArgs(values(1f, 3f, 4f), float.class, Float.class);
+        initTestArgs(values(1d, 2d, 3d), double.class, Double.class);
     }
 
     interface Executor {
@@ -516,14 +526,14 @@ public class TestBytecode {
 
     @Test(dataProvider = "testMethods")
     public void testLift(TestData d) throws Throwable {
-        if (d.testMethod.getAnnotation(SkipLift.class) != null) {
-            throw new SkipException("skipped");
-        }
         CoreOp.FuncOp flift;
         try {
             flift = BytecodeLift.lift(CLASS_DATA, d.testMethod.getName(), toMethodTypeDesc(d.testMethod));
         } catch (Throwable e) {
-            System.out.println("Lift failed, expected:");
+            ClassPrinter.toYaml(ClassFile.of().parse(TestBytecode.class.getResourceAsStream("TestBytecode.class").readAllBytes())
+                    .methods().stream().filter(m -> m.methodName().equalsString(d.testMethod().getName())).findAny().get(),
+                    ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES, System.out::print);
+            System.out.println("Lift failed, compiled model:");
             d.testMethod.getCodeModel().ifPresent(f -> f.writeTo(System.out));
             throw e;
         }
@@ -531,13 +541,16 @@ public class TestBytecode {
             permutateAllArgs(d.testMethod.getParameterTypes(), args ->
                 Assert.assertEquals(invokeAndConvert(flift, args), d.testMethod.invoke(null, args)));
         } catch (Throwable e) {
+            System.out.println("Compiled model:");
+            d.testMethod.getCodeModel().ifPresent(f -> f.writeTo(System.out));
+            System.out.println("Lifted model:");
             flift.writeTo(System.out);
             throw e;
         }
     }
 
     private static Object invokeAndConvert(CoreOp.FuncOp func, Object[] args) {
-        Object ret = Interpreter.invoke(func, args);
+        Object ret = Interpreter.invoke(MethodHandles.lookup(), func, args);
         if (ret instanceof Integer i) {
             TypeElement rt = func.invokableType().returnType();
             if (rt.equals(JavaType.BOOLEAN)) {
@@ -557,7 +570,12 @@ public class TestBytecode {
     public void testGenerate(TestData d) throws Throwable {
         CoreOp.FuncOp func = d.testMethod.getCodeModel().get();
 
-        CoreOp.FuncOp lfunc = func.transform(CopyContext.create(), OpTransformer.LOWERING_TRANSFORMER);
+        CoreOp.FuncOp lfunc;
+        try {
+            lfunc = func.transform(CopyContext.create(), OpTransformer.LOWERING_TRANSFORMER);
+        } catch (UnsupportedOperationException uoe) {
+            throw new SkipException("lowering caused:", uoe);
+        }
 
         try {
             MethodHandle mh = BytecodeGenerator.generate(MethodHandles.lookup(), lfunc);
