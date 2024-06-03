@@ -203,7 +203,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
     }
 
     /**
-     * The break operation, that can model Java language continue statements with label identifiers.
+     * The continue operation, that can model Java language continue statements with label identifiers.
      */
     @OpFactory.OpDeclaration(JavaContinueOp.NAME)
     public static final class JavaContinueOp extends JavaLabelOp {
@@ -237,21 +237,20 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
 
     static final String BRANCH_TARGET_MAP_PROPERTY_KEY = "BRANCH_TARGET_MAP";
 
-    static BranchTarget getBranchTarget(CopyContext cc, Op op) {
+    static BranchTarget getBranchTarget(CopyContext cc, CodeElement<?, ?> codeElement) {
         @SuppressWarnings("unchecked")
-        Map<Op, BranchTarget> m = (Map<Op, BranchTarget>) cc.getProperty(BRANCH_TARGET_MAP_PROPERTY_KEY);
+        Map<CodeElement<?, ?>, BranchTarget> m = (Map<CodeElement<?, ?>, BranchTarget>) cc.getProperty(BRANCH_TARGET_MAP_PROPERTY_KEY);
         if (m != null) {
-            return m.get(op);
+            return m.get(codeElement);
         }
-
         return null;
     }
 
-    static void setBranchTarget(CopyContext cc, Op label, BranchTarget t) {
+    static void setBranchTarget(CopyContext cc, CodeElement<?, ?> codeElement, BranchTarget t) {
         @SuppressWarnings("unchecked")
-        Map<Op, BranchTarget> x = (Map<Op, BranchTarget>) cc.computePropertyIfAbsent(
+        Map<CodeElement<?, ?>, BranchTarget> x = (Map<CodeElement<?, ?>, BranchTarget>) cc.computePropertyIfAbsent(
                 BRANCH_TARGET_MAP_PROPERTY_KEY, k -> new HashMap<>());
-        x.put(label, t);
+        x.put(codeElement, t);
     }
 
     /**
@@ -259,7 +258,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
      */
     @OpFactory.OpDeclaration(JavaYieldOp.NAME)
     public static final class JavaYieldOp extends ExtendedOp
-            implements Op.BodyTerminating, JavaStatement {
+            implements Op.BodyTerminating, JavaStatement, Op.Lowerable {
         public static final String NAME = "java.yield";
 
         public JavaYieldOp(ExternalizedOp def) {
@@ -296,6 +295,40 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
         @Override
         public TypeElement resultType() {
             return VOID;
+        }
+
+        @Override
+        public Block.Builder lower(Block.Builder b, OpTransformer opT) {
+            // for now, we will use breakBlock field to indicate java.yield target block
+            return lower(b, BranchTarget::breakBlock);
+        }
+
+        Block.Builder lower(Block.Builder b, Function<BranchTarget, Block.Builder> f) {
+            Op opt = target();
+            BranchTarget t = getBranchTarget(b.context(), opt);
+            if (t != null) {
+                b.op(branch(f.apply(t).successor(b.context().getValue(yieldValue()))));
+            } else {
+                throw new IllegalStateException("No branch target for operation: " + opt);
+            }
+            return b;
+        }
+
+        Op target() {
+            return innerMostEnclosingTarget();
+        }
+
+        Op innerMostEnclosingTarget() {
+            Op op = this;
+            Body b;
+            do {
+                b = op.ancestorBody();
+                op = b.parentOp();
+                if (op == null) {
+                    throw new IllegalStateException("No enclosing switch");
+                }
+            } while (!(op instanceof JavaSwitchExpressionOp));
+            return op;
         }
     }
 
@@ -757,13 +790,119 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
         }
 
         @Override
-        public Block.Builder lower(Block.Builder b, OpTransformer opT) {
-            throw new UnsupportedOperationException();
+        public TypeElement resultType() {
+            return resultType;
+        }
+
+        private boolean haveNullCase() {
+            /*
+            case null is modeled like this:
+            (%4 : T)boolean -> {
+                %5 : java.lang.Object = constant @null;
+                %6 : boolean = invoke %4 %5 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                yield %6;
+            }
+            * */
+            for (int i = 0; i < bodies().size() - 2; i+=2) {
+                Body labelBody = bodies().get(i);
+                if (labelBody.blocks().size() != 1) {
+                    continue; // we skip, for now
+                }
+                Op terminatingOp = bodies().get(i).entryBlock().terminatingOp();
+                //@@@ when op pattern matching is ready, we can use it
+                if (terminatingOp instanceof YieldOp yieldOp &&
+                        yieldOp.yieldValue() instanceof Op.Result opr &&
+                        opr.op() instanceof InvokeOp invokeOp &&
+                        invokeOp.invokeDescriptor().equals(MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class)) &&
+                        invokeOp.operands().stream().anyMatch(o -> o instanceof Op.Result r && r.op() instanceof ConstantOp cop && cop.value() == null)) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         @Override
-        public TypeElement resultType() {
-            return resultType;
+        public Block.Builder lower(Block.Builder b, OpTransformer opT) {
+
+            Value selectorExpression = b.context().getValue(operands().get(0));
+
+            if (!haveNullCase()) {
+                Block.Builder throwBlock = b.block();
+                throwBlock.op(_throw(
+                        throwBlock.op(_new(FunctionType.functionType(JavaType.type(NullPointerException.class))))
+                ));
+
+                Block.Builder continueBlock = b.block();
+
+                Result p = b.op(invoke(MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class),
+                        selectorExpression, b.op(constant(J_L_OBJECT, null))));
+                b.op(conditionalBranch(p, throwBlock.successor(), continueBlock.successor()));
+
+                b = continueBlock;
+            }
+
+            List<Block.Builder> blocks = new ArrayList<>();
+            for (int i = 0; i < bodies().size(); i++) {
+                Block.Builder bb = b.block();
+                if (i == 0) {
+                    bb = b;
+                }
+                blocks.add(bb);
+            }
+
+            Block.Builder exit;
+            if (bodies().isEmpty()) {
+                exit = b;
+            } else {
+                exit = b.block(resultType());
+                exit.context().mapValue(result(), exit.parameters().get(0));
+            }
+
+            setBranchTarget(b.context(), this, new BranchTarget(exit, null));
+            // map expr body to nextExprBlock
+            // this mapping will be used for lowering SwitchFallThroughOp
+            for (int i = 1; i < bodies().size() - 2; i+=2) {
+                setBranchTarget(b.context(), bodies().get(i), new BranchTarget(null, blocks.get(i + 2)));
+            }
+
+            for (int i = 0; i < bodies().size(); i++) {
+                boolean isLabelBody = i % 2 == 0;
+                Block.Builder curr = blocks.get(i);
+                if (isLabelBody) {
+                    Block.Builder expression = blocks.get(i + 1);
+                    boolean isDefaultLabel = i == blocks.size() - 2;
+                    Block.Builder nextLabel = isDefaultLabel ? null : blocks.get(i + 2);
+                    curr.transformBody(bodies().get(i), List.of(selectorExpression), opT.andThen((block, op) -> {
+                        switch (op) {
+                            case YieldOp yop -> {
+                                if (isDefaultLabel) {
+                                    block.op(branch(expression.successor()));
+                                } else {
+                                    block.op(conditionalBranch(
+                                            block.context().getValue(yop.yieldValue()),
+                                            expression.successor(),
+                                            nextLabel.successor()
+                                    ));
+                                }
+                            }
+                            case Lowerable lop -> block = lop.lower(block);
+                            default -> block.op(op);
+                        }
+                        return block;
+                    }));
+                } else { // expression body
+                    curr.transformBody(bodies().get(i), blocks.get(i).parameters(), opT.andThen((block, op) -> {
+                        switch (op) {
+                            case YieldOp yop -> block.op(branch(exit.successor(block.context().getValue(yop.yieldValue()))));
+                            case Lowerable lop -> block = lop.lower(block);
+                            default -> block.op(op);
+                        }
+                        return block;
+                    }));
+                }
+            }
+
+            return exit;
         }
     }
 
@@ -773,7 +912,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
      */
     @OpFactory.OpDeclaration(JavaSwitchFallthroughOp.NAME)
     public static final class JavaSwitchFallthroughOp extends ExtendedOp
-            implements Op.BodyTerminating {
+            implements Op.BodyTerminating, Op.Lowerable {
         public static final String NAME = "java.switch.fallthrough";
 
         public JavaSwitchFallthroughOp(ExternalizedOp def) {
@@ -796,6 +935,21 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
         @Override
         public TypeElement resultType() {
             return VOID;
+        }
+
+        @Override
+        public Block.Builder lower(Block.Builder b, OpTransformer opT) {
+            return lower(b, BranchTarget::continueBlock);
+        }
+
+        Block.Builder lower(Block.Builder b, Function<BranchTarget, Block.Builder> f) {
+            BranchTarget t = getBranchTarget(b.context(), parentBlock().parentBody());
+            if (t != null) {
+                b.op(branch(f.apply(t).successor()));
+            } else {
+                throw new IllegalStateException("No branch target for operation: " + this);
+            }
+            return b;
         }
     }
 
