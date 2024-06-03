@@ -108,14 +108,7 @@ public class TestSwitchExpressionOp {
     private static CoreOp.FuncOp lower(CoreOp.FuncOp f) {
         f.writeTo(System.out);
 
-        CoreOp.FuncOp lf = f.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        });
+        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
         lf.writeTo(System.out);
 
