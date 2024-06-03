@@ -237,16 +237,6 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
 
     static final String BRANCH_TARGET_MAP_PROPERTY_KEY = "BRANCH_TARGET_MAP";
 
-    static BranchTarget getBranchTarget(CopyContext cc, Op op) {
-        @SuppressWarnings("unchecked")
-        Map<Op, BranchTarget> m = (Map<Op, BranchTarget>) cc.getProperty(BRANCH_TARGET_MAP_PROPERTY_KEY);
-        if (m != null) {
-            return m.get(op);
-        }
-
-        return null;
-    }
-
     static BranchTarget getBranchTarget(CopyContext cc, CodeElement<?, ?> codeElement) {
         @SuppressWarnings("unchecked")
         Map<CodeElement<?, ?>, BranchTarget> m = (Map<CodeElement<?, ?>, BranchTarget>) cc.getProperty(BRANCH_TARGET_MAP_PROPERTY_KEY);
@@ -254,13 +244,6 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             return m.get(codeElement);
         }
         return null;
-    }
-
-    static void setBranchTarget(CopyContext cc, Op label, BranchTarget t) {
-        @SuppressWarnings("unchecked")
-        Map<Op, BranchTarget> x = (Map<Op, BranchTarget>) cc.computePropertyIfAbsent(
-                BRANCH_TARGET_MAP_PROPERTY_KEY, k -> new HashMap<>());
-        x.put(label, t);
     }
 
     static void setBranchTarget(CopyContext cc, CodeElement<?, ?> codeElement, BranchTarget t) {
