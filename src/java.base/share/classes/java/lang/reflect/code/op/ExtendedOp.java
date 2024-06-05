@@ -814,16 +814,12 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             return false;
         }
 
-        private boolean isSelectorOfTypePrimitive() {
-            return List.of(CHAR, BYTE, SHORT, INT).contains(operands().get(0).type());
-        }
-
         @Override
         public Block.Builder lower(Block.Builder b, OpTransformer opT) {
 
             Value selectorExpression = b.context().getValue(operands().get(0));
 
-            if (!isSelectorOfTypePrimitive() && !haveNullCase()) {
+            if (!(selectorExpression.type() instanceof PrimitiveType) && !haveNullCase()) {
                 Block.Builder throwBlock = b.block();
                 throwBlock.op(_throw(
                         throwBlock.op(_new(FunctionType.functionType(JavaType.type(NullPointerException.class))))
