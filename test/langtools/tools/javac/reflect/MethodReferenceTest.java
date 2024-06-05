@@ -168,7 +168,7 @@ public class MethodReferenceTest {
     @IR("""
             func @"test7" (%0 : MethodReferenceTest)void -> {
                 %1 : java.util.function.Supplier<.<MethodReferenceTest, MethodReferenceTest$A<java.lang.String>>> = lambda ().<MethodReferenceTest, MethodReferenceTest$A<java.lang.String>> -> {
-                    %2 : .<MethodReferenceTest, MethodReferenceTest$A<java.lang.String>> = new %0 @"func<.<MethodReferenceTest, MethodReferenceTest$A>>";
+                    %2 : .<MethodReferenceTest, MethodReferenceTest$A<java.lang.String>> = new %0 @"func<.<MethodReferenceTest, MethodReferenceTest$A>, MethodReferenceTest>";
                     return %2;
                 };
                 %3 : Var<java.util.function.Supplier<.<MethodReferenceTest, MethodReferenceTest$A<java.lang.String>>>> = var %1 @"aNew";

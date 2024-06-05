@@ -30,6 +30,7 @@ import com.sun.source.tree.MemberReferenceTree.ReferenceMode;
 import com.sun.tools.javac.code.Flags;
 import com.sun.tools.javac.code.Kinds.Kind;
 import com.sun.tools.javac.code.Symbol;
+import com.sun.tools.javac.code.Symbol.ClassSymbol;
 import com.sun.tools.javac.code.Symbol.MethodSymbol;
 import com.sun.tools.javac.code.Symbol.VarSymbol;
 import com.sun.tools.javac.code.Symtab;
@@ -70,6 +71,7 @@ import com.sun.tools.javac.tree.JCTree.JCAssert;
 import com.sun.tools.javac.tree.JCTree.Tag;
 import com.sun.tools.javac.tree.TreeInfo;
 import com.sun.tools.javac.tree.TreeMaker;
+import com.sun.tools.javac.tree.TreeScanner;
 import com.sun.tools.javac.tree.TreeTranslator;
 import com.sun.tools.javac.util.Assert;
 import com.sun.tools.javac.util.Context;
@@ -91,8 +93,10 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import static com.sun.tools.javac.code.Flags.NOOUTERTHIS;
 import static com.sun.tools.javac.code.Flags.PARAMETER;
 import static com.sun.tools.javac.code.Flags.SYNTHETIC;
+import static com.sun.tools.javac.code.Kinds.Kind.VAR;
 import static com.sun.tools.javac.code.TypeTag.BOT;
 import static com.sun.tools.javac.code.TypeTag.METHOD;
 import static com.sun.tools.javac.code.TypeTag.NONE;
@@ -118,6 +122,7 @@ public class ReflectMethods extends TreeTranslator {
     private final Symtab syms;
     private final Gen gen;
     private final Log log;
+    private final Lower lower;
     private final boolean dumpIR;
     private final boolean lineDebugInfo;
 
@@ -141,8 +146,7 @@ public class ReflectMethods extends TreeTranslator {
         types = Types.instance(context);
         gen = Gen.instance(context);
         log = Log.instance(context);
-
-
+        lower = Lower.instance(context);
     }
 
     // Cannot compute within constructor due to circular dependencies on bootstrap compilation
@@ -430,6 +434,7 @@ public class ReflectMethods extends TreeTranslator {
         private boolean isQuoted;
         private Type bodyTarget;
         private JCTree currentNode;
+        private Map<Symbol, List<Symbol>> localCaptures = new HashMap<>();
 
         // unsupported tree nodes
         private static final EnumSet<JCTree.Tag> UNSUPPORTED_TAGS = EnumSet.of(
@@ -445,7 +450,7 @@ public class ReflectMethods extends TreeTranslator {
                 // modifiers (these are already turned into symbols by Attr and should not be dealt with directly)
                 Tag.ANNOTATION, Tag.TYPE_ANNOTATION, Tag.MODIFIERS,
                 // toplevel (likely outside the scope for code models)
-                Tag.TOPLEVEL, Tag.PACKAGEDEF, Tag.IMPORT, Tag.CLASSDEF, Tag.METHODDEF,
+                Tag.TOPLEVEL, Tag.PACKAGEDEF, Tag.IMPORT, Tag.METHODDEF,
                 // modules (likely outside the scope for code models)
                 Tag.MODULEDEF, Tag.EXPORTS, Tag.OPENS, Tag.PROVIDES, Tag.REQUIRES, Tag.USES,
                 // switch labels (these are handled by the encloising construct, SWITCH or SWITCH_EXPRESSION)
@@ -929,16 +934,8 @@ public class ReflectMethods extends TreeTranslator {
 
             Symbol sym = tree.sym;
             switch (sym.getKind()) {
-                case LOCAL_VARIABLE, RESOURCE_VARIABLE, BINDING_VARIABLE, PARAMETER, EXCEPTION_PARAMETER -> {
-                    Value varOp = varOpValue(sym);
-                    if (varOp.type() instanceof VarType) {
-                        // regular var
-                        result = append(CoreOp.varLoad(varOp));
-                    } else {
-                        // captured value
-                        result = varOp;
-                    }
-                }
+                case LOCAL_VARIABLE, RESOURCE_VARIABLE, BINDING_VARIABLE, PARAMETER, EXCEPTION_PARAMETER ->
+                    result = loadVar(sym);
                 case FIELD, ENUM_CONSTANT -> {
                     if (sym.name.equals(names._this)) {
                         result = thisValue();
@@ -960,6 +957,13 @@ public class ReflectMethods extends TreeTranslator {
                     throw unsupported(tree);
                 }
             }
+        }
+
+        private Value loadVar(Symbol sym) {
+            Value varOp = varOpValue(sym);
+            return varOp.type() instanceof VarType ?
+                    append(CoreOp.varLoad(varOp)) : // regular var
+                    varOp;                          // captured value
         }
 
         @Override
@@ -1249,11 +1253,16 @@ public class ReflectMethods extends TreeTranslator {
 
         @Override
         public void visitNewClass(JCTree.JCNewClass tree) {
-            // @@@ Support anonymous classes
             if (tree.def != null) {
+                scan(tree.def);
+            }
+
+            // @@@ Support local classes in pre-construction contexts
+            if (tree.type.tsym.isDirectlyOrIndirectlyLocal() && (tree.type.tsym.flags() & NOOUTERTHIS) != 0) {
                 throw unsupported(tree);
             }
 
+            List<TypeElement> argtypes = new ArrayList<>();
             Type type = tree.type;
             Type outer = type.getEnclosingType();
             List<Value> args = new ArrayList<>();
@@ -1267,15 +1276,23 @@ public class ReflectMethods extends TreeTranslator {
                     outerInstance = toValue(tree.encl);
                 }
                 args.add(outerInstance);
+                argtypes.add(outerInstance.type());
+            }
+            if (tree.type.tsym.isDirectlyOrIndirectlyLocal()) {
+                for (Symbol c : localCaptures.get(tree.type.tsym)) {
+                    args.add(loadVar(c));
+                    argtypes.add(symbolToErasedDesc(c));
+                }
             }
 
             // Create erased method type reference for constructor, where
             // the return type declares the class to instantiate
             // @@@ require symbol site type?
             MethodRef methodRef = symbolToErasedMethodRef(tree.constructor);
+            argtypes.addAll(methodRef.type().parameterTypes());
             FunctionType constructorType = FunctionType.functionType(
                     symbolToErasedDesc(tree.constructor.owner),
-                    methodRef.type().parameterTypes());
+                    argtypes);
 
             args.addAll(scanMethodArguments(tree.args, tree.constructorType, tree.varargsElement));
 
@@ -2214,9 +2231,35 @@ public class ReflectMethods extends TreeTranslator {
 
         @Override
         public void visitClassDef(JCClassDecl tree) {
-            // do nothing
-        }
+            if (tree.sym.isDirectlyOrIndirectlyLocal()) {
+                // we need to keep track of captured locals using same strategy as Lower
+                class FreeVarScanner extends Lower.BasicFreeVarCollector {
+                    List<Symbol> freevars = new ArrayList<>();
+                    Symbol owner;
 
+                    FreeVarScanner(Symbol owner) {
+                        lower.super();
+                        this.owner = owner;
+                    }
+
+                    @Override
+                    void addFreeVars(ClassSymbol c) {
+                        freevars.addAll(localCaptures.getOrDefault(c, List.of()));
+                    }
+
+                    @Override
+                    public void visitSymbol(Symbol sym) {
+                        if (sym.kind == VAR && sym.owner == owner &&
+                                ((VarSymbol)sym).getConstValue() == null) {
+                            freevars.add(sym);
+                        }
+                    }
+                }
+                FreeVarScanner fvs = new FreeVarScanner(tree.sym.owner);
+                fvs.scan(tree);
+                localCaptures.put(tree.sym, fvs.freevars);
+            }
+        }
 
         UnsupportedASTException unsupported(JCTree tree) {
             return new UnsupportedASTException(tree);

@@ -96,7 +96,7 @@ public class NewTest {
     @CodeReflection
     @IR("""
             func @"test3" (%0 : NewTest)void -> {
-                %1 : .<NewTest, NewTest$B> = new %0 @"func<.<NewTest, NewTest$B>>";
+                %1 : .<NewTest, NewTest$B> = new %0 @"func<.<NewTest, NewTest$B>, NewTest>";
                 %2 : Var<.<NewTest, NewTest$B>> = var %1 @"b";
                 return;
             };
@@ -110,7 +110,7 @@ public class NewTest {
             func @"test4" (%0 : NewTest)void -> {
                 %1 : int = constant @"1";
                 %2 : int = constant @"2";
-                %3 : .<NewTest, NewTest$B> = new %0 %1 %2 @"func<.<NewTest, NewTest$B>, int, int>";
+                %3 : .<NewTest, NewTest$B> = new %0 %1 %2 @"func<.<NewTest, NewTest$B>, NewTest, int, int>";
                 %4 : Var<.<NewTest, NewTest$B>> = var %3 @"b";
                 return;
             };
@@ -122,7 +122,7 @@ public class NewTest {
     @CodeReflection
     @IR("""
             func @"test5" (%0 : NewTest)void -> {
-                %1 : .<NewTest, NewTest$B> = new %0 @"func<.<NewTest, NewTest$B>>";
+                %1 : .<NewTest, NewTest$B> = new %0 @"func<.<NewTest, NewTest$B>, NewTest>";
                 %2 : Var<.<NewTest, NewTest$B>> = var %1 @"b";
                 return;
             };
@@ -135,7 +135,7 @@ public class NewTest {
     @IR("""
             func @"test6" (%0 : NewTest)void -> {
                 %1 : .<NewTest, NewTest$B> = field.load %0 @"NewTest::f().<NewTest, NewTest$B>";
-                %2 : .<.<NewTest, NewTest$B>, NewTest$B$C> = new %1 @"func<.<.<NewTest, NewTest$B>, NewTest$B$C>>";
+                %2 : .<.<NewTest, NewTest$B>, NewTest$B$C> = new %1 @"func<.<.<NewTest, NewTest$B>, NewTest$B$C>, .<NewTest, NewTest$B>>";
                 %3 : Var<.<.<NewTest, NewTest$B>, NewTest$B$C>> = var %2 @"c";
                 return;
             };
@@ -148,7 +148,7 @@ public class NewTest {
     @IR("""
             func @"test7" (%0 : NewTest)void -> {
                 %1 : .<NewTest, NewTest$B> = invoke %0 @"NewTest::b().<NewTest, NewTest$B>";
-                %2 : .<.<NewTest, NewTest$B>, NewTest$B$C> = new %1 @"func<.<.<NewTest, NewTest$B>, NewTest$B$C>>";
+                %2 : .<.<NewTest, NewTest$B>, NewTest$B$C> = new %1 @"func<.<.<NewTest, NewTest$B>, NewTest$B$C>, .<NewTest, NewTest$B>>";
                 %3 : Var<.<.<NewTest, NewTest$B>, NewTest$B$C>> = var %2 @"c";
                 return;
             };
@@ -189,9 +189,9 @@ public class NewTest {
                 %3 : Var<java.util.List<java.lang.String>> = var %1 @"l1";
                 %4 : Var<java.util.List<java.lang.Number>> = var %2 @"l2";
                 %5 : java.util.List<java.lang.String> = var.load %3;
-                %6 : .<NewTest, NewTest$BG<java.lang.String>> = new %0 %5 @"func<.<NewTest, NewTest$BG>, java.util.List>";
+                %6 : .<NewTest, NewTest$BG<java.lang.String>> = new %0 %5 @"func<.<NewTest, NewTest$BG>, NewTest, java.util.List>";
                 %7 : java.util.List<java.lang.Number> = var.load %4;
-                %8 : .<.<NewTest, NewTest$BG<java.lang.String>>, NewTest$BG$CG<java.lang.Number>> = new %6 %7 @"func<.<.<NewTest, NewTest$BG>, NewTest$BG$CG>, java.util.List>";
+                %8 : .<.<NewTest, NewTest$BG<java.lang.String>>, NewTest$BG$CG<java.lang.Number>> = new %6 %7 @"func<.<.<NewTest, NewTest$BG>, NewTest$BG$CG>, .<NewTest, NewTest$BG<java.lang.String>>, java.util.List>";
                 %9 : Var<.<.<NewTest, NewTest$BG<java.lang.String>>, NewTest$BG$CG<java.lang.Number>>> = var %8 @"numberCG";
                 return;
             };
