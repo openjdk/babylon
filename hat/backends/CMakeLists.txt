@@ -1,92 +1,43 @@
 cmake_minimum_required(VERSION 3.22.1)
 project(backends)
 
+if ("${SHARED_BACKEND}EMPTY" STREQUAL "EMPTY")
+    set (SHARED_BACKEND "${CMAKE_SOURCE_DIR}/shared")
+    message("SHARED_BACKEND=${SHARED_BACKEND}")
+endif()
+
 set(CMAKE_CXX_STANDARD 14)
 
-find_package(OpenCL)
-find_package(CUDAToolkit)
-
-if(OPENCL_FOUND)
-    message("OPENCL")
-    if (APPLE)
-       set(OPENCL_INCLUDE_DIR "-framework OpenCL")
-       set(OPENCL_LIB "-framework OpenCL")
-    else()
-       #set(OPENCL_INCLUDE_DIR "-framework OpenCL")  
-       set(OPENCL_LIB "OpenCL")
-    endif()
-
-    include_directories(
-        ${CMAKE_SOURCE_DIR}/opencl/shared/include
-        ${CMAKE_SOURCE_DIR}/opencl/include
-        ${CMAKE_SOURCE_DIR}/shared/include
-        ${OPENCL_INCLUDE_DIR}
-    )
-    link_directories(
-        ${CMAKE_BINARY_DIR}
-    )
-
-    add_library(opencl_backend SHARED
-        ${CMAKE_SOURCE_DIR}/shared/cpp/shared.cpp
-        ${CMAKE_SOURCE_DIR}/opencl/cpp/opencl_backend.cpp
-    )
-
-    target_link_libraries(opencl_backend
-        ${OPENCL_LIB}
-    )
-
-    add_executable(opencl_info
-        ${CMAKE_SOURCE_DIR}/opencl/cpp/info.cpp
-    )
-
-    target_link_libraries(opencl_info
-        opencl_backend
-        ${OPENCL_LIB}
-    )
-    add_custom_target(opencl_natives DEPENDS opencl_info opencl_backend)
+include_directories(
+    ${SHARED_BACKEND}/include
+)
+if ("${OPENCL_BACKEND}EMPTY" STREQUAL "EMPTY")
+    set (OPENCL_BACKEND "${CMAKE_SOURCE_DIR}/opencl")
+    message("OPENCL_BACKEND=${OPENCL_BACKEND}")
 endif()
-
-if(CUDAToolkit_FOUND)
-    message("CUDA")
-
-    include_directories(
-            ${CUDAToolkit_INCLUDE_DIR}
-            ${CMAKE_SOURCE_DIR}/shared/include
-            ${CMAKE_SOURCE_DIR}/cuda/include
-    )
-
-    link_directories(
-            ${CMAKE_BINARY_DIR}
-            ${CUDAToolkit_LIBRARY_DIR}
-    )
-
-    add_library(cuda_backend SHARED
-            ${CMAKE_SOURCE_DIR}/shared/cpp/shared.cpp
-            ${CMAKE_SOURCE_DIR}/cuda/cpp/cuda_backend.cpp
-    )
-
-    target_link_libraries(cuda_backend
-            -lcudart
-            -lcuda
-    )
-
-    add_executable(cuda_info
-            ${CMAKE_SOURCE_DIR}/cuda/cpp/info.cpp
-    )
-
-    target_link_libraries(cuda_info
-            cuda_backend
-            -lcudart
-            -lcuda
-    )
-    add_custom_target(cuda_natives DEPENDS cuda_info cuda_backend)
-
+add_subdirectory(opencl)
+if ("${CUDA_BACKEND}EMPTY" STREQUAL "EMPTY")
+    set (CUDA_BACKEND "${CMAKE_SOURCE_DIR}/cuda")
+    message("CUDA_BACKEND=${CUDA_BACKEND}")
 endif()
+add_subdirectory(cuda)
+if ("${SPIRV_BACKEND}EMPTY" STREQUAL "EMPTY")
+    set (SPIRV_BACKEND "${CMAKE_SOURCE_DIR}/spirv")
+    message("SPIRV_BACKEND=${SPIRV_BACKEND}")
+endif()
+add_subdirectory(spirv)
+if ("${PTX_BACKEND}EMPTY" STREQUAL "EMPTY")
+    set (PTX_BACKEND "${CMAKE_SOURCE_DIR}/ptx")
+    message("PTX_BACKEND=${PTX_BACKEND}")
+endif()
+add_subdirectory(ptx)
+if ("${MOCK_BACKEND}EMPTY" STREQUAL "EMPTY")
+    set (MOCK_BACKEND "${CMAKE_SOURCE_DIR}/mock")
+    message("MOCK_BACKEND=${MOCK_BACKEND}")
+endif()
+add_subdirectory(mock)
 add_executable(schemadump
-        ${CMAKE_SOURCE_DIR}/shared/cpp/shared.cpp
-        ${CMAKE_SOURCE_DIR}/shared/cpp/schemadump.cpp
+        ${SHARED_BACKEND}/cpp/shared.cpp
+        ${SHARED_BACKEND}/cpp/schemadump.cpp
 )
-add_library(ptx_backend SHARED
-        ${CMAKE_SOURCE_DIR}/shared/cpp/shared.cpp
-        ${CMAKE_SOURCE_DIR}/ptx/cpp/ptx_backend.cpp
-)
+

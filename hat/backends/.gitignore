@@ -1,1 +1,3 @@
 cmake-build-debug
+opencl/build
+cuda/build
