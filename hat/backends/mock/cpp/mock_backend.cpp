@@ -33,15 +33,15 @@ public:
     class MockProgram : public Backend::Program {
         class MockKernel : public Backend::Program::Kernel {
         public:
-            MockKernel(Backend::Program *program)
-                    : Backend::Program::Kernel(program) {
+            MockKernel(Backend::Program *program, char *name)
+                    : Backend::Program::Kernel(program, name) {
             }
 
             ~MockKernel() {
             }
 
-            long ndrange(int range, void *argArray) {
-                std::cout << "mock ndrange(" << range << ") " << std::endl;
+            long ndrange(void *argArray) {
+                std::cout << "mock ndrange() " << std::endl;
                 return 0;
             }
         };
@@ -55,7 +55,7 @@ public:
         }
 
         long getKernel(int nameLen, char *name) {
-            return (long) new MockKernel(this);
+            return (long) new MockKernel(this, name);
         }
 
         bool programOK() {

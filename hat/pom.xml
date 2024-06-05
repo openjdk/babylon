@@ -117,6 +117,37 @@ questions.
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.1.0</version>
                 <executions>
+
+                  <execution>
+                     <id>cmake1</id>
+                     <phase>test</phase>
+                     <goals>
+                        <goal>exec</goal>
+                     </goals>
+                     <configuration>
+                        <executable>cmake</executable>
+                        <arguments>
+                            <argument>-B</argument> <argument>build</argument>
+                        </arguments>
+                     </configuration>
+                  </execution>
+
+                  <execution>
+                     <id>cmake2</id>
+                     <phase>test</phase>
+                     <goals>
+                        <goal>exec</goal>
+                     </goals>
+                     <configuration>
+                        <executable>cmake</executable>
+                        <arguments>
+                            <argument>--build</argument> <argument>build</argument>
+                            <argument>--target</argument> <argument>opencl_backend</argument>
+                        </arguments>
+                     </configuration>
+                  </execution>
+
+
                   <execution>
                      <id>squares</id>
                      <phase>test</phase>
@@ -129,7 +160,7 @@ questions.
                             <argument>--enable-preview</argument>
                             <argument>--enable-native-access=ALL-UNNAMED</argument>
                             <argument>--add-exports=java.base/jdk.internal=ALL-UNNAMED</argument>
-                            <argument>-Djava.library.path=build</argument>
+                            <argument>-Djava.library.path=build/backends/opencl</argument>
                             <argument>--class-path=target/hat-1.0-SNAPSHOT-jar-with-dependencies.jar</argument>
                             <argument>squares.Squares</argument>
                         </arguments>
@@ -149,7 +180,7 @@ questions.
                             <argument>--enable-preview</argument>
                             <argument>--enable-native-access=ALL-UNNAMED</argument>
                             <argument>--add-exports=java.base/jdk.internal=ALL-UNNAMED</argument>
-                            <argument>-Djava.library.path=build</argument>
+                            <argument>-Djava.library.path=build/backends/opencl</argument>
                             <argument>-Dheadless=true</argument>
                             <argument>--class-path=target/hat-1.0-SNAPSHOT-jar-with-dependencies.jar</argument>
                             <argument>violajones.ViolaJonesCompute</argument>
@@ -169,7 +200,7 @@ questions.
                             <argument>--enable-preview</argument>
                             <argument>--enable-native-access=ALL-UNNAMED</argument>
                             <argument>--add-exports=java.base/jdk.internal=ALL-UNNAMED</argument>
-                            <argument>-Djava.library.path=build</argument>
+                            <argument>-Djava.library.path=build/backends/opencl</argument>
                             <argument>--class-path=target/hat-1.0-SNAPSHOT-jar-with-dependencies.jar</argument>
                             <argument>mandel.MandelCompute</argument>
                         </arguments>

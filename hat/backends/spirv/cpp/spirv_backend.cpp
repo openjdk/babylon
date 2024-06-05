@@ -33,15 +33,15 @@ public:
     class SpirvProgram : public Backend::Program {
         class SpirvKernel : public Backend::Program::Kernel {
         public:
-            SpirvKernel(Backend::Program *program)
-                    : Backend::Program::Kernel(program) {
+            SpirvKernel(Backend::Program *program, char *name)
+                    : Backend::Program::Kernel(program, name) {
             }
 
             ~SpirvKernel() {
             }
 
-            long ndrange(int range, void *argArray) {
-                std::cout << "spirv ndrange(" << range << ") " << std::endl;
+            long ndrange(void *argArray) {
+                std::cout << "spirv ndrange() " << std::endl;
                 return 0;
             }
         };
@@ -55,7 +55,7 @@ public:
         }
 
         long getKernel(int nameLen, char *name) {
-            return (long) new SpirvKernel(this);
+            return (long) new SpirvKernel(this, name);
         }
 
         bool programOK() {
