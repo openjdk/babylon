@@ -93,6 +93,24 @@ public class TestSwitchExpressionOp {
         Assert.assertThrows(NullPointerException.class, () -> Interpreter.invoke(lf, new Object[]{null}));
     }
 
+    @CodeReflection
+    private static String f5(int i) {
+        return switch (i) {
+            case 1 -> "1";
+            case 2 -> "2";
+            default -> "default";
+        };
+    }
+
+    @Test
+    public void test5() {
+        CoreOp.FuncOp lf = lower("f5");
+
+        Assert.assertEquals(Interpreter.invoke(lf, 1), f5(1));
+        Assert.assertEquals(Interpreter.invoke(lf, 2), f5(2));
+        Assert.assertEquals(Interpreter.invoke(lf, 99), f5(99));
+    }
+
     static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestSwitchExpressionOp.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
