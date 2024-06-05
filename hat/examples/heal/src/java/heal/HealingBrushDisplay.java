@@ -42,7 +42,15 @@
  * limitations under the License.
  */
 package heal;
-import java.awt.*;
+
+import javax.imageio.ImageIO;
+import javax.swing.JFrame;
+import javax.swing.SwingUtilities;
+import javax.swing.Timer;
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.Point;
+import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
@@ -54,32 +62,28 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
 
-import javax.imageio.ImageIO;
-import javax.swing.JFrame;
-import javax.swing.SwingUtilities;
-import javax.swing.Timer;
-
 public class HealingBrushDisplay extends Display {
     boolean orig = false;
-    Path selectionPatch = null;
+    Path selectionPath = null;
     Path matchPath = null;
     BufferedImage img;
 
     public HealingBrushDisplay() {
         addMouseListener(new MouseAdapter() {
             Point2D ptDst = new Point2D.Double();
+
             @Override
             public void mouseReleased(MouseEvent e) {
                 if (SwingUtilities.isLeftMouseButton(e)) {
-                    Selection selection = new Selection(new ImageData(img), selectionPatch.close());
+                    Selection selection = new Selection(new ImageData(img), selectionPath.close());
                     Point p = HealingBrush.getBestMatch(selection);
-                    matchPath = new Path(selectionPatch,  p.x,  p.y);
+                    matchPath = new Path();
                     HealingBrush.heal(selection, p.x, p.y);
                     repaint();
                     Timer t = new Timer(1000, new ActionListener() {
                         @Override
                         public void actionPerformed(ActionEvent e) {
-                            selectionPatch = null;
+                            selectionPath = null;
                             matchPath = null;
                             repaint();
                         }
@@ -96,7 +100,7 @@ public class HealingBrushDisplay extends Display {
                         orig = true;
                         repaint();
                         transform.inverseTransform(e.getPoint(), ptDst);
-                        selectionPatch = new Path((int) ptDst.getX(), (int) ptDst.getY());
+                        selectionPath = new Path((int) ptDst.getX(), (int) ptDst.getY());
                     } catch (NoninvertibleTransformException e1) {
                         // TODO Auto-generated catch block
                         e1.printStackTrace();
@@ -112,7 +116,7 @@ public class HealingBrushDisplay extends Display {
                 if (SwingUtilities.isLeftMouseButton(e)) {
                     try {
                         transform.inverseTransform(e.getPoint(), ptDst);
-                        selectionPatch.extendTo((int) ptDst.getX(), (int) ptDst.getY());
+                        selectionPath.extendTo((int) ptDst.getX(), (int) ptDst.getY());
                         repaint();
 
                     } catch (NoninvertibleTransformException e1) {
@@ -125,13 +129,13 @@ public class HealingBrushDisplay extends Display {
     }
 
     protected void paintInScale(Graphics2D g) {
-        if (selectionPatch != null) {
+        if (selectionPath != null) {
             g.setColor(Color.RED);
-            g.drawPolygon(selectionPatch.getPolygon());
+            g.drawPolygon(selectionPath.getPolygon());
             if (matchPath != null) {
                 g.setColor(Color.BLUE);
-                for (int i=0; i<matchPath.length();i++){
-                XYList.XY p = (XYList.XY)matchPath.xy(i);
+                for (int i = 0; i < matchPath.length(); i++) {
+                    XYList.XY p = (XYList.XY) matchPath.xy(i);
                     g.drawRect(p.x(), p.y(), 4, 4);
                 }
             }
@@ -146,23 +150,23 @@ public class HealingBrushDisplay extends Display {
         repaint();
     }
 
-    private static BufferedImage getdata(InputStream is) throws IOException {
-        BufferedImage img = ImageIO.read(is);
-        BufferedImage ret = new BufferedImage(img.getWidth(), img.getHeight(), BufferedImage.TYPE_INT_RGB);
-        ret.getGraphics().drawImage(img, 0, 0, null);
-        return ret;
-    }
-
-
     public static void main(String[] args) throws IOException {
         JFrame f = new JFrame("Main");
-        BufferedImage image = getdata(HealingBrushDisplay.class.getResourceAsStream("/images/bolton.png"));
-        f.setBounds(new Rectangle(image.getWidth(),image.getHeight()));
+        BufferedImage originalImage = ImageIO.read(HealingBrushDisplay.class.getResourceAsStream("/images/bolton.png"));
+        BufferedImage image=null;
+        if (originalImage.getType() == BufferedImage.TYPE_INT_RGB){
+            image = originalImage;
+        }else {
+            // there must be a better way!
+            image = new BufferedImage(originalImage.getWidth(), originalImage.getHeight(), BufferedImage.TYPE_INT_RGB);
+            image.getGraphics().drawImage(originalImage, 0, 0, null);
+        }
+        f.setBounds(new Rectangle(image.getWidth(), image.getHeight()));
         f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        HealingBrushDisplay p = new HealingBrushDisplay();
-        f.setContentPane(p);
+        HealingBrushDisplay healingBrushDisplay = new HealingBrushDisplay();
+        f.setContentPane(healingBrushDisplay);
         f.validate();
         f.setVisible(true);
-        p.setImage(image);
+        healingBrushDisplay.setImage(image);
     }
 }

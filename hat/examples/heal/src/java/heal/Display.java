@@ -47,7 +47,9 @@ package heal;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Graphics;
+import java.awt.Point;
 import java.awt.Graphics2D;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
@@ -66,11 +68,7 @@ public class Display extends JPanel implements MouseListener, MouseMotionListene
     protected float xOffset = 0; // 0 is centered -1 is to the left;
     protected float yOffset = 0; // 0 is centered -1 is to the top;
 
-
-    int mDownX;
-    int mDownY;
-    float mDownXOffset;
-    float mDownYOffset;
+    Point mDown;
     Point2D mImageDown = new Point2D.Float();
     Point2D mImageMove = new Point2D.Float();
 
@@ -98,10 +96,7 @@ public class Display extends JPanel implements MouseListener, MouseMotionListene
     @Override
     public void mousePressed(MouseEvent e) {
         if (SwingUtilities.isRightMouseButton(e)) {
-            mDownX = e.getX();
-            mDownY = e.getY();
-            mDownXOffset = xOffset;
-            mDownYOffset = yOffset;
+            mDown = e.getPoint();
             try {
                 transform.inverseTransform(e.getPoint(), mImageDown);
             } catch (NoninvertibleTransformException e1) {
@@ -119,18 +114,17 @@ public class Display extends JPanel implements MouseListener, MouseMotionListene
     @Override
     public void mouseDragged(MouseEvent e) {
         if (SwingUtilities.isRightMouseButton(e)) {
-            int dx = e.getX() - mDownX;
-            int dy = e.getY() - mDownY;
+            Point rightButonPoint = e.getPoint();
+            Dimension dragDelta = new Dimension(rightButonPoint.x - mDown.x, rightButonPoint.y - mDown.y);
             try {
                 transform.inverseTransform(e.getPoint(), mImageMove);
-                int sw = getWidth();
-                int sh = getHeight();
-                int iw = image.getWidth();
-                int ih = image.getHeight();
-                float scale = zoom * Math.min(sw / (float) iw, sh / (float) ih);
-                xOffset = mDownXOffset + 2 * (dx / (sw - scale * iw));
-                yOffset = mDownYOffset + 2 * (dy / (sh - scale * ih));
-
+                Dimension displaySize = getSize();
+                Dimension imageSize = new Dimension( image.getWidth(),image.getHeight());
+                float scale = zoom *
+                        Math.min(displaySize.width / (float) imageSize.width,
+                                displaySize.height / (float) imageSize.height);
+                xOffset =  2 * (dragDelta.width / (displaySize.width - scale * imageSize.width));
+                yOffset =  2 * (dragDelta.height / (displaySize.height - scale * imageSize.height));
                 xOffset = Math.max(Math.min(xOffset, 1), -1);
                 yOffset = Math.max(Math.min(yOffset, 1), -1);
                 repaint();
@@ -158,18 +152,19 @@ public class Display extends JPanel implements MouseListener, MouseMotionListene
     }
 
     public void paintImage(Graphics2D g) {
-        int sw = getWidth();
-        int sh = getHeight();
-        int iw = image.getWidth();
-        int ih = image.getHeight();
+
+        Dimension displaySize = getSize();
+        Dimension imageSize = new Dimension( image.getWidth(),image.getHeight());
         AffineTransform tx = g.getTransform();
         transform.setToIdentity();
-        double scale = zoom * Math.min(sw / (double) iw, sh / (double) ih);
-        transform.translate((1 + xOffset) * (sw - iw * scale) / 2,
-                (1 + yOffset) * (sh - ih * scale) / 2);
+        double scale = zoom *
+                Math.min(displaySize.width / (double) imageSize.width,
+                        displaySize.height / (double) imageSize.height);
+        transform.translate((1 + xOffset) * (displaySize.width - imageSize.width * scale) / 2,
+                (1 + yOffset) * (displaySize.height - imageSize.height * scale) / 2);
         transform.scale(scale, scale);
         g.transform(transform);
-        g.drawImage(image, 0, 0, iw, ih, null);
+        g.drawImage(image, 0, 0, imageSize.width, imageSize.height, null);
         paintInScale(g);
         g.setTransform(tx);
     }

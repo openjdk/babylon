@@ -43,11 +43,10 @@
  */
 package heal;
 
-
 import java.awt.Polygon;
 import java.util.Arrays;
 
-class Path extends XYList {
+public class Path extends XYList {
     int x1=Integer.MAX_VALUE;
     int y1=Integer.MAX_VALUE;
     int x2=Integer.MIN_VALUE;
@@ -60,16 +59,10 @@ class Path extends XYList {
         x2 = Math.max(x, x2);
         y2 = Math.max(y, y2);
     }
-
+    Path(){
+    }
     Path (int x, int y){
         super(x,y);
-    }
-
-    Path(Path path, int offsetx, int offsety){
-        for (int i=0;i<length();i++){
-            XY xy = (XYList.XY)xy(i);
-            add(xy.x()+offsetx, xy.y()+offsety);
-        }
     }
     public Polygon getPolygon() {
         Polygon p = new Polygon();
@@ -81,12 +74,13 @@ class Path extends XYList {
     }
 
     public void extendTo(int x, int y){
-        add(xy[length()*2-2],xy[length()*2-1], x, y);
+        add(xy[length()*XYList.STRIDE-(2-XYList.Xidx)],
+                xy[length()*XYList.STRIDE-(2-XYList.Yidx)], x, y);
     }
 
     public Path close(){
         extendTo(xy[0], xy[1]);
-        xy = Arrays.copyOf(xy, length() * 2);
+        xy = Arrays.copyOf(xy, length() * XYList.STRIDE);
         return this;
     }
 

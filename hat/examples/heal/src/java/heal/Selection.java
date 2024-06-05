@@ -43,7 +43,7 @@
  */
 package heal;
 
-class Selection{
+public class Selection{
     final ImageData imageData;
     final Path path;
     final int width;
