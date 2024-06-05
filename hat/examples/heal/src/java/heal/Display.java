@@ -120,7 +120,7 @@ public class Display extends JPanel implements MouseListener, MouseMotionListene
                 transform.inverseTransform(e.getPoint(), mImageMove);
                 Dimension displaySize = getSize();
                 Dimension imageSize = new Dimension( image.getWidth(),image.getHeight());
-                float scale = zoom * 
+                float scale = zoom *
                         Math.min(displaySize.width / (float) imageSize.width,
                                 displaySize.height / (float) imageSize.height);
                 xOffset =  2 * (dragDelta.width / (displaySize.width - scale * imageSize.width));
