@@ -46,7 +46,7 @@ package heal;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 
-class ImageData{
+public class ImageData{
     final int width;
     final int height;
     final int[] data;

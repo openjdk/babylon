@@ -53,14 +53,11 @@ import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 import java.util.Arrays;
 
-
 public class HealingBrush {
-
     public static int[] getMask(Path path, int width, int height) {
         Polygon polygon = new Polygon();
         for (int i = 0; i < path.length(); i++) {
-
-        XYList.XY xy= (XYList.XY)path.xy(i);
+            XYList.XY xy = (XYList.XY) path.xy(i);
             polygon.addPoint(xy.x() - path.x1 + 1, xy.y() - path.y1 + 1);
         }
         BufferedImage maskImg = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
@@ -72,44 +69,43 @@ public class HealingBrush {
         return mask;
     }
 
-    public static void heal(Selection selection,
-                            int fromDeltaX,
-                            int fromDeltaY) {
+    public static void heal(Selection selection, int fromDeltaX, int fromDeltaY) {
         int reg_width = 2 + selection.width;
         int reg_height = 2 + selection.height;
         int[] mask = getMask(selection.path, reg_width, reg_height);
         int[] dest = new int[mask.length];
         int[] src = new int[mask.length];
-long start = System.currentTimeMillis();
+        long start = System.currentTimeMillis();
         for (int i = 0; i < mask.length; i++) { //parallel
             int x = i % reg_width;
             int y = i / reg_width;
-            src[i] = selection.imageData.data[(selection.path.y1 + y - 1 + fromDeltaY) * selection.imageData.width + selection.path.x1 + x + fromDeltaX];
-            if (mask[i] != 0) {
-                dest[i] = src[i];
-            } else {
-                dest[i] = selection.imageData.data[(selection.path.y1 + y - 1) * selection.imageData.width + selection.path.x1 + x];
-            }
+            src[i] = selection.imageData.data[
+                    (selection.path.y1 + y - 1 + fromDeltaY) * selection.imageData.width + selection.path.x1 + x + fromDeltaX
+                    ];
+            dest[i] =(mask[i] != 0)?src[i]:selection.imageData.data[(selection.path.y1 + y - 1) * selection.imageData.width + selection.path.x1 + x];
         }
-        System.out.println("heal " +(System.currentTimeMillis()-start)+"ms");
+        System.out.println("heal " + (System.currentTimeMillis() - start) + "ms");
 
         RGBList srclap = laplacian(src, reg_width, reg_height);
-          displayLapacian(srclap, dest, mask);
+
+        displayLapacian(srclap, dest, mask);
+
+
         solve(dest, mask, srclap, reg_width, reg_height);
 
-start=System.currentTimeMillis();
+
+        start = System.currentTimeMillis();
         for (int i = 0; i < mask.length; i++) { //parallel
             int x = i % reg_width;
             int y = i / reg_width;
             selection.imageData.data[(selection.path.y1 + y - 1) * selection.imageData.width + selection.path.x1 + x] = dest[i];
         }
-        System.out.println("heal2 " +(System.currentTimeMillis()-start)+"ms");
+        System.out.println("heal2 " + (System.currentTimeMillis() - start) + "ms");
     }
 
     static void solve(int[] dest, int[] mask, RGBList lap_rgb, int width, int height) {
         int r, g, b, v;
-        int[] tmp = new int[dest.length];
-        System.arraycopy(dest, 0, tmp, 0, tmp.length);
+        int[] tmp =  Arrays.copyOf(dest,dest.length);
         long start = System.currentTimeMillis();
         for (int i = 0; i < 200; i++) {
             for (int p = 0; p < width * height; p++) { // parallel
@@ -120,24 +116,34 @@ start=System.currentTimeMillis();
                     r = ((v >> 16) & 0xff);
                     g = ((v >> 8) & 0xff);
                     b = ((v >> 0) & 0xff);
+
                     v = dest[p + 1];
                     r += ((v >> 16) & 0xff);
                     g += ((v >> 8) & 0xff);
                     b += ((v >> 0) & 0xff);
+
                     v = dest[p - width];
                     r += ((v >> 16) & 0xff);
                     g += ((v >> 8) & 0xff);
                     b += ((v >> 0) & 0xff);
+
                     v = dest[p + width];
                     r += ((v >> 16) & 0xff);
                     g += ((v >> 8) & 0xff);
                     b += ((v >> 0) & 0xff);
-                    r += (lap_rgb.rgb[p * 3 + 0]);
-                    g += (lap_rgb.rgb[p * 3 + 1]);
-                    b += (lap_rgb.rgb[p * 3 + 2]);
+
+                    r += (lap_rgb.rgb[p * RGBList.STRIDE + RGBList.Ridx]);
+                    g += (lap_rgb.rgb[p * RGBList.STRIDE + RGBList.Gidx]);
+                    b += (lap_rgb.rgb[p * RGBList.STRIDE + RGBList.Bidx]);
+
                     r = (r + 2) / 4;
                     g = (g + 2) / 4;
                     b = (b + 2) / 4;
+
+                    // r=(dest[x+1,y].r + dest[x-1,y].r +dest[x,y-1].r +dest[x,y+1].r + lap_rgb[x,y].r+2)/4;
+                    // g=(dest[x+1,y].g + dest[x-1,y].g +dest[x,y-1].g +dest[x,y+1].g + lap_ggb[x,y].g+2)/4;
+                    // b=(dest[x+1,y].b + dest[x-1,y].b +dest[x,y-1].b +dest[x,y+1].b + lap_bgb[x,y].b+2)/4;
+
                     tmp[p] = (((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF));
                 }
             }
@@ -145,14 +151,18 @@ start=System.currentTimeMillis();
             tmp = dest;
             dest = swap;
         }
-        System.out.println("solve " +(System.currentTimeMillis()-start)+"ms");
+        System.out.println("solve " + (System.currentTimeMillis() - start) + "ms");
     }
 
 
     static void displayLapacian(RGBList lap_rgb, int[] dst, int[] mask) {
-        for (RGBList.RGB rgb : lap_rgb) {
+        for (int i =0; i< lap_rgb.length(); i++) {
+            var rgb = lap_rgb.rgb(i);
             if (mask[rgb.idx] != 0) {
-                dst[rgb.idx] = (((Math.abs(rgb.r) & 0xFF) << 16) | ((Math.abs(rgb.g) & 0xFF) << 8) | (Math.abs(rgb.b) & 0xFF));
+                dst[rgb.idx] =
+                        (((Math.abs(rgb.r()) & 0xFF) << 16)
+                        | ((Math.abs(rgb.g()) & 0xFF) << 8)
+                                | (Math.abs(rgb.b()) & 0xFF));
             }
         }
     }
@@ -188,12 +198,16 @@ start=System.currentTimeMillis();
                 r -= ((v >> 16) & 0xff);
                 g -= ((v >> 8) & 0xff);
                 b -= ((v >> 0) & 0xff);
+
+                // r = r/4 + src[x-1,y-].r + src[x+1,y].r + src[x-0,y+1].r + src[x,y-1].r
+                // g = g/4 + src[x-1,y-].g + src[x+1,y].g + src[x-0,y+1].g + src[x,y-1].g
+                // b = b/4 + src[x-1,y-].b + src[x+1,y].b + src[x-0,y+1].b + src[x,y-1].b
                 rgbList.add(r, g, b);
             } else {
                 rgbList.add(0, 0, 0);
             }
         }
-        System.out.println("laplacian " +(System.currentTimeMillis()-start)+"ms");
+        System.out.println("laplacian " + (System.currentTimeMillis() - start) + "ms");
         return rgbList;
     }
 
@@ -206,12 +220,16 @@ start=System.currentTimeMillis();
             int xmax = Math.min(selection.imageData.width, selection.path.x2 + selection.width * 3);
             int ymax = Math.min(selection.imageData.height, selection.path.y2 + selection.height * 3);
 
-            RGBList orig_rgb = extractCurve(selection);
+            RGBList rgbList = new RGBList();
+            for (int i = 0; i < selection.path.length(); i++) {
+                XYList.XY xy = (XYList.XY) selection.path.xy(i);
+                rgbList.addRGB(selection.imageData.data[xy.y() * selection.imageData.width + xy.x()]);
+            }
 
-            RGBList comp = new RGBList(orig_rgb);
+            RGBList comp = new RGBList(rgbList);
 
             float min = Float.MAX_VALUE;
-            int bestdx = -11111, bestdy = 0;
+            Point best = new Point(-11111, 0);
             long start = System.currentTimeMillis();
 
             for (int y = ymin; y < ymax - selection.height; y++) {
@@ -220,50 +238,37 @@ start=System.currentTimeMillis();
                         int sdx = x - selection.path.x1;
                         int sdy = y - selection.path.y1;
 
-                        for (int i=0;i<selection.path.length();i++){
-                            XYList.XY xy= (XYList.XY)selection.path.xy(i);
-                            comp.setRGB(xy.idx(), selection.imageData.data[sdy * selection.imageData.width + sdx + xy.y() * selection.imageData.width + xy.x()]);
+                        for (int i = 0; i < selection.path.length(); i++) {
+                            XYList.XY xy = (XYList.XY) selection.path.xy(i);
+                            comp.setRGB(xy.idx(),
+                                    selection.imageData.data[
+                                            sdy * selection.imageData.width + sdx + xy.y()
+                                                    * selection.imageData.width + xy.x()
+                                            ]
+                            );
                         }
 
                         float sum = 0;
-                        for (RGBList.RGB rgb : orig_rgb) {
-                            int dx = comp.rgb[rgb.idx * 3 + 0] - rgb.r;
-                            int dy = comp.rgb[rgb.idx * 3 + 1] - rgb.g;
-                            int dz = comp.rgb[rgb.idx * 3 + 2] - rgb.b;
-                            sum += dx * dx + dy * dy + dz * dz;
+                        for (int i =0; i< rgbList.length(); i++) {
+                            var rgb = rgbList.rgb(i);
+                            var compRgb = comp.rgb(i);
+                            int dr = compRgb.r() - rgb.r();
+                            int dg = compRgb.g() - rgb.g();
+                            int db = compRgb.b() - rgb.b();
+                            sum += dr * dr + dg * dg + db * db;
                         }
 
                         if (sum < min) {
                             min = sum;
-                            bestdx = x - selection.path.x1;
-                            bestdy = y - selection.path.y1;
+                            best.setLocation(x - selection.path.x1,y - selection.path.y1);
                         }
                     }
                 }
             }
-            System.out.println("search " +(System.currentTimeMillis()-start)+"ms");
-            offset = new Point(bestdx, bestdy);
+            System.out.println("search " + (System.currentTimeMillis() - start) + "ms");
+            offset = best;
         }
         return offset;
-
-    }
-    static RGBList extractCurve(Selection selection) {
-        RGBList rgbList = new RGBList();
-        for (int i=0;i<selection.path.length();i++){
-        XYList.XY xy= (XYList.XY)selection.path.xy(i);
-            rgbList.addRGB(selection.imageData.data[xy.y() * selection.imageData.width + xy.x()]);
-        }
-        return rgbList;
-    }
-
-    static void extractCurve(RGBList rgbList, Selection selection,
-                                int dx,
-                                int dy) {
-        for (int i=0;i<selection.path.length();i++){
-            XYList.XY xy= (XYList.XY)selection.path.xy(i);
-            rgbList.setRGB(xy.idx(), selection.imageData.data[dy * selection.imageData.width + dx + xy.y() * selection.imageData.width + xy.x()]);
-        }
-
     }
 
 

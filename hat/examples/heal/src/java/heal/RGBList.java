@@ -46,60 +46,91 @@ package heal;
 import java.util.Arrays;
 import java.util.Iterator;
 
-class RGBList implements Iterable<RGBList.RGB>{
+class RGBList implements S32RGBTable{
     final static int INIT=32;
     final static int STRIDE= 3;
-    final static int R= 0;
-    final static int G= 1;
-    final static int B= 2;
+    final static int Ridx= 0;
+    final static int Gidx= 1;
+    final static int Bidx= 2;
+    int length;
+    int[] rgb = new int[INIT*STRIDE];
+    private RGB cursor = new RGB(this);
+    @Override
+    public RGB rgb(long idx) {
+        cursor.set((int)idx);
+        return cursor;
+    }
 
-    public class RGB implements Iterator<RGB>{
+    @Override
+    public int length() {
+        return length;
+    }
+
+    @Override
+    public void length(int length) {
+        this.length = length;
+    }
+
+    static public class RGB implements S32RGBTable.RGB{
+        RGBList rgbList;
         int idx=-1;
-        int r;
-        int g;
-        int b;
-
-        @Override
-        public boolean hasNext() {
-            return idx+1<size;
+        RGB(RGBList rgbList){
+            this.rgbList = rgbList;
         }
 
         public RGB set(int idx) {
             this.idx = idx;
-            r = rgb[idx*STRIDE+R];
-            g = rgb[idx*STRIDE+G];
-            b = rgb[idx*STRIDE+B];
+
             return this;
         }
 
         @Override
-        public RGB next() {
-            idx++;
-            set(idx);
-            return this;
+        public int r() {
+            return rgbList.rgb[idx*STRIDE+Ridx];
         }
 
         @Override
-        public void remove() {
-           throw new IllegalStateException("remove not supported");
+        public int g() {
+            return rgbList.rgb[idx*STRIDE+Gidx];
+        }
+
+        @Override
+        public int b() {
+
+                return rgbList.rgb[idx*STRIDE+Bidx];
+
+
+        }
+
+        @Override
+        public void r(int r) {
+            rgbList.rgb[idx*STRIDE+Ridx]=r;
+        }
+
+        @Override
+        public void g(int g) {
+            rgbList.rgb[idx*STRIDE+Gidx]=g;
+        }
+
+        @Override
+        public void b(int b) {
+            rgbList.rgb[idx*STRIDE+Bidx]=b;
         }
     }
 
-    int size;
-    int rgb[]= new int[INIT*STRIDE];
 
     void set(int idx, int r,int g, int b){
-        rgb[idx*STRIDE+R]=r;
-        rgb[idx*STRIDE+G]=g;
-        rgb[idx*STRIDE+B]=b;
+        rgb[idx*STRIDE+Ridx]=r;
+        rgb[idx*STRIDE+Gidx]=g;
+        rgb[idx*STRIDE+Bidx]=b;
     }
 
     void add(int r,int g, int b){
-        if (size*STRIDE== rgb.length){
+        if (length*STRIDE== rgb.length){
             rgb = Arrays.copyOf(rgb, rgb.length*STRIDE);
         }
-        set(size, r, g, b);
-        size++;
+        set(length, r, g, b);
+        length++;
     }
 
     public void setRGB(int idx,int v) {
@@ -114,12 +145,8 @@ class RGBList implements Iterable<RGBList.RGB>{
     }
 
     RGBList(RGBList list){
-        size = list.size;
+        length = list.length;
         rgb = Arrays.copyOf(list.rgb, list.rgb.length);
     }
 
-    @Override
-    public Iterator<RGB> iterator() {
-        return new RGB();
-    }
 }
