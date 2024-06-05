@@ -92,7 +92,7 @@ public final class ArrayType implements JavaType {
 
     @Override
     public String toString() {
-        return externalize().toString();
+        return componentType.toString() + "[]";
     }
 
     @Override
