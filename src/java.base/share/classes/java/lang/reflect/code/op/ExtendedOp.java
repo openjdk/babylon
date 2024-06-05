@@ -28,7 +28,6 @@ package java.lang.reflect.code.op;
 import java.lang.constant.ClassDesc;
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.type.*;
-import java.lang.reflect.code.TypeElement;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
