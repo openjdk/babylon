@@ -196,7 +196,7 @@ public class ViolaJonesCoreCompute {
             F32Array2D integral,
             Cascade.Stage stage,
             Cascade cascade
-	    ) {
+        ) {
         float sumOfThisStage = 0;
         int startTreeIdx = stage.firstTreeId();
         int endTreeIdx = startTreeIdx + stage.treeCount();
@@ -255,7 +255,7 @@ public class ViolaJonesCoreCompute {
             // covered by the scale.
             int scalc = 0;
             ScaleTable.Scale scale = scaleTable.scale(scalc);
-	    scalc++;
+            scalc++;
             while (kc.x >= scale.accumGridSizeMax() && scalc<scaleTable.length()) {
                 scale = scaleTable.scale(scalc);
                 scalc++;
