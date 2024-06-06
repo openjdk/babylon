@@ -6,11 +6,20 @@ set(CMAKE_CXX_STANDARD 14)
 find_package(CUDAToolkit)
 if(CUDAToolkit_FOUND)
     message("CUDA")
+    if ("${CUDA_BACKEND}EMPTY" STREQUAL "EMPTY")
+	    set (CUDA_BACKEND "${CMAKE_SOURCE_DIR}")
+	    message("CUDA_BACKEND=${CUDA_BACKEND}")
+    endif()
+    if ("${SHARED_BACKEND}EMPTY" STREQUAL "EMPTY")
+        set (SHARED_BACKEND "${CMAKE_SOURCE_DIR}/../shared")
+        message("SHARED_BACKEND=${SHARED_BACKEND}")
+    endif()
+
 
     include_directories(
             ${CUDAToolkit_INCLUDE_DIR}
-            ${CMAKE_SOURCE_DIR}/${SHARED_PATH_ADJUST}/shared/include
-            ${CMAKE_SOURCE_DIR}/${CUDA_PATH_ADJUST}/include
+	    ${SHARED_BACKEND}/include
+	    ${CUDA_BACKEND}/include
     )
 
     link_directories(
@@ -19,8 +28,8 @@ if(CUDAToolkit_FOUND)
     )
 
     add_library(cuda_backend SHARED
-            ${CMAKE_SOURCE_DIR}/${SHARED_PATH_ADJUST}/cpp/shared.cpp
-            ${CMAKE_SOURCE_DIR}/${CUDA_PATH_ADJUST}/cpp/cuda_backend.cpp
+	    ${SHARED_BACKEND}/cpp/shared.cpp
+	    ${CUDA_BACKEND}/cpp/cuda_backend.cpp
     )
 
     target_link_libraries(cuda_backend
@@ -29,7 +38,7 @@ if(CUDAToolkit_FOUND)
     )
 
     add_executable(cuda_info
-            ${CMAKE_SOURCE_DIR}/${CUDA_PATH_ADJUST}/cpp/info.cpp
+	    ${CUDA_BACKEND}/cpp/info.cpp
     )
 
     target_link_libraries(cuda_info
@@ -38,6 +47,5 @@ if(CUDAToolkit_FOUND)
             -lcuda
     )
     add_custom_target(cuda_natives DEPENDS cuda_info cuda_backend)
-
 
 endif()
