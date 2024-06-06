@@ -28,6 +28,7 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
 import hat.backend.Backend;
+import hat.buffer.S32Array;
 import hat.buffer.F32Array2D;
 import org.xml.sax.SAXException;
 import violajones.attic.ViolaJones;
@@ -194,7 +195,8 @@ public class ViolaJonesCoreCompute {
             float vnorm,
             F32Array2D integral,
             Cascade.Stage stage,
-            Cascade cascade) {
+            Cascade cascade
+        ) {
         float sumOfThisStage = 0;
         int startTreeIdx = stage.firstTreeId();
         int endTreeIdx = startTreeIdx + stage.treeCount();
@@ -234,7 +236,6 @@ public class ViolaJonesCoreCompute {
                 }
             }
         }
-
         return sumOfThisStage > stage.threshold(); // true if this looks like a face
     }
 
@@ -248,14 +249,16 @@ public class ViolaJonesCoreCompute {
 
     ) {
 
-        if (kc.x < scaleTable.multiScaleAccumulativeRange()) {
+        if (kc.x < kc.maxX){//;scaleTable.multiScaleAccumulativeRange()) {
             // We need to determine the scale information for a given gid.
             // we check each scale in the scale table and check if our gid is
             // covered by the scale.
             int scalc = 0;
-            ScaleTable.Scale scale = scaleTable.scale(scalc++);
-            while (kc.x >= scale.accumGridSizeMax()) {
-                scale = scaleTable.scale(scalc++);
+            ScaleTable.Scale scale = scaleTable.scale(scalc);
+            scalc++;
+            while (kc.x >= scale.accumGridSizeMax() && scalc<scaleTable.length()) {
+                scale = scaleTable.scale(scalc);
+                scalc++;
             }
 
             // Now we need to convert our scale relative git to an x,y,w,h
@@ -306,6 +309,9 @@ public class ViolaJonesCoreCompute {
         long start = System.currentTimeMillis();
         int width = rgbS08x3Image.width();
 
+
+
+
         int height = rgbS08x3Image.height();
         Accelerator accelerator = cc.accelerator;
         F32Array2D greyImage = F32Array2D.create(accelerator, width, height);
@@ -323,6 +329,9 @@ public class ViolaJonesCoreCompute {
         cc.dispatchKernel(height, kc -> integralRowKernel(kc, integralImage, integralSqImage));
         // harViz.showIntegrals();
         ScaleTable scaleTable = ScaleTable.create(accelerator, cascade, width, height);
+        System.out.print("range requested=");
+        System.out.print(scaleTable.multiScaleAccumulativeRange());
+        System.out.println();
 
         cc.dispatchKernel(scaleTable.multiScaleAccumulativeRange(), kc ->
                 findFeaturesKernel(kc, cascade, integralImage, integralSqImage, scaleTable, resultTable));

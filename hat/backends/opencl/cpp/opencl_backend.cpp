@@ -612,6 +612,7 @@ const char *OpenCLBackend::errorMsg(cl_int status) {
             {CL_INVALID_BUFFER_SIZE,             "invalid buffer size",},
             {CL_INVALID_MIP_LEVEL,               "invalid mip level",},
             {CL_INVALID_GLOBAL_WORK_SIZE,        "invalid global work size",},
+            {-9999,                              "enqueueNdRangeKernel Illegal read or write to a buffer",},
             {0,                                  NULL},
     };
     static char unknown[256];
@@ -623,7 +624,7 @@ const char *OpenCLBackend::errorMsg(cl_int status) {
             return error_table[ii].msg;
         }
     }
-    SNPRINTF(unknown, sizeof(unknown), "awaitingName error %d", status);
+    SNPRINTF(unknown, sizeof(unknown), "unmapped string for  error %d", status);
     return unknown;
 }
 
