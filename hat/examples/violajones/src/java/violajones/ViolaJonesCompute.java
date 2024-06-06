@@ -50,8 +50,8 @@ public class ViolaJonesCompute {
         BufferedImage nasa1996 = ImageIO.read(ViolaJones.class.getResourceAsStream(
                //"/images/team.jpg"
               // "/images/eggheads.jpg"
-              // "/images/highett.jpg"
-             "/images/Nasa1996.jpg"
+              "/images/highett.jpg"
+            // "/images/Nasa1996.jpg"
         ));
         XMLHaarCascadeModel haarCascade = XMLHaarCascadeModel.load(
                 ViolaJonesRaw.class.getResourceAsStream("/cascades/haarcascade_frontalface_default.xml"));
