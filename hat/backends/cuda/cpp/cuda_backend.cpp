@@ -63,7 +63,8 @@ Ptx *Ptx::nvcc(const char *cudaSource, size_t len) {
         cuda.open(cudaPath, std::ofstream::trunc);
         cuda.write(cudaSource, len);
         cuda.close();
-        const char *path = "/usr/local/cuda-12.2/bin/nvcc";
+        const char *path = "/usr/bin/nvcc";
+        //const char *path = "/usr/local/cuda-12.2/bin/nvcc";
         const char *argv[]{"nvcc", "-ptx", cudaPath, "-o", ptxPath, nullptr};
         // we can't free cudaPath or ptxpath in child because we need them in exec, no prob through
         // because we get a new proc so they are released to os
