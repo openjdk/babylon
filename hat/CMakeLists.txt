@@ -103,7 +103,7 @@ add_custom_target(info_executables)
 ###
 ###  (!hat!)) -> tools
 
-set(HAT_SOURCE_ROOT ${CMAKE_SOURCE_DIR}/hat/src/java)
+set(HAT_SOURCE_ROOT ${CMAKE_SOURCE_DIR}/hat/src/main/java)
 set(HAT_CLASS_DIR ${CMAKE_BINARY_DIR}/hat/classes)
 set(HAT_JAR ${CMAKE_BINARY_DIR}/hat/hat.jar)
 file(GLOB_RECURSE HAT_JAVA_SOURCE_FILES ${HAT_SOURCE_ROOT}/*.java)
@@ -138,7 +138,7 @@ add_custom_target(hat.jar DEPENDS hat.javac
 
 set(SQUARES_CLASS_DIR ${CMAKE_BINARY_DIR}/squares/classes)
 set(SQUARES_JAR ${CMAKE_BINARY_DIR}/squares/squares.jar)
-set(SQUARES_SOURCE_ROOT ${CMAKE_SOURCE_DIR}/examples/squares/src/java)
+set(SQUARES_SOURCE_ROOT ${CMAKE_SOURCE_DIR}/examples/squares/src/main/java)
 file(GLOB_RECURSE SQUARES_JAVA_SOURCE_FILES ${SQUARES_SOURCE_ROOT}/*.java)
 
 add_custom_target(squares.javac DEPENDS hat.jar
@@ -222,7 +222,7 @@ add_dependencies(example_jars view.jar)
 
 set(MANDEL_CLASS_DIR ${CMAKE_BINARY_DIR}/mandel/classes)
 set(MANDEL_JAR ${CMAKE_BINARY_DIR}/mandel/mandel.jar)
-set(MANDEL_SOURCE_ROOT ${CMAKE_SOURCE_DIR}/examples/mandel/src/java)
+set(MANDEL_SOURCE_ROOT ${CMAKE_SOURCE_DIR}/examples/mandel/src/main/java)
 file(GLOB_RECURSE MANDEL_JAVA_SOURCE_FILES ${MANDEL_SOURCE_ROOT}/*.java)
 
 add_custom_target(mandel.javac DEPENDS hat.jar
@@ -249,7 +249,7 @@ add_dependencies(example_jars mandel.jar)
 
 set(VIOLAJONES_CLASS_DIR ${CMAKE_BINARY_DIR}/violajones/classes)
 set(VIOLAJONES_JAR ${CMAKE_BINARY_DIR}/violajones/violajones.jar)
-set(VIOLAJONES_SOURCE_ROOT ${CMAKE_SOURCE_DIR}/examples/violajones/src/java)
+set(VIOLAJONES_SOURCE_ROOT ${CMAKE_SOURCE_DIR}/examples/violajones/src/main/java)
 file(GLOB_RECURSE VIOLAJONES_JAVA_SOURCE_FILES ${VIOLAJONES_SOURCE_ROOT}/*.java)
 
 add_custom_target(violajones.javac DEPENDS hat.jar
@@ -268,7 +268,7 @@ add_custom_target(violajones.jar DEPENDS violajones.javac
      ${JAVA_HOME}/bin/jar --create --no-manifest
        --file  ${VIOLAJONES_JAR}
        -C ${VIOLAJONES_CLASS_DIR} .
-       -C ${CMAKE_SOURCE_DIR}/examples/violajones/src/resources .
+       -C ${CMAKE_SOURCE_DIR}/examples/violajones/src/main/resources .
 )
 add_dependencies(example_jars violajones.jar)
 
