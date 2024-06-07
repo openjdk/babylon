@@ -18,9 +18,9 @@ So far this has worked ok.
 
 ### cmake and maven
 
-We use maven for java artifacts and cmake for native libs (backends)  although the root level CMakeLists.txt can also create java artifacts. 
+We use maven for java artifacts and cmake for native libs (backends)  although the root level CMakeLists.txt can also create java artifacts.
 
-Generally to run any cmake target.  
+Generally to run any cmake target.
 ```bash
 cd hat
 mkdir build
@@ -30,9 +30,9 @@ cd ..
 cmake --build build --target <yourtarget>
 ```
 
-The maven build will build hat and will then delegate to cmake to build the backends. 
+The maven build will build hat and will then delegate to cmake to build the backends.
 
-To build with maven 
+To build with maven
 
 ```bash
 mvn clean compile assembly:single test
