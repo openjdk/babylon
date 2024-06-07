@@ -57,7 +57,7 @@ questions.
                 <filtering>false</filtering>
             </resource>
             <resource>
-                <directory>examples/violajones/src/resources</directory>
+                <directory>examples/violajones/src/main/resources</directory>
                 <filtering>false</filtering>
             </resource>
         </resources> 
@@ -88,10 +88,10 @@ questions.
                         <arg>--add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED</arg>
                     </compilerArgs>
                     <includes>
-                       <include>hat/src/java/**/*.java</include>
-                       <include>examples/mandel/src/java/**/*.java</include>
-                       <include>examples/squares/src/java/**/*.java</include>
-                       <include>examples/violajones/src/java/**/*.java</include>
+                       <include>hat/src/main/java/**/*.java</include>
+                       <include>examples/mandel/src/main/java/**/*.java</include>
+                       <include>examples/squares/src/main/java/**/*.java</include>
+                       <include>examples/violajones/src/main/java/**/*.java</include>
                        <include>backends/opencl/java/**/*.java</include>
                        <include>backends/cuda/java/**/*.java</include>
                        <include>backends/ptx/java/**/*.java</include>
@@ -184,25 +184,6 @@ questions.
                             <argument>-Dheadless=true</argument>
                             <argument>--class-path=target/hat-1.0-SNAPSHOT-jar-with-dependencies.jar</argument>
                             <argument>violajones.ViolaJonesCompute</argument>
-                        </arguments>
-                     </configuration>
-                  </execution>
-
-                  <execution>
-                     <id>mandel</id>
-                     <phase>test</phase>
-                     <goals>
-                        <goal>exec</goal>
-                     </goals>
-                     <configuration>
-                        <executable>java</executable>
-                        <arguments>
-                            <argument>--enable-preview</argument>
-                            <argument>--enable-native-access=ALL-UNNAMED</argument>
-                            <argument>--add-exports=java.base/jdk.internal=ALL-UNNAMED</argument>
-                            <argument>-Djava.library.path=build/backends/opencl</argument>
-                            <argument>--class-path=target/hat-1.0-SNAPSHOT-jar-with-dependencies.jar</argument>
-                            <argument>mandel.MandelCompute</argument>
                         </arguments>
                      </configuration>
                   </execution>
