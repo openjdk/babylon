@@ -28,7 +28,7 @@ questions.
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>oracle.code</groupId>
-    <artifactId>hat-example-view</artifactId>
+    <artifactId>hat-example-experiments</artifactId>
     <version>1.0</version>
     <packaging>jar</packaging>
 
@@ -38,13 +38,13 @@ questions.
         <maven.compiler.target>23</maven.compiler.target>
     </properties>
 
-    <dependencies>
-       <dependency>
-          <groupId>oracle.code</groupId>
-          <version>1.0</version>
-          <artifactId>hat</artifactId>
+   <dependencies>
+        <dependency>
+           <groupId>oracle.code</groupId>
+         <version>1.0</version>
+         <artifactId>hat</artifactId>
        </dependency>
-    </dependencies>
+     </dependencies>
 
     <build>
         <plugins>

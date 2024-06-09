@@ -291,10 +291,10 @@ add_subdirectory("backends")
 ##OpenCL Backend
 ###opencl_backend.jar
 
-set(OPENCL_BACKEND_JAVA_SOURCE_ROOT ${CMAKE_SOURCE_DIR}/backends/opencl/java)
+set(OPENCL_BACKEND_JAVA_SOURCE_ROOT ${CMAKE_SOURCE_DIR}/backends/opencl/src/main/java)
 file(GLOB_RECURSE OPENCL_BACKEND_JAVA_SOURCE_FILES ${OPENCL_BACKEND_JAVA_SOURCE_ROOT}/*.java)
 set(OPENCL_BACKEND_CLASS_DIR ${CMAKE_BINARY_DIR}/opencl_backend/classes)
-set(OPENCL_BACKEND_SERVICES_DIR ${CMAKE_SOURCE_DIR}/backends/opencl/services)
+set(OPENCL_BACKEND_RESOURCES_DIR ${CMAKE_SOURCE_DIR}/backends/opencl/src/main/resources)
 set(OPENCL_BACKEND_JAR ${CMAKE_BINARY_DIR}/opencl_backend/opencl_backend.jar)
 
 add_custom_target(opencl_backend.javac DEPENDS hat.jar
@@ -313,7 +313,7 @@ add_custom_target(opencl_backend.jar DEPENDS opencl_backend.javac
      ${JAVA_HOME}/bin/jar
        --create --no-manifest
        --file  ${OPENCL_BACKEND_JAR}
-       -C ${OPENCL_BACKEND_SERVICES_DIR} .
+       -C ${OPENCL_BACKEND_RESOURCES_DIR} .
        -C ${OPENCL_BACKEND_CLASS_DIR} .
 )
 add_dependencies(backend_jars opencl_backend.jar)
@@ -325,10 +325,10 @@ endif()
 
 
 ##CUDA Backend
-set(CUDA_BACKEND_JAVA_SOURCE_ROOT ${CMAKE_SOURCE_DIR}/backends/cuda/java)
+set(CUDA_BACKEND_JAVA_SOURCE_ROOT ${CMAKE_SOURCE_DIR}/backends/cuda/src/main/java)
 file(GLOB_RECURSE CUDA_BACKEND_JAVA_SOURCE_FILES ${CUDA_BACKEND_JAVA_SOURCE_ROOT}/*.java)
 set(CUDA_BACKEND_CLASS_DIR ${CMAKE_BINARY_DIR}/cuda_backend/classes)
-set(CUDA_BACKEND_SERVICES_DIR ${CMAKE_SOURCE_DIR}/backends/cuda/services)
+set(CUDA_BACKEND_RESOURCES_DIR ${CMAKE_SOURCE_DIR}/backends/cuda/src/main/resources)
 set(CUDA_BACKEND_JAR ${CMAKE_BINARY_DIR}/cuda_backend/cuda_backend.jar)
 
 add_custom_target(cuda_backend.javac DEPENDS hat.jar
@@ -347,7 +347,7 @@ add_custom_target(cuda_backend.jar DEPENDS cuda_backend.javac
       ${JAVA_HOME}/bin/jar
         --create --no-manifest
         --file  ${CUDA_BACKEND_JAR}
-        -C ${CUDA_BACKEND_SERVICES_DIR} .
+        -C ${CUDA_BACKEND_RESOURCES_DIR} .
         -C ${CUDA_BACKEND_CLASS_DIR} .
 )
 add_dependencies(backend_jars cuda_backend.jar)
@@ -363,14 +363,14 @@ if (EXISTS ${BEEHIVE})
 ##SPRIV Backend
 ##spirv_backend.jar
 
-set(SPIRV_BACKEND_JAVA_SOURCE_ROOT ${CMAKE_SOURCE_DIR}/backends/spirv/java)
+set(SPIRV_BACKEND_JAVA_SOURCE_ROOT ${CMAKE_SOURCE_DIR}/backends/spirv/src/main/java)
 set(SPIRV_INTEL_BACKEND_JAVA_SOURCE_ROOT ${BABYLON_JDK}/cr-examples/spirv/src/main/java)
 set(SPIRV_BEEHIVE_BACKEND_JAVA_SOURCE_ROOT ${BEEHIVE}/lib/src/main/java)
 file(GLOB_RECURSE SPIRV_BACKEND_JAVA_SOURCE_FILES ${SPIRV_BACKEND_JAVA_SOURCE_ROOT}/hat/*.java  )
 file(GLOB_RECURSE SPIRV_INTEL_BACKEND_JAVA_SOURCE_FILES ${SPIRV_INTEL_BACKEND_JAVA_SOURCE_ROOT}/intel/*.java)
 file(GLOB_RECURSE SPIRV_BEEHIVE_BACKEND_JAVA_SOURCE_FILES ${SPIRV_BEEHIVE_BACKEND_JAVA_SOURCE_ROOT}/uk/*.java)
 set(SPIRV_BACKEND_CLASS_DIR ${CMAKE_BINARY_DIR}/spirv_backend/classes)
-set(SPIRV_BACKEND_SERVICES_DIR ${CMAKE_SOURCE_DIR}/backends/spirv/services)
+set(SPIRV_BACKEND_RESOURCES_DIR ${CMAKE_SOURCE_DIR}/backends/spirv/src/main/resources)
 set(SPIRV_BACKEND_JAR ${CMAKE_BINARY_DIR}/spirv_backend/spirv_backend.jar)
 
 add_custom_target(spirv_backend.javac DEPENDS hat.jar
@@ -391,7 +391,7 @@ add_custom_target(spirv_backend.jar DEPENDS spirv_backend.javac
       ${JAVA_HOME}/bin/jar
         --create --no-manifest
         --file  ${SPIRV_BACKEND_JAR}
-        -C ${SPIRV_BACKEND_SERVICES_DIR} .
+        -C ${SPIRV_BACKEND_RESOURCES_DIR} .
         -C ${SPIRV_BACKEND_CLASS_DIR} .
 )
 add_dependencies(backend_jars spirv_backend.jar)
@@ -417,10 +417,10 @@ endif()
 ##PTX Backend
 ##ptx_backend.jar
 
-set(PTX_BACKEND_JAVA_SOURCE_ROOT ${CMAKE_SOURCE_DIR}/backends/ptx/java)
+set(PTX_BACKEND_JAVA_SOURCE_ROOT ${CMAKE_SOURCE_DIR}/backends/ptx/src/main/java)
 file(GLOB_RECURSE PTX_BACKEND_JAVA_SOURCE_FILES ${PTX_BACKEND_JAVA_SOURCE_ROOT}/*.java)
 set(PTX_BACKEND_CLASS_DIR ${CMAKE_BINARY_DIR}/ptx_backend/classes)
-set(PTX_BACKEND_SERVICES_DIR ${CMAKE_SOURCE_DIR}/backends/ptx/services)
+set(PTX_BACKEND_RESOURCES_DIR ${CMAKE_SOURCE_DIR}/backends/ptx/src/main/resources)
 set(PTX_BACKEND_JAR ${CMAKE_BINARY_DIR}/ptx_backend/ptx_backend.jar)
 
 add_custom_target(ptx_backend.javac DEPENDS hat.jar
@@ -439,7 +439,7 @@ add_custom_target(ptx_backend.jar DEPENDS ptx_backend.javac
       ${JAVA_HOME}/bin/jar
         --create --no-manifest
         --file  ${PTX_BACKEND_JAR}
-        -C ${PTX_BACKEND_SERVICES_DIR} .
+        -C ${PTX_BACKEND_RESOURCES_DIR} .
         -C ${PTX_BACKEND_CLASS_DIR} .
 )
 add_dependencies(backend_jars ptx_backend.jar)
@@ -461,10 +461,10 @@ add_dependencies(backend_libs ptx_backend)
 ##MOCK Backend
 ##mock_backend.jar
 
-set(MOCK_BACKEND_JAVA_SOURCE_ROOT ${CMAKE_SOURCE_DIR}/backends/mock/java)
+set(MOCK_BACKEND_JAVA_SOURCE_ROOT ${CMAKE_SOURCE_DIR}/backends/mock/src/main/java)
 file(GLOB_RECURSE MOCK_BACKEND_JAVA_SOURCE_FILES ${MOCK_BACKEND_JAVA_SOURCE_ROOT}/*.java)
 set(MOCK_BACKEND_CLASS_DIR ${CMAKE_BINARY_DIR}/mock_backend/classes)
-set(MOCK_BACKEND_SERVICES_DIR ${CMAKE_SOURCE_DIR}/backends/mock/services)
+set(MOCK_BACKEND_RESOURCES_DIR ${CMAKE_SOURCE_DIR}/backends/mock/src/main/resources)
 set(MOCK_BACKEND_JAR ${CMAKE_BINARY_DIR}/mock_backend/mock_backend.jar)
 
 add_custom_target(mock_backend.javac DEPENDS hat.jar
@@ -483,7 +483,7 @@ add_custom_target(mock_backend.jar DEPENDS mock_backend.javac
       ${JAVA_HOME}/bin/jar
         --create --no-manifest
         --file  ${MOCK_BACKEND_JAR}
-        -C ${MOCK_BACKEND_SERVICES_DIR} .
+        -C ${MOCK_BACKEND_RESOURCES_DIR} .
         -C ${MOCK_BACKEND_CLASS_DIR} .
 )
 add_dependencies(backend_jars mock_backend.jar)
