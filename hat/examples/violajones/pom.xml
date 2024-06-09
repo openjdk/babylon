@@ -27,10 +27,19 @@ questions.
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <groupId>oracle.code</groupId>
     <artifactId>hat-example-violajones</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0</version>
+    <packaging>jar</packaging>
+
+     <dependencies>
+        <dependency>
+           <groupId>oracle.code</groupId>
+         <version>1.0</version>
+         <artifactId>hat</artifactId>
+       </dependency>
+     </dependencies>
+
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -38,14 +47,6 @@ questions.
         <maven.compiler.target>23</maven.compiler.target>
     </properties>
 
-    <dependencies>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <version>5.10.0</version>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
     <build>
     <pluginManagement>
         <plugins>
@@ -69,7 +70,6 @@ questions.
                         <arg>--enable-preview</arg>
                         <arg>--add-exports=java.base/jdk.internal=ALL-UNNAMED</arg>
                         <arg>--add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED</arg>
-                        <arg>--class-path=../../hat/target/classes</arg>
                     </compilerArgs>
                     <source>${maven.compiler.source}</source>
                     <target>${maven.compiler.target}</target>
@@ -78,14 +78,6 @@ questions.
                     <showWarnings>true</showWarnings>
                     <showDeprecation>true</showDeprecation>
                 </configuration>
-            </plugin>
-            <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <configuration>
-                  <descriptorRefs>
-                      <descriptorRef>jar-with-dependencies</descriptorRef>
-                   </descriptorRefs> 
-               </configuration>
             </plugin>
         </plugins>
     </build>

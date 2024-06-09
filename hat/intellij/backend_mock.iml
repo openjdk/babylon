@@ -2,17 +2,11 @@
 <module type="JAVA_MODULE" version="4">
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
-    <content url="file://$MODULE_DIR$/../backends/mock/cpp">
+    <content url="file://$MODULE_DIR$/../backends/mock">
       <excludeFolder url="file://$MODULE_DIR$/../backends/mock/cpp" />
-    </content>
-    <content url="file://$MODULE_DIR$/../backends/mock/include">
       <excludeFolder url="file://$MODULE_DIR$/../backends/mock/include" />
-    </content>
-    <content url="file://$MODULE_DIR$/../backends/mock/java">
-      <sourceFolder url="file://$MODULE_DIR$/../backends/mock/java" isTestSource="false" />
-    </content>
-    <content url="file://$MODULE_DIR$/../backends/mock/resources">
-      <sourceFolder url="file://$MODULE_DIR$/../backends/mock/resources" type="java-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/../backends/mock/src/main/java" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../backends/mock/src/main/resources" type="java-resource" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

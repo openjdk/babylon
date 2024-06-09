@@ -27,10 +27,9 @@ questions.
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <groupId>oracle.code</groupId>
     <artifactId>hat-example-heal</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0</version>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -38,27 +37,15 @@ questions.
         <maven.compiler.target>23</maven.compiler.target>
     </properties>
 
-    <dependencies>
+   <dependencies>
         <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <version>5.10.0</version>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
+           <groupId>oracle.code</groupId>
+         <version>1.0</version>
+         <artifactId>hat</artifactId>
+       </dependency>
+     </dependencies>
+
     <build>
-    <pluginManagement>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.1.2</version>
-                <configuration>
-                   <argLine> -enable-preview</argLine>
-                </configuration>
-            </plugin>
-        </plugins>
-    </pluginManagement>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -69,7 +56,6 @@ questions.
                         <arg>--enable-preview</arg>
                         <arg>--add-exports=java.base/jdk.internal=ALL-UNNAMED</arg>
                         <arg>--add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED</arg>
-                        <arg>--class-path=../../hat/target/classes</arg>
                     </compilerArgs>
                     <source>${maven.compiler.source}</source>
                     <target>${maven.compiler.target}</target>
@@ -78,14 +64,6 @@ questions.
                     <showWarnings>true</showWarnings>
                     <showDeprecation>true</showDeprecation>
                 </configuration>
-            </plugin>
-            <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <configuration>
-                  <descriptorRefs>
-                      <descriptorRef>jar-with-dependencies</descriptorRef>
-                   </descriptorRefs> 
-               </configuration>
             </plugin>
         </plugins>
     </build>
