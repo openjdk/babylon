@@ -37,7 +37,7 @@ if ("${MOCK_BACKEND}EMPTY" STREQUAL "EMPTY")
 endif()
 add_subdirectory(mock)
 add_executable(schemadump
-        ${SHARED_BACKEND}/cpp/shared.cpp
+        ${SHARED_BACKEND}/cpp/schema.cpp
         ${SHARED_BACKEND}/cpp/schemadump.cpp
 )
 

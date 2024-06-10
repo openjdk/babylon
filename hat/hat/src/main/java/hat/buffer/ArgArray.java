@@ -342,21 +342,21 @@ public interface ArgArray extends IncompleteBuffer {
 
     static ArgArray create(Accelerator accelerator, Object... args) {
         String[] schemas = new String[args.length];
-        StringBuilder argSchema = new StringBuilder("args:[");
-        argSchema.append(args.length).append(":");
+        StringBuilder argSchema = new StringBuilder();
+        argSchema.append(args.length);
         for (int i = 0; i < args.length; i++) {
             Object argObject = args[i];
             schemas[i] = switch (argObject) {
-                case Boolean z1 -> "?:z1";
-                case Byte s8 -> "?:s8";
-                case Short s16 -> "?:s16";
-                case Character u16 -> "?:u16";
-                case Float f32 -> "?:f32";
-                case Integer s32 -> "?:s32";
-                case Long s64 -> "?:s64";
-                case Double f64 -> "?:f64";
-                case CompleteBuffer buffer -> "!:" + buffer.schema();
-                case IncompleteBuffer buffer -> "?:" + buffer.schema();
+                case Boolean z1 -> "(?:z1)";
+                case Byte s8 -> "(?:s8)";
+                case Short s16 -> "(?:s16)";
+                case Character u16 -> "(?:u16)";
+                case Float f32 -> "(?:f32)";
+                case Integer s32 -> "(?:s32)";
+                case Long s64 -> "(?:s64)";
+                case Double f64 -> "(?:f64)";
+                case CompleteBuffer buffer -> "(!:" + buffer.schema()+")";
+                case IncompleteBuffer buffer -> "(?:" + buffer.schema()+")";
                 default -> throw new IllegalStateException("Unexpected value: " + argObject);
             };
             if (i > 0) {
@@ -364,7 +364,6 @@ public interface ArgArray extends IncompleteBuffer {
             }
             argSchema.append(schemas[i]);
         }
-        argSchema.append("]");
         String schemaStr = argSchema.toString();
 
         ArgArray argArray = SegmentMapper.of(accelerator.lookup, ArgArray.class,

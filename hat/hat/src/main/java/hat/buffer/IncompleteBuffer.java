@@ -10,10 +10,12 @@ public interface IncompleteBuffer extends Buffer {
         if (memoryLayout instanceof StructLayout structLayout) {
             var memberLayouts = structLayout.memberLayouts();
             if (memberLayouts.getLast() instanceof SequenceLayout tailSequenceLayout) {
-                long offsetOfTailSequenceLayout = memoryLayout.byteOffset(MemoryLayout.PathElement.groupElement(memberLayouts.size() - 1));
-                //  var offsetOfTailSequenceLayout = tailSequenceLayout.byteOffset();
-                StringBuilder sb = new StringBuilder(Long.toString(offsetOfTailSequenceLayout)).append("+");
-                return buildSchema(sb, layout(), tailSequenceLayout);
+                return new SchemaBuilder()
+                        .literal(memoryLayout.byteOffset(
+                                MemoryLayout.PathElement.groupElement(memberLayouts.size() - 1)))
+                        .plus()
+                        .layout(layout(),tailSequenceLayout,true)
+                        .toString();
             } else {
                 throw new IllegalStateException("IncompleteBuffer last layout is not SequenceLayout!");
             }
