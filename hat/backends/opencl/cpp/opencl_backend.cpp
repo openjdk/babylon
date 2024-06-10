@@ -24,7 +24,7 @@
  */
 #include "opencl_backend.h"
 
-OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::OpenCLBuffer(Backend::Program::Kernel *kernel, Arg_t *arg)
+OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::OpenCLBuffer(Backend::Program::Kernel *kernel, Arg_s *arg)
         : Backend::Program::Kernel::Buffer(kernel, arg) {
     /*
      *   (void *) arg->value.buffer.memorySegment,
@@ -108,8 +108,8 @@ OpenCLBackend::OpenCLProgram::OpenCLKernel::~OpenCLKernel() {
 
 long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
    // std::cout << "ndrange(" << range << ") " << std::endl;
-    ArgSled argSled(static_cast<ArgArray_t *>(argArray));
-    Schema::dumpSled(std::cout, argArray);
+    ArgSled argSled(static_cast<ArgArray_s *>(argArray));
+    Sled::show(std::cout, argArray);
     if (events != nullptr || eventc != 0) {
         std::cerr << "opencl state issue, we might have leaked events!" << std::endl;
     }
@@ -118,7 +118,7 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
     events = new cl_event[eventMax];
     NDRange *ndrange = nullptr;
     for (int i = 0; i < argSled.argc(); i++) {
-        Arg_t *arg = argSled.arg(i);
+        Arg_s *arg = argSled.arg(i);
         switch (arg->variant) {
             case '&': {
                 if (arg->idx == 0){
@@ -198,7 +198,7 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
 
     eventc++;
     for (int i = 0; i < argSled.argc(); i++) {
-        Arg_t *arg = argSled.arg(i);
+        Arg_s *arg = argSled.arg(i);
         if (arg->variant == '&') {
             static_cast<OpenCLBuffer *>(arg->value.buffer.vendorPtr)->copyFromDevice();
         }
@@ -220,7 +220,7 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
     eventc = 0;
     events = nullptr;
     for (int i = 0; i < argSled.argc(); i++) {
-        Arg_t *arg = argSled.arg(i);
+        Arg_s *arg = argSled.arg(i);
         if (arg->variant == '&') {
             delete static_cast<OpenCLBuffer *>(arg->value.buffer.vendorPtr);
             arg->value.buffer.vendorPtr = nullptr;

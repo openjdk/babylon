@@ -365,7 +365,9 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public T cchevron() {
         return rawcchevron();
     }
-
+    public T chevron(Consumer<T> ct) {
+        return rawochevron().indent(ct).rawcchevron();
+    }
     final public T rawcchevron() {
         return emitText(">");
     }

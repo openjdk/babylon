@@ -24,12 +24,15 @@
  */
 package hat.buffer;
 
+import hat.util.StreamCounter;
+
 import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.PaddingLayout;
 import java.lang.foreign.SequenceLayout;
 import java.lang.foreign.StructLayout;
+import java.lang.foreign.UnionLayout;
 import java.lang.foreign.ValueLayout;
 import java.lang.reflect.InvocationTargetException;
 
@@ -49,45 +52,4 @@ public interface Buffer {
             throw new RuntimeException(e);
         }
     }
-
-    default String buildSchema(StringBuilder sb, MemoryLayout layout, SequenceLayout tailSequenceLayout) {
-        sb.append((layout.name().isPresent()) ? layout.name().get() : "?").append(":");
-        switch (layout) {
-            case GroupLayout groupLayout -> {
-                String prefix = groupLayout instanceof StructLayout ? "{" : "<";
-                String suffix = groupLayout instanceof StructLayout ? "}" : ">";
-                String separator = groupLayout instanceof StructLayout ? "," : "|";
-                sb.append(prefix);
-                boolean[] first = {true};
-                groupLayout.memberLayouts().forEach(l -> {
-                    if (!first[0]) {
-                        sb.append(separator);
-                    } else {
-                        first[0] = false;
-                    }
-                    buildSchema(sb, l, tailSequenceLayout);
-                });
-                sb.append(suffix);
-            }
-            case ValueLayout valueLayout -> {
-                sb.append(ArgArray.valueLayoutToSchemaString(valueLayout));
-            }
-            case PaddingLayout paddingLayout -> sb.append("x").append(paddingLayout.byteSize());
-            case SequenceLayout sequenceLayout -> {
-
-                sb.append('[');
-                if (sequenceLayout.equals(tailSequenceLayout) && this instanceof IncompleteBuffer) {
-                    sb.append("*");
-                } else {
-                    sb.append(sequenceLayout.elementCount());
-                }
-                sb.append(":");
-                buildSchema(sb, sequenceLayout.elementLayout(), tailSequenceLayout);
-                sb.append(']');
-            }
-        }
-        return sb.toString();
-    }
-
-
 }

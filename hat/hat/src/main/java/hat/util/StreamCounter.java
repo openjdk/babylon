@@ -67,7 +67,7 @@ public class StreamCounter<E> {
         value++;
     }
 
-    private StreamCounter() {
+    public StreamCounter() {
         this.value = 0;
     }
 
