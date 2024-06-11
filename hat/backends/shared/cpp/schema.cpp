@@ -147,19 +147,23 @@ Schema::ArgNode *Schema::ArgNode::parse(Cursor *cursor) {
     cursor->expectEither('!', '?', &actual, __LINE__);
 
     cursor->expect(':', __LINE__);
-    cursor->expectDigit("long byteCount of buffer", __LINE__);
-    long bytes = cursor->getLong();
-    if (cursor->isEither('#', '+', &actual)) {
-        bool complete = (actual == '#');
-        cursor->expectAlpha("identifier", __LINE__);
-        char *identifier = cursor->getIdentifier();
-        cursor->expect(':', "after identifier ", __LINE__);
-        cursor->expect('{', "top level arg struct", __LINE__);
-        addChild(cursor, new ArgStructNode(this, complete, identifier));
-    } else if (cursor->peekAlpha()) {
-        addChild(cursor, new FieldNode(this, cursor->getIdentifier()));
-    } else {
-        cursor->error(std::cerr, __FILE__, __LINE__, "expecting '#' ");
+    if (cursor->peekAlpha()) {
+        addChild(cursor, new FieldNode(this, nullptr));
+    }else{
+        cursor->expectDigit("long byteCount of buffer", __LINE__);
+        long bytes = cursor->getLong();
+        if (cursor->isEither('#', '+', &actual)) {
+            bool complete = (actual == '#');
+            cursor->expectAlpha("identifier", __LINE__);
+            char *identifier = cursor->getIdentifier();
+            cursor->expect(':', "after identifier ", __LINE__);
+            cursor->expect('{', "top level arg struct", __LINE__);
+            addChild(cursor, new ArgStructNode(this, complete, identifier));
+        } else if (cursor->peekAlpha()) {
+            addChild(cursor, new FieldNode(this, cursor->getIdentifier()));
+        } else {
+            cursor->error(std::cerr, __FILE__, __LINE__, "expecting '#' ");
+        }
     }
     cursor->expect(')', "at end of NamedStructOrUnion", __LINE__);
     cursor->out();
