@@ -28,138 +28,18 @@
 #include <cstring>
 #include <iostream>
 #include <iomanip>
+#include "cursor.h"
 
-struct Cursor {
-    char *ptr;
-    Cursor(char *ptr): ptr(ptr) {
-    }
-
-    virtual ~Cursor() {
-    }
-
-private:
-    Cursor *skipWhiteSpace() {
-        while (*ptr == ' ' || *ptr == '\n' || *ptr == '\t') {
-            step(1);
-        }
-        return this;
-    }
-
-
-    Cursor *skipIdentifier() {
-        while (peekAlpha() || peekDigit()) {
-            step(1);
-        }
-        return this;
-    }
-public:
-    void step(int count) {
-        while (count--) {
-            ptr++;
-        }
-    }
-
-    bool peekAlpha() {
-        skipWhiteSpace();
-        return (::isalpha(*ptr));
-    }
-
-    bool peekDigit() {
-        skipWhiteSpace();
-        return (::isdigit(*ptr));
-    }
-
-    bool is(char ch) {
-        skipWhiteSpace();
-        if (*ptr == ch) {
-            step(1);
-            return true;
-        }
-        return false;
-    }
-
-    bool isEither(char ch1, char ch2) {
-        skipWhiteSpace();
-        if (*ptr == ch1 || *ptr == ch2) {
-            step(1);
-            return true;
-        }
-        return false;
-    }
-
-    bool isEither(char ch1, char ch2, char ch3) {
-        skipWhiteSpace();
-        if (*ptr == ch1 || *ptr == ch2 || *ptr == ch3) {
-            step(1);
-            return true;
-        }
-        return false;
-    }
-
-    /*bool is(char *str) {
-        skipWhiteSpace();
-        int count = 0;
-        char *safePtr = ptr;
-        while (*str && *ptr && *str == *ptr) {
-            ptr++;
-            str++;
-            count++;
-        }
-        if (count > 0 && *str == '\0') {
-            step(count);
-            return true;
-        }
-        ptr = safePtr;
-        return false;
-    }*/
-
-    int getInt() {
-        int value = *ptr - '0';
-        step(1);
-        if (peekDigit()) {
-            return value * 10 + getInt();
-        }
-        return value;
-    }
-
-    long getLong() {
-        long value = *ptr - '0';
-        step(1);
-        if (peekDigit()) {
-            return value * 10 + getLong();
-        }
-        return value;
-    }
-
-    char *getIdentifier() {
-        char *identifierStart = ptr;
-        skipIdentifier();
-        size_t len = ptr - identifierStart;
-        char *identifier = new char[len + 1];
-        std::memcpy(identifier, identifierStart, len);
-        identifier[len] = '\0';
-        return identifier;
-    }
-
-    void error(std::ostream &ostream, const char *file, int line, const char *str) {
-        ostream << file << ":" << "@" << line << ": parse error " << str << " looking at " << ptr << std::endl;
-        exit(1);
-    }
-
-};
 
 struct Schema {
     struct Node {
-        enum Type {
-            StructType, UnionType, ArrayType, NamedStructOrUnionType, ArgType, SchemaType, FieldType, SimpleType
-        };
-        Type type;
+
         Node *parent;
-        char *start;
-        char *end;
+        const char *type;
+
         std::vector<Node *> children;
 
-        Node(Node *parent, Type type):parent(parent), type(type) {
+        Node(Node *parent, const char* type):parent(parent), type(type) {
         }
 
         Node *addChild(Cursor *cursor, Node *child) {
@@ -175,25 +55,7 @@ struct Schema {
         virtual ~Node() = default;
     };
 
-    struct SimpleType : public Node {
-        char *name;
 
-        SimpleType(Node *paren)
-                : Node(paren, Node::Type::SimpleType), name(nullptr) {
-
-        }
-
-        virtual SimpleType *parse(Cursor *cursor) {
-            name = cursor->getIdentifier();
-            return this;
-        }
-
-        virtual ~SimpleType() {
-            if (name) {
-                delete[] name;
-            }
-        }
-    };
 
     struct Array : public Node {
         bool flexible;
@@ -201,12 +63,12 @@ struct Schema {
         char *elementName;
         Node *elementType;
 
-        Array(Node *paren): Node(paren, Node::Type::ArrayType), flexible(false), elementCount(0), elementName(nullptr), elementType(nullptr) {
+        Array(Node *paren): Node(paren, "Array"), flexible(false), elementCount(0), elementName(nullptr), elementType(nullptr) {
         }
 
-        virtual Array *parse(Cursor *cursor);
+        Array *parse(Cursor *cursor) override;
 
-        virtual ~Array() {
+        ~Array() override {
             if (elementType) {
                 delete elementType;
             }
@@ -216,14 +78,14 @@ struct Schema {
         }
     };
 
-    struct NamedNode : public Node {
+    struct AbstractNamedNode : public Node {
         char *name;
         Node *typeNode;
 
-        NamedNode(Node *parent, Node::Type type): Node(parent, type), name(nullptr), typeNode(nullptr) {
+        AbstractNamedNode(Node *parent, const char *type, char *name): Node(parent, type), name(name), typeNode(nullptr) {
         }
 
-        ~NamedNode() {
+        ~AbstractNamedNode() {
             if (name) {
                 delete[] name;
             }
@@ -233,107 +95,86 @@ struct Schema {
             }
         }
     };
-
-    struct Field : public NamedNode {
-        explicit Field(Node *parent)
-                : NamedNode(parent, Type::FieldType) {
+    struct FieldNode : public AbstractNamedNode {
+        char *typeName;
+        FieldNode(Node *paren, char *name)
+                : AbstractNamedNode(paren, "FieldNode", name), typeName(nullptr) {
         }
 
-        virtual Field *parse(Cursor *cursor) {
-            cursor->error(std::cerr, __FILE__, __LINE__, "Implement field parser");
-            return this;
-        }
+        FieldNode *parse(Cursor *cursor) override ;
 
-        ~Field() {
+        ~FieldNode() override {
+            if (typeName) {
+                delete[] name;
+            }
         }
     };
 
-    struct StructOrUnion : public NamedNode {
+    struct AbstractStructOrUnionNode : public AbstractNamedNode {
         char separator;
         char terminator;
 
-        StructOrUnion(Node *parent, Node::Type type, char separator, char terminator)
-                : NamedNode(parent, type), separator(separator), terminator(terminator) {
+
+        AbstractStructOrUnionNode(Node *parent, const char *type, char separator, char terminator, char *name)
+                : AbstractNamedNode(parent, type, name), separator(separator), terminator(terminator) {
 
         }
 
-        virtual StructOrUnion *parse(Cursor *cursor);
+         AbstractStructOrUnionNode *parse(Cursor *cursor) override;
 
-        virtual ~StructOrUnion() {
-
-        }
+        ~AbstractStructOrUnionNode() override =default;
     };
 
-    struct Union : public StructOrUnion {
-        Union(Node *parent)
-                : StructOrUnion(parent, Node::Type::UnionType, '|', '>') {
+    struct UnionNode : public AbstractStructOrUnionNode {
+        UnionNode(Node *parent, char *name)
+                : AbstractStructOrUnionNode(parent, "UnionNode", '|', '>',  name) {
         }
 
-        virtual Union *parse(Cursor *cursor) {
-            return dynamic_cast<Union *>(StructOrUnion::parse(cursor));
-        }
+         UnionNode *parse(Cursor *cursor) override;
 
-        virtual ~Union() {
-        }
+        ~UnionNode() override =default;
     };
 
-    struct Struct : public StructOrUnion {
-
-        explicit Struct(Node *parent)
-                : StructOrUnion(parent, Node::Type::StructType, ',', '}') {
+    struct StructNode : public AbstractStructOrUnionNode {
+         StructNode(Node *parent, const char *type, char *name)
+                : AbstractStructOrUnionNode(parent,type, ',', '}',  name) {
         }
-
-        virtual Struct *parse(Cursor *cursor) {
-            return dynamic_cast<Struct *>(StructOrUnion::parse(cursor));
+         StructNode(Node *parent, char *name)
+                : StructNode(parent, "StructNode",  name) {
         }
-
-        virtual ~Struct() {
-
-        }
+        StructNode *parse(Cursor *cursor) override ;
+        ~StructNode() override =default;
     };
 
-
-    struct NamedStructOrUnion : public Node {
+    struct ArgStructNode : public StructNode {
         bool complete;
-        long bytes;
-        char *identifier;
-
-        NamedStructOrUnion(Node *paren)
-                : Node(paren, Node::Type::NamedStructOrUnionType), complete(false), bytes(0L), identifier(nullptr) {
+        explicit ArgStructNode(Node *parent, bool complete, char *name)
+                : StructNode(parent, "ArgStructNode",   name), complete(complete) {
         }
-
-        virtual NamedStructOrUnion *parse(Cursor *cursor);
-
-        virtual ~NamedStructOrUnion() {
-            if (identifier) {
-                delete[]identifier;
-            }
-
-        }
+        //virtual StructNode *parse(Cursor *cursor) ;
+        ~ArgStructNode() override =default;
     };
 
 
-    struct Arg : public Node {
-        Arg(Node *parent)
-                : Node(parent, Node::Type::ArgType) {
+    struct ArgNode : public Node {
+        int idx;
+        ArgNode(Node *parent, int idx)
+                : Node(parent, "ArgNode"), idx(idx) {
         }
 
-        virtual Arg *parse(Cursor *cursor);
+         ArgNode *parse(Cursor *cursor) override;
 
-        virtual ~Arg() {
-
-        }
+        virtual ~ArgNode() =default;
     };
 
     struct SchemaNode : public Node {
         SchemaNode()
-                : Node(nullptr, Node::Type::SchemaType) {
+                : Node(nullptr, "Schema") {
         }
 
         virtual SchemaNode *parse(Cursor *cursor);
 
-        virtual ~SchemaNode() {
-        }
+        virtual ~SchemaNode() =default;
     };
 
     static void show(std::ostream &out, char *schema);

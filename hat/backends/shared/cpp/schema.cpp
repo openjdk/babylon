@@ -27,182 +27,159 @@
 void Schema::show(std::ostream &out, char *argArray) {
 
 }
-void Schema::show(std::ostream &out, int depth, Node *schemaNode) {
 
+void indent(std::ostream &out, int depth, char ch) {
+    while (depth-- > 0) {
+        out << ch;
+    }
 }
+
+void Schema::show(std::ostream &out, int depth, Node *node) {
+    indent(out, depth, ' ');
+    if (auto *schemaNode = dynamic_cast<SchemaNode *>(node)) {
+        std::cout << schemaNode->type;
+    } else if (auto *arg = dynamic_cast<ArgNode *>(node)) {
+        std::cout << arg->idx;
+    } else if (auto *structNode = dynamic_cast<StructNode *>(node)) {
+        std::cout  <<  ((structNode->name== nullptr)?"?":structNode->name);
+    } else if (auto *unionNode = dynamic_cast<UnionNode *>(node)) {
+        std::cout <<  ((unionNode->name== nullptr)?"?":unionNode->name);
+      } else if (auto *array = dynamic_cast<Array *>(node)) {
+        if(array->flexible) {
+            std::cout << "[*]";
+        }else{
+            std::cout << "[" << array->elementCount << "]";
+        }
+    } else if (auto *fieldNode = dynamic_cast<FieldNode *>(node)) {
+        std::cout  << ((fieldNode->name== nullptr)?"?":fieldNode->name)<<":"<<fieldNode->typeName;
+    } else {
+        std::cout << "<node?>";
+    }
+    if (node->children.empty()) {
+        std::cout << std::endl;
+    }else{
+        std::cout << "{" << std::endl;
+        for (Node *n: node->children) {
+            show(out, depth + 1, n);
+        }
+        indent(out, depth, ' ');
+        std::cout << "}" << std::endl;
+    }
+}
+
 void Schema::show(std::ostream &out, SchemaNode *schemaNode) {
-
+    show(out, 0, schemaNode);
 }
 
+Schema::FieldNode *Schema::FieldNode::parse(Cursor *cursor) {
+    typeName = cursor->getIdentifier();
+    return this;
+}
 
 Schema::Array *Schema::Array::parse(Cursor *cursor) {
+    cursor->in("Array::Parse");
     if (cursor->is('*')) {
         flexible = true;
     } else if (cursor->peekDigit()) {
         elementCount = cursor->getLong();
     }
-    if (cursor->is(':')) {
-        if (cursor->is('?')) {
-        } else if (cursor->peekAlpha()) {
-            elementName = cursor->getIdentifier();
-        } else {
-            cursor->error(std::cerr, __FILE__, __LINE__, "expecting '?' or identifier for element");
-        }
-        if (cursor->is(':')) {
-            if (cursor->peekAlpha()) {
-                elementType = addChild(cursor,new struct SimpleType(this));
-            } else if (cursor->is('{')){
-                elementType = addChild(cursor, new struct Struct(this));
-            } else if (cursor->is('<')){
-                elementType = addChild(cursor, new struct Union(this));
-            }else{
-                cursor->error(std::cerr, __FILE__, __LINE__, "expecting '?' or identifier for element");
-            }
-            if (cursor->is(']')) {
-                return this;
-            } else {
-                cursor->error(std::cerr, __FILE__, __LINE__, "expecting ']'");
-            }
-
-        } else {
-            cursor->error(std::cerr, __FILE__, __LINE__, "expecting ':'");
-        }
+    cursor->expect(':', "after element count in array", __LINE__);
+    char *identifier= nullptr;
+    if (cursor->is('?')) {
+    } else if (cursor->peekAlpha()) {
+        identifier = cursor->getIdentifier();
     } else {
-        cursor->error(std::cerr, __FILE__, __LINE__, "expecting ':'");
+        cursor->error(std::cerr, __FILE__, __LINE__, "expecting '?' or identifier for element");
     }
-    cursor->error(std::cerr, __FILE__, __LINE__, "Implement array parser");
+    cursor->expect(':', "after name in array", __LINE__);
+    if (cursor->peekAlpha()) {
+        elementType = addChild(cursor, new  FieldNode(this, identifier));
+    } else if (cursor->is('{')) {
+        elementType = addChild(cursor, new  StructNode(this,  identifier));
+    } else if (cursor->is('<')) {
+        elementType = addChild(cursor, new  UnionNode(this, identifier));
+    } else {
+        cursor->error(std::cerr, __FILE__, __LINE__, "expecting type  for element");
+    }
+    cursor->expect(']', "after array type", __LINE__);
+    cursor->out();
     return this;
 }
 
-Schema::StructOrUnion *Schema::StructOrUnion::parse(Cursor *cursor) {
+Schema::AbstractStructOrUnionNode *Schema::AbstractStructOrUnionNode::parse(Cursor *cursor) {
+    cursor->in("StructUnion::parse");
     do {
+        char *identifier = nullptr;
         if (cursor->is('?')) {
-
-        }else if (cursor->peekAlpha()) {
-            name = cursor->getIdentifier();
+            // no name name = null!
+        } else if (cursor->peekAlpha()) {
+            identifier = cursor->getIdentifier();
         }
-        if (cursor->is(':')) {
-            if (cursor->peekAlpha()) {
-                typeNode = addChild(cursor, new struct SimpleType(this));
-            } else if (cursor->is('[')) {
-                typeNode = addChild(cursor, new Array( this));
-            } else if (cursor->is('{')) {
-                typeNode = addChild(cursor, new Struct( this));
-            } else if (cursor->is('<')) {
-                typeNode = addChild(cursor, new Union( this));
-            } else {
-                cursor->error(std::cerr, __FILE__, __LINE__, "expecting type");
-            }
+        cursor->expect(':', "after StrutOrUnion name", __LINE__);
+        if (cursor->peekAlpha()) {
+            typeNode = addChild(cursor, new  FieldNode(this, identifier));
+        } else if (cursor->is('[')) {
+            typeNode = addChild(cursor, new Array(this));
+        } else if (cursor->is('{')) {
+            typeNode = addChild(cursor, new StructNode(this, identifier ));
+        } else if (cursor->is('<')) {
+            typeNode = addChild(cursor, new UnionNode(this, identifier));
         } else {
-            cursor->error(std::cerr, __FILE__, __LINE__, "expecting ':'");
+            cursor->error(std::cerr, __FILE__, __LINE__, "expecting type");
         }
     } while (cursor->is(separator));
-    if (cursor->is(terminator)) {
-        return this;
-    } else {
-        cursor->error(std::cerr, __FILE__, __LINE__, "expecting '}' or '>'");
-    }
+    cursor->expect(terminator, "at end of struct or union ", __LINE__);
+    cursor->out();
     return this;
 }
 
-Schema::NamedStructOrUnion *Schema::NamedStructOrUnion::parse(Cursor *cursor) {
-    if (cursor->peekDigit()) {
-        bytes = cursor->getLong();
-        if (cursor->isEither('#', '+')) {
-            complete = ((*(cursor->ptr - 1)) == '#');
-            if (cursor->peekAlpha()) {
-                identifier = cursor->getIdentifier();
-                if (cursor->is(':')) {
-                    if (cursor->is('{')) {
-                        addChild(cursor, new Struct( this));
-                    } else if (cursor->is('<')) {
-                        addChild(cursor, new Union(this));
-                    } else {
-                        cursor->error(std::cerr, __FILE__, __LINE__, "expecting '{' or '<'");
-                    }
-                } else {
-                    cursor->error(std::cerr, __FILE__, __LINE__, "expecting ':'");
-                }
-            } else {
-                cursor->error(std::cerr, __FILE__, __LINE__, "expecting identifier ");
-            }
-        } else if (cursor->peekAlpha()) {
-            addChild(cursor, new Field( this));
-        } else {
-            cursor->error(std::cerr, __FILE__, __LINE__, "expecting '#' ");
-        }
-    } else {
-        cursor->error(std::cerr, __FILE__, __LINE__, "expecting long byteCount of buffer  ");
-    }
-    if (cursor->is(')')) {
-        return this;
-    } else {
-        cursor->error(std::cerr, __FILE__, __LINE__, "expecting ')'");
-        return nullptr;
-    }
-
+Schema::StructNode *Schema::StructNode::parse(Cursor *cursor) {
+    return dynamic_cast<StructNode *>(AbstractStructOrUnionNode::parse(cursor));
 }
-Schema::Arg *Schema::Arg::parse(Cursor *cursor) {
-    if (cursor->isEither('!', '?')) {
-        if (cursor->is(':')) {
-            addChild(cursor, new NamedStructOrUnion( this));
-        } else {
-            cursor->error(std::cerr, __FILE__, __LINE__, "expecting ':'");
-        }
+
+Schema::UnionNode *Schema::UnionNode::parse(Cursor *cursor) {
+    return dynamic_cast<UnionNode *>(AbstractStructOrUnionNode::parse(cursor));
+}
+
+Schema::ArgNode *Schema::ArgNode::parse(Cursor *cursor) {
+    cursor->in("ArgNode::parse");
+    char actual;
+    cursor->expectEither('!', '?', &actual, __LINE__);
+
+    cursor->expect(':', __LINE__);
+    cursor->expectDigit("long byteCount of buffer", __LINE__);
+    long bytes = cursor->getLong();
+    if (cursor->isEither('#', '+', &actual)) {
+        bool complete = (actual == '#');
+        cursor->expectAlpha("identifier", __LINE__);
+        char *identifier = cursor->getIdentifier();
+        cursor->expect(':', "after identifier ", __LINE__);
+        cursor->expect('{', "top level arg struct", __LINE__);
+        addChild(cursor, new ArgStructNode(this, complete, identifier));
+    } else if (cursor->peekAlpha()) {
+        addChild(cursor, new FieldNode(this, cursor->getIdentifier()));
     } else {
-        cursor->error(std::cerr, __FILE__, __LINE__, "expecting '?' or '!'");
+        cursor->error(std::cerr, __FILE__, __LINE__, "expecting '#' ");
     }
+    cursor->expect(')', "at end of NamedStructOrUnion", __LINE__);
+    cursor->out();
+
     return this;
 }
+
 Schema::SchemaNode *Schema::SchemaNode::parse(Cursor *cursor) {
-    if (cursor->peekDigit()) {
-        int argc = cursor->getInt();
-        for (int i = 0; i < argc; i++) {
-            if (cursor->is('(')) {
-                addChild(cursor, new Arg( this));
-                if (i < (argc - 1)) {
-                    if (cursor->is(',')) {
-                        //
-                    } else {
-                        cursor->error(std::cerr, __FILE__, __LINE__, "expecting ','");
-                    }
-                }
-            } else {
-                cursor->error(std::cerr, __FILE__, __LINE__, "expecting '('");
-            }
+    cursor->in("SchemaNode::parse");
+    cursor->expectDigit("arg count", __LINE__);
+    int argc = cursor->getInt();
+    for (int i = 0; i < argc; i++) {
+        cursor->expect('(', __LINE__);
+        addChild(cursor, new ArgNode(this, i));
+        if (i < (argc - 1)) {
+            cursor->expect(',', __LINE__);
         }
     }
+    cursor->out();
     return this;
 }
-/*
-char *Schema::strduprange(char *start, char *end) {
-    char *s = new char[end - start + 1];
-    std::memcpy(s, start, end - start);
-    s[end - start] = '\0';
-    return s;
-}
-
-std::ostream &Schema::dump(std::ostream &out, char *start, char *end) {
-    while (start < end) {
-        out << (char) *start;
-        start++;
-    }
-    return out;
-}
-
-std::ostream &Schema::indent(std::ostream &out, int depth) {
-    while (depth > 0) {
-        out << "  ";
-        depth++;
-    }
-    return out;
-}
-
-std::ostream &Schema::dump(std::ostream &out, char *label, char *start, char *end) {
-    out << label << " '";
-    dump(out, start, end) << "' " << std::endl;
-    return out;
-}
-*/
 
 
