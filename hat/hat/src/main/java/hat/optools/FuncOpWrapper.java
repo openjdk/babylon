@@ -41,7 +41,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
@@ -192,7 +194,7 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
     public Map<Block.Parameter, CoreOp.VarOp> parameterToVarOpMap = new LinkedHashMap<>();
     public Map<CoreOp.VarOp, Block.Parameter> varOpToParameterMap = new LinkedHashMap<>();
 
-    FuncOpWrapper(CoreOp.FuncOp op) {
+    public FuncOpWrapper(CoreOp.FuncOp op) {
         super(op);
         op().body().blocks().getFirst().parameters().forEach(parameter -> {
             Optional<Op.Result> optionalResult = parameter.uses().stream().findFirst();
@@ -234,6 +236,8 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
         return paramTable().isParameterVarOp(varOp);
     }
 
+
+
     public interface WrappedInvokeOpTransformer extends BiFunction<Block.Builder, InvokeOpWrapper, Block.Builder> {
         Block.Builder apply(Block.Builder block, InvokeOpWrapper op);
     }
@@ -242,6 +246,22 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
         return OpWrapper.wrap(op().transform((b, op) -> {
             if (op instanceof CoreOp.InvokeOp invokeOp) {
                 wrappedOpTransformer.apply(b, OpWrapper.wrap(invokeOp));
+            } else {
+                b.op(op);
+            }
+            return b;
+        }));
+    }
+
+    public FuncOpWrapper transformIfaceInvokes(BiConsumer<Block.Builder,InvokeOpWrapper> wrappedOpTransformer) {
+        return OpWrapper.wrap(op().transform((b, op) -> {
+            if (op instanceof CoreOp.InvokeOp invokeOp) {
+                InvokeOpWrapper wrapped = OpWrapper.wrap(invokeOp);
+                if (wrapped.isIfaceBufferMethod()) {
+                    wrappedOpTransformer.accept(b,wrapped);
+                }else{
+                    b.op(op);
+                }
             } else {
                 b.op(op);
             }

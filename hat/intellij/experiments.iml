@@ -9,5 +9,8 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="hat" />
     <orderEntry type="module" module-name="backend_spirv" />
+    <orderEntry type="module" module-name="backend_opencl" />
+    <orderEntry type="module" module-name="backend_ptx" />
+    <orderEntry type="module" module-name="backend_mock" />
   </component>
 </module>
