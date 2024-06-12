@@ -63,13 +63,13 @@ cd hat
 . ./env.bash
 mvn clean  compile jar:jar install
 ls maven-build
-hat-1.0.jar			hat-example-heal-1.0.jar	libptx_backend.dylib
-hat-backend-cuda-1.0.jar	hat-example-mandel-1.0.jar	libspirv_backend.dylib
-hat-backend-mock-1.0.jar	hat-example-squares-1.0.jar	mock_info
-hat-backend-opencl-1.0.jar	hat-example-view-1.0.jar	opencl_info
-hat-backend-ptx-1.0.jar		hat-example-violajones-1.0.jar	ptx_info
-hat-backend-spirv-1.0.jar	libmock_backend.dylib		spirv_info
-hat-example-experiments-1.0.jar	libopencl_backend.dylib
+hat-1.0.jar                     hat-example-heal-1.0.jar        libptx_backend.dylib
+hat-backend-cuda-1.0.jar        hat-example-mandel-1.0.jar      libspirv_backend.dylib
+hat-backend-mock-1.0.jar        hat-example-squares-1.0.jar     mock_info
+hat-backend-opencl-1.0.jar      hat-example-view-1.0.jar        opencl_info
+hat-backend-ptx-1.0.jar         hat-example-violajones-1.0.jar  ptx_info
+hat-backend-spirv-1.0.jar       libmock_backend.dylib           spirv_info
+hat-example-experiments-1.0.jar libopencl_backend.dylib
 ```
 
 To run an example
