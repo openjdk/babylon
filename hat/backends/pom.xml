@@ -34,10 +34,83 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
    <packaging>pom</packaging>
    <modules>
      <module>opencl</module>
-     <module>cuda</module> 
+     <module>cuda</module>
      <module>mock</module>
      <module>ptx</module>
-     <!--<module>shared</module>-->
-     <!--<module>spirv</module> -->
+     <!--<module>spirv</module>-->
    </modules>
+   <build>
+     <plugins>
+        <plugin>
+           <groupId>org.codehaus.mojo</groupId>
+           <artifactId>exec-maven-plugin</artifactId>
+           <version>3.1.0</version>
+            <executions>
+              <execution>
+                <id>cmake_config</id>
+                <phase>install</phase>
+                <goals>
+                   <goal>exec</goal>
+                </goals>
+                <configuration>
+                   <executable>cmake</executable>
+                   <arguments>
+                      <argument>-B</argument>
+                      <argument>cmake-build-debug</argument>
+                   </arguments>
+                </configuration>
+             </execution>
+              <execution>
+                <id>cmake_build</id>
+                <phase>install</phase>
+                <goals>
+                   <goal>exec</goal>
+                </goals>
+                <configuration>
+                   <executable>cmake</executable>
+                   <arguments>
+                      <argument>--build</argument>
+                      <argument>cmake-build-debug</argument>
+                   </arguments>
+                </configuration>
+             </execution>
+              <execution>
+                <id>cmake_copy_libs</id>
+                <phase>install</phase>
+                <goals>
+                   <goal>exec</goal>
+                </goals>
+                <configuration>
+                   <executable>cmake</executable>
+                   <arguments>
+                      <argument>--build</argument>
+                      <argument>cmake-build-debug</argument>
+                      <argument>--target</argument>
+                      <argument>copy_libs</argument>
+                   </arguments>
+                </configuration>
+             </execution>
+
+              <execution>
+                <id>cmake_clean</id>
+                <phase>clean</phase>
+                <goals>
+                   <goal>exec</goal>
+                </goals>
+                <configuration>
+                   <executable>cmake</executable>
+                   <arguments>
+                      <argument>--build</argument>
+                      <argument>cmake-build-debug</argument>
+                      <argument>--target</argument>
+                      <argument>clean</argument>
+                   </arguments>
+                </configuration>
+             </execution>
+
+           </executions>
+        </plugin>
+     </plugins>
+   </build>
+
 </project>

@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.22.1)
 project(backends)
 
+add_custom_target(copy_libs)
+
 if ("${SHARED_BACKEND}EMPTY" STREQUAL "EMPTY")
     set (SHARED_BACKEND "${CMAKE_SOURCE_DIR}/shared")
     message("SHARED_BACKEND=${SHARED_BACKEND}")

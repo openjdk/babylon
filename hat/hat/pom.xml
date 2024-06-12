@@ -46,7 +46,6 @@ questions.
         </dependency>
     </dependencies>
     <build>
-    <!--<outputDirectory>../build/hat</outputDirectory>-->
     <pluginManagement>
         <plugins>
             <plugin>
@@ -78,16 +77,25 @@ questions.
                     <showDeprecation>true</showDeprecation>
                 </configuration>
             </plugin>
-            <!--
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>2.3.1</version>
-                <configuration>
-                    <outputDirectory>../build/hat</outputDirectory>
-                </configuration>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>1.8</version>
+                <executions>
+                    <execution>
+                        <phase>install</phase>
+                        <configuration>
+                            <target>
+                                <copy file="target/${project.artifactId}-1.0.jar" todir="../maven-build"/>
+                            </target>
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
-            -->
-        </plugins> 
+       </plugins>
     </build>
+
 </project>
