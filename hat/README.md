@@ -57,6 +57,13 @@ echo ${PATH}
 Users/grfrost/github/babylon/hat/../build/macosx-aarch64-server-release/jdk/bin:/usr/local/bin:......
 ```
 
+Before a first build we need to create the `backends/cmake-build-debug` dir.
+```
+cd hat/backends
+mkdir cmake-build-debug
+cmake -B cmake-build-debug
+```
+
 Now we can just use maven to build, it will do its magic and place all jars and libs in `maven-build` dir
 ```
 cd hat
