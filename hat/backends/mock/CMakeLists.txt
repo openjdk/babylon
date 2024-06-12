@@ -39,6 +39,12 @@ target_link_libraries(mock_info
     mock_backend
 )
 add_custom_target(mock_natives DEPENDS mock_info mock_backend)
+add_custom_target(copy_mock_libs DEPENDS mock_info mock_backend
+    COMMAND cp ${CMAKE_BINARY_DIR}/mock/libmock_backend.* ${CMAKE_SOURCE_DIR}/../maven-build
+    COMMAND cp ${CMAKE_BINARY_DIR}/mock/mock_info ${CMAKE_SOURCE_DIR}/../maven-build
+)
+add_dependencies(copy_libs copy_mock_libs)
+
 
 
 

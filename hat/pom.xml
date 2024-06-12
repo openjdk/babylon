@@ -5,7 +5,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
    <version>1.0</version>
    <artifactId>parent</artifactId>
    <packaging>pom</packaging>
-         <dependencies>
+   <dependencies>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
@@ -13,10 +13,10 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
             <scope>test</scope>
         </dependency>
    </dependencies>
-    <modules>
+
+   <modules>
      <module>hat</module>
      <module>backends</module>
      <module>examples</module>
    </modules>
-
 </project>
