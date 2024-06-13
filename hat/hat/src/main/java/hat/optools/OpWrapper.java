@@ -229,4 +229,8 @@ public class OpWrapper<T extends Op> {
         }
         return list.stream();
     }
+
+    public Op.Result result() {
+        return op.result();
+    }
 }

@@ -44,8 +44,8 @@ public class C99HatBuildContext {
         @Override
         public CoreOp.VarOp resolve(Value value) {
             if (value instanceof Block.Parameter blockParameter) {
-                if (opWrapper.parameterToVarOpMap.containsKey(blockParameter)) {
-                    return opWrapper.parameterToVarOpMap.get(blockParameter);
+                if (opWrapper.parameterVarOpMap.containsKey(blockParameter)) {
+                    return opWrapper.parameterVarOpMap.get(blockParameter);
                 } else {
                     throw new IllegalStateException("what ?");
                 }
