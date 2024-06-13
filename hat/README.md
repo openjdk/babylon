@@ -1,35 +1,47 @@
 # HAT Project
 
-This is a fairly large project with Java and Native artifacts.
+This is a fairly large project with Java and native (C/C++) artifacts.
 
-We rely on the `babylon` (JDK23+Babylon) project, and the project will initially be made available as a subproject
-called `hat` under [github.com/openjdk/babylon](https://github.com/openjdk/babylon)
+To use HAT you will need to clone and build the  `babylon` (JDK23+Babylon) project or of course your fork of the babylon project (say `babylon-myfork`)
 
-So this `README.md` should be under a checkout babylon repo which has been built.
+[github.com/openjdk/babylon](https://github.com/openjdk/babylon)
 
-Here is how I prepare for babylon build babylon on an Ubuntu (x64) machine
+The HAT project is in the 'hat' subdir of the babylon project.
+
+We will walk through the initial steps to clone and build babylon and then focus on the steps for building HAT.
+
+If you follow these steps, you should not have to change any of the maven or cmake build files.
+
+We suggest starting with a 'github' dir and a dir where we will need to install jdk22
 
 ```
+export GITHUB=${HOME}/github
+mkdir -p ${GITHUB}
 mkdir -p ${HOME}/java
+```
+
+We need an existing jdk22 build to build babylon. These steps are slighly different for Mac OSX and Ubuntu
+
+### Ubuntu
+
+```
 cd ${HOME}/java
 wget https://download.java.net/java/GA/jdk22.0.1/c7ec1332f7bb44aeba2eb341ae18aca4/8/GPL/openjdk-22.0.1_linux-x64_bin.tar.gz
 export BOOT_JDK=${HOME}/java/jdk-22.0.1.jdk
 ```
 
-Here is how I prepare for babylon build on my Mac (aarch64) machine.
-
+### Mac OSX Aaarch64
 ```
-mkdir -p ${HOME}/java
 cd ${HOME}/java
 wget https://download.java.net/java/GA/jdk22.0.1/c7ec1332f7bb44aeba2eb341ae18aca4/8/GPL/openjdk-22.0.1_linux-x64_bin.tar.gz
 export BOOT_JDK=${HOME}/java/jdk-22.0.1.jdk/Contents/Home
 ```
 
-From now on the Mac and Ubuntu steps are the same
+From now on the Mac and Ubuntu steps are the same.
+
+If you have your own fork of the babylon repo use it rather that babylon.git below.
 
 ```
-export GITHUB=${HOME}/github
-mkdir -p ${GITHUB}
 cd ${GITHUB}
 git clone https://github.com/openjdk/babylon.git
 cd ${GITHUB}/babylon
@@ -37,26 +49,49 @@ bash configure  --with-boot-jdk=${BOOT_JDK}
 make clean
 make images
 ```
+If you have never built JDK before you may find that the 'configure' step will suggest packages to install.
 
-## Build notes
+I usually just take the suggestions and try running `bash configure` again.
+
+Eventually you will have a successful babylon build.
+
+You now should have
+
+```
+github
+├── babylon (or babylon-my-fork)
+│   ├── build
+│   │   └── XXXX-server-release
+│   │       ├── jdk
+│   │       └── ...
+│   ├── hat
+│   │   ├── README.md
+
+```
+Where XXXX is either linux-x64 or macosx-aarch64 and contains your build of babylon JDK.
+
+## Building HAT
 
 HAT uses maven and cmake.
 
 Maven controls the build but delegates to cmake to build the native code for the various backends.
 
-Make sure that `JAVA_HOME` is setup to point to your babylon build and the `${JAVA_HOME}/bin` is in your PATH.
+To build HAT we need to ensure that `JAVA_HOME` is setup to point to the babylon build (that we just created) and that `${JAVA_HOME}/bin` is in your PATH.
 
-The `env.bash` shell script can be 'dot included' in your build shell. It should detect the arch type and select the correct relative parent dir and inject that dir in your PATH.
+The `env.bash` shell script can be sourced (dot included) in your shell to set up these vars.
+
+It should detect the arch type and select the correct relative parent dir and inject that dir in your PATH.
 
 ```bash
 cd hat
 . ./env.bash
 echo ${JAVA_HOME}
-/Users/grfrost/github/babylon/hat/../build/macosx-aarch64-server-release/jdk
+/Users/ME/github/babylon/hat/../build/macosx-aarch64-server-release/jdk
 echo ${PATH}
-Users/grfrost/github/babylon/hat/../build/macosx-aarch64-server-release/jdk/bin:/usr/local/bin:......
+/Users/ME/github/babylon/hat/../build/macosx-aarch64-server-release/jdk/bin:/usr/local/bin:......
 ```
-Now we can just use maven to build, it will do its magic and place all jars and libs in `maven-build` dir
+
+Now we should be able to use maven to build, it will do its magic and place all jars and libs in `maven-build` dir
 
 ```
 cd hat
