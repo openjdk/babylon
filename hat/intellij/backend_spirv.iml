@@ -8,8 +8,8 @@
       <sourceFolder url="file://$MODULE_DIR$/../backends/spirv/src/main/java" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/../backends/spirv/src/main/resources" type="java-resource" />
     </content>
-    <content url="file://$MODULE_DIR$/../../../../beehive-spirv-toolkit">
-      <sourceFolder url="file://$MODULE_DIR$/../../../../beehive-spirv-toolkit/lib/src/main/java" isTestSource="false" />
+    <content url="file://$MODULE_DIR$/../../../beehive-spirv-toolkit">
+      <sourceFolder url="file://$MODULE_DIR$/../../../beehive-spirv-toolkit/lib/src/main/java" isTestSource="false" />
     </content>
     <content url="file://$MODULE_DIR$/../../cr-examples">
       <sourceFolder url="file://$MODULE_DIR$/../../cr-examples/spirv/src/main/java" isTestSource="false" />

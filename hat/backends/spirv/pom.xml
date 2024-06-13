@@ -79,10 +79,8 @@ questions.
                         </goals>
                         <configuration>
                             <sources>
-                                <source>
-                                    /Users/grfrost/github/grfrost/babylon-grfrost-fork/cr-examples/spirv/src/main/java
-                                </source>
-                                <source>/Users/grfrost/github/beehive-spirv-toolkit/lib/src/main/java</source>
+                                <source> ../../../cr-examples/spirv/src/main/java </source>
+                                <source>../../../../beehive-spirv-toolkit/lib/src/main/java</source>
                             </sources>
                         </configuration>
                     </execution>
