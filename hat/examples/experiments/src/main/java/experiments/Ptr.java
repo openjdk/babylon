@@ -29,32 +29,17 @@
     package experiments;
 
 
-    import hat.Accelerator;
-    import hat.backend.Backend;
     import hat.buffer.S32Array;
+    import hat.ops.HatPtrOp;
     import hat.optools.FuncOpWrapper;
-    import hat.optools.InvokeOpWrapper;
-    import hat.util.Result;
 
-    import java.lang.invoke.MethodHandles;
-    import java.lang.management.OperatingSystemMXBean;
     import java.lang.reflect.Method;
-    import java.lang.reflect.code.Block;
-    import java.lang.reflect.code.Body;
     import java.lang.reflect.code.CopyContext;
     import java.lang.reflect.code.Op;
-    import java.lang.reflect.code.OpTransformer;
-    import java.lang.reflect.code.TypeElement;
     import java.lang.reflect.code.Value;
-    import java.lang.reflect.code.interpreter.Interpreter;
-    import java.lang.reflect.code.op.CoreOp;
-    import java.lang.reflect.code.op.ExternalizableOp;
     import java.lang.reflect.code.type.JavaType;
-    import java.lang.reflect.code.type.PrimitiveType;
     import java.lang.runtime.CodeReflection;
-    import java.util.ArrayList;
     import java.util.List;
-    import java.util.Map;
 
     public class Ptr {
 
@@ -66,102 +51,27 @@
             }
         }
 
-        public static abstract class HatOp extends ExternalizableOp {
-            private final TypeElement type;
-
-            HatOp(String opName) {
-                super(opName, List.of());
-                this.type = JavaType.INT;
-            }
-
-            HatOp(String opName, TypeElement type, List<Value> operands) {
-                super(opName, operands);
-                this.type = type;
-            }
-
-            HatOp(String opName, TypeElement type, List<Value> operands, Map<String, Object> attributes) {
-                super(opName, operands);
-                this.type = type;
-            }
-
-            HatOp(HatOp that, CopyContext cc) {
-                super(that, cc);
-                this.type = that.type;
-            }
-
-            @Override
-            public TypeElement resultType() {
-                return type;
-            }
-
-           // @Override
-           // public Body body() {
-          //      return body;
-          //  }
-
-           // public String functionName() {
-             //   return functionName;
-          //  }
-        }
-        public static class HatPtrOp extends HatOp  {
-          //  InvokeOpWrapper ifaceInvokeOpWrapper;
-
-            public HatPtrOp(TypeElement typeElement, List<Value> operands) {
-
-                super("Ptr",typeElement,operands);
-            }
-
-          //  public HatPtrOp(InvokeOpWrapper ifaceInvokeOpWrapper) {
-            //    this();
-            //    this.ifaceInvokeOpWrapper = ifaceInvokeOpWrapper;
-           // }
-
-            public HatPtrOp(HatOp that, CopyContext cc) {
-                super(that, cc);
-            }
-
-            @Override
-            public Op transform(CopyContext cc, OpTransformer ot) {
-                return new HatPtrOp(this, cc);
-            }
-
-
-           // @Override
-           // public Block.Builder lower(Block.Builder builder, OpTransformer opTransformer) {
-
-             //   builder.op(ifaceInvokeOpWrapper.op());
-             //   return builder;
-           // }
-        }
-
 
         static public void main(String[] args) throws Exception {
             Method method = Ptr.class.getDeclaredMethod("addMul", S32Array.class, int.class, int.class);
             FuncOpWrapper funcOpWrapper = new FuncOpWrapper(method.getCodeModel().get());
             FuncOpWrapper transformedFuncOpWrapper = funcOpWrapper.transformIfaceInvokes((builder, invokeOpWrapper)->{
+             //   builder.op(invokeOpWrapper.op());
                 CopyContext cc = builder.context();
-                Value arg2 = cc.getValue(funcOpWrapper.parameter(2));
-              //  Value receiver = cc.
-               // Value receiver = cc.getValue(invokeOpWrapper.operandNAsValue(0));
-                List<Value> operands = new ArrayList<>();
-                operands.add(arg2);
-                builder.op(new HatPtrOp( JavaType.INT,operands));
+                List<Value> inputOperands = invokeOpWrapper.operands();
+                List<Value> outputOperands = cc.getValues(inputOperands);
+                Op.Result inputResult = invokeOpWrapper.result();
+                Op.Result outputResult = builder.op(new HatPtrOp(JavaType.INT, outputOperands));
+                cc.mapValue(inputResult, outputResult);
+
             });
 
-            System.out.println(transformedFuncOpWrapper.toText());
-
+          //  System.out.println(transformedFuncOpWrapper.toText());
             var loweredFuncOpWrapper =  transformedFuncOpWrapper.lower();
-            System.out.println(transformedFuncOpWrapper.toText());
-            Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-            var s32Array = S32Array.create(accelerator, 64);
-            for (int i = 0; i < 64; i++) {
-                s32Array.array(i, i);
-            }
-
-            Interpreter.invoke(MethodHandles.lookup(),loweredFuncOpWrapper.op(), s32Array, 2, 2);
-            for (int i = 0; i < 6; i++) {
-                System.out.println(s32Array.array(i));
-            }
+           // System.out.println(transformedFuncOpWrapper.toText());
+            System.out.println(loweredFuncOpWrapper.toText());
+             var ssa = loweredFuncOpWrapper.ssa();
+            System.out.println(ssa.toText());
         }
     }
 

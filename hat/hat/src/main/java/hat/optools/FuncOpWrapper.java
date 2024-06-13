@@ -26,13 +26,16 @@ package hat.optools;
 
 import hat.KernelContext;
 import hat.buffer.Buffer;
+import hat.ops.HatPtrOp;
 
 import java.lang.foreign.GroupLayout;
+import java.lang.reflect.Parameter;
 import java.lang.reflect.code.Block;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.Value;
+import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.type.PrimitiveType;
@@ -191,18 +194,47 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
         return paramInfo(idx).parameter;
     }
 
-    public Map<Block.Parameter, CoreOp.VarOp> parameterToVarOpMap = new LinkedHashMap<>();
-    public Map<CoreOp.VarOp, Block.Parameter> varOpToParameterMap = new LinkedHashMap<>();
+    public static class BiMap<T1 extends Block.Parameter,T2 extends Op>{
+        public Map<T1, T2> t1ToT2 = new LinkedHashMap<>();
+        public Map<T2,T1> t2ToT1 = new LinkedHashMap<>();
+        public void add(T1 t1,T2 t2){
+            t1ToT2.put(t1,t2);
+            t2ToT1.put(t2,t1);
+        }
+        public T1 get(T2 t2){
+            return t2ToT1.get(t2);
+        }
+        public T2 get(T1 t1){
+            return t1ToT2.get(t1);
+        }
 
+        public boolean containsKey(T1 t1) {
+            return t1ToT2.containsKey(t1);
+        }
+        public boolean containsKey(T2 t2) {
+            return t2ToT1.containsKey(t2);
+        }
+    }
+
+    public BiMap<Block.Parameter, CoreOp.VarOp> parameterVarOpMap = new BiMap<>();
+    public BiMap<Block.Parameter, CoreOp.InvokeOp> parameterInvokeOpMap = new BiMap<>();
+    public BiMap<Block.Parameter, HatPtrOp> parameterHatPtrOpMap = new BiMap<>();
     public FuncOpWrapper(CoreOp.FuncOp op) {
         super(op);
         op().body().blocks().getFirst().parameters().forEach(parameter -> {
             Optional<Op.Result> optionalResult = parameter.uses().stream().findFirst();
             optionalResult.ifPresentOrElse(result -> {
-                CoreOp.VarOp varOp = (CoreOp.VarOp) result.op();
-                parameterToVarOpMap.put(parameter, varOp);
-                varOpToParameterMap.put(varOp, parameter);
-                paramTable.add(Map.entry(parameter, varOp));
+                var resultOp = result.op();
+                if (resultOp instanceof CoreOp.VarOp varOp) {
+                    parameterVarOpMap.add(parameter, varOp);
+                    paramTable.add(Map.entry(parameter, varOp));
+                }else if (resultOp instanceof CoreOp.InvokeOp invokeOp) {
+                    parameterInvokeOpMap.add(parameter,invokeOp);
+                }else if (resultOp instanceof HatPtrOp hatPtrOp) {
+                    parameterHatPtrOpMap.add(parameter,hatPtrOp);
+                }else{
+                    //System.out.println("neither varOp or an invokeOp "+resultOp.getClass().getName());
+                }
             }, () -> {
                 throw new IllegalStateException("no use of param");
             });
@@ -210,7 +242,7 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
     }
 
     public FuncOpWrapper lower() {
-        return new FuncOpWrapper(op().transform((block, op) -> {
+        return OpWrapper.wrap(op().transform((block, op) -> {
             if (op instanceof Op.Lowerable lop) {
                 return lop.lower(block);
             } else {
@@ -219,6 +251,11 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
             }
         }));
     }
+
+    public FuncOpWrapper ssa() {
+        return OpWrapper.wrap(SSA.transform(op()));
+    }
+
 
     public Stream<OpWrapper<?>> wrappedRootOpStream() {
         return wrappedRootOpStream(firstBlockOfFirstBody());
