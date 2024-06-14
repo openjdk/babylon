@@ -316,17 +316,13 @@ public class ViolaJonesCoreCompute {
         long start = System.currentTimeMillis();
         int width = rgbS08x3Image.width();
 
-
-
-
         int height = rgbS08x3Image.height();
-        Accelerator accelerator = cc.accelerator;
-        F32Array2D greyImage = F32Array2D.create(accelerator, width, height);
+        F32Array2D greyImage = F32Array2D.create(cc, width, height);
         //javaRgbToGreyScale(rgbS08x3Image, greyImage);
 
         cc.dispatchKernel(width * height, kc -> rgbToGreyKernel(kc, rgbS08x3Image, greyImage));
-        F32Array2D integralImage = F32Array2D.create(accelerator, width, height);
-        F32Array2D integralSqImage = F32Array2D.create(accelerator, width, height);
+        F32Array2D integralImage = F32Array2D.create(cc, width, height);
+        F32Array2D integralSqImage = F32Array2D.create(cc, width, height);
 
         //javaCreateIntegralImage(greyImage, integralImage, integralSqImage);
 
@@ -335,7 +331,7 @@ public class ViolaJonesCoreCompute {
         cc.dispatchKernel(width, kc -> integralColKernel(kc, greyImage, integralImage, integralSqImage));
         cc.dispatchKernel(height, kc -> integralRowKernel(kc, integralImage, integralSqImage));
         // harViz.showIntegrals();
-        ScaleTable scaleTable = ScaleTable.create(accelerator, cascade, width, height);
+        ScaleTable scaleTable = ScaleTable.create(cc, cascade, width, height);
         System.out.print("range requested=");
         System.out.print(scaleTable.multiScaleAccumulativeRange());
         System.out.println();

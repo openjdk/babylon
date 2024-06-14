@@ -34,12 +34,12 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface S32Array extends Array1D {
     StructLayout layout  = Array1D.getLayout(S32Array.class, JAVA_INT);
-    static S32Array create(Accelerator accelerator, int length) {
-        return Array1D.create(accelerator, S32Array.class,layout, length);
+    static S32Array create(BufferAllocator bufferAllocator, int length) {
+        return Array1D.create(bufferAllocator, S32Array.class,layout, length);
     }
 
-    static S32Array create(Accelerator accelerator, int[] source) {
-        return create(accelerator, source.length).copyfrom(source);
+    static S32Array create(BufferAllocator bufferAllocator, int[] source) {
+        return create(bufferAllocator, source.length).copyfrom(source);
     }
 
     int array(long idx);

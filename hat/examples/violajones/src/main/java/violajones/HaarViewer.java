@@ -26,6 +26,7 @@ package violajones;
 
 
 import hat.Accelerator;
+import hat.buffer.BufferAllocator;
 import hat.buffer.F32Array2D;
 import hat.buffer.S32Array;
 import violajones.buffers.GreyU16Image;
@@ -64,7 +65,7 @@ public class HaarViewer extends JFrame {
         final F32Array2D integralImageF32;
         final F32Array2D integralSqImageF32;
 
-        public IntegralWindow(Container container, Accelerator accelerator, F32Array2D integralImageF32, F32Array2D integralSqImageF32) {
+        public IntegralWindow(Container container, BufferAllocator bufferAllocator, F32Array2D integralImageF32, F32Array2D integralSqImageF32) {
             this.integralImageF32 = integralImageF32;
             this.integralSqImageF32 = integralSqImageF32;
 
@@ -73,8 +74,8 @@ public class HaarViewer extends JFrame {
                 int height = this.integralImageF32.height();
                 this.integral = new BufferedImage(width, height, BufferedImage.TYPE_USHORT_GRAY);
                 this.integralSq = new BufferedImage(width, height, BufferedImage.TYPE_USHORT_GRAY);
-                this.integralImageU16 = GreyU16Image.create(accelerator, integral);
-                this.integralSqImageU16 = GreyU16Image.create(accelerator, integralSq);
+                this.integralImageU16 = GreyU16Image.create(bufferAllocator, integral);
+                this.integralSqImageU16 = GreyU16Image.create(bufferAllocator, integralSq);
                 this.integralImageView = new JComponent() {
                     @Override
                     public void paint(Graphics g) {
@@ -169,7 +170,7 @@ public class HaarViewer extends JFrame {
     final double imageScale = .5;
 
 
-    public HaarViewer(Accelerator accelerator,
+    public HaarViewer(BufferAllocator bufferAllocator,
                       BufferedImage image,
                       RgbS08x3Image rgbS08x3Image,
                       Cascade cascade,
@@ -245,7 +246,7 @@ public class HaarViewer extends JFrame {
         gridPanel.add(imageView);
         add(gridPanel, BorderLayout.CENTER);
         add(imagePanel, BorderLayout.EAST);
-        this.integralWindow = new IntegralWindow(this, accelerator, integralImageF32, integralSqImageF32);
+        this.integralWindow = new IntegralWindow(this, bufferAllocator, integralImageF32, integralSqImageF32);
         this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         pack();
         setVisible(true);
