@@ -20,7 +20,7 @@ mkdir -p ${GITHUB}
 mkdir -p ${HOME}/java
 ```
 
-We need an existing jdk22 build to build babylon. These steps are slighly different for Mac OSX and Ubuntu
+We need an existing jdk22 build to build babylon. These steps are slightly different for Mac OSX and Ubuntu
 
 ### Ubuntu
 
@@ -30,7 +30,7 @@ wget https://download.java.net/java/GA/jdk22.0.1/c7ec1332f7bb44aeba2eb341ae18aca
 export BOOT_JDK=${HOME}/java/jdk-22.0.1.jdk
 ```
 
-### Mac OSX Aaarch64
+### Mac OSX Aarch64
 ```
 cd ${HOME}/java
 wget https://download.java.net/java/GA/jdk22.0.1/c7ec1332f7bb44aeba2eb341ae18aca4/8/GPL/openjdk-22.0.1_linux-x64_bin.tar.gz
@@ -76,7 +76,7 @@ HAT uses maven and cmake.
 
 Maven controls the build but delegates to cmake to build the native code for the various backends.
 
-To build HAT we need to ensure that `JAVA_HOME` is setup to point to the babylon build (that we just created) and that `${JAVA_HOME}/bin` is in your PATH.
+To build HAT we need to ensure that `JAVA_HOME` is set up to point to the babylon build (that we just created) and that `${JAVA_HOME}/bin` is in your PATH.
 
 The `env.bash` shell script can be sourced (dot included) in your shell to set up these vars.
 
@@ -117,7 +117,7 @@ ${JAVA_HOME}/bin/java \
    mandel.MandelCompute
 ```
 
-The `hatrun.bash` script simlifies this somewhat
+The `hatrun.bash` script simplifies this somewhat
 
 ```
 bash hatrun.bash opencl mandel MandelCompute
