@@ -28,17 +28,19 @@ import hat.Accelerator;
 import hat.buffer.ImageBuffer;
 
 import java.awt.image.BufferedImage;
+import java.lang.foreign.StructLayout;
 
 import static java.lang.foreign.ValueLayout.JAVA_SHORT;
 
 public interface GreyU16Image extends ImageBuffer {
+
+    StructLayout layout =  ImageBuffer.createLayout(GreyU16Image.class,JAVA_SHORT);
     private static GreyU16Image create(Accelerator accelerator, int width, int height) {
-        return ImageBuffer.create(accelerator, GreyU16Image.class, width, height, BufferedImage.TYPE_USHORT_GRAY, 1, JAVA_SHORT);
+        return ImageBuffer.create(accelerator, GreyU16Image.class, layout,width, height, BufferedImage.TYPE_USHORT_GRAY, 1);
     }
 
     static GreyU16Image create(Accelerator accelerator, BufferedImage bufferedImage) {
         return create(accelerator, bufferedImage.getWidth(), bufferedImage.getHeight()).syncFromRaster(bufferedImage);
-
     }
 
     short data(long idx);

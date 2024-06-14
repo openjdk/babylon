@@ -40,9 +40,9 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_SHORT;
 
 public interface Cascade extends CompleteBuffer {
-    interface Feature {
+    interface Feature extends CompleteBuffer{
 
-        interface Rect {
+        interface Rect extends CompleteBuffer{
             StructLayout layout = MemoryLayout.structLayout(
                     JAVA_BYTE.withName("x"),
                     JAVA_BYTE.withName("y"),
@@ -73,7 +73,7 @@ public interface Cascade extends CompleteBuffer {
         }
 
 
-        interface LinkOrValue {
+        interface LinkOrValue extends CompleteBuffer {
             interface Anon {
                 MemoryLayout layout = MemoryLayout.unionLayout(
                         JAVA_INT.withName("featureId"),
@@ -108,7 +108,7 @@ public interface Cascade extends CompleteBuffer {
                 Feature.LinkOrValue.layout.withName("left"),
                 Feature.LinkOrValue.layout.withName("right"),
                 MemoryLayout.sequenceLayout(3, Feature.Rect.layout).withName("rect")
-        );
+        ).withName(Feature.class.getSimpleName());
 
         int id();
 
@@ -128,13 +128,13 @@ public interface Cascade extends CompleteBuffer {
         Feature.Rect rect(long idx);
     }
 
-    interface Stage {
+    interface Stage extends CompleteBuffer{
         StructLayout layout = MemoryLayout.structLayout(
                 JAVA_INT.withName("id"),
                 JAVA_FLOAT.withName("threshold"),
                 JAVA_SHORT.withName("firstTreeId"),
                 JAVA_SHORT.withName("treeCount")
-        ).withName("Stage");
+        ).withName(Stage.class.getSimpleName());
 
         float threshold();
 
@@ -153,12 +153,12 @@ public interface Cascade extends CompleteBuffer {
         void treeCount(short treeCount);
     }
 
-    interface Tree {
+    interface Tree extends CompleteBuffer{
         StructLayout layout = MemoryLayout.structLayout(
                 JAVA_INT.withName("id"),
                 JAVA_SHORT.withName("firstFeatureId"),
                 JAVA_SHORT.withName("featureCount")
-        ).withName("Tree");
+        ).withName(Tree.class.getSimpleName());
 
         void id(int id);
 

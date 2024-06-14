@@ -66,11 +66,6 @@ class RGBList implements S32RGBTable{
         return length;
     }
 
-    @Override
-    public void length(int length) {
-        this.length = length;
-    }
-
     static public class RGB implements S32RGBTable.RGB{
         RGBList rgbList;
         int idx=-1;

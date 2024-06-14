@@ -6,7 +6,7 @@ import java.lang.foreign.StructLayout;
 
 public interface IncompleteBuffer extends Buffer {
     default String schema() {
-        MemoryLayout memoryLayout = layout();
+        MemoryLayout memoryLayout = Buffer.getLayout(this);
         if (memoryLayout instanceof StructLayout structLayout) {
             var memberLayouts = structLayout.memberLayouts();
             if (memberLayouts.getLast() instanceof SequenceLayout tailSequenceLayout) {
@@ -14,7 +14,7 @@ public interface IncompleteBuffer extends Buffer {
                         .literal(memoryLayout.byteOffset(
                                 MemoryLayout.PathElement.groupElement(memberLayouts.size() - 1)))
                         .plus()
-                        .layout(layout(),tailSequenceLayout,true)
+                        .layout(Buffer.getLayout(this),tailSequenceLayout,true)
                         .toString();
             } else {
                 throw new IllegalStateException("IncompleteBuffer last layout is not SequenceLayout!");

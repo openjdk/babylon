@@ -25,6 +25,7 @@
 package heal;
 
 import hat.Accelerator;
+import hat.buffer.Buffer;
 import hat.buffer.Table;
 import hat.ifacemapper.SegmentMapper;
 
@@ -48,13 +49,14 @@ public interface S32XYTable extends Table<S32XYTable.XY> {
         void x(int x);
         void idx(int idx);
     }
+    StructLayout layout = MemoryLayout.structLayout(
+            JAVA_INT.withName("length"),
+            MemoryLayout.sequenceLayout(0, S32XYTable.XY.layout).withName("xy")
+    ).withName("XY");
 
     static S32XYTable create(Accelerator accelerator, int length) {
-        S32XYTable table = SegmentMapper.of(accelerator.lookup, S32XYTable.class,
-                JAVA_INT.withName("length"),
-                MemoryLayout.sequenceLayout(length, S32XYTable.XY.layout).withName("xy")
-        ).allocate(accelerator.backend.arena());
-        table.length(length);
+        S32XYTable table = SegmentMapper.ofIncomplete(accelerator.lookup, S32XYTable.class,layout, length).allocate(accelerator.backend.arena());
+        Buffer.setLength(table, length);
         return table;
     }
 

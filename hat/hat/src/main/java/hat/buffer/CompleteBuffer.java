@@ -6,9 +6,9 @@ import java.lang.foreign.MemorySegment;
 public interface CompleteBuffer extends Buffer {
     default String schema() {
         return new SchemaBuilder()
-                .literal(memorySegment().byteSize())
+                .literal(Buffer.getMemorySegment(this).byteSize())
                 .hash()
-                .layout(layout(),null, false)
+                .layout(Buffer.getLayout(this),null, false)
                 .toString();
     }
 }

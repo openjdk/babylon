@@ -25,6 +25,7 @@
 package violajones.ifaces;
 
 import hat.Accelerator;
+import hat.buffer.Buffer;
 import hat.buffer.Table;
 import hat.ifacemapper.SegmentMapper;
 
@@ -62,14 +63,16 @@ public interface ResultTable extends Table<ResultTable.Result> {
         void height(float height);
     }
 
+    StructLayout layout = MemoryLayout.structLayout(
+            JAVA_INT.withName("length"),
+            JAVA_INT.withName("atomicResultTableCount"),
+            MemoryLayout.sequenceLayout(0, ResultTable.Result.layout).withName("result")
+    );
+
     static ResultTable create(Accelerator accelerator, int length) {
-        ResultTable table = SegmentMapper.of(accelerator.lookup, ResultTable.class,
-                JAVA_INT.withName("length"),
-                JAVA_INT.withName("atomicResultTableCount"),
-                MemoryLayout.sequenceLayout(length, ResultTable.Result.layout).withName("result")
-        ).allocate(accelerator.backend.arena());
-        table.length(length);
-        return table;
+        return Buffer.setLength(
+                SegmentMapper.ofIncomplete(accelerator.lookup,ResultTable.class,layout,length)
+                        .allocate(accelerator.backend.arena()),length);
     }
 
     default Result get(int i) {

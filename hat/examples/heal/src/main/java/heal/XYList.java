@@ -64,11 +64,6 @@ class XYList implements S32XYTable {
         return length;
     }
 
-    @Override
-    public void length(int length) {
-        this.length=length;
-    }
-
     public static class XY implements S32XYTable.XY{
         XYList xyList;
         private int idx=-1;

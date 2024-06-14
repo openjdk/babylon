@@ -28,6 +28,8 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
 import hat.backend.Backend;
+import hat.backend.JavaMultiThreadedBackend;
+import hat.backend.JavaSequentialBackend;
 import hat.buffer.F32Array2D;
 import org.xml.sax.SAXException;
 import violajones.attic.ViolaJones;
@@ -55,7 +57,10 @@ public class ViolaJonesCompute {
         ));
         XMLHaarCascadeModel haarCascade = XMLHaarCascadeModel.load(
                 ViolaJonesRaw.class.getResourceAsStream("/cascades/haarcascade_frontalface_default.xml"));
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup(),
+              //  new JavaSequentialBackend()
+                Backend.FIRST
+        );
         Cascade cascade = Cascade.create(accelerator, haarCascade);
         RgbS08x3Image rgbImage = RgbS08x3Image.create(accelerator, nasa1996);
         ResultTable resultTable = ResultTable.create(accelerator, 1000);

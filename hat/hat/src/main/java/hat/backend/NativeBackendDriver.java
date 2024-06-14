@@ -27,6 +27,7 @@ package hat.backend;
 
 import hat.buffer.ArgArray;
 import hat.buffer.BackendConfig;
+import hat.buffer.Buffer;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
@@ -91,7 +92,7 @@ public abstract class NativeBackendDriver implements Backend {
                 String schema = backendConfig.schema();
                 var arena = Arena.global();
                 var cstr = arena.allocateFrom(schema);
-                backendHandle = (long) getBackend_MH.invoke(backendConfig.memorySegment(), schema.length(), cstr);
+                backendHandle = (long) getBackend_MH.invoke(Buffer.getMemorySegment(backendConfig), schema.length(), cstr);
             }
         } catch (Throwable throwable) {
             throw new IllegalStateException(throwable);
@@ -123,7 +124,7 @@ public abstract class NativeBackendDriver implements Backend {
 
     public void dumpArgArray(ArgArray argArray) {
         try {
-            dumpArgArray_MH.invoke(argArray.memorySegment());
+            dumpArgArray_MH.invoke(Buffer.getMemorySegment(argArray));
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
@@ -145,7 +146,7 @@ public abstract class NativeBackendDriver implements Backend {
 
     public void ndRange(long kernelHandle,  ArgArray argArray) {
         try {
-            this.ndrange_MH.invoke(kernelHandle, argArray.memorySegment());
+            this.ndrange_MH.invoke(kernelHandle, Buffer.getMemorySegment(argArray));
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }

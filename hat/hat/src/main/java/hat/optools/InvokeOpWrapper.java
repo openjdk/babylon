@@ -53,7 +53,12 @@ public class InvokeOpWrapper extends OpWrapper<CoreOp.InvokeOp> {
         Optional<Method> nonDeclaredMethod = Stream.of(declaringClass.getMethods())
                 .filter(method -> method.getName().equals(methodRef().name()))
                 .findFirst();
-        return nonDeclaredMethod.get();
+        if (nonDeclaredMethod.isPresent()){
+            return nonDeclaredMethod.get();
+        }else {
+            throw new IllegalStateException("what were we looking for ?"); // getClass causes this
+            //return nonDeclaredMethod.get();
+        }
     }
 
 

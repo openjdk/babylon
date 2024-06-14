@@ -28,12 +28,14 @@ import hat.Accelerator;
 import hat.buffer.ImageBuffer;
 
 import java.awt.image.BufferedImage;
+import java.lang.foreign.StructLayout;
 
 import static java.lang.foreign.ValueLayout.JAVA_SHORT;
 
 public interface RgbaS32Image extends ImageBuffer {
+    StructLayout layout =  ImageBuffer.createLayout(RgbaS32Image.class,JAVA_SHORT);
     private static RgbaS32Image create(Accelerator accelerator, int width, int height) {
-        return ImageBuffer.create(accelerator, RgbaS32Image.class, width, height, BufferedImage.TYPE_INT_ARGB, 1, JAVA_SHORT);
+        return ImageBuffer.create(accelerator, RgbaS32Image.class, layout,width, height, BufferedImage.TYPE_INT_ARGB, 1);
     }
 
     static RgbaS32Image create(Accelerator accelerator, BufferedImage bufferedImage) {
