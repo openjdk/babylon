@@ -49,7 +49,7 @@ if(CUDAToolkit_FOUND)
     add_custom_target(cuda_natives DEPENDS cuda_info cuda_backend)
 
     add_custom_target(copy_cuda_libs DEPENDS cuda_info cuda_backend
-        COMMAND echo cp ${CMAKE_BINARY_DIR}/cuda/libcuda_backend.* ${CMAKE_SOURCE_DIR}/../maven-build
+        COMMAND cp ${CMAKE_BINARY_DIR}/cuda/libcuda_backend.* ${CMAKE_SOURCE_DIR}/../maven-build
         COMMAND cp ${CMAKE_BINARY_DIR}/cuda/cuda_info ${CMAKE_SOURCE_DIR}/../maven-build
    )
 add_dependencies(copy_libs copy_cuda_libs)
