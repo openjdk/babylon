@@ -27,12 +27,15 @@ package hat.buffer;
 import hat.Accelerator;
 
 import java.lang.foreign.MemorySegment;
+import java.lang.foreign.StructLayout;
 
+import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface S32Array extends Array1D {
+    StructLayout layout  = Array1D.getLayout(S32Array.class, JAVA_INT);
     static S32Array create(Accelerator accelerator, int length) {
-        return Array1D.create(accelerator, S32Array.class, length, JAVA_INT);
+        return Array1D.create(accelerator, S32Array.class,layout, length);
     }
 
     static S32Array create(Accelerator accelerator, int[] source) {
@@ -44,12 +47,12 @@ public interface S32Array extends Array1D {
     void array(long idx, int f);
 
     default S32Array copyfrom(int[] floats) {
-        MemorySegment.copy(floats, 0, memorySegment(), JAVA_INT, 4, length());
+        MemorySegment.copy(floats, 0, Buffer.getMemorySegment(this), JAVA_INT, 4, length());
         return this;
     }
 
     default S32Array copyTo(int[] floats) {
-        MemorySegment.copy(memorySegment(), JAVA_INT, 4, floats, 0, length());
+        MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_INT, 4, floats, 0, length());
         return this;
     }
 }

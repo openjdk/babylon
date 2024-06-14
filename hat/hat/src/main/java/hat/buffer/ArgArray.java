@@ -55,7 +55,7 @@ public interface ArgArray extends IncompleteBuffer {
                         JAVA_BYTE.withName("access"), //0=??/1=RO/2=WO/3=RW
                         JAVA_BYTE.withName("state"), //0=UNKNOWN/1=GPUDIRTY/2=JAVADIRTY
                         MemoryLayout.paddingLayout(16 - JAVA_BYTE.byteSize() - JAVA_BYTE.byteSize())
-                ).withName("buf");
+                ).withName(Buf.class.getSimpleName());
 
                 MemorySegment address();
 
@@ -91,7 +91,7 @@ public interface ArgArray extends IncompleteBuffer {
                     JAVA_LONG.withName("u64"),
                     JAVA_DOUBLE.withName("f64"),
                     Buf.layout.withName("buf")
-            ).withName("value");
+            ).withName(Value.class.getSimpleName());
 
             boolean z1();
 
@@ -141,7 +141,7 @@ public interface ArgArray extends IncompleteBuffer {
                 JAVA_BYTE.withName("variant"), //5
                 MemoryLayout.paddingLayout(16 - JAVA_INT.byteSize() - JAVA_BYTE.byteSize()),
                 Value.layout.withName("value")
-        );
+        ).withName(Arg.class.getSimpleName());
 
         int idx();
 
@@ -327,7 +327,7 @@ public interface ArgArray extends IncompleteBuffer {
                 case Long s64 -> arg.s64(s64);
                 case Double f64 -> arg.f64(f64);
                 case Buffer buffer -> {
-                    MemorySegment segment = buffer.memorySegment();
+                    MemorySegment segment = Buffer.getMemorySegment(buffer);
                     arg.variant((byte) '&');
                     Arg.Value value = arg.value();
                     Arg.Value.Buf buf = value.buf();
@@ -390,7 +390,7 @@ public interface ArgArray extends IncompleteBuffer {
                 case Long s64 -> arg.s64(s64);
                 case Double f64 -> arg.f64(f64);
                 case Buffer buffer -> {
-                    MemorySegment segment = buffer.memorySegment();
+                    MemorySegment segment = Buffer.getMemorySegment(buffer);
                     arg.variant((byte) '&');
                     Arg.Value value = arg.value();
                     Arg.Value.Buf buf = value.buf();

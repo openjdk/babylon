@@ -33,6 +33,7 @@ import hat.optools.FuncOpWrapper;
 import hat.optools.StructuralOpWrapper;
 import hat.util.StreamCounter;
 
+import java.lang.foreign.GroupLayout;
 import java.lang.reflect.code.type.ClassType;
 import java.lang.reflect.code.type.JavaType;
 import java.util.function.Consumer;
@@ -130,7 +131,7 @@ public abstract class C99HatKernelBuilder<T extends C99HatKernelBuilder<T>> exte
             for (int arg = 1; arg < args.length; arg++) {
                 if (args[arg] instanceof Buffer buffer) {
                     FuncOpWrapper.ParamTable.Info info = list.get(arg);
-                    info.setLayout(buffer.layout());
+                    info.setLayout((GroupLayout) Buffer.getLayout(buffer));
                     info.setClass(args[arg].getClass());
                 }
             }

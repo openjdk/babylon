@@ -180,7 +180,7 @@ public class Typedef {
     }
 
     Typedef(Buffer instance) {
-        this(instance.getClass().getInterfaces()[0], instance.layout());
+        this(instance.getClass().getInterfaces()[0], Buffer.getLayout(instance));
     }
 
     public boolean isIncomplete() {

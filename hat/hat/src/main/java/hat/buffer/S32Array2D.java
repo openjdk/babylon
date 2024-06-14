@@ -26,11 +26,14 @@ package hat.buffer;
 
 import hat.Accelerator;
 
+import java.lang.foreign.StructLayout;
+
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface S32Array2D extends Array2D {
+    StructLayout layout  = Array2D.getLayout(S32Array2D.class, JAVA_INT);
     static S32Array2D create(Accelerator accelerator, int width, int height) {
-        return Array2D.create(accelerator, S32Array2D.class, width, height, JAVA_INT);
+        return Array2D.create(accelerator, S32Array2D.class, layout, width, height);
     }
 
     int array(long idx);

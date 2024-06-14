@@ -28,13 +28,16 @@ import hat.Accelerator;
 import hat.buffer.ImageBuffer;
 
 import java.awt.image.BufferedImage;
+import java.lang.foreign.MemoryLayout;
+import java.lang.foreign.StructLayout;
 
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 
 public interface RgbS08x3Image extends ImageBuffer {
+    StructLayout layout =  ImageBuffer.createLayout(RgbS08x3Image.class,JAVA_BYTE);
 
     private static RgbS08x3Image create(Accelerator accelerator, int width, int height) {
-        return ImageBuffer.create(accelerator, RgbS08x3Image.class, width, height, BufferedImage.TYPE_INT_RGB, 3, JAVA_BYTE);
+        return ImageBuffer.create(accelerator, RgbS08x3Image.class,layout, width, height, BufferedImage.TYPE_INT_RGB, 3);
     }
 
     static RgbS08x3Image create(Accelerator accelerator, BufferedImage bufferedImage) {

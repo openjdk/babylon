@@ -23,19 +23,6 @@
  * questions.
  */
 package hat.buffer;
-
-import java.util.function.Consumer;
-
 public interface Table<T> extends IncompleteBuffer {
-
-   // default void with(int i, Consumer<T> consumer) {
-     //   T t = get(i);
-       // consumer.accept(t);
-   // }
-
     int length();
-
-    void length(int length);
-
-   // T get(int i);
 }

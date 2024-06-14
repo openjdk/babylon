@@ -735,6 +735,48 @@ public interface SegmentMapper<T> {
         Objects.requireNonNull(layout);
         return SegmentInterfaceMapper.create(lookup, type, layout);
     }
+    /**
+     * {@return a segment mapper that maps {@linkplain MemorySegment memory segments}
+     * to the provided interface {@code type} using the provided {@code layout}
+     * and using the provided {@code lookup}}
+     *
+     * @param lookup to use when performing reflective analysis on the
+     *               provided {@code type}
+     * @param type   to map memory segment from and to
+     * @param layout to be used when mapping the provided {@code type}
+     * @param length to replace the length of the last element (sequenceLayout)
+     * @param <T>    the type the returned mapper converts MemorySegments from and to
+     * @throws IllegalArgumentException if the provided {@code type} is not an interface
+     * @throws IllegalArgumentException if the provided {@code type} is a hidden interface
+     * @throws IllegalArgumentException if the provided {@code type} is a sealed interface
+     * @throws IllegalArgumentException if the provided interface {@code type} directly
+     *                                  declares any generic type parameter
+     * @throws IllegalArgumentException if the provided interface {@code type} cannot be
+     *                                  reflectively analysed using the provided {@code lookup}
+     * @throws IllegalArgumentException if the provided interface {@code type} contains
+     *                                  methods for which there are no exact mapping (of names and types) in
+     *                                  the provided {@code layout} or if the provided {@code type} is not public or
+     *                                  if the method is otherwise unable to create a segment mapper as specified above
+     * @implNote The order in which methods appear (e.g. in the {@code toString} method)
+     * is derived from the provided {@code layout}.
+     * @implNote The returned class can be a
+     * <a href="{@docRoot}/java.base/java/lang/doc-files/ValueBased.html">value-based</a>
+     * class; programmers should treat instances that are
+     * {@linkplain Object#equals(Object) equal} as interchangeable and should
+     * not use instances for synchronization, or unpredictable behavior may
+     * occur. For example, in a future release, synchronization may fail.
+     * @implNote The returned class can be a {@linkplain Class#isHidden() hidden} class.
+     */
+
+    static <T> SegmentMapper<T> ofIncomplete(MethodHandles.Lookup lookup,
+                                   Class<T> type,
+                                   GroupLayout layout, long length) {
+        var members= layout.memberLayouts().toArray(new MemoryLayout[0]);
+        SequenceLayout sequenceLayout = (SequenceLayout) members[members.length-1];
+        var newLayout = MemoryLayout.sequenceLayout(length,sequenceLayout.elementLayout()).withName(sequenceLayout.name().get());
+        members[members.length-1]=newLayout;
+        return of(lookup,type,members);
+    }
 
 
     static <T> SegmentMapper<T> of(MethodHandles.Lookup lookup,

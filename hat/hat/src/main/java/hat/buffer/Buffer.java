@@ -36,20 +36,39 @@ import java.lang.foreign.UnionLayout;
 import java.lang.foreign.ValueLayout;
 import java.lang.reflect.InvocationTargetException;
 
+import static hat.ifacemapper.MapperUtil.SECRET_LAYOUT_METHOD_NAME;
+import static hat.ifacemapper.MapperUtil.SECRET_OFFSET_METHOD_NAME;
+import static hat.ifacemapper.MapperUtil.SECRET_SEGMENT_METHOD_NAME;
+import static java.lang.foreign.ValueLayout.JAVA_INT;
+
 public interface Buffer {
-    default MemorySegment memorySegment() {
+    static <T extends Buffer>MemorySegment getMemorySegment(T buffer){
         try {
-            return (MemorySegment) getClass().getDeclaredMethod("$_$_$sEgMeNt$_$_$").invoke(this);
+            return (MemorySegment) buffer.getClass().getDeclaredMethod(SECRET_SEGMENT_METHOD_NAME).invoke(buffer);
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
         }
     }
 
-    default GroupLayout layout() {
+   static <T extends Buffer>MemoryLayout getLayout(T buffer){
+       try {
+           return (MemoryLayout) buffer.getClass().getDeclaredMethod(SECRET_LAYOUT_METHOD_NAME).invoke(buffer);
+       } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+           throw new RuntimeException(e);
+       }
+   }
+
+    static <T extends Buffer>long getOffset(T buffer){
         try {
-            return (GroupLayout) getClass().getDeclaredMethod("$_$_$lAyOuT$_$_$").invoke(this);
+            return (long) buffer.getClass().getDeclaredMethod(SECRET_OFFSET_METHOD_NAME).invoke(buffer);
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
         }
     }
+
+    static <T extends Buffer> T setLength(T buffer, int length){
+        Buffer.getMemorySegment(buffer).set(JAVA_INT, Buffer.getLayout(buffer).byteOffset(MemoryLayout.PathElement.groupElement("length")), length);
+        return buffer;
+    }
+
 }

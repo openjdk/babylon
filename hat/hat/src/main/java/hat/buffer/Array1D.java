@@ -34,18 +34,17 @@ import java.lang.foreign.StructLayout;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface Array1D extends Array {
-    static <T extends Array1D> StructLayout layout(Class<T> clazz, MemoryLayout memoryLayout, int length) {
+    static <T extends Array1D> StructLayout getLayout(Class<T> clazz, MemoryLayout memoryLayout) {
         return MemoryLayout.structLayout(
                 JAVA_INT.withName("length"),
-                MemoryLayout.sequenceLayout(length, memoryLayout).withName("array")
+                MemoryLayout.sequenceLayout(0, memoryLayout).withName("array")
         ).withName(clazz.getSimpleName());
     }
 
-    static <T extends Array1D> T create(Accelerator accelerator, Class<T> clazz, int length, MemoryLayout memoryLayout) {
-        StructLayout structLayout = Array1D.layout(clazz, memoryLayout, length);
-        T buffer = SegmentMapper.of(accelerator.lookup, clazz, structLayout).allocate(accelerator.backend.arena());
-        MemorySegment segment = buffer.memorySegment();
-        segment.set(JAVA_INT, structLayout.byteOffset(MemoryLayout.PathElement.groupElement("length")), length);
+    static <T extends Array1D> T create(Accelerator accelerator, Class<T> clazz, StructLayout structLayout, int length) {
+
+        T buffer = SegmentMapper.ofIncomplete(accelerator.lookup, clazz, structLayout,length).allocate(accelerator.backend.arena());
+        Buffer.setLength(buffer,length);
         return buffer;
     }
 

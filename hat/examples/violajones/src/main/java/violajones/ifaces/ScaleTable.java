@@ -30,13 +30,17 @@ import hat.buffer.Buffer;
 import hat.buffer.Table;
 import hat.ifacemapper.SegmentMapper;
 
+import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
+import java.lang.foreign.SequenceLayout;
 import java.lang.foreign.StructLayout;
 
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface ScaleTable extends Table<ScaleTable.Scale> {
+
+
     interface Scale extends Buffer {
         StructLayout layout = MemoryLayout.structLayout(
                 JAVA_FLOAT.withName("scaleValue"),
@@ -110,15 +114,15 @@ public interface ScaleTable extends Table<ScaleTable.Scale> {
             scaledYInc(s.scaledYInc());
         }
     }
-
+    StructLayout layout =  MemoryLayout.structLayout(
+            JAVA_INT.withName("length"),
+            JAVA_INT.withName("multiScaleAccumulativeRange"),
+            MemoryLayout.sequenceLayout(0, ScaleTable.Scale.layout).withName("scale")
+    ).withName(ScaleTable.class.getSimpleName());
     private static ScaleTable create(Accelerator accelerator, int length) {
-        ScaleTable scaleTable = SegmentMapper.of(accelerator.lookup, ScaleTable.class,
-                JAVA_INT.withName("length"),
-                JAVA_INT.withName("multiScaleAccumulativeRange"),
-                MemoryLayout.sequenceLayout(length, ScaleTable.Scale.layout).withName("scale")
-        ).allocate(accelerator.backend.arena());
-        scaleTable.length(length);
-        return scaleTable;
+        return Buffer.setLength(
+                SegmentMapper.ofIncomplete(accelerator.lookup,ScaleTable.class,layout,length)
+                        .allocate(accelerator.backend.arena()),length);
     }
 
     static ScaleTable create(Accelerator accelerator, Cascade cascade, int imageWidth, int imageHeight) {

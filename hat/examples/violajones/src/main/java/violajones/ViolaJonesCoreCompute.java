@@ -204,7 +204,7 @@ public class ViolaJonesCoreCompute {
             // Todo: Find a way to iterate which is interface mapped segment friendly.
             Cascade.Tree tree = cascade.tree(treeIdx);
             Cascade.Feature feature = cascade.feature(tree.firstFeatureId());
-
+           // long featureOffset = feature.offset();
             while (feature != null) {
                 float featureGradientSum = .0f;
                 // features have 1, 2 or 3 rects to scan  we might be best to unroll
@@ -255,9 +255,14 @@ public class ViolaJonesCoreCompute {
             // covered by the scale.
             int scalc = 0;
             ScaleTable.Scale scale = scaleTable.scale(scalc);
+          //  var offset=scale.offset();
+           // System.out.println("scale offset "+offset);
             scalc++;
             while (kc.x >= scale.accumGridSizeMax() && scalc<scaleTable.length()) {
                 scale = scaleTable.scale(scalc);
+             //   var layout =scale.layout();
+              //  offset=scale.offset();
+              //  System.out.println("scale offset "+offset);
                 scalc++;
             }
 
@@ -288,6 +293,8 @@ public class ViolaJonesCoreCompute {
             int stageCount = cascade.stageCount();
             for (int stagec = 0; stagec < stageCount && stillLooksLikeAFace; stagec++) {
                 Cascade.Stage stage = cascade.stage(stagec);
+              //  Class stageClass = stage.getClass();
+               // long stageOffset = stage.offset();
                 stillLooksLikeAFace = isAFaceStage(kc.x, scale.scaleValue(), scale.invArea(), x, y, vnorm, integral, stage, cascade);
             }
 

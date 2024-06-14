@@ -34,19 +34,19 @@ import java.lang.foreign.StructLayout;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface Array2D extends Array {
-    static <T extends Array2D> StructLayout layout(Class<T> clazz, MemoryLayout memoryLayout, int length) {
+    static <T extends Array2D> StructLayout getLayout(Class<T> iface, MemoryLayout memoryLayout) {
         return MemoryLayout.structLayout(
                 JAVA_INT.withName("width"),
                 JAVA_INT.withName("height"),
-                MemoryLayout.sequenceLayout(length, memoryLayout).withName("array")
-        ).withName(clazz.getSimpleName());
+                MemoryLayout.sequenceLayout(0, memoryLayout).withName("array")
+        ).withName(iface.getSimpleName());
     }
 
-    static <T extends Array2D> T create(Accelerator accelerator, Class<T> clazz, int width, int height, MemoryLayout memoryLayout) {
-        StructLayout structLayout = Array2D.layout(clazz, memoryLayout, width * height);
-        T buffer = SegmentMapper.of(accelerator.lookup, clazz, Array2D.layout(clazz, memoryLayout, width * height))
+    static <T extends Array2D> T create(Accelerator accelerator, Class<T> clazz, StructLayout structLayout,int width, int height) {
+
+        T buffer = SegmentMapper.ofIncomplete(accelerator.lookup, clazz, structLayout, (long) width * height)
                 .allocate(accelerator.backend.arena());
-        MemorySegment segment = buffer.memorySegment();
+        MemorySegment segment = Buffer.getMemorySegment(buffer);
         segment.set(JAVA_INT, structLayout.byteOffset(MemoryLayout.PathElement.groupElement("width")), width);
         segment.set(JAVA_INT, structLayout.byteOffset(MemoryLayout.PathElement.groupElement("height")), height);
         return buffer;

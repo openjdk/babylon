@@ -25,6 +25,7 @@
 package heal;
 
 import hat.Accelerator;
+import hat.buffer.Buffer;
 import hat.buffer.Table;
 import hat.ifacemapper.SegmentMapper;
 
@@ -52,14 +53,13 @@ public interface S32RGBTable extends Table<S32RGBTable.RGB> {
 
         void b(int b);
     }
+    StructLayout layout = MemoryLayout.structLayout(  JAVA_INT.withName("length"),
+
+            MemoryLayout.sequenceLayout(0, S32RGBTable.RGB.layout).withName("rgb")).withName(S32XYTable.class.getSimpleName());
 
     static S32RGBTable create(Accelerator accelerator, int length) {
-        S32RGBTable table = SegmentMapper.of(accelerator.lookup, S32RGBTable.class,
-                JAVA_INT.withName("length"),
-
-                MemoryLayout.sequenceLayout(length, S32RGBTable.RGB.layout).withName("rgb")
-        ).allocate(accelerator.backend.arena());
-        table.length(length);
+        S32RGBTable table = SegmentMapper.ofIncomplete(accelerator.lookup, S32RGBTable.class,layout,length).allocate(accelerator.backend.arena());
+        Buffer.setLength(table,length);
         return table;
     }
 
