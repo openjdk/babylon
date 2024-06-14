@@ -26,6 +26,9 @@ package hat;
 
 
 import hat.backend.Backend;
+import hat.buffer.Buffer;
+import hat.buffer.BufferAllocator;
+import hat.ifacemapper.SegmentMapper;
 import hat.optools.LambdaOpWrapper;
 import hat.optools.OpWrapper;
 
@@ -64,10 +67,12 @@ import java.util.function.Predicate;
  *
  * @author Gary Frost
  */
-public class Accelerator {
+public class Accelerator implements BufferAllocator {
     public final MethodHandles.Lookup lookup;
     public final Backend backend;
     private final Map<Method, hat.ComputeContext> cache = new HashMap<>();
+
+
 
     public NDRange range(int max) {
         NDRange ndRange = new NDRange(this);
@@ -94,6 +99,13 @@ public class Accelerator {
      */
     public Accelerator(MethodHandles.Lookup lookup, Predicate<Backend> backendPredicate) {
         this(lookup, Backend.getBackend(backendPredicate));
+    }
+
+
+
+    @Override
+    public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper) {
+        return backend.allocate(segmentMapper);
     }
 
     /**

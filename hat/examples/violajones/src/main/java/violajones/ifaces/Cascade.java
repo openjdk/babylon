@@ -25,12 +25,14 @@
 package violajones.ifaces;
 
 import hat.Accelerator;
+import hat.buffer.BufferAllocator;
 import hat.buffer.CompleteBuffer;
 import hat.ifacemapper.SegmentMapper;
 import violajones.XMLHaarCascadeModel;
 
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.StructLayout;
+import java.lang.invoke.MethodHandles;
 
 import static java.lang.foreign.MemoryLayout.sequenceLayout;
 import static java.lang.foreign.ValueLayout.JAVA_BOOLEAN;
@@ -175,9 +177,9 @@ public interface Cascade extends CompleteBuffer {
         short featureCount();
     }
 
-    static Cascade create(Accelerator accelerator, XMLHaarCascadeModel haarCascade) {
+    static Cascade create(BufferAllocator bufferAllocator, XMLHaarCascadeModel haarCascade) {
 
-        Cascade cascade = SegmentMapper.of(accelerator.lookup, Cascade.class,
+        Cascade cascade = bufferAllocator.allocate(SegmentMapper.of(MethodHandles.lookup(), Cascade.class,
                 JAVA_INT.withName("width"),
                 JAVA_INT.withName("height"),
                 JAVA_INT.withName("featureCount"),
@@ -186,7 +188,7 @@ public interface Cascade extends CompleteBuffer {
                 sequenceLayout(haarCascade.stages.size(), Stage.layout.withName(Stage.class.getSimpleName())).withName("stage"),
                 JAVA_INT.withName("treeCount"),
                 sequenceLayout(haarCascade.trees.size(), Tree.layout.withName(Tree.class.getSimpleName())).withName("tree")
-        ).allocate(accelerator.backend.arena());
+        ));
         cascade.width(haarCascade.width());
         cascade.height(haarCascade.height());
         cascade.featureCount(haarCascade.features.size());

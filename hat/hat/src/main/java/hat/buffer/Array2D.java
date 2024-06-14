@@ -30,6 +30,7 @@ import hat.ifacemapper.SegmentMapper;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.StructLayout;
+import java.lang.invoke.MethodHandles;
 
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
@@ -42,10 +43,9 @@ public interface Array2D extends Array {
         ).withName(iface.getSimpleName());
     }
 
-    static <T extends Array2D> T create(Accelerator accelerator, Class<T> clazz, StructLayout structLayout,int width, int height) {
+    static <T extends Array2D> T create(BufferAllocator bufferAllocator, Class<T> clazz, StructLayout structLayout,int width, int height) {
 
-        T buffer = SegmentMapper.ofIncomplete(accelerator.lookup, clazz, structLayout, (long) width * height)
-                .allocate(accelerator.backend.arena());
+        T buffer = bufferAllocator.allocate(SegmentMapper.ofIncomplete(MethodHandles.lookup(), clazz, structLayout, (long) width * height));
         MemorySegment segment = Buffer.getMemorySegment(buffer);
         segment.set(JAVA_INT, structLayout.byteOffset(MemoryLayout.PathElement.groupElement("width")), width);
         segment.set(JAVA_INT, structLayout.byteOffset(MemoryLayout.PathElement.groupElement("height")), height);

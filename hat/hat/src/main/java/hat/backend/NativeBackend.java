@@ -26,7 +26,9 @@
 package hat.backend;
 
 import hat.ComputeContext;
+import hat.buffer.Buffer;
 import hat.callgraph.CallGraph;
+import hat.ifacemapper.SegmentMapper;
 import hat.optools.FuncOpWrapper;
 
 import java.lang.foreign.Arena;
@@ -40,11 +42,11 @@ public abstract class NativeBackend extends NativeBackendDriver {
 
     public final Arena arena = Arena.global();
 
-    @Override
-    public Arena arena() {
-        return arena;
-    }
 
+    @Override
+    public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper){
+        return segmentMapper.allocate(arena);
+    }
     public NativeBackend(String libName) {
         super(libName);
     }

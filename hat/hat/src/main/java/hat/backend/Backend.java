@@ -27,14 +27,18 @@ package hat.backend;
 
 import hat.ComputeContext;
 import hat.NDRange;
+import hat.buffer.Buffer;
+import hat.buffer.BufferAllocator;
 import hat.callgraph.KernelCallGraph;
 
 import java.lang.foreign.Arena;
+import java.lang.foreign.MemorySegment;
 import java.util.ServiceLoader;
 import java.util.function.Predicate;
 
-public interface Backend {
-    Arena arena();
+public interface Backend extends BufferAllocator {
+
+   // Arena arena();
 
     default String getName() {
         return this.getClass().getName();

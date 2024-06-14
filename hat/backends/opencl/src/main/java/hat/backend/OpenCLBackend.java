@@ -28,6 +28,7 @@ package hat.backend;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.buffer.BackendConfig;
+import hat.buffer.BufferAllocator;
 import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.SegmentMapper;
 
@@ -45,11 +46,11 @@ public class OpenCLBackend extends C99NativeBackend {
         //         boolean gpu;
         //         boolean junk;
         //   };
-        static OpenCLConfig create(Arena arena, MethodHandles.Lookup lookup, boolean gpu) {
-            OpenCLConfig config = SegmentMapper.of(lookup, OpenCLConfig.class,
+        static OpenCLConfig create(BufferAllocator bufferAllocator, MethodHandles.Lookup lookup, boolean gpu) {
+            OpenCLConfig config = bufferAllocator.allocate(SegmentMapper.of(lookup, OpenCLConfig.class,
                     JAVA_BOOLEAN.withName("gpu"),
                     JAVA_BOOLEAN.withName("junk")
-            ).allocate(arena);
+            ));
             config.gpu(gpu);
             return config;
         }
@@ -65,7 +66,7 @@ public class OpenCLBackend extends C99NativeBackend {
 
     public OpenCLBackend() {
         super("opencl_backend");
-        getBackend(OpenCLConfig.create(arena(), MethodHandles.lookup(), true));
+        getBackend(OpenCLConfig.create(this, MethodHandles.lookup(), true));
         info();
     }
 

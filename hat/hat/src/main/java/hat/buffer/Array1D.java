@@ -30,6 +30,7 @@ import hat.ifacemapper.SegmentMapper;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.StructLayout;
+import java.lang.invoke.MethodHandles;
 
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
@@ -41,9 +42,9 @@ public interface Array1D extends Array {
         ).withName(clazz.getSimpleName());
     }
 
-    static <T extends Array1D> T create(Accelerator accelerator, Class<T> clazz, StructLayout structLayout, int length) {
+    static <T extends Array1D> T create(BufferAllocator bufferAllocator, Class<T> clazz, StructLayout structLayout, int length) {
 
-        T buffer = SegmentMapper.ofIncomplete(accelerator.lookup, clazz, structLayout,length).allocate(accelerator.backend.arena());
+        T buffer = bufferAllocator.allocate(SegmentMapper.ofIncomplete(MethodHandles.lookup(), clazz, structLayout,length));
         Buffer.setLength(buffer,length);
         return buffer;
     }
