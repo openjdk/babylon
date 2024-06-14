@@ -31,14 +31,19 @@ import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.MethodRef;
 
-public class LinearStringContextTransformer implements OpTransformer {
+/**
+ * StringConcatTransformer is an {@link java.lang.reflect.code.OpTransformer} that removes concatenation operations
+ * from blocks and replaces them with equivalent {@link java.lang.StringBuilder} operations. This provides a pathway
+ * to remove {@link java.lang.reflect.code.op.CoreOp.ConcatOp} for easier lowering to Bytecode.
+ */
+public class StringConcatTransformer implements OpTransformer {
 
     private static final JavaType SBC_TYPE = JavaType.type(StringBuilder.class);
     private static final MethodRef SB_TO_STRING = MethodRef.method(SBC_TYPE, "toString", JavaType.J_L_STRING);
 
     record StringAndBuilder(Value string, Value stringBuilder) { }
 
-    public LinearStringContextTransformer() {}
+    public StringConcatTransformer() {}
 
     @Override
     public Block.Builder apply(Block.Builder builder, Op op) {

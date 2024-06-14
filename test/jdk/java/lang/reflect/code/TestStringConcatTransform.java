@@ -31,8 +31,9 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.NoInjection;
 import org.testng.annotations.Test;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.code.OpTransformer;
-import java.lang.reflect.code.analysis.LinearStringContextTransformer;
+import java.lang.reflect.code.analysis.StringConcatTransformer;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.code.analysis.SSA;
@@ -93,7 +94,7 @@ public class TestStringConcatTransform {
     @Test(dataProvider = "getClassMethods")
     public void testModelTransform(@NoInjection Method method) {
         CoreOp.FuncOp model = method.getCodeModel().orElseThrow();
-        CoreOp.FuncOp f_transformed = model.transform(new LinearStringContextTransformer());
+        CoreOp.FuncOp f_transformed = model.transform(new StringConcatTransformer());
         Object[] args = prepArgs(method);
 
         f_transformed.writeTo(System.out);
@@ -108,24 +109,25 @@ public class TestStringConcatTransform {
     @Test(dataProvider = "getClassMethods")
     public void testSSAModelTransform(@NoInjection Method method) {
         CoreOp.FuncOp model = method.getCodeModel().orElseThrow();
-        CoreOp.FuncOp transformed_model = model.transform(new LinearStringContextTransformer());
+        CoreOp.FuncOp transformed_model = model.transform(new StringConcatTransformer());
         CoreOp.FuncOp ssa_model = generateSSA(model);
-        CoreOp.FuncOp ssa_transformed_model = ssa_model.transform(new LinearStringContextTransformer());
+        CoreOp.FuncOp ssa_transformed_model = ssa_model.transform(new StringConcatTransformer());
         Object[] args = prepArgs(method);
 
         var model_interpreted = Interpreter.invoke(model, args);
         var transformed_model_interpreted = Interpreter.invoke(transformed_model, args);
         var ssa_interpreted = Interpreter.invoke(ssa_model, args);
         var ssa_transformed_interpreted = Interpreter.invoke(ssa_transformed_model, args);
+        Object jvm_interpreted;
         try {
-            var jvm_interpreted = method.invoke(null, args);
-            Assert.assertEquals(model_interpreted, transformed_model_interpreted);
-            Assert.assertEquals(transformed_model_interpreted, ssa_interpreted);
-            Assert.assertEquals(ssa_interpreted, ssa_transformed_interpreted);
-            Assert.assertEquals(ssa_transformed_interpreted, jvm_interpreted);
-        } catch (Throwable e) {
+            jvm_interpreted = method.invoke(null, args);
+        } catch (IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
         }
+        Assert.assertEquals(model_interpreted, transformed_model_interpreted);
+        Assert.assertEquals(transformed_model_interpreted, ssa_interpreted);
+        Assert.assertEquals(ssa_interpreted, ssa_transformed_interpreted);
+        Assert.assertEquals(ssa_transformed_interpreted, jvm_interpreted);
     }
 
     public static Object[] prepArgs(Method m) {
@@ -143,14 +145,10 @@ public class TestStringConcatTransform {
     }
 
     public static Object[][] getTestMethods(Class<?> clazz) {
-        List<Object[]> ars = Arrays.stream(clazz.getMethods())
+        Object[][] res = Arrays.stream(clazz.getMethods())
                 .filter((method) -> method.isAnnotationPresent(CodeReflection.class))
                 .map(m -> new Object[]{m})
-                .toList();
-        Object[][] res = new Object[ars.size()][];
-        for (int i = 0; i < ars.size(); i++) {
-            res[i] = ars.get(i);
-        }
+                .toArray(Object[][]::new);
         return res;
     }
 
