@@ -55,12 +55,14 @@
         static public void main(String[] args) throws Exception {
             Method method = Ptr.class.getDeclaredMethod("addMul", S32Array.class, int.class, int.class);
             FuncOpWrapper funcOpWrapper = new FuncOpWrapper(method.getCodeModel().get());
+            System.out.println(funcOpWrapper.toText());
             FuncOpWrapper transformedFuncOpWrapper = funcOpWrapper.transformIfaceInvokes((builder, invokeOpWrapper)->{
              //   builder.op(invokeOpWrapper.op());
                 CopyContext cc = builder.context();
                 List<Value> inputOperands = invokeOpWrapper.operands();
                 List<Value> outputOperands = cc.getValues(inputOperands);
                 Op.Result inputResult = invokeOpWrapper.result();
+               // builder.op(invokeOpWrapper.op());
                 Op.Result outputResult = builder.op(new HatPtrOp(JavaType.INT, outputOperands));
                 cc.mapValue(inputResult, outputResult);
 

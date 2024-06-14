@@ -1,12 +1,12 @@
+package hat;
+
 /*
  * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
+ * published by the Free Software Foundation.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -22,23 +22,36 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package squares;
 
-import hat.Accelerator;
-import hat.ComputeContext;
-import hat.KernelContext;
 import hat.backend.Backend;
 import hat.backend.JavaMultiThreadedBackend;
 import hat.buffer.S32Array;
+import org.testng.Assert;
+import org.testng.annotations.Test;
 
+import java.lang.reflect.Method;
+import java.lang.reflect.code.CopyContext;
+import java.lang.reflect.code.Op;
+import java.lang.reflect.code.OpTransformer;
+import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.Value;
+import java.lang.reflect.code.op.CoreOp;
+import java.lang.reflect.code.type.JavaType;
 import java.lang.runtime.CodeReflection;
+import java.util.List;
 
-public class Squares {
+
+/*
+ * @test
+ * @run testng hat.CustomOpTest
+ */
+
+public class SquaresTest {
     @CodeReflection
     public static void squareKernel(KernelContext kc, S32Array s32Array) {
         if (kc.x<kc.maxX){
-           int value = s32Array.array(kc.x);     // arr[cc.x]
-           s32Array.array(kc.x, value * value);  // arr[cc.x]=value*value
+            int value = s32Array.array(kc.x);     // arr[cc.x]
+            s32Array.array(kc.x, value * value);  // arr[cc.x]=value*value
         }
     }
 
@@ -49,7 +62,8 @@ public class Squares {
         );
     }
 
-    public static void main(String[] args) {
+  @Test
+       void    testSquares(){
         var lookup = java.lang.invoke.MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, new JavaMultiThreadedBackend());
         var arr = S32Array.create(accelerator, 32);
@@ -57,10 +71,11 @@ public class Squares {
             arr.array(i, i);
         }
         accelerator.compute(
-                cc -> Squares.square(cc, arr)  //QuotableComputeContextConsumer
+                cc -> SquaresTest.square(cc, arr)  //QuotableComputeContextConsumer
         );                                     //   extends Quotable, Consumer<ComputeContext>
         for (int i = 0; i < arr.length(); i++) {
-            System.out.println(i + " " + arr.array(i));
+            Assert.assertEquals(i*i, arr.array(i));
         }
     }
+
 }
