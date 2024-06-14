@@ -72,10 +72,10 @@ public class C99HatBuildContext {
 
         ForScope(Scope<?> parent, ForOpWrapper forOpWrapper) {
             super(parent, forOpWrapper);
-            var loopParams = forOpWrapper().op().loopBody().blocks().getFirst().parameters().toArray(new Block.Parameter[0]);
-            var updateParams = forOpWrapper().op().update().blocks().getFirst().parameters().toArray(new Block.Parameter[0]);
-            var condParams = forOpWrapper().op().cond().blocks().getFirst().parameters().toArray(new Block.Parameter[0]);
-            var lastInitOp = forOpWrapper().op().init().blocks().getFirst().ops().getLast();
+            var loopParams = forOpWrapper().op().loopBody().entryBlock().parameters().toArray(new Block.Parameter[0]);
+            var updateParams = forOpWrapper().op().update().entryBlock().parameters().toArray(new Block.Parameter[0]);
+            var condParams = forOpWrapper().op().cond().entryBlock().parameters().toArray(new Block.Parameter[0]);
+            var lastInitOp = forOpWrapper().op().init().entryBlock().ops().getLast();
             var lastInitOpOperand0Result = (Op.Result) lastInitOp.operands().getFirst();
             var lastInitOpOperand0ResultOp = lastInitOpOperand0Result.op();
             CoreOp.VarOp varOps[];
