@@ -27,6 +27,7 @@ package violajones.ifaces;
 
 import hat.Accelerator;
 import hat.buffer.Buffer;
+import hat.buffer.BufferAllocator;
 import hat.buffer.Table;
 import hat.ifacemapper.SegmentMapper;
 
@@ -34,6 +35,7 @@ import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.SequenceLayout;
 import java.lang.foreign.StructLayout;
+import java.lang.invoke.MethodHandles;
 
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
@@ -119,10 +121,9 @@ public interface ScaleTable extends Table<ScaleTable.Scale> {
             JAVA_INT.withName("multiScaleAccumulativeRange"),
             MemoryLayout.sequenceLayout(0, ScaleTable.Scale.layout).withName("scale")
     ).withName(ScaleTable.class.getSimpleName());
-    private static ScaleTable create(Accelerator accelerator, int length) {
+    private static ScaleTable create(BufferAllocator bufferAllocator, int length) {
         return Buffer.setLength(
-                SegmentMapper.ofIncomplete(accelerator.lookup,ScaleTable.class,layout,length)
-                        .allocate(accelerator.backend.arena()),length);
+                bufferAllocator.allocate(SegmentMapper.ofIncomplete(MethodHandles.lookup(),ScaleTable.class,layout,length)),length);
     }
 
     static ScaleTable create(Accelerator accelerator, Cascade cascade, int imageWidth, int imageHeight) {

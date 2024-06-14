@@ -36,6 +36,7 @@ import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.StructLayout;
 import java.lang.foreign.ValueLayout;
+import java.lang.invoke.MethodHandles;
 
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
@@ -58,8 +59,8 @@ public interface ImageBuffer extends IncompleteBuffer {
                     TYPE_USHORT_565_RGB, TYPE_USHORT_555_RGB, TYPE_CUSTOM
 
      */
-    static <T extends ImageBuffer> T create(Accelerator accelerator, Class<T> iface,StructLayout structLayout, int width, int height, int bufferedImageType, int elementsPerPixel) {
-        T rgba = SegmentMapper.ofIncomplete(accelerator.lookup, iface, structLayout, width * height * elementsPerPixel).allocate(accelerator.backend.arena());
+    static <T extends ImageBuffer> T create(BufferAllocator bufferAllocator, Class<T> iface,StructLayout structLayout, int width, int height, int bufferedImageType, int elementsPerPixel) {
+        T rgba = bufferAllocator.allocate(SegmentMapper.ofIncomplete(MethodHandles.lookup(), iface, structLayout, width * height * elementsPerPixel));
         MemorySegment segment = Buffer.getMemorySegment(rgba);
         segment.set(JAVA_INT, structLayout.byteOffset(MemoryLayout.PathElement.groupElement("width")), width);
         segment.set(JAVA_INT, structLayout.byteOffset(MemoryLayout.PathElement.groupElement("height")), height);

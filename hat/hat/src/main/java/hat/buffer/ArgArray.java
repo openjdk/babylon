@@ -31,6 +31,7 @@ import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+import java.lang.invoke.MethodHandles;
 import java.nio.ByteOrder;
 
 import static java.lang.foreign.ValueLayout.ADDRESS;
@@ -259,15 +260,15 @@ public interface ArgArray extends IncompleteBuffer {
         }
     }
 
-    static ArgArray create(Accelerator accelerator, MemoryLayout... layouts) {
+    static ArgArray create(BufferAllocator bufferAllocator, MemoryLayout... layouts) {
 
 
-        ArgArray argArray = SegmentMapper.of(accelerator.lookup, ArgArray.class,
+        ArgArray argArray = bufferAllocator.allocate(SegmentMapper.of(MethodHandles.lookup(), ArgArray.class,
                 JAVA_INT.withName("argc"),
                 MemoryLayout.paddingLayout(16 - JAVA_INT.byteSize()),
                 MemoryLayout.sequenceLayout(layouts.length, Arg.layout.withName(Arg.class.getSimpleName())).withName("arg"),
                 ADDRESS.withName("vendorPtr")
-        ).allocate(accelerator.backend.arena());
+        ));
         argArray.argc(layouts.length);
         for (int i = 0; i < layouts.length; i++) {
             MemoryLayout layout = layouts[i];
@@ -340,7 +341,7 @@ public interface ArgArray extends IncompleteBuffer {
         }
     }
 
-    static ArgArray create(Accelerator accelerator, Object... args) {
+    static ArgArray create(BufferAllocator bufferAllocator, Object... args) {
         String[] schemas = new String[args.length];
         StringBuilder argSchema = new StringBuilder();
         argSchema.append(args.length);
@@ -366,14 +367,14 @@ public interface ArgArray extends IncompleteBuffer {
         }
         String schemaStr = argSchema.toString();
 
-        ArgArray argArray = SegmentMapper.of(accelerator.lookup, ArgArray.class,
+        ArgArray argArray = bufferAllocator.allocate(SegmentMapper.of(MethodHandles.lookup(), ArgArray.class,
                 JAVA_INT.withName("argc"),
                 MemoryLayout.paddingLayout(16 - JAVA_INT.byteSize()),
                 MemoryLayout.sequenceLayout(args.length, Arg.layout).withName("arg"),
                 ADDRESS.withName("vendorPtr"),
                 JAVA_INT.withName("schemaLen"),
                 MemoryLayout.sequenceLayout(schemaStr.length() + 1, JAVA_BYTE).withName("schemaBytes")
-        ).allocate(accelerator.backend.arena());
+        ));
         argArray.argc(args.length);
         argArray.schemaBytes(schemaStr);
         for (int i = 0; i < args.length; i++) {

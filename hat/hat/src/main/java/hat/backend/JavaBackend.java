@@ -26,6 +26,8 @@
 package hat.backend;
 
 import hat.ComputeContext;
+import hat.buffer.Buffer;
+import hat.ifacemapper.SegmentMapper;
 
 import java.lang.foreign.Arena;
 import java.lang.reflect.InvocationTargetException;
@@ -36,10 +38,9 @@ public abstract class JavaBackend implements Backend {
     public final Arena arena = Arena.global();
 
     @Override
-    public Arena arena() {
-        return arena;
+    public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper){
+        return segmentMapper.allocate(arena);
     }
-
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
         System.out.println("Java backend received computeContext ");
