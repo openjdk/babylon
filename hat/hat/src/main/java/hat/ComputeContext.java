@@ -1,8 +1,10 @@
 package hat;
 
 import hat.buffer.Buffer;
+import hat.buffer.BufferAllocator;
 import hat.callgraph.ComputeCallGraph;
 import hat.callgraph.KernelCallGraph;
+import hat.ifacemapper.SegmentMapper;
 import hat.optools.FuncOpWrapper;
 import hat.optools.LambdaOpWrapper;
 import hat.optools.OpWrapper;
@@ -33,7 +35,7 @@ import java.util.function.Consumer;
  *
  * @author Gary Frost
  */
-public class ComputeContext {
+public class ComputeContext implements BufferAllocator {
     public static final MethodRef M_CC_PRE_MUTATE = MethodRef.method(ComputeContext.class, "preMutate",
             void.class, Buffer.class);
     public static final MethodRef M_CC_POST_MUTATE = MethodRef.method(ComputeContext.class, "postMutate",
@@ -116,6 +118,11 @@ public class ComputeContext {
 
     public void postAccess(Buffer b) {
         /*System.out.println("postAccess " + b);*/
+    }
+
+    @Override
+    public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper) {
+        return accelerator.allocate(segmentMapper);
     }
 
     public interface QuotableKernelContextConsumer extends Quotable, Consumer<KernelContext> {

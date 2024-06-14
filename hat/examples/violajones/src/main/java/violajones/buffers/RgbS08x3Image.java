@@ -25,6 +25,7 @@
 package violajones.buffers;
 
 import hat.Accelerator;
+import hat.buffer.BufferAllocator;
 import hat.buffer.ImageBuffer;
 
 import java.awt.image.BufferedImage;
@@ -36,12 +37,12 @@ import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 public interface RgbS08x3Image extends ImageBuffer {
     StructLayout layout =  ImageBuffer.createLayout(RgbS08x3Image.class,JAVA_BYTE);
 
-    private static RgbS08x3Image create(Accelerator accelerator, int width, int height) {
-        return ImageBuffer.create(accelerator, RgbS08x3Image.class,layout, width, height, BufferedImage.TYPE_INT_RGB, 3);
+    private static RgbS08x3Image create(BufferAllocator bufferAllocator, int width, int height) {
+        return ImageBuffer.create(bufferAllocator, RgbS08x3Image.class,layout, width, height, BufferedImage.TYPE_INT_RGB, 3);
     }
 
-    static RgbS08x3Image create(Accelerator accelerator, BufferedImage bufferedImage) {
-        return create(accelerator, bufferedImage.getWidth(), bufferedImage.getHeight()).syncFromRaster(bufferedImage);
+    static RgbS08x3Image create(BufferAllocator bufferAllocator, BufferedImage bufferedImage) {
+        return create(bufferAllocator, bufferedImage.getWidth(), bufferedImage.getHeight()).syncFromRaster(bufferedImage);
 
     }
 

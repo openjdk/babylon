@@ -126,7 +126,7 @@ public interface ScaleTable extends Table<ScaleTable.Scale> {
                 bufferAllocator.allocate(SegmentMapper.ofIncomplete(MethodHandles.lookup(),ScaleTable.class,layout,length)),length);
     }
 
-    static ScaleTable create(Accelerator accelerator, Cascade cascade, int imageWidth, int imageHeight) {
+    static ScaleTable create(BufferAllocator bufferAllocator, Cascade cascade, int imageWidth, int imageHeight) {
 
         final float startScale = 1f;
         final float scaleMultiplier = 2f;
@@ -147,7 +147,7 @@ public interface ScaleTable extends Table<ScaleTable.Scale> {
             multiScaleCountVar++;
         }
 
-        ScaleTable scaleTable = ScaleTable.create(accelerator, multiScaleCountVar);
+        ScaleTable scaleTable = ScaleTable.create(bufferAllocator, multiScaleCountVar);
 
         // now we know the size
 

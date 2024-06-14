@@ -33,12 +33,12 @@ import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 
 public interface F32Array extends Array1D {
     StructLayout layout  = Array1D.getLayout(F32Array.class, JAVA_FLOAT);
-    static F32Array create(Accelerator accelerator, int length) {
-        return Array1D.create(accelerator, F32Array.class,layout, length);
+    static F32Array create(BufferAllocator bufferAllocator, int length) {
+        return Array1D.create(bufferAllocator, F32Array.class,layout, length);
     }
 
-    static F32Array create(Accelerator accelerator, float[] source) {
-        return create(accelerator, source.length).copyFrom(source);
+    static F32Array create(BufferAllocator bufferAllocator, float[] source) {
+        return create(bufferAllocator, source.length).copyFrom(source);
     }
 
     float array(long idx);

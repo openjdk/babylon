@@ -24,7 +24,7 @@
  */
 package mandel.buffers;
 
-import hat.Accelerator;
+import hat.buffer.BufferAllocator;
 import hat.buffer.ImageBuffer;
 
 import java.awt.image.BufferedImage;
@@ -34,12 +34,12 @@ import static java.lang.foreign.ValueLayout.JAVA_SHORT;
 
 public interface RgbaS32Image extends ImageBuffer {
     StructLayout layout =  ImageBuffer.createLayout(RgbaS32Image.class,JAVA_SHORT);
-    private static RgbaS32Image create(Accelerator accelerator, int width, int height) {
-        return ImageBuffer.create(accelerator, RgbaS32Image.class, layout,width, height, BufferedImage.TYPE_INT_ARGB, 1);
+    private static RgbaS32Image create(BufferAllocator bufferAllocator, int width, int height) {
+        return ImageBuffer.create(bufferAllocator, RgbaS32Image.class, layout,width, height, BufferedImage.TYPE_INT_ARGB, 1);
     }
 
-    static RgbaS32Image create(Accelerator accelerator, BufferedImage bufferedImage) {
-        return create(accelerator, bufferedImage.getWidth(), bufferedImage.getHeight()).syncFromRaster(bufferedImage);
+    static RgbaS32Image create(BufferAllocator bufferAllocator, BufferedImage bufferedImage) {
+        return create(bufferAllocator, bufferedImage.getWidth(), bufferedImage.getHeight()).syncFromRaster(bufferedImage);
 
     }
 
