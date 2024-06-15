@@ -14,9 +14,27 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
         </dependency>
    </dependencies>
 
-   <modules>
-     <module>hat</module>
-     <module>backends</module>
-     <module>examples</module>
-   </modules>
+   <profiles>
+       <profile>
+          <id>default</id>                
+          <activation>
+             <activeByDefault>true</activeByDefault>
+          </activation>
+          <modules>
+             <module>hat</module>
+             <module>backends</module>
+             <module>examples</module>
+          </modules>
+       </profile>
+       <profile>
+          <id>hattricks</id>
+          <modules>
+             <module>hat</module>
+             <module>backends</module>
+             <module>examples</module>
+             <module>hattricks</module>
+          </modules>
+       </profile>
+   </profiles>
+
 </project>
