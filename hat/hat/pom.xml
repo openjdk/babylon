@@ -31,11 +31,14 @@ questions.
     <groupId>oracle.code</groupId>
     <artifactId>hat</artifactId>
     <version>1.0</version>
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>23</maven.compiler.source>
-        <maven.compiler.target>23</maven.compiler.target>
-    </properties>
+    <!-- this required to inherit parent properties -->
+    <parent>
+        <groupId>oracle.code</groupId>
+        <version>1.0</version>
+        <artifactId>hat.root</artifactId>
+    </parent>
+
+
 
     <dependencies>
         <dependency>
@@ -61,24 +64,6 @@ questions.
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
-                <configuration>
-                    <compilerArgs>
-                        <arg>--enable-preview</arg>
-                        <arg>--add-exports=java.base/jdk.internal=ALL-UNNAMED</arg>
-                        <arg>--add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED</arg>
-                    </compilerArgs>
-                    <source>${maven.compiler.source}</source>
-                    <target>${maven.compiler.target}</target>
-                    <showDeprecation>true</showDeprecation>
-                    <failOnError>true</failOnError>
-                    <showWarnings>true</showWarnings>
-                    <showDeprecation>true</showDeprecation>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-antrun-plugin</artifactId>
                 <version>1.8</version>
                 <executions>
@@ -86,7 +71,7 @@ questions.
                         <phase>install</phase>
                         <configuration>
                             <target>
-                                <copy file="target/${project.artifactId}-1.0.jar" todir="../maven-build"/>
+                                <copy file="target/${project.artifactId}-1.0.jar" todir="${hat.target}"/>
                             </target>
                         </configuration>
                         <goals>

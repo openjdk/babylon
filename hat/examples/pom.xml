@@ -30,8 +30,16 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
    <modelVersion>4.0.0</modelVersion>
    <groupId>oracle.code</groupId>
    <version>1.0</version>
-   <artifactId>examples</artifactId>
+   <artifactId>hat.examples</artifactId>
    <packaging>pom</packaging>
+
+   <!-- this required to inherit parent properties -->
+   <parent>
+     <groupId>oracle.code</groupId>
+     <version>1.0</version>
+     <artifactId>hat.root</artifactId>
+   </parent>
+
    <modules>
      <module>mandel</module>
      <module>experiments</module>

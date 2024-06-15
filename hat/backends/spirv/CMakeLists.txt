@@ -41,8 +41,8 @@ target_link_libraries(spirv_info
 add_custom_target(spirv_natives DEPENDS spirv_info spirv_backend)
 
 add_custom_target(copy_spirv_libs DEPENDS spirv_info spirv_backend
-   COMMAND cp ${CMAKE_BINARY_DIR}/spirv/libspirv_backend.* ${CMAKE_SOURCE_DIR}/../maven-build
-   COMMAND cp ${CMAKE_BINARY_DIR}/spirv/spirv_info ${CMAKE_SOURCE_DIR}/../maven-build
+   COMMAND cp ${CMAKE_BINARY_DIR}/spirv/libspirv_backend.* ${HAT_TARGET}
+   COMMAND cp ${CMAKE_BINARY_DIR}/spirv/spirv_info ${HAT_TARGET}
 )
 add_dependencies(copy_libs copy_spirv_libs)
 

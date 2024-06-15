@@ -49,8 +49,8 @@ if(CUDAToolkit_FOUND)
     add_custom_target(ptx_natives DEPENDS ptx_info ptx_backend)
 
     add_custom_target(copy_ptx_libs DEPENDS ptx_info ptx_backend
-        COMMAND cp ${CMAKE_BINARY_DIR}/ptx/libptx_backend.* ${CMAKE_SOURCE_DIR}/../maven-build
-        COMMAND cp ${CMAKE_BINARY_DIR}/ptx/ptx_info ${CMAKE_SOURCE_DIR}/../maven-build
+        COMMAND cp ${CMAKE_BINARY_DIR}/ptx/libptx_backend.* ${HAT_TARGET}
+        COMMAND cp ${CMAKE_BINARY_DIR}/ptx/ptx_info ${HAT_TARGET}
     ) 
     add_dependencies(copy_libs copy_ptx_libs)
 endif()

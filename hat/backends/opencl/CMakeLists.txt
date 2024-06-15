@@ -50,8 +50,9 @@ if(OPENCL_FOUND)
     )
     add_custom_target(opencl_natives DEPENDS opencl_info opencl_backend)
     add_custom_target(copy_opencl_libs DEPENDS opencl_info opencl_backend
-       COMMAND cp ${CMAKE_BINARY_DIR}/opencl/libopencl_backend.* ${CMAKE_SOURCE_DIR}/../maven-build
-       COMMAND cp ${CMAKE_BINARY_DIR}/opencl/opencl_info ${CMAKE_SOURCE_DIR}/../maven-build
+       COMMAND cp ${CMAKE_BINARY_DIR}/opencl/libopencl_backend.*  ${HAT_TARGET}
+       COMMAND cp ${CMAKE_BINARY_DIR}/opencl/opencl_info ${HAT_TARGET}
     )
     add_dependencies(copy_libs copy_opencl_libs)
+
 endif()
