@@ -34,7 +34,7 @@ public class LambdaOpWrapper extends OpWrapper<CoreOp.LambdaOp> {
     }
 
     public InvokeOpWrapper getQuotableTargetInvokeOpWrapper() {
-        return OpWrapper.wrap(op().bodies().get(0).blocks().get(0).ops().stream()
+        return OpWrapper.wrap(op().body().entryBlock().ops().stream()
                 .filter(op -> op instanceof CoreOp.InvokeOp)
                 .map(op -> (CoreOp.InvokeOp) op)
                 .findFirst().get());
@@ -45,7 +45,7 @@ public class LambdaOpWrapper extends OpWrapper<CoreOp.LambdaOp> {
     }
 
     public Object[] getQuotableCapturedValues(Quoted quoted, Method method) {
-        var block = op().bodies().get(0).blocks().get(0);
+        var block = op().body().entryBlock();
         var ops = block.ops();
         Object[] varLoadNames = ops.stream()
                 .filter(op -> op instanceof CoreOp.VarAccessOp.VarLoadOp)

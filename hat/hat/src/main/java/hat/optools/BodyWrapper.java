@@ -17,7 +17,7 @@ public class BodyWrapper extends CodeElementWrapper<Body> {
     }
 
     public static void onlyBlock(Body body, Consumer<BlockWrapper> blockWrapperConsumer) {
-        blockWrapperConsumer.accept(new BlockWrapper(body.blocks().getFirst()));
+        blockWrapperConsumer.accept(new BlockWrapper(body.entryBlock()));
     }
 
     public void onlyBlock(Consumer<BlockWrapper> blockWrapperConsumer) {

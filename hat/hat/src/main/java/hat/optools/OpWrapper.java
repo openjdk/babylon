@@ -24,9 +24,6 @@
  */
 package hat.optools;
 
-import hat.util.Result;
-import hat.util.StreamCounter;
-
 import java.lang.reflect.code.Block;
 import java.lang.reflect.code.Body;
 import java.lang.reflect.code.Op;
@@ -39,6 +36,7 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class OpWrapper<T extends Op> {
+    @SuppressWarnings("unchecked")
     public static <O extends Op, OW extends OpWrapper<O>> OW wrap(O op) {
         // We have one special case
         if (op instanceof CoreOp.VarOp varOp) {
@@ -47,17 +45,9 @@ public class OpWrapper<T extends Op> {
             // which  relate to func parameters.
             // This saves us asking each time if a var is indeed a func param.
 
-            if (varOp.parentBlock().parentBody().parentOp() instanceof CoreOp.FuncOp funcOp) {
-                Result<OW> result = new Result<>();
-                StreamCounter.of(funcOp.bodies().getFirst().blocks().getFirst().parameters(), (c, parameter) -> {
-                            if (parameter.uses().stream().findFirst().get().op().equals(varOp)) {
-                                result.of((OW) new VarFuncDeclarationOpWrapper(varOp, funcOp, parameter, c.value()));
-                            }
-                        }
-                );
-                if (result.isPresent()) {
-                    return result.get();
-                }
+            if (varOp.operands().getFirst() instanceof Block.Parameter parameter &&
+                    parameter.invokableOperation() instanceof CoreOp.FuncOp funcOp) {
+                return (OW) new VarFuncDeclarationOpWrapper(varOp, funcOp, parameter);
             }
         }
         return switch (op) {
@@ -186,11 +176,11 @@ public class OpWrapper<T extends Op> {
     }
 
     public Block firstBlockOfBodyN(int i) {
-        return bodyN(i).blocks().getFirst();
+        return bodyN(i).entryBlock();
     }
 
     public Block firstBlockOfFirstBody() {
-        return op().bodies().getFirst().blocks().getFirst();
+        return op().bodies().getFirst().entryBlock();
     }
 
     public String toText() {

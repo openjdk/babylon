@@ -221,7 +221,7 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
     public BiMap<Block.Parameter, HatPtrOp> parameterHatPtrOpMap = new BiMap<>();
     public FuncOpWrapper(CoreOp.FuncOp op) {
         super(op);
-        op().body().blocks().getFirst().parameters().forEach(parameter -> {
+        op().parameters().forEach(parameter -> {
             Optional<Op.Result> optionalResult = parameter.uses().stream().findFirst();
             optionalResult.ifPresentOrElse(result -> {
                 var resultOp = result.op();
