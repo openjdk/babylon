@@ -11,7 +11,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
         <maven.compiler.target>23</maven.compiler.target>
         <github.dir>${env.HOME}/github</github.dir>
         <beehive.spirv.toolkit.dir>${github.dir}/beehive-spirv-toolkit</beehive.spirv.toolkit.dir>
-        <babylon.repo.name>babylon-grfrost-fork</babylon.repo.name>
+        <babylon.repo.name>babylon</babylon.repo.name>
         <babylon.dir>${github.dir}/${babylon.repo.name}</babylon.dir>
         <hat.dir>${babylon.dir}/hat</hat.dir>
         <hat.target>${hat.dir}/maven-build</hat.target>
