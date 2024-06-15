@@ -31,12 +31,13 @@ questions.
     <artifactId>hat-backend-spirv</artifactId>
     <version>1.0</version>
     <packaging>jar</packaging>
+    <!-- this required to inherit parent properties -->
+    <parent>
+        <groupId>oracle.code</groupId>
+        <version>1.0</version>
+        <artifactId>hat.backends</artifactId>
+    </parent>
 
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>23</maven.compiler.source>
-        <maven.compiler.target>23</maven.compiler.target>
-    </properties>
 
     <dependencies>
         <dependency>
@@ -48,6 +49,16 @@ questions.
     <build>
         <plugins>
             <plugin>
+               <groupId>org.codehaus.mojo</groupId>
+               <artifactId>exec-maven-plugin</artifactId>
+               <configuration>
+                  <skip>true</skip>
+                  <!-- we want to inherit properties from parent but not the
+                       plugin that calls cmake -->
+               </configuration>
+            </plugin>
+
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-antrun-plugin</artifactId>
                 <version>1.8</version>
@@ -56,7 +67,7 @@ questions.
                         <phase>install</phase>
                         <configuration>
                             <target>
-                                <copy file="target/hat-backend-spirv-1.0.jar" todir="../../maven-build"/>
+                                <copy file="target/hat-backend-spirv-1.0.jar" todir="${hat.target}"/>
                             </target>
                         </configuration>
                         <goals>
@@ -79,8 +90,8 @@ questions.
                         </goals>
                         <configuration>
                             <sources>
-                                <source> ../../../cr-examples/spirv/src/main/java </source>
-                                <source>../../../../beehive-spirv-toolkit/lib/src/main/java</source>
+                                <source>${babylon.dir}/cr-examples/spirv/src/main/java </source>
+                                <source>${beehive.spirv.toolkit.dir}/lib/src/main/java</source>
                             </sources>
                         </configuration>
                     </execution>

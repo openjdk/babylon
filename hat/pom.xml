@@ -3,20 +3,24 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
    <modelVersion>4.0.0</modelVersion>
    <groupId>oracle.code</groupId>
    <version>1.0</version>
-   <artifactId>parent</artifactId>
+   <artifactId>hat.root</artifactId>
    <packaging>pom</packaging>
-   <dependencies>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <version>5.10.0</version>
-            <scope>test</scope>
-        </dependency>
-   </dependencies>
+   <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>23</maven.compiler.source>
+        <maven.compiler.target>23</maven.compiler.target>
+        <github.dir>${env.HOME}/github</github.dir>
+        <beehive.spirv.toolkit.dir>${github.dir}/beehive-spirv-toolkit</beehive.spirv.toolkit.dir>
+        <babylon.repo.name>babylon-grfrost-fork</babylon.repo.name>
+        <babylon.dir>${github.dir}/${babylon.repo.name}</babylon.dir>
+        <hat.dir>${babylon.dir}/hat</hat.dir>
+        <hat.target>${hat.dir}/maven-build</hat.target>
+   </properties>
 
    <profiles>
+
        <profile>
-          <id>default</id>                
+          <id>default</id>
           <activation>
              <activeByDefault>true</activeByDefault>
           </activation>
@@ -26,8 +30,14 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
              <module>examples</module>
           </modules>
        </profile>
+
        <profile>
           <id>hattricks</id>
+          <activation>
+             <file>
+                <exists>hattricks</exists>
+             </file>
+          </activation>
           <modules>
              <module>hat</module>
              <module>backends</module>
@@ -36,5 +46,27 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
           </modules>
        </profile>
    </profiles>
+   <build>
+      <plugins>
+          <plugin>
+             <groupId>org.apache.maven.plugins</groupId>
+             <artifactId>maven-compiler-plugin</artifactId>
+             <version>3.11.0</version>
+             <configuration>
+                <compilerArgs>
+                    <arg>--enable-preview</arg>
+                    <arg>--add-exports=java.base/jdk.internal=ALL-UNNAMED</arg>
+                    <arg>--add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED</arg>
+                </compilerArgs>
+                <source>${maven.compiler.source}</source>
+                <target>${maven.compiler.target}</target>
+                <showDeprecation>true</showDeprecation>
+                <failOnError>true</failOnError>
+                <showWarnings>true</showWarnings>
+                <showDeprecation>true</showDeprecation>
+            </configuration>
+         </plugin>
+     </plugins>
+   </build>
 
 </project>
