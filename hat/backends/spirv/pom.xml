@@ -90,8 +90,8 @@ questions.
                         </goals>
                         <configuration>
                             <sources>
-                                <source>${babylon.dir}/cr-examples/spirv/src/main/java </source>
-                                <source>${beehive.spirv.toolkit.dir}/lib/src/main/java</source>
+                                <source>${babylon.dir}/cr-examples/spirv/src/main/java/</source>
+                                <source>${beehive.spirv.toolkit.dir}/lib/src/main/java/</source>
                             </sources>
                         </configuration>
                     </execution>

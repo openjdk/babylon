@@ -24,13 +24,13 @@
  */
 package hat.optools;
 
+import hat.HatOps;
 import hat.KernelContext;
 import hat.buffer.Buffer;
-import hat.ops.HatPtrOp;
 
 import java.lang.foreign.GroupLayout;
-import java.lang.reflect.Parameter;
 import java.lang.reflect.code.Block;
+import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.TypeElement;
@@ -47,6 +47,8 @@ import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
@@ -218,7 +220,7 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
 
     public BiMap<Block.Parameter, CoreOp.VarOp> parameterVarOpMap = new BiMap<>();
     public BiMap<Block.Parameter, CoreOp.InvokeOp> parameterInvokeOpMap = new BiMap<>();
-    public BiMap<Block.Parameter, HatPtrOp> parameterHatPtrOpMap = new BiMap<>();
+    public BiMap<Block.Parameter, HatOps.HatPtrOp> parameterHatPtrOpMap = new BiMap<>();
     public FuncOpWrapper(CoreOp.FuncOp op) {
         super(op);
         op().parameters().forEach(parameter -> {
@@ -230,7 +232,7 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
                     paramTable.add(Map.entry(parameter, varOp));
                 }else if (resultOp instanceof CoreOp.InvokeOp invokeOp) {
                     parameterInvokeOpMap.add(parameter,invokeOp);
-                }else if (resultOp instanceof HatPtrOp hatPtrOp) {
+                }else if (resultOp instanceof HatOps.HatPtrOp hatPtrOp) {
                     parameterHatPtrOpMap.add(parameter,hatPtrOp);
                 }else{
                     //System.out.println("neither varOp or an invokeOp "+resultOp.getClass().getName());
@@ -305,7 +307,64 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
             return b;
         }));
     }
+    public static class WrappedOpReplacer<T extends Op, WT extends OpWrapper<T>>{
 
+        final private Block.Builder builder;
+        final private CopyContext context;
+        final private WT current;
+        private boolean replaced = false;
+        WrappedOpReplacer(Block.Builder builder, WT current){
+            this.builder = builder;
+            this.context = this.builder.context();
+            this.current = current;
+        }
+        public List<Value> operandValues(){
+            return context.getValues(current.operands());
+        }
+
+        public void replace(Op replacement){
+            context.mapValue(current.result(), builder.op(replacement));
+            replaced = true;
+        }
+
+        public WT current() {
+            return  current;
+        }
+
+        public TypeElement resultType() {
+            return current.resultType();
+        }
+    }
+
+    public <T extends Op, WT extends OpWrapper<T>>FuncOpWrapper transform(Consumer<WrappedOpReplacer<T,WT>> wrappedOpTransformer) {
+        return OpWrapper.wrap(op().transform((b, op) -> {
+            var replacer = new WrappedOpReplacer<T,WT>(b, (WT)OpWrapper.wrap(op));
+            wrappedOpTransformer.accept(replacer);
+            if (!replacer.replaced) {
+               b.op(op);
+            }
+            return b;
+        }));
+    }
+
+    public  <T extends Op, WT extends OpWrapper<T>>FuncOpWrapper findMapAndReplace(
+            Predicate<OpWrapper<?>> predicate,
+            Function<OpWrapper<?>, WT> mapper,
+            Consumer<WrappedOpReplacer<T,WT>> wrappedOpTransformer) {
+        return OpWrapper.wrap(op().transform((b, op) -> {
+            var opWrapper = OpWrapper.wrap(op);
+            if (predicate.test(opWrapper)) {
+                var replacer = new WrappedOpReplacer<T,WT>(b, mapper.apply(opWrapper));
+                wrappedOpTransformer.accept(replacer);
+                if (!replacer.replaced) {
+                    b.op(op);
+                }
+            }else{
+                b.op(op);
+            }
+            return b;
+        }));
+    }
     public String functionName() {
         return op().funcName();
     }

@@ -1,6 +1,7 @@
 package hat.optools;
 
 import hat.buffer.Buffer;
+import hat.buffer.KernelContext;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.code.op.CoreOp;
@@ -68,6 +69,15 @@ public class InvokeOpWrapper extends OpWrapper<CoreOp.InvokeOp> {
 
         if (isIfaceBufferMethod() && !returnsVoid()) {
             return !isReturnTypeAssignableFrom(Buffer.class);
+        } else {
+            return false;
+        }
+    }
+
+    public boolean isKernelContextAccessor() {
+
+        if (isIfaceBufferMethod() && !returnsVoid()) {
+            return !isReturnTypeAssignableFrom(KernelContext.class);
         } else {
             return false;
         }
