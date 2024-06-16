@@ -29,50 +29,51 @@
     package experiments;
 
 
+    import hat.HatOps;
+    import hat.buffer.KernelContext;
     import hat.buffer.S32Array;
-    import hat.ops.HatPtrOp;
     import hat.optools.FuncOpWrapper;
+    import hat.optools.InvokeOpWrapper;
 
     import java.lang.reflect.Method;
-    import java.lang.reflect.code.CopyContext;
-    import java.lang.reflect.code.Op;
-    import java.lang.reflect.code.Value;
-    import java.lang.reflect.code.type.JavaType;
     import java.lang.runtime.CodeReflection;
-    import java.util.List;
 
     public class Ptr {
 
 
         @CodeReflection
-        public static void addMul(S32Array s32Array, int add, int mul) {
-            for (int i = 0; i < s32Array.length(); i++) {
-                s32Array.array(i, (s32Array.array(i) + add) * mul);
-            }
+        public static void addMul(KernelContext kernelContext, S32Array s32Array, int add, int mul) {
+            int x = kernelContext.x();
+            s32Array.array(x, (s32Array.array(x) + add) * mul);
         }
 
 
         static public void main(String[] args) throws Exception {
-            Method method = Ptr.class.getDeclaredMethod("addMul", S32Array.class, int.class, int.class);
+            Method method = Ptr.class.getDeclaredMethod("addMul", KernelContext.class, S32Array.class, int.class, int.class);
+
             FuncOpWrapper funcOpWrapper = new FuncOpWrapper(method.getCodeModel().get());
             System.out.println(funcOpWrapper.toText());
-            FuncOpWrapper transformedFuncOpWrapper = funcOpWrapper.transformIfaceInvokes((builder, invokeOpWrapper)->{
-             //   builder.op(invokeOpWrapper.op());
-                CopyContext cc = builder.context();
-                List<Value> inputOperands = invokeOpWrapper.operands();
-                List<Value> outputOperands = cc.getValues(inputOperands);
-                Op.Result inputResult = invokeOpWrapper.result();
-               // builder.op(invokeOpWrapper.op());
-                Op.Result outputResult = builder.op(new HatPtrOp(JavaType.INT, outputOperands));
-                cc.mapValue(inputResult, outputResult);
 
+            FuncOpWrapper transformedFuncOpWrapper = funcOpWrapper.findMapAndReplace(
+                    (w)-> w instanceof InvokeOpWrapper invokeOpWrapper&& invokeOpWrapper.isIfaceBufferMethod(),  // Selector
+                    (iw)-> (InvokeOpWrapper)iw,            // Mapper (so that wb.current() is type we want)
+                    (wb) -> {
+                if (wb.current().isIfaceBufferMethod()) {
+                    if (wb.current().isIfaceAccessor()) {
+                        if (wb.current().isKernelContextAccessor()) {
+                            wb.replace(new HatOps.HatKernelContextOp(wb.resultType(), wb.operandValues()));
+                        } else {
+                            wb.replace(new HatOps.HatPtrLoadOp(wb.resultType(), wb.operandValues()));
+                        }
+                    } else {
+                        wb.replace(new HatOps.HatPtrStoreOp(wb.resultType(), wb.operandValues()));
+                    }
+                }
             });
-
-          //  System.out.println(transformedFuncOpWrapper.toText());
-            var loweredFuncOpWrapper =  transformedFuncOpWrapper.lower();
-           // System.out.println(transformedFuncOpWrapper.toText());
+            System.out.println(transformedFuncOpWrapper.toText());
+            var loweredFuncOpWrapper = transformedFuncOpWrapper.lower();
             System.out.println(loweredFuncOpWrapper.toText());
-             var ssa = loweredFuncOpWrapper.ssa();
+            var ssa = loweredFuncOpWrapper.ssa();
             System.out.println(ssa.toText());
         }
     }
