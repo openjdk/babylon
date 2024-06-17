@@ -1,5 +1,7 @@
 package hat;
 
+import hat.optools.FuncOpWrapper;
+
 import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.OpTransformer;
@@ -28,12 +30,22 @@ public class HatOps {
     }
     public final static class HatKernelContextOp extends HatOp {
         public final static String NAME="hat.kc.op";
-        public HatKernelContextOp(TypeElement typeElement, List<Value> operands) {
-            super(NAME, typeElement, operands);
+        public final String fieldName;
+        public HatKernelContextOp(String fieldName, TypeElement typeElement, List<Value> operands) {
+            super(NAME+"."+fieldName, typeElement, operands);
+            this.fieldName=fieldName;
         }
+        public HatKernelContextOp(String fieldName, FuncOpWrapper.WrappedOpReplacer replacer) {
+            super(NAME+"."+fieldName, replacer.currentResultType(), replacer.currentOperandValues());
+            this.fieldName=fieldName;
 
-        public HatKernelContextOp(HatOp that, CopyContext cc) {
-            super(that, cc);
+        }
+        public HatKernelContextOp(String fieldName,TypeElement typeElement,FuncOpWrapper.WrappedOpReplacer replacer) {
+            super(NAME+"."+fieldName, typeElement, replacer.currentOperandValues());
+            this.fieldName=fieldName;
+        }
+        public HatKernelContextOp(HatKernelContextOp that, CopyContext cc) {
+            super(that, cc); this.fieldName = that.fieldName;
         }
 
         @Override
@@ -48,6 +60,12 @@ public class HatOps {
         public HatPtrOp(String name, TypeElement typeElement, List<Value> operands) {
             super(name, typeElement, operands);
         }
+        public HatPtrOp(String name, FuncOpWrapper.WrappedOpReplacer replacer) {
+            super(name, replacer.currentResultType(), replacer.currentOperandValues());
+        }
+        public HatPtrOp(String name, TypeElement typeElement,FuncOpWrapper.WrappedOpReplacer replacer) {
+            super(name, typeElement, replacer.currentOperandValues());
+        }
 
         public HatPtrOp(HatOp that, CopyContext cc) {
             super(that, cc);
@@ -60,7 +78,12 @@ public class HatOps {
         public HatPtrStoreOp(TypeElement typeElement, List<Value> operands) {
             super(NAME, typeElement, operands);
         }
-
+        public HatPtrStoreOp(FuncOpWrapper.WrappedOpReplacer replacer) {
+            super(NAME, replacer);
+        }
+        public HatPtrStoreOp(TypeElement typeElement,FuncOpWrapper.WrappedOpReplacer replacer) {
+            super(NAME, typeElement,replacer);
+        }
         public HatPtrStoreOp(HatOp that, CopyContext cc) {
             super(that, cc);
         }
@@ -75,7 +98,12 @@ public class HatOps {
         public HatPtrLoadOp(TypeElement typeElement, List<Value> operands) {
             super(NAME, typeElement, operands);
         }
-
+        public HatPtrLoadOp(TypeElement typeElement, FuncOpWrapper.WrappedOpReplacer replacer) {
+            super(NAME, typeElement, replacer);
+        }
+        public HatPtrLoadOp( FuncOpWrapper.WrappedOpReplacer replacer) {
+            super(NAME,  replacer);
+        }
         public HatPtrLoadOp(HatOp that, CopyContext cc) {
             super(that, cc);
         }

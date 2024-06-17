@@ -28,7 +28,10 @@ public class InvokeOpWrapper extends OpWrapper<CoreOp.InvokeOp> {
         return FuncOpWrapper.ParamTable.Info.isIfaceBuffer(javaRefType());
 
     }
+    public boolean isKernelContextMethod() {
+        return FuncOpWrapper.ParamTable.Info.isKernelContext(javaRefType());
 
+    }
     private boolean isReturnTypeAssignableFrom(Class<?> clazz) {
         Optional<Class<?>> optionalClazz = javaReturnClass();
         return optionalClazz.isPresent() && clazz.isAssignableFrom(optionalClazz.get());
@@ -66,7 +69,6 @@ public class InvokeOpWrapper extends OpWrapper<CoreOp.InvokeOp> {
     public enum IfaceBufferAccess {None, Access, Mutate}
 
     public boolean isIfaceAccessor() {
-
         if (isIfaceBufferMethod() && !returnsVoid()) {
             return !isReturnTypeAssignableFrom(Buffer.class);
         } else {
@@ -75,12 +77,7 @@ public class InvokeOpWrapper extends OpWrapper<CoreOp.InvokeOp> {
     }
 
     public boolean isKernelContextAccessor() {
-
-        if (isIfaceBufferMethod() && !returnsVoid()) {
-            return !isReturnTypeAssignableFrom(KernelContext.class);
-        } else {
-            return false;
-        }
+        return isKernelContextMethod();
     }
 
     public boolean isIfaceMutator() {

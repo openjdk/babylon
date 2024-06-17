@@ -37,39 +37,54 @@
 
     import java.lang.reflect.Method;
     import java.lang.runtime.CodeReflection;
+    import java.util.List;
 
     public class Ptr {
 
 
         @CodeReflection
-        public static void addMul(KernelContext kernelContext, S32Array s32Array, int add, int mul) {
-            int x = kernelContext.x();
-            s32Array.array(x, (s32Array.array(x) + add) * mul);
+        public static void mulAdd(KernelContext kernelContext, S32Array s32Array, int mul, int add) {
+            s32Array.array(kernelContext.x(), s32Array.array(kernelContext.x()) * mul + add);
         }
 
 
         static public void main(String[] args) throws Exception {
-            Method method = Ptr.class.getDeclaredMethod("addMul", KernelContext.class, S32Array.class, int.class, int.class);
+            Method method = Ptr.class.getDeclaredMethod("mulAdd", KernelContext.class, S32Array.class, int.class, int.class);
 
             FuncOpWrapper funcOpWrapper = new FuncOpWrapper(method.getCodeModel().get());
             System.out.println(funcOpWrapper.toText());
 
-            FuncOpWrapper transformedFuncOpWrapper = funcOpWrapper.findMapAndReplace(
+            /*
+            FuncOpWrapper transformedFuncOpWrapper1 = funcOpWrapper.findMapAndReplace(
                     (w)-> w instanceof InvokeOpWrapper invokeOpWrapper&& invokeOpWrapper.isIfaceBufferMethod(),  // Selector
                     (iw)-> (InvokeOpWrapper)iw,            // Mapper (so that wb.current() is type we want)
-                    (wb) -> {
-                if (wb.current().isIfaceBufferMethod()) {
-                    if (wb.current().isIfaceAccessor()) {
-                        if (wb.current().isKernelContextAccessor()) {
-                            wb.replace(new HatOps.HatKernelContextOp(wb.resultType(), wb.operandValues()));
+                    (wr) -> {
+                if (wr.current().isIfaceBufferMethod()) {
+                    if (wr.current().isIfaceAccessor()) {
+                        if (wr.current().isKernelContextAccessor()) {
+                           wr.replace(new HatOps.HatKernelContextOp(wr.current().name(),wr));
                         } else {
-                            wb.replace(new HatOps.HatPtrLoadOp(wb.resultType(), wb.operandValues()));
+                            wr.replace(new HatOps.HatPtrLoadOp(wr));
                         }
                     } else {
-                        wb.replace(new HatOps.HatPtrStoreOp(wb.resultType(), wb.operandValues()));
+                        wr.replace(new HatOps.HatPtrStoreOp(wr));
                     }
                 }
-            });
+            }); */
+            FuncOpWrapper transformedFuncOpWrapper = funcOpWrapper.replace((wr) -> {
+                        if (wr.current()  instanceof InvokeOpWrapper invokeOpWrapper&& invokeOpWrapper.isIfaceBufferMethod()) {
+                            if (invokeOpWrapper.isIfaceAccessor()) {
+                                if (invokeOpWrapper.isKernelContextAccessor()) {
+                                    wr.replace(new HatOps.HatKernelContextOp(invokeOpWrapper.name(),wr));
+                                } else {
+                                    wr.replace(new HatOps.HatPtrLoadOp(wr));
+                                }
+                            } else {
+                                wr.replace(new HatOps.HatPtrStoreOp(wr));
+                            }
+                        }
+                    });
+
             System.out.println(transformedFuncOpWrapper.toText());
             var loweredFuncOpWrapper = transformedFuncOpWrapper.lower();
             System.out.println(loweredFuncOpWrapper.toText());
