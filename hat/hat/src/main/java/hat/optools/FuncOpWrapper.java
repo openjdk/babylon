@@ -96,25 +96,29 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
                 }
 
             }
-
             public boolean isIfaceBuffer() {
                 return isIfaceBuffer(javaType);
 
             }
 
-            public boolean isKernelContext() {
+            public static boolean isKernelContext(JavaType javaType) {
                 if (javaType instanceof PrimitiveType) {
                     return false;
                 }
                 try {
                     String className = javaType.toString();
                     Class<?> hopefullyAKernelContext = Class.forName(className);
-                    return KernelContext.class.isAssignableFrom(hopefullyAKernelContext);
+                    // Note we alow either the buffer form here.  Common iface? or maybe we should just not use same name
+                    return hat.KernelContext.class.isAssignableFrom(hopefullyAKernelContext)
+                        || hat.buffer.KernelContext.class.isAssignableFrom(hopefullyAKernelContext);
                 } catch (ClassNotFoundException e) {
                     return false;
                 }
             }
+            public boolean isKernelContext() {
+                return isKernelContext(javaType);
 
+            }
             public final int idx;
             public final Block.Parameter parameter;
 
@@ -318,7 +322,7 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
             this.context = this.builder.context();
             this.current = current;
         }
-        public List<Value> operandValues(){
+        public List<Value> currentOperandValues(){
             return context.getValues(current.operands());
         }
 
@@ -331,14 +335,14 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
             return  current;
         }
 
-        public TypeElement resultType() {
+        public TypeElement currentResultType() {
             return current.resultType();
         }
     }
 
-    public <T extends Op, WT extends OpWrapper<T>>FuncOpWrapper transform(Consumer<WrappedOpReplacer<T,WT>> wrappedOpTransformer) {
+    public FuncOpWrapper replace(Consumer<WrappedOpReplacer<?,OpWrapper<?>>> wrappedOpTransformer) {
         return OpWrapper.wrap(op().transform((b, op) -> {
-            var replacer = new WrappedOpReplacer<T,WT>(b, (WT)OpWrapper.wrap(op));
+            var replacer = new WrappedOpReplacer(b, OpWrapper.wrap(op));
             wrappedOpTransformer.accept(replacer);
             if (!replacer.replaced) {
                b.op(op);

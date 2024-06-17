@@ -7,7 +7,6 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
    <packaging>pom</packaging>
    <properties>
         <babylon.repo.name>babylon</babylon.repo.name>  <!--replace with your fork name -->
-        <!--<babylon.repo.name>babylon-grfrost-fork</babylon.repo.name>  replace with your fork name -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>23</maven.compiler.source>
         <maven.compiler.target>23</maven.compiler.target>
