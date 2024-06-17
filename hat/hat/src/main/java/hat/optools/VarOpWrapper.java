@@ -9,7 +9,7 @@ public abstract class VarOpWrapper extends OpWrapper<CoreOp.VarOp> {
     }
 
     public JavaType javaType() {
-        return (JavaType) op().varType();
+        return (JavaType) op().varValueType();
     }
 
     public String varName() {
