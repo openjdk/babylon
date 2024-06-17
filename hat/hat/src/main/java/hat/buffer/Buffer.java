@@ -24,16 +24,12 @@
  */
 package hat.buffer;
 
-import hat.util.StreamCounter;
-
-import java.lang.foreign.GroupLayout;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
-import java.lang.foreign.PaddingLayout;
-import java.lang.foreign.SequenceLayout;
-import java.lang.foreign.StructLayout;
-import java.lang.foreign.UnionLayout;
-import java.lang.foreign.ValueLayout;
 import java.lang.reflect.InvocationTargetException;
 
 import static hat.ifacemapper.MapperUtil.SECRET_LAYOUT_METHOD_NAME;
@@ -42,7 +38,28 @@ import static hat.ifacemapper.MapperUtil.SECRET_SEGMENT_METHOD_NAME;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface Buffer {
-    static <T extends Buffer>MemorySegment getMemorySegment(T buffer){
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.TYPE)
+    public @interface Struct {
+    }
+
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.TYPE)
+    public @interface Union {
+    }
+
+    interface Child {
+    }
+
+    @Union
+    interface UnionChild extends Child {
+    }
+
+    @Struct
+    interface StructChild extends Child {
+    }
+
+    static <T extends Buffer> MemorySegment getMemorySegment(T buffer) {
         try {
             return (MemorySegment) buffer.getClass().getDeclaredMethod(SECRET_SEGMENT_METHOD_NAME).invoke(buffer);
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
@@ -50,15 +67,15 @@ public interface Buffer {
         }
     }
 
-   static <T extends Buffer>MemoryLayout getLayout(T buffer){
-       try {
-           return (MemoryLayout) buffer.getClass().getDeclaredMethod(SECRET_LAYOUT_METHOD_NAME).invoke(buffer);
-       } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-           throw new RuntimeException(e);
-       }
-   }
+    static <T extends Buffer> MemoryLayout getLayout(T buffer) {
+        try {
+            return (MemoryLayout) buffer.getClass().getDeclaredMethod(SECRET_LAYOUT_METHOD_NAME).invoke(buffer);
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-    static <T extends Buffer>long getOffset(T buffer){
+    static <T extends Buffer> long getOffset(T buffer) {
         try {
             return (long) buffer.getClass().getDeclaredMethod(SECRET_OFFSET_METHOD_NAME).invoke(buffer);
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
@@ -66,7 +83,7 @@ public interface Buffer {
         }
     }
 
-    static <T extends Buffer> T setLength(T buffer, int length){
+    static <T extends Buffer> T setLength(T buffer, int length) {
         Buffer.getMemorySegment(buffer).set(JAVA_INT, Buffer.getLayout(buffer).byteOffset(MemoryLayout.PathElement.groupElement("length")), length);
         return buffer;
     }

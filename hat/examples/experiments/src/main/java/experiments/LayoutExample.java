@@ -27,14 +27,12 @@
 package experiments;
 
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import hat.buffer.Buffer;
+
 import java.lang.constant.ClassDesc;
 import java.lang.foreign.*;
-import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.analysis.SSA;
@@ -50,59 +48,133 @@ import java.util.stream.Stream;
 
 public class LayoutExample {
 
-    /*
-    struct {
-      StructTwo struct;
-      int i;
-    }
-     */
-    @Struct
-    public interface StructOne {
-        StructTwo struct();
+    public static class Schema {
+        private static final Map<Class<?>, MemoryLayout> typeToLayout = new HashMap<>();
 
-        int i();
-
-        void i(int v);
-
-        static MemoryLayout layout() {
-            return LAYOUT;
+        static {
+            typeToLayout.put(Integer.TYPE, ValueLayout.JAVA_INT);
+            typeToLayout.put(Float.TYPE, ValueLayout.JAVA_FLOAT);
+            typeToLayout.put(Long.TYPE, ValueLayout.JAVA_LONG);
+            typeToLayout.put(Double.TYPE, ValueLayout.JAVA_DOUBLE);
+            typeToLayout.put(Character.TYPE, ValueLayout.JAVA_CHAR);
+            typeToLayout.put(Short.TYPE, ValueLayout.JAVA_SHORT);
+            typeToLayout.put(Byte.TYPE, ValueLayout.JAVA_BYTE);
+            typeToLayout.put(Boolean.TYPE, ValueLayout.JAVA_BOOLEAN);
         }
 
-        MemoryLayout LAYOUT = MemoryLayout.structLayout(
-                        StructTwo.layout().withName(StructTwo.layout().name().orElseThrow() + "::struct"),
-                        ValueLayout.JAVA_INT.withName("i"))
-                // Symbolic reference to interface
-                // @@@ Use externalized type element form?
-                .withName("layouts.LayoutExample$StructOne");
-    }
+        private GroupLayout layout;
 
-    /*
-    struct {
-      int i;
-      float f;
-    }
-     */
-    @Struct
-    public interface StructTwo {
-        int i();
-
-        void i(int v);
-
-        float f();
-
-        void f(float v);
-
-        static MemoryLayout layout() {
-            return LAYOUT;
+        Schema(GroupLayout layout) {
+            this.layout = layout;
         }
 
-        MemoryLayout LAYOUT = MemoryLayout.structLayout(
-                        ValueLayout.JAVA_INT.withName("i"),
-                        ValueLayout.JAVA_FLOAT.withName("f"))
-                // Symbolic reference to interface
-                // @@@ Use externalized type element form?
-                .withName("layouts.LayoutExample$StructTwo");
+        public GroupLayout layout() {
+            return layout;
+        }
+
+        private static MemoryLayout typeToLayout(Class<?> clazz) {
+            if (typeToLayout.containsKey(clazz)) {
+                return typeToLayout.get(clazz);
+            } else if (clazz.isInterface()) {
+                if (clazz.isAnnotationPresent(Buffer.Struct.class) || clazz.isAnnotationPresent(Buffer.Union.class)) {
+                    try {
+                        if (clazz.getDeclaredField("schema") instanceof Field field) {
+                            return ((Schema) field.get(null)).layout();
+                        } else {
+                            throw new RuntimeException("no Schema field found");
+                        }
+                    } catch (NoSuchFieldException e) {
+                        throw new RuntimeException(e);
+                    } catch (IllegalAccessException e) {
+                        throw new RuntimeException(e);
+                    }
+                } else {
+                    throw new IllegalStateException("no Struct or Union found for " + clazz);
+                }
+            } else {
+                throw new IllegalStateException("wtft");
+            }
+        }
+
+        private static Schema _layoutOf(Class bufferClass, String... order) {
+            List<MemoryLayout> memoryLayouts = new ArrayList<>();
+            Map<String, Integer> orderMap = new LinkedHashMap<>();
+            Arrays.stream(order).forEach(s -> orderMap.put(s, orderMap.size())); // order[0] -> 0, order[1] -> r
+            Set<String> done = new HashSet<>();
+            Arrays.stream(bufferClass.getDeclaredMethods())
+                    .filter(m -> orderMap.containsKey(m.getName()))                        //only methods named in array
+                    .sorted(Comparator.comparingInt(lhs -> orderMap.get(lhs.getName()))) // sort by order in the array
+                    .forEach(m -> {
+                        String name = m.getName();
+                        if (!done.contains(name)) {
+                            MemoryLayout layout = null;
+                            var rt = m.getReturnType();
+                            if (rt == Void.TYPE) {
+                                if (m.getParameterCount() == 1) {
+                                    layout = typeToLayout(m.getParameterTypes()[0]);
+                                } else if (m.getParameterCount() == 2) {
+                                    throw new IllegalStateException("never");
+                                }
+                            } else {
+                                layout = typeToLayout(rt);
+                            }
+                            if (layout instanceof ValueLayout) {
+                                memoryLayouts.add(layout.withName(name));
+                            } else if (layout instanceof StructLayout) {
+                                memoryLayouts.add(layout.withName(name + "::struct"));
+                            }
+                            done.add(name);
+                        }
+
+                    });
+
+            return new Schema(MemoryLayout.structLayout(memoryLayouts.toArray(new MemoryLayout[0])).withName(bufferClass.getName()));
+        }
+
+        public static <T extends Buffer> Schema layoutOf(Class<T> clazz, String... order) {
+            return _layoutOf(clazz, order);
+        }
+
+        public static <T extends Buffer.Child> Schema childLayoutOf(Class<T> clazz, String... order) {
+            return _layoutOf(clazz, order);
+        }
     }
+    /*
+       struct {
+          StructTwo struct;
+          int i;
+       }
+     */
+     @Buffer.Struct
+        public interface StructOne extends Buffer {
+        /*
+         struct {
+             int i;
+             float f;
+         }
+        */
+        @Buffer.Struct
+            interface StructTwo extends Buffer.StructChild {
+                int i();
+
+                void i(int v);
+
+                float f();
+
+                void f(float v);
+
+                Schema schema = Schema.childLayoutOf(StructTwo.class, "i", "f");
+            }
+
+            StructTwo struct();
+
+            int i();
+
+            void i(int v);
+
+            Schema schema = Schema.layoutOf(StructOne.class, "struct", "i");
+        }
+
 
     @CodeReflection
     static float m(StructOne s1) {
@@ -110,7 +182,7 @@ public class LayoutExample {
         // s1 -> i
         int i = s1.i();
         // s1 -> *s2
-        StructTwo s2 = s1.struct();
+        StructOne.StructTwo s2 = s1.struct();
         // s2 -> i
         i += s2.i();
         // s2 -> f
@@ -139,10 +211,6 @@ public class LayoutExample {
 
     //
 
-    @Retention(RetentionPolicy.RUNTIME)
-    @Target(ElementType.TYPE)
-    public @interface Struct {
-    }
 
     static CoreOp.FuncOp transformInvokesToPtrs(MethodHandles.Lookup l,
                                                 CoreOp.FuncOp f) {
@@ -195,27 +263,15 @@ public class LayoutExample {
         }
     }
 
-    static MemoryLayout structClassLayout(MethodHandles.Lookup l,
-                                          Class<?> c) {
-        if (!c.isAnnotationPresent(Struct.class)) {
+    static MemoryLayout structClassLayout(MethodHandles.Lookup l, Class<?> c) {
+        if (!c.isAnnotationPresent(Buffer.Struct.class)) {
             throw new IllegalArgumentException();
         }
-
-        Method layoutMethod;
+        Field schemaField;
         try {
-            layoutMethod = c.getMethod("layout");
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        }
-        MethodHandle layoutHandle;
-        try {
-            layoutHandle = l.unreflect(layoutMethod);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
-        try {
-            return (MemoryLayout) layoutHandle.invoke();
-        } catch (Throwable e) {
+            schemaField = c.getField("schema");
+           return  ((Schema)schemaField.get(null)).layout();
+        } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
     }
@@ -231,8 +287,7 @@ public class LayoutExample {
         if (!(t instanceof JavaType jt) || !(jt.resolve(l) instanceof Class<?> c)) {
             return null;
         }
-
-        return c.isInterface() && c.isAnnotationPresent(Struct.class) ? c : null;
+        return c.isInterface() && c.isAnnotationPresent(hat.buffer.Buffer.Struct.class) ? c : null;
     }
 
 
