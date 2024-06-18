@@ -692,7 +692,7 @@ public final class Block implements CodeElement<Block, Op> {
          * Transforms a body into this block, with this block builder's context.
          *
          * @param bodyToTransform the body to transform
-         * @param args        the list of values to map to the parameters of the body's entry block
+         * @param args        the list of output values to map to the input parameters of the body's entry block
          * @param ot          the operation transformer
          * @see #transformBody(Body, List, CopyContext, OpTransformer)
          */
@@ -721,7 +721,7 @@ public final class Block implements CodeElement<Block, Op> {
          * When the parent body is built any empty non-entry blocks that have no successors will be removed.
          *
          * @param bodyToTransform the body to transform
-         * @param args            the list of values to map to the parameters of the body's entry block
+         * @param args            the list of output values to map to the input parameters of the body's entry block
          * @param cc              the copy context, for values captured in the body
          * @param ot              the operation transformer
          */
