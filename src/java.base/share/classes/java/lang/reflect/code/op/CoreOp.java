@@ -152,7 +152,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             String funcName = def.extractAttributeValue(ATTRIBUTE_FUNC_NAME, true,
                     v -> switch (v) {
                         case String s -> s;
-                        default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
+                        case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
                     });
             return new FuncOp(def, funcName);
         }
@@ -252,7 +252,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             String funcName = def.extractAttributeValue(ATTRIBUTE_FUNC_NAME, true,
                     v -> switch (v) {
                         case String s -> s;
-                        default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
+                        case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
                     });
 
             return new FuncCallOp(def, funcName);
@@ -1328,7 +1328,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
                     true, v -> switch (v) {
                         case String s -> MethodRef.ofString(s);
                         case MethodRef md -> md;
-                        default -> throw new UnsupportedOperationException("Unsupported invoke descriptor value:" + v);
+                        case null, default -> throw new UnsupportedOperationException("Unsupported invoke descriptor value:" + v);
                     });
 
             return new InvokeOp(def, invokeDescriptor);
@@ -1449,7 +1449,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
                             yield ft;
                         }
                         case FunctionType ct -> ct;
-                        default -> throw new UnsupportedOperationException("Unsupported new descriptor value:" + v);
+                        case null, default -> throw new UnsupportedOperationException("Unsupported new descriptor value:" + v);
                     });
             return new NewOp(def, constructorType);
         }
@@ -1570,7 +1570,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
                         v -> switch (v) {
                             case String s -> FieldRef.ofString(s);
                             case FieldRef fd -> fd;
-                            default ->
+                            case null, default ->
                                     throw new UnsupportedOperationException("Unsupported field descriptor value:" + v);
                         });
                 return new FieldLoadOp(def, fieldDescriptor);
@@ -1631,7 +1631,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
                         v -> switch (v) {
                             case String s -> FieldRef.ofString(s);
                             case FieldRef fd -> fd;
-                            default ->
+                            case null, default ->
                                     throw new UnsupportedOperationException("Unsupported field descriptor value:" + v);
                         });
                 return new FieldStoreOp(def, fieldDescriptor);
@@ -1837,7 +1837,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
                     v -> switch (v) {
                         case String s -> JavaType.ofString(s);
                         case JavaType td -> td;
-                        default -> throw new UnsupportedOperationException("Unsupported type descriptor value:" + v);
+                        case null, default -> throw new UnsupportedOperationException("Unsupported type descriptor value:" + v);
                     });
             return new InstanceOfOp(def, typeDescriptor);
         }
@@ -1904,7 +1904,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
                     v -> switch (v) {
                         case String s -> JavaType.ofString(s);
                         case JavaType td -> td;
-                        default -> throw new UnsupportedOperationException("Unsupported type descriptor value:" + v);
+                        case null, default -> throw new UnsupportedOperationException("Unsupported type descriptor value:" + v);
                     });
             return new CastOp(def, type);
         }
@@ -1999,6 +1999,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             String name = def.extractAttributeValue(ATTRIBUTE_NAME, true,
                     v -> switch (v) {
                         case String s -> s;
+                        case null -> null;
                         default -> throw new UnsupportedOperationException("Unsupported var name value:" + v);
                     });
             return new VarOp(def, name);
@@ -2251,7 +2252,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
                     v -> switch (v) {
                         case String s -> Integer.valueOf(s);
                         case Integer i -> i;
-                        default -> throw new UnsupportedOperationException("Unsupported tuple index value:" + v);
+                        case null, default -> throw new UnsupportedOperationException("Unsupported tuple index value:" + v);
                     });
             return new TupleLoadOp(def, index);
         }
@@ -2322,7 +2323,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
                     v -> switch (v) {
                         case String s -> Integer.valueOf(s);
                         case Integer i -> i;
-                        default -> throw new UnsupportedOperationException("Unsupported tuple index value:" + v);
+                        case null, default -> throw new UnsupportedOperationException("Unsupported tuple index value:" + v);
                     });
             return new TupleWithOp(def, index);
         }

@@ -408,7 +408,7 @@ public class ArithMathOps {
                     v -> switch (v) {
                         case String s -> CompareKind.valueOf(s);
                         case CompareKind k -> k;
-                        default -> throw new UnsupportedOperationException("Unsupported start value:" + v);
+                        case null, default -> throw new UnsupportedOperationException("Unsupported start value:" + v);
                     });
             return new CompareOp(def, ck);
         }

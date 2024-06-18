@@ -58,7 +58,7 @@ public abstract class SlotOp extends ExternalizableOp {
                 v -> switch (v) {
                     case String s -> Integer.parseInt(s);
                     case Integer i -> i;
-                    default -> throw new UnsupportedOperationException("Unsupported slot value:" + v);
+                    case null, default -> throw new UnsupportedOperationException("Unsupported slot value:" + v);
                 });
     }
 
