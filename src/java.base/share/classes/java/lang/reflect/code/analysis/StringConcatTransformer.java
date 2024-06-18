@@ -39,11 +39,20 @@ import java.lang.reflect.code.type.MethodRef;
 public class StringConcatTransformer implements OpTransformer {
 
     private static final JavaType SBC_TYPE = JavaType.type(StringBuilder.class);
+    private static final JavaType CHAR_SEQ_TYPE = JavaType.type(CharSequence.class);
     private static final MethodRef SB_TO_STRING = MethodRef.method(SBC_TYPE, "toString", JavaType.J_L_STRING);
 
     record StringAndBuilder(Value string, Value stringBuilder) { }
 
     public StringConcatTransformer() {}
+
+    private static boolean resusableResult(Op.Result r) {
+        if (r.uses().size() == 1) {
+            return r.uses().stream().noneMatch((use) -> use.op() instanceof CoreOp.ReturnOp ||
+                    use.op() instanceof CoreOp.VarOp);
+        }
+        return false;
+    }
 
     @Override
     public Block.Builder apply(Block.Builder builder, Op op) {
@@ -51,11 +60,15 @@ public class StringConcatTransformer implements OpTransformer {
 
             Value left = builder.context().getValue(cz.operands().get(0));
             Value right = builder.context().getValue(cz.operands().get(1));
-
             Value result = cz.result();
-
-            StringAndBuilder newRes = stringBuild(builder, left, right);
-            builder.context().mapValue(result, newRes.string);
+            if (resusableResult((Op.Result) result)) {
+                Value sb = stringBuilder(builder, left, right);
+                builder.context().mapValue(result, sb);
+            } else {
+                Value sb = stringBuilder(builder, left, right);
+                Value str = buildString(builder, sb);
+                builder.context().mapValue(result, str);
+            }
         } else {
             builder.op(op);
         }
@@ -63,23 +76,31 @@ public class StringConcatTransformer implements OpTransformer {
     }
 
     //Uses StringBuilder and Immediate String Value
-    private static StringAndBuilder stringBuild(Block.Builder builder, Value left, Value right) {
-        var newB = stringBuilder(builder, left, right);
-        var toStringInvoke = CoreOp.invoke(SB_TO_STRING, newB);
+    private static Value buildString(Block.Builder builder, Value sb){
+        var toStringInvoke = CoreOp.invoke(SB_TO_STRING, sb);
         Value newString = builder.apply(toStringInvoke);
-        return new StringAndBuilder(newString, newB);
+        return newString;
     }
 
     private static Value stringBuilder(Block.Builder builder, Value left, Value right) {
-        CoreOp.NewOp newBuilder = CoreOp._new(FunctionType.functionType(SBC_TYPE));
-        Value sb = builder.apply(newBuilder);
-        builder.op(append(sb, left));
-        builder.op(append(sb, right));
-        return sb;
+        if (left.type().equals(SBC_TYPE)) {
+            return builder.op(append(left, right));
+        } else {
+            CoreOp.NewOp newBuilder = CoreOp._new(FunctionType.functionType(SBC_TYPE));
+            Value sb = builder.apply(newBuilder);
+            var res = builder.op(append(sb, left));
+            var res2 = builder.op(append(res, right));
+            return res2;
+        }
     }
 
     private static Op append(Value stringBuilder, Value arg) {
-        MethodRef leftMethodDesc = MethodRef.method(SBC_TYPE, "append", SBC_TYPE, arg.type());
+        var argType = arg.type();
+        if (argType.equals(SBC_TYPE)) {
+            argType = CHAR_SEQ_TYPE;
+        }
+        MethodRef leftMethodDesc = MethodRef.method(SBC_TYPE, "append", SBC_TYPE, argType);
         return CoreOp.invoke(leftMethodDesc, stringBuilder, arg);
     }
+
 }
