@@ -46,8 +46,7 @@ public class StringConcatTransformer implements OpTransformer {
 
     private static boolean reusableResult(Op.Result r) {
         if (r.uses().size() == 1) {
-            return r.uses().stream().noneMatch((use) -> use.op() instanceof CoreOp.ReturnOp ||
-                    use.op() instanceof CoreOp.VarOp);
+            return r.uses().stream().allMatch((use) -> use.op() instanceof CoreOp.ConcatOp);
         }
         return false;
     }
