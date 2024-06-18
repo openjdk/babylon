@@ -77,7 +77,7 @@ public abstract class ExternalizableOp extends Op {
          * attempts to remove the attribute with the given name.
          *
          * <p>On successful removal of the attribute its value is converted by applying the value
-         * to the mapping function. A {@code null} value is represented the instance
+         * to the mapping function. A {@code null} value is represented by the value
          * {@link #NULL_ATTRIBUTE_VALUE}.
          *
          * <p>If no attribute is present the {@code null} value is applied to the mapping function.
