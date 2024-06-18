@@ -42,11 +42,9 @@ public class StringConcatTransformer implements OpTransformer {
     private static final JavaType CHAR_SEQ_TYPE = JavaType.type(CharSequence.class);
     private static final MethodRef SB_TO_STRING = MethodRef.method(SBC_TYPE, "toString", JavaType.J_L_STRING);
 
-    record StringAndBuilder(Value string, Value stringBuilder) { }
-
     public StringConcatTransformer() {}
 
-    private static boolean resusableResult(Op.Result r) {
+    private static boolean reusableResult(Op.Result r) {
         if (r.uses().size() == 1) {
             return r.uses().stream().noneMatch((use) -> use.op() instanceof CoreOp.ReturnOp ||
                     use.op() instanceof CoreOp.VarOp);
@@ -60,8 +58,8 @@ public class StringConcatTransformer implements OpTransformer {
 
             Value left = builder.context().getValue(cz.operands().get(0));
             Value right = builder.context().getValue(cz.operands().get(1));
-            Value result = cz.result();
-            if (resusableResult((Op.Result) result)) {
+            Op.Result result = cz.result();
+            if (reusableResult(result)) {
                 Value sb = stringBuilder(builder, left, right);
                 builder.context().mapValue(result, sb);
             } else {
@@ -78,8 +76,7 @@ public class StringConcatTransformer implements OpTransformer {
     //Uses StringBuilder and Immediate String Value
     private static Value buildString(Block.Builder builder, Value sb){
         var toStringInvoke = CoreOp.invoke(SB_TO_STRING, sb);
-        Value newString = builder.apply(toStringInvoke);
-        return newString;
+        return builder.apply(toStringInvoke);
     }
 
     private static Value stringBuilder(Block.Builder builder, Value left, Value right) {
@@ -89,8 +86,7 @@ public class StringConcatTransformer implements OpTransformer {
             CoreOp.NewOp newBuilder = CoreOp._new(FunctionType.functionType(SBC_TYPE));
             Value sb = builder.apply(newBuilder);
             var res = builder.op(append(sb, left));
-            var res2 = builder.op(append(res, right));
-            return res2;
+            return builder.op(append(res, right));
         }
     }
 
