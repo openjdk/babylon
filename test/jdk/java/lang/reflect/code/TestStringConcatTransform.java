@@ -97,6 +97,7 @@ public class TestStringConcatTransform {
         CoreOp.FuncOp f_transformed = model.transform(new StringConcatTransformer());
         Object[] args = prepArgs(method);
 
+        model.writeTo(System.out);
         f_transformed.writeTo(System.out);
 
         var interpreted = Interpreter.invoke(model, args);
@@ -113,6 +114,10 @@ public class TestStringConcatTransform {
         CoreOp.FuncOp ssa_model = generateSSA(model);
         CoreOp.FuncOp ssa_transformed_model = ssa_model.transform(new StringConcatTransformer());
         Object[] args = prepArgs(method);
+
+        model.writeTo(System.out);
+        ssa_model.writeTo(System.out);
+        ssa_transformed_model.writeTo(System.out);
 
         var model_interpreted = Interpreter.invoke(model, args);
         var transformed_model_interpreted = Interpreter.invoke(transformed_model, args);
@@ -193,10 +198,44 @@ public class TestStringConcatTransform {
     }
 
     @CodeReflection
-    public static String intConcatNestedSplit(int i, String s){
+    public static String intConcatNestedSplit(int i, String s) {
         String q, r;
         String inter = i + (q = r = s + "hello") + 52;
         return q + r + inter;
     }
 
+    @CodeReflection
+    public static String degenerateTree(String a, String b, String c, String d) {
+        String s = (a + b) + (c + d);
+        return s;
+    }
+
+    //This String Builder is getting tweaked, check for side effects
+    @CodeReflection
+    public static String degenerateTree2(String a, String d) {
+        StringBuilder sb = new StringBuilder("test");
+        String s = sb + a;
+        String t = s + d;
+        System.out.println(sb);
+        return t;
+    }
+
+    @CodeReflection
+    public static String degenerateTree4(String a, String b, String c, String d) {
+        String s = ((a + b) + c) + d;
+        return s;
+    }
+
+    @CodeReflection
+    public static String degenerateTree5(String a, String b, String c, String d) {
+        String s = (a + (b + (c + d)));
+        return s;
+    }
+
+    @CodeReflection
+    public static String widenPrimitives(short a, byte b, int c, int d) {
+        String s = (a + (b + (c + d + "hi")));
+        return s;
+    }
 }
+
