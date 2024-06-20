@@ -38,24 +38,24 @@ import static hat.ifacemapper.MapperUtil.SECRET_SEGMENT_METHOD_NAME;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface Buffer {
-    @Retention(RetentionPolicy.RUNTIME)
-    @Target(ElementType.TYPE)
-    public @interface Struct {
-    }
+    //@Retention(RetentionPolicy.RUNTIME)
+    //@Target(ElementType.TYPE)
+    //public @interface Struct {
+   // }
 
-    @Retention(RetentionPolicy.RUNTIME)
-    @Target(ElementType.TYPE)
-    public @interface Union {
-    }
+    //@Retention(RetentionPolicy.RUNTIME)
+    //@Target(ElementType.TYPE)
+    //public @interface Union {
+   // }
 
     interface Child {
     }
 
-    @Union
+    //@Union
     interface UnionChild extends Child {
     }
 
-    @Struct
+    //@Struct
     interface StructChild extends Child {
     }
 

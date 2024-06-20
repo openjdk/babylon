@@ -35,10 +35,16 @@ import java.lang.runtime.CodeReflection;
 
 public class Squares {
     @CodeReflection
+    public static int sq(int v) {
+        return  v * v;
+
+    }
+
+    @CodeReflection
     public static void squareKernel(KernelContext kc, S32Array s32Array) {
         if (kc.x<kc.maxX){
            int value = s32Array.array(kc.x);     // arr[cc.x]
-           s32Array.array(kc.x, value * value);  // arr[cc.x]=value*value
+           s32Array.array(kc.x, sq(value));  // arr[cc.x]=value*value
         }
     }
 
@@ -51,7 +57,7 @@ public class Squares {
 
     public static void main(String[] args) {
         var lookup = java.lang.invoke.MethodHandles.lookup();
-        var accelerator = new Accelerator(lookup, new JavaMultiThreadedBackend());
+        var accelerator = new Accelerator(lookup, Backend.FIRST);//new JavaMultiThreadedBackend());
         var arr = S32Array.create(accelerator, 32);
         for (int i = 0; i < arr.length(); i++) {
             arr.array(i, i);

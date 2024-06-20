@@ -1,41 +1,16 @@
-/*
- * Copyright (c) 2024 Intel Corporation. All rights reserved.
- * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
- *
- * This code is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
- *
- * This code is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * version 2 for more details (a copy is included in the LICENSE file that
- * accompanied this code).
- *
- * You should have received a copy of the GNU General Public License version
- * 2 along with this work; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- *
- * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
- * or visit www.oracle.com if you need additional information or have any
- * questions.
- */
-
-
 package experiments;
 
-
-import hat.buffer.Buffer;
-
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.lang.constant.ClassDesc;
 import java.lang.foreign.*;
+        import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.*;
-import java.lang.reflect.code.analysis.SSA;
+        import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.op.ExternalizableOp;
 import java.lang.reflect.code.op.OpFactory;
@@ -44,56 +19,71 @@ import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.type.PrimitiveType;
 import java.lang.runtime.CodeReflection;
 import java.util.*;
-import java.util.stream.Stream;
+        import java.util.stream.Stream;
 
-public class LayoutExample {
+public class RawLayout {
 
     /*
-       struct {
-          StructTwo struct;
-          int i;
-       }
+    struct {
+      StructTwo struct;
+      int i;
+    }
      */
+    @Struct
+    public interface StructOne {
+        StructTwo struct();
 
-        public interface Outer extends Buffer {
+        int i();
 
+        void i(int v);
 
-            interface Inner extends Buffer.StructChild  {
-                int i();
-
-                void i(int v);
-
-                float f();
-
-                void f(float v);
-
-                Schema schema = Schema.of(Inner.class, b->b.primitive("i").primitive("f"));
-            }
-
-            Inner right();
-            Inner left();
-            int i();
-            void i(int v);
-
-
-            Schema schema = Schema.of(Outer.class, b->b
-                            .struct("left", left->left
-                                    .primitive("i")
-                                    .primitive("f")
-                            )
-                            .struct("right", Inner.schema)
-                            .primitive("i")
-            );
+        static MemoryLayout layout() {
+            return LAYOUT;
         }
 
+        MemoryLayout LAYOUT = MemoryLayout.structLayout(
+                        StructTwo.layout().withName(StructTwo.layout().name().orElseThrow() + "::struct"),
+                        ValueLayout.JAVA_INT.withName("i"))
+                // Symbolic reference to interface
+                // @@@ Use externalized type element form?
+                .withName("layouts.LayoutExample$StructOne");
+    }
+
+    /*
+    struct {
+      int i;
+      float f;
+    }
+     */
+    @Struct
+    public interface StructTwo {
+        int i();
+
+        void i(int v);
+
+        float f();
+
+        void f(float v);
+
+        static MemoryLayout layout() {
+            return LAYOUT;
+        }
+
+        MemoryLayout LAYOUT = MemoryLayout.structLayout(
+                        ValueLayout.JAVA_INT.withName("i"),
+                        ValueLayout.JAVA_FLOAT.withName("f"))
+                // Symbolic reference to interface
+                // @@@ Use externalized type element form?
+                .withName("layouts.LayoutExample$StructTwo");
+    }
 
     @CodeReflection
-    static float m(Outer s1) {
+    static float m(StructOne s1) {
         // StructOne* s1
         // s1 -> i
         int i = s1.i();
         // s1 -> *s2
-        Outer.Inner s2 = s1.left();
+        StructTwo s2 = s1.struct();
         // s2 -> i
         i += s2.i();
         // s2 -> f
@@ -103,51 +93,55 @@ public class LayoutExample {
 
 
     public static void main(String[] args) {
-        Optional<Method> om = Stream.of(LayoutExample.class.getDeclaredMethods())
-                .filter(m -> m.getName().equals("m"))
-                .findFirst();
+        CoreOp.FuncOp m = getFuncOp("m");
+        m = SSA.transform(m);
+        System.out.println(m.toText());
 
-        Method m = om.orElseThrow();
-        CoreOp.FuncOp f= m.getCodeModel().orElseThrow();
-        f = SSA.transform(f);
-        System.out.println(f.toText());
-        FunctionType functionType = transformStructClassToPtr(MethodHandles.lookup(), f);
-        System.out.println(f.toText());
-        CoreOp.FuncOp pm = transformInvokesToPtrs(MethodHandles.lookup(), f, functionType);
+        CoreOp.FuncOp pm = transformInvokesToPtrs(MethodHandles.lookup(), m);
         System.out.println(pm.toText());
     }
-    static FunctionType transformStructClassToPtr(MethodHandles.Lookup l,
+
+    static CoreOp.FuncOp getFuncOp(String name) {
+        Optional<Method> om = Stream.of(LayoutExample.class.getDeclaredMethods())
+                .filter(m -> m.getName().equals(name))
+                .findFirst();
+
+        Method m = om.get();
+        return m.getCodeModel().get();
+    }
+
+    //
+
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.TYPE)
+    public @interface Struct {
+    }
+
+    static CoreOp.FuncOp transformInvokesToPtrs(MethodHandles.Lookup l,
                                                 CoreOp.FuncOp f) {
         List<TypeElement> pTypes = new ArrayList<>();
         for (Block.Parameter p : f.parameters()) {
             pTypes.add(transformStructClassToPtr(l, p.type()));
         }
-        return FunctionType.functionType(
-                transformStructClassToPtr(l, f.invokableType().returnType()), pTypes);
-    }
-
-    static CoreOp.FuncOp transformInvokesToPtrs(MethodHandles.Lookup l,
-                                                CoreOp.FuncOp f, FunctionType functionType) {
-
-        var builder= CoreOp.func(f.funcName(), functionType);
-
-        var funcOp = builder.body(funcBlock -> {
+        FunctionType functionType = FunctionType.functionType(
+                transformStructClassToPtr(l, f.invokableType().returnType()),
+                pTypes);
+        return CoreOp.func(f.funcName(), functionType).body(funcBlock -> {
             funcBlock.transformBody(f.body(), funcBlock.parameters(), (b, op) -> {
-                if (op instanceof CoreOp.InvokeOp invokeOp
-                        && invokeOp.hasReceiver()
-                        && invokeOp.operands().getFirst() instanceof Value receiver) {
-                    if (bufferOrBufferChildClass(l, receiver.type()) != null) {
+                if (op instanceof CoreOp.InvokeOp iop && iop.hasReceiver()) {
+                    Value receiver = iop.operands().getFirst();
+                    if (structClass(l, receiver.type()) instanceof Class<?> _) {
                         Value ptr = b.context().getValue(receiver);
-                        PtrToMember ptrToMemberOp = new PtrToMember(ptr, invokeOp.invokeDescriptor().name());
+                        PtrToMember ptrToMemberOp = new PtrToMember(ptr, iop.invokeDescriptor().name());
                         Op.Result memberPtr = b.op(ptrToMemberOp);
 
-                        if (invokeOp.operands().size() == 1) {
+                        if (iop.operands().size() == 1) {
                             // Pointer access and (possibly) value load
                             if (ptrToMemberOp.resultType().layout() instanceof ValueLayout) {
                                 Op.Result v = b.op(new PtrLoadValue(memberPtr));
-                                b.context().mapValue(invokeOp.result(), v);
+                                b.context().mapValue(iop.result(), v);
                             } else {
-                                b.context().mapValue(invokeOp.result(), memberPtr);
+                                b.context().mapValue(iop.result(), memberPtr);
                             }
                         } else {
                             // @@@
@@ -163,67 +157,66 @@ public class LayoutExample {
                 return b;
             });
         });
-        return funcOp;
-    }
+    };
 
 
-
-    static boolean isBufferOrBufferChild(Class<?> maybeIface) {
-        return  maybeIface.isInterface() && (
-                Buffer.class.isAssignableFrom(maybeIface)
-                        || Buffer.Child.class.isAssignableFrom(maybeIface)
-        );
-
-    }
-    static Schema bufferOrBufferChildSchema(MethodHandles.Lookup l, Class<?> maybeBufferOrBufferChild) {
-        if (isBufferOrBufferChild(maybeBufferOrBufferChild)) {
-            throw new IllegalArgumentException();
-        }
-        Field schemaField;
-        try {
-            schemaField = maybeBufferOrBufferChild.getField("schema");
-           return  (Schema)schemaField.get(null);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
-    }
-    static Class<?> bufferOrBufferChildClass(MethodHandles.Lookup l, TypeElement t) {
-        try {
-            if (!(t instanceof JavaType jt) || !(jt.resolve(l) instanceof Class<?> c)) {
-                return null;
-            }
-            return isBufferOrBufferChild(c) ? c : null;
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException(e);
-        }
-    }
     static TypeElement transformStructClassToPtr(MethodHandles.Lookup l, TypeElement type) {
-        if (bufferOrBufferChildClass(l, type) instanceof Class<?> sc) {
-            return new PtrType(bufferOrBufferChildSchema(l, sc));
+        if (structClass(l, type) instanceof Class<?> sc) {
+            return new PtrType(structClassLayout(l, sc));
         } else {
             return type;
         }
     }
 
+    static MemoryLayout structClassLayout(MethodHandles.Lookup l,
+                                          Class<?> c) {
+        if (!c.isAnnotationPresent(Struct.class)) {
+            throw new IllegalArgumentException();
+        }
+
+        Method layoutMethod;
+        try {
+            layoutMethod = c.getMethod("layout");
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
+        MethodHandle layoutHandle;
+        try {
+            layoutHandle = l.unreflect(layoutMethod);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+        try {
+            return (MemoryLayout) layoutHandle.invoke();
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    static Class<?> structClass(MethodHandles.Lookup l, TypeElement t) {
+        try {
+            return _structClass(l, t);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    static Class<?> _structClass(MethodHandles.Lookup l, TypeElement t) throws ReflectiveOperationException {
+        if (!(t instanceof JavaType jt) || !(jt.resolve(l) instanceof Class<?> c)) {
+            return null;
+        }
+
+        return c.isInterface() && c.isAnnotationPresent(Struct.class) ? c : null;
+    }
+
+
     public static final class PtrType implements TypeElement {
         static final String NAME = "ptr";
-        MemoryLayout layout;
-        Schema schema;
-        final JavaType returnType;
+        final MemoryLayout layout;
+        final JavaType rType;
 
         public PtrType(MemoryLayout layout) {
             this.layout = layout;
-            this.returnType = switch (layout) {
-                case StructLayout _ -> JavaType.type(ClassDesc.of(layout.name().orElseThrow()));
-                case AddressLayout _ -> throw new UnsupportedOperationException("Unsupported member layout: " + layout);
-                case ValueLayout valueLayout -> JavaType.type(valueLayout.carrier());
-                default -> throw new UnsupportedOperationException("Unsupported member layout: " + layout);
-            };
-        }
-        public PtrType(Schema schema) {
-            this.schema = schema;
-            this.layout= null;//schema.layout();
-            this.returnType = switch (layout) {
+            this.rType = switch (layout) {
                 case StructLayout _ -> JavaType.type(ClassDesc.of(layout.name().orElseThrow()));
                 case AddressLayout _ -> throw new UnsupportedOperationException("Unsupported member layout: " + layout);
                 case ValueLayout valueLayout -> JavaType.type(valueLayout.carrier());
@@ -231,15 +224,12 @@ public class LayoutExample {
             };
         }
 
-        public JavaType returnType() {
-            return returnType;
+        public JavaType rType() {
+            return rType;
         }
 
         public MemoryLayout layout() {
             return layout;
-        }
-        public Schema schema() {
-            return schema;
         }
 
         @Override
@@ -257,7 +247,7 @@ public class LayoutExample {
 
         @Override
         public ExternalizedTypeElement externalize() {
-            return new ExternalizedTypeElement(NAME, List.of(returnType.externalize()));
+            return new ExternalizedTypeElement(NAME, List.of(rType.externalize()));
         }
 
         @Override
@@ -427,7 +417,7 @@ public class LayoutExample {
             if (!(ptrType.layout() instanceof ValueLayout)) {
                 throw new IllegalArgumentException("Pointer type layout is not a value layout: " + ptrType.layout());
             }
-            this.resultType = ptrType.returnType();
+            this.resultType = ptrType.rType();
         }
 
         @Override
@@ -462,9 +452,9 @@ public class LayoutExample {
             if (!(ptrType.layout() instanceof ValueLayout)) {
                 throw new IllegalArgumentException("Pointer type layout is not a value layout: " + ptrType.layout());
             }
-            if (!(ptrType.returnType().equals(v.type()))) {
+            if (!(ptrType.rType().equals(v.type()))) {
                 throw new IllegalArgumentException("Pointer reference type is not same as value to store type: "
-                        + ptrType.returnType() + " " + v.type());
+                        + ptrType.rType() + " " + v.type());
             }
         }
 
@@ -478,4 +468,3 @@ public class LayoutExample {
         }
     }
 }
-
