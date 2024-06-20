@@ -32,7 +32,10 @@ import org.testng.annotations.Test;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.OpTransformer;
+import java.lang.reflect.code.Value;
 import java.lang.reflect.code.op.CoreOp;
+import java.lang.reflect.code.parser.OpParser;
+import java.lang.reflect.code.type.CoreTypeFactory;
 import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.runtime.CodeReflection;
@@ -63,6 +66,27 @@ public class TestVarOp {
         Assert.assertEquals(vops.get(0).resultType().valueType(), JavaType.type(CharSequence.class));
         // VarOp for local variable, preserve Object
         Assert.assertEquals(vops.get(1).resultType().valueType(), JavaType.J_L_OBJECT);
+    }
+
+    @Test
+    public void testNoName() {
+        CoreOp.FuncOp f = getFuncOp("f");
+        f = f.transform((block, op) -> {
+            if (op instanceof CoreOp.VarOp vop) {
+                Value init = block.context().getValue(vop.initOperand());
+                Op.Result v = block.op(CoreOp.var(init));
+                block.context().mapValue(vop.result(), v);
+            } else {
+                block.op(op);
+            }
+            return block;
+        });
+
+        Op op = OpParser.fromString(CoreOp.FACTORY, CoreTypeFactory.CORE_TYPE_FACTORY, f.toText()).get(0);
+        boolean allNullNames = op.elements()
+                .flatMap(ce -> ce instanceof CoreOp.VarOp vop ? Stream.of(vop) : null)
+                .allMatch(vop -> vop.varName() == null);
+        Assert.assertTrue(allNullNames);
     }
 
     static CoreOp.FuncOp getFuncOp(String name) {

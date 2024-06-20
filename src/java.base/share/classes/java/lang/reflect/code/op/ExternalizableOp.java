@@ -77,23 +77,26 @@ public abstract class ExternalizableOp extends Op {
          * attempts to remove the attribute with the given name.
          *
          * <p>On successful removal of the attribute its value is converted by applying the value
-         * to the mapping function.
+         * to the mapping function. A {@code null} value is represented by the value
+         * {@link #NULL_ATTRIBUTE_VALUE}.
+         *
+         * <p>If no attribute is present the {@code null} value is applied to the mapping function.
          *
          * @param name      the attribute name.
          * @param isDefault true if the attribute is a default attribute
          * @param <T>       the converted attribute value type
          * @return the converted attribute value
-         * @throws IllegalArgumentException if there is no attribute present
          */
         public <T> T extractAttributeValue(String name, boolean isDefault, Function<Object, T> mapper) {
-            Object value = attributes.remove(isDefault ? "" : name);
-            if (value == null) {
-                if (!isDefault) {
-                    throw new IllegalArgumentException("Required attribute not present: "
-                            + name);
-                }
+            Object value = null;
+            if (isDefault && attributes.containsKey("")) {
+                value = attributes.remove("");
+                assert value != null;
+            }
 
+            if (value == null && attributes.containsKey(name)) {
                 value = attributes.remove(name);
+                assert value != null;
             }
 
             return mapper.apply(value);

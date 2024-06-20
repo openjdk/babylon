@@ -2622,7 +2622,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 String name = def.extractAttributeValue(ATTRIBUTE_BINDING_NAME, true,
                         v -> switch (v) {
                             case String s -> s;
-                            default ->
+                            case null, default ->
                                     throw new UnsupportedOperationException("Unsupported pattern binding name value:" + v);
                         });
                 return new BindingPatternOp(def, name);
@@ -2691,7 +2691,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                         v -> switch (v) {
                             case String s -> RecordTypeRef.ofString(s);
                             case RecordTypeRef rtd -> rtd;
-                            default ->
+                            case null, default ->
                                     throw new UnsupportedOperationException("Unsupported record type descriptor value:" + v);
                         });
 
