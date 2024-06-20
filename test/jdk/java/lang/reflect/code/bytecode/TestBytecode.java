@@ -28,6 +28,7 @@ import java.lang.classfile.components.ClassPrinter;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.AccessFlag;
 import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.BeforeClass;
@@ -44,9 +45,7 @@ import java.lang.reflect.code.type.JavaType;
 import java.lang.runtime.CodeReflection;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.IdentityHashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -446,6 +445,15 @@ public class TestBytecode {
         };
     }
 
+    int instanceField = -1;
+
+    @CodeReflection
+    int instanceFieldAccess(int i) {
+        int ret = instanceField;
+        instanceField = i;
+        return ret;
+    }
+
     record TestData(Method testMethod) {
         @Override
         public String toString() {
@@ -538,8 +546,16 @@ public class TestBytecode {
             throw e;
         }
         try {
+            Object receiver1, receiver2;
+            if (d.testMethod.accessFlags().contains(AccessFlag.STATIC)) {
+                receiver1 = null;
+                receiver2 = null;
+            } else {
+                receiver1 = new TestBytecode();
+                receiver2 = new TestBytecode();
+            }
             permutateAllArgs(d.testMethod.getParameterTypes(), args ->
-                Assert.assertEquals(invokeAndConvert(flift, args), d.testMethod.invoke(null, args)));
+                Assert.assertEquals(invokeAndConvert(flift, receiver1, args), d.testMethod.invoke(receiver2, args)));
         } catch (Throwable e) {
             System.out.println("Compiled model:");
             d.testMethod.getCodeModel().ifPresent(f -> f.writeTo(System.out));
@@ -549,8 +565,11 @@ public class TestBytecode {
         }
     }
 
-    private static Object invokeAndConvert(CoreOp.FuncOp func, Object[] args) {
-        Object ret = Interpreter.invoke(MethodHandles.lookup(), func, args);
+    private static Object invokeAndConvert(CoreOp.FuncOp func, Object receiver, Object... args) {
+        List argl = new ArrayList(args.length + 1);
+        if (receiver != null) argl.add(receiver);
+        argl.addAll(Arrays.asList(args));
+        Object ret = Interpreter.invoke(MethodHandles.lookup(), func, argl);
         if (ret instanceof Integer i) {
             TypeElement rt = func.invokableType().returnType();
             if (rt.equals(JavaType.BOOLEAN)) {
@@ -579,8 +598,20 @@ public class TestBytecode {
 
         try {
             MethodHandle mh = BytecodeGenerator.generate(MethodHandles.lookup(), lfunc);
-            permutateAllArgs(d.testMethod.getParameterTypes(), args ->
-                    Assert.assertEquals(mh.invokeWithArguments(args), d.testMethod.invoke(null, args)));
+            Object receiver1, receiver2;
+            if (d.testMethod.accessFlags().contains(AccessFlag.STATIC)) {
+                receiver1 = null;
+                receiver2 = null;
+            } else {
+                receiver1 = new TestBytecode();
+                receiver2 = new TestBytecode();
+            }
+            permutateAllArgs(d.testMethod.getParameterTypes(), args -> {
+                    List argl = new ArrayList(args.length + 1);
+                    if (receiver1 != null) argl.add(receiver1);
+                    argl.addAll(Arrays.asList(args));
+                    Assert.assertEquals(mh.invokeWithArguments(argl), d.testMethod.invoke(receiver2, args));
+            });
         } catch (Throwable e) {
             func.writeTo(System.out);
             lfunc.writeTo(System.out);

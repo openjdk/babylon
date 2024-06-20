@@ -109,9 +109,6 @@ public final class BytecodeLift {
     }
 
     private BytecodeLift(Block.Builder entryBlock, MethodModel methodModel, Value... capturedValues) {
-        if (!methodModel.flags().has(AccessFlag.STATIC)) {
-            throw new IllegalArgumentException("Unsuported lift of non-static method: " + methodModel);
-        }
         this.entryBlock = entryBlock;
         this.currentBlock = entryBlock;
         this.codeModel = methodModel.code().orElseThrow();
@@ -124,6 +121,10 @@ public final class BytecodeLift {
                         smfi -> entryBlock.block(smfi.stack().stream().map(BytecodeLift::toTypeElement).toList())))).orElse(Map.of());
 
         MethodTypeDesc mtd = methodModel.methodTypeSymbol();
+        ClassDesc thisClass = methodModel.parent().orElseThrow().thisClass().asSymbol();
+        if (!methodModel.flags().has(AccessFlag.STATIC)) {
+            mtd = mtd.insertParameterTypes(0, thisClass);
+        }
         int slot = 0, i = 0;
         for (Value cap : capturedValues) {
             op(SlotOp.store(slot, cap));
@@ -134,7 +135,7 @@ public final class BytecodeLift {
             slot += TypeKind.from(mtd.parameterType(i++)).slotSize();
         }
 
-        this.codeTracker = new LocalsTypeMapper(methodModel.parent().get().thisClass().asSymbol(), mtd, methodModel.flags().has(AccessFlag.STATIC), smta, elements);
+        this.codeTracker = new LocalsTypeMapper(thisClass, mtd, methodModel.flags().has(AccessFlag.STATIC), smta, elements);
     }
 
     private Op.Result op(Op op) {
@@ -155,11 +156,21 @@ public final class BytecodeLift {
     }
 
     public static CoreOp.FuncOp lift(MethodModel methodModel) {
+        var mtd = methodModel.methodTypeSymbol();
+        if (!methodModel.flags().has(AccessFlag.STATIC)) {
+            mtd = mtd.insertParameterTypes(0, methodModel.parent().orElseThrow().thisClass().asSymbol());
+        }
         var lifted = CoreOp.func(
                 methodModel.methodName().stringValue(),
-                MethodRef.ofNominalDescriptor(methodModel.methodTypeSymbol())).body(entryBlock ->
+                MethodRef.ofNominalDescriptor(mtd)).body(entryBlock ->
                         new BytecodeLift(entryBlock, methodModel).lift());
-        return SlotSSA.transform(lifted);
+        try {
+            return SlotSSA.transform(lifted);
+        } catch (Exception e) {
+            System.out.println("lifted:");
+            lifted.writeTo(System.out);
+            throw new IllegalStateException("SlotSSA transformation failed");
+        }
     }
 
     private Block.Builder getBlock(Label l) {
@@ -440,8 +451,7 @@ public final class BytecodeLift {
                     ClassModel clm = codeModel.parent().orElseThrow().parent().orElseThrow();
                     if (dmhd.owner().equals(clm.thisClass().asSymbol())) {
                         // inline lambda impl method
-                        MethodModel implMethod = clm.methods().stream().filter(m -> m.methodName().equalsString(dmhd.methodName())
-                                                                            && m.methodTypeSymbol().equals(dmhd.invocationType())).findFirst().orElseThrow();
+                        MethodModel implMethod = clm.methods().stream().filter(m -> m.methodName().equalsString(dmhd.methodName())).findFirst().orElseThrow();
                         var captureTypes = new Value[dmhd.invocationType().parameterCount() - mtd.parameterCount()];
                         for (int ci = captureTypes.length - 1; ci >= 0; ci--) {
                             captureTypes[ci] = stack.pop();
