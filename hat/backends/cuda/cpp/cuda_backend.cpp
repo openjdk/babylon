@@ -63,7 +63,8 @@ Ptx *Ptx::nvcc(const char *cudaSource, size_t len) {
         cuda.open(cudaPath, std::ofstream::trunc);
         cuda.write(cudaSource, len);
         cuda.close();
-        const char *path = "/usr/local/cuda-12.2/bin/nvcc";
+        const char *path = "/usr/bin/nvcc";
+        //const char *path = "/usr/local/cuda-12.2/bin/nvcc";
         const char *argv[]{"nvcc", "-ptx", cudaPath, "-o", ptxPath, nullptr};
         // we can't free cudaPath or ptxpath in child because we need them in exec, no prob through
         // because we get a new proc so they are released to os
@@ -113,7 +114,7 @@ Ptx *Ptx::nvcc(const char *cudaSource, size_t len) {
 /*
 //http://mercury.pr.erau.edu/~siewerts/extra/code/digital-media/CUDA/cuda_work/samples/0_Simple/matrixMulDrv/matrixMulDrv.cpp
  */
-CudaBackend::CudaProgram::CudaKernel::CudaBuffer::CudaBuffer(Backend::Program::Kernel *kernel, Arg_t *arg)
+CudaBackend::CudaProgram::CudaKernel::CudaBuffer::CudaBuffer(Backend::Program::Kernel *kernel, Arg_s *arg)
         : Buffer(kernel, arg), devicePtr() {
     /*
      *   (void *) arg->value.buffer.memorySegment,
@@ -228,7 +229,7 @@ long CudaBackend::CudaProgram::CudaKernel::ndrange(void *argArray) {
   //  std::cout << "ndrange(" << range << ") " << name << std::endl;
 
     cudaStreamCreate(&cudaStream);
-    ArgSled argSled(static_cast<ArgArray_t *>(argArray));
+    ArgSled argSled(static_cast<ArgArray_s *>(argArray));
  //   Schema::dumpSled(std::cout, argArray);
     void *argslist[argSled.argc()];
     NDRange *ndrange = nullptr;
@@ -236,7 +237,7 @@ long CudaBackend::CudaProgram::CudaKernel::ndrange(void *argArray) {
     std::cerr << "there are " << argSled.argc() << "args " << std::endl;
 #endif
     for (int i = 0; i < argSled.argc(); i++) {
-        Arg_t *arg = argSled.arg(i);
+        Arg_s *arg = argSled.arg(i);
         switch (arg->variant) {
             case '&': {
                 if (arg->idx == 0){
@@ -303,7 +304,7 @@ long CudaBackend::CudaProgram::CudaKernel::ndrange(void *argArray) {
     //std::cout << "Kernel complete..."<<cudaGetErrorString(t)<<std::endl;
 
     for (int i = 0; i < argSled.argc(); i++) {
-        Arg_t *arg = argSled.arg(i);
+        Arg_s *arg = argSled.arg(i);
         if (arg->variant == '&') {
             static_cast<CudaBuffer *>(arg->value.buffer.vendorPtr)->copyFromDevice();
 
@@ -318,7 +319,7 @@ long CudaBackend::CudaProgram::CudaKernel::ndrange(void *argArray) {
     }
 
     for (int i = 0; i < argSled.argc(); i++) {
-        Arg_t *arg = argSled.arg(i);
+        Arg_s *arg = argSled.arg(i);
         if (arg->variant == '&') {
             delete static_cast<CudaBuffer *>(arg->value.buffer.vendorPtr);
             arg->value.buffer.vendorPtr = nullptr;

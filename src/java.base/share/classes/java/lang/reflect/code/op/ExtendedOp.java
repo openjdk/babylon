@@ -27,15 +27,7 @@ package java.lang.reflect.code.op;
 
 import java.lang.constant.ClassDesc;
 import java.lang.reflect.code.*;
-import java.lang.reflect.code.type.ArrayType;
-import java.lang.reflect.code.type.ClassType;
-import java.lang.reflect.code.type.MethodRef;
-import java.lang.reflect.code.type.RecordTypeRef;
-import java.lang.reflect.code.type.FunctionType;
-import java.lang.reflect.code.type.JavaType;
-import java.lang.reflect.code.type.TupleType;
-import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.type.VarType;
+import java.lang.reflect.code.type.*;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -826,7 +818,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
 
             Value selectorExpression = b.context().getValue(operands().get(0));
 
-            if (!haveNullCase()) {
+            if (!(selectorExpression.type() instanceof PrimitiveType) && !haveNullCase()) {
                 Block.Builder throwBlock = b.block();
                 throwBlock.op(_throw(
                         throwBlock.op(_new(FunctionType.functionType(JavaType.type(NullPointerException.class))))

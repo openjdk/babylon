@@ -55,11 +55,19 @@ import javax.lang.model.SourceVersion;
 import javax.lang.model.element.*;
 import javax.tools.JavaCompiler;
 import javax.tools.JavaFileManager;
-import javax.tools.JavaFileObject;
 import javax.tools.SimpleJavaFileObject;
 import javax.tools.ToolProvider;
 
 public class TestIRFromAnnotation {
+
+    static final Set<String> EXCLUDED_TEST = Set.of(
+            "LocalClassTest.java",              // name of local classes is not stable at annotation processing time
+            "TestLocalCapture.java",            // plain testng test
+            "TestCaptureQuoted.java",           // plain testng test
+            "TestCaptureQuotable.java",         // plain testng test
+            "QuotedSameInstanceTest.java",      // plain testng test
+            "CodeModelSameInstanceTest.java"    // plain testng test
+    );
 
     public static void main(String... args) throws Exception {
         String testSrc = System.getProperty("test.src");
@@ -69,11 +77,15 @@ public class TestIRFromAnnotation {
 
     void run(File baseDir) throws Exception {
         for (File file : getAllFiles(List.of(baseDir))) {
-            if (!file.exists() || !file.getName().endsWith(".java")) {
+            if (!file.exists() || !file.getName().endsWith(".java") || isExcluded(file)) {
                 continue;
             }
             analyze(file);
         }
+    }
+
+    boolean isExcluded(File file) {
+        return EXCLUDED_TEST.contains(file.getName());
     }
 
     void analyze(File source) {

@@ -3,11 +3,14 @@
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
     <content url="file://$MODULE_DIR$/../examples/experiments">
-      <sourceFolder url="file://$MODULE_DIR$/../examples/experiments/src/java" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../examples/experiments/src/main/java" isTestSource="false" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="hat" />
     <orderEntry type="module" module-name="backend_spirv" />
+    <orderEntry type="module" module-name="backend_opencl" />
+    <orderEntry type="module" module-name="backend_ptx" />
+    <orderEntry type="module" module-name="backend_mock" />
   </component>
 </module>

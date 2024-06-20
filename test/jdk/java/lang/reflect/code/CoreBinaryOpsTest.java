@@ -270,19 +270,8 @@ public class CoreBinaryOpsTest {
                     ? type
                     : functionType.returnType();
             return CoreOp.func(original.funcName(), FunctionType.functionType(retType, type, type))
-                    .body(builder -> builder.transformBody(original.body(), builder.parameters(), (block, op) -> {
-                                block.context().mapValue(op.result(), block.op(retype(block.context(), op)));
-                                return block;
-                            })
+                    .body(builder -> builder.transformBody(original.body(), builder.parameters(), OpTransformer.COPYING_TRANSFORMER)
                     );
-        }
-
-        private static Op retype(CopyContext context, Op op) {
-            return switch (op) {
-                case CoreOp.VarOp varOp ->
-                        CoreOp.var(varOp.varName(), context.getValueOrDefault(varOp.operands().getFirst(), varOp.operands().getFirst()));
-                default -> op;
-            };
         }
 
         private static Stream<Arguments> argumentsForMethod(CoreOp.FuncOp funcOp, Method testMethod) {

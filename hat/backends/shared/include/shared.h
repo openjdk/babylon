@@ -75,15 +75,15 @@ typedef unsigned long u64_t;
 
 extern void hexdump(void *ptr, int buflen);
 
-typedef struct Buffer_s {
+ struct Buffer_s {
     void *memorySegment;   // Address of a Buffer/MemorySegment
     long sizeInBytes;     // The size of the memory segment in bytes
     void *vendorPtr;       // The vendor side can reference vendor into
     u8_t access;          // 0=??/1=RO/2=WO/3=RW if this is a buffer
     u8_t state;           // 0=UNKNOWN/1=GPUDIRTY/2=JAVADIRTY
-} Buffer_t;
+} ;
 
-typedef union value_u {
+ union Value_u {
     boolean z1;  // 'Z'
     u8_t s8;  // 'B'
     u16_t u16;  // 'C'
@@ -95,45 +95,45 @@ typedef union value_u {
     f64_t f64; // 'D'
     s64_t s64; // 'J'
     s64_t x64; // 'D' or 'J'
-    Buffer_t buffer; // '&'
-} Value_t;
+    Buffer_s buffer; // '&'
+} ;
 
-typedef struct Arg_s {
+ struct Arg_s {
     u32_t idx;          // 0..argc
     u8_t variant;      // which variant 'I','Z','S','J','F', '&' implies Buffer/MemorySegment
     u8_t pad8[8];
-    Value_t value;
+    Value_u value;
     u8_t pad6[6];
-} Arg_t;
+};
 
-typedef struct ArgArray_s {
+struct ArgArray_s {
     u32_t argc;
     u8_t pad12[12];
-    Arg_t argv[0/*argc*/];
+    Arg_s argv[0/*argc*/];
     // void * vendorPtr;
     // int schemaLen
     // char schema[schemaLen]
-} ArgArray_t;
+};
 
 class ArgSled {
 private:
-    ArgArray_t *argArray;
+    ArgArray_s *argArray;
 public:
     int argc() {
         return argArray->argc;
     }
 
-    Arg_t *arg(int n) {
-        Arg_t *a = (argArray->argv + n);
+    Arg_s *arg(int n) {
+        Arg_s *a = (argArray->argv + n);
         return a;
     }
 
     void hexdumpArg(int n) {
-        hexdump(arg(n), sizeof(Arg_t));
+        hexdump(arg(n), sizeof(Arg_s));
     }
 
     void dumpArg(int n) {
-        Arg_t *a = arg(n);
+        Arg_s *a = arg(n);
         int idx = (int) a->idx;
         std::cout << "arg[" << idx << "]";
         char variant = (char) a->variant;
@@ -172,7 +172,7 @@ public:
     }
 
     void *vendorPtrPtr() {
-        Arg_t *a = arg(argc());
+        Arg_s *a = arg(argc());
         return (void *) a;
     }
 
@@ -190,7 +190,7 @@ public:
         return (char *) schemaLenP;
     }
 
-    ArgSled(ArgArray_t *argArray)
+    ArgSled(ArgArray_s *argArray)
             : argArray(argArray) {}
 };
 
@@ -212,166 +212,7 @@ public:
     }
 };
 
-/*
 
-struct State {
-   enum StateType {
-      NONE, STRUCT_OR_UNION, SEQUENCE,MEMBER
-   };
-   StateType stateType;
-   char *start;
-   void *dataStart;
-   int count;
-   int of;
-   int sz = 0;
-   char name[128];
-
-   State(StateType stateType, char *start, void *dataStart, int count, int sz)
-      : stateType(stateType), start(start), dataStart(dataStart), count(0), of(count), sz(sz) {
-         name[0] = '\0';
-      }
-
-   bool isMember() {
-      return stateType == MEMBER;
-   }
-
-   bool isI08() {
-      return stateType == MEMBER && *start == 'b' && sz == 8;
-   }
-
-   bool isI16() {
-      return stateType == MEMBER && *start == 'i' && sz == 16;
-   }
-
-   bool isI32() {
-      return stateType == MEMBER && *start == 'i' && sz == 32;
-   }
-
-   bool isI64() {
-      return stateType == MEMBER && *start == 'i' && sz == 64;
-   }
-   bool isS08() {
-      return stateType == MEMBER && *start == 's' && sz == 8;
-   }
-
-   bool isS16() {
-      return stateType == MEMBER && *start == 's' && sz == 16;
-   }
-
-   bool isS32() {
-      return stateType == MEMBER && *start == 's' && sz == 32;
-   }
-
-   bool isS64() {
-      return stateType == MEMBER && *start == 's' && sz == 64;
-   }
-
-   bool isF32() {
-      return stateType == MEMBER && *start == 'f' && sz == 32;
-   }
-
-   bool isF64() {
-      return stateType == MEMBER && *start == 'f' && sz == 64;
-   }
-
-   bool isSequence() {
-      return stateType == SEQUENCE;
-   }
-
-   bool isEndOfSequence(){
-      return isSequence() && ((count+1) ==of);
-   }
-   bool isMidSequence(){
-      return isSequence() && ((count+1)<of);
-   }
-
-   bool isStructOrUnion() {
-      return stateType == STRUCT_OR_UNION;
-   }
-
-   void value(std::ostream &s, void *data){
-      s << std::setw(8) <<std::left<< typeName() << std::setw(30) << std::left<< name << " ";
-      if (isF32()) {
-         float *fp = (float *) data;
-         s <<std::setw(10) << std::right<< *fp << std::endl;
-      } else if (isF64()) {
-         double *dp = (double *) data;
-         s <<std::setw(10) << std::right << *dp << std::endl;
-      } else if (isI08()) {
-         char *cp = (char *) data;
-         s <<std::setw(10) << std::right<< ((int) *cp) << std::endl;
-      } else if (isI16()) {
-         short *sp = (short *) data;
-         s <<std::setw(10) << std::right<< *sp << std::endl;
-      } else if (isI32()) {
-         int *ip = (int *) data;
-         s <<std::setw(10) << std::right<< *ip << std::endl;;
-      } else if (isI64()) {
-         long *lp = (long *) data;
-         s <<std::setw(10) << std::right<< *lp << std::endl;
-      } else if (isS08()) {
-         char *cp = (char *) data;
-         s <<std::setw(10) << std::right<< ((int) *cp) << std::endl;
-      } else if (isS16()) {
-         short *sp = (short *) data;
-         s <<std::setw(10) << std::right<< *sp << std::endl;
-      } else if (isS32()) {
-         int *ip = (int *) data;
-         s <<std::setw(10) << std::right<< *ip << std::endl;;
-      } else if (isS64()) {
-         long *lp = (long *) data;
-         s <<std::setw(10) << std::right<< *lp << std::endl;
-      } else {
-         s << "??     ";
-      }
-   }
-
-   const char* state() {
-      switch (stateType) {
-         case NONE:return "NONE";
-         case SEQUENCE:return "SEQUENCE";
-         case MEMBER:return "MEMBER";
-         case STRUCT_OR_UNION:return "STRUCT_OR_UNION";
-      }
-      return "?";
-   }
-   const char* typeName() {
-      if (isF32()) {
-         return "f32_t";
-      } else if (isF64()) {
-         return "f64_t";
-      } else if (isI08()) {
-         return "i08_t";
-      } else if (isI16()) {
-         return "i16_t";
-      } else if (isI32()) {
-         return "i32_t";;
-      } else if (isI64()) {
-         return "i64_t";
-      } else if (isS08()) {
-         return "s08_t";
-      } else if (isS16()) {
-         return "s16_t";
-      } else if (isS32()) {
-         return "s32_t";;
-      } else if (isS64()) {
-         return "s64_t";
-      } else {
-         return "??";
-      }
-   }
-   static State *sequence(char *start, void *dataStart,  int count) {
-      return new State(SEQUENCE, start, dataStart, count, 0);
-   }
-
-   static State *structOrUnion(char *start, void *dataStart) {
-      return new State(STRUCT_OR_UNION, start,dataStart, 0, 0);
-   }
-
-   static State *member(char *start,void *dataStart, int sz) {
-      return new State(MEMBER, start, dataStart,0, sz);
-   }
-};*/
 class BuildInfo {
 public:
     char *src;
@@ -394,37 +235,18 @@ public:
 };
 
 
-extern "C" void dumpArgArray(void *ptr);
+//extern "C" void dumpArgArray(void *ptr);
 
 
 extern void hexdump(void *ptr, int buflen);
 
-class Schema {
+class Sled {
 public:
-    static std::map<int, std::string> stateNameMap;
-
-    static int replaceStateBit(int state, int remove, int set);
-    static int newState(int state, int to);
-    static std::ostream &stateType(std::ostream &out, int state);
-    static std::ostream &stateDescribe(std::ostream &out, int state);
-    static char *strduprange(char *start, char *end);
-
-    static std::ostream &indent(std::ostream &out, int depth);
-
-    static std::ostream &dump(std::ostream &out, char *start, char *end);
-
-    static std::ostream &dump(std::ostream &out, char *label, char *start, char *end);
-
-    static void dumpSled(std::ostream &out, void *argArray);
-
-    static char *dumpSchema(std::ostream &out, int, int depth, char *ptr, void *data);
-
-    static char *dumpSchema(std::ostream &out, char *ptr, void *data);
-
-    static char *dumpSchema(std::ostream &out, char *ptr);
+    static void show(std::ostream &out, void *argArray);
 };
 
-class NDRange{
+
+class NDRange {
 public:
     int x;
     int maxX;
@@ -443,13 +265,14 @@ public:
             class Buffer {
             public:
                 Kernel *kernel;
-                Arg_t *arg;
+                Arg_s *arg;
 
                 virtual void copyToDevice() = 0;
 
                 virtual void copyFromDevice() = 0;
 
-                Buffer(Kernel *kernel, Arg_t *arg) : kernel(kernel), arg(arg) {
+                Buffer(Kernel *kernel, Arg_s *arg)
+                        : kernel(kernel), arg(arg) {
                 }
 
                 virtual ~Buffer() {}
@@ -459,15 +282,21 @@ public:
 
             Program *program;
 
-            virtual long ndrange( void *argArray) = 0;
-
-            Kernel(Program *program, char * name)
-                    : program(program), name(strdup(name)) {
+            virtual long ndrange(void *argArray) = 0;
+            static char *copy(char *name){
+                size_t len =::strlen(name);
+                char *buf = new char[len+1];
+                memcpy(buf, name, len);
+                buf[len]='\0';
+                return buf;
+            }
+            Kernel(Program *program, char *name)
+                    : program(program), name(copy(name)) {
             }
 
-            virtual ~Kernel(){
-                if (name){
-                    free(name);
+            virtual ~Kernel() {
+                if (name) {
+                    delete[] name;
                 }
             }
         };
@@ -519,5 +348,5 @@ extern "C" void releaseBackend(long backendHandle);
 extern "C" void releaseProgram(long programHandle);
 extern "C" bool programOK(long programHandle);
 extern "C" void releaseKernel(long kernelHandle);
-extern "C" long ndrange(long kernelHandle,  void *argArray);
+extern "C" long ndrange(long kernelHandle, void *argArray);
 

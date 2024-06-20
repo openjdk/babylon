@@ -74,7 +74,7 @@ public:
 
                 void copyFromDevice();
 
-                OpenCLBuffer(Backend::Program::Kernel *kernel, Arg_t *arg);
+                OpenCLBuffer(Backend::Program::Kernel *kernel, Arg_s *arg);
 
                 virtual ~OpenCLBuffer();
             };

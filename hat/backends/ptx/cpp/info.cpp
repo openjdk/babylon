@@ -22,9 +22,11 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-#include "shared.h"
 
-int main() {
-    std::cout << "inside PTX info" << std::endl;
+#include "ptx_backend.h"
+
+int main(int argc, char **argv) {
+    PtxBackend ptxBackend;
+    ptxBackend.info();
 }
 

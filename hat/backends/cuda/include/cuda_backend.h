@@ -89,7 +89,7 @@ public:
             public:
                 CUdeviceptr devicePtr;
 
-                CudaBuffer(Backend::Program::Kernel *kernel, Arg_t *arg);
+                CudaBuffer(Backend::Program::Kernel *kernel, Arg_s *arg);
 
                 void copyToDevice();
 

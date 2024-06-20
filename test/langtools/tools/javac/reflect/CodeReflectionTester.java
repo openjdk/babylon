@@ -37,6 +37,8 @@ import static java.lang.reflect.code.type.FunctionType.VOID;
 
 public class CodeReflectionTester {
 
+    static int nErrors = 0;
+
     public static void main(String[] args) throws ReflectiveOperationException {
         if (args.length != 1) {
             System.err.println("Usage: CodeReflectionTester <classname>");
@@ -49,6 +51,14 @@ public class CodeReflectionTester {
         for (Field f : clazz.getDeclaredFields()) {
             check(f);
         }
+        if (nErrors > 0) {
+            throw new AssertionError("Test failed with " + nErrors + " errors");
+        }
+    }
+
+    static void error(String msg, Object... args) {
+        nErrors++;
+        System.err.println("error: " + String.format(msg, args));
     }
 
     static void check(Method method) throws ReflectiveOperationException {
@@ -57,11 +67,13 @@ public class CodeReflectionTester {
         String found = canonicalizeModel(method, (String) field.get(null));
         IR ir = method.getAnnotation(IR.class);
         if (ir == null) {
-            throw new AssertionError("No @IR annotation found on reflective method");
+            error("No @IR annotation found on reflective method");
+            return;
         }
         String expected = canonicalizeModel(method, ir.value());
         if (!found.equals(expected)) {
-            throw new AssertionError(String.format("Bad IR\nFound:\n%s\n\nExpected:\n%s", found, expected));
+            error("Bad IR\nFound:\n%s\n\nExpected:\n%s", found, expected);
+            return;
         }
     }
 
@@ -74,17 +86,20 @@ public class CodeReflectionTester {
             String found = canonicalizeModel(field, getModelOfQuotedOp(quoted));
             String expected = canonicalizeModel(field, ir.value());
             if (!found.equals(expected)) {
-                throw new AssertionError(String.format("Bad IR\nFound:\n%s\n\nExpected:\n%s", found, expected));
+                error("Bad IR\nFound:\n%s\n\nExpected:\n%s", found, expected);
+                return;
             }
         } else if (Quotable.class.isAssignableFrom(field.getType())) {
             Quotable quotable = (Quotable) field.get(null);
             String found = canonicalizeModel(field, getModelOfQuotedOp(quotable.quoted()));
             String expected = canonicalizeModel(field, ir.value());
             if (!found.equals(expected)) {
-                throw new AssertionError(String.format("Bad IR\nFound:\n%s\n\nExpected:\n%s", found, expected));
+                error("Bad IR\nFound:\n%s\n\nExpected:\n%s", found, expected);
+                return;
             }
         } else {
-            throw new AssertionError("Field annotated with @IR should be of a quotable type (Quoted/Quotable)");
+            error("Field annotated with @IR should be of a quotable type (Quoted/Quotable)");
+            return;
         }
     }
 

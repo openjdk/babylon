@@ -80,7 +80,9 @@ public final class WildcardType implements JavaType {
 
     @Override
     public String toString() {
-        return externalize().toString();
+        return boundKind() == BoundKind.EXTENDS &&
+                boundType.equals(J_L_OBJECT) ?
+                "?" : boundKind().boundStr + boundType.toString();
     }
 
     @Override
@@ -116,8 +118,14 @@ public final class WildcardType implements JavaType {
      */
     public enum BoundKind {
         /** A bound kind representing a {@code ? extends} wildcard type*/
-        EXTENDS,
+        EXTENDS("? extends "),
         /** A bound kind representing a {@code ? super} wildcard type*/
-        SUPER
+        SUPER("? super ");
+
+        final String boundStr;
+
+        BoundKind(String boundStr) {
+            this.boundStr = boundStr;
+        }
     }
 }

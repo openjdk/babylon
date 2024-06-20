@@ -55,7 +55,7 @@ public final class PrimitiveType implements JavaType {
 
     @Override
     public String toString() {
-        return externalize().toString();
+        return type.displayName();
     }
 
     @Override

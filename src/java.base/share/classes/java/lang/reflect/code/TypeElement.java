@@ -114,6 +114,9 @@ public non-sealed interface TypeElement extends CodeItem {
      */
     ExternalizedTypeElement externalize();
 
+    /**
+     * Return a string representation of this Java type.
+     */
     @Override
     String toString();
 
