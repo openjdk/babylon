@@ -67,7 +67,7 @@ public class LayoutExample {
 
                 void f(float v);
 
-                Schema schema = Schema.of(Inner.class, b->b.primitive("i").primitive("f"));
+              //  Schema schema = Schema.of(Inner.class, b->b.primitive("i").primitive("f"));
             }
 
             Inner right();
@@ -78,11 +78,11 @@ public class LayoutExample {
 
             Schema schema = Schema.of(Outer.class, b->b
                             .struct("left", left->left
-                                    .primitive("i")
-                                    .primitive("f")
+                                    .field("i")
+                                    .field("f")
                             )
-                            .struct("right", Inner.schema)
-                            .primitive("i")
+                           // .struct("right", Inner.schema)
+                            .field("i")
             );
         }
 
