@@ -27,11 +27,30 @@
 package experiments;
 
 
-public class CascadeSchemaLayoutTest {
+import hat.buffer.Buffer;
+import hat.buffer.BufferAllocator;
+import hat.ifacemapper.SegmentMapper;
+
+import java.lang.foreign.Arena;
+
+public class SchemaLayoutTest {
 
     public static void main(String[] args) {
+        Cascade.schema.toText(t->System.out.print(t));
+        S32Array.schema.toText(t->System.out.print(t));
 
-        Cascade.schema.field.toText(0, t->System.out.print(t));
+        BufferAllocator bufferAllocator= new BufferAllocator() {
+            public <T extends Buffer> T allocate(SegmentMapper<T> s) {return s.allocate(Arena.global());}
+        };
+        hat.buffer.S32Array os32  = hat.buffer.S32Array.create(bufferAllocator,100);
+        System.out.println();
+        System.out.println(Buffer.getLayout(os32));
+
+
+      //  Function<SegmentMapper<S32Array>,S32Array> allocator = s->s.allocate(Arena.global());
+        var s32Array = S32Array.schema.allocate(bufferAllocator, 100).instance;
+        int i = s32Array.length();
+       // var cascade = Cascade.schema.allocate(bufferAllocator,10,10,10).instance;
 
         //var layout = Cascade.schema.field.layout();
 

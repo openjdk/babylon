@@ -1,14 +1,14 @@
 package experiments;
 
 import hat.buffer.Buffer;
+import hat.buffer.BufferAllocator;
+import hat.ifacemapper.SegmentMapper;
 
 import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.PaddingLayout;
-import java.lang.foreign.SequenceLayout;
-import java.lang.foreign.StructLayout;
-import java.lang.foreign.UnionLayout;
 import java.lang.foreign.ValueLayout;
+import java.lang.invoke.MethodHandles;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -17,228 +17,162 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.IntStream;
 
-public class Schema  {
+import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-    public static abstract class Field<T extends MemoryLayout> {
-        private static final Map<Class<?>, MemoryLayout> typeToLayout = new HashMap<>();
-        static {
-            typeToLayout.put(Integer.TYPE, ValueLayout.JAVA_INT);
-            typeToLayout.put(Float.TYPE, ValueLayout.JAVA_FLOAT);
-            typeToLayout.put(Long.TYPE, ValueLayout.JAVA_LONG);
-            typeToLayout.put(Double.TYPE, ValueLayout.JAVA_DOUBLE);
-            typeToLayout.put(Character.TYPE, ValueLayout.JAVA_CHAR);
-            typeToLayout.put(Short.TYPE, ValueLayout.JAVA_SHORT);
-            typeToLayout.put(Byte.TYPE, ValueLayout.JAVA_BYTE);
-            typeToLayout.put(Boolean.TYPE, ValueLayout.JAVA_BOOLEAN);
+public class Schema<T extends Buffer>  {
+    Field.ParentField field;
+    Class<T> iface;
+
+    public GroupLayout layout(int ... arrayLengths) {
+
+        LinkedList<Integer> lengthsToBind = new LinkedList<>();
+        for (var i:arrayLengths){
+            lengthsToBind.add(i);
         }
+        List<MemoryLayout> memoryLayouts = new ArrayList<>();
+        field.addLayout(memoryLayouts,lengthsToBind);
+        return (GroupLayout) memoryLayouts.getFirst().withName(iface.getSimpleName());
+    }
 
-        private static MemoryLayout typeToLayout(Class<?> clazz) {
-            if (typeToLayout.containsKey(clazz)) {
-                return typeToLayout.get(clazz);
-            } else if (clazz.isInterface()) {
-                if (clazz.isAssignableFrom(Buffer.StructChild.class) || clazz.isAssignableFrom(Buffer.UnionChild.class)) {
-                    try {
-                        if (clazz.getDeclaredField("schema") instanceof java.lang.reflect.Field field) {
-                           throw new IllegalStateException("schema ref");
-                          //  return ((Schema) field.get(null)).field;
-                        } else {
-                            throw new RuntimeException("no Schema field found");
+
+
+    static class AccessStyle {
+        enum Style {ROOT,
+            PRIMITIVE_GETTER_AND_SETTER, PRIMITIVE_GETTER, PRIMITIVE_SETTER,
+            IFACE_GETTER,
+            PRIMITIVE_ARRAY_SETTER, PRIMITIVE_ARRAY_GETTER,PRIMITIVE_ARRAY_GETTER_AND_SETTER,
+            IFACE_ARRAY_GETTER;
+        };
+        Style style;
+        Class<?> type;
+        String name;
+        AccessStyle(Style style, Class<?> type, String name) {
+            this.style = style;
+            this.type = type;
+            this.name = name;
+        }
+        @Override
+        public String toString() {
+            return style.name()+":"+type.getSimpleName()+":"+name;
+        }
+        static AccessStyle of(Class<?> iface, String name) {
+            AccessStyle[] accessStyle= new AccessStyle[]{null};
+            Arrays.stream(iface.getDeclaredMethods()).filter(m -> m.getName().equals(name)).forEach(m -> {
+                Class<?> returnType = m.getReturnType();
+                Class<?>[] parameTypes = m.getParameterTypes();
+                if (m.getParameterCount() == 0 && returnType.isInterface()) {
+                    if (accessStyle[0]!=null){
+                        throw new IllegalStateException(name+" already dermined to to be "+accessStyle[0].style);
+                    }
+                    accessStyle[0] = new AccessStyle(Style.IFACE_GETTER, returnType, name);
+                }else    if (m.getParameterCount() == 0 &&returnType.isPrimitive()) {
+                    if (accessStyle[0]!=null){
+                       if (accessStyle[0].style == Style.PRIMITIVE_SETTER){
+                           accessStyle[0] = new AccessStyle(Style.PRIMITIVE_GETTER_AND_SETTER, returnType, name);
+                       }else{
+                           throw new IllegalStateException(name+" already dermined to to be "+accessStyle[0].style);
+                       }
+                    }else {
+                        accessStyle[0] = new AccessStyle(Style.PRIMITIVE_GETTER, returnType, name);
+                    }
+                } else if (m.getParameterCount() == 1 && parameTypes[0].isPrimitive() && returnType == Void.TYPE) {
+                    if (accessStyle[0]!=null){
+                        if (accessStyle[0].style == Style.PRIMITIVE_GETTER){
+                            accessStyle[0] = new AccessStyle(Style.PRIMITIVE_GETTER_AND_SETTER, returnType, name);
+                        }else{
+                            throw new IllegalStateException(name+" already dermined to to be "+accessStyle[0].style);
                         }
-                    } catch (NoSuchFieldException e) {
-                        throw new RuntimeException(e);
-                  //  } catch (IllegalAccessException e) {
-                   //     throw new RuntimeException(e);
+                    }else {
+                        accessStyle[0] = new AccessStyle(Style.PRIMITIVE_SETTER, returnType, name);
+                    }
+                } else if (m.getParameterCount() == 1 && parameTypes[0] == Long.TYPE && returnType.isInterface()) {
+                    if (accessStyle[0]!=null){
+                        throw new IllegalStateException(name+" already dermined to to be "+accessStyle[0].style);
+                    }
+                    accessStyle[0] = new AccessStyle(Style.IFACE_ARRAY_GETTER, returnType, name);
+                } else if (m.getParameterCount() == 1 && parameTypes[0] == Long.TYPE && returnType.isPrimitive()) {
+                    if (accessStyle[0]!=null) {
+                        if (accessStyle[0].style == Style.PRIMITIVE_ARRAY_SETTER) {
+                            accessStyle[0] = new AccessStyle(Style.PRIMITIVE_ARRAY_GETTER_AND_SETTER, returnType, name);
+                        } else {
+                            throw new IllegalStateException(name + " already dermined to to be " + accessStyle[0].style);
+                        }
+                    }else {
+                        accessStyle[0] = new AccessStyle(Style.PRIMITIVE_ARRAY_GETTER, returnType, name);
+                    }
+                } else if (returnType == Void.TYPE && parameTypes.length == 2 &&
+                        parameTypes[0] == Long.TYPE && parameTypes[1].isPrimitive()){
+                    if (accessStyle[0]!=null) {
+                        if (accessStyle[0].style == Style.PRIMITIVE_ARRAY_GETTER) {
+                            accessStyle[0] = new AccessStyle(Style.PRIMITIVE_ARRAY_GETTER_AND_SETTER, parameTypes[1], name);
+                        } else {
+                            throw new IllegalStateException(name + " already dermined to to be " + accessStyle[0].style);
+                        }
+                    }else {
+                        accessStyle[0] = new AccessStyle(Style.PRIMITIVE_ARRAY_SETTER, parameTypes[1], name);
                     }
                 } else {
-                    throw new IllegalStateException("no Struct or Union found for " + clazz);
+                    System.out.println("skiping " + m);
                 }
-            } else {
-                throw new IllegalStateException("wtft");
+            });
+            if (accessStyle[0] == null) {
+                accessStyle[0] = new AccessStyle(Style.ROOT,iface, "root");
             }
+            return accessStyle[0];
+        }
+    }
+    private static final Map<Class<?>, MemoryLayout> typeToLayout = new HashMap<>();
+    static {
+        typeToLayout.put(Integer.TYPE, JAVA_INT);
+        typeToLayout.put(Float.TYPE, ValueLayout.JAVA_FLOAT);
+        typeToLayout.put(Long.TYPE, ValueLayout.JAVA_LONG);
+        typeToLayout.put(Double.TYPE, ValueLayout.JAVA_DOUBLE);
+        typeToLayout.put(Character.TYPE, ValueLayout.JAVA_CHAR);
+        typeToLayout.put(Short.TYPE, ValueLayout.JAVA_SHORT);
+        typeToLayout.put(Byte.TYPE, ValueLayout.JAVA_BYTE);
+        typeToLayout.put(Boolean.TYPE, ValueLayout.JAVA_BOOLEAN);
+    }
+    static boolean isBuffer(Class<?> clazz){
+        return clazz.isInterface() && Buffer.class.isAssignableFrom(clazz);
+    }
+    static boolean isStruct(Class<?> clazz){
+        return clazz.isInterface() && Buffer.StructChild.class.isAssignableFrom(clazz);
+    }
+    static boolean isStructOrBuffer(Class<?> clazz){
+        return clazz.isInterface() && (Buffer.class.isAssignableFrom(clazz) || Buffer.StructChild.class.isAssignableFrom(clazz));
+    }
+    static boolean isUnion(Class<?> clazz){
+        return  clazz.isInterface() && Buffer.UnionChild.class.isAssignableFrom(clazz);
+    }
+    static boolean isMappable(Class<?> clazz){
+        return  isStruct(clazz)||isBuffer(clazz)||isUnion(clazz);
+    }
+
+    private static MemoryLayout typeToLayout(Class<?> clazz) {
+        if (typeToLayout.containsKey(clazz)) {
+            return typeToLayout.get(clazz);
+        } else if (!isMappable(clazz)) {
+            throw new IllegalStateException("What to do with mappable "+clazz);
+        } else {
+            throw new IllegalStateException("What to do with UNmappable "+clazz);
         }
 
-        FieldHolder parent;
-        String name;
-        T layout;
+    }
 
-        Field(FieldHolder parent, String name) {
+    public static abstract class Field {
+
+        ParentField parent;
+
+        Field(ParentField parent) {
             this.parent = parent;
-            this.name = name;
         }
 
         public abstract void toText(int depth, Consumer<String> stringConsumer);
 
-        public static class Builder implements FieldHolder {
-            Class<?> iface;
-            List<Field<?>> children = new LinkedList<>();
-            FieldHolder parent;
-
-
-            public Class<?> iface() {
-                return iface;
-            }
-
-            public List<Field<?>> children() {
-                return children;
-            }
-
-            public FieldHolder parent() {
-                return parent;
-            }
-
-            Class<?> getTypeForName(String name) {
-                Class<?>[] clazz = new Class[]{null};
-                Arrays.stream(iface().getDeclaredMethods()).filter(m -> m.getName().equals(name)).forEach(m -> {
-                    if (m.getParameterCount() == 0 && m.getReturnType().isInterface()) {
-                        clazz[0] = m.getReturnType();
-                    }
-                });
-                return clazz[0];
-            }
-
-            MemoryLayout layout() {
-                return null;
-            }
-            /*
-                List<MemoryLayout> memoryLayouts = new ArrayList<>();
-                Map<String, Integer> orderMap = new LinkedHashMap<>();
-                Arrays.stream(order).forEach(s -> orderMap.put(s, orderMap.size())); // order[0] -> 0, order[1] -> r
-                Set<String> done = new HashSet<>();
-                Arrays.stream(bufferClass.getDeclaredMethods())
-                        .filter(m -> orderMap.containsKey(m.getName()))                        //only methods named in array
-                        .sorted(Comparator.comparingInt(lhs -> orderMap.get(lhs.getName()))) // sort by order in the array
-                        .forEach(m -> {
-                            String name = m.getName();
-                            if (!done.contains(name)) {
-                                MemoryLayout layout = null;
-                                var rt = m.getReturnType();
-                                if (rt == Void.TYPE) {
-                                    if (m.getParameterCount() == 1) {
-                                        layout = typeToLayout(m.getParameterTypes()[0]);
-                                    } else if (m.getParameterCount() == 2) {
-                                        throw new IllegalStateException("never");
-                                    }
-                                } else {
-                                    layout = typeToLayout(rt);
-                                }
-                                if (layout instanceof ValueLayout) {
-                                    memoryLayouts.add(layout.withName(name));
-                                } else if (layout instanceof StructLayout) {
-                                    memoryLayouts.add(layout.withName(name + "::struct"));
-                                }
-                                done.add(name);
-                            }
-
-                        });
-
-                MemoryLayout.structLayout(memoryLayouts.toArray(new MemoryLayout[0])).withName(bufferClass.getName());
-            } */
-
-            public Builder struct(String name, Class<?> clazz, Consumer<Builder> fb) {
-                Builder builder = new Builder(clazz);
-                fb.accept(builder);
-                children.add(new Struct(this, name, clazz, builder.children));
-                return this;
-            }
-
-            public Builder struct(String name, Consumer<Builder> fb) {
-                return struct(name, getTypeForName(name), fb);
-            }
-
-            public Builder struct(String name, FieldHolder schemaFieldHolder) {
-                children.add(new Struct(this, name, getTypeForName(name), schemaFieldHolder.children()));
-                return this;
-            }
-
-            public Builder struct(String name, Schema schema) {
-                children.add(new Struct(this, name, getTypeForName(name), schema.field.children()));
-                return this;
-            }
-
-            public Builder union(String name, Class<?> clazz, Consumer<Builder> fb) {
-                Builder builder = new Builder(clazz);
-                fb.accept(builder);
-                children.add(new Struct(this, name, clazz, builder.children));
-                return this;
-            }
-
-            public Builder union(String name, Consumer<Builder> fb) {
-                return union(name, getTypeForName(name), fb);
-            }
-
-            public Builder union(String name, FieldHolder fieldHolder) {
-                children.add(new Struct(this, name, getTypeForName(name), fieldHolder.children()));
-                return this;
-            }
-
-            public Builder union(String name, Schema schema) {
-                children.add(new Struct(this, name, getTypeForName(name), schema.field.children()));
-                return this;
-            }
-
-            public Builder primitive(String name) {
-                children.add(new Primitive(this, name));
-                return this;
-            }
-
-            public Builder array(String name, int len) {
-                children.add(new FixedArray(this, name, getTypeForName(name), len));
-                return this;
-            }
-
-            public Builder fieldControlledArray(String name, Primitive primitive) {
-                children.add(new FieldControlledArray(this, name, getTypeForName(name), primitive));
-                return this;
-            }
-
-            public Builder fieldControlledArray(String name, String controllingFieldName) {
-                var primitiveField = new Primitive(this, controllingFieldName);
-                children.add(primitiveField);
-                return fieldControlledArray(name, primitiveField);
-            }
-
-            public class ArrayLen {
-                Builder builder;
-                Primitive controllingField;
-
-                Builder array(String name) {
-                    return builder.fieldControlledArray(name, controllingField);
-                }
-
-                ArrayLen(Builder builder, Primitive controllingField) {
-                    this.builder = builder;
-                    this.controllingField = controllingField;
-                }
-            }
-
-            public ArrayLen arrayLen(String controllingFieldName) {
-
-                var primitiveField = new Primitive(this, controllingFieldName);
-                children.add(primitiveField);
-                return new ArrayLen(this, primitiveField);
-            }
-
-            public void flexArray(String name) {
-                children.add(new FlexArray(this, name, null));
-            }
-
-
-            Builder(Class<?> iface) {
-                this.iface = iface;
-            }
-
-            void toText(int depth, Consumer<String> stringConsumer) {
-                children.stream().forEach(c -> c.toText(depth + 1, stringConsumer));
-            }
-        }
-
-        public static interface FieldHolder {
-            List<Field<?>> children();
-        }
-
-        public static class Padding<T extends PaddingLayout> extends Field<T> {
-            Padding(FieldHolder parent, String name) {
-                super(parent, name);
+        public static class Padding extends Field {
+            int len;
+            Padding(ParentField parent, String name, int len) {
+                super(parent);
             }
 
             @Override
@@ -246,70 +180,234 @@ public class Schema  {
                 IntStream.range(0, depth).forEach(_ -> stringConsumer.accept(" "));
                 stringConsumer.accept("padding ");
             }
+            @Override
+            List<MemoryLayout>  addLayout(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToAdd){
+                memoryLayouts.add(MemoryLayout.paddingLayout(len));
+                return memoryLayouts;
+            }
         }
-
-        public static class Primitive extends Field<ValueLayout> {
-
-            Primitive(FieldHolder parent, String name) {
-                super(parent, name);
+        public static class ArrayLen extends Field {
+            AccessStyle accessStyle;
+            ArrayLen(ParentField parent,   AccessStyle accessStyle) {
+                super(parent);
+                this.accessStyle = accessStyle;
             }
 
             @Override
             public void toText(int depth, Consumer<String> stringConsumer) {
                 IntStream.range(0, depth).forEach(_ -> stringConsumer.accept(" "));
-                stringConsumer.accept("primitive " + name);
+                stringConsumer.accept("arrayLen " +accessStyle);
+            }
+            @Override
+            List<MemoryLayout>  addLayout(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToAdd){
+                memoryLayouts.add(typeToLayout(accessStyle.type).withName(accessStyle.name));
+                return memoryLayouts;
             }
         }
-
-        public static abstract class StructOrUnion<T extends GroupLayout> extends Field<T> implements Field.FieldHolder {
-            Class<?> iface;
-            List<Field<?>> children;
-            FieldHolder parent;
-
-            public Class<?> iface() {
-                return iface;
-            }
-
-            public List<Field<?>> children() {
-                return children;
-            }
-
-            public FieldHolder parent() {
-                return parent;
-            }
-
-            StructOrUnion(FieldHolder parent, String name, Class<?> iface, List<Field<?>> children) {
-                super(parent, name);
-                this.iface = iface;
-                this.children = children;
+        public static class Primitive extends Field {
+            AccessStyle accessStyle;
+            Primitive(ParentField parent,   AccessStyle accessStyle) {
+                super(parent);
+                this.accessStyle = accessStyle;
             }
 
             @Override
             public void toText(int depth, Consumer<String> stringConsumer) {
+                IntStream.range(0, depth).forEach(_ -> stringConsumer.accept(" "));
+                stringConsumer.accept("primitive " +accessStyle);
+            }
+
+            @Override
+            List<MemoryLayout>  addLayout(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToAdd){
+                memoryLayouts.add(typeToLayout(accessStyle.type).withName(accessStyle.name));
+                return memoryLayouts;
+            }
+        }
+
+        public static abstract class ParentField extends Field  {
+            List<Field> children = new ArrayList<>();
+            AccessStyle accessStyle;
+
+            ParentField(ParentField parent, AccessStyle accessStyle) {
+                super(parent);
+                this.accessStyle = accessStyle;
+            }
+
+            @Override
+            public void toText(int depth, Consumer<String> stringConsumer) {
+                stringConsumer.accept("{\n");
                 children.forEach(c -> {
                     c.toText(depth + 1, stringConsumer);
                     stringConsumer.accept("\n");
                 });
+                stringConsumer.accept("}");
             }
 
-        }
 
-        public static class Struct extends StructOrUnion<StructLayout> {
-            Struct(FieldHolder parent, String name, Class<?> iface, List<Field<?>> schemaFields) {
-                super(parent, name, iface, schemaFields);
+            public ParentField struct(String name, Consumer<ParentField> fb) {
+                var struct = new Struct(this, name, AccessStyle.of(accessStyle.type, name));
+                children.add(struct);
+                fb.accept(struct);
+                return this;
+            }
+
+            public ParentField union(String name, Consumer<ParentField> fb) {
+                var union = new Union(this, name, AccessStyle.of(accessStyle.type, name));
+                children.add(union);
+                fb.accept(union);
+                return this;
+            }
+
+            public ParentField field(String name) {
+                children.add(new Primitive(this, AccessStyle.of(accessStyle.type,name)));
+                return this;
+            }
+
+            public ParentField field(String name, Consumer<ParentField>parentFieldConsumer) {
+                AccessStyle newAccessStyle = AccessStyle.of(accessStyle.type,name);
+                children.add(new Primitive(this, newAccessStyle));
+
+
+                ParentField field;
+                if (isStruct(newAccessStyle.type)){
+                    field = new Field.Struct(this, newAccessStyle.type.getSimpleName(),newAccessStyle);
+                }else if (isUnion(newAccessStyle.type)) {
+                    field = new Field.Union(this, newAccessStyle.type.getSimpleName(), newAccessStyle);
+                }else{
+                    throw new IllegalArgumentException("Unsupported array type: " + newAccessStyle.type);
+                }
+                parentFieldConsumer.accept(field);
+                children.add(field);
+                return this;
+            }
+            public ParentField fields(String name1,String name2, Consumer<ParentField>parentFieldConsumer) {
+                AccessStyle newAccessStyle1 = AccessStyle.of(accessStyle.type,name1);
+                AccessStyle newAccessStyle2 = AccessStyle.of(accessStyle.type,name2);
+                children.add(new Primitive(this, newAccessStyle1));
+                children.add(new Primitive(this, newAccessStyle2));
+
+                ParentField field;
+                if (isStruct(newAccessStyle1.type)){
+                    field = new Field.Struct(this, newAccessStyle1.type.getSimpleName(),newAccessStyle1);
+                }else if (isUnion(newAccessStyle1.type)) {
+                    field = new Field.Union(this, newAccessStyle2.type.getSimpleName(), newAccessStyle2);
+                }else{
+                    throw new IllegalArgumentException("Unsupported array type: " + newAccessStyle2.type);
+                }
+                parentFieldConsumer.accept(field);
+                children.add(field);
+                return this;
+            }
+            public ParentField fields(String ...names) {
+                for (var name:names){
+                    field(name);
+                }
+                return this;
+            }
+
+            public ParentField array(String name, int len) {
+                children.add(new FixedArray(this, name, AccessStyle.of(accessStyle.type,name), len));
+                return this;
+            }
+            public ParentField array(String name, int len, Consumer<ParentField> parentFieldConsumer) {
+                 AccessStyle newAccessStyle = AccessStyle.of(accessStyle.type,name);
+
+                ParentField field;
+                if (isStruct(newAccessStyle.type)){
+                    field = new Field.Struct(this, newAccessStyle.type.getSimpleName(),newAccessStyle);
+                }else if (isUnion(newAccessStyle.type)) {
+                    field = new Field.Union(this, newAccessStyle.type.getSimpleName(), newAccessStyle);
+                }else{
+                    throw new IllegalArgumentException("Unsupported array type: " + newAccessStyle.type);
+                }
+                parentFieldConsumer.accept(field);
+                children.add(field);
+                children.add(new FixedArray(this, name, AccessStyle.of(accessStyle.type,name), len));
+                return this;
+                // builder.children.add(field);
+            }
+
+
+            private ParentField fieldControlledArray(String name, ArrayLen arrayLen) {
+                children.add(new FieldControlledArray(this, name,  AccessStyle.of(accessStyle.type,name), arrayLen));
+                return this;
+            }
+
+            public ParentField fieldControlledArray(String name, String arrayLenFieldName) {
+                var arrayLen = new ArrayLen(this,  AccessStyle.of(accessStyle.type,arrayLenFieldName));
+                children.add(arrayLen);
+                return fieldControlledArray(name, arrayLen);
+            }
+
+
+            public static class ArrayBuildState {
+                ParentField builder;
+                ArrayLen arrayLenField;
+
+                ParentField array(String name) {
+                    return builder.fieldControlledArray(name, arrayLenField);
+                }
+
+                ParentField array(String name, Consumer<ParentField> parentFieldConsumer) {
+                   AccessStyle newAccessStyle = AccessStyle.of(builder.accessStyle.type,name);
+                    builder.fieldControlledArray(name, arrayLenField);
+                    ParentField field;
+                    if (isStruct(newAccessStyle.type)){
+                        field = new Field.Struct(builder, builder.accessStyle.type.getSimpleName(),newAccessStyle);
+                    }else if (isUnion(newAccessStyle.type)) {
+                        field = new Field.Union(builder, builder.accessStyle.type.getSimpleName(), newAccessStyle);
+                    }else{
+                        throw new IllegalArgumentException("Unsupported array type: " + builder.accessStyle.type);
+                    }
+
+                    parentFieldConsumer.accept(field);
+                    builder.children.add(field);
+                    return builder;
+                }
+
+                ArrayBuildState(ParentField builder, ArrayLen arrayLenField) {
+                    this.builder = builder;
+                    this.arrayLenField = arrayLenField;
+                }
+            }
+
+            public ArrayBuildState arrayLen(String arrayLenFieldName) {
+                var arrayLenField = new ArrayLen(this,  AccessStyle.of(accessStyle.type,arrayLenFieldName));
+                children.add(arrayLenField);
+                return new ArrayBuildState(this, arrayLenField);
+            }
+
+            public void flexArray(String name) {
+                children.add(new FlexArray(this, name, null));
+            }
+
+
+        }
+        public static class Struct extends ParentField {
+            Struct(ParentField parent, String name, AccessStyle accessStyle) {
+                super(parent, accessStyle);
             }
 
             @Override
             public void toText(int depth, Consumer<String> stringConsumer) {
                 IntStream.range(0, depth).forEach(_ -> stringConsumer.accept(" "));
-                stringConsumer.accept("struct " + name);
+                stringConsumer.accept("struct " + accessStyle);
                 super.toText(depth + 1, stringConsumer);
+            }
+            @Override
+            List<MemoryLayout>  addLayout(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToBind){
+                List<MemoryLayout> structLayouts = new ArrayList<>();
+                children.forEach(c->{
+                    c.addLayout(structLayouts, lengthsToBind);
+                });
+                memoryLayouts.add(MemoryLayout.structLayout(structLayouts.toArray(new MemoryLayout[0])));
+                return memoryLayouts;
             }
         }
 
-        public static class Union extends StructOrUnion<UnionLayout> {
-            Union(FieldHolder parent, String name, Class<?> iface, List<Field<?>> schemaFields) {
-                super(parent, name, iface, schemaFields);
+        public static class Union extends ParentField {
+            Union(ParentField parent, String name, AccessStyle accessStyle) {
+                super(parent, accessStyle);
             }
 
             @Override
@@ -318,22 +416,33 @@ public class Schema  {
                 stringConsumer.accept("union name");
                 super.toText(depth + 1, stringConsumer);
             }
+            @Override
+            List<MemoryLayout>  addLayout(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToBind){
+                List<MemoryLayout> unionLayouts = new ArrayList<>();
+                children.forEach(c->{
+                    c.addLayout(unionLayouts, lengthsToBind);
+                });
+                memoryLayouts.add(MemoryLayout.unionLayout(unionLayouts.toArray(new MemoryLayout[0])));
+                return memoryLayouts;
+            }
         }
 
-        public abstract static class Array extends Field<SequenceLayout> {
-            Class<?> elementClass;
+        public abstract static class Array extends Field {
+          String name;
+           AccessStyle elementAccessStyle;
 
-            Array(FieldHolder parent, String name, Class<?> elementClass) {
-                super(parent, name);
-                this.elementClass = elementClass;
+            Array(ParentField parent, String name,  AccessStyle elementAccessStyle) {
+                super(parent);
+                this.name = name;
+                this.elementAccessStyle = elementAccessStyle;
             }
         }
 
         public static class FixedArray extends Array {
             int len;
 
-            FixedArray(FieldHolder parent, String name, Class<?> elementClass, int len) {
-                super(parent, name, elementClass);
+            FixedArray(ParentField parent, String name, AccessStyle elementAccessStyle, int len) {
+                super(parent, name, elementAccessStyle);
                 this.len = len;
             }
 
@@ -342,12 +451,18 @@ public class Schema  {
                 IntStream.range(0, depth).forEach(_ -> stringConsumer.accept(" "));
                 stringConsumer.accept("array [" + len + "]");
             }
+
+            @Override
+            List<MemoryLayout>  addLayout(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToBind){
+                memoryLayouts.add(MemoryLayout.sequenceLayout(len, typeToLayout(elementAccessStyle.type)).withName(elementAccessStyle.name));
+                return memoryLayouts;
+            }
         }
 
         public static class FlexArray extends Array {
 
-            FlexArray(FieldHolder parent, String name, Class<?> elementClass) {
-                super(parent, name, elementClass);
+            FlexArray(ParentField parent, String name, AccessStyle elementAccessStyle) {
+                super(parent, name, elementAccessStyle);
             }
 
             @Override
@@ -355,38 +470,80 @@ public class Schema  {
                 IntStream.range(0, depth).forEach(_ -> stringConsumer.accept(" "));
                 stringConsumer.accept("array [?] ");
             }
+
+            @Override
+            List<MemoryLayout>  addLayout(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToBind){
+                memoryLayouts.add(MemoryLayout.sequenceLayout(0, typeToLayout(elementAccessStyle.type)).withName(elementAccessStyle.name));
+                return memoryLayouts;
+            }
         }
 
         public static class FieldControlledArray extends Array {
-            Primitive primitive;
+            ArrayLen arrayLen;
 
-            FieldControlledArray(FieldHolder parent, String name, Class<?> elementClass, Primitive primitive) {
-                super(parent, name, elementClass);
-                this.primitive = primitive;
+            FieldControlledArray(ParentField parent, String name, AccessStyle elementAccessStyle, ArrayLen arrayLen) {
+                super(parent, name, elementAccessStyle);
+                this.arrayLen = arrayLen;
             }
 
             @Override
             public void toText(int depth, Consumer<String> stringConsumer) {
                 IntStream.range(0, depth).forEach(_ -> stringConsumer.accept(" "));
-                stringConsumer.accept("field controlled " + primitive.name + " " + name);
+                stringConsumer.accept(elementAccessStyle.name+"["+elementAccessStyle+"] where len defined by " + arrayLen.accessStyle);
             }
+            @Override
+            List<MemoryLayout>  addLayout(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToBind){
+                memoryLayouts.add(MemoryLayout.sequenceLayout(lengthsToBind.removeFirst(), typeToLayout(elementAccessStyle.type)).withName(elementAccessStyle.name));
+                return memoryLayouts;
+            }
+
         }
+
+
+        abstract List<MemoryLayout>  addLayout(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToBind);
     }
 
-    Field.StructOrUnion field;
-    Schema(Field.StructOrUnion field) {
+
+    Schema(Class<T> iface, Field.ParentField field) {
+        this.iface = iface;
         this.field = field;
     }
-
-    public static <T extends Buffer> Schema of(Class<?> iface, Consumer<Field.Builder> fb) {
-        Field.Builder builder = new Field.Builder(iface);
-        fb.accept(builder);
-        if (Buffer.class.isAssignableFrom(iface) || Buffer.StructChild.class.isAssignableFrom(iface)){
-            return new Schema(new Field.Struct(null, iface.getSimpleName(),iface,builder.children));
-        }else if (Buffer.StructChild.class.isAssignableFrom(iface)){
-            return new Schema(new Field.Union(null, iface.getSimpleName(),iface,builder.children));
+    static  class BoundSchema<T extends Buffer>{
+        Schema<T> schema;
+        MemoryLayout memoryLayout;
+        int [] boundLengths;
+        T instance;
+        BoundSchema(T instance, Schema<T> schema, MemoryLayout memoryLayout, int[] boundLengths) {
+            this.instance = instance;
+            this.schema = schema;
+            this.memoryLayout = memoryLayout;
+            this.boundLengths = boundLengths;
         }
-        throw new IllegalStateException("must be a Sturct, Union or Buffer");
+    }
+
+    BoundSchema<T> allocate(BufferAllocator bufferAllocator, int ...boundLengths){
+        var layout = layout(boundLengths);
+        System.out.println(layout);
+        var segmentMapper = SegmentMapper.of(MethodHandles.lookup(), iface, layout);
+        return new BoundSchema<T>(bufferAllocator.allocate(segmentMapper), this,layout,boundLengths);
+    }
+
+
+    public static <T extends Buffer>Schema<T> of(Class<T> iface, Consumer<Field.ParentField> fb) {
+
+        Field.ParentField field = null;
+
+        if (isBuffer(iface)){
+            field = new Field.Struct(null, iface.getSimpleName(),AccessStyle.of(iface,iface.getSimpleName()));
+        }else {
+            throw new IllegalStateException("must be a Buffer");
+        }
+        fb.accept(field);
+        return new Schema<T>(iface, field);
+    }
+
+    void toText(Consumer<String> stringConsumer){
+        field.toText(0,stringConsumer);
     }
 
 }
