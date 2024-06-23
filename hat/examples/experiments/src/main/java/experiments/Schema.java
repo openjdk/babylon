@@ -8,6 +8,7 @@ import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -15,110 +16,187 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-import java.util.stream.IntStream;
 
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public class Schema<T extends Buffer>  {
-    Field.ParentField field;
+    AbstractField.ParentField field;
     Class<T> iface;
 
     public GroupLayout layout(int ... arrayLengths) {
-
         LinkedList<Integer> lengthsToBind = new LinkedList<>();
         for (var i:arrayLengths){
             lengthsToBind.add(i);
         }
         List<MemoryLayout> memoryLayouts = new ArrayList<>();
-        field.addLayout(memoryLayouts,lengthsToBind);
+        field.collectLayouts(memoryLayouts,lengthsToBind);
         return (GroupLayout) memoryLayouts.getFirst().withName(iface.getSimpleName());
     }
 
-
-
     static class AccessStyle {
-        enum Style {ROOT,
-            PRIMITIVE_GETTER_AND_SETTER, PRIMITIVE_GETTER, PRIMITIVE_SETTER,
-            IFACE_GETTER,
-            PRIMITIVE_ARRAY_SETTER, PRIMITIVE_ARRAY_GETTER,PRIMITIVE_ARRAY_GETTER_AND_SETTER,
-            IFACE_ARRAY_GETTER;
+        enum Mode {
+            ROOT(false,false,false,false,false),
+            PRIMITIVE_GETTER_AND_SETTER(false,true,false,true,true),
+            PRIMITIVE_GETTER(false,true,false,false,true),
+            PRIMITIVE_SETTER(false,true,false,true,false),
+            IFACE_GETTER(false,false,true,false,true),
+            PRIMITIVE_ARRAY_SETTER(true,true,false,true,false),
+            PRIMITIVE_ARRAY_GETTER(true,true,false,false,true),
+            PRIMITIVE_ARRAY_GETTER_AND_SETTER(true,true,false,true,true),
+            IFACE_ARRAY_GETTER(true, false,true,false,true);
+            boolean array;
+            boolean primitive;
+            boolean iface;
+            boolean setter;
+            boolean getter;
+            Mode(boolean array, boolean primitive, boolean iface, boolean setter, boolean getter) {
+                this.array=array;
+                this.primitive=primitive;
+                this.iface = iface;
+                this.getter = getter;
+                this.setter = setter;
+            }
+            static Mode of(Method m) {
+                    Class<?> returnType = m.getReturnType();
+                    Class<?>[] paramTypes = m.getParameterTypes();
+                    if (paramTypes.length == 0 && returnType.isInterface()) {
+                        return IFACE_GETTER;
+                    }else if (paramTypes.length == 0 &&returnType.isPrimitive()) {
+                        return PRIMITIVE_GETTER;
+                    } else if (paramTypes.length == 1 && paramTypes[0].isPrimitive() && returnType == Void.TYPE) {
+                        return PRIMITIVE_SETTER;
+                    } else if (paramTypes.length == 1 && paramTypes[0] == Long.TYPE && returnType.isInterface()) {
+                        return IFACE_ARRAY_GETTER;
+                    } else if (paramTypes.length == 1 && paramTypes[0] == Long.TYPE && returnType.isPrimitive()) {
+                        return PRIMITIVE_ARRAY_GETTER;
+                    } else if (returnType == Void.TYPE && paramTypes.length == 2 &&
+                            paramTypes[0] == Long.TYPE && paramTypes[1].isPrimitive()){
+                        return PRIMITIVE_ARRAY_SETTER;
+                    } else {
+                        System.out.println("skiping " + m);
+                        return  null;
+                    }
+            }
         };
-        Style style;
+        Mode mode;
         Class<?> type;
         String name;
-        AccessStyle(Style style, Class<?> type, String name) {
-            this.style = style;
+        AccessStyle(Mode mode, Class<?> type, String name) {
+            this.mode = mode;
             this.type = type;
             this.name = name;
         }
         @Override
         public String toString() {
-            return style.name()+":"+type.getSimpleName()+":"+name;
+            return mode.name()+":"+type.getSimpleName()+":"+name;
         }
+        static Class<?> methodToType(Method m){
+            Class<?> returnType = m.getReturnType();
+            Class<?>[] paramTypes = m.getParameterTypes();
+            if (paramTypes.length == 0 && (returnType.isInterface() || returnType.isPrimitive())) {
+               return returnType;
+            } else if (paramTypes.length == 1 && paramTypes[0].isPrimitive() && returnType == Void.TYPE) {
+               return paramTypes[0];
+            } else if (paramTypes.length == 1 && paramTypes[0] == Long.TYPE && (returnType.isInterface()|| returnType.isPrimitive())) {
+               return returnType;
+            } else if (returnType == Void.TYPE && paramTypes.length == 2 &&
+                    paramTypes[0] == Long.TYPE && paramTypes[1].isPrimitive()){
+              return  paramTypes[1];
+            } else {
+                System.out.println("skipping " + m);
+                return null;
+            }
+        }
+
         static AccessStyle of(Class<?> iface, String name) {
-            AccessStyle[] accessStyle= new AccessStyle[]{null};
+            AccessStyle accessStyle= new AccessStyle(null,null,name);
             Arrays.stream(iface.getDeclaredMethods()).filter(m -> m.getName().equals(name)).forEach(m -> {
+                AccessStyle.Mode mode = AccessStyle.Mode.of(m);
+                Class<?> type = methodToType(m);
+                if (accessStyle.type == null){
+                    accessStyle.type = type;
+                }else if (!accessStyle.type.equals(type)){
+                    throw new IllegalStateException("type mismatch for "+name);
+                }
+                if (accessStyle.mode == null){
+                    accessStyle.mode = mode;
+                }else  if (
+                        (accessStyle.mode == Mode.PRIMITIVE_ARRAY_GETTER && mode == Mode.PRIMITIVE_ARRAY_SETTER)
+                       || (accessStyle.mode == Mode.PRIMITIVE_ARRAY_SETTER && mode == Mode.PRIMITIVE_ARRAY_GETTER)
+                ){
+                    accessStyle.mode = Mode.PRIMITIVE_ARRAY_GETTER_AND_SETTER;
+                } else  if (
+                    (accessStyle.mode == Mode.PRIMITIVE_GETTER && mode == Mode.PRIMITIVE_SETTER)
+                            || (accessStyle.mode == Mode.PRIMITIVE_SETTER && mode == Mode.PRIMITIVE_GETTER)
+                ) {
+                    accessStyle.mode = Mode.PRIMITIVE_GETTER_AND_SETTER;
+                }else {
+                    throw new IllegalStateException("mode mismatch for "+name);
+                }
+                /*
                 Class<?> returnType = m.getReturnType();
-                Class<?>[] parameTypes = m.getParameterTypes();
+                Class<?>[] paramTypes = m.getParameterTypes();
                 if (m.getParameterCount() == 0 && returnType.isInterface()) {
                     if (accessStyle[0]!=null){
-                        throw new IllegalStateException(name+" already dermined to to be "+accessStyle[0].style);
+                        throw new IllegalStateException(name+" already dermined to to be "+accessStyle[0].mode);
                     }
-                    accessStyle[0] = new AccessStyle(Style.IFACE_GETTER, returnType, name);
-                }else    if (m.getParameterCount() == 0 &&returnType.isPrimitive()) {
+                    accessStyle[0] = new AccessStyle(Mode.IFACE_GETTER, returnType, name);
+                }else if (m.getParameterCount() == 0 &&returnType.isPrimitive()) {
                     if (accessStyle[0]!=null){
-                       if (accessStyle[0].style == Style.PRIMITIVE_SETTER){
-                           accessStyle[0] = new AccessStyle(Style.PRIMITIVE_GETTER_AND_SETTER, returnType, name);
+                       if (accessStyle[0].mode == Mode.PRIMITIVE_SETTER){
+                           accessStyle[0] = new AccessStyle(Mode.PRIMITIVE_GETTER_AND_SETTER, returnType, name);
                        }else{
-                           throw new IllegalStateException(name+" already dermined to to be "+accessStyle[0].style);
+                           throw new IllegalStateException(name+" already dermined to to be "+accessStyle[0].mode);
                        }
                     }else {
-                        accessStyle[0] = new AccessStyle(Style.PRIMITIVE_GETTER, returnType, name);
+                        accessStyle[0] = new AccessStyle(Mode.PRIMITIVE_GETTER, returnType, name);
                     }
-                } else if (m.getParameterCount() == 1 && parameTypes[0].isPrimitive() && returnType == Void.TYPE) {
+                } else if (m.getParameterCount() == 1 && paramTypes[0].isPrimitive() && returnType == Void.TYPE) {
                     if (accessStyle[0]!=null){
-                        if (accessStyle[0].style == Style.PRIMITIVE_GETTER){
-                            accessStyle[0] = new AccessStyle(Style.PRIMITIVE_GETTER_AND_SETTER, returnType, name);
+                        if (accessStyle[0].mode == Mode.PRIMITIVE_GETTER){
+                            accessStyle[0] = new AccessStyle(Mode.PRIMITIVE_GETTER_AND_SETTER, paramTypes[0], name);
                         }else{
-                            throw new IllegalStateException(name+" already dermined to to be "+accessStyle[0].style);
+                            throw new IllegalStateException(name+" already dermined to to be "+accessStyle[0].mode);
                         }
                     }else {
-                        accessStyle[0] = new AccessStyle(Style.PRIMITIVE_SETTER, returnType, name);
+                        accessStyle[0] = new AccessStyle(Mode.PRIMITIVE_SETTER, paramTypes[0], name);
                     }
-                } else if (m.getParameterCount() == 1 && parameTypes[0] == Long.TYPE && returnType.isInterface()) {
+                } else if (m.getParameterCount() == 1 && paramTypes[0] == Long.TYPE && returnType.isInterface()) {
                     if (accessStyle[0]!=null){
-                        throw new IllegalStateException(name+" already dermined to to be "+accessStyle[0].style);
+                        throw new IllegalStateException(name+" already dermined to to be "+accessStyle[0].mode);
                     }
-                    accessStyle[0] = new AccessStyle(Style.IFACE_ARRAY_GETTER, returnType, name);
-                } else if (m.getParameterCount() == 1 && parameTypes[0] == Long.TYPE && returnType.isPrimitive()) {
+                    accessStyle[0] = new AccessStyle(Mode.IFACE_ARRAY_GETTER, returnType, name);
+                } else if (m.getParameterCount() == 1 && paramTypes[0] == Long.TYPE && returnType.isPrimitive()) {
                     if (accessStyle[0]!=null) {
-                        if (accessStyle[0].style == Style.PRIMITIVE_ARRAY_SETTER) {
-                            accessStyle[0] = new AccessStyle(Style.PRIMITIVE_ARRAY_GETTER_AND_SETTER, returnType, name);
+                        if (accessStyle[0].mode == Mode.PRIMITIVE_ARRAY_SETTER) {
+                            accessStyle[0] = new AccessStyle(Mode.PRIMITIVE_ARRAY_GETTER_AND_SETTER, returnType, name);
                         } else {
-                            throw new IllegalStateException(name + " already dermined to to be " + accessStyle[0].style);
+                            throw new IllegalStateException(name + " already dermined to to be " + accessStyle[0].mode);
                         }
                     }else {
-                        accessStyle[0] = new AccessStyle(Style.PRIMITIVE_ARRAY_GETTER, returnType, name);
+                        accessStyle[0] = new AccessStyle(Mode.PRIMITIVE_ARRAY_GETTER, returnType, name);
                     }
-                } else if (returnType == Void.TYPE && parameTypes.length == 2 &&
-                        parameTypes[0] == Long.TYPE && parameTypes[1].isPrimitive()){
+                } else if (returnType == Void.TYPE && paramTypes.length == 2 &&
+                        paramTypes[0] == Long.TYPE && paramTypes[1].isPrimitive()){
                     if (accessStyle[0]!=null) {
-                        if (accessStyle[0].style == Style.PRIMITIVE_ARRAY_GETTER) {
-                            accessStyle[0] = new AccessStyle(Style.PRIMITIVE_ARRAY_GETTER_AND_SETTER, parameTypes[1], name);
+                        if (accessStyle[0].mode == Mode.PRIMITIVE_ARRAY_GETTER) {
+                            accessStyle[0] = new AccessStyle(Mode.PRIMITIVE_ARRAY_GETTER_AND_SETTER, paramTypes[1], name);
                         } else {
-                            throw new IllegalStateException(name + " already dermined to to be " + accessStyle[0].style);
+                            throw new IllegalStateException(name + " already dermined to to be " + accessStyle[0].mode);
                         }
                     }else {
-                        accessStyle[0] = new AccessStyle(Style.PRIMITIVE_ARRAY_SETTER, parameTypes[1], name);
+                        accessStyle[0] = new AccessStyle(Mode.PRIMITIVE_ARRAY_SETTER, paramTypes[1], name);
                     }
                 } else {
                     System.out.println("skiping " + m);
-                }
+                } */
             });
-            if (accessStyle[0] == null) {
-                accessStyle[0] = new AccessStyle(Style.ROOT,iface, "root");
+            if (accessStyle.type == null && accessStyle.mode==null) {
+                accessStyle.type = iface;
+                accessStyle.name="root";
+                accessStyle.mode=Mode.ROOT;
             }
-            return accessStyle[0];
+            return accessStyle;
         }
     }
     private static final Map<Class<?>, MemoryLayout> typeToLayout = new HashMap<>();
@@ -148,45 +226,32 @@ public class Schema<T extends Buffer>  {
         return  isStruct(clazz)||isBuffer(clazz)||isUnion(clazz);
     }
 
-    private static MemoryLayout typeToLayout(Class<?> clazz) {
-        if (typeToLayout.containsKey(clazz)) {
-            return typeToLayout.get(clazz);
-        } else if (!isMappable(clazz)) {
-            throw new IllegalStateException("What to do with mappable "+clazz);
-        } else {
-            throw new IllegalStateException("What to do with UNmappable "+clazz);
-        }
-
-    }
-
-    public static abstract class Field {
-
+    public static abstract class AbstractField {
         ParentField parent;
 
-        Field(ParentField parent) {
+        AbstractField(ParentField parent) {
             this.parent = parent;
         }
 
-        public abstract void toText(int depth, Consumer<String> stringConsumer);
+        public abstract void toText(String indent, Consumer<String> stringConsumer);
 
-        public static class Padding extends Field {
+        public static class Padding extends AbstractField {
             int len;
-            Padding(ParentField parent, String name, int len) {
+            Padding(ParentField parent,  int len) {
                 super(parent);
+                this.len = len;
             }
 
             @Override
-            public void toText(int depth, Consumer<String> stringConsumer) {
-                IntStream.range(0, depth).forEach(_ -> stringConsumer.accept(" "));
-                stringConsumer.accept("padding ");
+            public void toText(String indent, Consumer<String> stringConsumer) {
+                stringConsumer.accept(indent+"padding "+len+" bytes");
             }
             @Override
-            List<MemoryLayout>  addLayout(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToAdd){
+            void collectLayouts(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToAdd){
                 memoryLayouts.add(MemoryLayout.paddingLayout(len));
-                return memoryLayouts;
             }
         }
-        public static class ArrayLen extends Field {
+        public static class ArrayLen extends AbstractField {
             AccessStyle accessStyle;
             ArrayLen(ParentField parent,   AccessStyle accessStyle) {
                 super(parent);
@@ -194,85 +259,79 @@ public class Schema<T extends Buffer>  {
             }
 
             @Override
-            public void toText(int depth, Consumer<String> stringConsumer) {
-                IntStream.range(0, depth).forEach(_ -> stringConsumer.accept(" "));
-                stringConsumer.accept("arrayLen " +accessStyle);
+            public void toText(String indent,  Consumer<String> stringConsumer) {
+                stringConsumer.accept(indent+"arrayLen " +accessStyle);
             }
             @Override
-            List<MemoryLayout>  addLayout(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToAdd){
-                memoryLayouts.add(typeToLayout(accessStyle.type).withName(accessStyle.name));
-                return memoryLayouts;
+            void collectLayouts(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToAdd){
+                if (accessStyle.type.isPrimitive()){
+                    memoryLayouts.add(typeToLayout.get(accessStyle.type).withName(accessStyle.name));
+                }else {
+                    // the type is mapped in the parent.
+                    throw new IllegalStateException("type of arraylen should be int or long");
+                }
             }
         }
-        public static class Primitive extends Field {
+        public static class Field extends AbstractField {
             AccessStyle accessStyle;
-            Primitive(ParentField parent,   AccessStyle accessStyle) {
+            Field(ParentField parent, AccessStyle accessStyle) {
                 super(parent);
                 this.accessStyle = accessStyle;
             }
-
             @Override
-            public void toText(int depth, Consumer<String> stringConsumer) {
-                IntStream.range(0, depth).forEach(_ -> stringConsumer.accept(" "));
-                stringConsumer.accept("primitive " +accessStyle);
+            public void toText(String indent, Consumer<String> stringConsumer) {
+                stringConsumer.accept(indent+"field " +accessStyle);
             }
-
             @Override
-            List<MemoryLayout>  addLayout(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToAdd){
-                memoryLayouts.add(typeToLayout(accessStyle.type).withName(accessStyle.name));
-                return memoryLayouts;
+            void collectLayouts(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToAdd){
+                if (accessStyle.type.isPrimitive()) {
+                    memoryLayouts.add(typeToLayout.get(accessStyle.type).withName(accessStyle.name));
+                }else{
+                    ParentField layoutContainer = parent.children.stream().filter(c->c instanceof ParentField).map(c->(ParentField)c)
+                            .filter(p->p.accessStyle.type.equals(accessStyle.type)).findFirst().get();
+
+                    layoutContainer.collectLayouts(memoryLayouts,lengthsToAdd, accessStyle.name);
+                 //  throw new IllegalStateException("handle case where type of field is not primitive");
+                }
             }
         }
-
-        public static abstract class ParentField extends Field  {
-            List<Field> children = new ArrayList<>();
+        public static abstract class ParentField extends AbstractField {
+            List<AbstractField> children = new ArrayList<>();
             AccessStyle accessStyle;
-
             ParentField(ParentField parent, AccessStyle accessStyle) {
                 super(parent);
                 this.accessStyle = accessStyle;
             }
-
-            @Override
-            public void toText(int depth, Consumer<String> stringConsumer) {
-                stringConsumer.accept("{\n");
-                children.forEach(c -> {
-                    c.toText(depth + 1, stringConsumer);
-                    stringConsumer.accept("\n");
-                });
-                stringConsumer.accept("}");
-            }
-
-
             public ParentField struct(String name, Consumer<ParentField> fb) {
-                var struct = new Struct(this, name, AccessStyle.of(accessStyle.type, name));
+                var struct = new Struct(this,  AccessStyle.of(accessStyle.type, name));
                 children.add(struct);
                 fb.accept(struct);
                 return this;
             }
 
             public ParentField union(String name, Consumer<ParentField> fb) {
-                var union = new Union(this, name, AccessStyle.of(accessStyle.type, name));
+                var union = new Union(this,  AccessStyle.of(accessStyle.type, name));
                 children.add(union);
                 fb.accept(union);
                 return this;
             }
 
             public ParentField field(String name) {
-                children.add(new Primitive(this, AccessStyle.of(accessStyle.type,name)));
+                children.add(new Field(this, AccessStyle.of(accessStyle.type,name)));
                 return this;
             }
-
+            public ParentField pad(int len) {
+                children.add(new Padding(this, len));
+                return this;
+            }
             public ParentField field(String name, Consumer<ParentField>parentFieldConsumer) {
                 AccessStyle newAccessStyle = AccessStyle.of(accessStyle.type,name);
-                children.add(new Primitive(this, newAccessStyle));
-
-
+                children.add(new Field(this, newAccessStyle));
                 ParentField field;
                 if (isStruct(newAccessStyle.type)){
-                    field = new Field.Struct(this, newAccessStyle.type.getSimpleName(),newAccessStyle);
+                    field = new AbstractField.Struct(this,newAccessStyle);
                 }else if (isUnion(newAccessStyle.type)) {
-                    field = new Field.Union(this, newAccessStyle.type.getSimpleName(), newAccessStyle);
+                    field = new AbstractField.Union(this, newAccessStyle);
                 }else{
                     throw new IllegalArgumentException("Unsupported array type: " + newAccessStyle.type);
                 }
@@ -283,14 +342,14 @@ public class Schema<T extends Buffer>  {
             public ParentField fields(String name1,String name2, Consumer<ParentField>parentFieldConsumer) {
                 AccessStyle newAccessStyle1 = AccessStyle.of(accessStyle.type,name1);
                 AccessStyle newAccessStyle2 = AccessStyle.of(accessStyle.type,name2);
-                children.add(new Primitive(this, newAccessStyle1));
-                children.add(new Primitive(this, newAccessStyle2));
+                children.add(new Field(this, newAccessStyle1));
+                children.add(new Field(this, newAccessStyle2));
 
                 ParentField field;
                 if (isStruct(newAccessStyle1.type)){
-                    field = new Field.Struct(this, newAccessStyle1.type.getSimpleName(),newAccessStyle1);
+                    field = new AbstractField.Struct(this, newAccessStyle1);
                 }else if (isUnion(newAccessStyle1.type)) {
-                    field = new Field.Union(this, newAccessStyle2.type.getSimpleName(), newAccessStyle2);
+                    field = new AbstractField.Union(this, newAccessStyle2);
                 }else{
                     throw new IllegalArgumentException("Unsupported array type: " + newAccessStyle2.type);
                 }
@@ -309,25 +368,24 @@ public class Schema<T extends Buffer>  {
                 children.add(new FixedArray(this, name, AccessStyle.of(accessStyle.type,name), len));
                 return this;
             }
-            public ParentField array(String name, int len, Consumer<ParentField> parentFieldConsumer) {
-                 AccessStyle newAccessStyle = AccessStyle.of(accessStyle.type,name);
 
-                ParentField field;
-                if (isStruct(newAccessStyle.type)){
-                    field = new Field.Struct(this, newAccessStyle.type.getSimpleName(),newAccessStyle);
-                }else if (isUnion(newAccessStyle.type)) {
-                    field = new Field.Union(this, newAccessStyle.type.getSimpleName(), newAccessStyle);
-                }else{
-                    throw new IllegalArgumentException("Unsupported array type: " + newAccessStyle.type);
+            public static ParentField  createStructOrUnion(ParentField parent, AccessStyle accessStyle){
+                if (isStruct(accessStyle.type)){
+                    return new AbstractField.Struct(parent, accessStyle);
+                }else if (isUnion(accessStyle.type)) {
+                    return  new AbstractField.Union(parent, accessStyle);
                 }
+                    throw new IllegalArgumentException("Unsupported array type: " + accessStyle.type);
+
+            }
+            public ParentField array(String name, int len, Consumer<ParentField> parentFieldConsumer) {
+                AccessStyle newAccessStyle = AccessStyle.of(accessStyle.type,name);
+                ParentField field = createStructOrUnion(this, newAccessStyle);
                 parentFieldConsumer.accept(field);
                 children.add(field);
                 children.add(new FixedArray(this, name, AccessStyle.of(accessStyle.type,name), len));
                 return this;
-                // builder.children.add(field);
             }
-
-
             private ParentField fieldControlledArray(String name, ArrayLen arrayLen) {
                 children.add(new FieldControlledArray(this, name,  AccessStyle.of(accessStyle.type,name), arrayLen));
                 return this;
@@ -341,32 +399,24 @@ public class Schema<T extends Buffer>  {
 
 
             public static class ArrayBuildState {
-                ParentField builder;
+                ParentField parentField;
                 ArrayLen arrayLenField;
 
                 ParentField array(String name) {
-                    return builder.fieldControlledArray(name, arrayLenField);
+                    return parentField.fieldControlledArray(name, arrayLenField);
                 }
 
                 ParentField array(String name, Consumer<ParentField> parentFieldConsumer) {
-                   AccessStyle newAccessStyle = AccessStyle.of(builder.accessStyle.type,name);
-                    builder.fieldControlledArray(name, arrayLenField);
-                    ParentField field;
-                    if (isStruct(newAccessStyle.type)){
-                        field = new Field.Struct(builder, builder.accessStyle.type.getSimpleName(),newAccessStyle);
-                    }else if (isUnion(newAccessStyle.type)) {
-                        field = new Field.Union(builder, builder.accessStyle.type.getSimpleName(), newAccessStyle);
-                    }else{
-                        throw new IllegalArgumentException("Unsupported array type: " + builder.accessStyle.type);
-                    }
-
+                   AccessStyle newAccessStyle = AccessStyle.of(parentField.accessStyle.type,name);
+                    parentField.fieldControlledArray(name, arrayLenField);
+                    ParentField field = createStructOrUnion(parentField, newAccessStyle);
                     parentFieldConsumer.accept(field);
-                    builder.children.add(field);
-                    return builder;
+                    parentField.children.add(field);
+                    return parentField;
                 }
 
-                ArrayBuildState(ParentField builder, ArrayLen arrayLenField) {
-                    this.builder = builder;
+                ArrayBuildState(ParentField parentField, ArrayLen arrayLenField) {
+                    this.parentField = parentField;
                     this.arrayLenField = arrayLenField;
                 }
             }
@@ -381,53 +431,67 @@ public class Schema<T extends Buffer>  {
                 children.add(new FlexArray(this, name, null));
             }
 
+            @Override
+            void collectLayouts(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToBind) {
 
+                collectLayouts(memoryLayouts,lengthsToBind,null);
+            }
+
+
+            void collectLayouts(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToBind, String name) {
+                List<MemoryLayout> layouts = new ArrayList<>();
+                children.forEach(c->{
+                    if (!(c instanceof ParentField)) {
+                        c.collectLayouts(layouts, lengthsToBind);
+                    }
+                });
+                MemoryLayout memoryLayout = null;
+                if (isUnion(accessStyle.type)) {
+                    memoryLayout =(name != null && !name.isEmpty())
+                            ? MemoryLayout.unionLayout(layouts.toArray(new MemoryLayout[0])).withName(name)
+                            :MemoryLayout.unionLayout(layouts.toArray(new MemoryLayout[0]));
+                }else if (isStructOrBuffer(accessStyle.type)){
+                    memoryLayout =(name != null && !name.isEmpty())
+                            ? MemoryLayout.structLayout(layouts.toArray(new MemoryLayout[0])).withName(name)
+                            :MemoryLayout.structLayout(layouts.toArray(new MemoryLayout[0]));
+                }else{
+                    throw new IllegalStateException("Oh my ");
+                }
+                memoryLayouts.add(memoryLayout);
+            }
+            @Override
+            public void toText(String indent, Consumer<String> stringConsumer) {
+                stringConsumer.accept(indent);
+                if (isUnion(accessStyle.type)) {
+                    stringConsumer.accept("union");
+                }else if(isStructOrBuffer(accessStyle.type)){
+                    stringConsumer.accept("struct");
+                }else{
+                    throw new IllegalStateException("Oh my ");
+                }
+                stringConsumer.accept(" " + accessStyle + "{");
+                stringConsumer.accept("\n");
+                children.forEach(c -> {
+                    c.toText(indent+" ", stringConsumer);
+                    stringConsumer.accept("\n");
+                });
+                 stringConsumer.accept(indent);
+                stringConsumer.accept("}");
+            }
         }
         public static class Struct extends ParentField {
-            Struct(ParentField parent, String name, AccessStyle accessStyle) {
+            Struct(ParentField parent,  AccessStyle accessStyle) {
                 super(parent, accessStyle);
-            }
-
-            @Override
-            public void toText(int depth, Consumer<String> stringConsumer) {
-                IntStream.range(0, depth).forEach(_ -> stringConsumer.accept(" "));
-                stringConsumer.accept("struct " + accessStyle);
-                super.toText(depth + 1, stringConsumer);
-            }
-            @Override
-            List<MemoryLayout>  addLayout(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToBind){
-                List<MemoryLayout> structLayouts = new ArrayList<>();
-                children.forEach(c->{
-                    c.addLayout(structLayouts, lengthsToBind);
-                });
-                memoryLayouts.add(MemoryLayout.structLayout(structLayouts.toArray(new MemoryLayout[0])));
-                return memoryLayouts;
             }
         }
 
         public static class Union extends ParentField {
-            Union(ParentField parent, String name, AccessStyle accessStyle) {
+            Union(ParentField parent,  AccessStyle accessStyle) {
                 super(parent, accessStyle);
-            }
-
-            @Override
-            public void toText(int depth, Consumer<String> stringConsumer) {
-                IntStream.range(0, depth).forEach(_ -> stringConsumer.accept(" "));
-                stringConsumer.accept("union name");
-                super.toText(depth + 1, stringConsumer);
-            }
-            @Override
-            List<MemoryLayout>  addLayout(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToBind){
-                List<MemoryLayout> unionLayouts = new ArrayList<>();
-                children.forEach(c->{
-                    c.addLayout(unionLayouts, lengthsToBind);
-                });
-                memoryLayouts.add(MemoryLayout.unionLayout(unionLayouts.toArray(new MemoryLayout[0])));
-                return memoryLayouts;
             }
         }
 
-        public abstract static class Array extends Field {
+        public abstract static class Array extends AbstractField {
           String name;
            AccessStyle elementAccessStyle;
 
@@ -447,34 +511,40 @@ public class Schema<T extends Buffer>  {
             }
 
             @Override
-            public void toText(int depth, Consumer<String> stringConsumer) {
-                IntStream.range(0, depth).forEach(_ -> stringConsumer.accept(" "));
-                stringConsumer.accept("array [" + len + "]");
+            public void toText(String indent, Consumer<String> stringConsumer) {
+                stringConsumer.accept(indent+"array [" + len + "]");
             }
 
             @Override
-            List<MemoryLayout>  addLayout(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToBind){
-                memoryLayouts.add(MemoryLayout.sequenceLayout(len, typeToLayout(elementAccessStyle.type)).withName(elementAccessStyle.name));
-                return memoryLayouts;
+            void collectLayouts(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToBind){
+                if (elementAccessStyle.type.isPrimitive()) {
+                    memoryLayouts.add(MemoryLayout.sequenceLayout(len, typeToLayout.get(elementAccessStyle.type)).withName(elementAccessStyle.name));
+                }else{
+                    ParentField layoutContainer = parent.children.stream().filter(c->c instanceof ParentField).map(c->(ParentField)c)
+                            .filter(p->p.accessStyle.type.equals(elementAccessStyle.type)).findFirst().get();
+
+                    layoutContainer.collectLayouts(memoryLayouts,lengthsToBind, elementAccessStyle.name);
+                   // throw new IllegalStateException("handle case where fixed array element type is not primitive");
+                }
             }
         }
 
         public static class FlexArray extends Array {
-
             FlexArray(ParentField parent, String name, AccessStyle elementAccessStyle) {
                 super(parent, name, elementAccessStyle);
             }
-
             @Override
-            public void toText(int depth, Consumer<String> stringConsumer) {
-                IntStream.range(0, depth).forEach(_ -> stringConsumer.accept(" "));
-                stringConsumer.accept("array [?] ");
+            public void toText(String indent, Consumer<String> stringConsumer) {
+                stringConsumer.accept(indent+"array [?] ");
             }
 
             @Override
-            List<MemoryLayout>  addLayout(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToBind){
-                memoryLayouts.add(MemoryLayout.sequenceLayout(0, typeToLayout(elementAccessStyle.type)).withName(elementAccessStyle.name));
-                return memoryLayouts;
+            void collectLayouts(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToBind){
+                if (elementAccessStyle.type.isPrimitive()) {
+                    memoryLayouts.add(MemoryLayout.sequenceLayout(0, typeToLayout.get(elementAccessStyle.type)).withName(elementAccessStyle.name));
+                }else{
+                    throw new IllegalStateException("handle case where flex array element type is not primitive");
+                }
             }
         }
 
@@ -487,24 +557,32 @@ public class Schema<T extends Buffer>  {
             }
 
             @Override
-            public void toText(int depth, Consumer<String> stringConsumer) {
-                IntStream.range(0, depth).forEach(_ -> stringConsumer.accept(" "));
-                stringConsumer.accept(elementAccessStyle.name+"["+elementAccessStyle+"] where len defined by " + arrayLen.accessStyle);
+            public void toText(String indent, Consumer<String> stringConsumer) {
+                stringConsumer.accept(indent+elementAccessStyle.name+"["+elementAccessStyle+"] where len defined by " + arrayLen.accessStyle);
             }
             @Override
-            List<MemoryLayout>  addLayout(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToBind){
-                memoryLayouts.add(MemoryLayout.sequenceLayout(lengthsToBind.removeFirst(), typeToLayout(elementAccessStyle.type)).withName(elementAccessStyle.name));
-                return memoryLayouts;
-            }
+            void collectLayouts(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToBind){
+                if (elementAccessStyle.type.isPrimitive()) {
+                    memoryLayouts.add(MemoryLayout.sequenceLayout(lengthsToBind.removeFirst(), typeToLayout.get(elementAccessStyle.type)).withName(elementAccessStyle.name));
+                }else{
+                    // We should find a Struct or Union matching the type in the parent
+                    ParentField layoutContainer = parent.children.stream().filter(c->c instanceof ParentField).map(c->(ParentField)c)
+                            .filter(p->p.accessStyle.type.equals(elementAccessStyle.type)).findFirst().get();
 
+                    layoutContainer.collectLayouts(memoryLayouts,lengthsToBind, elementAccessStyle.name);
+                  //  GroupLayout last =  (GroupLayout) memoryLayouts.getLast();
+                   // System.out.println(last);
+                   // last.withName(elementAccessStyle.name);
+                   // System.out.println(last);
+                }
+            }
         }
 
-
-        abstract List<MemoryLayout>  addLayout(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToBind);
+        abstract void collectLayouts(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToBind);
     }
 
 
-    Schema(Class<T> iface, Field.ParentField field) {
+    Schema(Class<T> iface, AbstractField.ParentField field) {
         this.iface = iface;
         this.field = field;
     }
@@ -529,12 +607,10 @@ public class Schema<T extends Buffer>  {
     }
 
 
-    public static <T extends Buffer>Schema<T> of(Class<T> iface, Consumer<Field.ParentField> fb) {
-
-        Field.ParentField field = null;
-
+    public static <T extends Buffer>Schema<T> of(Class<T> iface, Consumer<AbstractField.ParentField> fb) {
+        AbstractField.ParentField field = null;
         if (isBuffer(iface)){
-            field = new Field.Struct(null, iface.getSimpleName(),AccessStyle.of(iface,iface.getSimpleName()));
+            field = new AbstractField.Struct(null, AccessStyle.of(iface,iface.getSimpleName()));
         }else {
             throw new IllegalStateException("must be a Buffer");
         }
@@ -543,7 +619,7 @@ public class Schema<T extends Buffer>  {
     }
 
     void toText(Consumer<String> stringConsumer){
-        field.toText(0,stringConsumer);
+        field.toText("",stringConsumer);
     }
 
 }

@@ -65,7 +65,7 @@ public interface Cascade extends CompleteBuffer {
         Rect rect(long idx);
     }
     int featureCount();
-    void featureCount(int featureCount);
+    //void featureCount(int featureCount);
     Feature feature(long idx);
     interface Stage extends Buffer.StructChild {
         float threshold();
@@ -78,7 +78,7 @@ public interface Cascade extends CompleteBuffer {
         void treeCount(short treeCount);
     }
     int stageCount();
-    void stageCount(int stageCount);
+   // void stageCount(int stageCount);
     Stage stage(long idx);
     interface Tree extends Buffer.StructChild {
         void id(int id);
@@ -89,7 +89,7 @@ public interface Cascade extends CompleteBuffer {
         short featureCount();
     }
     int treeCount();
-    void treeCount(int treeCount);
+ //   void treeCount(int treeCount);
     Tree tree(long idx);
 
 
@@ -99,6 +99,7 @@ public interface Cascade extends CompleteBuffer {
                     .fields("id","threshold")
                     .fields("left","right",linkOrValue->linkOrValue
                             .field("hasValue")
+                            .pad(3)
                             .field("anon", anon->anon.fields("featureId","value"))
                     )
                     .array("rect", 3 , rect->rect.fields("x","y","width","height","weight"))
