@@ -27,6 +27,7 @@
 package experiments;
 
 
+import hat.Schema;
 import hat.buffer.Buffer;
 
 import java.lang.constant.ClassDesc;

@@ -24,7 +24,13 @@
  */
 package experiments;
 
+import hat.Schema;
 import hat.buffer.Buffer;
+import hat.buffer.BufferAllocator;
+import hat.ifacemapper.SegmentMapper;
+
+import java.lang.foreign.Arena;
+import java.lang.foreign.GroupLayout;
 
 public interface ResultTable extends Buffer{
     interface Result extends Buffer.StructChild {
@@ -37,17 +43,31 @@ public interface ResultTable extends Buffer{
         float height();
         void height(float height);
     }
-    void atomicResultTableCount(int atomicResultTableCount);
+    void atomicResultTableCount(int count);
     int atomicResultTableCount();
     int length();
     Result result(long idx);
     Schema<ResultTable> schema = Schema.of(ResultTable.class, resultTable->resultTable
-            .field("atomicResultTableCount")
+            .atomic("atomicResultTableCount")
             .arrayLen("length").array("result", array->array.fields("x","y","width","height"))
     );
-    default int atomicResultTableCountInc() {
-        int index = atomicResultTableCount();
-        atomicResultTableCount(index + 1);
-        return index;
+
+    public static void main(String[] args) {
+        BufferAllocator bufferAllocator = new BufferAllocator() {
+            public <T extends Buffer> T allocate(SegmentMapper<T> s) {
+                return s.allocate(Arena.global());
+            }
+        };
+        ResultTable.schema.toText(t->System.out.print(t));
+        System.out.println();
+        GroupLayout layout = ResultTable.schema.layout(1000);
+        System.out.println(layout);
+        System.out.println("[i4(length)i4(atomicResultTableCount)[1000:[f4(x)f4(y)f4(width)f4(height)](Result)](result)](ResultTable)");
+       // var boundSchema = ResultTable.schema.allocate(bufferAllocator, 100);
+
+      //  var resultTable = ResultTable.schema.allocate(bufferAllocator, 100).instance;
+      //  int resultTableLen = resultTable.length();
+      //  System.out.println(Buffer.getLayout(resultTable));
     }
+
 }
