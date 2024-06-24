@@ -26,6 +26,7 @@ package violajones.ifaces;
 
 
 import hat.Accelerator;
+import hat.Schema;
 import hat.buffer.Buffer;
 import hat.buffer.BufferAllocator;
 import hat.buffer.Table;
@@ -41,8 +42,6 @@ import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface ScaleTable extends Table<ScaleTable.Scale> {
-
-
     interface Scale extends Buffer {
         StructLayout layout = MemoryLayout.structLayout(
                 JAVA_FLOAT.withName("scaleValue"),
@@ -198,5 +197,18 @@ public interface ScaleTable extends Table<ScaleTable.Scale> {
     default int rangeModGroupSize(int groupSize) {
         return ((multiScaleAccumulativeRange() / groupSize) + ((multiScaleAccumulativeRange() % groupSize) == 0 ? 0 : 1)) * groupSize;
     }
-
+    Schema<ScaleTable> schema = null;/*Schema.of(ScaleTable.class, scaleTable->scaleTable
+            .field("multiScaleAccumulativeRange")
+            .arrayLen("length").array("scale", array->array
+                    .fields(
+                    "scaleValue",
+                            "scaledXInc", "scaledYInc",
+                            "invArea",
+                            "scaledFeatureWidth","scaledFeatureHeight",
+                            "gridWidth", "gridHeight",
+                            "gridSize",
+                            "accumGridSizeMin", "accumGridSizeMax"
+                    )
+            )
+    );*/
 }

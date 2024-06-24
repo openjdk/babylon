@@ -27,12 +27,36 @@
 package experiments;
 
 
-public class CascadeSchemaLayoutTest {
+import hat.buffer.Buffer;
+import hat.buffer.BufferAllocator;
+import hat.ifacemapper.SegmentMapper;
+
+import java.lang.foreign.Arena;
+
+public class SchemaLayoutTest {
 
     public static void main(String[] args) {
+        BufferAllocator bufferAllocator= new BufferAllocator() {
+            public <T extends Buffer> T allocate(SegmentMapper<T> s) {return s.allocate(Arena.global());}
+        };
+        hat.buffer.S32Array os32  = hat.buffer.S32Array.create(bufferAllocator,100);
+        System.out.println("Layout from hat S32Array "+ Buffer.getLayout(os32));
 
-        Cascade.schema.field.toText(0, t->System.out.print(t));
+        var s32Array = S32Array.schema.allocate(bufferAllocator, 100).instance;
+        int s23ArrayLen = s32Array.length();
+        System.out.println("Layout from schema "+Buffer.getLayout(s32Array));
+        ResultTable.schema.toText(t->System.out.print(t));
 
+        var resultTable = ResultTable.schema.allocate(bufferAllocator, 100).instance;
+        int resultTableLen = resultTable.length();
+        System.out.println(Buffer.getLayout(resultTable));
+
+
+        Cascade.schema.toText(t->System.out.print(t));
+        var cascadelayout = Cascade.schema.layout(10,10,10);
+        System.out.println(cascadelayout);
+        var cascade = Cascade.schema.allocate(bufferAllocator,10,10,10).instance;
+        System.out.println(Buffer.getLayout(cascade));
         //var layout = Cascade.schema.field.layout();
 
    //     System.out.println(layout);
