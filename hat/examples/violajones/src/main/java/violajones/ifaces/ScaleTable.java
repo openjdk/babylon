@@ -197,7 +197,7 @@ public interface ScaleTable extends Table<ScaleTable.Scale> {
     default int rangeModGroupSize(int groupSize) {
         return ((multiScaleAccumulativeRange() / groupSize) + ((multiScaleAccumulativeRange() % groupSize) == 0 ? 0 : 1)) * groupSize;
     }
-    Schema<ScaleTable> schema = Schema.of(ScaleTable.class, scaleTable->scaleTable
+    Schema<ScaleTable> schema = null;/*Schema.of(ScaleTable.class, scaleTable->scaleTable
             .field("multiScaleAccumulativeRange")
             .arrayLen("length").array("scale", array->array
                     .fields(
@@ -210,5 +210,5 @@ public interface ScaleTable extends Table<ScaleTable.Scale> {
                             "accumGridSizeMin", "accumGridSizeMax"
                     )
             )
-    );
+    );*/
 }
