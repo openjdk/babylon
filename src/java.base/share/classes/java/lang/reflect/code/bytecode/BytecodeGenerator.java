@@ -252,7 +252,7 @@ public final class BytecodeGenerator {
     private void storeIfUsed(Value v) {
         if (!v.uses().isEmpty()) {
             Slot slot = allocateSlot(v);
-            cob.storeInstruction(slot.typeKind(), slot.slot());
+            cob.storeLocal(slot.typeKind(), slot.slot());
         } else {
             // Only pop results from stack if the value has no further use (no valid slot)
             switch (toTypeKind(v.type()).slotSize()) {
@@ -267,11 +267,11 @@ public final class BytecodeGenerator {
                 or.op() instanceof CoreOp.ConstantOp constantOp &&
                 !constantOp.resultType().equals(JavaType.J_L_CLASS)) {
             var c = (Constable)constantOp.value();
-            cob.constantInstruction(c == null ? ConstantDescs.NULL : c.describeConstable().orElseThrow());
+            cob.loadConstant(c == null ? ConstantDescs.NULL : c.describeConstable().orElseThrow());
             return null;
         } else {
             Slot slot = slots.get(v);
-            cob.loadInstruction(slot.typeKind(), slot.slot());
+            cob.loadLocal(slot.typeKind(), slot.slot());
             return slot;
         }
     }
@@ -672,12 +672,12 @@ public final class BytecodeGenerator {
                     }
                     case ArrayAccessOp.ArrayLoadOp op -> {
                         processOperands(op);
-                        cob.arrayLoadInstruction(rvt);
+                        cob.arrayLoad(rvt);
                         push(op.result());
                     }
                     case ArrayAccessOp.ArrayStoreOp op -> {
                         processOperands(op);
-                        cob.arrayStoreInstruction(toTypeKind(op.operands().get(2).type()));
+                        cob.arrayStore(toTypeKind(op.operands().get(2).type()));
                         push(op.result());
                     }
                     case ArrayLengthOp op -> {
@@ -743,7 +743,7 @@ public final class BytecodeGenerator {
                             }
                         }
                         MethodRef md = op.invokeDescriptor();
-                        cob.invokeInstruction(
+                        cob.invoke(
                                 switch (descKind) {
                                     case STATIC, INTERFACE_STATIC   -> Opcode.INVOKESTATIC;
                                     case VIRTUAL                    -> Opcode.INVOKEVIRTUAL;
@@ -796,7 +796,7 @@ public final class BytecodeGenerator {
                     }
                     case InstanceOfOp op -> {
                         processFirstOperand(op);
-                        cob.instanceof_(((JavaType) op.type()).toNominalDescriptor());
+                        cob.instanceOf(((JavaType) op.type()).toNominalDescriptor());
                         push(op.result());
                     }
                     case CastOp op -> {
@@ -867,7 +867,7 @@ public final class BytecodeGenerator {
                         cob.return_();
                     } else {
                         processFirstOperand(op);
-                        cob.returnInstruction(toTypeKind(a.type()));
+                        cob.return_(toTypeKind(a.type()));
                     }
                 }
                 case ThrowOp op -> {
@@ -993,7 +993,7 @@ public final class BytecodeGenerator {
     private void adjustRightTypeToInt(Op op) {
         TypeElement right = op.operands().getLast().type();
         if (right.equals(JavaType.LONG)) {
-            cob.convertInstruction(toTypeKind(right), TypeKind.IntType);
+            cob.conversion(toTypeKind(right), TypeKind.IntType);
         }
     }
 
@@ -1057,7 +1057,7 @@ public final class BytecodeGenerator {
 
     private void conditionalBranch(Opcode reverseOpcode, Op op, Block.Reference trueBlock, Block.Reference falseBlock) {
         if (!needToAssignBlockArguments(falseBlock)) {
-            cob.branchInstruction(reverseOpcode, getLabel(falseBlock));
+            cob.branch(reverseOpcode, getLabel(falseBlock));
         } else {
             cob.ifThen(reverseOpcode,
                 bb -> {
