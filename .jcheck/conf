@@ -1,7 +1,7 @@
 [general]
 project=babylon
 jbs=JDK
-version=23
+version=24
 
 [checks]
 error=author,committer,merge,executable,symlink,message,hg-tag,whitespace,problemlists

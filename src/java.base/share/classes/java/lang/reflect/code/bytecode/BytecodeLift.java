@@ -117,7 +117,7 @@ public final class BytecodeLift {
         this.codeModel = methodModel.code().orElseThrow();
         this.elements = codeModel.elementList();
         this.stack = new ArrayDeque<>();
-        var smta = codeModel.findAttribute(Attributes.STACK_MAP_TABLE);
+        var smta = codeModel.findAttribute(Attributes.stackMapTable());
         this.blockMap = smta.map(sma ->
                 sma.entries().stream().collect(Collectors.toUnmodifiableMap(
                         StackMapFrameInfo::target,

@@ -27,6 +27,7 @@ package java.lang.invoke;
 
 import jdk.internal.access.JavaLangAccess;
 import jdk.internal.access.SharedSecrets;
+import jdk.internal.constant.ConstantUtils;
 import jdk.internal.misc.VM;
 import jdk.internal.util.ClassFileDumper;
 import jdk.internal.vm.annotation.Stable;
@@ -1090,13 +1091,13 @@ public final class StringConcatFactory {
         private static MethodHandle generate(Lookup lookup, MethodType args, String[] constants) throws Exception {
             String className = getClassName(lookup.lookupClass());
 
-            byte[] classBytes = ClassFile.of().build(ClassDesc.of(className),
+            byte[] classBytes = ClassFile.of().build(ConstantUtils.binaryNameToDesc(className),
                     new Consumer<ClassBuilder>() {
                         @Override
                         public void accept(ClassBuilder clb) {
                             clb.withFlags(AccessFlag.FINAL, AccessFlag.SUPER, AccessFlag.SYNTHETIC)
                                 .withMethodBody(METHOD_NAME,
-                                        MethodTypeDesc.ofDescriptor(args.toMethodDescriptorString()),
+                                        ConstantUtils.methodTypeDesc(args),
                                         ClassFile.ACC_FINAL | ClassFile.ACC_PRIVATE | ClassFile.ACC_STATIC,
                                         generateMethod(constants, args));
                     }});
@@ -1124,7 +1125,7 @@ public final class StringConcatFactory {
                         }
                     }
                     len += args.parameterCount() * ARGUMENT_SIZE_FACTOR;
-                    cb.constantInstruction(len);
+                    cb.loadConstant(len);
                     cb.invokespecial(STRING_BUILDER, "<init>", INT_CONSTRUCTOR_TYPE);
 
                     // At this point, we have a blank StringBuilder on stack, fill it in with .append calls.
@@ -1137,7 +1138,7 @@ public final class StringConcatFactory {
                             }
                             Class<?> cl = args.parameterType(c);
                             TypeKind kind = TypeKind.from(cl);
-                            cb.loadInstruction(kind, off);
+                            cb.loadLocal(kind, off);
                             off += kind.slotSize();
                             MethodTypeDesc desc = getSBAppendDesc(cl);
                             cb.invokevirtual(STRING_BUILDER, "append", desc);
