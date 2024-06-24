@@ -93,7 +93,7 @@ public interface ResultTable extends Table<ResultTable.Result> {
         return index;
     }
 
-    Schema<ResultTable> schema = Schema.of(ResultTable.class, resultTable->resultTable
+    Schema<ResultTable> schema = null;/*Schema.of(ResultTable.class, resultTable->resultTable
             .atomic("atomicResultTableCount")
             .arrayLen("length").array("result", array->array
                     .fields(
@@ -103,5 +103,5 @@ public interface ResultTable extends Table<ResultTable.Result> {
                             "height"
                     )
             )
-    );
+    );*/
 }
