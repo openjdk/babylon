@@ -24,89 +24,152 @@
  */
 package experiments;
 
+import hat.Schema;
 import hat.buffer.Buffer;
+import hat.buffer.BufferAllocator;
 import hat.buffer.CompleteBuffer;
+import hat.ifacemapper.SegmentMapper;
+
+import java.lang.foreign.Arena;
 
 public interface Cascade extends CompleteBuffer {
     int width();
+
     void width(int width);
+
     int height();
+
     void height(int height);
+
     interface Feature extends Buffer.StructChild {
         int id();
+
         float threshold();
+
         void id(int id);
+
         void threshold(float threshold);
+
         interface LinkOrValue extends Buffer.StructChild {
             interface Anon extends Buffer.UnionChild {
                 int featureId();
+
                 void featureId(int featureId);
+
                 float value();
+
                 void value(float value);
             }
+
             boolean hasValue();
+
             void hasValue(boolean hasValue);
+
             Anon anon();
         }
+
         LinkOrValue left();
+
         LinkOrValue right();
+
         interface Rect extends Buffer.StructChild {
             byte x();
+
             byte y();
+
             byte width();
+
             byte height();
+
             float weight();
+
             void x(byte x);
+
             void y(byte y);
+
             void width(byte width);
+
             void height(byte height);
+
             void weight(float height);
         }
+
         Rect rect(long idx);
     }
+
     int featureCount();
+
     //void featureCount(int featureCount);
     Feature feature(long idx);
+
     interface Stage extends Buffer.StructChild {
         float threshold();
+
         short firstTreeId();
+
         short treeCount();
+
         int id();
+
         void id(int id);
+
         void threshold(float threshold);
+
         void firstTreeId(short firstTreeId);
+
         void treeCount(short treeCount);
     }
+
     int stageCount();
-   // void stageCount(int stageCount);
+
+    // void stageCount(int stageCount);
     Stage stage(long idx);
+
     interface Tree extends Buffer.StructChild {
         void id(int id);
+
         void firstFeatureId(short firstFeatureId);
+
         void featureCount(short featureCount);
+
         int id();
+
         short firstFeatureId();
+
         short featureCount();
     }
+
     int treeCount();
- //   void treeCount(int treeCount);
+
+    //   void treeCount(int treeCount);
     Tree tree(long idx);
 
 
     Schema<Cascade> schema = Schema.of(Cascade.class, cascade -> cascade
-            .fields("width","height")
+            .fields("width", "height")
             .arrayLen("featureCount").array("feature", feature -> feature
-                    .fields("id","threshold")
-                    .fields("left","right",linkOrValue->linkOrValue
+                    .fields("id", "threshold")
+                    .fields("left", "right", linkOrValue -> linkOrValue
                             .field("hasValue")
                             .pad(3)
-                            .field("anon", anon->anon.fields("featureId","value"))
+                            .field("anon", anon -> anon.fields("featureId", "value"))
                     )
-                    .array("rect", 3 , rect->rect.fields("x","y","width","height","weight"))
+                    .array("rect", 3, rect -> rect.fields("x", "y", "width", "height", "weight"))
             )
-            .arrayLen("treeCount").array("tree",tree->tree.fields("id","featureCount","firstFeatureId"))
-            .arrayLen("stageCount").array("stage", stage->stage.fields("id","threshold","treeCount","firstTreeId"))
+            .arrayLen("treeCount").array("tree", tree -> tree.fields("id", "featureCount", "firstFeatureId"))
+            .arrayLen("stageCount").array("stage", stage -> stage.fields("id", "threshold", "treeCount", "firstTreeId"))
     );
 
-
+    public static void main(String[] args) {
+        BufferAllocator bufferAllocator = new BufferAllocator() {
+            public <T extends Buffer> T allocate(SegmentMapper<T> s) {
+                return s.allocate(Arena.global());
+            }
+        };
+        Cascade.schema.toText(t -> System.out.print(t));
+        var cascadelayout = Cascade.schema.layout(10, 10, 10);
+        System.out.println(cascadelayout);
+        var cascade = Cascade.schema.allocate(bufferAllocator, 10, 10, 10).instance;
+        System.out.println(Buffer.getLayout(cascade));
+    }
 }
