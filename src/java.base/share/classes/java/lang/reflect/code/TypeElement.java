@@ -31,9 +31,6 @@ public non-sealed interface TypeElement extends CodeItem {
      */
     record ExternalizedTypeElement(String identifier, List<ExternalizedTypeElement> arguments) {
 
-        /**
-         * {@inheritDoc}
-         */
         public ExternalizedTypeElement {
             arguments = List.copyOf(arguments);
         }
@@ -94,7 +91,7 @@ public non-sealed interface TypeElement extends CodeItem {
          * <p>
          * For any given externalized type element, {@code te}, the following
          * expression returns {@code true}.
-         * {@snippet lang=java
+         * {@snippet lang=java :
          * te.equals(ExternalizedTypeElement.ofString(te.toString()));
          * }
          * @param s the string
