@@ -28,10 +28,27 @@ package hat.backend;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.callgraph.KernelCallGraph;
+import hat.optools.*;
+
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Method;
+import java.lang.reflect.code.Block;
+import java.lang.reflect.code.op.CoreOp;
+import java.lang.reflect.code.type.JavaType;
+import java.util.Optional;
 
 public class PTXBackend extends NativeBackend {
+    int major;
+    int minor;
+    String target;
+    int addressSize;
+
     public PTXBackend() {
         super("ptx_backend");
+        major = 7;
+        minor = 5;
+        target = "sm_52";
+        addressSize = 64;
         getBackend(null);
     }
 
@@ -58,8 +75,64 @@ public class PTXBackend extends NativeBackend {
                 );
 
         System.out.println("Entrypoint ->"+kernelCallGraph.entrypoint.method.getName());
-        System.out.println(kernelCallGraph.entrypoint.funcOpWrapper().toText());
+        String code = createCode(kernelCallGraph, new PTXCodeBuilder(), args);
+        System.out.println("\nCod Builder Output: \n\n" + code);
         System.out.println("Add your code to "+PTXBackend.class.getName()+".dispatchKernel() to actually run! :)");
         System.exit(1);
+    }
+
+    public String createCode(KernelCallGraph kernelCallGraph, PTXCodeBuilder builder, Object[] args) {
+
+        String out, body;
+
+        Optional<CoreOp.FuncOp> o = Optional.ofNullable(kernelCallGraph.entrypoint.funcOpWrapper().op());
+        FuncOpWrapper f = new FuncOpWrapper(o.orElseThrow());
+        FuncOpWrapper lowered = f.lower();
+        FuncOpWrapper ssa = lowered.ssa();
+        System.out.println(ssa.toText());
+
+
+        System.out.println();
+        MethodHandles.Lookup l = MethodHandles.lookup();
+        System.out.println(l);
+        for (Block.Parameter p : ssa.op().parameters()) {
+//            System.out.print(p.type() + " :: ");
+            try {
+                if ((p.type() instanceof JavaType jt) && (jt.resolve(l) instanceof Class<?> c)) {
+                    for (Method m : c.getMethods()) {
+                        System.out.print(m.getName() + ", ");
+                    }
+                    System.out.println();
+//                    System.out.println(jt.toNominalDescriptor().);
+//                    if (c.isInterface()) System.out.println(memberLayouts());
+                }
+            } catch (ReflectiveOperationException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+
+        //building header
+        builder.ptxHeader(major, minor, target, addressSize);
+
+        //building fn info (name, params)
+        builder.functionHeader(lowered.functionName());
+
+        // printing out params
+        builder.parameters(lowered.paramTable().list());
+
+        //building body of fn
+        builder.functionPrologue();
+
+        out = builder.getTextAndReset();
+        ssa.firstBody().blocks().forEach(block -> builder.blockBody(block, block.ops().stream().map(OpWrapper::wrap)));
+
+        builder.functionEpilogue();
+        body = builder.getTextAndReset();
+
+        builder.ptxRegisterDecl();
+        out += builder.getText() + body;
+
+        return out;
     }
 }
