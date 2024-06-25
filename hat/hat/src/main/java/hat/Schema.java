@@ -2,6 +2,7 @@ package hat;
 
 import hat.buffer.Buffer;
 import hat.buffer.BufferAllocator;
+import hat.ifacemapper.HatData;
 import hat.ifacemapper.SegmentMapper;
 
 import java.lang.foreign.GroupLayout;
@@ -12,9 +13,9 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Stack;
 import java.util.function.Consumer;
 
 import static java.lang.foreign.ValueLayout.JAVA_BOOLEAN;
@@ -28,26 +29,49 @@ import static java.lang.foreign.ValueLayout.JAVA_SHORT;
 
 public class Schema<T extends Buffer> {
     AbstractField.ParentField field;
-    Class<T> iface;
+    public Class<T> iface;
 
     static class LayoutCollector{
-        List<MemoryLayout> memoryLayouts = new ArrayList<>();
-        int[] arrayLengths;
-        int idx;
+        private Stack<List<MemoryLayout>> stack = new Stack<>();
+        private int[] arrayLengths;
+        private List<AbstractField.FieldControlledArray> bound = new ArrayList<>();
+        private int idx;
         LayoutCollector(int[] arrayLength){
             this.arrayLengths = arrayLength;
         }
+        GroupLayout groupLayout = null;
+        void pop(){
+            if (stack.size()==1){
+                groupLayout =  (GroupLayout) stack.peek().getFirst();;
+            }
+            stack.pop();
+        }
+        void push(){
+            stack.push(new ArrayList<>());
+        }
+        void add(MemoryLayout memoryLayout){
+            stack.peek().add(memoryLayout);
+        }
+        int getIdx(){
+            return arrayLengths[idx++];
+        }
+        void add(AbstractField.FieldControlledArray boundArray){
+            bound.add(boundArray);
+        }
+        public MemoryLayout[] array() {
+            return stack.peek().toArray(new MemoryLayout[0]);
+        }
+
+    }
+    public LayoutCollector collectLayouts(int... arrayLengths) {
+        LayoutCollector layoutCollector = new LayoutCollector(arrayLengths);
+        layoutCollector.push();
+        field.collectLayouts(layoutCollector);
+        layoutCollector.pop();
+        return layoutCollector;
     }
     public GroupLayout layout(int... arrayLengths) {
-       // LayoutCollector layoutCollector = new LayoutCollector(arrayLengths);
-        LinkedList<Integer> lengthsToBind = new LinkedList<>();
-        for (var i : arrayLengths) {
-            lengthsToBind.add(i);
-        }
-        List<MemoryLayout> memoryLayouts = new ArrayList<>();
-        field.collectLayouts(memoryLayouts, lengthsToBind);
-       // field.collectLayouts(layoutCollector);
-        return (GroupLayout) memoryLayouts.getFirst().withName(iface.getSimpleName());
+        return collectLayouts(arrayLengths).groupLayout.withName(iface.getSimpleName());
     }
 
     static class AccessStyle {
@@ -231,8 +255,8 @@ public class Schema<T extends Buffer> {
             }
 
             @Override
-            void collectLayouts(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToAdd) {
-                memoryLayouts.add(MemoryLayout.paddingLayout(len));
+            void collectLayouts(LayoutCollector layoutCollector) {
+                layoutCollector.add(MemoryLayout.paddingLayout(len));
             }
         }
 
@@ -242,10 +266,11 @@ public class Schema<T extends Buffer> {
          * If accessStyle holds a primitive (int, float) then just map to JAVA_INT, JAVA_FLOAT value layouts
          * Otherwise we look through the parent's children.  Which should include a struct/union matching the type.
          * @param accessStyle
-         * @param lengthsToBind
+         * @param layoutCollector
          * @return
          */
-        MemoryLayout getLayout(AccessStyle accessStyle, LinkedList<Integer> lengthsToBind) {
+      //  MemoryLayout getLayout(AccessStyle accessStyle, LinkedList<Integer> lengthsToBind, List<FieldControlledArray> boundArrays) {
+        MemoryLayout getLayout(AccessStyle accessStyle, LayoutCollector layoutCollector) {
             MemoryLayout memoryLayout = null;
             if (accessStyle.type == Integer.TYPE) {
                 memoryLayout = JAVA_INT;
@@ -266,13 +291,17 @@ public class Schema<T extends Buffer> {
             } else {
                 ParentField o = parent.childFields.stream().filter(c -> c instanceof ParentField).map(c -> (ParentField) c)
                         .filter(p -> p.accessStyle.type.equals(accessStyle.type)).findFirst().get();
-                List<MemoryLayout> layouts = new ArrayList<>();
+                layoutCollector.push();
+
                 o.childFields.forEach(c -> {
                     if (!(c instanceof AbstractField.ParentField)) {
-                        c.collectLayouts(layouts, lengthsToBind);
+
+                        c.collectLayouts(layoutCollector);
                     }
                 });
-                MemoryLayout[] childLayoutsAsArray = layouts.toArray(new MemoryLayout[0]);
+
+                MemoryLayout[] childLayoutsAsArray = layoutCollector.array();
+                layoutCollector.pop();
                 if (isUnion(o.accessStyle.type)) {
                     memoryLayout = MemoryLayout.unionLayout(childLayoutsAsArray);
                 } else if (isStructOrBuffer(o.accessStyle.type)) {
@@ -298,8 +327,8 @@ public class Schema<T extends Buffer> {
             }
 
             @Override
-            void collectLayouts(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToAdd) {
-                memoryLayouts.add(getLayout(accessStyle, lengthsToAdd).withName(accessStyle.name));
+            void collectLayouts(LayoutCollector layoutCollector) {
+                 layoutCollector.add(getLayout(accessStyle, layoutCollector).withName(accessStyle.name));
             }
         }
 
@@ -315,10 +344,9 @@ public class Schema<T extends Buffer> {
             public void toText(String indent, Consumer<String> stringConsumer) {
                 stringConsumer.accept(indent + "atomic " + accessStyle);
             }
-
             @Override
-            void collectLayouts(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToBind) {
-                memoryLayouts.add(getLayout(accessStyle, lengthsToBind).withName(accessStyle.name));
+            void collectLayouts(LayoutCollector layoutCollector) {
+                 layoutCollector.add(getLayout(accessStyle, layoutCollector).withName(accessStyle.name));
             }
         }
 
@@ -334,12 +362,11 @@ public class Schema<T extends Buffer> {
             public void toText(String indent, Consumer<String> stringConsumer) {
                 stringConsumer.accept(indent + "field " + accessStyle);
             }
-
             @Override
-            void collectLayouts(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToBind) {
-                MemoryLayout fieldTypeLayout = getLayout(accessStyle, lengthsToBind).withName(accessStyle.name);
-                memoryLayouts.add(fieldTypeLayout);
+            void collectLayouts(LayoutCollector layoutCollector) {
+                layoutCollector.add(getLayout(accessStyle, layoutCollector).withName(accessStyle.name));
             }
+
         }
 
         public static abstract class ParentField extends AbstractField {
@@ -495,22 +522,23 @@ public class Schema<T extends Buffer> {
             }
 
             @Override
-            void collectLayouts(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToBind) {
-                List<MemoryLayout> layouts = new ArrayList<>();
+            void collectLayouts(LayoutCollector layoutCollector) {
+                layoutCollector.push();
                 childFields.forEach(c -> {
                     if (!(c instanceof ParentField)) {
-                        c.collectLayouts(layouts, lengthsToBind);
+                        c.collectLayouts(layoutCollector);
                     }
                 });
                 MemoryLayout memoryLayout = null;
                 if (isUnion(accessStyle.type)) {
-                    memoryLayout =MemoryLayout.unionLayout(layouts.toArray(new MemoryLayout[0]));
+                    memoryLayout =MemoryLayout.unionLayout(layoutCollector.array());
                 } else if (isStructOrBuffer(accessStyle.type)) {
-                    memoryLayout = MemoryLayout.structLayout(layouts.toArray(new MemoryLayout[0]));
+                    memoryLayout = MemoryLayout.structLayout(layoutCollector.array());
                 } else {
                     throw new IllegalStateException("Oh my ");
                 }
-                memoryLayouts.add(memoryLayout);
+                layoutCollector.pop();
+                layoutCollector.add(memoryLayout);
             }
 
             @Override
@@ -573,10 +601,10 @@ public class Schema<T extends Buffer> {
             }
 
             @Override
-            void collectLayouts(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToBind) {
-                MemoryLayout elementLayout = getLayout(elementAccessStyle, lengthsToBind).withName(elementAccessStyle.type.getSimpleName());;
+            void collectLayouts(LayoutCollector layoutCollector) {
+                MemoryLayout elementLayout = getLayout(elementAccessStyle, layoutCollector).withName(elementAccessStyle.type.getSimpleName());;
                 SequenceLayout sequenceLayout = MemoryLayout.sequenceLayout(len, elementLayout).withName(elementAccessStyle.name);
-                memoryLayouts.add(sequenceLayout);
+                layoutCollector.add(sequenceLayout);
             }
         }
 
@@ -590,11 +618,10 @@ public class Schema<T extends Buffer> {
                 stringConsumer.accept(indent + "array [?] ");
             }
 
-            @Override
-            void collectLayouts(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToBind) {
-                MemoryLayout elementLayout = getLayout(elementAccessStyle, lengthsToBind).withName(elementAccessStyle.type.getSimpleName());;
+            void collectLayouts(LayoutCollector layoutCollector) {
+                MemoryLayout elementLayout = getLayout(elementAccessStyle, layoutCollector).withName(elementAccessStyle.type.getSimpleName());;
                 SequenceLayout sequenceLayout = MemoryLayout.sequenceLayout(0, elementLayout).withName(elementAccessStyle.name);
-                memoryLayouts.add(sequenceLayout);
+                layoutCollector.add(sequenceLayout);
             }
         }
 
@@ -612,14 +639,14 @@ public class Schema<T extends Buffer> {
             }
 
             @Override
-            void collectLayouts(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToBind) {
-                MemoryLayout elementLayout = getLayout(elementAccessStyle, lengthsToBind).withName(elementAccessStyle.type.getSimpleName());
-                SequenceLayout sequenceLayout = MemoryLayout.sequenceLayout(lengthsToBind.removeFirst(), elementLayout).withName(elementAccessStyle.name);
-                memoryLayouts.add(sequenceLayout);
+            void collectLayouts(LayoutCollector layoutCollector) {
+                MemoryLayout elementLayout = getLayout(elementAccessStyle, layoutCollector).withName(elementAccessStyle.type.getSimpleName());;
+                SequenceLayout sequenceLayout = MemoryLayout.sequenceLayout(layoutCollector.getIdx(), elementLayout).withName(elementAccessStyle.name);
+                layoutCollector.add(sequenceLayout);
+                layoutCollector.add(this);
             }
         }
-     //   abstract void collectLayouts(LayoutCollector layoutCollector);
-        abstract void collectLayouts(List<MemoryLayout> memoryLayouts, LinkedList<Integer> lengthsToBind);
+      abstract void collectLayouts(LayoutCollector layoutCollector);
     }
 
 
@@ -628,24 +655,26 @@ public class Schema<T extends Buffer> {
         this.field = field;
     }
 
-    public static class BoundSchema<T extends Buffer> {
-        Schema<T> schema;
-        MemoryLayout memoryLayout;
+    public static class BoundSchema<T extends Buffer> implements HatData {
+        public Schema<T> schema;
+        public GroupLayout layout;
         int[] boundLengths;
-        public T instance;
 
-        BoundSchema(T instance, Schema<T> schema, MemoryLayout memoryLayout, int[] boundLengths) {
-            this.instance = instance;
+
+        BoundSchema(Schema<T> schema, GroupLayout layout, int[] boundLengths) {
+
             this.schema = schema;
-            this.memoryLayout = memoryLayout;
+            this.layout = layout;
             this.boundLengths = boundLengths;
         }
     }
 
-    public BoundSchema<T> allocate(BufferAllocator bufferAllocator, int... boundLengths) {
+    public T allocate(BufferAllocator bufferAllocator, int... boundLengths) {
         var layout = layout(boundLengths);
-        var segmentMapper = SegmentMapper.of(MethodHandles.lookup(), iface, layout);
-        return new BoundSchema<T>(bufferAllocator.allocate(segmentMapper), this, layout, boundLengths);
+
+        var boundSchema = new BoundSchema<T>( this, layout, boundLengths);
+        var segmentMapper = SegmentMapper.of(MethodHandles.lookup(),iface, layout, boundSchema);
+        return bufferAllocator.allocate(segmentMapper);
     }
 
 

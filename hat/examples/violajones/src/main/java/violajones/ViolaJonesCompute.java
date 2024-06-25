@@ -69,8 +69,8 @@ public class ViolaJonesCompute {
         );
         Cascade cascade = Cascade.create(accelerator, haarCascade);
 
-       var boundSchema = Cascade.schema.allocate(accelerator,haarCascade.featureCount(),haarCascade.stageCount(),haarCascade.treeCount());
-       var cascade2 = boundSchema.instance;
+       var cascade2 = Cascade.schema.allocate(accelerator,haarCascade.featureCount(),haarCascade.stageCount(),haarCascade.treeCount());
+
 
        System.out.println("Original   "+Buffer.getLayout(cascade));
         System.out.println("Schema     "+Buffer.getLayout(cascade2));

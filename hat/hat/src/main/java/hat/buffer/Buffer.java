@@ -24,6 +24,9 @@
  */
 package hat.buffer;
 
+import hat.Schema;
+import hat.ifacemapper.HatData;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -32,6 +35,7 @@ import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.reflect.InvocationTargetException;
 
+import static hat.ifacemapper.MapperUtil.SECRET_HAT_DATA_METHOD_NAME;
 import static hat.ifacemapper.MapperUtil.SECRET_LAYOUT_METHOD_NAME;
 import static hat.ifacemapper.MapperUtil.SECRET_OFFSET_METHOD_NAME;
 import static hat.ifacemapper.MapperUtil.SECRET_SEGMENT_METHOD_NAME;
@@ -66,6 +70,15 @@ public interface Buffer {
             throw new RuntimeException(e);
         }
     }
+
+    static <T extends Buffer>HatData getHatData(T buffer) {
+        try {
+            return (HatData) buffer.getClass().getDeclaredMethod(SECRET_HAT_DATA_METHOD_NAME).invoke(buffer);
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 
     static <T extends Buffer> MemoryLayout getLayout(T buffer) {
         try {

@@ -42,12 +42,12 @@ public class SchemaLayoutTest {
         hat.buffer.S32Array os32  = hat.buffer.S32Array.create(bufferAllocator,100);
         System.out.println("Layout from hat S32Array "+ Buffer.getLayout(os32));
 
-        var s32Array = S32Array.schema.allocate(bufferAllocator, 100).instance;
+        var s32Array = S32Array.schema.allocate(bufferAllocator, 100);
         int s23ArrayLen = s32Array.length();
         System.out.println("Layout from schema "+Buffer.getLayout(s32Array));
         ResultTable.schema.toText(t->System.out.print(t));
 
-        var resultTable = ResultTable.schema.allocate(bufferAllocator, 100).instance;
+        var resultTable = ResultTable.schema.allocate(bufferAllocator, 100);
         int resultTableLen = resultTable.length();
         System.out.println(Buffer.getLayout(resultTable));
 
@@ -55,7 +55,8 @@ public class SchemaLayoutTest {
         Cascade.schema.toText(t->System.out.print(t));
         var cascadelayout = Cascade.schema.layout(10,10,10);
         System.out.println(cascadelayout);
-        var cascade = Cascade.schema.allocate(bufferAllocator,10,10,10).instance;
+        var cascade = Cascade.schema.allocate(bufferAllocator,10,10,10);
+
         System.out.println(Buffer.getLayout(cascade));
         //var layout = Cascade.schema.field.layout();
 

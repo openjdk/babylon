@@ -46,7 +46,8 @@ public interface S32Array extends Buffer {
         hat.buffer.S32Array os32  = hat.buffer.S32Array.create(bufferAllocator,100);
         System.out.println("Layout from hat S32Array "+ Buffer.getLayout(os32));
 
-        var s32Array = S32Array.schema.allocate(bufferAllocator, 100).instance;
+        var s32Array = S32Array.schema.allocate(bufferAllocator, 100);
+        Schema.BoundSchema boundSchema = (Schema.BoundSchema)Buffer.getHatData(s32Array);
         int s23ArrayLen = s32Array.length();
         System.out.println("Layout from schema "+Buffer.getLayout(s32Array));
         ResultTable.schema.toText(t->System.out.print(t));
