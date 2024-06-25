@@ -32,7 +32,7 @@ import hat.ifacemapper.SegmentMapper;
 
 import java.lang.foreign.Arena;
 
-public interface Cascade extends CompleteBuffer {
+public interface Cascade extends Buffer {
     int width();
 
     void width(int width);
@@ -169,7 +169,7 @@ public interface Cascade extends CompleteBuffer {
         Cascade.schema.toText(t -> System.out.print(t));
         var cascadelayout = Cascade.schema.layout(10, 10, 10);
         System.out.println(cascadelayout);
-        var cascade = Cascade.schema.allocate(bufferAllocator, 10, 10, 10).instance;
+        var cascade = Cascade.schema.allocate(bufferAllocator, 10, 10, 10);
         System.out.println(Buffer.getLayout(cascade));
     }
 }
