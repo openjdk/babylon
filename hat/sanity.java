@@ -76,7 +76,7 @@ public class PomChecker {
       var javaHome = System.getProperty("java.home");
       var pwd = new File(System.getProperty("user.dir"));
 
-      if (javaVersion.startsWith("23")){
+      if (javaVersion.startsWith("24")){
          out.println("javaVersion "+javaVersion+" looks OK");
 
          var props = new LinkedHashMap<String,String>();
