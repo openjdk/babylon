@@ -1,30 +1,28 @@
 package hat.backend;
 
 public class PTXRegister {
-    private String name;
+    private final String name;
     private final Type type;
-    private boolean destination;
 
-    // TODO: d actually stands for dest
     public enum Type {
-        S8 (8, BasicType.SIGNED, "s8"),
-        S16 (16, BasicType.SIGNED, "s16"),
-        S32 (32, BasicType.SIGNED, "s32"),
-        S64 (64, BasicType.SIGNED, "s64"),
-        U8 (8, BasicType.UNSIGNED, "u8"),
-        U16 (16, BasicType.UNSIGNED, "u16"),
-        U32 (32, BasicType.UNSIGNED, "u32"),
-        U64 (64, BasicType.UNSIGNED, "u64"),
-        F16 (16, BasicType.FLOATING, "f16"),
-        F16X2 (16, BasicType.FLOATING, "f16"),
-        F32 (32, BasicType.FLOATING, "f32"),
-        F64 (64, BasicType.FLOATING, "f64"),
-        B8 (8, BasicType.BIT, "b8"),
-        B16 (16, BasicType.BIT, "b16"),
-        B32 (32, BasicType.BIT, "b32"),
-        B64 (64, BasicType.BIT, "b64"),
-        B128 (128, BasicType.BIT, "b128"),
-        PREDICATE (1, BasicType.PREDICATE, "pred");
+        S8 (8, BasicType.SIGNED, "s8", "%ss"),
+        S16 (16, BasicType.SIGNED, "s16", "%sh"),
+        S32 (32, BasicType.SIGNED, "s32", "%s"),
+        S64 (64, BasicType.SIGNED, "s64", "%sd"),
+        U8 (8, BasicType.UNSIGNED, "u8", "%rr"),
+        U16 (16, BasicType.UNSIGNED, "u16", "%rh"),
+        U32 (32, BasicType.UNSIGNED, "u32", "%r"),
+        U64 (64, BasicType.UNSIGNED, "u64", "%rd"),
+        F16 (16, BasicType.FLOATING, "f16", "%fh"),
+        F16X2 (16, BasicType.FLOATING, "f16", "%fh?"),
+        F32 (32, BasicType.FLOATING, "f32", "%f"),
+        F64 (64, BasicType.FLOATING, "f64", "%fd"),
+        B8 (8, BasicType.BIT, "b8", "%bb"),
+        B16 (16, BasicType.BIT, "b16", "%bh"),
+        B32 (32, BasicType.BIT, "b32", "%b"),
+        B64 (64, BasicType.BIT, "b64", "%bd"),
+        B128 (128, BasicType.BIT, "b128", "%bbb"),
+        PREDICATE (1, BasicType.PREDICATE, "pred", "%p");
 
         public enum BasicType {
             SIGNED,
@@ -37,11 +35,13 @@ public class PTXRegister {
         private final int size;
         private final BasicType basicType;
         private final String name;
+        private final String regPrefix;
 
-        Type(int size, BasicType type, String name) {
+        Type(int size, BasicType type, String name, String regPrefix) {
             this.size = size;
             this.basicType = type;
             this.name = name;
+            this.regPrefix = regPrefix;
         }
 
         public int getSize() {
@@ -55,21 +55,15 @@ public class PTXRegister {
         public String toString() {
             return this.name;
         }
+
+        public String getRegPrefix() {
+            return this.regPrefix;
+        }
     }
 
     public PTXRegister(int num, Type type) {
-        this(num, type, false);
-    }
-
-    public PTXRegister(int num, Type type, boolean destination) {
         this.type = type;
-        if (destination) {
-            this.name = "%rd" + num;
-        } else if (type.size == 1) {
-            this.name = "%p" + num;
-        } else {
-            this.name = "%r" + num;
-        }
+        this.name = type.regPrefix + num;
     }
 
     public String name() {
