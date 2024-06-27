@@ -25,10 +25,6 @@
 
 package java.lang.invoke;
 
-import jdk.internal.misc.CDS;
-import jdk.internal.util.ClassFileDumper;
-import sun.invoke.util.VerifyAccess;
-import sun.security.action.GetBooleanAction;
 
 import java.io.Serializable;
 import java.lang.classfile.ClassBuilder;
@@ -38,35 +34,38 @@ import java.lang.classfile.FieldBuilder;
 import java.lang.classfile.MethodBuilder;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
+import java.lang.classfile.attribute.ExceptionsAttribute;
+import java.lang.classfile.constantpool.ClassEntry;
+import java.lang.classfile.constantpool.ConstantPoolBuilder;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.MethodTypeDesc;
+import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.code.Quoted;
+import java.lang.reflect.code.interpreter.Interpreter;
+import java.lang.reflect.code.op.CoreOp.FuncOp;
+import java.lang.reflect.code.parser.OpParser;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import static java.lang.classfile.ClassFile.*;
-import java.lang.classfile.attribute.ExceptionsAttribute;
-import java.lang.classfile.constantpool.ClassEntry;
-import java.lang.classfile.constantpool.ConstantPoolBuilder;
-import java.lang.constant.ConstantDescs;
-import static java.lang.constant.ConstantDescs.*;
-import java.lang.constant.DirectMethodHandleDesc;
-import java.lang.constant.DynamicConstantDesc;
-import java.lang.constant.MethodHandleDesc;
-import java.lang.invoke.MethodHandles.Lookup;
-import static java.lang.invoke.MethodHandles.Lookup.ClassOption.NESTMATE;
-import static java.lang.invoke.MethodHandles.Lookup.ClassOption.STRONG;
-import static java.lang.invoke.MethodType.methodType;
-import java.lang.reflect.code.Quoted;
-import java.lang.reflect.code.interpreter.Interpreter;
-import java.lang.reflect.code.op.CoreOp.FuncOp;
-import java.lang.reflect.code.parser.OpParser;
 import jdk.internal.constant.ConstantUtils;
 import jdk.internal.constant.MethodTypeDescImpl;
 import jdk.internal.constant.ReferenceClassDescImpl;
+import jdk.internal.misc.CDS;
+import jdk.internal.util.ClassFileDumper;
+import sun.invoke.util.VerifyAccess;
 import sun.invoke.util.Wrapper;
+import sun.security.action.GetBooleanAction;
+
+import static java.lang.classfile.ClassFile.*;
+import java.lang.classfile.constantpool.MethodHandleEntry;
+import java.lang.classfile.constantpool.NameAndTypeEntry;
+import static java.lang.constant.ConstantDescs.*;
+import static java.lang.invoke.MethodHandles.Lookup.ClassOption.NESTMATE;
+import static java.lang.invoke.MethodHandles.Lookup.ClassOption.STRONG;
+import static java.lang.invoke.MethodType.methodType;
 
 /**
  * Lambda metafactory implementation which dynamically creates an
@@ -101,9 +100,6 @@ import sun.invoke.util.Wrapper;
     private static final ClassDesc CD_Quoted = Quoted.class.describeConstable().get();
     private static final MethodTypeDesc MTD_Quoted = MethodTypeDescImpl.ofValidated(CD_Quoted);
     private static final String NAME_METHOD_QUOTED = "quoted";
-    // condy to load reflective field from class data
-    private static final DynamicConstantDesc<MethodHandle> reflectiveFieldCondy;
-    private static final DynamicConstantDesc<MethodHandle> makeQuotedMethodCondy;
     private static final MethodHandle HANDLE_MAKE_QUOTED;
     private static final String quotedInstanceFieldName = "quoted";
 
@@ -116,12 +112,6 @@ import sun.invoke.util.Wrapper;
 
         final String disableEagerInitializationKey = "jdk.internal.lambda.disableEagerInitialization";
         disableEagerInitialization = GetBooleanAction.privilegedGetProperty(disableEagerInitializationKey);
-
-        MethodTypeDesc classDataAtMType = MethodTypeDescImpl.ofValidated(CD_Object, CD_MethodHandles_Lookup, CD_String, CD_Class, CD_int);
-        DirectMethodHandleDesc classDataBsm = MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC, CD_MethodHandles, "classDataAt",
-                                           classDataAtMType);
-        reflectiveFieldCondy = DynamicConstantDesc.ofNamed(classDataBsm, ConstantDescs.DEFAULT_NAME, CD_MethodHandle, classDataBsm);
-        makeQuotedMethodCondy = DynamicConstantDesc.ofNamed(classDataBsm, ConstantDescs.DEFAULT_NAME, CD_MethodHandle, classDataBsm);
 
         try {
             HANDLE_MAKE_QUOTED = MethodHandles.lookup().findStatic(
@@ -469,13 +459,14 @@ import sun.invoke.util.Wrapper;
     }
 
     private void generateQuotedFieldInitializer(CodeBuilder cob) {
+        ConstantPoolBuilder cp = cob.constantPool();
+        MethodHandleEntry bsmDataAt = cp.methodHandleEntry(BSM_CLASS_DATA_AT);
+        NameAndTypeEntry natMH = cp.nameAndTypeEntry(DEFAULT_NAME, CD_MethodHandle);
         // push the receiver on the stack for operand of put field instruction
         cob.aload(0)
-           .ldc(makeQuotedMethodCondy);
-
+           .ldc(cp.constantDynamicEntry(cp.bsmEntry(bsmDataAt, List.of(cp.intEntry(2))), natMH))
         // load op string from field
-
-        cob.ldc(reflectiveFieldCondy);
+           .ldc(cp.constantDynamicEntry(cp.bsmEntry(bsmDataAt, List.of(cp.intEntry(1))), natMH));
         MethodType mtype = quotableOpFieldInfo.getMethodType();
         if (quotableOpFieldInfo.getReferenceKind() != MethodHandleInfo.REF_getStatic) {
             mtype = mtype.insertParameterTypes(0, implClass);
@@ -616,7 +607,7 @@ import sun.invoke.util.Wrapper;
                 }
                 if (useImplMethodHandle) {
                     ConstantPoolBuilder cp = cob.constantPool();
-                    cob.ldc(cp.constantDynamicEntry(cp.bsmEntry(cp.methodHandleEntry(BSM_CLASS_DATA), List.of()),
+                    cob.ldc(cp.constantDynamicEntry(cp.bsmEntry(cp.methodHandleEntry(BSM_CLASS_DATA_AT), List.of(cp.intEntry(0))),
                                                     cp.nameAndTypeEntry(DEFAULT_NAME, CD_MethodHandle)));
                 }
                 for (int i = 0; i < argNames.length - reflectiveCaptureCount(); i++) {
@@ -649,8 +640,8 @@ import sun.invoke.util.Wrapper;
 
     private void convertArgumentTypes(CodeBuilder cob, MethodType samType) {
         int samParametersLength = samType.parameterCount();
-        int captureArity = factoryType.parameterCount();
-        for (int i = 0; i < samParametersLength - reflectiveCaptureCount(); i++) {
+        int captureArity = factoryType.parameterCount() - reflectiveCaptureCount();
+        for (int i = 0; i < samParametersLength; i++) {
             Class<?> argType = samType.parameterType(i);
             cob.loadLocal(TypeKind.from(argType), cob.parameterSlot(i));
             TypeConvertingMethodAdapter.convertType(cob, argType, implMethodType.parameterType(captureArity + i), dynamicMethodType.parameterType(i));
