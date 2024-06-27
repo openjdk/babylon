@@ -5,6 +5,7 @@ import hat.buffer.BufferAllocator;
 import hat.ifacemapper.HatData;
 import hat.ifacemapper.SegmentMapper;
 
+import java.lang.foreign.Arena;
 import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.SequenceLayout;
@@ -30,14 +31,39 @@ import static java.lang.foreign.ValueLayout.JAVA_SHORT;
 public class Schema<T extends Buffer> {
     AbstractField.ParentField field;
     public Class<T> iface;
+    public final static BufferAllocator GlobalArenaAllocator = new BufferAllocator() {
+        public <T extends Buffer> T allocate(SegmentMapper<T> s) {
+            return s.allocate(Arena.global());
+        }
+    };
+    static class ArraySizeBinding{
+        int idx;
+        int len;
+        AbstractField.FieldControlledArray fieldControlledArray;
+        ArraySizeBinding(int idx, int len) {
+            this.idx = idx;
+            this.len = len;
+        }
+    }
 
+    public static class BoundLayout<T extends Buffer>{
+        Schema<T> schema;
+        List<ArraySizeBinding> arraySizeBindings ;
+       public  GroupLayout groupLayout;
+        BoundLayout(Schema<T> schema, List<ArraySizeBinding> arraySizeBindings, GroupLayout groupLayout) {
+            this.schema = schema;
+            this.arraySizeBindings = arraySizeBindings;
+            this.groupLayout = groupLayout;
+        }
+    }
     static class LayoutCollector{
         private Stack<List<MemoryLayout>> stack = new Stack<>();
-        private int[] arrayLengths;
-        private List<AbstractField.FieldControlledArray> bound = new ArrayList<>();
+        private List<ArraySizeBinding> arraySizeBindings = new ArrayList<>();
         private int idx;
-        LayoutCollector(int[] arrayLength){
-            this.arrayLengths = arrayLength;
+        LayoutCollector(int[] arrayLengths){
+            for(int i=0; i<arrayLengths.length; i++){
+                arraySizeBindings.add(new ArraySizeBinding(i, arrayLengths[i]));
+            }
         }
         GroupLayout groupLayout = null;
         void pop(){
@@ -52,27 +78,22 @@ public class Schema<T extends Buffer> {
         void add(MemoryLayout memoryLayout){
             stack.peek().add(memoryLayout);
         }
-        int getIdx(){
-            return arrayLengths[idx++];
-        }
-        void add(AbstractField.FieldControlledArray boundArray){
-            bound.add(boundArray);
+        ArraySizeBinding getIdx(){
+            return arraySizeBindings.get(idx++);
         }
         public MemoryLayout[] array() {
             return stack.peek().toArray(new MemoryLayout[0]);
         }
 
     }
-    public LayoutCollector collectLayouts(int... arrayLengths) {
+    public BoundLayout<T> collectLayouts(int... arrayLengths) {
         LayoutCollector layoutCollector = new LayoutCollector(arrayLengths);
         layoutCollector.push();
         field.collectLayouts(layoutCollector);
         layoutCollector.pop();
-        return layoutCollector;
+        return new BoundLayout<T>(this,layoutCollector.arraySizeBindings, layoutCollector.groupLayout.withName(iface.getSimpleName()));
     }
-    public GroupLayout layout(int... arrayLengths) {
-        return collectLayouts(arrayLengths).groupLayout.withName(iface.getSimpleName());
-    }
+
 
     static class AccessStyle {
         enum Mode {
@@ -641,9 +662,10 @@ public class Schema<T extends Buffer> {
             @Override
             void collectLayouts(LayoutCollector layoutCollector) {
                 MemoryLayout elementLayout = getLayout(elementAccessStyle, layoutCollector).withName(elementAccessStyle.type.getSimpleName());;
-                SequenceLayout sequenceLayout = MemoryLayout.sequenceLayout(layoutCollector.getIdx(), elementLayout).withName(elementAccessStyle.name);
+                var arraySizeBinding = layoutCollector.getIdx();
+                SequenceLayout sequenceLayout = MemoryLayout.sequenceLayout(arraySizeBinding.idx, elementLayout).withName(elementAccessStyle.name);
                 layoutCollector.add(sequenceLayout);
-                layoutCollector.add(this);
+                arraySizeBinding.fieldControlledArray=this;
             }
         }
       abstract void collectLayouts(LayoutCollector layoutCollector);
@@ -655,28 +677,17 @@ public class Schema<T extends Buffer> {
         this.field = field;
     }
 
-    public static class BoundSchema<T extends Buffer> implements HatData {
-        public Schema<T> schema;
-        public GroupLayout layout;
-        int[] boundLengths;
 
-
-        BoundSchema(Schema<T> schema, GroupLayout layout, int[] boundLengths) {
-
-            this.schema = schema;
-            this.layout = layout;
-            this.boundLengths = boundLengths;
-        }
-    }
 
     public T allocate(BufferAllocator bufferAllocator, int... boundLengths) {
-        var layout = layout(boundLengths);
-
-        var boundSchema = new BoundSchema<T>( this, layout, boundLengths);
-        var segmentMapper = SegmentMapper.of(MethodHandles.lookup(),iface, layout, boundSchema);
+        var boundLayout = collectLayouts(boundLengths);
+        var segmentMapper = SegmentMapper.of(MethodHandles.lookup(),iface, boundLayout.groupLayout);
         return bufferAllocator.allocate(segmentMapper);
     }
 
+    public T allocate( int... boundLengths) {
+        return allocate(GlobalArenaAllocator, boundLengths);
+    }
 
     public static <T extends Buffer> Schema<T> of(Class<T> iface, Consumer<AbstractField.ParentField> parentFieldConsumer) {
         AccessStyle accessStyle = AccessStyle.of(iface, iface.getSimpleName());

@@ -99,7 +99,7 @@ public interface Cascade extends Buffer {
 
     int featureCount();
 
-    //void featureCount(int featureCount);
+    void featureCount(int featureCount);
     Feature feature(long idx);
 
     interface Stage extends Buffer.StructChild {
@@ -122,7 +122,7 @@ public interface Cascade extends Buffer {
 
     int stageCount();
 
-    // void stageCount(int stageCount);
+     void stageCount(int stageCount);
     Stage stage(long idx);
 
     interface Tree extends Buffer.StructChild {
@@ -141,7 +141,7 @@ public interface Cascade extends Buffer {
 
     int treeCount();
 
-    //   void treeCount(int treeCount);
+       void treeCount(int treeCount);
     Tree tree(long idx);
 
 
@@ -161,15 +161,9 @@ public interface Cascade extends Buffer {
     );
 
     public static void main(String[] args) {
-        BufferAllocator bufferAllocator = new BufferAllocator() {
-            public <T extends Buffer> T allocate(SegmentMapper<T> s) {
-                return s.allocate(Arena.global());
-            }
-        };
         Cascade.schema.toText(t -> System.out.print(t));
-        var cascadelayout = Cascade.schema.layout(10, 10, 10);
-        System.out.println(cascadelayout);
-        var cascade = Cascade.schema.allocate(bufferAllocator, 10, 10, 10);
+        var cascade = Cascade.schema.allocate( 10, 10, 10);
+        cascade.featureCount(10);
         System.out.println(Buffer.getLayout(cascade));
     }
 }

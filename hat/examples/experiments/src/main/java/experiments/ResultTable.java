@@ -60,8 +60,8 @@ public interface ResultTable extends Buffer{
         };
         ResultTable.schema.toText(t->System.out.print(t));
         System.out.println();
-        GroupLayout layout = ResultTable.schema.layout(1000);
-        System.out.println(layout);
+        Schema.BoundLayout boundLayout = ResultTable.schema.collectLayouts(1000);
+        System.out.println(boundLayout.groupLayout);
         System.out.println("[i4(length)i4(atomicResultTableCount)[1000:[f4(x)f4(y)f4(width)f4(height)](Result)](result)](ResultTable)");
        // var boundSchema = ResultTable.schema.allocate(bufferAllocator, 100);
 

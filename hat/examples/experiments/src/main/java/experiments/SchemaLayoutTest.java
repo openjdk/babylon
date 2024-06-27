@@ -53,8 +53,8 @@ public class SchemaLayoutTest {
 
 
         Cascade.schema.toText(t->System.out.print(t));
-        var cascadelayout = Cascade.schema.layout(10,10,10);
-        System.out.println(cascadelayout);
+        var boundLayout = Cascade.schema.collectLayouts(10,10,10);
+        System.out.println(boundLayout.groupLayout);
         var cascade = Cascade.schema.allocate(bufferAllocator,10,10,10);
 
         System.out.println(Buffer.getLayout(cascade));
