@@ -19,10 +19,10 @@
 
 ## Intellij and Clion
 
-We can use JetBrains' `IntelliJ` and `Clion` for dev work and 
+We can use JetBrains' `IntelliJ` and `Clion` for dev work and
 decided to leave some project artifacts in the repo.
 
-Care must be taken with Intellij and Clion 
+Care must be taken with Intellij and Clion
 as these tools do not play well together,
 specifically we cannot have `Clion` and `Intellij`
 project artifacts rooted under each other or in the same dir.
@@ -112,7 +112,7 @@ Thankfully Clion uses cmake, so we get to re-use the CMakeLists.txt in the vario
 
 The intent is that these cmake artifacts can be run standalone (using cmake in the appropriate dir),
 from within Clion and can be used by maven.  So the CMakeLists.txt files have some extra variables to
-help us use them in these three modes.  
+help us use them in these three modes.
 
 
 

@@ -1,5 +1,5 @@
 
-# HAT's Programming Model 
+# HAT's Programming Model
 ----
 
 * [Contents](hat-00.md)
@@ -61,35 +61,35 @@ And we dispatch by creating the appropriate data buffer and then asking an `Acce
 
 ```java
   // Create an accelerator bound to a particular backend
- 
+
   var accelerator = new Accelerator(
       java.lang.invoke.MethodHandles.lookup(),
       Backend.FIRST  // Predicate<Backend>
   );
-  
+
   // Ask the accelerator/backend to allocate an S32Array
   var s32Array = S32Array.create(accelerator, 32);
-  
-  // Fill it with data 
+
+  // Fill it with data
   for (int i = 0; i < s32Array.length(); i++) {
       s32Array.array(i, i);
   }
-  
+
   // Tell the accelerator to execute the square() compute entrypoint
-   
+
   accelerator.compute(
-     cc -> SquareCompute.square(cc, s32Array) 
+     cc -> SquareCompute.square(cc, s32Array)
   );
-  
-  // Check the data                                    
+
+  // Check the data
   for (int i = 0; i < arr.length(); i++) {
       System.out.println(i + " " + arr.array(i));
   }
 ```
 
-## Programming model notes 
+## Programming model notes
 
-The most important concept here is that we separate `normal java` code, 
+The most important concept here is that we separate `normal java` code,
 from `compute` code from `kernel` code
 
 We must not assume that Compute or Kernel code are ever executed by the JVM
@@ -100,7 +100,7 @@ Kernel's and any kernel reachable methods will naturally be restricted to subset
 * No exceptions (no exceptions! :) )
 * No heap access (no `new`)
 * No access to static or instance fields from this or any other classes )
-    * Except `final static primitives` (which generally get constant pooled) 
+    * Except `final static primitives` (which generally get constant pooled)
     * Except fields of `KernelContext` (thread identity `.x`, `.maxX`, `.groups`... )
         - We may even decide to access these via methods (`.x()`);
 * The only methods that can be called are either :-
@@ -110,7 +110,7 @@ Kernel's and any kernel reachable methods will naturally be restricted to subset
    * Calls on `KernelContext` (backend kernel features)
      - `KernelContext.barrier()`
      - `kernelContext.I32.hypot(x,y)`
-#### Kernel Entrypoints 
+#### Kernel Entrypoints
 * Declared `@CodeReflection static public void`
     * Later we may allow reductions to return data...
 * Parameters
@@ -122,7 +122,7 @@ Kernel's and any kernel reachable methods will naturally be restricted to subset
 * All Parameters are restricted to uniform primitive values and Panama FFM `ifaceMappedSegments`
 
 ### Compute Code (Compute entry points and compute reachable methods)
-Code within the `compute entrypoint` and `compute reachable 
+Code within the `compute entrypoint` and `compute reachable
 methods` have much fewer Java restrictions than kernels but generally...
 
 * Exceptions are discouraged
@@ -137,7 +137,7 @@ methods` have much fewer Java restrictions than kernels but generally...
       - Technically methods can be compute reachable and kernel reachable.
   * `ifaceMappedSegment` accessor/mutators (see later)
   * Calls on the `ComputeContext` to generate ranges, or dispatch kernels.
-      
+
 #### Compute Entry Points
 * Declared `@CodeReflection static public void`
 * Parameter 0 is `ComputeContext`

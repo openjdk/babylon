@@ -22,10 +22,10 @@
 
 Previously we showed probably the minimal useful mapping with S32Array
 
-The HaarCascade example has multiple nested interfaces representing data 
+The HaarCascade example has multiple nested interfaces representing data
 structures involving various nested structs and unions
 
-```java 
+```java
 public interface Cascade extends Buffer {
     int width();
     void width(int width);
@@ -131,7 +131,7 @@ public interface Cascade extends Buffer {
 Another great advantage of using interfaces is that we can choose
 to re implement the interface in any was we see fit.
 
-For example we load  HaarCascades from XML files.  
+For example we load  HaarCascades from XML files.
 We therefore can create an implementation of the Cascade interface which just
 loads the XML DOM... stores them in arrays and the interface methods just delegate to
 the appropriately wrapped  w3c.Node tree nodes ;)
@@ -140,7 +140,7 @@ If we know we are using Java backend we can actually
 just pass the XMLCascade implementation directly to the backend...
 
 Actually the Cascade `create` method takes an existing
-implementation of a Cascade and clones it.  
+implementation of a Cascade and clones it.
 So we can just pass it an XMLHaarCascade ;)
 
 So we build an XMLCascade then pass it to the `create` method of the iface
@@ -149,11 +149,11 @@ mapped Cascade
 ```java
    XMLHaarCascadeModel haarCascade = XMLHaarCascadeModel.load(
         ViolaJonesRaw.class.getResourceAsStream("haarcascade_frontalface_default.xml"));
-   
+
    assert haarCascade instanceof Cascade; // Here it is just an interface
-   
+
    Cascade cascade = Cascade.create(accelerator, haarCascade);
-   
+
    // Now it can be used on the GPU
 ```
 

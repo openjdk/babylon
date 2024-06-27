@@ -23,13 +23,13 @@
 
 So what is going on here?
 
-```java  
+```java
   accelerator.compute(
-     cc -> SquareCompute.square(cc, s32Array) 
+     cc -> SquareCompute.square(cc, s32Array)
   );
 ```
 
-Recall we have two types of code in our compute class. We have kernels (and kernel reachable methods) and we have 
+Recall we have two types of code in our compute class. We have kernels (and kernel reachable methods) and we have
 compute entrypoints (and compute reachable methods).
 
 ```java
@@ -55,28 +55,28 @@ AGAIN.... NOTE that we cannot just call the compute entrypoint or the kernel dir
 
 ```java
   SquareCompute.square(????, s32Array);  // We can't do this!!!!
-``` 
+```
 
-We purposely make it inconvenient (ComputeContext and KernelContext construction is embedded in the framwork) to 
-mistakenly call the compute entrypoint directly.  Doing so is akin to calling `Thread.run()` directly, rather than 
+We purposely make it inconvenient (ComputeContext and KernelContext construction is embedded in the framwork) to
+mistakenly call the compute entrypoint directly.  Doing so is akin to calling `Thread.run()` directly, rather than
 calling `Thread.start()` on a class extending `Thread` and providing an implementation of `Thread.run()`
 
 Instead we use this pattern
 
-```java  
+```java
   accelerator.compute(
-     cc -> SquareCompute.square(cc, s32Array) 
+     cc -> SquareCompute.square(cc, s32Array)
   );
-``` 
+```
 
 We pass a lambda to `accelerator.compute()` which is used to determine which compute method to invoke.
 
 ```
  User  |  Accelerator  |  Compute  |  Babylon  |        Backend            |
                           Context                 Java     C++     Vendor
-+----+   +-----------+   +-------+   +-------+   +----+   +---+   +------+   
++----+   +-----------+   +-------+   +-------+   +----+   +---+   +------+
 |    |   |           |   |       |   |       |   |    |   |   |   |      |
-+----+   +-----------+   +-------+   +-------+   +----+   +---+   +------+ 
++----+   +-----------+   +-------+   +-------+   +----+   +---+   +------+
     +--------> accelerator.compute(lambda)
 
 ```
@@ -87,11 +87,11 @@ capabilities to extract the model of this lambda to determine the compute entryp
 ```
  User  |  Accelerator  |  Compute  |  Babylon  |        Backend            |
                           Context                 Java     C++     Vendor
-+----+   +-----------+   +-------+   +-------+   +----+   +---+   +------+   
++----+   +-----------+   +-------+   +-------+   +----+   +---+   +------+
 |    |   |           |   |       |   |       |   |    |   |   |   |      |
-+----+   +-----------+   +-------+   +-------+   +----+   +---+   +------+ 
++----+   +-----------+   +-------+   +-------+   +----+   +---+   +------+
     +--------> accelerator.compute( cc -> SquareCompute.square(cc, s32Array) )
-                -------------------------> 
+                ------------------------->
                     getModelOf(lambda)
                 <------------------------
 ```
@@ -99,32 +99,32 @@ capabilities to extract the model of this lambda to determine the compute entryp
 This model describes the call that we want the accelerator to
 execute or interpret (`SquareCompute.square()`) and the args that were captured from the call site (the `s32Array` buffer).
 
-The accelerator uses Babylon again to get the 
+The accelerator uses Babylon again to get the
 code model of `SquareCompute.square()` builds a ComputeReachableGraph with this method at the root.
 So the accelerator walks the code model and collects the methods (and code models) of all methods
-reachable from the entrypoint.  
+reachable from the entrypoint.
 
 In our trivial case, the ComputeReachableGraph has a single root node representing the `SquareCompute.square()`.
 
 ```
  User  |  Accelerator  |  Compute  |  Babylon  |        Backend            |
                           Context                 Java     C++     Vendor
-+----+   +-----------+   +-------+   +-------+   +----+   +---+   +------+   
++----+   +-----------+   +-------+   +-------+   +----+   +---+   +------+
 |    |   |           |   |       |   |       |   |    |   |   |   |      |
-+----+   +-----------+   +-------+   +-------+   +----+   +---+   +------+ 
++----+   +-----------+   +-------+   +-------+   +----+   +---+   +------+
     +--------> accelerator.compute( cc -> SquareCompute.square(cc, s32Array) )
-                -------------------------> 
+                ------------------------->
                      getModelOf(lambda)
                 <------------------------
                 ------------------------->
                      getModelOf(SquareCompute.square())
                 <-------------------------
-          forEachReachable method in SquareCompute.square() { 
+          forEachReachable method in SquareCompute.square() {
                 ------------------------->
                      getModelOf(method)
-                <------------------------ 
+                <------------------------
                 add to ComputeReachableGraph
-          }                                                     
+          }
 ```
 
 The Accelertor then walks through the ComputeReachableGraph to determine which kernels are referenced..
@@ -135,21 +135,21 @@ at the kernel entrypoint and closing over all reachable methods (and Code Models
 
 We combine the compute and kernel reachable graphs and create an place them in a  `ComputeContext`.
 
-This is the first arg that is 'seemingly' passed to the Compute class. Remember the compute 
+This is the first arg that is 'seemingly' passed to the Compute class. Remember the compute
 entrypoint is just a model of the code we expect to
 execute. It may never be executed by the JVM.
 
 ```
  User  |  Accelerator  |  Compute  |  Babylon  |        Backend            |
                           Context                 Java     C++     Vendor
-+----+   +-----------+   +-------+   +-------+   +----+   +---+   +------+   
++----+   +-----------+   +-------+   +-------+   +----+   +---+   +------+
 |    |   |           |   |       |   |       |   |    |   |   |   |      |
-+----+   +-----------+   +-------+   +-------+   +----+   +---+   +------+ 
++----+   +-----------+   +-------+   +-------+   +----+   +---+   +------+
 
-          forEachReachable kernel in ComputeReachableGraph { 
+          forEachReachable kernel in ComputeReachableGraph {
                 ------------------------->
                       getModelOf(kernel)
-                <------------------------ 
+                <------------------------
                 add to KernelReachableGraph
           }
           ComputeContext = {ComputeReachableGraph + KernelReachableGraph}
@@ -157,7 +157,7 @@ execute. It may never be executed by the JVM.
 ```
 
 The accelerator passes the ComputeContext to backend (`computeContextHandoff()`), which will typically take
-the opportunity to inspect/mutate the compute and kernel models and possibly build backend specific representations of 
+the opportunity to inspect/mutate the compute and kernel models and possibly build backend specific representations of
 kernels and compile them.
 
 The ComputeContext and the captured args are then passed to the backend for execution.
@@ -165,19 +165,19 @@ The ComputeContext and the captured args are then passed to the backend for exec
 ```
  User  |  Accelerator  |  Compute  |  Babylon  |        Backend            |
                           Context                 Java     C++     Vendor
-+----+   +-----------+   +-------+   +-------+   +----+   +---+   +------+   
++----+   +-----------+   +-------+   +-------+   +----+   +---+   +------+
 |    |   |           |   |       |   |       |   |    |   |   |   |      |
-+----+   +-----------+   +-------+   +-------+   +----+   +---+   +------+ 
++----+   +-----------+   +-------+   +-------+   +----+   +---+   +------+
 
-          
+
                 ----------------------------------->
                     computeContextHandoff(computeContext)
                                                     ------->
                                                              ------->
                                                          compileKernels()
                                                              <------
-                                                      mutateComputeModels       
-                                                    <------- 
+                                                      mutateComputeModels
+                                                    <-------
                     dispatchCompute(computeContext, args)
                                                     ------->
                                                         dispatchCompute(...)
@@ -185,11 +185,11 @@ The ComputeContext and the captured args are then passed to the backend for exec
                                                                {
                                                                dispatchKernel()
                                                                ...
-                                                               }  
-                                                            <--------  
-                                                    <------                                               
-                <----------------------------------          
-                                                    
+                                                               }
+                                                            <--------
+                                                    <------
+                <----------------------------------
+
 ```
 
 ----

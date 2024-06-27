@@ -58,9 +58,9 @@ bash make/build.sh --jdk ${BOOT_JDK}
 
 ```bash
 cd ${GITHUB}/babylon
-bash configure  --with-boot-jdk=${BOOT_JDK} --with-jtreg=${JTREG}/build/images/jtreg 
+bash configure  --with-boot-jdk=${BOOT_JDK} --with-jtreg=${JTREG}/build/images/jtreg
 ```
-On your first build configure might exit and suggest installing other 
+On your first build configure might exit and suggest installing other
 dependencies.  Generally I suggest just taking its recommendations and
 restarting configure
 

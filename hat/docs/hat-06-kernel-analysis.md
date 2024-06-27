@@ -20,38 +20,38 @@
 
 # Compute Analysis or Runtime tracing
 
-HAT does not dictate how a backend chooses to optimize execution, but does 
-provide the tools (Babylon's Code Models) and some helpers which the Backend is encouraged 
-use.  
+HAT does not dictate how a backend chooses to optimize execution, but does
+provide the tools (Babylon's Code Models) and some helpers which the Backend is encouraged
+use.
 
-The ComputeContext contains all the information that the backend needs, but does not 
+The ComputeContext contains all the information that the backend needs, but does not
 include any 'policy' for minimizing data movements.
 
 Our assumption is that backend can use various tools to deduce the most efficient execution strategy.
 
 ## Some possible strategies..
 
-### Copy data every time 'just in case' (JIC execution ;) ) 
-Just naiively execute the code as described in Compute graph. So the backend will copy each buffer to the device, execute the kernel and copy the data back again. 
+### Copy data every time 'just in case' (JIC execution ;) )
+Just naiively execute the code as described in Compute graph. So the backend will copy each buffer to the device, execute the kernel and copy the data back again.
 
 ### Use kernel knowledge to minimise data movement
 Execute the code described in the Compute Graph, but use knowledge extracted from kernel models
 to only copy to device buffers that the kernel is going to read, and only copy back from the device
-buffers that the kernel has written to. 
+buffers that the kernel has written to.
 
 ### Use Compute knowledge and kernel knowledge to further minimise data movement
-Use knowledge extracted from the compute reachable graph and the kernel 
+Use knowledge extracted from the compute reachable graph and the kernel
 graphs to determine whether Java has mutated buffers between kernel dispatches
-and only copy data to the device that we know the Java code has mutated. 
+and only copy data to the device that we know the Java code has mutated.
 
 This last strategy is ideal
 
-We can achieve this using static analysis of the compute and kernel models or by being 
+We can achieve this using static analysis of the compute and kernel models or by being
 involved in the execution process at runtime.
 
-#### Static analysis 
+#### Static analysis
 
-#### Runtime Tracking  
+#### Runtime Tracking
 
 * Dynamical
 1. We 'close over' the call/dispatch graph from the entrypoint to all kernels and collect the kernels reachable from the entrypoint and all methods reachable from methods reachable by kernels.
@@ -582,7 +582,7 @@ This way we don't have to force the developer to request data movements.
 BTW if kernel requests are async ;) then the ComputeContext maintains a map of buffer to kernel.  So `preAccess(x)` or `preMutate(x)` calls
 can wait on the kernel that is due to 'dirty' the buffer to complete.
 
-### Marking hat buffers directly. 
+### Marking hat buffers directly.
 
 
 

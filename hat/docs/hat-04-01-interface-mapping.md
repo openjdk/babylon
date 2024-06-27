@@ -52,27 +52,27 @@ Which we dispatch by creating the appropriate data buffer and then asking an `Ac
 
 ```java
   // Create an accelerator bound to a particular backend
- 
+
   var accelerator = new Accelerator(
       java.lang.invoke.MethodHandles.lookup(),
       Backend.FIRST  // Predicate<Backend>
   );
-  
+
   // Ask the accelerator/backend to allocate an S32Array
   var s32Array = S32Array.create(accelerator, 32);
-  
-  // Fill it with data 
+
+  // Fill it with data
   for (int i = 0; i < s32Array.length(); i++) {
       s32Array.array(i, i);
   }
-  
+
   // Tell the accelerator to execute the square() compute entrypoint
-   
+
   accelerator.compute(
-     cc -> SquareCompute.square(cc, s32Array) 
+     cc -> SquareCompute.square(cc, s32Array)
   );
-  
-  // Check the data                                    
+
+  // Check the data
   for (int i = 0; i < arr.length(); i++) {
       System.out.println(i + " " + arr.array(i));
   }
@@ -109,20 +109,20 @@ methods that we include in a `hat.Buffer` should be
 T name();                    //getter for a field called name with type T, where T may be primitive or inner interface)
 void name(T name);           //setter for a field called name with type T, T must be  primitive
 T name(long idx);            //get an array element [idx] where array is called name and T is either primitive or inner interface
-void name(long idx, T name); //set an array element [idx] where array is called name and T is primitive 
+void name(long idx, T name); //set an array element [idx] where array is called name and T is primitive
 ```
 
 Algorithms can assume that an interface is 'bound' to 'some' concrete data layout.
 
 We could for example implement `S32Array` like this.
 
-```java 
+```java
 class JavaS32Array implements S32Array{
      int[] arr;
      int length(){ return arr.length;}
      int array(long idx) {return arr[idx];}
      void array(long idx, int value) {arr[idx] = value;}
-     void length(int len) ; // we'll come back to this ;) 
+     void length(int len) ; // we'll come back to this ;)
 }
 ```
 
@@ -143,9 +143,9 @@ class PanamaS32Array implements S32Array{
      int length(){ return segment.getInt(lenOffset);}
      int array(long idx) {return segment.getInt(arrayOffset+idx*SIZEOFINT);}
      void array(long idx, int value) {segment.setInt(arrayOffset+idx*SIZEOFINT,value);}
-     void length(int len) ; // we'll come back to this ;) 
+     void length(int len) ; // we'll come back to this ;)
 }
-``` 
+```
 
 Much like Java's `Proxy` class, the iface mapper creates an implementation of the interface  'on the fly', the new Classfile API is used to 'spin up' the new class and the accessors are are composed using Var/Method Handles and offsets derived from the size and order of fields.
 
@@ -158,7 +158,7 @@ MemoryLayout s32ArrayLayout = MemoryLayout.structLayout(
         JAVA_INT.withName("length"),
         MemoryLayout.sequenceLayout(N, JAVA_INT.withName("length")).withName("array")
 ).withName(S32Array.getSimpleName());
-```  
+```
 
 Eventually we came to a common pattern for describing HAT buffers by adding a `create` method to our interface which hides the mapping detail
 
@@ -205,7 +205,7 @@ public interface S32Array extends Buffer {
     void length(int i);
     int array(long idx);
     void array(long idx, int i);
-    Schema<S32Array> schema = Schema.of(S32Array.class, s->s 
+    Schema<S32Array> schema = Schema.of(S32Array.class, s->s
         .arrayLen("length")
         .array("array")
     );
@@ -227,7 +227,7 @@ public interface ResultTable extends Buffer{
     int count();
     int length();
     Result result(long idx);
-    
+
     Schema<ResultTable> schema = Schema.of(ResultTable.class, s->s
             .atomic("count")
             .arrayLen("length")
@@ -304,7 +304,7 @@ __kernel void init(
     KernelContext_t *kc = &kernelContext;
     kc->x=get_global_id(0);
     kc->maxX = get_global_id(0);
-   
+
     if(kc->x<kc->maxX){
         __global Result_t *result = &resultTable[kc->x];
         result->x = kc->x;
@@ -329,7 +329,7 @@ __kernel void init(__global KernelContext_t *empty , ....){
     kc->maxX = get_global_id(0);
      ....
 }
-``` 
+```
 
 Whereas CUDA ;)
 
@@ -340,7 +340,7 @@ __kernel void init(__global KernelContext_t *empty , ....){
     kc->x=blockIdx.x*blockDim.x+threadIdx.x;
     kc->maxX =gridDim.x*blockDim.x
     ....
-} 
+}
 ```
 
 This simplifies code gen. Generally the CUDA code and OpenCL code looks identical.

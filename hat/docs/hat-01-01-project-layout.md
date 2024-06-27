@@ -21,7 +21,7 @@
 # Primer
 
 This is a fairly large project with Java and Native artifacts which is completely dependant
-on the `babylon` project, and as such is initially available in a sub directory 
+on the `babylon` project, and as such is initially available in a sub directory
 called `hat` under [github.com/openjdk/babylon](https://github.com/openjdk/babylon)
 
 ## Project Layout
