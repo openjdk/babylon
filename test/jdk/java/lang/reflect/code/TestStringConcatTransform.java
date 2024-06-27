@@ -79,6 +79,7 @@ public class TestStringConcatTransform {
         });
         valMap.put(TestObject.class, new TestObject());
         valMap.put(String.class, TESTSTR);
+        valMap.put(StringBuilder.class, new StringBuilder("test"));
     }
 
     public static final class TestObject {
@@ -133,6 +134,37 @@ public class TestStringConcatTransform {
         Assert.assertEquals(transformed_model_interpreted, ssa_interpreted);
         Assert.assertEquals(ssa_interpreted, ssa_transformed_interpreted);
         Assert.assertEquals(ssa_transformed_interpreted, jvm_interpreted);
+    }
+
+    //Testing to make sure StringBuilders aren't caught up in the concat transformation
+    @Test
+    public void testStringBuilderUnchanged() {
+        Method method;
+
+        try {
+            method = TestStringConcatTransform.class.getMethod("stringBuilderArgCheck", String.class, String.class, StringBuilder.class);
+        } catch (NoSuchMethodException e) {
+           throw new RuntimeException(e);
+        }
+
+        CoreOp.FuncOp model = method.getCodeModel().orElseThrow();
+        CoreOp.FuncOp transformed_model = model.transform(new StringConcatTransformer());
+        CoreOp.FuncOp ssa_model = generateSSA(model);
+        CoreOp.FuncOp ssa_transformed_model = ssa_model.transform(new StringConcatTransformer());
+        Object[] args = {"Foo", "Bar", new StringBuilder("test")};
+
+        Interpreter.invoke(model, args);
+        Interpreter.invoke(transformed_model, args);
+        Interpreter.invoke(ssa_model, args);
+        Interpreter.invoke(ssa_transformed_model, args);
+        Object jvm_interpreted;
+        try {
+            method.invoke(null, args);
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            throw new RuntimeException(e);
+        }
+
+        Assert.assertEquals("test", args[2].toString());
     }
 
     public static Object[] prepArgs(Method m) {
@@ -205,29 +237,35 @@ public class TestStringConcatTransform {
     }
 
     @CodeReflection
-    public static String degenerateTree(String a, String b, String c, String d) {
+    public static String nonLeftAssociativeTree(String a, String b, String c, String d) {
         String s = (a + b) + (c + d);
         return s;
     }
 
-    //This String Builder is getting tweaked, check for side effects
     @CodeReflection
-    public static String degenerateTree2(String a, String d) {
+    public static String stringBuilderCheck(String a, String d) {
         StringBuilder sb = new StringBuilder("test");
         String s = sb + a;
         String t = s + d;
-        System.out.println(sb);
         return t;
     }
 
     @CodeReflection
-    public static String degenerateTree4(String a, String b, String c, String d) {
+    public static String stringBuilderArgCheck(String a, String d, StringBuilder c) {
+        StringBuilder sb = c;
+        String s = sb + a;
+        String t = s + d;
+        return t;
+    }
+
+    @CodeReflection
+    public static String leftAssociativeTree(String a, String b, String c, String d) {
         String s = ((a + b) + c) + d;
         return s;
     }
 
     @CodeReflection
-    public static String degenerateTree5(String a, String b, String c, String d) {
+    public static String rightAssociativeTree(String a, String b, String c, String d) {
         String s = (a + (b + (c + d)));
         return s;
     }
