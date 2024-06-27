@@ -27,12 +27,19 @@ package experiments;
 import hat.Schema;
 import hat.buffer.Buffer;
 
-public interface S32Array extends Buffer {
-    int length();
-    void length(int i);
-    int array(long idx);
-    void array(long idx, int i);
-    Schema<S32Array> schema = Schema.of(S32Array.class, s32Array->s32Array
-            .arrayLen("length").array("array"));
+public class S32ArrayTest implements Buffer {
+
+    public static void main(String[] args) {
+        hat.buffer.S32Array os32  = hat.buffer.S32Array.create(Schema.GlobalArenaAllocator, 100);
+        System.out.println("Layout from hat S32Array "+ Buffer.getLayout(os32));
+
+        var s32Array = S32Array.schema.allocate( 100);
+       // Schema.BoundSchema boundSchema = (Schema.BoundSchema)Buffer.getHatData(s32Array);
+        int s23ArrayLen = s32Array.length();
+        System.out.println(s23ArrayLen);
+
+        System.out.println("Layout from schema "+Buffer.getLayout(s32Array));
+        ResultTable.schema.toText(t->System.out.print(t));
+    }
 
 }

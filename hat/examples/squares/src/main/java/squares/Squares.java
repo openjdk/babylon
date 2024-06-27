@@ -35,7 +35,7 @@ import java.lang.runtime.CodeReflection;
 
 public class Squares {
     @CodeReflection
-    public static int sq(int v) {
+    public static int square(int v) {
         return  v * v;
 
     }
@@ -44,7 +44,7 @@ public class Squares {
     public static void squareKernel(KernelContext kc, S32Array s32Array) {
         if (kc.x<kc.maxX){
            int value = s32Array.array(kc.x);     // arr[cc.x]
-           s32Array.array(kc.x, sq(value));  // arr[cc.x]=value*value
+           s32Array.array(kc.x, square(value));  // arr[cc.x]=value*value
         }
     }
 
