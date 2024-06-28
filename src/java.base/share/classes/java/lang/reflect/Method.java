@@ -54,6 +54,7 @@ import java.util.Optional;
 import java.util.StringJoiner;
 
 import static java.lang.reflect.code.op.CoreOp.*;
+import java.lang.reflect.code.type.MethodRef;
 
 /**
  * A {@code Method} provides information about, and access to, a single method
@@ -277,7 +278,13 @@ public final class Method extends Executable {
 
     private Optional<FuncOp> createCodeModel() {
         Class<?> dc = getDeclaringClass();
-        String fieldName = getName() + "$" + "op";
+        char[] sig = MethodRef.method(this).toString().toCharArray();
+        for (int i = 0; i < sig.length; i++) {
+            switch (sig[i]) {
+                case '.', ';', '[', '/': sig[i] = '$';
+            }
+        }
+        String fieldName = new String(sig) + "$" + "op";
         Field f;
         try {
             f = dc.getDeclaredField(fieldName);
