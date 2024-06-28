@@ -30,6 +30,8 @@ import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.MethodRef;
+import java.lang.reflect.code.type.PrimitiveType;
+import java.util.*;
 
 /**
  * StringConcatTransformer is an {@link java.lang.reflect.code.OpTransformer} that removes concatenation operations
@@ -38,48 +40,74 @@ import java.lang.reflect.code.type.MethodRef;
  */
 public class StringConcatTransformer implements OpTransformer {
 
-    private static final JavaType SBC_TYPE = JavaType.type(StringBuilder.class);
-    private static final MethodRef SB_TO_STRING = MethodRef.method(SBC_TYPE, "toString", JavaType.J_L_STRING);
-
-    record StringAndBuilder(Value string, Value stringBuilder) { }
+    private static final JavaType J_L_STRING_BUILDER = JavaType.type(StringBuilder.class);
+    private static final MethodRef SB_TO_STRING_REF = MethodRef.method(
+            J_L_STRING_BUILDER, "toString", JavaType.J_L_STRING);
 
     public StringConcatTransformer() {}
 
     @Override
-    public Block.Builder apply(Block.Builder builder, Op op) {
-        if (op instanceof CoreOp.ConcatOp cz) {
-
-            Value left = builder.context().getValue(cz.operands().get(0));
-            Value right = builder.context().getValue(cz.operands().get(1));
-
-            Value result = cz.result();
-
-            StringAndBuilder newRes = stringBuild(builder, left, right);
-            builder.context().mapValue(result, newRes.string);
-        } else {
-            builder.op(op);
+    public Block.Builder apply(Block.Builder block, Op op) {
+        switch (op) {
+            case CoreOp.ConcatOp cz when isRootConcat(cz) -> {
+                // Create a string builder and build by traversing tree of operands
+                Op.Result builder = block.apply(CoreOp._new(FunctionType.functionType(J_L_STRING_BUILDER)));
+                buildFromTree(block, builder, cz);
+                // Convert to string
+                Value s = block.op(CoreOp.invoke(SB_TO_STRING_REF, builder));
+                block.context().mapValue(cz.result(), s);
+            }
+            case CoreOp.ConcatOp _ -> {
+                // Process later when building from root concat
+            }
+            default -> block.op(op);
         }
-        return builder;
+        return block;
     }
 
-    //Uses StringBuilder and Immediate String Value
-    private static StringAndBuilder stringBuild(Block.Builder builder, Value left, Value right) {
-        var newB = stringBuilder(builder, left, right);
-        var toStringInvoke = CoreOp.invoke(SB_TO_STRING, newB);
-        Value newString = builder.apply(toStringInvoke);
-        return new StringAndBuilder(newString, newB);
+    static boolean isRootConcat(CoreOp.ConcatOp cz) {
+        // Root of concat tree, zero uses, two or more uses,
+        // or one use that is not a subsequent concat op
+        Set<Op.Result> uses = cz.result().uses();
+        return uses.size() != 1 || !(uses.iterator().next().op() instanceof CoreOp.ConcatOp);
     }
 
-    private static Value stringBuilder(Block.Builder builder, Value left, Value right) {
-        CoreOp.NewOp newBuilder = CoreOp._new(FunctionType.functionType(SBC_TYPE));
-        Value sb = builder.apply(newBuilder);
-        builder.op(append(sb, left));
-        builder.op(append(sb, right));
-        return sb;
+    static void buildFromTree(Block.Builder block, Op.Result builder, CoreOp.ConcatOp cz) {
+        // Process concat op's operands from left to right
+        buildFromTree(block, builder, cz.operands().get(0));
+        buildFromTree(block, builder, cz.operands().get(1));
     }
 
-    private static Op append(Value stringBuilder, Value arg) {
-        MethodRef leftMethodDesc = MethodRef.method(SBC_TYPE, "append", SBC_TYPE, arg.type());
-        return CoreOp.invoke(leftMethodDesc, stringBuilder, arg);
+    static void buildFromTree(Block.Builder block, Op.Result builder, Value v) {
+        if (v instanceof Op.Result r &&
+                r.op() instanceof CoreOp.ConcatOp cz &&
+                r.uses().size() == 1) {
+            // Node of tree, recursively traverse the operands
+            buildFromTree(block, builder, cz);
+        } else {
+            // Leaf of tree, append value to builder
+            // Note leaf can be the result of a ConcatOp with multiple uses
+            block.op(append(block, builder, block.context().getValue(v)));
+        }
     }
+
+    private static Op append(Block.Builder block, Value builder, Value arg) {
+        // Check if we need to widen unsupported integer types in the StringBuilder API
+        // Strings are fed in as-is, everything else given as an Object.
+        TypeElement type = arg.type();
+        if (type instanceof PrimitiveType) {
+            //Widen Short and Byte to Int.
+            if (type.equals(JavaType.BYTE) || type.equals(JavaType.SHORT)) {
+                arg = block.op(CoreOp.conv(JavaType.INT, arg));
+                type = JavaType.INT;
+            }
+        } else if (!type.equals(JavaType.J_L_STRING)){
+            type = JavaType.J_L_OBJECT;
+        }
+
+        MethodRef methodDesc = MethodRef.method(J_L_STRING_BUILDER, "append", J_L_STRING_BUILDER, type);
+        return CoreOp.invoke(methodDesc, builder, arg);
+    }
+
+
 }
