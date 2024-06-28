@@ -27,6 +27,7 @@
 package experiments;
 
 
+import hat.Schema;
 import hat.buffer.Buffer;
 import hat.buffer.BufferAllocator;
 import hat.ifacemapper.SegmentMapper;
@@ -53,7 +54,7 @@ public class SchemaLayoutTest {
 
 
         Cascade.schema.toText(t->System.out.print(t));
-        var boundLayout = Cascade.schema.collectLayouts(10,10,10);
+        var boundLayout = new Schema.BoundSchema<>(Cascade.schema,10,10,10);
         System.out.println(boundLayout.groupLayout);
         var cascade = Cascade.schema.allocate(bufferAllocator,10,10,10);
 
