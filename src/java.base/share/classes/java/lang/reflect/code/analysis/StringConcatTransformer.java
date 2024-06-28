@@ -40,9 +40,7 @@ import java.util.*;
  */
 public class StringConcatTransformer implements OpTransformer {
 
-    private static final JavaType J_L_OBJECT = JavaType.type(Object.class);
     private static final JavaType J_L_STRING_BUILDER = JavaType.type(StringBuilder.class);
-
     private static final MethodRef SB_TO_STRING_REF = MethodRef.method(
             J_L_STRING_BUILDER, "toString", JavaType.J_L_STRING);
 
@@ -59,7 +57,7 @@ public class StringConcatTransformer implements OpTransformer {
                 Value s = block.op(CoreOp.invoke(SB_TO_STRING_REF, builder));
                 block.context().mapValue(cz.result(), s);
             }
-            case CoreOp.ConcatOp cz -> {
+            case CoreOp.ConcatOp _ -> {
                 // Process later when building from root concat
             }
             default -> block.op(op);
@@ -100,22 +98,20 @@ public class StringConcatTransformer implements OpTransformer {
     private static Op append(Block.Builder block, Value builder, Value arg, TypeElement type) {
         // Check if we need to widen unsupported integer types in the StringBuilder API
         // Strings are fed in as-is, everything else given as an Object.
-        if (type instanceof PrimitiveType) {
-            if (List.of(JavaType.BYTE, JavaType.SHORT).contains(type)) {
-                Value widened = block.op(CoreOp.conv(JavaType.INT, arg));
-                MethodRef methodDesc = MethodRef.method(J_L_STRING_BUILDER, "append", J_L_STRING_BUILDER, JavaType.INT);
-                return CoreOp.invoke(methodDesc, builder, widened);
-            } else {
-                MethodRef methodDesc = MethodRef.method(J_L_STRING_BUILDER, "append", J_L_STRING_BUILDER, type);
-                return CoreOp.invoke(methodDesc, builder, arg);
+        TypeElement appendType = type;
+        Value appendValue = arg;
+        if (type instanceof PrimitiveType || type.equals(JavaType.J_L_STRING)) {
+            //Widen if we need to.
+            if (type.equals(JavaType.BYTE) || type.equals(JavaType.SHORT)) {
+                appendValue = block.op(CoreOp.conv(JavaType.INT, arg));
+                appendType = JavaType.INT;
             }
-        } else if (type.equals(JavaType.J_L_STRING)) {
-            MethodRef methodDesc = MethodRef.method(J_L_STRING_BUILDER, "append", J_L_STRING_BUILDER, type);
-            return CoreOp.invoke(methodDesc, builder, arg);
-        } else {
-            MethodRef methodDesc = MethodRef.method(J_L_STRING_BUILDER, "append", J_L_STRING_BUILDER, J_L_OBJECT);
-            return CoreOp.invoke(methodDesc, builder, arg);
         }
+        else {
+            appendType = JavaType.J_L_OBJECT;
+        }
+        MethodRef methodDesc = MethodRef.method(J_L_STRING_BUILDER, "append", J_L_STRING_BUILDER, appendType);
+        return CoreOp.invoke(methodDesc, builder, appendValue);
     }
 
 }

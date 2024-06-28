@@ -42,7 +42,6 @@ import java.lang.reflect.code.op.CoreOp;
 import java.lang.runtime.CodeReflection;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class TestStringConcatTransform {
@@ -110,15 +109,31 @@ public class TestStringConcatTransform {
 
     @Test(dataProvider = "getClassMethods")
     public void testSSAModelTransform(@NoInjection Method method) {
+        Object[] args = prepArgs(method);
+        testStringConcat(method, args);
+    }
+
+    //Testing to make sure StringBuilders aren't caught up in the concat transformation
+    @Test
+    public void testStringBuilderUnchanged() {
+        Method method;
+
+        try {
+            method = TestStringConcatTransform.class.getMethod("stringBuilderArgCheck", String.class, String.class, StringBuilder.class);
+        } catch (NoSuchMethodException e) {
+           throw new RuntimeException(e);
+        }
+        Object[] args = {"Foo", "Bar", new StringBuilder("test")};
+        testStringConcat(method, args);
+
+        Assert.assertEquals("test", args[2].toString());
+    }
+
+    private void testStringConcat(Method method, Object[] args) {
         CoreOp.FuncOp model = method.getCodeModel().orElseThrow();
         CoreOp.FuncOp transformed_model = model.transform(new StringConcatTransformer());
         CoreOp.FuncOp ssa_model = generateSSA(model);
         CoreOp.FuncOp ssa_transformed_model = ssa_model.transform(new StringConcatTransformer());
-        Object[] args = prepArgs(method);
-
-        model.writeTo(System.out);
-        ssa_model.writeTo(System.out);
-        ssa_transformed_model.writeTo(System.out);
 
         var model_interpreted = Interpreter.invoke(model, args);
         var transformed_model_interpreted = Interpreter.invoke(transformed_model, args);
@@ -134,37 +149,7 @@ public class TestStringConcatTransform {
         Assert.assertEquals(transformed_model_interpreted, ssa_interpreted);
         Assert.assertEquals(ssa_interpreted, ssa_transformed_interpreted);
         Assert.assertEquals(ssa_transformed_interpreted, jvm_interpreted);
-    }
 
-    //Testing to make sure StringBuilders aren't caught up in the concat transformation
-    @Test
-    public void testStringBuilderUnchanged() {
-        Method method;
-
-        try {
-            method = TestStringConcatTransform.class.getMethod("stringBuilderArgCheck", String.class, String.class, StringBuilder.class);
-        } catch (NoSuchMethodException e) {
-           throw new RuntimeException(e);
-        }
-
-        CoreOp.FuncOp model = method.getCodeModel().orElseThrow();
-        CoreOp.FuncOp transformed_model = model.transform(new StringConcatTransformer());
-        CoreOp.FuncOp ssa_model = generateSSA(model);
-        CoreOp.FuncOp ssa_transformed_model = ssa_model.transform(new StringConcatTransformer());
-        Object[] args = {"Foo", "Bar", new StringBuilder("test")};
-
-        Interpreter.invoke(model, args);
-        Interpreter.invoke(transformed_model, args);
-        Interpreter.invoke(ssa_model, args);
-        Interpreter.invoke(ssa_transformed_model, args);
-        Object jvm_interpreted;
-        try {
-            method.invoke(null, args);
-        } catch (IllegalAccessException | InvocationTargetException e) {
-            throw new RuntimeException(e);
-        }
-
-        Assert.assertEquals("test", args[2].toString());
     }
 
     public static Object[] prepArgs(Method m) {
