@@ -371,8 +371,8 @@ public class ReflectMethods extends TreeTranslator {
                 sig.append(name.toString());
             }
         };
-        for (var p : method.params) {
-            sigGen.assembleSig(types.erasure(p.type));
+        for (var pt : method.sym.externalType(types).getParameterTypes()) {
+            sigGen.assembleSig(types.erasure(pt));
         }
         char[] sigCh = sig.toCharArray();
         for (int i = 0; i < sigCh.length; i++) {
