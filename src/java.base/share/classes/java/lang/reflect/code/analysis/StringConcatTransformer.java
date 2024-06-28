@@ -92,26 +92,22 @@ public class StringConcatTransformer implements OpTransformer {
     }
 
     private static Op append(Block.Builder block, Value builder, Value arg) {
-        return append(block, builder, arg, arg.type());
-    }
-
-    private static Op append(Block.Builder block, Value builder, Value arg, TypeElement type) {
         // Check if we need to widen unsupported integer types in the StringBuilder API
         // Strings are fed in as-is, everything else given as an Object.
-        TypeElement appendType = type;
-        Value appendValue = arg;
-        if (type instanceof PrimitiveType || type.equals(JavaType.J_L_STRING)) {
-            //Widen if we need to.
+        TypeElement type = arg.type();
+        if (type instanceof PrimitiveType) {
+            //Widen Short and Byte to Int.
             if (type.equals(JavaType.BYTE) || type.equals(JavaType.SHORT)) {
-                appendValue = block.op(CoreOp.conv(JavaType.INT, arg));
-                appendType = JavaType.INT;
+                arg = block.op(CoreOp.conv(JavaType.INT, arg));
+                type = JavaType.INT;
             }
+        } else if (!type.equals(JavaType.J_L_STRING)){
+            type = JavaType.J_L_OBJECT;
         }
-        else {
-            appendType = JavaType.J_L_OBJECT;
-        }
-        MethodRef methodDesc = MethodRef.method(J_L_STRING_BUILDER, "append", J_L_STRING_BUILDER, appendType);
-        return CoreOp.invoke(methodDesc, builder, appendValue);
+
+        MethodRef methodDesc = MethodRef.method(J_L_STRING_BUILDER, "append", J_L_STRING_BUILDER, type);
+        return CoreOp.invoke(methodDesc, builder, arg);
     }
+
 
 }
