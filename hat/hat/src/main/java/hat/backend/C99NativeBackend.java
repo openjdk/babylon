@@ -85,10 +85,10 @@ public abstract class C99NativeBackend extends NativeBackend {
 
         builder.nl().kernelEntrypoint(kernelCallGraph.entrypoint, args).nl();
 
-       // System.out.println("Original");
-       // System.out.println(kernelCallGraph.entrypoint.funcOpWrapper().op().toText());
-       // System.out.println("Lowered");
-       // System.out.println(kernelCallGraph.entrypoint.funcOpWrapper().lower().op().toText());
+        System.out.println("Original");
+        System.out.println(kernelCallGraph.entrypoint.funcOpWrapper().op().toText());
+        System.out.println("Lowered");
+        System.out.println(kernelCallGraph.entrypoint.funcOpWrapper().lower().op().toText());
 
         return builder.toString();
     }

@@ -2,21 +2,16 @@ package hat;
 
 import hat.buffer.Buffer;
 import hat.buffer.BufferAllocator;
-import hat.ifacemapper.HatData;
 import hat.ifacemapper.SegmentMapper;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.SequenceLayout;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Stack;
 import java.util.function.Consumer;
 
 import static java.lang.foreign.ValueLayout.JAVA_BOOLEAN;
@@ -29,99 +24,133 @@ import static java.lang.foreign.ValueLayout.JAVA_LONG;
 import static java.lang.foreign.ValueLayout.JAVA_SHORT;
 
 public class Schema<T extends Buffer> {
-    AbstractField.ParentField field;
+    SchemaNode.TypeSchemaNode schemaRootField;
     public Class<T> iface;
-    public final static BufferAllocator GlobalArenaAllocator = new BufferAllocator() {
-        public <T extends Buffer> T allocate(SegmentMapper<T> s) {
-            return s.allocate(Arena.global());
-        }
-    };
-    static class ArraySizeBinding{
-        int idx;
-        int len;
-        AbstractField.FieldControlledArray fieldControlledArray;
-        ArraySizeBinding(int idx, int len) {
-            this.idx = idx;
-            this.len = len;
-        }
-    }
 
-    public static class BoundLayout<T extends Buffer>{
-        Schema<T> schema;
-        List<ArraySizeBinding> arraySizeBindings ;
-       public  GroupLayout groupLayout;
-        BoundLayout(Schema<T> schema, List<ArraySizeBinding> arraySizeBindings, GroupLayout groupLayout) {
-            this.schema = schema;
-            this.arraySizeBindings = arraySizeBindings;
-            this.groupLayout = groupLayout;
-        }
-    }
-    static class LayoutCollector{
-        private Stack<List<MemoryLayout>> stack = new Stack<>();
-        private List<ArraySizeBinding> arraySizeBindings = new ArrayList<>();
-        private int idx;
-        LayoutCollector(int[] arrayLengths){
-            for(int i=0; i<arrayLengths.length; i++){
-                arraySizeBindings.add(new ArraySizeBinding(i, arrayLengths[i]));
+    static abstract sealed class LayoutToBoundFieldTreeNode permits ChildLayoutToBoundFieldTreeNode, BoundSchema {
+        static class FieldLayoutBinding<T extends SchemaNode> {
+            final T field;
+            MemoryLayout layout;
+            FieldLayoutBinding(T field, MemoryLayout layout) {
+                this.field = field;
+                this.layout = layout;
             }
         }
-        GroupLayout groupLayout = null;
-        void pop(){
-            if (stack.size()==1){
-                groupLayout =  (GroupLayout) stack.peek().getFirst();;
+
+        static class FieldControlledArrayBinding extends FieldLayoutBinding<SchemaNode.FieldControlledArray> {
+            final int idx;
+            final int len;
+
+            FieldControlledArrayBinding(int idx, int len, SchemaNode.FieldControlledArray fieldControlledArray) {
+                super(fieldControlledArray, null);
+                this.idx = idx;
+                this.len = len;
             }
-            stack.pop();
         }
-        void push(){
-            stack.push(new ArrayList<>());
+
+        final protected LayoutToBoundFieldTreeNode parent;
+        final List<ChildLayoutToBoundFieldTreeNode> children = new ArrayList<>();
+        final List<MemoryLayout> memoryLayouts = new ArrayList<>();
+        final List<FieldLayoutBinding> fieldToLayoutBindings = new ArrayList<>();
+
+        LayoutToBoundFieldTreeNode(LayoutToBoundFieldTreeNode parent) {
+            this.parent = parent;
         }
-        void add(MemoryLayout memoryLayout){
-            stack.peek().add(memoryLayout);
+
+        abstract int takeArrayLen();
+
+        abstract FieldControlledArrayBinding createFieldControlledArrayBinding(SchemaNode.FieldControlledArray fieldControlledArray, MemoryLayout memoryLayout);
+
+        void bind(SchemaNode field, MemoryLayout memoryLayout) {
+            FieldLayoutBinding fieldLayoutBinding = null;
+            if (field instanceof SchemaNode.FieldControlledArray fieldControlledArray) {
+                fieldLayoutBinding = createFieldControlledArrayBinding(fieldControlledArray, memoryLayout);
+            } else {
+                fieldLayoutBinding = new FieldLayoutBinding(field, memoryLayout);
+            }
+            fieldToLayoutBindings.add(fieldLayoutBinding);
+            memoryLayouts.add(memoryLayout);
         }
-        ArraySizeBinding getIdx(){
-            return arraySizeBindings.get(idx++);
-        }
+
         public MemoryLayout[] array() {
-            return stack.peek().toArray(new MemoryLayout[0]);
+            return memoryLayouts.toArray(new MemoryLayout[0]);
         }
 
-    }
-    public BoundLayout<T> collectLayouts(int... arrayLengths) {
-        LayoutCollector layoutCollector = new LayoutCollector(arrayLengths);
-        layoutCollector.push();
-        field.collectLayouts(layoutCollector);
-        layoutCollector.pop();
-        return new BoundLayout<T>(this,layoutCollector.arraySizeBindings, layoutCollector.groupLayout.withName(iface.getSimpleName()));
+        public ChildLayoutToBoundFieldTreeNode createChild() {
+            var childLayoutCollector = new ChildLayoutToBoundFieldTreeNode(this);
+            children.add(childLayoutCollector);
+            return childLayoutCollector;
+        }
     }
 
+    public static final class BoundSchema<T extends Buffer> extends LayoutToBoundFieldTreeNode {
+        final private List<FieldControlledArrayBinding> arraySizeBindings;
+        final private int[] arrayLengths;
+        final Schema<T> schema;
+        final public GroupLayout groupLayout;
+        public BoundSchema(Schema<T> schema, int ...arrayLengths) {
+            super(null);
+            this.schema = schema;
+            this.arrayLengths = arrayLengths;
+            this.arraySizeBindings = new ArrayList<>();
+            LayoutToBoundFieldTreeNode scope = createChild();
+            schema.schemaRootField.fields.forEach(c -> c.collectLayouts(scope));
+            MemoryLayout memoryLayout = isUnion(schema.schemaRootField.nameTypeAndMode.type)
+                    ?MemoryLayout.unionLayout(scope.array())
+                    :MemoryLayout.structLayout(scope.array());
+            bind(schema.schemaRootField, memoryLayout.withName(schema.iface.getSimpleName()));
+            this.groupLayout = (GroupLayout) memoryLayouts.getFirst();
+        }
 
-    static class AccessStyle {
+        public T allocate(BufferAllocator bufferAllocator) {
+            System.out.println(groupLayout);
+            var segmentMapper = SegmentMapper.of(MethodHandles.lookup(), schema.iface, groupLayout);
+            return bufferAllocator.allocate(segmentMapper);
+        }
+
+        @Override
+        int takeArrayLen() {
+            return arrayLengths[arraySizeBindings.size()];
+        }
+
+        FieldControlledArrayBinding createFieldControlledArrayBinding(SchemaNode.FieldControlledArray fieldControlledArray, MemoryLayout memoryLayout) {
+            int idx = arraySizeBindings.size();
+            var arraySizeBinding = new FieldControlledArrayBinding(idx, arrayLengths[idx], fieldControlledArray);
+            arraySizeBindings.add(arraySizeBinding);
+            return arraySizeBinding;
+        }
+    }
+
+    public static final class ChildLayoutToBoundFieldTreeNode extends LayoutToBoundFieldTreeNode {
+        ChildLayoutToBoundFieldTreeNode(LayoutToBoundFieldTreeNode parent) {
+            super(parent);
+        }
+
+        @Override
+        int takeArrayLen() {
+            return parent.takeArrayLen();
+        }
+
+        FieldControlledArrayBinding createFieldControlledArrayBinding(SchemaNode.FieldControlledArray fieldControlledArray, MemoryLayout memoryLayout) {
+            return parent.createFieldControlledArrayBinding(fieldControlledArray, memoryLayout);
+        }
+    }
+
+    public static class NameTypeAndMode {
         enum Mode {
-            ROOT(false, false, false, false, false),
-            PRIMITIVE_GETTER_AND_SETTER(false, true, false, true, true),
-            PRIMITIVE_GETTER(false, true, false, false, true),
-            PRIMITIVE_SETTER(false, true, false, true, false),
-            IFACE_GETTER(false, false, true, false, true),
-            PRIMITIVE_ARRAY_SETTER(true, true, false, true, false),
-            PRIMITIVE_ARRAY_GETTER(true, true, false, false, true),
-            PRIMITIVE_ARRAY_GETTER_AND_SETTER(true, true, false, true, true),
-            IFACE_ARRAY_GETTER(true, false, true, false, true);
-            boolean array;
-            boolean primitive;
-            boolean iface;
-            boolean setter;
-            boolean getter;
-
-            Mode(boolean array, boolean primitive, boolean iface, boolean setter, boolean getter) {
-                this.array = array;
-                this.primitive = primitive;
-                this.iface = iface;
-                this.getter = getter;
-                this.setter = setter;
-            }
+            ROOT,
+            PRIMITIVE_GETTER_AND_SETTER,
+            PRIMITIVE_GETTER,
+            PRIMITIVE_SETTER,
+            IFACE_GETTER,
+            PRIMITIVE_ARRAY_SETTER,
+            PRIMITIVE_ARRAY_GETTER,
+            PRIMITIVE_ARRAY_GETTER_AND_SETTER,
+            IFACE_ARRAY_GETTER;
 
             /**
-             * From the iface mapper
+             * From the iface mapper we get these mappings
+             *
              * T foo()             getter iface|primitive  0 args                  , return T     returnType T
              * T foo(long)    arraygetter iface|primitive  arg[0]==long            , return T     returnType T
              * void foo(T)            setter       primitive  arg[0]==T               , return void  returnType T
@@ -151,25 +180,13 @@ public class Schema<T extends Buffer> {
                     return null;
                 }
             }
-
-            Mode possiblyPromote(Mode mode) {
-                if ((this.equals(PRIMITIVE_ARRAY_GETTER) && mode.equals(PRIMITIVE_ARRAY_SETTER))
-                        || (this.equals(PRIMITIVE_ARRAY_SETTER) && mode.equals(PRIMITIVE_ARRAY_GETTER))) {
-                    return Mode.PRIMITIVE_ARRAY_GETTER_AND_SETTER;
-                } else if ((this.equals(PRIMITIVE_GETTER) && mode.equals(Mode.PRIMITIVE_SETTER))
-                        || (this.equals(PRIMITIVE_SETTER) && mode.equals(Mode.PRIMITIVE_GETTER))) {
-                    return Mode.PRIMITIVE_GETTER_AND_SETTER;
-                } else {
-                    return this;
-                }
-            }
         }
 
         Mode mode;
         Class<?> type;
         String name;
-        List<Method> methods = new ArrayList<>();
-        AccessStyle(Mode mode, Class<?> type, String name) {
+
+        NameTypeAndMode(Mode mode, Class<?> type, String name) {
             this.mode = mode;
             this.type = type;
             this.name = name;
@@ -208,21 +225,31 @@ public class Schema<T extends Buffer> {
             }
         }
 
-        static AccessStyle of(Class<?> iface, String name) {
-            AccessStyle accessStyle = new AccessStyle(null, null, name);
+        static NameTypeAndMode of(Class<?> iface, String name) {
+            NameTypeAndMode accessStyle = new NameTypeAndMode(null, null, name);
             var methods = iface.getDeclaredMethods();
             Arrays.stream(methods).filter(method -> method.getName().equals(name)).forEach(matchingMethod -> {
-                AccessStyle.Mode mode = AccessStyle.Mode.of(matchingMethod);
+                NameTypeAndMode.Mode mode = NameTypeAndMode.Mode.of(matchingMethod);
                 Class<?> type = methodToType(matchingMethod);
-                accessStyle.methods.add(matchingMethod);
                 accessStyle.type = type;
                 if (accessStyle.type == null) {
                     accessStyle.type = type;
                 } else if (!accessStyle.type.equals(type)) {
                     throw new IllegalStateException("type mismatch for " + name);
                 }
-                //  The enum knows how to promote GETTER to GETTER_AND_SETTER if prev mode was GETTER and this SETTER and vice versa
-                accessStyle.mode = (accessStyle.mode == null) ? mode : accessStyle.mode.possiblyPromote(mode);
+                if (accessStyle.mode == null){
+                    // We don't have one already
+                    accessStyle.mode = mode;
+                } else if ((accessStyle.mode.equals(Mode.PRIMITIVE_ARRAY_GETTER) && mode.equals(Mode.PRIMITIVE_ARRAY_SETTER))
+                        || (accessStyle.mode.equals(Mode.PRIMITIVE_ARRAY_SETTER) && mode.equals(Mode.PRIMITIVE_ARRAY_GETTER))) {
+                    // mode was already an array getter or setter and is now a GETTER_AND_SETTER
+                    accessStyle.mode = Mode.PRIMITIVE_ARRAY_GETTER_AND_SETTER;
+                } else if ((accessStyle.mode.equals(Mode.PRIMITIVE_GETTER) && mode.equals(Mode.PRIMITIVE_SETTER))
+                        || (accessStyle.mode.equals(Mode.PRIMITIVE_SETTER) && mode.equals(Mode.PRIMITIVE_GETTER))) {
+                    // mode was already a primitive getter or setter and is now a GETTER_AND_SETTER
+                    accessStyle.mode= Mode.PRIMITIVE_GETTER_AND_SETTER;
+                }
+
             });
             if (accessStyle.type == null && accessStyle.mode == null) {
                 accessStyle.type = iface;
@@ -249,23 +276,24 @@ public class Schema<T extends Buffer> {
         return clazz.isInterface() && Buffer.UnionChild.class.isAssignableFrom(clazz);
     }
 
-    static boolean isMappable(Class<?> clazz) {
-        return isStruct(clazz) || isBuffer(clazz) || isUnion(clazz);
-    }
-
-    public static abstract class AbstractField {
-        ParentField parent;
-
-        AbstractField(ParentField parent) {
+    public static abstract class SchemaNode {
+        TypeSchemaNode parent;
+        SchemaNode(TypeSchemaNode parent) {
             this.parent = parent;
         }
-
         public abstract void toText(String indent, Consumer<String> stringConsumer);
 
-        public static class Padding extends AbstractField {
-            int len;
+        public static abstract sealed class FieldSchemaNode extends SchemaNode permits Array, ArrayLen, AtomicField, Field, Padding {
+            FieldSchemaNode(TypeSchemaNode parent) {
+                super(parent);
+            }
+            public abstract void toText(String indent, Consumer<String> stringConsumer);
+            abstract void collectLayouts(LayoutToBoundFieldTreeNode layoutCollector);
+        }
 
-            Padding(ParentField parent, int len) {
+        public static final class Padding extends FieldSchemaNode {
+            int len;
+            Padding(TypeSchemaNode parent, int len) {
                 super(parent);
                 this.len = len;
             }
@@ -276,342 +304,295 @@ public class Schema<T extends Buffer> {
             }
 
             @Override
-            void collectLayouts(LayoutCollector layoutCollector) {
-                layoutCollector.add(MemoryLayout.paddingLayout(len));
+            void collectLayouts(LayoutToBoundFieldTreeNode layoutToFieldBindingNode) {
+                layoutToFieldBindingNode.bind(this, MemoryLayout.paddingLayout(len));
             }
         }
 
-        /**
-         * Get a layout which describes the accessStyle.
-         *
-         * If accessStyle holds a primitive (int, float) then just map to JAVA_INT, JAVA_FLOAT value layouts
-         * Otherwise we look through the parent's children.  Which should include a struct/union matching the type.
-         * @param accessStyle
-         * @param layoutCollector
-         * @return
-         */
-      //  MemoryLayout getLayout(AccessStyle accessStyle, LinkedList<Integer> lengthsToBind, List<FieldControlledArray> boundArrays) {
-        MemoryLayout getLayout(AccessStyle accessStyle, LayoutCollector layoutCollector) {
-            MemoryLayout memoryLayout = null;
-            if (accessStyle.type == Integer.TYPE) {
-                memoryLayout = JAVA_INT;
-            } else if (accessStyle.type == Float.TYPE) {
-                memoryLayout = JAVA_FLOAT;
-            } else if (accessStyle.type == Long.TYPE) {
-                memoryLayout = JAVA_LONG;
-            } else if (accessStyle.type == Double.TYPE) {
-                memoryLayout = JAVA_DOUBLE;
-            } else if (accessStyle.type == Short.TYPE) {
-                memoryLayout = JAVA_SHORT;
-            } else if (accessStyle.type == Character.TYPE) {
-                memoryLayout = JAVA_CHAR;
-            } else if (accessStyle.type == Byte.TYPE) {
-                memoryLayout = JAVA_BYTE;
-            } else if (accessStyle.type == Boolean.TYPE) {
-                memoryLayout = JAVA_BOOLEAN;
-            } else {
-                ParentField o = parent.childFields.stream().filter(c -> c instanceof ParentField).map(c -> (ParentField) c)
-                        .filter(p -> p.accessStyle.type.equals(accessStyle.type)).findFirst().get();
-                layoutCollector.push();
+        public static final class ArrayLen extends FieldSchemaNode {
+            NameTypeAndMode nameTypeAndMode;
 
-                o.childFields.forEach(c -> {
-                    if (!(c instanceof AbstractField.ParentField)) {
-
-                        c.collectLayouts(layoutCollector);
-                    }
-                });
-
-                MemoryLayout[] childLayoutsAsArray = layoutCollector.array();
-                layoutCollector.pop();
-                if (isUnion(o.accessStyle.type)) {
-                    memoryLayout = MemoryLayout.unionLayout(childLayoutsAsArray);
-                } else if (isStructOrBuffer(o.accessStyle.type)) {
-                    memoryLayout = MemoryLayout.structLayout(childLayoutsAsArray);
-                } else {
-                    throw new IllegalStateException("Recursing through layout collections and came across  "+o.accessStyle.type);
-                }
-            }
-            return memoryLayout;
-        }
-
-        public static class ArrayLen extends AbstractField {
-            AccessStyle accessStyle;
-
-            ArrayLen(ParentField parent, AccessStyle accessStyle) {
+            ArrayLen(TypeSchemaNode parent, NameTypeAndMode nameTypeAndMode) {
                 super(parent);
-                this.accessStyle = accessStyle;
+                this.nameTypeAndMode = nameTypeAndMode;
             }
 
             @Override
             public void toText(String indent, Consumer<String> stringConsumer) {
-                stringConsumer.accept(indent + "arrayLen " + accessStyle);
+                stringConsumer.accept(indent + "arrayLen " + nameTypeAndMode);
             }
 
             @Override
-            void collectLayouts(LayoutCollector layoutCollector) {
-                 layoutCollector.add(getLayout(accessStyle, layoutCollector).withName(accessStyle.name));
+            void collectLayouts(LayoutToBoundFieldTreeNode layoutToFieldBindingNode) {
+                layoutToFieldBindingNode.bind(this, parent.getLayout(nameTypeAndMode, layoutToFieldBindingNode).withName(nameTypeAndMode.name));
             }
         }
 
-        public static class AtomicField extends AbstractField {
-            AccessStyle accessStyle;
+        public static final class AtomicField extends FieldSchemaNode {
+            NameTypeAndMode nameTypeAndMode;
 
-            AtomicField(ParentField parent, AccessStyle accessStyle) {
+            AtomicField(TypeSchemaNode parent, NameTypeAndMode nameTypeAndMode) {
                 super(parent);
-                this.accessStyle = accessStyle;
+                this.nameTypeAndMode = nameTypeAndMode;
             }
 
             @Override
             public void toText(String indent, Consumer<String> stringConsumer) {
-                stringConsumer.accept(indent + "atomic " + accessStyle);
+                stringConsumer.accept(indent + "atomic " + nameTypeAndMode);
             }
+
             @Override
-            void collectLayouts(LayoutCollector layoutCollector) {
-                 layoutCollector.add(getLayout(accessStyle, layoutCollector).withName(accessStyle.name));
+            void collectLayouts(LayoutToBoundFieldTreeNode layoutToFieldBindingNode) {
+                layoutToFieldBindingNode.bind(this, parent.getLayout(nameTypeAndMode, layoutToFieldBindingNode).withName(nameTypeAndMode.name));
             }
         }
 
-        public static class Field extends AbstractField {
-            AccessStyle accessStyle;
+        public static final class Field extends FieldSchemaNode {
+            NameTypeAndMode nameTypeAndMode;
 
-            Field(ParentField parent, AccessStyle accessStyle) {
+            Field(TypeSchemaNode parent, NameTypeAndMode nameTypeAndMode) {
                 super(parent);
-                this.accessStyle = accessStyle;
+                this.nameTypeAndMode = nameTypeAndMode;
             }
 
             @Override
             public void toText(String indent, Consumer<String> stringConsumer) {
-                stringConsumer.accept(indent + "field " + accessStyle);
-            }
-            @Override
-            void collectLayouts(LayoutCollector layoutCollector) {
-                layoutCollector.add(getLayout(accessStyle, layoutCollector).withName(accessStyle.name));
+                stringConsumer.accept(indent + "field " + nameTypeAndMode);
             }
 
+            @Override
+            void collectLayouts(LayoutToBoundFieldTreeNode layoutToFieldBindingNode) {
+                layoutToFieldBindingNode.bind(this, parent.getLayout(nameTypeAndMode, layoutToFieldBindingNode).withName(nameTypeAndMode.name));
+            }
         }
 
-        public static abstract class ParentField extends AbstractField {
-            private List<AbstractField> childFields = new ArrayList<>();
-            Map<Class<?>,AbstractField> typeMap = new HashMap<>();
-            AccessStyle accessStyle;
-            <T extends AbstractField> T addChildField(T child) {
-                childFields.add(child);
+        public static abstract sealed class TypeSchemaNode extends SchemaNode permits Union,Struct {
+            private List<FieldSchemaNode> fields = new ArrayList<>();
+            private List<TypeSchemaNode> types = new ArrayList<>();
+            NameTypeAndMode nameTypeAndMode;
+
+            <T extends FieldSchemaNode> T addField(T child) {
+                fields.add(child);
                 return child;
             }
-            ParentField(ParentField parent, AccessStyle accessStyle) {
+            <T extends TypeSchemaNode> T addType(T child) {
+                types.add(child);
+                return child;
+            }
+
+            TypeSchemaNode(TypeSchemaNode parent, NameTypeAndMode nameTypeAndMode) {
                 super(parent);
-                this.accessStyle = accessStyle;
+                this.nameTypeAndMode = nameTypeAndMode;
             }
-
-            public ParentField struct(String name, Consumer<ParentField> fb) {
-                var struct = new Struct(this, AccessStyle.of(accessStyle.type, name));
-                addChildField(struct);
-                typeMap.put(accessStyle.type,struct);
-                fb.accept(struct);
-                return this;
-            }
-
-            public ParentField union(String name, Consumer<ParentField> fb) {
-                var union = new Union(this, AccessStyle.of(accessStyle.type, name));
-                addChildField(union);
-                typeMap.put(accessStyle.type,union);
-                fb.accept(union);
-                return this;
-            }
-
-            public ParentField field(String name) {
-                addChildField(new Field(this, AccessStyle.of(accessStyle.type, name)));
-                return this;
-            }
-
-            public ParentField atomic(String name) {
-                addChildField(new AtomicField(this, AccessStyle.of(accessStyle.type, name)));
-                return this;
-            }
-
-            public ParentField pad(int len) {
-                addChildField(new Padding(this, len));
-                return this;
-            }
-
-            public ParentField field(String name, Consumer<ParentField> parentFieldConsumer) {
-                AccessStyle newAccessStyle = AccessStyle.of(accessStyle.type, name);
-                addChildField(new Field(this, newAccessStyle));
-                ParentField field;
-                if (isStruct(newAccessStyle.type)) {
-                    field = new AbstractField.Struct(this, newAccessStyle);
-                } else if (isUnion(newAccessStyle.type)) {
-                    field = new AbstractField.Union(this, newAccessStyle);
+            /**
+             * Get a layout which describes the NameTypeAndMode.
+             * <p>
+             * If NameTypeAndMode holds a primitive (int, float) then just map to JAVA_INT, JAVA_FLOAT value layouts
+             * Otherwise we look through the parent's children.  Which should include a type node struct/union matching the type.
+             *
+             * @param nameTypeAndMode
+             * @param layoutToFieldBindingNode
+             * @return
+             */
+             MemoryLayout getLayout(NameTypeAndMode nameTypeAndMode, LayoutToBoundFieldTreeNode layoutToFieldBindingNode) {
+                MemoryLayout memoryLayout = null;
+                if (nameTypeAndMode.type == Integer.TYPE) {
+                    memoryLayout = JAVA_INT;
+                } else if (nameTypeAndMode.type == Float.TYPE) {
+                    memoryLayout = JAVA_FLOAT;
+                } else if (nameTypeAndMode.type == Long.TYPE) {
+                    memoryLayout = JAVA_LONG;
+                } else if (nameTypeAndMode.type == Double.TYPE) {
+                    memoryLayout = JAVA_DOUBLE;
+                } else if (nameTypeAndMode.type == Short.TYPE) {
+                    memoryLayout = JAVA_SHORT;
+                } else if (nameTypeAndMode.type == Character.TYPE) {
+                    memoryLayout = JAVA_CHAR;
+                } else if (nameTypeAndMode.type == Byte.TYPE) {
+                    memoryLayout = JAVA_BYTE;
+                } else if (nameTypeAndMode.type == Boolean.TYPE) {
+                    memoryLayout = JAVA_BOOLEAN;
                 } else {
-                    throw new IllegalArgumentException("Unsupported field type: " + newAccessStyle.type);
+                    TypeSchemaNode o = types.stream()
+                            .filter(p -> p.nameTypeAndMode.type.equals(nameTypeAndMode.type)).findFirst().get();
+                    LayoutToBoundFieldTreeNode scope = layoutToFieldBindingNode.createChild();
+                    o.fields.stream()
+                            .forEach(fieldSchemaNode -> {
+                                fieldSchemaNode.collectLayouts(scope);
+                            });
+                    if (isUnion(o.nameTypeAndMode.type)) {
+                        memoryLayout = MemoryLayout.unionLayout(scope.array());
+                    } else if (isStructOrBuffer(o.nameTypeAndMode.type)) {
+                        memoryLayout = MemoryLayout.structLayout(scope.array());
+                    } else {
+                        throw new IllegalStateException("Recursing through layout collections and came across  " + o.nameTypeAndMode.type);
+                    }
                 }
-                parentFieldConsumer.accept(field);
-                addChildField(field);
-                typeMap.put(newAccessStyle.type,field);
+                return memoryLayout;
+            }
+
+
+            public TypeSchemaNode struct(String name, Consumer<TypeSchemaNode> parentSchemaNodeConsumer) {
+                parentSchemaNodeConsumer.accept(addType(new Struct(this, NameTypeAndMode.of(nameTypeAndMode.type, name))));
                 return this;
             }
 
-            public ParentField fields(String name1, String name2, Consumer<ParentField> parentFieldConsumer) {
-                AccessStyle newAccessStyle1 = AccessStyle.of(accessStyle.type, name1);
-                AccessStyle newAccessStyle2 = AccessStyle.of(accessStyle.type, name2);
-                addChildField(new Field(this, newAccessStyle1));
-                addChildField(new Field(this, newAccessStyle2));
-
-                ParentField field;
-                if (isStruct(newAccessStyle1.type)) {
-                    field = new AbstractField.Struct(this, newAccessStyle1);
-                } else if (isUnion(newAccessStyle1.type)) {
-                    field = new AbstractField.Union(this, newAccessStyle2);
-                } else {
-                    throw new IllegalArgumentException("Unsupported array type: " + newAccessStyle2.type);
-                }
-                parentFieldConsumer.accept(field);
-                addChildField(field);
+            public TypeSchemaNode union(String name, Consumer<TypeSchemaNode> parentSchemaNodeConsumer) {
+                parentSchemaNodeConsumer.accept(addType(new Union(this, NameTypeAndMode.of(nameTypeAndMode.type, name))));
                 return this;
             }
 
-            public ParentField fields(String... names) {
+            public TypeSchemaNode field(String name) {
+                addField(new Field(this, NameTypeAndMode.of(nameTypeAndMode.type, name)));
+                return this;
+            }
+
+            public TypeSchemaNode atomic(String name) {
+                addField(new AtomicField(this, NameTypeAndMode.of(nameTypeAndMode.type, name)));
+                return this;
+            }
+
+            public TypeSchemaNode pad(int len) {
+                addField(new Padding(this, len));
+                return this;
+            }
+
+            public TypeSchemaNode field(String name, Consumer<TypeSchemaNode> parentSchemaNodeConsumer) {
+                NameTypeAndMode newAccessStyle = NameTypeAndMode.of(nameTypeAndMode.type, name);
+                addField(new Field(this, newAccessStyle));
+                TypeSchemaNode field = isStruct(newAccessStyle.type)?new SchemaNode.Struct(this, newAccessStyle):new SchemaNode.Union(this, newAccessStyle);
+                parentSchemaNodeConsumer.accept(addType(field));
+                return this;
+            }
+
+            public TypeSchemaNode fields(String name1, String name2, Consumer<TypeSchemaNode> parentSchemaNodeConsumer) {
+                NameTypeAndMode newAccessStyle1 = NameTypeAndMode.of(nameTypeAndMode.type, name1);
+                NameTypeAndMode newAccessStyle2 = NameTypeAndMode.of(nameTypeAndMode.type, name2);
+                addField(new Field(this, newAccessStyle1));
+                addField(new Field(this, newAccessStyle2));
+                TypeSchemaNode typeSchemaNode=isStruct(newAccessStyle1.type)
+                        ? new SchemaNode.Struct(this, newAccessStyle1)
+                        :new SchemaNode.Union(this, newAccessStyle2);
+                parentSchemaNodeConsumer.accept(addType(typeSchemaNode));
+                return this;
+            }
+
+            public TypeSchemaNode fields(String... names) {
                 for (var name : names) {
                     field(name);
                 }
                 return this;
             }
 
-            public ParentField array(String name, int len) {
-                addChildField(new FixedArray(this, name, AccessStyle.of(accessStyle.type, name), len));
+            public TypeSchemaNode array(String name, int len) {
+                addField(new FixedArray(this, name, NameTypeAndMode.of(nameTypeAndMode.type, name), len));
                 return this;
             }
 
-            public static ParentField createStructOrUnion(ParentField parent, AccessStyle accessStyle) {
-                if (isStruct(accessStyle.type)) {
-                    return new AbstractField.Struct(parent, accessStyle);
-                } else if (isUnion(accessStyle.type)) {
-                    return new AbstractField.Union(parent, accessStyle);
-                }
-                throw new IllegalArgumentException("Unsupported array type: " + accessStyle.type);
-
-            }
-
-            public ParentField array(String name, int len, Consumer<ParentField> parentFieldConsumer) {
-                AccessStyle newAccessStyle = AccessStyle.of(accessStyle.type, name);
-                ParentField field = createStructOrUnion(this, newAccessStyle);
-                parentFieldConsumer.accept(field);
-                addChildField(field);
-                typeMap.put(accessStyle.type,field);
-                addChildField(new FixedArray(this, name, AccessStyle.of(accessStyle.type, name), len));
+            public TypeSchemaNode array(String name, int len, Consumer<TypeSchemaNode> parentFieldConsumer) {
+                NameTypeAndMode newAccessStyle = NameTypeAndMode.of(nameTypeAndMode.type, name);
+                TypeSchemaNode typeSchemaNode = isStruct(nameTypeAndMode.type)
+                                ?new SchemaNode.Struct(this, newAccessStyle)
+                                :new SchemaNode.Union(this, newAccessStyle);
+                parentFieldConsumer.accept(typeSchemaNode);
+                addType(typeSchemaNode);
+                addField(new FixedArray(this, name, NameTypeAndMode.of(nameTypeAndMode.type, name), len));
                 return this;
             }
 
-            private ParentField fieldControlledArray(String name, ArrayLen arrayLen) {
-                addChildField(new FieldControlledArray(this, name, AccessStyle.of(accessStyle.type, name), arrayLen));
+            private TypeSchemaNode fieldControlledArray(String name, ArrayLen arrayLen) {
+                addField(new FieldControlledArray(this, name, NameTypeAndMode.of(nameTypeAndMode.type, name), arrayLen));
                 return this;
             }
-
 
             public static class ArrayBuildState {
-                ParentField parentField;
+                TypeSchemaNode typeSchemaNode;
                 ArrayLen arrayLenField;
 
-                public ParentField array(String name) {
-                    return parentField.fieldControlledArray(name, arrayLenField);
+                public TypeSchemaNode array(String name) {
+                    return typeSchemaNode.fieldControlledArray(name, arrayLenField);
                 }
 
-                public ParentField array(String name, Consumer<ParentField> parentFieldConsumer) {
-                    AccessStyle newAccessStyle = AccessStyle.of(parentField.accessStyle.type, name);
-                    parentField.fieldControlledArray(name, arrayLenField);
-                    ParentField field = createStructOrUnion(parentField, newAccessStyle);
-                    parentFieldConsumer.accept(field);
-                    parentField.addChildField(field);
-                    parentField.typeMap.put(parentField.accessStyle.type,field);
-                    return parentField;
+                public TypeSchemaNode array(String name, Consumer<TypeSchemaNode> parentFieldConsumer) {
+                    NameTypeAndMode newAccessStyle = NameTypeAndMode.of(typeSchemaNode.nameTypeAndMode.type, name);
+                    this.typeSchemaNode.fieldControlledArray(name, arrayLenField);
+                    TypeSchemaNode typeSchemaNode =isStruct(newAccessStyle.type)
+                            ?new SchemaNode.Struct(this.typeSchemaNode, newAccessStyle)
+                            :new SchemaNode.Union(this.typeSchemaNode, newAccessStyle);
+                    parentFieldConsumer.accept(typeSchemaNode);
+                    this.typeSchemaNode.addType(typeSchemaNode);
+                    return this.typeSchemaNode;
                 }
 
-                ArrayBuildState(ParentField parentField, ArrayLen arrayLenField) {
-                    this.parentField = parentField;
+                ArrayBuildState(TypeSchemaNode typeSchemaNode, ArrayLen arrayLenField) {
+                    this.typeSchemaNode = typeSchemaNode;
                     this.arrayLenField = arrayLenField;
                 }
             }
 
             public ArrayBuildState arrayLen(String arrayLenFieldName) {
-                var arrayLenField = new ArrayLen(this, AccessStyle.of(accessStyle.type, arrayLenFieldName));
-                addChildField(arrayLenField);
+                var arrayLenField = new ArrayLen(this, NameTypeAndMode.of(nameTypeAndMode.type, arrayLenFieldName));
+                addField(arrayLenField);
                 return new ArrayBuildState(this, arrayLenField);
             }
 
             public void flexArray(String name) {
-                addChildField(new FlexArray(this, name, null));
+                addField(new FlexArray(this, name, null));
             }
 
-            @Override
-            void collectLayouts(LayoutCollector layoutCollector) {
-                layoutCollector.push();
-                childFields.forEach(c -> {
-                    if (!(c instanceof ParentField)) {
-                        c.collectLayouts(layoutCollector);
-                    }
-                });
-                MemoryLayout memoryLayout = null;
-                if (isUnion(accessStyle.type)) {
-                    memoryLayout =MemoryLayout.unionLayout(layoutCollector.array());
-                } else if (isStructOrBuffer(accessStyle.type)) {
-                    memoryLayout = MemoryLayout.structLayout(layoutCollector.array());
-                } else {
-                    throw new IllegalStateException("Oh my ");
-                }
-                layoutCollector.pop();
-                layoutCollector.add(memoryLayout);
-            }
 
             @Override
             public void toText(String indent, Consumer<String> stringConsumer) {
                 stringConsumer.accept(indent);
-                if (isUnion(accessStyle.type)) {
+                if (isUnion(nameTypeAndMode.type)) {
                     stringConsumer.accept("union");
-                } else if (isStructOrBuffer(accessStyle.type)) {
+                } else if (isStructOrBuffer(nameTypeAndMode.type)) {
                     stringConsumer.accept("struct");
                 } else {
                     throw new IllegalStateException("Oh my ");
                 }
-                stringConsumer.accept(" " + accessStyle + "{");
+                stringConsumer.accept(" " + nameTypeAndMode + "{");
                 stringConsumer.accept("\n");
-                childFields.forEach(c -> {
-                    c.toText(indent + " ", stringConsumer);
+                types.forEach(c -> {
+                    c.toText(indent + " TYPE: ", stringConsumer);
                     stringConsumer.accept("\n");
                 });
+                fields.forEach(c -> {
+                    c.toText(indent + " FIELD: ", stringConsumer);
+                    stringConsumer.accept("\n");
+                });
+
                 stringConsumer.accept(indent);
                 stringConsumer.accept("}");
             }
         }
 
-        public static class Struct extends ParentField {
-            Struct(ParentField parent, AccessStyle accessStyle) {
-                super(parent, accessStyle);
+        public static final class Struct extends TypeSchemaNode {
+            Struct(TypeSchemaNode parent, NameTypeAndMode nameTypeAndMode) {
+                super(parent, nameTypeAndMode);
             }
         }
 
-        public static class Union extends ParentField {
-            Union(ParentField parent, AccessStyle accessStyle) {
-                super(parent, accessStyle);
+        public static final class Union extends TypeSchemaNode {
+            Union(TypeSchemaNode parent, NameTypeAndMode nameTypeAndMode) {
+                super(parent, nameTypeAndMode);
             }
         }
 
-        public abstract static class Array extends AbstractField {
+        public abstract static sealed class Array extends FieldSchemaNode permits FieldControlledArray, FixedArray, FlexArray {
             String name;
-            AccessStyle elementAccessStyle;
-
-            Array(ParentField parent, String name, AccessStyle elementAccessStyle) {
+            NameTypeAndMode elementAccessStyle;
+            Array(TypeSchemaNode parent, String name, NameTypeAndMode elementAccessStyle) {
                 super(parent);
                 this.name = name;
                 this.elementAccessStyle = elementAccessStyle;
             }
-
-
         }
 
-        public static class FixedArray extends Array {
+        public static final class FixedArray extends Array {
             int len;
 
-            FixedArray(ParentField parent, String name, AccessStyle elementAccessStyle, int len) {
+            FixedArray(TypeSchemaNode parent, String name, NameTypeAndMode elementAccessStyle, int len) {
                 super(parent, name, elementAccessStyle);
                 this.len = len;
             }
@@ -622,15 +603,15 @@ public class Schema<T extends Buffer> {
             }
 
             @Override
-            void collectLayouts(LayoutCollector layoutCollector) {
-                MemoryLayout elementLayout = getLayout(elementAccessStyle, layoutCollector).withName(elementAccessStyle.type.getSimpleName());;
-                SequenceLayout sequenceLayout = MemoryLayout.sequenceLayout(len, elementLayout).withName(elementAccessStyle.name);
-                layoutCollector.add(sequenceLayout);
+            void collectLayouts(LayoutToBoundFieldTreeNode layoutToFieldBindingNode) {
+                layoutToFieldBindingNode.bind(this, MemoryLayout.sequenceLayout(len,
+                        parent.getLayout(elementAccessStyle, layoutToFieldBindingNode).withName(elementAccessStyle.type.getSimpleName())
+                ).withName(elementAccessStyle.name));
             }
         }
 
-        public static class FlexArray extends Array {
-            FlexArray(ParentField parent, String name, AccessStyle elementAccessStyle) {
+        public static final  class FlexArray extends Array {
+            FlexArray(TypeSchemaNode parent, String name, NameTypeAndMode elementAccessStyle) {
                 super(parent, name, elementAccessStyle);
             }
 
@@ -639,65 +620,61 @@ public class Schema<T extends Buffer> {
                 stringConsumer.accept(indent + "array [?] ");
             }
 
-            void collectLayouts(LayoutCollector layoutCollector) {
-                MemoryLayout elementLayout = getLayout(elementAccessStyle, layoutCollector).withName(elementAccessStyle.type.getSimpleName());;
-                SequenceLayout sequenceLayout = MemoryLayout.sequenceLayout(0, elementLayout).withName(elementAccessStyle.name);
-                layoutCollector.add(sequenceLayout);
+            void collectLayouts(LayoutToBoundFieldTreeNode layoutToFieldBindingNode) {
+                layoutToFieldBindingNode.bind(this,
+                        MemoryLayout.sequenceLayout(0,
+                                parent.getLayout(elementAccessStyle, layoutToFieldBindingNode).withName(elementAccessStyle.type.getSimpleName())
+                        ).withName(elementAccessStyle.name));
             }
         }
 
-        public static class FieldControlledArray extends Array {
+        public static final class FieldControlledArray extends Array {
             ArrayLen arrayLen;
 
-            FieldControlledArray(ParentField parent, String name, AccessStyle elementAccessStyle, ArrayLen arrayLen) {
+            FieldControlledArray(TypeSchemaNode parent, String name, NameTypeAndMode elementAccessStyle, ArrayLen arrayLen) {
                 super(parent, name, elementAccessStyle);
                 this.arrayLen = arrayLen;
             }
 
             @Override
             public void toText(String indent, Consumer<String> stringConsumer) {
-                stringConsumer.accept(indent + elementAccessStyle.name + "[" + elementAccessStyle + "] where len defined by " + arrayLen.accessStyle);
+                stringConsumer.accept(indent + elementAccessStyle.name + "[" + elementAccessStyle + "] where len defined by " + arrayLen.nameTypeAndMode);
             }
 
             @Override
-            void collectLayouts(LayoutCollector layoutCollector) {
-                MemoryLayout elementLayout = getLayout(elementAccessStyle, layoutCollector).withName(elementAccessStyle.type.getSimpleName());;
-                var arraySizeBinding = layoutCollector.getIdx();
-                SequenceLayout sequenceLayout = MemoryLayout.sequenceLayout(arraySizeBinding.idx, elementLayout).withName(elementAccessStyle.name);
-                layoutCollector.add(sequenceLayout);
-                arraySizeBinding.fieldControlledArray=this;
+            void collectLayouts(LayoutToBoundFieldTreeNode layoutToFieldBindingNode) {
+                layoutToFieldBindingNode.bind(this, MemoryLayout.sequenceLayout(
+                        layoutToFieldBindingNode.takeArrayLen(),
+                        parent.getLayout(elementAccessStyle, layoutToFieldBindingNode).withName(elementAccessStyle.type.getSimpleName())
+                ).withName(elementAccessStyle.name));
             }
         }
-      abstract void collectLayouts(LayoutCollector layoutCollector);
     }
 
-
-    Schema(Class<T> iface, AbstractField.ParentField field) {
+    Schema(Class<T> iface, SchemaNode.TypeSchemaNode schemaRootField) {
         this.iface = iface;
-        this.field = field;
+        this.schemaRootField = schemaRootField;
     }
 
-
-
-    public T allocate(BufferAllocator bufferAllocator, int... boundLengths) {
-        var boundLayout = collectLayouts(boundLengths);
-        var segmentMapper = SegmentMapper.of(MethodHandles.lookup(),iface, boundLayout.groupLayout);
-        return bufferAllocator.allocate(segmentMapper);
+    public final static BufferAllocator GlobalArenaAllocator = new BufferAllocator() {
+        public <T extends Buffer> T allocate(SegmentMapper<T> s) {
+            return s.allocate(Arena.global());
+        }
+    };
+    public T allocate(BufferAllocator bufferAllocator,int... boundLengths) {
+        return new BoundSchema<>(this, boundLengths).allocate(bufferAllocator);
+    }
+    public T allocate(int... boundLengths) {
+        return allocate(GlobalArenaAllocator,boundLengths);
     }
 
-    public T allocate( int... boundLengths) {
-        return allocate(GlobalArenaAllocator, boundLengths);
-    }
-
-    public static <T extends Buffer> Schema<T> of(Class<T> iface, Consumer<AbstractField.ParentField> parentFieldConsumer) {
-        AccessStyle accessStyle = AccessStyle.of(iface, iface.getSimpleName());
-        var struct = new AbstractField.Struct(null, accessStyle);
+    public static <T extends Buffer> Schema<T> of(Class<T> iface, Consumer<SchemaNode.TypeSchemaNode> parentFieldConsumer) {
+        NameTypeAndMode nameTypeAndMode = NameTypeAndMode.of(iface, iface.getSimpleName());
+        var struct = new SchemaNode.Struct(null, nameTypeAndMode);
         parentFieldConsumer.accept(struct);
         return new Schema<>(iface, struct);
     }
-
     public void toText(Consumer<String> stringConsumer) {
-        field.toText("", stringConsumer);
+        schemaRootField.toText("", stringConsumer);
     }
-
 }
