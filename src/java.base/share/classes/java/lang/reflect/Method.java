@@ -43,6 +43,7 @@ import sun.reflect.generics.factory.GenericsFactory;
 import sun.reflect.generics.scope.MethodScope;
 import sun.reflect.annotation.AnnotationType;
 import sun.reflect.annotation.AnnotationParser;
+import java.io.CharArrayWriter;
 import java.lang.annotation.Annotation;
 import java.lang.annotation.AnnotationFormatError;
 import java.lang.reflect.code.op.ExtendedOp;
@@ -277,7 +278,17 @@ public final class Method extends Executable {
 
     private Optional<FuncOp> createCodeModel() {
         Class<?> dc = getDeclaringClass();
-        String fieldName = getName() + "$" + "op";
+        CharArrayWriter sigB = new CharArrayWriter();
+        for (var p : parameterTypes) {
+            sigB.append(p.descriptorString());
+        }
+        char[] sig = sigB.toCharArray();
+        for (int i = 0; i < sig.length; i++) {
+            switch (sig[i]) {
+                case '.', ';', '[', '/': sig[i] = '$';
+            }
+        }
+        String fieldName = getName() + "$" + new String(sig) + "$" + "op";
         Field f;
         try {
             f = dc.getDeclaredField(fieldName);
