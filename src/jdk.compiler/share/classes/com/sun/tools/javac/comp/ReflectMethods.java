@@ -88,7 +88,6 @@ import jdk.internal.java.lang.reflect.code.type.*;
 import jdk.internal.java.lang.reflect.code.type.WildcardType.BoundKind;
 
 import javax.lang.model.element.Modifier;
-import java.io.CharArrayWriter;
 import java.lang.constant.ClassDesc;
 import java.util.*;
 import java.util.function.Function;
@@ -192,7 +191,7 @@ public class ReflectMethods extends TreeTranslator {
                 }
                 // create a static final field holding the op' string text.
                 // The name of the field is foo$op, where 'foo' is the name of the corresponding method.
-                classOps.add(opFieldDecl(methodName(tree), tree.getModifiers().flags, funcOp));
+                classOps.add(opFieldDecl(methodName(bodyScanner.symbolToErasedMethodRef(tree.sym)), tree.getModifiers().flags, funcOp));
             } catch (UnsupportedASTException ex) {
                 // whoops, some AST node inside the method body were not supported. Log it and move on.
                 log.note(ex.tree, Notes.MethodIrSkip(tree.sym.enclClass(), tree.sym, ex.tree.getTag().toString()));
@@ -355,32 +354,14 @@ public class ReflectMethods extends TreeTranslator {
         return names.fromString("lambda").append('$', names.fromString(String.valueOf(lambdaCount++)));
     }
 
-    Name methodName(JCMethodDecl method) {
-        CharArrayWriter sig = new CharArrayWriter();
-        var sigGen = new Types.SignatureGenerator(types) {
-            @Override
-            protected void append(char ch) {
-                sig.append(ch);
-            }
-            @Override
-            protected void append(byte[] ba) {
-                sig.append(new String(ba));
-            }
-            @Override
-            protected void append(Name name) {
-                sig.append(name.toString());
-            }
-        };
-        for (var pt : method.sym.externalType(types).getParameterTypes()) {
-            sigGen.assembleSig(types.erasure(pt));
-        }
-        char[] sigCh = sig.toCharArray();
+    Name methodName(MethodRef method) {
+        char[] sigCh = method.toString().toCharArray();
         for (int i = 0; i < sigCh.length; i++) {
             switch (sigCh[i]) {
                 case '.', ';', '[', '/' -> sigCh[i] = '$';
             }
         }
-        return method.name.append('$', names.fromChars(sigCh, 0, sigCh.length));
+        return names.fromChars(sigCh, 0, sigCh.length);
     }
 
     private JCVariableDecl opFieldDecl(Name prefix, long flags, CoreOp.FuncOp op) {
