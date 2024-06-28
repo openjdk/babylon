@@ -389,8 +389,7 @@ public final class LambdaMetafactory {
      *                          Class... altInterfaces,       // IF flags has MARKERS set
      *                          int altMethodCount,           // IF flags has BRIDGES set
      *                          MethodType... altMethods      // IF flags has BRIDGES set
-     *                          MethodType reflectType        // IF flags has QUOTABLE set
-     *                          MethodHandle reflectField     // IF flags has QUOTABLE set
+     *                          MethodHandle quotableField    // IF flags has QUOTABLE set
      *                          )
      * }</pre>
      *
