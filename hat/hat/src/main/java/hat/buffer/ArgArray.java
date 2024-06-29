@@ -358,7 +358,7 @@ public interface ArgArray extends IncompleteBuffer {
                 case Double f64 -> "(?:f64)";
                 case CompleteBuffer buffer -> "(!:" + buffer.schema()+")";
                 case IncompleteBuffer buffer -> "(?:" + buffer.schema()+")";
-                default -> throw new IllegalStateException("Unexpected value: " + argObject);
+                default -> throw new IllegalStateException("Unexpected value: " + argObject + " Did you pass an interface which is neither a Complete or Incomplete buffer");
             };
             if (i > 0) {
                 argSchema.append(",");

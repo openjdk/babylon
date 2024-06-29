@@ -24,51 +24,142 @@
  */
 package experiments;
 
+import hat.Accelerator;
+import hat.ComputeContext;
+import hat.KernelContext;
 import hat.Schema;
 import hat.buffer.Buffer;
+import hat.buffer.BufferAllocator;
+import hat.buffer.CompleteBuffer;
+import hat.ifacemapper.SegmentMapper;
 
+import java.lang.foreign.MemoryLayout;
+import java.lang.foreign.StructLayout;
+import java.lang.invoke.MethodHandles;
+import java.lang.runtime.CodeReflection;
 import java.util.Random;
 
-public interface Mesh extends Buffer {
-    interface Point3D extends StructChild {
-        int x();void x(int x);
-        int y();void y(int y);
-        int z();void z(int z);
+import static java.lang.foreign.ValueLayout.JAVA_INT;
+
+public class Mesh {
+    public interface MeshData extends CompleteBuffer {
+        interface Point3D extends StructChild {
+            int x();
+
+            void x(int x);
+
+            int y();
+
+            void y(int y);
+
+            int z();
+
+            void z(int z);
+        }
+
+        int points();
+
+        void points(int points);
+
+        Point3D point(long idx);
+
+        interface Vertex3D extends StructChild {
+            int from();
+
+            void from(int id);
+
+            int to();
+
+            void to(int id);
+        }
+
+        int vertices();
+
+        void vertices(int vertices);
+
+        Vertex3D vertex(long idx);
+
+        static StructLayout getLayout() {
+            return MemoryLayout.structLayout(
+                    JAVA_INT.withName("points"),
+                    MemoryLayout.sequenceLayout(100,
+                            MemoryLayout.structLayout(
+                                    JAVA_INT.withName("x"),
+                                    JAVA_INT.withName("y"),
+                                    JAVA_INT.withName("z")
+                            ).withName(Point3D.class.getSimpleName())
+                    ).withName("point"),
+                    JAVA_INT.withName("vertices"),
+                    MemoryLayout.sequenceLayout(10,
+                            MemoryLayout.structLayout(
+                                    JAVA_INT.withName("from"),
+                                    JAVA_INT.withName("to")
+                            ).withName(Vertex3D.class.getSimpleName())
+                    ).withName("vertex")
+            ).withName(MeshData.class.getSimpleName());
+        }
+        static  MeshData create(BufferAllocator bufferAllocator) {
+           return bufferAllocator.allocate(SegmentMapper.of(MethodHandles.lookup(), MeshData.class, getLayout()));
+        }
+
+        Schema<MeshData> schema = Schema.of(MeshData.class, cascade -> cascade
+                .arrayLen("points").array("point", p -> p.fields("x", "y", "z"))
+                .arrayLen("vertices").array("vertex", v -> v.fields("from", "to"))
+        );
     }
 
-    int points();void points(int points);
-    Point3D point(long idx);
+    public static class Compute {
+        @CodeReflection
+        public static void initPoints(KernelContext kc, MeshData mesh) {
+            if (kc.x < kc.maxX) {
+                MeshData.Point3D point = mesh.point(kc.x);
+                point.x(kc.x);
+                point.y(0);
+                point.z(0);
+            }
+        }
 
-    interface Vertex3D extends StructChild {
-        int from();void from(int id);
-        int to();void to(int id);
+        @CodeReflection
+        public static void buildMesh(ComputeContext cc, MeshData meshData) {
+            cc.dispatchKernel(meshData.points(),
+                    kc -> initPoints(kc, meshData)
+            );
+
+        }
     }
 
-    int vertices(); void vertices(int vertices);
-    Vertex3D vertex(long idx);
-
-    Schema<Mesh> schema = Schema.of(Mesh.class, cascade -> cascade
-            .arrayLen("points").array("point", p -> p.fields("x","y","z"))
-            .arrayLen("vertices").array("vertex", v -> v.fields("from","to"))
-    );
 
     public static void main(String[] args) {
-        Mesh.schema.toText(t -> System.out.print(t));
-        var mesh = Mesh.schema.allocate( 100, 10);
-        mesh.points(100);
-        mesh.vertices(10);
-        Random random = new Random(System.currentTimeMillis());
-        for (int p=0; p< mesh.points(); p++){
-            var point3D = mesh.point(p);
-            point3D.x(random.nextInt(100));
-            point3D.y(random.nextInt(100));
-            point3D.z(random.nextInt(100));
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup(),new DebugBackend());
+        MeshData.schema.toText(t -> System.out.print(t));
+
+        var boundSchema = new Schema.BoundSchema<>(MeshData.schema, 100, 10);
+        var meshDataNew = boundSchema.allocate(accelerator);
+        var meshDataOld = MeshData.create(accelerator);
+
+        String layoutNew = Buffer.getLayout(meshDataNew).toString();
+        String layoutOld = Buffer.getLayout(meshDataOld).toString();
+        if (layoutOld.equals(layoutNew)) {
+            MeshData meshData = meshDataNew;
+            meshData.points(100);
+            meshData.vertices(10);
+            Random random = new Random(System.currentTimeMillis());
+            for (int p = 0; p < meshData.points(); p++) {
+                var point3D = meshData.point(p);
+                point3D.x(random.nextInt(100));
+                point3D.y(random.nextInt(100));
+                point3D.z(random.nextInt(100));
+            }
+            for (int v = 0; v < meshData.vertices(); v++) {
+                var vertex3D = meshData.vertex(v);
+                vertex3D.from(random.nextInt(meshData.points()));
+                vertex3D.to(random.nextInt(meshData.points()));
+            }
+
+            accelerator.compute(cc -> Compute.buildMesh(cc, meshData));
+        }else{
+            System.out.println("layouts differ");
         }
-        for (int v=0; v< mesh.vertices(); v++){
-            var vertex3D = mesh.vertex(v);
-            vertex3D.from(random.nextInt(mesh.points()));
-            vertex3D.to(random.nextInt(mesh.points()));
-        }
-        System.out.println(Buffer.getLayout(mesh));
+
     }
 }
