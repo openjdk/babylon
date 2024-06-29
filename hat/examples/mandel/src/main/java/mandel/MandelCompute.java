@@ -68,10 +68,11 @@ public class MandelCompute {
     }
 
     public static void main(String[] args) {
+        boolean headless = true;//Boolean.getBoolean("headless") ||( args.length>0 && args[0].equals("--headless"));
 
         final int width = 1024;
         final int height = 1024;
-        final float defaultScale = 2f;
+        final float defaultScale = 3f;
         final float originX = -1f;
         final float originY = 0;
         final int maxIterations = 64;
@@ -82,35 +83,57 @@ public class MandelCompute {
         S32Array2D s32Array2D = S32Array2D.create(accelerator, width, height);
 
         int[] palletteArray = new int[maxIterations];
-        for (int i = 0; i < maxIterations; i++) {
-            final float h = i / (float) maxIterations;
-            final float b = 1.0f - (h * h);
-            palletteArray[i] = Color.HSBtoRGB(h, 1f, b);
+
+        if (headless){
+            for (int i = 1; i < maxIterations; i++) {
+                palletteArray[i]=(i/8+1);// 0-7?
+            }
+            palletteArray[0]=0;
+        }else {
+            for (int i = 0; i < maxIterations; i++) {
+                final float h = i / (float) maxIterations;
+                final float b = 1.0f - (h * h);
+                palletteArray[i] = Color.HSBtoRGB(h, 1f, b);
+            }
         }
         S32Array pallette = S32Array.create(accelerator, palletteArray);
 
         accelerator.compute(cc -> MandelCompute.compute(cc, pallette, s32Array2D, originX, originY, defaultScale));
 
-        MandelViewer mandelViewer = new MandelViewer("mandel", s32Array2D);
-        mandelViewer.imageViewer.syncWithRGB(s32Array2D);
-
-        while (mandelViewer.imageViewer.getZoomPoint(defaultScale) instanceof MandelViewer.PointF32 zoomPoint) {
-            float x = originX;
-            float y = originY;
-            float scale = defaultScale;
-            final long startMillis = System.currentTimeMillis();
-
-            for (int sign : new int[]{-1, 1}) {
-                for (int i = 0; i < zoomFrames; i++) {
-                    scale = scale + ((sign * defaultScale) / zoomFrames);
-                    final float fscale = scale;
-                    final float fx = x - sign * zoomPoint.x / zoomFrames;
-                    final float fy = y - sign * zoomPoint.y / zoomFrames;
-                    accelerator.compute(cc -> MandelCompute.compute(cc, pallette, s32Array2D, fx, fy, fscale));
-                    mandelViewer.imageViewer.syncWithRGB(s32Array2D);
+        if (headless){
+            // Well take 1 in 4 samples (so 1024 -> 128 grid) of the pallette.
+            int subsample = 16;
+            char[] charPallette9 = new char []{' ', '.', ',',':', '-', '+','*', '#', '@', '%'};
+            for (int y = 0; y<height/subsample; y++) {
+                for (int x = 0; x<width/subsample; x++) {
+                     int palletteValue = s32Array2D.get(x*subsample,y*subsample); // so 0->8
+                     System.out.print(charPallette9[palletteValue]);
                 }
+                System.out.println();
             }
-            System.out.println("FPS = " + ((zoomFrames * 2 * 1000) / (System.currentTimeMillis() - startMillis)));
+
+        }else {
+            MandelViewer mandelViewer = new MandelViewer("mandel", s32Array2D);
+            mandelViewer.imageViewer.syncWithRGB(s32Array2D);
+
+            while (mandelViewer.imageViewer.getZoomPoint(defaultScale) instanceof MandelViewer.PointF32 zoomPoint) {
+                float x = originX;
+                float y = originY;
+                float scale = defaultScale;
+                final long startMillis = System.currentTimeMillis();
+
+                for (int sign : new int[]{-1, 1}) {
+                    for (int i = 0; i < zoomFrames; i++) {
+                        scale = scale + ((sign * defaultScale) / zoomFrames);
+                        final float fscale = scale;
+                        final float fx = x - sign * zoomPoint.x / zoomFrames;
+                        final float fy = y - sign * zoomPoint.y / zoomFrames;
+                        accelerator.compute(cc -> MandelCompute.compute(cc, pallette, s32Array2D, fx, fy, fscale));
+                        mandelViewer.imageViewer.syncWithRGB(s32Array2D);
+                    }
+                }
+                System.out.println("FPS = " + ((zoomFrames * 2 * 1000) / (System.currentTimeMillis() - startMillis)));
+            }
         }
     }
 }
