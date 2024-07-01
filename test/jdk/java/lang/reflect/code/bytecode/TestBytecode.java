@@ -410,6 +410,15 @@ public class TestBytecode {
         return consume(i, Math::negateExact);
     }
 
+    int instanceMethod(int i) {
+        return -i + 13;
+    }
+
+    @CodeReflection
+    int instanceMethodHandle(int i) {
+        return consume(i, this::instanceMethod);
+    }
+
     @CodeReflection
     static boolean compareLong(long i, long j) {
         return i > j;
