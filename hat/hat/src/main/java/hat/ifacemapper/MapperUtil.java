@@ -52,8 +52,8 @@ public final class MapperUtil {
             Boolean.getBoolean("hat.ifacemapper.debug");
 
     public static final String SECRET_SEGMENT_METHOD_NAME = "$_$_$sEgMeNt$_$_$";
-
     public static final String SECRET_LAYOUT_METHOD_NAME = "$_$_$lAyOuT$_$_$";
+    public static final String SECRET_HAT_DATA_METHOD_NAME = "$_$_$hAtDaTa$_$_$";
     public static final String SECRET_OFFSET_METHOD_NAME = "$_$_$oFfSeT$_$_$";
 
     public static boolean isDebug() {

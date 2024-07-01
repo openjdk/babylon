@@ -165,7 +165,7 @@ public class TritonOps {
             String funcName = def.extractAttributeValue(ATTRIBUTE_FUNC_NAME, true,
                     v -> switch (v) {
                         case String s -> s;
-                        default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
+                        case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
                     });
             return new FuncOp(def, funcName);
         }
@@ -255,7 +255,7 @@ public class TritonOps {
             String funcName = def.extractAttributeValue(ATTRIBUTE_FUNC_NAME, true,
                     v -> switch (v) {
                         case String s -> s;
-                        default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
+                        case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
                     });
 
             return new CallOp(def, funcName);
@@ -332,7 +332,7 @@ public class TritonOps {
                     v -> switch (v) {
                         case String s -> Integer.valueOf(s);
                         case Integer i -> i;
-                        default -> throw new UnsupportedOperationException("Unsupported axis value:" + v);
+                        case null, default -> throw new UnsupportedOperationException("Unsupported axis value:" + v);
                     });
             return new ReduceOp(def, axis);
         }
@@ -418,7 +418,7 @@ public class TritonOps {
                     v -> switch (v) {
                         case String s -> Integer.valueOf(s);
                         case Integer i -> i;
-                        default -> throw new UnsupportedOperationException("Unsupported axis value:" + v);
+                        case null, default -> throw new UnsupportedOperationException("Unsupported axis value:" + v);
                     });
             return new GetProgramIdOp(def, axis);
         }
@@ -472,13 +472,13 @@ public class TritonOps {
                     v -> switch (v) {
                         case String s -> Integer.valueOf(s);
                         case Integer i -> i;
-                        default -> throw new UnsupportedOperationException("Unsupported start value:" + v);
+                        case null, default -> throw new UnsupportedOperationException("Unsupported start value:" + v);
                     });
             int end = def.extractAttributeValue(ATTRIBUTE_END, false,
                     v -> switch (v) {
                         case String s -> Integer.valueOf(s);
                         case Integer i -> i;
-                        default -> throw new UnsupportedOperationException("Unsupported end value:" + v);
+                        case null, default -> throw new UnsupportedOperationException("Unsupported end value:" + v);
                     });
             return new MakeRangeOp(def, start, end);
         }
@@ -534,7 +534,7 @@ public class TritonOps {
                     v -> switch (v) {
                         case String s -> Integer.valueOf(s);
                         case Integer i -> i;
-                        default -> throw new UnsupportedOperationException("Unsupported axis value:" + v);
+                        case null, default -> throw new UnsupportedOperationException("Unsupported axis value:" + v);
                     });
             return new ExpandOp(def, axis);
         }

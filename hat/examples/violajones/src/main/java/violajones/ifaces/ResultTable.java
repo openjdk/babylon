@@ -25,6 +25,7 @@
 package violajones.ifaces;
 
 import hat.Accelerator;
+import hat.Schema;
 import hat.buffer.Buffer;
 import hat.buffer.BufferAllocator;
 import hat.buffer.Table;
@@ -91,4 +92,16 @@ public interface ResultTable extends Table<ResultTable.Result> {
         atomicResultTableCount(index + 1);
         return index;
     }
+
+    Schema<ResultTable> schema = null;/*Schema.of(ResultTable.class, resultTable->resultTable
+            .atomic("atomicResultTableCount")
+            .arrayLen("length").array("result", array->array
+                    .fields(
+                            "x",
+                            "y",
+                            "width",
+                            "height"
+                    )
+            )
+    );*/
 }

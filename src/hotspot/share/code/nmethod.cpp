@@ -1229,9 +1229,6 @@ void nmethod::init_defaults(CodeBuffer *code_buffer, CodeOffsets* offsets) {
   _oops_do_mark_link          = nullptr;
   _compiled_ic_data           = nullptr;
 
-#if INCLUDE_RTM_OPT
-  _rtm_state                  = NoRTM;
-#endif
   _is_unloading_state         = 0;
   _state                      = not_installed;
 
@@ -1253,7 +1250,8 @@ void nmethod::init_defaults(CodeBuffer *code_buffer, CodeOffsets* offsets) {
 
   CHECKED_CAST(_entry_offset,              uint16_t, (offsets->value(CodeOffsets::Entry)));
   CHECKED_CAST(_verified_entry_offset,     uint16_t, (offsets->value(CodeOffsets::Verified_Entry)));
-  CHECKED_CAST(_skipped_instructions_size, uint16_t, (code_buffer->total_skipped_instructions_size()));
+
+  _skipped_instructions_size = code_buffer->total_skipped_instructions_size();
 }
 
 // Post initialization
@@ -3640,10 +3638,22 @@ const char* nmethod::reloc_string_for(u_char* begin, u_char* end) {
         case relocInfo::poll_type:             return "poll";
         case relocInfo::poll_return_type:      return "poll_return";
         case relocInfo::trampoline_stub_type:  return "trampoline_stub";
+        case relocInfo::entry_guard_type:      return "entry_guard";
+        case relocInfo::post_call_nop_type:    return "post_call_nop";
+        case relocInfo::barrier_type: {
+          barrier_Relocation* const reloc = iter.barrier_reloc();
+          stringStream st;
+          st.print("barrier format=%d", reloc->format());
+          return st.as_string();
+        }
+
         case relocInfo::type_mask:             return "type_bit_mask";
 
-        default:
-          break;
+        default: {
+          stringStream st;
+          st.print("unknown relocInfo=%d", (int) iter.type());
+          return st.as_string();
+        }
     }
   }
   return have_one ? "other" : nullptr;
@@ -3984,10 +3994,9 @@ void nmethod::print_statistics() {
 #endif
   unknown_java_nmethod_stats.print_nmethod_stats("Unknown");
   DebugInformationRecorder::print_statistics();
-#ifndef PRODUCT
   pc_nmethod_stats.print_pc_stats();
-#endif
   Dependencies::print_statistics();
+  ExternalsRecorder::print_statistics();
   if (xtty != nullptr)  xtty->tail("statistics");
 }
 

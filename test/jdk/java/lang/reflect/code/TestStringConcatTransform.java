@@ -42,7 +42,6 @@ import java.lang.reflect.code.op.CoreOp;
 import java.lang.runtime.CodeReflection;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class TestStringConcatTransform {
@@ -79,6 +78,7 @@ public class TestStringConcatTransform {
         });
         valMap.put(TestObject.class, new TestObject());
         valMap.put(String.class, TESTSTR);
+        valMap.put(StringBuilder.class, new StringBuilder("test"));
     }
 
     public static final class TestObject {
@@ -97,6 +97,7 @@ public class TestStringConcatTransform {
         CoreOp.FuncOp f_transformed = model.transform(new StringConcatTransformer());
         Object[] args = prepArgs(method);
 
+        model.writeTo(System.out);
         f_transformed.writeTo(System.out);
 
         var interpreted = Interpreter.invoke(model, args);
@@ -108,11 +109,31 @@ public class TestStringConcatTransform {
 
     @Test(dataProvider = "getClassMethods")
     public void testSSAModelTransform(@NoInjection Method method) {
+        Object[] args = prepArgs(method);
+        testStringConcat(method, args);
+    }
+
+    //Testing to make sure StringBuilders aren't caught up in the concat transformation
+    @Test
+    public void testStringBuilderUnchanged() {
+        Method method;
+
+        try {
+            method = TestStringConcatTransform.class.getMethod("stringBuilderArgCheck", String.class, String.class, StringBuilder.class);
+        } catch (NoSuchMethodException e) {
+           throw new RuntimeException(e);
+        }
+        Object[] args = {"Foo", "Bar", new StringBuilder("test")};
+        testStringConcat(method, args);
+
+        Assert.assertEquals("test", args[2].toString());
+    }
+
+    private void testStringConcat(Method method, Object[] args) {
         CoreOp.FuncOp model = method.getCodeModel().orElseThrow();
         CoreOp.FuncOp transformed_model = model.transform(new StringConcatTransformer());
         CoreOp.FuncOp ssa_model = generateSSA(model);
         CoreOp.FuncOp ssa_transformed_model = ssa_model.transform(new StringConcatTransformer());
-        Object[] args = prepArgs(method);
 
         var model_interpreted = Interpreter.invoke(model, args);
         var transformed_model_interpreted = Interpreter.invoke(transformed_model, args);
@@ -128,6 +149,7 @@ public class TestStringConcatTransform {
         Assert.assertEquals(transformed_model_interpreted, ssa_interpreted);
         Assert.assertEquals(ssa_interpreted, ssa_transformed_interpreted);
         Assert.assertEquals(ssa_transformed_interpreted, jvm_interpreted);
+
     }
 
     public static Object[] prepArgs(Method m) {
@@ -193,10 +215,50 @@ public class TestStringConcatTransform {
     }
 
     @CodeReflection
-    public static String intConcatNestedSplit(int i, String s){
+    public static String intConcatNestedSplit(int i, String s) {
         String q, r;
         String inter = i + (q = r = s + "hello") + 52;
         return q + r + inter;
     }
 
+    @CodeReflection
+    public static String nonLeftAssociativeTree(String a, String b, String c, String d) {
+        String s = (a + b) + (c + d);
+        return s;
+    }
+
+    @CodeReflection
+    public static String stringBuilderCheck(String a, String d) {
+        StringBuilder sb = new StringBuilder("test");
+        String s = sb + a;
+        String t = s + d;
+        return t;
+    }
+
+    @CodeReflection
+    public static String stringBuilderArgCheck(String a, String d, StringBuilder c) {
+        StringBuilder sb = c;
+        String s = sb + a;
+        String t = s + d;
+        return t;
+    }
+
+    @CodeReflection
+    public static String leftAssociativeTree(String a, String b, String c, String d) {
+        String s = ((a + b) + c) + d;
+        return s;
+    }
+
+    @CodeReflection
+    public static String rightAssociativeTree(String a, String b, String c, String d) {
+        String s = (a + (b + (c + d)));
+        return s;
+    }
+
+    @CodeReflection
+    public static String widenPrimitives(short a, byte b, int c, int d) {
+        String s = (a + (b + (c + d + "hi")));
+        return s;
+    }
 }
+

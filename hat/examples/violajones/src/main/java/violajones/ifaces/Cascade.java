@@ -25,6 +25,8 @@
 package violajones.ifaces;
 
 import hat.Accelerator;
+import hat.Schema;
+import hat.buffer.Buffer;
 import hat.buffer.BufferAllocator;
 import hat.buffer.CompleteBuffer;
 import hat.ifacemapper.SegmentMapper;
@@ -42,9 +44,9 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_SHORT;
 
 public interface Cascade extends CompleteBuffer {
-    interface Feature extends CompleteBuffer{
+    interface Feature extends StructChild{
 
-        interface Rect extends CompleteBuffer{
+        interface Rect extends Buffer.StructChild{
             StructLayout layout = MemoryLayout.structLayout(
                     JAVA_BYTE.withName("x"),
                     JAVA_BYTE.withName("y"),
@@ -75,8 +77,8 @@ public interface Cascade extends CompleteBuffer {
         }
 
 
-        interface LinkOrValue extends CompleteBuffer {
-            interface Anon {
+        interface LinkOrValue extends  Buffer.StructChild {
+            interface Anon  extends Buffer.UnionChild{
                 MemoryLayout layout = MemoryLayout.unionLayout(
                         JAVA_INT.withName("featureId"),
                         JAVA_FLOAT.withName("value")
@@ -130,7 +132,7 @@ public interface Cascade extends CompleteBuffer {
         Feature.Rect rect(long idx);
     }
 
-    interface Stage extends CompleteBuffer{
+    interface Stage extends Buffer.StructChild{
         StructLayout layout = MemoryLayout.structLayout(
                 JAVA_INT.withName("id"),
                 JAVA_FLOAT.withName("threshold"),
@@ -155,7 +157,7 @@ public interface Cascade extends CompleteBuffer {
         void treeCount(short treeCount);
     }
 
-    interface Tree extends CompleteBuffer{
+    interface Tree extends Buffer.StructChild{
         StructLayout layout = MemoryLayout.structLayout(
                 JAVA_INT.withName("id"),
                 JAVA_SHORT.withName("firstFeatureId"),
@@ -269,6 +271,19 @@ public interface Cascade extends CompleteBuffer {
     int height();
 
     void height(int height);
-
+    Schema<Cascade> schema = Schema.of(Cascade.class, c -> c
+            .fields("width","height")
+            .arrayLen("featureCount").array("feature", feature -> feature
+                    .fields("id","threshold")
+                    .fields("left","right",linkOrValue->linkOrValue
+                            .field("hasValue")
+                            .pad(3)
+                            .field("anon", anon->anon.fields("featureId","value"))
+                    )
+                    .array("rect", 3 , rect->rect.fields("x","y","width","height","weight"))
+            )
+            .arrayLen("stageCount").array("stage", stage->stage.fields("id","threshold","treeCount","firstTreeId"))
+            .arrayLen("treeCount").array("tree",tree->tree.fields("id","firstFeatureId","featureCount"))
+    );
 
 }

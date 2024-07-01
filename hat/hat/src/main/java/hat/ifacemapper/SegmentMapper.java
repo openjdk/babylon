@@ -1,5 +1,6 @@
 package hat.ifacemapper;
 
+import hat.buffer.Buffer;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.GroupLayout;
@@ -292,6 +293,7 @@ public interface SegmentMapper<T> {
      */
     GroupLayout layout();
 
+    HatData hatData();
     // Convenience methods
 
     /**
@@ -332,9 +334,26 @@ public interface SegmentMapper<T> {
         var segment = arena.allocate(extendedByteSizePaddedTo16Bytes, 16);
         segment.set(ValueLayout.JAVA_LONG, extendedByteSizePaddedTo16Bytes-16,0x1face00000facadeL);
         segment.set(ValueLayout.JAVA_LONG, extendedByteSizePaddedTo16Bytes-8, 0x1face00000facadeL);
-        return get(segment, layout());
+        return get(segment, layout(), hatData());
     }
+    default T allocate(Arena arena, HatData  hatData) {
 
+        // To help debug we add a tail marker
+        // We add 16 bytes and then pad to the next 16 bytes
+        // and request alignment on 16 byte boundary
+        long byteSize = layout().byteSize();
+        long extendedByteSize = byteSize+16;
+        long byteSizePad = extendedByteSize%16;
+        if (byteSizePad != 0){
+            byteSizePad = 16-byteSizePad;
+        }
+        long extendedByteSizePaddedTo16Bytes = extendedByteSize+byteSizePad;
+        //System.out.println("Alloc 16 byte aligned layout + 16 bytes padded to next 16 bytes "+byteSize+"=>"+extendedByteSizePaddedTo16Bytes);
+        var segment = arena.allocate(extendedByteSizePaddedTo16Bytes, 16);
+        segment.set(ValueLayout.JAVA_LONG, extendedByteSizePaddedTo16Bytes-16,0x1face00000facadeL);
+        segment.set(ValueLayout.JAVA_LONG, extendedByteSizePaddedTo16Bytes-8, 0x1face00000facadeL);
+        return get(segment, layout(), hatData);
+    }
     /**
      * {@return a new instance of type T projected at the provided
      * external {@code segment} at offset zero}
@@ -360,8 +379,8 @@ public interface SegmentMapper<T> {
         return get(segment, 0L);
     }
 
-    default T get(MemorySegment segment, GroupLayout groupLayout) {
-        return get(segment, groupLayout, 0L);
+    default T get(MemorySegment segment, GroupLayout groupLayout, HatData hatData) {
+        return get(segment, groupLayout, hatData, 0L);
     }
 
     /**
@@ -483,10 +502,10 @@ public interface SegmentMapper<T> {
     }
 
     @SuppressWarnings("unchecked")
-    default T get(MemorySegment segment, GroupLayout layout, long offset) {
+    default T get(MemorySegment segment, GroupLayout layout, HatData hatData, long offset) {
         try {
             return (T) getHandle()
-                    .invokeExact(segment, layout, offset);
+                    .invokeExact(segment, layout, hatData,offset);
         } catch (NullPointerException |
                  IndexOutOfBoundsException |
                  WrongThreadException |
@@ -733,7 +752,7 @@ public interface SegmentMapper<T> {
         Objects.requireNonNull(lookup);
         MapperUtil.requireImplementableInterfaceType(type);
         Objects.requireNonNull(layout);
-        return SegmentInterfaceMapper.create(lookup, type, layout);
+        return SegmentInterfaceMapper.create(lookup, type, layout, null);
     }
     /**
      * {@return a segment mapper that maps {@linkplain MemorySegment memory segments}
@@ -776,6 +795,13 @@ public interface SegmentMapper<T> {
         var newLayout = MemoryLayout.sequenceLayout(length,sequenceLayout.elementLayout()).withName(sequenceLayout.name().get());
         members[members.length-1]=newLayout;
         return of(lookup,type,members);
+    }
+    static <T extends Buffer> SegmentMapper<T> of(MethodHandles.Lookup lookup, Class<T> type, GroupLayout layout, HatData hatData) {
+        Objects.requireNonNull(lookup);
+        MapperUtil.requireImplementableInterfaceType(type);
+        Objects.requireNonNull(layout);
+        return SegmentInterfaceMapper.create(lookup,  type, layout, hatData);
+
     }
 
 

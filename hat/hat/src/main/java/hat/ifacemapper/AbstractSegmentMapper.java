@@ -25,7 +25,6 @@
 
 package hat.ifacemapper;
 
-
 import hat.ifacemapper.accessor.Accessors;
 import hat.ifacemapper.accessor.ValueType;
 import hat.ifacemapper.accessor.AccessorInfo;
@@ -47,19 +46,23 @@ abstract class AbstractSegmentMapper<T> implements SegmentMapper<T> {
     private final Class<T> type;
     @Stable
     private final GroupLayout layout;
+    private final HatData hatData;
     private final boolean leaf;
     private final MapperCache mapperCache;
     protected Accessors accessors;
 
     protected AbstractSegmentMapper(MethodHandles.Lookup lookup,
                                     Class<T> type,
+
                                     GroupLayout layout,
+                                    HatData hatData,
                                     boolean leaf,
                                     ValueType valueType, // This is always ValueType.Interface... !
                                     UnaryOperator<Class<T>> typeInvariantChecker,
                                     BiFunction<Class<?>, GroupLayout, Accessors> accessorFactory) {
         this.lookup = lookup;
         this.type = typeInvariantChecker.apply(type);
+        this.hatData = hatData;
         this.layout = layout;
         this.leaf = leaf;
         this.mapperCache = MapperCache.of(lookup);
@@ -84,14 +87,19 @@ abstract class AbstractSegmentMapper<T> implements SegmentMapper<T> {
     public final GroupLayout layout() {
         return layout;
     }
-
+    @Override
+    public final HatData hatData() {
+        return hatData;
+    }
 
     @Override
     public final String toString() {
         return getClass().getSimpleName() + "[" +
                 "lookup=" + lookup + ", " +
                 "type=" + type + ", " +
-                "layout=" + layout + "]";
+                "layout=" + layout +
+                "hatData=" + ((hatData==null)?"null":hatData) + ", " +
+                "]";
     }
 
     // Protected methods
