@@ -24,13 +24,8 @@
  */
 package hat.buffer;
 
-import hat.Schema;
 import hat.ifacemapper.HatData;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.reflect.InvocationTargetException;
@@ -41,26 +36,12 @@ import static hat.ifacemapper.MapperUtil.SECRET_OFFSET_METHOD_NAME;
 import static hat.ifacemapper.MapperUtil.SECRET_SEGMENT_METHOD_NAME;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-public interface Buffer {
-    //@Retention(RetentionPolicy.RUNTIME)
-    //@Target(ElementType.TYPE)
-    //public @interface Struct {
-   // }
+public interface Buffer extends MappableIface {
 
-    //@Retention(RetentionPolicy.RUNTIME)
-    //@Target(ElementType.TYPE)
-    //public @interface Union {
-   // }
-
-    interface Child {
+    interface UnionChild extends MappableIface {
     }
 
-    //@Union
-    interface UnionChild extends Child {
-    }
-
-    //@Struct
-    interface StructChild extends Child {
+    interface StructChild extends MappableIface {
     }
 
     static <T extends Buffer> MemorySegment getMemorySegment(T buffer) {

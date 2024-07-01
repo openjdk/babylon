@@ -29,6 +29,7 @@ package experiments;
 
 import hat.Schema;
 import hat.buffer.Buffer;
+import hat.buffer.MappableIface;
 
 import java.lang.constant.ClassDesc;
 import java.lang.foreign.*;
@@ -169,8 +170,7 @@ public class LayoutExample {
 
     static boolean isBufferOrBufferChild(Class<?> maybeIface) {
         return  maybeIface.isInterface() && (
-                Buffer.class.isAssignableFrom(maybeIface)
-                        || Buffer.Child.class.isAssignableFrom(maybeIface)
+                MappableIface.class.isAssignableFrom(maybeIface)
         );
 
     }

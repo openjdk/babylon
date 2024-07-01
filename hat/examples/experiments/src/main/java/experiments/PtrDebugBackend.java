@@ -2,6 +2,7 @@ package experiments;
 
 import experiments.ifaceinvoketoptr.InvokeToPtr;
 import hat.NDRange;
+import hat.buffer.Buffer;
 import hat.callgraph.KernelCallGraph;
 
 import java.lang.annotation.ElementType;
@@ -35,114 +36,87 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 class PtrDebugBackend extends DebugBackend {
-
-    @Retention(RetentionPolicy.RUNTIME)
-    @Target(ElementType.TYPE)
-    public @interface Struct {
+    static boolean isBufferOrStruct(Class<?> possibleBufferOrStruct) {
+        return Buffer.class.isAssignableFrom(possibleBufferOrStruct)
+                || Buffer.StructChild.class.isAssignableFrom(possibleBufferOrStruct);
     }
 
-    static CoreOp.FuncOp transformInvokesToPtrs(MethodHandles.Lookup l,
-                                                CoreOp.FuncOp f) {
-        List<TypeElement> pTypes = new ArrayList<>();
-        for (Block.Parameter p : f.parameters()) {
-            pTypes.add(transformStructClassToPtr(l, p.type()));
+    static FunctionType transformTypes(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+        List<TypeElement> transformedTypeElements = new ArrayList<>();
+        Optional<Class<?>> optionalMappableClass;
+        TypeElement typeElement=null;
+        for (Block.Parameter parameter : funcOp.parameters()) {
+            typeElement = parameter.type();
+            optionalMappableClass = mappableClass(lookup,typeElement);
+            typeElement = (optionalMappableClass.isPresent())?new PtrType(getLayout(optionalMappableClass.get())): typeElement;
+            transformedTypeElements.add(typeElement);
         }
-        FunctionType functionType = FunctionType.functionType(
-                transformStructClassToPtr(l, f.invokableType().returnType()),
-                pTypes);
-        return CoreOp.func(f.funcName(), functionType).body(funcBlock -> {
-            funcBlock.transformBody(f.body(), funcBlock.parameters(), (b, op) -> {
-                if (op instanceof CoreOp.InvokeOp iop && iop.hasReceiver()) {
-                    Value receiver = iop.operands().getFirst();
-                    if (structClass(l, receiver.type()) instanceof Class<?> _) {
-                        Value ptr = b.context().getValue(receiver);
-                        PtrToMember ptrToMemberOp = new PtrToMember(ptr, iop.invokeDescriptor().name());
-                        Op.Result memberPtr = b.op(ptrToMemberOp);
+        typeElement = funcOp.invokableType().returnType();
+        optionalMappableClass = mappableClass(lookup,  typeElement);
+        typeElement = (optionalMappableClass.isPresent())?new PtrType(getLayout(optionalMappableClass.get())): typeElement;
+        return FunctionType.functionType(typeElement, transformedTypeElements);
+    }
 
-                        if (iop.operands().size() == 1) {
-                            // Pointer access and (possibly) value load
-                            if (ptrToMemberOp.resultType().layout() instanceof ValueLayout) {
-                                Op.Result v = b.op(new InvokeToPtr.PtrLoadValue(memberPtr));
-                                b.context().mapValue(iop.result(), v);
-                            } else {
-                                b.context().mapValue(iop.result(), memberPtr);
-                            }
+    static CoreOp.FuncOp transformInvokesToPtrs(MethodHandles.Lookup lookup,
+                                                CoreOp.FuncOp ssaForm, FunctionType functionType) {
+        return CoreOp.func(ssaForm.funcName(), functionType).body(funcBlock -> {
+            funcBlock.transformBody(ssaForm.body(), funcBlock.parameters(), (builder, op) -> {
+                if (op instanceof CoreOp.InvokeOp invokeOp && invokeOp.hasReceiver() && invokeOp.operands().size() == 1) {
+                    Value receiver = invokeOp.operands().getFirst();
+                    TypeElement receiverTypeElement = receiver.type();
+                    if (mappableClass(lookup, receiverTypeElement).isPresent()) {
+                        PtrToMemberOp ptrToMemberOp = new PtrToMemberOp( builder.context().getValue(receiver), invokeOp.invokeDescriptor().name());
+                        Op.Result memberPtr = builder.op(ptrToMemberOp);
+                        MemoryLayout memoryLayout = ptrToMemberOp.resultType().layout();
+                        if (memoryLayout instanceof ValueLayout) {
+                            builder.context().mapValue(invokeOp.result(), builder.op(new PtrLoadValue(memberPtr)));
                         } else {
-                            // @@@
-                            // Value store
-                            throw new UnsupportedOperationException();
+                            builder.context().mapValue(invokeOp.result(), memberPtr);
                         }
                     } else {
-                        b.op(op);
+                        builder.op(op);
                     }
                 } else {
-                    b.op(op);
+                    builder.op(op);
                 }
-                return b;
+                return builder;
             });
         });
-    };
-
-
-    static TypeElement transformStructClassToPtr(MethodHandles.Lookup l, TypeElement type) {
-        if (structClass(l, type) instanceof Class<?> sc) {
-            return new PtrType(structClassLayout(l, sc));
-        } else {
-            return type;
-        }
     }
 
-    static MemoryLayout structClassLayout(MethodHandles.Lookup l,
-                                          Class<?> c) {
-        if (!c.isAnnotationPresent(Struct.class)) {
-            throw new IllegalArgumentException();
-        }
-
-        Method layoutMethod;
+    static MemoryLayout getLayout(Class<?> clazz){
         try {
-            layoutMethod = c.getMethod("layout");
-        } catch (NoSuchMethodException e) {
+            return (MemoryLayout) clazz.getDeclaredField("LAYOUT").get(null);
+        } catch (NoSuchFieldException e) {
             throw new RuntimeException(e);
-        }
-        MethodHandle layoutHandle;
-        try {
-            layoutHandle = l.unreflect(layoutMethod);
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }
-        try {
-            return (MemoryLayout) layoutHandle.invoke();
-        } catch (Throwable e) {
-            throw new RuntimeException(e);
-        }
     }
 
-    static Class<?> structClass(MethodHandles.Lookup l, TypeElement t) {
+    static Optional<Class<?>> mappableClass(MethodHandles.Lookup lookup, TypeElement typeElement) {
         try {
-            return _structClass(l, t);
+            return (typeElement instanceof JavaType jt
+                    && jt.resolve(lookup) instanceof Class<?> c
+                    && isBufferOrStruct(c)) ? Optional.of(c) : Optional.empty();
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
     }
-    static Class<?> _structClass(MethodHandles.Lookup l, TypeElement t) throws ReflectiveOperationException {
-        if (!(t instanceof JavaType jt) || !(jt.resolve(l) instanceof Class<?> c)) {
-            return null;
-        }
-
-        return c.isInterface() && c.isAnnotationPresent(Struct.class) ? c : null;
-    }
-
 
     public static final class PtrType implements TypeElement {
         static final String NAME = "ptr";
         final MemoryLayout layout;
-        final JavaType rType;
+        final JavaType referringType;
 
         public PtrType(MemoryLayout layout) {
             this.layout = layout;
-            this.rType = switch (layout) {
+            this.referringType = switch (layout) {
                 case StructLayout _ -> JavaType.type(ClassDesc.of(layout.name().orElseThrow()));
                 case AddressLayout _ -> throw new UnsupportedOperationException("Unsupported member layout: " + layout);
                 case ValueLayout valueLayout -> JavaType.type(valueLayout.carrier());
@@ -150,8 +124,8 @@ class PtrDebugBackend extends DebugBackend {
             };
         }
 
-        public JavaType rType() {
-            return rType;
+        public JavaType referringType() {
+            return referringType;
         }
 
         public MemoryLayout layout() {
@@ -173,7 +147,7 @@ class PtrDebugBackend extends DebugBackend {
 
         @Override
         public ExternalizedTypeElement externalize() {
-            return new ExternalizedTypeElement(NAME, List.of(rType.externalize()));
+            return new ExternalizedTypeElement(NAME, List.of(referringType.externalize()));
         }
 
         @Override
@@ -182,17 +156,15 @@ class PtrDebugBackend extends DebugBackend {
         }
     }
 
-    @OpFactory.OpDeclaration(PtrToMember.NAME)
-    public static final class PtrToMember extends ExternalizableOp {
+    @OpFactory.OpDeclaration(PtrToMemberOp.NAME)
+    public static final class PtrToMemberOp extends ExternalizableOp {
         public static final String NAME = "ptr.to.member";
         public static final String ATTRIBUTE_OFFSET = "offset";
-        public static final String ATTRIBUTE_NAME = "name";
-
         final String simpleMemberName;
         final long memberOffset;
         final PtrType resultType;
 
-        PtrToMember(PtrToMember that, CopyContext cc) {
+        PtrToMemberOp(PtrToMemberOp that, CopyContext cc) {
             super(that, cc);
             this.simpleMemberName = that.simpleMemberName;
             this.memberOffset = that.memberOffset;
@@ -200,11 +172,11 @@ class PtrDebugBackend extends DebugBackend {
         }
 
         @Override
-        public PtrToMember transform(CopyContext cc, OpTransformer ot) {
-            return new PtrToMember(this, cc);
+        public PtrToMemberOp transform(CopyContext cc, OpTransformer ot) {
+            return new PtrToMemberOp(this, cc);
         }
 
-        public PtrToMember(Value ptr, String simpleMemberName) {
+        public PtrToMemberOp(Value ptr, String simpleMemberName) {
             super(NAME, List.of(ptr));
             this.simpleMemberName = simpleMemberName;
 
@@ -218,9 +190,9 @@ class PtrDebugBackend extends DebugBackend {
 
             // Find the actual member name from the simple member name
             String memberName = findMemberName(structLayout, simpleMemberName);
-            MemoryLayout.PathElement p = MemoryLayout.PathElement.groupElement(memberName);
-            this.memberOffset = structLayout.byteOffset(p);
-            MemoryLayout memberLayout = structLayout.select(p);
+            MemoryLayout.PathElement memberPathElement = MemoryLayout.PathElement.groupElement(memberName);
+            this.memberOffset = structLayout.byteOffset(memberPathElement);
+            MemoryLayout memberLayout = structLayout.select(memberPathElement);
             // Remove any simple member name from the layout
             MemoryLayout ptrLayout = memberLayout instanceof StructLayout
                     ? memberLayout.withName(className(memberName))
@@ -230,27 +202,22 @@ class PtrDebugBackend extends DebugBackend {
 
         // @@@ Change to return member index
         static String findMemberName(StructLayout sl, String simpleMemberName) {
-            for (MemoryLayout layout : sl.memberLayouts()) {
-                String memberName = layout.name().orElseThrow();
-                if (simpleMemberName(memberName).equals(simpleMemberName)) {
-                    return memberName;
-                }
-            }
-            throw new NoSuchElementException("No member found: " + simpleMemberName + " " + sl);
+            return sl.memberLayouts().stream()
+                    .map(layout -> layout.name().orElseThrow())
+                    .filter(name -> simpleMemberName(name).equals(simpleMemberName))
+                    .findFirst().orElseThrow();
         }
 
+        static Pattern regex = Pattern.compile("(.*)::(.*)");
+
         static String simpleMemberName(String memberName) {
-            int i = memberName.indexOf("::");
-            return i != -1
-                    ? memberName.substring(i + 2)
-                    : memberName;
+            return regex.matcher(memberName) instanceof Matcher matcher && matcher.matches()
+                    ? matcher.group(2) : memberName;
         }
 
         static String className(String memberName) {
-            int i = memberName.indexOf("::");
-            return i != -1
-                    ? memberName.substring(0, i)
-                    : null;
+            return regex.matcher(memberName) instanceof Matcher matcher && matcher.matches()
+                    ? matcher.group(1) : null;
         }
 
         @Override
@@ -265,63 +232,12 @@ class PtrDebugBackend extends DebugBackend {
             attrs.put(ATTRIBUTE_OFFSET, memberOffset);
             return attrs;
         }
-
-        public String simpleMemberName() {
-            return simpleMemberName;
-        }
-
-        public long memberOffset() {
-            return memberOffset;
-        }
-
-        public Value ptrValue() {
-            return operands().get(0);
-        }
     }
 
 
-    @OpFactory.OpDeclaration(PtrToMember.NAME)
-    public static final class PtrAddOffset extends Op {
-        public static final String NAME = "ptr.add.offset";
-
-        PtrAddOffset(PtrAddOffset that, CopyContext cc) {
-            super(that, cc);
-        }
-
-        @Override
-        public PtrAddOffset transform(CopyContext cc, OpTransformer ot) {
-            return new PtrAddOffset(this, cc);
-        }
-
-        public PtrAddOffset(Value ptr, Value offset) {
-            super(NAME, List.of(ptr, offset));
-
-            if (!(ptr.type() instanceof PtrType)) {
-                throw new IllegalArgumentException("Pointer value is not of pointer type: " + ptr.type());
-            }
-            if (!(offset.type() instanceof PrimitiveType pt && pt.equals(JavaType.LONG))) {
-                throw new IllegalArgumentException("Offset value is not of primitve long type: " + offset.type());
-            }
-        }
-
-        @Override
-        public TypeElement resultType() {
-            return ptrValue().type();
-        }
-
-        public Value ptrValue() {
-            return operands().get(0);
-        }
-
-        public Value offsetValue() {
-            return operands().get(1);
-        }
-    }
-
-    @OpFactory.OpDeclaration(PtrToMember.NAME)
+    @OpFactory.OpDeclaration(PtrToMemberOp.NAME)
     public static final class PtrLoadValue extends Op {
         public static final String NAME = "ptr.load.value";
-
         final JavaType resultType;
 
         PtrLoadValue(PtrLoadValue that, CopyContext cc) {
@@ -336,14 +252,13 @@ class PtrDebugBackend extends DebugBackend {
 
         public PtrLoadValue(Value ptr) {
             super(NAME, List.of(ptr));
-
             if (!(ptr.type() instanceof PtrType ptrType)) {
                 throw new IllegalArgumentException("Pointer value is not of pointer type: " + ptr.type());
             }
             if (!(ptrType.layout() instanceof ValueLayout)) {
                 throw new IllegalArgumentException("Pointer type layout is not a value layout: " + ptrType.layout());
             }
-            this.resultType = ptrType.rType();
+            this.resultType = ptrType.referringType();
         }
 
         @Override
@@ -351,12 +266,9 @@ class PtrDebugBackend extends DebugBackend {
             return resultType;
         }
 
-        public Value ptrValue() {
-            return operands().get(0);
-        }
     }
 
-    @OpFactory.OpDeclaration(PtrToMember.NAME)
+    @OpFactory.OpDeclaration(PtrToMemberOp.NAME)
     public static final class PtrStoreValue extends Op {
         public static final String NAME = "ptr.store.value";
 
@@ -378,9 +290,9 @@ class PtrDebugBackend extends DebugBackend {
             if (!(ptrType.layout() instanceof ValueLayout)) {
                 throw new IllegalArgumentException("Pointer type layout is not a value layout: " + ptrType.layout());
             }
-            if (!(ptrType.rType().equals(v.type()))) {
+            if (!(ptrType.referringType().equals(v.type()))) {
                 throw new IllegalArgumentException("Pointer reference type is not same as value to store type: "
-                        + ptrType.rType() + " " + v.type());
+                        + ptrType.referringType() + " " + v.type());
             }
         }
 
@@ -388,11 +300,6 @@ class PtrDebugBackend extends DebugBackend {
         public TypeElement resultType() {
             return JavaType.VOID;
         }
-
-        public Value ptrValue() {
-            return operands().get(0);
-        }
-
     }
 
     @Override
@@ -409,8 +316,12 @@ class PtrDebugBackend extends DebugBackend {
         System.out.println(ssaInvokeForm.toText());
         System.out.println("------------------");
 
+        FunctionType functionType = transformTypes(MethodHandles.lookup(), ssaInvokeForm);
+        System.out.println("SSA form with types transformed args");
+        System.out.println(ssaInvokeForm.toText());
+        System.out.println("------------------");
 
-        CoreOp.FuncOp ssaPtrForm = transformInvokesToPtrs(MethodHandles.lookup(), ssaInvokeForm);
+        CoreOp.FuncOp ssaPtrForm = transformInvokesToPtrs(MethodHandles.lookup(), ssaInvokeForm, functionType);
         System.out.println("SSA form with invokes replaced by ptrs");
         System.out.println(ssaPtrForm.toText());
     }
