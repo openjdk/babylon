@@ -73,7 +73,7 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
 
     public PTXCodeBuilder parameters(List<FuncOpWrapper.ParamTable.Info> infoList) {
         paren(_ -> nl().commaNlSeparated(infoList, (info) -> {
-            ptxIndent().param().space().addrSize().space().append(info.varOp.varName());
+            ptxIndent().param().space().dot().addrSize().space().append(info.varOp.varName());
             params.add(info.varOp.varName());
         }).nl()).nl();
         return this;
@@ -84,7 +84,7 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
             for (Block.Parameter p : block.parameters()) {
                 ptxIndent().ld().param();
                 dot().printResultType(p.type()).ptxIndent().space();
-                printAndAddVar(p, resultType(p.type())).commaSpace().osbrace().append(params.get(p.index())).csbrace().nl();
+                printAndAddVar(p, resultType(p.type())).commaSpace().osbrace().append(params.get(p.index())).csbrace().semicolon().nl();
                 paramMap.putIfAbsent(params.get(p.index()), p);
             }
         }
@@ -101,9 +101,9 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
     public void ptxRegisterDecl() {
         for (PTXRegister.Type t : ordinalMap.keySet()) {
             if (t.equals(PTXRegister.Type.U32)) {
-                append(".reg").space().dot().append(PTXRegister.Type.B32.toString()).ptxIndent().append(PTXRegister.Type.B32.getRegPrefix()).lt().append(String.valueOf(ordinalMap.get(t))).gt().semicolon().nl();
+                append(".reg").space().dot().append(PTXRegister.Type.B32.toString()).ptxIndent().append(t.getRegPrefix()).lt().append(String.valueOf(ordinalMap.get(t))).gt().semicolon().nl();
             } else if (t.equals(PTXRegister.Type.U64)) {
-                append(".reg").space().dot().append(PTXRegister.Type.B64.toString()).ptxIndent().append(PTXRegister.Type.B64.getRegPrefix()).lt().append(String.valueOf(ordinalMap.get(t))).gt().semicolon().nl();
+                append(".reg").space().dot().append(PTXRegister.Type.B64.toString()).ptxIndent().append(t.getRegPrefix()).lt().append(String.valueOf(ordinalMap.get(t))).gt().semicolon().nl();
             } else {
                 append(".reg").space().dot().append(t.toString()).ptxIndent().append(t.getRegPrefix()).lt().append(String.valueOf(ordinalMap.get(t))).gt().semicolon().nl();
             }
@@ -166,7 +166,7 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
             if (!fieldRefToRegMap.containsKey(FieldRef.KC_X)) {
                 loadKcX(op.result());
             } else {
-                ld().global().u32().space().printResult(op, PTXRegister.Type.U32).commaSpace().printFieldRef(FieldRef.KC_X);
+                mov().u32().space().printResult(op, PTXRegister.Type.U32).commaSpace().printFieldRef(FieldRef.KC_X);
             }
         } else if (op.fieldName().equals(FieldRef.KC_MAXX.toString())) {
             if (!fieldRefToRegMap.containsKey(FieldRef.KC_X)) {
@@ -184,8 +184,8 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
         mov().u32().space().printFieldRef(FieldRef.NTID_X).commaSpace().append("%ntid.x").semicolon().nl().ptxIndent();
         mov().u32().space().printFieldRef(FieldRef.CTAID_X).commaSpace().append("%ctaid.x").semicolon().nl().ptxIndent();
         mov().u32().space().printFieldRef(FieldRef.TID_X).commaSpace().append("%tid.x").semicolon().nl().ptxIndent();
-        append("mad.lo").s32().space().printFieldRefAndVal(FieldRef.KC_X, value).space()
-                .printFieldRef(FieldRef.CTAID_X).space().printFieldRef(FieldRef.NTID_X).space().printFieldRef(FieldRef.TID_X).semicolon().nl().ptxIndent();
+        append("mad.lo").s32().space().printFieldRefAndVal(FieldRef.KC_X, value).commaSpace()
+                .printFieldRef(FieldRef.CTAID_X).commaSpace().printFieldRef(FieldRef.NTID_X).commaSpace().printFieldRef(FieldRef.TID_X).semicolon().nl().ptxIndent();
         st().global().u32().space().address(fieldRefToRegMap.get(FieldRef.KC_X_ADDR).name()).commaSpace().printFieldRef(FieldRef.KC_X);
     }
 
@@ -282,7 +282,7 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
             ld().global().u32().space().printResult(op, PTXRegister.Type.U32).commaSpace().address(getVar(op.operandNAsValue(0)).name());
         } else if (op.methodRef().toString().equals("hat.buffer.S32Array2D::height()int")) {
             ld().global().u32().space().printResult(op, PTXRegister.Type.U32).commaSpace().address(getVar(op.operandNAsValue(0)).name(), 4);
-        } else if (op.methodRef().toString().equals("squares.Squares::sq(int)int")) {
+        } else if (op.methodRef().toString().equals("squares.Squares::squareit(int)int")) {
             append("mul.lo").s32().space().printResult(op, PTXRegister.Type.U32).commaSpace().printVar(op.operandNAsValue(0)).commaSpace().printVar(op.operandNAsValue(0));
         } else {
             append("call ").append(op.methodRef().toString());

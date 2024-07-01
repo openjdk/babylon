@@ -37,7 +37,7 @@ import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.type.JavaType;
 import java.util.Optional;
 
-public class PTXBackend extends NativeBackend {
+public class PTXBackend extends C99NativeBackend {
     int major;
     int minor;
     String target;
@@ -78,7 +78,13 @@ public class PTXBackend extends NativeBackend {
         String code = createCode(kernelCallGraph, new PTXCodeBuilder(), args);
         System.out.println("\nCod Builder Output: \n\n" + code);
         System.out.println("Add your code to "+PTXBackend.class.getName()+".dispatchKernel() to actually run! :)");
-        System.exit(1);
+        long programHandle = compileProgram(code);
+        if (programOK(programHandle)) {
+            long kernelHandle = getKernel(programHandle, kernelCallGraph.entrypoint.method.getName());
+            CompiledKernel compiledKernel = new CompiledKernel(this, kernelCallGraph, code, kernelHandle, args);
+            compiledKernel.dispatch(ndRange,args);
+        }
+        // System.exit(1);
     }
 
     public String createCode(KernelCallGraph kernelCallGraph, PTXCodeBuilder builder, Object[] args) {
