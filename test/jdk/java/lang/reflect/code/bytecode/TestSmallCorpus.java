@@ -85,7 +85,7 @@ public class TestSmallCorpus {
         }
 
         // @@@ There is still several failing cases and a lot of errors
-        Assert.assertTrue(passed > 6400, String.format("""
+        Assert.assertTrue(passed > 24000, String.format("""
 
                     passed: %d
                     not matching: %d
@@ -102,7 +102,7 @@ public class TestSmallCorpus {
     private void testDoubleRoundtripStability(Path path) throws Exception {
         var clm = CF.parse(path);
         for (var originalModel : clm.methods()) {
-            if (originalModel.flags().has(AccessFlag.STATIC) && originalModel.code().isPresent()) try {
+            if (originalModel.code().isPresent()) try {
                 CoreOp.FuncOp firstLift = lift(originalModel);
                 try {
                     CoreOp.FuncOp firstTransform = transform(firstLift);
