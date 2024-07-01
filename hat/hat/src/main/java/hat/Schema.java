@@ -103,9 +103,7 @@ public class Schema<T extends Buffer> {
         }
 
         public T allocate(BufferAllocator bufferAllocator) {
-            System.out.println(groupLayout);
-            var segmentMapper = SegmentMapper.of(MethodHandles.lookup(), schema.iface, groupLayout);
-            return bufferAllocator.allocate(segmentMapper);
+            return bufferAllocator.allocate(SegmentMapper.of(MethodHandles.lookup(), schema.iface, groupLayout));
         }
 
         @Override
@@ -661,8 +659,12 @@ public class Schema<T extends Buffer> {
             return s.allocate(Arena.global());
         }
     };
+    public BoundSchema<T> boundSchema(int... boundLengths) {
+        return new BoundSchema<>(this, boundLengths);
+    }
+
     public T allocate(BufferAllocator bufferAllocator,int... boundLengths) {
-        return new BoundSchema<>(this, boundLengths).allocate(bufferAllocator);
+        return boundSchema(boundLengths).allocate(bufferAllocator);
     }
     public T allocate(int... boundLengths) {
         return allocate(GlobalArenaAllocator,boundLengths);

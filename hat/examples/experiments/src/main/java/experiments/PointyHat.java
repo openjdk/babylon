@@ -1,9 +1,11 @@
 package experiments;
 
 
+
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
+import hat.Schema;
 import hat.buffer.Buffer;
 import hat.buffer.BufferAllocator;
 import hat.buffer.CompleteBuffer;
@@ -15,23 +17,9 @@ import java.lang.invoke.MethodHandles;
 import java.lang.runtime.CodeReflection;
 
 public class PointyHat {
-
-    /*
-    struct ColoredWeightedPoint{
-       struct WeightedPoint{
-         int x;
-         int y;
-         float weight;
-       }
-       struct WeightedPoint weightedPoint;
-       int color;
-     }
-     */
-    @PtrDebugBackend.Struct
     public interface ColoredWeightedPoint extends CompleteBuffer {
 
-        @PtrDebugBackend.Struct
-         interface WeightedPoint extends Buffer.StructChild {
+        interface WeightedPoint extends Buffer.StructChild {
             int x();
 
             void x(int x);
@@ -44,35 +32,32 @@ public class PointyHat {
 
             void weight(float weight);
 
-            static MemoryLayout layout() {
-                return LAYOUT;
-            }
-
             MemoryLayout LAYOUT = MemoryLayout.structLayout(
-                            ValueLayout.JAVA_FLOAT.withName("weight"),
-                            ValueLayout.JAVA_INT.withName("x"),
-                            ValueLayout.JAVA_INT.withName("y")
-                    ).withName(WeightedPoint.class.getName());
+                    ValueLayout.JAVA_FLOAT.withName("weight"),
+                    ValueLayout.JAVA_INT.withName("x"),
+                    ValueLayout.JAVA_INT.withName("y")
+            ).withName(ColoredWeightedPoint.WeightedPoint.class.getName());
         }
 
-        WeightedPoint weightedPoint();
+        ColoredWeightedPoint.WeightedPoint weightedPoint();
 
         int color();
 
-        void color(int color);
-
-        static MemoryLayout layout() {
-            return LAYOUT;
-        }
+        void color(int v);
 
         MemoryLayout LAYOUT = MemoryLayout.structLayout(
-                        WeightedPoint.layout(),
-                        ValueLayout.JAVA_INT.withName("color")
-                ).withName(ColoredWeightedPoint.class.getName());
+                ColoredWeightedPoint.WeightedPoint.LAYOUT.withName(ColoredWeightedPoint.WeightedPoint.class.getName() + "::weightedPoint"),
+                ValueLayout.JAVA_INT.withName("color")
+        ).withName(ColoredWeightedPoint.class.getName());
 
         static ColoredWeightedPoint create(BufferAllocator bufferAllocator) {
-            return bufferAllocator.allocate(SegmentMapper.of(MethodHandles.lookup(), ColoredWeightedPoint.class, layout()));
+            return bufferAllocator.allocate(SegmentMapper.of(MethodHandles.lookup(), ColoredWeightedPoint.class, LAYOUT));
         }
+
+        Schema<ColoredWeightedPoint> schema = Schema.of(ColoredWeightedPoint.class, (cwp)-> cwp
+                .field("weightedPoint", (wp)-> wp.fields("weight","x","y"))
+                .field("color")
+        );
     }
 
     static class Compute {
