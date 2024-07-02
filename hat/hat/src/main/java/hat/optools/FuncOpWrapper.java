@@ -27,6 +27,7 @@ package hat.optools;
 import hat.HatOps;
 import hat.KernelContext;
 import hat.buffer.Buffer;
+import hat.buffer.MappableIface;
 
 import java.lang.foreign.GroupLayout;
 import java.lang.reflect.code.Block;
@@ -71,7 +72,7 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
 
             public static boolean isIfaceBuffer(Class<?> hopefullyABufferClass) {
 
-                if (Buffer.class.isAssignableFrom(hopefullyABufferClass)) {
+                if (MappableIface.class.isAssignableFrom(hopefullyABufferClass)) {
                     return true;
                 } else {
                     Class<?> enclosingClass = hopefullyABufferClass.getEnclosingClass();

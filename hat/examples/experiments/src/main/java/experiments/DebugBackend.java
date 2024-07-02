@@ -11,6 +11,7 @@ import hat.ifacemapper.SegmentMapper;
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.reflect.code.interpreter.Interpreter;
@@ -102,8 +103,12 @@ class DebugBackend implements Backend {
                 System.out.println(highLevelForm.toText());
                 System.out.println("------------------");
 
-                // highLevelForm.lower();
-                CoreOp.FuncOp ssaInvokeForm = SSA.transform(highLevelForm);
+                CoreOp.FuncOp loweredForm = highLevelForm.transform(OpTransformer.LOWERING_TRANSFORMER);
+                System.out.println("Lowered form which maintains original invokes and args");
+                System.out.println(loweredForm.toText());
+                System.out.println("-------------- ----");
+
+                CoreOp.FuncOp ssaInvokeForm = SSA.transform(loweredForm);
                 System.out.println("SSA form which maintains original invokes and args");
                 System.out.println(ssaInvokeForm.toText());
                 System.out.println("------------------");
