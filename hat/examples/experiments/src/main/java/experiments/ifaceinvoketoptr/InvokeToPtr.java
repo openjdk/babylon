@@ -3,7 +3,10 @@ package experiments.ifaceinvoketoptr;
 
 import hat.Schema;
 import hat.buffer.Buffer;
+import hat.buffer.CompleteBuffer;
 import hat.buffer.MappableIface;
+import hat.optools.InvokeOpWrapper;
+import hat.optools.OpWrapper;
 
 import java.lang.constant.ClassDesc;
 import java.lang.foreign.AddressLayout;
@@ -31,12 +34,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public class InvokeToPtr {
-    public interface ColoredWeightedPoint extends Buffer {
+    public interface ColoredWeightedPoint extends CompleteBuffer {
 
         interface WeightedPoint extends Buffer.StructChild {
             int x();
@@ -62,15 +63,15 @@ public class InvokeToPtr {
 
         int color();
 
-        void color(int v);
+        void color(int color);
 
         MemoryLayout LAYOUT = MemoryLayout.structLayout(
-                WeightedPoint.LAYOUT.withName(WeightedPoint.class.getName() + "::weightedPoint"),
+                WeightedPoint.LAYOUT.withName("weightedPoint"),
                 ValueLayout.JAVA_INT.withName("color")
-        ).withName(ColoredWeightedPoint.class.getName());
+        ).withName(ColoredWeightedPoint.class.getSimpleName());
 
-        Schema<ColoredWeightedPoint> schema = Schema.of(ColoredWeightedPoint.class, (cwp)-> cwp
-                .field("weightedPoint", (wp)-> wp.fields("weight","x","y"))
+        Schema<ColoredWeightedPoint> schema = Schema.of(ColoredWeightedPoint.class, (cwp) -> cwp
+                .field("weightedPoint", (wp) -> wp.fields("weight", "x", "y"))
                 .field("color")
         );
     }
@@ -105,7 +106,12 @@ public class InvokeToPtr {
         System.out.println(highLevelForm.toText());
         System.out.println("------------------");
 
-        CoreOp.FuncOp ssaInvokeForm = SSA.transform(highLevelForm);
+        CoreOp.FuncOp loweredForm = highLevelForm.transform(OpTransformer.LOWERING_TRANSFORMER);
+        System.out.println("Lowered form which maintains original invokes and args");
+        System.out.println(loweredForm.toText());
+        System.out.println("-------------- ----");
+
+        CoreOp.FuncOp ssaInvokeForm = SSA.transform(loweredForm);
         System.out.println("SSA form which maintains original invokes and args");
         System.out.println(ssaInvokeForm.toText());
         System.out.println("------------------");
@@ -120,61 +126,86 @@ public class InvokeToPtr {
         System.out.println(ssaPtrForm.toText());
     }
 
-    static Class<?> getMappableClassOrNull(MethodHandles.Lookup lookup, TypeElement typeElement) {
+    static <T extends MappableIface> Class<T> getMappableClassOrNull(MethodHandles.Lookup lookup, TypeElement typeElement) {
         try {
             return (typeElement instanceof JavaType jt
-                    && jt.resolve(lookup) instanceof Class<?> c
-                    &&  MappableIface.class.isAssignableFrom(c))?c:null;
+                    && jt.resolve(lookup) instanceof Class<?> possiblyMappableIface
+                    && MappableIface.class.isAssignableFrom(possiblyMappableIface)) ? (Class<T>) possiblyMappableIface : null;
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
     }
 
-   static TypeElement convertToPtrTypeIfPossible(MethodHandles.Lookup lookup, TypeElement typeElement){
+    static <T extends MappableIface> TypeElement convertToPtrTypeIfPossible(MethodHandles.Lookup lookup, TypeElement typeElement) {
         return getMappableClassOrNull(lookup, typeElement) instanceof Class<?> clazz
-                ?new PtrType(getLayout(clazz))
-                :typeElement;
+                ? new PtrType<>((Class<T>) clazz, getLayout((Class<T>) clazz))
+                : typeElement;
     }
 
 
     static FunctionType transformTypes(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
         List<TypeElement> transformedTypeElements = new ArrayList<>();
         for (Block.Parameter parameter : funcOp.parameters()) {
-            transformedTypeElements.add(convertToPtrTypeIfPossible(lookup,parameter.type()));
+            transformedTypeElements.add(convertToPtrTypeIfPossible(lookup, parameter.type()));
         }
-        return FunctionType.functionType(convertToPtrTypeIfPossible(lookup,funcOp.invokableType().returnType()), transformedTypeElements);
+        return FunctionType.functionType(convertToPtrTypeIfPossible(lookup, funcOp.invokableType().returnType()), transformedTypeElements);
     }
 
-    static CoreOp.FuncOp transformInvokesToPtrs(MethodHandles.Lookup lookup,
-                                                CoreOp.FuncOp ssaForm, FunctionType functionType) {
+    static <T extends MappableIface> CoreOp.FuncOp transformInvokesToPtrs(MethodHandles.Lookup lookup,
+                                                                          CoreOp.FuncOp ssaForm, FunctionType functionType) {
         return CoreOp.func(ssaForm.funcName(), functionType).body(funcBlock -> {
             funcBlock.transformBody(ssaForm.body(), funcBlock.parameters(), (builder, op) -> {
                 /*
                    We are looking for
                       interface Iface extends Buffer // or Buffer.StructChild
                          T foo();
+                         void foo(T foo);
                       }
                    Were T is either a primitive or a nested iface mapping and foo matches the field name
                  */
-                if (       op instanceof CoreOp.InvokeOp invokeOp
-                        && invokeOp.hasReceiver()                                 // Is there a containing iface type Iface
-                        && invokeOp.operands().size() == 1                        // No args (operand(0)==containing iface)
-                        && invokeOp.operands().getFirst() instanceof Value iface  // Get the containing iface
-                        && getMappableClassOrNull(lookup, iface.type()) != null        // check it is indeed mappable
+
+                if (op instanceof CoreOp.InvokeOp invokeOp
+                        && OpWrapper.wrap(invokeOp) instanceof InvokeOpWrapper invokeOpWrapper
+                        && invokeOpWrapper.hasOperands()
+                        && invokeOpWrapper.isIfaceBufferMethod()
+                        && invokeOpWrapper.getReceiver() instanceof Value iface // Is there a containing iface type Iface
+                        && getMappableClassOrNull(lookup, iface.type()) != null
                 ) {
-                        Value ifaceValue = builder.context().getValue(iface);     // ? Ensure we have an output value for the iface
-
-                        String methodName =  invokeOp.invokeDescriptor().name();  // foo in our case
-                        PtrOp ptrOp = new PtrOp( ifaceValue, methodName);         // Create ptrOp to replace invokeOp
-                        Op.Result ptrResult = builder.op(ptrOp);                  // replace and capture the result of the invoke
-
+                    Value ifaceValue = builder.context().getValue(iface);     // ? Ensure we have an output value for the iface
+                    PtrOp<T> ptrOp = new PtrOp<>(ifaceValue, invokeOpWrapper.name());         // Create ptrOp to replace invokeOp
+                    Op.Result ptrResult = builder.op(ptrOp);// replace and capture the result of the invoke
+                    if (invokeOpWrapper.operandCount() == 1) {                  // No args (operand(0)==containing iface))
+                        /*
+                          this turns into a load
+                          interface Iface extends Buffer // or Buffer.StructChild
+                              T foo();
+                          }
+                         */
                         if (ptrOp.resultType().layout() instanceof ValueLayout) { // are we pointing to a primitive
-                            PtrLoadValue primitiveLoad = new PtrLoadValue(ptrResult);
+                            PtrLoadValue primitiveLoad = new PtrLoadValue(iface.type(), ptrResult);
                             Op.Result replacedReturnValue = builder.op(primitiveLoad);
-                            builder.context().mapValue(invokeOp.result(),replacedReturnValue);
+                            builder.context().mapValue(invokeOp.result(), replacedReturnValue);
                         } else {                                                 // pointing to another iface mappable
                             builder.context().mapValue(invokeOp.result(), ptrResult);
                         }
+                    } else if (invokeOpWrapper.operandCount() == 2) {
+                         /*
+                          This turns into a store
+                          interface Iface extends Buffer // or Buffer.StructChild
+                              void foo(T);
+                          }
+                         */
+                        if (ptrOp.resultType().layout() instanceof ValueLayout) { // are we pointing to a primitive
+                            Value valueToStore = builder.context().getValue(invokeOpWrapper.operandNAsValue(1));
+                            PtrStoreValue primitiveStore = new PtrStoreValue(iface.type(), ptrResult, valueToStore);
+                            Op.Result replacedReturnValue = builder.op(primitiveStore);
+                            builder.context().mapValue(invokeOp.result(), replacedReturnValue);
+                        } else {                                                 // pointing to another iface mappable
+                            builder.context().mapValue(invokeOp.result(), ptrResult);
+                        }
+                    } else {
+                        builder.op(op);
+                    }
                 } else {
                     builder.op(op);
                 }
@@ -183,20 +214,22 @@ public class InvokeToPtr {
         });
     }
 
-    static MemoryLayout getLayout(Class<?> clazz){
+    static <T extends MappableIface> MemoryLayout getLayout(Class<T> mappableIface) {
         try {
-            return (MemoryLayout) clazz.getDeclaredField("LAYOUT").get(null);
+            return (MemoryLayout) mappableIface.getDeclaredField("LAYOUT").get(null);
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static final class PtrType implements TypeElement {
-        static final String NAME = "ptr";
+    public static final class PtrType<T extends MappableIface> implements TypeElement {
+        static final String NAME = "ptrType";
+        final Class<T> mappableIface;
         final MemoryLayout layout;
         final JavaType referringType;
 
-        public PtrType(MemoryLayout layout) {
+        public PtrType(Class<T> mappableIface, MemoryLayout layout) {
+            this.mappableIface = mappableIface;
             this.layout = layout;
             this.referringType = switch (layout) {
                 case StructLayout _ -> JavaType.type(ClassDesc.of(layout.name().orElseThrow()));
@@ -218,7 +251,7 @@ public class InvokeToPtr {
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            PtrType ptrType = (PtrType) o;
+            PtrType<T> ptrType = (PtrType<T>) o;
             return Objects.equals(layout, ptrType.layout);
         }
 
@@ -237,63 +270,61 @@ public class InvokeToPtr {
             return externalize().toString();
         }
     }
-@OpFactory.OpDeclaration(PtrOp.NAME)
-    public static final class PtrOp extends ExternalizableOp {
+
+    @OpFactory.OpDeclaration(PtrOp.NAME)
+    public static final class PtrOp<T extends MappableIface> extends ExternalizableOp {
         public static final String NAME = "ptr.to.member";
         public static final String ATTRIBUTE_OFFSET = "offset";
-        public static final String ATTRIBUTE_CONTAINED_BY = "c";
+        final PtrType<T> ptrType;
+        final PtrType<T> resultType;
         final String simpleMemberName;
         final long memberOffset;
-        final PtrType resultType;
 
-        PtrOp(PtrOp that, CopyContext cc) {
+
+        PtrOp(PtrOp<T> that, CopyContext cc) {
             super(that, cc);
+            this.ptrType = that.ptrType;
+            this.resultType = that.resultType;
             this.simpleMemberName = that.simpleMemberName;
             this.memberOffset = that.memberOffset;
-            this.resultType = that.resultType;
+
         }
 
         @Override
-        public PtrOp transform(CopyContext cc, OpTransformer ot) {
-            return new PtrOp(this, cc);
+        public PtrOp<T> transform(CopyContext cc, OpTransformer ot) {
+            return new PtrOp<T>(this, cc);
         }
 
         public PtrOp(Value ptr, String simpleMemberName) {
             super(NAME, List.of(ptr));
-            this.simpleMemberName = simpleMemberName;
 
-            if (!(ptr.type() instanceof PtrType ptrType)) {
+            this.simpleMemberName = simpleMemberName;
+            if (ptr.type() instanceof PtrType<?> ptrType) {
+
+                if (ptrType.layout() instanceof StructLayout structLayout) {
+                    this.ptrType = (PtrType<T>) ptrType;
+                    MemoryLayout.PathElement memberPathElement = MemoryLayout.PathElement.groupElement(simpleMemberName);
+                    this.memberOffset = structLayout.byteOffset(memberPathElement);
+                    MemoryLayout memberLayout = structLayout.select(memberPathElement);
+                    // So we need a type for simpleMemberName ?
+
+
+                    //   Arrays.stream(ptrType.mappableIface.getDeclaredMethods()).forEach(m->{
+
+                    //    System.out.println(simpleMemberName+" "+memberLayout.name() + " "+m.getName()+" "+m.getReturnType());
+                    //  });
+                    this.resultType = new PtrType<>((Class<T>) ptrType.mappableIface, memberLayout);
+                } else {
+                    throw new IllegalArgumentException("Pointer type layout is not a struct layout: " + ptrType.layout());
+                }
+            } else {
                 throw new IllegalArgumentException("Pointer value is not of pointer type: " + ptr.type());
             }
-            // @@@ Support group layout
-            if (!(ptrType.layout() instanceof StructLayout structLayout)) {
-                throw new IllegalArgumentException("Pointer type layout is not a struct layout: " + ptrType.layout());
-            }
-
-            // Find the actual member name from the simple member name
-            String memberName = structLayout.memberLayouts().stream()
-                            .map(layout -> layout.name().orElseThrow())
-                            .filter(name -> (regex.matcher(name) instanceof Matcher matcher && matcher.matches() ? matcher.group(2) : name)
-                                    .equals(simpleMemberName)) // foo::bar -> bar
-                            .findFirst().orElseThrow();
-
-            MemoryLayout.PathElement memberPathElement = MemoryLayout.PathElement.groupElement(memberName);
-            this.memberOffset = structLayout.byteOffset(memberPathElement);
-            MemoryLayout memberLayout = structLayout.select(memberPathElement);
-            // Remove any simple member name from the layout
-
-            MemoryLayout ptrLayout = memberLayout instanceof StructLayout
-                    ? memberLayout.withName(regex.matcher(memberName) instanceof Matcher matcher && matcher.matches()
-                            ? matcher.group(1) : null) // foo::bar -> foo
-                    : memberLayout.withoutName();
-            this.resultType = new PtrType(ptrLayout);
         }
 
 
-        static Pattern regex = Pattern.compile("(.*)::(.*)");
-
         @Override
-        public PtrType resultType() {
+        public PtrType<T> resultType() {
             return resultType;
         }
 
@@ -302,76 +333,70 @@ public class InvokeToPtr {
             HashMap<String, Object> attrs = new HashMap<>(super.attributes());
             attrs.put("", simpleMemberName);
             attrs.put(ATTRIBUTE_OFFSET, memberOffset);
-            attrs.put(ATTRIBUTE_CONTAINED_BY, "grf");
             return attrs;
         }
     }
 
 
-    @OpFactory.OpDeclaration(PtrOp.NAME)
-    public static final class PtrLoadValue extends Op {
-        public static final String NAME = "ptr.load.value";
+    public static abstract class PtrAccessValue extends Op {
+        final String name;
         final JavaType resultType;
+        final TypeElement typeElement;
 
-        PtrLoadValue(PtrLoadValue that, CopyContext cc) {
+        PtrAccessValue(String name, TypeElement typeElement, PtrAccessValue that, CopyContext cc) {
             super(that, cc);
+            this.name = name;
+            this.typeElement = typeElement;
             this.resultType = that.resultType;
         }
 
-        @Override
-        public PtrLoadValue transform(CopyContext cc, OpTransformer ot) {
-            return new PtrLoadValue(this, cc);
-        }
-
-        public PtrLoadValue(Value ptr) {
-            super(NAME, List.of(ptr));
-            if (!(ptr.type() instanceof PtrType ptrType)) {
-                throw new IllegalArgumentException("Pointer value is not of pointer type: " + ptr.type());
-            }
-            if (!(ptrType.layout() instanceof ValueLayout)) {
-                throw new IllegalArgumentException("Pointer type layout is not a value layout: " + ptrType.layout());
-            }
-            this.resultType = ptrType.referringType();
+        public PtrAccessValue(String name, TypeElement typeElement, JavaType resultType, List<Value> values) {
+            super(name, values);
+            this.name = name;
+            this.typeElement = typeElement;
+            this.resultType = resultType;
         }
 
         @Override
         public TypeElement resultType() {
             return resultType;
         }
+    }
+
+    @OpFactory.OpDeclaration(PtrLoadValue.NAME)
+    public static final class PtrLoadValue extends PtrAccessValue {
+        public static final String NAME = "ptr.load.value";
+
+        PtrLoadValue(TypeElement typeElement, PtrLoadValue that, CopyContext cc) {
+            super(NAME, typeElement, that, cc);
+        }
+
+        @Override
+        public PtrLoadValue transform(CopyContext cc, OpTransformer ot) {
+            return new PtrLoadValue(typeElement, this, cc);
+        }
+
+        public PtrLoadValue(TypeElement typeElement, Value ptr) {
+            super(NAME, typeElement, ((PtrType<?>) ptr.type()).referringType(), List.of(ptr));
+        }
 
     }
 
-    @OpFactory.OpDeclaration(PtrOp.NAME)
-    public static final class PtrStoreValue extends Op {
+    @OpFactory.OpDeclaration(PtrStoreValue.NAME)
+    public static final class PtrStoreValue extends PtrAccessValue {
         public static final String NAME = "ptr.store.value";
 
-        PtrStoreValue(PtrStoreValue that, CopyContext cc) {
-            super(that, cc);
+        PtrStoreValue(TypeElement typeElement, PtrStoreValue that, CopyContext cc) {
+            super(NAME, typeElement, that, cc);
         }
 
         @Override
         public PtrStoreValue transform(CopyContext cc, OpTransformer ot) {
-            return new PtrStoreValue(this, cc);
+            return new PtrStoreValue(typeElement, this, cc);
         }
 
-        public PtrStoreValue(Value ptr, Value v) {
-            super(NAME, List.of(ptr));
-
-            if (!(ptr.type() instanceof PtrType ptrType)) {
-                throw new IllegalArgumentException("Pointer value is not of pointer type: " + ptr.type());
-            }
-            if (!(ptrType.layout() instanceof ValueLayout)) {
-                throw new IllegalArgumentException("Pointer type layout is not a value layout: " + ptrType.layout());
-            }
-            if (!(ptrType.referringType().equals(v.type()))) {
-                throw new IllegalArgumentException("Pointer reference type is not same as value to store type: "
-                        + ptrType.referringType() + " " + v.type());
-            }
-        }
-
-        @Override
-        public TypeElement resultType() {
-            return JavaType.VOID;
+        public PtrStoreValue(TypeElement typeElement, Value ptr, Value arg1) {
+            super(NAME, typeElement, JavaType.VOID, List.of(ptr, arg1));
         }
     }
 

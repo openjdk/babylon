@@ -4,6 +4,7 @@ import hat.buffer.Buffer;
 import hat.buffer.KernelContext;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.code.Value;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.type.MethodRef;
@@ -65,6 +66,12 @@ public class InvokeOpWrapper extends OpWrapper<CoreOp.InvokeOp> {
         }
     }
 
+    public Value getReceiver() {
+        return hasReceiver()?operandNAsValue(0):null;
+    }
+    public boolean hasReceiver() {
+        return op().hasReceiver();
+    }
 
     public enum IfaceBufferAccess {None, Access, Mutate}
 

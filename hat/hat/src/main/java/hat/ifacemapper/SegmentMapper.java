@@ -809,7 +809,7 @@ public interface SegmentMapper<T> {
                                    Class<T> type,
                                    MemoryLayout... elements) {
 
-        StructLayout structlayout = MemoryLayout.structLayout(elements).withName(type.getSimpleName());
+       StructLayout structlayout = MemoryLayout.structLayout(elements).withName(type.getSimpleName());
         return of(lookup, type, structlayout);
     }
 
