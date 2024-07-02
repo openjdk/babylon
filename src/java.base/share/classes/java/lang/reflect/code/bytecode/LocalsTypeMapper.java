@@ -44,7 +44,6 @@ import java.util.stream.Collectors;
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
 import java.lang.constant.ConstantDescs;
 import static java.lang.constant.ConstantDescs.*;
-import java.lang.constant.MethodTypeDesc;
 import java.util.IdentityHashMap;
 
 final class LocalsTypeMapper {
@@ -54,27 +53,21 @@ final class LocalsTypeMapper {
     private final List<ClassDesc> stack, locals;
     private final Map<Label, StackMapFrameInfo> stackMap;
 
-    public LocalsTypeMapper(ClassDesc thisClass,
-                         MethodTypeDesc methodType,
-                         boolean isStatic,
+    LocalsTypeMapper(ClassDesc thisClass,
+                         List<ClassDesc> initFrameLocals,
                          Optional<StackMapTableAttribute> stackMapTableAttribute,
                          List<CodeElement> codeElements) {
         this.insMap = new IdentityHashMap<>();
         this.thisClass = thisClass;
         this.stack = new ArrayList<>();
-        this.locals = new ArrayList<>();
-        if (!isStatic) locals.add(thisClass);
-        for (var pt : methodType.parameterList()) {
-            locals.add(pt);
-            if (pt.equals(CD_long) || pt.equals(CD_double)) locals.add(null);
-        }
+        this.locals = new ArrayList<>(initFrameLocals);
         this.stackMap = stackMapTableAttribute.map(a -> a.entries().stream().collect(Collectors.toMap(
                 StackMapFrameInfo::target,
                 Function.identity()))).orElse(Map.of());
         codeElements.forEach(this::accept);
     }
 
-    public ClassDesc getTypeOf(LoadInstruction li) {
+    ClassDesc getTypeOf(LoadInstruction li) {
         return insMap.get(li);
     }
 
