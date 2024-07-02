@@ -61,15 +61,15 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
-import java.lang.classfile.constantpool.ClassEntry;
 import java.lang.constant.DirectMethodHandleDesc;
 import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodTypeDesc;
-import java.lang.reflect.code.Block.Parameter;
 import java.lang.reflect.code.op.CoreOp.LambdaOp;
 import java.lang.reflect.code.type.PrimitiveType;
 import java.lang.reflect.code.type.VarType;
+import java.util.Arrays;
 import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 
 public final class BytecodeLift {
@@ -80,7 +80,8 @@ public final class BytecodeLift {
     private static final MethodRef DCMP = MethodRef.method(JavaType.J_L_DOUBLE, "compare", JavaType.INT, JavaType.DOUBLE, JavaType.DOUBLE);
 
     private final Block.Builder entryBlock;
-    private final CodeModel codeModel;
+    private final ClassModel classModel;
+    private final List<ExceptionCatch> exceptionHandlers;
     private final Map<Label, Block.Builder> blockMap;
     private final LocalsTypeMapper codeTracker;
     private final List<CodeElement> elements;
@@ -104,14 +105,11 @@ public final class BytecodeLift {
         };
     }
 
-    private TypeElement toTypeElement(ClassEntry ce) {
-        return JavaType.type(ce.asSymbol());
-    }
-
-    private BytecodeLift(Block.Builder entryBlock, MethodModel methodModel, Value... capturedValues) {
+    private BytecodeLift(Block.Builder entryBlock, ClassModel classModel, CodeModel codeModel, Value... capturedValues) {
         this.entryBlock = entryBlock;
         this.currentBlock = entryBlock;
-        this.codeModel = methodModel.code().orElseThrow();
+        this.classModel = classModel;
+        this.exceptionHandlers = codeModel.exceptionHandlers();
         this.elements = codeModel.elementList();
         this.stack = new ArrayDeque<>();
         var smta = codeModel.findAttribute(Attributes.stackMapTable());
@@ -120,22 +118,14 @@ public final class BytecodeLift {
                         StackMapFrameInfo::target,
                         smfi -> entryBlock.block(smfi.stack().stream().map(BytecodeLift::toTypeElement).toList())))).orElse(Map.of());
 
-        MethodTypeDesc mtd = methodModel.methodTypeSymbol();
-        ClassDesc thisClass = methodModel.parent().orElseThrow().thisClass().asSymbol();
-        if (!methodModel.flags().has(AccessFlag.STATIC)) {
-            mtd = mtd.insertParameterTypes(0, thisClass);
-        }
-        int slot = 0, i = 0;
-        for (Value cap : capturedValues) {
-            op(SlotOp.store(slot, cap));
-            slot += TypeKind.from(mtd.parameterType(i++)).slotSize();
-        }
-        for (Parameter bp : entryBlock.parameters()) {
-            op(SlotOp.store(slot, bp));
-            slot += TypeKind.from(mtd.parameterType(i++)).slotSize();
-        }
-
-        this.codeTracker = new LocalsTypeMapper(thisClass, mtd, methodModel.flags().has(AccessFlag.STATIC), smta, elements);
+        ArrayList<ClassDesc> locals = new ArrayList<>();
+        Stream.concat(Arrays.stream(capturedValues), entryBlock.parameters().stream()).forEachOrdered(val -> {
+            op(SlotOp.store(locals.size(), val));
+            ClassDesc locType = BytecodeGenerator.toClassDesc(val.type());
+            locals.add(locType);
+            if (TypeKind.from(locType).slotSize() == 2) locals.add(null);
+        });
+        this.codeTracker = new LocalsTypeMapper(classModel.thisClass().asSymbol(), locals, smta, elements);
     }
 
     private Op.Result op(Op op) {
@@ -156,14 +146,7 @@ public final class BytecodeLift {
     }
 
     public static CoreOp.FuncOp lift(MethodModel methodModel) {
-        var mtd = methodModel.methodTypeSymbol();
-        if (!methodModel.flags().has(AccessFlag.STATIC)) {
-            mtd = mtd.insertParameterTypes(0, methodModel.parent().orElseThrow().thisClass().asSymbol());
-        }
-        var lifted = CoreOp.func(
-                methodModel.methodName().stringValue(),
-                MethodRef.ofNominalDescriptor(mtd)).body(entryBlock ->
-                        new BytecodeLift(entryBlock, methodModel).lift());
+        CoreOp.FuncOp lifted = liftToSlots(methodModel);
         try {
             return SlotSSA.transform(lifted);
         } catch (Exception e) {
@@ -171,6 +154,20 @@ public final class BytecodeLift {
             lifted.writeTo(System.out);
             throw new IllegalStateException("SlotSSA transformation failed");
         }
+    }
+
+    private static CoreOp.FuncOp liftToSlots(MethodModel methodModel) {
+        ClassModel classModel = methodModel.parent().orElseThrow();
+        MethodTypeDesc mDesc = methodModel.methodTypeSymbol();
+        if (!methodModel.flags().has(AccessFlag.STATIC)) {
+            mDesc = mDesc.insertParameterTypes(0, classModel.thisClass().asSymbol());
+        }
+        return CoreOp.func(
+                methodModel.methodName().stringValue(),
+                MethodRef.ofNominalDescriptor(mDesc)).body(entryBlock ->
+                        new BytecodeLift(entryBlock,
+                                         classModel,
+                                         methodModel.code().orElseThrow()).liftBody());
     }
 
     private Block.Builder getBlock(Label l) {
@@ -204,7 +201,7 @@ public final class BytecodeLift {
         stack.clear();
     }
 
-    private void lift() {
+    private void liftBody() {
         final Map<ExceptionCatch, Op.Result> exceptionRegionsMap = new HashMap<>();
         for (int i = 0; i < elements.size(); i++) {
             switch (elements.get(i)) {
@@ -223,7 +220,7 @@ public final class BytecodeLift {
                         moveTo(next);
                     }
                     // Insert relevant tryStart and construct handler blocks, all in reversed order
-                    for (ExceptionCatch ec : codeModel.exceptionHandlers().reversed()) {
+                    for (ExceptionCatch ec : exceptionHandlers.reversed()) {
                         if (lt.label() == ec.tryStart()) {
                             Block.Builder handler = getBlock(ec.handler());
                             // Create start block
@@ -236,7 +233,7 @@ public final class BytecodeLift {
                         }
                     }
                     // Insert relevant tryEnd blocks in normal order
-                    for (ExceptionCatch ec : codeModel.exceptionHandlers()) {
+                    for (ExceptionCatch ec : exceptionHandlers) {
                         if (lt.label() == ec.tryEnd()) {
                             // Create exit block with parameters constructed from the stack
                             next = newBlock();
@@ -448,18 +445,21 @@ public final class BytecodeLift {
                     LambdaOp.Builder lambda = CoreOp.lambda(currentBlock.parentBody(),
                             FunctionType.functionType(JavaType.type(mtd.returnType()), mtd.parameterList().stream().map(JavaType::type).toList()),
                             JavaType.type(inst.typeSymbol().returnType()));
-                    ClassModel clm = codeModel.parent().orElseThrow().parent().orElseThrow();
-                    if (dmhd.owner().equals(clm.thisClass().asSymbol())) {
+                    if (dmhd.owner().equals(classModel.thisClass().asSymbol())) {
                         // inline lambda impl method
-                        MethodModel implMethod = clm.methods().stream().filter(m -> m.methodName().equalsString(dmhd.methodName())).findFirst().orElseThrow();
-                        var captureTypes = new Value[dmhd.invocationType().parameterCount() - mtd.parameterCount()];
-                        for (int ci = captureTypes.length - 1; ci >= 0; ci--) {
-                            captureTypes[ci] = stack.pop();
+                        MethodModel implMethod = classModel.methods().stream().filter(m -> m.methodName().equalsString(dmhd.methodName())).findFirst().orElseThrow();
+                        var capturedValues = new Value[dmhd.invocationType().parameterCount() - mtd.parameterCount()];
+                        for (int ci = capturedValues.length - 1; ci >= 0; ci--) {
+                            capturedValues[ci] = stack.pop();
                         }
-                        for (int ci = captureTypes.length; ci < inst.typeSymbol().parameterCount(); ci++) {
+                        for (int ci = capturedValues.length; ci < inst.typeSymbol().parameterCount(); ci++) {
                             stack.pop();
                         }
-                        stack.push(op(lambda.body(eb -> new BytecodeLift(eb, implMethod, captureTypes).lift())));
+                        stack.push(op(lambda.body(
+                                eb -> new BytecodeLift(eb,
+                                                       classModel,
+                                                       implMethod.code().orElseThrow(),
+                                                       capturedValues).liftBody())));
                     } else {
                         // lambda call to a MH
                         stack.push(op(lambda.body(eb -> {
