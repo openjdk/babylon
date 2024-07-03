@@ -6,6 +6,7 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
 import hat.Schema;
+import hat.backend.DebugBackend;
 import hat.buffer.Buffer;
 import hat.buffer.BufferAllocator;
 import hat.buffer.CompleteBuffer;
@@ -20,24 +21,33 @@ import java.lang.runtime.CodeReflection;
 
 public class PointyHat {
     public interface ColoredWeightedPoint extends CompleteBuffer {
+        interface WeightedPoint extends Buffer.StructChild {
+            interface Point extends Buffer.StructChild {
 
-       public interface WeightedPoint extends Buffer.StructChild {
-            int x();
+                int x();
 
-            void x(int x);
+                void x(int x);
 
-            int y();
+                int y();
 
-            void y(int y);
+                void y(int y);
+
+                GroupLayout LAYOUT = MemoryLayout.structLayout(
+
+                        ValueLayout.JAVA_INT.withName("x"),
+                        ValueLayout.JAVA_INT.withName("y")
+                );
+            }
 
             float weight();
 
             void weight(float weight);
 
+            Point point();
+
            GroupLayout LAYOUT = MemoryLayout.structLayout(
                     ValueLayout.JAVA_FLOAT.withName("weight"),
-                    ValueLayout.JAVA_INT.withName("x"),
-                    ValueLayout.JAVA_INT.withName("y")
+                    Point.LAYOUT.withName("point")
             );
         }
 
@@ -54,8 +64,12 @@ public class PointyHat {
 
 
 
-        Schema<ColoredWeightedPoint> schema = Schema.of(ColoredWeightedPoint.class, (cwp)-> cwp
-                .field("weightedPoint", (wp)-> wp.fields("weight","x","y"))
+        Schema<ColoredWeightedPoint> schema = Schema.of(ColoredWeightedPoint.class, (colouredWeightedPoint)-> colouredWeightedPoint
+                .field("weightedPoint", (weightedPoint)-> weightedPoint
+                        .field("weight", point->point
+                                .field("x")
+                                .field("y"))
+                )
                 .field("color")
         );
 
@@ -79,7 +93,8 @@ public class PointyHat {
             // s1 -> *s2
             ColoredWeightedPoint.WeightedPoint weightedPoint = coloredWeightedPoint.weightedPoint();
             // s2 -> i
-            color += weightedPoint.x();
+            ColoredWeightedPoint.WeightedPoint.Point point = weightedPoint.point();
+            color += point.x();
             coloredWeightedPoint.color(color);
             // s2 -> f
             float weight = weightedPoint.weight();
@@ -95,7 +110,10 @@ public class PointyHat {
 
 
     public static void main(String[] args) {
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup(), new PtrDebugBackend());
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup(), new DebugBackend(
+                DebugBackend.HowToRunCompute.REFLECT,
+                DebugBackend.HowToRunKernel.LOWER_TO_SSA_AND_MAP_PTRS)
+        );
         var coloredWeightedPoint = ColoredWeightedPoint.create(accelerator);
         accelerator.compute(cc -> Compute.compute(cc, coloredWeightedPoint));
     }

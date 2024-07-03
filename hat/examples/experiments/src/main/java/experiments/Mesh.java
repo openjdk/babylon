@@ -28,13 +28,14 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
 import hat.Schema;
+import hat.backend.DebugBackend;
 import hat.buffer.Buffer;
 import hat.buffer.BufferAllocator;
 import hat.buffer.CompleteBuffer;
 import hat.ifacemapper.SegmentMapper;
 
+import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.StructLayout;
 import java.lang.invoke.MethodHandles;
 import java.lang.runtime.CodeReflection;
 import java.util.Random;
@@ -55,6 +56,7 @@ public class Mesh {
             int z();
 
             void z(int z);
+
         }
 
         int points();
@@ -71,6 +73,7 @@ public class Mesh {
             int to();
 
             void to(int id);
+
         }
 
         int vertices();
@@ -79,24 +82,27 @@ public class Mesh {
 
         Vertex3D vertex(long idx);
 
-        static StructLayout getLayout() {
-            return MemoryLayout.structLayout(
-                    JAVA_INT.withName("points"),
-                    MemoryLayout.sequenceLayout(100,
-                            MemoryLayout.structLayout(
-                                    JAVA_INT.withName("x"),
-                                    JAVA_INT.withName("y"),
-                                    JAVA_INT.withName("z")
-                            ).withName(Point3D.class.getSimpleName())
-                    ).withName("point"),
+
+         GroupLayout LAYOUT = MemoryLayout.structLayout(
+                JAVA_INT.withName("points"),
+                MemoryLayout.sequenceLayout(100,
+                MemoryLayout.structLayout(
+                JAVA_INT.withName("x"),
+                JAVA_INT.withName("y"),
+                JAVA_INT.withName("z")
+                ).withName(Point3D.class.getSimpleName())
+                ).withName("point"),
                     JAVA_INT.withName("vertices"),
-                    MemoryLayout.sequenceLayout(10,
+                            MemoryLayout.sequenceLayout(10,
                             MemoryLayout.structLayout(
-                                    JAVA_INT.withName("from"),
-                                    JAVA_INT.withName("to")
+                            JAVA_INT.withName("from"),
+                            JAVA_INT.withName("to")
                             ).withName(Vertex3D.class.getSimpleName())
-                    ).withName("vertex")
+                ).withName("vertex")
             ).withName(MeshData.class.getSimpleName());
+
+        static GroupLayout getLayout() {
+            return LAYOUT;
         }
         static  MeshData create(BufferAllocator bufferAllocator) {
            return bufferAllocator.allocate(SegmentMapper.of(MethodHandles.lookup(), MeshData.class, getLayout()));
@@ -130,7 +136,9 @@ public class Mesh {
 
 
     public static void main(String[] args) {
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup(),new DebugBackend());
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup(),new DebugBackend(
+                DebugBackend.HowToRunCompute.REFLECT,
+                DebugBackend.HowToRunKernel.BABYLON_INTERPRETER));
         MeshData.schema.toText(t -> System.out.print(t));
 
         var boundSchema = new Schema.BoundSchema<>(MeshData.schema, 100, 10);
