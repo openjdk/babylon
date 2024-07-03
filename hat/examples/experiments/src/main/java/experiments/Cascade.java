@@ -24,13 +24,8 @@
  */
 package experiments;
 
-import hat.Schema;
+import hat.ifacemapper.Schema;
 import hat.buffer.Buffer;
-import hat.buffer.BufferAllocator;
-import hat.buffer.CompleteBuffer;
-import hat.ifacemapper.SegmentMapper;
-
-import java.lang.foreign.Arena;
 
 public interface Cascade extends Buffer {
     int width();

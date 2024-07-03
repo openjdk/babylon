@@ -25,28 +25,20 @@
 package violajones;
 
 import hat.Accelerator;
-import hat.ComputeContext;
-import hat.KernelContext;
-import hat.Schema;
 import hat.backend.Backend;
-import hat.backend.JavaMultiThreadedBackend;
-import hat.backend.JavaSequentialBackend;
 import hat.buffer.Buffer;
-import hat.buffer.F32Array2D;
 import org.xml.sax.SAXException;
 import violajones.attic.ViolaJones;
 import violajones.attic.ViolaJonesRaw;
 import violajones.buffers.RgbS08x3Image;
 import violajones.ifaces.Cascade;
 import violajones.ifaces.ResultTable;
-import violajones.ifaces.ScaleTable;
 
 import javax.imageio.ImageIO;
 import javax.xml.parsers.ParserConfigurationException;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
-import java.lang.runtime.CodeReflection;
 
 public class ViolaJonesCompute {
 

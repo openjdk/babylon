@@ -25,16 +25,13 @@
 package violajones.ifaces;
 
 
-import hat.Accelerator;
-import hat.Schema;
+import hat.ifacemapper.Schema;
 import hat.buffer.Buffer;
 import hat.buffer.BufferAllocator;
 import hat.buffer.Table;
 import hat.ifacemapper.SegmentMapper;
 
-import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.SequenceLayout;
 import java.lang.foreign.StructLayout;
 import java.lang.invoke.MethodHandles;
 

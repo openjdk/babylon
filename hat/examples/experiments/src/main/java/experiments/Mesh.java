@@ -27,7 +27,7 @@ package experiments;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
-import hat.Schema;
+import hat.ifacemapper.Schema;
 import hat.backend.DebugBackend;
 import hat.buffer.Buffer;
 import hat.buffer.BufferAllocator;

@@ -24,8 +24,7 @@
  */
 package violajones.ifaces;
 
-import hat.Accelerator;
-import hat.Schema;
+import hat.ifacemapper.Schema;
 import hat.buffer.Buffer;
 import hat.buffer.BufferAllocator;
 import hat.buffer.Table;
