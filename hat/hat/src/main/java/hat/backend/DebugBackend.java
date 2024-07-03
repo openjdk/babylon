@@ -1,8 +1,8 @@
-package experiments;
+package hat.backend;
 
 import hat.ComputeContext;
+import hat.HatPtr;
 import hat.NDRange;
-import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
@@ -16,19 +16,26 @@ import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.code.op.CoreOp;
+import java.lang.reflect.code.type.FunctionType;
 
-class DebugBackend implements Backend {
+public class DebugBackend implements Backend {
+    public enum HowToRunCompute{REFLECT, BABYLON_INTERPRETER, BABYLON_CLASSFILE}
+    public HowToRunCompute howToRunCompute=HowToRunCompute.REFLECT;
+    public enum HowToRunKernel{REFLECT, BABYLON_INTERPRETER, BABYLON_CLASSFILE, LOWER_TO_SSA,LOWER_TO_SSA_AND_MAP_PTRS}
+    HowToRunKernel howToRunKernel = HowToRunKernel.LOWER_TO_SSA_AND_MAP_PTRS;
+    public DebugBackend(HowToRunCompute howToRunCompute, HowToRunKernel howToRunKernel){
+        this.howToRunCompute = howToRunCompute;
+        this.howToRunKernel = howToRunKernel;
+    }
+
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
-
     }
 
     @Override
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
-        enum HowToRunCompute{REFLECT, BABYLON_INTERPRETER, BABYLON_CLASSFILE}
-        HowToRunCompute howToRun= HowToRunCompute.REFLECT;
 
-        switch (howToRun){
+        switch (howToRunCompute){
             case REFLECT: {
                 try {
                     computeContext.computeCallGraph.entrypoint.method.invoke(null, args);
@@ -64,9 +71,8 @@ class DebugBackend implements Backend {
 
     @Override
     public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
-        enum HowToRunKernel{REFLECT, BABYLON_INTERPRETER, BABYLON_CLASSFILE, LOWER_TO_SSA}
-        HowToRunKernel howToRun= HowToRunKernel.LOWER_TO_SSA;
-        switch (howToRun){
+
+        switch (howToRunKernel){
             case REFLECT: {
                 KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
                 for (ndRange.kid.x = 0; ndRange.kid.x < ndRange.kid.maxX; ndRange.kid.x++) {
@@ -99,6 +105,8 @@ class DebugBackend implements Backend {
 
             case LOWER_TO_SSA:{
                 var highLevelForm = kernelCallGraph.entrypoint.method.getCodeModel().orElseThrow();
+
+
                 System.out.println("Initial code model");
                 System.out.println(highLevelForm.toText());
                 System.out.println("------------------");
@@ -113,6 +121,31 @@ class DebugBackend implements Backend {
                 System.out.println(ssaInvokeForm.toText());
                 System.out.println("------------------");
 
+            }
+
+            case LOWER_TO_SSA_AND_MAP_PTRS:{
+                var highLevelForm = kernelCallGraph.entrypoint.method.getCodeModel().orElseThrow();
+                System.out.println("Initial code model");
+                System.out.println(highLevelForm.toText());
+                System.out.println("------------------");
+                CoreOp.FuncOp loweredForm = highLevelForm.transform(OpTransformer.LOWERING_TRANSFORMER);
+                System.out.println("Lowered form which maintains original invokes and args");
+                System.out.println(loweredForm.toText());
+                System.out.println("-------------- ----");
+                // highLevelForm.lower();
+                CoreOp.FuncOp ssaInvokeForm = SSA.transform(loweredForm);
+                System.out.println("SSA form which maintains original invokes and args");
+                System.out.println(ssaInvokeForm.toText());
+                System.out.println("------------------");
+
+                FunctionType functionType = HatPtr.transformTypes(MethodHandles.lookup(), ssaInvokeForm);
+                System.out.println("SSA form with types transformed args");
+                System.out.println(ssaInvokeForm.toText());
+                System.out.println("------------------");
+
+                CoreOp.FuncOp ssaPtrForm = HatPtr.transformInvokesToPtrs(MethodHandles.lookup(), ssaInvokeForm, functionType);
+                System.out.println("SSA form with invokes replaced by ptrs");
+                System.out.println(ssaPtrForm.toText());
             }
         }
 
