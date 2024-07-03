@@ -76,8 +76,8 @@ public class PTXBackend extends C99NativeBackend {
 
         System.out.println("Entrypoint ->"+kernelCallGraph.entrypoint.method.getName());
         String code = createCode(kernelCallGraph, new PTXCodeBuilder(), args);
-        System.out.println("\nCod Builder Output: \n\n" + code);
-        System.out.println("Add your code to "+PTXBackend.class.getName()+".dispatchKernel() to actually run! :)");
+//        System.out.println("\nCode Builder Output: \n\n" + code);
+//        System.out.println("Add your code to "+PTXBackend.class.getName()+".dispatchKernel() to actually run! :)");
         long programHandle = compileProgram(code);
         if (programOK(programHandle)) {
             long kernelHandle = getKernel(programHandle, kernelCallGraph.entrypoint.method.getName());
@@ -96,27 +96,6 @@ public class PTXBackend extends C99NativeBackend {
         FuncOpWrapper lowered = f.lower();
         FuncOpWrapper ssa = lowered.ssa();
         System.out.println(ssa.toText());
-
-
-        System.out.println();
-        MethodHandles.Lookup l = MethodHandles.lookup();
-        System.out.println(l);
-        for (Block.Parameter p : ssa.op().parameters()) {
-//            System.out.print(p.type() + " :: ");
-            try {
-                if ((p.type() instanceof JavaType jt) && (jt.resolve(l) instanceof Class<?> c)) {
-                    for (Method m : c.getMethods()) {
-                        System.out.print(m.getName() + ", ");
-                    }
-                    System.out.println();
-//                    System.out.println(jt.toNominalDescriptor().);
-//                    if (c.isInterface()) System.out.println(memberLayouts());
-                }
-            } catch (ReflectiveOperationException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
 
         //building header
         builder.ptxHeader(major, minor, target, addressSize);

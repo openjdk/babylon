@@ -455,6 +455,7 @@ long PtxBackend::compileProgram(int len, char *source) {
         int status = cuModuleLoadDataEx(&module, ptx->text, jitNumOptions, jitOptions, (void **) jitOptVals);
 
         printf("> PTX JIT log:\n%s\n", jitLogBuffer);
+        printf("status: %d\n", status);
         return reinterpret_cast<long>(new PtxProgram(this, nullptr, ptx, module));
 
         //delete ptx;
