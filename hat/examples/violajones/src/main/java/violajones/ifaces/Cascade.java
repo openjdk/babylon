@@ -281,7 +281,7 @@ public interface Cascade extends CompleteBuffer {
                     )
                     .array("rect", 3 , rect->rect.fields("x","y","width","height","weight"))
             )
-            .arrayLen("stageCount").array("stage", stage->stage.fields("id","threshold","treeCount","firstTreeId"))
+            .arrayLen("stageCount").array("stage", stage->stage.fields("id","threshold","firstTreeId","treeCount"))
             .arrayLen("treeCount").array("tree",tree->tree.fields("id","firstFeatureId","featureCount"))
     );
 

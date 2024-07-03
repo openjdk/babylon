@@ -63,9 +63,19 @@ public class ViolaJonesCompute {
 
        var cascade2 = Cascade.schema.allocate(accelerator,haarCascade.featureCount(),haarCascade.stageCount(),haarCascade.treeCount());
 
+       String layoutFromCascade = Buffer.getLayout(cascade).toString();
+        String layoutFromCascadeSchema = Buffer.getLayout(cascade2).toString();
+        if (layoutFromCascadeSchema.equals(layoutFromCascade)) {
+            System.out.println("Original   " + layoutFromCascade);
+            System.out.println("Same as");
+            System.out.println("Schema     " + layoutFromCascadeSchema);
+        }else{
+            System.out.println("Original   " + layoutFromCascade);
+            System.out.println("NOT the Same as");
+            System.out.println("Schema     " + layoutFromCascadeSchema);
+            throw new IllegalStateException("layouts not the same ");
+        }
 
-       System.out.println("Original   "+Buffer.getLayout(cascade));
-        System.out.println("Schema     "+Buffer.getLayout(cascade2));
         RgbS08x3Image rgbImage = RgbS08x3Image.create(accelerator, nasa1996);
         ResultTable resultTable = ResultTable.create(accelerator, 1000);
         System.out.println("result table layout "+Buffer.getLayout(resultTable));
