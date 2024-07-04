@@ -305,6 +305,10 @@ final class InvokableLeafOps {
         return (char) (l >>> r);
     }
 
+    public static boolean eq(char l, char r) {
+        return l == r;
+    }
+
    // long
 
     public static long neg(long l) {

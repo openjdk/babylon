@@ -645,9 +645,22 @@ public class ReflectMethods extends TreeTranslator {
             try {
                 pt = target;
                 scan(tree);
-                return result != null ?
-                        coerce(result, tree.type, target) :
-                        null;
+                // there are cases where tree type is null
+                // e.g. if tree represent throw statement
+                // if that's case, the sourceType passed to coerce method will be null, this will cause a NPE
+                // I decided to add a check before calling coerce
+                // so far this only occurred when visiting switch
+                // @@@ is this more specific to switch ?
+                if (result != null) {
+                    if (tree.type != null) {
+                        return coerce(result, tree.type, target);
+                    } else if (target == null || target == Type.noType){
+                        return result;
+                    } else {
+                        throw new IllegalStateException("tree type is null and target is " + target);
+                    }
+                }
+                return  null;
             } finally {
                 pt = prevPt;
             }
@@ -1519,8 +1532,10 @@ public class ReflectMethods extends TreeTranslator {
                     final Value localResult;
                     if (c.labels.size() == 1) {
                         Value expr = toValue(ccl.expr);
-                        // @@@ Conversion of localTarget
-                        if (ccl.expr.type.isPrimitive()) {
+                        // per java spec, constant type is compatible with the type of the selector expression
+                        // so, we convert constant to the type of the selector expression
+                        expr = convert(expr, tree.selector.type);
+                        if (tree.selector.type.isPrimitive()) {
                             localResult = append(CoreOp.eq(localTarget, expr));
                         } else {
                             localResult = append(CoreOp.invoke(
@@ -1534,9 +1549,9 @@ public class ReflectMethods extends TreeTranslator {
                             pushBody(ccl, FunctionType.functionType(JavaType.BOOLEAN));
 
                             Value expr = toValue(ccl.expr);
-                            // @@@ Conversion of localTarget
+                            expr = convert(expr, tree.selector.type);
                             final Value labelResult;
-                            if (ccl.expr.type.isPrimitive()) {
+                            if (tree.selector.type.isPrimitive()) {
                                 labelResult = append(CoreOp.eq(localTarget, expr));
                             } else {
                                 labelResult = append(CoreOp.invoke(
