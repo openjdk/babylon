@@ -25,7 +25,7 @@
 package violajones.attic;
 
 import hat.buffer.F32Array2D;
-import violajones.buffers.RgbS08x3Image;
+import hat.buffer.S08x3RGBImage;
 
 import java.lang.foreign.MemorySegment;
 
@@ -50,7 +50,7 @@ public class CoreJavaViolaJones {
     }
 
 
-    public static void rgbToGreyKernel(int id, RgbS08x3Image rgbImage, F32Array2D floatImage) {
+    public static void rgbToGreyKernel(int id, S08x3RGBImage rgbImage, F32Array2D floatImage) {
         byte r = rgbImage.data(id * 3L + 0);
         byte g = rgbImage.data(id * 3L + 1);
         byte b = rgbImage.data(id * 3L + 2);
@@ -143,7 +143,7 @@ public class CoreJavaViolaJones {
         return System.currentTimeMillis() - start;
     }
 
-    static long rgbToGreyScale(RgbS08x3Image rgb, F32Array2D grey) {
+    static long rgbToGreyScale(S08x3RGBImage rgb, F32Array2D grey) {
         long start = System.currentTimeMillis();
         int size = grey.width() * grey.height();
 

@@ -111,9 +111,14 @@ public class MatrixMultiply {
         int size = 10;  // works
         float[] arrA = new float[size * size];
         float[] arrB = new float[size * size];
-        var a = F32Array.create(accelerator, arrA);
-        var b = F32Array.create(accelerator, arrB);
-        var c = F32Array.create(accelerator, new float[size * size]);
+        var a = F32Array.schema.allocate(accelerator, arrA.length);
+        a.length(arrA.length);
+        a.copyFrom(arrA);
+        var b = F32Array.schema.allocate(accelerator, arrB.length);
+        b.length(arrB.length);
+        b.copyFrom(arrB);
+        var c = F32Array.schema.allocate(accelerator, size * size);
+        c.length(size*size);
         System.out.print(c.schema());
         accelerator.compute(
                 cc -> MatrixMultiplyCompute.compute(cc, a, b, c, size)

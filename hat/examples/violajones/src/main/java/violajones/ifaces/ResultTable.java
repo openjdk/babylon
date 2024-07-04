@@ -27,16 +27,6 @@ package violajones.ifaces;
 import hat.buffer.IncompleteBuffer;
 import hat.ifacemapper.Schema;
 import hat.buffer.Buffer;
-import hat.buffer.BufferAllocator;
-import hat.buffer.Table;
-import hat.ifacemapper.SegmentMapper;
-
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.StructLayout;
-import java.lang.invoke.MethodHandles;
-
-import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
-import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface ResultTable extends IncompleteBuffer  {
 

@@ -30,7 +30,7 @@ import hat.buffer.Buffer;
 import org.xml.sax.SAXException;
 import violajones.attic.ViolaJones;
 import violajones.attic.ViolaJonesRaw;
-import violajones.buffers.RgbS08x3Image;
+import hat.buffer.S08x3RGBImage;
 import violajones.ifaces.Cascade;
 import violajones.ifaces.ResultTable;
 import violajones.ifaces.ScaleTable;
@@ -67,7 +67,12 @@ public class ViolaJonesCompute {
                 xmlCascade.treeCount()
         ).copyFrom(xmlCascade);
 
-        RgbS08x3Image rgbImage = RgbS08x3Image.create(accelerator, nasa1996);
+        S08x3RGBImage rgbImage = S08x3RGBImage.schema.allocate(accelerator, nasa1996.getWidth(),nasa1996.getHeight());
+        rgbImage.width(nasa1996.getWidth());
+        rgbImage.height(nasa1996.getHeight());
+      //  rgbImage.elementsPerPixel(3);
+      //  rgbImage.bufferedImageType(BufferedImage.TYPE_INT_RGB);
+        rgbImage.syncFromRaster(nasa1996);
         ResultTable resultTable = ResultTable.schema.allocate(1000);
         resultTable.length(1000);
 

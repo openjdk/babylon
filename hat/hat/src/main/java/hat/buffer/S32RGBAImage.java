@@ -23,6 +23,19 @@
  * questions.
  */
 package hat.buffer;
-public interface Table<T> extends IncompleteBuffer {
-    int length();
+
+import hat.ifacemapper.Schema;
+
+public interface S32RGBAImage extends ImageIfaceBuffer<S32RGBAImage> {
+    int data(long idx);
+
+    void data(long idx, int v);
+
+    int width();
+    void width(int width);
+    int height();
+    void height(int height);
+    Schema<S32RGBAImage> schema = Schema.of(S32RGBAImage.class, s -> s
+            .arrayLen("width", "height").stride(1).array("data")
+    );
 }
