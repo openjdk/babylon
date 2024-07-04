@@ -1,8 +1,8 @@
-package hat;
+package hat.ifacemapper;
 
 import hat.buffer.Buffer;
 import hat.buffer.BufferAllocator;
-import hat.ifacemapper.SegmentMapper;
+import hat.util.Result;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.GroupLayout;
@@ -28,16 +28,16 @@ public class Schema<T extends Buffer> {
     public Class<T> iface;
 
     static abstract sealed class LayoutToBoundFieldTreeNode permits ChildLayoutToBoundFieldTreeNode, BoundSchema {
-        static class FieldLayoutBinding<T extends SchemaNode> {
+        static class FieldToLayoutBinding<T extends SchemaNode> {
             final T field;
             MemoryLayout layout;
-            FieldLayoutBinding(T field, MemoryLayout layout) {
+            FieldToLayoutBinding(T field, MemoryLayout layout) {
                 this.field = field;
                 this.layout = layout;
             }
         }
 
-        static class FieldControlledArrayBinding extends FieldLayoutBinding<SchemaNode.FieldControlledArray> {
+        static class FieldControlledArrayBinding extends FieldToLayoutBinding<SchemaNode.FieldControlledArray> {
             final int idx;
             final int len;
 
@@ -51,7 +51,7 @@ public class Schema<T extends Buffer> {
         final protected LayoutToBoundFieldTreeNode parent;
         final List<ChildLayoutToBoundFieldTreeNode> children = new ArrayList<>();
         final List<MemoryLayout> memoryLayouts = new ArrayList<>();
-        final List<FieldLayoutBinding> fieldToLayoutBindings = new ArrayList<>();
+        final List<FieldToLayoutBinding<?>> fieldToLayoutBindings = new ArrayList<>();
 
         LayoutToBoundFieldTreeNode(LayoutToBoundFieldTreeNode parent) {
             this.parent = parent;
@@ -62,13 +62,13 @@ public class Schema<T extends Buffer> {
         abstract FieldControlledArrayBinding createFieldControlledArrayBinding(SchemaNode.FieldControlledArray fieldControlledArray, MemoryLayout memoryLayout);
 
         void bind(SchemaNode field, MemoryLayout memoryLayout) {
-            FieldLayoutBinding fieldLayoutBinding = null;
+            FieldToLayoutBinding<?> fieldToLayoutBinding = null;
             if (field instanceof SchemaNode.FieldControlledArray fieldControlledArray) {
-                fieldLayoutBinding = createFieldControlledArrayBinding(fieldControlledArray, memoryLayout);
+                fieldToLayoutBinding = createFieldControlledArrayBinding(fieldControlledArray, memoryLayout);
             } else {
-                fieldLayoutBinding = new FieldLayoutBinding(field, memoryLayout);
+                fieldToLayoutBinding = new FieldToLayoutBinding(field, memoryLayout);
             }
-            fieldToLayoutBindings.add(fieldLayoutBinding);
+            fieldToLayoutBindings.add(fieldToLayoutBinding);
             memoryLayouts.add(memoryLayout);
         }
 
@@ -95,7 +95,7 @@ public class Schema<T extends Buffer> {
             this.arraySizeBindings = new ArrayList<>();
             LayoutToBoundFieldTreeNode scope = createChild();
             schema.schemaRootField.fields.forEach(c -> c.collectLayouts(scope));
-            MemoryLayout memoryLayout = isUnion(schema.schemaRootField.nameTypeAndMode.type)
+            MemoryLayout memoryLayout = isUnion(schema.schemaRootField.type)
                     ?MemoryLayout.unionLayout(scope.array())
                     :MemoryLayout.structLayout(scope.array());
             bind(schema.schemaRootField, memoryLayout.withName(schema.iface.getSimpleName()));
@@ -133,70 +133,19 @@ public class Schema<T extends Buffer> {
             return parent.createFieldControlledArrayBinding(fieldControlledArray, memoryLayout);
         }
     }
-
-    public static class NameTypeAndMode {
-        enum Mode {
-            ROOT,
-            PRIMITIVE_GETTER_AND_SETTER,
-            PRIMITIVE_GETTER,
-            PRIMITIVE_SETTER,
-            IFACE_GETTER,
-            PRIMITIVE_ARRAY_SETTER,
-            PRIMITIVE_ARRAY_GETTER,
-            PRIMITIVE_ARRAY_GETTER_AND_SETTER,
-            IFACE_ARRAY_GETTER;
-
-            /**
-             * From the iface mapper we get these mappings
-             *
-             * T foo()             getter iface|primitive  0 args                  , return T     returnType T
-             * T foo(long)    arraygetter iface|primitive  arg[0]==long            , return T     returnType T
-             * void foo(T)            setter       primitive  arg[0]==T               , return void  returnType T
-             * void foo(long, T) arraysetter       primitive  arg[0]==long, arg[1]==T , return void  returnType T
-             *
-             * @param m The reflected method
-             * @return Class represeting the type this method is mapped to
-             */
-            static Mode of(Method m) {
-                Class<?> returnType = m.getReturnType();
-                Class<?>[] paramTypes = m.getParameterTypes();
-                if (paramTypes.length == 0 && returnType.isInterface()) {
-                    return IFACE_GETTER;
-                } else if (paramTypes.length == 0 && returnType.isPrimitive()) {
-                    return PRIMITIVE_GETTER;
-                } else if (paramTypes.length == 1 && paramTypes[0].isPrimitive() && returnType == Void.TYPE) {
-                    return PRIMITIVE_SETTER;
-                } else if (paramTypes.length == 1 && paramTypes[0] == Long.TYPE && returnType.isInterface()) {
-                    return IFACE_ARRAY_GETTER;
-                } else if (paramTypes.length == 1 && paramTypes[0] == Long.TYPE && returnType.isPrimitive()) {
-                    return PRIMITIVE_ARRAY_GETTER;
-                } else if (returnType == Void.TYPE && paramTypes.length == 2 &&
-                        paramTypes[0] == Long.TYPE && paramTypes[1].isPrimitive()) {
-                    return PRIMITIVE_ARRAY_SETTER;
-                } else {
-                    System.out.println("skiping " + m);
-                    return null;
-                }
-            }
-        }
-
-        Mode mode;
-        Class<?> type;
-        String name;
-
-        NameTypeAndMode(Mode mode, Class<?> type, String name) {
-            this.mode = mode;
-            this.type = type;
-            this.name = name;
-        }
-
-        @Override
-        public String toString() {
-            return mode.name() + ":" + type.getSimpleName() + ":" + name;
-        }
+    enum Mode {
+        PRIMITIVE_GETTER_AND_SETTER,
+        PRIMITIVE_GETTER,
+        PRIMITIVE_SETTER,
+        IFACE_GETTER,
+        PRIMITIVE_ARRAY_SETTER,
+        PRIMITIVE_ARRAY_GETTER,
+        PRIMITIVE_ARRAY_GETTER_AND_SETTER,
+        IFACE_ARRAY_GETTER;
 
         /**
-         * From the iface mapper
+         * From the iface mapper we get these mappings
+         * <p>
          * T foo()             getter iface|primitive  0 args                  , return T     returnType T
          * T foo(long)    arraygetter iface|primitive  arg[0]==long            , return T     returnType T
          * void foo(T)            setter       primitive  arg[0]==T               , return void  returnType T
@@ -205,57 +154,89 @@ public class Schema<T extends Buffer> {
          * @param m The reflected method
          * @return Class represeting the type this method is mapped to
          */
-        static Class<?> methodToType(Method m) {
+        static Mode of(Method m) {
             Class<?> returnType = m.getReturnType();
             Class<?>[] paramTypes = m.getParameterTypes();
-            if (paramTypes.length == 0 && (returnType.isInterface() || returnType.isPrimitive())) {
-                return returnType;
+            if (paramTypes.length == 0 && returnType.isInterface()) {
+                return IFACE_GETTER;
+            } else if (paramTypes.length == 0 && returnType.isPrimitive()) {
+                return PRIMITIVE_GETTER;
             } else if (paramTypes.length == 1 && paramTypes[0].isPrimitive() && returnType == Void.TYPE) {
-                return paramTypes[0];
-            } else if (paramTypes.length == 1 && paramTypes[0] == Long.TYPE && (returnType.isInterface() || returnType.isPrimitive())) {
-                return returnType;
+                return PRIMITIVE_SETTER;
+            } else if (paramTypes.length == 1 && paramTypes[0] == Long.TYPE && returnType.isInterface()) {
+                return IFACE_ARRAY_GETTER;
+            } else if (paramTypes.length == 1 && paramTypes[0] == Long.TYPE && returnType.isPrimitive()) {
+                return PRIMITIVE_ARRAY_GETTER;
             } else if (returnType == Void.TYPE && paramTypes.length == 2 &&
                     paramTypes[0] == Long.TYPE && paramTypes[1].isPrimitive()) {
-                return paramTypes[1];
+                return PRIMITIVE_ARRAY_SETTER;
             } else {
-                System.out.println("skipping " + m);
-                return null;
+                throw new IllegalStateException("no possible mode for "+m);
             }
         }
+    }
 
-        static NameTypeAndMode of(Class<?> iface, String name) {
-            NameTypeAndMode accessStyle = new NameTypeAndMode(null, null, name);
-            var methods = iface.getDeclaredMethods();
-            Arrays.stream(methods).filter(method -> method.getName().equals(name)).forEach(matchingMethod -> {
-                NameTypeAndMode.Mode mode = NameTypeAndMode.Mode.of(matchingMethod);
-                Class<?> type = methodToType(matchingMethod);
-                accessStyle.type = type;
-                if (accessStyle.type == null) {
-                    accessStyle.type = type;
-                } else if (!accessStyle.type.equals(type)) {
-                    throw new IllegalStateException("type mismatch for " + name);
-                }
-                if (accessStyle.mode == null){
-                    // We don't have one already
-                    accessStyle.mode = mode;
-                } else if ((accessStyle.mode.equals(Mode.PRIMITIVE_ARRAY_GETTER) && mode.equals(Mode.PRIMITIVE_ARRAY_SETTER))
-                        || (accessStyle.mode.equals(Mode.PRIMITIVE_ARRAY_SETTER) && mode.equals(Mode.PRIMITIVE_ARRAY_GETTER))) {
-                    // mode was already an array getter or setter and is now a GETTER_AND_SETTER
-                    accessStyle.mode = Mode.PRIMITIVE_ARRAY_GETTER_AND_SETTER;
-                } else if ((accessStyle.mode.equals(Mode.PRIMITIVE_GETTER) && mode.equals(Mode.PRIMITIVE_SETTER))
-                        || (accessStyle.mode.equals(Mode.PRIMITIVE_SETTER) && mode.equals(Mode.PRIMITIVE_GETTER))) {
-                    // mode was already a primitive getter or setter and is now a GETTER_AND_SETTER
-                    accessStyle.mode= Mode.PRIMITIVE_GETTER_AND_SETTER;
-                }
-
-            });
-            if (accessStyle.type == null && accessStyle.mode == null) {
-                accessStyle.type = iface;
-                accessStyle.name = "root";
-                accessStyle.mode = Mode.ROOT;
+    static Mode modeOf(Class<?> iface, String name) {
+        var methods = iface.getDeclaredMethods();
+        Result<Mode> modeResult = new Result<>();
+        Arrays.stream(methods).filter(method -> method.getName().equals(name)).forEach(matchingMethod -> {
+            var thisMode = Mode.of(matchingMethod);
+            if (!modeResult.isPresent()){
+                modeResult.of(thisMode);
+            } else if (( modeResult.get().equals(Mode.PRIMITIVE_ARRAY_GETTER) && thisMode.equals(Mode.PRIMITIVE_ARRAY_SETTER))
+                    || ( modeResult.get().equals(Mode.PRIMITIVE_ARRAY_SETTER) && thisMode.equals(Mode.PRIMITIVE_ARRAY_GETTER))) {
+                modeResult.of(Mode.PRIMITIVE_ARRAY_GETTER_AND_SETTER);
+            } else if (( modeResult.get().equals(Mode.PRIMITIVE_GETTER) && thisMode.equals(Mode.PRIMITIVE_SETTER))
+                    || ( modeResult.get().equals(Mode.PRIMITIVE_SETTER) && thisMode.equals(Mode.PRIMITIVE_GETTER))) {
+                modeResult.of(Mode.PRIMITIVE_GETTER_AND_SETTER);
             }
-            return accessStyle;
+        });
+        if ( !modeResult.isPresent() ) {
+            throw new IllegalStateException("no possible mode for "+iface+" "+name);
+           // modeResult.of(Mode.PRIMITIVE_GETTER_AND_SETTER);
         }
+        return modeResult.get();
+    }
+    /**
+     * From the iface mapper
+     * T foo()             getter iface|primitive  0 args                  , return T     returnType T
+     * T foo(long)    arraygetter iface|primitive  arg[0]==long            , return T     returnType T
+     * void foo(T)            setter       primitive  arg[0]==T               , return void  returnType T
+     * void foo(long, T) arraysetter       primitive  arg[0]==long, arg[1]==T , return void  returnType T
+     *
+     * @param iface The reflected method
+     * @return Class represeting the type this method is mapped to
+     */
+    static Class<?> typeOf(Class<?> iface, String name) {
+        var methods = iface.getDeclaredMethods();
+        Result<Class<?>> typeResult = new Result<>();
+        Arrays.stream(methods).filter(method -> method.getName().equals(name)).forEach(matchingMethod -> {
+            Class<?> returnType = matchingMethod.getReturnType();
+            Class<?>[] paramTypes = matchingMethod.getParameterTypes();
+            Class<?> thisType = null;
+            if (paramTypes.length == 0 && (returnType.isInterface() || returnType.isPrimitive())) {
+                thisType= returnType;
+            } else if (paramTypes.length == 1 && paramTypes[0].isPrimitive() && returnType == Void.TYPE) {
+                thisType=  paramTypes[0];
+            } else if (paramTypes.length == 1 && paramTypes[0] == Long.TYPE && (returnType.isInterface() || returnType.isPrimitive())) {
+                thisType=  returnType;
+            } else if (returnType == Void.TYPE && paramTypes.length == 2 &&
+                    paramTypes[0] == Long.TYPE && paramTypes[1].isPrimitive()) {
+                thisType=  paramTypes[1];
+            } else {
+                throw new IllegalStateException("Can't determine iface mapping type for "+matchingMethod);
+            }
+            if (!typeResult.isPresent() || typeResult.get().equals(thisType)) {
+                typeResult.of(thisType);
+            } else  {
+                throw new IllegalStateException("type mismatch for " + name);
+            }
+        });
+        if (!typeResult.isPresent()) {
+            throw new IllegalStateException("No type mapping for "+iface+" "+name);
+
+        }
+        return typeResult.get();
     }
 
     static boolean isBuffer(Class<?> clazz) {
@@ -281,14 +262,13 @@ public class Schema<T extends Buffer> {
         }
         public abstract void toText(String indent, Consumer<String> stringConsumer);
 
-        public static abstract sealed class FieldSchemaNode extends SchemaNode permits Array, ArrayLen, AtomicField, Field, Padding {
+        public static abstract sealed class FieldSchemaNode extends SchemaNode permits NamedFieldSchemaNode, Padding {
             FieldSchemaNode(TypeSchemaNode parent) {
                 super(parent);
             }
             public abstract void toText(String indent, Consumer<String> stringConsumer);
             abstract void collectLayouts(LayoutToBoundFieldTreeNode layoutCollector);
         }
-
         public static final class Padding extends FieldSchemaNode {
             int len;
             Padding(TypeSchemaNode parent, int len) {
@@ -307,67 +287,76 @@ public class Schema<T extends Buffer> {
             }
         }
 
-        public static final class ArrayLen extends FieldSchemaNode {
-            NameTypeAndMode nameTypeAndMode;
-
-            ArrayLen(TypeSchemaNode parent, NameTypeAndMode nameTypeAndMode) {
+        public static abstract sealed class NamedFieldSchemaNode extends FieldSchemaNode permits Array, ArrayLen, AtomicField, Field {
+            Mode mode;
+            Class<?> type;
+            final String name;
+            NamedFieldSchemaNode(TypeSchemaNode parent, Mode mode, Class<?> type, String name) {
                 super(parent);
-                this.nameTypeAndMode = nameTypeAndMode;
-            }
-
-            @Override
-            public void toText(String indent, Consumer<String> stringConsumer) {
-                stringConsumer.accept(indent + "arrayLen " + nameTypeAndMode);
-            }
-
-            @Override
-            void collectLayouts(LayoutToBoundFieldTreeNode layoutToFieldBindingNode) {
-                layoutToFieldBindingNode.bind(this, parent.getLayout(nameTypeAndMode, layoutToFieldBindingNode).withName(nameTypeAndMode.name));
+                this.mode = mode;
+                 this.type = type;
+                this.name = name;
             }
         }
 
-        public static final class AtomicField extends FieldSchemaNode {
-            NameTypeAndMode nameTypeAndMode;
 
-            AtomicField(TypeSchemaNode parent, NameTypeAndMode nameTypeAndMode) {
-                super(parent);
-                this.nameTypeAndMode = nameTypeAndMode;
+        public static final class ArrayLen extends NamedFieldSchemaNode {
+            ArrayLen(TypeSchemaNode parent, Mode mode, Class<?> type,  String name) {
+                super(parent,mode,type, name);
             }
 
             @Override
             public void toText(String indent, Consumer<String> stringConsumer) {
-                stringConsumer.accept(indent + "atomic " + nameTypeAndMode);
+                stringConsumer.accept(indent + "arrayLen " + mode+":"+type);
             }
 
             @Override
             void collectLayouts(LayoutToBoundFieldTreeNode layoutToFieldBindingNode) {
-                layoutToFieldBindingNode.bind(this, parent.getLayout(nameTypeAndMode, layoutToFieldBindingNode).withName(nameTypeAndMode.name));
+                layoutToFieldBindingNode.bind(this, parent.getLayout(type, layoutToFieldBindingNode).withName(name));
             }
         }
 
-        public static final class Field extends FieldSchemaNode {
-            NameTypeAndMode nameTypeAndMode;
+        public static final class AtomicField extends NamedFieldSchemaNode {
 
-            Field(TypeSchemaNode parent, NameTypeAndMode nameTypeAndMode) {
-                super(parent);
-                this.nameTypeAndMode = nameTypeAndMode;
+
+            AtomicField(TypeSchemaNode parent,  Mode mode, Class<?> type, String name) {
+                super(parent, mode, type,name);
             }
 
             @Override
             public void toText(String indent, Consumer<String> stringConsumer) {
-                stringConsumer.accept(indent + "field " + nameTypeAndMode);
+                stringConsumer.accept(indent + "atomic " + mode+":"+type);
             }
 
             @Override
             void collectLayouts(LayoutToBoundFieldTreeNode layoutToFieldBindingNode) {
-                layoutToFieldBindingNode.bind(this, parent.getLayout(nameTypeAndMode, layoutToFieldBindingNode).withName(nameTypeAndMode.name));
+                layoutToFieldBindingNode.bind(this, parent.getLayout(type, layoutToFieldBindingNode).withName(name));
+            }
+        }
+
+        public static final class Field extends NamedFieldSchemaNode {
+
+
+            Field(TypeSchemaNode parent,  Mode mode, Class<?> type, String name) {
+                super(parent, mode, type,name);
+
+            }
+
+            @Override
+            public void toText(String indent, Consumer<String> stringConsumer) {
+                stringConsumer.accept(indent + "field " + mode+":"+type);
+            }
+
+            @Override
+            void collectLayouts(LayoutToBoundFieldTreeNode layoutToFieldBindingNode) {
+                layoutToFieldBindingNode.bind(this, parent.getLayout(type, layoutToFieldBindingNode).withName(name));
             }
         }
 
         public static abstract sealed class TypeSchemaNode extends SchemaNode permits Union,Struct {
             private List<FieldSchemaNode> fields = new ArrayList<>();
             private List<TypeSchemaNode> types = new ArrayList<>();
-            NameTypeAndMode nameTypeAndMode;
+            Class<?> type;
 
             <T extends FieldSchemaNode> T addField(T child) {
                 fields.add(child);
@@ -378,9 +367,9 @@ public class Schema<T extends Buffer> {
                 return child;
             }
 
-            TypeSchemaNode(TypeSchemaNode parent, NameTypeAndMode nameTypeAndMode) {
+            TypeSchemaNode(TypeSchemaNode parent,  Class<?> type) {
                 super(parent);
-                this.nameTypeAndMode = nameTypeAndMode;
+                this.type = type;
             }
             /**
              * Get a layout which describes the NameTypeAndMode.
@@ -388,42 +377,42 @@ public class Schema<T extends Buffer> {
              * If NameTypeAndMode holds a primitive (int, float) then just map to JAVA_INT, JAVA_FLOAT value layouts
              * Otherwise we look through the parent's children.  Which should include a type node struct/union matching the type.
              *
-             * @param nameTypeAndMode
+             * @param type
              * @param layoutToFieldBindingNode
              * @return
              */
-             MemoryLayout getLayout(NameTypeAndMode nameTypeAndMode, LayoutToBoundFieldTreeNode layoutToFieldBindingNode) {
+             MemoryLayout getLayout(Class<?> type, LayoutToBoundFieldTreeNode layoutToFieldBindingNode) {
                 MemoryLayout memoryLayout = null;
-                if (nameTypeAndMode.type == Integer.TYPE) {
+                if (type == Integer.TYPE) {
                     memoryLayout = JAVA_INT;
-                } else if (nameTypeAndMode.type == Float.TYPE) {
+                } else if (type == Float.TYPE) {
                     memoryLayout = JAVA_FLOAT;
-                } else if (nameTypeAndMode.type == Long.TYPE) {
+                } else if (type == Long.TYPE) {
                     memoryLayout = JAVA_LONG;
-                } else if (nameTypeAndMode.type == Double.TYPE) {
+                } else if (type == Double.TYPE) {
                     memoryLayout = JAVA_DOUBLE;
-                } else if (nameTypeAndMode.type == Short.TYPE) {
+                } else if (type == Short.TYPE) {
                     memoryLayout = JAVA_SHORT;
-                } else if (nameTypeAndMode.type == Character.TYPE) {
+                } else if (type == Character.TYPE) {
                     memoryLayout = JAVA_CHAR;
-                } else if (nameTypeAndMode.type == Byte.TYPE) {
+                } else if (type == Byte.TYPE) {
                     memoryLayout = JAVA_BYTE;
-                } else if (nameTypeAndMode.type == Boolean.TYPE) {
+                } else if (type == Boolean.TYPE) {
                     memoryLayout = JAVA_BOOLEAN;
                 } else {
-                    TypeSchemaNode o = types.stream()
-                            .filter(p -> p.nameTypeAndMode.type.equals(nameTypeAndMode.type)).findFirst().get();
+                    TypeSchemaNode typeSchemaModeMatchingType = types.stream()
+                            .filter(typeSchemaNode -> typeSchemaNode.type.equals(type)).findFirst().get();
                     LayoutToBoundFieldTreeNode scope = layoutToFieldBindingNode.createChild();
-                    o.fields.stream()
-                            .forEach(fieldSchemaNode -> {
-                                fieldSchemaNode.collectLayouts(scope);
-                            });
-                    if (isUnion(o.nameTypeAndMode.type)) {
+                    typeSchemaModeMatchingType.fields.stream()
+                            .forEach(fieldSchemaNode ->
+                                fieldSchemaNode.collectLayouts(scope)
+                            );
+                    if (isUnion(typeSchemaModeMatchingType.type)) {
                         memoryLayout = MemoryLayout.unionLayout(scope.array());
-                    } else if (isStructOrBuffer(o.nameTypeAndMode.type)) {
+                    } else if (isStructOrBuffer(typeSchemaModeMatchingType.type)) {
                         memoryLayout = MemoryLayout.structLayout(scope.array());
                     } else {
-                        throw new IllegalStateException("Recursing through layout collections and came across  " + o.nameTypeAndMode.type);
+                        throw new IllegalStateException("Recursing through layout collections and came across  " + typeSchemaModeMatchingType.type);
                     }
                 }
                 return memoryLayout;
@@ -431,22 +420,22 @@ public class Schema<T extends Buffer> {
 
 
             public TypeSchemaNode struct(String name, Consumer<TypeSchemaNode> parentSchemaNodeConsumer) {
-                parentSchemaNodeConsumer.accept(addType(new Struct(this, NameTypeAndMode.of(nameTypeAndMode.type, name))));
+                parentSchemaNodeConsumer.accept(addType(new Struct(this,  typeOf(type,name))));
                 return this;
             }
 
             public TypeSchemaNode union(String name, Consumer<TypeSchemaNode> parentSchemaNodeConsumer) {
-                parentSchemaNodeConsumer.accept(addType(new Union(this, NameTypeAndMode.of(nameTypeAndMode.type, name))));
+                parentSchemaNodeConsumer.accept(addType(new Union(this, typeOf(type,name))));
                 return this;
             }
 
             public TypeSchemaNode field(String name) {
-                addField(new Field(this, NameTypeAndMode.of(nameTypeAndMode.type, name)));
+                addField(new Field(this, modeOf(type, name), typeOf(type, name), name));
                 return this;
             }
 
             public TypeSchemaNode atomic(String name) {
-                addField(new AtomicField(this, NameTypeAndMode.of(nameTypeAndMode.type, name)));
+                addField(new AtomicField(this, modeOf(type, name), typeOf(type, name), name));
                 return this;
             }
 
@@ -456,21 +445,30 @@ public class Schema<T extends Buffer> {
             }
 
             public TypeSchemaNode field(String name, Consumer<TypeSchemaNode> parentSchemaNodeConsumer) {
-                NameTypeAndMode newAccessStyle = NameTypeAndMode.of(nameTypeAndMode.type, name);
-                addField(new Field(this, newAccessStyle));
-                TypeSchemaNode field = isStruct(newAccessStyle.type)?new SchemaNode.Struct(this, newAccessStyle):new SchemaNode.Union(this, newAccessStyle);
+                 Mode fieldMode = modeOf(type, name);
+                 Class<?> fieldType = typeOf(type, name);
+                addField(new Field(this,fieldMode, fieldType, name));
+                TypeSchemaNode field = isStruct(fieldType)?new SchemaNode.Struct(this, fieldType):new SchemaNode.Union(this, fieldType);
                 parentSchemaNodeConsumer.accept(addType(field));
                 return this;
             }
 
             public TypeSchemaNode fields(String name1, String name2, Consumer<TypeSchemaNode> parentSchemaNodeConsumer) {
-                NameTypeAndMode newAccessStyle1 = NameTypeAndMode.of(nameTypeAndMode.type, name1);
-                NameTypeAndMode newAccessStyle2 = NameTypeAndMode.of(nameTypeAndMode.type, name2);
-                addField(new Field(this, newAccessStyle1));
-                addField(new Field(this, newAccessStyle2));
-                TypeSchemaNode typeSchemaNode=isStruct(newAccessStyle1.type)
-                        ? new SchemaNode.Struct(this, newAccessStyle1)
-                        :new SchemaNode.Union(this, newAccessStyle2);
+                Mode fieldMode1 = modeOf(type, name1);
+                Mode fieldMode2 = modeOf(type, name2);
+                if (!fieldMode1.equals(fieldMode2)){
+                    throw new IllegalStateException("fields "+name1+" and "+name2+" have different modes");
+                }
+                Class<?> structOrUnionType = typeOf(type, name1);
+                Class<?> fieldTypeCheck = typeOf(type, name2);
+                if (!structOrUnionType.equals(fieldTypeCheck)){
+                    throw new IllegalStateException("fields "+name1+" and "+name2+" have different types");
+                }
+                addField(new Field(this,fieldMode1, structOrUnionType, name1));
+                addField(new Field(this,fieldMode2,  structOrUnionType, name2));
+                TypeSchemaNode typeSchemaNode=isStruct(type)
+                        ? new SchemaNode.Struct(this,  structOrUnionType)
+                        :new SchemaNode.Union(this,  structOrUnionType);
                 parentSchemaNodeConsumer.accept(addType(typeSchemaNode));
                 return this;
             }
@@ -483,23 +481,25 @@ public class Schema<T extends Buffer> {
             }
 
             public TypeSchemaNode array(String name, int len) {
-                addField(new FixedArray(this, name, NameTypeAndMode.of(nameTypeAndMode.type, name), len));
+                addField(new FixedArray(this, modeOf(type,name), typeOf(type, name),name, len));
                 return this;
             }
 
             public TypeSchemaNode array(String name, int len, Consumer<TypeSchemaNode> parentFieldConsumer) {
-                NameTypeAndMode newAccessStyle = NameTypeAndMode.of(nameTypeAndMode.type, name);
-                TypeSchemaNode typeSchemaNode = isStruct(nameTypeAndMode.type)
-                                ?new SchemaNode.Struct(this, newAccessStyle)
-                                :new SchemaNode.Union(this, newAccessStyle);
+                Mode arrayMode = modeOf(type, name);
+                Class<?> structOrUnionType = typeOf(type, name);
+               // ModeAndType newAccessStyle = ModeAndType.of(type, name);
+                TypeSchemaNode typeSchemaNode = isStruct(type)
+                                ?new SchemaNode.Struct(this, structOrUnionType)
+                                :new SchemaNode.Union(this, structOrUnionType);
                 parentFieldConsumer.accept(typeSchemaNode);
                 addType(typeSchemaNode);
-                addField(new FixedArray(this, name, NameTypeAndMode.of(nameTypeAndMode.type, name), len));
+                addField(new FixedArray(this, arrayMode,structOrUnionType, name, len));
                 return this;
             }
 
             private TypeSchemaNode fieldControlledArray(String name, ArrayLen arrayLen) {
-                addField(new FieldControlledArray(this, name, NameTypeAndMode.of(nameTypeAndMode.type, name), arrayLen));
+                addField(new FieldControlledArray(this,  modeOf(type, name), typeOf(type, name),name, arrayLen));
                 return this;
             }
 
@@ -512,11 +512,11 @@ public class Schema<T extends Buffer> {
                 }
 
                 public TypeSchemaNode array(String name, Consumer<TypeSchemaNode> parentFieldConsumer) {
-                    NameTypeAndMode newAccessStyle = NameTypeAndMode.of(typeSchemaNode.nameTypeAndMode.type, name);
+                    Class<?> arrayType = typeOf(typeSchemaNode.type, name);
                     this.typeSchemaNode.fieldControlledArray(name, arrayLenField);
-                    TypeSchemaNode typeSchemaNode =isStruct(newAccessStyle.type)
-                            ?new SchemaNode.Struct(this.typeSchemaNode, newAccessStyle)
-                            :new SchemaNode.Union(this.typeSchemaNode, newAccessStyle);
+                    TypeSchemaNode typeSchemaNode =isStruct(arrayType)
+                            ?new SchemaNode.Struct(this.typeSchemaNode, arrayType)
+                            :new SchemaNode.Union(this.typeSchemaNode,arrayType);
                     parentFieldConsumer.accept(typeSchemaNode);
                     this.typeSchemaNode.addType(typeSchemaNode);
                     return this.typeSchemaNode;
@@ -529,27 +529,28 @@ public class Schema<T extends Buffer> {
             }
 
             public ArrayBuildState arrayLen(String arrayLenFieldName) {
-                var arrayLenField = new ArrayLen(this, NameTypeAndMode.of(nameTypeAndMode.type, arrayLenFieldName));
+                var arrayLenField = new ArrayLen(this, modeOf(type, arrayLenFieldName), typeOf(type, arrayLenFieldName),arrayLenFieldName );
                 addField(arrayLenField);
                 return new ArrayBuildState(this, arrayLenField);
             }
 
             public void flexArray(String name) {
-                addField(new FlexArray(this, name, null));
+                 throw new IllegalStateException("flex array");
+              //  addField(new FlexArray(this,null, name));
             }
 
 
             @Override
             public void toText(String indent, Consumer<String> stringConsumer) {
                 stringConsumer.accept(indent);
-                if (isUnion(nameTypeAndMode.type)) {
+                if (isUnion(type)) {
                     stringConsumer.accept("union");
-                } else if (isStructOrBuffer(nameTypeAndMode.type)) {
+                } else if (isStructOrBuffer(type)) {
                     stringConsumer.accept("struct");
                 } else {
                     throw new IllegalStateException("Oh my ");
                 }
-                stringConsumer.accept(" " + nameTypeAndMode + "{");
+                stringConsumer.accept(" " + type + "{");
                 stringConsumer.accept("\n");
                 types.forEach(c -> {
                     c.toText(indent + " TYPE: ", stringConsumer);
@@ -566,32 +567,30 @@ public class Schema<T extends Buffer> {
         }
 
         public static final class Struct extends TypeSchemaNode {
-            Struct(TypeSchemaNode parent, NameTypeAndMode nameTypeAndMode) {
-                super(parent, nameTypeAndMode);
+            Struct(TypeSchemaNode parent,  Class<?> type) {
+                super(parent, type);
             }
         }
 
         public static final class Union extends TypeSchemaNode {
-            Union(TypeSchemaNode parent, NameTypeAndMode nameTypeAndMode) {
-                super(parent, nameTypeAndMode);
+            Union(TypeSchemaNode parent,  Class<?> type) {
+                super(parent,  type);
             }
         }
 
-        public abstract static sealed class Array extends FieldSchemaNode permits FieldControlledArray, FixedArray, FlexArray {
-            String name;
-            NameTypeAndMode elementAccessStyle;
-            Array(TypeSchemaNode parent, String name, NameTypeAndMode elementAccessStyle) {
-                super(parent);
-                this.name = name;
-                this.elementAccessStyle = elementAccessStyle;
+        public abstract static sealed class Array extends NamedFieldSchemaNode permits FieldControlledArray, FixedArray, FlexArray {
+          //  ModeAndType elementAccessStyle;
+            Array(TypeSchemaNode parent,  Mode mode, Class<?> type, String name) {
+                super(parent, mode,type, name);
+            ///    this.elementAccessStyle = elementAccessStyle;
             }
         }
 
         public static final class FixedArray extends Array {
             int len;
 
-            FixedArray(TypeSchemaNode parent, String name, NameTypeAndMode elementAccessStyle, int len) {
-                super(parent, name, elementAccessStyle);
+            FixedArray(TypeSchemaNode parent,Mode mode, Class<?> type, String name, int len) {
+                super(parent,  mode, type, name);
                 this.len = len;
             }
 
@@ -603,14 +602,14 @@ public class Schema<T extends Buffer> {
             @Override
             void collectLayouts(LayoutToBoundFieldTreeNode layoutToFieldBindingNode) {
                 layoutToFieldBindingNode.bind(this, MemoryLayout.sequenceLayout(len,
-                        parent.getLayout(elementAccessStyle, layoutToFieldBindingNode).withName(elementAccessStyle.type.getSimpleName())
-                ).withName(elementAccessStyle.name));
+                        parent.getLayout(type, layoutToFieldBindingNode).withName(type.getSimpleName())
+                ).withName(name));
             }
         }
 
         public static final  class FlexArray extends Array {
-            FlexArray(TypeSchemaNode parent, String name, NameTypeAndMode elementAccessStyle) {
-                super(parent, name, elementAccessStyle);
+            FlexArray(TypeSchemaNode parent,  Mode mode, Class<?> type, String name) {
+                super(parent,  mode,type, name);
             }
 
             @Override
@@ -621,30 +620,30 @@ public class Schema<T extends Buffer> {
             void collectLayouts(LayoutToBoundFieldTreeNode layoutToFieldBindingNode) {
                 layoutToFieldBindingNode.bind(this,
                         MemoryLayout.sequenceLayout(0,
-                                parent.getLayout(elementAccessStyle, layoutToFieldBindingNode).withName(elementAccessStyle.type.getSimpleName())
-                        ).withName(elementAccessStyle.name));
+                                parent.getLayout(type, layoutToFieldBindingNode).withName(type.getSimpleName())
+                        ).withName(name));
             }
         }
 
         public static final class FieldControlledArray extends Array {
             ArrayLen arrayLen;
 
-            FieldControlledArray(TypeSchemaNode parent, String name, NameTypeAndMode elementAccessStyle, ArrayLen arrayLen) {
-                super(parent, name, elementAccessStyle);
+            FieldControlledArray(TypeSchemaNode parent,   Mode mode, Class<?> type,String name, ArrayLen arrayLen) {
+                super(parent, mode, type, name);
                 this.arrayLen = arrayLen;
             }
 
             @Override
             public void toText(String indent, Consumer<String> stringConsumer) {
-                stringConsumer.accept(indent + elementAccessStyle.name + "[" + elementAccessStyle + "] where len defined by " + arrayLen.nameTypeAndMode);
+                stringConsumer.accept(indent + name + "[" + mode+":"+type + "] where len defined by " + arrayLen.type);
             }
 
             @Override
             void collectLayouts(LayoutToBoundFieldTreeNode layoutToFieldBindingNode) {
                 layoutToFieldBindingNode.bind(this, MemoryLayout.sequenceLayout(
                         layoutToFieldBindingNode.takeArrayLen(),
-                        parent.getLayout(elementAccessStyle, layoutToFieldBindingNode).withName(elementAccessStyle.type.getSimpleName())
-                ).withName(elementAccessStyle.name));
+                        parent.getLayout(type, layoutToFieldBindingNode).withName(type.getSimpleName())
+                ).withName(name));
             }
         }
     }
@@ -671,8 +670,7 @@ public class Schema<T extends Buffer> {
     }
 
     public static <T extends Buffer> Schema<T> of(Class<T> iface, Consumer<SchemaNode.TypeSchemaNode> parentFieldConsumer) {
-        NameTypeAndMode nameTypeAndMode = NameTypeAndMode.of(iface, iface.getSimpleName());
-        var struct = new SchemaNode.Struct(null, nameTypeAndMode);
+        var struct = new SchemaNode.Struct(null, iface);
         parentFieldConsumer.accept(struct);
         return new Schema<>(iface, struct);
     }

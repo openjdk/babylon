@@ -25,37 +25,22 @@
 package violajones.ifaces;
 
 
-import hat.Accelerator;
-import hat.Schema;
+import hat.buffer.IncompleteBuffer;
+import hat.ifacemapper.Schema;
 import hat.buffer.Buffer;
 import hat.buffer.BufferAllocator;
 import hat.buffer.Table;
 import hat.ifacemapper.SegmentMapper;
 
-import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.SequenceLayout;
 import java.lang.foreign.StructLayout;
 import java.lang.invoke.MethodHandles;
 
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-public interface ScaleTable extends Table<ScaleTable.Scale> {
-    interface Scale extends Buffer {
-        StructLayout layout = MemoryLayout.structLayout(
-                JAVA_FLOAT.withName("scaleValue"),
-                JAVA_FLOAT.withName("scaledXInc"),
-                JAVA_FLOAT.withName("scaledYInc"),
-                JAVA_FLOAT.withName("invArea"),
-                JAVA_INT.withName("scaledFeatureWidth"),
-                JAVA_INT.withName("scaledFeatureHeight"),
-                JAVA_INT.withName("gridWidth"),
-                JAVA_INT.withName("gridHeight"),
-                JAVA_INT.withName("gridSize"),
-                JAVA_INT.withName("accumGridSizeMin"),
-                JAVA_INT.withName("accumGridSizeMax")
-        ).withName("Scale");
+public interface ScaleTable extends IncompleteBuffer {
+    interface Scale extends Buffer.StructChild {
 
         float scaleValue();
 
@@ -100,74 +85,59 @@ public interface ScaleTable extends Table<ScaleTable.Scale> {
         void accumGridSizeMin(int accumGridSizeMin);
 
         void accumGridSizeMax(int accumGridSizeMax);
-
-        default void copyFrom(Scale s) {
-            scaleValue(s.scaleValue());
-            accumGridSizeMax(s.accumGridSizeMax());
-            accumGridSizeMin(s.accumGridSizeMin());
-            gridSize(s.gridSize());
-            gridWidth(s.gridWidth());
-            gridHeight(s.gridHeight());
-            invArea(s.invArea());
-            scaledFeatureWidth(s.scaledFeatureWidth());
-            scaledFeatureHeight(s.scaledFeatureHeight());
-            scaledXInc(s.scaledXInc());
-            scaledYInc(s.scaledYInc());
-        }
-    }
-    StructLayout layout =  MemoryLayout.structLayout(
-            JAVA_INT.withName("length"),
-            JAVA_INT.withName("multiScaleAccumulativeRange"),
-            MemoryLayout.sequenceLayout(0, ScaleTable.Scale.layout).withName("scale")
-    ).withName(ScaleTable.class.getSimpleName());
-    private static ScaleTable create(BufferAllocator bufferAllocator, int length) {
-        return Buffer.setLength(
-                bufferAllocator.allocate(SegmentMapper.ofIncomplete(MethodHandles.lookup(),ScaleTable.class,layout,length)),length);
     }
 
-    static ScaleTable create(BufferAllocator bufferAllocator, Cascade cascade, int imageWidth, int imageHeight) {
-
-        final float startScale = 1f;
-        final float scaleMultiplier = 2f;
-        final float increment = 0.06f;
-
-        // We need to capture multi scale data
-        // this is unique per image as it is
-        // based on size, how many scales we want and the overlap desired
-
-        var maxScale = (Math.min(
-                (float) imageWidth / cascade.width(),
-                (float) imageHeight / cascade.height()));
-
-        //System.out.println("Image " + imageWidth + "x" + imageHeight);
-        // Alas we need to do this twice. We need a count to allocate the segment size
-        int multiScaleCountVar = 0;
-        for (float scale = startScale; scale < maxScale; scale *= scaleMultiplier) {
-            multiScaleCountVar++;
+     class Constraints{
+        final float startScale;
+        final float scaleMultiplier;
+        final float increment;
+        final int cascadeWidth; int cascadeHeight;  int imageWidth; int imageHeight;
+        final float maxScale;
+        public final int scales;
+        Constraints(float startScale, float scaleMultiplier, float increment, int cascadeWidth, int cascadeHeight, int imageWidth, int imageHeight){
+            this.startScale = startScale;
+            this.scaleMultiplier = scaleMultiplier;
+            this.increment = increment;
+            this.cascadeWidth = cascadeWidth;
+            this.cascadeHeight = cascadeHeight;
+            this.imageWidth = imageWidth;
+            this.imageHeight = imageHeight;
+            this.maxScale  = (Math.min(
+                    (float) imageWidth / cascadeWidth,
+                    (float) imageHeight / cascadeHeight));
+            int nonFinalScales = 0;
+            for (float scale = this.startScale; scale < this.maxScale; scale *= scaleMultiplier) {
+                nonFinalScales++;
+            }
+            this.scales = nonFinalScales;
         }
+        Constraints( int cascadeWidth, int cascadeHeight, int imageWidth, int imageHeight){
+           this(1f,2f,0.06f,cascadeWidth,cascadeHeight,imageWidth,imageHeight);
+        }
+        public Constraints(Cascade cascade, int imageWidth, int imageHeight){
+            this(1f,2f,0.06f,cascade.width(),cascade.height(),imageWidth,imageHeight);
+        }
+    }
 
-        ScaleTable scaleTable = ScaleTable.create(bufferAllocator, multiScaleCountVar);
-
-        // now we know the size
-
+      default void applyConstraints ( Constraints constraints) {
         int multiScaleAccumulativeRangeVar = 0;
         long idx = 0;
-        for (float scaleValue = startScale; scaleValue < maxScale; scaleValue *= scaleMultiplier) {
-            ScaleTable.Scale scale = scaleTable.scale(idx++);
+        for (float scaleValue = constraints.startScale; scaleValue < constraints.maxScale; scaleValue *= constraints.scaleMultiplier) {
+            ScaleTable.Scale scale = scale(idx++);
             scale.accumGridSizeMin(multiScaleAccumulativeRangeVar);
             scale.scaleValue(scaleValue);
-            final int scaledFeatureWidth = (int) (cascade.width() * scaleValue);
-            final int scaledFeatureHeight = (int) (cascade.height() * scaleValue);
+            final int scaledFeatureWidth = (int) (constraints.cascadeWidth * scaleValue);
+            final int scaledFeatureHeight = (int) (constraints.cascadeHeight * scaleValue);
             scale.scaledFeatureWidth(scaledFeatureWidth);
             scale.scaledFeatureHeight(scaledFeatureHeight);
 
-            final float scaledXInc = scaledFeatureWidth * increment;
-            final float scaledYInc = scaledFeatureHeight * increment;
+            final float scaledXInc = scaledFeatureWidth * constraints.increment;
+            final float scaledYInc = scaledFeatureHeight * constraints.increment;
             scale.scaledXInc(scaledXInc);
             scale.scaledYInc(scaledYInc);
 
-            int gridWidth = (int) ((imageWidth - scaledFeatureWidth) / scaledXInc);
-            int gridHeight = (int) ((imageHeight - scaledFeatureHeight) / scaledYInc);
+            int gridWidth = (int) ((constraints.imageWidth - scaledFeatureWidth) / scaledXInc);
+            int gridHeight = (int) ((constraints.imageHeight - scaledFeatureHeight) / scaledYInc);
             scale.gridWidth(gridWidth);
             scale.gridHeight(gridHeight);
 
@@ -177,17 +147,16 @@ public interface ScaleTable extends Table<ScaleTable.Scale> {
             scale.invArea(invArea);
             multiScaleAccumulativeRangeVar += gridSize;
         }
-        scaleTable.multiScaleAccumulativeRange(multiScaleAccumulativeRangeVar);
-        //System.out.println("Scales " + scaleTable.length());
+        multiScaleAccumulativeRange(multiScaleAccumulativeRangeVar);
+
         System.out.println("Scaled overlapping rectangles to search " + multiScaleAccumulativeRangeVar);
-        return scaleTable;
-    }
+       }
+
+    int length();
+    void length(int length);
 
     Scale scale(long idx);
 
-    default Scale get(int i) {
-        return scale(i);
-    }
 
     void multiScaleAccumulativeRange(int multiScaleAccumulativeRange);
 
@@ -197,7 +166,7 @@ public interface ScaleTable extends Table<ScaleTable.Scale> {
     default int rangeModGroupSize(int groupSize) {
         return ((multiScaleAccumulativeRange() / groupSize) + ((multiScaleAccumulativeRange() % groupSize) == 0 ? 0 : 1)) * groupSize;
     }
-    Schema<ScaleTable> schema = null;/*Schema.of(ScaleTable.class, scaleTable->scaleTable
+    Schema<ScaleTable> schema = Schema.of(ScaleTable.class, scaleTable->scaleTable
             .field("multiScaleAccumulativeRange")
             .arrayLen("length").array("scale", array->array
                     .fields(
@@ -210,5 +179,5 @@ public interface ScaleTable extends Table<ScaleTable.Scale> {
                             "accumGridSizeMin", "accumGridSizeMax"
                     )
             )
-    );*/
+    );
 }

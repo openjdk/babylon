@@ -24,12 +24,9 @@
  */
 package violajones.buffers;
 
-import hat.Accelerator;
 import hat.buffer.BufferAllocator;
 import hat.buffer.ImageBuffer;
-
 import java.awt.image.BufferedImage;
-import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.StructLayout;
 
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
@@ -45,17 +42,8 @@ public interface RgbS08x3Image extends ImageBuffer {
         return create(bufferAllocator, bufferedImage.getWidth(), bufferedImage.getHeight()).syncFromRaster(bufferedImage);
 
     }
-
     byte data(long idx);
 
     void data(long idx, byte v);
-
-    default byte get(int x, int y, int deltaMod3) {
-        return data(((long) y * width() * 3 + x * 3) + deltaMod3);
-    }
-
-    default void set(int x, int y, int deltaMod3, byte v) {
-        data(((long) y * width() * 3 + x * 3) + deltaMod3, v);
-    }
 
 }

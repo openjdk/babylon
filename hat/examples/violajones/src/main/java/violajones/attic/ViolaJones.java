@@ -52,20 +52,27 @@ public class ViolaJones {
 
 
         BufferedImage nasa = ImageIO.read(Objects.requireNonNull(ViolaJones.class.getResourceAsStream("/images/Nasa1996.jpg")));
-        XMLHaarCascadeModel xmlHaarCascade = XMLHaarCascadeModel.load(ViolaJonesRaw.class.getResourceAsStream("/cascades/haarcascade_frontalface_default.xml"));
-        Cascade cascade = Cascade.create(accelerator, xmlHaarCascade);
+        XMLHaarCascadeModel xmlCascade = XMLHaarCascadeModel.load(ViolaJonesRaw.class.getResourceAsStream("/cascades/haarcascade_frontalface_default.xml"));
+   //     Cascade cascade = Cascade.create(accelerator, xmlHaarCascade);
+        var cascade = Cascade.schema.allocate(accelerator,xmlCascade.featureCount(),xmlCascade.stageCount(),xmlCascade.treeCount()).copyFrom(xmlCascade);
 
         var rgbImage = RgbS08x3Image.create(accelerator, nasa);
 
         var width = nasa.getWidth();
         var height = nasa.getHeight();
-        var scaleTable = ScaleTable.create(accelerator, cascade, width, height);// multiScaleTable.multiScaleCount);
+        ScaleTable.Constraints constraints = new ScaleTable.Constraints(cascade,width,height);
+        // harViz.showIntegrals();
+
+        var scaleTable = ScaleTable.schema.allocate(constraints.scales);
+        scaleTable.length(constraints.scales);
+        scaleTable.applyConstraints(constraints);
 
 
         var greyImageF32 = F32Array2D.create(accelerator, width, height);
         var integralImageF32 = F32Array2D.create(accelerator, width, height);
         var integralSqImageF32 = F32Array2D.create(accelerator, width, height);
-        var resultTable = ResultTable.create(accelerator, 1000);
+        var resultTable = ResultTable.schema.allocate(accelerator, 1000);
+        resultTable.length(1000);
         resultTable.atomicResultTableCount(0);
 
         CoreJavaViolaJones.rgbToGreyScale(rgbImage, greyImageF32);
@@ -332,7 +339,7 @@ public class ViolaJones {
                     .forEachInRange(accelerator.range(scaleTable.multiScaleAccumulativeRange()), r -> {
                         ReferenceJavaViolaJones.findFeatures(
                                 r.kid.x,
-                                xmlHaarCascade,//cascade,//haarCascade, //or cascade
+                                xmlCascade,//cascade,//haarCascade, //or cascade
                                 integralImageF32,
                                 integralSqImageF32,
                                 scaleTable,

@@ -24,7 +24,7 @@
  */
 package experiments;
 
-import hat.Schema;
+import hat.ifacemapper.Schema;
 import hat.buffer.Buffer;
 
 public class S32ArrayTest implements Buffer {
