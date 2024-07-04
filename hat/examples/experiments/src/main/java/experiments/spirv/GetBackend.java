@@ -92,9 +92,12 @@ public class GetBackend {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), (backend) ->
                 backend.getClass().getSimpleName().startsWith("Spirv")
         );
-        var a = F32Array.create(accelerator, 100);
-        var b = F32Array.create(accelerator, 100);
-        var c = F32Array.create(accelerator, 100);
+        var a = F32Array.schema.allocate(accelerator, 100);
+        a.length(100);
+        var b = F32Array.schema.allocate(accelerator, 100);
+        b.length(100);
+        var c = F32Array.schema.allocate(accelerator, 100);
+        c.length(100);
         accelerator.compute(cc -> MatrixMultiply.compute(cc, a, b, c, 100));
     }
 

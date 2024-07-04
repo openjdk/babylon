@@ -63,12 +63,12 @@ public class MandelCompute {
     static public void compute(final ComputeContext computeContext, S32Array pallete, S32Array2D s32Array2D, float x, float y, float scale) {
 
         computeContext.dispatchKernel(
-                s32Array2D.size(), //0..S32Array2D.size()
+                s32Array2D.width()*s32Array2D.height(), //0..S32Array2D.size()
                 kc -> MandelCompute.mandel(kc, s32Array2D, pallete, x, y, scale));
     }
 
     public static void main(String[] args) {
-        boolean headless = true;//Boolean.getBoolean("headless") ||( args.length>0 && args[0].equals("--headless"));
+        boolean headless = Boolean.getBoolean("headless") ||( args.length>0 && args[0].equals("--headless"));
 
         final int width = 1024;
         final int height = 1024;
@@ -80,7 +80,9 @@ public class MandelCompute {
 
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
-        S32Array2D s32Array2D = S32Array2D.create(accelerator, width, height);
+        S32Array2D s32Array2D = S32Array2D.schema.allocate(accelerator, width, height);
+        s32Array2D.width(width);
+        s32Array2D.height(height);
 
         int[] palletteArray = new int[maxIterations];
 
@@ -96,7 +98,9 @@ public class MandelCompute {
                 palletteArray[i] = Color.HSBtoRGB(h, 1f, b);
             }
         }
-        S32Array pallette = S32Array.create(accelerator, palletteArray);
+        S32Array pallette = S32Array.schema.allocate(accelerator, palletteArray.length);
+        pallette.length(palletteArray.length);
+        pallette.copyfrom(palletteArray);
 
         accelerator.compute(cc -> MandelCompute.compute(cc, pallette, s32Array2D, originX, originY, defaultScale));
 

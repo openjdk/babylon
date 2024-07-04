@@ -22,28 +22,19 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package violajones.buffers;
+package hat.buffer;
 
-import hat.buffer.BufferAllocator;
-import hat.buffer.ImageBuffer;
-import java.awt.image.BufferedImage;
-import java.lang.foreign.StructLayout;
+import hat.ifacemapper.Schema;
 
-import static java.lang.foreign.ValueLayout.JAVA_BYTE;
-
-public interface RgbS08x3Image extends ImageBuffer {
-    StructLayout layout =  ImageBuffer.createLayout(RgbS08x3Image.class,JAVA_BYTE);
-
-    private static RgbS08x3Image create(BufferAllocator bufferAllocator, int width, int height) {
-        return ImageBuffer.create(bufferAllocator, RgbS08x3Image.class,layout, width, height, BufferedImage.TYPE_INT_RGB, 3);
-    }
-
-    static RgbS08x3Image create(BufferAllocator bufferAllocator, BufferedImage bufferedImage) {
-        return create(bufferAllocator, bufferedImage.getWidth(), bufferedImage.getHeight()).syncFromRaster(bufferedImage);
-
-    }
-    byte data(long idx);
-
-    void data(long idx, byte v);
+public interface U16GreyImage extends ImageIfaceBuffer<U16GreyImage> {
+    short data(long idx);
+    void data(long idx, short v);
+    int width();
+    void width(int width);
+    int height();
+    void height(int height);
+    Schema<U16GreyImage> schema = Schema.of(U16GreyImage.class, s -> s
+            .arrayLen("width", "height").stride(1).array("data")
+    );
 
 }

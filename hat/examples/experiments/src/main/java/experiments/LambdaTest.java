@@ -14,7 +14,8 @@ public class LambdaTest {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST_NATIVE);
 
         // TODO: create a test case for these **/
-        S32Array s32Array = S32Array.create(accelerator, 10);
+        S32Array s32Array = S32Array.schema.allocate(accelerator, 10);
+        s32Array.length(10);
 /*
             accelerator.compute(cc->ccargS32Array) -> {
                 var range = cc.accelerator.range(argS32Array.length());

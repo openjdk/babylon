@@ -498,22 +498,25 @@ public class Schema<T extends Buffer> {
                 return this;
             }
 
-            private TypeSchemaNode fieldControlledArray(String name, ArrayLen arrayLen) {
-                addField(new FieldControlledArray(this,  modeOf(type, name), typeOf(type, name),name, arrayLen));
+            private TypeSchemaNode fieldControlledArray(String name, List<ArrayLen> arrayLenFields, int stride) {
+                addField(new FieldControlledArray(this,  modeOf(type, name), typeOf(type, name),name, arrayLenFields, stride));
                 return this;
             }
 
             public static class ArrayBuildState {
                 TypeSchemaNode typeSchemaNode;
-                ArrayLen arrayLenField;
-
+                List<ArrayLen> arrayLenFields;
+                int stride=1;
                 public TypeSchemaNode array(String name) {
-                    return typeSchemaNode.fieldControlledArray(name, arrayLenField);
+                    return typeSchemaNode.fieldControlledArray(name, arrayLenFields, stride);
                 }
-
+                public ArrayBuildState stride(int stride) {
+                    this.stride = stride;
+                    return this;
+                }
                 public TypeSchemaNode array(String name, Consumer<TypeSchemaNode> parentFieldConsumer) {
                     Class<?> arrayType = typeOf(typeSchemaNode.type, name);
-                    this.typeSchemaNode.fieldControlledArray(name, arrayLenField);
+                    this.typeSchemaNode.fieldControlledArray(name, arrayLenFields, stride);
                     TypeSchemaNode typeSchemaNode =isStruct(arrayType)
                             ?new SchemaNode.Struct(this.typeSchemaNode, arrayType)
                             :new SchemaNode.Union(this.typeSchemaNode,arrayType);
@@ -522,16 +525,20 @@ public class Schema<T extends Buffer> {
                     return this.typeSchemaNode;
                 }
 
-                ArrayBuildState(TypeSchemaNode typeSchemaNode, ArrayLen arrayLenField) {
+                ArrayBuildState(TypeSchemaNode typeSchemaNode, List<ArrayLen> arrayLenFields) {
                     this.typeSchemaNode = typeSchemaNode;
-                    this.arrayLenField = arrayLenField;
+                    this.arrayLenFields = arrayLenFields;
                 }
             }
 
-            public ArrayBuildState arrayLen(String arrayLenFieldName) {
-                var arrayLenField = new ArrayLen(this, modeOf(type, arrayLenFieldName), typeOf(type, arrayLenFieldName),arrayLenFieldName );
-                addField(arrayLenField);
-                return new ArrayBuildState(this, arrayLenField);
+            public ArrayBuildState arrayLen(String ... arrayLenFieldNames) {
+                 List<ArrayLen> arrayLenFields = new ArrayList<>();
+                 Arrays.stream(arrayLenFieldNames).forEach(arrayLenFieldName-> {
+                    var arrayLenField = new ArrayLen(this, modeOf(type, arrayLenFieldName), typeOf(type, arrayLenFieldName), arrayLenFieldName);
+                    addField(arrayLenField);
+                    arrayLenFields.add(arrayLenField);
+                });
+                return new ArrayBuildState(this, arrayLenFields);
             }
 
             public void flexArray(String name) {
@@ -626,22 +633,29 @@ public class Schema<T extends Buffer> {
         }
 
         public static final class FieldControlledArray extends Array {
-            ArrayLen arrayLen;
-
-            FieldControlledArray(TypeSchemaNode parent,   Mode mode, Class<?> type,String name, ArrayLen arrayLen) {
+            List<ArrayLen> arrayLenFields;
+            int stride;
+            FieldControlledArray(TypeSchemaNode parent,   Mode mode, Class<?> type,String name, List<ArrayLen> arrayLenFields, int stride) {
                 super(parent, mode, type, name);
-                this.arrayLen = arrayLen;
+                this.arrayLenFields = arrayLenFields;
+                this.stride = stride;
             }
 
             @Override
             public void toText(String indent, Consumer<String> stringConsumer) {
-                stringConsumer.accept(indent + name + "[" + mode+":"+type + "] where len defined by " + arrayLen.type);
+                stringConsumer.accept(indent + name + "[" + mode+":"+type + "] where len defined by " + arrayLenFields);
             }
 
             @Override
             void collectLayouts(LayoutToBoundFieldTreeNode layoutToFieldBindingNode) {
+                // We have more than one ArrayLen
+                int i=stride;
+                for (int c = 0 ; c<arrayLenFields.size(); c++ ){
+                   var v =  layoutToFieldBindingNode.takeArrayLen();
+                   i*=v;
+                }
                 layoutToFieldBindingNode.bind(this, MemoryLayout.sequenceLayout(
-                        layoutToFieldBindingNode.takeArrayLen(),
+                       i,// layoutToFieldBindingNode.takeArrayLen(),
                         parent.getLayout(type, layoutToFieldBindingNode).withName(type.getSimpleName())
                 ).withName(name));
             }

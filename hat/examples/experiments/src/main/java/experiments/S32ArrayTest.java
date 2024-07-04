@@ -24,13 +24,15 @@
  */
 package experiments;
 
+import hat.buffer.S32Array2D;
 import hat.ifacemapper.Schema;
 import hat.buffer.Buffer;
 
 public class S32ArrayTest implements Buffer {
 
     public static void main(String[] args) {
-        hat.buffer.S32Array os32  = hat.buffer.S32Array.create(Schema.GlobalArenaAllocator, 100);
+        hat.buffer.S32Array os32  = hat.buffer.S32Array.schema.allocate( 100);
+        os32.length(100);
         System.out.println("Layout from hat S32Array "+ Buffer.getLayout(os32));
 
         var s32Array = S32Array.schema.allocate( 100);
@@ -39,7 +41,7 @@ public class S32ArrayTest implements Buffer {
         System.out.println(s23ArrayLen);
 
         System.out.println("Layout from schema "+Buffer.getLayout(s32Array));
-        ResultTable.schema.toText(t->System.out.print(t));
+        S32Array2D.schema.toText(t->System.out.print(t));
     }
 
 }

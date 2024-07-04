@@ -25,17 +25,20 @@
 package hat.buffer;
 
 import hat.Accelerator;
+import hat.ifacemapper.Schema;
 
 import java.lang.foreign.StructLayout;
 
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-public interface S32Array2D extends Array2D {
-    StructLayout layout  = Array2D.getLayout(S32Array2D.class, JAVA_INT);
-    static S32Array2D create(BufferAllocator bufferAllocator, int width, int height) {
-        return Array2D.create(bufferAllocator, S32Array2D.class, layout, width, height);
-    }
+public interface S32Array2D extends IncompleteBuffer {
 
+    int width();
+    void height(int i);
+    int height();
+    void width(int i);
+    Schema<S32Array2D> schema = Schema.of(S32Array2D.class, s32Array->s32Array
+            .arrayLen("width","height").stride(1).array("array"));
     int array(long idx);
 
     void array(long idx, int i);

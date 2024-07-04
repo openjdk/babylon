@@ -114,7 +114,7 @@ public class MandelViewer extends JFrame {
 
         public void syncWithRGB(S32Array2D s32Array2D) {
             long offset = Buffer.getLayout(s32Array2D).byteOffset(MemoryLayout.PathElement.groupElement("array"));
-            MemorySegment.copy(Buffer.getMemorySegment(s32Array2D), JAVA_INT, offset, ((DataBufferInt) image.getRaster().getDataBuffer()).getData(), 0, s32Array2D.size());
+            MemorySegment.copy(Buffer.getMemorySegment(s32Array2D), JAVA_INT, offset, ((DataBufferInt) image.getRaster().getDataBuffer()).getData(), 0, s32Array2D.width()*s32Array2D.height());
             this.repaint();
         }
 

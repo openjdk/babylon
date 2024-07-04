@@ -32,7 +32,7 @@ import hat.buffer.F32Array2D;
 import org.xml.sax.SAXException;
 import violajones.HaarViewer;
 import violajones.XMLHaarCascadeModel;
-import violajones.buffers.RgbS08x3Image;
+import hat.buffer.S08x3RGBImage;
 import violajones.ifaces.Cascade;
 import violajones.ifaces.ResultTable;
 import violajones.ifaces.ScaleTable;
@@ -56,7 +56,13 @@ public class ViolaJones {
    //     Cascade cascade = Cascade.create(accelerator, xmlHaarCascade);
         var cascade = Cascade.schema.allocate(accelerator,xmlCascade.featureCount(),xmlCascade.stageCount(),xmlCascade.treeCount()).copyFrom(xmlCascade);
 
-        var rgbImage = RgbS08x3Image.create(accelerator, nasa);
+        S08x3RGBImage rgbImage = S08x3RGBImage.schema.allocate(accelerator, nasa.getWidth(),nasa.getHeight());
+        rgbImage.width(nasa.getWidth());
+        rgbImage.height(nasa.getHeight());
+       // rgbImage.elementsPerPixel(3);
+       // rgbImage.bufferedImageType(BufferedImage.TYPE_INT_RGB);
+
+       // var rgbImage = RgbS08x3Image.create(accelerator, nasa);
 
         var width = nasa.getWidth();
         var height = nasa.getHeight();
@@ -68,9 +74,15 @@ public class ViolaJones {
         scaleTable.applyConstraints(constraints);
 
 
-        var greyImageF32 = F32Array2D.create(accelerator, width, height);
-        var integralImageF32 = F32Array2D.create(accelerator, width, height);
-        var integralSqImageF32 = F32Array2D.create(accelerator, width, height);
+        var greyImageF32 = F32Array2D.schema.allocate(accelerator, width, height);
+        greyImageF32.width(width);
+        greyImageF32.height(height);
+        var integralImageF32 = F32Array2D.schema.allocate(accelerator, width, height);
+        integralImageF32.width(width);
+        integralImageF32.height(height);
+        var integralSqImageF32 = F32Array2D.schema.allocate(accelerator, width, height);
+        integralSqImageF32.width(width);
+        integralSqImageF32.height(height);
         var resultTable = ResultTable.schema.allocate(accelerator, 1000);
         resultTable.length(1000);
         resultTable.atomicResultTableCount(0);

@@ -25,21 +25,20 @@
 package hat.buffer;
 
 import hat.Accelerator;
+import hat.ifacemapper.Schema;
 
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.StructLayout;
 
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
+import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-public interface F32Array extends Array1D {
-    StructLayout layout  = Array1D.getLayout(F32Array.class, JAVA_FLOAT);
-    static F32Array create(BufferAllocator bufferAllocator, int length) {
-        return Array1D.create(bufferAllocator, F32Array.class,layout, length);
-    }
+public interface F32Array extends IncompleteBuffer {
 
-    static F32Array create(BufferAllocator bufferAllocator, float[] source) {
-        return create(bufferAllocator, source.length).copyFrom(source);
-    }
+    int length();
+    void length(int i);
+    Schema<F32Array> schema = Schema.of(F32Array.class, s32Array->s32Array
+            .arrayLen("length").array("array"));
 
     float array(long idx);
 
