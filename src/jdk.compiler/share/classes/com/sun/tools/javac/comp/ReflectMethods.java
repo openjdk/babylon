@@ -191,7 +191,7 @@ public class ReflectMethods extends TreeTranslator {
                 }
                 // create a static final field holding the op' string text.
                 // The name of the field is foo$op, where 'foo' is the name of the corresponding method.
-                classOps.add(opFieldDecl(tree.name, tree.getModifiers().flags, funcOp));
+                classOps.add(opFieldDecl(methodName(bodyScanner.symbolToErasedMethodRef(tree.sym)), tree.getModifiers().flags, funcOp));
             } catch (UnsupportedASTException ex) {
                 // whoops, some AST node inside the method body were not supported. Log it and move on.
                 log.note(ex.tree, Notes.MethodIrSkip(tree.sym.enclClass(), tree.sym, ex.tree.getTag().toString()));
@@ -352,6 +352,16 @@ public class ReflectMethods extends TreeTranslator {
 
     Name lambdaName() {
         return names.fromString("lambda").append('$', names.fromString(String.valueOf(lambdaCount++)));
+    }
+
+    Name methodName(MethodRef method) {
+        char[] sigCh = method.toString().toCharArray();
+        for (int i = 0; i < sigCh.length; i++) {
+            switch (sigCh[i]) {
+                case '.', ';', '[', '/' -> sigCh[i] = '$';
+            }
+        }
+        return names.fromChars(sigCh, 0, sigCh.length);
     }
 
     private JCVariableDecl opFieldDecl(Name prefix, long flags, CoreOp.FuncOp op) {

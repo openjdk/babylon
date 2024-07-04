@@ -2,17 +2,11 @@
 <module type="JAVA_MODULE" version="4">
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
-    <content url="file://$MODULE_DIR$/../backends/opencl/cpp">
+    <content url="file://$MODULE_DIR$/../backends/opencl">
       <excludeFolder url="file://$MODULE_DIR$/../backends/opencl/cpp" />
-    </content>
-    <content url="file://$MODULE_DIR$/../backends/opencl/include">
       <excludeFolder url="file://$MODULE_DIR$/../backends/opencl/include" />
-    </content>
-    <content url="file://$MODULE_DIR$/../backends/opencl/java">
-      <sourceFolder url="file://$MODULE_DIR$/../backends/opencl/java" isTestSource="false" />
-    </content>
-    <content url="file://$MODULE_DIR$/../backends/opencl/resources">
-      <sourceFolder url="file://$MODULE_DIR$/../backends/opencl/resources" type="java-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/../backends/opencl/src/main/java" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../backends/opencl/src/main/resources" type="java-resource" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

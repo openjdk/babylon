@@ -76,6 +76,6 @@ public class TestBranchCompactor {
         Assert.assertEquals(
                 code.elementList().stream().mapMulti((e, ec) -> {if (e instanceof Instruction i) ec.accept(i.opcode());}).toList(),
                 List.of(NOP, ICONST_0, IFEQ, GOTO, NOP, RETURN));
-        Assert.assertEquals(code.findAttribute(Attributes.LINE_NUMBER_TABLE).get().lineNumbers().size(), 2);
+        Assert.assertEquals(code.findAttribute(Attributes.lineNumberTable()).get().lineNumbers().size(), 2);
     }
 }

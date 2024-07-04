@@ -103,7 +103,7 @@ public class TritonTestExtension implements ParameterResolver {
                   List<? extends TypeElement> argTypes,
                   TritonOps.ModuleOp expectedTritonKernel,
                   boolean doSSA) {
-            TritonOps.ModuleOp actualTritonKernel = ScopedValue.getWhere(TritonTransformer.SV_SSA, doSSA,() -> {
+            TritonOps.ModuleOp actualTritonKernel = ScopedValue.callWhere(TritonTransformer.SV_SSA, doSSA,() -> {
                 return TritonTransformer.tritonModule(javaKernel, JavaType.VOID, argTypes);
             });
 

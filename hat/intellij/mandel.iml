@@ -3,7 +3,7 @@
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
     <content url="file://$MODULE_DIR$/../examples/mandel">
-      <sourceFolder url="file://$MODULE_DIR$/../examples/mandel/src/java" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../examples/mandel/src/main/java" isTestSource="false" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

@@ -100,7 +100,7 @@ public final class SSA {
                             Block.Builder bb = cc.getBlock(b);
                             return joinPoints.get(b).stream().collect(Collectors.toMap(
                                     varOp -> varOp,
-                                    varOp -> bb.parameter(varOp.varType())));
+                                    varOp -> bb.parameter(varOp.varValueType())));
                         });
 
                         // Append successor arguments

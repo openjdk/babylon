@@ -2,23 +2,17 @@
 <module type="JAVA_MODULE" version="4">
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
-    <content url="file://$MODULE_DIR$/../backends/spirv/cpp">
+    <content url="file://$MODULE_DIR$/../backends/spirv">
       <excludeFolder url="file://$MODULE_DIR$/../backends/spirv/cpp" />
-    </content>
-    <content url="file://$MODULE_DIR$/../backends/spirv/include">
       <excludeFolder url="file://$MODULE_DIR$/../backends/spirv/include" />
+      <sourceFolder url="file://$MODULE_DIR$/../backends/spirv/src/main/java" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../backends/spirv/src/main/resources" type="java-resource" />
     </content>
-    <content url="file://$MODULE_DIR$/../backends/spirv/java">
-      <sourceFolder url="file://$MODULE_DIR$/../backends/spirv/java" isTestSource="false" />
+    <content url="file://$MODULE_DIR$/../../../beehive-spirv-toolkit">
+      <sourceFolder url="file://$MODULE_DIR$/../../../beehive-spirv-toolkit/lib/src/main/java" isTestSource="false" />
     </content>
-    <content url="file://$MODULE_DIR$/../../../../beehive-spirv-toolkit/lib/src/main/java">
-      <sourceFolder url="file://$MODULE_DIR$/../../../../beehive-spirv-toolkit/lib/src/main/java" isTestSource="false" />
-    </content>
-    <content url="file://$MODULE_DIR$/../../cr-examples/spirv/src/main/java">
+    <content url="file://$MODULE_DIR$/../../cr-examples">
       <sourceFolder url="file://$MODULE_DIR$/../../cr-examples/spirv/src/main/java" isTestSource="false" />
-    </content>
-    <content url="file://$MODULE_DIR$/../backends/spirv/resources">
-      <sourceFolder url="file://$MODULE_DIR$/../backends/spirv/resources" type="java-resource" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

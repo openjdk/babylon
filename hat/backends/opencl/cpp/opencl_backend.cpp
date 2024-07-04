@@ -24,7 +24,7 @@
  */
 #include "opencl_backend.h"
 
-OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::OpenCLBuffer(Backend::Program::Kernel *kernel, Arg_t *arg)
+OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::OpenCLBuffer(Backend::Program::Kernel *kernel, Arg_s *arg)
         : Backend::Program::Kernel::Buffer(kernel, arg) {
     /*
      *   (void *) arg->value.buffer.memorySegment,
@@ -108,8 +108,8 @@ OpenCLBackend::OpenCLProgram::OpenCLKernel::~OpenCLKernel() {
 
 long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
    // std::cout << "ndrange(" << range << ") " << std::endl;
-    ArgSled argSled(static_cast<ArgArray_t *>(argArray));
-    Schema::dumpSled(std::cout, argArray);
+    ArgSled argSled(static_cast<ArgArray_s *>(argArray));
+    Sled::show(std::cout, argArray);
     if (events != nullptr || eventc != 0) {
         std::cerr << "opencl state issue, we might have leaked events!" << std::endl;
     }
@@ -118,7 +118,7 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
     events = new cl_event[eventMax];
     NDRange *ndrange = nullptr;
     for (int i = 0; i < argSled.argc(); i++) {
-        Arg_t *arg = argSled.arg(i);
+        Arg_s *arg = argSled.arg(i);
         switch (arg->variant) {
             case '&': {
                 if (arg->idx == 0){
@@ -198,7 +198,7 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
 
     eventc++;
     for (int i = 0; i < argSled.argc(); i++) {
-        Arg_t *arg = argSled.arg(i);
+        Arg_s *arg = argSled.arg(i);
         if (arg->variant == '&') {
             static_cast<OpenCLBuffer *>(arg->value.buffer.vendorPtr)->copyFromDevice();
         }
@@ -220,7 +220,7 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
     eventc = 0;
     events = nullptr;
     for (int i = 0; i < argSled.argc(); i++) {
-        Arg_t *arg = argSled.arg(i);
+        Arg_s *arg = argSled.arg(i);
         if (arg->variant == '&') {
             delete static_cast<OpenCLBuffer *>(arg->value.buffer.vendorPtr);
             arg->value.buffer.vendorPtr = nullptr;
@@ -612,6 +612,7 @@ const char *OpenCLBackend::errorMsg(cl_int status) {
             {CL_INVALID_BUFFER_SIZE,             "invalid buffer size",},
             {CL_INVALID_MIP_LEVEL,               "invalid mip level",},
             {CL_INVALID_GLOBAL_WORK_SIZE,        "invalid global work size",},
+            {-9999,                              "enqueueNdRangeKernel Illegal read or write to a buffer",},
             {0,                                  NULL},
     };
     static char unknown[256];
@@ -623,7 +624,7 @@ const char *OpenCLBackend::errorMsg(cl_int status) {
             return error_table[ii].msg;
         }
     }
-    SNPRINTF(unknown, sizeof(unknown), "awaitingName error %d", status);
+    SNPRINTF(unknown, sizeof(unknown), "unmapped string for  error %d", status);
     return unknown;
 }
 

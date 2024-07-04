@@ -10,22 +10,22 @@ import java.util.Objects;
 public final class VarType implements TypeElement {
     static final String NAME = "Var";
 
-    final TypeElement variableType;
+    final TypeElement valueType;
 
-    VarType(TypeElement variableType) {
-        this.variableType = variableType;
+    VarType(TypeElement valueType) {
+        this.valueType = valueType;
     }
 
     /**
      * {@return the variable type's value type}
      */
     public TypeElement valueType() {
-        return variableType;
+        return valueType;
     }
 
     @Override
     public ExternalizedTypeElement externalize() {
-        return new ExternalizedTypeElement(NAME, List.of(variableType.externalize()));
+        return new ExternalizedTypeElement(NAME, List.of(valueType.externalize()));
     }
 
     @Override
@@ -37,12 +37,12 @@ public final class VarType implements TypeElement {
     public boolean equals(Object o) {
         if (this == o) return true;
         return o instanceof VarType that &&
-                variableType.equals(that.variableType);
+                valueType.equals(that.valueType);
     }
 
     @Override
     public int hashCode() {
-        return variableType.hashCode();
+        return valueType.hashCode();
     }
 
     /**

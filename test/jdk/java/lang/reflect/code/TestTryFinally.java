@@ -168,7 +168,7 @@ public class TestTryFinally {
     }
 
     @Test
-    public void finallyReturn() {
+    public void testFinallyReturn() {
         CoreOp.FuncOp f = getFuncOp("finallyReturn");
 
         f.writeTo(System.out);

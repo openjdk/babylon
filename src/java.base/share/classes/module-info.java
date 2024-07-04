@@ -173,6 +173,7 @@ module java.base {
         java.desktop,
         java.logging,
         java.management,
+        java.management.rmi,
         java.naming,
         java.rmi,
         jdk.charsets,
@@ -276,8 +277,6 @@ module java.base {
         jdk.jfr;
     exports jdk.internal.util.xml.impl to
         jdk.jfr;
-    exports jdk.internal.util.random to
-        jdk.random;
     exports jdk.internal.util to
         java.desktop,
         java.prefs,
@@ -405,7 +404,6 @@ module java.base {
     uses java.time.chrono.AbstractChronology;
     uses java.time.chrono.Chronology;
     uses java.time.zone.ZoneRulesProvider;
-    uses java.util.random.RandomGenerator;
     uses java.util.spi.CalendarDataProvider;
     uses java.util.spi.CalendarNameProvider;
     uses java.util.spi.CurrencyNameProvider;
@@ -430,10 +428,5 @@ module java.base {
 
     provides java.nio.file.spi.FileSystemProvider with
         jdk.internal.jrtfs.JrtFileSystemProvider;
-
-    provides java.util.random.RandomGenerator with
-        java.security.SecureRandom,
-        java.util.Random,
-        java.util.SplittableRandom;
 
 }
