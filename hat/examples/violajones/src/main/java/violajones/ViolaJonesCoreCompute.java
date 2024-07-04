@@ -312,7 +312,7 @@ public class ViolaJonesCoreCompute {
     }
 
     @CodeReflection
-    static public void compute(final ComputeContext cc, Cascade cascade, BufferedImage bufferedImage, RgbS08x3Image rgbS08x3Image, ResultTable resultTable) {
+    static public void compute(final ComputeContext cc, Cascade cascade, BufferedImage bufferedImage, RgbS08x3Image rgbS08x3Image, ResultTable resultTable, ScaleTable scaleTable) {
         long start = System.currentTimeMillis();
         int width = rgbS08x3Image.width();
 
@@ -330,8 +330,11 @@ public class ViolaJonesCoreCompute {
         //javaIntegralRow(integralImage, integralSqImage);
         cc.dispatchKernel(width, kc -> integralColKernel(kc, greyImage, integralImage, integralSqImage));
         cc.dispatchKernel(height, kc -> integralRowKernel(kc, integralImage, integralSqImage));
+
+
         // harViz.showIntegrals();
-        ScaleTable scaleTable = ScaleTable.create(cc, cascade, width, height);
+
+       // create(cc, constraints);
         System.out.print("range requested=");
         System.out.print(scaleTable.multiScaleAccumulativeRange());
         System.out.println();

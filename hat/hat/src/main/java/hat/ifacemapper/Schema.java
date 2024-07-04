@@ -133,37 +133,7 @@ public class Schema<T extends Buffer> {
             return parent.createFieldControlledArrayBinding(fieldControlledArray, memoryLayout);
         }
     }
-
-    /**
-     * From the iface mapper
-     * T foo()             getter iface|primitive  0 args                  , return T     returnType T
-     * T foo(long)    arraygetter iface|primitive  arg[0]==long            , return T     returnType T
-     * void foo(T)            setter       primitive  arg[0]==T               , return void  returnType T
-     * void foo(long, T) arraysetter       primitive  arg[0]==long, arg[1]==T , return void  returnType T
-     *
-     * @param m The reflected method
-     * @return Class represeting the type this method is mapped to
-     */
-    static Class<?> methodToType(Method m) {
-        Class<?> returnType = m.getReturnType();
-        Class<?>[] paramTypes = m.getParameterTypes();
-        if (paramTypes.length == 0 && (returnType.isInterface() || returnType.isPrimitive())) {
-            return returnType;
-        } else if (paramTypes.length == 1 && paramTypes[0].isPrimitive() && returnType == Void.TYPE) {
-            return paramTypes[0];
-        } else if (paramTypes.length == 1 && paramTypes[0] == Long.TYPE && (returnType.isInterface() || returnType.isPrimitive())) {
-            return returnType;
-        } else if (returnType == Void.TYPE && paramTypes.length == 2 &&
-                paramTypes[0] == Long.TYPE && paramTypes[1].isPrimitive()) {
-            return paramTypes[1];
-        } else {
-            System.out.println("skipping " + m);
-            return null;
-        }
-    }
     enum Mode {
-        UNKNOWN,
-        ROOT,
         PRIMITIVE_GETTER_AND_SETTER,
         PRIMITIVE_GETTER,
         PRIMITIVE_SETTER,
@@ -201,40 +171,16 @@ public class Schema<T extends Buffer> {
                     paramTypes[0] == Long.TYPE && paramTypes[1].isPrimitive()) {
                 return PRIMITIVE_ARRAY_SETTER;
             } else {
-                System.out.println("skiping " + m);
-                return null;
+                throw new IllegalStateException("no possible mode for "+m);
             }
         }
     }
-    public static class ModeAndType {
 
-        Mode mode;
-        Class<?> type;
-        ModeAndType(Mode mode, Class<?> type) {
-            this.mode = mode;
-            this.type = type;
-
-        }
-
-        @Override
-        public String toString() {
-            return mode.name() + ":" + type.getSimpleName() ;
-        }
-
-
-        static ModeAndType of(Class<?> iface, String name) {
-            ModeAndType accessStyle = new ModeAndType(modeOf(iface, name), typeOf(iface, name));
-            return accessStyle;
-        }
-    }
     static Mode modeOf(Class<?> iface, String name) {
         var methods = iface.getDeclaredMethods();
         Result<Mode> modeResult = new Result<>();
         Arrays.stream(methods).filter(method -> method.getName().equals(name)).forEach(matchingMethod -> {
             var thisMode = Mode.of(matchingMethod);
-            if (thisMode == null){
-                throw new IllegalStateException("Could not determine the mode of method "+name);
-            }
             if (!modeResult.isPresent()){
                 modeResult.of(thisMode);
             } else if (( modeResult.get().equals(Mode.PRIMITIVE_ARRAY_GETTER) && thisMode.equals(Mode.PRIMITIVE_ARRAY_SETTER))
@@ -245,17 +191,41 @@ public class Schema<T extends Buffer> {
                 modeResult.of(Mode.PRIMITIVE_GETTER_AND_SETTER);
             }
         });
-        if ( !modeResult.isPresent() || modeResult.get().equals(Mode.UNKNOWN)) {
-            modeResult.of(Mode.PRIMITIVE_GETTER_AND_SETTER);
+        if ( !modeResult.isPresent() ) {
+            throw new IllegalStateException("no possible mode for "+iface+" "+name);
+           // modeResult.of(Mode.PRIMITIVE_GETTER_AND_SETTER);
         }
         return modeResult.get();
     }
-
+    /**
+     * From the iface mapper
+     * T foo()             getter iface|primitive  0 args                  , return T     returnType T
+     * T foo(long)    arraygetter iface|primitive  arg[0]==long            , return T     returnType T
+     * void foo(T)            setter       primitive  arg[0]==T               , return void  returnType T
+     * void foo(long, T) arraysetter       primitive  arg[0]==long, arg[1]==T , return void  returnType T
+     *
+     * @param iface The reflected method
+     * @return Class represeting the type this method is mapped to
+     */
     static Class<?> typeOf(Class<?> iface, String name) {
         var methods = iface.getDeclaredMethods();
         Result<Class<?>> typeResult = new Result<>();
         Arrays.stream(methods).filter(method -> method.getName().equals(name)).forEach(matchingMethod -> {
-            var thisType = methodToType(matchingMethod);
+            Class<?> returnType = matchingMethod.getReturnType();
+            Class<?>[] paramTypes = matchingMethod.getParameterTypes();
+            Class<?> thisType = null;
+            if (paramTypes.length == 0 && (returnType.isInterface() || returnType.isPrimitive())) {
+                thisType= returnType;
+            } else if (paramTypes.length == 1 && paramTypes[0].isPrimitive() && returnType == Void.TYPE) {
+                thisType=  paramTypes[0];
+            } else if (paramTypes.length == 1 && paramTypes[0] == Long.TYPE && (returnType.isInterface() || returnType.isPrimitive())) {
+                thisType=  returnType;
+            } else if (returnType == Void.TYPE && paramTypes.length == 2 &&
+                    paramTypes[0] == Long.TYPE && paramTypes[1].isPrimitive()) {
+                thisType=  paramTypes[1];
+            } else {
+                throw new IllegalStateException("Can't determine iface mapping type for "+matchingMethod);
+            }
             if (!typeResult.isPresent() || typeResult.get().equals(thisType)) {
                 typeResult.of(thisType);
             } else  {
@@ -263,7 +233,8 @@ public class Schema<T extends Buffer> {
             }
         });
         if (!typeResult.isPresent()) {
-            typeResult.of(iface);
+            throw new IllegalStateException("No type mapping for "+iface+" "+name);
+
         }
         return typeResult.get();
     }
@@ -319,20 +290,19 @@ public class Schema<T extends Buffer> {
         public static abstract sealed class NamedFieldSchemaNode extends FieldSchemaNode permits Array, ArrayLen, AtomicField, Field {
             Mode mode;
             Class<?> type;
-          //  final ModeAndType modeAndType;
             final String name;
-            NamedFieldSchemaNode(TypeSchemaNode parent, ModeAndType  modeAndType, String name) {
+            NamedFieldSchemaNode(TypeSchemaNode parent, Mode mode, Class<?> type, String name) {
                 super(parent);
-                this.mode = modeAndType.mode;
-                 this.type = modeAndType.type;
+                this.mode = mode;
+                 this.type = type;
                 this.name = name;
             }
         }
 
 
         public static final class ArrayLen extends NamedFieldSchemaNode {
-            ArrayLen(TypeSchemaNode parent, ModeAndType modeAndType,  String name) {
-                super(parent,modeAndType, name);
+            ArrayLen(TypeSchemaNode parent, Mode mode, Class<?> type,  String name) {
+                super(parent,mode,type, name);
             }
 
             @Override
@@ -349,8 +319,8 @@ public class Schema<T extends Buffer> {
         public static final class AtomicField extends NamedFieldSchemaNode {
 
 
-            AtomicField(TypeSchemaNode parent,  ModeAndType modeAndType, String name) {
-                super(parent, modeAndType,name);
+            AtomicField(TypeSchemaNode parent,  Mode mode, Class<?> type, String name) {
+                super(parent, mode, type,name);
             }
 
             @Override
@@ -367,8 +337,8 @@ public class Schema<T extends Buffer> {
         public static final class Field extends NamedFieldSchemaNode {
 
 
-            Field(TypeSchemaNode parent,  ModeAndType modeAndType, String name) {
-                super(parent, modeAndType,name);
+            Field(TypeSchemaNode parent,  Mode mode, Class<?> type, String name) {
+                super(parent, mode, type,name);
 
             }
 
@@ -397,9 +367,9 @@ public class Schema<T extends Buffer> {
                 return child;
             }
 
-            TypeSchemaNode(TypeSchemaNode parent, ModeAndType modeAndType) {
+            TypeSchemaNode(TypeSchemaNode parent,  Class<?> type) {
                 super(parent);
-                this.type = modeAndType.type;
+                this.type = type;
             }
             /**
              * Get a layout which describes the NameTypeAndMode.
@@ -450,22 +420,22 @@ public class Schema<T extends Buffer> {
 
 
             public TypeSchemaNode struct(String name, Consumer<TypeSchemaNode> parentSchemaNodeConsumer) {
-                parentSchemaNodeConsumer.accept(addType(new Struct(this, ModeAndType.of(type, name))));
+                parentSchemaNodeConsumer.accept(addType(new Struct(this,  typeOf(type,name))));
                 return this;
             }
 
             public TypeSchemaNode union(String name, Consumer<TypeSchemaNode> parentSchemaNodeConsumer) {
-                parentSchemaNodeConsumer.accept(addType(new Union(this, ModeAndType.of(type, name))));
+                parentSchemaNodeConsumer.accept(addType(new Union(this, typeOf(type,name))));
                 return this;
             }
 
             public TypeSchemaNode field(String name) {
-                addField(new Field(this, ModeAndType.of(type, name), name));
+                addField(new Field(this, modeOf(type, name), typeOf(type, name), name));
                 return this;
             }
 
             public TypeSchemaNode atomic(String name) {
-                addField(new AtomicField(this, ModeAndType.of(type, name), name));
+                addField(new AtomicField(this, modeOf(type, name), typeOf(type, name), name));
                 return this;
             }
 
@@ -475,21 +445,30 @@ public class Schema<T extends Buffer> {
             }
 
             public TypeSchemaNode field(String name, Consumer<TypeSchemaNode> parentSchemaNodeConsumer) {
-                ModeAndType newAccessStyle = ModeAndType.of(type, name);
-                addField(new Field(this, newAccessStyle, name));
-                TypeSchemaNode field = isStruct(newAccessStyle.type)?new SchemaNode.Struct(this, newAccessStyle):new SchemaNode.Union(this, newAccessStyle);
+                 Mode fieldMode = modeOf(type, name);
+                 Class<?> fieldType = typeOf(type, name);
+                addField(new Field(this,fieldMode, fieldType, name));
+                TypeSchemaNode field = isStruct(fieldType)?new SchemaNode.Struct(this, fieldType):new SchemaNode.Union(this, fieldType);
                 parentSchemaNodeConsumer.accept(addType(field));
                 return this;
             }
 
             public TypeSchemaNode fields(String name1, String name2, Consumer<TypeSchemaNode> parentSchemaNodeConsumer) {
-                ModeAndType newAccessStyle1 = ModeAndType.of(type, name1);
-                ModeAndType newAccessStyle2 = ModeAndType.of(type, name2);
-                addField(new Field(this,  newAccessStyle1, name1));
-                addField(new Field(this, newAccessStyle2, name2));
-                TypeSchemaNode typeSchemaNode=isStruct(newAccessStyle1.type)
-                        ? new SchemaNode.Struct(this, newAccessStyle1)
-                        :new SchemaNode.Union(this, newAccessStyle2);
+                Mode fieldMode1 = modeOf(type, name1);
+                Mode fieldMode2 = modeOf(type, name2);
+                if (!fieldMode1.equals(fieldMode2)){
+                    throw new IllegalStateException("fields "+name1+" and "+name2+" have different modes");
+                }
+                Class<?> structOrUnionType = typeOf(type, name1);
+                Class<?> fieldTypeCheck = typeOf(type, name2);
+                if (!structOrUnionType.equals(fieldTypeCheck)){
+                    throw new IllegalStateException("fields "+name1+" and "+name2+" have different types");
+                }
+                addField(new Field(this,fieldMode1, structOrUnionType, name1));
+                addField(new Field(this,fieldMode2,  structOrUnionType, name2));
+                TypeSchemaNode typeSchemaNode=isStruct(type)
+                        ? new SchemaNode.Struct(this,  structOrUnionType)
+                        :new SchemaNode.Union(this,  structOrUnionType);
                 parentSchemaNodeConsumer.accept(addType(typeSchemaNode));
                 return this;
             }
@@ -502,23 +481,25 @@ public class Schema<T extends Buffer> {
             }
 
             public TypeSchemaNode array(String name, int len) {
-                addField(new FixedArray(this, ModeAndType.of(type, name),name, len));
+                addField(new FixedArray(this, modeOf(type,name), typeOf(type, name),name, len));
                 return this;
             }
 
             public TypeSchemaNode array(String name, int len, Consumer<TypeSchemaNode> parentFieldConsumer) {
-                ModeAndType newAccessStyle = ModeAndType.of(type, name);
+                Mode arrayMode = modeOf(type, name);
+                Class<?> structOrUnionType = typeOf(type, name);
+               // ModeAndType newAccessStyle = ModeAndType.of(type, name);
                 TypeSchemaNode typeSchemaNode = isStruct(type)
-                                ?new SchemaNode.Struct(this, newAccessStyle)
-                                :new SchemaNode.Union(this, newAccessStyle);
+                                ?new SchemaNode.Struct(this, structOrUnionType)
+                                :new SchemaNode.Union(this, structOrUnionType);
                 parentFieldConsumer.accept(typeSchemaNode);
                 addType(typeSchemaNode);
-                addField(new FixedArray(this,  ModeAndType.of(type, name), name, len));
+                addField(new FixedArray(this, arrayMode,structOrUnionType, name, len));
                 return this;
             }
 
             private TypeSchemaNode fieldControlledArray(String name, ArrayLen arrayLen) {
-                addField(new FieldControlledArray(this,  ModeAndType.of(type, name),name, arrayLen));
+                addField(new FieldControlledArray(this,  modeOf(type, name), typeOf(type, name),name, arrayLen));
                 return this;
             }
 
@@ -531,11 +512,11 @@ public class Schema<T extends Buffer> {
                 }
 
                 public TypeSchemaNode array(String name, Consumer<TypeSchemaNode> parentFieldConsumer) {
-                    ModeAndType newAccessStyle = ModeAndType.of(typeSchemaNode.type, name);
+                    Class<?> arrayType = typeOf(typeSchemaNode.type, name);
                     this.typeSchemaNode.fieldControlledArray(name, arrayLenField);
-                    TypeSchemaNode typeSchemaNode =isStruct(newAccessStyle.type)
-                            ?new SchemaNode.Struct(this.typeSchemaNode, newAccessStyle)
-                            :new SchemaNode.Union(this.typeSchemaNode, newAccessStyle);
+                    TypeSchemaNode typeSchemaNode =isStruct(arrayType)
+                            ?new SchemaNode.Struct(this.typeSchemaNode, arrayType)
+                            :new SchemaNode.Union(this.typeSchemaNode,arrayType);
                     parentFieldConsumer.accept(typeSchemaNode);
                     this.typeSchemaNode.addType(typeSchemaNode);
                     return this.typeSchemaNode;
@@ -548,13 +529,14 @@ public class Schema<T extends Buffer> {
             }
 
             public ArrayBuildState arrayLen(String arrayLenFieldName) {
-                var arrayLenField = new ArrayLen(this,  ModeAndType.of(type, arrayLenFieldName),arrayLenFieldName );
+                var arrayLenField = new ArrayLen(this, modeOf(type, arrayLenFieldName), typeOf(type, arrayLenFieldName),arrayLenFieldName );
                 addField(arrayLenField);
                 return new ArrayBuildState(this, arrayLenField);
             }
 
             public void flexArray(String name) {
-                addField(new FlexArray(this,null, name));
+                 throw new IllegalStateException("flex array");
+              //  addField(new FlexArray(this,null, name));
             }
 
 
@@ -585,30 +567,30 @@ public class Schema<T extends Buffer> {
         }
 
         public static final class Struct extends TypeSchemaNode {
-            Struct(TypeSchemaNode parent, ModeAndType modeAndType) {
-                super(parent, modeAndType);
+            Struct(TypeSchemaNode parent,  Class<?> type) {
+                super(parent, type);
             }
         }
 
         public static final class Union extends TypeSchemaNode {
-            Union(TypeSchemaNode parent, ModeAndType modeAndType) {
-                super(parent, modeAndType);
+            Union(TypeSchemaNode parent,  Class<?> type) {
+                super(parent,  type);
             }
         }
 
         public abstract static sealed class Array extends NamedFieldSchemaNode permits FieldControlledArray, FixedArray, FlexArray {
-            ModeAndType elementAccessStyle;
-            Array(TypeSchemaNode parent,  ModeAndType elementAccessStyle, String name) {
-                super(parent, elementAccessStyle, name);
-                this.elementAccessStyle = elementAccessStyle;
+          //  ModeAndType elementAccessStyle;
+            Array(TypeSchemaNode parent,  Mode mode, Class<?> type, String name) {
+                super(parent, mode,type, name);
+            ///    this.elementAccessStyle = elementAccessStyle;
             }
         }
 
         public static final class FixedArray extends Array {
             int len;
 
-            FixedArray(TypeSchemaNode parent, ModeAndType elementAccessStyle, String name, int len) {
-                super(parent,  elementAccessStyle, name);
+            FixedArray(TypeSchemaNode parent,Mode mode, Class<?> type, String name, int len) {
+                super(parent,  mode, type, name);
                 this.len = len;
             }
 
@@ -620,14 +602,14 @@ public class Schema<T extends Buffer> {
             @Override
             void collectLayouts(LayoutToBoundFieldTreeNode layoutToFieldBindingNode) {
                 layoutToFieldBindingNode.bind(this, MemoryLayout.sequenceLayout(len,
-                        parent.getLayout(elementAccessStyle.type, layoutToFieldBindingNode).withName(elementAccessStyle.type.getSimpleName())
+                        parent.getLayout(type, layoutToFieldBindingNode).withName(type.getSimpleName())
                 ).withName(name));
             }
         }
 
         public static final  class FlexArray extends Array {
-            FlexArray(TypeSchemaNode parent,  ModeAndType elementAccessStyle, String name) {
-                super(parent,  elementAccessStyle, name);
+            FlexArray(TypeSchemaNode parent,  Mode mode, Class<?> type, String name) {
+                super(parent,  mode,type, name);
             }
 
             @Override
@@ -638,7 +620,7 @@ public class Schema<T extends Buffer> {
             void collectLayouts(LayoutToBoundFieldTreeNode layoutToFieldBindingNode) {
                 layoutToFieldBindingNode.bind(this,
                         MemoryLayout.sequenceLayout(0,
-                                parent.getLayout(elementAccessStyle.type, layoutToFieldBindingNode).withName(elementAccessStyle.type.getSimpleName())
+                                parent.getLayout(type, layoutToFieldBindingNode).withName(type.getSimpleName())
                         ).withName(name));
             }
         }
@@ -646,21 +628,21 @@ public class Schema<T extends Buffer> {
         public static final class FieldControlledArray extends Array {
             ArrayLen arrayLen;
 
-            FieldControlledArray(TypeSchemaNode parent,  ModeAndType elementAccessStyle,String name, ArrayLen arrayLen) {
-                super(parent, elementAccessStyle, name);
+            FieldControlledArray(TypeSchemaNode parent,   Mode mode, Class<?> type,String name, ArrayLen arrayLen) {
+                super(parent, mode, type, name);
                 this.arrayLen = arrayLen;
             }
 
             @Override
             public void toText(String indent, Consumer<String> stringConsumer) {
-                stringConsumer.accept(indent + name + "[" + elementAccessStyle + "] where len defined by " + arrayLen.type);
+                stringConsumer.accept(indent + name + "[" + mode+":"+type + "] where len defined by " + arrayLen.type);
             }
 
             @Override
             void collectLayouts(LayoutToBoundFieldTreeNode layoutToFieldBindingNode) {
                 layoutToFieldBindingNode.bind(this, MemoryLayout.sequenceLayout(
                         layoutToFieldBindingNode.takeArrayLen(),
-                        parent.getLayout(elementAccessStyle.type, layoutToFieldBindingNode).withName(elementAccessStyle.type.getSimpleName())
+                        parent.getLayout(type, layoutToFieldBindingNode).withName(type.getSimpleName())
                 ).withName(name));
             }
         }
@@ -688,8 +670,7 @@ public class Schema<T extends Buffer> {
     }
 
     public static <T extends Buffer> Schema<T> of(Class<T> iface, Consumer<SchemaNode.TypeSchemaNode> parentFieldConsumer) {
-        ModeAndType modeAndType = ModeAndType.of(iface, iface.getSimpleName());
-        var struct = new SchemaNode.Struct(null, modeAndType);
+        var struct = new SchemaNode.Struct(null, iface);
         parentFieldConsumer.accept(struct);
         return new Schema<>(iface, struct);
     }

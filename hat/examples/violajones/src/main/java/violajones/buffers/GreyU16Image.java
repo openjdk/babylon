@@ -24,7 +24,6 @@
  */
 package violajones.buffers;
 
-import hat.Accelerator;
 import hat.buffer.BufferAllocator;
 import hat.buffer.ImageBuffer;
 
@@ -34,25 +33,13 @@ import java.lang.foreign.StructLayout;
 import static java.lang.foreign.ValueLayout.JAVA_SHORT;
 
 public interface GreyU16Image extends ImageBuffer {
-
     StructLayout layout =  ImageBuffer.createLayout(GreyU16Image.class,JAVA_SHORT);
     private static GreyU16Image create(BufferAllocator bufferAllocator, int width, int height) {
         return ImageBuffer.create(bufferAllocator, GreyU16Image.class, layout,width, height, BufferedImage.TYPE_USHORT_GRAY, 1);
     }
-
     static GreyU16Image create(BufferAllocator bufferAllocator, BufferedImage bufferedImage) {
         return create(bufferAllocator, bufferedImage.getWidth(), bufferedImage.getHeight()).syncFromRaster(bufferedImage);
     }
-
     short data(long idx);
-
     void data(long idx, short v);
-
-    default short get(int x, int y) {
-        return data((long) y * width() + x);
-    }
-
-    default void set(int x, int y, short v) {
-        data((long) y * width() + x, v);
-    }
 }

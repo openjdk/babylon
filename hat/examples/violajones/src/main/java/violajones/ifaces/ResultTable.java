@@ -24,6 +24,7 @@
  */
 package violajones.ifaces;
 
+import hat.buffer.IncompleteBuffer;
 import hat.ifacemapper.Schema;
 import hat.buffer.Buffer;
 import hat.buffer.BufferAllocator;
@@ -37,53 +38,25 @@ import java.lang.invoke.MethodHandles;
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-public interface ResultTable extends Table<ResultTable.Result> {
+public interface ResultTable extends IncompleteBuffer  {
 
-    interface Result {
-        StructLayout layout = MemoryLayout.structLayout(
-                JAVA_FLOAT.withName("x"),
-                JAVA_FLOAT.withName("y"),
-                JAVA_FLOAT.withName("width"),
-                JAVA_FLOAT.withName("height")
-        ).withName("Result");
-
+    interface Result extends Buffer.StructChild {
         float x();
-
         float y();
-
         float width();
-
         float height();
-
-
         void x(float x);
-
         void y(float y);
-
         void width(float width);
-
         void height(float height);
     }
 
-    StructLayout layout = MemoryLayout.structLayout(
-            JAVA_INT.withName("length"),
-            JAVA_INT.withName("atomicResultTableCount"),
-            MemoryLayout.sequenceLayout(0, ResultTable.Result.layout).withName("result")
-    );
-
-    static ResultTable create(BufferAllocator bufferAllocator, int length) {
-        return Buffer.setLength(
-                bufferAllocator.allocate(SegmentMapper.ofIncomplete(MethodHandles.lookup(),ResultTable.class,layout,length)),length);
-    }
-
-    default Result get(int i) {
-        return result(i);
-    }
+    int length();
+    void length(int length);
 
     Result result(long idx);
 
     void atomicResultTableCount(int atomicResultTableCount);
-
     int atomicResultTableCount();
 
     default int atomicResultTableCountInc() {
@@ -92,15 +65,10 @@ public interface ResultTable extends Table<ResultTable.Result> {
         return index;
     }
 
-    Schema<ResultTable> schema = null;/*Schema.of(ResultTable.class, resultTable->resultTable
+    Schema<ResultTable> schema = Schema.of(ResultTable.class, resultTable->resultTable
             .atomic("atomicResultTableCount")
             .arrayLen("length").array("result", array->array
-                    .fields(
-                            "x",
-                            "y",
-                            "width",
-                            "height"
-                    )
+                    .fields("x", "y", "width", "height")
             )
-    );*/
+    );
 }

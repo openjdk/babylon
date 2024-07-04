@@ -33,6 +33,7 @@ import violajones.attic.ViolaJonesRaw;
 import violajones.buffers.RgbS08x3Image;
 import violajones.ifaces.Cascade;
 import violajones.ifaces.ResultTable;
+import violajones.ifaces.ScaleTable;
 
 import javax.imageio.ImageIO;
 import javax.xml.parsers.ParserConfigurationException;
@@ -44,7 +45,6 @@ public class ViolaJonesCompute {
 
     public static void main(String[] args) throws IOException, ParserConfigurationException, SAXException {
         boolean headless = Boolean.getBoolean("headless") ||( args.length>0 && args[0].equals("--headless"));
-
         String imageName = (args.length>2 && args[1].equals("--image"))?args[2]:System.getProperty("image", "Nasa1996");
         System.out.println("Using image "+imageName+".jpg");
         BufferedImage nasa1996 = ImageIO.read(ViolaJones.class.getResourceAsStream("/images/"+imageName+".jpg"));
@@ -53,42 +53,38 @@ public class ViolaJonesCompute {
              // "/images/highett.jpg"
         //     "/images/Nasa1996.jpg"
       //  ));
-        XMLHaarCascadeModel haarCascade = XMLHaarCascadeModel.load(
+        XMLHaarCascadeModel xmlCascade = XMLHaarCascadeModel.load(
                 ViolaJonesRaw.class.getResourceAsStream("/cascades/haarcascade_frontalface_default.xml"));
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(),
               //  new JavaSequentialBackend()
                 Backend.FIRST
         );
-        Cascade cascade = Cascade.create(accelerator, haarCascade);
 
-       var cascade2 = Cascade.schema.allocate(accelerator,haarCascade.featureCount(),haarCascade.stageCount(),haarCascade.treeCount());
-
-       String layoutFromCascade = Buffer.getLayout(cascade).toString();
-        String layoutFromCascadeSchema = Buffer.getLayout(cascade2).toString();
-        if (layoutFromCascadeSchema.equals(layoutFromCascade)) {
-            System.out.println("Original   " + layoutFromCascade);
-            System.out.println("Same as");
-            System.out.println("Schema     " + layoutFromCascadeSchema);
-        }else{
-            System.out.println("Original   " + layoutFromCascade);
-            System.out.println("NOT the Same as");
-            System.out.println("Schema     " + layoutFromCascadeSchema);
-            throw new IllegalStateException("layouts not the same ");
-        }
+        var cascade = Cascade.schema.allocate(
+                accelerator,
+                xmlCascade.featureCount(),
+                xmlCascade.stageCount(),
+                xmlCascade.treeCount()
+        ).copyFrom(xmlCascade);
 
         RgbS08x3Image rgbImage = RgbS08x3Image.create(accelerator, nasa1996);
-        ResultTable resultTable = ResultTable.create(accelerator, 1000);
+        ResultTable resultTable = ResultTable.schema.allocate(1000);
+        resultTable.length(1000);
+
         System.out.println("result table layout "+Buffer.getLayout(resultTable));
         HaarViewer harViz = null;
         if (!headless){
             harViz = new HaarViewer(accelerator, nasa1996, rgbImage, cascade, null, null);
         }
+        ScaleTable.Constraints constraints = new ScaleTable.Constraints(cascade,rgbImage.width(),rgbImage.height());
+        ScaleTable scaleTable = ScaleTable.schema.allocate(constraints.scales);
+        scaleTable.length(constraints.scales);
+        scaleTable.applyConstraints(constraints);
 
-        //System.out.println("Compute units "+((NativeBackend)accelerator.backend).getGetMaxComputeUnits());
         for (int i = 0; i < 10; i++) {
             resultTable.atomicResultTableCount(0);
             accelerator.compute(cc ->
-                    ViolaJonesCoreCompute.compute(cc, cascade, nasa1996, rgbImage, resultTable)
+                    ViolaJonesCoreCompute.compute(cc, cascade, nasa1996, rgbImage, resultTable,scaleTable)
             );
             System.out.println(resultTable.atomicResultTableCount()+ "faces found");
         }
