@@ -1593,7 +1593,6 @@ public class ReflectMethods extends TreeTranslator {
                         pushBody(c.body, actionType);
                         Type yieldType = adaptBottom(tree.type);
                         if (c.body instanceof JCExpression) {
-                            // Yield the boolean result of the condition
                             Value bodyVal = toValue(c.body, yieldType);
                             append(CoreOp._yield(bodyVal));
                         } else {
