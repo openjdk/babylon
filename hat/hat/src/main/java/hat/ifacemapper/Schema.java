@@ -8,10 +8,13 @@ import hat.util.Result;
 import java.lang.foreign.Arena;
 import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 public class Schema<T extends Buffer> {
@@ -143,6 +146,8 @@ public class Schema<T extends Buffer> {
             if (paramTypes.length == 0 && (returnType.isInterface() || returnType.isPrimitive())) {
                 thisType = returnType;
             } else if (paramTypes.length == 1 && paramTypes[0].isPrimitive() && returnType == Void.TYPE) {
+                thisType = paramTypes[0];
+            } else if (paramTypes.length == 1 && MemorySegment.class.isAssignableFrom(paramTypes[0]) && returnType == Void.TYPE) {
                 thisType = paramTypes[0];
             } else if (paramTypes.length == 1 && paramTypes[0] == Long.TYPE && (returnType.isInterface() || returnType.isPrimitive())) {
                 thisType = returnType;
@@ -319,18 +324,24 @@ public class Schema<T extends Buffer> {
             MemoryLayout getLayout(Class<?> type, LayoutToBoundFieldTreeNode layoutToFieldBindingNode) {
                 if (type.isPrimitive()) {
                     return MapperUtil.primitiveToLayout(type);
+                }else    if (MemorySegment.class.isAssignableFrom(type)) {
+                        return ValueLayout.ADDRESS;
                 } else {
-                    TypeSchemaNode typeSchemaKeyMatchingType = types.stream()
+                    Optional<TypeSchemaNode> optionalTypeSchemaKeyMatchingType = types.stream()
                             .filter(typeSchemaNode -> typeSchemaNode.type.equals(type))
-                            .findFirst()
-                            .orElseThrow();
-                    LayoutToBoundFieldTreeNode scope = layoutToFieldBindingNode.createChild();
-                    typeSchemaKeyMatchingType.fields.forEach(fieldSchemaNode ->
-                            fieldSchemaNode.collectLayouts(scope)
-                    );
-                    return isUnion(typeSchemaKeyMatchingType.type)
-                            ? MemoryLayout.unionLayout(scope.memoryLayoutListToArray())
-                            : MemoryLayout.structLayout(scope.memoryLayoutListToArray());
+                            .findFirst();
+                    if (optionalTypeSchemaKeyMatchingType.isPresent()) {
+                        var typeSchemaKeyMatchingType = optionalTypeSchemaKeyMatchingType.get();
+                        LayoutToBoundFieldTreeNode scope = layoutToFieldBindingNode.createChild();
+                        typeSchemaKeyMatchingType.fields.forEach(fieldSchemaNode ->
+                                fieldSchemaNode.collectLayouts(scope)
+                        );
+                        return isUnion(typeSchemaKeyMatchingType.type)
+                                ? MemoryLayout.unionLayout(scope.memoryLayoutListToArray())
+                                : MemoryLayout.structLayout(scope.memoryLayoutListToArray());
+                    }else{
+                        throw new IllegalStateException("Why no type");
+                    }
                 }
             }
 
@@ -413,13 +424,14 @@ public class Schema<T extends Buffer> {
             }
 
             private TypeSchemaNode fieldControlledArray(String name, List<ArrayLen> arrayLenFields, int stride) {
-                addField(new FieldControlledArray(this, AccessorInfo.Key.of(type, name), typeOf(type, name), name, arrayLenFields, stride));
+                addField(new FieldControlledArray(this, AccessorInfo.Key.of(type, name), typeOf(type, name), name,  arrayLenFields, stride));
                 return this;
             }
 
             public static class ArrayBuildState {
                 TypeSchemaNode typeSchemaNode;
                 List<ArrayLen> arrayLenFields;
+                int padding =0;
                 int stride = 1;
 
                 public TypeSchemaNode array(String name) {
@@ -430,7 +442,12 @@ public class Schema<T extends Buffer> {
                     this.stride = stride;
                     return this;
                 }
-
+                public ArrayBuildState pad(int padding) {
+                    this.padding = padding;
+                    var paddingField = new Padding(typeSchemaNode, padding);
+                    typeSchemaNode.addField(paddingField);
+                    return this;
+                }
                 public TypeSchemaNode array(String name, Consumer<TypeSchemaNode> parentFieldConsumer) {
                     Class<?> arrayType = typeOf(typeSchemaNode.type, name);
                     this.typeSchemaNode.fieldControlledArray(name, arrayLenFields, stride);
@@ -526,10 +543,12 @@ public class Schema<T extends Buffer> {
         public static final class FieldControlledArray extends Array {
             List<ArrayLen> arrayLenFields;
             int stride;
+          //  int padding;
             int contributingDims;
 
             FieldControlledArray(TypeSchemaNode parent, AccessorInfo.Key key, Class<?> type, String name, List<ArrayLen> arrayLenFields, int stride) {
                 super(parent, key, type, name);
+               // this.padding = padding;
                 this.arrayLenFields = arrayLenFields;
                 this.stride = stride;
                 this.contributingDims = arrayLenFields.size();
