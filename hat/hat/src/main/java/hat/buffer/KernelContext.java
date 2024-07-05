@@ -1,5 +1,6 @@
 package hat.buffer;
 
+import hat.ifacemapper.HatData;
 import hat.ifacemapper.SegmentMapper;
 
 import java.lang.foreign.Arena;
@@ -16,7 +17,8 @@ public interface KernelContext extends CompleteBuffer {
     ).withName(KernelContext.class.getSimpleName());
 
     static KernelContext create(Arena arena, MethodHandles.Lookup lookup, int x, int maxX) {
-        KernelContext kernelContext = SegmentMapper.of(lookup, KernelContext.class,layout).allocate(arena);
+        KernelContext kernelContext = SegmentMapper.of(lookup, KernelContext.class,layout).allocate(arena, new HatData() {
+        });
         kernelContext.x(x);
         kernelContext.maxX(maxX);
         return kernelContext;

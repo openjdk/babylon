@@ -218,7 +218,7 @@ public final class SegmentInterfaceMapper<T>
         // We need to materialize these methods so that the order is preserved
         // during generation of the class.
         List<AccessorInfo> virtualMethods = accessors().stream()
-                .filter(mi -> mi.key().valueType().isVirtual())
+                .filter(mi -> mi.key().valueType().equals(ValueType.INTERFACE))
                 .toList();
 
         byte[] bytes = ClassFile.of(ClassHierarchyResolverOption.of(ClassHierarchyResolver.ofClassLoading(loader)))

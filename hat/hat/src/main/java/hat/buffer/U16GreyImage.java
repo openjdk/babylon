@@ -36,5 +36,4 @@ public interface U16GreyImage extends ImageIfaceBuffer<U16GreyImage> {
     Schema<U16GreyImage> schema = Schema.of(U16GreyImage.class, s -> s
             .arrayLen("width", "height").stride(1).array("data")
     );
-
 }
