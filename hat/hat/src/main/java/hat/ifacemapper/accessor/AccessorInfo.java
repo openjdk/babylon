@@ -29,6 +29,7 @@ import hat.ifacemapper.Schema;
 import hat.util.Result;
 
 import java.lang.foreign.GroupLayout;
+import java.lang.foreign.MemorySegment;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -139,6 +140,8 @@ public record AccessorInfo(Key key,
             } else if (paramTypes.length == 0 && returnType.isPrimitive()) {
                 return SCALAR_VALUE_GETTER;
             } else if (paramTypes.length == 1 && paramTypes[0].isPrimitive() && returnType == Void.TYPE) {
+                return SCALAR_VALUE_SETTER;
+            } else if (paramTypes.length == 1 && MemorySegment.class.isAssignableFrom(paramTypes[0]) && returnType == Void.TYPE) {
                 return SCALAR_VALUE_SETTER;
             } else if (paramTypes.length == 1 && paramTypes[0] == Long.TYPE && returnType.isInterface()) {
                 return ARRAY_INTERFACE_GETTER;
