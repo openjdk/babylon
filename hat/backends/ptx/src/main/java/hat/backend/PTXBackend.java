@@ -30,11 +30,7 @@ import hat.NDRange;
 import hat.callgraph.KernelCallGraph;
 import hat.optools.*;
 
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Method;
-import java.lang.reflect.code.Block;
 import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.type.JavaType;
 import java.util.Optional;
 
 public class PTXBackend extends C99NativeBackend {
@@ -76,7 +72,7 @@ public class PTXBackend extends C99NativeBackend {
 
         System.out.println("Entrypoint ->"+kernelCallGraph.entrypoint.method.getName());
         String code = createCode(kernelCallGraph, new PTXCodeBuilder(), args);
-//        System.out.println("\nCode Builder Output: \n\n" + code);
+//        System.out.println("\nCod Builder Output: \n\n" + code);
 //        System.out.println("Add your code to "+PTXBackend.class.getName()+".dispatchKernel() to actually run! :)");
         long programHandle = compileProgram(code);
         if (programOK(programHandle)) {
@@ -88,9 +84,7 @@ public class PTXBackend extends C99NativeBackend {
     }
 
     public String createCode(KernelCallGraph kernelCallGraph, PTXCodeBuilder builder, Object[] args) {
-
         String out, body;
-
         Optional<CoreOp.FuncOp> o = Optional.ofNullable(kernelCallGraph.entrypoint.funcOpWrapper().op());
         FuncOpWrapper f = new FuncOpWrapper(o.orElseThrow());
         FuncOpWrapper lowered = f.lower();
