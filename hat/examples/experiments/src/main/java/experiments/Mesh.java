@@ -44,7 +44,7 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public class Mesh {
     public interface MeshData extends CompleteBuffer {
-        interface Point3D extends StructChild {
+        interface Point3D extends Struct {
             int x();
 
             void x(int x);
@@ -65,7 +65,7 @@ public class Mesh {
 
         Point3D point(long idx);
 
-        interface Vertex3D extends StructChild {
+        interface Vertex3D extends Struct {
             int from();
 
             void from(int id);

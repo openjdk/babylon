@@ -151,7 +151,7 @@ public final class Accessors {
 
         Class<?> targetType = (accessorType == AccessorInfo.AccessorType.GETTER)
                 ? method.getReturnType()
-                : getterType(method);
+                : setterType(method);
 
         ValueType valueType = valueTypeFor(method, targetType);
 
@@ -211,7 +211,7 @@ public final class Accessors {
         return valueType;
     }
 
-    private static Class<?> getterType(Method method) {
+    private static Class<?> setterType(Method method) {
         if (method.getParameterCount() == 0) {
             throw new IllegalArgumentException("A setter must take at least one argument: " + method);
         }

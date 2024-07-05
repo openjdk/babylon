@@ -43,6 +43,15 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import static java.lang.foreign.ValueLayout.JAVA_BOOLEAN;
+import static java.lang.foreign.ValueLayout.JAVA_BYTE;
+import static java.lang.foreign.ValueLayout.JAVA_CHAR;
+import static java.lang.foreign.ValueLayout.JAVA_DOUBLE;
+import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
+import static java.lang.foreign.ValueLayout.JAVA_INT;
+import static java.lang.foreign.ValueLayout.JAVA_LONG;
+import static java.lang.foreign.ValueLayout.JAVA_SHORT;
+
 public final class MapperUtil {
 
     private MapperUtil() {
@@ -94,6 +103,7 @@ public final class MapperUtil {
         return SegmentMapper.Discoverable.class.isAssignableFrom(type) &&
                 method.getParameterCount() == 0 &&
                 (method.getReturnType() == MemorySegment.class && method.getName().equals("segment") ||
+                        method.getReturnType() == MemoryLayout.class && method.getName().equals("layout") ||
                         method.getReturnType() == long.class && method.getName().equals("offset"));
     }
 
@@ -140,5 +150,27 @@ public final class MapperUtil {
             throw new IllegalArgumentException("Unable to map methods: " + missing);
         }
 
+    }
+
+    public static MemoryLayout primitiveToLayout(Class<?> type) {
+        if (type == Integer.TYPE) {
+            return JAVA_INT;
+        } else if (type == Float.TYPE) {
+            return JAVA_FLOAT;
+        } else if (type == Long.TYPE) {
+            return JAVA_LONG;
+        } else if (type == Double.TYPE) {
+            return JAVA_DOUBLE;
+        } else if (type == Short.TYPE) {
+            return JAVA_SHORT;
+        } else if (type == Character.TYPE) {
+            return JAVA_CHAR;
+        } else if (type == Byte.TYPE) {
+            return JAVA_BYTE;
+        } else if (type == Boolean.TYPE) {
+            return JAVA_BOOLEAN;
+        } else {
+            throw new IllegalStateException("Expecting primitive   " + type);
+        }
     }
 }

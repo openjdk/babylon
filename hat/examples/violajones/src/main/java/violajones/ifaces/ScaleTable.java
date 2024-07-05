@@ -27,10 +27,9 @@ package violajones.ifaces;
 
 import hat.buffer.IncompleteBuffer;
 import hat.ifacemapper.Schema;
-import hat.buffer.Buffer;
 
 public interface ScaleTable extends IncompleteBuffer {
-    interface Scale extends Buffer.StructChild {
+    interface Scale extends Struct {
 
         float scaleValue();
 

@@ -25,27 +25,12 @@
 package violajones.ifaces;
 
 import hat.ifacemapper.Schema;
-import hat.buffer.Buffer;
-import hat.buffer.BufferAllocator;
 import hat.buffer.CompleteBuffer;
-import hat.ifacemapper.SegmentMapper;
-import violajones.XMLHaarCascadeModel;
-
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.StructLayout;
-import java.lang.invoke.MethodHandles;
-
-import static java.lang.foreign.MemoryLayout.sequenceLayout;
-import static java.lang.foreign.ValueLayout.JAVA_BOOLEAN;
-import static java.lang.foreign.ValueLayout.JAVA_BYTE;
-import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
-import static java.lang.foreign.ValueLayout.JAVA_INT;
-import static java.lang.foreign.ValueLayout.JAVA_SHORT;
 
 public interface Cascade extends CompleteBuffer {
-    interface Feature extends StructChild{
+    interface Feature extends Struct {
 
-        interface Rect extends Buffer.StructChild{
+        interface Rect extends Struct {
             byte x();
 
             byte y();
@@ -68,8 +53,8 @@ public interface Cascade extends CompleteBuffer {
         }
 
 
-        interface LinkOrValue extends  Buffer.StructChild {
-            interface Anon  extends Buffer.UnionChild{
+        interface LinkOrValue extends Struct {
+            interface Anon  extends Union {
 
                 int featureId();
 
@@ -103,7 +88,7 @@ public interface Cascade extends CompleteBuffer {
         Feature.Rect rect(long idx);
     }
 
-    interface Stage extends Buffer.StructChild{
+    interface Stage extends Struct {
         float threshold();
 
         short firstTreeId();
@@ -121,7 +106,7 @@ public interface Cascade extends CompleteBuffer {
         void treeCount(short treeCount);
     }
 
-    interface Tree extends Buffer.StructChild{
+    interface Tree extends Struct {
         void id(int id);
 
         void firstFeatureId(short firstFeatureId);

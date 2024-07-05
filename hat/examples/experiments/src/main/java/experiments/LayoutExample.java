@@ -58,7 +58,7 @@ public class LayoutExample {
      */
 
         public interface Outer extends Buffer {
-            interface Inner extends Buffer.StructChild  {
+            interface Inner extends Struct {
                 int i();
 
                 void i(int v);

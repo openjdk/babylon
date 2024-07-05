@@ -20,7 +20,7 @@ import java.lang.runtime.CodeReflection;
 
 public class PointyHatArray {
     public interface PointArray extends CompleteBuffer {
-        interface Point extends StructChild {
+        interface Point extends Struct {
 
             int x();
 

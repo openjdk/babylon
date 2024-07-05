@@ -7,7 +7,6 @@ import hat.ComputeContext;
 import hat.KernelContext;
 import hat.ifacemapper.Schema;
 import hat.backend.DebugBackend;
-import hat.buffer.Buffer;
 import hat.buffer.BufferAllocator;
 import hat.buffer.CompleteBuffer;
 import hat.ifacemapper.HatData;
@@ -21,8 +20,8 @@ import java.lang.runtime.CodeReflection;
 
 public class PointyHat {
     public interface ColoredWeightedPoint extends CompleteBuffer {
-        interface WeightedPoint extends Buffer.StructChild {
-            interface Point extends Buffer.StructChild {
+        interface WeightedPoint extends Struct {
+            interface Point extends Struct {
 
                 int x();
 

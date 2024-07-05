@@ -26,11 +26,10 @@ package violajones.ifaces;
 
 import hat.buffer.IncompleteBuffer;
 import hat.ifacemapper.Schema;
-import hat.buffer.Buffer;
 
 public interface ResultTable extends IncompleteBuffer  {
 
-    interface Result extends Buffer.StructChild {
+    interface Result extends Struct {
         float x();
         float y();
         float width();
