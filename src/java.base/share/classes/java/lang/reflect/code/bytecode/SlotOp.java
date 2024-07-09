@@ -83,7 +83,7 @@ public abstract class SlotOp extends ExternalizableOp {
             super(opdef);
 
             if (!opdef.operands().isEmpty()) {
-                throw new IllegalArgumentException("Operation must have no operand");
+                throw new IllegalArgumentException("Operation must not have any operands");
             }
 
             this.resultType = opdef.resultType();
