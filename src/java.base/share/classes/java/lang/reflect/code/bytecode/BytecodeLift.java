@@ -612,6 +612,9 @@ public final class BytecodeLift {
                             throw new UnsupportedOperationException("Unsupported stack instruction: " + inst);
                     }
                 }
+                case MonitorInstruction _ -> {
+                    stack.pop(); // @@@ lift monitorenter and monitorexit ?
+                }
                 case PseudoInstruction _ -> {}
                 case Instruction inst ->
                     throw new UnsupportedOperationException("Unsupported instruction: " + inst.opcode().name());
