@@ -82,8 +82,8 @@ public abstract class SlotOp extends ExternalizableOp {
         public SlotLoadOp(ExternalizedOp opdef) {
             super(opdef);
 
-            if (opdef.operands().size() != 1) {
-                throw new IllegalArgumentException("Operation must have one operand");
+            if (!opdef.operands().isEmpty()) {
+                throw new IllegalArgumentException("Operation must have no operand");
             }
 
             this.resultType = opdef.resultType();
@@ -117,8 +117,8 @@ public abstract class SlotOp extends ExternalizableOp {
         public SlotStoreOp(ExternalizedOp opdef) {
             super(opdef);
 
-            if (opdef.operands().size() != 2) {
-                throw new IllegalArgumentException("Operation must have two operands");
+            if (opdef.operands().size() != 1) {
+                throw new IllegalArgumentException("Operation must have one operand");
             }
         }
 
