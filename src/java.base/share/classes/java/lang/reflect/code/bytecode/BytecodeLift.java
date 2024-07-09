@@ -385,10 +385,10 @@ public final class BytecodeLift {
                                 stack.push(op(CoreOp.fieldLoad(fd)));
                             case PUTFIELD -> {
                                 Value value = stack.pop();
-                                stack.push(op(CoreOp.fieldStore(fd, stack.pop(), value)));
+                                op(CoreOp.fieldStore(fd, stack.pop(), value));
                             }
                             case PUTSTATIC ->
-                                stack.push(op(CoreOp.fieldStore(fd, stack.pop())));
+                                op(CoreOp.fieldStore(fd, stack.pop()));
                             default ->
                                 throw new IllegalArgumentException("Unsupported field opcode: " + inst.opcode());
                         }
