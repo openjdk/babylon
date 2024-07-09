@@ -58,11 +58,12 @@ public final class SlotSSA {
 
         Map<Body, Boolean> visited = new HashMap<>();
         Map<Block, Map<Integer, Block.Parameter>> joinBlockArguments = new HashMap<>();
+        int blocksSize = iop.traverse(-1, CodeElement.blockVisitor((i, b) -> Math.max(i, b.index()))) + 1;
         @SuppressWarnings("unchecked")
         T liop = (T) iop.transform(CopyContext.create(), (block, op) -> {
             // Compute join points and value mappings for body
             visited.computeIfAbsent(op.ancestorBody(), b -> {
-                findJoinPoints(b, joinPoints);
+                findJoinPoints(blocksSize, b, joinPoints);
                 variableToValue(b, joinPoints, loadValues, joinSuccessorValues);
                 return true;
             });
@@ -244,13 +245,13 @@ public final class SlotSSA {
      * @implNote See "Efficiently Computing Static Single Assignment Form and the Control Dependence Graph" by Ron Cytron et. al.
      * Section 5.1 and Figure 11.
      */
-    public static void findJoinPoints(Body body, Map<Block, Set<Integer>> joinPoints) {
+    public static void findJoinPoints(int blocksSize, Body body, Map<Block, Set<Integer>> joinPoints) {
         Map<Block, Set<Block>> df = body.dominanceFrontier();
-        Map<Integer, SlotAccesses> a = findSlots(body);
+        Map<Integer, SlotAccesses> a = findSlots(blocksSize, body);
 
         int iterCount = 0;
-        int[] hasAlready = new int[body.blocks().size()];
-        int[] work = new int[body.blocks().size()];
+        int[] hasAlready = new int[blocksSize];
+        int[] work = new int[blocksSize];
 
         Deque<Block> w = new ArrayDeque<>();
 
@@ -291,7 +292,7 @@ public final class SlotSSA {
     // Returns map of slots to blocks that contain stores and to blocks containing load preceeding store
     // Throws ISE if a descendant store operation is encountered
     // @@@ Compute map for whole tree, then traverse keys with filter
-    static Map<Integer, SlotAccesses> findSlots(Body r) {
+    static Map<Integer, SlotAccesses> findSlots(int blocksSize, Body r) {
         LinkedHashMap<Integer, SlotAccesses> slotMap = r.traverse(new LinkedHashMap<>(), CodeElement.opVisitor((slots, op) -> {
             if (op instanceof SlotOp.SlotStoreOp storeOp) {
                 slots.computeIfAbsent(storeOp.slot(), _ -> new SlotAccesses()).stores.add(storeOp.parentBlock());
@@ -303,7 +304,7 @@ public final class SlotSSA {
         }));
 
         int iterCount = 0;
-        int[] work = new int[r.blocks().size()];
+        int[] work = new int[blocksSize];
         Deque<Block> w = new ArrayDeque<>();
         for (SlotAccesses sa : slotMap.values()) {
             iterCount++;
