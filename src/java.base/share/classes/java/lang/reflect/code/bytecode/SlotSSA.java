@@ -52,25 +52,19 @@ public final class SlotSSA {
      * @param <T> the invokable type
      */
     public static <T extends Op & Op.Invokable> T transform(T iop) {
-        Map<Block, Set<Integer>> joinPoints = new HashMap<>();
+        // Compute join points and value mappings
+        Map<Block, Set<Integer>> joinPoints = findJoinPoints(iop);
+
         Map<SlotOp.SlotLoadOp, Object> loadValues = new HashMap<>();
         Map<Block.Reference, List<SlotValue>> joinSuccessorValues = new HashMap<>();
-
-        Map<Body, Boolean> visited = new HashMap<>();
         Map<Block, Map<Integer, Block.Parameter>> joinBlockArguments = new HashMap<>();
-        int blocksSize = iop.traverse(-1, CodeElement.blockVisitor((i, b) -> Math.max(i, b.index()))) + 1;
+
+        variableToValue(iop.body(), new HashMap<>(), joinPoints, loadValues, joinSuccessorValues);
+
         @SuppressWarnings("unchecked")
         T liop = (T) iop.transform(CopyContext.create(), (block, op) -> {
-            // Compute join points and value mappings for body
-            visited.computeIfAbsent(op.ancestorBody(), b -> {
-                findJoinPoints(blocksSize, b, joinPoints);
-                variableToValue(b, joinPoints, loadValues, joinSuccessorValues);
-                return true;
-            });
-
-            if (op instanceof SlotOp) {
-                // Drop slot operations
-                if (op instanceof SlotOp.SlotLoadOp vl) {
+            switch (op) {
+                case SlotOp.SlotLoadOp vl -> {
                     // Replace result of load
                     Object loadValue = loadValues.get(vl);
                     CopyContext cc = block.context();
@@ -79,47 +73,48 @@ public final class SlotSSA {
                             : cc.getValue((Value) loadValue);
                     cc.mapValue(op.result(), v);
                 }
-            } else if (op instanceof Op.Terminating) {
-                for (Block.Reference s : op.successors()) {
-                    List<SlotValue> joinValues = joinSuccessorValues.get(s);
-                    // Successor has join values
-                    if (joinValues != null) {
-                        CopyContext cc = block.context();
-
-                        // Lazily append target block arguments
-                        joinBlockArguments.computeIfAbsent(s.targetBlock(), b -> {
-                            Block.Builder bb = cc.getBlock(b);
-                            return joinPoints.get(b).stream().collect(Collectors.toMap(
-                                    slot -> slot,
-                                    // @@@
-                                    slot -> bb.parameter(joinValues.stream().filter(sv -> sv.slot == slot).findAny().map(sv ->
-                                            (sv.value instanceof SlotBlockArgument vba
-                                                ? joinBlockArguments.get(vba.b()).get(vba.slot())
-                                                : cc.getValue((Value) sv.value)).type()).orElseThrow())));
-                        });
-
-                        // Append successor arguments
-                        List<Value> values = new ArrayList<>();
-                        for (SlotValue sv : joinValues) {
-                            Value v = sv.value instanceof SlotBlockArgument vba
-                                    ? joinBlockArguments.get(vba.b()).get(vba.slot())
-                                    : cc.getValue((Value) sv.value);
-                            values.add(v);
-                        }
-
-                        // Map successor with append arguments
-                        List<Value> toArgs = cc.getValues(s.arguments());
-                        toArgs.addAll(values);
-                        Block.Reference toS = cc.getBlock(s.targetBlock()).successor(toArgs);
-                        cc.mapSuccessor(s, toS);
-                    }
+                case SlotOp _ -> {
+                    // Drop slot operations
                 }
+                case Op.Terminating _ -> {
+                    for (Block.Reference s : op.successors()) {
+                        List<SlotValue> joinValues = joinSuccessorValues.get(s);
+                        // Successor has join values
+                        if (joinValues != null) {
+                            CopyContext cc = block.context();
 
-                block.apply(op);
-            } else {
-                block.apply(op);
+                            // Lazily append target block arguments
+                            joinBlockArguments.computeIfAbsent(s.targetBlock(), b -> {
+                                Block.Builder bb = cc.getBlock(b);
+                                return joinPoints.get(b).stream().collect(Collectors.toMap(
+                                        slot -> slot,
+                                        // @@@
+                                        slot -> bb.parameter(joinValues.stream().filter(sv -> sv.slot == slot).findAny().map(sv ->
+                                                (sv.value instanceof SlotBlockArgument vba
+                                                    ? joinBlockArguments.get(vba.b()).get(vba.slot())
+                                                    : cc.getValue((Value) sv.value)).type()).orElseThrow())));
+                            });
+
+                            // Append successor arguments
+                            List<Value> values = new ArrayList<>();
+                            for (SlotValue sv : joinValues) {
+                                Value v = sv.value instanceof SlotBlockArgument vba
+                                        ? joinBlockArguments.get(vba.b()).get(vba.slot())
+                                        : cc.getValue((Value) sv.value);
+                                values.add(v);
+                            }
+
+                            // Map successor with append arguments
+                            List<Value> toArgs = cc.getValues(s.arguments());
+                            toArgs.addAll(values);
+                            Block.Reference toS = cc.getBlock(s.targetBlock()).successor(toArgs);
+                            cc.mapSuccessor(s, toS);
+                        }
+                    }
+                    block.apply(op);
+                }
+                default -> block.apply(op);
             }
-
             return block;
         });
         return liop;
@@ -136,10 +131,10 @@ public final class SlotSSA {
     //     to in an exception region and accessed from an associated catch region
 
     static void variableToValue(Body body,
+                                Map<Integer, Deque<Object>> variableStack,
                                 Map<Block, Set<Integer>> joinPoints,
                                 Map<SlotOp.SlotLoadOp, Object> loadValues,
                                 Map<Block.Reference, List<SlotValue>> joinSuccessorValues) {
-        Map<Integer, Deque<Object>> variableStack = new HashMap<>();
         Node top = buildDomTree(body.entryBlock(), body.immediateDominators());
         variableToValue(top, variableStack, joinPoints, loadValues, joinSuccessorValues);
     }
@@ -181,14 +176,23 @@ public final class SlotSSA {
             for (int i = 0; i < size - 1; i++) {
                 Op op = n.b().ops().get(i);
 
-                if (op instanceof SlotOp.SlotStoreOp storeOp) {
-                    // Value assigned to slot
-                    Value current = op.operands().get(0);
-                    variableStack.computeIfAbsent(storeOp.slot(), _ -> new ArrayDeque<>())
-                            .push(current);
-                } else if (op instanceof SlotOp.SlotLoadOp loadOp) {
-                    Object to = variableStack.get(loadOp.slot()).peek();
-                    loadValues.put(loadOp, to);
+                switch (op) {
+                    case SlotOp.SlotStoreOp storeOp -> {
+                        // Value assigned to slot
+                        Value current = op.operands().get(0);
+                        variableStack.computeIfAbsent(storeOp.slot(), _ -> new ArrayDeque<>())
+                                .push(current);
+                    }
+                    case SlotOp.SlotLoadOp loadOp -> {
+                        Object to = variableStack.get(loadOp.slot()).peek();
+                        loadValues.put(loadOp, to);
+                    }
+                    default -> {}
+                }
+
+                // @@@ dive into op bodies ???
+                for (Body b : op.bodies()) {
+                    variableToValue(b, variableStack, joinPoints, loadValues, joinSuccessorValues);
                 }
             }
 
@@ -240,14 +244,20 @@ public final class SlotSSA {
      * variable, where a predecessor assigns to the block argument.
      * (Block arguments are equivalent to phi-values, or phi-nodes, used in other representations.)
      *
-     * @param body the body.
-     * @param joinPoints the returned join points.
+     * @param root the root code element.
+     * @return joinPoints the returned join points.
      * @implNote See "Efficiently Computing Static Single Assignment Form and the Control Dependence Graph" by Ron Cytron et. al.
      * Section 5.1 and Figure 11.
      */
-    public static void findJoinPoints(int blocksSize, Body body, Map<Block, Set<Integer>> joinPoints) {
-        Map<Block, Set<Block>> df = body.dominanceFrontier();
-        Map<Integer, SlotAccesses> a = findSlots(blocksSize, body);
+    public static Map<Block, Set<Integer>> findJoinPoints(CodeElement<?,?> root) {
+        Map<Block, Set<Integer>> joinPoints = new HashMap<>();
+        Map<Block, Set<Block>> df = new HashMap<>();
+        int blocksSize = root.traverse(0, CodeElement.bodyVisitor((i, body) -> {
+            // @@@ not sure how dominance frontier is aggregated across nested bodies
+            df.putAll(body.dominanceFrontier());
+            return i + body.blocks().size();
+        }));
+        Map<Integer, SlotAccesses> slots = findSlots(root);
 
         int iterCount = 0;
         int[] hasAlready = new int[blocksSize];
@@ -255,8 +265,8 @@ public final class SlotSSA {
 
         Deque<Block> w = new ArrayDeque<>();
 
-        for (int slot : a.keySet()) {
-            SlotAccesses sa = a.get(slot);
+        for (int slot : slots.keySet()) {
+            SlotAccesses sa = slots.get(slot);
 
             iterCount++;
             for (Block x : sa.stores) {
@@ -281,6 +291,7 @@ public final class SlotSSA {
                 }
             }
         }
+        return joinPoints;
     }
 
     record SlotAccesses(Set<Block> stores, Set<Block> loadsBeforeStores) {
@@ -292,17 +303,21 @@ public final class SlotSSA {
     // Returns map of slots to blocks that contain stores and to blocks containing load preceeding store
     // Throws ISE if a descendant store operation is encountered
     // @@@ Compute map for whole tree, then traverse keys with filter
-    static Map<Integer, SlotAccesses> findSlots(int blocksSize, Body r) {
-        LinkedHashMap<Integer, SlotAccesses> slotMap = r.traverse(new LinkedHashMap<>(), CodeElement.opVisitor((slots, op) -> {
-            if (op instanceof SlotOp.SlotStoreOp storeOp) {
-                slots.computeIfAbsent(storeOp.slot(), _ -> new SlotAccesses()).stores.add(storeOp.parentBlock());
-            } else if (op instanceof SlotOp.SlotLoadOp loadOp) {
-                var sa = slots.computeIfAbsent(loadOp.slot(), _ -> new SlotAccesses());
-                if (!sa.stores.contains(loadOp.parentBlock())) sa.loadsBeforeStores.add(loadOp.parentBlock());
+    static Map<Integer, SlotAccesses> findSlots(CodeElement<?,?> root) {
+        LinkedHashMap<Integer, SlotAccesses> slotMap = new LinkedHashMap<>();
+        int blocksSize = root.traverse(0, (i, e) -> switch (e) {
+            case SlotOp.SlotStoreOp storeOp -> {
+                slotMap.computeIfAbsent(storeOp.slot(), _ -> new SlotAccesses()).stores.add(storeOp.parentBlock());
+                yield i;
             }
-            return slots;
-        }));
-
+            case SlotOp.SlotLoadOp loadOp -> {
+                var sa = slotMap.computeIfAbsent(loadOp.slot(), _ -> new SlotAccesses());
+                if (!sa.stores.contains(loadOp.parentBlock())) sa.loadsBeforeStores.add(loadOp.parentBlock());
+                yield i;
+            }
+            case Block _ -> i + 1;
+            default -> i;
+        });
         int iterCount = 0;
         int[] work = new int[blocksSize];
         Deque<Block> w = new ArrayDeque<>();
