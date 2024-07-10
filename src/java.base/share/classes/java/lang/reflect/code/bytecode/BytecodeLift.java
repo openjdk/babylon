@@ -147,14 +147,8 @@ public final class BytecodeLift {
 
     public static CoreOp.FuncOp lift(MethodModel methodModel) {
         CoreOp.FuncOp lifted = liftToSlots(methodModel);
-        try {
-            return SlotSSA.transform(lifted);
-        } catch (Exception e) {
-            System.out.println("lifted:");
-            lifted.writeTo(System.out);
-            throw new IllegalStateException("SlotSSA transformation failed");
-        }
-    }
+        return SlotSSA.transform(lifted);
+     }
 
     private static CoreOp.FuncOp liftToSlots(MethodModel methodModel) {
         ClassModel classModel = methodModel.parent().orElseThrow();

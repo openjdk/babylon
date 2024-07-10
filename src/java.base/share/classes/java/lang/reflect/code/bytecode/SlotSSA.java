@@ -160,14 +160,13 @@ public final class SlotSSA {
                                 Map<Block.Reference, List<SlotValue>> joinSuccessorValues) {
 
         int size = n.b().ops().size();
-
         // Check if slot is associated with block argument (phi)
         // Push argument onto slot's stack
         {
             Set<Integer> slots = joinPoints.get(n.b());
             if (slots != null) {
                 slots.forEach(slot -> {
-                    variableStack.get(slot).push(new SlotBlockArgument(n.b(), slot));
+                    variableStack.computeIfAbsent(slot, _ -> new ArrayDeque<>()).push(new SlotBlockArgument(n.b(), slot));
                 });
             }
         }
