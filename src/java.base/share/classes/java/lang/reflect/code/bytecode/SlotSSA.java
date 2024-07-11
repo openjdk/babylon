@@ -69,9 +69,12 @@ public final class SlotSSA {
             switch (op) {
                 case SlotOp.SlotLoadOp vl -> {
                     // Replace result of load
+                    Object loadValue = loadValues.get(vl);
                     CopyContext cc = block.context();
-                    Value loadValue = getLoadValue(cc, vl, loadValues, joinBlockArguments);
-                    cc.mapValue(op.result(), loadValue);
+                    Value v = loadValue instanceof SlotBlockArgument vba
+                            ? joinBlockArguments.get(vba.b()).get(vba.slot())
+                            : cc.getValue((Value) loadValue);
+                    cc.mapValue(op.result(), v);
                 }
                 case SlotOp _ -> {
                     // Drop slot operations
@@ -90,13 +93,17 @@ public final class SlotSSA {
                                         slot -> slot,
                                         // @@@
                                         slot -> bb.parameter(joinValues.stream().filter(sv -> sv.slot == slot).findAny().map(sv ->
-                                                getLoadValue(cc, sv.value, loadValues, joinBlockArguments).type()).orElseThrow())));
+                                                (sv.value instanceof SlotBlockArgument vba
+                                                ? joinBlockArguments.get(vba.b()).get(vba.slot())
+                                                : cc.getValue((Value) sv.value)).type()).orElseThrow())));
                             });
 
                             // Append successor arguments
                             List<Value> values = new ArrayList<>();
                             for (SlotValue sv : joinValues) {
-                                Value v = getLoadValue(cc, sv.value, loadValues, joinBlockArguments);
+                                Value v = sv.value instanceof SlotBlockArgument vba
+                                        ? joinBlockArguments.get(vba.b()).get(vba.slot())
+                                        : cc.getValue((Value) sv.value);
                                 values.add(v);
                             }
 
@@ -114,33 +121,6 @@ public final class SlotSSA {
             return block;
         });
         return liop;
-    }
-
-    static Value getLoadValue(CopyContext cc,
-                              Object loadValue,
-                              Map<SlotOp.SlotLoadOp, Object> loadValues,
-                              Map<Block, Map<Integer, Block.Parameter>> joinBlockArguments) {
-        while (true) {
-//            System.out.println("getting: " + switch (loadValue) {
-//                case Block.Parameter bp -> "block #" + bp.declaringBlock().index() + " parameter #" + bp.index();
-//                case SlotBlockArgument sba -> "block #" + sba.b.index() + " argument slot #" + sba.slot;
-//                case Op.Result or -> "result of op: " + or.op() + " type: " + or.type();
-//                case Value val -> "value: " + val + " type: " + val.type();
-//                default -> loadValue;
-//            });
-            if (loadValue instanceof SlotOp.SlotLoadOp loadOp) {
-                loadValue = loadValues.get(loadOp);
-            } else if (loadValue instanceof SlotBlockArgument vba) {
-                loadValue = joinBlockArguments.get(vba.b()).get(vba.slot());
-            } else if (loadValue instanceof Op.Result or && or.op() instanceof SlotOp.SlotLoadOp loadOp) {
-                loadValue = loadValues.get(loadOp);
-            } else if (loadValue instanceof Value val) {
-                System.out.println("-----");
-                return cc.getValueOrDefault(val, val);
-            } else {
-                throw new IllegalStateException();
-            }
-        }
     }
 
     record SlotBlockArgument(Block b, int slot) {
@@ -205,7 +185,6 @@ public final class SlotSSA {
                 }
                 case CoreOp.ArrayAccessOp.ArrayLoadOp al -> {
                     var arg = al.operands().getFirst();
-                    System.out.println(al + " " + arg + " " + loadValues.get(arg));
                 }
                 default -> {}
             }
