@@ -59,7 +59,7 @@ public final class SlotSSA {
         Map<Block.Reference, List<SlotValue>> joinSuccessorValues = new HashMap<>();
         Map<Block, Map<Integer, Block.Parameter>> joinBlockArguments = new HashMap<>();
 
-        variableToValue(iop.body(), new HashMap<>(), joinPoints, loadValues, joinSuccessorValues);
+        variableToValue(iop.body().entryBlock(), new BitSet(), new HashMap<>(), joinPoints, loadValues, joinSuccessorValues);
 
         @SuppressWarnings("unchecked")
         T liop = (T) iop.transform(CopyContext.create(), (block, op) -> {
@@ -126,19 +126,6 @@ public final class SlotSSA {
     record SlotValue(int slot, Object value) {
     }
 
-    // @@@ Check for var uses in exception regions
-    //     A variable cannot be converted to SAA form if the variable is stored
-    //     to in an exception region and accessed from an associated catch region
-
-    static void variableToValue(Body body,
-                                Map<Integer, Deque<Object>> variableStack,
-                                Map<Block, Set<Integer>> joinPoints,
-                                Map<SlotOp.SlotLoadOp, Object> loadValues,
-                                Map<Block.Reference, List<SlotValue>> joinSuccessorValues) {
-        Node top = buildDomTree(body.entryBlock(), body.immediateDominators());
-        variableToValue(top, variableStack, joinPoints, loadValues, joinSuccessorValues);
-    }
-
     /**
      * Replaces usages of a variable with the corresponding value, from a given block node in the dominator tree.
      * <p>
@@ -147,85 +134,72 @@ public final class SlotSSA {
      * on {@code V}, or a block argument representing the equivalent of a phi-value of {@code V}.
      * After which, any related {@code VarOp}, {@code VarLoadOp}, or {@code VarStoreOp} operations are removed.
      *
-     * @param n             the node in the dominator tree
-     * @param variableStack the variable stack
-     * @param joinPoints    the join points
+     * @param b          the block to calculate values for
+     * @param slotStack  the variable stack
+     * @param joinPoints the join points
      * @implNote See "Efficiently Computing Static Single Assignment Form and the Control Dependence Graph" by Ron Cytron et. al.
      * Section 5.2 and Figure 12.
      */
-    static void variableToValue(Node n,
-                                Map<Integer, Deque<Object>> variableStack,
+    static void variableToValue(Block b,
+                                BitSet visited,
+                                Map<Integer, Deque<Object>> slotStack,
                                 Map<Block, Set<Integer>> joinPoints,
                                 Map<SlotOp.SlotLoadOp, Object> loadValues,
                                 Map<Block.Reference, List<SlotValue>> joinSuccessorValues) {
+        visited.set(b.index());
 
-        int size = n.b().ops().size();
         // Check if slot is associated with block argument (phi)
         // Push argument onto slot's stack
-        {
-            Set<Integer> slots = joinPoints.get(n.b());
-            if (slots != null) {
-                slots.forEach(slot -> {
-                    variableStack.computeIfAbsent(slot, _ -> new ArrayDeque<>()).push(new SlotBlockArgument(n.b(), slot));
-                });
+        Set<Integer> slots = joinPoints.get(b);
+        if (slots != null) {
+            slots.forEach(slot -> {
+                slotStack.get(slot).push(new SlotBlockArgument(b, slot));
+            });
+        }
+
+        for (Op op : b.ops()) {
+            switch (op) {
+                case SlotOp.SlotStoreOp storeOp -> {
+                    // Value assigned to slot
+                    Value current = op.operands().getFirst();
+                    slotStack.computeIfAbsent(storeOp.slot(), _ -> new ArrayDeque<>()).push(current);
+                }
+                case SlotOp.SlotLoadOp loadOp -> {
+                    Object to = slotStack.get(loadOp.slot()).peek();
+                    loadValues.put(loadOp, to);
+                }
+                default -> {}
+            }
+
+            // Dive into sub-bodies
+            for (Body opb : op.bodies()) {
+                variableToValue(opb.entryBlock(), visited, slotStack, joinPoints, loadValues, joinSuccessorValues);
             }
         }
 
-        {
-            for (int i = 0; i < size - 1; i++) {
-                Op op = n.b().ops().get(i);
-
-                switch (op) {
-                    case SlotOp.SlotStoreOp storeOp -> {
-                        // Value assigned to slot
-                        Value current = op.operands().get(0);
-                        variableStack.computeIfAbsent(storeOp.slot(), _ -> new ArrayDeque<>())
-                                .push(current);
-                    }
-                    case SlotOp.SlotLoadOp loadOp -> {
-                        Object to = variableStack.get(loadOp.slot()).peek();
-                        loadValues.put(loadOp, to);
-                    }
-                    default -> {}
-                }
-
-                // @@@ dive into op bodies ???
-                for (Body b : op.bodies()) {
-                    variableToValue(b, variableStack, joinPoints, loadValues, joinSuccessorValues);
-                }
+        // Add successor args for joint points
+        for (Block.Reference succ : b.successors()) {
+            Block sb = succ.targetBlock();
+            Set<Integer> sbSlots = joinPoints.get(sb);
+            if (sbSlots != null) {
+                List<SlotValue> joinValues = sbSlots.stream()
+                        .map(vop -> new SlotValue(vop, slotStack.get(vop).peek())).toList();
+                joinSuccessorValues.put(succ, joinValues);
             }
-
-            // Add successor args for joint points
-            for (Block.Reference succ : n.b().successors()) {
-                Set<Integer> slots = joinPoints.get(succ.targetBlock());
-                if (slots != null) {
-                    List<SlotValue> joinValues = slots.stream()
-                            .map(vop -> new SlotValue(vop, variableStack.get(vop).peek())).toList();
-                    joinSuccessorValues.put(succ, joinValues);
-                }
+            if (!visited.get(sb.index())) {
+                variableToValue(sb, visited, slotStack, joinPoints, loadValues, joinSuccessorValues);
             }
-        }
-
-        // Traverse children of dom tree
-        for (Node y : n.children()) {
-            variableToValue(y, variableStack, joinPoints, loadValues, joinSuccessorValues);
         }
 
         // Pop off values for slots
-        {
-            Set<Integer> slots = joinPoints.get(n.b());
-            if (slots != null) {
-                slots.forEach(slot -> {
-                    variableStack.get(slot).pop();
-                });
-            }
-
-            for (int i = 0; i < size - 1; i++) {
-                Op op = n.b().ops().get(i);
-
-                if (op instanceof SlotOp.SlotStoreOp storeOp) {
-                    variableStack.get(storeOp.slot()).pop();
-                }
+        if (slots != null) {
+            slots.forEach(slot -> {
+                slotStack.get(slot).pop();
+            });
+        }
+        for (Op op : b.ops()) {
+            if (op instanceof SlotOp.SlotStoreOp storeOp) {
+                slotStack.get(storeOp.slot()).pop();
             }
         }
     }
@@ -341,25 +315,5 @@ public final class SlotSSA {
             }
         }
         return slotMap;
-    }
-
-    record Node(Block b, Set<Node> children) {
-    }
-
-    static Node buildDomTree(Block entryBlock, Map<Block, Block> idoms) {
-        Map<Block, Node> tree = new HashMap<>();
-        for (Map.Entry<Block, Block> e : idoms.entrySet()) {
-            Block id = e.getValue();
-            Block b = e.getKey();
-
-            Node parent = tree.computeIfAbsent(id, _k -> new Node(_k, new HashSet<>()));
-            if (b == entryBlock) {
-                continue;
-            }
-
-            Node child = tree.computeIfAbsent(b, _k -> new Node(_k, new HashSet<>()));
-            parent.children.add(child);
-        }
-        return tree.get(entryBlock);
     }
 }
