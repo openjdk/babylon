@@ -28,7 +28,7 @@ package hat.backend;
 import hat.ComputeContext;
 import hat.buffer.Buffer;
 import hat.callgraph.CallGraph;
-import hat.ifacemapper.Schema;
+import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.SegmentMapper;
 import hat.optools.FuncOpWrapper;
 
@@ -45,7 +45,7 @@ public abstract class NativeBackend extends NativeBackendDriver {
 
 
     @Override
-    public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, Schema.BoundSchema<T> boundSchema){
+    public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema){
         return segmentMapper.allocate(arena, boundSchema);
     }
     public NativeBackend(String libName) {

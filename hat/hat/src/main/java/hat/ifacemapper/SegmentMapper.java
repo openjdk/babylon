@@ -293,7 +293,7 @@ public interface SegmentMapper<T> {
      */
     GroupLayout layout();
 
-    Schema.BoundSchema<?> boundSchema();
+    BoundSchema<?> boundSchema();
     // Convenience methods
 
     /**
@@ -319,7 +319,7 @@ public interface SegmentMapper<T> {
      *                                   {@code layout().byteSize() > segment.byteSize()}
      */
 
-    default T allocate(Arena arena, Schema.BoundSchema<?> boundSchema) {
+    default T allocate(Arena arena, BoundSchema<?> boundSchema) {
 if (boundSchema == null) {
     throw new IllegalStateException("we must have a bound schema");
 }
@@ -364,7 +364,7 @@ if (boundSchema == null) {
         return get(segment, 0L);
     }
 
-    default T get(MemorySegment segment, GroupLayout groupLayout, Schema.BoundSchema<?> boundSchema) {
+    default T get(MemorySegment segment, GroupLayout groupLayout, BoundSchema<?> boundSchema) {
         return get(segment, groupLayout, boundSchema, 0L);
     }
 
@@ -428,7 +428,7 @@ if (boundSchema == null) {
     }
 
     @SuppressWarnings("unchecked")
-    default T get(MemorySegment segment, GroupLayout layout, Schema.BoundSchema<?> boundSchema, long offset) {
+    default T get(MemorySegment segment, GroupLayout layout, BoundSchema<?> boundSchema, long offset) {
         try {
             return (T) getHandle()
                     .invokeExact(segment, layout, boundSchema,offset);
@@ -681,7 +681,7 @@ if (boundSchema == null) {
         return SegmentInterfaceMapper.create(lookup, type, layout, null);
     }
 
-    static <T extends Buffer> SegmentMapper<T> of(MethodHandles.Lookup lookup, Class<T> type, GroupLayout layout, Schema.BoundSchema<?> boundSchema) {
+    static <T extends Buffer> SegmentMapper<T> of(MethodHandles.Lookup lookup, Class<T> type, GroupLayout layout, BoundSchema<?> boundSchema) {
         Objects.requireNonNull(lookup);
         MapperUtil.requireImplementableInterfaceType(type);
         Objects.requireNonNull(layout);

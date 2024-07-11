@@ -26,15 +26,11 @@
 package hat.ifacemapper;
 
 import hat.ifacemapper.accessor.Accessors;
-import hat.ifacemapper.accessor.ValueType;
-import hat.ifacemapper.accessor.AccessorInfo;
 import jdk.internal.vm.annotation.Stable;
 
 import java.lang.foreign.GroupLayout;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Method;
-import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.UnaryOperator;
 
@@ -46,7 +42,7 @@ abstract class AbstractSegmentMapper<T> implements SegmentMapper<T> {
     private final Class<T> type;
     @Stable
     private final GroupLayout layout;
-    private final Schema.BoundSchema<?> boundSchema;
+    private final BoundSchema<?> boundSchema;
     private final boolean leaf;
     private final MapperCache mapperCache;
     protected Accessors accessors;
@@ -55,7 +51,7 @@ abstract class AbstractSegmentMapper<T> implements SegmentMapper<T> {
                                     Class<T> type,
 
                                     GroupLayout layout,
-                                    Schema.BoundSchema<?> boundSchema,
+                                    BoundSchema<?> boundSchema,
                                     boolean leaf,
 
                                     UnaryOperator<Class<T>> typeInvariantChecker,
@@ -88,7 +84,7 @@ abstract class AbstractSegmentMapper<T> implements SegmentMapper<T> {
         return layout;
     }
     @Override
-    public final Schema.BoundSchema boundSchema() {
+    public final BoundSchema<?> boundSchema() {
         return boundSchema;
     }
 

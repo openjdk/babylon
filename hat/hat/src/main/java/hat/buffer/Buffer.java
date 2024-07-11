@@ -25,8 +25,8 @@
 package hat.buffer;
 
 
+import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.MappableIface;
-import hat.ifacemapper.Schema;
 
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
@@ -53,9 +53,9 @@ public interface Buffer extends MappableIface {
         }
     }
 
-    static <T extends Buffer> Schema.BoundSchema getBoundSchema(T buffer) {
+    static <T extends Buffer> BoundSchema getBoundSchema(T buffer) {
         try {
-            return (Schema.BoundSchema<?>) buffer.getClass().getDeclaredMethod(SECRET_BOUND_SCHEMA_METHOD_NAME).invoke(buffer);
+            return (BoundSchema<?>) buffer.getClass().getDeclaredMethod(SECRET_BOUND_SCHEMA_METHOD_NAME).invoke(buffer);
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
         }

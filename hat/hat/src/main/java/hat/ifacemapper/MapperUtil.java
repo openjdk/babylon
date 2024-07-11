@@ -104,7 +104,7 @@ public final class MapperUtil {
                 method.getParameterCount() == 0 &&
                 (method.getReturnType() == MemorySegment.class && method.getName().equals("segment") ||
                         method.getReturnType() == MemoryLayout.class && method.getName().equals("layout") ||
-                        method.getReturnType() == Schema.BoundSchema.class && method.getName().equals("boundSchema") ||
+                        method.getReturnType() == BoundSchema.class && method.getName().equals("boundSchema") ||
                         method.getReturnType() == long.class && method.getName().equals("offset"));
     }
 

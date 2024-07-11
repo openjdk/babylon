@@ -25,7 +25,7 @@
 package hat.backend.c99codebuilders;
 
 
-import hat.buffer.Buffer;
+import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.Schema;
 import hat.optools.BinaryArithmeticOrLogicOperation;
 import hat.optools.BinaryTestOpWrapper;
@@ -64,7 +64,6 @@ import java.lang.reflect.code.op.ExtendedOp;
 import java.lang.reflect.code.type.ClassType;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.type.PrimitiveType;
-import java.util.Map;
 
 public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeBuilder<T> implements C99HatBuilderInterface<T> {
     /*
@@ -416,51 +415,11 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
         return self();
     }
 
-    public T typedef(Map<String, Typedef> scope, Buffer instance) {
-        return typedef(scope, Typedef.of(instance));
-    }
 
-
-    public T typedef(Map<String, Typedef> scope, Typedef typeDef) {
-        if (!scope.containsKey(typeDef.name())) {
-            // Do the dependencies first, so we get them in the right order
-
-            typeDef.nameAndTypes.stream().filter(nameAndType -> nameAndType.typeDef != null).forEach(nameAndType -> {
-                typedef(scope, nameAndType.typeDef).nl();
-            });
-            typedefKeyword().space().structOrUnion(typeDef.isStruct)
-                    .space().suffix_s(typeDef.iface.getSimpleName()).braceNlIndented(_ -> {
-                        StreamCounter.of(typeDef.nameAndTypes, (c, nameAndType) -> {
-                            nlIf(c.isNotFirst());
-                            if (nameAndType.type.isPrimitive()) {
-                                typeName(nameAndType.type.getSimpleName());
-                            } else {
-                                suffix_t(nameAndType.type.getSimpleName());
-                            }
-                            space().typeName(nameAndType.name);
-                            if (nameAndType instanceof Typedef.NameAndArrayOfType nameAndArrayOfType) {
-                                sbrace(_ -> {
-                                    if (nameAndArrayOfType.arraySize > 0) {
-                                        literal(nameAndArrayOfType.arraySize);
-                                    } else {
-                                        literal(1);
-                                    }
-                                });
-                            }
-                            semicolon();
-                        });
-                    }).suffix_t(typeDef.iface.getSimpleName()).semicolon().nl().nl();
-
-
-            scope.put(typeDef.name(), typeDef);
-        }
-        return self();
-    }
-
-    public T typedef(Schema.BoundSchema<?> boundSchema,Schema.SchemaNode.IfaceTypeNode ifaceTypeNode) {
+    public T typedef(BoundSchema<?> boundSchema, Schema.SchemaNode.IfaceTypeNode ifaceTypeNode) {
         typedefKeyword().space().structOrUnion(ifaceTypeNode instanceof Schema.SchemaNode.Struct)
                 .space().suffix_s(ifaceTypeNode.iface.getSimpleName()).braceNlIndented(_ -> {
-                    System.out.println(ifaceTypeNode);
+                    //System.out.println(ifaceTypeNode);
                     int fieldCount = ifaceTypeNode.fields.size();
                     StreamCounter.of(ifaceTypeNode.fields, (c, field) -> {
                         nlIf(c.isNotFirst());
@@ -474,12 +433,11 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
                                         sbrace(_ -> literal(1));
                                     } else {
                                         boolean[] done = new boolean[]{false};
-                                        boundSchema.arraySizeBindings.forEach(a->{
+                                        boundSchema.boundArrayFields().forEach(a->{
                                             if (a.field.equals(array)){
                                                 sbrace(_ -> literal(a.len));
                                                 done[0] = true;
                                             }
-                                            //System.out.println(a);
                                         });
                                         if (!done[0]) {
                                             throw new IllegalStateException("we need to extract the array size hat kind of array ");
@@ -500,12 +458,11 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
                                         sbrace(_ -> literal(1));
                                     } else {
                                         boolean[] done = new boolean[]{false};
-                                        boundSchema.arraySizeBindings.forEach(a -> {
+                                        boundSchema.boundArrayFields().forEach(a -> {
                                             if (a.field.equals(ifaceField)) {
                                                 sbrace(_ -> literal(a.len));
                                                 done[0] = true;
                                             }
-                                            //System.out.println(a);
                                         });
                                         if (!done[0]) {
                                             throw new IllegalStateException("we need to extract the array size hat kind of array ");
@@ -531,7 +488,7 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
     }
 
     public T atomicInc(C99HatBuildContext buildContext, Op.Result instanceResult, String name) {
-        throw new IllegalStateException("atimicInc not implemented");
+        throw new IllegalStateException("atomicInc not implemented");
     }
 
     @Override

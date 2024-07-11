@@ -27,7 +27,7 @@ package experiments;
 import hat.buffer.Buffer;
 import hat.buffer.BufferAllocator;
 import hat.buffer.S08x3RGBImage;
-import hat.ifacemapper.Schema;
+import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.SegmentMapper;
 
 import java.lang.foreign.Arena;
@@ -38,7 +38,7 @@ public class S08x3ImageTest implements Buffer {
     public static void main(String[] args) {
         BufferAllocator bufferAllocator = new BufferAllocator() {
             @Override
-            public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, Schema.BoundSchema<T> boundSchema) {
+            public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema) {
                 return segmentMapper.allocate(Arena.global(),boundSchema);
             }
         };

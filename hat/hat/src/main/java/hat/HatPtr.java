@@ -1,6 +1,9 @@
 package hat;
 
+import hat.buffer.Buffer;
+import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.MappableIface;
+import hat.ifacemapper.Schema;
 import hat.optools.FuncOpWrapper;
 import hat.optools.InvokeOpWrapper;
 import hat.optools.OpWrapper;
@@ -31,10 +34,13 @@ import java.util.Objects;
 
 public class HatPtr {
 
-        public static <T extends MappableIface> TypeElement convertToPtrTypeIfPossible(MethodHandles.Lookup lookup, TypeElement typeElement) {
-            return getMappableClassOrNull(lookup, typeElement) instanceof Class<?> clazz
-                    ? new HatPtr.HatPtrType<>((Class<T>) clazz, getLayout((Class<T>) clazz))
-                    : typeElement;
+        public static <T extends MappableIface> TypeElement convertToPtrTypeIfPossible(MethodHandles.Lookup lookup, TypeElement typeElement, BoundSchema<?> boundSchema, Schema.SchemaNode.IfaceTypeNode ifaceTypeNode) {
+            if (getMappableClassOrNull(lookup, typeElement) instanceof Class<?> clazz){
+               // MemoryLayout layout = boundSchema.getLayout(clazz);
+                return new HatPtr.HatPtrType<>((Class<T>) clazz, getLayout((Class<T>) clazz));
+            }else{
+                return typeElement;
+            }
         }
 
         public static <T extends MappableIface> MemoryLayout getLayout(Class<T> mappableIface) {
@@ -55,12 +61,21 @@ public class HatPtr {
             }
         }
 
-        public static FunctionType transformTypes(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+        public static FunctionType transformTypes(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, Object ...args) {
             List<TypeElement> transformedTypeElements = new ArrayList<>();
-            for (Block.Parameter parameter : funcOp.parameters()) {
-                transformedTypeElements.add(convertToPtrTypeIfPossible(lookup, parameter.type()));
+            for (int i = 0; i < args.length; i++) {
+                Block.Parameter parameter = funcOp.parameters().get(i);
+                TypeElement parameterTypeElement=null;
+                if (args[i] instanceof Buffer buffer) {
+                    var boundSchema = Buffer.getBoundSchema(buffer);
+                    parameterTypeElement=convertToPtrTypeIfPossible(lookup, parameter.type(), boundSchema,boundSchema.schema().rootIfaceTypeNode);
+                }else{
+                    parameterTypeElement =parameter.type();
+                }
+                transformedTypeElements.add(parameterTypeElement);
             }
-            return FunctionType.functionType(convertToPtrTypeIfPossible(lookup, funcOp.invokableType().returnType()), transformedTypeElements);
+            TypeElement returnTypeElement = convertToPtrTypeIfPossible(lookup, funcOp.invokableType().returnType(),null, null);
+            return FunctionType.functionType(returnTypeElement, transformedTypeElements);
         }
 
         public static <T extends MappableIface> CoreOp.FuncOp transformInvokesToPtrs(MethodHandles.Lookup lookup,
