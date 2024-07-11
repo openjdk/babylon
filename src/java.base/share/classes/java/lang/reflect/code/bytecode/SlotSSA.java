@@ -52,14 +52,17 @@ public final class SlotSSA {
      * @param <T> the invokable type
      */
     public static <T extends Op & Op.Invokable> T transform(T iop) {
-        // Compute join points and value mappings
-        Map<Block, Set<Integer>> joinPoints = findJoinPoints(iop);
 
+        Map<Block, Set<Integer>> joinPoints = new HashMap<>();
         Map<SlotOp.SlotLoadOp, Object> loadValues = new HashMap<>();
         Map<Block.Reference, List<SlotValue>> joinSuccessorValues = new HashMap<>();
         Map<Block, Map<Integer, Block.Parameter>> joinBlockArguments = new HashMap<>();
 
-        variableToValue(iop.body().entryBlock(), new BitSet(), new HashMap<>(), joinPoints, loadValues, joinSuccessorValues);
+        // Compute join points and value mappings
+        iop.traverse(null, CodeElement.bodyVisitor((_, body) -> {
+            variableToValue(body, joinPoints, loadValues, joinSuccessorValues);
+            return null;
+        }));
 
         @SuppressWarnings("unchecked")
         T liop = (T) iop.transform(CopyContext.create(), (block, op) -> {
@@ -126,6 +129,18 @@ public final class SlotSSA {
     record SlotValue(int slot, Object value) {
     }
 
+    // @@@ Check for var uses in exception regions
+    //     A variable cannot be converted to SAA form if the variable is stored
+    //     to in an exception region and accessed from an associated catch region
+
+    static void variableToValue(Body body,
+                                Map<Block, Set<Integer>> joinPoints,
+                                Map<SlotOp.SlotLoadOp, Object> loadValues,
+                                Map<Block.Reference, List<SlotValue>> joinSuccessorValues) {
+        findJoinPoints(body, joinPoints);
+        variableToValue(body.entryBlock(), new BitSet(), new HashMap<>(), joinPoints, loadValues, joinSuccessorValues);
+    }
+
     /**
      * Replaces usages of a variable with the corresponding value, from a given block node in the dominator tree.
      * <p>
@@ -173,7 +188,7 @@ public final class SlotSSA {
 
             // Dive into sub-bodies
             for (Body opb : op.bodies()) {
-                variableToValue(opb.entryBlock(), visited, slotStack, joinPoints, loadValues, joinSuccessorValues);
+                variableToValue(opb, joinPoints, loadValues, joinSuccessorValues);
             }
         }
 
@@ -217,22 +232,17 @@ public final class SlotSSA {
      * variable, where a predecessor assigns to the block argument.
      * (Block arguments are equivalent to phi-values, or phi-nodes, used in other representations.)
      *
-     * @param root the root code element.
-     * @return joinPoints the returned join points.
+     * @param body the body.
+     * @param joinPoints the returned join points.
      * @implNote See "Efficiently Computing Static Single Assignment Form and the Control Dependence Graph" by Ron Cytron et. al.
      * Section 5.1 and Figure 11.
      */
-    public static Map<Block, Set<Integer>> findJoinPoints(CodeElement<?,?> root) {
-        Map<Block, Set<Integer>> joinPoints = new HashMap<>();
-        Map<Block, Set<Block>> df = new HashMap<>();
-        int blocksSize = root.traverse(0, CodeElement.bodyVisitor((i, body) -> {
-            // @@@ not sure how dominance frontier is aggregated across nested bodies
-            df.putAll(body.dominanceFrontier());
-            return i + body.blocks().size();
-        }));
-        Map<Integer, SlotAccesses> slots = findSlots(root);
+    public static void findJoinPoints(Body body, Map<Block, Set<Integer>> joinPoints) {
+        Map<Block, Set<Block>> df = body.dominanceFrontier();
+        Map<Integer, SlotAccesses> slots = findSlots(body);
 
         int iterCount = 0;
+        int blocksSize = body.blocks().size();
         int[] hasAlready = new int[blocksSize];
         int[] work = new int[blocksSize];
 
@@ -264,7 +274,6 @@ public final class SlotSSA {
                 }
             }
         }
-        return joinPoints;
     }
 
     record SlotAccesses(Set<Block> stores, Set<Block> loadsBeforeStores) {
@@ -276,23 +285,24 @@ public final class SlotSSA {
     // Returns map of slots to blocks that contain stores and to blocks containing load preceeding store
     // Throws ISE if a descendant store operation is encountered
     // @@@ Compute map for whole tree, then traverse keys with filter
-    static Map<Integer, SlotAccesses> findSlots(CodeElement<?,?> root) {
+    static Map<Integer, SlotAccesses> findSlots(Body body) {
         LinkedHashMap<Integer, SlotAccesses> slotMap = new LinkedHashMap<>();
-        int blocksSize = root.traverse(0, (i, e) -> switch (e) {
-            case SlotOp.SlotStoreOp storeOp -> {
-                slotMap.computeIfAbsent(storeOp.slot(), _ -> new SlotAccesses()).stores.add(storeOp.parentBlock());
-                yield i;
+        for (Block b : body.blocks()) {
+            for (Op op : b.ops()) {
+                switch (op) {
+                    case SlotOp.SlotStoreOp storeOp -> {
+                        slotMap.computeIfAbsent(storeOp.slot(), _ -> new SlotAccesses()).stores.add(storeOp.parentBlock());
+                    }
+                    case SlotOp.SlotLoadOp loadOp -> {
+                        var sa = slotMap.computeIfAbsent(loadOp.slot(), _ -> new SlotAccesses());
+                        if (!sa.stores.contains(loadOp.parentBlock())) sa.loadsBeforeStores.add(loadOp.parentBlock());
+                    }
+                    default -> {}
+                }
             }
-            case SlotOp.SlotLoadOp loadOp -> {
-                var sa = slotMap.computeIfAbsent(loadOp.slot(), _ -> new SlotAccesses());
-                if (!sa.stores.contains(loadOp.parentBlock())) sa.loadsBeforeStores.add(loadOp.parentBlock());
-                yield i;
-            }
-            case Block _ -> i + 1;
-            default -> i;
-        });
+        }
         int iterCount = 0;
-        int[] work = new int[blocksSize];
+        int[] work = new int[body.blocks().size()];
         Deque<Block> w = new ArrayDeque<>();
         for (SlotAccesses sa : slotMap.values()) {
             iterCount++;
