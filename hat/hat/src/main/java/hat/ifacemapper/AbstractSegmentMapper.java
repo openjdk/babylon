@@ -46,7 +46,7 @@ abstract class AbstractSegmentMapper<T> implements SegmentMapper<T> {
     private final Class<T> type;
     @Stable
     private final GroupLayout layout;
-    private final HatData hatData;
+    private final Schema.BoundSchema<?> boundSchema;
     private final boolean leaf;
     private final MapperCache mapperCache;
     protected Accessors accessors;
@@ -55,26 +55,26 @@ abstract class AbstractSegmentMapper<T> implements SegmentMapper<T> {
                                     Class<T> type,
 
                                     GroupLayout layout,
-                                    HatData hatData,
+                                    Schema.BoundSchema<?> boundSchema,
                                     boolean leaf,
-                                    ValueType valueType, // This is always ValueType.Interface... !
+
                                     UnaryOperator<Class<T>> typeInvariantChecker,
                                     BiFunction<Class<?>, GroupLayout, Accessors> accessorFactory) {
         this.lookup = lookup;
         this.type = typeInvariantChecker.apply(type);
-        this.hatData = hatData;
+        this.boundSchema = boundSchema;
         this.layout = layout;
         this.leaf = leaf;
         this.mapperCache = MapperCache.of(lookup);
         this.accessors = accessorFactory.apply(type, layout);
 
-        List<Method> unsupportedAccessors = accessors.stream(k -> !k.isSupportedFor(valueType))
+     /*   List<Method> unsupportedAccessors = accessors.stream(k -> !k.isSupportedFor(valueType))
                 .map(AccessorInfo::method)
                 .toList();
         if (!unsupportedAccessors.isEmpty()) {
             throw new IllegalArgumentException(
                     "The following accessors are not supported for " + valueType + ": " + unsupportedAccessors);
-        }
+        } */
         MapperUtil.assertMappingsCorrectAndTotal(type, layout, accessors);
     }
 
@@ -88,8 +88,8 @@ abstract class AbstractSegmentMapper<T> implements SegmentMapper<T> {
         return layout;
     }
     @Override
-    public final HatData hatData() {
-        return hatData;
+    public final Schema.BoundSchema boundSchema() {
+        return boundSchema;
     }
 
     @Override
@@ -98,7 +98,7 @@ abstract class AbstractSegmentMapper<T> implements SegmentMapper<T> {
                 "lookup=" + lookup + ", " +
                 "type=" + type + ", " +
                 "layout=" + layout +
-                "hatData=" + ((hatData==null)?"null":hatData) + ", " +
+                "hatData=" + ((boundSchema==null)?"null":boundSchema) + ", " +
                 "]";
     }
 

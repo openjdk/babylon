@@ -29,11 +29,12 @@ import hat.ifacemapper.Schema;
 
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.StructLayout;
+import java.lang.invoke.MethodHandles;
 
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-public interface S32Array extends IncompleteBuffer {
+public interface S32Array extends Buffer {
 
     int length();
     void length(int i);
@@ -42,6 +43,17 @@ public interface S32Array extends IncompleteBuffer {
     Schema<S32Array> schema = Schema.of(S32Array.class, s32Array->s32Array
             .arrayLen("length").array("array"));
 
+    static S32Array create(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator, int length){
+        var instance = schema.allocate(lookup,bufferAllocator, length);
+        instance.length(length);
+        return instance;
+    }
+    static S32Array create(Accelerator accelerator, int length){
+        return create(accelerator.lookup, accelerator, length);
+    }
+    static S32Array createFrom(Accelerator accelerator, int[] arr){
+        return create(accelerator.lookup, accelerator, arr.length).copyfrom(arr);
+    }
     default S32Array copyfrom(int[] ints) {
         MemorySegment.copy(ints, 0, Buffer.getMemorySegment(this), JAVA_INT, 4, length());
         return this;

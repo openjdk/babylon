@@ -1,7 +1,7 @@
 package hat.backend.c99codebuilders;
 
 import hat.buffer.Buffer;
-import hat.buffer.IncompleteBuffer;
+import hat.ifacemapper.Schema;
 import hat.util.StreamCounter;
 
 import java.lang.foreign.GroupLayout;
@@ -17,9 +17,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static hat.ifacemapper.MapperUtil.SECRET_BOUND_SCHEMA_METHOD_NAME;
+import static hat.ifacemapper.MapperUtil.SECRET_LAYOUT_METHOD_NAME;
+import static hat.ifacemapper.MapperUtil.SECRET_OFFSET_METHOD_NAME;
+import static hat.ifacemapper.MapperUtil.SECRET_SEGMENT_METHOD_NAME;
+
 public class Typedef {
     public int rank;
     final boolean isStruct;
+    boolean isIncomplete = false;
 
     public String name() {
         return iface.getSimpleName();
@@ -49,13 +55,13 @@ public class Typedef {
         }
     }
 
-    public static class NameAndType extends AbstractNameAndType {
+    public static class NameAndType extends Typedef.AbstractNameAndType {
         public NameAndType(Typedef containingTypedef, String name, Class<?> type) {
             super(containingTypedef, name, type);
         }
     }
 
-    public static class NameAndArrayOfType extends AbstractNameAndType {
+    public static class NameAndArrayOfType extends Typedef.AbstractNameAndType {
         public long arraySize;
         public boolean isFlexible;
 
@@ -66,31 +72,39 @@ public class Typedef {
         }
     }
 
-
     public final MemoryLayout memoryLayout;
     public final Class<?> iface;
 
     public List<AbstractNameAndType> nameAndTypes = new ArrayList<>();
 
-    public Typedef(Class<?> iface, MemoryLayout memoryLayout) {
+    public Typedef(Class<?> iface, MemoryLayout memoryLayout, Schema.BoundSchema<?> boundSchema, Schema.SchemaNode.IfaceTypeNode ifaceTypeNode) {
         Map<String, AbstractNameAndType> nameToFieldNameAndType = new LinkedHashMap<>();
 
         this.iface = iface;
+      //  if (iface != boundSchema.schema.rootTypeSchemaNode.type) {
+        //    throw new IllegalStateException("bad");
+       // }
         this.memoryLayout = memoryLayout;
+
         Arrays.stream(iface.getMethods()).forEach(method -> {
+
+            // This is replicating th schema info
             if (Modifier.isStatic(method.getModifiers())) {
                 // forgetaboutit
             } else if (method.isDefault()) {
                 // forgetaboutit
             } else {
                 String name = method.getName();
-                if (name.equals("id")) {
-                    name = name;
-                }
-                if (nameToFieldNameAndType.containsKey(name) || name.equals("equals") || name.equals("toString") || name.equals("hashCode")
-                        || name.equals("$_$_$oFfSeT$_$_$") || name.equals("$_$_$sEgMeNt$_$_$")
-                        || name.equals("$_$_$lAyOuT$_$_$")
-                        || name.equals("notify") || name.equals("notifyAll")
+                if (nameToFieldNameAndType.containsKey(name)
+                        || name.equals("equals")
+                        || name.equals("toString")
+                        || name.equals("hashCode")
+                        || name.equals(SECRET_OFFSET_METHOD_NAME)
+                        || name.equals(SECRET_SEGMENT_METHOD_NAME)
+                        || name.equals(SECRET_LAYOUT_METHOD_NAME)
+                        || name.equals(SECRET_BOUND_SCHEMA_METHOD_NAME)
+                        || name.equals("notify")
+                        || name.equals("notifyAll")
                 ) {
                     // forgetaboutit
                 } else {
@@ -102,18 +116,18 @@ public class Typedef {
                             throw new IllegalStateException("paramcount ==0 or  >2 arg iface setter with void return ");
                         }
                         if (parameterCount == 1) {
-                            nameToFieldNameAndType.put(name, new NameAndType(this, name, parameterTypes[0]));
+                            nameToFieldNameAndType.put(name, new Typedef.NameAndType(this, name, parameterTypes[0]));
                         } else {
-                            nameToFieldNameAndType.put(name, new NameAndArrayOfType(this, name, parameterTypes[1], -1));
+                            nameToFieldNameAndType.put(name, new Typedef.NameAndArrayOfType(this, name, parameterTypes[1], -1));
                         }
                     } else {
                         if (parameterCount > 1) {
                             throw new IllegalStateException(" >1 arg iface getter with non void return ");
                         }
                         if (parameterCount == 0) {
-                            nameToFieldNameAndType.put(name, new NameAndType(this, name, returnType));
+                            nameToFieldNameAndType.put(name, new Typedef.NameAndType(this, name, returnType));
                         } else {
-                            nameToFieldNameAndType.put(name, new NameAndArrayOfType(this, name, returnType, -1));
+                            nameToFieldNameAndType.put(name, new Typedef.NameAndArrayOfType(this, name, returnType, -1));
                         }
                     }
 
@@ -140,7 +154,7 @@ public class Typedef {
                     nameAndType.layout = layout;
                     nameAndTypes.add(nameAndType);
                     if (layout instanceof SequenceLayout sequenceLayout) {
-                        if (nameAndType instanceof NameAndArrayOfType nameAndArrayOfType) {
+                        if (nameAndType instanceof Typedef.NameAndArrayOfType nameAndArrayOfType) {
                             nameAndArrayOfType.arraySize = sequenceLayout.elementCount();
                         } else {
                             throw new IllegalStateException("not an array type?");
@@ -158,7 +172,7 @@ public class Typedef {
         if (isIncomplete()) {
             // Above we captured the actual size of all arrays.  Of course only now do we know which of the fields is last
             // So if we are an incomplete type (i.e. last array is [0]) then tag the last element as flexible
-            if (nameAndTypes.getLast() instanceof NameAndArrayOfType nameAndArrayOfType) {
+            if (nameAndTypes.getLast() instanceof Typedef.NameAndArrayOfType nameAndArrayOfType) {
                 nameAndArrayOfType.isFlexible = true;
                 nameAndArrayOfType.arraySize = 0;
             } else {
@@ -169,9 +183,9 @@ public class Typedef {
         nameAndTypes.forEach(nameAndType -> {
             if (nameAndType.type.isInterface()) {
                 if (nameAndType.layout instanceof GroupLayout gl) {
-                    nameAndType.typeDef = new Typedef(nameAndType.type, gl);
+                    nameAndType.typeDef = new Typedef(nameAndType.type, gl, boundSchema, ifaceTypeNode);
                 } else if (nameAndType.layout instanceof SequenceLayout sl && sl.elementLayout() instanceof GroupLayout slgl) {
-                    nameAndType.typeDef = new Typedef(nameAndType.type, slgl);
+                    nameAndType.typeDef = new Typedef(nameAndType.type, slgl, boundSchema, ifaceTypeNode);
                 }
             }
         });
@@ -179,11 +193,18 @@ public class Typedef {
 
     }
 
-    Typedef(Buffer instance) {
-        this(instance.getClass().getInterfaces()[0], Buffer.getLayout(instance));
+    private Typedef(Buffer instance, Schema.BoundSchema<?> boundSchema, Schema.SchemaNode.IfaceTypeNode ifaceTypeNode) {
+        this(instance.getClass().getInterfaces()[0], Buffer.getLayout(instance), boundSchema, ifaceTypeNode);
+    }
+
+    static <T extends Buffer> Typedef of(T instance) {
+        Schema.BoundSchema<T> boundSchema = (Schema.BoundSchema<T>) Buffer.getBoundSchema(instance);
+        return new Typedef(instance, boundSchema, boundSchema.schema.rootIfaceTypeNode);
     }
 
     public boolean isIncomplete() {
-        return IncompleteBuffer.class.isAssignableFrom(iface);
+        return isIncomplete;
     }
+
 }
+

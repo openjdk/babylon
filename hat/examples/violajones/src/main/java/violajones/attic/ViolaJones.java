@@ -54,43 +54,25 @@ public class ViolaJones {
         BufferedImage nasa = ImageIO.read(Objects.requireNonNull(ViolaJones.class.getResourceAsStream("/images/Nasa1996.jpg")));
         XMLHaarCascadeModel xmlCascade = XMLHaarCascadeModel.load(ViolaJonesRaw.class.getResourceAsStream("/cascades/haarcascade_frontalface_default.xml"));
    //     Cascade cascade = Cascade.create(accelerator, xmlHaarCascade);
-        var cascade = Cascade.schema.allocate(accelerator,xmlCascade.featureCount(),xmlCascade.stageCount(),xmlCascade.treeCount()).copyFrom(xmlCascade);
-
-        S08x3RGBImage rgbImage = S08x3RGBImage.schema.allocate(accelerator, nasa.getWidth(),nasa.getHeight());
-        rgbImage.width(nasa.getWidth());
-        rgbImage.height(nasa.getHeight());
-       // rgbImage.elementsPerPixel(3);
-       // rgbImage.bufferedImageType(BufferedImage.TYPE_INT_RGB);
-
-       // var rgbImage = RgbS08x3Image.create(accelerator, nasa);
-
+        var cascade = Cascade.createFrom(accelerator,xmlCascade);
         var width = nasa.getWidth();
         var height = nasa.getHeight();
-        ScaleTable.Constraints constraints = new ScaleTable.Constraints(cascade,width,height);
+        S08x3RGBImage rgbImage = S08x3RGBImage.create(accelerator,width,height);
+
+
         // harViz.showIntegrals();
 
-        var scaleTable = ScaleTable.schema.allocate(constraints.scales);
-        scaleTable.length(constraints.scales);
-        scaleTable.applyConstraints(constraints);
+        var scaleTable = ScaleTable.createFrom(accelerator,new ScaleTable.Constraints(cascade,width,height));
 
 
-        var greyImageF32 = F32Array2D.schema.allocate(accelerator, width, height);
-        greyImageF32.width(width);
-        greyImageF32.height(height);
-        var integralImageF32 = F32Array2D.schema.allocate(accelerator, width, height);
-        integralImageF32.width(width);
-        integralImageF32.height(height);
-        var integralSqImageF32 = F32Array2D.schema.allocate(accelerator, width, height);
-        integralSqImageF32.width(width);
-        integralSqImageF32.height(height);
-        var resultTable = ResultTable.schema.allocate(accelerator, 1000);
-        resultTable.length(1000);
-        resultTable.atomicResultTableCount(0);
-
+        var greyImageF32 = F32Array2D.create(accelerator, width, height);
+        var integralImageF32 = F32Array2D.create(accelerator, width, height);
+        var integralSqImageF32 = F32Array2D.create(accelerator, width, height);
+        var resultTable = ResultTable.create(accelerator, 1000);
         CoreJavaViolaJones.rgbToGreyScale(rgbImage, greyImageF32);
         CoreJavaViolaJones.createIntegralImage(greyImageF32, integralImageF32, integralSqImageF32);
 
-        HaarViewer harViz = new HaarViewer(accelerator, nasa, rgbImage, cascade, integralImageF32, integralSqImageF32);
+        HaarViewer harViz = new HaarViewer(accelerator.lookup, accelerator, nasa, rgbImage, cascade, integralImageF32, integralSqImageF32);
 
         harViz.showIntegrals();
 

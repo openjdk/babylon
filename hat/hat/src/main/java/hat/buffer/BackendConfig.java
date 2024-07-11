@@ -24,6 +24,6 @@
  */
 package hat.buffer;
 
-public interface BackendConfig extends CompleteBuffer {
+public interface BackendConfig extends Buffer {
 
 }

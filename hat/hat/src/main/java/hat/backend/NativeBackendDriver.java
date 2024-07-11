@@ -28,6 +28,7 @@ package hat.backend;
 import hat.buffer.ArgArray;
 import hat.buffer.BackendConfig;
 import hat.buffer.Buffer;
+import hat.buffer.SchemaBuilder;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
@@ -89,7 +90,7 @@ public abstract class NativeBackendDriver implements Backend {
             if (backendConfig == null) {
                 backendHandle = (long) getBackend_MH.invoke(MemorySegment.NULL, 0, MemorySegment.NULL);
             } else {
-                String schema = backendConfig.schema();
+                String schema = SchemaBuilder.schema(backendConfig);
                 var arena = Arena.global();
                 var cstr = arena.allocateFrom(schema);
                 backendHandle = (long) getBackend_MH.invoke(Buffer.getMemorySegment(backendConfig), schema.length(), cstr);

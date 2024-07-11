@@ -26,6 +26,7 @@ package hat.backend.c99codebuilders;
 
 
 import hat.buffer.Buffer;
+import hat.ifacemapper.Schema;
 import hat.optools.BinaryArithmeticOrLogicOperation;
 import hat.optools.BinaryTestOpWrapper;
 import hat.optools.ConstantOpWrapper;
@@ -416,12 +417,14 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
     }
 
     public T typedef(Map<String, Typedef> scope, Buffer instance) {
-        return typedef(scope, new Typedef(instance));
+        return typedef(scope, Typedef.of(instance));
     }
+
 
     public T typedef(Map<String, Typedef> scope, Typedef typeDef) {
         if (!scope.containsKey(typeDef.name())) {
             // Do the dependencies first, so we get them in the right order
+
             typeDef.nameAndTypes.stream().filter(nameAndType -> nameAndType.typeDef != null).forEach(nameAndType -> {
                 typedef(scope, nameAndType.typeDef).nl();
             });
@@ -439,7 +442,7 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
                                 sbrace(_ -> {
                                     if (nameAndArrayOfType.arraySize > 0) {
                                         literal(nameAndArrayOfType.arraySize);
-                                    }else{
+                                    } else {
                                         literal(1);
                                     }
                                 });
@@ -447,13 +450,88 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
                             semicolon();
                         });
                     }).suffix_t(typeDef.iface.getSimpleName()).semicolon().nl().nl();
+
+
             scope.put(typeDef.name(), typeDef);
         }
         return self();
     }
 
-    public T atomicInc(C99HatBuildContext buildContext, Op.Result instanceResult, String name){
-         throw new IllegalStateException("atimicInc not implemented");
+    public T typedef(Schema.BoundSchema<?> boundSchema,Schema.SchemaNode.IfaceTypeNode ifaceTypeNode) {
+        typedefKeyword().space().structOrUnion(ifaceTypeNode instanceof Schema.SchemaNode.Struct)
+                .space().suffix_s(ifaceTypeNode.iface.getSimpleName()).braceNlIndented(_ -> {
+                    System.out.println(ifaceTypeNode);
+                    int fieldCount = ifaceTypeNode.fields.size();
+                    StreamCounter.of(ifaceTypeNode.fields, (c, field) -> {
+                        nlIf(c.isNotFirst());
+                        boolean isLast = c.value() == fieldCount - 1;
+                        if (field instanceof Schema.SchemaNode.PrimitiveNamedFieldNode primitiveField) {
+                            typeName(primitiveField.type.getSimpleName());
+                            space().typeName(primitiveField.name);
+                            if (primitiveField instanceof Schema.SchemaNode.PrimitiveArray array) {
+                                if (array instanceof Schema.SchemaNode.PrimitiveFieldControlledArray fieldControlledArray) {
+                                    if (isLast && ifaceTypeNode.parent == null) {
+                                        sbrace(_ -> literal(1));
+                                    } else {
+                                        boolean[] done = new boolean[]{false};
+                                        boundSchema.arraySizeBindings.forEach(a->{
+                                            if (a.field.equals(array)){
+                                                sbrace(_ -> literal(a.len));
+                                                done[0] = true;
+                                            }
+                                            //System.out.println(a);
+                                        });
+                                        if (!done[0]) {
+                                            throw new IllegalStateException("we need to extract the array size hat kind of array ");
+                                        }
+                                    }
+                                } else if (array instanceof Schema.SchemaNode.PrimitiveFixedArray fixed) {
+                                    sbrace(_ -> literal(Math.max(1, fixed.len)));
+                                } else {
+                                    throw new IllegalStateException("what kind of array ");
+                                }
+                            }
+                        } else if (field instanceof Schema.SchemaNode.MapableIfaceNamedFieldNode ifaceField) {
+                            suffix_t(ifaceField.ifaceTypeNode.iface.getSimpleName());
+                            space().typeName(ifaceField.name);
+                            if (ifaceField instanceof Schema.SchemaNode.IfaceMappableArray array) {
+                                if (array instanceof Schema.SchemaNode.IfaceMapableFieldControlledArray fieldControlledArray) {
+                                    if (isLast && ifaceTypeNode.parent == null) {
+                                        sbrace(_ -> literal(1));
+                                    } else {
+                                        boolean[] done = new boolean[]{false};
+                                        boundSchema.arraySizeBindings.forEach(a -> {
+                                            if (a.field.equals(ifaceField)) {
+                                                sbrace(_ -> literal(a.len));
+                                                done[0] = true;
+                                            }
+                                            //System.out.println(a);
+                                        });
+                                        if (!done[0]) {
+                                            throw new IllegalStateException("we need to extract the array size hat kind of array ");
+                                        }
+                                    }
+                                } else if (array instanceof Schema.SchemaNode.IfaceMapableFixedArray fixed) {
+                                    sbrace(_ -> literal(Math.max(1, fixed.len)));
+                                } else {
+                                    throw new IllegalStateException("what kind of array ");
+                                }
+                            }
+                        }else if (field instanceof Schema.SchemaNode.Padding){
+                            // SKIP
+                        } else {
+                            throw new IllegalStateException("hmm");
+                        }
+
+
+                        semicolon();
+                    });
+                }).suffix_t(ifaceTypeNode.iface.getSimpleName()).semicolon().nl().nl();
+        return self();
+    }
+
+    public T atomicInc(C99HatBuildContext buildContext, Op.Result instanceResult, String name) {
+        throw new IllegalStateException("atimicInc not implemented");
     }
 
     @Override

@@ -1,6 +1,6 @@
 package hat;
 
-import hat.buffer.MappableIface;
+import hat.ifacemapper.MappableIface;
 import hat.optools.FuncOpWrapper;
 import hat.optools.InvokeOpWrapper;
 import hat.optools.OpWrapper;

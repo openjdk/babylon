@@ -25,10 +25,14 @@
 package violajones.ifaces;
 
 
-import hat.buffer.IncompleteBuffer;
+import hat.Accelerator;
+import hat.buffer.Buffer;
+import hat.buffer.BufferAllocator;
 import hat.ifacemapper.Schema;
 
-public interface ScaleTable extends IncompleteBuffer {
+import java.lang.invoke.MethodHandles;
+
+public interface ScaleTable extends Buffer {
     interface Scale extends Struct {
 
         float scaleValue();
@@ -108,7 +112,7 @@ public interface ScaleTable extends IncompleteBuffer {
         }
     }
 
-      default void applyConstraints ( Constraints constraints) {
+      default ScaleTable applyConstraints ( Constraints constraints) {
         int multiScaleAccumulativeRangeVar = 0;
         long idx = 0;
         for (float scaleValue = constraints.startScale; scaleValue < constraints.maxScale; scaleValue *= constraints.scaleMultiplier) {
@@ -139,6 +143,7 @@ public interface ScaleTable extends IncompleteBuffer {
         multiScaleAccumulativeRange(multiScaleAccumulativeRangeVar);
 
         System.out.println("Scaled overlapping rectangles to search " + multiScaleAccumulativeRangeVar);
+        return this;
        }
 
     int length();
@@ -169,4 +174,19 @@ public interface ScaleTable extends IncompleteBuffer {
                     )
             )
     );
+
+    static ScaleTable create(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator, int length){
+        var instance = schema.allocate(lookup,bufferAllocator,length);
+        instance.length(length);
+        return instance;
+    }
+
+    static ScaleTable create(Accelerator accelerator, int length){
+        return create(accelerator.lookup, accelerator,length);
+    }
+
+    static ScaleTable createFrom(Accelerator accelerator, Constraints constraints){
+        return create(accelerator.lookup, accelerator,constraints.scales).applyConstraints(constraints);
+    }
+
 }

@@ -11,7 +11,7 @@ import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_SHORT;
 
-public interface ImageIfaceBuffer<T extends ImageIfaceBuffer<?>> extends IncompleteBuffer {
+public interface ImageIfaceBuffer<T extends ImageIfaceBuffer<?>> extends Buffer {
     @SuppressWarnings("unchecked")
     default T syncFromRasterDataBuffer(DataBuffer dataBuffer) { // int[], byte[], short[]
         switch (dataBuffer) {
