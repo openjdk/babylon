@@ -26,6 +26,7 @@
 package java.lang.reflect.code.bytecode;
 
 import java.lang.reflect.code.*;
+import java.lang.reflect.code.op.CoreOp;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -52,29 +53,25 @@ public final class SlotSSA {
      * @param <T> the invokable type
      */
     public static <T extends Op & Op.Invokable> T transform(T iop) {
-
         Map<Block, Set<Integer>> joinPoints = new HashMap<>();
         Map<SlotOp.SlotLoadOp, Object> loadValues = new HashMap<>();
         Map<Block.Reference, List<SlotValue>> joinSuccessorValues = new HashMap<>();
         Map<Block, Map<Integer, Block.Parameter>> joinBlockArguments = new HashMap<>();
-
-        // Compute join points and value mappings
-        iop.traverse(null, CodeElement.bodyVisitor((_, body) -> {
-            variableToValue(body, joinPoints, loadValues, joinSuccessorValues);
-            return null;
-        }));
+        Set<Body> visitedBodies = new HashSet<>();
 
         @SuppressWarnings("unchecked")
         T liop = (T) iop.transform(CopyContext.create(), (block, op) -> {
+            // Compute join points and value mappings for body
+            if (visitedBodies.add(op.ancestorBody())) {
+                variableToValue(op.ancestorBody(), joinPoints, loadValues, joinSuccessorValues);
+            }
+
             switch (op) {
                 case SlotOp.SlotLoadOp vl -> {
                     // Replace result of load
-                    Object loadValue = loadValues.get(vl);
                     CopyContext cc = block.context();
-                    Value v = loadValue instanceof SlotBlockArgument vba
-                            ? joinBlockArguments.get(vba.b()).get(vba.slot())
-                            : cc.getValue((Value) loadValue);
-                    cc.mapValue(op.result(), v);
+                    Value loadValue = getLoadValue(cc, vl, loadValues, joinBlockArguments);
+                    cc.mapValue(op.result(), loadValue);
                 }
                 case SlotOp _ -> {
                     // Drop slot operations
@@ -93,17 +90,13 @@ public final class SlotSSA {
                                         slot -> slot,
                                         // @@@
                                         slot -> bb.parameter(joinValues.stream().filter(sv -> sv.slot == slot).findAny().map(sv ->
-                                                (sv.value instanceof SlotBlockArgument vba
-                                                    ? joinBlockArguments.get(vba.b()).get(vba.slot())
-                                                    : cc.getValue((Value) sv.value)).type()).orElseThrow())));
+                                                getLoadValue(cc, sv.value, loadValues, joinBlockArguments).type()).orElseThrow())));
                             });
 
                             // Append successor arguments
                             List<Value> values = new ArrayList<>();
                             for (SlotValue sv : joinValues) {
-                                Value v = sv.value instanceof SlotBlockArgument vba
-                                        ? joinBlockArguments.get(vba.b()).get(vba.slot())
-                                        : cc.getValue((Value) sv.value);
+                                Value v = getLoadValue(cc, sv.value, loadValues, joinBlockArguments);
                                 values.add(v);
                             }
 
@@ -121,6 +114,33 @@ public final class SlotSSA {
             return block;
         });
         return liop;
+    }
+
+    static Value getLoadValue(CopyContext cc,
+                              Object loadValue,
+                              Map<SlotOp.SlotLoadOp, Object> loadValues,
+                              Map<Block, Map<Integer, Block.Parameter>> joinBlockArguments) {
+        while (true) {
+//            System.out.println("getting: " + switch (loadValue) {
+//                case Block.Parameter bp -> "block #" + bp.declaringBlock().index() + " parameter #" + bp.index();
+//                case SlotBlockArgument sba -> "block #" + sba.b.index() + " argument slot #" + sba.slot;
+//                case Op.Result or -> "result of op: " + or.op() + " type: " + or.type();
+//                case Value val -> "value: " + val + " type: " + val.type();
+//                default -> loadValue;
+//            });
+            if (loadValue instanceof SlotOp.SlotLoadOp loadOp) {
+                loadValue = loadValues.get(loadOp);
+            } else if (loadValue instanceof SlotBlockArgument vba) {
+                loadValue = joinBlockArguments.get(vba.b()).get(vba.slot());
+            } else if (loadValue instanceof Op.Result or && or.op() instanceof SlotOp.SlotLoadOp loadOp) {
+                loadValue = loadValues.get(loadOp);
+            } else if (loadValue instanceof Value val) {
+                System.out.println("-----");
+                return cc.getValueOrDefault(val, val);
+            } else {
+                throw new IllegalStateException();
+            }
+        }
     }
 
     record SlotBlockArgument(Block b, int slot) {
@@ -156,12 +176,12 @@ public final class SlotSSA {
      * Section 5.2 and Figure 12.
      */
     static void variableToValue(Block b,
-                                BitSet visited,
+                                BitSet visitedBlocks,
                                 Map<Integer, Deque<Object>> slotStack,
                                 Map<Block, Set<Integer>> joinPoints,
                                 Map<SlotOp.SlotLoadOp, Object> loadValues,
                                 Map<Block.Reference, List<SlotValue>> joinSuccessorValues) {
-        visited.set(b.index());
+        visitedBlocks.set(b.index());
 
         // Check if slot is associated with block argument (phi)
         // Push argument onto slot's stack
@@ -183,12 +203,11 @@ public final class SlotSSA {
                     Object to = slotStack.get(loadOp.slot()).peek();
                     loadValues.put(loadOp, to);
                 }
+                case CoreOp.ArrayAccessOp.ArrayLoadOp al -> {
+                    var arg = al.operands().getFirst();
+                    System.out.println(al + " " + arg + " " + loadValues.get(arg));
+                }
                 default -> {}
-            }
-
-            // Dive into sub-bodies
-            for (Body opb : op.bodies()) {
-                variableToValue(opb, joinPoints, loadValues, joinSuccessorValues);
             }
         }
 
@@ -201,8 +220,8 @@ public final class SlotSSA {
                         .map(vop -> new SlotValue(vop, slotStack.get(vop).peek())).toList();
                 joinSuccessorValues.put(succ, joinValues);
             }
-            if (!visited.get(sb.index())) {
-                variableToValue(sb, visited, slotStack, joinPoints, loadValues, joinSuccessorValues);
+            if (!visitedBlocks.get(sb.index())) {
+                variableToValue(sb, visitedBlocks, slotStack, joinPoints, loadValues, joinSuccessorValues);
             }
         }
 
