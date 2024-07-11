@@ -3,13 +3,8 @@ package hat.backend;
 import hat.ComputeContext;
 import hat.HatPtr;
 import hat.NDRange;
-import hat.buffer.Buffer;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
-import hat.ifacemapper.Schema;
-import hat.ifacemapper.SegmentMapper;
-
-import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.code.OpTransformer;
@@ -19,7 +14,7 @@ import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.type.FunctionType;
 
-public class DebugBackend implements Backend {
+public class DebugBackend extends BackendAdaptor {
     public enum HowToRunCompute{REFLECT, BABYLON_INTERPRETER, BABYLON_CLASSFILE}
     public HowToRunCompute howToRunCompute=HowToRunCompute.REFLECT;
     public enum HowToRunKernel{REFLECT, BABYLON_INTERPRETER, BABYLON_CLASSFILE, LOWER_TO_SSA,LOWER_TO_SSA_AND_MAP_PTRS}
@@ -30,12 +25,7 @@ public class DebugBackend implements Backend {
     }
 
     @Override
-    public void computeContextHandoff(ComputeContext computeContext) {
-    }
-
-    @Override
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
-
         switch (howToRunCompute){
             case REFLECT: {
                 try {
@@ -149,12 +139,5 @@ public class DebugBackend implements Backend {
                 System.out.println(ssaPtrForm.toText());
             }
         }
-
-
-    }
-
-    @Override
-    public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, Schema.BoundSchema<T> boundSchema) {
-        return segmentMapper.allocate(Arena.global(), boundSchema);
     }
 }

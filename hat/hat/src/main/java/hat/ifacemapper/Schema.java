@@ -6,7 +6,6 @@ import hat.ifacemapper.accessor.AccessorInfo;
 import hat.ifacemapper.accessor.ValueType;
 import hat.util.Result;
 
-import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
@@ -20,119 +19,6 @@ import java.util.function.Consumer;
 public class Schema<T extends Buffer> {
     final public SchemaNode.IfaceTypeNode rootIfaceTypeNode;
     public Class<T> iface;
-
-    public static abstract sealed class LayoutToBoundFieldTreeNode permits ChildLayoutToBoundFieldTreeNode, BoundSchema {
-        static class FieldToLayoutBinding<T extends SchemaNode.FieldNode> {
-            public final T field;
-            public MemoryLayout layout;
-            FieldToLayoutBinding(T field, MemoryLayout layout) {
-                this.field = field;
-                this.layout = layout;
-            }
-        }
-
-       public  static class FieldControlledArrayBinding extends FieldToLayoutBinding<SchemaNode.FieldNode> {
-            public final int idx;
-            public final int len;
-            FieldControlledArrayBinding(int idx, int len, SchemaNode.FieldNode fieldControlledArray) {
-                super(fieldControlledArray, null);
-                this.idx = idx;
-                this.len = len;
-            }
-        }
-
-        final protected LayoutToBoundFieldTreeNode parent;
-        final List<ChildLayoutToBoundFieldTreeNode> children = new ArrayList<>();
-        final List<MemoryLayout> memoryLayouts = new ArrayList<>();
-        final List<FieldToLayoutBinding<?>> fieldToLayoutBindings = new ArrayList<>();
-
-        LayoutToBoundFieldTreeNode(LayoutToBoundFieldTreeNode parent) {
-            this.parent = parent;
-        }
-
-        abstract int takeArrayLen();
-
-        abstract FieldControlledArrayBinding createFieldControlledArrayBinding(SchemaNode.NamedFieldNode fieldControlledArray, MemoryLayout memoryLayout);
-
-        void bind(SchemaNode.FieldNode field, MemoryLayout memoryLayout) {
-            FieldToLayoutBinding<?> fieldToLayoutBinding = null;
-            if (field instanceof SchemaNode.IfaceMapableFieldControlledArray fieldControlledArray) {
-                fieldToLayoutBinding = createFieldControlledArrayBinding(fieldControlledArray, memoryLayout);
-            }else if (field instanceof SchemaNode.PrimitiveFieldControlledArray fieldControlledArray) {
-                fieldToLayoutBinding = createFieldControlledArrayBinding(fieldControlledArray, memoryLayout);
-            } else {
-                fieldToLayoutBinding = new FieldToLayoutBinding<>(field, memoryLayout);
-            }
-            fieldToLayoutBindings.add(fieldToLayoutBinding);
-            memoryLayouts.add(memoryLayout);
-        }
-
-        public MemoryLayout[] memoryLayoutListToArray() {
-            return memoryLayouts.toArray(new MemoryLayout[0]);
-        }
-
-        public ChildLayoutToBoundFieldTreeNode createChild() {
-            var childLayoutCollector = new ChildLayoutToBoundFieldTreeNode(this);
-            children.add(childLayoutCollector);
-            return childLayoutCollector;
-        }
-
-
-    }
-
-    public static final class BoundSchema<T extends Buffer> extends LayoutToBoundFieldTreeNode {
-        final public List<FieldControlledArrayBinding> arraySizeBindings;
-        final public int[] arrayLengths;
-        final public Schema<T> schema;
-        final public GroupLayout groupLayout;
-
-        public BoundSchema(Schema<T> schema, int... arrayLengths) {
-            super(null);
-            this.schema = schema;
-            this.arrayLengths = arrayLengths;
-            this.arraySizeBindings = new ArrayList<>();
-            LayoutToBoundFieldTreeNode scope = createChild();
-            schema.rootIfaceTypeNode.fields.forEach(c ->
-                    c.collectLayouts(scope)
-            );
-            this.groupLayout = MemoryLayout.structLayout(scope.memoryLayoutListToArray()).withName(schema.iface.getSimpleName());
-            memoryLayouts.add(this.groupLayout);
-        }
-
-        public T allocate(MethodHandles.Lookup lookup,BufferAllocator bufferAllocator) {
-            return bufferAllocator.allocate(SegmentMapper.of(lookup, schema.iface,groupLayout, this),this);
-        }
-
-        @Override
-        int takeArrayLen() {
-            return arrayLengths[arraySizeBindings.size()];
-        }
-
-        @Override
-        FieldControlledArrayBinding createFieldControlledArrayBinding(SchemaNode.NamedFieldNode fieldControlledArray, MemoryLayout memoryLayout) {
-            int idx = arraySizeBindings.size();
-            var arraySizeBinding = new FieldControlledArrayBinding(idx, arrayLengths[idx], fieldControlledArray);
-            arraySizeBindings.add(arraySizeBinding);
-            return arraySizeBinding;
-        }
-
-
-    }
-
-    public static final class ChildLayoutToBoundFieldTreeNode extends LayoutToBoundFieldTreeNode {
-        ChildLayoutToBoundFieldTreeNode(LayoutToBoundFieldTreeNode parent) {
-            super(parent);
-        }
-
-        @Override
-        int takeArrayLen() {
-            return parent.takeArrayLen();
-        }
-@Override
-        FieldControlledArrayBinding createFieldControlledArrayBinding(SchemaNode.NamedFieldNode fieldControlledArray, MemoryLayout memoryLayout) {
-            return parent.createFieldControlledArrayBinding(fieldControlledArray, memoryLayout);
-        }
-    }
 
     /*
      * From the iface mapper
@@ -191,7 +77,7 @@ public class Schema<T extends Buffer> {
         return clazz.isInterface() && Buffer.Union.class.isAssignableFrom(clazz);
     }
 
-    public static abstract class SchemaNode {
+    public static abstract sealed class SchemaNode permits SchemaNode.FieldNode, SchemaNode.IfaceTypeNode {
         public IfaceTypeNode parent;
 
         SchemaNode(IfaceTypeNode parent) {
@@ -205,7 +91,7 @@ public class Schema<T extends Buffer> {
                 super(parent);
             }
             public abstract void toText(String indent, Consumer<String> stringConsumer);
-            public abstract void collectLayouts(LayoutToBoundFieldTreeNode layoutCollector);
+            public abstract void collectLayouts(BoundSchemaNode layoutCollector);
         }
 
         public static final class Padding extends FieldNode {
@@ -222,7 +108,7 @@ public class Schema<T extends Buffer> {
             }
 
             @Override
-            public void collectLayouts(LayoutToBoundFieldTreeNode layoutToFieldBindingNode) {
+            public void collectLayouts(BoundSchemaNode layoutToFieldBindingNode) {
                 layoutToFieldBindingNode.bind(this, MemoryLayout.paddingLayout(len));
             }
         }
@@ -245,8 +131,8 @@ public class Schema<T extends Buffer> {
             }
 
             @Override
-            public void collectLayouts(LayoutToBoundFieldTreeNode layoutToFieldBindingNode) {
-                layoutToFieldBindingNode.bind(this, parent.getLayout(this.type, layoutToFieldBindingNode).withName(name));
+            public void collectLayouts(BoundSchemaNode boundSchemaNode) {
+                boundSchemaNode.bind(this, parent.getLayout(this.type, boundSchemaNode).withName(name));
             }
         }
         public static abstract sealed class MapableIfaceNamedFieldNode extends NamedFieldNode permits IfaceMappableArray,  MappableIfaceField {
@@ -254,11 +140,11 @@ public class Schema<T extends Buffer> {
             public IfaceTypeNode ifaceTypeNode;
             MapableIfaceNamedFieldNode(IfaceTypeNode parent, AccessorInfo.Key key, Class<MappableIface> iface, String name) {
                 super(parent,key, name);
-                this.ifaceTypeNode = parent.types.stream().filter(n->n.iface.isAssignableFrom(iface)).findFirst().orElseThrow();
+                this.ifaceTypeNode = parent.ifaceTypeNodes.stream().filter(n->n.iface.isAssignableFrom(iface)).findFirst().orElseThrow();
             }
             @Override
-            public void collectLayouts(LayoutToBoundFieldTreeNode layoutToFieldBindingNode) {
-                layoutToFieldBindingNode.bind(this, parent.getLayout(this.ifaceTypeNode.iface, layoutToFieldBindingNode).withName(name));
+            public void collectLayouts(BoundSchemaNode boundSchemaNode) {
+                boundSchemaNode.bind(this, parent.getLayout(this.ifaceTypeNode.iface, boundSchemaNode).withName(name));
             }
         }
         public static final class AddressField extends NamedFieldNode {
@@ -275,8 +161,8 @@ public class Schema<T extends Buffer> {
                 stringConsumer.accept(indent + "address " + key + ":" + type);
             }
             @Override
-            public void collectLayouts(LayoutToBoundFieldTreeNode layoutToFieldBindingNode) {
-                layoutToFieldBindingNode.bind(this, parent.getLayout(type, layoutToFieldBindingNode).withName(name));
+            public void collectLayouts(BoundSchemaNode boundSchemaNode) {
+                boundSchemaNode.bind(this, parent.getLayout(type, boundSchemaNode).withName(name));
             }
         }
         public static final class ArrayLen extends PrimitiveNamedFieldNode {
@@ -331,26 +217,26 @@ public class Schema<T extends Buffer> {
 
         public static abstract sealed class IfaceTypeNode extends SchemaNode permits Union, Struct {
             public List<FieldNode> fields = new ArrayList<>();
-            public List<IfaceTypeNode> types = new ArrayList<>();
-            public Class<?> iface;
+            public List<IfaceTypeNode> ifaceTypeNodes = new ArrayList<>();
+            public Class<MappableIface> iface;
 
             <T extends FieldNode> T addField(T child) {
                 fields.add(child);
                 return child;
             }
 
-            <T extends IfaceTypeNode> T addType(T child) {
-                types.add(child);
+            <T extends IfaceTypeNode> T addIfaceTypeNode(T child) {
+                ifaceTypeNodes.add(child);
                 return child;
             }
 
-            IfaceTypeNode(IfaceTypeNode parent, Class<?> iface) {
+            IfaceTypeNode(IfaceTypeNode parent, Class<MappableIface> iface) {
                 super(parent);
                 this.iface = iface;
             }
 
             public void visitTypes(int depth, Consumer<SchemaNode.IfaceTypeNode> ifaceTypeNodeConsumer) {
-                types.forEach(t->t.visitTypes(depth+1,ifaceTypeNodeConsumer));
+                ifaceTypeNodes.forEach(t->t.visitTypes(depth+1,ifaceTypeNodeConsumer));
                 ifaceTypeNodeConsumer.accept(this);
             }
 
@@ -361,40 +247,35 @@ public class Schema<T extends Buffer> {
              * Otherwise we look through the parent's children.  Which should include a type node struct/union matching the type.
              *
              * @param type
-             * @param layoutToFieldBindingNode
+             * @param boundSchemaNode
              * @return
              */
-            MemoryLayout getLayout(Class<?> type, LayoutToBoundFieldTreeNode layoutToFieldBindingNode) {
+            MemoryLayout getLayout(Class<?> type, BoundSchemaNode boundSchemaNode) {
                 if (type.isPrimitive()) {
                     return MapperUtil.primitiveToLayout(type);
                 }else if (MemorySegment.class.isAssignableFrom(type)) {
                     return ValueLayout.ADDRESS;
                 } else {
-                    Optional<IfaceTypeNode> optionalTypeSchemaKeyMatchingType = types.stream()
-                            .filter(ifaceTypeNode -> ifaceTypeNode.iface.equals(type))
-                            .findFirst();
-                    if (optionalTypeSchemaKeyMatchingType.isPresent()) {
-                        var typeSchemaKeyMatchingType = optionalTypeSchemaKeyMatchingType.get();
-                        LayoutToBoundFieldTreeNode scope = layoutToFieldBindingNode.createChild();
-                        typeSchemaKeyMatchingType.fields.forEach(fieldNode ->
+                    IfaceTypeNode ifaceTypeNode = ifaceTypeNodes.stream()
+                            .filter(i -> i.iface.equals(type))
+                            .findFirst().orElseThrow();
+                        BoundSchemaNode scope = boundSchemaNode.createChild(ifaceTypeNode);
+                        ifaceTypeNode.fields.forEach(fieldNode ->
                                 fieldNode.collectLayouts(scope)
                         );
-                        return isUnion(typeSchemaKeyMatchingType.iface)
+                        return isUnion(ifaceTypeNode.iface)
                                 ? MemoryLayout.unionLayout(scope.memoryLayoutListToArray())
                                 : MemoryLayout.structLayout(scope.memoryLayoutListToArray());
-                    }else{
-                        throw new IllegalStateException("Why no type");
-                    }
                 }
             }
 
             public IfaceTypeNode struct(String name, Consumer<IfaceTypeNode> parentSchemaNodeConsumer) {
-                parentSchemaNodeConsumer.accept(addType(new Struct(this, typeOf(iface, name))));
+                parentSchemaNodeConsumer.accept(addIfaceTypeNode(new Struct(this, (Class<MappableIface>)typeOf(iface, name))));
                 return this;
             }
 
             public IfaceTypeNode union(String name, Consumer<IfaceTypeNode> parentSchemaNodeConsumer) {
-                parentSchemaNodeConsumer.accept(addType(new Union(this, typeOf(iface, name))));
+                parentSchemaNodeConsumer.accept(addIfaceTypeNode(new Union(this, (Class<MappableIface>) typeOf(iface, name))));
                 return this;
             }
 
@@ -423,7 +304,7 @@ public class Schema<T extends Buffer> {
                 AccessorInfo.Key fieldKey = AccessorInfo.Key.of(iface, name);
                 Class<MappableIface> fieldType = (Class<MappableIface>)typeOf(iface, name);
                   IfaceTypeNode structOrUnion= isStruct(fieldType) ? new SchemaNode.Struct(this, fieldType) : new SchemaNode.Union(this, fieldType);
-                addType(structOrUnion);
+                addIfaceTypeNode(structOrUnion);
                 addField(new MappableIfaceField(this, fieldKey, fieldType, name));
                 parentSchemaNodeConsumer.accept(structOrUnion);
                 return this;
@@ -443,7 +324,7 @@ public class Schema<T extends Buffer> {
                 IfaceTypeNode ifaceTypeNode = isStruct(iface)
                         ? new SchemaNode.Struct(this, structOrUnionType)
                         : new SchemaNode.Union(this, structOrUnionType);
-                addType(ifaceTypeNode);
+                addIfaceTypeNode(ifaceTypeNode);
                 addField(new MappableIfaceField(this, fieldKey1, structOrUnionType, name1));
                 addField(new MappableIfaceField(this, fieldKey2, structOrUnionType, name2));
 
@@ -473,7 +354,7 @@ public class Schema<T extends Buffer> {
                         ? new SchemaNode.Struct(this, structOrUnionType)
                         : new SchemaNode.Union(this, structOrUnionType);
                 parentFieldConsumer.accept(ifaceTypeNode);
-                addType(ifaceTypeNode);
+                addIfaceTypeNode(ifaceTypeNode);
                 addField(new IfaceMapableFixedArray(this, arrayKey, structOrUnionType, name, len));
                 return this;
             }
@@ -507,12 +388,12 @@ public class Schema<T extends Buffer> {
                     return this;
                 }
                 public IfaceTypeNode array(String name, Consumer<IfaceTypeNode> parentFieldConsumer) {
-                    Class<?> arrayType = typeOf(this.ifaceTypeNode.iface, name);
+                    Class<MappableIface> arrayType = (Class<MappableIface>) typeOf(this.ifaceTypeNode.iface, name);
                     IfaceTypeNode ifaceTypeNode = isStruct(arrayType)
                             ? new SchemaNode.Struct(this.ifaceTypeNode, arrayType)
                             : new SchemaNode.Union(this.ifaceTypeNode, arrayType);
                     parentFieldConsumer.accept(ifaceTypeNode);
-                    this.ifaceTypeNode.addType(ifaceTypeNode);
+                    this.ifaceTypeNode.addIfaceTypeNode(ifaceTypeNode);
                     this.ifaceTypeNode.fieldControlledArray(name, arrayLenFields, stride);
 
 
@@ -547,7 +428,7 @@ public class Schema<T extends Buffer> {
                 }
                 stringConsumer.accept(" " + iface + "{");
                 stringConsumer.accept("\n");
-                types.forEach(c -> {
+                ifaceTypeNodes.forEach(c -> {
                     c.toText(indent + " TYPE: ", stringConsumer);
                     stringConsumer.accept("\n");
                 });
@@ -562,13 +443,13 @@ public class Schema<T extends Buffer> {
         }
 
         public static final class Struct extends IfaceTypeNode {
-            Struct(IfaceTypeNode parent, Class<?> type) {
+            Struct(IfaceTypeNode parent, Class<MappableIface> type) {
                 super(parent, type);
             }
         }
 
         public static final class Union extends IfaceTypeNode {
-            Union(IfaceTypeNode parent, Class<?> type) {
+            Union(IfaceTypeNode parent, Class<MappableIface> type) {
                 super(parent, type);
             }
         }
@@ -596,9 +477,9 @@ public class Schema<T extends Buffer> {
             }
 
             @Override
-            public void collectLayouts(LayoutToBoundFieldTreeNode layoutToFieldBindingNode) {
-                layoutToFieldBindingNode.bind(this, MemoryLayout.sequenceLayout(len,
-                        parent.getLayout(ifaceTypeNode.iface, layoutToFieldBindingNode).withName(ifaceTypeNode.iface.getSimpleName())
+            public void collectLayouts(BoundSchemaNode boundSchemaNode) {
+                boundSchemaNode.bind(this, MemoryLayout.sequenceLayout(len,
+                        parent.getLayout(ifaceTypeNode.iface, boundSchemaNode).withName(ifaceTypeNode.iface.getSimpleName())
                 ).withName(name));
             }
         }
@@ -616,9 +497,9 @@ public class Schema<T extends Buffer> {
             }
 
             @Override
-            public void collectLayouts(LayoutToBoundFieldTreeNode layoutToFieldBindingNode) {
-                layoutToFieldBindingNode.bind(this, MemoryLayout.sequenceLayout(len,
-                        parent.getLayout(type, layoutToFieldBindingNode).withName(type.getSimpleName())
+            public void collectLayouts(BoundSchemaNode boundSchemaNode) {
+                boundSchemaNode.bind(this, MemoryLayout.sequenceLayout(len,
+                        parent.getLayout(type, boundSchemaNode).withName(type.getSimpleName())
                 ).withName(name));
             }
         }
@@ -641,15 +522,15 @@ public class Schema<T extends Buffer> {
             }
 
             @Override
-            public void collectLayouts(LayoutToBoundFieldTreeNode layoutToFieldBindingNode) {
+            public void collectLayouts(BoundSchemaNode boundSchemaNode) {
                 // To determine the actual 'array' size we multiply the contributing dims by the stride .
                 int size = stride; //usually 1 but developer can define.
                 for (int i = 0; i < contributingDims; i++) {
-                    size *= layoutToFieldBindingNode.takeArrayLen(); // this takes an arraylen and bumps the ptr
+                    size *= boundSchemaNode.takeArrayLen(); // this takes an arraylen and bumps the ptr
                 }
 
-                layoutToFieldBindingNode.bind(this, MemoryLayout.sequenceLayout(size,
-                        parent.getLayout(ifaceTypeNode.iface, layoutToFieldBindingNode).withName(ifaceTypeNode.iface.getSimpleName())
+                boundSchemaNode.bind(this, MemoryLayout.sequenceLayout(size,
+                        parent.getLayout(ifaceTypeNode.iface, boundSchemaNode).withName(ifaceTypeNode.iface.getSimpleName())
                 ).withName(name));
             }
         }
@@ -671,15 +552,15 @@ public class Schema<T extends Buffer> {
             }
 
             @Override
-            public void collectLayouts(LayoutToBoundFieldTreeNode layoutToFieldBindingNode) {
+            public void collectLayouts(BoundSchemaNode boundSchemaNode) {
                 // To determine the actual 'array' size we multiply the contributing dims by the stride .
                 int size = stride; //usually 1 but developer can define.
                 for (int i = 0; i < contributingDims; i++) {
-                    size *= layoutToFieldBindingNode.takeArrayLen(); // this takes an arraylen and bumps the ptr
+                    size *= boundSchemaNode.takeArrayLen(); // this takes an arraylen and bumps the ptr
                 }
 
-                layoutToFieldBindingNode.bind(this, MemoryLayout.sequenceLayout(size,
-                        parent.getLayout(type, layoutToFieldBindingNode).withName(type.getSimpleName())
+                boundSchemaNode.bind(this, MemoryLayout.sequenceLayout(size,
+                        parent.getLayout(type, boundSchemaNode).withName(type.getSimpleName())
                 ).withName(name));
             }
         }
@@ -693,12 +574,12 @@ public class Schema<T extends Buffer> {
 
 
     public T allocate(MethodHandles.Lookup lookup,BufferAllocator bufferAllocator, int... boundLengths) {
-        BoundSchema<?> boundSchema = new BoundSchema<>(this, boundLengths);
+        BoundSchema<?> boundSchema = new BoundSchemaNode.BoundSchemaRootNode<>(this, boundLengths);
         return (T) boundSchema.allocate(lookup,bufferAllocator);
     }
 
     public static <T extends Buffer> Schema<T> of(Class<T> iface,  Consumer<SchemaNode.IfaceTypeNode> parentFieldConsumer) {
-        var struct = new SchemaNode.Struct(null, iface);
+        var struct = new SchemaNode.Struct(null, (Class<MappableIface>)(Object)iface); // why the need for this?
         parentFieldConsumer.accept(struct);
         return new Schema<>(iface,struct);
     }

@@ -80,7 +80,7 @@ public final class SegmentInterfaceMapper<T>
     private SegmentInterfaceMapper(MethodHandles.Lookup lookup,
                                    Class<T> type,
                                    GroupLayout layout,
-                                   Schema.BoundSchema<?> boundSchema,
+                                   BoundSchema<?> boundSchema,
                                    boolean leaf,
                                    List<AffectedMemory> affectedMemories) {
         super(lookup, type, layout, boundSchema,leaf,
@@ -157,7 +157,7 @@ public final class SegmentInterfaceMapper<T>
     protected MethodHandle computeGetHandle() {
         try {
             // (MemorySegment, long)void
-            var ctor = lookup().findConstructor(implClass, MethodType.methodType(void.class, MemorySegment.class, GroupLayout.class, Schema.BoundSchema.class,
+            var ctor = lookup().findConstructor(implClass, MethodType.methodType(void.class, MemorySegment.class, GroupLayout.class, BoundSchema.class,
             long.class));
 
             // try? var ctor = lookup().findConstructor(implClass, MethodType.methodType(void.class, MemorySegment.class, long.class));
@@ -421,7 +421,7 @@ public final class SegmentInterfaceMapper<T>
     public static <T> SegmentInterfaceMapper<T> create(MethodHandles.Lookup lookup,
                                                        Class<T> type,
                                                        GroupLayout layout,
-                                                       Schema.BoundSchema<?> boundSchema) {
+                                                       BoundSchema<?> boundSchema) {
         return new SegmentInterfaceMapper<>(lookup, type,  layout, boundSchema, false, new ArrayList<>());
     }
 
@@ -442,7 +442,7 @@ public final class SegmentInterfaceMapper<T>
             MethodHandles.Lookup lookup,
             @Override Class<R> type,
             @Override GroupLayout layout,
-            @Override Schema.BoundSchema<?> boundSchema,
+            @Override BoundSchema<?> boundSchema,
             @Override MethodHandle getHandle,
             Function<? super T, ? extends R> toMapper
     ) implements SegmentMapper<R> {
@@ -461,7 +461,7 @@ public final class SegmentInterfaceMapper<T>
         Mapped(MethodHandles.Lookup lookup,
                Class<R> type,
                GroupLayout layout,
-               Schema.BoundSchema<?> boundSchema,
+               BoundSchema<?> boundSchema,
                MethodHandle getHandle,
                Function<? super T, ? extends R> toMapper
         ) {

@@ -31,6 +31,7 @@ import hat.buffer.ArgArray;
 import hat.buffer.Buffer;
 import hat.buffer.KernelContext;
 import hat.callgraph.KernelCallGraph;
+import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.Schema;
 
 import java.util.Arrays;
@@ -79,23 +80,14 @@ public abstract class C99NativeBackend extends NativeBackend {
                 .filter(arg -> arg instanceof Buffer)
                 .map(arg -> (Buffer) arg)
                 .forEach(ifaceBuffer -> {
-                    Schema.BoundSchema<?> boundSchema = Buffer.getBoundSchema(ifaceBuffer);
-                    boundSchema.schema.rootIfaceTypeNode.visitTypes(0, t -> {
+                    BoundSchema<?> boundSchema = Buffer.getBoundSchema(ifaceBuffer);
+                    boundSchema.schema().rootIfaceTypeNode.visitTypes(0, t -> {
                         if (!already.contains(t)) {
                             builder.typedef(boundSchema, t);
                             already.add(t);
                         }
                     });
                 });
-/*
-            Map<String, Typedef> scope = new LinkedHashMap<>();
-            Arrays.stream(args)
-                    .filter(arg -> arg instanceof Buffer)
-                    .map(arg -> (Buffer) arg)
-                    .forEach(ifaceBuffer -> builder.typedef(scope, ifaceBuffer));
-
-*/
-
 
         // Sorting by rank ensures we don't need forward declarations
         kernelCallGraph.kernelReachableResolvedStream().sorted((lhs, rhs) -> rhs.rank - lhs.rank)

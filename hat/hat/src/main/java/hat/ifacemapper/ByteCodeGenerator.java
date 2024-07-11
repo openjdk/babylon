@@ -85,7 +85,7 @@ final class ByteCodeGenerator {
     private static final ClassDesc VALUE_LAYOUTS_CLASS_DESC = desc(ValueLayout.class);
     private static final ClassDesc MEMORY_SEGMENT_CLASS_DESC = desc(MemorySegment.class);
     private static final ClassDesc LAYOUT_CLASS_DESC = desc(GroupLayout.class);
-    private static final ClassDesc BOUND_SCHEMA_CLASS_DESC = desc(Schema.BoundSchema.class);
+    private static final ClassDesc BOUND_SCHEMA_CLASS_DESC = desc(BoundSchema.class);
 
 
     private final Class<?> type;

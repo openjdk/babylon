@@ -28,7 +28,7 @@ package hat;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.buffer.BufferAllocator;
-import hat.ifacemapper.Schema;
+import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.SegmentMapper;
 import hat.optools.LambdaOpWrapper;
 import hat.optools.OpWrapper;
@@ -104,7 +104,7 @@ public class Accelerator implements BufferAllocator {
 
 
     @Override
-    public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, Schema.BoundSchema<T> boundShema) {
+    public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundShema) {
         return backend.allocate(segmentMapper, boundShema);
     }
 

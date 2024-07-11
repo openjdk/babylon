@@ -26,12 +26,11 @@ package experiments;
 
 import hat.buffer.BufferAllocator;
 import hat.buffer.S32Array2D;
-import hat.ifacemapper.Schema;
+import hat.ifacemapper.BoundSchema;
 import hat.buffer.Buffer;
 import hat.ifacemapper.SegmentMapper;
 
 import java.lang.foreign.Arena;
-import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 
 public class S32ArrayTest implements Buffer {
@@ -39,7 +38,7 @@ public class S32ArrayTest implements Buffer {
     public static void main(String[] args) {
         BufferAllocator bufferAllocator = new BufferAllocator() {
             @Override
-            public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, Schema.BoundSchema<T> boundSchema) {
+            public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema) {
                 return segmentMapper.allocate(Arena.global(),boundSchema);
             }
         };

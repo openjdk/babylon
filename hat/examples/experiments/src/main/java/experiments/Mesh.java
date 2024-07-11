@@ -27,11 +27,11 @@ package experiments;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
+import hat.ifacemapper.BoundSchemaNode;
 import hat.ifacemapper.Schema;
 import hat.backend.DebugBackend;
 import hat.buffer.Buffer;
 import hat.buffer.BufferAllocator;
-import hat.ifacemapper.SegmentMapper;
 
 import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
@@ -141,7 +141,7 @@ public class Mesh {
                 DebugBackend.HowToRunKernel.BABYLON_INTERPRETER));
         MeshData.schema.toText(t -> System.out.print(t));
 
-        var boundSchema = new Schema.BoundSchema<>(MeshData.schema, 100, 10);
+        var boundSchema = new BoundSchemaNode.BoundSchemaRootNode<>(MeshData.schema, 100, 10);
         var meshDataNew = boundSchema.allocate(accelerator.lookup,accelerator);
         var meshDataOld = MeshData.create(accelerator.lookup,accelerator);
 
