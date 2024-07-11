@@ -58,8 +58,7 @@ public class Squares {
     public static void main(String[] args) {
         var lookup = java.lang.invoke.MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);//new JavaMultiThreadedBackend());
-        var arr = S32Array.schema.allocate(accelerator, 32);
-        arr.length(32);
+        var arr = S32Array.create(accelerator, 32);
         for (int i = 0; i < arr.length(); i++) {
             arr.array(i, i);
         }

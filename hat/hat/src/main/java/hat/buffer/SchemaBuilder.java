@@ -11,7 +11,7 @@ import java.lang.foreign.UnionLayout;
 import java.lang.foreign.ValueLayout;
 
 public class SchemaBuilder extends CodeBuilder<SchemaBuilder> {
-    SchemaBuilder layout(MemoryLayout layout, SequenceLayout tailSequenceLayout, boolean incomplete) {
+    SchemaBuilder layout(MemoryLayout layout, SequenceLayout tailSequenceLayout) {
         either(layout.name().isPresent(), (_) -> identifier(layout.name().get()), (_) -> questionMark()).colon();
         switch (layout) {
             case StructLayout structLayout -> {
@@ -20,7 +20,7 @@ public class SchemaBuilder extends CodeBuilder<SchemaBuilder> {
                         if (c.isNotFirst()) {
                             comma();
                         }
-                        layout(l, tailSequenceLayout, incomplete);
+                        layout(l, tailSequenceLayout);
                     });
                 });
             }
@@ -30,7 +30,7 @@ public class SchemaBuilder extends CodeBuilder<SchemaBuilder> {
                         if (c.isNotFirst()) {
                             bar();
                         }
-                        layout(l, tailSequenceLayout, incomplete);
+                        layout(l, tailSequenceLayout);
                     });
                 });
             }
@@ -42,16 +42,43 @@ public class SchemaBuilder extends CodeBuilder<SchemaBuilder> {
             }
             case SequenceLayout sequenceLayout -> {
                 sbrace((_) -> {
-                    if (sequenceLayout.equals(tailSequenceLayout) && incomplete) {
-                        asterisk();
-                    } else {
+                   // if (sequenceLayout.equals(tailSequenceLayout) && incomplete) {
+                     //   asterisk();
+                    //} else {
                         literal(sequenceLayout.elementCount());
-                    }
+                   // }
                     colon();
-                    layout(sequenceLayout.elementLayout(), tailSequenceLayout, incomplete);
+                    layout(sequenceLayout.elementLayout(), tailSequenceLayout);
                 });
             }
         }
         return this;
+    }
+
+    public static String schema(Buffer buffer) {
+       // if (complete) {
+            return new SchemaBuilder()
+                    .literal(Buffer.getMemorySegment(buffer).byteSize())
+                    .hash()
+                    .layout(Buffer.getLayout(buffer), null)
+                    .toString();
+    /*    }else{
+            MemoryLayout memoryLayout = Buffer.getLayout(buffer);
+            if (memoryLayout instanceof StructLayout structLayout) {
+                var memberLayouts = structLayout.memberLayouts();
+                if (memberLayouts.getLast() instanceof SequenceLayout tailSequenceLayout) {
+                    return new SchemaBuilder()
+                            .literal(memoryLayout.byteOffset(
+                                    MemoryLayout.PathElement.groupElement(memberLayouts.size() - 1)))
+                            .plus()
+                            .layout(Buffer.getLayout(buffer),tailSequenceLayout,true)
+                            .toString();
+                } else {
+                    throw new IllegalStateException("IncompleteBuffer last layout is not SequenceLayout!");
+                }
+            } else {
+                throw new IllegalStateException("IncompleteBuffer must be a StructLayout");
+            }
+        }*/
     }
 }

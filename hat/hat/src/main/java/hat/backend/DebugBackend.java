@@ -6,7 +6,7 @@ import hat.NDRange;
 import hat.buffer.Buffer;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
-import hat.ifacemapper.HatData;
+import hat.ifacemapper.Schema;
 import hat.ifacemapper.SegmentMapper;
 
 import java.lang.foreign.Arena;
@@ -154,8 +154,7 @@ public class DebugBackend implements Backend {
     }
 
     @Override
-    public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper) {
-        return segmentMapper.allocate(Arena.global(), new HatData() {
-        });
+    public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, Schema.BoundSchema<T> boundSchema) {
+        return segmentMapper.allocate(Arena.global(), boundSchema);
     }
 }

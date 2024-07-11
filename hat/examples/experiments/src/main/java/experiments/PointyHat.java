@@ -5,11 +5,10 @@ package experiments;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
+import hat.buffer.Buffer;
 import hat.ifacemapper.Schema;
 import hat.backend.DebugBackend;
 import hat.buffer.BufferAllocator;
-import hat.buffer.CompleteBuffer;
-import hat.ifacemapper.HatData;
 import hat.ifacemapper.SegmentMapper;
 
 import java.lang.foreign.GroupLayout;
@@ -19,7 +18,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.runtime.CodeReflection;
 
 public class PointyHat {
-    public interface ColoredWeightedPoint extends CompleteBuffer {
+    public interface ColoredWeightedPoint extends Buffer {
         interface WeightedPoint extends Struct {
             interface Point extends Struct {
 
@@ -72,12 +71,9 @@ public class PointyHat {
                 .field("color")
         );
 
-        static ColoredWeightedPoint create(BufferAllocator bufferAllocator) {
+        static ColoredWeightedPoint create(MethodHandles.Lookup lookup,BufferAllocator bufferAllocator) {
             System.out.println(LAYOUT);
-            System.out.println(schema.boundSchema().groupLayout);
-            HatData hatData = new HatData() {
-            };
-            return bufferAllocator.allocate(SegmentMapper.of(MethodHandles.lookup(), ColoredWeightedPoint.class, LAYOUT,hatData));
+            return schema.allocate(lookup,bufferAllocator);
         }
     }
 
@@ -113,7 +109,7 @@ public class PointyHat {
                 DebugBackend.HowToRunCompute.REFLECT,
                 DebugBackend.HowToRunKernel.LOWER_TO_SSA_AND_MAP_PTRS)
         );
-        var coloredWeightedPoint = ColoredWeightedPoint.create(accelerator);
+        var coloredWeightedPoint = ColoredWeightedPoint.create(MethodHandles.lookup(),accelerator);
         accelerator.compute(cc -> Compute.compute(cc, coloredWeightedPoint));
     }
 }

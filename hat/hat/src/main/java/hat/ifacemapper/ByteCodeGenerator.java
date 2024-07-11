@@ -52,7 +52,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import static hat.ifacemapper.MapperUtil.SECRET_HAT_DATA_METHOD_NAME;
+import static hat.ifacemapper.MapperUtil.SECRET_BOUND_SCHEMA_METHOD_NAME;
 import static hat.ifacemapper.MapperUtil.SECRET_LAYOUT_METHOD_NAME;
 import static hat.ifacemapper.MapperUtil.SECRET_OFFSET_METHOD_NAME;
 import static hat.ifacemapper.MapperUtil.SECRET_SEGMENT_METHOD_NAME;
@@ -80,12 +80,12 @@ final class ByteCodeGenerator {
     static final String SEGMENT_FIELD_NAME = "segment";
     static final String LAYOUT_FIELD_NAME = "layout";
     static final String OFFSET_FIELD_NAME = "offset";
-    static final String HAT_DATA_FIELD_NAME = "boundSchema";
+    static final String BOUND_SCHEMA_FIELD_NAME = "boundSchema";
 
     private static final ClassDesc VALUE_LAYOUTS_CLASS_DESC = desc(ValueLayout.class);
     private static final ClassDesc MEMORY_SEGMENT_CLASS_DESC = desc(MemorySegment.class);
     private static final ClassDesc LAYOUT_CLASS_DESC = desc(GroupLayout.class);
-    private static final ClassDesc HAT_DATA_CLASS_DESC = desc(HatData.class);
+    private static final ClassDesc BOUND_SCHEMA_CLASS_DESC = desc(Schema.BoundSchema.class);
 
 
     private final Class<?> type;
@@ -121,7 +121,7 @@ final class ByteCodeGenerator {
         // private final GroupLayout layout;
         cb.withField(LAYOUT_FIELD_NAME, LAYOUT_CLASS_DESC, ACC_PRIVATE | ACC_FINAL);
         // private final GroupLayout layout;
-        cb.withField(HAT_DATA_FIELD_NAME, HAT_DATA_CLASS_DESC, ACC_PRIVATE | ACC_FINAL);
+        cb.withField(BOUND_SCHEMA_FIELD_NAME, BOUND_SCHEMA_CLASS_DESC, ACC_PRIVATE | ACC_FINAL);
         // private final long offset;
         cb.withField(OFFSET_FIELD_NAME, CD_long, ACC_PRIVATE | ACC_FINAL);
     }
@@ -130,9 +130,9 @@ final class ByteCodeGenerator {
         final int THIS_VAR_SLOT = 0;
         final int SEGMENT_VAR_SLOT = 1;
         final int LAYOUT_VAR_SLOT = 2;
-        final int HAT_DATA_VAR_SLOT = 3;
+        final int BOUND_SCHEMA_VAR_SLOT = 3;
         final int OFFSET_VAR_SLOT = 4;
-        cb.withMethodBody(INIT_NAME, MethodTypeDesc.of(CD_void, MEMORY_SEGMENT_CLASS_DESC, LAYOUT_CLASS_DESC, HAT_DATA_CLASS_DESC, CD_long), ACC_PUBLIC,
+        cb.withMethodBody(INIT_NAME, MethodTypeDesc.of(CD_void, MEMORY_SEGMENT_CLASS_DESC, LAYOUT_CLASS_DESC, BOUND_SCHEMA_CLASS_DESC, CD_long), ACC_PUBLIC,
                 cob -> cob
                         .aload(THIS_VAR_SLOT)
                         .invokespecial(CD_Object, INIT_NAME, MTD_void, false) // Call Object's constructor
@@ -148,9 +148,9 @@ final class ByteCodeGenerator {
                         .putfield(classDesc, LAYOUT_FIELD_NAME, LAYOUT_CLASS_DESC) // this.layout = layout
 
                         .aload(THIS_VAR_SLOT)
-                        .aload(HAT_DATA_VAR_SLOT)
-                        .checkcast(HAT_DATA_CLASS_DESC)
-                        .putfield(classDesc, HAT_DATA_FIELD_NAME, HAT_DATA_CLASS_DESC) // this.boundSchema = boundSchema
+                        .aload(BOUND_SCHEMA_VAR_SLOT)
+                        .checkcast(BOUND_SCHEMA_CLASS_DESC)
+                        .putfield(classDesc, BOUND_SCHEMA_FIELD_NAME, BOUND_SCHEMA_CLASS_DESC) // this.boundSchema = boundSchema
 
                         .aload(THIS_VAR_SLOT)
                         .lload(OFFSET_VAR_SLOT) // offset
@@ -184,9 +184,9 @@ final class ByteCodeGenerator {
 
 
     void obscuredBoundSchema() {
-        cb.withMethodBody(SECRET_HAT_DATA_METHOD_NAME, MethodTypeDesc.of(HAT_DATA_CLASS_DESC), ACC_PUBLIC, cob ->
+        cb.withMethodBody(SECRET_BOUND_SCHEMA_METHOD_NAME, MethodTypeDesc.of(BOUND_SCHEMA_CLASS_DESC), ACC_PUBLIC, cob ->
                 cob.aload(0)
-                        .getfield(classDesc, HAT_DATA_FIELD_NAME, HAT_DATA_CLASS_DESC)
+                        .getfield(classDesc, BOUND_SCHEMA_FIELD_NAME, BOUND_SCHEMA_CLASS_DESC)
                         .areturn()
         );
     }
@@ -275,12 +275,12 @@ final class ByteCodeGenerator {
                             .aload(0)
                             .getfield(classDesc, LAYOUT_FIELD_NAME, LAYOUT_CLASS_DESC) // Layout
                             .aload(0)
-                            .getfield(classDesc, HAT_DATA_FIELD_NAME, HAT_DATA_CLASS_DESC); // Layout
+                            .getfield(classDesc, BOUND_SCHEMA_FIELD_NAME, BOUND_SCHEMA_CLASS_DESC); // Layout
 
 
             offsetBlock(cob, info, classDesc)
                             .invokevirtual(CD_MethodHandle, "invokeExact", MethodTypeDesc.of(CD_Object, MEMORY_SEGMENT_CLASS_DESC,
-                                    LAYOUT_CLASS_DESC,HAT_DATA_CLASS_DESC, CD_long))
+                                    LAYOUT_CLASS_DESC, BOUND_SCHEMA_CLASS_DESC, CD_long))
                             .checkcast(returnDesc)
                             .areturn();
                 }

@@ -5,11 +5,10 @@ package experiments;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
+import hat.buffer.Buffer;
 import hat.ifacemapper.Schema;
 import hat.backend.DebugBackend;
 import hat.buffer.BufferAllocator;
-import hat.buffer.CompleteBuffer;
-import hat.ifacemapper.HatData;
 import hat.ifacemapper.SegmentMapper;
 
 import java.lang.foreign.GroupLayout;
@@ -19,7 +18,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.runtime.CodeReflection;
 
 public class PointyHatArray {
-    public interface PointArray extends CompleteBuffer {
+    public interface PointArray extends Buffer {
         interface Point extends Struct {
 
             int x();
@@ -57,12 +56,9 @@ public class PointyHatArray {
                 )
         );
 
-        static PointArray create(BufferAllocator bufferAllocator, int len) {
+        static PointArray create(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator, int len) {
             System.out.println(LAYOUT);
-            System.out.println(schema.boundSchema(100).groupLayout);
-            HatData hatData = new HatData() {
-            };
-            PointArray pointArray = bufferAllocator.allocate(SegmentMapper.of(MethodHandles.lookup(), PointArray.class, LAYOUT,hatData));
+            PointArray pointArray= schema.allocate(lookup,bufferAllocator,100);
             pointArray.length(100);
             return pointArray;
         }
@@ -92,7 +88,7 @@ public class PointyHatArray {
     public static void main(String[] args) {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), new DebugBackend(
                 DebugBackend.HowToRunCompute.REFLECT,DebugBackend.HowToRunKernel.LOWER_TO_SSA_AND_MAP_PTRS));
-        var pointArray = PointArray.create(accelerator,100);
+        var pointArray = PointArray.create(accelerator.lookup,accelerator,100);
         accelerator.compute(cc -> Compute.compute(cc, pointArray));
     }
 }

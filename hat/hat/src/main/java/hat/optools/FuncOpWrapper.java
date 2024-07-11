@@ -25,7 +25,7 @@
 package hat.optools;
 
 import hat.HatPtr;
-import hat.buffer.MappableIface;
+import hat.ifacemapper.MappableIface;
 
 import java.lang.foreign.GroupLayout;
 import java.lang.reflect.code.Block;

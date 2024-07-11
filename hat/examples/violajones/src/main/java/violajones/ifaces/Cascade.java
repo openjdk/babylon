@@ -24,10 +24,14 @@
  */
 package violajones.ifaces;
 
+import hat.Accelerator;
+import hat.buffer.BufferAllocator;
 import hat.ifacemapper.Schema;
-import hat.buffer.CompleteBuffer;
+import hat.buffer.Buffer;
 
-public interface Cascade extends CompleteBuffer {
+import java.lang.invoke.MethodHandles;
+
+public interface Cascade extends Buffer {
     interface Feature extends Struct {
 
         interface Rect extends Struct {
@@ -161,6 +165,31 @@ public interface Cascade extends CompleteBuffer {
             .arrayLen("stageCount").array("stage", stage->stage.fields("id","threshold","firstTreeId","treeCount"))
             .arrayLen("treeCount").array("tree",tree->tree.fields("id","firstFeatureId","featureCount"))
     );
+
+    static Cascade create(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator, int width, int height,
+    int features,int stages,int trees){
+        var instance  = schema.allocate(lookup,
+                bufferAllocator,
+                features,
+                stages,
+                trees
+        );
+        instance.width(width);
+        instance.height(height);
+        instance.featureCount(features);
+        instance.stageCount(stages);
+        instance.treeCount(trees);
+        return instance;
+    }
+
+    static Cascade create(Accelerator accelerator, int width, int height,
+                          int features, int stages, int trees){
+       return create(accelerator.lookup,accelerator,width,height,features,stages,trees);
+    }
+
+    static Cascade createFrom(Accelerator accelerator, Cascade cascade){
+        return create(accelerator.lookup,accelerator,cascade.width(),cascade.height(),cascade.featureCount(),cascade.stageCount(),cascade.treeCount()).copyFrom(cascade);
+    }
 
     default Cascade copyFrom(Cascade fromCascade){
         Cascade toCascade= this;

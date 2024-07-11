@@ -160,69 +160,71 @@ mapped Cascade
 The implementation is currently hand crafted, but this could easily be automated.
 
 ```java
- static Cascade create(BufferAllocator bufferAllocator, XMLHaarCascadeModel haarCascade) {
+ import java.lang.invoke.MethodHandles;
 
-        Cascade cascade = bufferAllocator.allocate(SegmentMapper.of(MethodHandles.lookup(), Cascade.class,
-                JAVA_INT.withName("width"),
-                JAVA_INT.withName("height"),
-                JAVA_INT.withName("featureCount"),
-                sequenceLayout(haarCascade.features.size(), Feature.layout.withName(Feature.class.getSimpleName())).withName("feature"),
-                JAVA_INT.withName("stageCount"),
-                sequenceLayout(haarCascade.stages.size(), Stage.layout.withName(Stage.class.getSimpleName())).withName("stage"),
-                JAVA_INT.withName("treeCount"),
-                sequenceLayout(haarCascade.trees.size(), Tree.layout.withName(Tree.class.getSimpleName())).withName("tree")
-        ));
-        cascade.width(haarCascade.width());
-        cascade.height(haarCascade.height());
-        cascade.featureCount(haarCascade.features.size());
-        cascade.stageCount(haarCascade.stages.size());
-        cascade.treeCount(haarCascade.trees.size());
-        for (int idx = 0; idx < haarCascade.features.size(); idx++) {
-            Cascade.Feature cascadeFeature = cascade.feature(idx);
-            var haarfeature = haarCascade.features.get(idx);
-            cascadeFeature.id(haarfeature.id());
-            cascadeFeature.threshold(haarfeature.threshold());
-            Cascade.Feature.LinkOrValue cascadeLeft = cascadeFeature.left();
-            cascadeLeft.hasValue(haarfeature.left.hasValue());
-            if (haarfeature.left.hasValue()) {
-                cascadeLeft.anon().value(haarfeature.left.value());
-            } else {
-                cascadeLeft.anon().value(haarfeature.left.featureId());
-            }
-            Cascade.Feature.LinkOrValue cascadeRight = cascadeFeature.right();
-            cascadeRight.hasValue(haarfeature.right.hasValue());
-            if (haarfeature.right.hasValue()) {
-                cascadeRight.anon().value(haarfeature.right.value());
-            } else {
-                cascadeRight.anon().featureId(haarfeature.right.featureId());
-            }
-            for (int r = 0; r < 3; r++) {
-                var haarrect = haarfeature.rects[r];
-                if (haarrect != null) {
-                    Cascade.Feature.Rect cascadeRect = cascadeFeature.rect(r);
-                    cascadeRect.x(haarrect.x());
-                    cascadeRect.y(haarrect.y());
-                    cascadeRect.width(haarrect.width());
-                    cascadeRect.height(haarrect.height());
-                    cascadeRect.weight(haarrect.weight());
-                }
-            }
-        }
-        for (XMLHaarCascadeModel.Stage haarstage : haarCascade.stages) {
-            Cascade.Stage cascadeStage = cascade.stage(haarstage.id);
-            cascadeStage.id(haarstage.id());
-            cascadeStage.threshold(haarstage.threshold());
-            cascadeStage.firstTreeId(haarstage.firstTreeId());
-            cascadeStage.treeCount(haarstage.treeCount());
-        }
+static Cascade create(MethodHandles.Lookup lookup,BufferAllocator bufferAllocator, XMLHaarCascadeModel haarCascade) {
 
-        for (XMLHaarCascadeModel.Tree haarTree : haarCascade.trees) {
-            Cascade.Tree cascadeTree = cascade.tree(haarTree.id());
-            cascadeTree.id(haarTree.id());
-            cascadeTree.firstFeatureId(haarTree.firstFeatureId());
-            cascadeTree.featureCount(haarTree.featureCount());
-        }
-        return cascade;
+  Cascade cascade = bufferAllocator.allocate(SegmentMapper.of(lookup, Cascade.class,
+          JAVA_INT.withName("width"),
+          JAVA_INT.withName("height"),
+          JAVA_INT.withName("featureCount"),
+          sequenceLayout(haarCascade.features.size(), Feature.layout.withName(Feature.class.getSimpleName())).withName("feature"),
+          JAVA_INT.withName("stageCount"),
+          sequenceLayout(haarCascade.stages.size(), Stage.layout.withName(Stage.class.getSimpleName())).withName("stage"),
+          JAVA_INT.withName("treeCount"),
+          sequenceLayout(haarCascade.trees.size(), Tree.layout.withName(Tree.class.getSimpleName())).withName("tree")
+  ));
+  cascade.width(haarCascade.width());
+  cascade.height(haarCascade.height());
+  cascade.featureCount(haarCascade.features.size());
+  cascade.stageCount(haarCascade.stages.size());
+  cascade.treeCount(haarCascade.trees.size());
+  for (int idx = 0; idx < haarCascade.features.size(); idx++) {
+    Cascade.Feature cascadeFeature = cascade.feature(idx);
+    var haarfeature = haarCascade.features.get(idx);
+    cascadeFeature.id(haarfeature.id());
+    cascadeFeature.threshold(haarfeature.threshold());
+    Cascade.Feature.LinkOrValue cascadeLeft = cascadeFeature.left();
+    cascadeLeft.hasValue(haarfeature.left.hasValue());
+    if (haarfeature.left.hasValue()) {
+      cascadeLeft.anon().value(haarfeature.left.value());
+    } else {
+      cascadeLeft.anon().value(haarfeature.left.featureId());
     }
+    Cascade.Feature.LinkOrValue cascadeRight = cascadeFeature.right();
+    cascadeRight.hasValue(haarfeature.right.hasValue());
+    if (haarfeature.right.hasValue()) {
+      cascadeRight.anon().value(haarfeature.right.value());
+    } else {
+      cascadeRight.anon().featureId(haarfeature.right.featureId());
+    }
+    for (int r = 0; r < 3; r++) {
+      var haarrect = haarfeature.rects[r];
+      if (haarrect != null) {
+        Cascade.Feature.Rect cascadeRect = cascadeFeature.rect(r);
+        cascadeRect.x(haarrect.x());
+        cascadeRect.y(haarrect.y());
+        cascadeRect.width(haarrect.width());
+        cascadeRect.height(haarrect.height());
+        cascadeRect.weight(haarrect.weight());
+      }
+    }
+  }
+  for (XMLHaarCascadeModel.Stage haarstage : haarCascade.stages) {
+    Cascade.Stage cascadeStage = cascade.stage(haarstage.id);
+    cascadeStage.id(haarstage.id());
+    cascadeStage.threshold(haarstage.threshold());
+    cascadeStage.firstTreeId(haarstage.firstTreeId());
+    cascadeStage.treeCount(haarstage.treeCount());
+  }
+
+  for (XMLHaarCascadeModel.Tree haarTree : haarCascade.trees) {
+    Cascade.Tree cascadeTree = cascade.tree(haarTree.id());
+    cascadeTree.id(haarTree.id());
+    cascadeTree.firstFeatureId(haarTree.firstFeatureId());
+    cascadeTree.featureCount(haarTree.featureCount());
+  }
+  return cascade;
+}
 ```
 

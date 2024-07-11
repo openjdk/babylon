@@ -80,11 +80,11 @@ public final class SegmentInterfaceMapper<T>
     private SegmentInterfaceMapper(MethodHandles.Lookup lookup,
                                    Class<T> type,
                                    GroupLayout layout,
-                                   HatData hatData,
+                                   Schema.BoundSchema<?> boundSchema,
                                    boolean leaf,
                                    List<AffectedMemory> affectedMemories) {
-        super(lookup, type, layout, hatData,leaf,
-                ValueType.INTERFACE, MapperUtil::requireImplementableInterfaceType, Accessors::ofInterface);
+        super(lookup, type, layout, boundSchema,leaf,
+                MapperUtil::requireImplementableInterfaceType, Accessors::ofInterface);
         this.affectedMemories = affectedMemories;
 
         // Add affected memory for all the setters seen on this level (mutation)
@@ -143,7 +143,7 @@ public final class SegmentInterfaceMapper<T>
 
     @Override
     public <R> SegmentMapper<R> map(Class<R> newType, Function<? super T, ? extends R> toMapper) {
-        return new Mapped<>(lookup(), newType ,layout(),hatData(), getHandle(), toMapper);
+        return new Mapped<>(lookup(), newType ,layout(),boundSchema(), getHandle(), toMapper);
     }
 
     // @Override
@@ -157,7 +157,7 @@ public final class SegmentInterfaceMapper<T>
     protected MethodHandle computeGetHandle() {
         try {
             // (MemorySegment, long)void
-            var ctor = lookup().findConstructor(implClass, MethodType.methodType(void.class, MemorySegment.class, GroupLayout.class, HatData.class,
+            var ctor = lookup().findConstructor(implClass, MethodType.methodType(void.class, MemorySegment.class, GroupLayout.class, Schema.BoundSchema.class,
             long.class));
 
             // try? var ctor = lookup().findConstructor(implClass, MethodType.methodType(void.class, MemorySegment.class, long.class));
@@ -421,8 +421,8 @@ public final class SegmentInterfaceMapper<T>
     public static <T> SegmentInterfaceMapper<T> create(MethodHandles.Lookup lookup,
                                                        Class<T> type,
                                                        GroupLayout layout,
-                                                       HatData hatData) {
-        return new SegmentInterfaceMapper<>(lookup, type,  layout, hatData, false, new ArrayList<>());
+                                                       Schema.BoundSchema<?> boundSchema) {
+        return new SegmentInterfaceMapper<>(lookup, type,  layout, boundSchema, false, new ArrayList<>());
     }
 
     // Mapping
@@ -442,7 +442,7 @@ public final class SegmentInterfaceMapper<T>
             MethodHandles.Lookup lookup,
             @Override Class<R> type,
             @Override GroupLayout layout,
-            @Override HatData hatData,
+            @Override Schema.BoundSchema<?> boundSchema,
             @Override MethodHandle getHandle,
             Function<? super T, ? extends R> toMapper
     ) implements SegmentMapper<R> {
@@ -461,13 +461,13 @@ public final class SegmentInterfaceMapper<T>
         Mapped(MethodHandles.Lookup lookup,
                Class<R> type,
                GroupLayout layout,
-               HatData hatData,
+               Schema.BoundSchema<?> boundSchema,
                MethodHandle getHandle,
                Function<? super T, ? extends R> toMapper
         ) {
             this.lookup = lookup;
             this.type = type;
-            this.hatData =hatData;
+            this.boundSchema =boundSchema;
             this.layout = layout;
             this.toMapper = toMapper;
             MethodHandle toMh = findVirtual("mapTo").bindTo(this);
@@ -482,7 +482,7 @@ public final class SegmentInterfaceMapper<T>
         @Override
         public <R1> SegmentMapper<R1> map(Class<R1> newType,
                                           Function<? super R, ? extends R1> toMapper) {
-            return new Mapped<>(lookup, newType,  layout(), hatData(), getHandle(), toMapper);
+            return new Mapped<>(lookup, newType,  layout(), boundSchema(), getHandle(), toMapper);
         }
 
         // Used reflective when obtaining a MethodHandle

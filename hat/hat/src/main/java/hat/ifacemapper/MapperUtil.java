@@ -62,7 +62,7 @@ public final class MapperUtil {
 
     public static final String SECRET_SEGMENT_METHOD_NAME = "$_$_$sEgMeNt$_$_$";
     public static final String SECRET_LAYOUT_METHOD_NAME = "$_$_$lAyOuT$_$_$";
-    public static final String SECRET_HAT_DATA_METHOD_NAME = "$_$_$hAtDaTa$_$_$";
+    public static final String SECRET_BOUND_SCHEMA_METHOD_NAME = "$_$_$bOuNdScHeMa$_$_$";
     public static final String SECRET_OFFSET_METHOD_NAME = "$_$_$oFfSeT$_$_$";
 
     public static boolean isDebug() {
@@ -104,6 +104,7 @@ public final class MapperUtil {
                 method.getParameterCount() == 0 &&
                 (method.getReturnType() == MemorySegment.class && method.getName().equals("segment") ||
                         method.getReturnType() == MemoryLayout.class && method.getName().equals("layout") ||
+                        method.getReturnType() == Schema.BoundSchema.class && method.getName().equals("boundSchema") ||
                         method.getReturnType() == long.class && method.getName().equals("offset"));
     }
 
