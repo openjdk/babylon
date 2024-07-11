@@ -88,23 +88,6 @@ public final class BytecodeLift {
     private final Deque<Value> stack;
     private Block.Builder currentBlock;
 
-    private static TypeElement toTypeElement(StackMapFrameInfo.VerificationTypeInfo vti) {
-        return switch (vti) {
-            case ITEM_INTEGER -> JavaType.INT;
-            case ITEM_FLOAT -> JavaType.FLOAT;
-            case ITEM_DOUBLE -> JavaType.DOUBLE;
-            case ITEM_LONG -> JavaType.LONG;
-            case ITEM_NULL -> JavaType.J_L_OBJECT;
-            case StackMapFrameInfo.ObjectVerificationTypeInfo ovti ->
-                    JavaType.type(ovti.classSymbol());
-            case StackMapFrameInfo.UninitializedVerificationTypeInfo _ ->
-                    JavaType.J_L_OBJECT;
-            default ->
-                throw new IllegalArgumentException("Unexpected VTI: " + vti);
-
-        };
-    }
-
     private BytecodeLift(Block.Builder entryBlock, ClassModel classModel, CodeModel codeModel, Value... capturedValues) {
         this.entryBlock = entryBlock;
         this.currentBlock = entryBlock;
@@ -116,7 +99,20 @@ public final class BytecodeLift {
         this.blockMap = smta.map(sma ->
                 sma.entries().stream().collect(Collectors.toUnmodifiableMap(
                         StackMapFrameInfo::target,
-                        smfi -> entryBlock.block(smfi.stack().stream().map(BytecodeLift::toTypeElement).toList())))).orElse(Map.of());
+                        smfi -> entryBlock.block(smfi.stack().stream().map(vti -> (TypeElement)switch (vti) {
+                            case ITEM_INTEGER -> JavaType.INT;
+                            case ITEM_FLOAT -> JavaType.FLOAT;
+                            case ITEM_DOUBLE -> JavaType.DOUBLE;
+                            case ITEM_LONG -> JavaType.LONG;
+                            case ITEM_NULL -> JavaType.J_L_OBJECT;
+                            case ITEM_UNINITIALIZED_THIS -> JavaType.type(classModel.thisClass().asSymbol());
+                            case StackMapFrameInfo.ObjectVerificationTypeInfo ovti ->
+                                    JavaType.type(ovti.classSymbol());
+                            case StackMapFrameInfo.UninitializedVerificationTypeInfo _ ->
+                                    JavaType.J_L_OBJECT;
+                            default ->
+                                throw new IllegalArgumentException("Unexpected VTI: " + vti);
+                        }).toList())))).orElse(Map.of());
 
         ArrayList<ClassDesc> locals = new ArrayList<>();
         Stream.concat(Arrays.stream(capturedValues), entryBlock.parameters().stream()).forEachOrdered(val -> {
