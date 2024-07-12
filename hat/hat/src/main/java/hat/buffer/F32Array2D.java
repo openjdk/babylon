@@ -35,11 +35,13 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface F32Array2D extends Buffer {
     int width();
-    void height(int i);
-    int height();
     void width(int i);
 
+    @After("width")
+    void height(int i);
+    int height();
 
+    @BoundBy({"width","height"})
     float array(long idx);
 
     void array(long idx, float v);

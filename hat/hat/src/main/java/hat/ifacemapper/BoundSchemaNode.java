@@ -9,7 +9,10 @@ import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract sealed class BoundSchemaNode permits  BoundSchemaNode.BoundSchemaChildNode, BoundSchemaNode.BoundSchemaRootNode {
+import static hat.ifacemapper.Schema.SchemaNode.IfaceType;
+
+public abstract sealed class BoundSchemaNode
+        permits  BoundSchemaNode.BoundSchemaChildNode, BoundSchemaNode.BoundSchemaRootNode {
 
     static sealed class FieldLayout<T extends Schema.SchemaNode.FieldNode> permits ArrayFieldLayout {
         public final T field;
@@ -19,7 +22,8 @@ public abstract sealed class BoundSchemaNode permits  BoundSchemaNode.BoundSchem
             this.layout = layout;
         }
     }
-    public sealed static class ArrayFieldLayout extends FieldLayout<Schema.SchemaNode.FieldNode> permits BoundArrayFieldLayout {
+    public sealed static class ArrayFieldLayout extends FieldLayout<Schema.SchemaNode.FieldNode>
+            permits BoundArrayFieldLayout {
         public final int len;
         ArrayFieldLayout(Schema.SchemaNode.FieldNode fieldControlledArray, MemoryLayout layout, int len) {
             super(fieldControlledArray, layout);
@@ -38,11 +42,11 @@ public abstract sealed class BoundSchemaNode permits  BoundSchemaNode.BoundSchem
     final List<BoundSchemaChildNode> children = new ArrayList<>();
     final List<MemoryLayout> memoryLayouts = new ArrayList<>();
     final List<FieldLayout<?>> fieldLayouts = new ArrayList<>();
-    final Schema.SchemaNode.IfaceTypeNode ifaceTypeNode;
+    final Schema.SchemaNode.IfaceType ifaceType;
 
-    BoundSchemaNode(BoundSchemaNode parent, Schema.SchemaNode.IfaceTypeNode ifaceTypeNode) {
+    BoundSchemaNode(BoundSchemaNode parent, Schema.SchemaNode.IfaceType ifaceType) {
         this.parent = parent;
-        this.ifaceTypeNode = ifaceTypeNode;
+        this.ifaceType = ifaceType;
     }
 
     abstract int takeArrayLen();
@@ -58,28 +62,23 @@ public abstract sealed class BoundSchemaNode permits  BoundSchemaNode.BoundSchem
         return memoryLayouts.toArray(new MemoryLayout[0]);
     }
 
-    public BoundSchemaChildNode createChild(Schema.SchemaNode.IfaceTypeNode ifaceTypeNode) {
-        var boundSchemaChildNode = new BoundSchemaChildNode(this, ifaceTypeNode);
+    public BoundSchemaChildNode createChild(Schema.SchemaNode.IfaceType ifaceType) {
+        var boundSchemaChildNode = new BoundSchemaChildNode(this, ifaceType);
         children.add(boundSchemaChildNode);
         return boundSchemaChildNode;
     }
 
     public static final class BoundSchemaRootNode<T extends Buffer> extends BoundSchemaNode implements BoundSchema<T> {
-        final private List<BoundArrayFieldLayout> boundArrayFields;
+        final private List<BoundArrayFieldLayout> boundArrayFields=new ArrayList<>();
         final private int[] arrayLengths;
         final private Schema<T> schema;
         final private GroupLayout groupLayout;
 
         public BoundSchemaRootNode(Schema<T> schema, int... arrayLengths) {
-            super(null, schema.rootIfaceTypeNode);
+            super(null, schema.rootIfaceType);
             this.schema = schema;
             this.arrayLengths = arrayLengths;
-            this.boundArrayFields = new ArrayList<>();
-            BoundSchemaNode scope = createChild(schema.rootIfaceTypeNode);
-            schema.rootIfaceTypeNode.fields.forEach(c ->
-                    c.collectLayouts(scope)
-            );
-            this.groupLayout = MemoryLayout.structLayout(scope.memoryLayoutListToArray()).withName(schema.iface.getSimpleName());
+            this.groupLayout =ifaceType.getBoundGroupLayout(this);
             memoryLayouts.add(this.groupLayout);
         }
         @Override
@@ -104,13 +103,13 @@ public abstract sealed class BoundSchemaNode permits  BoundSchemaNode.BoundSchem
 
         @Override
         FieldLayout<?> createFieldBinding(Schema.SchemaNode.FieldNode fieldNode, MemoryLayout memoryLayout) {
-            if (fieldNode instanceof Schema.SchemaNode.IfaceMapableFieldControlledArray
+            if (fieldNode instanceof Schema.SchemaNode.IfaceFieldControlledArray
                     || fieldNode instanceof Schema.SchemaNode.PrimitiveFieldControlledArray) {
                 int idx = boundArrayFields.size();
                 var arraySizeBinding = new BoundArrayFieldLayout(fieldNode, memoryLayout, arrayLengths[idx], idx);
                 boundArrayFields.add(arraySizeBinding);
                 return arraySizeBinding;
-            }else  if (fieldNode instanceof Schema.SchemaNode.IfaceMapableFixedArray ifaceMapableFixedArray){
+            }else  if (fieldNode instanceof Schema.SchemaNode.IfaceFixedArray ifaceMapableFixedArray){
                 return new ArrayFieldLayout(fieldNode, memoryLayout,  ifaceMapableFixedArray.len);
             }else  if (fieldNode instanceof Schema.SchemaNode.PrimitiveFixedArray primitiveFixedArray){
                 return new ArrayFieldLayout(fieldNode, memoryLayout, primitiveFixedArray.len);
@@ -121,8 +120,8 @@ public abstract sealed class BoundSchemaNode permits  BoundSchemaNode.BoundSchem
     }
 
     public static final class BoundSchemaChildNode extends BoundSchemaNode {
-        BoundSchemaChildNode(BoundSchemaNode parent, Schema.SchemaNode.IfaceTypeNode ifaceTypeNode) {
-            super(parent, ifaceTypeNode);
+        BoundSchemaChildNode(BoundSchemaNode parent, Schema.SchemaNode.IfaceType ifaceType) {
+            super(parent, ifaceType);
         }
         @Override
         int takeArrayLen() {

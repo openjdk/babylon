@@ -25,6 +25,7 @@
 
 package hat.ifacemapper.accessor;
 
+import hat.ifacemapper.MapperUtil;
 import hat.ifacemapper.Schema;
 import hat.util.Result;
 
@@ -61,36 +62,33 @@ public record AccessorInfo(Key key,
                 .orElse(layoutInfo().layout());
     }
 
-    public enum AccessorType {GETTER, SETTER,GETTER_AND_SETTER}
+    public enum AccessorType {NONE,GETTER, SETTER, GETTER_AND_SETTER}
 
     /**
      * These are the various combinations that exists. Not all of them are
-     * supported even though they can sometimes be expressed in interfaces and records.
+     * supported even though they can sometimes be expressed in interfaces.
      */
     public enum Key {
-        //                                                 Mapping supported for
-        SCALAR_VALUE_GETTER(SCALAR, VALUE, GETTER, EnumSet.of(INTERFACE)),
-        SCALAR_VALUE_SETTER(SCALAR, VALUE, SETTER, EnumSet.of(INTERFACE)),
-        SCALAR_VALUE_GETTER_AND_SETTER(SCALAR, VALUE, GETTER_AND_SETTER, EnumSet.of(INTERFACE)),
-        SCALAR_INTERFACE_GETTER(SCALAR, INTERFACE, GETTER, EnumSet.of(INTERFACE)),
-        ARRAY_VALUE_GETTER(ARRAY, VALUE, GETTER, EnumSet.of(INTERFACE)),
-        ARRAY_VALUE_SETTER(ARRAY, VALUE, SETTER, EnumSet.of(INTERFACE)),
-        ARRAY_VALUE_GETTER_AND_SETTER(ARRAY, VALUE, GETTER_AND_SETTER, EnumSet.of(INTERFACE)),
-        ARRAY_INTERFACE_GETTER(ARRAY, INTERFACE, GETTER, EnumSet.of(INTERFACE));
+        NONE(Cardinality.NONE,ValueType.NONE,AccessorType.NONE),
+        SCALAR_VALUE_GETTER(SCALAR, VALUE, GETTER),
+        SCALAR_VALUE_SETTER(SCALAR, VALUE, SETTER),
+        SCALAR_VALUE_GETTER_AND_SETTER(SCALAR, VALUE, GETTER_AND_SETTER),
+        SCALAR_INTERFACE_GETTER(SCALAR, INTERFACE, GETTER),
+        ARRAY_VALUE_GETTER(ARRAY, VALUE, GETTER),
+        ARRAY_VALUE_SETTER(ARRAY, VALUE, SETTER),
+        ARRAY_VALUE_GETTER_AND_SETTER(ARRAY, VALUE, GETTER_AND_SETTER),
+        ARRAY_INTERFACE_GETTER(ARRAY, INTERFACE, GETTER);
 
         private final Cardinality cardinality;
         private final ValueType valueType;
         private final AccessorType accessorType;
-        private final Set<ValueType> supportedFor;
 
         Key(Cardinality cardinality,
             ValueType valueType,
-            AccessorType accessorType,
-            Set<ValueType> supportedFor) {
+            AccessorType accessorType) {
             this.cardinality = cardinality;
             this.valueType = valueType;
             this.accessorType = accessorType;
-            this.supportedFor = supportedFor;
         }
 
         public Cardinality cardinality() {
@@ -103,10 +101,6 @@ public record AccessorInfo(Key key,
 
         public AccessorType accessorType() {
             return accessorType;
-        }
-
-        public boolean isSupportedFor(ValueType type) {
-            return supportedFor.contains(type);
         }
 
         public static Key of(Cardinality cardinality,
@@ -141,7 +135,7 @@ public record AccessorInfo(Key key,
                 return SCALAR_VALUE_GETTER;
             } else if (paramTypes.length == 1 && paramTypes[0].isPrimitive() && returnType == Void.TYPE) {
                 return SCALAR_VALUE_SETTER;
-            } else if (paramTypes.length == 1 && MemorySegment.class.isAssignableFrom(paramTypes[0]) && returnType == Void.TYPE) {
+            } else if (paramTypes.length == 1 && MapperUtil.isMemorySegment(paramTypes[0]) && returnType == Void.TYPE) {
                 return SCALAR_VALUE_SETTER;
             } else if (paramTypes.length == 1 && paramTypes[0] == Long.TYPE && returnType.isInterface()) {
                 return ARRAY_INTERFACE_GETTER;
@@ -157,24 +151,23 @@ public record AccessorInfo(Key key,
 
         public static Key of(Class<?> iface, String name) {
             var methods = iface.getDeclaredMethods();
-            Result<Key> modeResult = new Result<>();
+            Result<Key> keyResult = new Result<>();
             Arrays.stream(methods).filter(method -> method.getName().equals(name)).forEach(matchingMethod -> {
-                var thisMode = Key.of(matchingMethod);
-                if (!modeResult.isPresent()) {
-                    modeResult.of(thisMode);
-                } else if ((modeResult.get().equals(ARRAY_VALUE_GETTER) && thisMode.equals(ARRAY_VALUE_SETTER))
-                        || (modeResult.get().equals(ARRAY_VALUE_SETTER) && thisMode.equals(ARRAY_VALUE_GETTER))) {
-                    modeResult.of(ARRAY_VALUE_GETTER_AND_SETTER);
-                } else if ((modeResult.get().equals(SCALAR_VALUE_GETTER) && thisMode.equals(SCALAR_VALUE_SETTER))
-                        || (modeResult.get().equals(SCALAR_VALUE_SETTER) && thisMode.equals(SCALAR_VALUE_GETTER))) {
-                    modeResult.of(SCALAR_VALUE_GETTER_AND_SETTER);
+                var key = Key.of(matchingMethod);
+                if (!keyResult.isPresent()) {
+                    keyResult.of(key);
+                } else if ((keyResult.get().equals(ARRAY_VALUE_GETTER) && key.equals(ARRAY_VALUE_SETTER))
+                        || (keyResult.get().equals(ARRAY_VALUE_SETTER) && key.equals(ARRAY_VALUE_GETTER))) {
+                    keyResult.of(ARRAY_VALUE_GETTER_AND_SETTER);
+                } else if ((keyResult.get().equals(SCALAR_VALUE_GETTER) && key.equals(SCALAR_VALUE_SETTER))
+                        || (keyResult.get().equals(SCALAR_VALUE_SETTER) && key.equals(SCALAR_VALUE_GETTER))) {
+                    keyResult.of(SCALAR_VALUE_GETTER_AND_SETTER);
                 }
             });
-            if (!modeResult.isPresent()) {
+            if (!keyResult.isPresent()) {
                 throw new IllegalStateException("no possible key for " + iface + " " + name);
-                // modeResult.of(Mode.PRIMITIVE_GETTER_AND_SETTER);
             }
-            return modeResult.get();
+            return keyResult.get();
         }
     }
 

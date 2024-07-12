@@ -25,8 +25,10 @@
 
 package hat.ifacemapper;
 
+import hat.buffer.Buffer;
 import hat.ifacemapper.accessor.AccessorInfo;
 import hat.ifacemapper.accessor.Accessors;
+import hat.util.Result;
 
 import java.lang.constant.ClassDesc;
 import java.lang.foreign.GroupLayout;
@@ -173,5 +175,81 @@ public final class MapperUtil {
         } else {
             throw new IllegalStateException("Expecting primitive   " + type);
         }
+    }
+
+
+    static boolean isMappableIface(Class<?> clazz) {
+        return  MappableIface.class.isAssignableFrom(clazz);
+    }
+    static boolean isBuffer(Class<?> clazz) {
+        return  Buffer.class.isAssignableFrom(clazz);
+    }
+
+    static boolean isStruct(Class<?> clazz) {
+        return  Buffer.Struct.class.isAssignableFrom(clazz);
+    }
+    public static boolean isMemorySegment(Class<?> clazz) {
+        return  MemorySegment.class.isAssignableFrom(clazz);
+    }
+
+    static boolean isStructOrBuffer(Class<?> clazz) {
+        return (isBuffer(clazz) || isStruct(clazz));
+    }
+
+    static boolean isUnion(Class<?> clazz) {
+        return  Buffer.Union.class.isAssignableFrom(clazz);
+    }
+
+    static boolean isPrimitive(Class<?> clazz) {
+        return  clazz.isPrimitive();
+    }
+
+    static boolean isVoid(Class<?> clazz) {
+        return  clazz == Void.TYPE;
+    }
+
+    static boolean isLong(Class<?> clazz) {
+        return  clazz == Long.TYPE;
+    }
+
+    /*
+     * From the iface mapper
+     * T foo()             getter iface|primitive  0 args                  , return T     returnType T
+     * T foo(long)    arraygetter iface|primitive  arg[0]==long            , return T     returnType T
+     * void foo(T)            setter       primitive  arg[0]==T               , return void  returnType T
+     * void foo(long, T) arraysetter       primitive  arg[0]==long, arg[1]==T , return void  returnType T
+     */
+    static Class<?> typeOf(Class<?> iface, String name) {
+        var methods = iface.getDeclaredMethods();
+        Result<Class<?>> typeResult = new Result<>();
+        Arrays.stream(methods).filter(method -> method.getName().equals(name)).forEach(matchingMethod -> {
+            Class<?> returnType = matchingMethod.getReturnType();
+            Class<?>[] paramTypes = matchingMethod.getParameterTypes();
+            Class<?> thisType = null;
+            if (paramTypes.length == 0 && (returnType.isInterface() || returnType.isPrimitive())) {
+                thisType = returnType;
+            } else if (paramTypes.length == 1 && paramTypes[0].isPrimitive() && returnType == Void.TYPE) {
+                thisType = paramTypes[0];
+            } else if (paramTypes.length == 1 && isMemorySegment(paramTypes[0]) && returnType == Void.TYPE) {
+                thisType = paramTypes[0];
+            } else if (paramTypes.length == 1 && paramTypes[0] == Long.TYPE && (returnType.isInterface() || returnType.isPrimitive())) {
+                thisType = returnType;
+            } else if (returnType == Void.TYPE && paramTypes.length == 2 &&
+                    paramTypes[0] == Long.TYPE && paramTypes[1].isPrimitive()) {
+                thisType = paramTypes[1];
+            } else {
+                throw new IllegalStateException("Can't determine iface mapping type for " + matchingMethod);
+            }
+            if (!typeResult.isPresent() || typeResult.get().equals(thisType)) {
+                typeResult.of(thisType);
+            } else {
+                throw new IllegalStateException("type mismatch for " + name);
+            }
+        });
+        if (!typeResult.isPresent()) {
+            throw new IllegalStateException("No type mapping for " + iface + " " + name);
+
+        }
+        return typeResult.get();
     }
 }

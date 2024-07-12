@@ -9,6 +9,7 @@ import java.lang.invoke.MethodHandles;
 public interface KernelContext extends Buffer {
     int x();
     void x(int x);
+
     int maxX();
     void maxX(int maxX);
 

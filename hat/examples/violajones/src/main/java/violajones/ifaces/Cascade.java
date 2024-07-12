@@ -25,7 +25,11 @@
 package violajones.ifaces;
 
 import hat.Accelerator;
+import hat.buffer.After;
+import hat.buffer.BoundBy;
 import hat.buffer.BufferAllocator;
+import hat.buffer.Length;
+import hat.buffer.SelectedBy;
 import hat.ifacemapper.Schema;
 import hat.buffer.Buffer;
 
@@ -59,7 +63,6 @@ public interface Cascade extends Buffer {
 
         interface LinkOrValue extends Struct {
             interface Anon  extends Union {
-
                 int featureId();
 
                 float value();
@@ -68,10 +71,11 @@ public interface Cascade extends Buffer {
 
                 void value(float value);
             }
-            boolean hasValue();
 
+            boolean hasValue();
             void hasValue(boolean hasValue);
 
+            @SelectedBy("hasValue")
             Feature.LinkOrValue.Anon anon();
         }
         int id();
@@ -89,19 +93,22 @@ public interface Cascade extends Buffer {
 
         Feature.LinkOrValue right();
 
+        @Length(3)
         Feature.Rect rect(long idx);
     }
 
     interface Stage extends Struct {
+        int id();
+
+        void id(int id);
+
+
         float threshold();
 
         short firstTreeId();
 
         short treeCount();
 
-        int id();
-
-        void id(int id);
 
         void threshold(float threshold);
 
@@ -111,46 +118,46 @@ public interface Cascade extends Buffer {
     }
 
     interface Tree extends Struct {
+        int id();
         void id(int id);
 
         void firstFeatureId(short firstFeatureId);
-
-
         void featureCount(short featureCount);
-
-        int id();
-
-
         short firstFeatureId();
-
         short featureCount();
     }
+    int width();
 
-    Feature feature(long idx);
+    void width(int width);
 
+    @After("width")
+    int height();
+
+    void height(int height);
+
+    @After("height")
     int featureCount();
 
     void featureCount(int featureCount);
 
-    Stage stage(long idx);
+    @BoundBy("featureCount")
+    Feature feature(long idx);
 
     int stageCount();
 
     void stageCount(int stageCount);
 
-    Tree tree(long idx);
+    @BoundBy("stageCount")
+    Stage stage(long idx);
 
     int treeCount();
 
     void treeCount(int treeCount);
 
-    int width();
+    @BoundBy("treeCount")
+    Tree tree(long idx);
 
-    void width(int width);
 
-    int height();
-
-    void height(int height);
     Schema<Cascade> schema = Schema.of(Cascade.class, c -> c
             .fields("width","height")
             .arrayLen("featureCount").array("feature", feature -> feature

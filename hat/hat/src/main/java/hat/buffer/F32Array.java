@@ -38,12 +38,14 @@ public interface F32Array extends Buffer {
 
     int length();
     void length(int i);
+
+    @BoundBy("length")
+    float array(long idx);
+    void array(long idx, float f);
+
     Schema<F32Array> schema = Schema.of(F32Array.class, s32Array->s32Array
             .arrayLen("length").array("array"));
 
-    float array(long idx);
-
-    void array(long idx, float f);
 
     static F32Array create(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator, int length){
         var instance = schema.allocate(lookup,bufferAllocator, length);
