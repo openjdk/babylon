@@ -32,15 +32,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import static hat.ifacemapper.MapperUtil.isMappableIface;
+
 public class HatPtr {
 
-        public static <T extends MappableIface> TypeElement convertToPtrTypeIfPossible(MethodHandles.Lookup lookup, TypeElement typeElement, BoundSchema<?> boundSchema, Schema.SchemaNode.IfaceType ifaceType) {
-            if (getMappableClassOrNull(lookup, typeElement) instanceof Class<?> clazz){
-               // MemoryLayout layout = boundSchema.getLayout(clazz);
-                return new HatPtr.HatPtrType<>((Class<T>) clazz, getLayout((Class<T>) clazz));
-            }else{
-                return typeElement;
+        public static <T extends MappableIface> TypeElement convertToPtrTypeIfPossible(MethodHandles.Lookup lookup, TypeElement typeElement, BoundSchema<?> boundSchema, Schema.IfaceType ifaceType) {
+            try {
+                if (typeElement instanceof JavaType javaType
+                        && javaType.resolve(lookup) instanceof Class<?> possiblyMappableIface
+                        && isMappableIface(possiblyMappableIface) ){
+                    return new HatPtr.HatPtrType<>((Class<T>) possiblyMappableIface,boundSchema, boundSchema.groupLayout());
+                }else{
+                     return typeElement;
+                }
+            } catch (ReflectiveOperationException e) {
+                throw new RuntimeException(e);
             }
+
+
         }
 
         public static <T extends MappableIface> MemoryLayout getLayout(Class<T> mappableIface) {
@@ -53,8 +62,8 @@ public class HatPtr {
 
         public static <T extends MappableIface> Class<T> getMappableClassOrNull(MethodHandles.Lookup lookup, TypeElement typeElement) {
             try {
-                return (typeElement instanceof JavaType jt
-                        && jt.resolve(lookup) instanceof Class<?> possiblyMappableIface
+                return (typeElement instanceof JavaType javaType
+                        && javaType.resolve(lookup) instanceof Class<?> possiblyMappableIface
                         && MappableIface.class.isAssignableFrom(possiblyMappableIface)) ? (Class<T>) possiblyMappableIface : null;
             } catch (ReflectiveOperationException e) {
                 throw new RuntimeException(e);
@@ -68,7 +77,7 @@ public class HatPtr {
                 TypeElement parameterTypeElement=null;
                 if (args[i] instanceof Buffer buffer) {
                     var boundSchema = Buffer.getBoundSchema(buffer);
-                    parameterTypeElement=convertToPtrTypeIfPossible(lookup, parameter.type(), boundSchema,boundSchema.schema().rootIfaceType);
+                    parameterTypeElement=convertToPtrTypeIfPossible(lookup,  parameter.type(), boundSchema,boundSchema.schema().rootIfaceType);
                 }else{
                     parameterTypeElement =parameter.type();
                 }
@@ -259,13 +268,16 @@ public class HatPtr {
 
     public static final class HatPtrType<T extends MappableIface> extends HatType {
         static final String NAME = "ptrType";
+        public final BoundSchema boundSchema;
         public final Class<T> mappableIface;
         final MemoryLayout layout;
         final JavaType referringType;
 
-        public HatPtrType(Class<T> mappableIface, MemoryLayout layout) {
+        public HatPtrType(Class<T> mappableIface, BoundSchema<?> boundSchema, MemoryLayout layout) {
             super(NAME);
+            this.boundSchema = boundSchema;
             this.mappableIface = mappableIface;
+
             this.layout = layout;
             if (layout instanceof StructLayout structLayout){
                 this.referringType =  JavaType.type(ClassDesc.of(structLayout.name().orElseThrow()));
@@ -380,19 +392,18 @@ public class HatPtr {
 
             this.simpleMemberName = simpleMemberName;
             if (ptr.type() instanceof HatPtr.HatPtrType<?> hatPtrType) {
-
                 if (hatPtrType.layout() instanceof StructLayout structLayout) {
                     this.hatPtrType = (HatPtr.HatPtrType<T>) hatPtrType;
                     MemoryLayout.PathElement memberPathElement = MemoryLayout.PathElement.groupElement(simpleMemberName);
                     this.memberOffset = structLayout.byteOffset(memberPathElement);
                     MemoryLayout memberLayout = structLayout.select(memberPathElement);
-                    this.resultType = new HatPtr.HatPtrType<>((Class<T>) hatPtrType.mappableIface, memberLayout);
+                    this.resultType = new HatPtr.HatPtrType<>((Class<T>) hatPtrType.mappableIface,hatPtrType.boundSchema, memberLayout);
                 }else   if (hatPtrType.layout() instanceof SequenceLayout sequenceLayout) {
                     this.hatPtrType = (HatPtr.HatPtrType<T>) hatPtrType;
                     MemoryLayout.PathElement memberPathElement = MemoryLayout.PathElement.groupElement(simpleMemberName);
                     this.memberOffset = sequenceLayout.byteOffset(memberPathElement);
                     MemoryLayout memberLayout = sequenceLayout.select(memberPathElement);
-                    this.resultType = new HatPtr.HatPtrType<>((Class<T>) hatPtrType.mappableIface, memberLayout);
+                    this.resultType = new HatPtr.HatPtrType<>((Class<T>) hatPtrType.mappableIface, hatPtrType.boundSchema, memberLayout);
                 } else {
                     throw new IllegalArgumentException("Pointer type layout is not a struct layout: " + hatPtrType.layout());
                 }

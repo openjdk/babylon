@@ -416,19 +416,19 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
     }
 
 
-    public T typedef(BoundSchema<?> boundSchema, Schema.SchemaNode.IfaceType ifaceType) {
-        typedefKeyword().space().structOrUnion(ifaceType instanceof Schema.SchemaNode.Struct)
+    public T typedef(BoundSchema<?> boundSchema, Schema.IfaceType ifaceType) {
+        typedefKeyword().space().structOrUnion(ifaceType instanceof Schema.IfaceType.Struct)
                 .space().suffix_s(ifaceType.iface.getSimpleName()).braceNlIndented(_ -> {
                     //System.out.println(ifaceTypeNode);
                     int fieldCount = ifaceType.fields.size();
                     StreamCounter.of(ifaceType.fields, (c, field) -> {
                         nlIf(c.isNotFirst());
                         boolean isLast = c.value() == fieldCount - 1;
-                        if (field instanceof Schema.SchemaNode.AbstractPrimitiveField primitiveField) {
+                        if (field instanceof Schema.FieldNode.AbstractPrimitiveField primitiveField) {
                             typeName(primitiveField.type.getSimpleName());
                             space().typeName(primitiveField.name);
-                            if (primitiveField instanceof Schema.SchemaNode.PrimitiveArray array) {
-                                if (array instanceof Schema.SchemaNode.PrimitiveFieldControlledArray fieldControlledArray) {
+                            if (primitiveField instanceof Schema.FieldNode.PrimitiveArray array) {
+                                if (array instanceof Schema.FieldNode.PrimitiveFieldControlledArray fieldControlledArray) {
                                     if (isLast && ifaceType.parent == null) {
                                         sbrace(_ -> literal(1));
                                     } else {
@@ -443,17 +443,17 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
                                             throw new IllegalStateException("we need to extract the array size hat kind of array ");
                                         }
                                     }
-                                } else if (array instanceof Schema.SchemaNode.PrimitiveFixedArray fixed) {
+                                } else if (array instanceof Schema.FieldNode.PrimitiveFixedArray fixed) {
                                     sbrace(_ -> literal(Math.max(1, fixed.len)));
                                 } else {
                                     throw new IllegalStateException("what kind of array ");
                                 }
                             }
-                        } else if (field instanceof Schema.SchemaNode.AbstractIfaceField ifaceField) {
+                        } else if (field instanceof Schema.FieldNode.AbstractIfaceField ifaceField) {
                             suffix_t(ifaceField.type.iface.getSimpleName());
                             space().typeName(ifaceField.name);
-                            if (ifaceField instanceof Schema.SchemaNode.IfaceArray array) {
-                                if (array instanceof Schema.SchemaNode.IfaceFieldControlledArray fieldControlledArray) {
+                            if (ifaceField instanceof Schema.FieldNode.IfaceArray array) {
+                                if (array instanceof Schema.FieldNode.IfaceFieldControlledArray fieldControlledArray) {
                                     if (isLast && ifaceType.parent == null) {
                                         sbrace(_ -> literal(1));
                                     } else {
@@ -468,7 +468,7 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
                                             throw new IllegalStateException("we need to extract the array size hat kind of array ");
                                         }
                                     }
-                                } else if (array instanceof Schema.SchemaNode.IfaceFixedArray fixed) {
+                                } else if (array instanceof Schema.FieldNode.IfaceFixedArray fixed) {
                                     sbrace(_ -> literal(Math.max(1, fixed.len)));
                                 } else {
                                     throw new IllegalStateException("what kind of array ");
