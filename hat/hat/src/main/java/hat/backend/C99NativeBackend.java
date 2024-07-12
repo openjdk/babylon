@@ -75,13 +75,13 @@ public abstract class C99NativeBackend extends NativeBackend {
 
     public <T extends C99HatKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object[] args) {
         builder.defines().pragmas().types();
-        Set<Schema.SchemaNode.IfaceTypeNode> already = new LinkedHashSet<>();
+        Set<Schema.SchemaNode.IfaceType> already = new LinkedHashSet<>();
         Arrays.stream(args)
                 .filter(arg -> arg instanceof Buffer)
                 .map(arg -> (Buffer) arg)
                 .forEach(ifaceBuffer -> {
                     BoundSchema<?> boundSchema = Buffer.getBoundSchema(ifaceBuffer);
-                    boundSchema.schema().rootIfaceTypeNode.visitTypes(0, t -> {
+                    boundSchema.schema().rootIfaceType.visitTypes(0, t -> {
                         if (!already.contains(t)) {
                             builder.typedef(boundSchema, t);
                             already.add(t);

@@ -34,7 +34,7 @@ import java.util.Objects;
 
 public class HatPtr {
 
-        public static <T extends MappableIface> TypeElement convertToPtrTypeIfPossible(MethodHandles.Lookup lookup, TypeElement typeElement, BoundSchema<?> boundSchema, Schema.SchemaNode.IfaceTypeNode ifaceTypeNode) {
+        public static <T extends MappableIface> TypeElement convertToPtrTypeIfPossible(MethodHandles.Lookup lookup, TypeElement typeElement, BoundSchema<?> boundSchema, Schema.SchemaNode.IfaceType ifaceType) {
             if (getMappableClassOrNull(lookup, typeElement) instanceof Class<?> clazz){
                // MemoryLayout layout = boundSchema.getLayout(clazz);
                 return new HatPtr.HatPtrType<>((Class<T>) clazz, getLayout((Class<T>) clazz));
@@ -68,7 +68,7 @@ public class HatPtr {
                 TypeElement parameterTypeElement=null;
                 if (args[i] instanceof Buffer buffer) {
                     var boundSchema = Buffer.getBoundSchema(buffer);
-                    parameterTypeElement=convertToPtrTypeIfPossible(lookup, parameter.type(), boundSchema,boundSchema.schema().rootIfaceTypeNode);
+                    parameterTypeElement=convertToPtrTypeIfPossible(lookup, parameter.type(), boundSchema,boundSchema.schema().rootIfaceType);
                 }else{
                     parameterTypeElement =parameter.type();
                 }

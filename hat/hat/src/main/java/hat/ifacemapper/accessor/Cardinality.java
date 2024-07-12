@@ -1,3 +1,3 @@
 package hat.ifacemapper.accessor;
 
-public enum Cardinality {SCALAR, ARRAY}
+public enum Cardinality {NONE,SCALAR, ARRAY}

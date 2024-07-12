@@ -1,5 +1,5 @@
 package hat.ifacemapper.accessor;
 
 public enum ValueType {
-    VALUE, INTERFACE
+    NONE,VALUE, INTERFACE
 }
