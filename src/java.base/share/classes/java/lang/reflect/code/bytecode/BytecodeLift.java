@@ -61,9 +61,15 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
+import java.lang.constant.ConstantDesc;
 import java.lang.constant.DirectMethodHandleDesc;
 import java.lang.constant.DynamicConstantDesc;
+import java.lang.constant.MethodHandleDesc;
 import java.lang.constant.MethodTypeDesc;
+import java.lang.invoke.CallSite;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.lang.reflect.code.op.CoreOp.LambdaOp;
 import java.lang.reflect.code.type.PrimitiveType;
 import java.lang.reflect.code.type.VarType;
@@ -428,40 +434,89 @@ public final class BytecodeLift {
                         stack.push(result);
                     }
                 }
-                case InvokeDynamicInstruction inst when inst.bootstrapMethod().kind() == DirectMethodHandleDesc.Kind.STATIC
-                                                     && inst.bootstrapMethod().owner().equals(CD_LambdaMetafactory)
-                                                     && inst.bootstrapArgs().get(0) instanceof MethodTypeDesc mtd
-                                                     && inst.bootstrapArgs().get(1) instanceof DirectMethodHandleDesc dmhd -> {
-                    LambdaOp.Builder lambda = CoreOp.lambda(currentBlock.parentBody(),
-                            FunctionType.functionType(JavaType.type(mtd.returnType()), mtd.parameterList().stream().map(JavaType::type).toList()),
-                            JavaType.type(inst.typeSymbol().returnType()));
-                    if (dmhd.owner().equals(classModel.thisClass().asSymbol())) {
-                        // inline lambda impl method
-                        MethodModel implMethod = classModel.methods().stream().filter(m -> m.methodName().equalsString(dmhd.methodName())).findFirst().orElseThrow();
-                        var capturedValues = new Value[dmhd.invocationType().parameterCount() - mtd.parameterCount()];
-                        for (int ci = capturedValues.length - 1; ci >= 0; ci--) {
-                            capturedValues[ci] = stack.pop();
+                case InvokeDynamicInstruction inst when inst.bootstrapMethod().kind() == DirectMethodHandleDesc.Kind.STATIC -> {
+                    if (inst.bootstrapMethod().owner().equals(CD_LambdaMetafactory)
+                        && inst.bootstrapArgs().get(0) instanceof MethodTypeDesc mtd
+                        && inst.bootstrapArgs().get(1) instanceof DirectMethodHandleDesc dmhd) {
+
+                        LambdaOp.Builder lambda = CoreOp.lambda(currentBlock.parentBody(),
+                                FunctionType.functionType(JavaType.type(mtd.returnType()), mtd.parameterList().stream().map(JavaType::type).toList()),
+                                JavaType.type(inst.typeSymbol().returnType()));
+                        if (dmhd.methodName().startsWith("lambda$") && dmhd.owner().equals(classModel.thisClass().asSymbol())) {
+                            // inline lambda impl method
+                            MethodModel implMethod = classModel.methods().stream().filter(m -> m.methodName().equalsString(dmhd.methodName())).findFirst().orElseThrow();
+                            var capturedValues = new Value[dmhd.invocationType().parameterCount() - mtd.parameterCount()];
+                            for (int ci = capturedValues.length - 1; ci >= 0; ci--) {
+                                capturedValues[ci] = stack.pop();
+                            }
+                            for (int ci = capturedValues.length; ci < inst.typeSymbol().parameterCount(); ci++) {
+                                stack.pop();
+                            }
+                            stack.push(op(lambda.body(
+                                    eb -> new BytecodeLift(eb,
+                                                           classModel,
+                                                           implMethod.code().orElseThrow(),
+                                                           capturedValues).liftBody())));
+                        } else {
+                            // lambda call to a MH
+                            stack.push(op(lambda.body(eb -> {
+                                MethodTypeDesc mt = dmhd.invocationType();
+                                eb.op(CoreOp._return(eb.op(CoreOp.invoke(
+                                        MethodRef.method(
+                                                JavaType.type(dmhd.owner()),
+                                                dmhd.methodName(),
+                                                JavaType.type(mt.returnType()),
+                                                mt.parameterList().stream().map(JavaType::type).toList()),
+                                        eb.parameters().stream().toArray(Value[]::new)))));
+                            })));
                         }
-                        for (int ci = capturedValues.length; ci < inst.typeSymbol().parameterCount(); ci++) {
-                            stack.pop();
-                        }
-                        stack.push(op(lambda.body(
-                                eb -> new BytecodeLift(eb,
-                                                       classModel,
-                                                       implMethod.code().orElseThrow(),
-                                                       capturedValues).liftBody())));
                     } else {
-                        // lambda call to a MH
-                        stack.push(op(lambda.body(eb -> {
-                            MethodTypeDesc mt = dmhd.invocationType();
-                            eb.op(CoreOp._return(eb.op(CoreOp.invoke(
-                                    MethodRef.method(
-                                            JavaType.type(dmhd.owner()),
-                                            dmhd.methodName(),
-                                            JavaType.type(mt.returnType()),
-                                            mt.parameterList().stream().map(JavaType::type).toList()),
-                                    eb.parameters().stream().toArray(Value[]::new)))));
-                        })));
+                        MethodTypeDesc mtd = inst.typeSymbol();
+
+                        //bootstrap
+                        List<Value> bootstrapArgs = new ArrayList<>();
+                        bootstrapArgs.add(op(CoreOp.invoke(MethodRef.method(MethodHandles.class, "lookup", MethodType.methodType(MethodHandles.Lookup.class)))));
+                        bootstrapArgs.add(op(CoreOp.constant(JavaType.J_L_STRING, inst.name().toString())));
+                        Class<?>[] params = new Class<?>[mtd.parameterCount()];
+                        Arrays.fill(params, Class.class);
+                        bootstrapArgs.add(op(CoreOp.invoke(MethodRef.method(MethodType.class, "methodType", MethodType.class, params),
+                                                           mtd.parameterList().stream().map(cd -> op(CoreOp.constant(JavaType.J_L_CLASS, JavaType.type(cd)))).toArray(Value[]::new))));
+                        for (ConstantDesc barg : inst.bootstrapArgs()) {
+                            bootstrapArgs.add(op(switch (barg) {
+                                case ClassDesc cd -> CoreOp.constant(JavaType.J_L_CLASS, cd);
+                                case Double d -> CoreOp.constant(JavaType.DOUBLE, d);
+                                case Float f -> CoreOp.constant(JavaType.FLOAT, f);
+                                case Integer ii -> CoreOp.constant(JavaType.INT, ii);
+                                case Long l -> CoreOp.constant(JavaType.LONG, l);
+                                case String s -> CoreOp.constant(JavaType.J_L_STRING, s);
+                                case MethodHandleDesc mh -> throw new UnsupportedOperationException("MethodHandleDesc");
+                                case MethodTypeDesc mt -> throw new UnsupportedOperationException("MethodTypeDesc");
+                                case DynamicConstantDesc<?> dc -> throw new UnsupportedOperationException("DynamicConstantDesc");
+                            }));
+                        }
+                        DirectMethodHandleDesc bsm = inst.bootstrapMethod();
+                        MethodTypeDesc bsmDesc = bsm.invocationType();
+                        MethodRef bsmRef = MethodRef.method(JavaType.type(bsm.owner()),
+                                                            bsm.methodName(),
+                                                            JavaType.type(bsmDesc.returnType()),
+                                                            bsmDesc.parameterList().stream().map(JavaType::type).toArray(TypeElement[]::new));
+                        Value methodHandle = op(CoreOp.invoke(MethodRef.method(CallSite.class, "dynamicInvoker", CallSite.class, MethodHandle.class),
+                                                    op(CoreOp.invoke(JavaType.type(ConstantDescs.CD_CallSite), bsmRef, bootstrapArgs))));
+
+                        //invocation
+                        FunctionType mType = MethodRef.ofNominalDescriptor(mtd.insertParameterTypes(0, ConstantDescs.CD_MethodHandle));
+                        List<Value> operands = new ArrayList<>();
+                        for (int c = 0; c < mtd.parameterCount(); c++) {
+                            operands.add(stack.pop());
+                        }
+                        operands.add(methodHandle);
+                        MethodRef mDesc = MethodRef.method(JavaType.type(ConstantDescs.CD_MethodHandle),
+                                                           "invokeExact",
+                                                           mType);
+                        Op.Result result = op(CoreOp.invoke(mDesc, operands.reversed()));
+                        if (!result.type().equals(JavaType.VOID)) {
+                            stack.push(result);
+                        }
                     }
                 }
                 case NewObjectInstruction _ -> {
