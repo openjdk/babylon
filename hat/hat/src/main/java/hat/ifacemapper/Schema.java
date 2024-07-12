@@ -38,7 +38,7 @@ public class Schema<T extends Buffer> {
                 thisType = returnType;
             } else if (paramTypes.length == 1 && paramTypes[0].isPrimitive() && returnType == Void.TYPE) {
                 thisType = paramTypes[0];
-            } else if (paramTypes.length == 1 && MemorySegment.class.isAssignableFrom(paramTypes[0]) && returnType == Void.TYPE) {
+            } else if (paramTypes.length == 1 && isMemorySegment(paramTypes[0]) && returnType == Void.TYPE) {
                 thisType = paramTypes[0];
             } else if (paramTypes.length == 1 && paramTypes[0] == Long.TYPE && (returnType.isInterface() || returnType.isPrimitive())) {
                 thisType = returnType;
@@ -60,21 +60,26 @@ public class Schema<T extends Buffer> {
         }
         return typeResult.get();
     }
-
+    static boolean isMappableIface(Class<?> clazz) {
+        return  MappableIface.class.isAssignableFrom(clazz);
+    }
     static boolean isBuffer(Class<?> clazz) {
-        return clazz.isInterface() && Buffer.class.isAssignableFrom(clazz);
+        return  Buffer.class.isAssignableFrom(clazz);
     }
 
     static boolean isStruct(Class<?> clazz) {
-        return clazz.isInterface() && Buffer.Struct.class.isAssignableFrom(clazz);
+        return  Buffer.Struct.class.isAssignableFrom(clazz);
+    }
+    static boolean isMemorySegment(Class<?> clazz) {
+        return  MemorySegment.class.isAssignableFrom(clazz);
     }
 
     static boolean isStructOrBuffer(Class<?> clazz) {
-        return clazz.isInterface() && (Buffer.class.isAssignableFrom(clazz) || Buffer.Struct.class.isAssignableFrom(clazz));
+        return (isBuffer(clazz) || isStruct(clazz));
     }
 
     static boolean isUnion(Class<?> clazz) {
-        return clazz.isInterface() && Buffer.Union.class.isAssignableFrom(clazz);
+        return  Buffer.Union.class.isAssignableFrom(clazz);
     }
 
     public static abstract sealed class SchemaNode permits SchemaNode.FieldNode, SchemaNode.IfaceTypeNode {
@@ -123,6 +128,7 @@ public class Schema<T extends Buffer> {
                 this.name = name;
             }
         }
+        
         public static abstract sealed class PrimitiveNamedFieldNode extends NamedFieldNode permits PrimitiveArray, ArrayLen, AtomicField, PrimitiveField {
             public Class<?> type;
             PrimitiveNamedFieldNode(IfaceTypeNode parent, AccessorInfo.Key key, Class<?> type, String name) {
@@ -138,9 +144,9 @@ public class Schema<T extends Buffer> {
         public static abstract sealed class MapableIfaceNamedFieldNode extends NamedFieldNode permits IfaceMappableArray,  MappableIfaceField {
 
             public IfaceTypeNode ifaceTypeNode;
-            MapableIfaceNamedFieldNode(IfaceTypeNode parent, AccessorInfo.Key key, Class<MappableIface> iface, String name) {
+            MapableIfaceNamedFieldNode(IfaceTypeNode parent, AccessorInfo.Key key,  IfaceTypeNode ifaceTypeNode,String name) {
                 super(parent,key, name);
-                this.ifaceTypeNode = parent.ifaceTypeNodes.stream().filter(n->n.iface.isAssignableFrom(iface)).findFirst().orElseThrow();
+                this.ifaceTypeNode = ifaceTypeNode;
             }
             @Override
             public void collectLayouts(BoundSchemaNode boundSchemaNode) {
@@ -191,8 +197,8 @@ public class Schema<T extends Buffer> {
 
         public static final class MappableIfaceField extends MapableIfaceNamedFieldNode {
 
-            MappableIfaceField(IfaceTypeNode parent, AccessorInfo.Key key, Class<MappableIface> type, String name) {
-                super(parent, key, type, name);
+            MappableIfaceField(IfaceTypeNode parent, AccessorInfo.Key key,IfaceTypeNode ifaceTypeNode,String name) {
+                super(parent, key, ifaceTypeNode,name);
 
             }
 
@@ -235,6 +241,18 @@ public class Schema<T extends Buffer> {
                 this.iface = iface;
             }
 
+            IfaceTypeNode getChild(Class<?> iface){
+                Optional<IfaceTypeNode> ifaceTypeNodeOptional =ifaceTypeNodes
+                        .stream()
+                        .filter(n->n.iface.equals(iface))
+                        .findFirst();
+                if (ifaceTypeNodeOptional.isPresent()){
+                    return ifaceTypeNodeOptional.get();
+                }else {
+                    throw new IllegalStateException("no supported iface type");
+                }
+            }
+
             public void visitTypes(int depth, Consumer<SchemaNode.IfaceTypeNode> ifaceTypeNodeConsumer) {
                 ifaceTypeNodes.forEach(t->t.visitTypes(depth+1,ifaceTypeNodeConsumer));
                 ifaceTypeNodeConsumer.accept(this);
@@ -253,19 +271,19 @@ public class Schema<T extends Buffer> {
             MemoryLayout getLayout(Class<?> type, BoundSchemaNode boundSchemaNode) {
                 if (type.isPrimitive()) {
                     return MapperUtil.primitiveToLayout(type);
-                }else if (MemorySegment.class.isAssignableFrom(type)) {
+                }else if (isMemorySegment(type)) {
                     return ValueLayout.ADDRESS;
                 } else {
                     IfaceTypeNode ifaceTypeNode = ifaceTypeNodes.stream()
                             .filter(i -> i.iface.equals(type))
                             .findFirst().orElseThrow();
-                        BoundSchemaNode scope = boundSchemaNode.createChild(ifaceTypeNode);
+                        BoundSchemaNode child = boundSchemaNode.createChild(ifaceTypeNode);
                         ifaceTypeNode.fields.forEach(fieldNode ->
-                                fieldNode.collectLayouts(scope)
+                                fieldNode.collectLayouts(child)
                         );
                         return isUnion(ifaceTypeNode.iface)
-                                ? MemoryLayout.unionLayout(scope.memoryLayoutListToArray())
-                                : MemoryLayout.structLayout(scope.memoryLayoutListToArray());
+                                ? MemoryLayout.unionLayout(child.memoryLayoutListToArray())
+                                : MemoryLayout.structLayout(child.memoryLayoutListToArray());
                 }
             }
 
@@ -282,10 +300,10 @@ public class Schema<T extends Buffer> {
             public IfaceTypeNode field(String name) {
                 var key = AccessorInfo.Key.of(iface, name);
                 var typeOf = typeOf(iface, name);
-                addField(MemorySegment.class.isAssignableFrom(typeOf)
+                addField(isMemorySegment(typeOf)
                         ? new AddressField(this, key, (Class<MemorySegment>)typeOf, name)
-                        : MappableIface.class.isAssignableFrom(typeOf)
-                           ? new MappableIfaceField(this, key, (Class<MappableIface>) typeOf, name)
+                        : isMappableIface(typeOf)
+                           ? new MappableIfaceField(this, key, this.getChild(typeOf), name)
                            : new PrimitiveField(this, key, typeOf, name));
                 return this;
             }
@@ -303,9 +321,9 @@ public class Schema<T extends Buffer> {
             public IfaceTypeNode field(String name, Consumer<IfaceTypeNode> parentSchemaNodeConsumer) {
                 AccessorInfo.Key fieldKey = AccessorInfo.Key.of(iface, name);
                 Class<MappableIface> fieldType = (Class<MappableIface>)typeOf(iface, name);
-                  IfaceTypeNode structOrUnion= isStruct(fieldType) ? new SchemaNode.Struct(this, fieldType) : new SchemaNode.Union(this, fieldType);
+                IfaceTypeNode structOrUnion= isStruct(fieldType) ? new SchemaNode.Struct(this, fieldType) : new SchemaNode.Union(this, fieldType);
                 addIfaceTypeNode(structOrUnion);
-                addField(new MappableIfaceField(this, fieldKey, fieldType, name));
+                addField(new MappableIfaceField(this, fieldKey, structOrUnion,name));
                 parentSchemaNodeConsumer.accept(structOrUnion);
                 return this;
             }
@@ -325,8 +343,8 @@ public class Schema<T extends Buffer> {
                         ? new SchemaNode.Struct(this, structOrUnionType)
                         : new SchemaNode.Union(this, structOrUnionType);
                 addIfaceTypeNode(ifaceTypeNode);
-                addField(new MappableIfaceField(this, fieldKey1, structOrUnionType, name1));
-                addField(new MappableIfaceField(this, fieldKey2, structOrUnionType, name2));
+                addField(new MappableIfaceField(this, fieldKey1, ifaceTypeNode,name1));
+                addField(new MappableIfaceField(this, fieldKey2,  ifaceTypeNode,name2));
 
                 parentSchemaNodeConsumer.accept(ifaceTypeNode);
                 return this;
@@ -341,8 +359,9 @@ public class Schema<T extends Buffer> {
 
             public IfaceTypeNode array(String name, int len) {
                 AccessorInfo.Key arrayKey = AccessorInfo.Key.of(iface, name);
+                var typeof = typeOf(iface,name);
                 addField(arrayKey.valueType().equals(ValueType.INTERFACE)
-                        ?new IfaceMapableFixedArray( this,arrayKey,(Class<MappableIface>)typeOf(iface,name),name, len)
+                        ?new IfaceMapableFixedArray( this,arrayKey,this.getChild(typeof),name, len)
                         :new PrimitiveFixedArray(this, arrayKey, typeOf(iface, name), name, len));
                 return this;
             }
@@ -355,15 +374,16 @@ public class Schema<T extends Buffer> {
                         : new SchemaNode.Union(this, structOrUnionType);
                 parentFieldConsumer.accept(ifaceTypeNode);
                 addIfaceTypeNode(ifaceTypeNode);
-                addField(new IfaceMapableFixedArray(this, arrayKey, structOrUnionType, name, len));
+                addField(new IfaceMapableFixedArray(this, arrayKey, ifaceTypeNode, name, len));
                 return this;
             }
 
             private IfaceTypeNode fieldControlledArray(String name, List<ArrayLen> arrayLenFields, int stride) {
                 AccessorInfo.Key arrayKey = AccessorInfo.Key.of(iface, name);
+                var typeOf = typeOf(iface, name);
                 addField(arrayKey.valueType().equals(ValueType.INTERFACE)
-                        ?new IfaceMapableFieldControlledArray(this, arrayKey, (Class<MappableIface>)typeOf(iface, name), name,  arrayLenFields, stride)
-                        :new PrimitiveFieldControlledArray(this, arrayKey, typeOf(iface, name), name,  arrayLenFields, stride));
+                        ?new IfaceMapableFieldControlledArray(this, arrayKey, this.getChild(typeOf),name,  arrayLenFields, stride)
+                        :new PrimitiveFieldControlledArray(this, arrayKey, typeOf, name,  arrayLenFields, stride));
                 return this;
             }
 
@@ -454,8 +474,8 @@ public class Schema<T extends Buffer> {
             }
         }
         public abstract static sealed class IfaceMappableArray extends MapableIfaceNamedFieldNode permits IfaceMapableFieldControlledArray, IfaceMapableFixedArray {
-            IfaceMappableArray(IfaceTypeNode parent, AccessorInfo.Key key, Class<MappableIface> iface, String name) {
-                super(parent, key, iface, name);
+            IfaceMappableArray(IfaceTypeNode parent, AccessorInfo.Key key,  IfaceTypeNode ifaceTypeNode, String name) {
+                super(parent, key, ifaceTypeNode, name);
             }
         }
         public abstract static sealed class PrimitiveArray extends PrimitiveNamedFieldNode permits PrimitiveFieldControlledArray, PrimitiveFixedArray {
@@ -466,8 +486,8 @@ public class Schema<T extends Buffer> {
         public static final class IfaceMapableFixedArray extends IfaceMappableArray {
             public int len;
 
-            IfaceMapableFixedArray(IfaceTypeNode parent, AccessorInfo.Key key, Class<MappableIface> iface, String name, int len) {
-                super(parent, key, iface, name);
+            IfaceMapableFixedArray(IfaceTypeNode parent, AccessorInfo.Key key,  IfaceTypeNode ifaceTypeNode,String name, int len) {
+                super(parent, key, ifaceTypeNode, name);
                 this.len = len;
             }
 
@@ -509,8 +529,8 @@ public class Schema<T extends Buffer> {
             int stride;
             int contributingDims;
 
-            IfaceMapableFieldControlledArray(IfaceTypeNode parent, AccessorInfo.Key key, Class<MappableIface> type, String name, List<ArrayLen> arrayLenFields, int stride) {
-                super(parent, key, type, name);
+            IfaceMapableFieldControlledArray(IfaceTypeNode parent, AccessorInfo.Key key, IfaceTypeNode ifaceTypeNode, String name, List<ArrayLen> arrayLenFields, int stride) {
+                super(parent, key, ifaceTypeNode,name);
                 this.arrayLenFields = arrayLenFields;
                 this.stride = stride;
                 this.contributingDims = arrayLenFields.size();
