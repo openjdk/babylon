@@ -37,23 +37,21 @@ public interface ArgArray extends Buffer {
         interface Value extends Buffer.Union{
             interface Buf extends Buffer.Struct{
                 MemorySegment address();
-
                 void address(MemorySegment address);
 
-                long bytes();
-
+                @After("address") long bytes();
                 void bytes(long bytes);
 
+                @After("bytes")
                 MemorySegment vendorPtr();
-
                 void vendorPtr(MemorySegment vendorPtr);
 
+                @After("vendorPtr")
                 byte access();
-
                 void access(byte access);
 
+                @After("access")
                 byte state();
-
                 void state(byte state);
             }
 
@@ -101,14 +99,12 @@ public interface ArgArray extends Buffer {
         }
 
         int idx();
-
         void idx(int idx);
 
-        byte variant();
-
+        @After("idx") byte variant();
         void variant(byte variant);
 
-        Value value();
+        @SelectedBy("variant") @Pad(11) Value value();
 
         default String asString() {
             switch (variant()) {
@@ -215,29 +211,31 @@ public interface ArgArray extends Buffer {
             value().f64(f64);
         }
     }
-    int argc();
 
+    int argc();
     void argc(int argc);
 
-    int schemaLen();
-
-    void schemaLen(int schemaLen);
-
-    byte schemaBytes(long idx);
-
-    void schemaBytes(long idx, byte b);
+    @BoundBy("argc") @Pad(12)
     Arg arg(long idx);
 
+    @After("arg")
     MemorySegment vendorPtr();
-
     void vendorPtr(MemorySegment vendorPtr);
+
+    @After("vendorPtr")
+    int schemaLen();
+    void schemaLen(int schemaLen);
+
+    @BoundBy("schemaLen")
+    byte schemaBytes(long idx);
+    void schemaBytes(long idx, byte b);
 
     Schema<ArgArray> schema = Schema.of(ArgArray.class, s->s
             .arrayLen("argc")
-            .pad((int)(16 - JAVA_INT.byteSize()))
+            .pad(12/*(int)(16 - JAVA_INT.byteSize())*/)
             .array("arg", arg->arg
                             .fields("idx","variant")
-                            .pad((int)(16 - JAVA_INT.byteSize() - JAVA_BYTE.byteSize()))
+                            .pad(11/*(int)(16 - JAVA_INT.byteSize() - JAVA_BYTE.byteSize())*/)
                             .field("value", value->value
                                             .fields("z1","s8","u16","s16","s32","u32","f32","s64","u64","f64")
                                                     .field("buf", buf->buf

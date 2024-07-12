@@ -40,7 +40,6 @@ public class Schema<T extends Buffer> {
                 this.name = name;
             }
             public abstract void toText(String indent, Consumer<String> stringConsumer);
-            public abstract void collectLayouts(BoundSchemaNode layoutCollector);
         }
 
         public static final class Padding extends FieldNode {
@@ -53,13 +52,7 @@ public class Schema<T extends Buffer> {
             public void toText(String indent, Consumer<String> stringConsumer) {
                 stringConsumer.accept(indent + "padding " + len + " bytes");
             }
-
-            @Override
-            public void collectLayouts(BoundSchemaNode layoutToFieldBindingNode) {
-                layoutToFieldBindingNode.bind(this, MemoryLayout.paddingLayout(len));
-            }
         }
-
 
         public static abstract sealed class AbstractPrimitiveField extends FieldNode
                 permits PrimitiveArray, ArrayLen, AtomicField, PrimitiveField {
@@ -68,23 +61,14 @@ public class Schema<T extends Buffer> {
                 super(parent,key,  name);
                 this.type = type;
             }
-
-            @Override
-            public void collectLayouts(BoundSchemaNode boundSchemaNode) {
-                boundSchemaNode.bind(this, parent.getBoundLayout(this.type, boundSchemaNode).withName(name));
-            }
         }
+
         public static abstract sealed class AbstractIfaceField extends FieldNode
                 permits IfaceArray, IfaceField {
-
             public IfaceType type;
             AbstractIfaceField(IfaceType parent, AccessorInfo.Key key, IfaceType type, String name) {
                 super(parent,key, name);
                 this.type = type;
-            }
-            @Override
-            public void collectLayouts(BoundSchemaNode boundSchemaNode) {
-                boundSchemaNode.bind(this, parent.getBoundLayout(this.type.iface, boundSchemaNode).withName(name));
             }
         }
         public static final class AddressField extends FieldNode {
@@ -98,10 +82,6 @@ public class Schema<T extends Buffer> {
             public void toText(String indent, Consumer<String> stringConsumer) {
                 stringConsumer.accept(indent + "address " + key + ":" + type);
             }
-            @Override
-            public void collectLayouts(BoundSchemaNode boundSchemaNode) {
-                boundSchemaNode.bind(this, parent.getBoundLayout(type, boundSchemaNode).withName(name));
-            }
         }
         public static final class ArrayLen extends AbstractPrimitiveField {
             ArrayLen(IfaceType parent, AccessorInfo.Key key, Class<?> type, String name) {
@@ -112,7 +92,6 @@ public class Schema<T extends Buffer> {
             public void toText(String indent, Consumer<String> stringConsumer) {
                 stringConsumer.accept(indent + "arrayLen " + key + ":" + type);
             }
-
         }
 
         public static final class AtomicField extends AbstractPrimitiveField {
@@ -124,7 +103,6 @@ public class Schema<T extends Buffer> {
             public void toText(String indent, Consumer<String> stringConsumer) {
                 stringConsumer.accept(indent + "atomic " + key + ":" + type);
             }
-
         }
 
         public static final class IfaceField extends AbstractIfaceField {
@@ -138,7 +116,6 @@ public class Schema<T extends Buffer> {
             public void toText(String indent, Consumer<String> stringConsumer) {
                 stringConsumer.accept(indent + "mappable field " + key + ":" + type.iface);
             }
-
         }
         public static final class PrimitiveField extends AbstractPrimitiveField {
 
@@ -150,6 +127,78 @@ public class Schema<T extends Buffer> {
             @Override
             public void toText(String indent, Consumer<String> stringConsumer) {
                 stringConsumer.accept(indent + "primitive field " + key + ":" + type);
+            }
+        }
+        public abstract static sealed class IfaceArray extends AbstractIfaceField permits IfaceFieldControlledArray, IfaceFixedArray {
+            IfaceArray(IfaceType parent, AccessorInfo.Key key, IfaceType ifaceType, String name) {
+                super(parent, key, ifaceType, name);
+            }
+        }
+        public abstract static sealed class PrimitiveArray extends AbstractPrimitiveField permits PrimitiveFieldControlledArray, PrimitiveFixedArray {
+            PrimitiveArray(IfaceType parent, AccessorInfo.Key key, Class<?> type, String name) {
+                super(parent, key, type, name);
+            }
+        }
+        public static final class IfaceFixedArray extends IfaceArray {
+            public int len;
+
+            IfaceFixedArray(IfaceType parent, AccessorInfo.Key key, IfaceType ifaceType, String name, int len) {
+                super(parent, key, ifaceType, name);
+                this.len = len;
+            }
+
+            @Override
+            public void toText(String indent, Consumer<String> stringConsumer) {
+                stringConsumer.accept(indent + "array [" + len + "]");
+            }
+
+        }
+        public static final class PrimitiveFixedArray extends PrimitiveArray {
+            public int len;
+
+            PrimitiveFixedArray(IfaceType parent, AccessorInfo.Key key, Class<?> type, String name, int len) {
+                super(parent, key, type, name);
+                this.len = len;
+            }
+
+            @Override
+            public void toText(String indent, Consumer<String> stringConsumer) {
+                stringConsumer.accept(indent + "primitive array [" + len + "]");
+            }
+        }
+
+        public static final class IfaceFieldControlledArray extends IfaceArray {
+            List<ArrayLen> arrayLenFields;
+            int stride;
+            int contributingDims;
+
+            IfaceFieldControlledArray(IfaceType parent, AccessorInfo.Key key, IfaceType ifaceType, String name, List<ArrayLen> arrayLenFields, int stride) {
+                super(parent, key, ifaceType,name);
+                this.arrayLenFields = arrayLenFields;
+                this.stride = stride;
+                this.contributingDims = arrayLenFields.size();
+            }
+
+            @Override
+            public void toText(String indent, Consumer<String> stringConsumer) {
+                stringConsumer.accept(indent + name + "[" + key + ":" + type.iface + "] where len defined by " + arrayLenFields);
+            }
+        }
+        public static final class PrimitiveFieldControlledArray extends PrimitiveArray {
+            List<ArrayLen> arrayLenFields;
+            int stride;
+            int contributingDims;
+
+            PrimitiveFieldControlledArray(IfaceType parent, AccessorInfo.Key key, Class<?> type, String name, List<ArrayLen> arrayLenFields, int stride) {
+                super(parent, key, type, name);
+                this.arrayLenFields = arrayLenFields;
+                this.stride = stride;
+                this.contributingDims = arrayLenFields.size();
+            }
+
+            @Override
+            public void toText(String indent, Consumer<String> stringConsumer) {
+                stringConsumer.accept(indent + name + "[" + key + ":" + type + "] where len defined by " + arrayLenFields);
             }
         }
 
@@ -191,13 +240,61 @@ public class Schema<T extends Buffer> {
                 ifaceTypeNodeConsumer.accept(this);
             }
 
-            static public GroupLayout getBoundGroupLayout(IfaceType ifaceType, BoundSchemaNode child){
-                ifaceType.fields.forEach(fieldNode ->
-                        fieldNode.collectLayouts(child)
+            public GroupLayout getBoundGroupLayout( BoundSchemaNode parentBoundSchemaNode){
+
+                BoundSchemaNode child =parentBoundSchemaNode.createChild(this);
+                this.fields.forEach(fieldNode -> {
+                            if (fieldNode instanceof Padding field) {
+                                child.bind(field, MemoryLayout.paddingLayout(field.len));
+                            }else if (fieldNode instanceof AddressField field) {
+                                child.bind(field, field.parent.getBoundLayout(field.type, child).withName(field.name));
+                            }else if (fieldNode instanceof ArrayLen field) {
+                                child.bind(field, field.parent.getBoundLayout(field.type, child).withName(field.name));
+                            }else if (fieldNode instanceof AtomicField field) {
+                                child.bind(field, field.parent.getBoundLayout(field.type, child).withName(field.name));
+                            }else if (fieldNode instanceof IfaceField field) {
+                                child.bind(field, field.parent.getBoundLayout(field.type.iface, child).withName(field.name));
+                            }else if (fieldNode instanceof PrimitiveField field) {
+                                child.bind(field, field.parent.getBoundLayout(field.type, child).withName(field.name));
+                            }else if (fieldNode instanceof IfaceFixedArray field) {
+                                child.bind(field, MemoryLayout.sequenceLayout(field.len,
+                                        field.parent.getBoundLayout(field.type.iface, child).withName(field.type.iface.getSimpleName())
+                                ).withName(field.name));
+                            }else if (fieldNode instanceof PrimitiveFixedArray field) {
+                                child.bind(field, MemoryLayout.sequenceLayout(field.len,
+                                        field.parent.getBoundLayout(field.type, child).withName(field.type.getSimpleName())
+                                ).withName(field.name));
+                            }else if (fieldNode instanceof IfaceFieldControlledArray field) {
+
+                                // To determine the actual 'array' size we multiply the contributing dims by the stride .
+                                int size = field.stride; //usually 1 but developer can define.
+                                for (int i = 0; i < field.contributingDims; i++) {
+                                    size *= child.takeArrayLen(); // this takes an arraylen and bumps the ptr
+                                }
+
+                                child.bind(field, MemoryLayout.sequenceLayout(size,
+                                        field.parent.getBoundLayout(field.type.iface, child).withName(field.type.iface.getSimpleName())
+                                ).withName(field.name));
+                            }else if (fieldNode instanceof PrimitiveFieldControlledArray field){
+
+                                    // To determine the actual 'array' size we multiply the contributing dims by the stride .
+                                    int size = field.stride; //usually 1 but developer can define.
+                                    for (int i = 0; i < field.contributingDims; i++) {
+                                        size *= child.takeArrayLen(); // this takes an arraylen and bumps the ptr
+                                    }
+
+                                    child.bind(field, MemoryLayout.sequenceLayout(size,
+                                            field.parent.getBoundLayout(field.type, child).withName(field.type.getSimpleName())
+                                    ).withName(field.name));
+
+                            }else {
+                                throw new IllegalStateException("what is this?");
+                            }
+                        }
                 );
-                return (MapperUtil.isUnion(ifaceType.iface)
+                return (MapperUtil.isUnion(this.iface)
                         ? MemoryLayout.unionLayout(child.memoryLayoutListToArray())
-                        : MemoryLayout.structLayout(child.memoryLayoutListToArray())).withName(ifaceType.iface.getSimpleName());
+                        : MemoryLayout.structLayout(child.memoryLayoutListToArray())).withName(this.iface.getSimpleName());
             }
 
             /**
@@ -216,10 +313,7 @@ public class Schema<T extends Buffer> {
                 }else if (MapperUtil.isMemorySegment(type)) {
                     return ValueLayout.ADDRESS;
                 } else {
-                    IfaceType ifaceType = ifaceTypes.stream()
-                            .filter(i -> i.iface.equals(type))
-                            .findFirst().orElseThrow();
-                        return getBoundGroupLayout(ifaceType, boundSchemaNode.createChild(ifaceType));
+                   return  getChild(type).getBoundGroupLayout( boundSchemaNode);
                 }
             }
 
@@ -407,117 +501,6 @@ public class Schema<T extends Buffer> {
         public static final class Union extends IfaceType {
             Union(IfaceType parent, Class<MappableIface> type) {
                 super(parent, type);
-            }
-        }
-        public abstract static sealed class IfaceArray extends AbstractIfaceField permits IfaceFieldControlledArray, IfaceFixedArray {
-            IfaceArray(IfaceType parent, AccessorInfo.Key key, IfaceType ifaceType, String name) {
-                super(parent, key, ifaceType, name);
-            }
-        }
-        public abstract static sealed class PrimitiveArray extends AbstractPrimitiveField permits PrimitiveFieldControlledArray, PrimitiveFixedArray {
-            PrimitiveArray(IfaceType parent, AccessorInfo.Key key, Class<?> type, String name) {
-                super(parent, key, type, name);
-            }
-        }
-        public static final class IfaceFixedArray extends IfaceArray {
-            public int len;
-
-            IfaceFixedArray(IfaceType parent, AccessorInfo.Key key, IfaceType ifaceType, String name, int len) {
-                super(parent, key, ifaceType, name);
-                this.len = len;
-            }
-
-            @Override
-            public void toText(String indent, Consumer<String> stringConsumer) {
-                stringConsumer.accept(indent + "array [" + len + "]");
-            }
-
-            @Override
-            public void collectLayouts(BoundSchemaNode boundSchemaNode) {
-                boundSchemaNode.bind(this, MemoryLayout.sequenceLayout(len,
-                        parent.getBoundLayout(type.iface, boundSchemaNode).withName(type.iface.getSimpleName())
-                ).withName(name));
-            }
-        }
-        public static final class PrimitiveFixedArray extends PrimitiveArray {
-            public int len;
-
-            PrimitiveFixedArray(IfaceType parent, AccessorInfo.Key key, Class<?> type, String name, int len) {
-                super(parent, key, type, name);
-                this.len = len;
-            }
-
-            @Override
-            public void toText(String indent, Consumer<String> stringConsumer) {
-                stringConsumer.accept(indent + "primitive array [" + len + "]");
-            }
-
-            @Override
-            public void collectLayouts(BoundSchemaNode boundSchemaNode) {
-                boundSchemaNode.bind(this, MemoryLayout.sequenceLayout(len,
-                        parent.getBoundLayout(type, boundSchemaNode).withName(type.getSimpleName())
-                ).withName(name));
-            }
-        }
-
-        public static final class IfaceFieldControlledArray extends IfaceArray {
-            List<ArrayLen> arrayLenFields;
-            int stride;
-            int contributingDims;
-
-            IfaceFieldControlledArray(IfaceType parent, AccessorInfo.Key key, IfaceType ifaceType, String name, List<ArrayLen> arrayLenFields, int stride) {
-                super(parent, key, ifaceType,name);
-                this.arrayLenFields = arrayLenFields;
-                this.stride = stride;
-                this.contributingDims = arrayLenFields.size();
-            }
-
-            @Override
-            public void toText(String indent, Consumer<String> stringConsumer) {
-                stringConsumer.accept(indent + name + "[" + key + ":" + type.iface + "] where len defined by " + arrayLenFields);
-            }
-
-            @Override
-            public void collectLayouts(BoundSchemaNode boundSchemaNode) {
-                // To determine the actual 'array' size we multiply the contributing dims by the stride .
-                int size = stride; //usually 1 but developer can define.
-                for (int i = 0; i < contributingDims; i++) {
-                    size *= boundSchemaNode.takeArrayLen(); // this takes an arraylen and bumps the ptr
-                }
-
-                boundSchemaNode.bind(this, MemoryLayout.sequenceLayout(size,
-                        parent.getBoundLayout(type.iface, boundSchemaNode).withName(type.iface.getSimpleName())
-                ).withName(name));
-            }
-        }
-        public static final class PrimitiveFieldControlledArray extends PrimitiveArray {
-            List<ArrayLen> arrayLenFields;
-            int stride;
-            int contributingDims;
-
-            PrimitiveFieldControlledArray(IfaceType parent, AccessorInfo.Key key, Class<?> type, String name, List<ArrayLen> arrayLenFields, int stride) {
-                super(parent, key, type, name);
-                this.arrayLenFields = arrayLenFields;
-                this.stride = stride;
-                this.contributingDims = arrayLenFields.size();
-            }
-
-            @Override
-            public void toText(String indent, Consumer<String> stringConsumer) {
-                stringConsumer.accept(indent + name + "[" + key + ":" + type + "] where len defined by " + arrayLenFields);
-            }
-
-            @Override
-            public void collectLayouts(BoundSchemaNode boundSchemaNode) {
-                // To determine the actual 'array' size we multiply the contributing dims by the stride .
-                int size = stride; //usually 1 but developer can define.
-                for (int i = 0; i < contributingDims; i++) {
-                    size *= boundSchemaNode.takeArrayLen(); // this takes an arraylen and bumps the ptr
-                }
-
-                boundSchemaNode.bind(this, MemoryLayout.sequenceLayout(size,
-                        parent.getBoundLayout(type, boundSchemaNode).withName(type.getSimpleName())
-                ).withName(name));
             }
         }
 

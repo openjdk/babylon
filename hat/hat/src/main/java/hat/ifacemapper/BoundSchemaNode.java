@@ -9,9 +9,10 @@ import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.List;
 
-import static hat.ifacemapper.Schema.SchemaNode.IfaceType.getBoundGroupLayout;
+import static hat.ifacemapper.Schema.SchemaNode.IfaceType;
 
-public abstract sealed class BoundSchemaNode permits  BoundSchemaNode.BoundSchemaChildNode, BoundSchemaNode.BoundSchemaRootNode {
+public abstract sealed class BoundSchemaNode
+        permits  BoundSchemaNode.BoundSchemaChildNode, BoundSchemaNode.BoundSchemaRootNode {
 
     static sealed class FieldLayout<T extends Schema.SchemaNode.FieldNode> permits ArrayFieldLayout {
         public final T field;
@@ -21,7 +22,8 @@ public abstract sealed class BoundSchemaNode permits  BoundSchemaNode.BoundSchem
             this.layout = layout;
         }
     }
-    public sealed static class ArrayFieldLayout extends FieldLayout<Schema.SchemaNode.FieldNode> permits BoundArrayFieldLayout {
+    public sealed static class ArrayFieldLayout extends FieldLayout<Schema.SchemaNode.FieldNode>
+            permits BoundArrayFieldLayout {
         public final int len;
         ArrayFieldLayout(Schema.SchemaNode.FieldNode fieldControlledArray, MemoryLayout layout, int len) {
             super(fieldControlledArray, layout);
@@ -76,7 +78,7 @@ public abstract sealed class BoundSchemaNode permits  BoundSchemaNode.BoundSchem
             super(null, schema.rootIfaceType);
             this.schema = schema;
             this.arrayLengths = arrayLengths;
-            this.groupLayout =getBoundGroupLayout(ifaceType,createChild(ifaceType));
+            this.groupLayout =ifaceType.getBoundGroupLayout(this);
             memoryLayouts.add(this.groupLayout);
         }
         @Override
