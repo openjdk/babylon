@@ -75,7 +75,7 @@ public abstract class C99NativeBackend extends NativeBackend {
 
     public <T extends C99HatKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object[] args) {
         builder.defines().pragmas().types();
-        Set<Schema.SchemaNode.IfaceType> already = new LinkedHashSet<>();
+        Set<Schema.IfaceType> already = new LinkedHashSet<>();
         Arrays.stream(args)
                 .filter(arg -> arg instanceof Buffer)
                 .map(arg -> (Buffer) arg)

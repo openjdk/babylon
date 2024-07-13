@@ -14,7 +14,7 @@ function example(){
       if test -f ${example_jar} ; then
          ${JAVA_HOME}/bin/java \
             --enable-preview --enable-native-access=ALL-UNNAMED \
-            --class-path hat/target/hat-1.0.jar:${example_jar}:${backend_jar} \
+            --class-path maven-build/hat-1.0.jar:${example_jar}:${backend_jar} \
             --add-exports=java.base/jdk.internal=ALL-UNNAMED \
             -Djava.library.path=maven-build\
             -Dheadless=true \
@@ -28,5 +28,4 @@ function example(){
 }
 
 example $*
-
 

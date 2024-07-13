@@ -178,7 +178,7 @@ public final class MapperUtil {
     }
 
 
-    static boolean isMappableIface(Class<?> clazz) {
+    public static boolean isMappableIface(Class<?> clazz) {
         return  MappableIface.class.isAssignableFrom(clazz);
     }
     static boolean isBuffer(Class<?> clazz) {
