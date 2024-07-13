@@ -4,25 +4,19 @@ package experiments;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-import hat.HatPtr;
+import hat.OpsAndTypes;
 import hat.KernelContext;
 import hat.NDRange;
-import hat.backend.Backend;
 import hat.backend.BackendAdaptor;
 import hat.buffer.Buffer;
 import hat.callgraph.KernelCallGraph;
-import hat.callgraph.KernelEntrypoint;
 import hat.ifacemapper.Schema;
-import hat.backend.DebugBackend;
 import hat.buffer.BufferAllocator;
-import hat.ifacemapper.SegmentMapper;
 
-import java.lang.foreign.Arena;
 import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.op.CoreOp;
@@ -115,12 +109,12 @@ public class PointyHatArray {
                 System.out.println(ssaInvokeForm.toText());
                 System.out.println("------------------");
 
-                FunctionType functionType = HatPtr.transformTypes(MethodHandles.lookup(), ssaInvokeForm);
+                FunctionType functionType = OpsAndTypes.transformTypes(MethodHandles.lookup(), ssaInvokeForm);
                 System.out.println("SSA form with types transformed args");
                 System.out.println(ssaInvokeForm.toText());
                 System.out.println("------------------");
 
-                CoreOp.FuncOp ssaPtrForm = HatPtr.transformInvokesToPtrs(MethodHandles.lookup(), ssaInvokeForm, functionType);
+                CoreOp.FuncOp ssaPtrForm = OpsAndTypes.transformInvokesToPtrs(MethodHandles.lookup(), ssaInvokeForm, functionType);
                 System.out.println("SSA form with invokes replaced by ptrs");
                 System.out.println(ssaPtrForm.toText());
             }

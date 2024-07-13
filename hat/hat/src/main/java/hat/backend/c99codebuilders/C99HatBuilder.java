@@ -108,10 +108,14 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
             case CoreOp.GeOp o -> 5;
             case CoreOp.EqOp o -> 6;
             case CoreOp.NeqOp o -> 6;
-            case ExtendedOp.JavaConditionalAndOp o -> 10;
-            case ExtendedOp.JavaConditionalOrOp o -> 11;
-            case ExtendedOp.JavaConditionalExpressionOp o -> 12;
-            case CoreOp.ReturnOp o -> 12;
+
+            case CoreOp.AndOp o -> 11;
+            case CoreOp.XorOp o -> 12;
+            case CoreOp.OrOp o -> 13;
+            case ExtendedOp.JavaConditionalAndOp o -> 14;
+            case ExtendedOp.JavaConditionalOrOp o -> 15;
+            case ExtendedOp.JavaConditionalExpressionOp o -> 18;
+            case CoreOp.ReturnOp o -> 19;
 
             default -> throw new IllegalStateException("precedence ");
         };
@@ -205,6 +209,9 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
             case CoreOp.GeOp o -> gte();
             case CoreOp.NeqOp o -> pling().equals();
             case CoreOp.EqOp o -> equals().equals();
+            case CoreOp.AndOp o -> ampersand();
+            case CoreOp.OrOp o -> bar();
+            case CoreOp.XorOp o -> hat();
             case ExtendedOp.JavaConditionalAndOp o -> condAnd();
             case ExtendedOp.JavaConditionalOrOp o -> condOr();
             default -> throw new IllegalStateException("Unexpected value: " + op);
@@ -450,7 +457,7 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
                                 }
                             }
                         } else if (field instanceof Schema.FieldNode.AbstractIfaceField ifaceField) {
-                            suffix_t(ifaceField.type.iface.getSimpleName());
+                            suffix_t(ifaceField.ifaceType.iface.getSimpleName());
                             space().typeName(ifaceField.name);
                             if (ifaceField instanceof Schema.FieldNode.IfaceArray array) {
                                 if (array instanceof Schema.FieldNode.IfaceFieldControlledArray fieldControlledArray) {

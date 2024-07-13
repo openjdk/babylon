@@ -1,7 +1,7 @@
 package hat.backend;
 
 import hat.ComputeContext;
-import hat.HatPtr;
+import hat.OpsAndTypes;
 import hat.NDRange;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
@@ -129,12 +129,12 @@ public class DebugBackend extends BackendAdaptor {
                 System.out.println(ssaInvokeForm.toText());
                 System.out.println("------------------");
 
-                FunctionType functionType = HatPtr.transformTypes(MethodHandles.lookup(), ssaInvokeForm);
+                FunctionType functionType = OpsAndTypes.transformTypes(MethodHandles.lookup(), ssaInvokeForm);
                 System.out.println("SSA form with types transformed args");
                 System.out.println(ssaInvokeForm.toText());
                 System.out.println("------------------");
 
-                CoreOp.FuncOp ssaPtrForm = HatPtr.transformInvokesToPtrs(MethodHandles.lookup(), ssaInvokeForm, functionType);
+                CoreOp.FuncOp ssaPtrForm = OpsAndTypes.transformInvokesToPtrs(MethodHandles.lookup(), ssaInvokeForm, functionType);
                 System.out.println("SSA form with invokes replaced by ptrs");
                 System.out.println(ssaPtrForm.toText());
             }

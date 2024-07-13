@@ -16,7 +16,7 @@ public class BoundSchema<T extends Buffer> {
     final private GroupLayout groupLayout;
     BoundSchemaNode<?> rootBoundSchemaNode;
 
-    static sealed class FieldLayout<T extends Schema.FieldNode> permits ArrayFieldLayout {
+    public static sealed class FieldLayout<T extends Schema.FieldNode> permits ArrayFieldLayout {
         public final T field;
         public MemoryLayout layout;
 
@@ -49,6 +49,7 @@ public class BoundSchema<T extends Buffer> {
         this.arrayLengths = arrayLengths;
         this.rootBoundSchemaNode = new BoundSchemaNode<>((BoundSchema<Buffer>) this, null, this.schema.rootIfaceType);
         this.groupLayout = schema.rootIfaceType.getBoundGroupLayout(rootBoundSchemaNode);
+        this.rootBoundSchemaNode.memoryLayouts.add(this.groupLayout);
     }
 
     int takeArrayLen() {
@@ -71,6 +72,10 @@ public class BoundSchema<T extends Buffer> {
         return groupLayout;
     }
 
+    public BoundSchemaNode<?> rootBoundSchemaNode() {
+        return rootBoundSchemaNode;
+    }
+
 
     FieldLayout<?> createFieldBinding(Schema.FieldNode fieldNode, MemoryLayout memoryLayout) {
         if (fieldNode instanceof Schema.FieldNode.IfaceFieldControlledArray
@@ -89,12 +94,12 @@ public class BoundSchema<T extends Buffer> {
     }
 
     public static class BoundSchemaNode<T extends MappableIface> {
-        final protected BoundSchema<Buffer> boundSchema;
-        final protected BoundSchemaNode<T> parent;
-        final List<BoundSchemaNode<?>> children = new ArrayList<>();
-        final List<MemoryLayout> memoryLayouts = new ArrayList<>();
-        final List<FieldLayout<?>> fieldLayouts = new ArrayList<>();
-        final Schema.IfaceType ifaceType;
+        final public  BoundSchema<Buffer> boundSchema;
+        final public  BoundSchemaNode<T> parent;
+        final public List<BoundSchemaNode<?>> children = new ArrayList<>();
+        final public List<MemoryLayout> memoryLayouts = new ArrayList<>();
+        final public List<FieldLayout<?>> fieldLayouts = new ArrayList<>();
+        final public Schema.IfaceType ifaceType;
 
         BoundSchemaNode(BoundSchema<Buffer> boundSchema, BoundSchemaNode<T> parent, Schema.IfaceType ifaceType) {
             this.boundSchema = boundSchema;
@@ -124,6 +129,10 @@ public class BoundSchema<T extends Buffer> {
             var boundSchemaChildNode = new BoundSchemaNode<T>(boundSchema, this, ifaceType);
             children.add(boundSchemaChildNode);
             return boundSchemaChildNode;
+        }
+
+        public FieldLayout<?> getBoundFieldChild(String fieldName) {
+            return fieldLayouts.stream().filter(fieldLayout -> fieldLayout.field.name.equals(fieldName)).findFirst().orElseThrow();
         }
     }
 }

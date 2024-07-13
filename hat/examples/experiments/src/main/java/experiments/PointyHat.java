@@ -4,7 +4,7 @@ package experiments;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-import hat.HatPtr;
+import hat.OpsAndTypes;
 import hat.KernelContext;
 import hat.NDRange;
 import hat.backend.BackendAdaptor;
@@ -106,12 +106,12 @@ public class PointyHat {
                 System.out.println(ssaInvokeForm.toText());
                 System.out.println("------------------");
 
-                FunctionType functionType = HatPtr.transformTypes(MethodHandles.lookup(), ssaInvokeForm, args);
+                FunctionType functionType = OpsAndTypes.transformTypes(MethodHandles.lookup(), ssaInvokeForm, args);
                 System.out.println("SSA form with types transformed args");
                 System.out.println(ssaInvokeForm.toText());
                 System.out.println("------------------");
 
-                CoreOp.FuncOp ssaPtrForm = HatPtr.transformInvokesToPtrs(MethodHandles.lookup(), ssaInvokeForm, functionType);
+                CoreOp.FuncOp ssaPtrForm = OpsAndTypes.transformInvokesToPtrs(MethodHandles.lookup(), ssaInvokeForm, functionType);
                 System.out.println("SSA form with invokes replaced by ptrs");
                 System.out.println(ssaPtrForm.toText());
             }

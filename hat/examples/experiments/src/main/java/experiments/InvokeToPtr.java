@@ -1,7 +1,7 @@
 package experiments;
 
 
-import hat.HatPtr;
+import hat.OpsAndTypes;
 
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
@@ -69,12 +69,12 @@ public class InvokeToPtr {
         System.out.println(ssaInvokeForm.toText());
         System.out.println("------------------");
 
-        FunctionType functionType = HatPtr.transformTypes(MethodHandles.lookup(), ssaInvokeForm);
+        FunctionType functionType = OpsAndTypes.transformTypes(MethodHandles.lookup(), ssaInvokeForm);
         System.out.println("SSA form with types transformed args");
         System.out.println(ssaInvokeForm.toText());
         System.out.println("------------------");
 
-        CoreOp.FuncOp ssaPtrForm = HatPtr.transformInvokesToPtrs(MethodHandles.lookup(), ssaInvokeForm, functionType);
+        CoreOp.FuncOp ssaPtrForm = OpsAndTypes.transformInvokesToPtrs(MethodHandles.lookup(), ssaInvokeForm, functionType);
         System.out.println("SSA form with invokes replaced by ptrs");
         System.out.println(ssaPtrForm.toText());
     }
