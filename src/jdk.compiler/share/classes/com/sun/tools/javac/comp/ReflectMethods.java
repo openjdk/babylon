@@ -1426,7 +1426,6 @@ public class ReflectMethods extends TreeTranslator {
         public void visitIf(JCTree.JCIf tree) {
             List<Body.Builder> bodies = new ArrayList<>();
 
-            boolean first = true;
             while (tree != null) {
                 // @@@ cond.type can be boolean or Boolean
                 JCTree.JCExpression cond = TreeInfo.skipParens(tree.cond);
@@ -1470,7 +1469,6 @@ public class ReflectMethods extends TreeTranslator {
 
                     tree = null;
                 }
-                first = false;
             }
 
             append(ExtendedOp._if(bodies));
