@@ -59,6 +59,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static java.lang.constant.ConstantDescs.*;
+import java.lang.invoke.StringConcatFactory;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.code.Quotable;
@@ -80,6 +81,11 @@ public final class BytecodeGenerator {
             LambdaMetafactory.class.describeConstable().orElseThrow(),
             "altMetafactory",
             CD_CallSite, CD_Object.arrayType());
+
+    private static final DirectMethodHandleDesc DMHD_STRING_CONCAT = ofCallsiteBootstrap(
+            StringConcatFactory.class.describeConstable().orElseThrow(),
+            "makeConcat",
+            CD_CallSite);
 
     /**
      * Transforms the invokable operation to bytecode encapsulated in a method of hidden class and exposed
@@ -853,6 +859,11 @@ public final class BytecodeGenerator {
                         } catch (ReflectiveOperationException e) {
                             throw new IllegalArgumentException(e);
                         }
+                        push(op.result());
+                    }
+                    case ConcatOp op -> {
+                        processOperands(op);
+                        cob.invokedynamic(DynamicCallSiteDesc.of(DMHD_STRING_CONCAT, MethodTypeDesc.of(CD_String, CD_String, CD_String)));
                         push(op.result());
                     }
                     default ->

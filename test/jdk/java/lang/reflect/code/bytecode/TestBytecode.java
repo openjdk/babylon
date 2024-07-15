@@ -463,6 +463,11 @@ public class TestBytecode {
         return ret;
     }
 
+    @CodeReflection
+    static String stringConcat(String a, String b) {
+        return a + b;
+    }
+
     record TestData(Method testMethod) {
         @Override
         public String toString() {
