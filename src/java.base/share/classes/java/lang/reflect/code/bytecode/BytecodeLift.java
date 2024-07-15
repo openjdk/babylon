@@ -300,20 +300,7 @@ public final class BytecodeLift {
                             op(CoreOp.constant(JavaType.INT, inst.constant()))))));
                 }
                 case ConstantInstruction inst -> {
-                    stack.push(op(switch (inst.constantValue()) {
-                        case ClassDesc v -> CoreOp.constant(JavaType.J_L_CLASS, JavaType.type(v));
-                        case Double v -> CoreOp.constant(JavaType.DOUBLE, v);
-                        case Float v -> CoreOp.constant(JavaType.FLOAT, v);
-                        case Integer v -> CoreOp.constant(JavaType.INT, v);
-                        case Long v -> CoreOp.constant(JavaType.LONG, v);
-                        case String v -> CoreOp.constant(JavaType.J_L_STRING, v);
-                        case DynamicConstantDesc<?> v when v.bootstrapMethod().owner().equals(ConstantDescs.CD_ConstantBootstraps)
-                                                     && v.bootstrapMethod().methodName().equals("nullConstant")
-                                -> CoreOp.constant(JavaType.J_L_OBJECT, null);
-                        default ->
-                            // @@@ MethodType, MethodHandle, ConstantDynamic
-                            throw new IllegalArgumentException("Unsupported constant value: " + inst.constantValue());
-                    }));
+                    stack.push(liftConstant(inst.constantValue()));
                 }
                 case ConvertInstruction inst -> {
                     stack.push(op(CoreOp.conv(switch (inst.toType()) {
@@ -479,22 +466,10 @@ public final class BytecodeLift {
                         //bootstrap
                         List<Value> bootstrapArgs = new ArrayList<>();
                         bootstrapArgs.add(op(CoreOp.invoke(MethodRef.method(MethodHandles.class, "lookup", MethodType.methodType(MethodHandles.Lookup.class)))));
-                        bootstrapArgs.add(op(CoreOp.constant(JavaType.J_L_STRING, inst.name().toString())));
-                        bootstrapArgs.add(op(CoreOp.invoke(MethodRef.method(MethodType.class, "fromMethodDescriptorString", MethodType.class, new Class<?>[]{String.class, ClassLoader.class}),
-                                                           op(CoreOp.constant(JavaType.J_L_STRING, mtd.descriptorString())),
-                                                           op(CoreOp.constant(JavaType.J_L_OBJECT, null)))));
+                        bootstrapArgs.add(liftConstant(inst.name().toString()));
+                        bootstrapArgs.add(liftConstant(mtd));
                         for (ConstantDesc barg : inst.bootstrapArgs()) {
-                            bootstrapArgs.add(op(switch (barg) {
-                                case ClassDesc cd -> CoreOp.constant(JavaType.J_L_CLASS, cd);
-                                case Double d -> CoreOp.constant(JavaType.DOUBLE, d);
-                                case Float f -> CoreOp.constant(JavaType.FLOAT, f);
-                                case Integer ii -> CoreOp.constant(JavaType.INT, ii);
-                                case Long l -> CoreOp.constant(JavaType.LONG, l);
-                                case String s -> CoreOp.constant(JavaType.J_L_STRING, s);
-                                case MethodHandleDesc mh -> throw new UnsupportedOperationException("MethodHandleDesc");
-                                case MethodTypeDesc mt -> throw new UnsupportedOperationException("MethodTypeDesc");
-                                case DynamicConstantDesc<?> dc -> throw new UnsupportedOperationException("DynamicConstantDesc");
-                            }));
+                            bootstrapArgs.add(liftConstant(barg));
                         }
                         DirectMethodHandleDesc bsm = inst.bootstrapMethod();
                         MethodTypeDesc bsmDesc = bsm.invocationType();
@@ -668,6 +643,25 @@ public final class BytecodeLift {
                     throw new UnsupportedOperationException("Unsupported code element: " + elements.get(i));
             }
         }
+    }
+
+    private Op.Result liftConstant(ConstantDesc c) {
+        return op(switch (c) {
+            case ClassDesc cd -> CoreOp.constant(JavaType.J_L_CLASS, JavaType.type(cd));
+            case Double d -> CoreOp.constant(JavaType.DOUBLE, d);
+            case Float f -> CoreOp.constant(JavaType.FLOAT, f);
+            case Integer ii -> CoreOp.constant(JavaType.INT, ii);
+            case Long l -> CoreOp.constant(JavaType.LONG, l);
+            case String s -> CoreOp.constant(JavaType.J_L_STRING, s);
+            case MethodHandleDesc mh -> throw new UnsupportedOperationException("MethodHandleDesc");
+            case MethodTypeDesc mt -> CoreOp.invoke(MethodRef.method(MethodType.class, "fromMethodDescriptorString", MethodType.class, new Class<?>[]{String.class, ClassLoader.class}),
+                                            op(CoreOp.constant(JavaType.J_L_STRING, mt.descriptorString())),
+                                            op(CoreOp.constant(JavaType.J_L_OBJECT, null)));
+            case DynamicConstantDesc<?> v when v.bootstrapMethod().owner().equals(ConstantDescs.CD_ConstantBootstraps)
+                                         && v.bootstrapMethod().methodName().equals("nullConstant")
+                    -> CoreOp.constant(JavaType.J_L_OBJECT, null);
+            case DynamicConstantDesc<?> dc -> throw new UnsupportedOperationException("DynamicConstantDesc");
+        });
     }
 
     private void liftSwitch(Label defaultTarget, List<SwitchCase> cases) {
