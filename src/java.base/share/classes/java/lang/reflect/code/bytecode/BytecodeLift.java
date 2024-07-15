@@ -442,16 +442,16 @@ public final class BytecodeLift {
                         LambdaOp.Builder lambda = CoreOp.lambda(currentBlock.parentBody(),
                                 FunctionType.functionType(JavaType.type(mtd.returnType()), mtd.parameterList().stream().map(JavaType::type).toList()),
                                 JavaType.type(inst.typeSymbol().returnType()));
+                        var capturedValues = new Value[dmhd.invocationType().parameterCount() - mtd.parameterCount()];
+                        for (int ci = capturedValues.length - 1; ci >= 0; ci--) {
+                            capturedValues[ci] = stack.pop();
+                        }
+                        for (int ci = capturedValues.length; ci < inst.typeSymbol().parameterCount(); ci++) {
+                            stack.pop();
+                        }
                         if (dmhd.methodName().startsWith("lambda$") && dmhd.owner().equals(classModel.thisClass().asSymbol())) {
                             // inline lambda impl method
                             MethodModel implMethod = classModel.methods().stream().filter(m -> m.methodName().equalsString(dmhd.methodName())).findFirst().orElseThrow();
-                            var capturedValues = new Value[dmhd.invocationType().parameterCount() - mtd.parameterCount()];
-                            for (int ci = capturedValues.length - 1; ci >= 0; ci--) {
-                                capturedValues[ci] = stack.pop();
-                            }
-                            for (int ci = capturedValues.length; ci < inst.typeSymbol().parameterCount(); ci++) {
-                                stack.pop();
-                            }
                             stack.push(op(lambda.body(
                                     eb -> new BytecodeLift(eb,
                                                            classModel,
@@ -461,13 +461,16 @@ public final class BytecodeLift {
                             // lambda call to a MH
                             stack.push(op(lambda.body(eb -> {
                                 MethodTypeDesc mt = dmhd.invocationType();
+                                if (capturedValues.length > 0) {
+                                    mt = mt.dropParameterTypes(0, capturedValues.length);
+                                }
                                 eb.op(CoreOp._return(eb.op(CoreOp.invoke(
                                         MethodRef.method(
                                                 JavaType.type(dmhd.owner()),
                                                 dmhd.methodName(),
                                                 JavaType.type(mt.returnType()),
                                                 mt.parameterList().stream().map(JavaType::type).toList()),
-                                        eb.parameters().stream().toArray(Value[]::new)))));
+                                        Stream.concat(Arrays.stream(capturedValues), eb.parameters().stream()).toArray(Value[]::new)))));
                             })));
                         }
                     } else {
