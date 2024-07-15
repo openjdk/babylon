@@ -480,10 +480,9 @@ public final class BytecodeLift {
                         List<Value> bootstrapArgs = new ArrayList<>();
                         bootstrapArgs.add(op(CoreOp.invoke(MethodRef.method(MethodHandles.class, "lookup", MethodType.methodType(MethodHandles.Lookup.class)))));
                         bootstrapArgs.add(op(CoreOp.constant(JavaType.J_L_STRING, inst.name().toString())));
-                        Class<?>[] params = new Class<?>[mtd.parameterCount()];
-                        Arrays.fill(params, Class.class);
-                        bootstrapArgs.add(op(CoreOp.invoke(MethodRef.method(MethodType.class, "methodType", MethodType.class, params),
-                                                           mtd.parameterList().stream().map(cd -> op(CoreOp.constant(JavaType.J_L_CLASS, JavaType.type(cd)))).toArray(Value[]::new))));
+                        bootstrapArgs.add(op(CoreOp.invoke(MethodRef.method(MethodType.class, "fromMethodDescriptorString", MethodType.class, new Class<?>[]{String.class, ClassLoader.class}),
+                                                           op(CoreOp.constant(JavaType.J_L_STRING, mtd.descriptorString())),
+                                                           op(CoreOp.constant(JavaType.J_L_OBJECT, null)))));
                         for (ConstantDesc barg : inst.bootstrapArgs()) {
                             bootstrapArgs.add(op(switch (barg) {
                                 case ClassDesc cd -> CoreOp.constant(JavaType.J_L_CLASS, cd);
@@ -503,11 +502,10 @@ public final class BytecodeLift {
                                                             bsm.methodName(),
                                                             JavaType.type(bsmDesc.returnType()),
                                                             bsmDesc.parameterList().stream().map(JavaType::type).toArray(TypeElement[]::new));
-                        Value methodHandle = op(CoreOp.invoke(MethodRef.method(CallSite.class, "dynamicInvoker", CallSite.class, MethodHandle.class),
+                        Value methodHandle = op(CoreOp.invoke(MethodRef.method(CallSite.class, "dynamicInvoker", MethodHandle.class),
                                                     op(CoreOp.invoke(JavaType.type(ConstantDescs.CD_CallSite), bsmRef, bootstrapArgs))));
 
                         //invocation
-                        FunctionType mType = MethodRef.ofNominalDescriptor(mtd.insertParameterTypes(0, ConstantDescs.CD_MethodHandle));
                         List<Value> operands = new ArrayList<>();
                         for (int c = 0; c < mtd.parameterCount(); c++) {
                             operands.add(stack.pop());
@@ -515,7 +513,7 @@ public final class BytecodeLift {
                         operands.add(methodHandle);
                         MethodRef mDesc = MethodRef.method(JavaType.type(ConstantDescs.CD_MethodHandle),
                                                            "invokeExact",
-                                                           mType);
+                                                           MethodRef.ofNominalDescriptor(mtd));
                         Op.Result result = op(CoreOp.invoke(mDesc, operands.reversed()));
                         if (!result.type().equals(JavaType.VOID)) {
                             stack.push(result);
