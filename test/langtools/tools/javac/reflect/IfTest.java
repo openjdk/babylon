@@ -219,4 +219,106 @@ public class IfTest {
             return 3;
         }
     }
+
+    @CodeReflection
+    @IR("""
+            func @"test6" (%0 : IfTest, %1 : int)void -> {
+                %2 : Var<int> = var %1 @"i";
+                java.if
+                    ()boolean -> {
+                        %3 : int = var.load %2;
+                        %4 : int = constant @"1";
+                        %5 : boolean = lt %3 %4;
+                        yield %5;
+                    }
+                    ^then()void -> {
+                        %6 : int = constant @"1";
+                        var.store %2 %6;
+                        yield;
+                    }
+                    ^else()void -> {
+                        yield;
+                    };
+                return;
+            };
+            """)
+    void test6(int i) {
+        if (i < 1)
+            i = 1;
+    }
+
+    @CodeReflection
+    @IR("""
+            func @"test7" (%0 : IfTest, %1 : int)void -> {
+                %2 : Var<int> = var %1 @"i";
+                java.if
+                    ()boolean -> {
+                        %3 : int = var.load %2;
+                        %4 : int = constant @"1";
+                        %5 : boolean = lt %3 %4;
+                        yield %5;
+                    }
+                    ^then()void -> {
+                        %6 : int = constant @"1";
+                        var.store %2 %6;
+                        yield;
+                    }
+                    ^else()void -> {
+                        %7 : int = constant @"2";
+                        var.store %2 %7;
+                        yield;
+                    };
+                return;
+            };
+            """)
+    void test7(int i) {
+        if (i < 1)
+            i = 1;
+        else
+            i = 2;
+    }
+
+    @CodeReflection
+    @IR("""
+            func @"test8" (%0 : IfTest, %1 : int)void -> {
+                %2 : Var<int> = var %1 @"i";
+                java.if
+                    ()boolean -> {
+                        %3 : int = var.load %2;
+                        %4 : int = constant @"1";
+                        %5 : boolean = lt %3 %4;
+                        yield %5;
+                    }
+                    ^then()void -> {
+                        %6 : int = constant @"1";
+                        var.store %2 %6;
+                        yield;
+                    }
+                    ^else_if()boolean -> {
+                        %7 : int = var.load %2;
+                        %8 : int = constant @"2";
+                        %9 : boolean = lt %7 %8;
+                        yield %9;
+                    }
+                    ^then()void -> {
+                        %10 : int = constant @"2";
+                        var.store %2 %10;
+                        yield;
+                    }
+                    ^else()void -> {
+                        %11 : int = constant @"3";
+                        var.store %2 %11;
+                        yield;
+                    };
+                return;
+            };
+            """)
+    void test8(int i) {
+        if (i < 1)
+            i = 1;
+        else if (i < 2)
+            i = 2;
+        else
+            i = 3;
+    }
 }

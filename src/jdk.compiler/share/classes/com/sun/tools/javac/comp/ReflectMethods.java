@@ -1455,8 +1455,9 @@ public class ReflectMethods extends TreeTranslator {
                 JCTree.JCStatement elsepart = tree.elsepart;
                 if (elsepart == null) {
                     tree = null;
-                }
-                else if (elsepart.getTag() == Tag.BLOCK) {
+                } else if (elsepart.getTag() == Tag.IF) {
+                    tree = (JCTree.JCIf) elsepart;
+                } else {
                     // Push else body
                     pushBody(elsepart, FunctionType.VOID);
 
@@ -1468,8 +1469,6 @@ public class ReflectMethods extends TreeTranslator {
                     popBody();
 
                     tree = null;
-                } else if (elsepart.getTag() == Tag.IF) {
-                    tree = (JCTree.JCIf) elsepart;
                 }
                 first = false;
             }
