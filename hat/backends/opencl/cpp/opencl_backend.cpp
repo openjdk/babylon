@@ -268,7 +268,7 @@ bool OpenCLBackend::OpenCLProgram::programOK() {
 
 OpenCLBackend::OpenCLBackend(OpenCLBackend::OpenCLConfig *openclConfig, int configSchemaLen, char *configSchema)
         : Backend((Backend::Config *) openclConfig, configSchemaLen, configSchema) {
- 
+
     if (INFO){
        if (openclConfig == nullptr) {
            std::cout << "openclConfig == null" << std::endl;
