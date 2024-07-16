@@ -24,6 +24,8 @@
  */
 #include "shared.h"
 
+#define INFO 0
+
 /*
 extern void dump(FILE *file, size_t len, void *ptr) {
     for (int i = 0; i < len; i++) {
@@ -119,13 +121,17 @@ void Sled::show(std::ostream &out, void *argArray) {
 
 
 extern "C" int getMaxComputeUnits(long backendHandle) {
-   // std::cout << "trampolining through backendHandle to backend.getMaxComputeUnits()" << std::endl;
+    if (INFO){
+        std::cout << "trampolining through backendHandle to backend.getMaxComputeUnits()" << std::endl;
+    }
     auto *backend = reinterpret_cast<Backend*>(backendHandle);
     return backend->getMaxComputeUnits();
 }
 
 extern "C" void info(long backendHandle) {
-  //  std::cout << "trampolining through backendHandle to backend.info()" << std::endl;
+    if (INFO){
+       std::cout << "trampolining through backendHandle to backend.info()" << std::endl;
+    }
     auto *backend = reinterpret_cast<Backend*>(backendHandle);
     backend->info();
 }
@@ -134,36 +140,53 @@ extern "C" void releaseBackend(long backendHandle) {
     delete backend;
 }
 extern "C" long compileProgram(long backendHandle, int len, char *source) {
-    std::cout << "trampolining through backendHandle to backend.compileProgram() "
-        <<std::hex<<backendHandle<< std::dec <<std::endl;
+    if (INFO){
+       std::cout << "trampolining through backendHandle to backend.compileProgram() "
+           <<std::hex<<backendHandle<< std::dec <<std::endl;
+    }
     auto *backend = reinterpret_cast<Backend*>(backendHandle);
     auto programHandle = backend->compileProgram(len, source);
-    std::cout << "programHandle = "<<std::hex<<backendHandle<< std::dec <<std::endl;
+    if (INFO){
+       std::cout << "programHandle = "<<std::hex<<backendHandle<< std::dec <<std::endl;
+    }
     return programHandle;
 }
 extern "C" long getKernel(long programHandle, int nameLen, char *name) {
-    std::cout << "trampolining through programHandle to program.getKernel()"
+    if (INFO){
+        std::cout << "trampolining through programHandle to program.getKernel()"
             <<std::hex<<programHandle<< std::dec <<std::endl;
+    }
     auto program = reinterpret_cast<Backend::Program *>(programHandle);
     return program->getKernel(nameLen, name);
 }
 
 extern "C" long ndrange(long kernelHandle, void *argArray) {
-    std::cout << "trampolining through kernelHandle to kernel.ndrange(...) " << std::endl;
+    if (INFO){
+       std::cout << "trampolining through kernelHandle to kernel.ndrange(...) " << std::endl;
+    }
     auto kernel = reinterpret_cast<Backend::Program::Kernel *>(kernelHandle);
     kernel->ndrange( argArray);
     return (long) 0;
 }
 extern "C" void releaseKernel(long kernelHandle) {
+    if (INFO){
+       std::cout << "trampolining through to releaseKernel " << std::endl;
+    }
     auto kernel = reinterpret_cast<Backend::Program::Kernel *>(kernelHandle);
     delete kernel;
 }
 
 extern "C" void releaseProgram(long programHandle) {
+    if (INFO){
+       std::cout << "trampolining through to releaseProgram " << std::endl;
+    }
     auto program = reinterpret_cast<Backend::Program *>(programHandle);
     delete program;
 }
 extern "C" bool programOK(long programHandle) {
+    if (INFO){
+       std::cout << "trampolining through to programOK " << std::endl;
+    }
     auto program = reinterpret_cast<Backend::Program *>(programHandle);
     return program->programOK();
 }
