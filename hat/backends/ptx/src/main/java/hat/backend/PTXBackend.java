@@ -27,10 +27,14 @@ package hat.backend;
 
 import hat.ComputeContext;
 import hat.NDRange;
+import hat.buffer.Buffer;
 import hat.callgraph.KernelCallGraph;
+import hat.ifacemapper.BoundSchema;
 import hat.optools.*;
 
+import java.lang.reflect.code.*;
 import java.lang.reflect.code.op.CoreOp;
+import java.util.List;
 import java.util.Optional;
 
 public class PTXBackend extends C99NativeBackend {
@@ -80,22 +84,70 @@ public class PTXBackend extends C99NativeBackend {
             CompiledKernel compiledKernel = new CompiledKernel(this, kernelCallGraph, code, kernelHandle, args);
             compiledKernel.dispatch(ndRange,args);
         }
-        // System.exit(1);
     }
 
     public String createCode(KernelCallGraph kernelCallGraph, PTXCodeBuilder builder, Object[] args) {
-        String out, body;
+        String out = "";
         Optional<CoreOp.FuncOp> o = Optional.ofNullable(kernelCallGraph.entrypoint.funcOpWrapper().op());
         FuncOpWrapper f = new FuncOpWrapper(o.orElseThrow());
         FuncOpWrapper lowered = f.lower();
+
+        boolean useSchema = false;
+        if (useSchema) {
+            CoreOp.FuncOp transformed = lowered.op().transform((block, op) -> {
+                CopyContext cc = block.context();
+                if (op instanceof CoreOp.InvokeOp invokeOp
+                        && OpWrapper.wrap(invokeOp) instanceof InvokeOpWrapper invokeOpWrapper
+                        && invokeOpWrapper.hasOperands()
+                        && invokeOpWrapper.isIfaceBufferMethod()) {
+
+                    List<Value> inputOperands = invokeOp.operands();
+                    List<Value> outputOperands = cc.getValues(inputOperands);
+                    Op.Result inputResult = invokeOp.result();
+
+                    //TODO: improve this please
+                    //i need to match the name of the param with the invokeinstead of the type (there may be more than one param of the same type)
+                    for (Object obj : args) {
+                        if (obj instanceof Buffer buffer
+                                && Buffer.getBoundSchema(buffer).schema().iface.getName().equals(invokeOp.invokeDescriptor().refType().toString())) {
+                            BoundSchema<?> boundSchema = Buffer.getBoundSchema(buffer);
+                            PTXPtrOp ptxOp = new PTXPtrOp(inputResult.type(), invokeOp.invokeDescriptor().name(), outputOperands, boundSchema.schema());
+                            Op.Result outputResult = block.op(ptxOp);
+                            cc.mapValue(inputResult, outputResult);
+
+                        }
+                    }
+                } else {
+                    block.apply(op);
+                }
+                return block;
+            });
+            lowered = FuncOpWrapper.wrap(transformed);
+        }
+
+        System.out.println(lowered.toText());
         FuncOpWrapper ssa = lowered.ssa();
         System.out.println(ssa.toText());
 
         //building header
         builder.ptxHeader(major, minor, target, addressSize);
 
+        out = createFunction(builder, lowered, ssa, out, true);
+
+        for (KernelCallGraph.KernelReachableResolvedMethodCall k : kernelCallGraph.kernelReachableResolvedStream().toList()) {
+            Optional<CoreOp.FuncOp> optional = Optional.ofNullable(k.funcOpWrapper().op());
+            FuncOpWrapper func = new FuncOpWrapper(optional.orElseThrow());
+            out += createFunction(new PTXCodeBuilder(addressSize).nl().nl(), func.lower(), func.ssa(), out, false);
+        }
+
+        return out;
+    }
+
+    public String createFunction(PTXCodeBuilder builder, FuncOpWrapper lowered, FuncOpWrapper ssa, String out, boolean entry) {
+        String body = "";
+
         //building fn info (name, params)
-        builder.functionHeader(lowered.functionName());
+        builder.functionHeader(lowered.functionName(), entry);
 
         // printing out params
         builder.parameters(lowered.paramTable().list());
@@ -111,7 +163,6 @@ public class PTXBackend extends C99NativeBackend {
 
         builder.ptxRegisterDecl();
         out += builder.getText() + body;
-
         return out;
     }
 }

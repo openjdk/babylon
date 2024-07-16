@@ -4,6 +4,7 @@ public class PTXRegister {
     private final String name;
     private final Type type;
 
+    //TODO: clean up the types
     public enum Type {
         S8 (8, BasicType.SIGNED, "s8", "%ss"),
         S16 (16, BasicType.SIGNED, "s16", "%sh"),

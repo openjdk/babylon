@@ -1,5 +1,6 @@
 package hat.backend;
 
+import hat.ifacemapper.Schema;
 import hat.optools.*;
 import hat.text.CodeBuilder;
 import hat.util.StreamCounter;
@@ -49,13 +50,17 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
         public boolean isDestination() {return this.destination;}
     }
 
-    public PTXCodeBuilder() {
+    public PTXCodeBuilder(int addressSize) {
         varToRegMap = new HashMap<>();
         params = new ArrayList<>();
         fieldToRegMap = new HashMap<>();
         paramMap = new HashMap<>();
         ordinalMap = new HashMap<>();
-        addressSize = 32;
+        this.addressSize = addressSize;
+    }
+
+    public PTXCodeBuilder() {
+        this(32);
     }
 
     public void ptxHeader(int major, int minor, String target, int addressSize) {
@@ -66,8 +71,10 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
         this.addressSize = addressSize;
     }
 
-    public void functionHeader(String funcName) {
-        append(".visible .entry ").append(funcName);
+    public void functionHeader(String funcName, boolean entry) {
+        append(".visible ");
+        if (entry) append(".entry ");
+        append(funcName);
     }
 
     public PTXCodeBuilder parameters(List<FuncOpWrapper.ParamTable.Info> infoList) {
@@ -153,6 +160,7 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
                 switch (wrappedOp.op()){
                     case CoreOp.BranchOp op -> branch(op);
                     case CoreOp.ConditionalBranchOp op -> condBranch(op);
+                    case PTXPtrOp op -> ptx(op);
                     default -> throw new IllegalStateException("oops");
                 }
             }
@@ -160,12 +168,55 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
         return this;
     }
 
+    public void ptx(PTXPtrOp op) {
+        PTXRegister source;
+        int offset = 0;
+
+        // TODO: account for nested schema
+        // calculate offset
+        for (Schema.FieldNode fieldNode : op.schema.rootIfaceType.fields) {
+            if (fieldNode.name.equals(op.fieldName)) {
+                break;
+            }
+            switch (fieldNode) {
+                case Schema.SchemaNode.Padding f -> {
+                    StringBuilder padding = new StringBuilder();
+                    Consumer<String> consumer = a -> padding.append(a.replaceAll("[^0-9]", ""));
+                    f.toText("", consumer);
+                    offset += Integer.parseInt(padding.toString());
+                }
+                case Schema.FieldNode.PrimitiveFieldControlledArray f -> {
+
+                }
+                case Schema.FieldNode.PrimitiveFixedArray f -> offset += f.len * 4;
+                case Schema.FieldNode.IfaceFixedArray f -> offset += f.len * 4;
+                default -> offset += 4;
+            }
+
+        }
+
+        if (op.fieldName.equals("array")) {
+            append("mul.wide").s32().space().printAndAddVar(op.result(), PTXRegister.Type.U64).commaSpace()
+                    .printVar(op.operands().getFirst()).commaSpace().append("4").ptxNl();
+            source = new PTXRegister(incrOrdinal(addrType()), addrType());
+            append("add").s64().space().append(source.name()).commaSpace().printVar(op.operands().get(0)).commaSpace().printVar(op.operands().get(1)).ptxNl();
+        } else {
+            source = getVar(op.operands().getFirst());
+        }
+
+        if (op.resultType.toString().equals("void")) {
+            st().global().u32().space().address(source.name(), offset).commaSpace().printVar(op.operands().get(2));
+        } else {
+            ld().global().u32().space().printAndAddVar(op.result(), PTXRegister.Type.U32).commaSpace().address(source.name(), offset);
+        }
+    }
+
     public void varLoad(VarLoadOpWrapper op) {
-        append(op.toString());
+        ld().dot().printResultType(op.resultType(), false).space().printResult(op, addrType()).commaSpace().printVar(op.operandNAsValue(0));
     }
 
     public void varStore(VarStoreOpWrapper op) {
-        append(op.toString());
+        st().dot().printResultType(op.resultType(), false).space().printResult(op, addrType()).commaSpace().printVar(op.operandNAsValue(0));
     }
 
     public void fieldLoad(FieldLoadOpWrapper op) {
@@ -198,6 +249,7 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
     }
 
     public void fieldStore(FieldStoreOpWrapper op) {
+        // TODO: fix
         append(op.toString());
     }
 
@@ -246,13 +298,20 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
     //TODO: fix?? (i think this is multiplying the idx by 4)
     public void conv(ConvOpWrapper op) {
         if (op.resultJavaType().equals(JavaType.LONG)) {
-            append("mul.wide").s32().space().printResult(op, PTXRegister.Type.U64).commaSpace()
-                .printVar(op.operandNAsValue(0)).commaSpace().append("4");
+            append("cvt.rn").u64().dot().append(getVar(op.operandNAsValue(0)).type().toString()).space()
+                    .printResult(op, PTXRegister.Type.U64).commaSpace().printVar(op.operandNAsValue(0));
         } else if (op.resultJavaType().equals(JavaType.FLOAT)) {
             append("cvt.rn").f32().dot().append(getVar(op.operandNAsValue(0)).type().toString()).space()
                 .printResult(op, PTXRegister.Type.F32).commaSpace().printVar(op.operandNAsValue(0));
+        } else if (op.resultJavaType().equals(JavaType.DOUBLE)) {
+            append("cvt.rn").f64().dot().append(getVar(op.operandNAsValue(0)).type().toString()).space()
+                .printResult(op, PTXRegister.Type.F64).commaSpace().printVar(op.operandNAsValue(0));
+        } else if (op.resultJavaType().equals(JavaType.INT)) {
+            append("cvt.rn").s32().dot().append(getVar(op.operandNAsValue(0)).type().toString()).space()
+                .printResult(op, PTXRegister.Type.S32).commaSpace().printVar(op.operandNAsValue(0));
         } else {
-            printResult(op, PTXRegister.Type.S32);
+            append("cvt.rn").s32().dot().append(getVar(op.operandNAsValue(0)).type().toString()).space()
+                .printResult(op, PTXRegister.Type.S32).commaSpace().printVar(op.operandNAsValue(0));
         }
     }
 
@@ -268,10 +327,11 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
     }
 
     public void javaYield(YieldOpWrapper op) {
-        append(op.toString());
+        append("exit");
     }
 
     public void funcCall(FuncCallOpWrapper op) {
+        // TODO: fix????
         append(op.toString());
     }
 
@@ -299,11 +359,13 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
             ld().global().u32().space().printResult(op, PTXRegister.Type.U32).commaSpace().address(getVar(op.operandNAsValue(0)).name());
         } else if (op.methodRef().toString().equals("hat.buffer.S32Array2D::height()int")) {
             ld().global().u32().space().printResult(op, PTXRegister.Type.U32).commaSpace().address(getVar(op.operandNAsValue(0)).name(), 4);
-        } else if (op.methodRef().toString().equals("squares.Squares::squareit(int)int")) {
-            append("mul.lo").s32().space().printResult(op, PTXRegister.Type.U32).commaSpace().printVar(op.operandNAsValue(0)).commaSpace().printVar(op.operandNAsValue(0));
+//        } else if (op.methodRef().toString().equals("squares.Squares::squareit(int)int")) {
+//            append("mul.lo").s32().space().printResult(op, PTXRegister.Type.U32).commaSpace().printVar(op.operandNAsValue(0)).commaSpace().printVar(op.operandNAsValue(0));
+//        } else if (op.methodRef().toString().equals("java.lang.Math::sqrt(double)double")) {
+//            append("sqrt.rn").f32().space().printResult(op, PTXRegister.Type.F32).commaSpace().printVar(op.operandNAsValue(0)).commaSpace().printVar(op.operandNAsValue(0));
         } else {
-            append("call ").append(op.methodRef().toString());
-            printResult(op, PTXRegister.Type.S32);
+            append("call").space().oparen().printResult(op, resultType(op.resultType())).cparen().commaSpace().append(op.method().getName()).commaSpace();
+            paren(_ -> commaSeparated(op.operands(), this::printVar));
         }
     }
 
@@ -312,13 +374,11 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
     }
 
     public void varDeclaration(VarDeclarationOpWrapper op) {
-//        append("cvta.to").global().dot().space().printResult(op, PTXRegister.Type.U32).commaSpace();
-        append(op.toString());
+        ld().param().dot().printResultType(op.resultType(), false).space().printResult(op, addrType()).commaSpace().printVar(op.operandNAsValue(0));
     }
 
     public void varFuncDeclaration(VarFuncDeclarationOpWrapper op) {
-//        ld().param().addrSize().space().printResult(op, addrType());
-        append(op.toString());
+        ld().param().dot().printResultType(op.resultType(), false).space().printResult(op, addrType()).commaSpace().printVar(op.operandNAsValue(0));
     }
 
     public void tuple(TupleOpWrapper op) {
@@ -335,7 +395,7 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
     }
 
     public void javaBreak(JavaBreakOpWrapper op) {
-        append(op.toString());
+        append("brkpt");
     }
 
     public void javaContinue(JavaContinueOpWrapper op) {
@@ -371,7 +431,6 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
         return append("block_").append(String.valueOf(block.index()));
     }
 
-    //prints result to PTXCodeBuilder (and adds if necessary)
     public PTXCodeBuilder printField(Field ref) {
         if (fieldToRegMap.containsKey(ref)) {
             return append(fieldToRegMap.get(ref).name());
@@ -398,7 +457,6 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
         return append(fieldToRegMap.get(ref).name());
     }
 
-    //prints result to PTXCodeBuilder (and adds if necessary)
     public PTXCodeBuilder printResult(OpWrapper<?> opWrapper, PTXRegister.Type type) {
         return append(addVar(opWrapper.result(), type));
     }
@@ -558,5 +616,9 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
 
     public PTXCodeBuilder s64() {
         return dot().append(PTXRegister.Type.S64.toString());
+    }
+
+    public PTXCodeBuilder f64() {
+        return dot().append(PTXRegister.Type.F64.toString());
     }
 }
