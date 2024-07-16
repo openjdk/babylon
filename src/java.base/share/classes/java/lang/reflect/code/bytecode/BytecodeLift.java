@@ -62,9 +62,9 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
 import java.lang.constant.ConstantDesc;
+import static java.lang.constant.ConstantDescs.CD_void;
 import java.lang.constant.DirectMethodHandleDesc;
 import java.lang.constant.DynamicConstantDesc;
-import java.lang.constant.MethodHandleDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.CallSite;
 import java.lang.invoke.MethodHandle;
@@ -93,6 +93,7 @@ public final class BytecodeLift {
     private final List<CodeElement> elements;
     private final Deque<Value> stack;
     private Block.Builder currentBlock;
+    private Op.Result lookup;
 
     private BytecodeLift(Block.Builder entryBlock, ClassModel classModel, CodeModel codeModel, Value... capturedValues) {
         this.entryBlock = entryBlock;
@@ -465,7 +466,7 @@ public final class BytecodeLift {
 
                         //bootstrap
                         List<Value> bootstrapArgs = new ArrayList<>();
-                        bootstrapArgs.add(op(CoreOp.invoke(MethodRef.method(MethodHandles.class, "lookup", MethodType.methodType(MethodHandles.Lookup.class)))));
+                        bootstrapArgs.add(lookup());
                         bootstrapArgs.add(liftConstant(inst.name().toString()));
                         bootstrapArgs.add(liftConstant(mtd));
                         for (ConstantDesc barg : inst.bootstrapArgs()) {
@@ -645,18 +646,66 @@ public final class BytecodeLift {
         }
     }
 
+    private static final MethodRef
+            Lookup_findStatic = MethodRef.method(MethodHandles.Lookup.class, "findStatic", MethodHandle.class, Class.class, String.class, MethodType.class),
+            Lookup_findVirtual = MethodRef.method(MethodHandles.Lookup.class, "findVirtual", MethodHandle.class, Class.class, String.class, MethodType.class),
+            Lookup_findConstructor = MethodRef.method(MethodHandles.Lookup.class, "findConstructor", MethodHandle.class, Class.class, MethodType.class),
+            Lookup_findGetter = MethodRef.method(MethodHandles.Lookup.class, "findGetter", MethodHandle.class, Class.class, String.class, Class.class),
+            Lookup_findStaticGetter = MethodRef.method(MethodHandles.Lookup.class, "findStaticGetter", MethodHandle.class, Class.class, String.class, Class.class),
+            Lookup_findSetter = MethodRef.method(MethodHandles.Lookup.class, "findSetter", MethodHandle.class, Class.class, String.class, Class.class),
+            Lookup_findStaticSetter = MethodRef.method(MethodHandles.Lookup.class, "findStaticSetter", MethodHandle.class, Class.class, String.class, Class.class);
+
+    private Op.Result lookup() {
+        if (lookup == null) {
+            lookup = op(CoreOp.invoke(MethodRef.method(MethodHandles.class, "lookup", MethodType.methodType(MethodHandles.Lookup.class))));
+        }
+        return lookup;
+    }
     private Op.Result liftConstant(ConstantDesc c) {
         return op(switch (c) {
+            case null -> CoreOp.constant(JavaType.J_L_OBJECT, null);
             case ClassDesc cd -> CoreOp.constant(JavaType.J_L_CLASS, JavaType.type(cd));
             case Double d -> CoreOp.constant(JavaType.DOUBLE, d);
             case Float f -> CoreOp.constant(JavaType.FLOAT, f);
             case Integer ii -> CoreOp.constant(JavaType.INT, ii);
             case Long l -> CoreOp.constant(JavaType.LONG, l);
             case String s -> CoreOp.constant(JavaType.J_L_STRING, s);
-            case MethodHandleDesc mh -> throw new UnsupportedOperationException("MethodHandleDesc");
-            case MethodTypeDesc mt -> CoreOp.invoke(MethodRef.method(MethodType.class, "fromMethodDescriptorString", MethodType.class, new Class<?>[]{String.class, ClassLoader.class}),
-                                            op(CoreOp.constant(JavaType.J_L_STRING, mt.descriptorString())),
-                                            op(CoreOp.constant(JavaType.J_L_OBJECT, null)));
+            case DirectMethodHandleDesc dmh -> {
+                Op.Result lookup = lookup();
+                Op.Result owner = liftConstant(dmh.owner());
+                Op.Result name = liftConstant(dmh.methodName());
+                MethodTypeDesc invDesc = dmh.invocationType();
+                yield switch (dmh.kind()) {
+                    case STATIC, INTERFACE_STATIC  ->
+                        CoreOp.invoke(Lookup_findStatic, lookup, owner, name, liftConstant(invDesc));
+                    case VIRTUAL, INTERFACE_VIRTUAL ->
+                        CoreOp.invoke(Lookup_findVirtual, lookup, owner, name, liftConstant(invDesc.dropParameterTypes(0, 1)));
+                    case SPECIAL, INTERFACE_SPECIAL ->
+                        //CoreOp.invoke(MethodRef.method(e), "findSpecial", owner, name, liftConstant(invDesc.dropParameterTypes(0, 1)), lookup.lookupClass());
+                        throw new UnsupportedOperationException(dmh.toString());
+                    case CONSTRUCTOR       ->
+                        CoreOp.invoke(Lookup_findConstructor, lookup, owner, liftConstant(invDesc.changeReturnType(CD_void)));
+                    case GETTER            ->
+                        CoreOp.invoke(Lookup_findGetter, lookup, owner, name, liftConstant(invDesc.returnType()));
+                    case STATIC_GETTER     ->
+                        CoreOp.invoke(Lookup_findStaticGetter, lookup, owner, name, liftConstant(invDesc.returnType()));
+                    case SETTER            ->
+                        CoreOp.invoke(Lookup_findSetter, lookup, owner, name, liftConstant(invDesc.parameterType(1)));
+                    case STATIC_SETTER     ->
+                        CoreOp.invoke(Lookup_findStaticSetter, lookup, owner, name, liftConstant(invDesc.parameterType(0)));
+                };
+            }
+            case MethodTypeDesc mt -> switch (mt.parameterCount()) {
+                case 0 -> CoreOp.invoke(MethodRef.method(MethodType.class, "methodType", MethodType.class, Class.class), liftConstant(mt.returnType()));
+                case 1 -> CoreOp.invoke(MethodRef.method(MethodType.class, "methodType", MethodType.class, Class.class, Class.class), liftConstant(mt.returnType()), liftConstant(mt.parameterType(0)));
+                default -> {
+                    Op.Result list = op(CoreOp._new(FunctionType.functionType(JavaType.type(ArrayList.class.describeConstable().get()))));
+                    for (ClassDesc p : mt.parameterList()) {
+                        op(CoreOp.invoke(MethodRef.method(ArrayList.class, "add", MethodType.methodType(boolean.class, Object.class)), list, liftConstant(p)));
+                    }
+                    yield CoreOp.invoke(MethodRef.method(MethodType.class, "methodType", MethodType.class, Class.class, List.class), liftConstant(mt.returnType()), list);
+                }
+            };
             case DynamicConstantDesc<?> v when v.bootstrapMethod().owner().equals(ConstantDescs.CD_ConstantBootstraps)
                                          && v.bootstrapMethod().methodName().equals("nullConstant")
                     -> CoreOp.constant(JavaType.J_L_OBJECT, null);

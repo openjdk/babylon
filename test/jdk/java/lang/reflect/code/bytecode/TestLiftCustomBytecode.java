@@ -29,6 +29,7 @@ import java.lang.classfile.Label;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
 import java.lang.constant.MethodTypeDesc;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.bytecode.BytecodeLift;
 import java.lang.reflect.code.interpreter.Interpreter;
@@ -63,6 +64,28 @@ public class TestLiftCustomBytecode {
                 })), "backJumps");
 
         Assert.assertEquals((int) Interpreter.invoke(f, 42), 42);
+    }
+
+    public record TestRecord(int i, String s) {
+    }
+
+    @Test
+    public void testObjectMethodsIndy() throws Throwable {
+        byte[] testRecord = TestRecord.class.getResourceAsStream("TestLiftCustomBytecode$TestRecord.class").readAllBytes();
+        CoreOp.FuncOp toString = getFuncOp(testRecord, "toString");
+        CoreOp.FuncOp hashCode = getFuncOp(testRecord, "hashCode");
+        CoreOp.FuncOp equals = getFuncOp(testRecord, "equals");
+
+        TestRecord tr1 = new TestRecord(1, "hi"), tr2 = new TestRecord(2, "bye"), tr3 = new TestRecord(1, "hi");
+        MethodHandles.Lookup lookup = MethodHandles.lookup();
+        Assert.assertEquals((String)Interpreter.invoke(lookup, toString, tr1), tr1.toString());
+        Assert.assertEquals((String)Interpreter.invoke(lookup, toString, tr2), tr2.toString());
+        Assert.assertEquals((int)Interpreter.invoke(lookup, hashCode, tr1), tr1.hashCode());
+        Assert.assertEquals((int)Interpreter.invoke(lookup, hashCode, tr2), tr2.hashCode());
+        Assert.assertTrue((boolean)Interpreter.invoke(lookup, equals, tr1, tr1));
+        Assert.assertFalse((boolean)Interpreter.invoke(lookup, equals, tr1, tr2));
+        Assert.assertTrue((boolean)Interpreter.invoke(lookup, equals, tr1, tr3));
+        Assert.assertFalse((boolean)Interpreter.invoke(lookup, equals, tr1, "hello"));
     }
 
     static CoreOp.FuncOp getFuncOp(byte[] classdata, String method) {
