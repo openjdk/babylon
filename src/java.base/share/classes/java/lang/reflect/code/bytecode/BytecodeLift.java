@@ -92,7 +92,7 @@ public final class BytecodeLift {
     private final LocalsTypeMapper codeTracker;
     private final List<CodeElement> elements;
     private final Deque<Value> stack;
-    private final Map<Block.Builder, Map<Object, Op.Result>> constantCache;
+    private final Map<Object, Op.Result> constantCache;
     private Block.Builder currentBlock;
     private Op.Result lookup;
 
@@ -187,6 +187,7 @@ public final class BytecodeLift {
 
     private void moveTo(Block.Builder next) {
         currentBlock = next;
+        constantCache.clear();
         // Stack is reconstructed from block parameters
         stack.clear();
         if (currentBlock != null) {
@@ -196,6 +197,7 @@ public final class BytecodeLift {
 
     private void endOfFlow() {
         currentBlock = null;
+        constantCache.clear();
         // Flow discontinued, stack cleared to be ready for the next label target
         stack.clear();
     }
@@ -664,7 +666,7 @@ public final class BytecodeLift {
         return lookup;
     }
     private Op.Result liftConstant(Object c) {
-        Op.Result res = constantCache.getOrDefault(currentBlock, constantCache.getOrDefault(entryBlock, Map.of())).get(c);
+        Op.Result res = constantCache.get(c);
         if (res == null) {
             res = switch (c) {
                 case null -> op(CoreOp.constant(JavaType.J_L_OBJECT, null));
@@ -717,7 +719,7 @@ public final class BytecodeLift {
                 case Boolean b -> op(CoreOp.constant(JavaType.BOOLEAN, b));
                 default -> throw new UnsupportedOperationException(c.getClass().toString());
             };
-            constantCache.computeIfAbsent(currentBlock, _ -> new HashMap<>()).put(c, res);
+            constantCache.put(c, res);
         }
         return res;
     }
