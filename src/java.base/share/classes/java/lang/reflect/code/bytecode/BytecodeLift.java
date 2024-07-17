@@ -68,7 +68,6 @@ import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.CallSite;
 import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.code.op.CoreOp.LambdaOp;
 import java.lang.reflect.code.type.PrimitiveType;
@@ -81,9 +80,21 @@ import java.util.stream.Stream;
 public final class BytecodeLift {
 
     private static final ClassDesc CD_LambdaMetafactory = ClassDesc.ofDescriptor("Ljava/lang/invoke/LambdaMetafactory;");
+    private static final JavaType MHS_LOOKUP = JavaType.type(ConstantDescs.CD_MethodHandles_Lookup);
+    private static final JavaType MH = JavaType.type(ConstantDescs.CD_MethodHandle);
+    private static final JavaType MT = JavaType.type(ConstantDescs.CD_MethodType);
     private static final MethodRef LCMP = MethodRef.method(JavaType.J_L_LONG, "compare", JavaType.INT, JavaType.LONG, JavaType.LONG);
     private static final MethodRef FCMP = MethodRef.method(JavaType.J_L_FLOAT, "compare", JavaType.INT, JavaType.FLOAT, JavaType.FLOAT);
     private static final MethodRef DCMP = MethodRef.method(JavaType.J_L_DOUBLE, "compare", JavaType.INT, JavaType.DOUBLE, JavaType.DOUBLE);
+    private static final MethodRef LOOKUP = MethodRef.method(JavaType.type(ConstantDescs.CD_MethodHandles), "lookup", MHS_LOOKUP);
+    private static final MethodRef FIND_STATIC = MethodRef.method(MHS_LOOKUP, "findStatic", MH, JavaType.J_L_CLASS, JavaType.J_L_STRING, MT);
+    private static final MethodRef FIND_VIRTUAL = MethodRef.method(MHS_LOOKUP, "findVirtual", MH, JavaType.J_L_CLASS, JavaType.J_L_STRING, MT);
+    private static final MethodRef FIND_CONSTRUCTOR = MethodRef.method(MHS_LOOKUP, "findConstructor", MH, JavaType.J_L_CLASS, MT);
+    private static final MethodRef FIND_GETTER = MethodRef.method(MHS_LOOKUP, "findGetter", MH, JavaType.J_L_CLASS, JavaType.J_L_STRING, JavaType.J_L_CLASS);
+    private static final MethodRef FIND_STATIC_GETTER = MethodRef.method(MHS_LOOKUP, "findStaticGetter", MH, JavaType.J_L_CLASS, JavaType.J_L_STRING, JavaType.J_L_CLASS);
+    private static final MethodRef FIND_SETTER = MethodRef.method(MHS_LOOKUP, "findSetter", MH, JavaType.J_L_CLASS, JavaType.J_L_STRING, JavaType.J_L_CLASS);
+    private static final MethodRef FIND_STATIC_SETTER = MethodRef.method(MHS_LOOKUP, "findStaticSetter", MH, JavaType.J_L_CLASS, JavaType.J_L_STRING, JavaType.J_L_CLASS);
+
 
     private final Block.Builder entryBlock;
     private final ClassModel classModel;
@@ -94,7 +105,6 @@ public final class BytecodeLift {
     private final Deque<Value> stack;
     private final Map<Object, Op.Result> constantCache;
     private Block.Builder currentBlock;
-    private Op.Result lookup;
 
     private BytecodeLift(Block.Builder entryBlock, ClassModel classModel, CodeModel codeModel, Value... capturedValues) {
         this.entryBlock = entryBlock;
@@ -650,21 +660,10 @@ public final class BytecodeLift {
         }
     }
 
-    private static final MethodRef
-            Lookup_findStatic = MethodRef.method(MethodHandles.Lookup.class, "findStatic", MethodHandle.class, Class.class, String.class, MethodType.class),
-            Lookup_findVirtual = MethodRef.method(MethodHandles.Lookup.class, "findVirtual", MethodHandle.class, Class.class, String.class, MethodType.class),
-            Lookup_findConstructor = MethodRef.method(MethodHandles.Lookup.class, "findConstructor", MethodHandle.class, Class.class, MethodType.class),
-            Lookup_findGetter = MethodRef.method(MethodHandles.Lookup.class, "findGetter", MethodHandle.class, Class.class, String.class, Class.class),
-            Lookup_findStaticGetter = MethodRef.method(MethodHandles.Lookup.class, "findStaticGetter", MethodHandle.class, Class.class, String.class, Class.class),
-            Lookup_findSetter = MethodRef.method(MethodHandles.Lookup.class, "findSetter", MethodHandle.class, Class.class, String.class, Class.class),
-            Lookup_findStaticSetter = MethodRef.method(MethodHandles.Lookup.class, "findStaticSetter", MethodHandle.class, Class.class, String.class, Class.class);
-
     private Op.Result lookup() {
-        if (lookup == null) {
-            lookup = op(CoreOp.invoke(MethodRef.method(MethodHandles.class, "lookup", MethodType.methodType(MethodHandles.Lookup.class))));
-        }
-        return lookup;
+        return constantCache.computeIfAbsent(LOOKUP, _ -> op(CoreOp.invoke(LOOKUP)));
     }
+
     private Op.Result liftConstant(Object c) {
         Op.Result res = constantCache.get(c);
         if (res == null) {
@@ -683,22 +682,22 @@ public final class BytecodeLift {
                     MethodTypeDesc invDesc = dmh.invocationType();
                     yield op(switch (dmh.kind()) {
                         case STATIC, INTERFACE_STATIC  ->
-                            CoreOp.invoke(Lookup_findStatic, lookup, owner, name, liftConstant(invDesc));
+                            CoreOp.invoke(FIND_STATIC, lookup, owner, name, liftConstant(invDesc));
                         case VIRTUAL, INTERFACE_VIRTUAL ->
-                            CoreOp.invoke(Lookup_findVirtual, lookup, owner, name, liftConstant(invDesc.dropParameterTypes(0, 1)));
+                            CoreOp.invoke(FIND_VIRTUAL, lookup, owner, name, liftConstant(invDesc.dropParameterTypes(0, 1)));
                         case SPECIAL, INTERFACE_SPECIAL ->
                             //CoreOp.invoke(MethodRef.method(e), "findSpecial", owner, name, liftConstant(invDesc.dropParameterTypes(0, 1)), lookup.lookupClass());
                             throw new UnsupportedOperationException(dmh.toString());
                         case CONSTRUCTOR       ->
-                            CoreOp.invoke(Lookup_findConstructor, lookup, owner, liftConstant(invDesc.changeReturnType(CD_void)));
+                            CoreOp.invoke(FIND_CONSTRUCTOR, lookup, owner, liftConstant(invDesc.changeReturnType(CD_void)));
                         case GETTER            ->
-                            CoreOp.invoke(Lookup_findGetter, lookup, owner, name, liftConstant(invDesc.returnType()));
+                            CoreOp.invoke(FIND_GETTER, lookup, owner, name, liftConstant(invDesc.returnType()));
                         case STATIC_GETTER     ->
-                            CoreOp.invoke(Lookup_findStaticGetter, lookup, owner, name, liftConstant(invDesc.returnType()));
+                            CoreOp.invoke(FIND_STATIC_GETTER, lookup, owner, name, liftConstant(invDesc.returnType()));
                         case SETTER            ->
-                            CoreOp.invoke(Lookup_findSetter, lookup, owner, name, liftConstant(invDesc.parameterType(1)));
+                            CoreOp.invoke(FIND_SETTER, lookup, owner, name, liftConstant(invDesc.parameterType(1)));
                         case STATIC_SETTER     ->
-                            CoreOp.invoke(Lookup_findStaticSetter, lookup, owner, name, liftConstant(invDesc.parameterType(0)));
+                            CoreOp.invoke(FIND_STATIC_SETTER, lookup, owner, name, liftConstant(invDesc.parameterType(0)));
                     });
                 }
                 case MethodTypeDesc mt -> op(switch (mt.parameterCount()) {
