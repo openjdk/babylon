@@ -24,9 +24,14 @@
  */
 package hat.optools;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Type;
+import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.type.ClassType;
 import java.lang.reflect.code.type.FieldRef;
+import java.lang.reflect.code.type.JavaType;
+import java.lang.reflect.code.type.PrimitiveType;
 
 public abstract class FieldAccessOpWrapper<T extends CoreOp.FieldAccessOp> extends OpWrapper<T> {
     FieldAccessOpWrapper(T op) {
@@ -36,9 +41,15 @@ public abstract class FieldAccessOpWrapper<T extends CoreOp.FieldAccessOp> exten
     public boolean isKernelContextAccess() {
         var refType = fieldRef().refType();
         if (refType instanceof ClassType classType) {
+            // This should not rely on string
             return (classType.toClassName().equals("hat.KernelContext"));
         }
         return false;
+    }
+
+    public boolean isStaticFinalPrimitive() {
+      return hasNoOperands() && resultType() instanceof PrimitiveType;
+      // Can we check for final?
     }
 
     public FieldRef fieldRef() {
@@ -47,6 +58,10 @@ public abstract class FieldAccessOpWrapper<T extends CoreOp.FieldAccessOp> exten
 
     public String fieldName() {
         return fieldRef().name();
+    }
+
+    public TypeElement fieldType() {
+        return fieldRef().refType();
     }
 
 }
