@@ -28,6 +28,7 @@ import java.lang.classfile.ClassFile;
 import java.lang.classfile.Label;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
+import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.code.op.CoreOp;
@@ -86,6 +87,22 @@ public class TestLiftCustomBytecode {
         Assert.assertFalse((boolean)Interpreter.invoke(lookup, equals, tr1, tr2));
         Assert.assertTrue((boolean)Interpreter.invoke(lookup, equals, tr1, tr3));
         Assert.assertFalse((boolean)Interpreter.invoke(lookup, equals, tr1, "hello"));
+    }
+
+    @Test
+    public void testConstantBootstrapsCondy() throws Throwable {
+        byte[] testCondy = ClassFile.of().build(ClassDesc.of("TestCondy"), clb ->
+                clb.withMethodBody("condyMethod", MethodTypeDesc.of(ConstantDescs.CD_Class), ClassFile.ACC_STATIC, cob ->
+                        cob.ldc(DynamicConstantDesc.ofNamed(
+                                ConstantDescs.ofConstantBootstrap(ConstantDescs.CD_ConstantBootstraps, "primitiveClass", ConstantDescs.CD_Class),
+                                int.class.descriptorString(),
+                                ConstantDescs.CD_Class))
+                           .areturn()));
+
+        CoreOp.FuncOp primitiveInteger = getFuncOp(testCondy, "condyMethod");
+
+        MethodHandles.Lookup lookup = MethodHandles.lookup();
+        Assert.assertEquals((Class)Interpreter.invoke(lookup, primitiveInteger), int.class);
     }
 
     static CoreOp.FuncOp getFuncOp(byte[] classdata, String method) {
