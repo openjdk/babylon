@@ -68,7 +68,6 @@ import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.CallSite;
 import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodType;
 import java.lang.reflect.code.op.CoreOp.LambdaOp;
 import java.lang.reflect.code.type.PrimitiveType;
 import java.lang.reflect.code.type.VarType;
@@ -83,10 +82,13 @@ public final class BytecodeLift {
     private static final JavaType MHS_LOOKUP = JavaType.type(ConstantDescs.CD_MethodHandles_Lookup);
     private static final JavaType MH = JavaType.type(ConstantDescs.CD_MethodHandle);
     private static final JavaType MT = JavaType.type(ConstantDescs.CD_MethodType);
+    private static final JavaType ARRAYLIST = JavaType.type(ArrayList.class.describeConstable().get());
+    private static final FunctionType ARRAYLIST_INIT = FunctionType.functionType(ARRAYLIST);
     private static final MethodRef LCMP = MethodRef.method(JavaType.J_L_LONG, "compare", JavaType.INT, JavaType.LONG, JavaType.LONG);
     private static final MethodRef FCMP = MethodRef.method(JavaType.J_L_FLOAT, "compare", JavaType.INT, JavaType.FLOAT, JavaType.FLOAT);
     private static final MethodRef DCMP = MethodRef.method(JavaType.J_L_DOUBLE, "compare", JavaType.INT, JavaType.DOUBLE, JavaType.DOUBLE);
     private static final MethodRef LOOKUP = MethodRef.method(JavaType.type(ConstantDescs.CD_MethodHandles), "lookup", MHS_LOOKUP);
+    private static final MethodRef ARRAYLIST_ADD = MethodRef.method(ARRAYLIST, "add", JavaType.BOOLEAN, JavaType.J_L_OBJECT);
     private static final MethodRef FIND_STATIC = MethodRef.method(MHS_LOOKUP, "findStatic", MH, JavaType.J_L_CLASS, JavaType.J_L_STRING, MT);
     private static final MethodRef FIND_VIRTUAL = MethodRef.method(MHS_LOOKUP, "findVirtual", MH, JavaType.J_L_CLASS, JavaType.J_L_STRING, MT);
     private static final MethodRef FIND_CONSTRUCTOR = MethodRef.method(MHS_LOOKUP, "findConstructor", MH, JavaType.J_L_CLASS, MT);
@@ -94,7 +96,9 @@ public final class BytecodeLift {
     private static final MethodRef FIND_STATIC_GETTER = MethodRef.method(MHS_LOOKUP, "findStaticGetter", MH, JavaType.J_L_CLASS, JavaType.J_L_STRING, JavaType.J_L_CLASS);
     private static final MethodRef FIND_SETTER = MethodRef.method(MHS_LOOKUP, "findSetter", MH, JavaType.J_L_CLASS, JavaType.J_L_STRING, JavaType.J_L_CLASS);
     private static final MethodRef FIND_STATIC_SETTER = MethodRef.method(MHS_LOOKUP, "findStaticSetter", MH, JavaType.J_L_CLASS, JavaType.J_L_STRING, JavaType.J_L_CLASS);
-
+    private static final MethodRef METHOD_TYPE_0 = MethodRef.method(MT, "methodType", MT, JavaType.J_L_CLASS);
+    private static final MethodRef METHOD_TYPE_1 = MethodRef.method(MT, "methodType", MT, JavaType.J_L_CLASS, JavaType.J_L_CLASS);
+    private static final MethodRef METHOD_TYPE_L = MethodRef.method(MT, "methodType", MT, JavaType.J_L_CLASS, JavaType.J_U_LIST);
 
     private final Block.Builder entryBlock;
     private final ClassModel classModel;
@@ -651,6 +655,7 @@ public final class BytecodeLift {
                 case MonitorInstruction _ -> {
                     stack.pop(); // @@@ lift monitorenter and monitorexit ?
                 }
+                case NopInstruction _ -> {}
                 case PseudoInstruction _ -> {}
                 case Instruction inst ->
                     throw new UnsupportedOperationException("Unsupported instruction: " + inst.opcode().name());
@@ -701,20 +706,35 @@ public final class BytecodeLift {
                     });
                 }
                 case MethodTypeDesc mt -> op(switch (mt.parameterCount()) {
-                    case 0 -> CoreOp.invoke(MethodRef.method(MethodType.class, "methodType", MethodType.class, Class.class), liftConstant(mt.returnType()));
-                    case 1 -> CoreOp.invoke(MethodRef.method(MethodType.class, "methodType", MethodType.class, Class.class, Class.class), liftConstant(mt.returnType()), liftConstant(mt.parameterType(0)));
+                    case 0 -> CoreOp.invoke(METHOD_TYPE_0, liftConstant(mt.returnType()));
+                    case 1 -> CoreOp.invoke(METHOD_TYPE_1, liftConstant(mt.returnType()), liftConstant(mt.parameterType(0)));
                     default -> {
-                        Op.Result list = op(CoreOp._new(FunctionType.functionType(JavaType.type(ArrayList.class.describeConstable().get()))));
+                        Op.Result list = op(CoreOp._new(ARRAYLIST_INIT));
                         for (ClassDesc p : mt.parameterList()) {
-                            op(CoreOp.invoke(MethodRef.method(ArrayList.class, "add", MethodType.methodType(boolean.class, Object.class)), list, liftConstant(p)));
+                            op(CoreOp.invoke(ARRAYLIST_ADD, list, liftConstant(p)));
                         }
-                        yield CoreOp.invoke(MethodRef.method(MethodType.class, "methodType", MethodType.class, Class.class, List.class), liftConstant(mt.returnType()), list);
+                        yield CoreOp.invoke(METHOD_TYPE_L, liftConstant(mt.returnType()), list);
                     }
                 });
                 case DynamicConstantDesc<?> v when v.bootstrapMethod().owner().equals(ConstantDescs.CD_ConstantBootstraps)
                                              && v.bootstrapMethod().methodName().equals("nullConstant")
                         -> liftConstant(null);
-                case DynamicConstantDesc<?> dc -> throw new UnsupportedOperationException("DynamicConstantDesc");
+                case DynamicConstantDesc<?> dcd -> {
+                    List<Value> bootstrapArgs = new ArrayList<>();
+                    bootstrapArgs.add(lookup());
+                    bootstrapArgs.add(liftConstant(dcd.constantName()));
+                    bootstrapArgs.add(liftConstant(dcd.constantType()));
+                    for (ConstantDesc barg : dcd.bootstrapArgs()) {
+                        bootstrapArgs.add(liftConstant(barg));
+                    }
+                    DirectMethodHandleDesc bsm = dcd.bootstrapMethod();
+                    MethodTypeDesc bsmDesc = bsm.invocationType();
+                    MethodRef bsmRef = MethodRef.method(JavaType.type(bsm.owner()),
+                                                        bsm.methodName(),
+                                                        JavaType.type(bsmDesc.returnType()),
+                                                        bsmDesc.parameterList().stream().map(JavaType::type).toArray(TypeElement[]::new));
+                    yield op(CoreOp.invoke(bsmRef, bootstrapArgs));
+                }
                 case Boolean b -> op(CoreOp.constant(JavaType.BOOLEAN, b));
                 default -> throw new UnsupportedOperationException(c.getClass().toString());
             };
