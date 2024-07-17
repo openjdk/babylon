@@ -27,6 +27,7 @@ package hat.buffer;
 import hat.Accelerator;
 import hat.ifacemapper.Schema;
 
+import java.lang.foreign.MemorySegment;
 import java.lang.foreign.StructLayout;
 import java.lang.invoke.MethodHandles;
 
@@ -62,5 +63,8 @@ public interface S32Array2D extends Buffer {
     static S32Array2D create(Accelerator accelerator,  int width, int height){
         return create(accelerator.lookup, accelerator, width,height);
     }
-
+    default S32Array2D copyFrom(int[] ints) {
+        MemorySegment.copy(ints, 0, Buffer.getMemorySegment(this), JAVA_INT, 2* JAVA_INT.byteSize(), width()*height());
+        return this;
+    }
 }

@@ -48,6 +48,7 @@ import hat.optools.ReturnOpWrapper;
 import hat.optools.StructuralOpWrapper;
 import hat.optools.TernaryOpWrapper;
 import hat.optools.TupleOpWrapper;
+import hat.optools.UnaryArithmeticOrLogicOperation;
 import hat.optools.VarDeclarationOpWrapper;
 import hat.optools.VarFuncDeclarationOpWrapper;
 import hat.optools.VarLoadOpWrapper;
@@ -102,8 +103,12 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
             case CoreOp.ModOp o -> 2;
             case CoreOp.MulOp o -> 2;
             case CoreOp.DivOp o -> 2;
+            case CoreOp.NotOp   o -> 2;
             case CoreOp.AddOp o -> 3;
             case CoreOp.SubOp o -> 3;
+            case CoreOp.AshrOp o -> 4;
+            case CoreOp.LshlOp o -> 4;
+            case CoreOp.LshrOp o -> 4;
             case CoreOp.LtOp o -> 5;
             case CoreOp.GtOp o -> 5;
             case CoreOp.LeOp o -> 5;
@@ -213,8 +218,12 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
             case CoreOp.GtOp o -> gt();
             case CoreOp.LeOp o -> lte();
             case CoreOp.GeOp o -> gte();
+            case CoreOp.AshrOp o -> cchevron().cchevron();
+            case CoreOp.LshlOp o -> ochevron().ochevron();
+            case CoreOp.LshrOp o -> cchevron().cchevron();
             case CoreOp.NeqOp o -> pling().equals();
             case CoreOp.EqOp o -> equals().equals();
+            case CoreOp.NotOp o -> pling();
             case CoreOp.AndOp o -> ampersand();
             case CoreOp.OrOp o -> bar();
             case CoreOp.XorOp o -> hat();
@@ -222,6 +231,14 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
             case ExtendedOp.JavaConditionalOrOp o -> condOr();
             default -> throw new IllegalStateException("Unexpected value: " + op);
         };
+    }
+
+    @Override
+    public T unaryOperation(C99HatBuildContext buildContext, UnaryArithmeticOrLogicOperation unaryOperatorOpWrapper) {
+      //  parencedence(buildContext, binaryOperatorOpWrapper.op(), binaryOperatorOpWrapper.lhsAsOp());
+        symbol(unaryOperatorOpWrapper.op());
+        parencedence(buildContext, unaryOperatorOpWrapper.op(), unaryOperatorOpWrapper.operandNAsResult(0).op());
+        return self();
     }
 
     @Override
