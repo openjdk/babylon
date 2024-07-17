@@ -173,7 +173,7 @@ public final class SSA {
             Set<CoreOp.VarOp> varOps = joinPoints.get(n.b());
             if (varOps != null) {
                 varOps.forEach(v -> {
-                    assert variableStack.get(v) != null;
+                    assert variableStack.containsKey(v);
                     variableStack.get(v).push(new VarOpBlockArgument(n.b(), v));
                 });
             }
@@ -186,21 +186,22 @@ public final class SSA {
                 if (op instanceof CoreOp.VarOp varOp) {
                     // Initial value assigned to variable
                     Value current = op.operands().get(0);
-                    variableStack.computeIfAbsent(varOp, _k -> new ArrayDeque<>())
+                    assert !variableStack.containsKey(varOp);
+                    variableStack.computeIfAbsent(varOp, _ -> new ArrayDeque<>())
                             .push(current);
                 } else if (op instanceof CoreOp.VarAccessOp.VarStoreOp storeOp) {
                     // Value assigned to variable
                     Value current = op.operands().get(1);
-                    variableStack.computeIfAbsent(storeOp.varOp(), _k -> new ArrayDeque<>())
-                            .push(current);
-                } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp loadOp) {
+                    variableStack.get(storeOp.varOp()).push(current);
+                } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp loadOp &&
+                           loadOp.varOp().ancestorBody() == op.ancestorBody()) {
                     Object to = variableStack.get(loadOp.varOp()).peek();
                     loadValues.put(loadOp, to);
                 } else if (op instanceof Op.Nested) {
                     // Traverse descendant variable loads for variables
                     // declared in the block's parent body
-                    op.traverse(null, (o, codeElement) -> {
-                        if (o instanceof CoreOp.VarAccessOp.VarLoadOp loadOp &&
+                    op.traverse(null, (_, ce) -> {
+                        if (ce instanceof CoreOp.VarAccessOp.VarLoadOp loadOp &&
                                 loadOp.varOp().ancestorBody() == op.ancestorBody()) {
                             Object to = variableStack.get(loadOp.varOp()).peek();
                             loadValues.put(loadOp, to);

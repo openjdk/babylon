@@ -32,6 +32,7 @@ import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.Method;
 import java.lang.runtime.CodeReflection;
 import java.util.Optional;
+import java.util.function.IntSupplier;
 import java.util.stream.Stream;
 
 /*
@@ -122,12 +123,31 @@ public class TestSSA {
     }
 
     @Test
-    public void testNestedLoop() throws Throwable {
+    public void testNestedLoop() {
         CoreOp.FuncOp f = getFuncOp("nestedLoop");
 
         CoreOp.FuncOp lf = generate(f);
 
         Assert.assertEquals((int) Interpreter.invoke(lf, 10), nestedLoop(10));
+    }
+
+    @CodeReflection
+    static int nestedLambdaCapture(int i) {
+        IntSupplier s = () -> {
+            int j = i + 1;
+            IntSupplier s2 = () -> i + j;
+            return s2.getAsInt() + i;
+        };
+        return s.getAsInt();
+    }
+
+    @Test
+    public void testNestedLambdaCapture() {
+        CoreOp.FuncOp f = getFuncOp("nestedLambdaCapture");
+
+        CoreOp.FuncOp lf = generate(f);
+
+        Assert.assertEquals((int) Interpreter.invoke(lf, 10), nestedLambdaCapture(10));
     }
 
     static CoreOp.FuncOp generate(CoreOp.FuncOp f) {
