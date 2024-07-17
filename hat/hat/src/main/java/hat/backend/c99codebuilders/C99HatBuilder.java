@@ -58,7 +58,9 @@ import hat.util.StreamCounter;
 
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.StructLayout;
+import java.lang.reflect.Field;
 import java.lang.reflect.code.Op;
+import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.op.ExtendedOp;
 import java.lang.reflect.code.type.ClassType;
@@ -183,9 +185,13 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
     public T fieldLoad(C99HatBuildContext buildContext, FieldLoadOpWrapper fieldLoadOpWrapper) {
         if (fieldLoadOpWrapper.isKernelContextAccess()) {
             identifier("kc").rarrow().identifier(fieldLoadOpWrapper.fieldName());
+        } else if (fieldLoadOpWrapper.isStaticFinalPrimitive()) {
+            Object value = fieldLoadOpWrapper.getStaticFinalPrimitiveValue();
+            literal(value.toString());
         } else {
-            // throw new IllegalStateException("What is this field load ?" + fieldLoadOpWrapper.fieldRef());
+            throw new IllegalStateException("What is this field load ?" + fieldLoadOpWrapper.fieldRef());
         }
+
         return self();
     }
 
@@ -440,8 +446,8 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
                                         sbrace(_ -> literal(1));
                                     } else {
                                         boolean[] done = new boolean[]{false};
-                                        boundSchema.boundArrayFields().forEach(a->{
-                                            if (a.field.equals(array)){
+                                        boundSchema.boundArrayFields().forEach(a -> {
+                                            if (a.field.equals(array)) {
                                                 sbrace(_ -> literal(a.len));
                                                 done[0] = true;
                                             }
@@ -481,7 +487,7 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
                                     throw new IllegalStateException("what kind of array ");
                                 }
                             }
-                        }else if (field instanceof Schema.SchemaNode.Padding){
+                        } else if (field instanceof Schema.SchemaNode.Padding) {
                             // SKIP
                         } else {
                             throw new IllegalStateException("hmm");

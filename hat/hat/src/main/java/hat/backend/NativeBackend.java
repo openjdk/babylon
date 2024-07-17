@@ -75,7 +75,7 @@ public abstract class NativeBackend extends NativeBackendDriver {
 
     static FuncOpWrapper injectBufferTracking(CallGraph.ResolvedMethodCall resolvedMethodCall) {
         FuncOpWrapper originalFuncOpWrapper = resolvedMethodCall.funcOpWrapper();
-
+        originalFuncOpWrapper.op().writeTo(System.out);
         var transformed = originalFuncOpWrapper.transformInvokes((builder, invokeOpWrapper) -> {
                     if (invokeOpWrapper.isIfaceBufferMethod()) {
                         CopyContext cc = builder.context();
