@@ -154,7 +154,7 @@ public final class Body implements CodeElement<Body, Block> {
     /**
      * Returns a map of block to its immediate dominator.
      *
-     * @return a map of block to its immediate dominator
+     * @return a map of block to its immediate dominator, as an unmodifiable map
      */
     public Map<Block, Block> immediateDominators() {
         /*
@@ -169,7 +169,10 @@ public final class Body implements CodeElement<Body, Block> {
             return idoms;
         }
 
-        Map<Block, Block> doms = idoms = new HashMap<>();
+        // @@@ Compute the idoms as a block index mapping using int[]
+        // and wrap and a specific map implementation
+
+        Map<Block, Block> doms = new HashMap<>();
         doms.put(entryBlock(), entryBlock());
 
         // Blocks are sorted in reverse postorder
@@ -209,7 +212,7 @@ public final class Body implements CodeElement<Body, Block> {
             }
         } while (changed);
 
-        return doms;
+        return idoms = Collections.unmodifiableMap(doms);
     }
 
     static Block intersect(Map<Block, Block> doms, Block b1, Block b2) {
@@ -233,7 +236,7 @@ public final class Body implements CodeElement<Body, Block> {
      * such that {@code B} dominates a predecessor of {@code C} but does not strictly dominate
      * {@code C}.
      *
-     * @return the dominance frontier of each block in the body
+     * @return the dominance frontier of each block in the body, as a modifiable map
      */
     public Map<Block, Set<Block>> dominanceFrontier() {
         // @@@ cache result?
@@ -247,7 +250,7 @@ public final class Body implements CodeElement<Body, Block> {
                 for (Block p : preds) {
                     Block runner = p;
                     while (runner != idoms.get(b)) {
-                        df.computeIfAbsent(runner, k -> new LinkedHashSet<>()).add(b);
+                        df.computeIfAbsent(runner, _ -> new LinkedHashSet<>()).add(b);
                         runner = idoms.get(runner);
                     }
                 }
