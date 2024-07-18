@@ -24,6 +24,8 @@
  */
 #include "opencl_backend.h"
 
+#define INFO 0
+
 OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::OpenCLBuffer(Backend::Program::Kernel *kernel, Arg_s *arg)
         : Backend::Program::Kernel::Buffer(kernel, arg) {
     /*
@@ -42,7 +44,9 @@ OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::OpenCLBuffer(Backend::
         exit(1);
     }
     arg->value.buffer.vendorPtr = static_cast<void *>(this);
-    std::cout << "created buffer " << std::endl;
+    if (INFO){
+         std::cout << "created buffer " << std::endl;
+    }
 }
 
 void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyToDevice() {
@@ -69,7 +73,9 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyToDevice() {
         exit(1);
     }
     openclKernel->eventc++;
-    std::cout << "enqueued buffer copyToDevice " << std::endl;
+    if (INFO){
+        std::cout << "enqueued buffer copyToDevice " << std::endl;
+    }
 }
 
 void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyFromDevice() {
@@ -90,7 +96,9 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyFromDevice() 
         exit(1);
     }
     openclKernel->eventc++;
-    std::cout << "enqueued buffer copyFromDevice " << std::endl;
+    if (INFO){
+       std::cout << "enqueued buffer copyFromDevice " << std::endl;
+    }
 }
 
 OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::~OpenCLBuffer() {
@@ -109,7 +117,9 @@ OpenCLBackend::OpenCLProgram::OpenCLKernel::~OpenCLKernel() {
 long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
    // std::cout << "ndrange(" << range << ") " << std::endl;
     ArgSled argSled(static_cast<ArgArray_s *>(argArray));
-    Sled::show(std::cout, argArray);
+    if (INFO){
+       Sled::show(std::cout, argArray);
+    }
     if (events != nullptr || eventc != 0) {
         std::cerr << "opencl state issue, we might have leaked events!" << std::endl;
     }
@@ -132,7 +142,9 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
                     std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
                     exit(1);
                 }
-                std::cout << "set buffer arg " << arg->idx << std::endl;
+                if (INFO){
+                   std::cout << "set buffer arg " << arg->idx << std::endl;
+                }
                 break;
             }
             case 'I':
@@ -142,7 +154,9 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
                     std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
                     exit(1);
                 }
-                std::cout << "set I or F arg " << arg->idx << std::endl;
+                if (INFO){
+                   std::cout << "set I or F arg " << arg->idx << std::endl;
+                }
                 break;
             }
             case 'S':
@@ -152,8 +166,9 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
                     std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
                     exit(1);
                 }
-
-                std::cout << "set S or C arg " << arg->idx << std::endl;
+                if (INFO){
+                   std::cout << "set S or C arg " << arg->idx << std::endl;
+                }
                 break;
             }
             case 'J':
@@ -163,18 +178,22 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
                     std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
                     exit(1);
                 }
-                std::cout << "set J or D arg " << arg->idx << std::endl;
+                if (INFO){
+                   std::cout << "set J or D arg " << arg->idx << std::endl;
+                }
                 break;
             }
             default: {
-                std::cout << "unexpected variant " << (char) arg->variant << std::endl;
+                std::cerr << "unexpected variant " << (char) arg->variant << std::endl;
                 exit(1);
             }
         }
     }
 
     size_t globalSize = ndrange->maxX;
-    std::cout << "ndrange = " << ndrange->maxX << std::endl;
+    if (INFO){
+       std::cout << "ndrange = " << ndrange->maxX << std::endl;
+    }
     size_t dims = 1;
     cl_int status = clEnqueueNDRangeKernel(
             dynamic_cast<OpenCLBackend *>(program->backend)->command_queue,
@@ -190,11 +209,10 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
         std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
         exit(1);
     }
-
-    std::cout << "enqueued dispatch  " << std::endl;
-#ifdef VERBOSE
-    std::cout <<  " globalSize=" << globalSize << " " << error(status) << std::endl;
-#endif
+    if (INFO){
+       std::cout << "enqueued dispatch  " << std::endl;
+       std::cout <<  " globalSize=" << globalSize << " " << std::endl;
+    }
 
     eventc++;
     for (int i = 0; i < argSled.argc(); i++) {
@@ -251,11 +269,13 @@ bool OpenCLBackend::OpenCLProgram::programOK() {
 OpenCLBackend::OpenCLBackend(OpenCLBackend::OpenCLConfig *openclConfig, int configSchemaLen, char *configSchema)
         : Backend((Backend::Config *) openclConfig, configSchemaLen, configSchema) {
 
-    if (openclConfig == nullptr) {
-        std::cout << "openclConfig == null" << std::endl;
-    } else {
-        std::cout << "openclConfig->gpu" << (openclConfig->gpu ? "true" : "false") << std::endl;
-        std::cout << "openclConfig->schema" << configSchema << std::endl;
+    if (INFO){
+       if (openclConfig == nullptr) {
+           std::cout << "openclConfig == null" << std::endl;
+       } else {
+           std::cout << "openclConfig->gpu" << (openclConfig->gpu ? "true" : "false") << std::endl;
+           std::cout << "openclConfig->schema" << configSchema << std::endl;
+       }
     }
     cl_device_type requestedType =
             openclConfig == nullptr ? CL_DEVICE_TYPE_GPU : openclConfig->gpu ? CL_DEVICE_TYPE_GPU : CL_DEVICE_TYPE_CPU;
@@ -395,7 +415,9 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::showEvents(int width) {
 }
 
 int OpenCLBackend::getMaxComputeUnits() {
-    std::cout << "getMaxComputeUnits()" << std::endl;
+    if (INFO){
+       std::cout << "getMaxComputeUnits()" << std::endl;
+    }
     cl_uint value;
     cl_int status = clGetDeviceInfo(device_id, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(value), &value, nullptr);
     if (status != CL_SUCCESS) {
@@ -515,7 +537,9 @@ long OpenCLBackend::compileProgram(int len, char *source) {
     char *src = new char[srcLen + 1];
     ::strncpy(src, source, srcLen);
     src[srcLen] = '\0';
-    //std::cout << "native compiling " << src << std::endl;
+    if(INFO){
+        std::cout << "native compiling " << src << std::endl;
+    }
     cl_int status;
     cl_program program;
     if ((program = clCreateProgramWithSource(context, 1, (const char **) &src, nullptr, &status)) == nullptr ||

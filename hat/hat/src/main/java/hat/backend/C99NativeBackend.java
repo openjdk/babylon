@@ -27,16 +27,18 @@ package hat.backend;
 
 import hat.NDRange;
 import hat.backend.c99codebuilders.C99HatKernelBuilder;
-import hat.backend.c99codebuilders.Typedef;
 import hat.buffer.ArgArray;
 import hat.buffer.Buffer;
 import hat.buffer.KernelContext;
 import hat.callgraph.KernelCallGraph;
+import hat.ifacemapper.BoundSchema;
+import hat.ifacemapper.Schema;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 
 public abstract class C99NativeBackend extends NativeBackend {
     public C99NativeBackend(String libName) {
@@ -50,19 +52,20 @@ public abstract class C99NativeBackend extends NativeBackend {
         public final long kernelHandle;
         public final ArgArray argArray;
         public final KernelContext kernelContext;
+
         CompiledKernel(C99NativeBackend c99NativeBackend, KernelCallGraph kernelCallGraph, String text, long kernelHandle, Object[] ndRangeAndArgs) {
             this.c99NativeBackend = c99NativeBackend;
             this.kernelCallGraph = kernelCallGraph;
             this.text = text;
             this.kernelHandle = kernelHandle;
-            this.kernelContext =KernelContext.create(c99NativeBackend,0,0);
-            ndRangeAndArgs[0]=this.kernelContext;
-            this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator, ndRangeAndArgs);
+            this.kernelContext = KernelContext.create(kernelCallGraph.computeContext.accelerator.lookup, c99NativeBackend, 0, 0);
+            ndRangeAndArgs[0] = this.kernelContext;
+            this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator.lookup, kernelCallGraph.computeContext.accelerator, ndRangeAndArgs);
         }
 
         public void dispatch(NDRange ndRange, Object[] args) {
             kernelContext.maxX(ndRange.kid.maxX);
-            args[0]=this.kernelContext;
+            args[0] = this.kernelContext;
             ArgArray.update(argArray, args);
             c99NativeBackend.ndRange(kernelHandle, this.argArray);
         }
@@ -72,13 +75,21 @@ public abstract class C99NativeBackend extends NativeBackend {
 
     public <T extends C99HatKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object[] args) {
         builder.defines().pragmas().types();
-        Map<String, Typedef> scope = new LinkedHashMap<>();
+        Set<Schema.IfaceType> already = new LinkedHashSet<>();
         Arrays.stream(args)
                 .filter(arg -> arg instanceof Buffer)
                 .map(arg -> (Buffer) arg)
-                .forEach(ifaceBuffer -> builder.typedef(scope, ifaceBuffer));
+                .forEach(ifaceBuffer -> {
+                    BoundSchema<?> boundSchema = Buffer.getBoundSchema(ifaceBuffer);
+                    boundSchema.schema().rootIfaceType.visitTypes(0, t -> {
+                        if (!already.contains(t)) {
+                            builder.typedef(boundSchema, t);
+                            already.add(t);
+                        }
+                    });
+                });
 
-        // The sort below ensures we don't need forward declarations
+        // Sorting by rank ensures we don't need forward declarations
         kernelCallGraph.kernelReachableResolvedStream().sorted((lhs, rhs) -> rhs.rank - lhs.rank)
                 .forEach(kernelReachableResolvedMethod -> builder.nl().kernelMethod(kernelReachableResolvedMethod).nl());
 

@@ -24,10 +24,17 @@
  */
 package violajones.ifaces;
 
-import hat.buffer.IncompleteBuffer;
+import hat.Accelerator;
+import hat.buffer.After;
+import hat.buffer.Atomic;
+import hat.buffer.BoundBy;
+import hat.buffer.Buffer;
+import hat.buffer.BufferAllocator;
 import hat.ifacemapper.Schema;
 
-public interface ResultTable extends IncompleteBuffer  {
+import java.lang.invoke.MethodHandles;
+
+public interface ResultTable extends Buffer {
 
     interface Result extends Struct {
         float x();
@@ -39,14 +46,17 @@ public interface ResultTable extends IncompleteBuffer  {
         void width(float width);
         void height(float height);
     }
+    @Atomic
+    void atomicResultTableCount(int atomicResultTableCount);
+    int atomicResultTableCount();
 
+    @After("atomicResultTableCount")
     int length();
     void length(int length);
 
+    @BoundBy("length")
     Result result(long idx);
 
-    void atomicResultTableCount(int atomicResultTableCount);
-    int atomicResultTableCount();
 
     default int atomicResultTableCountInc() {
         int index = atomicResultTableCount();
@@ -56,8 +66,20 @@ public interface ResultTable extends IncompleteBuffer  {
 
     Schema<ResultTable> schema = Schema.of(ResultTable.class, resultTable->resultTable
             .atomic("atomicResultTableCount")
-            .arrayLen("length").array("result", array->array
+            .arrayLen("length")
+            .array("result", array->array
                     .fields("x", "y", "width", "height")
             )
     );
+
+    static ResultTable create(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator,int length){
+        var instance = schema.allocate(lookup,bufferAllocator,length);
+        instance.length(length);
+        instance.atomicResultTableCount(0);
+        return instance;
+    }
+
+    static ResultTable create(Accelerator accelerator, int length){
+       return create(accelerator.lookup, accelerator,length);
+    }
 }

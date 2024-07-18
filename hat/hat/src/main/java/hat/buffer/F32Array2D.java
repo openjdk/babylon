@@ -28,18 +28,20 @@ import hat.Accelerator;
 import hat.ifacemapper.Schema;
 
 import java.lang.foreign.StructLayout;
+import java.lang.invoke.MethodHandles;
 
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-public interface F32Array2D extends IncompleteBuffer {
+public interface F32Array2D extends Buffer {
     int width();
+    void width(int i);
+
+    @After("width")
     void height(int i);
     int height();
-    void width(int i);
-    Schema<F32Array2D> schema = Schema.of(F32Array2D.class, s32Array->s32Array
-            .arrayLen("width","height").stride(1).array("array"));
 
+    @BoundBy({"width","height"})
     float array(long idx);
 
     void array(long idx, float v);
@@ -51,4 +53,18 @@ public interface F32Array2D extends IncompleteBuffer {
     default void set(int x, int y, float v) {
         array((long) y * width() + x, v);
     }
+
+    Schema<F32Array2D> schema = Schema.of(F32Array2D.class, s32Array->s32Array
+            .arrayLen("width","height").stride(1).array("array"));
+
+    static F32Array2D create(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator, int width, int height){
+        var instance = schema.allocate(lookup,bufferAllocator, width,height);
+        instance.width(width);
+        instance.height(height);
+        return instance;
+    }
+    static F32Array2D create(Accelerator accelerator,  int width, int height){
+        return create(accelerator.lookup, accelerator, width,height);
+    }
+
 }

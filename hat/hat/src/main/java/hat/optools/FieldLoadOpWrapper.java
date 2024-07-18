@@ -24,6 +24,8 @@
  */
 package hat.optools;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.op.CoreOp;
 
 public class FieldLoadOpWrapper extends FieldAccessOpWrapper<CoreOp.FieldAccessOp.FieldLoadOp> implements LoadOpWrapper {
@@ -33,4 +35,20 @@ public class FieldLoadOpWrapper extends FieldAccessOpWrapper<CoreOp.FieldAccessO
         super(op);
     }
 
+    public Object getStaticFinalPrimitiveValue() {
+        TypeElement te = fieldType();
+        String fieldName = fieldName();
+        try {
+            Class<?> clazz = Class.forName(te.toString());
+            Field field = clazz.getField(fieldName);
+           return  field.get(null);
+
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        } catch (NoSuchFieldException e) {
+            throw new RuntimeException(e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

@@ -4,6 +4,7 @@ import hat.buffer.Buffer;
 import hat.buffer.BufferAllocator;
 import hat.callgraph.ComputeCallGraph;
 import hat.callgraph.KernelCallGraph;
+import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.SegmentMapper;
 import hat.optools.FuncOpWrapper;
 import hat.optools.LambdaOpWrapper;
@@ -121,8 +122,8 @@ public class ComputeContext implements BufferAllocator {
     }
 
     @Override
-    public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper) {
-        return accelerator.allocate(segmentMapper);
+    public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema) {
+        return accelerator.allocate(segmentMapper, boundSchema);
     }
 
     public interface QuotableKernelContextConsumer extends Quotable, Consumer<KernelContext> {

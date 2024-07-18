@@ -29,25 +29,40 @@ import hat.ifacemapper.Schema;
 
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.StructLayout;
+import java.lang.invoke.MethodHandles;
 
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-public interface F32Array extends IncompleteBuffer {
+public interface F32Array extends Buffer {
 
     int length();
     void length(int i);
+
+    @BoundBy("length")
+    float array(long idx);
+    void array(long idx, float f);
+
     Schema<F32Array> schema = Schema.of(F32Array.class, s32Array->s32Array
             .arrayLen("length").array("array"));
 
-    float array(long idx);
 
-    void array(long idx, float f);
-
+    static F32Array create(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator, int length){
+        var instance = schema.allocate(lookup,bufferAllocator, length);
+        instance.length(length);
+        return instance;
+    }
+    static F32Array create(Accelerator accelerator, int length){
+        return create(accelerator.lookup, accelerator, length);
+    }
     default F32Array copyFrom(float[] floats) {
         MemorySegment.copy(floats, 0, Buffer.getMemorySegment(this), JAVA_FLOAT, 4, length());
         return this;
     }
+    static F32Array createFrom(Accelerator accelerator, float[] arr){
+        return create(accelerator.lookup, accelerator, arr.length).copyFrom(arr);
+    }
+
 
     default F32Array copyTo(float[] floats) {
         MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_FLOAT, 4, floats, 0, length());

@@ -1,4 +1,4 @@
-package hat.buffer;
+package hat.ifacemapper;
 
 public interface MappableIface {
 }

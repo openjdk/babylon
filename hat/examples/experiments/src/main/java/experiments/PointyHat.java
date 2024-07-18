@@ -4,25 +4,27 @@ package experiments;
 
 import hat.Accelerator;
 import hat.ComputeContext;
+import hat.OpsAndTypes;
 import hat.KernelContext;
+import hat.NDRange;
+import hat.backend.BackendAdaptor;
+import hat.buffer.Buffer;
+import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.Schema;
-import hat.backend.DebugBackend;
-import hat.buffer.BufferAllocator;
-import hat.buffer.CompleteBuffer;
-import hat.ifacemapper.HatData;
-import hat.ifacemapper.SegmentMapper;
 
-import java.lang.foreign.GroupLayout;
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.ValueLayout;
+import hat.buffer.BufferAllocator;
+
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.code.OpTransformer;
+import java.lang.reflect.code.analysis.SSA;
+import java.lang.reflect.code.op.CoreOp;
+import java.lang.reflect.code.type.FunctionType;
 import java.lang.runtime.CodeReflection;
 
 public class PointyHat {
-    public interface ColoredWeightedPoint extends CompleteBuffer {
+    public interface ColoredWeightedPoint extends Buffer {
         interface WeightedPoint extends Struct {
             interface Point extends Struct {
-
                 int x();
 
                 void x(int x);
@@ -30,12 +32,6 @@ public class PointyHat {
                 int y();
 
                 void y(int y);
-
-                GroupLayout LAYOUT = MemoryLayout.structLayout(
-
-                        ValueLayout.JAVA_INT.withName("x"),
-                        ValueLayout.JAVA_INT.withName("y")
-                );
             }
 
             float weight();
@@ -43,11 +39,6 @@ public class PointyHat {
             void weight(float weight);
 
             Point point();
-
-           GroupLayout LAYOUT = MemoryLayout.structLayout(
-                    ValueLayout.JAVA_FLOAT.withName("weight"),
-                    Point.LAYOUT.withName("point")
-            );
         }
 
         WeightedPoint weightedPoint();
@@ -56,36 +47,25 @@ public class PointyHat {
 
         void color(int v);
 
-        GroupLayout LAYOUT = MemoryLayout.structLayout(
-                WeightedPoint.LAYOUT.withName("weightedPoint"),
-                ValueLayout.JAVA_INT.withName("color")
-        ).withName(ColoredWeightedPoint.class.getSimpleName());
-
-
-
         Schema<ColoredWeightedPoint> schema = Schema.of(ColoredWeightedPoint.class, (colouredWeightedPoint)-> colouredWeightedPoint
                 .field("weightedPoint", (weightedPoint)-> weightedPoint
-                        .field("weight", point->point
+                        .field("weight")
+                        .field("point", point->point
                                 .field("x")
                                 .field("y"))
                 )
                 .field("color")
         );
 
-        static ColoredWeightedPoint create(BufferAllocator bufferAllocator) {
-            System.out.println(LAYOUT);
-            System.out.println(schema.boundSchema().groupLayout);
-            HatData hatData = new HatData() {
-            };
-            return bufferAllocator.allocate(SegmentMapper.of(MethodHandles.lookup(), ColoredWeightedPoint.class, LAYOUT,hatData));
+        static ColoredWeightedPoint create(MethodHandles.Lookup lookup,BufferAllocator bufferAllocator) {
+            return schema.allocate(lookup,bufferAllocator);
         }
     }
 
-    static class Compute {
-
+    public static class Compute {
 
         @CodeReflection
-        static void testMethodKernel(KernelContext kc, ColoredWeightedPoint coloredWeightedPoint) {
+        public static void testMethodKernel(KernelContext kc, ColoredWeightedPoint coloredWeightedPoint) {
             // StructOne* s1
             // s1 -> i
             int color = coloredWeightedPoint.color();
@@ -101,7 +81,7 @@ public class PointyHat {
         }
 
         @CodeReflection
-        static void compute(ComputeContext cc, ColoredWeightedPoint coloredWeightedPoint) {
+        public static void compute(ComputeContext cc, ColoredWeightedPoint coloredWeightedPoint) {
             cc.dispatchKernel(1, kc -> Compute.testMethodKernel(kc, coloredWeightedPoint));
         }
 
@@ -109,11 +89,44 @@ public class PointyHat {
 
 
     public static void main(String[] args) {
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup(), new DebugBackend(
-                DebugBackend.HowToRunCompute.REFLECT,
-                DebugBackend.HowToRunKernel.LOWER_TO_SSA_AND_MAP_PTRS)
-        );
-        var coloredWeightedPoint = ColoredWeightedPoint.create(accelerator);
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup(), new BackendAdaptor() {
+            @Override
+            public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
+                var highLevelForm = kernelCallGraph.entrypoint.method.getCodeModel().orElseThrow();
+                System.out.println("Initial code model");
+                System.out.println(highLevelForm.toText());
+                System.out.println("------------------");
+                CoreOp.FuncOp loweredForm = highLevelForm.transform(OpTransformer.LOWERING_TRANSFORMER);
+                System.out.println("Lowered form which maintains original invokes and args");
+                System.out.println(loweredForm.toText());
+                System.out.println("-------------- ----");
+                // highLevelForm.lower();
+                CoreOp.FuncOp ssaInvokeForm = SSA.transform(loweredForm);
+                System.out.println("SSA form which maintains original invokes and args");
+                System.out.println(ssaInvokeForm.toText());
+                System.out.println("------------------");
+
+                FunctionType functionType = OpsAndTypes.transformTypes(MethodHandles.lookup(), ssaInvokeForm, args);
+                System.out.println("SSA form with types transformed args");
+                System.out.println(ssaInvokeForm.toText());
+                System.out.println("------------------");
+
+                CoreOp.FuncOp ssaPtrForm = OpsAndTypes.transformInvokesToPtrs(MethodHandles.lookup(), ssaInvokeForm, functionType);
+                System.out.println("SSA form with invokes replaced by ptrs");
+                System.out.println(ssaPtrForm.toText());
+            }
+        });
+        var coloredWeightedPoint = ColoredWeightedPoint.create(MethodHandles.lookup(),accelerator);
+
+        int color = coloredWeightedPoint.color();
+        // s1 -> *s2
+        ColoredWeightedPoint.WeightedPoint weightedPoint = coloredWeightedPoint.weightedPoint();
+        // s2 -> i
+        ColoredWeightedPoint.WeightedPoint.Point point = weightedPoint.point();
+        color += point.x();
+        coloredWeightedPoint.color(color);
+        // s2 -> f
+        float weight = weightedPoint.weight();
         accelerator.compute(cc -> Compute.compute(cc, coloredWeightedPoint));
     }
 }

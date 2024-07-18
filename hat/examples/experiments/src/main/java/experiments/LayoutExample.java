@@ -29,7 +29,7 @@ package experiments;
 
 import hat.ifacemapper.Schema;
 import hat.buffer.Buffer;
-import hat.buffer.MappableIface;
+import hat.ifacemapper.MappableIface;
 
 import java.lang.constant.ClassDesc;
 import java.lang.foreign.*;

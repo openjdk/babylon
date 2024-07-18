@@ -27,32 +27,31 @@ package hat.buffer;
 import hat.ifacemapper.Schema;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+import java.lang.invoke.MethodHandles;
 import java.nio.ByteOrder;
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-public interface ArgArray extends IncompleteBuffer {
+public interface ArgArray extends Buffer {
     interface Arg extends Buffer.Struct{
         interface Value extends Buffer.Union{
             interface Buf extends Buffer.Struct{
                 MemorySegment address();
-
                 void address(MemorySegment address);
 
-                long bytes();
-
+                @After("address") long bytes();
                 void bytes(long bytes);
 
+                @After("bytes")
                 MemorySegment vendorPtr();
-
                 void vendorPtr(MemorySegment vendorPtr);
 
+                @After("vendorPtr")
                 byte access();
-
                 void access(byte access);
 
+                @After("access")
                 byte state();
-
                 void state(byte state);
             }
 
@@ -100,14 +99,12 @@ public interface ArgArray extends IncompleteBuffer {
         }
 
         int idx();
-
         void idx(int idx);
 
-        byte variant();
-
+        @After("idx") byte variant();
         void variant(byte variant);
 
-        Value value();
+        @SelectedBy("variant") @Pad(11) Value value();
 
         default String asString() {
             switch (variant()) {
@@ -214,29 +211,31 @@ public interface ArgArray extends IncompleteBuffer {
             value().f64(f64);
         }
     }
-    int argc();
 
+    int argc();
     void argc(int argc);
 
-    int schemaLen();
-
-    void schemaLen(int schemaLen);
-
-    byte schemaBytes(long idx);
-
-    void schemaBytes(long idx, byte b);
+    @BoundBy("argc") @Pad(12)
     Arg arg(long idx);
 
+    @After("arg")
     MemorySegment vendorPtr();
-
     void vendorPtr(MemorySegment vendorPtr);
+
+    @After("vendorPtr")
+    int schemaLen();
+    void schemaLen(int schemaLen);
+
+    @BoundBy("schemaLen")
+    byte schemaBytes(long idx);
+    void schemaBytes(long idx, byte b);
 
     Schema<ArgArray> schema = Schema.of(ArgArray.class, s->s
             .arrayLen("argc")
-            .pad((int)(16 - JAVA_INT.byteSize()))
+            .pad(12/*(int)(16 - JAVA_INT.byteSize())*/)
             .array("arg", arg->arg
                             .fields("idx","variant")
-                            .pad((int)(16 - JAVA_INT.byteSize() - JAVA_BYTE.byteSize()))
+                            .pad(11/*(int)(16 - JAVA_INT.byteSize() - JAVA_BYTE.byteSize())*/)
                             .field("value", value->value
                                             .fields("z1","s8","u16","s16","s32","u32","f32","s64","u64","f64")
                                                     .field("buf", buf->buf
@@ -265,7 +264,7 @@ public interface ArgArray extends IncompleteBuffer {
         return (valueLayout.order().equals(ByteOrder.LITTLE_ENDIAN)) ? schema.toLowerCase() : schema;
     }
 
-    static ArgArray create(BufferAllocator bufferAllocator, Object... args) {
+    static ArgArray create(MethodHandles.Lookup lookup,BufferAllocator bufferAllocator, Object... args) {
         String[] schemas = new String[args.length];
         StringBuilder argSchema = new StringBuilder();
         argSchema.append(args.length);
@@ -280,8 +279,7 @@ public interface ArgArray extends IncompleteBuffer {
                 case Integer s32 -> "(?:s32)";
                 case Long s64 -> "(?:s64)";
                 case Double f64 -> "(?:f64)";
-                case CompleteBuffer buffer -> "(!:" + buffer.schema()+")";
-                case IncompleteBuffer buffer -> "(?:" + buffer.schema()+")";
+                case Buffer buffer -> "(?:" +SchemaBuilder.schema(buffer)+")";
                 default -> throw new IllegalStateException("Unexpected value: " + argObject + " Did you pass an interface which is neither a Complete or Incomplete buffer");
             };
             if (i > 0) {
@@ -290,7 +288,7 @@ public interface ArgArray extends IncompleteBuffer {
             argSchema.append(schemas[i]);
         }
         String schemaStr = argSchema.toString();
-        ArgArray argArray = schema.allocate(bufferAllocator,args.length,schemaStr.length() + 1);
+        ArgArray argArray = schema.allocate(lookup,bufferAllocator,args.length,schemaStr.length() + 1);
         argArray.argc(args.length);
         argArray.setSchemaBytes(schemaStr);
         update(argArray, args);

@@ -293,7 +293,7 @@ public interface SegmentMapper<T> {
      */
     GroupLayout layout();
 
-    HatData hatData();
+    BoundSchema<?> boundSchema();
     // Convenience methods
 
     /**
@@ -319,8 +319,10 @@ public interface SegmentMapper<T> {
      *                                   {@code layout().byteSize() > segment.byteSize()}
      */
 
-    default T allocate(Arena arena, HatData  hatData) {
-
+    default T allocate(Arena arena, BoundSchema<?> boundSchema) {
+if (boundSchema == null) {
+    throw new IllegalStateException("we must have a bound schema");
+}
         // To help debug we add a tail marker
         // We add 16 bytes and then pad to the next 16 bytes
         // and request alignment on 16 byte boundary
@@ -335,7 +337,7 @@ public interface SegmentMapper<T> {
         var segment = arena.allocate(extendedByteSizePaddedTo16Bytes, 16);
         segment.set(ValueLayout.JAVA_LONG, extendedByteSizePaddedTo16Bytes-16,0x1face00000facadeL);
         segment.set(ValueLayout.JAVA_LONG, extendedByteSizePaddedTo16Bytes-8, 0x1face00000facadeL);
-        return get(segment, layout(), hatData);
+        return get(segment, layout(), boundSchema);
     }
     /**
      * {@return a new instance of type T projected at the provided
@@ -362,8 +364,8 @@ public interface SegmentMapper<T> {
         return get(segment, 0L);
     }
 
-    default T get(MemorySegment segment, GroupLayout groupLayout, HatData hatData) {
-        return get(segment, groupLayout, hatData, 0L);
+    default T get(MemorySegment segment, GroupLayout groupLayout, BoundSchema<?> boundSchema) {
+        return get(segment, groupLayout, boundSchema, 0L);
     }
 
 
@@ -426,10 +428,10 @@ public interface SegmentMapper<T> {
     }
 
     @SuppressWarnings("unchecked")
-    default T get(MemorySegment segment, GroupLayout layout, HatData hatData, long offset) {
+    default T get(MemorySegment segment, GroupLayout layout, BoundSchema<?> boundSchema, long offset) {
         try {
             return (T) getHandle()
-                    .invokeExact(segment, layout, hatData,offset);
+                    .invokeExact(segment, layout, boundSchema,offset);
         } catch (NullPointerException |
                  IndexOutOfBoundsException |
                  WrongThreadException |
@@ -679,11 +681,11 @@ public interface SegmentMapper<T> {
         return SegmentInterfaceMapper.create(lookup, type, layout, null);
     }
 
-    static <T extends Buffer> SegmentMapper<T> of(MethodHandles.Lookup lookup, Class<T> type, GroupLayout layout, HatData hatData) {
+    static <T extends Buffer> SegmentMapper<T> of(MethodHandles.Lookup lookup, Class<T> type, GroupLayout layout, BoundSchema<?> boundSchema) {
         Objects.requireNonNull(lookup);
         MapperUtil.requireImplementableInterfaceType(type);
         Objects.requireNonNull(layout);
-        return SegmentInterfaceMapper.create(lookup,  type, layout, hatData);
+        return SegmentInterfaceMapper.create(lookup,  type, layout, boundSchema);
 
     }
 

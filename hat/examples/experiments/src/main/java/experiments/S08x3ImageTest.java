@@ -25,17 +25,24 @@
 package experiments;
 
 import hat.buffer.Buffer;
+import hat.buffer.BufferAllocator;
 import hat.buffer.S08x3RGBImage;
-import hat.ifacemapper.Schema;
+import hat.ifacemapper.BoundSchema;
+import hat.ifacemapper.SegmentMapper;
+
+import java.lang.foreign.Arena;
+import java.lang.invoke.MethodHandles;
 
 public class S08x3ImageTest implements Buffer {
 
     public static void main(String[] args) {
-        var boundSchema = S08x3RGBImage.schema.boundSchema( 100,100);
-        System.out.println(boundSchema.groupLayout);
-        var rgbS08x3Image = boundSchema.allocate(Schema.GlobalArenaAllocator);
-        rgbS08x3Image.width(100);
-        rgbS08x3Image.height(100);
+        BufferAllocator bufferAllocator = new BufferAllocator() {
+            @Override
+            public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema) {
+                return segmentMapper.allocate(Arena.global(),boundSchema);
+            }
+        };
+        var rgbS08x3Image = S08x3RGBImage.create(MethodHandles.lookup(), bufferAllocator,100,100);
     }
 
 }

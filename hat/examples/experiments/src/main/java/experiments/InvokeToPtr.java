@@ -1,8 +1,9 @@
 package experiments;
 
 
-import hat.HatPtr;
+import hat.OpsAndTypes;
 
+import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.OpTransformer;
@@ -13,7 +14,10 @@ import java.lang.runtime.CodeReflection;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import  hat.HatPtr;
+import hat.buffer.Buffer;
+import hat.buffer.BufferAllocator;
+import hat.ifacemapper.BoundSchema;
+import hat.ifacemapper.SegmentMapper;
 
 public class InvokeToPtr {
 
@@ -35,8 +39,15 @@ public class InvokeToPtr {
 
 
     public static void main(String[] args) {
-        System.out.println(PointyHat.ColoredWeightedPoint.LAYOUT);
-        System.out.println(PointyHat.ColoredWeightedPoint.schema.boundSchema().groupLayout);
+        BufferAllocator bufferAllocator = new BufferAllocator() {
+            @Override
+            public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema) {
+                return segmentMapper.allocate(Arena.global(),boundSchema);
+            }
+        };
+
+        PointyHat.ColoredWeightedPoint p = PointyHat.ColoredWeightedPoint.schema.allocate(MethodHandles.lookup(),bufferAllocator);
+        System.out.println(Buffer.getLayout(p));
         Optional<Method> om = Stream.of(InvokeToPtr.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals("testMethod"))
                 .findFirst();
@@ -58,12 +69,12 @@ public class InvokeToPtr {
         System.out.println(ssaInvokeForm.toText());
         System.out.println("------------------");
 
-        FunctionType functionType = HatPtr.transformTypes(MethodHandles.lookup(), ssaInvokeForm);
+        FunctionType functionType = OpsAndTypes.transformTypes(MethodHandles.lookup(), ssaInvokeForm);
         System.out.println("SSA form with types transformed args");
         System.out.println(ssaInvokeForm.toText());
         System.out.println("------------------");
 
-        CoreOp.FuncOp ssaPtrForm = HatPtr.transformInvokesToPtrs(MethodHandles.lookup(), ssaInvokeForm, functionType);
+        CoreOp.FuncOp ssaPtrForm = OpsAndTypes.transformInvokesToPtrs(MethodHandles.lookup(), ssaInvokeForm, functionType);
         System.out.println("SSA form with invokes replaced by ptrs");
         System.out.println(ssaPtrForm.toText());
     }

@@ -60,31 +60,19 @@ public class ViolaJonesCompute {
                 Backend.FIRST
         );
 
-        var cascade = Cascade.schema.allocate(
-                accelerator,
-                xmlCascade.featureCount(),
-                xmlCascade.stageCount(),
-                xmlCascade.treeCount()
-        ).copyFrom(xmlCascade);
+        var cascade = Cascade.createFrom(accelerator,xmlCascade);
 
-        S08x3RGBImage rgbImage = S08x3RGBImage.schema.allocate(accelerator, nasa1996.getWidth(),nasa1996.getHeight());
-        rgbImage.width(nasa1996.getWidth());
-        rgbImage.height(nasa1996.getHeight());
-      //  rgbImage.elementsPerPixel(3);
-      //  rgbImage.bufferedImageType(BufferedImage.TYPE_INT_RGB);
+        S08x3RGBImage rgbImage = S08x3RGBImage.create(accelerator, nasa1996.getWidth(),nasa1996.getHeight());
         rgbImage.syncFromRaster(nasa1996);
-        ResultTable resultTable = ResultTable.schema.allocate(1000);
-        resultTable.length(1000);
-
+        ResultTable resultTable = ResultTable.create(accelerator,1000);
         System.out.println("result table layout "+Buffer.getLayout(resultTable));
         HaarViewer harViz = null;
         if (!headless){
-            harViz = new HaarViewer(accelerator, nasa1996, rgbImage, cascade, null, null);
+            harViz = new HaarViewer(accelerator.lookup,accelerator, nasa1996, rgbImage, cascade, null, null);
         }
-        ScaleTable.Constraints constraints = new ScaleTable.Constraints(cascade,rgbImage.width(),rgbImage.height());
-        ScaleTable scaleTable = ScaleTable.schema.allocate(constraints.scales);
-        scaleTable.length(constraints.scales);
-        scaleTable.applyConstraints(constraints);
+
+        ScaleTable scaleTable = ScaleTable.createFrom(accelerator,new ScaleTable.Constraints(cascade,rgbImage.width(),rgbImage.height()));
+
 
         for (int i = 0; i < 10; i++) {
             resultTable.atomicResultTableCount(0);

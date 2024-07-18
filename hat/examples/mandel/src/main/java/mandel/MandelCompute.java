@@ -80,9 +80,7 @@ public class MandelCompute {
 
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
-        S32Array2D s32Array2D = S32Array2D.schema.allocate(accelerator, width, height);
-        s32Array2D.width(width);
-        s32Array2D.height(height);
+        S32Array2D s32Array2D = S32Array2D.create(accelerator, width, height);
 
         int[] palletteArray = new int[maxIterations];
 
@@ -98,9 +96,7 @@ public class MandelCompute {
                 palletteArray[i] = Color.HSBtoRGB(h, 1f, b);
             }
         }
-        S32Array pallette = S32Array.schema.allocate(accelerator, palletteArray.length);
-        pallette.length(palletteArray.length);
-        pallette.copyfrom(palletteArray);
+        S32Array pallette = S32Array.createFrom(accelerator, palletteArray);
 
         accelerator.compute(cc -> MandelCompute.compute(cc, pallette, s32Array2D, originX, originY, defaultScale));
 

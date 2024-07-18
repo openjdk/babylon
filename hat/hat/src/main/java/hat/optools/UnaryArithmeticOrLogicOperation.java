@@ -22,8 +22,12 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.buffer;
+package hat.optools;
 
-public interface BackendConfig extends Buffer {
+import java.lang.reflect.code.op.CoreOp;
 
+public class UnaryArithmeticOrLogicOperation extends UnaryOpWrapper<CoreOp.UnaryOp> {
+    UnaryArithmeticOrLogicOperation(CoreOp.UnaryOp op) {
+        super(op);
+    }
 }

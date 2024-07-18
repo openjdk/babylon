@@ -91,7 +91,7 @@ public abstract class C99HatKernelBuilder<T extends C99HatKernelBuilder<T>> exte
             }
             suffix_t(name).asterisk();
         } else {
-            typeName(javaType.toBasicType().toString());
+            typeName(javaType.toString());
         }
 
         return self();

@@ -1206,9 +1206,10 @@ public final class BytecodeGenerator {
 
             // Quoted the lambda expression
             Value q = b.op(CoreOp.quoted(b.parentBody(), qb -> {
-                // Map the lambda's parent block to the quoted block
-                // We are copying lop in the context of the quoted block
-                qb.context().mapBlock(lop.parentBlock(), qb);
+                // Map the entry block of the lambda's ancestor body to the quoted block
+                // We are copying lop in the context of the quoted block, the block mapping
+                // ensures the use of captured values are reachable when building
+                qb.context().mapBlock(lop.ancestorBody().entryBlock(), qb);
                 // Map the lambda's captured values
                 qb.context().mapValues(captures, outputCaptures);
                 // Return the lambda to be copied in the quoted operation

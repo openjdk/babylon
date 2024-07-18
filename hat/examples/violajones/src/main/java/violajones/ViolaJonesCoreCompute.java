@@ -303,10 +303,7 @@ public class ViolaJonesCoreCompute {
     }
 
     static F32Array2D createF32Array2D(ComputeContext cc,int width, int height){
-        F32Array2D f32Array2D = F32Array2D.schema.allocate(cc, width, height);
-        f32Array2D.width(width);
-        f32Array2D.height(height);
-        return f32Array2D;
+        return F32Array2D.create(cc.accelerator, width, height);
     }
 
     @CodeReflection
