@@ -468,6 +468,14 @@ public class TestBytecode {
         return a + b;
     }
 
+    @CodeReflection
+    static int ifTrue(int i) {
+        if (true) {
+            return i;
+        }
+        return -i;
+    }
+
     record TestData(Method testMethod) {
         @Override
         public String toString() {
