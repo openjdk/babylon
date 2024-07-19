@@ -1,4 +1,4 @@
-package experiments;/*
+/*
  * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
@@ -23,6 +23,8 @@ package experiments;/*
  * questions.
  */
 
+package experiments;
+
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
@@ -35,15 +37,15 @@ import java.lang.runtime.CodeReflection;
 public class BlackScholes {
 
     @CodeReflection
-    public static void blackScholesKernel(KernelContext kc, S32Array s32Array, F32Array sArray, F32Array xArray, F32Array tArray, float r, float v) {
+    public static void blackScholesKernel(KernelContext kc, F32Array f32Array, F32Array sArray, F32Array xArray, F32Array tArray, float r, float v) {
         if (kc.x<kc.maxX){
             float S = sArray.array(kc.x);
             float X = xArray.array(kc.x);
             float T = tArray.array(kc.x);
             float d1 = (float) ((Math.log(S / X) + (r + v * v * .5f) * T) / (v * Math.sqrt(T)));
             float d2 = (float) (d1 - v * Math.sqrt(T));
-            int value = (int) (S * CND(d1) - X * Math.exp(-r * T) * CND(d2));
-            s32Array.array(kc.x, value);
+            float value = (float) (S * CND(d1) - X * Math.exp(-r * T) * CND(d2));
+            f32Array.array(kc.x, value);
             //put[i]  = call[i] + (float)Math.exp(-r * t[i]) - s0[i];
         }
     }
@@ -77,33 +79,36 @@ public class BlackScholes {
     }
 
     @CodeReflection
-    public static void blackScholes(ComputeContext cc, S32Array s32Array, F32Array S, F32Array X, F32Array T, float r, float v) {
-        cc.dispatchKernel(s32Array.length(),
-                kc -> blackScholesKernel(kc, s32Array, S, X, T, r, v)
+    public static void blackScholes(ComputeContext cc, F32Array f32Array, F32Array S, F32Array X, F32Array T, float r, float v) {
+        cc.dispatchKernel(f32Array.length(),
+                kc -> blackScholesKernel(kc, f32Array, S, X, T, r, v)
         );
     }
 
     public static void main(String[] args) {
         var lookup = java.lang.invoke.MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);//new JavaMultiThreadedBackend());
-        var arr = S32Array.create(accelerator, 32);
+        var arr = F32Array.create(accelerator, 32);
+//        s0 = fillRandom(5.0f, 30.0f);
+//        x  = fillRandom(1.0f, 100.0f);
+//        t  = fillRandom(0.25f, 10.0f);
         for (int i = 0; i < arr.length(); i++) {
             arr.array(i, i);
         }
 
         var S = F32Array.create(accelerator, 32);
-        for (int i = 0; i < arr.length(); i++) {
-            arr.array(i, i);
+        for (int i = 0; i < S.length(); i++) {
+            S.array(i, i + 5);
         }
 
         var X = F32Array.create(accelerator, 32);
-        for (int i = 0; i < arr.length(); i++) {
-            arr.array(i, i);
+        for (int i = 0; i < X.length(); i++) {
+            X.array(i, i + 1);
         }
 
         var T = F32Array.create(accelerator, 32);
-        for (int i = 0; i < arr.length(); i++) {
-            arr.array(i, i);
+        for (int i = 0; i < T.length(); i++) {
+            T.array(i, (float) (i + 1) /4);
         }
         float r = 0.02f;
         float v = 0.30f;
@@ -112,7 +117,7 @@ public class BlackScholes {
                 cc -> BlackScholes.blackScholes(cc, arr, S, X, T, r, v)  //QuotableComputeContextConsumer
         );                                     //   extends Quotable, Consumer<ComputeContext>
         for (int i = 0; i < arr.length(); i++) {
-            System.out.println(i + " " + arr.array(i));
+            System.out.println("S=" + S.array(i) + ", X=" + X.array(i) + ", T=" + T.array(i) + ", call option price = " + arr.array(i));
         }
     }
 }
