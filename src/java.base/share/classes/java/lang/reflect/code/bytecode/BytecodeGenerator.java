@@ -59,10 +59,10 @@ import java.util.Map;
 import java.util.Set;
 
 import static java.lang.constant.ConstantDescs.*;
+import java.lang.invoke.StringConcatFactory;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.code.Quotable;
-import java.lang.reflect.code.type.ClassType;
 import java.lang.reflect.code.type.PrimitiveType;
 import java.util.stream.Stream;
 
@@ -80,6 +80,11 @@ public final class BytecodeGenerator {
             LambdaMetafactory.class.describeConstable().orElseThrow(),
             "altMetafactory",
             CD_CallSite, CD_Object.arrayType());
+
+    private static final DirectMethodHandleDesc DMHD_STRING_CONCAT = ofCallsiteBootstrap(
+            StringConcatFactory.class.describeConstable().orElseThrow(),
+            "makeConcat",
+            CD_CallSite);
 
     /**
      * Transforms the invokable operation to bytecode encapsulated in a method of hidden class and exposed
@@ -266,8 +271,17 @@ public final class BytecodeGenerator {
         if (v instanceof Op.Result or &&
                 or.op() instanceof CoreOp.ConstantOp constantOp &&
                 !constantOp.resultType().equals(JavaType.J_L_CLASS)) {
-            var c = (Constable)constantOp.value();
-            cob.loadConstant(c == null ? ConstantDescs.NULL : c.describeConstable().orElseThrow());
+            cob.loadConstant(switch (constantOp.value()) {
+                case null -> null;
+                case Boolean b -> {
+                    yield b ? 1 : 0;
+                }
+                case Byte b -> (int)b;
+                case Character ch -> (int)ch;
+                case Short s -> (int)s;
+                case Constable c -> c.describeConstable().orElseThrow();
+                default -> throw new IllegalArgumentException("Unexpected constant value: " + constantOp.value());
+            });
             return null;
         } else {
             Slot slot = slots.get(v);
@@ -853,6 +867,11 @@ public final class BytecodeGenerator {
                         } catch (ReflectiveOperationException e) {
                             throw new IllegalArgumentException(e);
                         }
+                        push(op.result());
+                    }
+                    case ConcatOp op -> {
+                        processOperands(op);
+                        cob.invokedynamic(DynamicCallSiteDesc.of(DMHD_STRING_CONCAT, MethodTypeDesc.of(CD_String, CD_String, CD_String)));
                         push(op.result());
                     }
                     default ->
