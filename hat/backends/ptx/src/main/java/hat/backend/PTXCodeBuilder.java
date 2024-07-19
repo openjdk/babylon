@@ -20,9 +20,7 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
 
     Map<Value, PTXRegister> varToRegMap;
     List<String> params;
-    // can use paramMap to index into varToRegMap
     Map<String, Block.Parameter> paramMap;
-    // field ref to reg map because we don't have values to map the field refs to :sob:
     Map<Field, PTXRegister> fieldToRegMap;
 
     HashMap<PTXRegister.Type, Integer> ordinalMap;
@@ -152,16 +150,11 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
             case ConstantOpWrapper op -> constant(op);
             case YieldOpWrapper op -> javaYield(op);
             case FuncCallOpWrapper op -> funcCall(op);
-            case LogicalOpWrapper op -> logical(op);
             case InvokeOpWrapper op -> methodCall(op);
-            case TernaryOpWrapper op -> ternary(op);
             case VarDeclarationOpWrapper op -> varDeclaration(op);
             case VarFuncDeclarationOpWrapper op -> varFuncDeclaration(op);
-            case TupleOpWrapper op -> tuple(op);
             case ReturnOpWrapper op -> ret(op);
-            case JavaLabeledOpWrapper op -> javaLabeled(op);
             case JavaBreakOpWrapper op -> javaBreak(op);
-            case JavaContinueOpWrapper op -> javaContinue(op);
             default -> {
                 switch (wrappedOp.op()){
                     case CoreOp.BranchOp op -> branch(op);
@@ -253,7 +246,7 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
 
     public void fieldStore(FieldStoreOpWrapper op) {
         // TODO: fix
-        append(op.toString());
+        st().global().u64().space().printResult(op, PTXRegister.Type.U64).commaSpace().printVar(op.operandNAsValue(0));
     }
 
     PTXCodeBuilder symbol(Op op) {
@@ -343,10 +336,6 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
         append(op.toString());
     }
 
-    public void logical(LogicalOpWrapper op) {
-        append(op.toString());
-    }
-
     public void methodCall(InvokeOpWrapper op) {
         if (op.methodRef().toString().equals("hat.buffer.S32Array::array(long)int")) {
             PTXRegister temp = new PTXRegister(incrOrdinal(addrType()), addrType());
@@ -379,20 +368,12 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
         }
     }
 
-    public void ternary(TernaryOpWrapper op) {
-        append(op.toString());
-    }
-
     public void varDeclaration(VarDeclarationOpWrapper op) {
         ld().param().printResultType(op.resultType(), false).space().printResult(op, addrType()).commaSpace().printVar(op.operandNAsValue(0));
     }
 
     public void varFuncDeclaration(VarFuncDeclarationOpWrapper op) {
         ld().param().printResultType(op.resultType(), false).space().printResult(op, addrType()).commaSpace().printVar(op.operandNAsValue(0));
-    }
-
-    public void tuple(TupleOpWrapper op) {
-        append(op.toString());
     }
 
     public void ret(ReturnOpWrapper op) {
@@ -410,16 +391,8 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
         append("ret");
     }
 
-    public void javaLabeled(JavaLabeledOpWrapper op) {
-        append(op.toString());
-    }
-
     public void javaBreak(JavaBreakOpWrapper op) {
         append("brkpt");
-    }
-
-    public void javaContinue(JavaContinueOpWrapper op) {
-        append(op.toString());
     }
 
     public void branch(CoreOp.BranchOp op) {

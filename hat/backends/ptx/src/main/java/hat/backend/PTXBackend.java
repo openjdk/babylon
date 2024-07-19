@@ -77,7 +77,7 @@ public class PTXBackend extends C99NativeBackend {
 
         System.out.println("Entrypoint ->"+kernelCallGraph.entrypoint.method.getName());
         String code = createCode(kernelCallGraph, new PTXCodeBuilder(), args);
-        // System.out.println("\nCod Builder Output: \n\n" + code);
+        // System.out.println("\nCode Builder Output: \n\n" + code);
         // System.out.println("Add your code to "+PTXBackend.class.getName()+".dispatchKernel() to actually run! :)");
         long programHandle = compileProgram(code);
         if (programOK(programHandle)) {
@@ -97,9 +97,10 @@ public class PTXBackend extends C99NativeBackend {
             argsMap.put(f.paramTable().list().get(i).varOp.varName(), args[i]);
         }
 
+        // currently hard coded but ill fix it later
         boolean useSchema = true;
 
-        //building header
+        // printing out ptx header (device info)
         builder.ptxHeader(major, minor, target, addressSize);
         out += builder.getTextAndReset();
 
@@ -107,16 +108,16 @@ public class PTXBackend extends C99NativeBackend {
             Optional<CoreOp.FuncOp> optional = Optional.ofNullable(k.funcOpWrapper().op());
             FuncOpWrapper calledFunc = new FuncOpWrapper(optional.orElseThrow());
             FuncOpWrapper loweredFunc = calledFunc.lower();
-            System.out.println("------------func------------");
-            System.out.println(loweredFunc.ssa().toText());
+//            System.out.println("------------func------------");
+//            System.out.println(loweredFunc.ssa().toText());
             if (useSchema) loweredFunc = transformPtrs(loweredFunc, argsMap);
             out += createFunction(new PTXCodeBuilder(addressSize).nl().nl(), loweredFunc, loweredFunc.ssa(), out, false);
         }
 
         if (useSchema) lowered = transformPtrs(lowered, argsMap);
-        System.out.println(lowered.toText());
         FuncOpWrapper ssa = lowered.ssa();
-        System.out.println(ssa.toText());
+//        System.out.println(lowered.toText());
+//        System.out.println(ssa.toText());
         out += createFunction(builder.nl().nl(), lowered, ssa, out, true);
 
         return out;
@@ -125,7 +126,7 @@ public class PTXBackend extends C99NativeBackend {
     public FuncOpWrapper transformPtrs(FuncOpWrapper func, HashMap<String, Object> argsMap) {
         return FuncOpWrapper.wrap(func.op().transform((block, op) -> {
             CopyContext cc = block.context();
-            //use first operand of invoke to figure out schema
+            // use first operand of invoke to figure out schema
             if (op instanceof CoreOp.InvokeOp invokeOp
                     && OpWrapper.wrap(invokeOp) instanceof InvokeOpWrapper invokeOpWrapper
                     && invokeOpWrapper.isIfaceBufferMethod()
@@ -150,13 +151,13 @@ public class PTXBackend extends C99NativeBackend {
     public String createFunction(PTXCodeBuilder builder, FuncOpWrapper lowered, FuncOpWrapper ssa, String out, boolean entry) {
         String body = "";
 
-        //building fn info (name, params)
+        // building fn info (name, params)
         builder.functionHeader(lowered.functionName(), entry, lowered.op().body().yieldType());
 
         // printing out params
         builder.parameters(lowered.paramTable().list());
 
-        //building body of fn
+        // building body of fn
         builder.functionPrologue();
 
         out = builder.getTextAndReset();
