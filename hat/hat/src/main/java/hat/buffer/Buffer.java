@@ -24,42 +24,42 @@
  */
 package hat.buffer;
 
-import hat.ifacemapper.HatData;
+
+import hat.ifacemapper.BoundSchema;
+import hat.ifacemapper.MappableIface;
 
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.reflect.InvocationTargetException;
 
-import static hat.ifacemapper.MapperUtil.SECRET_HAT_DATA_METHOD_NAME;
+import static hat.ifacemapper.MapperUtil.SECRET_BOUND_SCHEMA_METHOD_NAME;
 import static hat.ifacemapper.MapperUtil.SECRET_LAYOUT_METHOD_NAME;
 import static hat.ifacemapper.MapperUtil.SECRET_OFFSET_METHOD_NAME;
 import static hat.ifacemapper.MapperUtil.SECRET_SEGMENT_METHOD_NAME;
-import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface Buffer extends MappableIface {
 
-    interface UnionChild extends MappableIface {
+    interface Union extends MappableIface {
     }
 
-    interface StructChild extends MappableIface {
+    interface Struct extends MappableIface {
     }
 
     static <T extends Buffer> MemorySegment getMemorySegment(T buffer) {
-        try {
+       try {
             return (MemorySegment) buffer.getClass().getDeclaredMethod(SECRET_SEGMENT_METHOD_NAME).invoke(buffer);
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
         }
     }
 
-    static <T extends Buffer>HatData getHatData(T buffer) {
+    static <T extends Buffer> BoundSchema getBoundSchema(T buffer) {
         try {
-            return (HatData) buffer.getClass().getDeclaredMethod(SECRET_HAT_DATA_METHOD_NAME).invoke(buffer);
+            return (BoundSchema<?>) buffer.getClass().getDeclaredMethod(SECRET_BOUND_SCHEMA_METHOD_NAME).invoke(buffer);
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
         }
     }
-
 
     static <T extends Buffer> MemoryLayout getLayout(T buffer) {
         try {
@@ -76,10 +76,4 @@ public interface Buffer extends MappableIface {
             throw new RuntimeException(e);
         }
     }
-
-    static <T extends Buffer> T setLength(T buffer, int length) {
-        Buffer.getMemorySegment(buffer).set(JAVA_INT, Buffer.getLayout(buffer).byteOffset(MemoryLayout.PathElement.groupElement("length")), length);
-        return buffer;
-    }
-
 }

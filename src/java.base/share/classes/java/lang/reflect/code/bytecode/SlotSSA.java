@@ -26,6 +26,7 @@
 package java.lang.reflect.code.bytecode;
 
 import java.lang.reflect.code.*;
+import java.lang.reflect.code.op.CoreOp;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -76,7 +77,12 @@ public final class SlotSSA {
                     Value v = loadValue instanceof SlotBlockArgument vba
                             ? joinBlockArguments.get(vba.b()).get(vba.slot())
                             : cc.getValue((Value) loadValue);
-                    cc.mapValue(op.result(), v);
+                    if (vl.resultType().equals(v.type())) {
+                        cc.mapValue(op.result(), v);
+                    } else {
+                        // @@@ Explicit cast to return type, mainly due to cast of aconst_null (j.l.Object) to a target array type
+                        cc.mapValue(op.result(), block.op(CoreOp.cast(vl.resultType(), v)));
+                    }
                 }
             } else if (op instanceof Op.Terminating) {
                 for (Block.Reference s : op.successors()) {
@@ -171,7 +177,9 @@ public final class SlotSSA {
             Set<Integer> slots = joinPoints.get(n.b());
             if (slots != null) {
                 slots.forEach(slot -> {
-                    variableStack.get(slot).push(new SlotBlockArgument(n.b(), slot));
+                    // Regular variable is always declared in a dominant block, so it can be asserted in the variable SSA trasform.
+                    // However slot is never declared, so it cannot be asserted in the SlotSSA transform.
+                    variableStack.computeIfAbsent(slot, _ -> new ArrayDeque<>()).push(new SlotBlockArgument(n.b(), slot));
                 });
             }
         }
@@ -183,6 +191,7 @@ public final class SlotSSA {
                 if (op instanceof SlotOp.SlotStoreOp storeOp) {
                     // Value assigned to slot
                     Value current = op.operands().get(0);
+                    // The slot is always stored without any prior declaration
                     variableStack.computeIfAbsent(storeOp.slot(), _ -> new ArrayDeque<>())
                             .push(current);
                 } else if (op instanceof SlotOp.SlotLoadOp loadOp) {
@@ -292,15 +301,17 @@ public final class SlotSSA {
     // Throws ISE if a descendant store operation is encountered
     // @@@ Compute map for whole tree, then traverse keys with filter
     static Map<Integer, SlotAccesses> findSlots(Body r) {
-        LinkedHashMap<Integer, SlotAccesses> slotMap = r.traverse(new LinkedHashMap<>(), CodeElement.opVisitor((slots, op) -> {
-            if (op instanceof SlotOp.SlotStoreOp storeOp) {
-                slots.computeIfAbsent(storeOp.slot(), _ -> new SlotAccesses()).stores.add(storeOp.parentBlock());
-            } else if (op instanceof SlotOp.SlotLoadOp loadOp) {
-                var sa = slots.computeIfAbsent(loadOp.slot(), _ -> new SlotAccesses());
-                if (!sa.stores.contains(loadOp.parentBlock())) sa.loadsBeforeStores.add(loadOp.parentBlock());
+        LinkedHashMap<Integer, SlotAccesses> slotMap = new LinkedHashMap<>();
+        for (Block b : r.blocks()) {
+            for (Op op : b.ops()) {
+                if (op instanceof SlotOp.SlotStoreOp storeOp) {
+                    slotMap.computeIfAbsent(storeOp.slot(), _ -> new SlotAccesses()).stores.add(storeOp.parentBlock());
+                } else if (op instanceof SlotOp.SlotLoadOp loadOp) {
+                    var sa = slotMap.computeIfAbsent(loadOp.slot(), _ -> new SlotAccesses());
+                    if (!sa.stores.contains(loadOp.parentBlock())) sa.loadsBeforeStores.add(loadOp.parentBlock());
+                }
             }
-            return slots;
-        }));
+        }
 
         int iterCount = 0;
         int[] work = new int[r.blocks().size()];

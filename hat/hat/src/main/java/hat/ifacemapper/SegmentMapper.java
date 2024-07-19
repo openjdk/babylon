@@ -293,7 +293,7 @@ public interface SegmentMapper<T> {
      */
     GroupLayout layout();
 
-    HatData hatData();
+    BoundSchema<?> boundSchema();
     // Convenience methods
 
     /**
@@ -318,8 +318,11 @@ public interface SegmentMapper<T> {
      * @throws IndexOutOfBoundsException if
      *                                   {@code layout().byteSize() > segment.byteSize()}
      */
-    default T allocate(Arena arena) {
 
+    default T allocate(Arena arena, BoundSchema<?> boundSchema) {
+if (boundSchema == null) {
+    throw new IllegalStateException("we must have a bound schema");
+}
         // To help debug we add a tail marker
         // We add 16 bytes and then pad to the next 16 bytes
         // and request alignment on 16 byte boundary
@@ -334,25 +337,7 @@ public interface SegmentMapper<T> {
         var segment = arena.allocate(extendedByteSizePaddedTo16Bytes, 16);
         segment.set(ValueLayout.JAVA_LONG, extendedByteSizePaddedTo16Bytes-16,0x1face00000facadeL);
         segment.set(ValueLayout.JAVA_LONG, extendedByteSizePaddedTo16Bytes-8, 0x1face00000facadeL);
-        return get(segment, layout(), hatData());
-    }
-    default T allocate(Arena arena, HatData  hatData) {
-
-        // To help debug we add a tail marker
-        // We add 16 bytes and then pad to the next 16 bytes
-        // and request alignment on 16 byte boundary
-        long byteSize = layout().byteSize();
-        long extendedByteSize = byteSize+16;
-        long byteSizePad = extendedByteSize%16;
-        if (byteSizePad != 0){
-            byteSizePad = 16-byteSizePad;
-        }
-        long extendedByteSizePaddedTo16Bytes = extendedByteSize+byteSizePad;
-        //System.out.println("Alloc 16 byte aligned layout + 16 bytes padded to next 16 bytes "+byteSize+"=>"+extendedByteSizePaddedTo16Bytes);
-        var segment = arena.allocate(extendedByteSizePaddedTo16Bytes, 16);
-        segment.set(ValueLayout.JAVA_LONG, extendedByteSizePaddedTo16Bytes-16,0x1face00000facadeL);
-        segment.set(ValueLayout.JAVA_LONG, extendedByteSizePaddedTo16Bytes-8, 0x1face00000facadeL);
-        return get(segment, layout(), hatData);
+        return get(segment, layout(), boundSchema);
     }
     /**
      * {@return a new instance of type T projected at the provided
@@ -379,39 +364,10 @@ public interface SegmentMapper<T> {
         return get(segment, 0L);
     }
 
-    default T get(MemorySegment segment, GroupLayout groupLayout, HatData hatData) {
-        return get(segment, groupLayout, hatData, 0L);
+    default T get(MemorySegment segment, GroupLayout groupLayout, BoundSchema<?> boundSchema) {
+        return get(segment, groupLayout, boundSchema, 0L);
     }
 
-    /**
-     * {@return a new instance of type T projected at the provided external
-     * {@code segment} at the given {@code index} scaled by the
-     * {@code layout().byteSize()}}
-     * <p>
-     * Calling this method is equivalent to the following code:
-     * {@snippet lang = java:
-     *    get(segment, layout().byteSize() * index);
-     *}
-     *
-     * @param segment the external segment to be projected to the new instance
-     * @param index   a logical index, the offset in bytes (relative to the provided
-     *                segment address) at which the access operation will occur can
-     *                be expressed as {@code (index * layout().byteSize())}
-     * @throws IllegalStateException     if the {@linkplain MemorySegment#scope() scope}
-     *                                   associated with the provided segment is not
-     *                                   {@linkplain MemorySegment.Scope#isAlive() alive}
-     * @throws WrongThreadException      if this method is called from a thread {@code T},
-     *                                   such that {@code isAccessibleBy(T) == false}
-     * @throws IllegalArgumentException  if the access operation is
-     *                                   <a href="MemorySegment.html#segment-alignment">incompatible with the alignment constraint</a>
-     *                                   of the {@link #layout()}
-     * @throws IndexOutOfBoundsException if {@code index * layout().byteSize()} overflows
-     * @throws IndexOutOfBoundsException if
-     *                                   {@code index * layout().byteSize() > segment.byteSize() - layout.byteSize()}
-     */
-    default T getAtIndex(MemorySegment segment, long index) {
-        return get(segment, layout().byteSize() * index);
-    }
 
     /**
      * {@return a new sequential {@code Stream} of elements of type T}
@@ -435,36 +391,6 @@ public interface SegmentMapper<T> {
                 .map(this::get);
     }
 
-    /**
-     * {@return a new sequential {@code Stream} of {@code pageSize} elements of
-     * type T starting at the element {@code pageNumber * pageSize}}
-     * <p>
-     * Calling this method is equivalent to the following code:
-     * {@snippet lang = java:
-     * stream(segment)
-     *     .skip(pageNumber * pageSize)
-     *     .limit(pageSize);
-     *}
-     * but may be much more efficient for large page numbers.
-     *
-     * @param segment    to carve out instances from
-     * @param pageSize   the size of each page
-     * @param pageNumber the page number to which to skip
-     * @throws IllegalArgumentException if {@code layout().byteSize() == 0}.
-     * @throws IllegalArgumentException if {@code segment.byteSize() % layout().byteSize() != 0}.
-     * @throws IllegalArgumentException if {@code layout().byteSize() % layout().byteAlignment() != 0}.
-     * @throws IllegalArgumentException if this segment is
-     *                                  <a href="MemorySegment.html#segment-alignment">incompatible with the
-     *                                  alignment constraint</a> in the layout of this segment mapper.
-     */
-    default Stream<T> page(MemorySegment segment,
-                           long pageSize,
-                           long pageNumber) {
-        long skipBytes = Math.min(segment.byteSize(), layout().scale(0, pageNumber * pageSize));
-        MemorySegment skippedSegment = segment.asSlice(skipBytes);
-        return stream(skippedSegment)
-                .limit(pageSize);
-    }
 
     /**
      * {@return a new instance of type T projected from at provided
@@ -502,10 +428,10 @@ public interface SegmentMapper<T> {
     }
 
     @SuppressWarnings("unchecked")
-    default T get(MemorySegment segment, GroupLayout layout, HatData hatData, long offset) {
+    default T get(MemorySegment segment, GroupLayout layout, BoundSchema<?> boundSchema, long offset) {
         try {
             return (T) getHandle()
-                    .invokeExact(segment, layout, hatData,offset);
+                    .invokeExact(segment, layout, boundSchema,offset);
         } catch (NullPointerException |
                  IndexOutOfBoundsException |
                  WrongThreadException |
@@ -582,9 +508,9 @@ public interface SegmentMapper<T> {
      *                                       {@linkplain SequenceLayout#elementCount() element count} of a sequence layout
      * @throws NullPointerException          if a required parameter is {@code null}
      */
-    default void setAtIndex(MemorySegment segment, long index, T t) {
-        set(segment, layout().byteSize() * index, t);
-    }
+   // default void setAtIndex(MemorySegment segment, long index, T t) {
+    //    set(segment, layout().byteSize() * index, t);
+  //  }
 
     /**
      * Writes the provided instance {@code t} of type T into the provided {@code segment}
@@ -754,53 +680,12 @@ public interface SegmentMapper<T> {
         Objects.requireNonNull(layout);
         return SegmentInterfaceMapper.create(lookup, type, layout, null);
     }
-    /**
-     * {@return a segment mapper that maps {@linkplain MemorySegment memory segments}
-     * to the provided interface {@code type} using the provided {@code layout}
-     * and using the provided {@code lookup}}
-     *
-     * @param lookup to use when performing reflective analysis on the
-     *               provided {@code type}
-     * @param type   to map memory segment from and to
-     * @param layout to be used when mapping the provided {@code type}
-     * @param length to replace the length of the last element (sequenceLayout)
-     * @param <T>    the type the returned mapper converts MemorySegments from and to
-     * @throws IllegalArgumentException if the provided {@code type} is not an interface
-     * @throws IllegalArgumentException if the provided {@code type} is a hidden interface
-     * @throws IllegalArgumentException if the provided {@code type} is a sealed interface
-     * @throws IllegalArgumentException if the provided interface {@code type} directly
-     *                                  declares any generic type parameter
-     * @throws IllegalArgumentException if the provided interface {@code type} cannot be
-     *                                  reflectively analysed using the provided {@code lookup}
-     * @throws IllegalArgumentException if the provided interface {@code type} contains
-     *                                  methods for which there are no exact mapping (of names and types) in
-     *                                  the provided {@code layout} or if the provided {@code type} is not public or
-     *                                  if the method is otherwise unable to create a segment mapper as specified above
-     * @implNote The order in which methods appear (e.g. in the {@code toString} method)
-     * is derived from the provided {@code layout}.
-     * @implNote The returned class can be a
-     * <a href="{@docRoot}/java.base/java/lang/doc-files/ValueBased.html">value-based</a>
-     * class; programmers should treat instances that are
-     * {@linkplain Object#equals(Object) equal} as interchangeable and should
-     * not use instances for synchronization, or unpredictable behavior may
-     * occur. For example, in a future release, synchronization may fail.
-     * @implNote The returned class can be a {@linkplain Class#isHidden() hidden} class.
-     */
 
-    static <T> SegmentMapper<T> ofIncomplete(MethodHandles.Lookup lookup,
-                                   Class<T> type,
-                                   GroupLayout layout, long length) {
-        var members= layout.memberLayouts().toArray(new MemoryLayout[0]);
-        SequenceLayout sequenceLayout = (SequenceLayout) members[members.length-1];
-        var newLayout = MemoryLayout.sequenceLayout(length,sequenceLayout.elementLayout()).withName(sequenceLayout.name().get());
-        members[members.length-1]=newLayout;
-        return of(lookup,type,members);
-    }
-    static <T extends Buffer> SegmentMapper<T> of(MethodHandles.Lookup lookup, Class<T> type, GroupLayout layout, HatData hatData) {
+    static <T extends Buffer> SegmentMapper<T> of(MethodHandles.Lookup lookup, Class<T> type, GroupLayout layout, BoundSchema<?> boundSchema) {
         Objects.requireNonNull(lookup);
         MapperUtil.requireImplementableInterfaceType(type);
         Objects.requireNonNull(layout);
-        return SegmentInterfaceMapper.create(lookup,  type, layout, hatData);
+        return SegmentInterfaceMapper.create(lookup,  type, layout, boundSchema);
 
     }
 
@@ -825,7 +710,10 @@ public interface SegmentMapper<T> {
          * {@return the backing segment of this instance}
          */
         MemorySegment segment();
-
+        /**
+         * {@return the backing segment of this instance}
+         */
+        MemoryLayout layout();
         /**
          * {@return the offset in the backing segment of this instance}
          */

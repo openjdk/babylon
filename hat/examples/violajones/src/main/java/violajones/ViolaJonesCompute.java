@@ -25,18 +25,12 @@
 package violajones;
 
 import hat.Accelerator;
-import hat.ComputeContext;
-import hat.KernelContext;
-import hat.Schema;
 import hat.backend.Backend;
-import hat.backend.JavaMultiThreadedBackend;
-import hat.backend.JavaSequentialBackend;
 import hat.buffer.Buffer;
-import hat.buffer.F32Array2D;
 import org.xml.sax.SAXException;
 import violajones.attic.ViolaJones;
 import violajones.attic.ViolaJonesRaw;
-import violajones.buffers.RgbS08x3Image;
+import hat.buffer.S08x3RGBImage;
 import violajones.ifaces.Cascade;
 import violajones.ifaces.ResultTable;
 import violajones.ifaces.ScaleTable;
@@ -46,13 +40,11 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
-import java.lang.runtime.CodeReflection;
 
 public class ViolaJonesCompute {
 
     public static void main(String[] args) throws IOException, ParserConfigurationException, SAXException {
         boolean headless = Boolean.getBoolean("headless") ||( args.length>0 && args[0].equals("--headless"));
-
         String imageName = (args.length>2 && args[1].equals("--image"))?args[2]:System.getProperty("image", "Nasa1996");
         System.out.println("Using image "+imageName+".jpg");
         BufferedImage nasa1996 = ImageIO.read(ViolaJones.class.getResourceAsStream("/images/"+imageName+".jpg"));
@@ -61,32 +53,31 @@ public class ViolaJonesCompute {
              // "/images/highett.jpg"
         //     "/images/Nasa1996.jpg"
       //  ));
-        XMLHaarCascadeModel haarCascade = XMLHaarCascadeModel.load(
+        XMLHaarCascadeModel xmlCascade = XMLHaarCascadeModel.load(
                 ViolaJonesRaw.class.getResourceAsStream("/cascades/haarcascade_frontalface_default.xml"));
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(),
               //  new JavaSequentialBackend()
                 Backend.FIRST
         );
-        Cascade cascade = Cascade.create(accelerator, haarCascade);
 
-       var cascade2 = Cascade.schema.allocate(accelerator,haarCascade.featureCount(),haarCascade.stageCount(),haarCascade.treeCount());
+        var cascade = Cascade.createFrom(accelerator,xmlCascade);
 
-
-       System.out.println("Original   "+Buffer.getLayout(cascade));
-        System.out.println("Schema     "+Buffer.getLayout(cascade2));
-        RgbS08x3Image rgbImage = RgbS08x3Image.create(accelerator, nasa1996);
-        ResultTable resultTable = ResultTable.create(accelerator, 1000);
+        S08x3RGBImage rgbImage = S08x3RGBImage.create(accelerator, nasa1996.getWidth(),nasa1996.getHeight());
+        rgbImage.syncFromRaster(nasa1996);
+        ResultTable resultTable = ResultTable.create(accelerator,1000);
         System.out.println("result table layout "+Buffer.getLayout(resultTable));
         HaarViewer harViz = null;
         if (!headless){
-            harViz = new HaarViewer(accelerator, nasa1996, rgbImage, cascade, null, null);
+            harViz = new HaarViewer(accelerator.lookup,accelerator, nasa1996, rgbImage, cascade, null, null);
         }
 
-        //System.out.println("Compute units "+((NativeBackend)accelerator.backend).getGetMaxComputeUnits());
+        ScaleTable scaleTable = ScaleTable.createFrom(accelerator,new ScaleTable.Constraints(cascade,rgbImage.width(),rgbImage.height()));
+
+
         for (int i = 0; i < 10; i++) {
             resultTable.atomicResultTableCount(0);
             accelerator.compute(cc ->
-                    ViolaJonesCoreCompute.compute(cc, cascade, nasa1996, rgbImage, resultTable)
+                    ViolaJonesCoreCompute.compute(cc, cascade, nasa1996, rgbImage, resultTable,scaleTable)
             );
             System.out.println(resultTable.atomicResultTableCount()+ "faces found");
         }

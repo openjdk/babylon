@@ -25,67 +25,38 @@
 package violajones.ifaces;
 
 import hat.Accelerator;
-import hat.Schema;
+import hat.buffer.After;
+import hat.buffer.Atomic;
+import hat.buffer.BoundBy;
 import hat.buffer.Buffer;
 import hat.buffer.BufferAllocator;
-import hat.buffer.Table;
-import hat.ifacemapper.SegmentMapper;
+import hat.ifacemapper.Schema;
 
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.StructLayout;
 import java.lang.invoke.MethodHandles;
 
-import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
-import static java.lang.foreign.ValueLayout.JAVA_INT;
+public interface ResultTable extends Buffer {
 
-public interface ResultTable extends Table<ResultTable.Result> {
-
-    interface Result {
-        StructLayout layout = MemoryLayout.structLayout(
-                JAVA_FLOAT.withName("x"),
-                JAVA_FLOAT.withName("y"),
-                JAVA_FLOAT.withName("width"),
-                JAVA_FLOAT.withName("height")
-        ).withName("Result");
-
+    interface Result extends Struct {
         float x();
-
         float y();
-
         float width();
-
         float height();
-
-
         void x(float x);
-
         void y(float y);
-
         void width(float width);
-
         void height(float height);
     }
+    @Atomic
+    void atomicResultTableCount(int atomicResultTableCount);
+    int atomicResultTableCount();
 
-    StructLayout layout = MemoryLayout.structLayout(
-            JAVA_INT.withName("length"),
-            JAVA_INT.withName("atomicResultTableCount"),
-            MemoryLayout.sequenceLayout(0, ResultTable.Result.layout).withName("result")
-    );
+    @After("atomicResultTableCount")
+    int length();
+    void length(int length);
 
-    static ResultTable create(BufferAllocator bufferAllocator, int length) {
-        return Buffer.setLength(
-                bufferAllocator.allocate(SegmentMapper.ofIncomplete(MethodHandles.lookup(),ResultTable.class,layout,length)),length);
-    }
-
-    default Result get(int i) {
-        return result(i);
-    }
-
+    @BoundBy("length")
     Result result(long idx);
 
-    void atomicResultTableCount(int atomicResultTableCount);
-
-    int atomicResultTableCount();
 
     default int atomicResultTableCountInc() {
         int index = atomicResultTableCount();
@@ -93,15 +64,22 @@ public interface ResultTable extends Table<ResultTable.Result> {
         return index;
     }
 
-    Schema<ResultTable> schema = null;/*Schema.of(ResultTable.class, resultTable->resultTable
+    Schema<ResultTable> schema = Schema.of(ResultTable.class, resultTable->resultTable
             .atomic("atomicResultTableCount")
-            .arrayLen("length").array("result", array->array
-                    .fields(
-                            "x",
-                            "y",
-                            "width",
-                            "height"
-                    )
+            .arrayLen("length")
+            .array("result", array->array
+                    .fields("x", "y", "width", "height")
             )
-    );*/
+    );
+
+    static ResultTable create(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator,int length){
+        var instance = schema.allocate(lookup,bufferAllocator,length);
+        instance.length(length);
+        instance.atomicResultTableCount(0);
+        return instance;
+    }
+
+    static ResultTable create(Accelerator accelerator, int length){
+       return create(accelerator.lookup, accelerator,length);
+    }
 }

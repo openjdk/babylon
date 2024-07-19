@@ -4,23 +4,28 @@ package experiments;
 
 import hat.Accelerator;
 import hat.ComputeContext;
+import hat.OpsAndTypes;
 import hat.KernelContext;
-import hat.Schema;
-import hat.backend.DebugBackend;
+import hat.NDRange;
+import hat.backend.BackendAdaptor;
+import hat.buffer.Buffer;
+import hat.callgraph.KernelCallGraph;
+import hat.ifacemapper.Schema;
 import hat.buffer.BufferAllocator;
-import hat.buffer.CompleteBuffer;
-import hat.ifacemapper.HatData;
-import hat.ifacemapper.SegmentMapper;
 
 import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.code.OpTransformer;
+import java.lang.reflect.code.analysis.SSA;
+import java.lang.reflect.code.op.CoreOp;
+import java.lang.reflect.code.type.FunctionType;
 import java.lang.runtime.CodeReflection;
 
 public class PointyHatArray {
-    public interface PointArray extends CompleteBuffer {
-        interface Point extends StructChild {
+    public interface PointArray extends Buffer {
+        interface Point extends Struct {
 
             int x();
 
@@ -57,22 +62,19 @@ public class PointyHatArray {
                 )
         );
 
-        static PointArray create(BufferAllocator bufferAllocator, int len) {
+        static PointArray create(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator, int len) {
             System.out.println(LAYOUT);
-            System.out.println(schema.boundSchema(100).groupLayout);
-            HatData hatData = new HatData() {
-            };
-            PointArray pointArray = bufferAllocator.allocate(SegmentMapper.of(MethodHandles.lookup(), PointArray.class, LAYOUT,hatData));
+            PointArray pointArray= schema.allocate(lookup,bufferAllocator,100);
             pointArray.length(100);
             return pointArray;
         }
     }
 
-    static class Compute {
+    public static class Compute {
 
 
         @CodeReflection
-        static void testMethodKernel(KernelContext kc, PointArray pointArray) {
+         public static void testMethodKernel(KernelContext kc, PointArray pointArray) {
 
             int len = pointArray.length();
             PointArray.Point point = pointArray.point(4);
@@ -82,7 +84,7 @@ public class PointyHatArray {
         }
 
         @CodeReflection
-        static void compute(ComputeContext cc, PointArray pointArray) {
+        public static void compute(ComputeContext cc, PointArray pointArray) {
             cc.dispatchKernel(1, kc -> Compute.testMethodKernel(kc, pointArray));
         }
 
@@ -90,9 +92,34 @@ public class PointyHatArray {
 
 
     public static void main(String[] args) {
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup(), new DebugBackend(
-                DebugBackend.HowToRunCompute.REFLECT,DebugBackend.HowToRunKernel.LOWER_TO_SSA_AND_MAP_PTRS));
-        var pointArray = PointArray.create(accelerator,100);
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup(), new BackendAdaptor() {
+            @Override
+            public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
+                var highLevelForm = kernelCallGraph.entrypoint.method.getCodeModel().orElseThrow();
+                System.out.println("Initial code model");
+                System.out.println(highLevelForm.toText());
+                System.out.println("------------------");
+                CoreOp.FuncOp loweredForm = highLevelForm.transform(OpTransformer.LOWERING_TRANSFORMER);
+                System.out.println("Lowered form which maintains original invokes and args");
+                System.out.println(loweredForm.toText());
+                System.out.println("-------------- ----");
+                // highLevelForm.lower();
+                CoreOp.FuncOp ssaInvokeForm = SSA.transform(loweredForm);
+                System.out.println("SSA form which maintains original invokes and args");
+                System.out.println(ssaInvokeForm.toText());
+                System.out.println("------------------");
+
+                FunctionType functionType = OpsAndTypes.transformTypes(MethodHandles.lookup(), ssaInvokeForm);
+                System.out.println("SSA form with types transformed args");
+                System.out.println(ssaInvokeForm.toText());
+                System.out.println("------------------");
+
+                CoreOp.FuncOp ssaPtrForm = OpsAndTypes.transformInvokesToPtrs(MethodHandles.lookup(), ssaInvokeForm, functionType);
+                System.out.println("SSA form with invokes replaced by ptrs");
+                System.out.println(ssaPtrForm.toText());
+            }
+        });
+        var pointArray = PointArray.create(accelerator.lookup,accelerator,100);
         accelerator.compute(cc -> Compute.compute(cc, pointArray));
     }
 }

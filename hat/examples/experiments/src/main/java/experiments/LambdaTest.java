@@ -15,29 +15,6 @@ public class LambdaTest {
 
         // TODO: create a test case for these **/
         S32Array s32Array = S32Array.create(accelerator, 10);
-/*
-            accelerator.compute(cc->ccargS32Array) -> {
-                var range = cc.accelerator.range(argS32Array.length());
-                DispatchArity.KernelSam1<S32Array> kernel = (id, kArgS32Array) -> {
-                    kArgS32Array.array(id.x, kArgS32Array.array(id.x) * 2);
-                };
-                cc.dispatchKernel(kernel, range, s32Array);
-            }, s32Array);
-
-            accelerator.compute((cc, argS32Array) -> {
-                var range = cc.accelerator.range(argS32Array.length());
-                cc.dispatchKernel(
-                        (id, kArgS32Array) -> {
-                            kArgS32Array.array(id.x, kArgS32Array.array(id.x) * 2);
-                        }, range, argS32Array);
-            }, s32Array);
-
-            accelerator.compute((cc, argS32Array) ->
-                            cc.dispatchKernel((id, kArgS32Array) ->
-                                    kArgS32Array.array(id.x, kArgS32Array.array(id.x) * 2), cc.accelerator.range(argS32Array.length()), argS32Array)
-                    , s32Array);
-
- */
     }
 
 }

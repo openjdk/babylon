@@ -25,7 +25,8 @@
 package hat.backend.c99codebuilders;
 
 
-import hat.buffer.Buffer;
+import hat.ifacemapper.BoundSchema;
+import hat.ifacemapper.Schema;
 import hat.optools.BinaryArithmeticOrLogicOperation;
 import hat.optools.BinaryTestOpWrapper;
 import hat.optools.ConstantOpWrapper;
@@ -47,6 +48,7 @@ import hat.optools.ReturnOpWrapper;
 import hat.optools.StructuralOpWrapper;
 import hat.optools.TernaryOpWrapper;
 import hat.optools.TupleOpWrapper;
+import hat.optools.UnaryArithmeticOrLogicOperation;
 import hat.optools.VarDeclarationOpWrapper;
 import hat.optools.VarFuncDeclarationOpWrapper;
 import hat.optools.VarLoadOpWrapper;
@@ -57,13 +59,14 @@ import hat.util.StreamCounter;
 
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.StructLayout;
+import java.lang.reflect.Field;
 import java.lang.reflect.code.Op;
+import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.op.ExtendedOp;
 import java.lang.reflect.code.type.ClassType;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.type.PrimitiveType;
-import java.util.Map;
 
 public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeBuilder<T> implements C99HatBuilderInterface<T> {
     /*
@@ -100,18 +103,26 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
             case CoreOp.ModOp o -> 2;
             case CoreOp.MulOp o -> 2;
             case CoreOp.DivOp o -> 2;
+            case CoreOp.NotOp   o -> 2;
             case CoreOp.AddOp o -> 3;
             case CoreOp.SubOp o -> 3;
+            case CoreOp.AshrOp o -> 4;
+            case CoreOp.LshlOp o -> 4;
+            case CoreOp.LshrOp o -> 4;
             case CoreOp.LtOp o -> 5;
             case CoreOp.GtOp o -> 5;
             case CoreOp.LeOp o -> 5;
             case CoreOp.GeOp o -> 5;
             case CoreOp.EqOp o -> 6;
             case CoreOp.NeqOp o -> 6;
-            case ExtendedOp.JavaConditionalAndOp o -> 10;
-            case ExtendedOp.JavaConditionalOrOp o -> 11;
-            case ExtendedOp.JavaConditionalExpressionOp o -> 12;
-            case CoreOp.ReturnOp o -> 12;
+
+            case CoreOp.AndOp o -> 11;
+            case CoreOp.XorOp o -> 12;
+            case CoreOp.OrOp o -> 13;
+            case ExtendedOp.JavaConditionalAndOp o -> 14;
+            case ExtendedOp.JavaConditionalOrOp o -> 15;
+            case ExtendedOp.JavaConditionalExpressionOp o -> 18;
+            case CoreOp.ReturnOp o -> 19;
 
             default -> throw new IllegalStateException("precedence ");
         };
@@ -179,9 +190,13 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
     public T fieldLoad(C99HatBuildContext buildContext, FieldLoadOpWrapper fieldLoadOpWrapper) {
         if (fieldLoadOpWrapper.isKernelContextAccess()) {
             identifier("kc").rarrow().identifier(fieldLoadOpWrapper.fieldName());
+        } else if (fieldLoadOpWrapper.isStaticFinalPrimitive()) {
+            Object value = fieldLoadOpWrapper.getStaticFinalPrimitiveValue();
+            literal(value.toString());
         } else {
-            // throw new IllegalStateException("What is this field load ?" + fieldLoadOpWrapper.fieldRef());
+            throw new IllegalStateException("What is this field load ?" + fieldLoadOpWrapper.fieldRef());
         }
+
         return self();
     }
 
@@ -203,12 +218,27 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
             case CoreOp.GtOp o -> gt();
             case CoreOp.LeOp o -> lte();
             case CoreOp.GeOp o -> gte();
+            case CoreOp.AshrOp o -> cchevron().cchevron();
+            case CoreOp.LshlOp o -> ochevron().ochevron();
+            case CoreOp.LshrOp o -> cchevron().cchevron();
             case CoreOp.NeqOp o -> pling().equals();
             case CoreOp.EqOp o -> equals().equals();
+            case CoreOp.NotOp o -> pling();
+            case CoreOp.AndOp o -> ampersand();
+            case CoreOp.OrOp o -> bar();
+            case CoreOp.XorOp o -> hat();
             case ExtendedOp.JavaConditionalAndOp o -> condAnd();
             case ExtendedOp.JavaConditionalOrOp o -> condOr();
             default -> throw new IllegalStateException("Unexpected value: " + op);
         };
+    }
+
+    @Override
+    public T unaryOperation(C99HatBuildContext buildContext, UnaryArithmeticOrLogicOperation unaryOperatorOpWrapper) {
+      //  parencedence(buildContext, binaryOperatorOpWrapper.op(), binaryOperatorOpWrapper.lhsAsOp());
+        symbol(unaryOperatorOpWrapper.op());
+        parencedence(buildContext, unaryOperatorOpWrapper.op(), unaryOperatorOpWrapper.operandNAsResult(0).op());
+        return self();
     }
 
     @Override
@@ -415,45 +445,80 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
         return self();
     }
 
-    public T typedef(Map<String, Typedef> scope, Buffer instance) {
-        return typedef(scope, new Typedef(instance));
-    }
 
-    public T typedef(Map<String, Typedef> scope, Typedef typeDef) {
-        if (!scope.containsKey(typeDef.name())) {
-            // Do the dependencies first, so we get them in the right order
-            typeDef.nameAndTypes.stream().filter(nameAndType -> nameAndType.typeDef != null).forEach(nameAndType -> {
-                typedef(scope, nameAndType.typeDef).nl();
-            });
-            typedefKeyword().space().structOrUnion(typeDef.isStruct)
-                    .space().suffix_s(typeDef.iface.getSimpleName()).braceNlIndented(_ -> {
-                        StreamCounter.of(typeDef.nameAndTypes, (c, nameAndType) -> {
-                            nlIf(c.isNotFirst());
-                            if (nameAndType.type.isPrimitive()) {
-                                typeName(nameAndType.type.getSimpleName());
-                            } else {
-                                suffix_t(nameAndType.type.getSimpleName());
-                            }
-                            space().typeName(nameAndType.name);
-                            if (nameAndType instanceof Typedef.NameAndArrayOfType nameAndArrayOfType) {
-                                sbrace(_ -> {
-                                    if (nameAndArrayOfType.arraySize > 0) {
-                                        literal(nameAndArrayOfType.arraySize);
-                                    }else{
-                                        literal(1);
+    public T typedef(BoundSchema<?> boundSchema, Schema.IfaceType ifaceType) {
+        typedefKeyword().space().structOrUnion(ifaceType instanceof Schema.IfaceType.Struct)
+                .space().suffix_s(ifaceType.iface.getSimpleName()).braceNlIndented(_ -> {
+                    //System.out.println(ifaceTypeNode);
+                    int fieldCount = ifaceType.fields.size();
+                    StreamCounter.of(ifaceType.fields, (c, field) -> {
+                        nlIf(c.isNotFirst());
+                        boolean isLast = c.value() == fieldCount - 1;
+                        if (field instanceof Schema.FieldNode.AbstractPrimitiveField primitiveField) {
+                            typeName(primitiveField.type.getSimpleName());
+                            space().typeName(primitiveField.name);
+                            if (primitiveField instanceof Schema.FieldNode.PrimitiveArray array) {
+                                if (array instanceof Schema.FieldNode.PrimitiveFieldControlledArray fieldControlledArray) {
+                                    if (isLast && ifaceType.parent == null) {
+                                        sbrace(_ -> literal(1));
+                                    } else {
+                                        boolean[] done = new boolean[]{false};
+                                        boundSchema.boundArrayFields().forEach(a -> {
+                                            if (a.field.equals(array)) {
+                                                sbrace(_ -> literal(a.len));
+                                                done[0] = true;
+                                            }
+                                        });
+                                        if (!done[0]) {
+                                            throw new IllegalStateException("we need to extract the array size hat kind of array ");
+                                        }
                                     }
-                                });
+                                } else if (array instanceof Schema.FieldNode.PrimitiveFixedArray fixed) {
+                                    sbrace(_ -> literal(Math.max(1, fixed.len)));
+                                } else {
+                                    throw new IllegalStateException("what kind of array ");
+                                }
                             }
-                            semicolon();
-                        });
-                    }).suffix_t(typeDef.iface.getSimpleName()).semicolon().nl().nl();
-            scope.put(typeDef.name(), typeDef);
-        }
+                        } else if (field instanceof Schema.FieldNode.AbstractIfaceField ifaceField) {
+                            suffix_t(ifaceField.ifaceType.iface.getSimpleName());
+                            space().typeName(ifaceField.name);
+                            if (ifaceField instanceof Schema.FieldNode.IfaceArray array) {
+                                if (array instanceof Schema.FieldNode.IfaceFieldControlledArray fieldControlledArray) {
+                                    if (isLast && ifaceType.parent == null) {
+                                        sbrace(_ -> literal(1));
+                                    } else {
+                                        boolean[] done = new boolean[]{false};
+                                        boundSchema.boundArrayFields().forEach(a -> {
+                                            if (a.field.equals(ifaceField)) {
+                                                sbrace(_ -> literal(a.len));
+                                                done[0] = true;
+                                            }
+                                        });
+                                        if (!done[0]) {
+                                            throw new IllegalStateException("we need to extract the array size hat kind of array ");
+                                        }
+                                    }
+                                } else if (array instanceof Schema.FieldNode.IfaceFixedArray fixed) {
+                                    sbrace(_ -> literal(Math.max(1, fixed.len)));
+                                } else {
+                                    throw new IllegalStateException("what kind of array ");
+                                }
+                            }
+                        } else if (field instanceof Schema.SchemaNode.Padding) {
+                            // SKIP
+                        } else {
+                            throw new IllegalStateException("hmm");
+                        }
+
+
+                        semicolon();
+                    });
+                }).suffix_t(ifaceType.iface.getSimpleName()).semicolon().nl().nl();
         return self();
     }
 
-    public T atomicInc(C99HatBuildContext buildContext, Op.Result instanceResult, String name){
-         throw new IllegalStateException("atimicInc not implemented");
+    public T atomicInc(C99HatBuildContext buildContext, Op.Result instanceResult, String name) {
+        throw new IllegalStateException("atomicInc not implemented");
     }
 
     @Override

@@ -30,6 +30,7 @@ import hat.NDRange;
 import hat.buffer.BackendConfig;
 import hat.buffer.BufferAllocator;
 import hat.callgraph.KernelCallGraph;
+import hat.ifacemapper.Schema;
 import hat.ifacemapper.SegmentMapper;
 
 import java.lang.foreign.Arena;
@@ -44,29 +45,30 @@ public class OpenCLBackend extends C99NativeBackend {
         //  class OpenCLConfig{
         //       public:
         //         boolean gpu;
-        //         boolean junk;
+        //         boolean verbose;
         //   };
-        static OpenCLConfig create(BufferAllocator bufferAllocator, MethodHandles.Lookup lookup, boolean gpu) {
-            OpenCLConfig config = bufferAllocator.allocate(SegmentMapper.of(lookup, OpenCLConfig.class,
-                    JAVA_BOOLEAN.withName("gpu"),
-                    JAVA_BOOLEAN.withName("junk")
-            ));
-            config.gpu(gpu);
-            return config;
-        }
-
         boolean gpu();
 
         void gpu(boolean gpu);
 
-        boolean junk();
+      //  boolean verbose();
 
-        void junk(boolean junk);
+       // void verbose(boolean verbose);
+        Schema<OpenCLConfig> schema = Schema.of(OpenCLConfig.class, s->s.fields("gpu"));
+
+        static OpenCLConfig create(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator, boolean gpu, boolean verbose) {
+            OpenCLConfig config =schema.allocate(lookup,bufferAllocator);
+            config.gpu(gpu);
+         //   config.verbose(verbose);
+            return config;
+        }
+
+
     }
 
     public OpenCLBackend() {
         super("opencl_backend");
-        getBackend(OpenCLConfig.create(this, MethodHandles.lookup(), true));
+        getBackend(OpenCLConfig.create( MethodHandles.lookup(),this, true, true));
         info();
     }
 

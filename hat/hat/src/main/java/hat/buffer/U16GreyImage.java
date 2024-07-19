@@ -24,39 +24,26 @@
  */
 package hat.buffer;
 
-import hat.Accelerator;
-import hat.ifacemapper.SegmentMapper;
+import hat.ifacemapper.Schema;
 
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.StructLayout;
 import java.lang.invoke.MethodHandles;
 
-import static java.lang.foreign.ValueLayout.JAVA_INT;
-
-public interface Array2D extends Array {
-    static <T extends Array2D> StructLayout getLayout(Class<T> iface, MemoryLayout memoryLayout) {
-        return MemoryLayout.structLayout(
-                JAVA_INT.withName("width"),
-                JAVA_INT.withName("height"),
-                MemoryLayout.sequenceLayout(0, memoryLayout).withName("array")
-        ).withName(iface.getSimpleName());
-    }
-
-    static <T extends Array2D> T create(BufferAllocator bufferAllocator, Class<T> clazz, StructLayout structLayout,int width, int height) {
-
-        T buffer = bufferAllocator.allocate(SegmentMapper.ofIncomplete(MethodHandles.lookup(), clazz, structLayout, (long) width * height));
-        MemorySegment segment = Buffer.getMemorySegment(buffer);
-        segment.set(JAVA_INT, structLayout.byteOffset(MemoryLayout.PathElement.groupElement("width")), width);
-        segment.set(JAVA_INT, structLayout.byteOffset(MemoryLayout.PathElement.groupElement("height")), height);
-        return buffer;
-    }
-
+public interface U16GreyImage extends ImageIfaceBuffer<U16GreyImage> {
+    short data(long idx);
+    void data(long idx, short v);
     int width();
-
+    void width(int width);
     int height();
+    void height(int height);
 
-    default int size() {
-        return width() * height();
+    Schema<U16GreyImage> schema = Schema.of(U16GreyImage.class, s -> s
+            .arrayLen("width", "height").stride(1).array("data")
+    );
+
+    static U16GreyImage create(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator, int width, int height){
+        var instance = schema.allocate(lookup, bufferAllocator,width,height);
+        instance.width(width);
+        instance.height(height);
+        return instance;
     }
 }

@@ -22,7 +22,12 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.buffer;
-public interface Table<T> extends IncompleteBuffer {
-    int length();
+package hat.optools;
+
+import java.lang.reflect.code.op.CoreOp;
+
+public class UnaryArithmeticOrLogicOperation extends UnaryOpWrapper<CoreOp.UnaryOp> {
+    UnaryArithmeticOrLogicOperation(CoreOp.UnaryOp op) {
+        super(op);
+    }
 }

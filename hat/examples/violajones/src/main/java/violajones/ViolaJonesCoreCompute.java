@@ -24,25 +24,16 @@
  */
 package violajones;
 
-import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
-import hat.backend.Backend;
-import hat.buffer.S32Array;
 import hat.buffer.F32Array2D;
-import org.xml.sax.SAXException;
-import violajones.attic.ViolaJones;
-import violajones.attic.ViolaJonesRaw;
-import violajones.buffers.RgbS08x3Image;
+import hat.buffer.S08x3RGBImage;
+import hat.buffer.S32Array;
 import violajones.ifaces.Cascade;
 import violajones.ifaces.ResultTable;
 import violajones.ifaces.ScaleTable;
 
-import javax.imageio.ImageIO;
-import javax.xml.parsers.ParserConfigurationException;
 import java.awt.image.BufferedImage;
-import java.io.IOException;
-import java.lang.invoke.MethodHandles;
 import java.lang.runtime.CodeReflection;
 
 public class ViolaJonesCoreCompute {
@@ -58,7 +49,7 @@ public class ViolaJonesCoreCompute {
     }
 
     @CodeReflection
-    public static void rgbToGrey(int id, RgbS08x3Image rgbImage, F32Array2D greyImage) {
+    public static void rgbToGrey(int id, S08x3RGBImage rgbImage, F32Array2D greyImage) {
         byte r = rgbImage.data(id * 3 + 0);
         byte g = rgbImage.data(id * 3 + 1);
         byte b = rgbImage.data(id * 3 + 2);
@@ -68,7 +59,7 @@ public class ViolaJonesCoreCompute {
     /*
      * A pure java implementation so no @CodeReflection
      */
-    static long javaRgbToGreyScale(RgbS08x3Image rgb, F32Array2D grey) {
+    static long javaRgbToGreyScale(S08x3RGBImage rgb, F32Array2D grey) {
         long start = System.currentTimeMillis();
         int size = grey.width() * grey.height();
 
@@ -80,7 +71,7 @@ public class ViolaJonesCoreCompute {
     }
 
     @CodeReflection
-    public static void rgbToGreyKernel(KernelContext kc, RgbS08x3Image rgbImage, F32Array2D greyImage) {
+    public static void rgbToGreyKernel(KernelContext kc, S08x3RGBImage rgbImage, F32Array2D greyImage) {
         if (kc.x < kc.maxX){
            rgbToGrey(kc.x, rgbImage, greyImage);
         }
@@ -311,18 +302,24 @@ public class ViolaJonesCoreCompute {
         }
     }
 
-    @CodeReflection
-    static public void compute(final ComputeContext cc, Cascade cascade, BufferedImage bufferedImage, RgbS08x3Image rgbS08x3Image, ResultTable resultTable) {
-        long start = System.currentTimeMillis();
-        int width = rgbS08x3Image.width();
+    static F32Array2D createF32Array2D(ComputeContext cc,int width, int height){
+        return F32Array2D.create(cc.accelerator, width, height);
+    }
 
-        int height = rgbS08x3Image.height();
-        F32Array2D greyImage = F32Array2D.create(cc, width, height);
+    @CodeReflection
+    static public void compute(final ComputeContext cc, Cascade cascade, BufferedImage bufferedImage, S08x3RGBImage s08X3RGBImage, ResultTable resultTable, ScaleTable scaleTable) {
+        long start = System.currentTimeMillis();
+        int width = s08X3RGBImage.width();
+
+        int height = s08X3RGBImage.height();
+        F32Array2D greyImage = createF32Array2D(cc, width, height);
+
         //javaRgbToGreyScale(rgbS08x3Image, greyImage);
 
-        cc.dispatchKernel(width * height, kc -> rgbToGreyKernel(kc, rgbS08x3Image, greyImage));
-        F32Array2D integralImage = F32Array2D.create(cc, width, height);
-        F32Array2D integralSqImage = F32Array2D.create(cc, width, height);
+        cc.dispatchKernel(width * height, kc -> rgbToGreyKernel(kc, s08X3RGBImage, greyImage));
+        F32Array2D integralImage = createF32Array2D(cc, width, height);
+
+        F32Array2D integralSqImage = createF32Array2D(cc, width, height);
 
         //javaCreateIntegralImage(greyImage, integralImage, integralSqImage);
 
@@ -330,8 +327,11 @@ public class ViolaJonesCoreCompute {
         //javaIntegralRow(integralImage, integralSqImage);
         cc.dispatchKernel(width, kc -> integralColKernel(kc, greyImage, integralImage, integralSqImage));
         cc.dispatchKernel(height, kc -> integralRowKernel(kc, integralImage, integralSqImage));
+
+
         // harViz.showIntegrals();
-        ScaleTable scaleTable = ScaleTable.create(cc, cascade, width, height);
+
+       // create(cc, constraints);
         System.out.print("range requested=");
         System.out.print(scaleTable.multiScaleAccumulativeRange());
         System.out.println();

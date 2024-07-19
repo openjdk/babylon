@@ -24,75 +24,36 @@
  */
 package hat.buffer;
 
-import hat.Accelerator;
-import hat.ifacemapper.SegmentMapper;
-
-import java.lang.foreign.GroupLayout;
-import java.lang.foreign.MemoryLayout;
+import hat.ifacemapper.Schema;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
 import java.nio.ByteOrder;
-
-import static java.lang.foreign.ValueLayout.ADDRESS;
-import static java.lang.foreign.ValueLayout.JAVA_BOOLEAN;
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
-import static java.lang.foreign.ValueLayout.JAVA_CHAR;
-import static java.lang.foreign.ValueLayout.JAVA_DOUBLE;
-import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
-import static java.lang.foreign.ValueLayout.JAVA_LONG;
-import static java.lang.foreign.ValueLayout.JAVA_SHORT;
 
-
-public interface ArgArray extends IncompleteBuffer {
-    interface Arg {
-        interface Value {
-            interface Buf {
-                MemoryLayout layout = MemoryLayout.structLayout(
-                        ADDRESS.withName("address"), // segment ptr
-                        JAVA_LONG.withName("bytes"),
-                        ADDRESS.withName("vendorPtr"), // CLBuf *buf;   CUdeviceptr buf; void *buf ?
-                        JAVA_BYTE.withName("access"), //0=??/1=RO/2=WO/3=RW
-                        JAVA_BYTE.withName("state"), //0=UNKNOWN/1=GPUDIRTY/2=JAVADIRTY
-                        MemoryLayout.paddingLayout(16 - JAVA_BYTE.byteSize() - JAVA_BYTE.byteSize())
-                ).withName(Buf.class.getSimpleName());
-
+public interface ArgArray extends Buffer {
+    interface Arg extends Buffer.Struct{
+        interface Value extends Buffer.Union{
+            interface Buf extends Buffer.Struct{
                 MemorySegment address();
-
                 void address(MemorySegment address);
 
-                long bytes();
-
+                @After("address") long bytes();
                 void bytes(long bytes);
 
+                @After("bytes")
                 MemorySegment vendorPtr();
-
                 void vendorPtr(MemorySegment vendorPtr);
 
+                @After("vendorPtr")
                 byte access();
-
                 void access(byte access);
 
+                @After("access")
                 byte state();
-
                 void state(byte state);
-
             }
-
-            MemoryLayout layout = MemoryLayout.unionLayout(
-                    JAVA_BOOLEAN.withName("z1"),
-                    JAVA_BYTE.withName("s8"),
-                    JAVA_CHAR.withName("u16"),
-                    JAVA_SHORT.withName("s16"),
-                    JAVA_INT.withName("s32"),
-                    JAVA_INT.withName("u32"),
-                    JAVA_FLOAT.withName("f32"),
-                    JAVA_LONG.withName("s64"),
-                    JAVA_LONG.withName("u64"),
-                    JAVA_DOUBLE.withName("f64"),
-                    Buf.layout.withName("buf")
-            ).withName(Value.class.getSimpleName());
 
             boolean z1();
 
@@ -137,22 +98,13 @@ public interface ArgArray extends IncompleteBuffer {
             Buf buf();
         }
 
-        MemoryLayout layout = MemoryLayout.structLayout(
-                JAVA_INT.withName("idx"),      //4
-                JAVA_BYTE.withName("variant"), //5
-                MemoryLayout.paddingLayout(16 - JAVA_INT.byteSize() - JAVA_BYTE.byteSize()),
-                Value.layout.withName("value")
-        ).withName(Arg.class.getSimpleName());
-
         int idx();
-
         void idx(int idx);
 
-        byte variant();
-
+        @After("idx") byte variant();
         void variant(byte variant);
 
-        Value value();
+        @SelectedBy("variant") @Pad(11) Value value();
 
         default String asString() {
             switch (variant()) {
@@ -260,42 +212,41 @@ public interface ArgArray extends IncompleteBuffer {
         }
     }
 
-    static ArgArray create(BufferAllocator bufferAllocator, MemoryLayout... layouts) {
+    int argc();
+    void argc(int argc);
 
+    @BoundBy("argc") @Pad(12)
+    Arg arg(long idx);
 
-        ArgArray argArray = bufferAllocator.allocate(SegmentMapper.of(MethodHandles.lookup(), ArgArray.class,
-                JAVA_INT.withName("argc"),
-                MemoryLayout.paddingLayout(16 - JAVA_INT.byteSize()),
-                MemoryLayout.sequenceLayout(layouts.length, Arg.layout.withName(Arg.class.getSimpleName())).withName("arg"),
-                ADDRESS.withName("vendorPtr")
-        ));
-        argArray.argc(layouts.length);
-        for (int i = 0; i < layouts.length; i++) {
-            MemoryLayout layout = layouts[i];
-            Arg arg = argArray.arg(i);
-            arg.idx(i);
-            if (layout.equals(JAVA_BOOLEAN)) {
-                arg.variant((byte) 'Z');
-            } else if (layout.equals(JAVA_BYTE)) {
-                arg.variant((byte) 'B');
-            } else if (layout.equals(JAVA_CHAR)) {
-                arg.variant((byte) 'C');
-            } else if (layout.equals(JAVA_SHORT)) {
-                arg.variant((byte) 'S');
-            } else if (layout.equals(JAVA_INT)) {
-                arg.variant((byte) 'I');
-            } else if (layout.equals(JAVA_LONG)) {
-                arg.variant((byte) 'J');
-            } else if (layout.equals(JAVA_FLOAT)) {
-                arg.variant((byte) 'F');
-            } else if (layout.equals(JAVA_DOUBLE)) {
-                arg.variant((byte) 'D');
-            } else if (layout instanceof GroupLayout) {
-                arg.variant((byte) '&');
-            }
-        }
-        return argArray;
-    }
+    @After("arg")
+    MemorySegment vendorPtr();
+    void vendorPtr(MemorySegment vendorPtr);
+
+    @After("vendorPtr")
+    int schemaLen();
+    void schemaLen(int schemaLen);
+
+    @BoundBy("schemaLen")
+    byte schemaBytes(long idx);
+    void schemaBytes(long idx, byte b);
+
+    Schema<ArgArray> schema = Schema.of(ArgArray.class, s->s
+            .arrayLen("argc")
+            .pad(12/*(int)(16 - JAVA_INT.byteSize())*/)
+            .array("arg", arg->arg
+                            .fields("idx","variant")
+                            .pad(11/*(int)(16 - JAVA_INT.byteSize() - JAVA_BYTE.byteSize())*/)
+                            .field("value", value->value
+                                            .fields("z1","s8","u16","s16","s32","u32","f32","s64","u64","f64")
+                                                    .field("buf", buf->buf
+                                                            .fields("address","bytes","vendorPtr","access","state")
+                                                            .pad((int)(16 - JAVA_BYTE.byteSize() - JAVA_BYTE.byteSize()))
+                                                    )
+                            )
+                    )
+            .field("vendorPtr")
+            .arrayLen("schemaLen").array("schemaBytes")
+    );
 
     static String valueLayoutToSchemaString(ValueLayout valueLayout) {
         String descriptor = valueLayout.carrier().descriptorString();
@@ -311,6 +262,37 @@ public interface ArgArray extends IncompleteBuffer {
             default -> throw new IllegalStateException("Unexpected value: " + descriptor);
         } + valueLayout.byteSize() * 8;
         return (valueLayout.order().equals(ByteOrder.LITTLE_ENDIAN)) ? schema.toLowerCase() : schema;
+    }
+
+    static ArgArray create(MethodHandles.Lookup lookup,BufferAllocator bufferAllocator, Object... args) {
+        String[] schemas = new String[args.length];
+        StringBuilder argSchema = new StringBuilder();
+        argSchema.append(args.length);
+        for (int i = 0; i < args.length; i++) {
+            Object argObject = args[i];
+            schemas[i] = switch (argObject) {
+                case Boolean z1 -> "(?:z1)";
+                case Byte s8 -> "(?:s8)";
+                case Short s16 -> "(?:s16)";
+                case Character u16 -> "(?:u16)";
+                case Float f32 -> "(?:f32)";
+                case Integer s32 -> "(?:s32)";
+                case Long s64 -> "(?:s64)";
+                case Double f64 -> "(?:f64)";
+                case Buffer buffer -> "(?:" +SchemaBuilder.schema(buffer)+")";
+                default -> throw new IllegalStateException("Unexpected value: " + argObject + " Did you pass an interface which is neither a Complete or Incomplete buffer");
+            };
+            if (i > 0) {
+                argSchema.append(",");
+            }
+            argSchema.append(schemas[i]);
+        }
+        String schemaStr = argSchema.toString();
+        ArgArray argArray = schema.allocate(lookup,bufferAllocator,args.length,schemaStr.length() + 1);
+        argArray.argc(args.length);
+        argArray.setSchemaBytes(schemaStr);
+        update(argArray, args);
+        return argArray;
     }
 
     static void update(ArgArray argArray, Object... args) {
@@ -337,87 +319,11 @@ public interface ArgArray extends IncompleteBuffer {
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + argObject);
             }
-
         }
     }
 
-    static ArgArray create(BufferAllocator bufferAllocator, Object... args) {
-        String[] schemas = new String[args.length];
-        StringBuilder argSchema = new StringBuilder();
-        argSchema.append(args.length);
-        for (int i = 0; i < args.length; i++) {
-            Object argObject = args[i];
-            schemas[i] = switch (argObject) {
-                case Boolean z1 -> "(?:z1)";
-                case Byte s8 -> "(?:s8)";
-                case Short s16 -> "(?:s16)";
-                case Character u16 -> "(?:u16)";
-                case Float f32 -> "(?:f32)";
-                case Integer s32 -> "(?:s32)";
-                case Long s64 -> "(?:s64)";
-                case Double f64 -> "(?:f64)";
-                case CompleteBuffer buffer -> "(!:" + buffer.schema()+")";
-                case IncompleteBuffer buffer -> "(?:" + buffer.schema()+")";
-                default -> throw new IllegalStateException("Unexpected value: " + argObject + " Did you pass an interface which is neither a Complete or Incomplete buffer");
-            };
-            if (i > 0) {
-                argSchema.append(",");
-            }
-            argSchema.append(schemas[i]);
-        }
-        String schemaStr = argSchema.toString();
 
-        ArgArray argArray = bufferAllocator.allocate(SegmentMapper.of(MethodHandles.lookup(), ArgArray.class,
-                JAVA_INT.withName("argc"),
-                MemoryLayout.paddingLayout(16 - JAVA_INT.byteSize()),
-                MemoryLayout.sequenceLayout(args.length, Arg.layout).withName("arg"),
-                ADDRESS.withName("vendorPtr"),
-                JAVA_INT.withName("schemaLen"),
-                MemoryLayout.sequenceLayout(schemaStr.length() + 1, JAVA_BYTE).withName("schemaBytes")
-        ));
-        argArray.argc(args.length);
-        argArray.schemaBytes(schemaStr);
-        for (int i = 0; i < args.length; i++) {
-            Object argObject = args[i];
-            Arg arg = argArray.arg(i);
-            arg.idx(i);
-            switch (argObject) {
-                case Boolean z1 -> arg.z1(z1);
-                case Byte s8 -> arg.s8(s8);
-                case Short s16 -> arg.s16(s16);
-                case Character u16 -> arg.u16(u16);
-                case Float f32 -> arg.f32(f32);
-                case Integer s32 -> arg.s32(s32);
-                case Long s64 -> arg.s64(s64);
-                case Double f64 -> arg.f64(f64);
-                case Buffer buffer -> {
-                    MemorySegment segment = Buffer.getMemorySegment(buffer);
-                    arg.variant((byte) '&');
-                    Arg.Value value = arg.value();
-                    Arg.Value.Buf buf = value.buf();
-                    buf.address(segment);
-                    buf.bytes(segment.byteSize());
-                }
-                default -> throw new IllegalStateException("Unexpected value: " + argObject);
-            }
-
-        }
-        return argArray;
-    }
-
-    int argc();
-
-    void argc(int argc);
-
-    int schemaLen();
-
-    void schemaLen(int schemaLen);
-
-    byte schemaBytes(long idx);
-
-    void schemaBytes(long idx, byte b);
-
-    default String schemaBytes() {
+    default String getSchemaBytes() {
         byte[] bytes = new byte[schemaLen() + 1];
         for (int i = 0; i < schemaLen(); i++) {
             bytes[i] = schemaBytes(i);
@@ -426,7 +332,7 @@ public interface ArgArray extends IncompleteBuffer {
         return new String(bytes);
     }
 
-    default void schemaBytes(String schemaStr) {
+    default void setSchemaBytes(String schemaStr) {
         byte[] schemaStrBytes = schemaStr.getBytes();
         schemaLen(schemaStrBytes.length);
         // TODO:we should be able to copy into the segment here ;)
@@ -436,16 +342,10 @@ public interface ArgArray extends IncompleteBuffer {
         schemaBytes(schemaStrBytes.length, (byte) 0);
     }
 
-    Arg arg(long idx);
-
-    MemorySegment vendorPtr();
-
-    void vendorPtr(MemorySegment vendorPtr);
-
 
     default String dump() {
         StringBuilder dump = new StringBuilder();
-        dump.append("SchemaBytes:").append(schemaBytes()).append("\n");
+        dump.append("SchemaBytes:").append(getSchemaBytes()).append("\n");
         for (int argIndex = 0; argIndex < argc(); argIndex++) {
             Arg arg = arg(argIndex);
             dump.append(arg.asString()).append("\n");

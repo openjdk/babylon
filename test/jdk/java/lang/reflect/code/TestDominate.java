@@ -49,6 +49,29 @@ import static java.lang.reflect.code.op.CoreOp.func;
 
 public class TestDominate {
 
+    public void testUnmodifiableIdoms() {
+        CoreOp.FuncOp f = func("f", FunctionType.VOID).body(entry -> {
+            Block.Builder ifBlock = entry.block();
+            Block.Builder elseBlock = entry.block();
+            Block.Builder end = entry.block();
+
+            Op.Result p = entry.op(constant(JavaType.BOOLEAN, true));
+            entry.op(conditionalBranch(p, ifBlock.successor(), elseBlock.successor()));
+
+            ifBlock.op(branch(end.successor()));
+
+            elseBlock.op(branch(end.successor()));
+
+            end.op(_return());
+        });
+
+        Map<Block, Block> idoms = f.body().immediateDominators();
+        Assert.assertThrows(UnsupportedOperationException.class,
+                () -> idoms.put(f.body().entryBlock(), f.body().entryBlock()));
+        Assert.assertThrows(UnsupportedOperationException.class,
+                idoms::clear);
+    }
+
     @Test
     public void testIfElse() {
         CoreOp.FuncOp f = func("f", FunctionType.VOID).body(entry -> {

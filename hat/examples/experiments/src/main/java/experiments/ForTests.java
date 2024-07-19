@@ -65,7 +65,7 @@ public class ForTests {
                 //  Backend.JAVA_MULTITHREADED
                 (backend) -> backend.getClass().getSimpleName().startsWith("OpenCL")
         );
-        var a = F32Array.create(accelerator, 100);
+        var a = F32Array.create(accelerator,100);
         accelerator.compute(
                 cc -> Compute.compute(cc, a)
         );

@@ -5,6 +5,7 @@ import hat.ComputeContext;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
+import hat.buffer.SchemaBuilder;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.runtime.CodeReflection;
@@ -111,10 +112,10 @@ public class MatrixMultiply {
         int size = 10;  // works
         float[] arrA = new float[size * size];
         float[] arrB = new float[size * size];
-        var a = F32Array.create(accelerator, arrA);
-        var b = F32Array.create(accelerator, arrB);
-        var c = F32Array.create(accelerator, new float[size * size]);
-        System.out.print(c.schema());
+        var a = F32Array.create(accelerator, arrA.length);
+        var b = F32Array.create(accelerator, arrB.length);
+        var c = F32Array.create(accelerator, size * size);
+        System.out.print(SchemaBuilder.schema(c));
         accelerator.compute(
                 cc -> MatrixMultiplyCompute.compute(cc, a, b, c, size)
         );

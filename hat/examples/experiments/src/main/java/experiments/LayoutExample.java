@@ -27,9 +27,9 @@
 package experiments;
 
 
-import hat.Schema;
+import hat.ifacemapper.Schema;
 import hat.buffer.Buffer;
-import hat.buffer.MappableIface;
+import hat.ifacemapper.MappableIface;
 
 import java.lang.constant.ClassDesc;
 import java.lang.foreign.*;
@@ -58,7 +58,7 @@ public class LayoutExample {
      */
 
         public interface Outer extends Buffer {
-            interface Inner extends Buffer.StructChild  {
+            interface Inner extends Struct {
                 int i();
 
                 void i(int v);

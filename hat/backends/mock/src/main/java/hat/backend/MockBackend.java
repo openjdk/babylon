@@ -30,6 +30,7 @@ import hat.NDRange;
 import hat.buffer.BackendConfig;
 import hat.buffer.BufferAllocator;
 import hat.callgraph.KernelCallGraph;
+import hat.ifacemapper.Schema;
 import hat.ifacemapper.SegmentMapper;
 
 import java.lang.foreign.Arena;
@@ -46,15 +47,6 @@ public class MockBackend extends NativeBackend {
         //         boolean gpu;
         //         boolean junk;
         //   };
-        static MockConfig create(BufferAllocator bufferAllocator, MethodHandles.Lookup lookup, boolean gpu) {
-            MockConfig config = bufferAllocator.allocate(SegmentMapper.of(lookup, MockConfig.class,
-                    JAVA_BOOLEAN.withName("gpu"),
-                    JAVA_BOOLEAN.withName("junk")
-            ));
-            config.gpu(gpu);
-            return config;
-        }
-
         boolean gpu();
 
         void gpu(boolean gpu);
@@ -62,11 +54,20 @@ public class MockBackend extends NativeBackend {
         boolean junk();
 
         void junk(boolean junk);
+
+        Schema<MockConfig> schema = Schema.of(MockConfig.class, s->s.fields("gpu", "junk"));
+        static MockConfig create(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator, boolean gpu) {
+            MockConfig config =schema.allocate(lookup,bufferAllocator);
+            config.gpu(gpu);
+            return config;
+        }
+
+
     }
 
     public MockBackend() {
         super("mock_backend");
-        getBackend(MockConfig.create(this, MethodHandles.lookup(), true));
+        getBackend(MockConfig.create(MethodHandles.lookup(),this,  true));
     }
 
     @Override

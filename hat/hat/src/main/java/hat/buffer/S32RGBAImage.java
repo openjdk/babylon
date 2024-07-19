@@ -22,40 +22,30 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package experiments;
+package hat.buffer;
 
-import hat.buffer.CompleteBuffer;
+import hat.ifacemapper.Schema;
 
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.StructLayout;
+import java.lang.invoke.MethodHandles;
 
-import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
-import static java.lang.foreign.ValueLayout.JAVA_INT;
+public interface S32RGBAImage extends ImageIfaceBuffer<S32RGBAImage> {
+    int data(long idx);
 
-public interface Features extends CompleteBuffer {
+    void data(long idx, int v);
 
-    StructLayout linkOrValue = MemoryLayout.structLayout(
-            JAVA_INT.withName("featureId"),
-            JAVA_FLOAT.withName("value")
-    ).withName("LinkOrValue");
-
-    StructLayout featureLayout = MemoryLayout.structLayout(
-            linkOrValue.withName("left"),
-            linkOrValue.withName("right")
-    ).withName("Feature");
+    int width();
+    void width(int width);
+    int height();
+    void height(int height);
+    Schema<S32RGBAImage> schema = Schema.of(S32RGBAImage.class, s -> s
+            .arrayLen("width", "height").stride(1).array("data")
+    );
 
 
-    /*
-     typedef struct LinkOrValue_s{
-         int featureId;
-         float value;
-     } LinkOrValue_t;
-
-     typedef struct Feature_s{
-         LinkOrValue_t left;
-         LinkOrvalue_t right;
-     } Feature_t;
-
-     */
-
+    static S32RGBAImage create(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator, int width, int height){
+        var instance = schema.allocate(lookup, bufferAllocator,width,height);
+        instance.width(width);
+        instance.height(height);
+        return instance;
+    }
 }

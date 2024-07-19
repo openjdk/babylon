@@ -25,36 +25,20 @@
 package violajones.ifaces;
 
 import hat.Accelerator;
-import hat.Schema;
-import hat.buffer.Buffer;
+import hat.buffer.After;
+import hat.buffer.BoundBy;
 import hat.buffer.BufferAllocator;
-import hat.buffer.CompleteBuffer;
-import hat.ifacemapper.SegmentMapper;
-import violajones.XMLHaarCascadeModel;
+import hat.buffer.Length;
+import hat.buffer.SelectedBy;
+import hat.ifacemapper.Schema;
+import hat.buffer.Buffer;
 
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.StructLayout;
 import java.lang.invoke.MethodHandles;
 
-import static java.lang.foreign.MemoryLayout.sequenceLayout;
-import static java.lang.foreign.ValueLayout.JAVA_BOOLEAN;
-import static java.lang.foreign.ValueLayout.JAVA_BYTE;
-import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
-import static java.lang.foreign.ValueLayout.JAVA_INT;
-import static java.lang.foreign.ValueLayout.JAVA_SHORT;
+public interface Cascade extends Buffer {
+    interface Feature extends Struct {
 
-public interface Cascade extends CompleteBuffer {
-    interface Feature extends StructChild{
-
-        interface Rect extends Buffer.StructChild{
-            StructLayout layout = MemoryLayout.structLayout(
-                    JAVA_BYTE.withName("x"),
-                    JAVA_BYTE.withName("y"),
-                    JAVA_BYTE.withName("width"),
-                    JAVA_BYTE.withName("height"),
-                    JAVA_FLOAT.withName("weight")
-            ).withName("Rect");
-
+        interface Rect extends Struct {
             byte x();
 
             byte y();
@@ -77,13 +61,8 @@ public interface Cascade extends CompleteBuffer {
         }
 
 
-        interface LinkOrValue extends  Buffer.StructChild {
-            interface Anon  extends Buffer.UnionChild{
-                MemoryLayout layout = MemoryLayout.unionLayout(
-                        JAVA_INT.withName("featureId"),
-                        JAVA_FLOAT.withName("value")
-                ).withName("Anon");
-
+        interface LinkOrValue extends Struct {
+            interface Anon  extends Union {
                 int featureId();
 
                 float value();
@@ -93,27 +72,12 @@ public interface Cascade extends CompleteBuffer {
                 void value(float value);
             }
 
-            StructLayout layout = MemoryLayout.structLayout(
-                    JAVA_BOOLEAN.withName("hasValue"),
-                    MemoryLayout.paddingLayout(3),
-                    Feature.LinkOrValue.Anon.layout.withName("anon")
-            ).withName("LinkOrValue");
-
             boolean hasValue();
-
             void hasValue(boolean hasValue);
 
+            @SelectedBy("hasValue")
             Feature.LinkOrValue.Anon anon();
         }
-
-        StructLayout layout = MemoryLayout.structLayout(
-                JAVA_INT.withName("id"),
-                JAVA_FLOAT.withName("threshold"),
-                Feature.LinkOrValue.layout.withName("left"),
-                Feature.LinkOrValue.layout.withName("right"),
-                MemoryLayout.sequenceLayout(3, Feature.Rect.layout).withName("rect")
-        ).withName(Feature.class.getSimpleName());
-
         int id();
 
 
@@ -129,16 +93,15 @@ public interface Cascade extends CompleteBuffer {
 
         Feature.LinkOrValue right();
 
+        @Length(3)
         Feature.Rect rect(long idx);
     }
 
-    interface Stage extends Buffer.StructChild{
-        StructLayout layout = MemoryLayout.structLayout(
-                JAVA_INT.withName("id"),
-                JAVA_FLOAT.withName("threshold"),
-                JAVA_SHORT.withName("firstTreeId"),
-                JAVA_SHORT.withName("treeCount")
-        ).withName(Stage.class.getSimpleName());
+    interface Stage extends Struct {
+        int id();
+
+        void id(int id);
+
 
         float threshold();
 
@@ -146,9 +109,6 @@ public interface Cascade extends CompleteBuffer {
 
         short treeCount();
 
-        int id();
-
-        void id(int id);
 
         void threshold(float threshold);
 
@@ -157,120 +117,47 @@ public interface Cascade extends CompleteBuffer {
         void treeCount(short treeCount);
     }
 
-    interface Tree extends Buffer.StructChild{
-        StructLayout layout = MemoryLayout.structLayout(
-                JAVA_INT.withName("id"),
-                JAVA_SHORT.withName("firstFeatureId"),
-                JAVA_SHORT.withName("featureCount")
-        ).withName(Tree.class.getSimpleName());
-
+    interface Tree extends Struct {
+        int id();
         void id(int id);
 
         void firstFeatureId(short firstFeatureId);
-
-
         void featureCount(short featureCount);
-
-        int id();
-
-
         short firstFeatureId();
-
         short featureCount();
     }
+    int width();
 
-    static Cascade create(BufferAllocator bufferAllocator, XMLHaarCascadeModel haarCascade) {
+    void width(int width);
 
-        Cascade cascade = bufferAllocator.allocate(SegmentMapper.of(MethodHandles.lookup(), Cascade.class,
-                JAVA_INT.withName("width"),
-                JAVA_INT.withName("height"),
-                JAVA_INT.withName("featureCount"),
-                sequenceLayout(haarCascade.features.size(), Feature.layout.withName(Feature.class.getSimpleName())).withName("feature"),
-                JAVA_INT.withName("stageCount"),
-                sequenceLayout(haarCascade.stages.size(), Stage.layout.withName(Stage.class.getSimpleName())).withName("stage"),
-                JAVA_INT.withName("treeCount"),
-                sequenceLayout(haarCascade.trees.size(), Tree.layout.withName(Tree.class.getSimpleName())).withName("tree")
-        ));
-        cascade.width(haarCascade.width());
-        cascade.height(haarCascade.height());
-        cascade.featureCount(haarCascade.features.size());
-        cascade.stageCount(haarCascade.stages.size());
-        cascade.treeCount(haarCascade.trees.size());
-        for (int idx = 0; idx < haarCascade.features.size(); idx++) {
-            Cascade.Feature cascadeFeature = cascade.feature(idx);
-            var haarfeature = haarCascade.features.get(idx);
-            cascadeFeature.id(haarfeature.id());
-            cascadeFeature.threshold(haarfeature.threshold());
-            Cascade.Feature.LinkOrValue cascadeLeft = cascadeFeature.left();
-            cascadeLeft.hasValue(haarfeature.left.hasValue());
-            if (haarfeature.left.hasValue()) {
-                cascadeLeft.anon().value(haarfeature.left.value());
-            } else {
-                cascadeLeft.anon().value(haarfeature.left.featureId());
-            }
-            Cascade.Feature.LinkOrValue cascadeRight = cascadeFeature.right();
-            cascadeRight.hasValue(haarfeature.right.hasValue());
-            if (haarfeature.right.hasValue()) {
-                cascadeRight.anon().value(haarfeature.right.value());
-            } else {
-                cascadeRight.anon().featureId(haarfeature.right.featureId());
-            }
-            for (int r = 0; r < 3; r++) {
-                var haarrect = haarfeature.rects[r];
-                if (haarrect != null) {
-                    Cascade.Feature.Rect cascadeRect = cascadeFeature.rect(r);
-                    cascadeRect.x(haarrect.x());
-                    cascadeRect.y(haarrect.y());
-                    cascadeRect.width(haarrect.width());
-                    cascadeRect.height(haarrect.height());
-                    cascadeRect.weight(haarrect.weight());
-                }
-            }
-        }
+    @After("width")
+    int height();
 
+    void height(int height);
 
-        for (XMLHaarCascadeModel.Stage haarstage : haarCascade.stages) {
-            Cascade.Stage cascadeStage = cascade.stage(haarstage.id);
-            cascadeStage.id(haarstage.id());
-            cascadeStage.threshold(haarstage.threshold());
-            cascadeStage.firstTreeId(haarstage.firstTreeId());
-            cascadeStage.treeCount(haarstage.treeCount());
-        }
-
-        for (XMLHaarCascadeModel.Tree haarTree : haarCascade.trees) {
-            Cascade.Tree cascadeTree = cascade.tree(haarTree.id());
-            cascadeTree.id(haarTree.id());
-            cascadeTree.firstFeatureId(haarTree.firstFeatureId());
-            cascadeTree.featureCount(haarTree.featureCount());
-        }
-        return cascade;
-    }
-
-    Feature feature(long idx);
-
+    @After("height")
     int featureCount();
 
     void featureCount(int featureCount);
 
-    Stage stage(long idx);
+    @BoundBy("featureCount")
+    Feature feature(long idx);
 
     int stageCount();
 
     void stageCount(int stageCount);
 
-    Tree tree(long idx);
+    @BoundBy("stageCount")
+    Stage stage(long idx);
 
     int treeCount();
 
     void treeCount(int treeCount);
 
-    int width();
+    @BoundBy("treeCount")
+    Tree tree(long idx);
 
-    void width(int width);
 
-    int height();
-
-    void height(int height);
     Schema<Cascade> schema = Schema.of(Cascade.class, c -> c
             .fields("width","height")
             .arrayLen("featureCount").array("feature", feature -> feature
@@ -282,8 +169,89 @@ public interface Cascade extends CompleteBuffer {
                     )
                     .array("rect", 3 , rect->rect.fields("x","y","width","height","weight"))
             )
-            .arrayLen("stageCount").array("stage", stage->stage.fields("id","threshold","treeCount","firstTreeId"))
+            .arrayLen("stageCount").array("stage", stage->stage.fields("id","threshold","firstTreeId","treeCount"))
             .arrayLen("treeCount").array("tree",tree->tree.fields("id","firstFeatureId","featureCount"))
     );
 
+    static Cascade create(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator, int width, int height,
+    int features,int stages,int trees){
+        var instance  = schema.allocate(lookup,
+                bufferAllocator,
+                features,
+                stages,
+                trees
+        );
+        instance.width(width);
+        instance.height(height);
+        instance.featureCount(features);
+        instance.stageCount(stages);
+        instance.treeCount(trees);
+        return instance;
+    }
+
+    static Cascade create(Accelerator accelerator, int width, int height,
+                          int features, int stages, int trees){
+       return create(accelerator.lookup,accelerator,width,height,features,stages,trees);
+    }
+
+    static Cascade createFrom(Accelerator accelerator, Cascade cascade){
+        return create(accelerator.lookup,accelerator,cascade.width(),cascade.height(),cascade.featureCount(),cascade.stageCount(),cascade.treeCount()).copyFrom(cascade);
+    }
+
+    default Cascade copyFrom(Cascade fromCascade){
+        Cascade toCascade= this;
+        toCascade.width(fromCascade.width());
+        toCascade.height(fromCascade.height());
+        toCascade.featureCount(fromCascade.featureCount());
+        toCascade.stageCount(fromCascade.stageCount());
+        toCascade.treeCount(fromCascade.treeCount());
+        for (int idx = 0; idx < fromCascade.featureCount(); idx++) {
+            Cascade.Feature toFeature =  toCascade.feature(idx);
+            Cascade.Feature fromFeature = fromCascade.feature(idx);
+            toFeature.id(fromFeature.id());
+            toFeature.threshold(fromFeature.threshold());
+            Cascade.Feature.LinkOrValue toLeftLinkOrValue = toFeature.left();
+            toLeftLinkOrValue.hasValue(fromFeature.left().hasValue());
+            if (fromFeature.left().hasValue()) {
+                toLeftLinkOrValue.anon().value(fromFeature.left().anon().value());
+            } else {
+                toLeftLinkOrValue.anon().value(fromFeature.left().anon().featureId());
+            }
+            Cascade.Feature.LinkOrValue toRightLinkOrValue = toFeature.right();
+            toRightLinkOrValue.hasValue(fromFeature.right().hasValue());
+            if (fromFeature.right().hasValue()) {
+                toRightLinkOrValue.anon().value(fromFeature.right().anon().value());
+            } else {
+                toRightLinkOrValue.anon().featureId(fromFeature.right().anon().featureId());
+            }
+            for (int r = 0; r < 3; r++) {
+                var fromRect = fromFeature.rect(r);
+                if (fromRect != null) {
+                    var toRect = toFeature.rect(r);
+                    toRect.x(fromRect.x());
+                    toRect.y(fromRect.y());
+                    toRect.width(fromRect.width());
+                    toRect.height(fromRect.height());
+                    toRect.weight(fromRect.weight());
+                }
+            }
+        }
+
+        for (int stageIdx = 0; stageIdx<fromCascade.stageCount(); stageIdx++) {
+            Cascade.Stage fromStage =  fromCascade.stage(stageIdx);// stage(haarstage.id);
+            Cascade.Stage toStage =  toCascade.stage(stageIdx);
+            toStage.id(fromStage.id());
+            toStage.threshold(fromStage.threshold());
+            toStage.firstTreeId(fromStage.firstTreeId());
+            toStage.treeCount(fromStage.treeCount());
+        }
+        for (int treeIdx=0; treeIdx <fromCascade.treeCount(); treeIdx++) {
+            Cascade.Tree toTree =  toCascade.tree(treeIdx);
+            Cascade.Tree fromTree =  fromCascade.tree(treeIdx);
+            toTree.id(fromTree.id());
+            toTree.firstFeatureId(fromTree.firstFeatureId());
+            toTree.featureCount(fromTree.featureCount());
+        }
+        return toCascade;
+    }
 }

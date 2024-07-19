@@ -24,49 +24,25 @@
  */
 package experiments;
 
-import hat.Schema;
 import hat.buffer.Buffer;
 import hat.buffer.BufferAllocator;
+import hat.buffer.S08x3RGBImage;
+import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.SegmentMapper;
 
 import java.lang.foreign.Arena;
+import java.lang.invoke.MethodHandles;
 
-public interface ResultTable extends Buffer{
-    interface Result extends Buffer.StructChild {
-        float x();
-        void x(float x);
-        float y();
-        void y(float y);
-        float width();
-        void width(float width);
-        float height();
-        void height(float height);
-    }
-    void atomicResultTableCount(int count);
-    int atomicResultTableCount();
-    int length();
-    Result result(long idx);
-    Schema<ResultTable> schema = Schema.of(ResultTable.class, resultTable->resultTable
-            .atomic("atomicResultTableCount")
-            .arrayLen("length").array("result", array->array.fields("x","y","width","height"))
-    );
+public class S08x3ImageTest implements Buffer {
 
     public static void main(String[] args) {
         BufferAllocator bufferAllocator = new BufferAllocator() {
-            public <T extends Buffer> T allocate(SegmentMapper<T> s) {
-                return s.allocate(Arena.global());
+            @Override
+            public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema) {
+                return segmentMapper.allocate(Arena.global(),boundSchema);
             }
         };
-        ResultTable.schema.toText(t->System.out.print(t));
-        System.out.println();
-        var boundLayout = new Schema.BoundSchema<>(ResultTable.schema, 1000);
-        System.out.println(boundLayout.groupLayout);
-        System.out.println("[i4(length)i4(atomicResultTableCount)[1000:[f4(x)f4(y)f4(width)f4(height)](Result)](result)](ResultTable)");
-       // var boundSchema = ResultTable.schema.allocate(bufferAllocator, 100);
-
-      //  var resultTable = ResultTable.schema.allocate(bufferAllocator, 100).instance;
-      //  int resultTableLen = resultTable.length();
-      //  System.out.println(Buffer.getLayout(resultTable));
+        var rgbS08x3Image = S08x3RGBImage.create(MethodHandles.lookup(), bufferAllocator,100,100);
     }
 
 }

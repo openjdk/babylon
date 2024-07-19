@@ -27,12 +27,11 @@ package experiments;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
-import hat.Schema;
+import hat.ifacemapper.BoundSchema;
+import hat.ifacemapper.Schema;
 import hat.backend.DebugBackend;
 import hat.buffer.Buffer;
 import hat.buffer.BufferAllocator;
-import hat.buffer.CompleteBuffer;
-import hat.ifacemapper.SegmentMapper;
 
 import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
@@ -43,8 +42,8 @@ import java.util.Random;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public class Mesh {
-    public interface MeshData extends CompleteBuffer {
-        interface Point3D extends StructChild {
+    public interface MeshData extends Buffer {
+        interface Point3D extends Struct {
             int x();
 
             void x(int x);
@@ -65,7 +64,7 @@ public class Mesh {
 
         Point3D point(long idx);
 
-        interface Vertex3D extends StructChild {
+        interface Vertex3D extends Struct {
             int from();
 
             void from(int id);
@@ -104,14 +103,15 @@ public class Mesh {
         static GroupLayout getLayout() {
             return LAYOUT;
         }
-        static  MeshData create(BufferAllocator bufferAllocator) {
-           return bufferAllocator.allocate(SegmentMapper.of(MethodHandles.lookup(), MeshData.class, getLayout()));
-        }
+
 
         Schema<MeshData> schema = Schema.of(MeshData.class, cascade -> cascade
                 .arrayLen("points").array("point", p -> p.fields("x", "y", "z"))
                 .arrayLen("vertices").array("vertex", v -> v.fields("from", "to"))
         );
+        static  MeshData create(MethodHandles.Lookup lookup,BufferAllocator bufferAllocator) {
+            return schema.allocate(lookup,bufferAllocator,100,10);
+        }
     }
 
     public static class Compute {
@@ -141,9 +141,9 @@ public class Mesh {
                 DebugBackend.HowToRunKernel.BABYLON_INTERPRETER));
         MeshData.schema.toText(t -> System.out.print(t));
 
-        var boundSchema = new Schema.BoundSchema<>(MeshData.schema, 100, 10);
-        var meshDataNew = boundSchema.allocate(accelerator);
-        var meshDataOld = MeshData.create(accelerator);
+        var boundSchema = new BoundSchema<>(MeshData.schema, 100, 10);
+        var meshDataNew = boundSchema.allocate(accelerator.lookup,accelerator);
+        var meshDataOld = MeshData.create(accelerator.lookup,accelerator);
 
         String layoutNew = Buffer.getLayout(meshDataNew).toString();
         String layoutOld = Buffer.getLayout(meshDataOld).toString();

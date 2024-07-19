@@ -25,34 +25,42 @@
 package hat.buffer;
 
 import hat.Accelerator;
+import hat.ifacemapper.Schema;
 
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.StructLayout;
+import java.lang.invoke.MethodHandles;
 
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-public interface S32Array extends Array1D {
-    StructLayout layout  = Array1D.getLayout(S32Array.class, JAVA_INT);
-    static S32Array create(BufferAllocator bufferAllocator, int length) {
-        return Array1D.create(bufferAllocator, S32Array.class,layout, length);
-    }
+public interface S32Array extends Buffer {
 
-    static S32Array create(BufferAllocator bufferAllocator, int[] source) {
-        return create(bufferAllocator, source.length).copyfrom(source);
-    }
-
+    int length();
+    void length(int i);
     int array(long idx);
+    void array(long idx, int i);
+    Schema<S32Array> schema = Schema.of(S32Array.class, s32Array->s32Array
+            .arrayLen("length").array("array"));
 
-    void array(long idx, int f);
-
-    default S32Array copyfrom(int[] floats) {
-        MemorySegment.copy(floats, 0, Buffer.getMemorySegment(this), JAVA_INT, 4, length());
+    static S32Array create(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator, int length){
+        var instance = schema.allocate(lookup,bufferAllocator, length);
+        instance.length(length);
+        return instance;
+    }
+    static S32Array create(Accelerator accelerator, int length){
+        return create(accelerator.lookup, accelerator, length);
+    }
+    static S32Array createFrom(Accelerator accelerator, int[] arr){
+        return create(accelerator.lookup, accelerator, arr.length).copyfrom(arr);
+    }
+    default S32Array copyfrom(int[] ints) {
+        MemorySegment.copy(ints, 0, Buffer.getMemorySegment(this), JAVA_INT, 4, length());
         return this;
     }
 
-    default S32Array copyTo(int[] floats) {
-        MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_INT, 4, floats, 0, length());
+    default S32Array copyTo(int[] ints) {
+        MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_INT, 4, ints, 0, length());
         return this;
     }
 }

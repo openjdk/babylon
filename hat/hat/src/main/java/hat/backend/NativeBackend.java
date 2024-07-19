@@ -28,6 +28,7 @@ package hat.backend;
 import hat.ComputeContext;
 import hat.buffer.Buffer;
 import hat.callgraph.CallGraph;
+import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.SegmentMapper;
 import hat.optools.FuncOpWrapper;
 
@@ -44,8 +45,8 @@ public abstract class NativeBackend extends NativeBackendDriver {
 
 
     @Override
-    public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper){
-        return segmentMapper.allocate(arena);
+    public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema){
+        return segmentMapper.allocate(arena, boundSchema);
     }
     public NativeBackend(String libName) {
         super(libName);
@@ -74,7 +75,7 @@ public abstract class NativeBackend extends NativeBackendDriver {
 
     static FuncOpWrapper injectBufferTracking(CallGraph.ResolvedMethodCall resolvedMethodCall) {
         FuncOpWrapper originalFuncOpWrapper = resolvedMethodCall.funcOpWrapper();
-
+        originalFuncOpWrapper.op().writeTo(System.out);
         var transformed = originalFuncOpWrapper.transformInvokes((builder, invokeOpWrapper) -> {
                     if (invokeOpWrapper.isIfaceBufferMethod()) {
                         CopyContext cc = builder.context();

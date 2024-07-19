@@ -24,8 +24,8 @@
  */
 package hat.optools;
 
-import hat.HatPtr;
-import hat.buffer.MappableIface;
+import hat.OpsAndTypes;
+import hat.ifacemapper.MappableIface;
 
 import java.lang.foreign.GroupLayout;
 import java.lang.reflect.code.Block;
@@ -223,7 +223,7 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
 
     public BiMap<Block.Parameter, CoreOp.VarOp> parameterVarOpMap = new BiMap<>();
     public BiMap<Block.Parameter, CoreOp.InvokeOp> parameterInvokeOpMap = new BiMap<>();
-    public BiMap<Block.Parameter, HatPtr.HatPtrOp> parameterHatPtrOpMap = new BiMap<>();
+    public BiMap<Block.Parameter, OpsAndTypes.HatPtrOp> parameterHatPtrOpMap = new BiMap<>();
     public FuncOpWrapper(CoreOp.FuncOp op) {
         super(op);
         op().parameters().forEach(parameter -> {
@@ -235,7 +235,7 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
                     paramTable.add(Map.entry(parameter, varOp));
                 }else if (resultOp instanceof CoreOp.InvokeOp invokeOp) {
                     parameterInvokeOpMap.add(parameter,invokeOp);
-                }else if (resultOp instanceof HatPtr.HatPtrOp hatPtrOp) {
+                }else if (resultOp instanceof OpsAndTypes.HatPtrOp hatPtrOp) {
                     parameterHatPtrOpMap.add(parameter,hatPtrOp);
                 }else{
                     //System.out.println("neither varOp or an invokeOp "+resultOp.getClass().getName());
