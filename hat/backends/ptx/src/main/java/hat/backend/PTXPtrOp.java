@@ -8,7 +8,7 @@ import java.util.List;
 
 public class PTXPtrOp extends ExternalizableOp {
     public String fieldName;
-    public static final String NAME = "warg";
+    public static final String NAME = "ptxPtr";
     final TypeElement resultType;
     public Schema<?> schema;
 

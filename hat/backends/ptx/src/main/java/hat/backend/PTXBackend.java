@@ -34,6 +34,7 @@ import hat.optools.*;
 
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.op.CoreOp;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
@@ -76,8 +77,8 @@ public class PTXBackend extends C99NativeBackend {
 
         System.out.println("Entrypoint ->"+kernelCallGraph.entrypoint.method.getName());
         String code = createCode(kernelCallGraph, new PTXCodeBuilder(), args);
-//        System.out.println("\nCod Builder Output: \n\n" + code);
-//        System.out.println("Add your code to "+PTXBackend.class.getName()+".dispatchKernel() to actually run! :)");
+        // System.out.println("\nCod Builder Output: \n\n" + code);
+        // System.out.println("Add your code to "+PTXBackend.class.getName()+".dispatchKernel() to actually run! :)");
         long programHandle = compileProgram(code);
         if (programOK(programHandle)) {
             long kernelHandle = getKernel(programHandle, kernelCallGraph.entrypoint.method.getName());
@@ -91,63 +92,66 @@ public class PTXBackend extends C99NativeBackend {
         Optional<CoreOp.FuncOp> o = Optional.ofNullable(kernelCallGraph.entrypoint.funcOpWrapper().op());
         FuncOpWrapper f = new FuncOpWrapper(o.orElseThrow());
         FuncOpWrapper lowered = f.lower();
-
-        boolean useSchema = false;
-        if (useSchema) {
-            CoreOp.FuncOp transformed = lowered.op().transform((block, op) -> {
-                CopyContext cc = block.context();
-                if (op instanceof CoreOp.InvokeOp invokeOp
-                        && OpWrapper.wrap(invokeOp) instanceof InvokeOpWrapper invokeOpWrapper
-                        && invokeOpWrapper.hasOperands()
-                        && invokeOpWrapper.isIfaceBufferMethod()) {
-
-                    List<Value> inputOperands = invokeOp.operands();
-                    List<Value> outputOperands = cc.getValues(inputOperands);
-                    Op.Result inputResult = invokeOp.result();
-
-                    //TODO: improve this please
-                    //i need to match the name of the param with the invokeinstead of the type (there may be more than one param of the same type)
-                    for (Object obj : args) {
-                        if (obj instanceof Buffer buffer
-                                && Buffer.getBoundSchema(buffer).schema().iface.getName().equals(invokeOp.invokeDescriptor().refType().toString())) {
-                            BoundSchema<?> boundSchema = Buffer.getBoundSchema(buffer);
-                            PTXPtrOp ptxOp = new PTXPtrOp(inputResult.type(), invokeOp.invokeDescriptor().name(), outputOperands, boundSchema.schema());
-                            Op.Result outputResult = block.op(ptxOp);
-                            cc.mapValue(inputResult, outputResult);
-
-                        }
-                    }
-                } else {
-                    block.apply(op);
-                }
-                return block;
-            });
-            lowered = FuncOpWrapper.wrap(transformed);
+        HashMap<String, Object> argsMap = new HashMap<>();
+        for (int i = 0; i < args.length; i++) {
+            argsMap.put(f.paramTable().list().get(i).varOp.varName(), args[i]);
         }
 
-        System.out.println(lowered.toText());
-        FuncOpWrapper ssa = lowered.ssa();
-        System.out.println(ssa.toText());
+        boolean useSchema = true;
 
         //building header
         builder.ptxHeader(major, minor, target, addressSize);
-
-        out = createFunction(builder, lowered, ssa, out, true);
+        out += builder.getTextAndReset();
 
         for (KernelCallGraph.KernelReachableResolvedMethodCall k : kernelCallGraph.kernelReachableResolvedStream().toList()) {
             Optional<CoreOp.FuncOp> optional = Optional.ofNullable(k.funcOpWrapper().op());
-            FuncOpWrapper func = new FuncOpWrapper(optional.orElseThrow());
-            out += createFunction(new PTXCodeBuilder(addressSize).nl().nl(), func.lower(), func.ssa(), out, false);
+            FuncOpWrapper calledFunc = new FuncOpWrapper(optional.orElseThrow());
+            FuncOpWrapper loweredFunc = calledFunc.lower();
+            System.out.println("------------func------------");
+            System.out.println(loweredFunc.ssa().toText());
+            if (useSchema) loweredFunc = transformPtrs(loweredFunc, argsMap);
+            out += createFunction(new PTXCodeBuilder(addressSize).nl().nl(), loweredFunc, loweredFunc.ssa(), out, false);
         }
 
+        if (useSchema) lowered = transformPtrs(lowered, argsMap);
+        System.out.println(lowered.toText());
+        FuncOpWrapper ssa = lowered.ssa();
+        System.out.println(ssa.toText());
+        out += createFunction(builder.nl().nl(), lowered, ssa, out, true);
+
         return out;
+    }
+
+    public FuncOpWrapper transformPtrs(FuncOpWrapper func, HashMap<String, Object> argsMap) {
+        return FuncOpWrapper.wrap(func.op().transform((block, op) -> {
+            CopyContext cc = block.context();
+            //use first operand of invoke to figure out schema
+            if (op instanceof CoreOp.InvokeOp invokeOp
+                    && OpWrapper.wrap(invokeOp) instanceof InvokeOpWrapper invokeOpWrapper
+                    && invokeOpWrapper.isIfaceBufferMethod()
+                    && invokeOp.operands().getFirst() instanceof Op.Result invokeResult
+                    && invokeResult.op().operands().getFirst() instanceof Op.Result varLoadResult
+                    && varLoadResult.op() instanceof CoreOp.VarOp varOp
+                    && argsMap.get(varOp.varName()) instanceof Buffer buffer) {
+                List<Value> inputOperands = invokeOp.operands();
+                List<Value> outputOperands = cc.getValues(inputOperands);
+                Op.Result inputResult = invokeOp.result();
+                BoundSchema<?> boundSchema = Buffer.getBoundSchema(buffer);
+                PTXPtrOp ptxOp = new PTXPtrOp(inputResult.type(), invokeOp.invokeDescriptor().name(), outputOperands, boundSchema.schema());
+                Op.Result outputResult = block.op(ptxOp);
+                cc.mapValue(inputResult, outputResult);
+            } else {
+                block.apply(op);
+            }
+            return block;
+        }));
     }
 
     public String createFunction(PTXCodeBuilder builder, FuncOpWrapper lowered, FuncOpWrapper ssa, String out, boolean entry) {
         String body = "";
 
         //building fn info (name, params)
-        builder.functionHeader(lowered.functionName(), entry);
+        builder.functionHeader(lowered.functionName(), entry, lowered.op().body().yieldType());
 
         // printing out params
         builder.parameters(lowered.paramTable().list());

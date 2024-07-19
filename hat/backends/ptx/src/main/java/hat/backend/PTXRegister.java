@@ -1,28 +1,27 @@
 package hat.backend;
 
 public class PTXRegister {
-    private final String name;
+    private String name;
     private final Type type;
 
-    //TODO: clean up the types
     public enum Type {
-        S8 (8, BasicType.SIGNED, "s8", "%ss"),
-        S16 (16, BasicType.SIGNED, "s16", "%sh"),
+        S8 (8, BasicType.SIGNED, "s8", "%s"),
+        S16 (16, BasicType.SIGNED, "s16", "%s"),
         S32 (32, BasicType.SIGNED, "s32", "%s"),
         S64 (64, BasicType.SIGNED, "s64", "%sd"),
-        U8 (8, BasicType.UNSIGNED, "u8", "%rr"),
-        U16 (16, BasicType.UNSIGNED, "u16", "%rh"),
+        U8 (8, BasicType.UNSIGNED, "u8", "%r"),
+        U16 (16, BasicType.UNSIGNED, "u16", "%r"),
         U32 (32, BasicType.UNSIGNED, "u32", "%r"),
         U64 (64, BasicType.UNSIGNED, "u64", "%rd"),
-        F16 (16, BasicType.FLOATING, "f16", "%fh"),
-        F16X2 (16, BasicType.FLOATING, "f16", "%fh?"),
+        F16 (16, BasicType.FLOATING, "f16", "%f"),
+        F16X2 (16, BasicType.FLOATING, "f16", "%f"),
         F32 (32, BasicType.FLOATING, "f32", "%f"),
         F64 (64, BasicType.FLOATING, "f64", "%fd"),
-        B8 (8, BasicType.BIT, "b8", "%bb"),
-        B16 (16, BasicType.BIT, "b16", "%bh"),
+        B8 (8, BasicType.BIT, "b8", "%b"),
+        B16 (16, BasicType.BIT, "b16", "%b"),
         B32 (32, BasicType.BIT, "b32", "%b"),
         B64 (64, BasicType.BIT, "b64", "%bd"),
-        B128 (128, BasicType.BIT, "b128", "%bbb"),
+        B128 (128, BasicType.BIT, "b128", "%b"),
         PREDICATE (1, BasicType.PREDICATE, "pred", "%p");
 
         public enum BasicType {
@@ -69,6 +68,10 @@ public class PTXRegister {
 
     public String name() {
         return this.name;
+    }
+
+    public void name(String name) {
+        this.name = name;
     }
 
     public Type type() {
