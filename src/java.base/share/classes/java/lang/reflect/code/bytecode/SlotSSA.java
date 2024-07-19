@@ -177,6 +177,8 @@ public final class SlotSSA {
             Set<Integer> slots = joinPoints.get(n.b());
             if (slots != null) {
                 slots.forEach(slot -> {
+                    // Regular variable is always declared in a dominant block, so it can be asserted in the variable SSA trasform.
+                    // However slot is never declared, so it cannot be asserted in the SlotSSA transform.
                     variableStack.computeIfAbsent(slot, _ -> new ArrayDeque<>()).push(new SlotBlockArgument(n.b(), slot));
                 });
             }
@@ -189,6 +191,7 @@ public final class SlotSSA {
                 if (op instanceof SlotOp.SlotStoreOp storeOp) {
                     // Value assigned to slot
                     Value current = op.operands().get(0);
+                    // The slot is always stored without any prior declaration
                     variableStack.computeIfAbsent(storeOp.slot(), _ -> new ArrayDeque<>())
                             .push(current);
                 } else if (op instanceof SlotOp.SlotLoadOp loadOp) {
