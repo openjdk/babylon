@@ -1,6 +1,7 @@
 package hat.buffer;
 
 
+import hat.Accelerator;
 import hat.ifacemapper.Schema;
 
 import java.lang.invoke.MethodHandles;
@@ -15,8 +16,8 @@ public interface KernelContext extends Buffer {
 
     Schema<KernelContext> schema = Schema.of(KernelContext.class, s->s.fields("x","maxX"));
 
-    static KernelContext create(MethodHandles.Lookup lookup,BufferAllocator bufferAllocator, int x, int maxX) {
-        KernelContext kernelContext =  schema.allocate(lookup,bufferAllocator);
+    static KernelContext create(Accelerator accelerator, int x, int maxX) {
+        KernelContext kernelContext =  schema.allocate(accelerator);
         kernelContext.x(x);
         kernelContext.maxX(maxX);
         return kernelContext;

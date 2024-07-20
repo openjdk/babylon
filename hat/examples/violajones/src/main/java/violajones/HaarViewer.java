@@ -25,6 +25,7 @@
 package violajones;
 
 
+import hat.Accelerator;
 import hat.buffer.BufferAllocator;
 import hat.buffer.F32Array2D;
 import hat.buffer.S32Array;
@@ -50,8 +51,8 @@ import java.awt.image.BufferedImage;
 import java.lang.invoke.MethodHandles;
 
 public class HaarViewer extends JFrame {
-    final MethodHandles.Lookup lookup;
-    final BufferedImage image;
+   final Accelerator accelerator;
+     final BufferedImage image;
     final S08x3RGBImage s08X3RGBImage;
 
 
@@ -66,7 +67,7 @@ public class HaarViewer extends JFrame {
         final F32Array2D integralImageF32;
         final F32Array2D integralSqImageF32;
 
-        public IntegralWindow(Container container, MethodHandles.Lookup lookup,BufferAllocator bufferAllocator, F32Array2D integralImageF32, F32Array2D integralSqImageF32) {
+        public IntegralWindow(Container container, Accelerator accelerator, F32Array2D integralImageF32, F32Array2D integralSqImageF32) {
             this.integralImageF32 = integralImageF32;
             this.integralSqImageF32 = integralSqImageF32;
 
@@ -75,8 +76,8 @@ public class HaarViewer extends JFrame {
                 int height = this.integralImageF32.height();
                 this.integral = new BufferedImage(width, height, BufferedImage.TYPE_USHORT_GRAY);
                 this.integralSq = new BufferedImage(width, height, BufferedImage.TYPE_USHORT_GRAY);
-                this.integralImageU16 = U16GreyImage.create(lookup,bufferAllocator,integral.getWidth(),integral.getHeight());
-                this.integralSqImageU16 = U16GreyImage.create(lookup,bufferAllocator, integral.getWidth(),integral.getHeight());
+                this.integralImageU16 = U16GreyImage.create(accelerator,integral.getWidth(),integral.getHeight());
+                this.integralSqImageU16 = U16GreyImage.create(accelerator, integral.getWidth(),integral.getHeight());
                 this.integralImageView = new JComponent() {
                     @Override
                     public void paint(Graphics g) {
@@ -171,8 +172,7 @@ public class HaarViewer extends JFrame {
     final double imageScale = .5;
 
 
-    public HaarViewer(MethodHandles.Lookup lookup,
-                      BufferAllocator bufferAllocator,
+    public HaarViewer(Accelerator accelerator,
                       BufferedImage image,
                       S08x3RGBImage s08X3RGBImage,
                       Cascade cascade,
@@ -180,7 +180,7 @@ public class HaarViewer extends JFrame {
                       F32Array2D integralSqImageF32
     ) {
         super("HaarViz");
-        this.lookup = lookup;
+        this.accelerator = accelerator;
         this.image = image;
         this.s08X3RGBImage = s08X3RGBImage;
         this.cascade = cascade;
@@ -249,7 +249,7 @@ public class HaarViewer extends JFrame {
         gridPanel.add(imageView);
         add(gridPanel, BorderLayout.CENTER);
         add(imagePanel, BorderLayout.EAST);
-        this.integralWindow = new IntegralWindow(this,lookup, bufferAllocator, integralImageF32, integralSqImageF32);
+        this.integralWindow = new IntegralWindow(this,accelerator, integralImageF32, integralSqImageF32);
         this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         pack();
         setVisible(true);

@@ -25,6 +25,7 @@
 package hat.backend;
 
 
+import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.buffer.BackendConfig;
@@ -56,8 +57,8 @@ public class OpenCLBackend extends C99NativeBackend {
        // void verbose(boolean verbose);
         Schema<OpenCLConfig> schema = Schema.of(OpenCLConfig.class, s->s.fields("gpu"));
 
-        static OpenCLConfig create(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator, boolean gpu, boolean verbose) {
-            OpenCLConfig config =schema.allocate(lookup,bufferAllocator);
+        static OpenCLConfig create(Accelerator accelerator, boolean gpu, boolean verbose) {
+            OpenCLConfig config =schema.allocate(accelerator);
             config.gpu(gpu);
          //   config.verbose(verbose);
             return config;
@@ -68,7 +69,7 @@ public class OpenCLBackend extends C99NativeBackend {
 
     public OpenCLBackend() {
         super("opencl_backend");
-        getBackend(OpenCLConfig.create( MethodHandles.lookup(),this, true, true));
+        getBackend(null);//OpenCLConfig.create( MethodHandles.lookup(),this, true, true));
         info();
     }
 

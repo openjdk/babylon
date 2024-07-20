@@ -43,16 +43,13 @@ public interface S32Array extends Buffer {
     Schema<S32Array> schema = Schema.of(S32Array.class, s32Array->s32Array
             .arrayLen("length").array("array"));
 
-    static S32Array create(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator, int length){
-        var instance = schema.allocate(lookup,bufferAllocator, length);
+    static S32Array create(Accelerator accelerator, int length){
+        var instance = schema.allocate(accelerator, length);
         instance.length(length);
         return instance;
     }
-    static S32Array create(Accelerator accelerator, int length){
-        return create(accelerator.lookup, accelerator, length);
-    }
     static S32Array createFrom(Accelerator accelerator, int[] arr){
-        return create(accelerator.lookup, accelerator, arr.length).copyfrom(arr);
+        return create( accelerator, arr.length).copyfrom(arr);
     }
     default S32Array copyfrom(int[] ints) {
         MemorySegment.copy(ints, 0, Buffer.getMemorySegment(this), JAVA_INT, 4, length());

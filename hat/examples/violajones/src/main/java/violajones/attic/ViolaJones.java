@@ -72,7 +72,7 @@ public class ViolaJones {
         CoreJavaViolaJones.rgbToGreyScale(rgbImage, greyImageF32);
         CoreJavaViolaJones.createIntegralImage(greyImageF32, integralImageF32, integralSqImageF32);
 
-        HaarViewer harViz = new HaarViewer(accelerator.lookup, accelerator, nasa, rgbImage, cascade, integralImageF32, integralSqImageF32);
+        HaarViewer harViz = new HaarViewer(accelerator, nasa, rgbImage, cascade, integralImageF32, integralSqImageF32);
 
         harViz.showIntegrals();
 

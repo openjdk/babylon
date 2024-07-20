@@ -57,8 +57,8 @@ public class PointyHat {
                 .field("color")
         );
 
-        static ColoredWeightedPoint create(MethodHandles.Lookup lookup,BufferAllocator bufferAllocator) {
-            return schema.allocate(lookup,bufferAllocator);
+        static ColoredWeightedPoint create(Accelerator accelerator) {
+            return schema.allocate(accelerator);
         }
     }
 
@@ -116,7 +116,7 @@ public class PointyHat {
                 System.out.println(ssaPtrForm.toText());
             }
         });
-        var coloredWeightedPoint = ColoredWeightedPoint.create(MethodHandles.lookup(),accelerator);
+        var coloredWeightedPoint = ColoredWeightedPoint.create(accelerator);
 
         int color = coloredWeightedPoint.color();
         // s1 -> *s2

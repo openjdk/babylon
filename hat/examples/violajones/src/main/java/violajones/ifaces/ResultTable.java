@@ -72,14 +72,11 @@ public interface ResultTable extends Buffer {
             )
     );
 
-    static ResultTable create(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator,int length){
-        var instance = schema.allocate(lookup,bufferAllocator,length);
+    static ResultTable create(Accelerator accelerator,int length){
+        var instance = schema.allocate(accelerator,length);
         instance.length(length);
         instance.atomicResultTableCount(0);
         return instance;
     }
 
-    static ResultTable create(Accelerator accelerator, int length){
-       return create(accelerator.lookup, accelerator,length);
-    }
 }

@@ -68,7 +68,7 @@ public class ViolaJonesCompute {
         System.out.println("result table layout "+Buffer.getLayout(resultTable));
         HaarViewer harViz = null;
         if (!headless){
-            harViz = new HaarViewer(accelerator.lookup,accelerator, nasa1996, rgbImage, cascade, null, null);
+            harViz = new HaarViewer(accelerator, nasa1996, rgbImage, cascade, null, null);
         }
 
         ScaleTable scaleTable = ScaleTable.createFrom(accelerator,new ScaleTable.Constraints(cascade,rgbImage.width(),rgbImage.height()));

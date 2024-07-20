@@ -24,6 +24,7 @@
  */
 package hat.buffer;
 
+import hat.Accelerator;
 import hat.ifacemapper.Schema;
 
 import java.lang.invoke.MethodHandles;
@@ -42,8 +43,8 @@ public interface S32RGBAImage extends ImageIfaceBuffer<S32RGBAImage> {
     );
 
 
-    static S32RGBAImage create(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator, int width, int height){
-        var instance = schema.allocate(lookup, bufferAllocator,width,height);
+    static S32RGBAImage create(Accelerator accelerator, int width, int height){
+        var instance = schema.allocate(accelerator,width,height);
         instance.width(width);
         instance.height(height);
         return instance;

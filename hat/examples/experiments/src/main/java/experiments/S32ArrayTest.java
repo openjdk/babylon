@@ -24,6 +24,8 @@
  */
 package experiments;
 
+import hat.Accelerator;
+import hat.backend.DebugBackend;
 import hat.buffer.BufferAllocator;
 import hat.buffer.S32Array2D;
 import hat.ifacemapper.BoundSchema;
@@ -36,13 +38,9 @@ import java.lang.invoke.MethodHandles;
 public class S32ArrayTest implements Buffer {
 
     public static void main(String[] args) {
-        BufferAllocator bufferAllocator = new BufferAllocator() {
-            @Override
-            public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema) {
-                return segmentMapper.allocate(Arena.global(),boundSchema);
-            }
-        };
-        hat.buffer.S32Array s32Array  = hat.buffer.S32Array.create(MethodHandles.lookup(),bufferAllocator, 100);
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup(),new DebugBackend());
+
+        hat.buffer.S32Array s32Array  = hat.buffer.S32Array.create(accelerator, 100);
         System.out.println("Layout from schema "+Buffer.getLayout(s32Array));
         S32Array2D.schema.toText(t->System.out.print(t));
     }

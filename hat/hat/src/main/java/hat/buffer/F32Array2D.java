@@ -57,14 +57,11 @@ public interface F32Array2D extends Buffer {
     Schema<F32Array2D> schema = Schema.of(F32Array2D.class, s32Array->s32Array
             .arrayLen("width","height").stride(1).array("array"));
 
-    static F32Array2D create(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator, int width, int height){
-        var instance = schema.allocate(lookup,bufferAllocator, width,height);
+    static F32Array2D create(Accelerator accelerator, int width, int height){
+        var instance = schema.allocate(accelerator, width,height);
         instance.width(width);
         instance.height(height);
         return instance;
-    }
-    static F32Array2D create(Accelerator accelerator,  int width, int height){
-        return create(accelerator.lookup, accelerator, width,height);
     }
 
 }

@@ -54,14 +54,11 @@ public interface S32Array2D extends Buffer {
     Schema<S32Array2D> schema = Schema.of(S32Array2D.class, s32Array->s32Array
             .arrayLen("width","height").stride(1).array("array"));
 
-    static S32Array2D create(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator, int width, int height){
-        var instance = schema.allocate(lookup,bufferAllocator, width,height);
+    static S32Array2D create(Accelerator accelerator, int width, int height){
+        var instance = schema.allocate(accelerator, width,height);
         instance.width(width);
         instance.height(height);
         return instance;
-    }
-    static S32Array2D create(Accelerator accelerator,  int width, int height){
-        return create(accelerator.lookup, accelerator, width,height);
     }
     default S32Array2D copyFrom(int[] ints) {
         MemorySegment.copy(ints, 0, Buffer.getMemorySegment(this), JAVA_INT, 2* JAVA_INT.byteSize(), width()*height());

@@ -58,9 +58,9 @@ public abstract class C99NativeBackend extends NativeBackend {
             this.kernelCallGraph = kernelCallGraph;
             this.text = text;
             this.kernelHandle = kernelHandle;
-            this.kernelContext = KernelContext.create(kernelCallGraph.computeContext.accelerator.lookup, c99NativeBackend, 0, 0);
+            this.kernelContext = KernelContext.create(kernelCallGraph.computeContext.accelerator, 0, 0);
             ndRangeAndArgs[0] = this.kernelContext;
-            this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator.lookup, kernelCallGraph.computeContext.accelerator, ndRangeAndArgs);
+            this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator, ndRangeAndArgs);
         }
 
         public void dispatch(NDRange ndRange, Object[] args) {
