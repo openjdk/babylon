@@ -24,6 +24,7 @@
  */
 package hat.buffer;
 
+import hat.Accelerator;
 import hat.ifacemapper.Schema;
 
 import java.lang.invoke.MethodHandles;
@@ -40,8 +41,8 @@ public interface U16GreyImage extends ImageIfaceBuffer<U16GreyImage> {
             .arrayLen("width", "height").stride(1).array("data")
     );
 
-    static U16GreyImage create(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator, int width, int height){
-        var instance = schema.allocate(lookup, bufferAllocator,width,height);
+    static U16GreyImage create(Accelerator accelerator, int width, int height){
+        var instance = schema.allocate(accelerator,width,height);
         instance.width(width);
         instance.height(height);
         return instance;

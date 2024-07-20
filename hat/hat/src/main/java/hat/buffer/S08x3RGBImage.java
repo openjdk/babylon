@@ -16,14 +16,10 @@ public interface S08x3RGBImage extends ImageIfaceBuffer<S08x3RGBImage> {
             .arrayLen("width", "height").stride(3).array("data")
     );
 
-    static S08x3RGBImage create(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator, int width, int height){
-        var instance = schema.allocate(lookup, bufferAllocator,width,height);
+    static S08x3RGBImage create(Accelerator accelerator, int width, int height){
+        var instance = schema.allocate(accelerator,width,height);
         instance.width(width);
         instance.height(height);
         return instance;
     }
-    static S08x3RGBImage create(Accelerator accelerator, int width, int height){
-        return create(accelerator.lookup,accelerator,width,height);
-    }
-
 }

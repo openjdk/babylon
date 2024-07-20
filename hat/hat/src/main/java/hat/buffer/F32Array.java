@@ -47,20 +47,17 @@ public interface F32Array extends Buffer {
             .arrayLen("length").array("array"));
 
 
-    static F32Array create(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator, int length){
-        var instance = schema.allocate(lookup,bufferAllocator, length);
+    static F32Array create(Accelerator accelerator, int length){
+        var instance = schema.allocate(accelerator, length);
         instance.length(length);
         return instance;
-    }
-    static F32Array create(Accelerator accelerator, int length){
-        return create(accelerator.lookup, accelerator, length);
     }
     default F32Array copyFrom(float[] floats) {
         MemorySegment.copy(floats, 0, Buffer.getMemorySegment(this), JAVA_FLOAT, 4, length());
         return this;
     }
     static F32Array createFrom(Accelerator accelerator, float[] arr){
-        return create(accelerator.lookup, accelerator, arr.length).copyFrom(arr);
+        return create( accelerator, arr.length).copyFrom(arr);
     }
 
 

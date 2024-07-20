@@ -1,6 +1,7 @@
 package experiments;
 
 
+import hat.Accelerator;
 import hat.OpsAndTypes;
 
 import java.lang.foreign.Arena;
@@ -14,6 +15,7 @@ import java.lang.runtime.CodeReflection;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import hat.backend.DebugBackend;
 import hat.buffer.Buffer;
 import hat.buffer.BufferAllocator;
 import hat.ifacemapper.BoundSchema;
@@ -39,14 +41,10 @@ public class InvokeToPtr {
 
 
     public static void main(String[] args) {
-        BufferAllocator bufferAllocator = new BufferAllocator() {
-            @Override
-            public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema) {
-                return segmentMapper.allocate(Arena.global(),boundSchema);
-            }
-        };
 
-        PointyHat.ColoredWeightedPoint p = PointyHat.ColoredWeightedPoint.schema.allocate(MethodHandles.lookup(),bufferAllocator);
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup(),new DebugBackend());
+
+        PointyHat.ColoredWeightedPoint p = PointyHat.ColoredWeightedPoint.schema.allocate(accelerator);
         System.out.println(Buffer.getLayout(p));
         Optional<Method> om = Stream.of(InvokeToPtr.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals("testMethod"))

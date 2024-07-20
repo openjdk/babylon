@@ -19,6 +19,11 @@ public class DebugBackend extends BackendAdaptor {
     public HowToRunCompute howToRunCompute=HowToRunCompute.REFLECT;
     public enum HowToRunKernel{REFLECT, BABYLON_INTERPRETER, BABYLON_CLASSFILE, LOWER_TO_SSA,LOWER_TO_SSA_AND_MAP_PTRS}
     HowToRunKernel howToRunKernel = HowToRunKernel.LOWER_TO_SSA_AND_MAP_PTRS;
+
+    public DebugBackend(){
+       this(HowToRunCompute.REFLECT, HowToRunKernel.REFLECT);
+    }
+
     public DebugBackend(HowToRunCompute howToRunCompute, HowToRunKernel howToRunKernel){
         this.howToRunCompute = howToRunCompute;
         this.howToRunKernel = howToRunKernel;

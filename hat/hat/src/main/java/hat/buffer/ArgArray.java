@@ -24,6 +24,7 @@
  */
 package hat.buffer;
 
+import hat.Accelerator;
 import hat.ifacemapper.Schema;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
@@ -264,7 +265,7 @@ public interface ArgArray extends Buffer {
         return (valueLayout.order().equals(ByteOrder.LITTLE_ENDIAN)) ? schema.toLowerCase() : schema;
     }
 
-    static ArgArray create(MethodHandles.Lookup lookup,BufferAllocator bufferAllocator, Object... args) {
+    static ArgArray create(Accelerator accelerator, Object... args) {
         String[] schemas = new String[args.length];
         StringBuilder argSchema = new StringBuilder();
         argSchema.append(args.length);
@@ -288,7 +289,7 @@ public interface ArgArray extends Buffer {
             argSchema.append(schemas[i]);
         }
         String schemaStr = argSchema.toString();
-        ArgArray argArray = schema.allocate(lookup,bufferAllocator,args.length,schemaStr.length() + 1);
+        ArgArray argArray = schema.allocate(accelerator,args.length,schemaStr.length() + 1);
         argArray.argc(args.length);
         argArray.setSchemaBytes(schemaStr);
         update(argArray, args);

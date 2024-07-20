@@ -5,9 +5,11 @@ import hat.buffer.BufferAllocator;
 
 import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
+import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.List;
+
 
 public class BoundSchema<T extends Buffer> {
     final private List<BoundArrayFieldLayout> boundArrayFields = new ArrayList<>();
@@ -15,6 +17,7 @@ public class BoundSchema<T extends Buffer> {
     final private Schema<T> schema;
     final private GroupLayout groupLayout;
     BoundSchemaNode<?> rootBoundSchemaNode;
+
 
     public static sealed class FieldLayout<T extends Schema.FieldNode> permits ArrayFieldLayout {
         public final T field;
@@ -48,7 +51,7 @@ public class BoundSchema<T extends Buffer> {
         this.schema = schema;
         this.arrayLengths = arrayLengths;
         this.rootBoundSchemaNode = new BoundSchemaNode<>((BoundSchema<Buffer>) this, null, this.schema.rootIfaceType);
-        this.groupLayout = schema.rootIfaceType.getBoundGroupLayout(rootBoundSchemaNode);
+        this.groupLayout = rootBoundSchemaNode.getBoundGroupLayout(schema.rootIfaceType);
         this.rootBoundSchemaNode.memoryLayouts.add(this.groupLayout);
     }
 
@@ -134,5 +137,60 @@ public class BoundSchema<T extends Buffer> {
         public FieldLayout<?> getBoundFieldChild(String fieldName) {
             return fieldLayouts.stream().filter(fieldLayout -> fieldLayout.field.name.equals(fieldName)).findFirst().orElseThrow();
         }
+
+        private GroupLayout getBoundGroupLayout(Schema.IfaceType ifaceType) {
+            BoundSchema.BoundSchemaNode<?> child = createChild(ifaceType);
+            ifaceType.fields.forEach(fieldNode ->
+                child.bind(fieldNode,(switch (fieldNode) {
+                            case Schema.SchemaNode.Padding field ->
+                                    MemoryLayout.paddingLayout(field.len);
+                            case Schema.FieldNode.AddressField field ->
+                                    ValueLayout.ADDRESS;
+                            case Schema.FieldNode.ArrayLen field ->
+                                    MapperUtil.primitiveToLayout(field.type);
+                            case Schema.FieldNode.AtomicField field ->
+                                    MapperUtil.primitiveToLayout(field.type);
+                            case Schema.FieldNode.IfaceField field ->
+                                    child.getBoundGroupLayout(field.parent.getChild(field.ifaceType.iface));
+                            case Schema.FieldNode.PrimitiveField field ->
+                                    MapperUtil.primitiveToLayout(field.type);
+                            case Schema.FieldNode.IfaceFixedArray field -> {
+                                var elementLayout = child.getBoundGroupLayout(field.parent.getChild(field.ifaceType.iface))
+                                        .withName(field.ifaceType.iface.getSimpleName());
+                                yield MemoryLayout.sequenceLayout(field.len,elementLayout);
+                            }
+                            case Schema.FieldNode.PrimitiveFixedArray field -> {
+                                var elementLayout = MapperUtil.primitiveToLayout(field.type)
+                                        .withName(field.type.getSimpleName());
+                                yield MemoryLayout.sequenceLayout(field.len, elementLayout);
+                            }
+                            case Schema.FieldNode.IfaceFieldControlledArray field -> {
+                                // To determine the actual 'array' size we multiply the contributing dims by the stride .
+                                int size = field.stride; //usually 1 but developer can define.
+                                for (int i = 0; i < field.contributingDims; i++) {
+                                    size *= child.takeArrayLen(); // this takes an arraylen and bumps the ptr
+                                }
+                                var elementLayout = child.getBoundGroupLayout(field.parent.getChild(field.ifaceType.iface))
+
+                                        .withName(field.ifaceType.iface.getSimpleName());
+                                yield MemoryLayout.sequenceLayout(size,elementLayout);
+                            }
+                            case Schema.FieldNode.PrimitiveFieldControlledArray field -> {
+                                // To determine the actual 'array' size we multiply the contributing dims by the stride .
+                                int size = field.stride; //usually 1 but developer can define.
+                                for (int i = 0; i < field.contributingDims; i++) {
+                                    size *= child.takeArrayLen(); // this takes an arraylen and bumps the ptr
+                                }
+                                var elementLayout = MapperUtil.primitiveToLayout(field.type)
+                                        .withName(field.type.getSimpleName());
+                                yield MemoryLayout.sequenceLayout(size,elementLayout);
+                            }
+                        }).withName(fieldNode.name))
+            );
+            return (MapperUtil.isUnion(ifaceType.iface)
+                    ? MemoryLayout.unionLayout(child.memoryLayoutListToArray())
+                    : MemoryLayout.structLayout(child.memoryLayoutListToArray())).withName(ifaceType.iface.getSimpleName());
+        }
+
     }
 }

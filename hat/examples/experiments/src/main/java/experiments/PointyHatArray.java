@@ -62,9 +62,9 @@ public class PointyHatArray {
                 )
         );
 
-        static PointArray create(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator, int len) {
+        static PointArray create(Accelerator accelerator, int len) {
             System.out.println(LAYOUT);
-            PointArray pointArray= schema.allocate(lookup,bufferAllocator,100);
+            PointArray pointArray= schema.allocate(accelerator,100);
             pointArray.length(100);
             return pointArray;
         }
@@ -119,7 +119,7 @@ public class PointyHatArray {
                 System.out.println(ssaPtrForm.toText());
             }
         });
-        var pointArray = PointArray.create(accelerator.lookup,accelerator,100);
+        var pointArray = PointArray.create(accelerator,100);
         accelerator.compute(cc -> Compute.compute(cc, pointArray));
     }
 }

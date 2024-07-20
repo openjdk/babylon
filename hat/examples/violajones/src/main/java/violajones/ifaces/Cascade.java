@@ -173,10 +173,9 @@ public interface Cascade extends Buffer {
             .arrayLen("treeCount").array("tree",tree->tree.fields("id","firstFeatureId","featureCount"))
     );
 
-    static Cascade create(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator, int width, int height,
+    static Cascade create(Accelerator accelerator, int width, int height,
     int features,int stages,int trees){
-        var instance  = schema.allocate(lookup,
-                bufferAllocator,
+        var instance  = schema.allocate(accelerator,
                 features,
                 stages,
                 trees
@@ -189,13 +188,9 @@ public interface Cascade extends Buffer {
         return instance;
     }
 
-    static Cascade create(Accelerator accelerator, int width, int height,
-                          int features, int stages, int trees){
-       return create(accelerator.lookup,accelerator,width,height,features,stages,trees);
-    }
 
     static Cascade createFrom(Accelerator accelerator, Cascade cascade){
-        return create(accelerator.lookup,accelerator,cascade.width(),cascade.height(),cascade.featureCount(),cascade.stageCount(),cascade.treeCount()).copyFrom(cascade);
+        return create(accelerator,cascade.width(),cascade.height(),cascade.featureCount(),cascade.stageCount(),cascade.treeCount()).copyFrom(cascade);
     }
 
     default Cascade copyFrom(Cascade fromCascade){

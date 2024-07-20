@@ -175,18 +175,14 @@ public interface ScaleTable extends Buffer {
             )
     );
 
-    static ScaleTable create(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator, int length){
-        var instance = schema.allocate(lookup,bufferAllocator,length);
+    static ScaleTable create(Accelerator accelerator, int length){
+        var instance = schema.allocate(accelerator,length);
         instance.length(length);
         return instance;
     }
 
-    static ScaleTable create(Accelerator accelerator, int length){
-        return create(accelerator.lookup, accelerator,length);
-    }
-
     static ScaleTable createFrom(Accelerator accelerator, Constraints constraints){
-        return create(accelerator.lookup, accelerator,constraints.scales).applyConstraints(constraints);
+        return create(accelerator,constraints.scales).applyConstraints(constraints);
     }
 
 }
