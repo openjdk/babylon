@@ -26,13 +26,12 @@ package experiments;
 
 import hat.Accelerator;
 import hat.backend.DebugBackend;
-import hat.buffer.BufferAllocator;
 import hat.buffer.S32Array2D;
 import hat.ifacemapper.BoundSchema;
 import hat.buffer.Buffer;
-import hat.ifacemapper.SegmentMapper;
 
-import java.lang.foreign.Arena;
+import java.lang.foreign.GroupLayout;
+import java.lang.foreign.MemoryLayout;
 import java.lang.invoke.MethodHandles;
 
 public class S32ArrayTest implements Buffer {
@@ -41,7 +40,18 @@ public class S32ArrayTest implements Buffer {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(),new DebugBackend());
 
         hat.buffer.S32Array s32Array  = hat.buffer.S32Array.create(accelerator, 100);
-        System.out.println("Layout from schema "+Buffer.getLayout(s32Array));
+        GroupLayout groupLayout = (GroupLayout) Buffer.getLayout(s32Array);
+        System.out.println("Layout from buffer "+groupLayout);
+        BoundSchema<?> boundSchema = Buffer.getBoundSchema(s32Array);
+        System.out.println("BoundSchema from buffer  "+boundSchema);
+
+        BoundSchema.FieldLayout<?> fieldLayout =  boundSchema.rootBoundSchemaNode().getName("array");
+        long arrayOffset = fieldLayout.offset();
+        MemoryLayout layaout = fieldLayout.layout();
+        if (fieldLayout instanceof BoundSchema.ArrayFieldLayout arrayFieldLayout){
+            System.out.println("isArray");
+            arrayFieldLayout.offset(0);
+        }
         S32Array2D.schema.toText(t->System.out.print(t));
     }
 
