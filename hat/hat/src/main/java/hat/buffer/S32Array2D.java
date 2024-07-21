@@ -36,29 +36,22 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 public interface S32Array2D extends Buffer {
 
     int width();
-    void height(int i);
     int height();
-    void width(int i);
-
     int array(long idx);
-
     void array(long idx, int i);
 
     default int get(int x, int y) {
         return array((long) y * width() + x);
     }
-
     default void set(int x, int y, int v) {
         array((long) y * width() + x, v);
     }
+
     Schema<S32Array2D> schema = Schema.of(S32Array2D.class, s32Array->s32Array
-            .arrayLen("width","height").stride(1).array("array"));
+            .arrayLen("width","height").array("array"));
 
     static S32Array2D create(Accelerator accelerator, int width, int height){
-        var instance = schema.allocate(accelerator, width,height);
-        instance.width(width);
-        instance.height(height);
-        return instance;
+        return schema.allocate(accelerator, width,height);
     }
     default S32Array2D copyFrom(int[] ints) {
         MemorySegment.copy(ints, 0, Buffer.getMemorySegment(this), JAVA_INT, 2* JAVA_INT.byteSize(), width()*height());

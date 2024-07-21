@@ -51,17 +51,34 @@ public class BoundSchema<T extends Buffer> {
             this.len = len;
         }
 
-        public long offset(long idx) {
+        public long elementOffset(long idx) {
             return 0L;
+        }
+        public MemoryLayout elementLayout(long idx) {
+            return null;
         }
     }
 
     public static final class BoundArrayFieldLayout extends ArrayFieldLayout {
         public final int idx;
+        public final List<FieldLayout<?>>dimFields;
+
 
         BoundArrayFieldLayout(BoundSchemaNode<?> parent,Schema.FieldNode fieldControlledArray, MemoryLayout layout, int len, int idx) {
             super(parent, fieldControlledArray, layout, len);
             this.idx = idx;
+            this.dimFields = new ArrayList<>();
+            if (field instanceof Schema.FieldNode.PrimitiveFieldControlledArray primitiveFieldControlledArray){
+                 primitiveFieldControlledArray.arrayLenFields.forEach(f->{
+                    dimFields.add(parent.getName(f.name));
+                 });
+            }else if (field instanceof Schema.FieldNode.IfaceFieldControlledArray ifaceFieldControlledArray){
+                 ifaceFieldControlledArray.arrayLenFields.forEach(f->{
+                     dimFields.add(parent.getName(f.name));
+                 });
+            }else{
+                throw new IllegalStateException("not a bound field");
+            }
         }
     }
     public BoundSchema(Schema<T> schema, int... arrayLengths) {

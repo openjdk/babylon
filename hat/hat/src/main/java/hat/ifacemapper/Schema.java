@@ -41,7 +41,31 @@ public class Schema<T extends Buffer> {
 
     public T allocate(Accelerator accelerator,  int... boundLengths) {
         BoundSchema<?> boundSchema = new BoundSchema<>(this, boundLengths);
-        return (T) boundSchema.allocate(accelerator.lookup, accelerator);
+        T instance = (T)boundSchema.allocate(accelerator.lookup, accelerator);
+        MemorySegment memorySegment = Buffer.getMemorySegment(instance);
+        int[] count = new int[]{0};
+        boundSchema.rootBoundSchemaNode().fieldLayouts.forEach(fieldLayout -> {
+                if (fieldLayout instanceof BoundSchema.BoundArrayFieldLayout boundArrayFieldLayout) {
+                    boundArrayFieldLayout.dimFields.forEach(dimLayout -> {
+                        long dimOffset = dimLayout.offset();
+                        int dim = boundLengths[count[0]++];
+                        if (dimLayout.field instanceof FieldNode.ArrayLen arrayLen){
+                            if (arrayLen.key.accessorType.equals(AccessorInfo.AccessorType.GETTER_AND_SETTER)){
+                                throw new IllegalStateException("You have a bound array dim field "+dimLayout.field.name+" controlling size of "+boundArrayFieldLayout.field.name+"[] which has a setter ");
+                            }
+                            if (arrayLen.type == Long.TYPE){
+                                memorySegment.set(ValueLayout.JAVA_LONG,dimOffset,dim);
+                            }else if (arrayLen.type == Integer.TYPE){
+                                memorySegment.set(ValueLayout.JAVA_INT,dimOffset,dim);
+                            }else{
+                                throw new IllegalArgumentException("Unsupported array length type: " + arrayLen.type);
+                            }
+                        }
+                    });
+                }
+        });
+
+        return instance;
     }
 
     public static <T extends Buffer> Schema<T> of(Class<T> iface, Consumer<IfaceType> parentFieldConsumer) {

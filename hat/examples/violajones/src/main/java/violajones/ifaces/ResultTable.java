@@ -52,7 +52,6 @@ public interface ResultTable extends Buffer {
 
     @After("atomicResultTableCount")
     int length();
-    void length(int length);
 
     @BoundBy("length")
     Result result(long idx);
@@ -66,17 +65,13 @@ public interface ResultTable extends Buffer {
 
     Schema<ResultTable> schema = Schema.of(ResultTable.class, resultTable->resultTable
             .atomic("atomicResultTableCount")
-            .arrayLen("length")
-            .array("result", array->array
+            .arrayLen("length").array("result", array->array
                     .fields("x", "y", "width", "height")
             )
     );
 
     static ResultTable create(Accelerator accelerator,int length){
-        var instance = schema.allocate(accelerator,length);
-        instance.length(length);
-        instance.atomicResultTableCount(0);
-        return instance;
+        return schema.allocate(accelerator,length);
     }
 
 }

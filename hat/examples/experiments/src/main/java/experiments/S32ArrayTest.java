@@ -39,18 +39,25 @@ public class S32ArrayTest implements Buffer {
     public static void main(String[] args) {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(),new DebugBackend());
 
-        hat.buffer.S32Array s32Array  = hat.buffer.S32Array.create(accelerator, 100);
-        GroupLayout groupLayout = (GroupLayout) Buffer.getLayout(s32Array);
+        hat.buffer.S32Array2D s32Array2D  = S32Array2D.create(accelerator, 100, 200);
+        GroupLayout groupLayout = (GroupLayout) Buffer.getLayout(s32Array2D);
         System.out.println("Layout from buffer "+groupLayout);
-        BoundSchema<?> boundSchema = Buffer.getBoundSchema(s32Array);
+        BoundSchema<?> boundSchema = Buffer.getBoundSchema(s32Array2D);
         System.out.println("BoundSchema from buffer  "+boundSchema);
 
         BoundSchema.FieldLayout<?> fieldLayout =  boundSchema.rootBoundSchemaNode().getName("array");
         long arrayOffset = fieldLayout.offset();
-        MemoryLayout layaout = fieldLayout.layout();
+        MemoryLayout layout = fieldLayout.layout();
+
         if (fieldLayout instanceof BoundSchema.ArrayFieldLayout arrayFieldLayout){
             System.out.println("isArray");
-            arrayFieldLayout.offset(0);
+            arrayFieldLayout.elementOffset(0);
+            arrayFieldLayout.elementLayout(0);
+            if (arrayFieldLayout instanceof BoundSchema.BoundArrayFieldLayout boundArrayFieldLayout){
+                boundArrayFieldLayout.dimFields.forEach(dimLayout->{
+                    System.out.println(dimLayout.field.name + " "+dimLayout.offset());
+                });
+            }
         }
         S32Array2D.schema.toText(t->System.out.print(t));
     }

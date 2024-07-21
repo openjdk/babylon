@@ -91,11 +91,6 @@ public class XMLHaarCascadeModel implements Cascade {
     }
 
     @Override
-    public void featureCount(int featureCount) {
-        throw new IllegalStateException("featureCount(int featureCount) unimplemented ");
-    }
-
-    @Override
     public Cascade.Stage stage(long idx) {
         return stages.get((int) idx);
     }
@@ -106,11 +101,6 @@ public class XMLHaarCascadeModel implements Cascade {
     }
 
     @Override
-    public void stageCount(int stageCount) {
-        throw new IllegalStateException("stageCount(int stageCount) unimplemented ");
-    }
-
-    @Override
     public Cascade.Tree tree(long idx) {
         return trees.get((int) idx);
     }
@@ -118,11 +108,6 @@ public class XMLHaarCascadeModel implements Cascade {
     @Override
     public int treeCount() {
         return trees.size();
-    }
-
-    @Override
-    public void treeCount(int treeCount) {
-        throw new IllegalStateException("void treeCount(int treeCount) unimplemented ");
     }
 
     @Override
@@ -172,13 +157,11 @@ public class XMLHaarCascadeModel implements Cascade {
         @Override
         public Cascade.Feature.LinkOrValue left() {
             return left;
-            // throw new IllegalStateException("Cascade.Feature.LinkOrValue left() unimplemented ");
-        }
+         }
 
         @Override
         public Cascade.Feature.LinkOrValue right() {
             return right;
-            //throw new IllegalStateException("Cascade.Feature.LinkOrValue right() unimplemented ");
         }
 
         @Override
@@ -221,7 +204,6 @@ public class XMLHaarCascadeModel implements Cascade {
             @Override
             public Anon anon() {
                 return this;
-                // throw new IllegalStateException("Anon anon() unimplemented ");
             }
 
             @Override

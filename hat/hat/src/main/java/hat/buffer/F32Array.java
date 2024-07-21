@@ -35,10 +35,7 @@ import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface F32Array extends Buffer {
-
     int length();
-    void length(int i);
-
     @BoundBy("length")
     float array(long idx);
     void array(long idx, float f);
@@ -46,11 +43,8 @@ public interface F32Array extends Buffer {
     Schema<F32Array> schema = Schema.of(F32Array.class, s32Array->s32Array
             .arrayLen("length").array("array"));
 
-
     static F32Array create(Accelerator accelerator, int length){
-        var instance = schema.allocate(accelerator, length);
-        instance.length(length);
-        return instance;
+        return schema.allocate(accelerator, length);
     }
     default F32Array copyFrom(float[] floats) {
         MemorySegment.copy(floats, 0, Buffer.getMemorySegment(this), JAVA_FLOAT, 4, length());
