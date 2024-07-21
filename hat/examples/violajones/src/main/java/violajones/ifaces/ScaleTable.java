@@ -147,7 +147,6 @@ public interface ScaleTable extends Buffer {
        }
 
     int length();
-    void length(int length);
 
     Scale scale(long idx);
 
@@ -176,9 +175,7 @@ public interface ScaleTable extends Buffer {
     );
 
     static ScaleTable create(Accelerator accelerator, int length){
-        var instance = schema.allocate(accelerator,length);
-        instance.length(length);
-        return instance;
+        return schema.allocate(accelerator,length);
     }
 
     static ScaleTable createFrom(Accelerator accelerator, Constraints constraints){

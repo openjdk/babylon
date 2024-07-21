@@ -214,7 +214,6 @@ public interface ArgArray extends Buffer {
     }
 
     int argc();
-    void argc(int argc);
 
     @BoundBy("argc") @Pad(12)
     Arg arg(long idx);
@@ -225,16 +224,13 @@ public interface ArgArray extends Buffer {
 
     @After("vendorPtr")
     int schemaLen();
-    void schemaLen(int schemaLen);
 
     @BoundBy("schemaLen")
     byte schemaBytes(long idx);
     void schemaBytes(long idx, byte b);
 
     Schema<ArgArray> schema = Schema.of(ArgArray.class, s->s
-            .arrayLen("argc")
-            .pad(12/*(int)(16 - JAVA_INT.byteSize())*/)
-            .array("arg", arg->arg
+            .arrayLen("argc").pad(12).array("arg", arg->arg
                             .fields("idx","variant")
                             .pad(11/*(int)(16 - JAVA_INT.byteSize() - JAVA_BYTE.byteSize())*/)
                             .field("value", value->value
@@ -290,8 +286,11 @@ public interface ArgArray extends Buffer {
         }
         String schemaStr = argSchema.toString();
         ArgArray argArray = schema.allocate(accelerator,args.length,schemaStr.length() + 1);
-        argArray.argc(args.length);
-        argArray.setSchemaBytes(schemaStr);
+        byte[] schemaStrBytes = schemaStr.getBytes();
+        for (int i = 0; i < schemaStrBytes.length; i++) {
+            argArray.schemaBytes(i, schemaStrBytes[i]);
+        }
+        argArray.schemaBytes(schemaStrBytes.length, (byte) 0);
         update(argArray, args);
         return argArray;
     }
@@ -331,16 +330,6 @@ public interface ArgArray extends Buffer {
         }
         bytes[bytes.length - 1] = '0';
         return new String(bytes);
-    }
-
-    default void setSchemaBytes(String schemaStr) {
-        byte[] schemaStrBytes = schemaStr.getBytes();
-        schemaLen(schemaStrBytes.length);
-        // TODO:we should be able to copy into the segment here ;)
-        for (int i = 0; i < schemaStrBytes.length; i++) {
-            schemaBytes(i, schemaStrBytes[i]);
-        }
-        schemaBytes(schemaStrBytes.length, (byte) 0);
     }
 
 

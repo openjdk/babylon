@@ -10,6 +10,8 @@ import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.List;
 
+import static hat.ifacemapper.BoundSchema.BoundSchemaNode.getBoundGroupLayout;
+
 
 public class BoundSchema<T extends Buffer> {
     final private List<BoundArrayFieldLayout> boundArrayFields = new ArrayList<>();
@@ -20,12 +22,23 @@ public class BoundSchema<T extends Buffer> {
 
 
     public static sealed class FieldLayout<T extends Schema.FieldNode> permits ArrayFieldLayout {
+        public BoundSchemaNode<?> parent;
         public final T field;
         public MemoryLayout layout;
+        MemoryLayout.PathElement pathElement;
 
-        FieldLayout(T field, MemoryLayout layout) {
+        FieldLayout(BoundSchemaNode<?> parent,T field, MemoryLayout layout) {
+            this.parent = parent;
             this.field = field;
             this.layout = layout;
+            this.pathElement =  MemoryLayout.PathElement.groupElement(field.name);
+        }
+
+        public long offset() {
+            return parent.memoryLayouts.getLast().byteOffset(pathElement);
+        }
+        public MemoryLayout layout() {
+            return parent.memoryLayouts.getLast().select(pathElement);
         }
     }
 
@@ -33,25 +46,46 @@ public class BoundSchema<T extends Buffer> {
             permits BoundArrayFieldLayout {
         public final int len;
 
-        ArrayFieldLayout(Schema.FieldNode fieldControlledArray, MemoryLayout layout, int len) {
-            super(fieldControlledArray, layout);
+        ArrayFieldLayout(BoundSchemaNode<?> parent, Schema.FieldNode fieldControlledArray, MemoryLayout layout, int len) {
+            super(parent, fieldControlledArray, layout);
             this.len = len;
+        }
+
+        public long elementOffset(long idx) {
+            return 0L;
+        }
+        public MemoryLayout elementLayout(long idx) {
+            return null;
         }
     }
 
     public static final class BoundArrayFieldLayout extends ArrayFieldLayout {
         public final int idx;
+        public final List<FieldLayout<?>>dimFields;
 
-        BoundArrayFieldLayout(Schema.FieldNode fieldControlledArray, MemoryLayout layout, int len, int idx) {
-            super(fieldControlledArray, layout, len);
+
+        BoundArrayFieldLayout(BoundSchemaNode<?> parent,Schema.FieldNode fieldControlledArray, MemoryLayout layout, int len, int idx) {
+            super(parent, fieldControlledArray, layout, len);
             this.idx = idx;
+            this.dimFields = new ArrayList<>();
+            if (field instanceof Schema.FieldNode.PrimitiveFieldControlledArray primitiveFieldControlledArray){
+                 primitiveFieldControlledArray.arrayLenFields.forEach(f->{
+                    dimFields.add(parent.getName(f.name));
+                 });
+            }else if (field instanceof Schema.FieldNode.IfaceFieldControlledArray ifaceFieldControlledArray){
+                 ifaceFieldControlledArray.arrayLenFields.forEach(f->{
+                     dimFields.add(parent.getName(f.name));
+                 });
+            }else{
+                throw new IllegalStateException("not a bound field");
+            }
         }
     }
     public BoundSchema(Schema<T> schema, int... arrayLengths) {
         this.schema = schema;
         this.arrayLengths = arrayLengths;
         this.rootBoundSchemaNode = new BoundSchemaNode<>((BoundSchema<Buffer>) this, null, this.schema.rootIfaceType);
-        this.groupLayout = rootBoundSchemaNode.getBoundGroupLayout(schema.rootIfaceType);
+        this.groupLayout = getBoundGroupLayout(rootBoundSchemaNode,schema.rootIfaceType);
         this.rootBoundSchemaNode.memoryLayouts.add(this.groupLayout);
     }
 
@@ -80,19 +114,19 @@ public class BoundSchema<T extends Buffer> {
     }
 
 
-    FieldLayout<?> createFieldBinding(Schema.FieldNode fieldNode, MemoryLayout memoryLayout) {
+    FieldLayout<?> createFieldBinding(BoundSchemaNode<?>parent, Schema.FieldNode fieldNode, MemoryLayout memoryLayout) {
         if (fieldNode instanceof Schema.FieldNode.IfaceFieldControlledArray
                 || fieldNode instanceof Schema.FieldNode.PrimitiveFieldControlledArray) {
             int idx = boundArrayFields.size();
-            var arraySizeBinding = new BoundArrayFieldLayout(fieldNode, memoryLayout, arrayLengths[idx], idx);
+            var arraySizeBinding = new BoundArrayFieldLayout(parent,fieldNode, memoryLayout, arrayLengths[idx], idx);
             boundArrayFields.add(arraySizeBinding);
             return arraySizeBinding;
         } else if (fieldNode instanceof Schema.FieldNode.IfaceFixedArray ifaceMapableFixedArray) {
-            return new ArrayFieldLayout(fieldNode, memoryLayout, ifaceMapableFixedArray.len);
+            return new ArrayFieldLayout(parent,fieldNode, memoryLayout, ifaceMapableFixedArray.len);
         } else if (fieldNode instanceof Schema.FieldNode.PrimitiveFixedArray primitiveFixedArray) {
-            return new ArrayFieldLayout(fieldNode, memoryLayout, primitiveFixedArray.len);
+            return new ArrayFieldLayout(parent,fieldNode, memoryLayout, primitiveFixedArray.len);
         } else {
-            return new FieldLayout<>(fieldNode, memoryLayout);
+            return new FieldLayout<>(parent,fieldNode, memoryLayout);
         }
     }
 
@@ -116,7 +150,7 @@ public class BoundSchema<T extends Buffer> {
 
 
         FieldLayout<?> createFieldBinding(Schema.FieldNode fieldNode, MemoryLayout memoryLayout) {
-            return boundSchema.createFieldBinding(fieldNode, memoryLayout);
+            return boundSchema.createFieldBinding(this,fieldNode, memoryLayout);
         }
 
         void bind(Schema.FieldNode fieldNode, MemoryLayout memoryLayout) {
@@ -134,12 +168,14 @@ public class BoundSchema<T extends Buffer> {
             return boundSchemaChildNode;
         }
 
-        public FieldLayout<?> getBoundFieldChild(String fieldName) {
+        public FieldLayout<?> getName(String fieldName) {
             return fieldLayouts.stream().filter(fieldLayout -> fieldLayout.field.name.equals(fieldName)).findFirst().orElseThrow();
+
+
         }
 
-        private GroupLayout getBoundGroupLayout(Schema.IfaceType ifaceType) {
-            BoundSchema.BoundSchemaNode<?> child = createChild(ifaceType);
+        static GroupLayout getBoundGroupLayout(BoundSchemaNode child, Schema.IfaceType ifaceType) {
+
             ifaceType.fields.forEach(fieldNode ->
                 child.bind(fieldNode,(switch (fieldNode) {
                             case Schema.SchemaNode.Padding field ->
@@ -150,12 +186,15 @@ public class BoundSchema<T extends Buffer> {
                                     MapperUtil.primitiveToLayout(field.type);
                             case Schema.FieldNode.AtomicField field ->
                                     MapperUtil.primitiveToLayout(field.type);
-                            case Schema.FieldNode.IfaceField field ->
-                                    child.getBoundGroupLayout(field.parent.getChild(field.ifaceType.iface));
+                            case Schema.FieldNode.IfaceField field -> {
+                                var fieldIfaceType = field.parent.getChild(field.ifaceType.iface);
+                                yield getBoundGroupLayout(child.createChild(ifaceType), fieldIfaceType);
+                            }
                             case Schema.FieldNode.PrimitiveField field ->
                                     MapperUtil.primitiveToLayout(field.type);
                             case Schema.FieldNode.IfaceFixedArray field -> {
-                                var elementLayout = child.getBoundGroupLayout(field.parent.getChild(field.ifaceType.iface))
+                                var fieldIfaceType = field.parent.getChild(field.ifaceType.iface);
+                                var elementLayout = getBoundGroupLayout(child.createChild(ifaceType), fieldIfaceType)
                                         .withName(field.ifaceType.iface.getSimpleName());
                                 yield MemoryLayout.sequenceLayout(field.len,elementLayout);
                             }
@@ -170,8 +209,8 @@ public class BoundSchema<T extends Buffer> {
                                 for (int i = 0; i < field.contributingDims; i++) {
                                     size *= child.takeArrayLen(); // this takes an arraylen and bumps the ptr
                                 }
-                                var elementLayout = child.getBoundGroupLayout(field.parent.getChild(field.ifaceType.iface))
-
+                                var fieldIfaceType = field.parent.getChild(field.ifaceType.iface);
+                                var elementLayout = getBoundGroupLayout(child.createChild(ifaceType), fieldIfaceType)
                                         .withName(field.ifaceType.iface.getSimpleName());
                                 yield MemoryLayout.sequenceLayout(size,elementLayout);
                             }

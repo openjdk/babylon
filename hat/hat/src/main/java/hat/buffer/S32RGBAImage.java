@@ -30,23 +30,14 @@ import hat.ifacemapper.Schema;
 import java.lang.invoke.MethodHandles;
 
 public interface S32RGBAImage extends ImageIfaceBuffer<S32RGBAImage> {
-    int data(long idx);
-
-    void data(long idx, int v);
-
     int width();
-    void width(int width);
     int height();
-    void height(int height);
+    int data(long idx);
+    void data(long idx, int v);
     Schema<S32RGBAImage> schema = Schema.of(S32RGBAImage.class, s -> s
             .arrayLen("width", "height").stride(1).array("data")
     );
-
-
     static S32RGBAImage create(Accelerator accelerator, int width, int height){
-        var instance = schema.allocate(accelerator,width,height);
-        instance.width(width);
-        instance.height(height);
-        return instance;
+        return schema.allocate(accelerator,width,height);
     }
 }

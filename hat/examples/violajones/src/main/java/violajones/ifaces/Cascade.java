@@ -138,21 +138,21 @@ public interface Cascade extends Buffer {
     @After("height")
     int featureCount();
 
-    void featureCount(int featureCount);
+ //  void featureCount(int featureCount);
 
     @BoundBy("featureCount")
     Feature feature(long idx);
 
     int stageCount();
 
-    void stageCount(int stageCount);
+  //  void stageCount(int stageCount);
 
     @BoundBy("stageCount")
     Stage stage(long idx);
 
     int treeCount();
 
-    void treeCount(int treeCount);
+//void treeCount(int treeCount);
 
     @BoundBy("treeCount")
     Tree tree(long idx);
@@ -182,9 +182,6 @@ public interface Cascade extends Buffer {
         );
         instance.width(width);
         instance.height(height);
-        instance.featureCount(features);
-        instance.stageCount(stages);
-        instance.treeCount(trees);
         return instance;
     }
 
@@ -197,9 +194,6 @@ public interface Cascade extends Buffer {
         Cascade toCascade= this;
         toCascade.width(fromCascade.width());
         toCascade.height(fromCascade.height());
-        toCascade.featureCount(fromCascade.featureCount());
-        toCascade.stageCount(fromCascade.stageCount());
-        toCascade.treeCount(fromCascade.treeCount());
         for (int idx = 0; idx < fromCascade.featureCount(); idx++) {
             Cascade.Feature toFeature =  toCascade.feature(idx);
             Cascade.Feature fromFeature = fromCascade.feature(idx);
