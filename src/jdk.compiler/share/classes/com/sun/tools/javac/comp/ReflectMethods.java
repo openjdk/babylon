@@ -645,35 +645,28 @@ public class ReflectMethods extends TreeTranslator {
             }
         }
 
-        public Value toValue(JCTree tree) {
-            return toValue(tree, Type.noType);
-        }
-
-        public Value toValue(JCTree tree, Type target) {
+        public Value toValue(JCExpression expression, Type targetType) {
             result = null; // reset
             Type prevPt = pt;
             try {
-                pt = target;
-                scan(tree);
-                // there are cases where tree type is null
-                // e.g. if tree represent throw statement
-                // if that's case, the sourceType passed to coerce method will be null, this will cause a NPE
-                // I decided to add a check before calling coerce
-                // so far this only occurred when visiting switch
-                // @@@ is this more specific to switch ?
-                if (result != null) {
-                    if (tree.type != null) {
-                        return coerce(result, tree.type, target);
-                    } else if (target == null || target == Type.noType){
-                        return result;
-                    } else {
-                        throw new IllegalStateException("tree type is null and target is " + target);
-                    }
-                }
-                return  null;
+                pt = targetType;
+                scan(expression);
+                return result != null ?
+                        coerce(result, expression.type, targetType) :
+                        null;
             } finally {
                 pt = prevPt;
             }
+        }
+
+        public Value toValue(JCExpression expression) {
+            return toValue(expression, Type.noType);
+        }
+
+        public Value toValue(JCTree.JCStatement statement) {
+            result = null; // reset
+            scan(statement);
+            return result;
         }
 
         Value coerce(Value sourceValue, Type sourceType, Type targetType) {
@@ -1382,7 +1375,7 @@ public class ReflectMethods extends TreeTranslator {
 
             // Scan the lambda body
             if (tree.getBodyKind() == LambdaExpressionTree.BodyKind.EXPRESSION) {
-                Value exprVal = toValue(tree.body, tree.getDescriptorType(types).getReturnType());
+                Value exprVal = toValue(((JCExpression) tree.body), tree.getDescriptorType(types).getReturnType());
                 if (!tree.body.type.hasTag(TypeTag.VOID)) {
                     append(CoreOp._return(exprVal));
                 } else {
@@ -1392,7 +1385,7 @@ public class ReflectMethods extends TreeTranslator {
                 Type prevBodyTarget = bodyTarget;
                 try {
                     bodyTarget = tree.getDescriptorType(types).getReturnType();
-                    toValue(tree.body);
+                    toValue(((JCTree.JCStatement) tree.body));
                     // @@@ Check if unreachable
                     appendTerminating(CoreOp::_return);
                 } finally {
@@ -1599,15 +1592,15 @@ public class ReflectMethods extends TreeTranslator {
                     case RULE -> {
                         pushBody(c.body, actionType);
                         Type yieldType = adaptBottom(tree.type);
-                        if (c.body instanceof JCExpression) {
-                            Value bodyVal = toValue(c.body, yieldType);
+                        if (c.body instanceof JCTree.JCExpression e) {
+                            Value bodyVal = toValue(e, yieldType);
                             append(CoreOp._yield(bodyVal));
-                        } else {
+                        } else if (c.body instanceof JCTree.JCStatement s){
                             // Otherwise there is a yield statement
                             Type prevBodyTarget = bodyTarget;
                             try {
                                 bodyTarget = yieldType;
-                                Value bodyVal = toValue(c.body);
+                                Value bodyVal = toValue(s);
                             } finally {
                                 bodyTarget = prevBodyTarget;
                             }
@@ -2020,7 +2013,11 @@ public class ReflectMethods extends TreeTranslator {
 
                 List<Value> rValues = new ArrayList<>();
                 for (JCTree resource : tree.resources) {
-                    rValues.add(toValue(resource));
+                    if (resource instanceof JCTree.JCExpression e) {
+                        rValues.add(toValue(e));
+                    } else if (resource instanceof JCTree.JCStatement s) {
+                        rValues.add(toValue(s));
+                    }
                 }
 
                 append(CoreOp._yield(append(CoreOp.tuple(rValues))));
