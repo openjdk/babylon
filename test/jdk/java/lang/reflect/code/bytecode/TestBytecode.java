@@ -465,7 +465,7 @@ public class TestBytecode {
 
     @CodeReflection
     static String stringConcat(String a, String b) {
-        return a + b;
+        return "a"+ a +"\u0001" + a + "b\u0002c" + b + "\u0001\u0002" + b + "dd";
     }
 
     @CodeReflection

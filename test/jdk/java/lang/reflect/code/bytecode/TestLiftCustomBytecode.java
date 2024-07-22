@@ -28,12 +28,15 @@ import java.lang.classfile.ClassFile;
 import java.lang.classfile.Label;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
+import java.lang.constant.DynamicCallSiteDesc;
 import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.MethodHandles;
+import java.lang.invoke.StringConcatFactory;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.bytecode.BytecodeLift;
 import java.lang.reflect.code.interpreter.Interpreter;
+import java.lang.runtime.CodeReflection;
 
 /*
  * @test
@@ -103,6 +106,22 @@ public class TestLiftCustomBytecode {
 
         MethodHandles.Lookup lookup = MethodHandles.lookup();
         Assert.assertEquals((Class)Interpreter.invoke(lookup, primitiveInteger), int.class);
+    }
+
+    @Test
+    public void testStringMakeConcat() throws Throwable {
+        byte[] testStringMakeConcat = ClassFile.of().build(ClassDesc.of("TestStringMakeConcat"), clb ->
+                clb.withMethodBody("concatMethod", MethodTypeDesc.of(ConstantDescs.CD_String), ClassFile.ACC_STATIC, cob ->
+                        cob.ldc("A").ldc("B").ldc("C")
+                           .invokedynamic(DynamicCallSiteDesc.of(
+                                ConstantDescs.ofCallsiteBootstrap(StringConcatFactory.class.describeConstable().get(), "makeConcat", ConstantDescs.CD_CallSite),
+                                MethodTypeDesc.of(ConstantDescs.CD_String, ConstantDescs.CD_String, ConstantDescs.CD_String, ConstantDescs.CD_String)))
+                           .areturn()));
+
+        CoreOp.FuncOp concatMethod = getFuncOp(testStringMakeConcat, "concatMethod");
+
+        MethodHandles.Lookup lookup = MethodHandles.lookup();
+        Assert.assertEquals((String)Interpreter.invoke(lookup, concatMethod), "ABC");
     }
 
     static CoreOp.FuncOp getFuncOp(byte[] classdata, String method) {

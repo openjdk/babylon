@@ -79,6 +79,7 @@ import java.util.stream.Stream;
 public final class BytecodeLift {
 
     private static final ClassDesc CD_LambdaMetafactory = ClassDesc.ofDescriptor("Ljava/lang/invoke/LambdaMetafactory;");
+    private static final ClassDesc CD_StringConcatFactory = ClassDesc.ofDescriptor("Ljava/lang/invoke/StringConcatFactory;");
     private static final JavaType MHS_LOOKUP = JavaType.type(ConstantDescs.CD_MethodHandles_Lookup);
     private static final JavaType MH = JavaType.type(ConstantDescs.CD_MethodHandle);
     private static final JavaType MT = JavaType.type(ConstantDescs.CD_MethodType);
@@ -441,7 +442,9 @@ public final class BytecodeLift {
                     }
                 }
                 case InvokeDynamicInstruction inst when inst.bootstrapMethod().kind() == DirectMethodHandleDesc.Kind.STATIC -> {
-                    if (inst.bootstrapMethod().owner().equals(CD_LambdaMetafactory)
+                    DirectMethodHandleDesc bsm = inst.bootstrapMethod();
+                    ClassDesc bsmOwner = bsm.owner();
+                    if (bsmOwner.equals(CD_LambdaMetafactory)
                         && inst.bootstrapArgs().get(0) instanceof MethodTypeDesc mtd
                         && inst.bootstrapArgs().get(1) instanceof DirectMethodHandleDesc dmhd) {
 
@@ -479,6 +482,37 @@ public final class BytecodeLift {
                                         Stream.concat(Arrays.stream(capturedValues), eb.parameters().stream()).toArray(Value[]::new)))));
                             })));
                         }
+                    } else if (bsmOwner.equals(CD_StringConcatFactory)) {
+                        int argsCount = inst.typeSymbol().parameterCount();
+                        Deque<Value> args = new ArrayDeque<>(argsCount);
+                        for (int ai = 0; ai < argsCount; ai++) {
+                            args.push(stack.pop());
+                        }
+                        Value res = null;
+                        if (bsm.methodName().equals("makeConcat")) {
+                            for (Value argVal : args) {
+                                res = res == null ? argVal : op(CoreOp.concat(res, argVal));
+                            }
+                        } else {
+                            assert bsm.methodName().equals("makeConcatWithConstants");
+                            var bsmArgs = inst.bootstrapArgs();
+                            String recipe = (String)(bsmArgs.getFirst());
+                            int bsmArg = 1;
+                            for (int ri = 0; ri < recipe.length(); ri++) {
+                                Value argVal = switch (recipe.charAt(ri)) {
+                                    case '\u0001' -> args.pop();
+                                    case '\u0002' -> liftConstant(bsmArgs.get(bsmArg++));
+                                    default -> {
+                                        char c;
+                                        int start = ri;
+                                        while (ri < recipe.length() && (c = recipe.charAt(ri)) != '\u0001' && c != '\u0002') ri++;
+                                        yield liftConstant(recipe.substring(start, ri--));
+                                    }
+                                };
+                                res = res == null ? argVal : op(CoreOp.concat(res, argVal));
+                            }
+                        }
+                        if (res != null) stack.push(res);
                     } else {
                         MethodTypeDesc mtd = inst.typeSymbol();
 
@@ -490,9 +524,8 @@ public final class BytecodeLift {
                         for (ConstantDesc barg : inst.bootstrapArgs()) {
                             bootstrapArgs.add(liftConstant(barg));
                         }
-                        DirectMethodHandleDesc bsm = inst.bootstrapMethod();
                         MethodTypeDesc bsmDesc = bsm.invocationType();
-                        MethodRef bsmRef = MethodRef.method(JavaType.type(bsm.owner()),
+                        MethodRef bsmRef = MethodRef.method(JavaType.type(bsmOwner),
                                                             bsm.methodName(),
                                                             JavaType.type(bsmDesc.returnType()),
                                                             bsmDesc.parameterList().stream().map(JavaType::type).toArray(TypeElement[]::new));
