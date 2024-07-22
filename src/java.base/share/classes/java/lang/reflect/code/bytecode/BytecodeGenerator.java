@@ -871,7 +871,9 @@ public final class BytecodeGenerator {
                     }
                     case ConcatOp op -> {
                         processOperands(op);
-                        cob.invokedynamic(DynamicCallSiteDesc.of(DMHD_STRING_CONCAT, MethodTypeDesc.of(CD_String, CD_String, CD_String)));
+                        cob.invokedynamic(DynamicCallSiteDesc.of(DMHD_STRING_CONCAT, MethodTypeDesc.of(CD_String,
+                                toClassDesc(op.operands().get(0).type()),
+                                toClassDesc(op.operands().get(1).type()))));
                         push(op.result());
                     }
                     default ->

@@ -469,6 +469,11 @@ public class TestBytecode {
     }
 
     @CodeReflection
+    static String multiTypeConcat(int i, Boolean b, char c, Short s, float f, Double d) {
+        return "i:"+ i +" b:" + b + " c:" + c + " f:" + f + " d:" + d;
+    }
+
+    @CodeReflection
     static int ifTrue(int i) {
         if (true) {
             return i;
