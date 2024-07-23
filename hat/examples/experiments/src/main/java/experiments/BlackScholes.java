@@ -63,7 +63,7 @@ public class BlackScholes {
         float term_pow4 = term_pow2 * term_pow2;
         float term_pow5 = term_pow2 * term_pow3;
 
-        float part1 = (1f / (float)Math.sqrt(2f * Math.PI)) * (float)Math.exp((-x * x) * 0.5f);
+        float part1 = (1f / (float)Math.sqrt(2f * 3.1415926535f)) * (float)Math.exp((-x * x) * 0.5f);
 
         float part2 = (0.31938153f * term) +
                 (-0.356563782f * term_pow2) +
@@ -117,7 +117,7 @@ public class BlackScholes {
                 cc -> BlackScholes.blackScholes(cc, arr, S, X, T, r, v)  //QuotableComputeContextConsumer
         );                                     //   extends Quotable, Consumer<ComputeContext>
         for (int i = 0; i < arr.length(); i++) {
-            System.out.println("S=" + S.array(i) + ", X=" + X.array(i) + ", T=" + T.array(i) + ", call option price = " + arr.array(i));
+            System.out.println("S=" + S.array(i) + "\t X=" + X.array(i) + "\t T=" + T.array(i) + "\t call option price = " + arr.array(i));
         }
     }
 }

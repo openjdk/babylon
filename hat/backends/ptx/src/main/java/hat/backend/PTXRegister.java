@@ -76,7 +76,7 @@ public class PTXRegister {
             return this.basicType;
         }
 
-        public String toString() {
+        public String getName() {
             return this.name;
         }
 
