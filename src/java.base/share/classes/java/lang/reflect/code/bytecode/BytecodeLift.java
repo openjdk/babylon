@@ -309,7 +309,7 @@ public final class BytecodeLift {
                     endOfFlow();
                 }
                 case LoadInstruction inst -> {
-                    stack.push(op(SlotOp.load(inst.slot(), JavaType.type(codeTracker.getTypeOf(inst)))));
+                    stack.push(op(SlotOp.load(inst.slot(), JavaType.type(codeTracker.getTypeOf(i)))));
                 }
                 case StoreInstruction inst -> {
                     op(SlotOp.store(inst.slot(), stack.pop()));
@@ -448,9 +448,6 @@ public final class BytecodeLift {
                         && inst.bootstrapArgs().get(0) instanceof MethodTypeDesc mtd
                         && inst.bootstrapArgs().get(1) instanceof DirectMethodHandleDesc dmhd) {
 
-                        LambdaOp.Builder lambda = CoreOp.lambda(currentBlock.parentBody(),
-                                FunctionType.functionType(JavaType.type(mtd.returnType()), mtd.parameterList().stream().map(JavaType::type).toList()),
-                                JavaType.type(inst.typeSymbol().returnType()));
                         var capturedValues = new Value[dmhd.invocationType().parameterCount() - mtd.parameterCount()];
                         for (int ci = capturedValues.length - 1; ci >= 0; ci--) {
                             capturedValues[ci] = stack.pop();
@@ -458,6 +455,15 @@ public final class BytecodeLift {
                         for (int ci = capturedValues.length; ci < inst.typeSymbol().parameterCount(); ci++) {
                             stack.pop();
                         }
+                        MethodTypeDesc mt = dmhd.invocationType();
+                        if (capturedValues.length > 0) {
+                            mt = mt.dropParameterTypes(0, capturedValues.length);
+                        }
+                        FunctionType lambdaFunc = FunctionType.functionType(JavaType.type(mt.returnType()),
+                                                                            mt.parameterList().stream().map(JavaType::type).toList());
+                        LambdaOp.Builder lambda = CoreOp.lambda(currentBlock.parentBody(),
+                                                                lambdaFunc,
+                                                                JavaType.type(inst.typeSymbol().returnType()));
                         if (dmhd.methodName().startsWith("lambda$") && dmhd.owner().equals(classModel.thisClass().asSymbol())) {
                             // inline lambda impl method
                             MethodModel implMethod = classModel.methods().stream().filter(m -> m.methodName().equalsString(dmhd.methodName())).findFirst().orElseThrow();
@@ -469,16 +475,11 @@ public final class BytecodeLift {
                         } else {
                             // lambda call to a MH
                             stack.push(op(lambda.body(eb -> {
-                                MethodTypeDesc mt = dmhd.invocationType();
-                                if (capturedValues.length > 0) {
-                                    mt = mt.dropParameterTypes(0, capturedValues.length);
-                                }
                                 eb.op(CoreOp._return(eb.op(CoreOp.invoke(
-                                        MethodRef.method(
-                                                JavaType.type(dmhd.owner()),
-                                                dmhd.methodName(),
-                                                JavaType.type(mt.returnType()),
-                                                mt.parameterList().stream().map(JavaType::type).toList()),
+                                        MethodRef.method(JavaType.type(dmhd.owner()),
+                                                         dmhd.methodName(),
+                                                         lambdaFunc.returnType(),
+                                                         lambdaFunc.parameterTypes()),
                                         Stream.concat(Arrays.stream(capturedValues), eb.parameters().stream()).toArray(Value[]::new)))));
                             })));
                         }

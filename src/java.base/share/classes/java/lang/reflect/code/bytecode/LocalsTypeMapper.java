@@ -44,11 +44,11 @@ import java.util.stream.Collectors;
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
 import java.lang.constant.ConstantDescs;
 import static java.lang.constant.ConstantDescs.*;
-import java.util.IdentityHashMap;
+import java.util.HashMap;
 
 final class LocalsTypeMapper {
 
-    private final Map<LoadInstruction, ClassDesc> insMap;
+    private final Map<Integer, ClassDesc> insMap;
     private final ClassDesc thisClass;
     private final List<ClassDesc> stack, locals;
     private final Map<Label, StackMapFrameInfo> stackMap;
@@ -57,17 +57,19 @@ final class LocalsTypeMapper {
                          List<ClassDesc> initFrameLocals,
                          Optional<StackMapTableAttribute> stackMapTableAttribute,
                          List<CodeElement> codeElements) {
-        this.insMap = new IdentityHashMap<>();
+        this.insMap = new HashMap<>();
         this.thisClass = thisClass;
         this.stack = new ArrayList<>();
         this.locals = new ArrayList<>(initFrameLocals);
         this.stackMap = stackMapTableAttribute.map(a -> a.entries().stream().collect(Collectors.toMap(
                 StackMapFrameInfo::target,
                 Function.identity()))).orElse(Map.of());
-        codeElements.forEach(this::accept);
+        for (int i = 0; i < codeElements.size(); i++) {
+            accept(i, codeElements.get(i));
+        }
     }
 
-    ClassDesc getTypeOf(LoadInstruction li) {
+    ClassDesc getTypeOf(int li) {
         return insMap.get(li);
     }
 
@@ -128,7 +130,7 @@ final class LocalsTypeMapper {
         return locals.get(slot);
     }
 
-    private void accept(CodeElement el) {
+    private void accept(int elIndex, CodeElement el) {
         switch (el) {
             case ArrayLoadInstruction _ ->
                 pop(1).push(pop().componentType());
@@ -160,7 +162,7 @@ final class LocalsTypeMapper {
                         .push(i.typeSymbol().returnType());
             case LoadInstruction i -> {
                 push(load(i.slot()));
-                insMap.put(i, locals.get(i.slot()));
+                insMap.put(elIndex, locals.get(i.slot()));
             }
             case StoreInstruction i ->
                 store(i.slot(), pop());
