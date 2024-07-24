@@ -40,7 +40,7 @@ public class TestSwitchExpressionOp {
             case 12 - 6 -> "6";
             case 3 + 4 -> "7";
             case 2 * 2 * 2 -> "8";
-            case 0xF | 1 -> "9";
+            case 8 | 1 -> "9";
             case (10) -> "10";
             case eleven -> "11";
             case Constants.c1 -> String.valueOf(Constants.c1);
