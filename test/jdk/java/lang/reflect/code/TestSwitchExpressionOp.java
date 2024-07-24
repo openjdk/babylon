@@ -1,11 +1,15 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.StringWriter;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.code.op.CoreOp;
+import java.lang.reflect.code.writer.OpWriter;
 import java.lang.runtime.CodeReflection;
 import java.util.*;
 import java.util.stream.Stream;
@@ -205,7 +209,7 @@ public class TestSwitchExpressionOp {
             case 12 - 6 -> "6";
             case 3 + 4 -> "7";
             case 2 * 2 * 2 -> "8";
-            case 0xF | 1 -> "9";
+            case 8 | 1 -> "9";
             case (10) -> "10";
             case eleven -> "11";
             case Constants.c1 -> String.valueOf(Constants.c1);
@@ -376,13 +380,22 @@ public class TestSwitchExpressionOp {
     }
 
     private static CoreOp.FuncOp lower(CoreOp.FuncOp f) {
-        f.writeTo(System.out);
+        writeModel(f, System.out, OpWriter.LocationOption.DROP_LOCATION);
 
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
-
-        lf.writeTo(System.out);
+        writeModel(lf, System.out, OpWriter.LocationOption.DROP_LOCATION);
 
         return lf;
+    }
+
+    private static void writeModel(CoreOp.FuncOp f, OutputStream os, OpWriter.Option... options) {
+        StringWriter sw = new StringWriter();
+        new OpWriter(sw, options).writeOp(f);
+        try {
+            os.write(sw.toString().getBytes());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static CoreOp.FuncOp getCodeModel(String methodName) {
