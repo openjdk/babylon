@@ -5,8 +5,6 @@ import hat.buffer.Buffer;
 import hat.ifacemapper.accessor.AccessorInfo;
 import hat.ifacemapper.accessor.ValueType;
 
-import java.lang.foreign.GroupLayout;
-import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.util.ArrayList;
@@ -22,6 +20,7 @@ public class Schema<T extends Buffer> {
     public static abstract class SchemaNode {
         public static final class Padding extends FieldNode {
             int len;
+
             Padding(IfaceType parent, int len) {
                 super(parent, AccessorInfo.Key.NONE, "pad" + len);
                 this.len = len;
@@ -39,31 +38,31 @@ public class Schema<T extends Buffer> {
         this.rootIfaceType = rootIfaceType;
     }
 
-    public T allocate(Accelerator accelerator,  int... boundLengths) {
+    public T allocate(Accelerator accelerator, int... boundLengths) {
         BoundSchema<?> boundSchema = new BoundSchema<>(this, boundLengths);
-        T instance = (T)boundSchema.allocate(accelerator.lookup, accelerator);
+        T instance = (T) boundSchema.allocate(accelerator.lookup, accelerator);
         MemorySegment memorySegment = Buffer.getMemorySegment(instance);
         int[] count = new int[]{0};
-        boundSchema.rootBoundSchemaNode().fieldLayouts.forEach(fieldLayout -> {
-                if (fieldLayout instanceof BoundSchema.BoundArrayFieldLayout boundArrayFieldLayout) {
-                    boundArrayFieldLayout.dimFields.forEach(dimLayout -> {
-                        long dimOffset = dimLayout.offset();
-                        int dim = boundLengths[count[0]++];
-                        if (dimLayout.field instanceof FieldNode.ArrayLen arrayLen){
-                            if (arrayLen.key.accessorType.equals(AccessorInfo.AccessorType.GETTER_AND_SETTER)){
-                                throw new IllegalStateException("You have a bound array dim field "+dimLayout.field.name+" controlling size of "+boundArrayFieldLayout.field.name+"[] which has a setter ");
-                            }
-                            if (arrayLen.type == Long.TYPE){
-                                memorySegment.set(ValueLayout.JAVA_LONG,dimOffset,dim);
-                            }else if (arrayLen.type == Integer.TYPE){
-                                memorySegment.set(ValueLayout.JAVA_INT,dimOffset,dim);
-                            }else{
-                                throw new IllegalArgumentException("Unsupported array length type: " + arrayLen.type);
-                            }
-                        }
-                    });
+
+        boundSchema.boundArrayFields().forEach(boundArrayFieldLayout -> {
+            boundArrayFieldLayout.dimFields.forEach(dimLayout -> {
+                long dimOffset = dimLayout.offset();
+                int dim = boundLengths[count[0]++];
+                if (dimLayout.field instanceof FieldNode.ArrayLen arrayLen) {
+                    if (arrayLen.key.accessorType.equals(AccessorInfo.AccessorType.GETTER_AND_SETTER)) {
+                        throw new IllegalStateException("You have a bound array dim field " + dimLayout.field.name + " controlling size of " + boundArrayFieldLayout.field.name + "[] which has a setter ");
+                    }
+                    if (arrayLen.type == Long.TYPE) {
+                        memorySegment.set(ValueLayout.JAVA_LONG, dimOffset, dim);
+                    } else if (arrayLen.type == Integer.TYPE) {
+                        memorySegment.set(ValueLayout.JAVA_INT, dimOffset, dim);
+                    } else {
+                        throw new IllegalArgumentException("Unsupported array length type: " + arrayLen.type);
+                    }
                 }
+            });
         });
+
 
         return instance;
     }
