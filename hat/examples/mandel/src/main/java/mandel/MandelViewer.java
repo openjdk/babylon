@@ -24,7 +24,6 @@
  */
 package mandel;
 
-
 import hat.buffer.Buffer;
 import hat.buffer.S32Array2D;
 
