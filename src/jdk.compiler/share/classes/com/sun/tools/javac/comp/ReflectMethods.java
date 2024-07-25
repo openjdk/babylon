@@ -1434,6 +1434,7 @@ public class ReflectMethods extends TreeTranslator {
                 pushBody(cond,
                         FunctionType.functionType(JavaType.BOOLEAN));
                 Value last = toValue(cond);
+                last = convert(last, typeElementToType(JavaType.BOOLEAN));
                 // Yield the boolean result of the condition
                 append(CoreOp._yield(last));
                 bodies.add(stack.body);
@@ -1645,6 +1646,7 @@ public class ReflectMethods extends TreeTranslator {
             pushBody(cond, FunctionType.functionType(JavaType.BOOLEAN));
             Value last = toValue(cond);
             // Yield the boolean result of the condition
+            last = convert(last, typeElementToType(JavaType.BOOLEAN));
             append(CoreOp._yield(last));
             Body.Builder condition = stack.body;
 
@@ -1682,6 +1684,7 @@ public class ReflectMethods extends TreeTranslator {
             // Push while condition
             pushBody(cond, FunctionType.functionType(JavaType.BOOLEAN));
             Value last = toValue(cond);
+            last = convert(last, typeElementToType(JavaType.BOOLEAN));
             // Yield the boolean result of the condition
             append(CoreOp._yield(last));
             Body.Builder condition = stack.body;

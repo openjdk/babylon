@@ -125,4 +125,73 @@ public class WhileLoopTest {
             i = i + 1;
         } while (i < 10);
     }
+
+
+    @IR("""
+            func @"tes4" ()void -> {
+                  %0 : boolean = constant @"true";
+                  %1 : java.lang.Boolean = invoke %0 @"java.lang.Boolean::valueOf(boolean)java.lang.Boolean";
+                  %2 : Var<java.lang.Boolean> = var %1 @"b";
+                  %3 : int = constant @"0";
+                  %4 : Var<int> = var %3 @"i";
+                  java.while
+                      ()boolean -> {
+                          %5 : java.lang.Boolean = var.load %2;
+                          %6 : boolean = invoke %5 @"java.lang.Boolean::booleanValue()boolean";
+                          yield %6;
+                      }
+                      ()void -> {
+                          %7 : int = var.load %4;
+                          %8 : int = constant @"1";
+                          %9 : int = add %7 %8;
+                          var.store %4 %9;
+                          %10 : int = var.load %4;
+                          %11 : int = constant @"10";
+                          %12 : boolean = lt %10 %11;
+                          %13 : java.lang.Boolean = invoke %12 @"java.lang.Boolean::valueOf(boolean)java.lang.Boolean";
+                          var.store %2 %13;
+                          java.continue;
+                      };
+                  return;
+              };
+            """)
+    @CodeReflection
+    static void tes4() {
+        Boolean b = true;
+        int i = 0;
+        while (b) {
+            i++;
+            b = i < 10;
+        }
+    }
+
+    @IR("""
+            func @"test5" (%0 : int)void -> {
+                %1 : Var<int> = var %0 @"i";
+                %2 : java.lang.Boolean = constant @null;
+                %3 : Var<java.lang.Boolean> = var %2 @"b";
+                java.do.while
+                    ()void -> {
+                        %4 : int = var.load %1;
+                        %5 : int = constant @"10";
+                        %6 : boolean = lt %4 %5;
+                        %7 : java.lang.Boolean = invoke %6 @"java.lang.Boolean::valueOf(boolean)java.lang.Boolean";
+                        var.store %3 %7;
+                        java.continue;
+                    }
+                    ()boolean -> {
+                        %8 : java.lang.Boolean = var.load %3;
+                        %9 : boolean = invoke %8 @"java.lang.Boolean::booleanValue()boolean";
+                        yield %9;
+                    };
+                return;
+            };
+            """)
+    @CodeReflection
+    static void test5(int i) {
+        Boolean b;
+        do {
+            b = i < 10;
+        } while (b);
+    }
 }
