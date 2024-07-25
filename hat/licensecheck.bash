@@ -1,3 +1,5 @@
+#!/bin/bash
+cat >/dev/null<<LICENSE
 /*
  * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -22,23 +24,18 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package experiments;
+LICENSE
 
-import hat.Accelerator;
-import hat.backend.Backend;
-import hat.buffer.S32Array;
 
-import java.lang.invoke.MethodHandles;
-/*
-https://github.com/openjdk/babylon/tree/code-reflection/test/jdk/java/lang/reflect/code
-*/
+find . \
+   -name "*.java" \
+   -o -name "*.bash" \
+   -o -name "*.h" \
+   -o -name "*.cpp" \
+   | grep -v CMakeCXXCompilerId \
+   | grep -v rleparser \
+   | xargs grep -Li "Copyright.*202[0-9], Oracle and/or its affiliates. All rights reserved" \
+   | cut -d: -f1 \
+   | sort -u
 
-public class LambdaTest {
-    public static void main(String[] args) {
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST_NATIVE);
 
-        // TODO: create a test case for these **/
-        S32Array s32Array = S32Array.create(accelerator, 10);
-    }
-
-}
