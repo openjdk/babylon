@@ -109,10 +109,6 @@ final class LocalsTypeMapper {
             case ObjectVerificationTypeInfo ovti -> ovti.classSymbol();
             case UninitializedVerificationTypeInfo uvti ->
                 newMap.computeIfAbsent(uvti.newTarget(), l -> {
-                    System.out.println(l);
-                    for (var ne : newMap.entrySet()) {
-                        System.out.println(ne);
-                    }
                     throw new IllegalArgumentException("Unitialized type does not point to a new instruction");
                 });
             case ITEM_TOP -> null;
