@@ -249,6 +249,13 @@ public class TestBytecode {
         return (i < 2) ? (j < 3) ? i : j : i + j;
     }
 
+    static final int[] MAP = {0, 1, 2, 3, 4};
+
+    @CodeReflection
+    static int deepStackBranches(int a, int b) {
+        return MAP[a > 2 ? MAP[b > 2 ? 1 : 2] : MAP[b > 2 ? 3 : 4]];
+    }
+
     @CodeReflection
     static int tryFinally(int i, int j) {
         try {

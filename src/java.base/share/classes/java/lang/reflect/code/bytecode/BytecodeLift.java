@@ -119,6 +119,14 @@ public final class BytecodeLift {
         this.elements = codeModel.elementList();
         this.stack = new ArrayDeque<>();
         var smta = codeModel.findAttribute(Attributes.stackMapTable());
+        ArrayList<ClassDesc> locals = new ArrayList<>();
+        Stream.concat(Arrays.stream(capturedValues), entryBlock.parameters().stream()).forEachOrdered(val -> {
+            op(SlotOp.store(locals.size(), val));
+            ClassDesc locType = BytecodeGenerator.toClassDesc(val.type());
+            locals.add(locType);
+            if (TypeKind.from(locType).slotSize() == 2) locals.add(null);
+        });
+        this.codeTracker = new LocalsTypeMapper(classModel.thisClass().asSymbol(), locals, smta, elements);
         this.blockMap = smta.map(sma ->
                 sma.entries().stream().collect(Collectors.toUnmodifiableMap(
                         StackMapFrameInfo::target,
@@ -131,20 +139,12 @@ public final class BytecodeLift {
                             case ITEM_UNINITIALIZED_THIS -> JavaType.type(classModel.thisClass().asSymbol());
                             case StackMapFrameInfo.ObjectVerificationTypeInfo ovti ->
                                     JavaType.type(ovti.classSymbol());
-                            case StackMapFrameInfo.UninitializedVerificationTypeInfo _ ->
-                                    JavaType.J_L_OBJECT;
+                            case StackMapFrameInfo.UninitializedVerificationTypeInfo uvti ->
+                                    JavaType.type(codeTracker.getUninitTypeOf(uvti.newTarget()));
                             default ->
                                 throw new IllegalArgumentException("Unexpected VTI: " + vti);
-                        }).toList())))).orElse(Map.of());
+                        }).toList().reversed())))).orElse(Map.of());
 
-        ArrayList<ClassDesc> locals = new ArrayList<>();
-        Stream.concat(Arrays.stream(capturedValues), entryBlock.parameters().stream()).forEachOrdered(val -> {
-            op(SlotOp.store(locals.size(), val));
-            ClassDesc locType = BytecodeGenerator.toClassDesc(val.type());
-            locals.add(locType);
-            if (TypeKind.from(locType).slotSize() == 2) locals.add(null);
-        });
-        this.codeTracker = new LocalsTypeMapper(classModel.thisClass().asSymbol(), locals, smta, elements);
         this.constantCache = new HashMap<>();
     }
 

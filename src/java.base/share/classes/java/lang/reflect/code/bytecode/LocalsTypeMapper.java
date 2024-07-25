@@ -49,7 +49,7 @@ import java.util.HashMap;
 
 final class LocalsTypeMapper {
 
-    final Map<Integer, ClassDesc> insMap;
+    private final Map<Integer, ClassDesc> insMap;
     private final ClassDesc thisClass;
     private final List<ClassDesc> stack, locals;
     private final Map<Label, StackMapFrameInfo> stackMap;
@@ -92,6 +92,10 @@ final class LocalsTypeMapper {
 
     ClassDesc getTypeOf(int li) {
         return insMap.get(li);
+    }
+
+    ClassDesc getUninitTypeOf(Label newLabel) {
+        return newMap.get(newLabel);
     }
 
     private ClassDesc vtiToStackType(StackMapFrameInfo.VerificationTypeInfo vti) {

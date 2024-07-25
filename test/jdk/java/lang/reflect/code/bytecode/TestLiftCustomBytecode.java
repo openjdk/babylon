@@ -70,6 +70,21 @@ public class TestLiftCustomBytecode {
         Assert.assertEquals((int) Interpreter.invoke(f, 42), 42);
     }
 
+    @Test
+    public void testDeepStackJump() throws Throwable {
+        CoreOp.FuncOp f = getFuncOp(ClassFile.of().build(ClassDesc.of("DeepStackJump"), clb ->
+                clb.withMethodBody("deepStackJump", MethodTypeDesc.of(ConstantDescs.CD_long), ClassFile.ACC_STATIC, cob -> {
+                    Label l = cob.newLabel();
+                    cob.lconst_1().iconst_1().iconst_2()
+                       .goto_(l)
+                       .labelBinding(l)
+                       .iadd().i2l().ladd()
+                       .lreturn();
+                })), "deepStackJump");
+
+        Assert.assertEquals((long) Interpreter.invoke(f), 4);
+    }
+
     public record TestRecord(int i, String s) {
     }
 
