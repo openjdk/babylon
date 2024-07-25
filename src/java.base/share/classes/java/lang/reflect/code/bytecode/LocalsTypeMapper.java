@@ -25,11 +25,12 @@
 package java.lang.reflect.code.bytecode;
 
 import java.lang.classfile.CodeElement;
+import java.lang.classfile.Instruction;
 import java.lang.classfile.Label;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
 import java.lang.classfile.attribute.StackMapFrameInfo;
-import java.lang.classfile.attribute.StackMapFrameInfo.ObjectVerificationTypeInfo;
+import java.lang.classfile.attribute.StackMapFrameInfo.*;
 import java.lang.classfile.attribute.StackMapTableAttribute;
 import java.lang.classfile.instruction.*;
 import java.lang.constant.ClassDesc;
@@ -48,10 +49,11 @@ import java.util.HashMap;
 
 final class LocalsTypeMapper {
 
-    private final Map<Integer, ClassDesc> insMap;
+    final Map<Integer, ClassDesc> insMap;
     private final ClassDesc thisClass;
     private final List<ClassDesc> stack, locals;
     private final Map<Label, StackMapFrameInfo> stackMap;
+    private final Map<Label, ClassDesc> newMap;
 
     LocalsTypeMapper(ClassDesc thisClass,
                          List<ClassDesc> initFrameLocals,
@@ -64,9 +66,28 @@ final class LocalsTypeMapper {
         this.stackMap = stackMapTableAttribute.map(a -> a.entries().stream().collect(Collectors.toMap(
                 StackMapFrameInfo::target,
                 Function.identity()))).orElse(Map.of());
+        this.newMap = computeNewMap(codeElements);
         for (int i = 0; i < codeElements.size(); i++) {
             accept(i, codeElements.get(i));
         }
+    }
+
+    private static Map<Label, ClassDesc> computeNewMap(List<CodeElement> codeElements) {
+        Map<Label, ClassDesc> newMap = new HashMap<>();
+        Label lastLabel = null;
+        for (int i = 0; i < codeElements.size(); i++) {
+            switch (codeElements.get(i)) {
+                case LabelTarget lt -> lastLabel = lt.label();
+                case NewObjectInstruction newI -> {
+                    if (lastLabel != null) {
+                        newMap.put(lastLabel, newI.className().asSymbol());
+                    }
+                }
+                case Instruction _ -> lastLabel = null; //invalidate label
+                default -> {} //skip
+            }
+        }
+        return newMap;
     }
 
     ClassDesc getTypeOf(int li) {
@@ -80,8 +101,17 @@ final class LocalsTypeMapper {
             case ITEM_DOUBLE -> CD_double;
             case ITEM_LONG -> CD_long;
             case ITEM_UNINITIALIZED_THIS -> thisClass;
+            case ITEM_NULL -> CD_Object;
             case ObjectVerificationTypeInfo ovti -> ovti.classSymbol();
-            default -> null;
+            case UninitializedVerificationTypeInfo uvti ->
+                newMap.computeIfAbsent(uvti.newTarget(), l -> {
+                    System.out.println(l);
+                    for (var ne : newMap.entrySet()) {
+                        System.out.println(ne);
+                    }
+                    throw new IllegalArgumentException("Unitialized type does not point to a new instruction");
+                });
+            case ITEM_TOP -> null;
         };
     }
 
