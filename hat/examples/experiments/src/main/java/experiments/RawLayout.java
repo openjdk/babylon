@@ -30,11 +30,11 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.constant.ClassDesc;
 import java.lang.foreign.*;
-        import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.*;
-        import java.lang.reflect.code.analysis.SSA;
+import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.op.ExternalizableOp;
 import java.lang.reflect.code.op.OpFactory;
@@ -43,7 +43,7 @@ import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.type.PrimitiveType;
 import java.lang.runtime.CodeReflection;
 import java.util.*;
-        import java.util.stream.Stream;
+import java.util.stream.Stream;
 
 public class RawLayout {
 
