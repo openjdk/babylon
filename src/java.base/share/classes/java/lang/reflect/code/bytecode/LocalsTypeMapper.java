@@ -53,7 +53,7 @@ final class LocalsTypeMapper {
     private final Map<Integer, ClassDesc> insMap;
     private final ClassDesc thisClass;
     private final List<ClassDesc> stack, locals;
-    private final Map<Label, Frame> stackMap;
+    final Map<Label, Frame> stackMap;
     private final Map<Label, ClassDesc> newMap;
     private boolean frameDirty;
 

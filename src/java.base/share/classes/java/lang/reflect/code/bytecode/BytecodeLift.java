@@ -127,24 +127,9 @@ public final class BytecodeLift {
             if (TypeKind.from(locType).slotSize() == 2) locals.add(null);
         });
         this.codeTracker = new LocalsTypeMapper(classModel.thisClass().asSymbol(), locals, smta, elements);
-        this.blockMap = smta.map(sma ->
-                sma.entries().stream().collect(Collectors.toUnmodifiableMap(
-                        StackMapFrameInfo::target,
-                        smfi -> entryBlock.block(smfi.stack().stream().map(vti -> (TypeElement)switch (vti) {
-                            case ITEM_INTEGER -> JavaType.INT;
-                            case ITEM_FLOAT -> JavaType.FLOAT;
-                            case ITEM_DOUBLE -> JavaType.DOUBLE;
-                            case ITEM_LONG -> JavaType.LONG;
-                            case ITEM_NULL -> JavaType.J_L_OBJECT;
-                            case ITEM_UNINITIALIZED_THIS -> JavaType.type(classModel.thisClass().asSymbol());
-                            case StackMapFrameInfo.ObjectVerificationTypeInfo ovti ->
-                                    JavaType.type(ovti.classSymbol());
-                            case StackMapFrameInfo.UninitializedVerificationTypeInfo uvti ->
-                                    JavaType.type(codeTracker.getUninitTypeOf(uvti.newTarget()));
-                            default ->
-                                throw new IllegalArgumentException("Unexpected VTI: " + vti);
-                        }).toList().reversed())))).orElse(Map.of());
-
+        this.blockMap = codeTracker.stackMap.entrySet().stream().collect(Collectors.toUnmodifiableMap(
+                        Map.Entry::getKey,
+                        me -> entryBlock.block(me.getValue().stack().stream().map(JavaType::type).toArray(TypeElement[]::new))));
         this.constantCache = new HashMap<>();
     }
 
