@@ -31,6 +31,7 @@ import hat.callgraph.CallGraph;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.SegmentMapper;
 import hat.optools.FuncOpWrapper;
+import hat.optools.InvokeOpWrapper;
 
 import java.lang.foreign.Arena;
 import java.lang.reflect.code.CopyContext;
@@ -38,6 +39,9 @@ import java.lang.reflect.code.Value;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.code.op.CoreOp;
+import java.lang.reflect.code.type.JavaType;
+import java.util.ArrayList;
+import java.util.List;
 
 public abstract class NativeBackend extends NativeBackendDriver {
 
@@ -45,9 +49,10 @@ public abstract class NativeBackend extends NativeBackendDriver {
 
 
     @Override
-    public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema){
+    public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema) {
         return segmentMapper.allocate(arena, boundSchema);
     }
+
     public NativeBackend(String libName) {
         super(libName);
     }
@@ -77,11 +82,12 @@ public abstract class NativeBackend extends NativeBackendDriver {
         FuncOpWrapper originalFuncOpWrapper = resolvedMethodCall.funcOpWrapper();
         originalFuncOpWrapper.op().writeTo(System.out);
         var transformed = originalFuncOpWrapper.transformInvokes((builder, invokeOpWrapper) -> {
+                    CopyContext cc = builder.context();
+                    //We know that the first arg to a compute method is indeed a computeContext
+                    // so map the value
+                    Value computeContext = cc.getValue(originalFuncOpWrapper.parameter(0));
                     if (invokeOpWrapper.isIfaceBufferMethod()) {
-                        CopyContext cc = builder.context();
-                        Value computeContext = cc.getValue(originalFuncOpWrapper.parameter(0));
                         Value receiver = cc.getValue(invokeOpWrapper.operandNAsValue(0));
-
                         if (invokeOpWrapper.isIfaceMutator()) {
                             builder.op(CoreOp.invoke(ComputeContext.M_CC_PRE_MUTATE, computeContext, receiver));
                             builder.op(invokeOpWrapper.op());
@@ -93,13 +99,31 @@ public abstract class NativeBackend extends NativeBackendDriver {
                         } else {
                             builder.op(invokeOpWrapper.op());
                         }
-                    } else {
+                    } else if (invokeOpWrapper.isComputeContextMethod()) { //dispatchKernel
                         builder.op(invokeOpWrapper.op());
+                    } else if (invokeOpWrapper.isRawKernelCall()) {        //static, void and first arg is KernelContext
+                        builder.op(invokeOpWrapper.op());
+                    } else {
+                        for (int i=0; i<invokeOpWrapper.operandCount();i++ ){
+                            if (invokeOpWrapper.operandNAsValue(i) instanceof Value value
+                                    && value.type() instanceof JavaType javaType
+                                    && InvokeOpWrapper.isIface(javaType)){
+                                builder.op(CoreOp.invoke(ComputeContext.M_CC_PRE_ESCAPE, computeContext, cc.getValue(value)));
+                            }
+                        }
+                        builder.op(invokeOpWrapper.op());
+                        for (int i=0; i<invokeOpWrapper.operandCount();i++ ){
+                            if (invokeOpWrapper.operandNAsValue(i) instanceof Value value
+                                    && value.type() instanceof JavaType javaType
+                                    && InvokeOpWrapper.isIface(javaType)){
+                                builder.op(CoreOp.invoke(ComputeContext.M_CC_POST_ESCAPE, computeContext, cc.getValue(value)));
+                            }
+                        }
                     }
                     return builder;
                 }
         );
-        // transformed.op().writeTo(System.out);
+        transformed.op().writeTo(System.out);
         resolvedMethodCall.funcOpWrapper(transformed);
         return transformed;
     }

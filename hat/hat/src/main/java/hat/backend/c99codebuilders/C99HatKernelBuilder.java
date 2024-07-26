@@ -30,6 +30,7 @@ import hat.buffer.KernelContext;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
 import hat.optools.FuncOpWrapper;
+import hat.optools.InvokeOpWrapper;
 import hat.optools.StructuralOpWrapper;
 import hat.util.StreamCounter;
 
@@ -80,7 +81,7 @@ public abstract class C99HatKernelBuilder<T extends C99HatKernelBuilder<T>> exte
 
     @Override
     public T type(JavaType javaType) {
-        if (FuncOpWrapper.ParamTable.Info.isIfaceBuffer(javaType) && javaType instanceof ClassType classType) {
+        if (InvokeOpWrapper.isIface(javaType) && javaType instanceof ClassType classType) {
             globalPtrPrefix().space();
             String name = classType.toClassName();
             int dotIdx = name.lastIndexOf('.');
