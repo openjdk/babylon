@@ -62,6 +62,8 @@ public abstract class NativeBackend extends NativeBackendDriver {
         if (computeContext.computeCallGraph.entrypoint.lowered == null) {
             computeContext.computeCallGraph.entrypoint.lowered = computeContext.computeCallGraph.entrypoint.funcOpWrapper().lower();
         }
+        computeContext.clearRuntimeInfo();
+
         boolean interpret = false;
         if (interpret) {
             Interpreter.invoke(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered.op(), args);
