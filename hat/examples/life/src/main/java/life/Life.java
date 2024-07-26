@@ -57,7 +57,7 @@ public class Life {
         );
 
         static CellGrid create(Accelerator accelerator, int width, int height) {
-            return schema.allocate(accelerator, width,height);
+            return schema.allocate(accelerator, width, height);
         }
 
         ValueLayout valueLayout = JAVA_BYTE;
@@ -65,7 +65,7 @@ public class Life {
 
         default CellGrid copySliceTo(byte[] bytes, int to) {
             long offset = headerOffset + to * valueLayout.byteOffset();
-            MemorySegment.copy(Buffer.getMemorySegment(this), valueLayout, offset, bytes, 0, width()*height());
+            MemorySegment.copy(Buffer.getMemorySegment(this), valueLayout, offset, bytes, 0, width() * height());
             return this;
         }
     }
@@ -83,7 +83,7 @@ public class Life {
 
         static Control create(Accelerator accelerator, CellGrid cellGrid) {
             var instance = schema.allocate(accelerator);
-            instance.to(cellGrid.width()*cellGrid.height());
+            instance.to(cellGrid.width() * cellGrid.height());
             instance.from(0);
             return instance;
         }
@@ -120,8 +120,27 @@ public class Life {
         }
 
         @CodeReflection
-        static public void compute(final ComputeContext computeContext, Control control, CellGrid cellGrid) {
-            computeContext.dispatchKernel(cellGrid.width()*cellGrid.height(), kc -> Compute.life(kc, control, cellGrid));
+        static public void compute(final ComputeContext computeContext, Viewer viewer, Control control, CellGrid cellGrid) {
+            long start = System.currentTimeMillis();
+            int generation = 0;
+            while (true) {
+
+                computeContext.dispatchKernel(
+                        cellGrid.width() * cellGrid.height(),
+                        kc -> Compute.life(kc, control, cellGrid)
+                );
+
+                //swap from/to
+                int to = control.from();
+                control.from(control.to());
+                control.to(to);
+                viewer.setGeneration(generation++, System.currentTimeMillis() - start);
+               // if (generation % 50 == 0) {
+                    viewer.update(cellGrid, to);
+               // }
+            }
+
+
         }
     }
 
@@ -144,19 +163,9 @@ public class Life {
 
         Control control = Control.create(accelerator, cellGrid);
         final Viewer viewer = new Viewer("Life", control, cellGrid);
-        viewer.update();
+        viewer.update(cellGrid, 0);
         viewer.waitForStart();
+        accelerator.compute(cc -> Compute.compute(cc, viewer, control, cellGrid));
 
-        final long startMillis = System.currentTimeMillis();
-
-        for (int generation = 0; generation < Integer.MAX_VALUE; generation++) {
-            accelerator.compute(cc -> Compute.compute(cc, control, cellGrid));
-            //swap from/to
-            int tmp = control.from();
-            control.from(control.to());
-            control.to(tmp);
-            long elapsedMs = System.currentTimeMillis() - startMillis;
-            viewer.setGeneration(generation, ((generation * 1000f) / elapsedMs));
-        }
     }
 }

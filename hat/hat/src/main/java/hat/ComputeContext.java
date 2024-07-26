@@ -69,6 +69,10 @@ public class ComputeContext implements BufferAllocator {
             void.class, Buffer.class);
     public static final MethodRef M_CC_POST_ACCESS = MethodRef.method(ComputeContext.class, "postAccess",
             void.class, Buffer.class);
+    public static final MethodRef M_CC_PRE_ESCAPE = MethodRef.method(ComputeContext.class, "preEscape",
+            void.class, Buffer.class);
+    public static final MethodRef M_CC_POST_ESCAPE = MethodRef.method(ComputeContext.class, "postEscape",
+            void.class, Buffer.class);
     public final Accelerator accelerator;
 
 
@@ -143,6 +147,13 @@ public class ComputeContext implements BufferAllocator {
 
     public void postAccess(Buffer b) {
         /*System.out.println("postAccess " + b);*/
+    }
+
+    public void preEscape(Buffer b) {
+        /*System.out.println("preEscape " + b);*/
+    }
+    public void postEscape(Buffer b) {
+        /*System.out.println("postEscape " + b);*/
     }
 
     @Override

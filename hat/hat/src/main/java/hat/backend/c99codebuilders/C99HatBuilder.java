@@ -138,7 +138,8 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
 
 
     public T type(JavaType javaType) {
-        if (FuncOpWrapper.ParamTable.Info.isIfaceBuffer(javaType) && javaType instanceof ClassType classType) {
+       // if (FuncOpWrapper.ParamTable.Info.isIfaceBuffer(javaType) && javaType instanceof ClassType classType)
+        if (InvokeOpWrapper.isIface(javaType) && javaType instanceof ClassType classType) {
             String name = classType.toClassName();
             int dotIdx = name.lastIndexOf('.');
             int dollarIdx = name.lastIndexOf('$');
