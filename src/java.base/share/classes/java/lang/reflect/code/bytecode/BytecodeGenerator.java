@@ -552,8 +552,7 @@ public final class BytecodeGenerator {
                     case ConvOp op -> {
                         Value first = op.operands().getFirst();
                         processOperand(first);
-                        TypeKind tk = toTypeKind(first.type());
-                        if (tk != rvt) conversion(cob, tk, rvt);
+                        cob.conversion(toTypeKind(first.type()), rvt);
                         push(op.result());
                     }
                     case NegOp op -> {
@@ -920,66 +919,6 @@ public final class BytecodeGenerator {
                     throw new UnsupportedOperationException("Terminating operation not supported: " + top);
             }
         }
-    }
-
-    // @@@ this method will apperar in CodeBuilder with next merge/update from master
-    static CodeBuilder conversion(CodeBuilder cob, TypeKind fromType, TypeKind toType) {
-        return switch (fromType) {
-            case IntType, ByteType, CharType, ShortType, BooleanType ->
-                    switch (toType) {
-                        case IntType -> cob;
-                        case LongType -> cob.i2l();
-                        case DoubleType -> cob.i2d();
-                        case FloatType -> cob.i2f();
-                        case ByteType -> cob.i2b();
-                        case CharType -> cob.i2c();
-                        case ShortType -> cob.i2s();
-                        case BooleanType -> cob.iconst_1().iand();
-                        case VoidType, ReferenceType ->
-                            throw new IllegalArgumentException(String.format("convert %s -> %s", fromType, toType));
-                    };
-            case LongType ->
-                    switch (toType) {
-                        case IntType -> cob.l2i();
-                        case LongType -> cob;
-                        case DoubleType -> cob.l2d();
-                        case FloatType -> cob.l2f();
-                        case ByteType -> cob.l2i().i2b();
-                        case CharType -> cob.l2i().i2c();
-                        case ShortType -> cob.l2i().i2s();
-                        case BooleanType -> cob.l2i().iconst_1().iand();
-                        case VoidType, ReferenceType ->
-                            throw new IllegalArgumentException(String.format("convert %s -> %s", fromType, toType));
-                    };
-            case DoubleType ->
-                    switch (toType) {
-                        case IntType -> cob.d2i();
-                        case LongType -> cob.d2l();
-                        case DoubleType -> cob;
-                        case FloatType -> cob.d2f();
-                        case ByteType -> cob.d2i().i2b();
-                        case CharType -> cob.d2i().i2c();
-                        case ShortType -> cob.d2i().i2s();
-                        case BooleanType -> cob.d2i().iconst_1().iand();
-                        case VoidType, ReferenceType ->
-                            throw new IllegalArgumentException(String.format("convert %s -> %s", fromType, toType));
-                    };
-            case FloatType ->
-                    switch (toType) {
-                        case IntType -> cob.f2i();
-                        case LongType -> cob.f2l();
-                        case DoubleType -> cob.f2d();
-                        case FloatType -> cob;
-                        case ByteType -> cob.f2i().i2b();
-                        case CharType -> cob.f2i().i2c();
-                        case ShortType -> cob.f2i().i2s();
-                        case BooleanType -> cob.f2i().iconst_1().iand();
-                        case VoidType, ReferenceType ->
-                            throw new IllegalArgumentException(String.format("convert %s -> %s", fromType, toType));
-                    };
-            case VoidType, ReferenceType ->
-                throw new IllegalArgumentException(String.format("convert %s -> %s", fromType, toType));
-        };
     }
 
     private boolean inBlockArgs(Op.Result res) {
