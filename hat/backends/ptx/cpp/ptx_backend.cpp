@@ -46,69 +46,73 @@ uint64_t timeSinceEpochMillisec() {
 }
 
 Ptx *Ptx::nvcc(const char *ptxSource, size_t len) {
-    Ptx *ptx = nullptr;
-    uint64_t time = timeSinceEpochMillisec();
-    std::stringstream timestampPtx;
-    timestampPtx << "./tmp" << time << ".ptx";
-    const char *ptxPath = strdup(timestampPtx.str().c_str());
-   // std::cout << "ptx " << ptxPath << std::endl;
-    // we are going to fork exec nvcc
-    int pid;
-    if ((pid = fork()) == 0) {
-        std::ofstream ptx;
-        std::stringstream timestampPtx;
-        timestampPtx << "./tmp" << time << ".cu";
-        const char *ptxPath = strdup(timestampPtx.str().c_str());
-        std::cout << "ptx " << ptxPath << std::endl;
-        ptx.open(ptxPath, std::ofstream::trunc);
-        ptx.write(ptxSource, len);
-        ptx.close();
-        const char *path = "/usr/bin/nvcc";
-        //const char *path = "/usr/local/cuda-12.2/bin/nvcc";
-        const char *argv[]{"nvcc", "-ptx", ptxPath, "-o", ptxPath, nullptr};
-        // we can't free ptxPath or ptxpath in child because we need them in exec, no prob through
-        // because we get a new proc so they are released to os
-        execvp(path, (char *const *) argv);
-
-    } else if (pid < 0) {
-        // fork failed.
-        std::cerr << "fork of nvcc failed" << std::endl;
-        std::exit(1);
-    } else {
-        int status;
-     //   std::cerr << "fork suceeded waiting for child" << std::endl;
-        pid_t result = wait(&status);
-        std::cerr << "child finished" << std::endl;
-        std::ifstream ptxStream;
-        ptxStream.open(ptxPath);
-      //  if (ptxStream.is_open()) {
-            ptxStream.seekg(0, std::ios::end);
-            size_t ptxLen = ptxStream.tellg();
-            ptxStream.close();
-            ptxStream.open(ptxPath);
-            free((void *) ptxPath);
-            ptxPath = nullptr;
-            if (ptxLen > 0) {
-                std::cerr << "ptx len "<< ptxLen << std::endl;
-                ptx = new Ptx(ptxLen + 1);
-                std::cerr << "about to read  "<< ptx->len << std::endl;
-                ptxStream.read(ptx->text, ptx->len);
-                ptxStream.close();
-                std::cerr << "about to read  "<< ptx->len << std::endl;
-                ptx->text[ptx->len - 1] = '\0';
-                std::cerr << "read text "<< ptx->text << std::endl;
-
-            } else {
-                std::cerr << "no ptx! ptxLen == 0?";
-                exit(1);
-            }
-      //  }else{
-        //    std::cerr << "no ptx!";
-       //     exit(1);
-      //  }
-    }
-    std::cout << "returning PTX" << std::endl;
+    Ptx * ptx = new Ptx(len);
+    strcpy(ptx->text,ptxSource);
     return ptx;
+
+//     Ptx *ptx = nullptr;
+//     uint64_t time = timeSinceEpochMillisec();
+//     std::stringstream timestampPtx;
+//     timestampPtx << "./tmp" << time << ".ptx";
+//     const char *ptxPath = strdup(timestampPtx.str().c_str());
+//    // std::cout << "ptx " << ptxPath << std::endl;
+//     // we are going to fork exec nvcc
+//     int pid;
+//     if ((pid = fork()) == 0) {
+//         std::ofstream ptx;
+//         std::stringstream timestampPtx;
+//         timestampPtx << "./tmp" << time << ".cu";
+//         const char *ptxPath = strdup(timestampPtx.str().c_str());
+//         std::cout << "ptx " << ptxPath << std::endl;
+//         ptx.open(ptxPath, std::ofstream::trunc);
+//         ptx.write(ptxSource, len);
+//         ptx.close();
+//         const char *path = "/usr/bin/nvcc";
+//         //const char *path = "/usr/local/cuda-12.2/bin/nvcc";
+//         const char *argv[]{"nvcc", "-ptx", ptxPath, "-o", ptxPath, nullptr};
+//         // we can't free ptxPath or ptxpath in child because we need them in exec, no prob through
+//         // because we get a new proc so they are released to os
+//         execvp(path, (char *const *) argv);
+
+//     } else if (pid < 0) {
+//         // fork failed.
+//         std::cerr << "fork of nvcc failed" << std::endl;
+//         std::exit(1);
+//     } else {
+//         int status;
+//      //   std::cerr << "fork suceeded waiting for child" << std::endl;
+//         pid_t result = wait(&status);
+//         std::cerr << "child finished" << std::endl;
+//         std::ifstream ptxStream;
+//         ptxStream.open(ptxPath);
+//       //  if (ptxStream.is_open()) {
+//             ptxStream.seekg(0, std::ios::end);
+//             size_t ptxLen = ptxStream.tellg();
+//             ptxStream.close();
+//             ptxStream.open(ptxPath);
+//             free((void *) ptxPath);
+//             ptxPath = nullptr;
+//             if (ptxLen > 0) {
+//                 std::cerr << "ptx len "<< ptxLen << std::endl;
+//                 ptx = new Ptx(ptxLen + 1);
+//                 std::cerr << "about to read  "<< ptx->len << std::endl;
+//                 ptxStream.read(ptx->text, ptx->len);
+//                 ptxStream.close();
+//                 std::cerr << "about to read  "<< ptx->len << std::endl;
+//                 ptx->text[ptx->len - 1] = '\0';
+//                 std::cerr << "read text "<< ptx->text << std::endl;
+
+//             } else {
+//                 std::cerr << "no ptx! ptxLen == 0?";
+//                 exit(1);
+//             }
+//       //  }else{
+//         //    std::cerr << "no ptx!";
+//        //     exit(1);
+//       //  }
+//     }
+//     std::cout << "returning PTX" << std::endl;
+//     return ptx;
 }
 
 /*
@@ -451,6 +455,7 @@ long PtxBackend::compileProgram(int len, char *source) {
         int status = cuModuleLoadDataEx(&module, ptx->text, jitNumOptions, jitOptions, (void **) jitOptVals);
 
         printf("> PTX JIT log:\n%s\n", jitLogBuffer);
+        printf("status: %d\n", status);
         return reinterpret_cast<long>(new PtxProgram(this, nullptr, ptx, module));
 
         //delete ptx;
