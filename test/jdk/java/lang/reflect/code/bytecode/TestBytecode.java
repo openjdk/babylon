@@ -252,8 +252,8 @@ public class TestBytecode {
     static final int[] MAP = {0, 1, 2, 3, 4};
 
     @CodeReflection
-    static int deepStackBranches(int a, int b) {
-        return MAP[a > 2 ? MAP[b > 2 ? 1 : 2] : MAP[b > 2 ? 3 : 4]];
+    static int deepStackBranches(boolean a, boolean b) {
+        return MAP[a ? MAP[b ? 1 : 2] : MAP[b ? 3 : 4]];
     }
 
     @CodeReflection

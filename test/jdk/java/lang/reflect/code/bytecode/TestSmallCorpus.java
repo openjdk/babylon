@@ -30,8 +30,6 @@ import java.lang.classfile.MethodModel;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.instruction.*;
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.AccessFlag;
-import java.lang.reflect.code.Op;
 import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
@@ -85,7 +83,7 @@ public class TestSmallCorpus {
         }
 
         // @@@ There is still several failing cases and a lot of errors
-        Assert.assertTrue(passed > 29000, String.format("""
+        Assert.assertTrue(passed > 29300, String.format("""
 
                     passed: %d
                     not matching: %d

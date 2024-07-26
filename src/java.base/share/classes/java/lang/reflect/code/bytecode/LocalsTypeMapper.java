@@ -39,7 +39,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
@@ -49,11 +48,14 @@ import java.util.HashMap;
 
 final class LocalsTypeMapper {
 
+    record Frame(List<ClassDesc> stack, List<ClassDesc> locals) {}
+
     private final Map<Integer, ClassDesc> insMap;
     private final ClassDesc thisClass;
     private final List<ClassDesc> stack, locals;
-    private final Map<Label, StackMapFrameInfo> stackMap;
+    private final Map<Label, Frame> stackMap;
     private final Map<Label, ClassDesc> newMap;
+    private boolean frameDirty;
 
     LocalsTypeMapper(ClassDesc thisClass,
                          List<ClassDesc> initFrameLocals,
@@ -62,14 +64,34 @@ final class LocalsTypeMapper {
         this.insMap = new HashMap<>();
         this.thisClass = thisClass;
         this.stack = new ArrayList<>();
-        this.locals = new ArrayList<>(initFrameLocals);
+        this.locals = new ArrayList<>(initFrameLocals.size());
+        this.newMap = computeNewMap(codeElements);
         this.stackMap = stackMapTableAttribute.map(a -> a.entries().stream().collect(Collectors.toMap(
                 StackMapFrameInfo::target,
-                Function.identity()))).orElse(Map.of());
-        this.newMap = computeNewMap(codeElements);
-        for (int i = 0; i < codeElements.size(); i++) {
-            accept(i, codeElements.get(i));
+                this::toFrame))).orElse(Map.of());
+        do {
+            this.locals.addAll(initFrameLocals);
+            this.frameDirty = false;
+            for (int i = 0; i < codeElements.size(); i++) {
+                accept(i, codeElements.get(i));
+            }
+            endOfFlow();
+        } while (this.frameDirty);
+    }
+
+    private Frame toFrame(StackMapFrameInfo smfi) {
+        List<ClassDesc> fstack = new ArrayList<>(smfi.stack().size());
+        List<ClassDesc> flocals = new ArrayList<>(smfi.locals().size() * 2);
+        for (var vti : smfi.stack().reversed()) {
+            fstack.add(vtiToStackType(vti));
         }
+        for (var vti : smfi.locals()) {
+            flocals.add(vtiToStackType(vti));
+            if (vti == ITEM_DOUBLE || vti == ITEM_LONG) {
+                flocals.add(null);
+            }
+        }
+        return new Frame(fstack, flocals);
     }
 
     private static Map<Label, ClassDesc> computeNewMap(List<CodeElement> codeElements) {
@@ -166,8 +188,22 @@ final class LocalsTypeMapper {
                 pop(1).push(pop().componentType());
             case ArrayStoreInstruction _ ->
                 pop(3);
-            case BranchInstruction i when !i.opcode().isUnconditionalBranch() ->
-                pop(1);
+            case BranchInstruction i -> {
+                switch (i.opcode()) {
+                    case IFEQ, IFGE, IFGT, IFLE, IFLT, IFNE, IFNONNULL, IFNULL -> {
+                        pop();
+                        mergeToTargetFrame(i.target());
+                    }
+                    case IF_ACMPEQ, IF_ACMPNE, IF_ICMPEQ, IF_ICMPGE, IF_ICMPGT, IF_ICMPLE, IF_ICMPLT, IF_ICMPNE -> {
+                        pop(2);
+                        mergeToTargetFrame(i.target());
+                    }
+                    case GOTO, GOTO_W -> {
+                        mergeToTargetFrame(i.target());
+                        endOfFlow();
+                    }
+                }
+            }
             case ConstantInstruction i ->
                 push(ClassDesc.ofDescriptor(i.typeKind() == TypeKind.ReferenceType ?
                         i.constantValue().getClass().descriptorString() : i.typeKind().descriptor()));
@@ -245,21 +281,65 @@ final class LocalsTypeMapper {
             case TypeCheckInstruction i ->
                 pop(1).push(i.opcode() == Opcode.CHECKCAST ? i.type().asSymbol() : ConstantDescs.CD_int);
             case LabelTarget lt -> {
-                var smfi = stackMap.get(lt.label());
-                if (smfi != null) {
-                    stack.clear();
-                    for (var vti : smfi.stack()) {
-                        push(vtiToStackType(vti));
+                var frame = stackMap.get(lt.label());
+                if (frame != null) {
+                    if (!stack.isEmpty() || !locals.isEmpty()) {
+                        mergeToTargetFrame(lt.label());
+                        endOfFlow();
                     }
-                    locals.clear();
-                    int slot = 0;
-                    for (var vti : smfi.locals()) {
-                        store(slot, vtiToStackType(vti));
-                        slot += (vti == ITEM_DOUBLE || vti == ITEM_LONG) ? 2 : 1;
-                    }
+                    stack.addAll(frame.stack());
+                    locals.addAll(frame.locals());
                 }
             }
+            case ReturnInstruction _ , ThrowInstruction _ -> {
+                endOfFlow();
+            }
+            case TableSwitchInstruction tsi -> {
+                pop();
+                mergeToTargetFrame(tsi.defaultTarget());
+                for (var c : tsi.cases()) {
+                    mergeToTargetFrame(c.target());
+                }
+                endOfFlow();
+            }
+            case LookupSwitchInstruction lsi -> {
+                pop();
+                mergeToTargetFrame(lsi.defaultTarget());
+                for (var c : lsi.cases()) {
+                    mergeToTargetFrame(c.target());
+                }
+                endOfFlow();
+            }
             default -> {}
+        }
+    }
+
+    private void endOfFlow() {
+        stack.clear();
+        locals.clear();
+    }
+
+    private void mergeToTargetFrame(Label target) {
+        Frame targetFrame = stackMap.get(target);
+        // Merge stack
+        assert stack.size() == targetFrame.stack.size();
+        for (int i = 0; i < targetFrame.stack.size(); i++) {
+            ClassDesc se = stack.get(i);
+            ClassDesc fe = targetFrame.stack.get(i);
+            if (!se.equals(fe) && se.isPrimitive() && CD_int.equals(fe)) {
+                targetFrame.stack.set(i, se);
+                this.frameDirty = true;
+            }
+        }
+        // Merge locals
+        int lSize = Math.min(locals.size(), targetFrame.locals.size());
+        for (int i = 0; i < lSize; i++) {
+            ClassDesc le = locals.get(i);
+            ClassDesc fe = targetFrame.locals.get(i);
+            if (le != null && !le.equals(fe) && le.isPrimitive() && CD_int.equals(fe)) {
+                targetFrame.locals.set(i, le);
+                this.frameDirty = true;
+            }
         }
     }
 }
