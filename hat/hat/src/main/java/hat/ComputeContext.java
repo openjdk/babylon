@@ -39,6 +39,8 @@ import java.lang.reflect.code.Quotable;
 import java.lang.reflect.code.Quoted;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.type.MethodRef;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.Consumer;
 
 /**
@@ -61,6 +63,8 @@ import java.util.function.Consumer;
  * @author Gary Frost
  */
 public class ComputeContext implements BufferAllocator {
+
+
     public static final MethodRef M_CC_PRE_MUTATE = MethodRef.method(ComputeContext.class, "preMutate",
             void.class, Buffer.class);
     public static final MethodRef M_CC_POST_MUTATE = MethodRef.method(ComputeContext.class, "postMutate",
@@ -132,28 +136,49 @@ public class ComputeContext implements BufferAllocator {
         }
     }
 
+    public void clearRuntimeInfo() {
+        runtimeInfo = new RuntimeInfo();
+    }
+
+    public static class RuntimeInfo{
+        public Set<Buffer> javaDirty = new HashSet<>();
+        Set<Buffer> gpuDirty = new HashSet<>();
+    }
+    public  RuntimeInfo runtimeInfo = null;
 
     public void preMutate(Buffer b) {
-        //System.out.println("preMutate " + b);
+       // System.out.println("preMutate " + b);
+        if (runtimeInfo.gpuDirty.contains(b)){
+            throw new IllegalStateException("We want to mutate a buffer on the java side but it is marked as gpu dirty.");
+        }
     }
 
     public void postMutate(Buffer b) {
         //System.out.println("postMutate " + b);
+        runtimeInfo.javaDirty.add(b);
     }
 
     public void preAccess(Buffer b) {
-        /*System.out.println("preAccess " + b);*/
+        //System.out.println("preAccess " + b);
+        if (runtimeInfo.gpuDirty.contains(b)){
+            throw new IllegalStateException("We want to access a buffer on the java side but it is marked as gpu dirty.");
+        }
     }
 
     public void postAccess(Buffer b) {
-        /*System.out.println("postAccess " + b);*/
+       // System.out.println("postAccess " + b);
     }
 
     public void preEscape(Buffer b) {
-        /*System.out.println("preEscape " + b);*/
+        //System.out.println("preEscape " + b);
+
+        if (runtimeInfo.gpuDirty.contains(b)){
+            throw new IllegalStateException("We called a method which escapes a buffer on the java side but it is marked as gpu dirty.");
+        }
     }
     public void postEscape(Buffer b) {
-        /*System.out.println("postEscape " + b);*/
+        //System.out.println("postEscape " + b);
+        runtimeInfo.javaDirty.add(b);
     }
 
     @Override
