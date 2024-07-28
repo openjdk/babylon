@@ -159,7 +159,7 @@ public class Viewer extends JFrame {
 
     void setGeneration(int generation, float ms){
         this.generation.setText(String.format("%8d",generation));
-        this.generationsPerSecond.setText(String.format("%5.2f",ms/generation));
+        this.generationsPerSecond.setText(String.format("%5.2f",(generation*1000)/ms));
         mainPanel.repaint();
     }
 

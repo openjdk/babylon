@@ -64,19 +64,15 @@ import java.util.function.Consumer;
  */
 public class ComputeContext implements BufferAllocator {
 
-
-    public static final MethodRef M_CC_PRE_MUTATE = MethodRef.method(ComputeContext.class, "preMutate",
-            void.class, Buffer.class);
-    public static final MethodRef M_CC_POST_MUTATE = MethodRef.method(ComputeContext.class, "postMutate",
-            void.class, Buffer.class);
-    public static final MethodRef M_CC_PRE_ACCESS = MethodRef.method(ComputeContext.class, "preAccess",
-            void.class, Buffer.class);
-    public static final MethodRef M_CC_POST_ACCESS = MethodRef.method(ComputeContext.class, "postAccess",
-            void.class, Buffer.class);
-    public static final MethodRef M_CC_PRE_ESCAPE = MethodRef.method(ComputeContext.class, "preEscape",
-            void.class, Buffer.class);
-    public static final MethodRef M_CC_POST_ESCAPE = MethodRef.method(ComputeContext.class, "postEscape",
-            void.class, Buffer.class);
+    public  enum WRAPPER {
+        MUTATE("Mutate"), ACCESS("Access"), ESCAPE("Escape");
+        final public MethodRef pre;
+        final public MethodRef post;
+        WRAPPER(String name){
+            this.pre = MethodRef.method(ComputeContext.class, "pre"+name, void.class, Buffer.class);
+            this.post = MethodRef.method(ComputeContext.class, "post"+name, void.class, Buffer.class);
+        }
+    }
     public final Accelerator accelerator;
 
 
@@ -154,12 +150,12 @@ public class ComputeContext implements BufferAllocator {
     }
 
     public void postMutate(Buffer b) {
-        //System.out.println("postMutate " + b);
+       // System.out.println("postMutate " + b);
         runtimeInfo.javaDirty.add(b);
     }
 
     public void preAccess(Buffer b) {
-        //System.out.println("preAccess " + b);
+       // System.out.println("preAccess " + b);
         if (runtimeInfo.gpuDirty.contains(b)){
             throw new IllegalStateException("We want to access a buffer on the java side but it is marked as gpu dirty.");
         }
@@ -170,14 +166,13 @@ public class ComputeContext implements BufferAllocator {
     }
 
     public void preEscape(Buffer b) {
-        //System.out.println("preEscape " + b);
-
+       // System.out.println("preEscape " + b);
         if (runtimeInfo.gpuDirty.contains(b)){
             throw new IllegalStateException("We called a method which escapes a buffer on the java side but it is marked as gpu dirty.");
         }
     }
     public void postEscape(Buffer b) {
-        //System.out.println("postEscape " + b);
+       // System.out.println("postEscape " + b);
         runtimeInfo.javaDirty.add(b);
     }
 
@@ -187,7 +182,6 @@ public class ComputeContext implements BufferAllocator {
     }
 
     public interface QuotableKernelContextConsumer extends Quotable, Consumer<KernelContext> {
-
 
     }
 
