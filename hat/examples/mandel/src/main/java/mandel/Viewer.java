@@ -43,7 +43,7 @@ import java.lang.foreign.MemorySegment;
 
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-public class MandelViewer extends JFrame {
+public class Viewer extends JFrame {
 
     public static class PointF32 {
         public final float x;
@@ -120,7 +120,7 @@ public class MandelViewer extends JFrame {
 
     }
 
-    public MandelViewer(String title, S32Array2D s32Array2D) {
+    public Viewer(String title, S32Array2D s32Array2D) {
         super(title);
 
         this.imageViewer = new ImageViewer(new BufferedImage(s32Array2D.width(), s32Array2D.height(), BufferedImage.TYPE_INT_RGB));

@@ -163,7 +163,7 @@ public class Viewer extends JFrame {
         mainPanel.repaint();
     }
 
-    Viewer(String title, Life.Control control, Life.CellGrid cellGrid) {
+    Viewer(String title, Main.Control control, Main.CellGrid cellGrid) {
         super(title);
         this.mainPanel = new MainPanel(new BufferedImage(cellGrid.width(), cellGrid.height(), BufferedImage.TYPE_BYTE_GRAY));
         var menuBar = new JMenuBar();
@@ -197,7 +197,7 @@ public class Viewer extends JFrame {
         }
     }
 
-    public void update(Life.CellGrid cellGrid, int to) {
+    public void update(Main.CellGrid cellGrid, int to) {
         cellGrid.copySliceTo(mainPanel.rasterData, to);
         mainPanel.repaint();
     }

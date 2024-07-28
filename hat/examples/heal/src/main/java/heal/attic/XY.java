@@ -22,14 +22,11 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package heal;
+package heal.attic;
 
 import hat.Accelerator;
 import hat.buffer.Buffer;
-import hat.buffer.BufferAllocator;
 import hat.ifacemapper.Schema;
-
-import java.lang.invoke.MethodHandles;
 
 public interface XY extends Buffer {
     int x();

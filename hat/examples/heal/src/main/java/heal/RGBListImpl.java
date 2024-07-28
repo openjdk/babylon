@@ -45,14 +45,14 @@ package heal;
 
 import java.util.Arrays;
 
-class RGBListImpl implements RGBList {
+public class RGBListImpl implements RGBList {
     final static int INIT=32;
     final static int STRIDE= 3;
     final static int Ridx= 0;
     final static int Gidx= 1;
     final static int Bidx= 2;
 
-    int length;
+    public int length;
     int[] rgb = new int[INIT*STRIDE];
 
     @Override
@@ -133,6 +133,6 @@ class RGBListImpl implements RGBList {
         add( ((v >> 16) & 0xFF), ((v >> 8) & 0xFF), ((v >> 0) & 0xFF));
     }
 
-    RGBListImpl(){
+    public RGBListImpl(){
     }
 }

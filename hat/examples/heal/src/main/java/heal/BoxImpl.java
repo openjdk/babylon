@@ -28,7 +28,7 @@ import java.awt.Rectangle;
 
 public class BoxImpl implements Box{
     final Rectangle rectangle;
-    BoxImpl(int x1, int y1, int x2, int y2) {
+    public BoxImpl(int x1, int y1, int x2, int y2) {
          rectangle =new Rectangle(x1,y1,x2-x1,y2-y1);
     }
 

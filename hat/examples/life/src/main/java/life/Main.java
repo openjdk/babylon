@@ -41,7 +41,7 @@ import java.lang.runtime.CodeReflection;
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-public class Life {
+public class Main {
 
     public interface CellGrid extends Buffer {
         int width();
@@ -150,7 +150,7 @@ public class Life {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), /*Backend.JAVA_MULTITHREADED);//*/Backend.FIRST);
 
         PatternData patternData = RleParser.readPatternData(
-                Life.class.getClassLoader().getResourceAsStream("orig.rle")
+                Main.class.getClassLoader().getResourceAsStream("orig.rle")
         );
         CellGrid cellGrid = CellGrid.create(accelerator,
                   patternData.getMetaData().getWidth() + 2,
