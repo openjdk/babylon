@@ -47,7 +47,7 @@ import java.awt.Rectangle;
 
 public class Path  {
 
-    final XYList xyList;
+    public final XYList xyList;
     private Rectangle bounds = new Rectangle(Integer.MAX_VALUE,Integer.MAX_VALUE,Integer.MIN_VALUE,Integer.MIN_VALUE);
     Path(XYList xyList){
         this.xyList =xyList;
@@ -68,22 +68,22 @@ public class Path  {
         return this;
     }
 
-    int x1(){
+    public int x1(){
         return bounds.x;
     }
-    int y1(){
+    public int y1(){
         return bounds.y;
     }
-    int width(){
+    public int width(){
         return bounds.width;
     }
-    int height(){
+    public int height(){
         return bounds.height;
     }
-    int x2(){
+    public int x2(){
         return x1()+width();
     }
-    int y2(){
+    public int y2(){
         return y1()+height();
     }
 

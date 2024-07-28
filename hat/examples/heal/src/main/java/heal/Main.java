@@ -31,7 +31,7 @@ import javax.swing.JFrame;
 import java.awt.Rectangle;
 import java.lang.invoke.MethodHandles;
 
-public class Heal {
+public class Main {
     public static void main(String[] args) {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         ImageData imageData = ImageData.of(

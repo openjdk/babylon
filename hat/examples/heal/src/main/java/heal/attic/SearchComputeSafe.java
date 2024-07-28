@@ -43,14 +43,20 @@
  */
 
 
-package heal;
+package heal.attic;
 
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
 import hat.buffer.F32Array;
-import hat.buffer.S32Array;
 import hat.buffer.S32Array2D;
+import heal.Box;
+import heal.BoxImpl;
+import heal.ImageData;
+import heal.Path;
+import heal.RGBList;
+import heal.RGBListImpl;
+import heal.XYList;
 
 import java.awt.Point;
 import java.lang.runtime.CodeReflection;
@@ -74,7 +80,7 @@ float __attribute__((kernel)) bordercorrelation(uint32_t x, uint32_t y) {
   return sum;
 }
  */
-public class SearchCompute {
+public class SearchComputeSafe {
     @CodeReflection
     static int red(int rgb) {
         return (rgb >> 16) & 0xff;
@@ -111,6 +117,75 @@ public class SearchCompute {
         int selectionBoxWidth = selectionBox.x2() - selectionBox.x1();
         int selectionBoxHeight = selectionBox.y2() - selectionBox.y1();
         return (!(x > selectionBox.x2() || x + selectionBoxWidth < selectionBox.x1() || y > selectionBox.y2() || y + selectionBoxHeight < selectionBox.y1()));
+    }
+
+    public static Point original(ImageData imageData, RGBList rgbList, Box searchBox, Box selectionBox, XYList selectionXYList) {
+        float minSoFar = Float.MAX_VALUE;
+        Point bestSoFar = new Point(0, 0);
+        for (int y = searchBox.y1(); y < searchBox.y2(); y++) {
+            for (int x = searchBox.x1(); x < searchBox.x2(); x++) {
+                if (!isInSelection(selectionBox, x, y)) {// don't search inside the area we are healing
+                    float sum = getSum(imageData, selectionBox, selectionXYList, rgbList, x, y);
+                    if (sum < minSoFar) {
+                        minSoFar = sum;
+                        bestSoFar.setLocation(x - selectionBox.x1(), y - selectionBox.y1());
+                    }
+                }
+            }
+        }
+        return bestSoFar;
+    }
+
+    public static Point sequential(ImageData imageData, RGBList rgbList, Box searchBox, Box selectionBox, XYList selectionXYList) {
+        int searchBoxWidth = searchBox.x2() - searchBox.x1();
+        int searchBoxHeight = searchBox.y2() - searchBox.y1();
+        int range = searchBoxWidth * searchBoxHeight;
+        float minSoFar = Float.MAX_VALUE;
+        int bestId = range+1;
+        for (int id = 0; id < range; id++) {
+            int x = searchBox.x1() + id % searchBoxWidth;
+            int y = searchBox.y1() + id / searchBoxWidth;
+            if (!isInSelection(selectionBox, x, y)) {// don't search inside the area we are healing
+                float sum = getSum(imageData, selectionBox, selectionXYList, rgbList, x, y);
+                if (sum < minSoFar) {
+                    minSoFar = sum;
+                    bestId = id;
+
+                }
+            }
+        }
+        int x = searchBox.x1() + (bestId % searchBoxWidth);
+        int y = searchBox.y1() + (bestId / searchBoxWidth);
+        return new Point(x - selectionBox.x1(), y - selectionBox.y1());
+    }
+
+
+    public static Point parallel(ImageData imageData, RGBList rgbList, Box searchBox, Box selectionBox, XYList selectionXYList) {
+        int searchBoxWidth = searchBox.x2() - searchBox.x1();
+        int searchBoxHeight = searchBox.y2() - searchBox.y1();
+        int range = searchBoxWidth * searchBoxHeight;
+        float[] sumArray = new float[range];
+        IntStream.range(0, range).parallel().forEach(id -> {
+            int x = searchBox.x1() + id % searchBoxWidth;
+            int y = searchBox.y1() + id / searchBoxWidth;
+            if (isInSelection(selectionBox, x, y)) {// don't search inside the area we are healing
+                sumArray[id] = Float.MAX_VALUE;
+            } else {
+                sumArray[id] = getSum(imageData, selectionBox, selectionXYList, rgbList, x, y);
+            }
+        });
+        float minSoFar = Float.MAX_VALUE;
+        int id = sumArray.length + 1;
+        for (int i = 0; i < sumArray.length; i++) {
+            float value = sumArray[i];
+            if (value < minSoFar) {
+                id = i;
+                minSoFar = value;
+            }
+        }
+        int x = searchBox.x1() + (id % searchBoxWidth);
+        int y = searchBox.y1() + (id / searchBoxWidth);
+        return new Point(x - selectionBox.x1(), y - selectionBox.y1());
     }
 
     /*
@@ -160,25 +235,32 @@ public class SearchCompute {
 
     @CodeReflection
     public static void  bestCompute(ComputeContext cc,
-             Point offset,
-                                    S32Array2D s32Array2D,  RGBList rgbList, Box searchBox, Box selectionBox, XYList selectionXYList){
+                                  S32Array2D s32Array2D,  RGBList rgbList,
+                                    Box searchBox, Box selectionBox, XYList selectionXYList, XY result){
 
         int searchBoxWidth = searchBox.x2() - searchBox.x1();
         int searchBoxHeight = searchBox.y2() - searchBox.y1();
         int range = searchBoxWidth * searchBoxHeight;
+
         F32Array sumArrayF32 = F32Array.create(cc.accelerator, range);
+
         cc.dispatchKernel(range,
                 kc -> bestKernel(kc,  s32Array2D,rgbList, searchBox, selectionBox, selectionXYList, sumArrayF32));
+
         float[] sumArray = new float[range];
         sumArrayF32.copyTo(sumArray);
         int id = getMinIdx(sumArray);
+
+
         int x = searchBox.x1() + (id % searchBoxWidth);
         int y = searchBox.y1() + (id / searchBoxWidth);
-        offset.setLocation(x - selectionBox.x1(),y - selectionBox.y1());
+        result.x(x - selectionBox.x1());
+        result.y(y - selectionBox.y1());
+        //return new Point(x - selectionBox.x1(), y - selectionBox.y1());
     }
 
-    public static Point getOffsetOfBestMatch(Accelerator accelerator, ImageData imageData, Path selectionPath) {
-        final Point offset  =new Point(0,0);
+    public static Point getOffsetOfBestMatch(Accelerator accelerator,ImageData imageData, Path selectionPath) {
+        Point offset = null;
         if (selectionPath.xyList.length() != 0) {
             /*
             Walk the list of xy coordinates in the path and extract a list of RGB values
@@ -201,7 +283,26 @@ public class SearchCompute {
             int x2 = Math.min(imageData.width(), selectionPath.x2() + padx) - selectionPath.width();
             int y2 = Math.min(imageData.height(), selectionPath.y2() + pady) - selectionPath.height();
             BoxImpl searchBox = new BoxImpl(x1, y1, x2, y2);
+            long searchStart = System.currentTimeMillis();
 
+            boolean useOriginal = true;
+            boolean useSequential = true;
+            // if (useOriginal) {
+            long originalStart = System.currentTimeMillis();
+            Box selectionBox = new BoxImpl(selectionPath.x1(), selectionPath.y1(), selectionPath.x2(), selectionPath.y2());
+            XYList selectionXYList = selectionPath.xyList;
+            offset = original(imageData, rgbList, searchBox, selectionBox, selectionXYList);
+            System.out.println("original search " + (System.currentTimeMillis() - originalStart) + "ms");
+            //  } else {
+            //   if (useSequential) {
+            long sequentialStart = System.currentTimeMillis();
+            offset = sequential(imageData, rgbList, searchBox, selectionBox, selectionXYList);
+            System.out.println("sequential search " + (System.currentTimeMillis() - sequentialStart) + "ms");
+            //    } else {
+            long parallelStart = System.currentTimeMillis();
+            offset = parallel(imageData, rgbList, searchBox, selectionBox, selectionXYList);
+            System.out.println("parallel search " + (System.currentTimeMillis() - parallelStart) + "ms");
+            // }
 
             //All data passed to accelerator needs to be iface mapped segments
             RGBList mappedRGBList = RGBList.create(accelerator,rgbList.length);
@@ -215,7 +316,7 @@ public class SearchCompute {
 
             Box  mappedSearchBox = Box.create(accelerator, searchBox.x1(),searchBox.y1(),searchBox.x2(),searchBox.y2());
             Box  mappedSelectionBox = Box.create(accelerator, selectionPath.x1(),selectionPath.y1(),selectionPath.x2(),selectionPath.y2());
-
+            XY result = XY.create(accelerator,0,0);
 
             XYList  mappedSelectionXYList = XYList.create(accelerator,selectionPath.xyList.length());
             for (int i=0;i<mappedSelectionXYList.length();i++){
@@ -227,12 +328,18 @@ public class SearchCompute {
             S32Array2D s32Array2D = S32Array2D.create(accelerator,imageData.width(),imageData.height());
             s32Array2D.copyFrom(imageData.arrayOfData);
             long hatStart = System.currentTimeMillis();
-            accelerator.compute(cc->SearchCompute.bestCompute(cc,offset,
-                    s32Array2D,mappedRGBList,mappedSearchBox,
+            accelerator.compute(cc-> SearchComputeSafe.bestCompute(cc,s32Array2D,mappedRGBList,mappedSearchBox,
                     mappedSelectionBox,
-                    mappedSelectionXYList
+                    mappedSelectionXYList,
+                    result
             ));
-            System.out.println("total search " + (System.currentTimeMillis() - hatStart) + "ms");
+
+
+            System.out.println("offset "+offset+ " result"+result.x()+","+result.y());
+            System.out.println("hat search " + (System.currentTimeMillis() - hatStart) + "ms");
+
+
+            System.out.println("total search " + (System.currentTimeMillis() - searchStart) + "ms");
         }
         return offset;
     }

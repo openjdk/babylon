@@ -56,7 +56,7 @@ public class ImageData implements S32Array2D {
     final BufferedImage bufferedImage;
      int widthField;
      int heightField;
-    final int[] arrayOfData;
+    public final int[] arrayOfData;
 
     @Override
     public int width() {
@@ -92,7 +92,6 @@ public class ImageData implements S32Array2D {
         if (originalImage.getType() == type){
             image = originalImage;
         }else {
-            // there must be a better way!
             image = new BufferedImage(originalImage.getWidth(), originalImage.getHeight(), type);
             image.getGraphics().drawImage(originalImage, 0, 0, null);
         }
