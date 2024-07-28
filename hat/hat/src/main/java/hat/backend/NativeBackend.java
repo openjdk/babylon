@@ -34,14 +34,17 @@ import hat.optools.FuncOpWrapper;
 import hat.optools.InvokeOpWrapper;
 
 import java.lang.foreign.Arena;
+import java.lang.reflect.code.Block;
 import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.type.JavaType;
-import java.util.ArrayList;
-import java.util.List;
+
+import static hat.ComputeContext.WRAPPER.ACCESS;
+import static hat.ComputeContext.WRAPPER.ESCAPE;
+import static hat.ComputeContext.WRAPPER.MUTATE;
 
 public abstract class NativeBackend extends NativeBackendDriver {
 
@@ -56,7 +59,6 @@ public abstract class NativeBackend extends NativeBackendDriver {
     public NativeBackend(String libName) {
         super(libName);
     }
-
 
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
         if (computeContext.computeCallGraph.entrypoint.lowered == null) {
@@ -80,53 +82,50 @@ public abstract class NativeBackend extends NativeBackendDriver {
         }
     }
 
-    static FuncOpWrapper injectBufferTracking(CallGraph.ResolvedMethodCall resolvedMethodCall) {
-        FuncOpWrapper originalFuncOpWrapper = resolvedMethodCall.funcOpWrapper();
-        originalFuncOpWrapper.op().writeTo(System.out);
-        var transformed = originalFuncOpWrapper.transformInvokes((builder, invokeOpWrapper) -> {
-                    CopyContext cc = builder.context();
-                    //We know that the first arg to a compute method is indeed a computeContext
-                    // so map the value
-                    Value computeContext = cc.getValue(originalFuncOpWrapper.parameter(0));
-                    if (invokeOpWrapper.isIfaceBufferMethod()) {
-                        Value receiver = cc.getValue(invokeOpWrapper.operandNAsValue(0));
-                        if (invokeOpWrapper.isIfaceMutator()) {
-                            builder.op(CoreOp.invoke(ComputeContext.M_CC_PRE_MUTATE, computeContext, receiver));
-                            builder.op(invokeOpWrapper.op());
-                            builder.op(CoreOp.invoke(ComputeContext.M_CC_POST_MUTATE, computeContext, receiver));
-                        } else if (invokeOpWrapper.isIfaceAccessor()) {
-                            builder.op(CoreOp.invoke(ComputeContext.M_CC_PRE_ACCESS, computeContext, receiver));
-                            builder.op(invokeOpWrapper.op());
-                            builder.op(CoreOp.invoke(ComputeContext.M_CC_POST_ACCESS, computeContext, receiver));
-                        } else {
-                            builder.op(invokeOpWrapper.op());
-                        }
-                    } else if (invokeOpWrapper.isComputeContextMethod()) { //dispatchKernel
-                        builder.op(invokeOpWrapper.op());
-                    } else if (invokeOpWrapper.isRawKernelCall()) {        //static, void and first arg is KernelContext
-                        builder.op(invokeOpWrapper.op());
-                    } else {
-                        for (int i=0; i<invokeOpWrapper.operandCount();i++ ){
-                            if (invokeOpWrapper.operandNAsValue(i) instanceof Value value
-                                    && value.type() instanceof JavaType javaType
-                                    && InvokeOpWrapper.isIface(javaType)){
-                                builder.op(CoreOp.invoke(ComputeContext.M_CC_PRE_ESCAPE, computeContext, cc.getValue(value)));
-                            }
-                        }
-                        builder.op(invokeOpWrapper.op());
-                        for (int i=0; i<invokeOpWrapper.operandCount();i++ ){
-                            if (invokeOpWrapper.operandNAsValue(i) instanceof Value value
-                                    && value.type() instanceof JavaType javaType
-                                    && InvokeOpWrapper.isIface(javaType)){
-                                builder.op(CoreOp.invoke(ComputeContext.M_CC_POST_ESCAPE, computeContext, cc.getValue(value)));
-                            }
-                        }
-                    }
-                    return builder;
+    static void wrapInvoke(InvokeOpWrapper iow, Block.Builder bldr, ComputeContext.WRAPPER wrapper, Value cc, Value iface) {
+        bldr.op(CoreOp.invoke(wrapper.pre, cc, iface));
+        bldr.op(iow.op());
+        bldr.op(CoreOp.invoke(wrapper.post, cc, iface));
+    }
+
+    static FuncOpWrapper injectBufferTracking(CallGraph.ResolvedMethodCall computeMethod) {
+        FuncOpWrapper prevFOW = computeMethod.funcOpWrapper();
+        FuncOpWrapper returnFOW = prevFOW;
+        boolean transform = true;
+        if (transform) {
+            System.out.println("COMPUTE entrypoint before injecting buffer tracking...");
+            returnFOW.op().writeTo(System.out);
+            returnFOW = prevFOW.transformInvokes((bldr, invokeOW) -> {
+                CopyContext bldrCntxt = bldr.context();
+                //Map compute method's first param (computeContext) value to transformed model
+                Value cc = bldrCntxt.getValue(prevFOW.parameter(0));
+                if (invokeOW.isIfaceMutator()) {                    // iface.v(newV)
+                    Value iface = bldrCntxt.getValue(invokeOW.operandNAsValue(0));
+                    bldr.op(CoreOp.invoke(MUTATE.pre, cc, iface));  // cc->preMutate(iface);
+                    bldr.op(invokeOW.op());                         // iface.v(newV);
+                    bldr.op(CoreOp.invoke(MUTATE.post, cc, iface)); // cc->postMutate(iface)
+                } else if (invokeOW.isIfaceAccessor()) {            // iface.v()
+                    Value iface = bldrCntxt.getValue(invokeOW.operandNAsValue(0));
+                    bldr.op(CoreOp.invoke(ACCESS.pre, cc, iface));  // cc->preAccess(iface);
+                    bldr.op(invokeOW.op());                         // iface.v();
+                    bldr.op(CoreOp.invoke(ACCESS.post, cc, iface)); // cc->postAccess(iface) } else {
+                } else if (invokeOW.isComputeContextMethod() || invokeOW.isRawKernelCall()) { //dispatchKernel
+                    bldr.op(invokeOW.op());
+                } else {
+                    invokeOW.op().operands().stream()
+                            .filter(value -> value.type() instanceof JavaType javaType && InvokeOpWrapper.isIface(javaType))
+                            .forEach(value -> CoreOp.invoke(ESCAPE.pre, cc, bldrCntxt.getValue(value)));
+                    bldr.op(invokeOW.op());
+                    invokeOW.op().operands().stream()
+                            .filter(value -> value.type() instanceof JavaType javaType && InvokeOpWrapper.isIface(javaType))
+                            .forEach(value -> CoreOp.invoke(ESCAPE.post, cc, bldrCntxt.getValue(value)));
                 }
-        );
-        transformed.op().writeTo(System.out);
-        resolvedMethodCall.funcOpWrapper(transformed);
-        return transformed;
+                return bldr;
+            });
+            System.out.println("COMPUTE entrypoint after injecting buffer tracking...");
+            returnFOW.op().writeTo(System.out);
+        }
+        computeMethod.funcOpWrapper(returnFOW);
+        return returnFOW;
     }
 }

@@ -95,27 +95,33 @@ public class Life {
 
     public static class Compute {
         @CodeReflection
+        public static int val(CellGrid grid, int from, int w, int x, int y) {
+            return grid.cell( ((long) y * w)  + x +from)&1;
+        }
+
+        @CodeReflection
         public static void life(KernelContext kc, Control control, CellGrid cellGrid) {
             if (kc.x < kc.maxX) {
                 int w = cellGrid.width();
                 int h = cellGrid.height();
                 int from = control.from();
+                int to = control.to();
                 int x = kc.x % w;
                 int y = kc.x / w;
                 byte cell = cellGrid.cell(kc.x + from);
-                if (x > 0 && x < (w - 1) && y > 0 && y < (h - 1)) { // passports please
-                    int count = 0;
-                    for (int dx = -1; dx <= 1; dx++) {
-                        for (int dy = -1; dy <= 1; dy++) {
-                            if (!(dx == 0 && dy == 0)) {
-                                int offset = from + y * w + dy * w + x + dx;
-                                count += cellGrid.cell(offset) & 1;
-                            }
-                        }
-                    }
-                    cell = ((count == 3) || ((count == 2) && (cell == ALIVE))) ? ALIVE : DEAD;// B3/S23.
+                if (x>0 && x<(w-1) && y>0 && y<(h-1)) { // passports please
+                    int count =
+                            val(cellGrid,from,w,x-1,y-1)
+                            +val(cellGrid,from,w,x-1,y+0)
+                            +val(cellGrid,from,w,x-1,y+1)
+                            +val(cellGrid,from,w,x+0,y-1)
+                            +val(cellGrid,from,w,x+0,y+1)
+                            +val(cellGrid,from,w,x+1,y+0)
+                            +val(cellGrid,from,w,x+1,y-1)
+                            +val(cellGrid,from,w,x+1,y+1);
+                    cell =  ((count == 3) || ((count == 2) && (cell == ALIVE))) ? ALIVE : DEAD;// B3/S23.
                 }
-                cellGrid.cell(kc.x + control.to(), cell);
+                cellGrid.cell(kc.x + to, cell);
             }
         }
 
@@ -124,23 +130,16 @@ public class Life {
             long start = System.currentTimeMillis();
             int generation = 0;
             while (true) {
-
                 computeContext.dispatchKernel(
                         cellGrid.width() * cellGrid.height(),
                         kc -> Compute.life(kc, control, cellGrid)
                 );
-
-                //swap from/to
-                int to = control.from();
-                control.from(control.to());
-                control.to(to);
+                int to = control.from();control.from(control.to());control.to(to); //swap from/to
                 viewer.setGeneration(generation++, System.currentTimeMillis() - start);
-               // if (generation % 50 == 0) {
+             //   if (generation % 50 == 0) {
                     viewer.update(cellGrid, to);
-               // }
+              //  }
             }
-
-
         }
     }
 
@@ -148,14 +147,15 @@ public class Life {
     public static void main(String[] args) {
         boolean headless = Boolean.getBoolean("headless") || (args.length > 0 && args[0].equals("--headless"));
 
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup(), /*Backend.JAVA_MULTITHREADED);//*/Backend.FIRST);
 
         PatternData patternData = RleParser.readPatternData(
                 Life.class.getClassLoader().getResourceAsStream("orig.rle")
         );
         CellGrid cellGrid = CellGrid.create(accelerator,
-                (((patternData.getMetaData().getWidth() + 2) / 16) + 1) * 16,
-                (((patternData.getMetaData().getHeight() + 2) / 16) + 1) * 16
+                  patternData.getMetaData().getWidth() + 2,
+                patternData.getMetaData().getHeight() + 2
+
         );
         patternData.getLiveCells().getCoordinates().stream().forEach(c ->
                 cellGrid.cell((1 + c.getX()) + (1 + c.getY()) * cellGrid.width(), ALIVE)
