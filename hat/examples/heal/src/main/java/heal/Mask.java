@@ -36,13 +36,13 @@ class Mask {
     public final int width;
     public final int height;
 
-    public Mask(Path path) {
-        width = path.width()+2;
-        height = path.height()+2;
+    public Mask(Selection selection) {
+        width = selection.width()+2;
+        height = selection.height()+2;
         Polygon polygon = new Polygon();
-        for (int i = 0; i < path.xyList.length(); i++) {
-            XYList.XY xy = path.xyList.xy(i);
-            polygon.addPoint(xy.x() - path.x1() + 1, xy.y() - path.y1() + 1);
+        for (int i = 0; i < selection.xyList.length(); i++) { // Not parallel!!! Polygon.addPoint()
+            XYList.XY xy = selection.xyList.xy(i);
+            polygon.addPoint(xy.x() - selection.x1() + 1, xy.y() - selection.y1() + 1);
         }
         BufferedImage maskImg = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         data = ((DataBufferInt) (maskImg.getRaster().getDataBuffer())).getData();

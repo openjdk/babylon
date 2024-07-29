@@ -49,31 +49,11 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
 import hat.buffer.F32Array;
-import hat.buffer.S32Array;
 import hat.buffer.S32Array2D;
-
 import java.awt.Point;
 import java.lang.runtime.CodeReflection;
 import java.util.stream.IntStream;
 
-/*
- From the original renderscript
-
-float3 __attribute__((kernel))extractBorder(int2 in) {
-  return convert_float3(rsGetElementAt_uchar4(image, in.x, in.y).xyz);
-}
-
-float __attribute__((kernel)) bordercorrelation(uint32_t x, uint32_t y) {
-  float sum = 0;
-  for(int i = 0 ; i < borderLength; i++) {
-    int2  coord = rsGetElementAt_int2(border_coords,i);
-    float3 orig = convert_float3(rsGetElementAt_uchar4(image, coord.x + x, coord.y + y).xyz);
-    float3 candidate = rsGetElementAt_float3(border, i).xyz;
-    sum += distance(orig, candidate);
-  }
-  return sum;
-}
- */
 public class SearchCompute {
     @CodeReflection
     static int red(int rgb) {
@@ -92,61 +72,72 @@ public class SearchCompute {
 
 
     @CodeReflection
-    public static float getSum(S32Array2D imageData, Box selectionBox, XYList selectionXYList, RGBList selectionRgbList, int x, int y) {
-        int offset = (y - selectionBox.y1()) * imageData.width() + (x - selectionBox.x1());
+    public static void bestFitCore(int id,
+                                  S32Array2D s32Array2D,
+                                  RGBList rgbList,
+                                  Box searchBox,
+                                  Box selBox,
+                                  XYList selectionXYList,
+                                  F32Array sumArray) {
+        int x = searchBox.x1() + id % (searchBox.width());
+        int y = searchBox.y1() + id / (searchBox.width());
         float sum = 0;
-        for (int i = 0; i < selectionXYList.length(); i++) {
-            var xy = selectionXYList.xy(i);
-            var rgb = selectionRgbList.rgb(i);
-            int rgbFromImage = imageData.array(offset + xy.y() * imageData.width() + xy.x());
-            int dr = red(rgbFromImage) - rgb.r();
-            int dg = green(rgbFromImage) - rgb.g();
-            int db = blue(rgbFromImage) - rgb.b();
-            sum += dr * dr + dg * dg + db * db;
+        // lets not search inside the area we are healing :)
+        if  (x > selBox.x2() || x + selBox.width() < selBox.x1() || y > selBox.y2() || y + selBox.height() < selBox.y1()){
+            /*
+            Renderscript version
+            float __attribute__((kernel)) bordercorrelation(uint32_t x, uint32_t y) {
+               float sum = 0;
+               for(int i = 0 ; i < borderLength; i++) {
+                  int2  coord = rsGetElementAt_int2(border_coords,i);
+                  float3 orig = convert_float3(rsGetElementAt_uchar4(image, coord.x + x, coord.y + y).xyz);
+                  float3 candidate = rsGetElementAt_float3(border, i).xyz;
+                  sum += distance(orig, candidate);
+               }
+               return sum;
+            }
+            */
+            int offset = (y - selBox.y1()) * s32Array2D.width() + (x - selBox.x1());
+            for (int i = 0; i < selectionXYList.length(); i++) {
+                var xy = selectionXYList.xy(i);
+                var rgb = rgbList.rgb(i);
+                int rgbInt = s32Array2D.array(offset + xy.y() * s32Array2D.width() + xy.x());
+                int dr = red(rgbInt) - rgb.r();
+                int dg = green(rgbInt) - rgb.g();
+                int db = blue(rgbInt) - rgb.b();
+                sum += dr * dr + dg * dg + db * db;
+            }
+        }else{
+            sum = Float.MAX_VALUE;
         }
-        return sum;
-    }
-    @CodeReflection
-    public static boolean isInSelection(Box selectionBox, int x, int y) {
-        int selectionBoxWidth = selectionBox.x2() - selectionBox.x1();
-        int selectionBoxHeight = selectionBox.y2() - selectionBox.y1();
-        return (!(x > selectionBox.x2() || x + selectionBoxWidth < selectionBox.x1() || y > selectionBox.y2() || y + selectionBoxHeight < selectionBox.y1()));
+        sumArray.array(id,sum);
     }
 
-    /*
-          float __attribute__((kernel)) bordercorrelation(uint32_t x, uint32_t y) {
-            float sum = 0;
-            for(int i = 0 ; i < borderLength; i++) {
-               int2  coord = rsGetElementAt_int2(border_coords,i);
-               float3 orig = convert_float3(rsGetElementAt_uchar4(image, coord.x + x, coord.y + y).xyz);
-               float3 candidate = rsGetElementAt_float3(border, i).xyz;
-               sum += distance(orig, candidate);
-            }
-            return sum;
-          }
-       */
     @CodeReflection
-    public static void bestKernel(KernelContext kc,
+    public static void bestFitKernel(KernelContext kc,
                                   S32Array2D s32Array2D,
                                   RGBList rgbList,
                                   Box searchBox,
                                   Box selectionBox,
                                   XYList selectionXYList,
                                   F32Array sumArray) {
-        int id = kc.x;
-        int searchBoxWidth = searchBox.x2() - searchBox.x1();
-        int x = searchBox.x1() + id % searchBoxWidth;
-        int y = searchBox.y1() + id / searchBoxWidth;
-        if (isInSelection(selectionBox, x, y)) {// don't search inside the area we are healing
-            sumArray.array(id, Float.MAX_VALUE);
-        } else {
-            sumArray.array(id,  getSum(s32Array2D, selectionBox, selectionXYList, rgbList, x, y));
-        }
+        bestFitCore(kc.x, s32Array2D, rgbList, searchBox, selectionBox, selectionXYList, sumArray);
     }
 
     @CodeReflection
-    public static int getMinIdx(float[] sumArray){
+    public static void  bestFitCompute(ComputeContext cc,
+             Point offset, S32Array2D s32Array2D,  RGBList rgbList, Box searchBox, Box selectionBox, XYList selectionXYList){
+
+        F32Array sumArrayF32 = F32Array.create(cc.accelerator, searchBox.area());
+
+        cc.dispatchKernel(searchBox.area(),
+                kc -> bestFitKernel(kc,  s32Array2D, rgbList, searchBox, selectionBox, selectionXYList, sumArrayF32)
+        );
+        float[] sumArray = new float[searchBox.area()];
+
+        sumArrayF32.copyTo(sumArray);
         float minSoFar = Float.MAX_VALUE;
+
         int id = sumArray.length;
         for (int i = 0; i < sumArray.length; i++) {
             float value = sumArray[i];
@@ -155,80 +146,62 @@ public class SearchCompute {
                 minSoFar = value;
             }
         }
-        return id;
-    }
-
-    @CodeReflection
-    public static void  bestCompute(ComputeContext cc,
-             Point offset,
-                                    S32Array2D s32Array2D,  RGBList rgbList, Box searchBox, Box selectionBox, XYList selectionXYList){
-
-        int searchBoxWidth = searchBox.x2() - searchBox.x1();
-        int searchBoxHeight = searchBox.y2() - searchBox.y1();
-        int range = searchBoxWidth * searchBoxHeight;
-        F32Array sumArrayF32 = F32Array.create(cc.accelerator, range);
-        cc.dispatchKernel(range,
-                kc -> bestKernel(kc,  s32Array2D,rgbList, searchBox, selectionBox, selectionXYList, sumArrayF32));
-        float[] sumArray = new float[range];
-        sumArrayF32.copyTo(sumArray);
-        int id = getMinIdx(sumArray);
-        int x = searchBox.x1() + (id % searchBoxWidth);
-        int y = searchBox.y1() + (id / searchBoxWidth);
+        int x = searchBox.x1() + (id % searchBox.width());
+        int y = searchBox.y1() + (id / searchBox.width());
         offset.setLocation(x - selectionBox.x1(),y - selectionBox.y1());
     }
 
-    public static Point getOffsetOfBestMatch(Accelerator accelerator, ImageData imageData, Path selectionPath) {
+    public static Point getOffsetOfBestMatch(Accelerator accelerator, ImageData imageData, Selection selection) {
         final Point offset  =new Point(0,0);
-        if (selectionPath.xyList.length() != 0) {
-            /*
-            Walk the list of xy coordinates in the path and extract a list of RGB values
-            for those coordinates.
-             */
-            RGBListImpl rgbList = new RGBListImpl();
-            for (int i = 0; i < selectionPath.xyList.length(); i++) {
-                XYList.XY xy = selectionPath.xyList.xy(i);
-                rgbList.addRGB(imageData.array(xy.y() * imageData.width() + xy.x()));
-            }
-
-            /*
-              Create a search box of pad * selection (w & h), but constrain the box to bounds of the image
-             */
+        if (selection.xyList.length() != 0) {
+            long hatStart = System.currentTimeMillis();
+            // Create a search box of pad * selection (w & h), but constrain to bounds of the image
             int pad = 4;
-            int padx = selectionPath.width() * pad;
-            int pady = selectionPath.height() * pad;
-            int x1 = Math.max(0, selectionPath.x1() - padx);
-            int y1 = Math.max(0, selectionPath.y1() - pady);
-            int x2 = Math.min(imageData.width(), selectionPath.x2() + padx) - selectionPath.width();
-            int y2 = Math.min(imageData.height(), selectionPath.y2() + pady) - selectionPath.height();
-            BoxImpl searchBox = new BoxImpl(x1, y1, x2, y2);
+            int padx = selection.width() * pad;
+            int pady = selection.height() * pad;
+            int x1 = Math.max(0, selection.x1() - padx);
+            int y1 = Math.max(0, selection.y1() - pady);
+            int x2 = Math.min(imageData.width(), selection.x2() + padx) - selection.width();
+            int y2 = Math.min(imageData.height(), selection.y2() + pady) - selection.height();
 
+            /*
+             Map xy's in the path to list of RGB values at those coordinates.
+             //Renderscript
+             float3 __attribute__((kernel))extractBorder(int2 in) {
+                return convert_float3(rsGetElementAt_uchar4(image, in.x, in.y).xyz);
+             }
+            */
 
-            //All data passed to accelerator needs to be iface mapped segments
-            RGBList mappedRGBList = RGBList.create(accelerator,rgbList.length);
-            for (int i=0;i<rgbList.length; i++){
-                var from = rgbList.rgb(i);
-                var to = mappedRGBList.rgb(i);
-                to.r(from.r());
-                to.g(from.g());
-                to.b(from.b());
-            }
+            RGBList mappedRGBList = RGBList.create(accelerator, selection.xyList.length());
+            IntStream.range(0, selection.xyList.length()).parallel().forEach(i->{ //Old school! Maybe a Kernel?
+                XYList.XY xy = selection.xyList.xy(i);
+                var rgb = mappedRGBList.rgb(i);
+                var rgbint = imageData.array(xy.y() * imageData.width() + xy.x());
+                rgb.r(red(rgbint));
+                rgb.g(green(rgbint));
+                rgb.b(blue(rgbint));
+            });
 
-            Box  mappedSearchBox = Box.create(accelerator, searchBox.x1(),searchBox.y1(),searchBox.x2(),searchBox.y2());
-            Box  mappedSelectionBox = Box.create(accelerator, selectionPath.x1(),selectionPath.y1(),selectionPath.x2(),selectionPath.y2());
+            Box  mappedSearchBox = Box.create(accelerator, x1,y1,x2,y2);
+            Box  mappedSelectionBox = Box.create(accelerator, selection.x1(), selection.y1(), selection.x2(), selection.y2());
 
-
-            XYList  mappedSelectionXYList = XYList.create(accelerator,selectionPath.xyList.length());
-            for (int i=0;i<mappedSelectionXYList.length();i++){
-                var from = selectionPath.xyList.xy(i);
+            XYList  mappedSelectionXYList = XYList.create(accelerator, selection.xyList.length());
+            IntStream.range(0,mappedSelectionXYList.length()).parallel().forEach(i->{ //Old School! Maybe a kernel
+                var from = selection.xyList.xy(i);
                 var to = mappedSelectionXYList.xy(i);
                 to.x(from.x());
                 to.y(from.y());
-            }
+            });
+
             S32Array2D s32Array2D = S32Array2D.create(accelerator,imageData.width(),imageData.height());
             s32Array2D.copyFrom(imageData.arrayOfData);
-            long hatStart = System.currentTimeMillis();
-            accelerator.compute(cc->SearchCompute.bestCompute(cc,offset,
-                    s32Array2D,mappedRGBList,mappedSearchBox,
+
+            accelerator.compute(cc->
+                    SearchCompute.bestFitCompute(cc,
+                    offset,
+                    s32Array2D,
+                    mappedRGBList,
+                    mappedSearchBox,
                     mappedSelectionBox,
                     mappedSelectionXYList
             ));

@@ -32,7 +32,6 @@ import hat.ifacemapper.Schema;
 import java.lang.invoke.MethodHandles;
 
 public interface Box extends Buffer {
-
     int x1();
 
     int y1();
@@ -49,7 +48,14 @@ public interface Box extends Buffer {
 
     void x2(int x2);
 
-    Schema<Box> schema = Schema.of(Box.class, s -> s.fields("x1", "y1", "x2", "y2"));
+
+    void width(int width);
+    void height(int height);
+    int width();
+    int height();
+    int area();
+    void area(int area);
+    Schema<Box> schema = Schema.of(Box.class, s -> s.fields("x1", "y1", "x2", "y2", "width", "height", "area"));
 
     static Box create(Accelerator accelerator, int x1, int y1, int x2, int y2) {
         Box box = schema.allocate(accelerator);
@@ -57,6 +63,9 @@ public interface Box extends Buffer {
         box.y1(y1);
         box.x2(x2);
         box.y2(y2);
+        box.width(x2-x1);
+        box.height(y2-y1);
+        box.area(box.width()* box.height());
         return box;
     }
 }

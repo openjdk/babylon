@@ -103,19 +103,19 @@ public class HealCompute {
     }
 
 
-    public static void heal(Accelerator accelerator,ImageData imageData, Path selectionPath, Point healPositionOffset) {
+    public static void heal(Accelerator accelerator, ImageData imageData, Selection selection, Point healPositionOffset) {
         long start = System.currentTimeMillis();
-        Mask mask = new Mask(selectionPath);
+        Mask mask = new Mask(selection);
         var src = new int[mask.data.length];
         var dest = new int[mask.data.length];
 
         for (int i = 0; i < mask.data.length; i++) { //parallel
             int x = i % mask.width;
             int y = i / mask.width;
-            src[i] = imageData.getXY(selectionPath.x1() + x + healPositionOffset.x, selectionPath.y1() + y - 1 + healPositionOffset.y);
+            src[i] = imageData.get(selection.x1() + x + healPositionOffset.x, selection.y1() + y - 1 + healPositionOffset.y);
             dest[i] = (mask.data[i] != 0)
                     ? src[i]
-                    : imageData.getXY(+selectionPath.x1() + x, selectionPath.y1() + y - 1);
+                    : imageData.get(+selection.x1() + x, selection.y1() + y - 1);
         }
 
         System.out.println("mask " + (System.currentTimeMillis() - start) + "ms");
@@ -181,7 +181,7 @@ public class HealCompute {
         for (int i = 0; i < mask.data.length; i++) { //parallel
             int x = i % mask.width;
             int y = i / mask.width;
-            imageData.setXY(selectionPath.x1() + x, selectionPath.y1() + y - 1, dest[i]);
+            imageData.set(selection.x1() + x, selection.y1() + y - 1, dest[i]);
         }
         System.out.println("heal2 " + (System.currentTimeMillis() - start) + "ms");
     }

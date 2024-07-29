@@ -43,7 +43,6 @@
  */
 package heal;
 
-import hat.buffer.S32Array;
 import hat.buffer.S32Array2D;
 
 import javax.imageio.ImageIO;
@@ -103,12 +102,5 @@ public class ImageData implements S32Array2D {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-    public int getXY(int x, int y) {
-        return this.array(y*this.widthField+x);
-    }
-
-    public void setXY(int x, int y, int rgb) {
-        this.array(y*this.widthField+x,rgb);
     }
 }

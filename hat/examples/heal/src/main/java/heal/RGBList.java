@@ -51,6 +51,6 @@ public interface RGBList extends Buffer {
     );
 
     static RGBList create(Accelerator accelerator, int length) {
-        return schema.allocate(accelerator,length);
+        return schema.allocate(accelerator, length);
     }
 }

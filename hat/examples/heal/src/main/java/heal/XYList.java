@@ -39,16 +39,13 @@ public interface XYList extends Buffer {
         void x(int x);
     }
     int length();
-  //  void length(int length );
     XY xy(long idx);
-
     Schema<XYList> schema= Schema.of(XYList.class, s->s
             .arrayLen("length")
             .array("xy", xy->xy
                     .fields("x","y")
             )
     );
-
     static XYList create(Accelerator accelerator, int length) {
         return  schema.allocate(accelerator,length);
     }

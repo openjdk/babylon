@@ -59,7 +59,7 @@ import java.awt.event.MouseMotionAdapter;
 import java.awt.geom.NoninvertibleTransformException;
 
 public class Viewer extends Display {
-    volatile Path selectionPath = null;
+    volatile Selection selection = null;
     volatile  Point bestMatchOffset = null;
     public final Accelerator accelerator;
     public Viewer(ImageData imageData, Accelerator accelerator) {
@@ -69,12 +69,12 @@ public class Viewer extends Display {
            @Override
             public void mouseReleased(MouseEvent e) {
                 if (SwingUtilities.isLeftMouseButton(e)) {
-                    bestMatchOffset = SearchCompute.getOffsetOfBestMatch(accelerator, imageData, selectionPath.close());
-                    HealCompute.heal(accelerator,imageData,selectionPath, bestMatchOffset);
+                    bestMatchOffset = SearchCompute.getOffsetOfBestMatch(accelerator, imageData, selection.close());
+                    HealCompute.heal(accelerator,imageData, selection, bestMatchOffset);
                     Timer t = new Timer(1000, new ActionListener() {
                         @Override
                         public void actionPerformed(ActionEvent e) {
-                            selectionPath = null;
+                            selection = null;
                             bestMatchOffset = null;
                             repaint();
                         }
@@ -90,8 +90,8 @@ public class Viewer extends Display {
                 if (SwingUtilities.isLeftMouseButton(e)) {
                     try {
                         var ptDst =  transform.inverseTransform(e.getPoint(), null);
-                        selectionPath = new Path(new XYListImpl());
-                        selectionPath.add((int)ptDst.getX(), (int) ptDst.getY());
+                        selection = new Selection();
+                        selection.add(ptDst);
                     } catch (NoninvertibleTransformException e1) {
                         e1.printStackTrace();
                     }
@@ -104,7 +104,7 @@ public class Viewer extends Display {
                 if (SwingUtilities.isLeftMouseButton(e)) {
                     try {
                         var ptDst = transform.inverseTransform(e.getPoint(), null);
-                        selectionPath.add((int) ptDst.getX(), (int) ptDst.getY());
+                        selection.add(ptDst);
                         repaint();
                     } catch (NoninvertibleTransformException e1) {
                         // TODO Auto-generated catch block
@@ -116,11 +116,11 @@ public class Viewer extends Display {
     }
 
     protected void paintInScale(Graphics2D g) {
-        if (selectionPath != null) {
+        if (selection != null) {
             Polygon selectionPolygon = new Polygon();
             Polygon solutionPolygon = new Polygon();
-            for (int i=0;i<selectionPath.xyList.length();i++){
-                XYList.XY xy = selectionPath.xyList.xy(i);
+            for (int i = 0; i< selection.xyList.length(); i++){
+                XYList.XY xy = selection.xyList.xy(i);
                 selectionPolygon.addPoint(xy.x(), xy.y());
                 if (bestMatchOffset != null){
                     solutionPolygon.addPoint(xy.x()+bestMatchOffset.x, xy.y()+bestMatchOffset.y);
