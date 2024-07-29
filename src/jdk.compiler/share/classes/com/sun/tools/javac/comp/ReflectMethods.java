@@ -1216,6 +1216,8 @@ public class ReflectMethods extends TreeTranslator {
 
                     List<Value> nestedValues = new ArrayList<>();
                     for (JCTree.JCPattern jcPattern : record.nested) {
+                        // @@@ when we support ANYPATTERN, we must add result of toValue only if it's non-null
+                        // because passing null to recordPattern methods will cause an error
                         nestedValues.add(toValue(jcPattern));
                     }
 
