@@ -630,4 +630,118 @@ public class SwitchExpressionTest2 {
             default -> "an int";
         };
     }
+
+    // these are the conversions that applies in switch
+
+    @IR("""
+            func @"caseConstantConv" (%0 : short)java.lang.String -> {
+                %1 : Var<short> = var %0 @"a";
+                %2 : int = constant @"1";
+                %3 : short = conv %2;
+                %4 : Var<short> = var %3 @"s";
+                %5 : int = constant @"2";
+                %6 : byte = conv %5;
+                %7 : Var<byte> = var %6 @"b";
+                %8 : short = var.load %1;
+                %9 : java.lang.String = java.switch.expression %8
+                    (%10 : short)boolean -> {
+                        %11 : short = var.load %4;
+                        %12 : boolean = eq %10 %11;
+                        yield %12;
+                    }
+                    ()java.lang.String -> {
+                        %13 : java.lang.String = constant @"one";
+                        yield %13;
+                    }
+                    (%14 : short)boolean -> {
+                        %15 : byte = var.load %7;
+                        %16 : short = conv %15;
+                        %17 : boolean = eq %14 %16;
+                        yield %17;
+                    }
+                    ()java.lang.String -> {
+                        %18 : java.lang.String = constant @"three";
+                        yield %18;
+                    }
+                    (%19 : short)boolean -> {
+                        %20 : int = constant @"3";
+                        %21 : short = conv %20;
+                        %22 : boolean = eq %19 %21;
+                        yield %22;
+                    }
+                    ()java.lang.String -> {
+                        %23 : java.lang.String = constant @"two";
+                        yield %23;
+                    }
+                    ()void -> {
+                        yield;
+                    }
+                    ()java.lang.String -> {
+                        %24 : java.lang.String = constant @"default";
+                        yield %24;
+                    };
+                return %9;
+            };
+            """)
+    @CodeReflection
+    static String caseConstantConv(short a) {
+        final short s = 1;
+        final byte b = 2;
+        return switch (a) {
+            case s -> "one"; // identity
+            case b -> "three"; // widening primitive conversion
+            case 3 -> "two"; // narrowing primitive conversion
+            default -> "default";
+        };
+    }
+
+    @IR("""
+            func @"caseConstantConv2" (%0 : java.lang.Byte)java.lang.String -> {
+                %1 : Var<java.lang.Byte> = var %0 @"a";
+                %2 : int = constant @"2";
+                %3 : byte = conv %2;
+                %4 : Var<byte> = var %3 @"b";
+                %5 : java.lang.Byte = var.load %1;
+                %6 : java.lang.String = java.switch.expression %5
+                    (%7 : java.lang.Byte)boolean -> {
+                        %8 : int = constant @"1";
+                        %9 : byte = conv %8;
+                        %10 : java.lang.Byte = invoke %9 @"java.lang.Byte::valueOf(byte)java.lang.Byte";
+                        %11 : boolean = invoke %7 %10 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                        yield %11;
+                    }
+                    ()java.lang.String -> {
+                        %12 : java.lang.String = constant @"one";
+                        yield %12;
+                    }
+                    (%13 : java.lang.Byte)boolean -> {
+                        %14 : byte = var.load %4;
+                        %15 : java.lang.Byte = invoke %14 @"java.lang.Byte::valueOf(byte)java.lang.Byte";
+                        %16 : boolean = invoke %13 %15 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                        yield %16;
+                    }
+                    ()java.lang.String -> {
+                        %17 : java.lang.String = constant @"two";
+                        yield %17;
+                    }
+                    ()void -> {
+                        yield;
+                    }
+                    ()java.lang.String -> {
+                        %18 : java.lang.String = constant @"default";
+                        yield %18;
+                    };
+                return %6;
+            };
+            """)
+    @CodeReflection
+    static String caseConstantConv2(Byte a) {
+        final byte b = 2;
+        return switch (a) {
+            // narrowing conv is missing in the code model
+            case 1 -> "one"; // narrowing primitive conversion followed by a boxing conversion
+            case b -> "two"; // boxing
+            default -> "default";
+        };
+    }
 }

@@ -708,6 +708,9 @@ public class ReflectMethods extends TreeTranslator {
                 Type unboxedTarget = types.unboxedType(target);
                 if (!unboxedTarget.hasTag(NONE)) {
                     // non-Object target
+                    if (!types.isConvertible(source, unboxedTarget)) {
+                        exprVal = convert(exprVal, unboxedTarget);
+                    }
                     return box(exprVal, target);
                 } else {
                     // Object target
