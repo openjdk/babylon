@@ -86,20 +86,18 @@ public class Compute {
      *  }
      */
 
-    public static void heal(Accelerator accelerator, S32Array2D s32Array2D, Selection selection, Point healPositionOffset) {
+    public static void heal(Accelerator accelerator, S32Array2D s32Array2D, Selection selection, Point bestMatchOffset) {
         long start = System.currentTimeMillis();
         Selection.Mask mask = selection.getMask();
-        var src = new int[mask.maskRGBData.length];
         var dest = new int[mask.maskRGBData.length];
 
-        for (int i = 0; i < mask.maskRGBData.length; i++) { //parallel
-            int x = i % mask.width;
-            int y = i / mask.width;
-            src[i] = s32Array2D.get(selection.x1() + x + healPositionOffset.x, selection.y1() + y - 1 + healPositionOffset.y);
+        IntStream.range(0,mask.maskRGBData.length).parallel().forEach(i-> { //parallel
+            int x = selection.x1() + i % mask.width;
+            int y = selection.y1() + i / mask.width;
             dest[i] = (mask.maskRGBData[i] != 0)
-                    ? src[i]
-                    : s32Array2D.get(+selection.x1() + x, selection.y1() + y - 1);
-        }
+                    ? s32Array2D.get( x + bestMatchOffset.x,  y + bestMatchOffset.y)
+                    : s32Array2D.get( x,  y );
+        });
 
         System.out.println("mask " + (System.currentTimeMillis() - start) + "ms");
         /*   TODO .. Implement lapclacian
@@ -161,11 +159,11 @@ public class Compute {
          * }
          */
         start = System.currentTimeMillis();
-        for (int i = 0; i < mask.maskRGBData.length; i++) { //parallel
-            int x = i % mask.width;
-            int y = i / mask.width;
-            s32Array2D.set(selection.x1() + x, selection.y1() + y - 1, dest[i]);
-        }
+        IntStream.range(0, mask.maskRGBData.length).parallel().forEach(i->{ //parallel
+            int x =  selection.x1() +i % mask.width;
+            int y = selection.y1() +i / mask.width;
+            s32Array2D.set( x,  y, dest[i]);
+        });
         System.out.println("heal2 " + (System.currentTimeMillis() - start) + "ms");
     }
 
@@ -187,14 +185,14 @@ public class Compute {
     @CodeReflection
     public static void bestFitCore(int id,
                                   S32Array2D s32Array2D,
-                                  Box searchBox,
+                                  Box searchArea,
                                   Box selBox,
-                                  XYRGBList selectionXYRGBList,
+                                  XYRGBList xyrgbList,
                                   F32Array sumArray) {
-        int x = searchBox.x1() + id % searchBox.width();
-        int y = searchBox.y1() + id / searchBox.width();
+        int x = searchArea.x1() + id % searchArea.width();
+        int y = searchArea.y1() + id / searchArea.width();
         float sum = 0;
-        // don't search inside the area we are healing :)
+        // don't search inside the area we are trying to heal healing :)
         if  (x > selBox.x2() || x + selBox.width() < selBox.x1() || y > selBox.y2() || y + selBox.height() < selBox.y1()){
             /*
              * Renderscript
@@ -210,8 +208,8 @@ public class Compute {
              * }
              */
             int offset = (y - selBox.y1()) * s32Array2D.width() + (x - selBox.x1());
-            for (int i = 0; i < selectionXYRGBList.length(); i++) {
-                var xyrgb = selectionXYRGBList.xyrgb(i);
+            for (int i = 0; i < xyrgbList.length(); i++) {
+                var xyrgb = xyrgbList.xyrgb(i);
                 int rgbInt = s32Array2D.array(offset + xyrgb.y() * s32Array2D.width() + xyrgb.x());
                 int dr = red(rgbInt) - xyrgb.r();
                 int dg = green(rgbInt) - xyrgb.g();
@@ -227,27 +225,27 @@ public class Compute {
     @CodeReflection
     public static void bestFitKernel(KernelContext kc,
                                   S32Array2D s32Array2D,
-                                  Box searchBox,
+                                  Box searchArea,
                                   Box selectionBox,
-                                  XYRGBList selectionXYRGBList,
+                                  XYRGBList xyrgbList,
                                   F32Array sumArray) {
-        bestFitCore(kc.x, s32Array2D, searchBox, selectionBox, selectionXYRGBList, sumArray);
+        bestFitCore(kc.x, s32Array2D, searchArea, selectionBox, xyrgbList, sumArray);
     }
 
     @CodeReflection
     public static void  bestFitCompute(ComputeContext cc,
-             Point offset, S32Array2D s32Array2D, Box searchBox, Box selectionBox, XYRGBList selectionXYRGBList){
+             Point bestMatchOffset, S32Array2D s32Array2D, Box searchArea, Box selectionBox, XYRGBList xyrgbList){
 
-        F32Array sumArrayF32 = F32Array.create(cc.accelerator, searchBox.area());
+        F32Array sumArrayF32 = F32Array.create(cc.accelerator, searchArea.area());
 
-        cc.dispatchKernel(searchBox.area(),
-                kc -> bestFitKernel(kc,  s32Array2D, searchBox, selectionBox, selectionXYRGBList, sumArrayF32)
+        cc.dispatchKernel(searchArea.area(),
+                kc -> bestFitKernel(kc,  s32Array2D, searchArea, selectionBox, xyrgbList, sumArrayF32)
         );
-        float[] sumArray = new float[searchBox.area()];
 
+        float[] sumArray = new float[searchArea.area()];
         sumArrayF32.copyTo(sumArray);
-        float minSoFar = Float.MAX_VALUE;
 
+        float minSoFar = Float.MAX_VALUE;
         int id = sumArray.length;
         for (int i = 0; i < sumArray.length; i++) {
             float value = sumArray[i];
@@ -256,16 +254,17 @@ public class Compute {
                 minSoFar = value;
             }
         }
-        int x = searchBox.x1() + (id % searchBox.width());
-        int y = searchBox.y1() + (id / searchBox.width());
-        offset.setLocation(x - selectionBox.x1(),y - selectionBox.y1());
+
+        int x = searchArea.x1() + (id % searchArea.width());
+        int y = searchArea.y1() + (id / searchArea.width());
+        bestMatchOffset.setLocation(x - selectionBox.x1(),y - selectionBox.y1());
     }
 
-    public static Point getOffsetOfBestMatch(Accelerator accelerator, S32Array2D s32Array2D, Selection selection) {
-        final Point offset  =new Point(0,0);
+    public static Point getBestMatchOffset(Accelerator accelerator, S32Array2D s32Array2D, Selection selection) {
+        final Point bestMatchOffset  =new Point(0,0);
         if (!selection.pointList.isEmpty()) {
             long hatStart = System.currentTimeMillis();
-            XYRGBList xyrgbList = XYRGBList.create(accelerator, selection.pointList.size());
+            XYRGBList xyrgbList = XYRGBList.create(accelerator, selection);
             /*
              * Map Point's in the selection to list of XYRGB values at those coordinates.
              * Renderscript
@@ -288,23 +287,21 @@ public class Compute {
             /* Create a search box of pad * selection (w & h), but constrain to bounds of the image
              *
              *            +----------------------+Image
-             *            |                      |
              *       +.W..W--W--W--W--W--W--W-+  |
              *       .  ^ |                   |  |
              *       .    |    +-W-+Selection |  |
              *       .    |   H|   |          |  |
              *       .    |    +---+          |  |
              *       .    |                   |  |
-             *       .    |                   |  |
              *       .  v +-------------------|--+
              *       .    <- SearchBoxWidth ->.
-             *       +........................+
+             *       +........................+SearchBox
              */
             int pad = 8;
             int padx = selection.width() * pad;
             int pady = selection.height() * pad;
 
-            Box searchBox = Box.create(accelerator,
+            Box searchArea = Box.create(accelerator,
                     Math.max(0, selection.x1() - padx),
                     Math.max(0, selection.y1() - pady),
                     Math.min(s32Array2D.width(), selection.x2() + padx) - selection.width(),
@@ -312,13 +309,11 @@ public class Compute {
             );
             Box selectionBox = Box.create(accelerator, selection.x1(), selection.y1(), selection.x2(), selection.y2());
 
-
-
             accelerator.compute(cc->
-                    Compute.bestFitCompute(cc, offset, s32Array2D, searchBox, selectionBox, xyrgbList
+                    Compute.bestFitCompute(cc, bestMatchOffset, s32Array2D, searchArea, selectionBox, xyrgbList
             ));
             System.out.println("total search " + (System.currentTimeMillis() - hatStart) + "ms");
         }
-        return offset;
+        return bestMatchOffset;
     }
 }

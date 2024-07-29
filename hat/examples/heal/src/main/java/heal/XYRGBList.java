@@ -49,7 +49,7 @@ public interface XYRGBList extends Buffer {
                     .fields("x","y","r","g","b")
             )
     );
-    static XYRGBList create(Accelerator accelerator, int length) {
-        return  schema.allocate(accelerator,length);
+    static XYRGBList create(Accelerator accelerator, Selection selection) {
+        return  schema.allocate(accelerator,selection.pointList.size());
     }
 }

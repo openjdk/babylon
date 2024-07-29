@@ -52,7 +52,9 @@ public interface Box extends Buffer {
     int height();
     int area();
     void area(int area);
-    Schema<Box> schema = Schema.of(Box.class, s -> s.fields("x1", "y1", "x2", "y2", "width", "height", "area"));
+    Schema<Box> schema = Schema.of(Box.class, s ->
+            s.fields("x1", "y1", "x2", "y2", "width", "height", "area")
+    );
 
     static Box create(Accelerator accelerator, int x1, int y1, int x2, int y2) {
         Box box = schema.allocate(accelerator);

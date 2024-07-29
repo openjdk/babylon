@@ -43,33 +43,58 @@
  */
 package heal;
 
+
 import hat.Accelerator;
 import hat.buffer.S32Array2D;
 
+import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import java.awt.Color;
-import java.awt.Graphics2D;
+import java.awt.Dimension;
+import java.awt.Graphics;
 import java.awt.Point;
+import java.awt.Graphics2D;
 import java.awt.Polygon;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
+import java.awt.geom.AffineTransform;
 import java.awt.geom.NoninvertibleTransformException;
+import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferInt;
 
-public class Viewer extends Display {
+public  class Viewer extends JPanel {
+    protected BufferedImage image;
+    protected  int[] rasterData;
+    protected S32Array2D s32Array2D;
+    protected AffineTransform transform = new AffineTransform();
+    protected float zoom = .95f; // set the zoom factor 1.0 = fit to screen
+
+    protected float xOffset = 0; // 0 is centered -1 is to the left;
+    protected float yOffset = 0; // 0 is centered -1 is to the top;
+
+    Point mousePressedPosition;
+    Point2D imageRelativeMouseDownPosition = new Point2D.Float();
+    Point2D imageRelativeMovePosition = new Point2D.Float();
     volatile Selection selection = null;
     volatile  Point bestMatchOffset = null;
-    public Viewer(BufferedImage image,S32Array2D s32Array2D, Accelerator accelerator) {
-        super(image, s32Array2D);
+
+
+    public Viewer(Accelerator accelerator,BufferedImage image) {
+        this.image = image;
+        this.rasterData = ((DataBufferInt) (image.getRaster().getDataBuffer())).getData();
+        this.s32Array2D =  S32Array2D.create(accelerator,image.getWidth(),image.getHeight());
+        s32Array2D.copyFrom(rasterData);
         addMouseListener(new MouseAdapter() {
-           @Override
+
+            @Override
             public void mouseReleased(MouseEvent e) {
                 if (SwingUtilities.isLeftMouseButton(e)) {
-                    bestMatchOffset = Compute.getOffsetOfBestMatch(accelerator, s32Array2D, selection.close());
+                    bestMatchOffset = Compute.getBestMatchOffset(accelerator, s32Array2D, selection.close());
                     Compute.heal(accelerator,s32Array2D, selection, bestMatchOffset);
                     Timer t = new Timer(1000, new ActionListener() {
                         @Override
@@ -94,13 +119,43 @@ public class Viewer extends Display {
                     } catch (NoninvertibleTransformException e1) {
                         e1.printStackTrace();
                     }
+                }else if (SwingUtilities.isRightMouseButton(e)) {
+                    mousePressedPosition = e.getPoint();
+                    try {
+                        imageRelativeMouseDownPosition= transform.inverseTransform(e.getPoint(), null);
+                    } catch (NoninvertibleTransformException e1) {
+                        e1.printStackTrace();
+                    }
                 }
             }
 
         });
+        addMouseWheelListener(e -> {
+            zoom = zoom * (1 + e.getWheelRotation() / 10f);
+            repaint();
+        });
         addMouseMotionListener(new MouseMotionAdapter() {
+            @Override
             public void mouseDragged(MouseEvent e) {
-                if (SwingUtilities.isLeftMouseButton(e)) {
+                if (SwingUtilities.isRightMouseButton(e)) {
+                    Point rightButonPoint = e.getPoint();
+                    Dimension deltaFromInitialMousePress = new Dimension(rightButonPoint.x - mousePressedPosition.x, rightButonPoint.y - mousePressedPosition.y);
+                    try {
+                        imageRelativeMovePosition = transform.inverseTransform(e.getPoint(), null);
+                        Dimension displaySize = getSize();
+                        Dimension imageSize = new Dimension( s32Array2D.width(),s32Array2D.height());
+                        float scale = zoom *
+                                Math.min(displaySize.width / (float) imageSize.width,
+                                        displaySize.height / (float) imageSize.height);
+                        xOffset =  2 * (deltaFromInitialMousePress.width / (displaySize.width - scale * imageSize.width));
+                        yOffset =  2 * (deltaFromInitialMousePress.height / (displaySize.height - scale * imageSize.height));
+                        xOffset = Math.max(Math.min(xOffset, 1), -1);
+                        yOffset = Math.max(Math.min(yOffset, 1), -1);
+                        repaint();
+                    } catch (NoninvertibleTransformException e1) {
+                        e1.printStackTrace();
+                    }
+                } else if (SwingUtilities.isLeftMouseButton(e)) {
                     try {
                         var ptDst = transform.inverseTransform(e.getPoint(), null);
                         selection.add(ptDst);
@@ -114,6 +169,29 @@ public class Viewer extends Display {
         });
     }
 
+    @Override
+    public void paint(Graphics g) {
+        Graphics2D g2d = (Graphics2D) g;
+        g2d.setBackground(Color.BLACK);
+        g2d.fillRect(0, 0, getWidth(), getHeight());
+        if (s32Array2D != null) {
+            Dimension displaySize = getSize();
+            Dimension imageSize = new Dimension( s32Array2D.width(),s32Array2D.height());
+            AffineTransform safeTransform = g2d.getTransform();
+            transform.setToIdentity();
+            double scale = zoom *
+                    Math.min(displaySize.width / (double) imageSize.width,
+                            displaySize.height / (double) imageSize.height);
+            transform.translate((1 + xOffset) * (displaySize.width - imageSize.width * scale) / 2,
+                    (1 + yOffset) * (displaySize.height - imageSize.height * scale) / 2);
+            transform.scale(scale, scale);
+            g2d.transform(transform);
+            s32Array2D.copyTo(rasterData);
+            g.drawImage(image, 0, 0, imageSize.width, imageSize.height, null);
+            paintInScale(g2d);
+            g2d.setTransform(safeTransform);
+        }
+    }
     protected void paintInScale(Graphics2D g) {
         if (selection != null) {
             Polygon selectionPolygon = new Polygon();
@@ -132,4 +210,6 @@ public class Viewer extends Display {
             }
         }
     }
+
+
 }

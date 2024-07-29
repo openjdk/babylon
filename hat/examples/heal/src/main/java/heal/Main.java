@@ -32,30 +32,24 @@ import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferInt;
 import java.io.IOException;
-import java.io.InputStream;
 import java.lang.invoke.MethodHandles;
 
 public class Main {
 
     public static void main(String[] args) throws IOException {
-
-        var image= ImageIO.read(Viewer.class.getResourceAsStream("/images/bolton.png"));
+        var image= ImageIO.read(Main.class.getResourceAsStream("/images/bolton.png"));
         if (image.getType() != BufferedImage.TYPE_INT_RGB){//Better way?
             var rgbimage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
             rgbimage.getGraphics().drawImage(image, 0, 0, null);
             image=rgbimage;
         }
-       // ImageData imageData = new ImageData(image);
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-        S32Array2D s32Array2D = S32Array2D.create(accelerator,image.getWidth(),image.getHeight());
 
         JFrame f = new JFrame("Healing Brush");
-        f.setBounds(new Rectangle(s32Array2D.width(), s32Array2D.height()));
+        f.setBounds(new Rectangle(image.getWidth(),image.getHeight()));
         f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        Viewer viewerDisplay = new Viewer(image, s32Array2D, accelerator);
-        f.setContentPane(viewerDisplay);
+        f.setContentPane( new Viewer(accelerator,image));
         f.validate();
         f.setVisible(true);
     }
