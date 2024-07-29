@@ -44,6 +44,7 @@
 package heal;
 
 import hat.Accelerator;
+import hat.buffer.S32Array2D;
 
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
@@ -57,20 +58,19 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
 import java.awt.geom.NoninvertibleTransformException;
+import java.awt.image.BufferedImage;
 
 public class Viewer extends Display {
     volatile Selection selection = null;
     volatile  Point bestMatchOffset = null;
-    public final Accelerator accelerator;
-    public Viewer(ImageData imageData, Accelerator accelerator) {
-        super(imageData);
-        this.accelerator = accelerator;
+    public Viewer(BufferedImage image,S32Array2D s32Array2D, Accelerator accelerator) {
+        super(image, s32Array2D);
         addMouseListener(new MouseAdapter() {
            @Override
             public void mouseReleased(MouseEvent e) {
                 if (SwingUtilities.isLeftMouseButton(e)) {
-                    bestMatchOffset = Compute.getOffsetOfBestMatch(accelerator, imageData, selection.close());
-                    Compute.heal(accelerator,imageData, selection, bestMatchOffset);
+                    bestMatchOffset = Compute.getOffsetOfBestMatch(accelerator, s32Array2D, selection.close());
+                    Compute.heal(accelerator,s32Array2D, selection, bestMatchOffset);
                     Timer t = new Timer(1000, new ActionListener() {
                         @Override
                         public void actionPerformed(ActionEvent e) {

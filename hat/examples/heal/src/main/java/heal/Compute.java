@@ -56,37 +56,37 @@ import java.util.stream.IntStream;
 
 public class Compute {
     /*
- From the original renderscript
+     * Original renderscript
+     *
+     *  float3 __attribute__((kernel)) solve1(uchar in, uint32_t x, uint32_t y) {
+     *   if (in > 0) {
+     *      float3 k = getF32_3(dest1, x - 1, y);
+     *      k += getF32_3(dest1, x + 1, y);
+     *      k += getF32_3(dest1, x, y - 1);
+     *      k += getF32_3(dest1, x, y + 1);
+     *      k += getF32_3(laplace, x, y);
+     *      k /= 4;
+     *      return k;
+     *   }
+     *   return rsGetElementAt_float3(dest1, x, y);
+     *  }
+     *
+     *
+     *  float3 __attribute__((kernel)) solve2(uchar in, uint32_t x, uint32_t y) {
+     *   if (in > 0) {
+     *     float3 k = getF32_3(dest2, x - 1, y);
+     *     k += getF32_3(dest2, x + 1, y);
+     *     k += getF32_3(dest2, x, y - 1);
+     *     k += getF32_3(dest2, x, y + 1);
+     *        k += getF32_3(laplace, x, y);
+     *        k /= 4;
+     *        return k;
+     *   }
+     *   return getF32_3(dest2, x, y);
+     *  }
+     */
 
- float3 __attribute__((kernel)) solve1(uchar in, uint32_t x, uint32_t y) {
-  if (in > 0) {
-     float3 k = getF32_3(dest1, x - 1, y);
-     k += getF32_3(dest1, x + 1, y);
-     k += getF32_3(dest1, x, y - 1);
-     k += getF32_3(dest1, x, y + 1);
-     k += getF32_3(laplace, x, y);
-     k /= 4;
-     return k;
-  }
-  return rsGetElementAt_float3(dest1, x, y);;
-}
-
-
-float3 __attribute__((kernel)) solve2(uchar in, uint32_t x, uint32_t y) {
-  if (in > 0) {
-    float3 k = getF32_3(dest2, x - 1, y);
-    k += getF32_3(dest2, x + 1, y);
-    k += getF32_3(dest2, x, y - 1);
-    k += getF32_3(dest2, x, y + 1);
-       k += getF32_3(laplace, x, y);
-       k /= 4;
-       return k;
-  }
-  return getF32_3(dest2, x, y);;
-}
-*/
-
-    public static void heal(Accelerator accelerator, ImageData imageData, Selection selection, Point healPositionOffset) {
+    public static void heal(Accelerator accelerator, S32Array2D s32Array2D, Selection selection, Point healPositionOffset) {
         long start = System.currentTimeMillis();
         Selection.Mask mask = selection.getMask();
         var src = new int[mask.maskRGBData.length];
@@ -95,76 +95,76 @@ float3 __attribute__((kernel)) solve2(uchar in, uint32_t x, uint32_t y) {
         for (int i = 0; i < mask.maskRGBData.length; i++) { //parallel
             int x = i % mask.width;
             int y = i / mask.width;
-            src[i] = imageData.get(selection.x1() + x + healPositionOffset.x, selection.y1() + y - 1 + healPositionOffset.y);
+            src[i] = s32Array2D.get(selection.x1() + x + healPositionOffset.x, selection.y1() + y - 1 + healPositionOffset.y);
             dest[i] = (mask.maskRGBData[i] != 0)
                     ? src[i]
-                    : imageData.get(+selection.x1() + x, selection.y1() + y - 1);
+                    : s32Array2D.get(+selection.x1() + x, selection.y1() + y - 1);
         }
 
         System.out.println("mask " + (System.currentTimeMillis() - start) + "ms");
-/*
-        int[] stencil = new int[]{-1, 1, -mask.width, mask.width};
-
-        int[] laplaced = new int[dest.length];
-
-        boolean laplacian = true;
-        if (laplacian) {
-            start = System.currentTimeMillis();
-
-            for (int p = 0; p < src.length; p++) { //parallel
-                int x = p % mask.width;
-                int y = p / mask.width;
-
-                int r = 0, g = 0, b = 0;
-                if (x > 0 && x < mask.width - 1 && y > 0 && y < mask.height - 1) {
-                    for (int offset : stencil) {
-                        var v = src[p + offset];
-                        r += red(v);
-                        g += green(v);
-                        b += blue(v);
-                    }
-                }
-                laplaced[p] = rgb(r, g, b);
-            }
-        }
-
-        System.out.println("laplacian " + (System.currentTimeMillis() - start) + "ms");
-        boolean solve = false;
-        if (solve) {
-
-            var tmp = new int[dest.length];
-            start = System.currentTimeMillis();
-            for (int i = 0; i < 500; i++) {
-                for (int p = 0; p < mask.width * mask.height; p++) { // parallel
-                    int x = p % mask.width;
-                    int y = p / mask.width;
-                    if (x > 0 && x < mask.width - 1 && y > 0 && y < mask.height - 1 && mask.data[p] != 0) {
-                        //   var rgb = rgbList.rgb(p);
-
-                        var r = red(laplaced[i]);//rgb.r();
-                        var g = green(laplaced[i]);//rgb.g();
-                        var b = blue(laplaced[i]);//rgb.b();
-                        for (int offset : stencil) {
-                            var v = dest[p + offset];
-                            r += red(v);
-                            g += green(v);
-                            b += blue(v);
-                        }
-                        tmp[p] = rgb((r + 2) / 4, (g + 2) / 4, (b + 2) / 4);
-                    }
-                }
-                var swap = tmp;
-                tmp = dest;
-                dest = swap;
-            }
-            System.out.println("solve " + (System.currentTimeMillis() - start) + "ms");
-        }
-*/
+        /*   TODO .. Implement lapclacian
+         * int[] stencil = new int[]{-1, 1, -mask.width, mask.width};
+         *
+         * int[] laplaced = new int[dest.length];
+         *
+         * boolean laplacian = true;
+         * if (laplacian) {
+         *     start = System.currentTimeMillis();
+         *
+         *     for (int p = 0; p < src.length; p++) { //parallel
+         *         int x = p % mask.width;
+         *         int y = p / mask.width;
+         *
+         *         int r = 0, g = 0, b = 0;
+         *         if (x > 0 && x < mask.width - 1 && y > 0 && y < mask.height - 1) {
+         *             for (int offset : stencil) {
+         *                 var v = src[p + offset];
+         *                 r += red(v);
+         *                 g += green(v);
+         *                 b += blue(v);
+         *             }
+         *         }
+         *         laplaced[p] = rgb(r, g, b);
+         *     }
+         * }
+         *
+         * System.out.println("laplacian " + (System.currentTimeMillis() - start) + "ms");
+         * boolean solve = false;
+         * if (solve) {
+         *
+         *     var tmp = new int[dest.length];
+         *     start = System.currentTimeMillis();
+         *     for (int i = 0; i < 500; i++) {
+         *         for (int p = 0; p < mask.width * mask.height; p++) { // parallel
+         *             int x = p % mask.width;
+         *             int y = p / mask.width;
+         *             if (x > 0 && x < mask.width - 1 && y > 0 && y < mask.height - 1 && mask.data[p] != 0) {
+         *                 //   var rgb = rgbList.rgb(p);
+         *
+         *                 var r = red(laplaced[i]);//rgb.r();
+         *                 var g = green(laplaced[i]);//rgb.g();
+         *                 var b = blue(laplaced[i]);//rgb.b();
+         *                 for (int offset : stencil) {
+         *                     var v = dest[p + offset];
+         *                     r += red(v);
+         *                     g += green(v);
+         *                     b += blue(v);
+         *                 }
+         *                 tmp[p] = rgb((r + 2) / 4, (g + 2) / 4, (b + 2) / 4);
+         *             }
+         *         }
+         *         var swap = tmp;
+         *         tmp = dest;
+         *         dest = swap;
+         *     }
+         *     System.out.println("solve " + (System.currentTimeMillis() - start) + "ms");
+         * }
+         */
         start = System.currentTimeMillis();
         for (int i = 0; i < mask.maskRGBData.length; i++) { //parallel
             int x = i % mask.width;
             int y = i / mask.width;
-            imageData.set(selection.x1() + x, selection.y1() + y - 1, dest[i]);
+            s32Array2D.set(selection.x1() + x, selection.y1() + y - 1, dest[i]);
         }
         System.out.println("heal2 " + (System.currentTimeMillis() - start) + "ms");
     }
@@ -197,18 +197,18 @@ float3 __attribute__((kernel)) solve2(uchar in, uint32_t x, uint32_t y) {
         // don't search inside the area we are healing :)
         if  (x > selBox.x2() || x + selBox.width() < selBox.x1() || y > selBox.y2() || y + selBox.height() < selBox.y1()){
             /*
-            Renderscript version
-            float __attribute__((kernel)) bordercorrelation(uint32_t x, uint32_t y) {
-               float sum = 0;
-               for(int i = 0 ; i < borderLength; i++) {
-                  int2  coord = rsGetElementAt_int2(border_coords,i);
-                  float3 orig = convert_float3(rsGetElementAt_uchar4(image, coord.x + x, coord.y + y).xyz);
-                  float3 candidate = rsGetElementAt_float3(border, i).xyz;
-                  sum += distance(orig, candidate);
-               }
-               return sum;
-            }
-            */
+             * Renderscript
+             * float __attribute__((kernel)) bordercorrelation(uint32_t x, uint32_t y) {
+             *    float sum = 0;
+             *    for(int i = 0 ; i < borderLength; i++) {
+             *       int2  coord = rsGetElementAt_int2(border_coords,i);
+             *       float3 orig = convert_float3(rsGetElementAt_uchar4(image, coord.x + x, coord.y + y).xyz);
+             *       float3 candidate = rsGetElementAt_float3(border, i).xyz;
+             *       sum += distance(orig, candidate);
+             *    }
+             *    return sum;
+             * }
+             */
             int offset = (y - selBox.y1()) * s32Array2D.width() + (x - selBox.x1());
             for (int i = 0; i < selectionXYRGBList.length(); i++) {
                 var xyrgb = selectionXYRGBList.xyrgb(i);
@@ -261,23 +261,23 @@ float3 __attribute__((kernel)) solve2(uchar in, uint32_t x, uint32_t y) {
         offset.setLocation(x - selectionBox.x1(),y - selectionBox.y1());
     }
 
-    public static Point getOffsetOfBestMatch(Accelerator accelerator, ImageData imageData, Selection selection) {
+    public static Point getOffsetOfBestMatch(Accelerator accelerator, S32Array2D s32Array2D, Selection selection) {
         final Point offset  =new Point(0,0);
         if (!selection.pointList.isEmpty()) {
             long hatStart = System.currentTimeMillis();
             XYRGBList xyrgbList = XYRGBList.create(accelerator, selection.pointList.size());
             /*
-             Map Point's in the selection to list of XYRGB values at those coordinates.
-             //Renderscript
-             float3 __attribute__((kernel))extractBorder(int2 in) {
-                return convert_float3(rsGetElementAt_uchar4(image, in.x, in.y).xyz);
-             }
-            */
+             * Map Point's in the selection to list of XYRGB values at those coordinates.
+             * Renderscript
+             * float3 __attribute__((kernel))extractBorder(int2 in) {
+             *    return convert_float3(rsGetElementAt_uchar4(image, in.x, in.y).xyz);
+             * }
+             */
 
              IntStream.range(0,selection.pointList.size()).parallel().forEach(i->{
                  Point point=selection.pointList.get(i);
                  var to = xyrgbList.xyrgb(i);
-                 var rgbint = imageData.array((long) point.y * imageData.width() + point.x);
+                 var rgbint = s32Array2D.array((long) point.y * s32Array2D.width() + point.x);
                  to.x(point.x);
                  to.y(point.y);
                  to.r(red(rgbint));
@@ -285,8 +285,8 @@ float3 __attribute__((kernel)) solve2(uchar in, uint32_t x, uint32_t y) {
                  to.b(blue(rgbint));
             });
 
-            // Create a search box of pad * selection (w & h), but constrain to bounds of the image
-            /*
+            /* Create a search box of pad * selection (w & h), but constrain to bounds of the image
+             *
              *            +----------------------+Image
              *            |                      |
              *       +.W..W--W--W--W--W--W--W-+  |
@@ -307,13 +307,12 @@ float3 __attribute__((kernel)) solve2(uchar in, uint32_t x, uint32_t y) {
             Box searchBox = Box.create(accelerator,
                     Math.max(0, selection.x1() - padx),
                     Math.max(0, selection.y1() - pady),
-                    Math.min(imageData.width(), selection.x2() + padx) - selection.width(),
-                    Math.min(imageData.height(), selection.y2() + pady) - selection.height()
+                    Math.min(s32Array2D.width(), selection.x2() + padx) - selection.width(),
+                    Math.min(s32Array2D.height(), selection.y2() + pady) - selection.height()
             );
             Box selectionBox = Box.create(accelerator, selection.x1(), selection.y1(), selection.x2(), selection.y2());
 
-            S32Array2D s32Array2D = S32Array2D.create(accelerator,imageData.width(),imageData.height());
-            s32Array2D.copyFrom(imageData.arrayOfData);
+
 
             accelerator.compute(cc->
                     Compute.bestFitCompute(cc, offset, s32Array2D, searchBox, selectionBox, xyrgbList
