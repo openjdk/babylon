@@ -375,6 +375,46 @@ public class TestSwitchExpressionOp {
         };
     }
 
+    @Test
+    void testCaseConstantConv() {
+        CoreOp.FuncOp lmodel = lower("caseConstantConv");
+        short[] args = {1, 2, 3, 4};
+        for (short arg : args) {
+            Assert.assertEquals(Interpreter.invoke(lmodel, arg), caseConstantConv(arg));
+        }
+    }
+
+    @CodeReflection
+    static String caseConstantConv(short a) {
+        final short s = 1;
+        final byte b = 2;
+        return switch (a) {
+            case s -> "one"; // identity
+            case b -> "three"; // widening primitive conversion
+            case 3 -> "two"; // narrowing primitive conversion
+            default -> "default";
+        };
+    }
+
+    @Test
+    void testCaseConstantConv2() {
+        CoreOp.FuncOp lmodel = lower("caseConstantConv2");
+        Byte[] args = {1, 2, 3};
+        for (Byte arg : args) {
+            Assert.assertEquals(Interpreter.invoke(lmodel, arg), caseConstantConv2(arg));
+        }
+    }
+
+    @CodeReflection
+    static String caseConstantConv2(Byte a) {
+        final byte b = 2;
+        return switch (a) {
+            case 1 -> "one"; // narrowing primitive conversion followed by a boxing conversion
+            case b -> "two"; // boxing
+            default -> "default";
+        };
+    }
+
     private static CoreOp.FuncOp lower(String methodName) {
         return lower(getCodeModel(methodName));
     }
