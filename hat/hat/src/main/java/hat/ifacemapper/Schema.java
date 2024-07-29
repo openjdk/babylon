@@ -1,15 +1,36 @@
+/*
+ * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
 package hat.ifacemapper;
 
+import hat.Accelerator;
 import hat.buffer.Buffer;
-import hat.buffer.BufferAllocator;
 import hat.ifacemapper.accessor.AccessorInfo;
 import hat.ifacemapper.accessor.ValueType;
 
-import java.lang.foreign.GroupLayout;
-import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
-import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -41,10 +62,33 @@ public class Schema<T extends Buffer> {
         this.rootIfaceType = rootIfaceType;
     }
 
-
-    public T allocate(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator, int... boundLengths) {
+    public T allocate(Accelerator accelerator, int... boundLengths) {
         BoundSchema<?> boundSchema = new BoundSchema<>(this, boundLengths);
-        return (T) boundSchema.allocate(lookup, bufferAllocator);
+        T instance = (T) boundSchema.allocate(accelerator.lookup, accelerator);
+        MemorySegment memorySegment = Buffer.getMemorySegment(instance);
+        int[] count = new int[]{0};
+
+        boundSchema.boundArrayFields().forEach(boundArrayFieldLayout -> {
+            boundArrayFieldLayout.dimFields.forEach(dimLayout -> {
+                long dimOffset = dimLayout.offset();
+                int dim = boundLengths[count[0]++];
+                if (dimLayout.field instanceof FieldNode.ArrayLen arrayLen) {
+                    if (arrayLen.key.accessorType.equals(AccessorInfo.AccessorType.GETTER_AND_SETTER)) {
+                        throw new IllegalStateException("You have a bound array dim field " + dimLayout.field.name + " controlling size of " + boundArrayFieldLayout.field.name + "[] which has a setter ");
+                    }
+                    if (arrayLen.type == Long.TYPE) {
+                        memorySegment.set(ValueLayout.JAVA_LONG, dimOffset, dim);
+                    } else if (arrayLen.type == Integer.TYPE) {
+                        memorySegment.set(ValueLayout.JAVA_INT, dimOffset, dim);
+                    } else {
+                        throw new IllegalArgumentException("Unsupported array length type: " + arrayLen.type);
+                    }
+                }
+            });
+        });
+
+
+        return instance;
     }
 
     public static <T extends Buffer> Schema<T> of(Class<T> iface, Consumer<IfaceType> parentFieldConsumer) {
@@ -96,79 +140,6 @@ public class Schema<T extends Buffer> {
             ifaceTypeNodeConsumer.accept(this);
         }
 
-        public GroupLayout getBoundGroupLayout(BoundSchema.BoundSchemaNode parentBoundSchemaNode) {
-
-            BoundSchema.BoundSchemaNode<?> child = parentBoundSchemaNode.createChild(this);
-            this.fields.forEach(fieldNode -> {
-                        if (fieldNode instanceof SchemaNode.Padding field) {
-                            child.bind(field, MemoryLayout.paddingLayout(field.len));
-                        } else if (fieldNode instanceof FieldNode.AddressField field) {
-                            child.bind(field, field.parent.getBoundLayout(field.type, child).withName(field.name));
-                        } else if (fieldNode instanceof FieldNode.ArrayLen field) {
-                            child.bind(field, field.parent.getBoundLayout(field.type, child).withName(field.name));
-                        } else if (fieldNode instanceof FieldNode.AtomicField field) {
-                            child.bind(field, field.parent.getBoundLayout(field.type, child).withName(field.name));
-                        } else if (fieldNode instanceof FieldNode.IfaceField field) {
-                            child.bind(field, field.parent.getBoundLayout(field.ifaceType.iface, child).withName(field.name));
-                        } else if (fieldNode instanceof FieldNode.PrimitiveField field) {
-                            child.bind(field, field.parent.getBoundLayout(field.type, child).withName(field.name));
-                        } else if (fieldNode instanceof FieldNode.IfaceFixedArray field) {
-                            child.bind(field, MemoryLayout.sequenceLayout(field.len,
-                                    field.parent.getBoundLayout(field.ifaceType.iface, child).withName(field.ifaceType.iface.getSimpleName())
-                            ).withName(field.name));
-                        } else if (fieldNode instanceof FieldNode.PrimitiveFixedArray field) {
-                            child.bind(field, MemoryLayout.sequenceLayout(field.len,
-                                    field.parent.getBoundLayout(field.type, child).withName(field.type.getSimpleName())
-                            ).withName(field.name));
-                        } else if (fieldNode instanceof FieldNode.IfaceFieldControlledArray field) {
-                            // To determine the actual 'array' size we multiply the contributing dims by the stride .
-                            int size = field.stride; //usually 1 but developer can define.
-                            for (int i = 0; i < field.contributingDims; i++) {
-                                size *= child.takeArrayLen(); // this takes an arraylen and bumps the ptr
-                            }
-
-                            child.bind(field, MemoryLayout.sequenceLayout(size,
-                                    field.parent.getBoundLayout(field.ifaceType.iface, child).withName(field.ifaceType.iface.getSimpleName())
-                            ).withName(field.name));
-                        } else if (fieldNode instanceof FieldNode.PrimitiveFieldControlledArray field) {
-                            // To determine the actual 'array' size we multiply the contributing dims by the stride .
-                            int size = field.stride; //usually 1 but developer can define.
-                            for (int i = 0; i < field.contributingDims; i++) {
-                                size *= child.takeArrayLen(); // this takes an arraylen and bumps the ptr
-                            }
-
-                            child.bind(field, MemoryLayout.sequenceLayout(size,
-                                    field.parent.getBoundLayout(field.type, child).withName(field.type.getSimpleName())
-                            ).withName(field.name));
-                        } else {
-                            throw new IllegalStateException("what is this?");
-                        }
-                    }
-            );
-            return (MapperUtil.isUnion(this.iface)
-                    ? MemoryLayout.unionLayout(child.memoryLayoutListToArray())
-                    : MemoryLayout.structLayout(child.memoryLayoutListToArray())).withName(this.iface.getSimpleName());
-        }
-
-        /**
-         * Get a layout which describes the type.
-         * <p>
-         * If tyoe holds a primitive (int, float) then just map to JAVA_INT, JAVA_FLOAT value layouts
-         * Otherwise we look through the parent's children.  Which should include a type node struct/union matching the type.
-         *
-         * @param type
-         * @param boundSchemaNode
-         * @return
-         */
-        MemoryLayout getBoundLayout(Class<?> type, BoundSchema.BoundSchemaNode boundSchemaNode) {
-            if (type.isPrimitive()) {
-                return MapperUtil.primitiveToLayout(type);
-            } else if (MapperUtil.isMemorySegment(type)) {
-                return ValueLayout.ADDRESS;
-            } else {
-                return getChild(type).getBoundGroupLayout(boundSchemaNode);
-            }
-        }
 
         public IfaceType struct(String name, Consumer<IfaceType> parentSchemaNodeConsumer) {
             parentSchemaNodeConsumer.accept(addIfaceTypeNode(new Struct(this, (Class<MappableIface>) MapperUtil.typeOf(iface, name))));

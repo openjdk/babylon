@@ -24,6 +24,8 @@
  */
 package hat.buffer;
 
+import hat.Accelerator;
+import hat.ComputeContext;
 import hat.ifacemapper.Schema;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
@@ -213,7 +215,6 @@ public interface ArgArray extends Buffer {
     }
 
     int argc();
-    void argc(int argc);
 
     @BoundBy("argc") @Pad(12)
     Arg arg(long idx);
@@ -224,16 +225,13 @@ public interface ArgArray extends Buffer {
 
     @After("vendorPtr")
     int schemaLen();
-    void schemaLen(int schemaLen);
 
     @BoundBy("schemaLen")
     byte schemaBytes(long idx);
     void schemaBytes(long idx, byte b);
 
     Schema<ArgArray> schema = Schema.of(ArgArray.class, s->s
-            .arrayLen("argc")
-            .pad(12/*(int)(16 - JAVA_INT.byteSize())*/)
-            .array("arg", arg->arg
+            .arrayLen("argc").pad(12).array("arg", arg->arg
                             .fields("idx","variant")
                             .pad(11/*(int)(16 - JAVA_INT.byteSize() - JAVA_BYTE.byteSize())*/)
                             .field("value", value->value
@@ -264,7 +262,7 @@ public interface ArgArray extends Buffer {
         return (valueLayout.order().equals(ByteOrder.LITTLE_ENDIAN)) ? schema.toLowerCase() : schema;
     }
 
-    static ArgArray create(MethodHandles.Lookup lookup,BufferAllocator bufferAllocator, Object... args) {
+    static ArgArray create(Accelerator accelerator,ComputeContext.RuntimeInfo runtimeInfo, Object... args) {
         String[] schemas = new String[args.length];
         StringBuilder argSchema = new StringBuilder();
         argSchema.append(args.length);
@@ -288,14 +286,19 @@ public interface ArgArray extends Buffer {
             argSchema.append(schemas[i]);
         }
         String schemaStr = argSchema.toString();
-        ArgArray argArray = schema.allocate(lookup,bufferAllocator,args.length,schemaStr.length() + 1);
-        argArray.argc(args.length);
-        argArray.setSchemaBytes(schemaStr);
-        update(argArray, args);
+        ArgArray argArray = schema.allocate(accelerator,args.length,schemaStr.length() + 1);
+        byte[] schemaStrBytes = schemaStr.getBytes();
+        for (int i = 0; i < schemaStrBytes.length; i++) {
+            argArray.schemaBytes(i, schemaStrBytes[i]);
+        }
+        argArray.schemaBytes(schemaStrBytes.length, (byte) 0);
+        update(argArray, runtimeInfo,args);
         return argArray;
     }
 
-    static void update(ArgArray argArray, Object... args) {
+    static void update(ArgArray argArray, ComputeContext.RuntimeInfo runtimeInfo, Object... args) {
+        final byte javaDirty = 1;
+        final byte javaClean = 0;
         for (int i = 0; i < args.length; i++) {
             Object argObject = args[i];
             Arg arg = argArray.arg(i);
@@ -316,6 +319,7 @@ public interface ArgArray extends Buffer {
                     Arg.Value.Buf buf = value.buf();
                     buf.address(segment);
                     buf.bytes(segment.byteSize());
+                    buf.state(runtimeInfo.javaDirty.contains(buffer)?javaDirty:javaClean);
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + argObject);
             }
@@ -330,16 +334,6 @@ public interface ArgArray extends Buffer {
         }
         bytes[bytes.length - 1] = '0';
         return new String(bytes);
-    }
-
-    default void setSchemaBytes(String schemaStr) {
-        byte[] schemaStrBytes = schemaStr.getBytes();
-        schemaLen(schemaStrBytes.length);
-        // TODO:we should be able to copy into the segment here ;)
-        for (int i = 0; i < schemaStrBytes.length; i++) {
-            schemaBytes(i, schemaStrBytes[i]);
-        }
-        schemaBytes(schemaStrBytes.length, (byte) 0);
     }
 
 

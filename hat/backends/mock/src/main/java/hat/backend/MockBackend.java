@@ -25,6 +25,7 @@
 package hat.backend;
 
 
+import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.buffer.BackendConfig;
@@ -56,8 +57,8 @@ public class MockBackend extends NativeBackend {
         void junk(boolean junk);
 
         Schema<MockConfig> schema = Schema.of(MockConfig.class, s->s.fields("gpu", "junk"));
-        static MockConfig create(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator, boolean gpu) {
-            MockConfig config =schema.allocate(lookup,bufferAllocator);
+        static MockConfig create(Accelerator accelerator, boolean gpu) {
+            MockConfig config =schema.allocate(accelerator);
             config.gpu(gpu);
             return config;
         }
@@ -67,7 +68,7 @@ public class MockBackend extends NativeBackend {
 
     public MockBackend() {
         super("mock_backend");
-        getBackend(MockConfig.create(MethodHandles.lookup(),this,  true));
+        getBackend(null);//MockConfig.create(MethodHandles.lookup(),this,  true));
     }
 
     @Override

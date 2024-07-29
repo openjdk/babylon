@@ -24,26 +24,22 @@
  */
 package hat.buffer;
 
+import hat.Accelerator;
 import hat.ifacemapper.Schema;
 
 import java.lang.invoke.MethodHandles;
 
 public interface U16GreyImage extends ImageIfaceBuffer<U16GreyImage> {
+    int width();
+    int height();
     short data(long idx);
     void data(long idx, short v);
-    int width();
-    void width(int width);
-    int height();
-    void height(int height);
 
     Schema<U16GreyImage> schema = Schema.of(U16GreyImage.class, s -> s
-            .arrayLen("width", "height").stride(1).array("data")
+            .arrayLen("width", "height").array("data")
     );
 
-    static U16GreyImage create(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator, int width, int height){
-        var instance = schema.allocate(lookup, bufferAllocator,width,height);
-        instance.width(width);
-        instance.height(height);
-        return instance;
+    static U16GreyImage create(Accelerator accelerator, int width, int height){
+        return schema.allocate(accelerator,width,height);
     }
 }

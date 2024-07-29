@@ -29,10 +29,8 @@ import hat.buffer.Buffer;
 
 public interface S32Array extends Buffer {
     int length();
-    void length(int i);
     int array(long idx);
     void array(long idx, int i);
     Schema<S32Array> schema = Schema.of(S32Array.class, s32Array->s32Array
             .arrayLen("length").array("array"));
-
 }

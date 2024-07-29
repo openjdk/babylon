@@ -27,11 +27,29 @@ package hat.backend;
 
 import hat.ComputeContext;
 import hat.NDRange;
+import hat.buffer.Buffer;
 import hat.callgraph.KernelCallGraph;
+import hat.ifacemapper.BoundSchema;
+import hat.optools.*;
 
-public class PTXBackend extends NativeBackend {
+import java.lang.reflect.code.*;
+import java.lang.reflect.code.op.CoreOp;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
+
+public class PTXBackend extends C99NativeBackend {
+    int major;
+    int minor;
+    String target;
+    int addressSize;
+
     public PTXBackend() {
         super("ptx_backend");
+        major = 7;
+        minor = 5;
+        target = "sm_52";
+        addressSize = 64;
         getBackend(null);
     }
 
@@ -58,8 +76,91 @@ public class PTXBackend extends NativeBackend {
                 );
 
         System.out.println("Entrypoint ->"+kernelCallGraph.entrypoint.method.getName());
-        System.out.println(kernelCallGraph.entrypoint.funcOpWrapper().toText());
-        System.out.println("Add your code to "+PTXBackend.class.getName()+".dispatchKernel() to actually run! :)");
-        System.exit(1);
+        String code = createCode(kernelCallGraph, new PTXCodeBuilder(), args);
+        long programHandle = compileProgram(code);
+        if (programOK(programHandle)) {
+            long kernelHandle = getKernel(programHandle, kernelCallGraph.entrypoint.method.getName());
+            CompiledKernel compiledKernel = new CompiledKernel(this, kernelCallGraph, code, kernelHandle, args);
+            compiledKernel.dispatch(ndRange,args);
+        }
+    }
+
+    public String createCode(KernelCallGraph kernelCallGraph, PTXCodeBuilder builder, Object[] args) {
+        StringBuilder out = new StringBuilder();
+        FuncOpWrapper f = new FuncOpWrapper(kernelCallGraph.entrypoint.funcOpWrapper().op());
+        FuncOpWrapper lowered = f.lower();
+        HashMap<String, Object> argsMap = new HashMap<>();
+        for (int i = 0; i < args.length; i++) {
+            argsMap.put(f.paramTable().list().get(i).varOp.varName(), args[i]);
+        }
+
+        // currently hard coded but ill fix it later
+        boolean useSchema = true;
+
+        // printing out ptx header (device info)
+        builder.ptxHeader(major, minor, target, addressSize);
+        out.append(builder.getTextAndReset());
+
+        for (KernelCallGraph.KernelReachableResolvedMethodCall k : kernelCallGraph.kernelReachableResolvedStream().toList()) {
+            FuncOpWrapper calledFunc = new FuncOpWrapper(k.funcOpWrapper().op());
+            FuncOpWrapper loweredFunc = calledFunc.lower();
+            if (useSchema) loweredFunc = transformPtrs(loweredFunc, argsMap);
+            out.append(createFunction(new PTXCodeBuilder(addressSize).nl().nl(), loweredFunc, false));
+        }
+
+        if (useSchema) lowered = transformPtrs(lowered, argsMap);
+
+        out.append(createFunction(builder.nl().nl(), lowered, true));
+
+        return out.toString();
+    }
+
+    public FuncOpWrapper transformPtrs(FuncOpWrapper func, HashMap<String, Object> argsMap) {
+        return FuncOpWrapper.wrap(func.op().transform((block, op) -> {
+            CopyContext cc = block.context();
+            // use first operand of invoke to figure out schema
+            if (op instanceof CoreOp.InvokeOp invokeOp
+                    && OpWrapper.wrap(invokeOp) instanceof InvokeOpWrapper invokeOpWrapper
+                    && invokeOpWrapper.isIfaceBufferMethod()
+                    && invokeOp.operands().getFirst() instanceof Op.Result invokeResult
+                    && invokeResult.op().operands().getFirst() instanceof Op.Result varLoadResult
+                    && varLoadResult.op() instanceof CoreOp.VarOp varOp
+                    && argsMap.get(varOp.varName()) instanceof Buffer buffer) {
+                List<Value> inputOperands = invokeOp.operands();
+                List<Value> outputOperands = cc.getValues(inputOperands);
+                Op.Result inputResult = invokeOp.result();
+                BoundSchema<?> boundSchema = Buffer.getBoundSchema(buffer);
+                PTXPtrOp ptxOp = new PTXPtrOp(inputResult.type(), invokeOp.invokeDescriptor().name(), outputOperands, boundSchema.schema());
+                Op.Result outputResult = block.op(ptxOp);
+                cc.mapValue(inputResult, outputResult);
+            } else {
+                block.apply(op);
+            }
+            return block;
+        }));
+    }
+
+    public String createFunction(PTXCodeBuilder builder, FuncOpWrapper lowered, boolean entry) {
+        FuncOpWrapper ssa = lowered.ssa();
+        String out, body;
+
+        // building fn info (name, params)
+        builder.functionHeader(lowered.functionName(), entry, lowered.op().body().yieldType());
+
+        // printing out params
+        builder.parameters(lowered.paramTable().list());
+
+        // building body of fn
+        builder.functionPrologue();
+
+        out = builder.getTextAndReset();
+        ssa.firstBody().blocks().forEach(block -> builder.blockBody(block, block.ops().stream().map(OpWrapper::wrap)));
+
+        builder.functionEpilogue();
+        body = builder.getTextAndReset();
+
+        builder.ptxRegisterDecl();
+        out += builder.getText() + body;
+        return out;
     }
 }

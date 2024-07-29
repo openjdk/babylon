@@ -37,28 +37,21 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 public interface S32Array extends Buffer {
 
     int length();
-    void length(int i);
     int array(long idx);
     void array(long idx, int i);
     Schema<S32Array> schema = Schema.of(S32Array.class, s32Array->s32Array
             .arrayLen("length").array("array"));
 
-    static S32Array create(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator, int length){
-        var instance = schema.allocate(lookup,bufferAllocator, length);
-        instance.length(length);
-        return instance;
-    }
     static S32Array create(Accelerator accelerator, int length){
-        return create(accelerator.lookup, accelerator, length);
+        return schema.allocate(accelerator, length);
     }
     static S32Array createFrom(Accelerator accelerator, int[] arr){
-        return create(accelerator.lookup, accelerator, arr.length).copyfrom(arr);
+        return create( accelerator, arr.length).copyfrom(arr);
     }
     default S32Array copyfrom(int[] ints) {
         MemorySegment.copy(ints, 0, Buffer.getMemorySegment(this), JAVA_INT, 4, length());
         return this;
     }
-
     default S32Array copyTo(int[] ints) {
         MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_INT, 4, ints, 0, length());
         return this;

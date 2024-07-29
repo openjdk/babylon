@@ -109,8 +109,8 @@ public class Mesh {
                 .arrayLen("points").array("point", p -> p.fields("x", "y", "z"))
                 .arrayLen("vertices").array("vertex", v -> v.fields("from", "to"))
         );
-        static  MeshData create(MethodHandles.Lookup lookup,BufferAllocator bufferAllocator) {
-            return schema.allocate(lookup,bufferAllocator,100,10);
+        static  MeshData create(Accelerator accelerator) {
+            return schema.allocate(accelerator,100,10);
         }
     }
 
@@ -143,7 +143,7 @@ public class Mesh {
 
         var boundSchema = new BoundSchema<>(MeshData.schema, 100, 10);
         var meshDataNew = boundSchema.allocate(accelerator.lookup,accelerator);
-        var meshDataOld = MeshData.create(accelerator.lookup,accelerator);
+        var meshDataOld = MeshData.create(accelerator);
 
         String layoutNew = Buffer.getLayout(meshDataNew).toString();
         String layoutOld = Buffer.getLayout(meshDataOld).toString();

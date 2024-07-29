@@ -24,6 +24,8 @@
  */
 package experiments;
 
+import hat.Accelerator;
+import hat.backend.DebugBackend;
 import hat.buffer.Buffer;
 import hat.buffer.BufferAllocator;
 import hat.buffer.S08x3RGBImage;
@@ -36,13 +38,10 @@ import java.lang.invoke.MethodHandles;
 public class S08x3ImageTest implements Buffer {
 
     public static void main(String[] args) {
-        BufferAllocator bufferAllocator = new BufferAllocator() {
-            @Override
-            public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema) {
-                return segmentMapper.allocate(Arena.global(),boundSchema);
-            }
-        };
-        var rgbS08x3Image = S08x3RGBImage.create(MethodHandles.lookup(), bufferAllocator,100,100);
+
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup(),new DebugBackend());
+
+        var rgbS08x3Image = S08x3RGBImage.create(accelerator,100,100);
     }
 
 }

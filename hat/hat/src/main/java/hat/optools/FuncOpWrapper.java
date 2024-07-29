@@ -67,86 +67,24 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
 
     public static class ParamTable {
         public static class Info {
-
-            public static boolean isIfaceBuffer(Class<?> hopefullyABufferClass) {
-
-                if (MappableIface.class.isAssignableFrom(hopefullyABufferClass)) {
-                    return true;
-                } else {
-                    Class<?> enclosingClass = hopefullyABufferClass.getEnclosingClass();
-                    if (enclosingClass != null) {
-                        return isIfaceBuffer(enclosingClass);
-                    } else {
-                        return false;
-                    }
-                }
-            }
-
-            public static boolean isIfaceBuffer(JavaType javaType) {
-                if (javaType instanceof PrimitiveType) {
-                    return false;
-                }
-                try {
-                    String className = javaType.toString();
-                    Class<?> hopefullyABufferClass = Class.forName(className);
-                    return isIfaceBuffer(hopefullyABufferClass);
-                } catch (ClassNotFoundException e) {
-                    return false;
-                }
-
-            }
-            public boolean isIfaceBuffer() {
-                return isIfaceBuffer(javaType);
-
-            }
-
-            public static boolean isKernelContext(JavaType javaType) {
-                if (javaType instanceof PrimitiveType) {
-                    return false;
-                }
-                try {
-                    String className = javaType.toString();
-                    Class<?> hopefullyAKernelContext = Class.forName(className);
-                    // Note we alow either the buffer form here.  Common iface? or maybe we should just not use same name
-                    return hat.KernelContext.class.isAssignableFrom(hopefullyAKernelContext)
-                        || hat.buffer.KernelContext.class.isAssignableFrom(hopefullyAKernelContext);
-                } catch (ClassNotFoundException e) {
-                    return false;
-                }
-            }
-            public boolean isKernelContext() {
-                return isKernelContext(javaType);
-
-            }
             public final int idx;
             public final Block.Parameter parameter;
-
             public final JavaType javaType;
             public final CoreOp.VarOp varOp;
-            Value dirtyVar;
             public GroupLayout layout = null;
             public Class<?> clazz = null;
-
             Info(int idx, Block.Parameter parameter, CoreOp.VarOp varOp) {
                 this.idx = idx;
                 this.parameter = parameter;
                 this.javaType = (JavaType) parameter.type();
                 this.varOp = varOp;
-                this.dirtyVar = null;
             }
-
-            public void setDirtyVar(Value dirtyVar) {
-                this.dirtyVar = dirtyVar;
-            }
-
             public boolean isPrimitive() {
                 return javaType instanceof PrimitiveType;
             }
-
             public void setLayout(GroupLayout layout) {
                 this.layout = layout;
             }
-
             public void setClass(Class<?> clazz) {
                 this.clazz = clazz;
             }
@@ -168,7 +106,8 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
         void add(Map.Entry<Block.Parameter, CoreOp.VarOp> parameterToVarOp) {
             //We add a new ParameterInfo to both maps using parameter and varOp as keys
             varOpToInfo.put(parameterToVarOp.getValue(),
-                    parameterToInfo.computeIfAbsent(parameterToVarOp.getKey(), (parameterKey) -> { // always called but convenient because computeIfAbsent returns what we added :)
+                    // always called but convenient because computeIfAbsent returns what we added :)
+                    parameterToInfo.computeIfAbsent(parameterToVarOp.getKey(), (parameterKey) -> {
                         var info = new ParamTable.Info(list.size(), parameterKey, parameterToVarOp.getValue());
                         list.add(info);
                         return info;

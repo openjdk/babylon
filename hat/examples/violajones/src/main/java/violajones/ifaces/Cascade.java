@@ -138,21 +138,21 @@ public interface Cascade extends Buffer {
     @After("height")
     int featureCount();
 
-    void featureCount(int featureCount);
+ //  void featureCount(int featureCount);
 
     @BoundBy("featureCount")
     Feature feature(long idx);
 
     int stageCount();
 
-    void stageCount(int stageCount);
+  //  void stageCount(int stageCount);
 
     @BoundBy("stageCount")
     Stage stage(long idx);
 
     int treeCount();
 
-    void treeCount(int treeCount);
+//void treeCount(int treeCount);
 
     @BoundBy("treeCount")
     Tree tree(long idx);
@@ -173,38 +173,27 @@ public interface Cascade extends Buffer {
             .arrayLen("treeCount").array("tree",tree->tree.fields("id","firstFeatureId","featureCount"))
     );
 
-    static Cascade create(MethodHandles.Lookup lookup, BufferAllocator bufferAllocator, int width, int height,
+    static Cascade create(Accelerator accelerator, int width, int height,
     int features,int stages,int trees){
-        var instance  = schema.allocate(lookup,
-                bufferAllocator,
+        var instance  = schema.allocate(accelerator,
                 features,
                 stages,
                 trees
         );
         instance.width(width);
         instance.height(height);
-        instance.featureCount(features);
-        instance.stageCount(stages);
-        instance.treeCount(trees);
         return instance;
     }
 
-    static Cascade create(Accelerator accelerator, int width, int height,
-                          int features, int stages, int trees){
-       return create(accelerator.lookup,accelerator,width,height,features,stages,trees);
-    }
 
     static Cascade createFrom(Accelerator accelerator, Cascade cascade){
-        return create(accelerator.lookup,accelerator,cascade.width(),cascade.height(),cascade.featureCount(),cascade.stageCount(),cascade.treeCount()).copyFrom(cascade);
+        return create(accelerator,cascade.width(),cascade.height(),cascade.featureCount(),cascade.stageCount(),cascade.treeCount()).copyFrom(cascade);
     }
 
     default Cascade copyFrom(Cascade fromCascade){
         Cascade toCascade= this;
         toCascade.width(fromCascade.width());
         toCascade.height(fromCascade.height());
-        toCascade.featureCount(fromCascade.featureCount());
-        toCascade.stageCount(fromCascade.stageCount());
-        toCascade.treeCount(fromCascade.treeCount());
         for (int idx = 0; idx < fromCascade.featureCount(); idx++) {
             Cascade.Feature toFeature =  toCascade.feature(idx);
             Cascade.Feature fromFeature = fromCascade.feature(idx);

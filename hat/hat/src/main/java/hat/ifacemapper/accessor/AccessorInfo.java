@@ -79,9 +79,9 @@ public record AccessorInfo(Key key,
         ARRAY_VALUE_GETTER_AND_SETTER(ARRAY, VALUE, GETTER_AND_SETTER),
         ARRAY_INTERFACE_GETTER(ARRAY, INTERFACE, GETTER);
 
-        private final Cardinality cardinality;
-        private final ValueType valueType;
-        private final AccessorType accessorType;
+        public final Cardinality cardinality;
+        public final ValueType valueType;
+        public final AccessorType accessorType;
 
         Key(Cardinality cardinality,
             ValueType valueType,
