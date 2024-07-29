@@ -645,22 +645,28 @@ public class ReflectMethods extends TreeTranslator {
             }
         }
 
-        public Value toValue(JCTree tree) {
-            return toValue(tree, Type.noType);
-        }
-
-        public Value toValue(JCTree tree, Type target) {
+        public Value toValue(JCExpression expression, Type targetType) {
             result = null; // reset
             Type prevPt = pt;
             try {
-                pt = target;
-                scan(tree);
+                pt = targetType;
+                scan(expression);
                 return result != null ?
-                        coerce(result, tree.type, target) :
+                        coerce(result, expression.type, targetType) :
                         null;
             } finally {
                 pt = prevPt;
             }
+        }
+
+        public Value toValue(JCExpression expression) {
+            return toValue(expression, Type.noType);
+        }
+
+        public Value toValue(JCTree.JCStatement statement) {
+            result = null; // reset
+            scan(statement);
+            return result;
         }
 
         Value coerce(Value sourceValue, Type sourceType, Type targetType) {
@@ -702,6 +708,9 @@ public class ReflectMethods extends TreeTranslator {
                 Type unboxedTarget = types.unboxedType(target);
                 if (!unboxedTarget.hasTag(NONE)) {
                     // non-Object target
+                    if (!types.isConvertible(source, unboxedTarget)) {
+                        exprVal = convert(exprVal, unboxedTarget);
+                    }
                     return box(exprVal, target);
                 } else {
                     // Object target
@@ -1207,6 +1216,8 @@ public class ReflectMethods extends TreeTranslator {
 
                     List<Value> nestedValues = new ArrayList<>();
                     for (JCTree.JCPattern jcPattern : record.nested) {
+                        // @@@ when we support ANYPATTERN, we must add result of toValue only if it's non-null
+                        // because passing null to recordPattern methods will cause an error
                         nestedValues.add(toValue(jcPattern));
                     }
 
@@ -1369,7 +1380,7 @@ public class ReflectMethods extends TreeTranslator {
 
             // Scan the lambda body
             if (tree.getBodyKind() == LambdaExpressionTree.BodyKind.EXPRESSION) {
-                Value exprVal = toValue(tree.body, tree.getDescriptorType(types).getReturnType());
+                Value exprVal = toValue(((JCExpression) tree.body), tree.getDescriptorType(types).getReturnType());
                 if (!tree.body.type.hasTag(TypeTag.VOID)) {
                     append(CoreOp._return(exprVal));
                 } else {
@@ -1379,7 +1390,7 @@ public class ReflectMethods extends TreeTranslator {
                 Type prevBodyTarget = bodyTarget;
                 try {
                     bodyTarget = tree.getDescriptorType(types).getReturnType();
-                    toValue(tree.body);
+                    toValue(((JCTree.JCStatement) tree.body));
                     // @@@ Check if unreachable
                     appendTerminating(CoreOp::_return);
                 } finally {
@@ -1526,8 +1537,10 @@ public class ReflectMethods extends TreeTranslator {
                     final Value localResult;
                     if (c.labels.size() == 1) {
                         Value expr = toValue(ccl.expr);
-                        // @@@ Conversion of localTarget
-                        if (ccl.expr.type.isPrimitive()) {
+                        // per java spec, constant type is compatible with the type of the selector expression
+                        // so, we convert constant to the type of the selector expression
+                        expr = convert(expr, tree.selector.type);
+                        if (tree.selector.type.isPrimitive()) {
                             localResult = append(CoreOp.eq(localTarget, expr));
                         } else {
                             localResult = append(CoreOp.invoke(
@@ -1541,9 +1554,9 @@ public class ReflectMethods extends TreeTranslator {
                             pushBody(ccl, FunctionType.functionType(JavaType.BOOLEAN));
 
                             Value expr = toValue(ccl.expr);
-                            // @@@ Conversion of localTarget
+                            expr = convert(expr, tree.selector.type);
                             final Value labelResult;
-                            if (ccl.expr.type.isPrimitive()) {
+                            if (tree.selector.type.isPrimitive()) {
                                 labelResult = append(CoreOp.eq(localTarget, expr));
                             } else {
                                 labelResult = append(CoreOp.invoke(
@@ -1584,16 +1597,15 @@ public class ReflectMethods extends TreeTranslator {
                     case RULE -> {
                         pushBody(c.body, actionType);
                         Type yieldType = adaptBottom(tree.type);
-                        if (c.body instanceof JCExpression) {
-                            // Yield the boolean result of the condition
-                            Value bodyVal = toValue(c.body, yieldType);
+                        if (c.body instanceof JCTree.JCExpression e) {
+                            Value bodyVal = toValue(e, yieldType);
                             append(CoreOp._yield(bodyVal));
-                        } else {
+                        } else if (c.body instanceof JCTree.JCStatement s){
                             // Otherwise there is a yield statement
                             Type prevBodyTarget = bodyTarget;
                             try {
                                 bodyTarget = yieldType;
-                                Value bodyVal = toValue(c.body);
+                                Value bodyVal = toValue(s);
                             } finally {
                                 bodyTarget = prevBodyTarget;
                             }
@@ -2006,7 +2018,11 @@ public class ReflectMethods extends TreeTranslator {
 
                 List<Value> rValues = new ArrayList<>();
                 for (JCTree resource : tree.resources) {
-                    rValues.add(toValue(resource));
+                    if (resource instanceof JCTree.JCExpression e) {
+                        rValues.add(toValue(e));
+                    } else if (resource instanceof JCTree.JCStatement s) {
+                        rValues.add(toValue(s));
+                    }
                 }
 
                 append(CoreOp._yield(append(CoreOp.tuple(rValues))));

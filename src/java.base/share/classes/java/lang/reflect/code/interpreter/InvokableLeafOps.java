@@ -247,6 +247,10 @@ final class InvokableLeafOps {
         return (short) (l >>> r);
     }
 
+    public static boolean eq(short a, short b) {
+        return a == b;
+    }
+
     // char
 
     public static char neg(char l) {
@@ -303,6 +307,10 @@ final class InvokableLeafOps {
 
     public static char lshr(char l, int r) {
         return (char) (l >>> r);
+    }
+
+    public static boolean eq(char l, char r) {
+        return l == r;
     }
 
    // long

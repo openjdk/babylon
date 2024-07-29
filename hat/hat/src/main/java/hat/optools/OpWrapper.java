@@ -24,6 +24,8 @@
  */
 package hat.optools;
 
+import hat.buffer.Buffer;
+
 import java.lang.reflect.code.Block;
 import java.lang.reflect.code.Body;
 import java.lang.reflect.code.Op;
@@ -31,6 +33,8 @@ import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.op.ExtendedOp;
+import java.lang.reflect.code.type.ClassType;
+import java.lang.reflect.code.type.JavaType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -228,5 +232,25 @@ public class OpWrapper<T extends Op> {
 
     public TypeElement resultType() {
         return op.resultType();
+    }
+
+    public static boolean isIface(JavaType javaType){
+        return  (isAssignable(javaType, Buffer.class, Buffer.Struct.class, Buffer.Union.class));
+    }
+    public static boolean isAssignable(JavaType javaType, Class<?> ... classes) {
+        if (javaType instanceof ClassType classType) {
+            try {
+                Class<?> javaTypeClass = Class.forName(classType.toString());
+                for (Class<?> clazz : classes) {
+                    if (clazz.isAssignableFrom(javaTypeClass)) {
+                        return true;
+                    }
+                }
+            } catch (ClassNotFoundException _) {
+
+            }
+        }
+        return false;
+
     }
 }

@@ -25,6 +25,7 @@
 
 package hat.backend;
 
+import hat.ComputeContext;
 import hat.NDRange;
 import hat.backend.c99codebuilders.C99HatKernelBuilder;
 import hat.buffer.ArgArray;
@@ -60,13 +61,13 @@ public abstract class C99NativeBackend extends NativeBackend {
             this.kernelHandle = kernelHandle;
             this.kernelContext = KernelContext.create(kernelCallGraph.computeContext.accelerator, 0, 0);
             ndRangeAndArgs[0] = this.kernelContext;
-            this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator, ndRangeAndArgs);
+            this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator, kernelCallGraph.computeContext.runtimeInfo, ndRangeAndArgs);
         }
 
         public void dispatch(NDRange ndRange, Object[] args) {
             kernelContext.maxX(ndRange.kid.maxX);
             args[0] = this.kernelContext;
-            ArgArray.update(argArray, args);
+            ArgArray.update(argArray, kernelCallGraph.computeContext.runtimeInfo, args);
             c99NativeBackend.ndRange(kernelHandle, this.argArray);
         }
     }

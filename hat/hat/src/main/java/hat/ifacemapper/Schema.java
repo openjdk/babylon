@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
 package hat.ifacemapper;
 
 import hat.Accelerator;
@@ -5,8 +29,6 @@ import hat.buffer.Buffer;
 import hat.ifacemapper.accessor.AccessorInfo;
 import hat.ifacemapper.accessor.ValueType;
 
-import java.lang.foreign.GroupLayout;
-import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.util.ArrayList;
@@ -22,6 +44,7 @@ public class Schema<T extends Buffer> {
     public static abstract class SchemaNode {
         public static final class Padding extends FieldNode {
             int len;
+
             Padding(IfaceType parent, int len) {
                 super(parent, AccessorInfo.Key.NONE, "pad" + len);
                 this.len = len;
@@ -39,31 +62,31 @@ public class Schema<T extends Buffer> {
         this.rootIfaceType = rootIfaceType;
     }
 
-    public T allocate(Accelerator accelerator,  int... boundLengths) {
+    public T allocate(Accelerator accelerator, int... boundLengths) {
         BoundSchema<?> boundSchema = new BoundSchema<>(this, boundLengths);
-        T instance = (T)boundSchema.allocate(accelerator.lookup, accelerator);
+        T instance = (T) boundSchema.allocate(accelerator.lookup, accelerator);
         MemorySegment memorySegment = Buffer.getMemorySegment(instance);
         int[] count = new int[]{0};
-        boundSchema.rootBoundSchemaNode().fieldLayouts.forEach(fieldLayout -> {
-                if (fieldLayout instanceof BoundSchema.BoundArrayFieldLayout boundArrayFieldLayout) {
-                    boundArrayFieldLayout.dimFields.forEach(dimLayout -> {
-                        long dimOffset = dimLayout.offset();
-                        int dim = boundLengths[count[0]++];
-                        if (dimLayout.field instanceof FieldNode.ArrayLen arrayLen){
-                            if (arrayLen.key.accessorType.equals(AccessorInfo.AccessorType.GETTER_AND_SETTER)){
-                                throw new IllegalStateException("You have a bound array dim field "+dimLayout.field.name+" controlling size of "+boundArrayFieldLayout.field.name+"[] which has a setter ");
-                            }
-                            if (arrayLen.type == Long.TYPE){
-                                memorySegment.set(ValueLayout.JAVA_LONG,dimOffset,dim);
-                            }else if (arrayLen.type == Integer.TYPE){
-                                memorySegment.set(ValueLayout.JAVA_INT,dimOffset,dim);
-                            }else{
-                                throw new IllegalArgumentException("Unsupported array length type: " + arrayLen.type);
-                            }
-                        }
-                    });
+
+        boundSchema.boundArrayFields().forEach(boundArrayFieldLayout -> {
+            boundArrayFieldLayout.dimFields.forEach(dimLayout -> {
+                long dimOffset = dimLayout.offset();
+                int dim = boundLengths[count[0]++];
+                if (dimLayout.field instanceof FieldNode.ArrayLen arrayLen) {
+                    if (arrayLen.key.accessorType.equals(AccessorInfo.AccessorType.GETTER_AND_SETTER)) {
+                        throw new IllegalStateException("You have a bound array dim field " + dimLayout.field.name + " controlling size of " + boundArrayFieldLayout.field.name + "[] which has a setter ");
+                    }
+                    if (arrayLen.type == Long.TYPE) {
+                        memorySegment.set(ValueLayout.JAVA_LONG, dimOffset, dim);
+                    } else if (arrayLen.type == Integer.TYPE) {
+                        memorySegment.set(ValueLayout.JAVA_INT, dimOffset, dim);
+                    } else {
+                        throw new IllegalArgumentException("Unsupported array length type: " + arrayLen.type);
+                    }
                 }
+            });
         });
+
 
         return instance;
     }

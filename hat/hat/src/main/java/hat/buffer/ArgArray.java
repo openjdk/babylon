@@ -25,6 +25,7 @@
 package hat.buffer;
 
 import hat.Accelerator;
+import hat.ComputeContext;
 import hat.ifacemapper.Schema;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
@@ -261,7 +262,7 @@ public interface ArgArray extends Buffer {
         return (valueLayout.order().equals(ByteOrder.LITTLE_ENDIAN)) ? schema.toLowerCase() : schema;
     }
 
-    static ArgArray create(Accelerator accelerator, Object... args) {
+    static ArgArray create(Accelerator accelerator,ComputeContext.RuntimeInfo runtimeInfo, Object... args) {
         String[] schemas = new String[args.length];
         StringBuilder argSchema = new StringBuilder();
         argSchema.append(args.length);
@@ -291,11 +292,13 @@ public interface ArgArray extends Buffer {
             argArray.schemaBytes(i, schemaStrBytes[i]);
         }
         argArray.schemaBytes(schemaStrBytes.length, (byte) 0);
-        update(argArray, args);
+        update(argArray, runtimeInfo,args);
         return argArray;
     }
 
-    static void update(ArgArray argArray, Object... args) {
+    static void update(ArgArray argArray, ComputeContext.RuntimeInfo runtimeInfo, Object... args) {
+        final byte javaDirty = 1;
+        final byte javaClean = 0;
         for (int i = 0; i < args.length; i++) {
             Object argObject = args[i];
             Arg arg = argArray.arg(i);
@@ -316,6 +319,7 @@ public interface ArgArray extends Buffer {
                     Arg.Value.Buf buf = value.buf();
                     buf.address(segment);
                     buf.bytes(segment.byteSize());
+                    buf.state(runtimeInfo.javaDirty.contains(buffer)?javaDirty:javaClean);
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + argObject);
             }
