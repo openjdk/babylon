@@ -169,20 +169,12 @@ public final class BytecodeLift {
                                          methodModel.code().orElseThrow()).liftBody());
     }
 
-    private Block.Builder getBlock(Label l) {
-        Block.Builder bb = blockMap.get(l);
-        if (bb == null) {
-            if (currentBlock == null) {
-                throw new IllegalArgumentException("Block without an stack frame detected.");
-            } else {
-                return newBlock();
-            }
-        }
-        return bb;
-    }
-
     private Block.Builder newBlock() {
         return entryBlock.block(stack.stream().map(Value::type).toList());
+    }
+
+    private Block.Builder newBlock(List<Block.Parameter> otherBlockParams) {
+        return entryBlock.block(otherBlockParams.stream().map(Block.Parameter::type).toList());
     }
 
     private void moveTo(Block.Builder next) {
@@ -216,17 +208,17 @@ public final class BytecodeLift {
                         if (currentBlock != null) {
                             // Implicit goto next block, add explicitly
                             // Use stack content as next block arguments
-                            op(CoreOp.branch(next.successor(List.copyOf(stack))));
+                            op(CoreOp.branch(successor(next)));
                         }
                         moveTo(next);
                     }
                     // Insert relevant tryStart and construct handler blocks, all in reversed order
                     for (ExceptionCatch ec : exceptionHandlers.reversed()) {
                         if (lt.label() == ec.tryStart()) {
-                            Block.Builder handler = getBlock(ec.handler());
+                            Block.Builder handler = blockMap.get(ec.handler());
                             // Create start block
                             next = newBlock();
-                            Op ere = CoreOp.exceptionRegionEnter(next.successor(List.copyOf(stack)), handler.successor(List.copyOf(stack)));
+                            Op ere = CoreOp.exceptionRegionEnter(successor(next), successor(handler));
                             op(ere);
                             // Store ERE into map for exit
                             exceptionRegionsMap.put(ec, ere.result());
@@ -238,13 +230,13 @@ public final class BytecodeLift {
                         if (lt.label() == ec.tryEnd()) {
                             // Create exit block with parameters constructed from the stack
                             next = newBlock();
-                            op(CoreOp.exceptionRegionExit(exceptionRegionsMap.get(ec), next.successor(List.copyOf(stack))));
+                            op(CoreOp.exceptionRegionExit(exceptionRegionsMap.get(ec), successor(next)));
                             moveTo(next);
                         }
                     }
                 }
                 case BranchInstruction inst when inst.opcode().isUnconditionalBranch() -> {
-                    op(CoreOp.branch(getBlock(inst.target()).successor(List.copyOf(stack))));
+                    op(CoreOp.branch(successor(blockMap.get(inst.target()))));
                     endOfFlow();
                 }
                 case BranchInstruction inst -> {
@@ -269,10 +261,11 @@ public final class BytecodeLift {
                         case IF_ACMPNE -> unifyOperands(CoreOp::eq, stack.pop(), operand, TypeKind.IntType);
                         default -> throw new UnsupportedOperationException("Unsupported branch instruction: " + inst);
                     };
-                    Block.Builder next = newBlock();
+                    Block.Builder branch = blockMap.get(inst.target());
+                    Block.Builder next = newBlock(branch.parameters());
                     op(CoreOp.conditionalBranch(op(cop),
-                            next.successor(List.copyOf(stack)),
-                            getBlock(inst.target()).successor(List.copyOf(stack))));
+                            successor(next),
+                            successor(branch)));
                     moveTo(next);
                 }
                 case LookupSwitchInstruction si -> {
@@ -766,15 +759,20 @@ public final class BytecodeLift {
     private void liftSwitch(Label defaultTarget, List<SwitchCase> cases) {
         Value v = toInt(stack.pop());
         SwitchCase last = cases.getLast();
+        Block.Builder def = blockMap.get(defaultTarget);
         for (SwitchCase sc : cases) {
-            Block.Builder next = sc == last ? blockMap.get(defaultTarget) : newBlock();
+            Block.Builder next = sc == last ? def : newBlock(def.parameters());
             op(CoreOp.conditionalBranch(
                     op(CoreOp.eq(v, liftConstant(sc.caseValue()))),
-                    blockMap.get(sc.target()).successor(List.copyOf(stack)),
-                    next.successor(List.copyOf(stack))));
+                    successor(blockMap.get(sc.target())),
+                    successor(next)));
             moveTo(next);
         }
         endOfFlow();
+    }
+
+    Block.Reference successor(Block.Builder next) {
+        return next.successor(stack.stream().limit(next.parameters().size()).toList());
     }
 
     private static TypeElement valueType(Value v) {
