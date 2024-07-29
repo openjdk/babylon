@@ -29,6 +29,7 @@ import hat.ifacemapper.Schema;
 
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.StructLayout;
+import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
 
 import static java.lang.foreign.ValueLayout.JAVA_INT;
@@ -55,6 +56,10 @@ public interface S32Array2D extends Buffer {
     }
     default S32Array2D copyFrom(int[] ints) {
         MemorySegment.copy(ints, 0, Buffer.getMemorySegment(this), JAVA_INT, 2* JAVA_INT.byteSize(), width()*height());
+        return this;
+    }
+    default S32Array2D copyTo(int[] ints) {
+        MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_INT, 2* JAVA_INT.byteSize(),  ints, 0, width()*height());
         return this;
     }
 }

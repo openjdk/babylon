@@ -26,22 +26,30 @@ package heal;
 
 import hat.Accelerator;
 import hat.backend.Backend;
+import hat.buffer.S32Array2D;
 
+import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import java.awt.Rectangle;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 
 public class Main {
-    public static void main(String[] args) {
+
+    public static void main(String[] args) throws IOException {
+        var image= ImageIO.read(Main.class.getResourceAsStream("/images/bolton.png"));
+        if (image.getType() != BufferedImage.TYPE_INT_RGB){//Better way?
+            var rgbimage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
+            rgbimage.getGraphics().drawImage(image, 0, 0, null);
+            image=rgbimage;
+        }
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-        ImageData imageData = ImageData.of(
-                Viewer.class.getResourceAsStream("/images/bolton.png")
-        );
+
         JFrame f = new JFrame("Healing Brush");
-        f.setBounds(new Rectangle(imageData.width(), imageData.height()));
+        f.setBounds(new Rectangle(image.getWidth(),image.getHeight()));
         f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        Viewer viewerDisplay = new Viewer(imageData, accelerator);
-        f.setContentPane(viewerDisplay);
+        f.setContentPane( new Viewer(accelerator,image));
         f.validate();
         f.setVisible(true);
     }
