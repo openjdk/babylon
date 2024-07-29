@@ -46,6 +46,7 @@ import java.lang.runtime.CodeReflection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -424,6 +425,21 @@ public class TestBytecode {
     @CodeReflection
     int instanceMethodHandle(int i) {
         return consume(i, this::instanceMethod);
+    }
+
+    static void consume(boolean b, Consumer<Object> requireNonNull) {
+        if (b) {
+            requireNonNull.accept(new Object());
+        } else try {
+            requireNonNull.accept(null);
+            throw new AssertionError("Expectend NPE");
+        } catch (NullPointerException expected) {
+        }
+    }
+
+    @CodeReflection
+    static void nullReturningMethodHandle(boolean b) {
+        consume(b, Objects::requireNonNull);
     }
 
     @CodeReflection

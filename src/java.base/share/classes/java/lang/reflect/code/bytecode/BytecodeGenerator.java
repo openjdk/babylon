@@ -179,7 +179,7 @@ public final class BytecodeGenerator {
                         .map(Value::type).map(BytecodeGenerator::toClassDesc).toArray(ClassDesc[]::new));
         clb.withMethodBody(methodName, mtd, ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC,
                 cb -> cb.transforming(new BranchCompactor(), cob ->
-                    new BytecodeGenerator(lookup, className, capturedValues, new Liveness(iop),
+                    new BytecodeGenerator(lookup, className, capturedValues, TypeKind.from(mtd.returnType()), new Liveness(iop),
                                           iop.body().blocks(), cob, lambdaSink, quotable).generate()));
     }
 
@@ -189,6 +189,7 @@ public final class BytecodeGenerator {
     private final MethodHandles.Lookup lookup;
     private final ClassDesc className;
     private final List<Value> capturedValues;
+    private final TypeKind returnType;
     private final List<Block> blocks;
     private final CodeBuilder cob;
     private final Label[] blockLabels;
@@ -203,6 +204,7 @@ public final class BytecodeGenerator {
     private BytecodeGenerator(MethodHandles.Lookup lookup,
                               ClassDesc className,
                               List<Value> capturedValues,
+                              TypeKind returnType,
                               Liveness liveness,
                               List<Block> blocks,
                               CodeBuilder cob,
@@ -211,6 +213,7 @@ public final class BytecodeGenerator {
         this.lookup = lookup;
         this.className = className;
         this.capturedValues = capturedValues;
+        this.returnType = returnType;
         this.blocks = blocks;
         this.cob = cob;
         this.blockLabels = new Label[blocks.size()];
@@ -882,13 +885,11 @@ public final class BytecodeGenerator {
             Op top = b.terminatingOp();
             switch (top) {
                 case CoreOp.ReturnOp op -> {
-                    Value a = op.returnValue();
-                    if (a == null) {
-                        cob.return_();
-                    } else {
+                    if (returnType != TypeKind.VoidType) {
                         processFirstOperand(op);
-                        cob.return_(toTypeKind(a.type()));
+                        // @@@ box, unbox, cast here ?
                     }
+                    cob.return_(returnType);
                 }
                 case ThrowOp op -> {
                     processFirstOperand(op);

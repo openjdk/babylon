@@ -460,12 +460,13 @@ public final class BytecodeLift {
                         } else {
                             // lambda call to a MH
                             stack.push(op(lambda.body(eb -> {
-                                eb.op(CoreOp._return(eb.op(CoreOp.invoke(
+                                Op.Result ret = eb.op(CoreOp.invoke(
                                         MethodRef.method(JavaType.type(dmhd.owner()),
                                                          dmhd.methodName(),
                                                          lambdaFunc.returnType(),
                                                          lambdaFunc.parameterTypes()),
-                                        Stream.concat(Arrays.stream(capturedValues), eb.parameters().stream()).toArray(Value[]::new)))));
+                                        Stream.concat(Arrays.stream(capturedValues), eb.parameters().stream()).toArray(Value[]::new)));
+                                eb.op(ret.type().equals(JavaType.VOID) ? CoreOp._return() : CoreOp._return(ret));
                             })));
                         }
                     } else if (bsmOwner.equals(CD_StringConcatFactory)) {
