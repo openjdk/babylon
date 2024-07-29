@@ -127,10 +127,36 @@ public final class BytecodeLift {
             if (TypeKind.from(locType).slotSize() == 2) locals.add(null);
         });
         this.codeTracker = new LocalsTypeMapper(classModel.thisClass().asSymbol(), locals, smta, elements);
-        this.blockMap = codeTracker.stackMap.entrySet().stream().collect(Collectors.toUnmodifiableMap(
-                        Map.Entry::getKey,
-                        me -> entryBlock.block(me.getValue().stack().stream().map(JavaType::type).toArray(TypeElement[]::new))));
+        this.blockMap = smta.map(sma ->
+                sma.entries().stream().collect(Collectors.toUnmodifiableMap(
+                        StackMapFrameInfo::target,
+                        smfi -> entryBlock.block(toBlockParams(smfi.stack()))))).orElseGet(Map::of);
         this.constantCache = new HashMap<>();
+    }
+
+    private List<TypeElement> toBlockParams(List<StackMapFrameInfo.VerificationTypeInfo> vtis) {
+        ArrayList<TypeElement> params = new ArrayList<>(vtis.size());
+        for (int i = vtis.size() - 1; i >= 0; i--) {
+            var vti = vtis.get(i);
+            switch (vti) {
+                case ITEM_INTEGER -> params.add(JavaType.INT);
+                case ITEM_FLOAT -> params.add(JavaType.FLOAT);
+                case ITEM_DOUBLE -> params.add(JavaType.DOUBLE);
+                case ITEM_LONG -> params.add(JavaType.LONG);
+                case ITEM_NULL -> params.add(JavaType.J_L_OBJECT);
+                case ITEM_UNINITIALIZED_THIS ->
+                    params.add(JavaType.type(classModel.thisClass().asSymbol()));
+                case StackMapFrameInfo.ObjectVerificationTypeInfo ovti ->
+                    params.add(JavaType.type(ovti.classSymbol()));
+
+                    // Unitialized entry (a new object before its constructor is called)
+                    // must be skipped from block parameters because they do not exist in code reflection model
+                case StackMapFrameInfo.UninitializedVerificationTypeInfo _ -> {}
+                default ->
+                    throw new IllegalArgumentException("Unexpected VTI: " + vti);
+            }
+        }
+        return params;
     }
 
     private Op.Result op(Op op) {
