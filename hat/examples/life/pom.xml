@@ -36,7 +36,7 @@ questions.
    <parent>
      <groupId>oracle.code</groupId>
      <version>1.0</version>
-     <artifactId>hat.hattricks</artifactId>
+     <artifactId>hat.examples</artifactId>
    </parent>
 
 
