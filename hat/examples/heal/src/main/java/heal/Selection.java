@@ -43,38 +43,65 @@
  */
 package heal;
 
+import java.awt.Color;
+import java.awt.Graphics2D;
 import java.awt.Point;
+import java.awt.Polygon;
 import java.awt.Rectangle;
 import java.awt.geom.Point2D;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferInt;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class Selection {
-    public final XYList xyList =new XYListImpl();
+    public static class Mask {
+        public final Selection selection;
+        public final int[] data;
+        public final int width;
+        public final int height;
+        public final Polygon polygon;
+        private Mask(Selection selection) {
+            this.selection = selection;
+            width = selection.width()+2;
+            height = selection.height()+2;
+            this.polygon = new Polygon();
+            selection.pointList.forEach(p->
+                    polygon.addPoint(p.x- selection.x1() + 1,p.y- selection.y1() + 1)
+            );
+            BufferedImage maskImg = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+            data = ((DataBufferInt) (maskImg.getRaster().getDataBuffer())).getData();
+            Arrays.fill(data, 0);
+            Graphics2D g = maskImg.createGraphics();
+            g.setColor(Color.WHITE);
+            g.fillPolygon(polygon);
+        }
+    }
+
     private Rectangle bounds = new Rectangle(Integer.MAX_VALUE,Integer.MAX_VALUE,Integer.MIN_VALUE,Integer.MIN_VALUE);
-    List<Point2D> pointList = new ArrayList<>();
-    Point2D prevPoint = null;
+    final List<Point> pointList = new ArrayList<>();
+    final Point first;
+    Point prevPoint = null;
 
+    Selection(Point2D point){
+        this.first = new Point((int)point.getX(),(int)point.getY());
+        this.prevPoint=first;
+        this.bounds.add(first);
+    }
     public void add(Point2D point){
-        if (xyList.length()>0) {
-            XYList.XY lastxy = xyList.xy(xyList.length() - 1);
-            add(lastxy.x(), lastxy.y(), (int)point.getX(), (int)point.getY());
-        }else{
-            ( (XYListImpl)xyList).add((int)point.getX(), (int)point.getY());
-        }
-
-        if (prevPoint != null) {
-            add(prevPoint,point);
-        }else{
-            pointList.add(point);
-        }
-        bounds.add(point);
-        prevPoint = point;
+        var newPoint = new Point((int)point.getX(),(int)point.getY());
+        add(prevPoint, newPoint);
+        bounds.add(newPoint);
+        prevPoint = newPoint;
     }
     public Selection close(){
-        var first = xyList.xy(0);
-        add(new Point(first.x(), first.y()));
+        add(first);
         return this;
+    }
+
+    public Mask getMask(){
+        return new Mask(this);
     }
 
     public int x1(){
@@ -114,44 +141,9 @@ public class Selection {
         }
         int numerator = longest >> 1;
         for (int i = 0; i <= longest; i++) {
-            ( (XYListImpl)xyList).add(x, y);
-            Point2D point  = new Point(x, y);
+            Point point  = new Point(x, y);
             pointList.add(point);
             bounds.add(point);
-            numerator += shortest;
-            if (numerator >= longest) {
-                numerator -= longest;
-                x += dx1;
-                y += dy1;
-            } else {
-                x += dx2;
-                y += dy2;
-            }
-        }
-    }
-
-    private void add(int x1, int y1, int x2, int y2) {
-        int x = x1;
-        int y = y1;
-        int w = x2 - x;
-        int h = y2 - y;
-        int dx1 = Integer.compare(w, 0);
-        int dy1 = Integer.compare(h, 0);
-        int dx2 = dx1;
-        int dy2 = 0;
-        int longest = Math.abs(w);
-        int shortest = Math.abs(h);
-        if (longest <= shortest) {
-            longest = Math.abs(h);
-            shortest = Math.abs(w);
-            dy2 = Integer.compare(h, 0);
-            dx2 = 0;
-        }
-        int numerator = longest >> 1;
-        for (int i = 0; i <= longest; i++) {
-
-            ( (XYListImpl)xyList).add(x, y);
-            bounds.add(x,y);
             numerator += shortest;
             if (numerator >= longest) {
                 numerator -= longest;

@@ -90,8 +90,7 @@ public class Viewer extends Display {
                 if (SwingUtilities.isLeftMouseButton(e)) {
                     try {
                         var ptDst =  transform.inverseTransform(e.getPoint(), null);
-                        selection = new Selection();
-                        selection.add(ptDst);
+                        selection = new Selection(ptDst);
                     } catch (NoninvertibleTransformException e1) {
                         e1.printStackTrace();
                     }
@@ -119,13 +118,12 @@ public class Viewer extends Display {
         if (selection != null) {
             Polygon selectionPolygon = new Polygon();
             Polygon solutionPolygon = new Polygon();
-            for (int i = 0; i< selection.xyList.length(); i++){
-                XYList.XY xy = selection.xyList.xy(i);
-                selectionPolygon.addPoint(xy.x(), xy.y());
+            selection.pointList.forEach(point -> {
+                selectionPolygon.addPoint(point.x, point.y);
                 if (bestMatchOffset != null){
-                    solutionPolygon.addPoint(xy.x()+bestMatchOffset.x, xy.y()+bestMatchOffset.y);
+                    solutionPolygon.addPoint(point.x+bestMatchOffset.x, point.y+bestMatchOffset.y);
                 }
-            }
+            });
             g.setColor(Color.RED);
             g.drawPolygon(selectionPolygon);
             if (bestMatchOffset!=null){

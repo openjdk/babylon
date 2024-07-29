@@ -51,6 +51,7 @@ import hat.KernelContext;
 import hat.buffer.F32Array;
 import hat.buffer.S32Array2D;
 import java.awt.Point;
+import java.awt.geom.Point2D;
 import java.lang.runtime.CodeReflection;
 import java.util.stream.IntStream;
 
@@ -153,7 +154,7 @@ public class SearchCompute {
 
     public static Point getOffsetOfBestMatch(Accelerator accelerator, ImageData imageData, Selection selection) {
         final Point offset  =new Point(0,0);
-        if (selection.xyList.length() != 0) {
+        if (!selection.pointList.isEmpty()) {
             long hatStart = System.currentTimeMillis();
             // Create a search box of pad * selection (w & h), but constrain to bounds of the image
             int pad = 4;
@@ -172,11 +173,46 @@ public class SearchCompute {
              }
             */
 
-            RGBList mappedRGBList = RGBList.create(accelerator, selection.xyList.length());
-            IntStream.range(0, selection.xyList.length()).parallel().forEach(i->{ //Old school! Maybe a Kernel?
+            RGBList mappedRGBList = RGBList.create(accelerator, selection.pointList.size());
+            XYList  mappedSelectionXYList = XYList.create(accelerator, selection.pointList.size());
+          /*  int xys = selection.xyList.length();
+            int pnts = selection.pointList.size();
+            if (xys != pnts){
+                for (int i = 0; i < xys; i++) {
+                    XYList.XY xy = selection.xyList.xy(i);
+                    int x = xy.x();//(int)point.getX();
+                    int y = xy.y();//int)point.getY();
+                    Point p = selection.pointList.get(i);
+                    System.out.println("x: " + x + " y: " + y+ " p: "+p);
+                }
+            }*/
+           // IntStream s1 = IntStream.range(0,selection.xyList.length()).parallel();
+            IntStream s2 = IntStream.range(0,selection.pointList.size()).parallel();
+            /*
+            s1.forEach(i->{ //Old school! Maybe a Kernel?
                 XYList.XY xy = selection.xyList.xy(i);
+              //  Point2D point=selection.pointList.get(i);
+                int x = xy.x();//(int)point.getX();
+                int y = xy.y();//int)point.getY();
+                var to = mappedSelectionXYList.xy(i);
                 var rgb = mappedRGBList.rgb(i);
-                var rgbint = imageData.array(xy.y() * imageData.width() + xy.x());
+                var rgbint = imageData.array((long) y * imageData.width() + x);
+                to.x(x);
+                to.y(y);
+                rgb.r(red(rgbint));
+                rgb.g(green(rgbint));
+                rgb.b(blue(rgbint));
+            });*/
+            s2.forEach(i->{ //Old school! Maybe a Kernel?
+              //  XYList.XY xy = selection.xyList.xy(i);
+                  Point point=selection.pointList.get(i);
+                int x = point.x;
+                int y = point.y;//xy.y();//int)point.getY();
+                var to = mappedSelectionXYList.xy(i);
+                var rgb = mappedRGBList.rgb(i);
+                var rgbint = imageData.array((long) y * imageData.width() + x);
+                to.x(x);
+                to.y(y);
                 rgb.r(red(rgbint));
                 rgb.g(green(rgbint));
                 rgb.b(blue(rgbint));
@@ -184,14 +220,6 @@ public class SearchCompute {
 
             Box  mappedSearchBox = Box.create(accelerator, x1,y1,x2,y2);
             Box  mappedSelectionBox = Box.create(accelerator, selection.x1(), selection.y1(), selection.x2(), selection.y2());
-
-            XYList  mappedSelectionXYList = XYList.create(accelerator, selection.xyList.length());
-            IntStream.range(0,mappedSelectionXYList.length()).parallel().forEach(i->{ //Old School! Maybe a kernel
-                var from = selection.xyList.xy(i);
-                var to = mappedSelectionXYList.xy(i);
-                to.x(from.x());
-                to.y(from.y());
-            });
 
             S32Array2D s32Array2D = S32Array2D.create(accelerator,imageData.width(),imageData.height());
             s32Array2D.copyFrom(imageData.arrayOfData);

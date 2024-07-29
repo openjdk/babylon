@@ -83,29 +83,9 @@ float3 __attribute__((kernel)) solve2(uchar in, uint32_t x, uint32_t y) {
  */
 public class HealCompute {
 
-    static int red(int rgb) {
-        return (rgb >> 16) & 0xff;
-    }
-
-
-    static int green(int rgb) {
-        return (rgb >> 8) & 0xff;
-    }
-
-
-    static int blue(int rgb) {
-        return rgb & 0xff;
-    }
-
-    @CodeReflection
-    static int rgb(int r, int g, int b) {
-        return ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
-    }
-
-
     public static void heal(Accelerator accelerator, ImageData imageData, Selection selection, Point healPositionOffset) {
         long start = System.currentTimeMillis();
-        Mask mask = new Mask(selection);
+        Selection.Mask mask = selection.getMask();
         var src = new int[mask.data.length];
         var dest = new int[mask.data.length];
 
