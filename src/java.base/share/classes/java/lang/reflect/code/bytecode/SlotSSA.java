@@ -27,6 +27,7 @@ package java.lang.reflect.code.bytecode;
 
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.op.CoreOp;
+import java.lang.reflect.code.type.PrimitiveType;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -77,7 +78,7 @@ public final class SlotSSA {
                     Value v = loadValue instanceof SlotBlockArgument vba
                             ? joinBlockArguments.get(vba.b()).get(vba.slot())
                             : cc.getValue((Value) loadValue);
-                    if (vl.resultType().equals(v.type())) {
+                    if (vl.resultType().equals(v.type()) || v.type() instanceof PrimitiveType) {
                         cc.mapValue(op.result(), v);
                     } else {
                         // @@@ Explicit cast to return type, mainly due to cast of aconst_null (j.l.Object) to a target array type
