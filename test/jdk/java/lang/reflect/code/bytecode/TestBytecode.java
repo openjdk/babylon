@@ -241,6 +241,14 @@ public class TestBytecode {
     }
 
     @CodeReflection
+    static int objectsCompare(Boolean b1, Boolean b2, Boolean b3) {
+        Object a = b1;
+        Object b = b2;
+        Object c = b3;
+        return a == b ? (a != c ? 1 : 2) : (b != c ? 3 : 4);
+    }
+
+    @CodeReflection
     static int conditionalExpr(int i, int j) {
         return ((i - 1 >= 0) ? i - 1 : j - 1);
     }

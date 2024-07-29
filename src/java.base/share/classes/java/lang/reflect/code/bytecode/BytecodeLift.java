@@ -283,8 +283,8 @@ public final class BytecodeLift {
                         case IF_ICMPLE -> unifyOperands(CoreOp::gt, stack.pop(), operand, TypeKind.IntType);
                         case IF_ICMPGT -> unifyOperands(CoreOp::le, stack.pop(), operand, TypeKind.IntType);
                         case IF_ICMPLT -> unifyOperands(CoreOp::ge, stack.pop(), operand, TypeKind.IntType);
-                        case IF_ACMPEQ -> unifyOperands(CoreOp::neq, stack.pop(), operand, TypeKind.IntType);
-                        case IF_ACMPNE -> unifyOperands(CoreOp::eq, stack.pop(), operand, TypeKind.IntType);
+                        case IF_ACMPEQ -> CoreOp.neq(stack.pop(), operand);
+                        case IF_ACMPNE -> CoreOp.eq(stack.pop(), operand);
                         default -> throw new UnsupportedOperationException("Unsupported branch instruction: " + inst);
                     };
                     Block.Builder branch = blockMap.get(inst.target());
