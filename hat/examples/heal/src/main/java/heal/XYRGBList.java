@@ -26,13 +26,14 @@ package heal;
 
 import hat.Accelerator;
 import hat.buffer.Buffer;
-import hat.buffer.BufferAllocator;
 import hat.ifacemapper.Schema;
 
-import java.lang.invoke.MethodHandles;
-
-public interface RGBList extends Buffer {
-    interface RGB extends Buffer.Struct{
+public interface XYRGBList extends Buffer {
+    interface XYRGB extends Buffer.Struct{
+        int x();
+        int y();
+        void y(int y);
+        void x(int x);
         int r();
         int g();
         int b();
@@ -41,16 +42,14 @@ public interface RGBList extends Buffer {
         void b(int b);
     }
     int length();
-    RGB rgb(long idx);
-
-    Schema<RGBList> schema= Schema.of(RGBList.class, s->s
+    XYRGB xyrgb(long idx);
+    Schema<XYRGBList> schema= Schema.of(XYRGBList.class, s->s
             .arrayLen("length")
-            .array("rgb", rgb->rgb
-                    .fields("r","g","b")
+            .array("xyrgb", xy->xy
+                    .fields("x","y","r","g","b")
             )
     );
-
-    static RGBList create(Accelerator accelerator, int length) {
-        return schema.allocate(accelerator, length);
+    static XYRGBList create(Accelerator accelerator, int length) {
+        return  schema.allocate(accelerator,length);
     }
 }

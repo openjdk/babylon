@@ -66,9 +66,9 @@ public class ImageData implements S32Array2D {
     public int height() {
         return heightField;
     }
-    public int length() {
-        return width()*height();
-    }
+   // public int length() {
+   //     return width()*height();
+    //}
 
 
     @Override

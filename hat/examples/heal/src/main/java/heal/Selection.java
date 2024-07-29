@@ -58,7 +58,7 @@ import java.util.List;
 public class Selection {
     public static class Mask {
         public final Selection selection;
-        public final int[] data;
+        public final int[] maskRGBData;
         public final int width;
         public final int height;
         public final Polygon polygon;
@@ -66,13 +66,15 @@ public class Selection {
             this.selection = selection;
             width = selection.width()+2;
             height = selection.height()+2;
+
             this.polygon = new Polygon();
             selection.pointList.forEach(p->
                     polygon.addPoint(p.x- selection.x1() + 1,p.y- selection.y1() + 1)
             );
+
             BufferedImage maskImg = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-            data = ((DataBufferInt) (maskImg.getRaster().getDataBuffer())).getData();
-            Arrays.fill(data, 0);
+            maskRGBData = ((DataBufferInt) (maskImg.getRaster().getDataBuffer())).getData();
+            Arrays.fill(maskRGBData, 0);
             Graphics2D g = maskImg.createGraphics();
             g.setColor(Color.WHITE);
             g.fillPolygon(polygon);

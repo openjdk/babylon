@@ -69,8 +69,8 @@ public class Viewer extends Display {
            @Override
             public void mouseReleased(MouseEvent e) {
                 if (SwingUtilities.isLeftMouseButton(e)) {
-                    bestMatchOffset = SearchCompute.getOffsetOfBestMatch(accelerator, imageData, selection.close());
-                    HealCompute.heal(accelerator,imageData, selection, bestMatchOffset);
+                    bestMatchOffset = Compute.getOffsetOfBestMatch(accelerator, imageData, selection.close());
+                    Compute.heal(accelerator,imageData, selection, bestMatchOffset);
                     Timer t = new Timer(1000, new ActionListener() {
                         @Override
                         public void actionPerformed(ActionEvent e) {
