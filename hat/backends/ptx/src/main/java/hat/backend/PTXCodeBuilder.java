@@ -29,6 +29,7 @@ import hat.optools.*;
 import hat.text.CodeBuilder;
 import hat.util.StreamCounter;
 
+import java.lang.foreign.MemoryLayout;
 import java.lang.reflect.code.Block;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.TypeElement;
@@ -42,8 +43,8 @@ import java.util.stream.Stream;
 public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
 
     Map<Value, PTXRegister> varToRegMap;
-    List<String> params;
-    Map<String, Block.Parameter> paramMap;
+    List<String> paramNames;
+    List<Block.Parameter> paramObjects;
     Map<Field, PTXRegister> fieldToRegMap;
 
     HashMap<PTXRegister.Type, Integer> ordinalMap;
@@ -74,9 +75,9 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
 
     public PTXCodeBuilder(int addressSize) {
         varToRegMap = new HashMap<>();
-        params = new ArrayList<>();
+        paramNames = new ArrayList<>();
         fieldToRegMap = new HashMap<>();
-        paramMap = new HashMap<>();
+        paramObjects = new ArrayList<>();
         ordinalMap = new HashMap<>();
         this.addressSize = addressSize;
     }
@@ -111,7 +112,7 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
         paren(_ -> nl().commaNlSeparated(infoList, (info) -> {
             ptxIndent().dot().param().space().paramType(info.javaType);
             space().regName(info.varOp.varName());
-            params.add(info.varOp.varName());
+            paramNames.add(info.varOp.varName());
         }).nl()).nl();
         return this;
     }
@@ -121,8 +122,8 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
             for (Block.Parameter p : block.parameters()) {
                 ptxIndent().ld().dot().param();
                 resultType(p.type(), false).ptxIndent().space();
-                reg(p, getResultType(p.type())).commaSpace().osbrace().regName(params.get(p.index())).csbrace().semicolon().nl();
-                paramMap.putIfAbsent(params.get(p.index()), p);
+                reg(p, getResultType(p.type())).commaSpace().osbrace().regName(paramNames.get(p.index())).csbrace().semicolon().nl();
+                paramObjects.add(p);
             }
         }
         nl();
@@ -130,8 +131,12 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
         colon().nl();
         ops.forEach(op -> {
             if (op instanceof InvokeOpWrapper invoke && !invoke.isIfaceBufferMethod()) {
-                ptxIndent().obrace().nl().ptxIndent().convert(op).ptxNl();
-                cbrace().nl();
+                if (invoke.methodRef().refType().toString().equals("java.lang.Math")) {
+                    ptxIndent().convert(op).nl();
+                } else {
+                    ptxIndent().obrace().nl().ptxIndent().convert(op).ptxNl();
+                    cbrace().nl();
+                }
             } else {
                 ptxIndent().convert(op).semicolon().nl();
             }
@@ -192,24 +197,7 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
         PTXRegister source;
         int offset = 0;
 
-        // TODO: account for nested schema
-        // calculate offset
-        for (Schema.FieldNode fieldNode : op.schema.rootIfaceType.fields) {
-            if (fieldNode.name.equals(op.fieldName)) {
-                break;
-            }
-            switch (fieldNode) {
-                case Schema.SchemaNode.Padding f -> {
-                    StringBuilder padding = new StringBuilder();
-                    Consumer<String> consumer = a -> padding.append(a.replaceAll("[^0-9]", ""));
-                    f.toText("", consumer);
-                    offset += Integer.parseInt(padding.toString());
-                }
-                case Schema.FieldNode.PrimitiveFixedArray f -> offset += f.len * 4;
-                case Schema.FieldNode.IfaceFixedArray f -> offset += f.len * 4;
-                default -> offset += 4;
-            }
-        }
+        offset = (int) op.boundSchema.groupLayout().byteOffset(MemoryLayout.PathElement.groupElement(op.fieldName));
 
         if (op.fieldName.equals("array")) {
             source = new PTXRegister(incrOrdinal(addressType()), addressType());
@@ -219,9 +207,9 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
         }
 
         if (op.resultType.toString().equals("void")) {
-            st().global().u32().space().address(source.name(), offset).commaSpace().reg(op.operands().get(2));
+            st().global().dot().regType(op.operands().getLast()).space().address(source.name(), offset).commaSpace().reg(op.operands().getLast());
         } else {
-            ld().global().u32().space().reg(op.result(), PTXRegister.Type.U32).commaSpace().address(source.name(), offset);
+            ld().global().resultType(op.resultType(), true).space().reg(op.result(), getResultType(op.resultType())).commaSpace().address(source.name(), offset);
         }
     }
 
@@ -245,7 +233,7 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
 
     public void loadKcX(Value value) {
         cvta().to().global().size().space().fieldReg(Field.KC_ADDR).commaSpace()
-                .reg(paramMap.get("kc"), addressType()).ptxNl();
+                .reg(paramObjects.get(paramNames.indexOf(Field.KC_ADDR.toString())), addressType()).ptxNl();
         mov().u32().space().fieldReg(Field.NTID_X).commaSpace().percent().regName(Field.NTID_X.toString()).ptxNl();
         mov().u32().space().fieldReg(Field.CTAID_X).commaSpace().percent().regName(Field.CTAID_X.toString()).ptxNl();
         mov().u32().space().fieldReg(Field.TID_X).commaSpace().percent().regName(Field.TID_X.toString()).ptxNl();
@@ -283,8 +271,13 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
 
     public void binaryOperation(BinaryArithmeticOrLogicOperation op) {
         symbol(op.op());
-        if (op.resultType().toString().equals("float") && op.op() instanceof CoreOp.DivOp) rn();
-        if (!op.resultType().toString().equals("float") && op.op() instanceof CoreOp.MulOp) lo();
+        if (getResultType(op.resultType()).getBasicType().equals(PTXRegister.Type.BasicType.FLOATING)
+                && (op.op() instanceof CoreOp.DivOp || op.op() instanceof CoreOp.MulOp)) {
+            rn();
+        } else if (!getResultType(op.resultType()).getBasicType().equals(PTXRegister.Type.BasicType.FLOATING)
+                && op.op() instanceof CoreOp.MulOp) {
+            lo();
+        }
         resultType(op.resultType(), true).space();
         resultReg(op, getResultType(op.resultType()));
         commaSpace();
@@ -309,17 +302,27 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
                 mul().wide().s32().space().resultReg(op, PTXRegister.Type.U64).commaSpace()
                         .reg(op.operandNAsValue(0)).commaSpace().intVal(4);
             } else {
-                cvt().rn().u64().dot().regType(op.operandNAsValue(0)).space()
+                cvt().u64().dot().regType(op.operandNAsValue(0)).space()
                         .resultReg(op, PTXRegister.Type.U64).commaSpace().reg(op.operandNAsValue(0)).ptxNl();
             }
         } else if (op.resultJavaType().equals(JavaType.FLOAT)) {
             cvt().rn().f32().dot().regType(op.operandNAsValue(0)).space()
                     .resultReg(op, PTXRegister.Type.F32).commaSpace().reg(op.operandNAsValue(0));
         } else if (op.resultJavaType().equals(JavaType.DOUBLE)) {
-            cvt().rn().f64().dot().regType(op.operandNAsValue(0)).space()
+            cvt();
+            if (op.operandNAsValue(0).type().equals(JavaType.INT)) {
+                rn();
+            }
+            f64().dot().regType(op.operandNAsValue(0)).space()
                     .resultReg(op, PTXRegister.Type.F64).commaSpace().reg(op.operandNAsValue(0));
         } else if (op.resultJavaType().equals(JavaType.INT)) {
-            cvt().rn().s32().dot().regType(op.operandNAsValue(0)).space()
+            cvt();
+            if (op.operandNAsValue(0).type().equals(JavaType.DOUBLE) || op.operandNAsValue(0).type().equals(JavaType.FLOAT)) {
+                rzi();
+            } else {
+                rn();
+            }
+            s32().dot().regType(op.operandNAsValue(0)).space()
                     .resultReg(op, PTXRegister.Type.S32).commaSpace().reg(op.operandNAsValue(0));
         } else {
             cvt().rn().s32().dot().regType(op.operandNAsValue(0)).space()
@@ -337,9 +340,11 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
     public void constant(ConstantOpWrapper op) {
         mov().resultType(op.resultType(), false).space().resultReg(op, getResultType(op.resultType())).commaSpace();
         if (op.resultType().toString().equals("float")) {
-            append("0f");
-            append(Integer.toHexString(Float.floatToIntBits(Float.parseFloat(op.op().value().toString()))).toUpperCase());
-            if (op.op().value().toString().equals("0.0")) append("0000000");
+            if (op.op().value().toString().equals("0.0")) {
+                floatVal("00000000");
+            } else {
+                floatVal(Integer.toHexString(Float.floatToIntBits(Float.parseFloat(op.op().value().toString()))).toUpperCase());
+            }
         } else {
             append(op.op().value().toString());
         }
@@ -379,79 +384,313 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
             }
             // Java Math functions
             case "java.lang.Math::sqrt(double)double" -> {
-                sqrt().rn().f32().space().resultReg(op, PTXRegister.Type.F32).commaSpace().getReg(op.operandNAsValue(0)).name();
+                sqrt().rn().f64().space().resultReg(op, PTXRegister.Type.F64).commaSpace().reg(op.operandNAsValue(0));
+                semicolon();
             }
-            // TODO: add these
             case "java.lang.Math::exp(double)double" -> {
-                /*
-                mov.f32         %f2, 0f3F000000;
-                mov.f32         %f3, 0f3BBB989D;
-                fma.rn.f32      %f4, %f1, %f3, %f2;
-                mov.f32         %f5, 0f3FB8AA3B;
-                mov.f32         %f6, 0f437C0000;
-                cvt.sat.f32.f32         %f7, %f4;
-                mov.f32         %f8, 0f4B400001;
-                fma.rm.f32      %f9, %f7, %f6, %f8;
-                add.f32         %f10, %f9, 0fCB40007F;
-                neg.f32         %f11, %f10;
-                fma.rn.f32      %f12, %f1, %f5, %f11;
-                mov.f32         %f13, 0f32A57060;
-                fma.rn.f32      %f14, %f1, %f13, %f12;
-                mov.b32         %r6, %f9;
-                shl.b32         %r7, %r6, 23;
-                mov.b32         %f15, %r7;
-                ex2.approx.ftz.f32      %f16, %f14;
-                mul.f32         %f17, %f16, %f15;
-                 */
+                if (getReg(op.operandNAsValue(0)).type().equals(PTXRegister.Type.F32)) {
+                    PTXRegister[] fRegs = new PTXRegister[15];
+                    for (int i = 0; i < fRegs.length; i++) {
+                        fRegs[i] = new PTXRegister(incrOrdinal(PTXRegister.Type.F32), PTXRegister.Type.F32);
+                    }
+                    PTXRegister[] bRegs = new PTXRegister[2];
+                    for (int i = 0; i < bRegs.length; i++) {
+                        bRegs[i] = new PTXRegister(incrOrdinal(PTXRegister.Type.U32), PTXRegister.Type.U32);
+                    }
+
+                    mov().f32().space().regName(fRegs[0]).commaSpace().floatVal("3F000000").ptxNl();
+                    mov().f32().space().regName(fRegs[1]).commaSpace().floatVal("3BBB989D").ptxNl();
+                    fma().rn().f32().space().regName(fRegs[2]).commaSpace().reg(op.operandNAsValue(0)).commaSpace().regName(fRegs[1]).commaSpace().regName(fRegs[0]).ptxNl();
+                    mov().f32().space().regName(fRegs[3]).commaSpace().floatVal("3FB8AA3B").ptxNl();
+                    mov().f32().space().regName(fRegs[4]).commaSpace().floatVal("437C0000").ptxNl();
+                    cvt().sat().f32().f32().space().regName(fRegs[5]).commaSpace().regName(fRegs[2]).ptxNl();
+                    mov().f32().space().regName(fRegs[6]).commaSpace().floatVal("4B400001").ptxNl();
+                    fma().rm().f32().space().regName(fRegs[7]).commaSpace().regName(fRegs[5]).commaSpace().regName(fRegs[4]).commaSpace().regName(fRegs[6]).ptxNl();
+                    add().f32().space().regName(fRegs[8]).commaSpace().regName(fRegs[7]).commaSpace().floatVal("CB40007F").ptxNl();
+                    neg().f32().space().regName(fRegs[9]).commaSpace().regName(fRegs[8]).ptxNl();
+                    fma().rn().f32().space().regName(fRegs[10]).commaSpace().reg(op.operandNAsValue(0)).commaSpace().regName(fRegs[3]).commaSpace().regName(fRegs[9]).ptxNl();
+                    mov().f32().space().regName(fRegs[11]).commaSpace().floatVal("32A57060").ptxNl();
+                    fma().rn().f32().space().regName(fRegs[12]).commaSpace().reg(op.operandNAsValue(0)).commaSpace().regName(fRegs[11]).commaSpace().regName(fRegs[10]).ptxNl();
+                    mov().b32().space().regName(bRegs[0]).commaSpace().regName(fRegs[7]).ptxNl();
+                    shl().b32().space().regName(bRegs[1]).commaSpace().regName(bRegs[0]).commaSpace().intVal(23).ptxNl();
+                    mov().b32().space().regName(fRegs[13]).commaSpace().regName(bRegs[1]).ptxNl();
+                    ex2().approx().ftz().f32().space().regName(fRegs[14]).commaSpace().regName(fRegs[12]).ptxNl();
+                    mul().f32().space().resultReg(op, PTXRegister.Type.F32).commaSpace().regName(fRegs[14]).commaSpace().regName(fRegs[13]);
+                    semicolon();
+                } else {
+                    PTXRegister[] fRegs = new PTXRegister[2];
+                    for (int i = 0; i < fRegs.length; i++) {
+                        fRegs[i] = new PTXRegister(incrOrdinal(PTXRegister.Type.F32), PTXRegister.Type.F32);
+                    }
+                    PTXRegister[] fdRegs = new PTXRegister[34];
+                    for (int i = 0; i < fdRegs.length; i++) {
+                        fdRegs[i] = new PTXRegister(incrOrdinal(PTXRegister.Type.F64), PTXRegister.Type.F64);
+                    }
+                    PTXRegister[] bRegs = new PTXRegister[15];
+                    for (int i = 0; i < bRegs.length; i++) {
+                        bRegs[i] = new PTXRegister(incrOrdinal(PTXRegister.Type.U32), PTXRegister.Type.U32);
+                    }
+                    PTXRegister[] pRegs = new PTXRegister[3];
+                    for (int i = 0; i < pRegs.length; i++) {
+                        pRegs[i] = new PTXRegister(incrOrdinal(PTXRegister.Type.PREDICATE), PTXRegister.Type.PREDICATE);
+                    }
+
+                    mov().f64().space().regName(fdRegs[0]).commaSpace().doubleVal("4338000000000000").ptxNl();
+                    mov().f64().space().regName(fdRegs[1]).commaSpace().doubleVal("3FF71547652B82FE").ptxNl();
+                    fma().rn().f64().space().regName(fdRegs[2]).commaSpace().reg(op.operandNAsValue(0)).commaSpace().regName(fdRegs[1]).commaSpace().regName(fdRegs[0]).ptxNl();
+                    obrace().nl().ptxIndent();
+                    reg().space().b32().space().percent().temp().ptxNl();
+                    mov().b64().space().obrace().regName(bRegs[0]).commaSpace().percent().temp().cbrace().commaSpace().regName(fdRegs[2]).ptxNl();
+                    cbrace().nl().ptxIndent();
+                    mov().f64().space().regName(fdRegs[3]).commaSpace().doubleVal("C338000000000000").ptxNl();
+                    add().rn().f64().space().regName(fdRegs[4]).commaSpace().regName(fdRegs[2]).commaSpace().regName(fdRegs[3]).ptxNl();
+                    mov().f64().space().regName(fdRegs[5]).commaSpace().doubleVal("BFE62E42FEFA39EF").ptxNl();
+                    fma().rn().f64().space().regName(fdRegs[6]).commaSpace().regName(fdRegs[4]).commaSpace().regName(fdRegs[5]).commaSpace().reg(op.operandNAsValue(0)).ptxNl();
+                    mov().f64().space().regName(fdRegs[7]).commaSpace().doubleVal("BC7ABC9E3B39803F").ptxNl();
+                    fma().rn().f64().space().regName(fdRegs[8]).commaSpace().regName(fdRegs[4]).commaSpace().regName(fdRegs[7]).commaSpace().regName(fdRegs[6]).ptxNl();
+                    mov().f64().space().regName(fdRegs[9]).commaSpace().doubleVal("3E928AF3FCA213EA").ptxNl();
+                    mov().f64().space().regName(fdRegs[10]).commaSpace().doubleVal("3E5ADE1569CE2BDF").ptxNl();
+                    fma().rn().f64().space().regName(fdRegs[11]).commaSpace().regName(fdRegs[10]).commaSpace().regName(fdRegs[8]).commaSpace().regName(fdRegs[9]).ptxNl();
+                    mov().f64().space().regName(fdRegs[12]).commaSpace().doubleVal("3EC71DEE62401315").ptxNl();
+                    fma().rn().f64().space().regName(fdRegs[13]).commaSpace().regName(fdRegs[11]).commaSpace().regName(fdRegs[8]).commaSpace().regName(fdRegs[12]).ptxNl();
+                    mov().f64().space().regName(fdRegs[14]).commaSpace().doubleVal("3EFA01997C89EB71").ptxNl();
+                    fma().rn().f64().space().regName(fdRegs[15]).commaSpace().regName(fdRegs[13]).commaSpace().regName(fdRegs[8]).commaSpace().regName(fdRegs[14]).ptxNl();
+                    mov().f64().space().regName(fdRegs[16]).commaSpace().doubleVal("3F2A01A014761F65").ptxNl();
+                    fma().rn().f64().space().regName(fdRegs[17]).commaSpace().regName(fdRegs[15]).commaSpace().regName(fdRegs[8]).commaSpace().regName(fdRegs[16]).ptxNl();
+                    mov().f64().space().regName(fdRegs[18]).commaSpace().doubleVal("3F56C16C1852B7AF").ptxNl();
+                    fma().rn().f64().space().regName(fdRegs[19]).commaSpace().regName(fdRegs[17]).commaSpace().regName(fdRegs[8]).commaSpace().regName(fdRegs[18]).ptxNl();
+                    mov().f64().space().regName(fdRegs[20]).commaSpace().doubleVal("3F81111111122322").ptxNl();
+                    fma().rn().f64().space().regName(fdRegs[21]).commaSpace().regName(fdRegs[19]).commaSpace().regName(fdRegs[8]).commaSpace().regName(fdRegs[20]).ptxNl();
+                    mov().f64().space().regName(fdRegs[22]).commaSpace().doubleVal("3FA55555555502A1").ptxNl();
+                    fma().rn().f64().space().regName(fdRegs[23]).commaSpace().regName(fdRegs[21]).commaSpace().regName(fdRegs[8]).commaSpace().regName(fdRegs[22]).ptxNl();
+                    mov().f64().space().regName(fdRegs[24]).commaSpace().doubleVal("3FC5555555555511").ptxNl();
+                    fma().rn().f64().space().regName(fdRegs[25]).commaSpace().regName(fdRegs[23]).commaSpace().regName(fdRegs[8]).commaSpace().regName(fdRegs[24]).ptxNl();
+                    mov().f64().space().regName(fdRegs[26]).commaSpace().doubleVal("3FE000000000000B").ptxNl();
+                    fma().rn().f64().space().regName(fdRegs[27]).commaSpace().regName(fdRegs[25]).commaSpace().regName(fdRegs[8]).commaSpace().regName(fdRegs[26]).ptxNl();
+                    mov().f64().space().regName(fdRegs[28]).commaSpace().doubleVal("3FF0000000000000").ptxNl();
+                    fma().rn().f64().space().regName(fdRegs[29]).commaSpace().regName(fdRegs[27]).commaSpace().regName(fdRegs[8]).commaSpace().regName(fdRegs[28]).ptxNl();
+                    fma().rn().f64().space().regName(fdRegs[30]).commaSpace().regName(fdRegs[29]).commaSpace().regName(fdRegs[8]).commaSpace().regName(fdRegs[28]).ptxNl();
+                    obrace().nl().ptxIndent();
+                    reg().space().b32().space().percent().temp().ptxNl();
+                    mov().b64().space().obrace().regName(bRegs[1]).commaSpace().percent().temp().cbrace().commaSpace().regName(fdRegs[30]).ptxNl();
+                    cbrace().nl().ptxIndent();
+                    obrace().nl().ptxIndent();
+                    reg().space().b32().space().percent().temp().ptxNl();
+                    mov().b64().space().obrace().percent().temp().commaSpace().regName(bRegs[2]).cbrace().commaSpace().regName(fdRegs[30]).ptxNl();
+                    cbrace().nl().ptxIndent();
+                    shl().b32().space().regName(bRegs[3]).commaSpace().regName(bRegs[0]).commaSpace().intVal(20).ptxNl();
+                    add().s32().space().regName(bRegs[4]).commaSpace().regName(bRegs[2]).commaSpace().regName(bRegs[3]).ptxNl();
+                    mov().b64().space().resultReg(op, PTXRegister.Type.F64).commaSpace().obrace().regName(bRegs[1]).commaSpace().regName(bRegs[4]).cbrace().ptxNl();
+                    obrace().nl().ptxIndent();
+                    reg().space().b32().space().percent().temp().ptxNl();
+                    mov().b64().space().obrace().percent().temp().commaSpace().regName(bRegs[5]).cbrace().commaSpace().reg(op.operandNAsValue(0)).ptxNl();
+                    cbrace().nl().ptxIndent();
+                    mov().b32().space().regName(fRegs[0]).commaSpace().regName(bRegs[5]).ptxNl();
+                    abs().f32().space().regName(fRegs[1]).commaSpace().regName(fRegs[0]).ptxNl();
+                    setp().dot().lt().f32().space().regName(pRegs[0]).commaSpace().regName(fRegs[1]).commaSpace().floatVal("4086232B").ptxNl();
+                    at().regName(pRegs[0]).space().bra().space().append("endExp").intVal(op.op().location().line()).underscore().intVal(op.op().location().column()).ptxNl();
+                    setp().dot().lt().f64().space().regName(pRegs[1]).commaSpace().reg(op.operandNAsValue(0)).commaSpace().doubleVal("0000000000000000").ptxNl();
+                    add().f64().space().regName(fdRegs[31]).commaSpace().reg(op.operandNAsValue(0)).commaSpace().doubleVal("7FF0000000000000").ptxNl();
+                    selp().f64().space().resultReg(op, PTXRegister.Type.F64).commaSpace().doubleVal("0000000000000000").commaSpace().regName(fdRegs[31]).commaSpace().regName(pRegs[1]).ptxNl();
+                    setp().dot().geu().f32().space().regName(pRegs[2]).commaSpace().regName(fRegs[1]).commaSpace().floatVal("40874800").ptxNl();
+                    at().regName(pRegs[2]).space().bra().space().append("endExp").intVal(op.op().location().line()).underscore().intVal(op.op().location().column()).ptxNl();
+                    shr().u32().space().regName(bRegs[6]).commaSpace().regName(bRegs[0]).commaSpace().intVal(31).ptxNl();
+                    add().s32().space().regName(bRegs[7]).commaSpace().regName(bRegs[0]).commaSpace().regName(bRegs[6]).ptxNl();
+                    shr().s32().space().regName(bRegs[8]).commaSpace().regName(bRegs[7]).commaSpace().intVal(1).ptxNl();
+                    shl().b32().space().regName(bRegs[9]).commaSpace().regName(bRegs[8]).commaSpace().intVal(20).ptxNl();
+                    add().s32().space().regName(bRegs[10]).commaSpace().regName(bRegs[2]).commaSpace().regName(bRegs[9]).ptxNl();
+                    mov().b64().space().regName(fdRegs[32]).commaSpace().obrace().regName(bRegs[1]).commaSpace().regName(bRegs[10]).cbrace().ptxNl();
+                    sub().s32().space().regName(bRegs[11]).commaSpace().regName(bRegs[0]).commaSpace().regName(bRegs[8]).ptxNl();
+                    shl().b32().space().regName(bRegs[12]).commaSpace().regName(bRegs[11]).commaSpace().intVal(20).ptxNl();
+                    add().s32().space().regName(bRegs[13]).commaSpace().regName(bRegs[12]).commaSpace().intVal(1072693248).ptxNl();
+                    mov().u32().space().regName(bRegs[14]).commaSpace().intVal(0).ptxNl();
+                    mov().b64().space().regName(fdRegs[33]).commaSpace().obrace().regName(bRegs[14]).commaSpace().regName(bRegs[13]).cbrace().ptxNl();
+                    mul().f64().space().resultReg(op, PTXRegister.Type.F64).commaSpace().regName(fdRegs[32]).commaSpace().regName(fdRegs[33]).semicolon().nl();
+                    append("endExp").intVal(op.op().location().line()).underscore().intVal(op.op().location().column()).colon();
+                }
             }
             case "java.lang.Math::log(double)double" -> {
-                /*
-                mul.f32         %f6, %f5, 0f4B000000;
-                setp.lt.f32     %p2, %f5, 0f00800000;
-                selp.f32        %f1, %f6, %f5, %p2;
-                selp.f32        %f7, 0fC1B80000, 0f00000000, %p2;
-                mov.b32         %r6, %f1;
-                add.s32         %r7, %r6, -1059760811;
-                and.b32         %r8, %r7, -8388608;
-                sub.s32         %r9, %r6, %r8;
-                mov.b32         %f8, %r9;
-                cvt.rn.f32.s32  %f9, %r8;
-                mov.f32         %f10, 0f34000000;
-                fma.rn.f32      %f11, %f9, %f10, %f7;
-                add.f32         %f12, %f8, 0fBF800000;
-                mov.f32         %f13, 0f3E1039F6;
-                mov.f32         %f14, 0fBE055027;
-                fma.rn.f32      %f15, %f14, %f12, %f13;
-                mov.f32         %f16, 0fBDF8CDCC;
-                fma.rn.f32      %f17, %f15, %f12, %f16;
-                mov.f32         %f18, 0f3E0F2955;
-                fma.rn.f32      %f19, %f17, %f12, %f18;
-                mov.f32         %f20, 0fBE2AD8B9;
-                fma.rn.f32      %f21, %f19, %f12, %f20;
-                mov.f32         %f22, 0f3E4CED0B;
-                fma.rn.f32      %f23, %f21, %f12, %f22;
-                mov.f32         %f24, 0fBE7FFF22;
-                fma.rn.f32      %f25, %f23, %f12, %f24;
-                mov.f32         %f26, 0f3EAAAA78;
-                fma.rn.f32      %f27, %f25, %f12, %f26;
-                mov.f32         %f28, 0fBF000000;
-                fma.rn.f32      %f29, %f27, %f12, %f28;
-                mul.f32         %f30, %f12, %f29;
-                fma.rn.f32      %f31, %f30, %f12, %f12;
-                mov.f32         %f32, 0f3F317218;
-                fma.rn.f32      %f35, %f11, %f32, %f31;
-                setp.lt.u32     %p3, %r6, 2139095040;
-                @%p3 bra        $L__BB0_3;
+                if (getReg(op.operandNAsValue(0)).type().equals(PTXRegister.Type.F32)) {
+                    PTXRegister[] fRegs = new PTXRegister[30];
+                    for (int i = 0; i < fRegs.length; i++) {
+                        fRegs[i] = new PTXRegister(incrOrdinal(PTXRegister.Type.F32), PTXRegister.Type.F32);
+                    }
+                    PTXRegister[] bRegs = new PTXRegister[4];
+                    for (int i = 0; i < bRegs.length; i++) {
+                        bRegs[i] = new PTXRegister(incrOrdinal(PTXRegister.Type.U32), PTXRegister.Type.U32);
+                    }
+                    PTXRegister[] pRegs = new PTXRegister[3];
+                    for (int i = 0; i < pRegs.length; i++) {
+                        pRegs[i] = new PTXRegister(incrOrdinal(PTXRegister.Type.PREDICATE), PTXRegister.Type.PREDICATE);
+                    }
 
-                mov.f32         %f33, 0f7F800000;
-                fma.rn.f32      %f35, %f1, %f33, %f33;
+                    mul().f32().space().regName(fRegs[0]).commaSpace().reg(op.operandNAsValue(0)).commaSpace().floatVal("4B000000").ptxNl();
+                    setp().dot().lt().f32().space().regName(pRegs[0]).commaSpace().reg(op.operandNAsValue(0)).commaSpace().floatVal("00800000").ptxNl();
+                    selp().f32().space().regName(fRegs[1]).commaSpace().regName(fRegs[0]).commaSpace().reg(op.operandNAsValue(0)).commaSpace().regName(pRegs[0]).ptxNl();
+                    selp().f32().space().regName(fRegs[2]).commaSpace().floatVal("C1B80000").commaSpace().floatVal("00000000").commaSpace().regName(pRegs[0]).ptxNl();
+                    mov().b32().space().regName(bRegs[0]).commaSpace().regName(fRegs[1]).ptxNl();
+                    add().s32().space().regName(bRegs[1]).commaSpace().regName(bRegs[0]).commaSpace().intVal(-1059760811).ptxNl();
+                    and().b32().space().regName(bRegs[2]).commaSpace().regName(bRegs[1]).commaSpace().intVal(-8388608).ptxNl();
+                    sub().s32().space().regName(bRegs[3]).commaSpace().regName(bRegs[0]).commaSpace().regName(bRegs[2]).ptxNl();
+                    mov().b32().space().regName(fRegs[3]).commaSpace().regName(bRegs[3]).ptxNl();
+                    cvt().rn().f32().s32().space().regName(fRegs[4]).commaSpace().regName(bRegs[2]).ptxNl();
+                    mov().f32().space().regName(fRegs[5]).commaSpace().floatVal("34000000").ptxNl();
+                    fma().rn().f32().space().regName(fRegs[6]).commaSpace().regName(fRegs[4]).commaSpace().regName(fRegs[5]).commaSpace().regName(fRegs[2]).ptxNl();
+                    add().f32().space().regName(fRegs[7]).commaSpace().regName(fRegs[3]).commaSpace().floatVal("BF800000").ptxNl();
+                    mov().f32().space().regName(fRegs[8]).commaSpace().floatVal("3E1039F6").ptxNl();
+                    mov().f32().space().regName(fRegs[9]).commaSpace().floatVal("BE055027").ptxNl();
+                    fma().rn().f32().space().regName(fRegs[10]).commaSpace().regName(fRegs[9]).commaSpace().regName(fRegs[7]).commaSpace().regName(fRegs[8]).ptxNl();
+                    mov().f32().space().regName(fRegs[11]).commaSpace().floatVal("BDF8CDCC").ptxNl();
+                    fma().rn().f32().space().regName(fRegs[12]).commaSpace().regName(fRegs[10]).commaSpace().regName(fRegs[7]).commaSpace().regName(fRegs[11]).ptxNl();
+                    mov().f32().space().regName(fRegs[13]).commaSpace().floatVal("3E0F2955").ptxNl();
+                    fma().rn().f32().space().regName(fRegs[14]).commaSpace().regName(fRegs[12]).commaSpace().regName(fRegs[7]).commaSpace().regName(fRegs[13]).ptxNl();
+                    mov().f32().space().regName(fRegs[15]).commaSpace().floatVal("BE2AD8B9").ptxNl();
+                    fma().rn().f32().space().regName(fRegs[16]).commaSpace().regName(fRegs[14]).commaSpace().regName(fRegs[7]).commaSpace().regName(fRegs[15]).ptxNl();
+                    mov().f32().space().regName(fRegs[17]).commaSpace().floatVal("3E4CED0B").ptxNl();
+                    fma().rn().f32().space().regName(fRegs[18]).commaSpace().regName(fRegs[16]).commaSpace().regName(fRegs[7]).commaSpace().regName(fRegs[17]).ptxNl();
+                    mov().f32().space().regName(fRegs[19]).commaSpace().floatVal("BE7FFF22").ptxNl();
+                    fma().rn().f32().space().regName(fRegs[20]).commaSpace().regName(fRegs[18]).commaSpace().regName(fRegs[7]).commaSpace().regName(fRegs[19]).ptxNl();
+                    mov().f32().space().regName(fRegs[21]).commaSpace().floatVal("3EAAAA78").ptxNl();
+                    fma().rn().f32().space().regName(fRegs[22]).commaSpace().regName(fRegs[20]).commaSpace().regName(fRegs[7]).commaSpace().regName(fRegs[21]).ptxNl();
+                    mov().f32().space().regName(fRegs[23]).commaSpace().floatVal("BF000000").ptxNl();
+                    fma().rn().f32().space().regName(fRegs[24]).commaSpace().regName(fRegs[22]).commaSpace().regName(fRegs[7]).commaSpace().regName(fRegs[23]).ptxNl();
+                    mul().f32().space().regName(fRegs[25]).commaSpace().regName(fRegs[7]).commaSpace().regName(fRegs[24]).ptxNl();
+                    fma().rn().f32().space().regName(fRegs[26]).commaSpace().regName(fRegs[25]).commaSpace().regName(fRegs[7]).commaSpace().regName(fRegs[7]).ptxNl();
+                    mov().f32().space().regName(fRegs[27]).commaSpace().floatVal("3F317218").ptxNl();
+                    fma().rn().f32().space().regName(fRegs[29]).commaSpace().regName(fRegs[6]).commaSpace().regName(fRegs[27]).commaSpace().regName(fRegs[26]).ptxNl();
+                    setp().dot().lt().u32().space().regName(pRegs[1]).commaSpace().regName(bRegs[0]).commaSpace().intVal(2139095040).ptxNl();
+                    at().regName(pRegs[1]).space().bra().space().append("endLog").intVal(op.op().location().line()).underscore().intVal(op.op().location().column()).ptxNl();
+                    mov().f32().space().regName(fRegs[28]).commaSpace().floatVal("7F800000").ptxNl();
+                    fma().rn().f32().space().regName(fRegs[29]).commaSpace().regName(fRegs[2]).commaSpace().regName(fRegs[28]).commaSpace().regName(fRegs[28]).semicolon().nl();
+                    append("endLog").intVal(op.op().location().line()).underscore().intVal(op.op().location().column()).colon().nl().ptxIndent();
+                    setp().dot().eq().f32().space().regName(pRegs[2]).commaSpace().regName(fRegs[2]).commaSpace().floatVal("00000000").ptxNl();
+                    selp().f32().space().resultReg(op, PTXRegister.Type.F32).commaSpace().floatVal("FF800000").commaSpace().regName(fRegs[29]).commaSpace().regName(pRegs[2]);
+                    semicolon();
+                } else {
+                    PTXRegister[] fRegs = new PTXRegister[1];
+                    for (int i = 0; i < fRegs.length; i++) {
+                        fRegs[i] = new PTXRegister(incrOrdinal(PTXRegister.Type.F32), PTXRegister.Type.F32);
+                    }
+                    PTXRegister[] fdRegs = new PTXRegister[47];
+                    for (int i = 0; i < fdRegs.length; i++) {
+                        fdRegs[i] = new PTXRegister(incrOrdinal(PTXRegister.Type.F64), PTXRegister.Type.F64);
+                    }
+                    PTXRegister[] bRegs = new PTXRegister[15];
+                    for (int i = 0; i < bRegs.length; i++) {
+                        bRegs[i] = new PTXRegister(incrOrdinal(PTXRegister.Type.U32), PTXRegister.Type.U32);
+                    }
+                    PTXRegister[] pRegs = new PTXRegister[4];
+                    for (int i = 0; i < pRegs.length; i++) {
+                        pRegs[i] = new PTXRegister(incrOrdinal(PTXRegister.Type.PREDICATE), PTXRegister.Type.PREDICATE);
+                    }
 
-        $L__BB0_3:
-                cvta.to.global.u64      %rd4, %rd1;
-                setp.eq.f32     %p4, %f1, 0f00000000;
-                selp.f32        %f34, 0fFF800000, %f35, %p4;
-                 */
-                ld().global().u32().space().resultReg(op, PTXRegister.Type.U32).commaSpace().address(getReg(op.operandNAsValue(0)).name(), 4);
+                    obrace().nl().ptxIndent();
+                    reg().space().b32().space().percent().temp().ptxNl();
+                    mov().b64().space().obrace().percent().temp().commaSpace().regName(bRegs[11]).cbrace().commaSpace().reg(op.operandNAsValue(0)).ptxNl();
+                    cbrace().nl().ptxIndent();
+                    obrace().nl().ptxIndent();
+                    reg().space().b32().space().percent().temp().ptxNl();
+                    mov().b64().space().obrace().regName(bRegs[12]).commaSpace().percent().temp().cbrace().commaSpace().reg(op.operandNAsValue(0)).ptxNl();
+                    cbrace().nl().ptxIndent();
+                    setp().dot().gt().s32().space().regName(pRegs[0]).commaSpace().regName(bRegs[11]).commaSpace().intVal(1048575).ptxNl();
+                    mov().u32().space().regName(bRegs[13]).commaSpace().intVal(-1023).ptxNl();
+                    at().regName(pRegs[0]).space().bra().space().append("endLog").intVal(op.op().location().line()).underscore().intVal(op.op().location().column()).underscore().intVal(0).ptxNl();
+                    mul().f64().space().reg(op.operandNAsValue(0)).commaSpace().reg(op.operandNAsValue(0)).commaSpace().doubleVal("4350000000000000").ptxNl();
+                    obrace().nl().ptxIndent();
+                    reg().space().b32().space().percent().temp().ptxNl();
+                    mov().b64().space().obrace().percent().temp().commaSpace().regName(bRegs[11]).cbrace().commaSpace().reg(op.operandNAsValue(0)).ptxNl();
+                    cbrace().nl().ptxIndent();
+                    obrace().nl().ptxIndent();
+                    reg().space().b32().space().percent().temp().ptxNl();
+                    mov().b64().space().obrace().regName(bRegs[12]).commaSpace().percent().temp().cbrace().commaSpace().reg(op.operandNAsValue(0)).ptxNl();
+                    cbrace().nl().ptxIndent();
+                    mov().u32().space().regName(bRegs[13]).commaSpace().intVal(-1077).semicolon().nl();
+                    append("endLog").intVal(op.op().location().line()).underscore().intVal(op.op().location().column()).underscore().intVal(0).colon().nl().ptxIndent();
+                    add().s32().space().regName(bRegs[0]).commaSpace().regName(bRegs[11]).commaSpace().intVal(-1).ptxNl();
+                    setp().dot().lt().u32().space().regName(pRegs[1]).commaSpace().regName(bRegs[0]).commaSpace().intVal(2146435071).ptxNl();
+                    at().regName(pRegs[1]).space().bra().space().append("endLog").intVal(op.op().location().line()).underscore().intVal(op.op().location().column()).underscore().intVal(2).ptxNl();
+                    bra().uni().space().append("endLog").intVal(op.op().location().line()).underscore().intVal(op.op().location().column()).underscore().intVal(1).semicolon().nl();
+                    append("endLog").intVal(op.op().location().line()).underscore().intVal(op.op().location().column()).underscore().intVal(2).colon().nl().ptxIndent();
+                    shr().u32().space().regName(bRegs[2]).commaSpace().regName(bRegs[11]).commaSpace().intVal(20).ptxNl();
+                    add().s32().space().regName(bRegs[14]).commaSpace().regName(bRegs[13]).commaSpace().regName(bRegs[2]).ptxNl();
+                    and().b32().space().regName(bRegs[3]).commaSpace().regName(bRegs[11]).commaSpace().intVal(-2146435073).ptxNl();
+                    or().b32().space().regName(bRegs[4]).commaSpace().regName(bRegs[3]).commaSpace().intVal(1072693248).ptxNl();
+                    mov().b64().space().regName(fdRegs[46]).commaSpace().obrace().regName(bRegs[12]).commaSpace().regName(bRegs[4]).cbrace().ptxNl();
+                    setp().dot().lt().s32().space().regName(pRegs[3]).commaSpace().regName(bRegs[4]).commaSpace().intVal(1073127583).ptxNl();
+                    at().regName(pRegs[3]).space().bra().space().append("endLog").intVal(op.op().location().line()).underscore().intVal(op.op().location().column()).underscore().intVal(4).ptxNl();
+                    obrace().nl().ptxIndent();
+                    reg().space().b32().space().percent().temp().ptxNl();
+                    mov().b64().space().obrace().regName(bRegs[5]).commaSpace().percent().temp().cbrace().commaSpace().regName(fdRegs[46]).ptxNl();
+                    cbrace().nl().ptxIndent();
+                    obrace().nl().ptxIndent();
+                    reg().space().b32().space().percent().temp().ptxNl();
+                    mov().b64().space().obrace().percent().temp().commaSpace().regName(bRegs[6]).cbrace().commaSpace().regName(fdRegs[46]).ptxNl();
+                    cbrace().nl().ptxIndent();
+                    add().s32().space().regName(bRegs[7]).commaSpace().regName(bRegs[6]).commaSpace().intVal(-1048576).ptxNl();
+                    mov().b64().space().regName(fdRegs[46]).commaSpace().obrace().regName(bRegs[5]).commaSpace().regName(bRegs[7]).cbrace().ptxNl();
+                    add().s32().space().regName(bRegs[14]).commaSpace().regName(bRegs[14]).commaSpace().intVal(1).semicolon().nl();
+                    append("endLog").intVal(op.op().location().line()).underscore().intVal(op.op().location().column()).underscore().intVal(4).colon().nl().ptxIndent();
+                    add().f64().space().regName(fdRegs[2]).commaSpace().regName(fdRegs[46]).commaSpace().doubleVal("3FF0000000000000").ptxNl();
+                    mov().f64().space().regName(fdRegs[3]).commaSpace().doubleVal("3FF0000000000000").ptxNl();
+                    rcp().approx().ftz().f64().space().regName(fdRegs[4]).commaSpace().regName(fdRegs[2]).ptxNl();
+                    neg().f64().space().regName(fdRegs[5]).commaSpace().regName(fdRegs[2]).ptxNl();
+                    fma().rn().f64().space().regName(fdRegs[6]).commaSpace().regName(fdRegs[5]).commaSpace().regName(fdRegs[4]).commaSpace().regName(fdRegs[3]).ptxNl();
+                    fma().rn().f64().space().regName(fdRegs[7]).commaSpace().regName(fdRegs[6]).commaSpace().regName(fdRegs[6]).commaSpace().regName(fdRegs[6]).ptxNl();
+                    fma().rn().f64().space().regName(fdRegs[8]).commaSpace().regName(fdRegs[7]).commaSpace().regName(fdRegs[4]).commaSpace().regName(fdRegs[4]).ptxNl();
+                    add().f64().space().regName(fdRegs[9]).commaSpace().regName(fdRegs[46]).commaSpace().doubleVal("BFF0000000000000").ptxNl();
+                    mul().f64().space().regName(fdRegs[10]).commaSpace().regName(fdRegs[9]).commaSpace().regName(fdRegs[8]).ptxNl();
+                    fma().rn().f64().space().regName(fdRegs[11]).commaSpace().regName(fdRegs[9]).commaSpace().regName(fdRegs[8]).commaSpace().regName(fdRegs[10]).ptxNl();
+                    mul().f64().space().regName(fdRegs[12]).commaSpace().regName(fdRegs[11]).commaSpace().regName(fdRegs[11]).ptxNl();
+                    mov().f64().space().regName(fdRegs[13]).commaSpace().doubleVal("3ED0EE258B7A8B04").ptxNl();
+                    mov().f64().space().regName(fdRegs[14]).commaSpace().doubleVal("3EB1380B3AE80F1E").ptxNl();
+                    fma().rn().f64().space().regName(fdRegs[15]).commaSpace().regName(fdRegs[14]).commaSpace().regName(fdRegs[12]).commaSpace().regName(fdRegs[13]).ptxNl();
+                    mov().f64().space().regName(fdRegs[16]).commaSpace().doubleVal("3EF3B2669F02676F").ptxNl();
+                    fma().rn().f64().space().regName(fdRegs[17]).commaSpace().regName(fdRegs[15]).commaSpace().regName(fdRegs[12]).commaSpace().regName(fdRegs[16]).ptxNl();
+                    mov().f64().space().regName(fdRegs[18]).commaSpace().doubleVal("3F1745CBA9AB0956").ptxNl();
+                    fma().rn().f64().space().regName(fdRegs[19]).commaSpace().regName(fdRegs[17]).commaSpace().regName(fdRegs[12]).commaSpace().regName(fdRegs[18]).ptxNl();
+                    mov().f64().space().regName(fdRegs[20]).commaSpace().doubleVal("3F3C71C72D1B5154").ptxNl();
+                    fma().rn().f64().space().regName(fdRegs[21]).commaSpace().regName(fdRegs[19]).commaSpace().regName(fdRegs[12]).commaSpace().regName(fdRegs[20]).ptxNl();
+                    mov().f64().space().regName(fdRegs[22]).commaSpace().doubleVal("3F624924923BE72D").ptxNl();
+                    fma().rn().f64().space().regName(fdRegs[23]).commaSpace().regName(fdRegs[21]).commaSpace().regName(fdRegs[12]).commaSpace().regName(fdRegs[22]).ptxNl();
+                    mov().f64().space().regName(fdRegs[24]).commaSpace().doubleVal("3F8999999999A3C4").ptxNl();
+                    fma().rn().f64().space().regName(fdRegs[25]).commaSpace().regName(fdRegs[23]).commaSpace().regName(fdRegs[12]).commaSpace().regName(fdRegs[24]).ptxNl();
+                    mov().f64().space().regName(fdRegs[26]).commaSpace().doubleVal("3FB5555555555554").ptxNl();
+                    fma().rn().f64().space().regName(fdRegs[27]).commaSpace().regName(fdRegs[25]).commaSpace().regName(fdRegs[12]).commaSpace().regName(fdRegs[26]).ptxNl();
+                    sub().f64().space().regName(fdRegs[28]).commaSpace().regName(fdRegs[9]).commaSpace().regName(fdRegs[11]).ptxNl();
+                    add().f64().space().regName(fdRegs[29]).commaSpace().regName(fdRegs[28]).commaSpace().regName(fdRegs[28]).ptxNl();
+                    neg().f64().space().regName(fdRegs[30]).commaSpace().regName(fdRegs[11]).ptxNl();
+                    fma().rn().f64().space().regName(fdRegs[31]).commaSpace().regName(fdRegs[30]).commaSpace().regName(fdRegs[9]).commaSpace().regName(fdRegs[29]).ptxNl();
+                    mul().f64().space().regName(fdRegs[32]).commaSpace().regName(fdRegs[8]).commaSpace().regName(fdRegs[31]).ptxNl();
+                    mul().f64().space().regName(fdRegs[33]).commaSpace().regName(fdRegs[12]).commaSpace().regName(fdRegs[27]).ptxNl();
+                    fma().rn().f64().space().regName(fdRegs[34]).commaSpace().regName(fdRegs[33]).commaSpace().regName(fdRegs[11]).commaSpace().regName(fdRegs[32]).ptxNl();
+                    xor().b32().space().regName(bRegs[8]).commaSpace().regName(bRegs[14]).commaSpace().intVal(-2147483648).ptxNl();
+                    mov().u32().space().regName(bRegs[9]).commaSpace().intVal(-2147483648).ptxNl();
+                    mov().u32().space().regName(bRegs[10]).commaSpace().intVal(1127219200).ptxNl();
+                    mov().b64().space().regName(fdRegs[35]).commaSpace().obrace().regName(bRegs[8]).commaSpace().regName(bRegs[10]).cbrace().ptxNl();
+                    mov().b64().space().regName(fdRegs[36]).commaSpace().obrace().regName(bRegs[9]).commaSpace().regName(bRegs[10]).cbrace().ptxNl();
+                    sub().f64().space().regName(fdRegs[37]).commaSpace().regName(fdRegs[35]).commaSpace().regName(fdRegs[36]).ptxNl();
+                    mov().f64().space().regName(fdRegs[38]).commaSpace().doubleVal("3FE62E42FEFA39EF").ptxNl();
+                    fma().rn().f64().space().regName(fdRegs[39]).commaSpace().regName(fdRegs[37]).commaSpace().regName(fdRegs[38]).commaSpace().regName(fdRegs[11]).ptxNl();
+                    neg().f64().space().regName(fdRegs[40]).commaSpace().regName(fdRegs[37]).ptxNl();
+                    fma().rn().f64().space().regName(fdRegs[41]).commaSpace().regName(fdRegs[40]).commaSpace().regName(fdRegs[38]).commaSpace().regName(fdRegs[39]).ptxNl();
+                    sub().f64().space().regName(fdRegs[42]).commaSpace().regName(fdRegs[41]).commaSpace().regName(fdRegs[11]).ptxNl();
+                    sub().f64().space().regName(fdRegs[43]).commaSpace().regName(fdRegs[34]).commaSpace().regName(fdRegs[42]).ptxNl();
+                    mov().f64().space().regName(fdRegs[44]).commaSpace().doubleVal("3C7ABC9E3B39803F").ptxNl();
+                    fma().rn().f64().space().regName(fdRegs[45]).commaSpace().regName(fdRegs[37]).commaSpace().regName(fdRegs[44]).commaSpace().regName(fdRegs[43]).ptxNl();
+                    add().f64().space().resultReg(op, PTXRegister.Type.F64).commaSpace().regName(fdRegs[39]).commaSpace().regName(fdRegs[45]).ptxNl();
+                    bra().uni().space().append("endLog").intVal(op.op().location().line()).underscore().intVal(op.op().location().column()).underscore().intVal(5).semicolon().nl();
+                    append("endLog").intVal(op.op().location().line()).underscore().intVal(op.op().location().column()).underscore().intVal(1).colon().nl().ptxIndent();
+                    mov().f64().space().regName(fdRegs[0]).commaSpace().doubleVal("7FF0000000000000").ptxNl();
+                    fma().rn().f64().space().regName(fdRegs[1]).commaSpace().reg(op.operandNAsValue(0)).commaSpace().regName(fdRegs[0]).commaSpace().regName(fdRegs[0]).ptxNl();
+                    obrace().nl().ptxIndent();
+                    reg().space().b32().space().percent().temp().ptxNl();
+                    mov().b64().space().obrace().percent().temp().commaSpace().regName(bRegs[1]).cbrace().commaSpace().reg(op.operandNAsValue(0)).ptxNl();
+                    cbrace().nl().ptxIndent();
+                    mov().b32().space().regName(fRegs[0]).commaSpace().regName(bRegs[1]).ptxNl();
+                    setp().dot().eq().f32().space().regName(pRegs[2]).commaSpace().regName(fRegs[0]).commaSpace().floatVal("00000000").ptxNl();
+                    selp().f64().space().resultReg(op, PTXRegister.Type.F64).commaSpace().doubleVal("FFF0000000000000").commaSpace().regName(fdRegs[1]).commaSpace().regName(pRegs[2]).semicolon().nl();
+                    append("endLog").intVal(op.op().location().line()).underscore().intVal(op.op().location().column()).underscore().intVal(5).colon();
+                }
             }
             default -> {
                 for (int i = 0; i < op.operands().size(); i++) {
@@ -632,6 +871,9 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
             case "float" -> {
                 return PTXRegister.Type.F32;
             }
+            case "double" -> {
+                return PTXRegister.Type.F64;
+            }
             case "int" -> {
                 return PTXRegister.Type.U32;
             }
@@ -694,6 +936,14 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
         return dot().append("rn");
     }
 
+    public PTXCodeBuilder rm() {
+        return dot().append("rm");
+    }
+
+    public PTXCodeBuilder rzi() {
+        return dot().append("rzi");
+    }
+
     public PTXCodeBuilder to() {
         return dot().append("to");
     }
@@ -710,12 +960,28 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
         return dot().append("uni");
     }
 
+    public PTXCodeBuilder sat() {
+        return dot().append("sat");
+    }
+
+    public PTXCodeBuilder ftz() {
+        return dot().append("ftz");
+    }
+
+    public PTXCodeBuilder approx() {
+        return dot().append("approx");
+    }
+
     public PTXCodeBuilder mov() {
         return append("mov");
     }
 
     public PTXCodeBuilder setp() {
         return append("setp");
+    }
+
+    public PTXCodeBuilder selp() {
+        return append("selp");
     }
 
     public PTXCodeBuilder ld() {
@@ -750,6 +1016,10 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
         return append("div");
     }
 
+    public PTXCodeBuilder rcp() {
+        return append("rcp");
+    }
+
     public PTXCodeBuilder add() {
         return append("add");
     }
@@ -772,6 +1042,10 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
 
     public PTXCodeBuilder ge() {
         return append("ge");
+    }
+
+    public PTXCodeBuilder geu() {
+        return append("geu");
     }
 
     public PTXCodeBuilder ne() {
@@ -802,8 +1076,20 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
         return append("mad");
     }
 
+    public PTXCodeBuilder fma() {
+        return append("fma");
+    }
+
     public PTXCodeBuilder sqrt() {
         return append("sqrt");
+    }
+
+    public PTXCodeBuilder abs() {
+        return append("abs");
+    }
+
+    public PTXCodeBuilder ex2() {
+        return append("ex2");
     }
 
     public PTXCodeBuilder shl() {
@@ -946,7 +1232,19 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
         return append("retval");
     }
 
+    public PTXCodeBuilder temp() {
+        return append("temp");
+    }
+
     public PTXCodeBuilder intVal(int i) {
         return append(String.valueOf(i));
+    }
+
+    public PTXCodeBuilder floatVal(String s) {
+        return append("0f").append(s);
+    }
+
+    public PTXCodeBuilder doubleVal(String s) {
+        return append("0d").append(s);
     }
 }

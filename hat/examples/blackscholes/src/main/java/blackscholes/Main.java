@@ -30,22 +30,25 @@ import hat.ComputeContext;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
+import java.util.Random;
 
 import java.lang.runtime.CodeReflection;
 
 public class Main {
+    static Random rand;
 
     @CodeReflection
-    public static void blackScholesKernel(KernelContext kc, F32Array f32Array, F32Array sArray, F32Array xArray, F32Array tArray, float r, float v) {
+    public static void blackScholesKernel(KernelContext kc, F32Array call, F32Array put, F32Array sArray, F32Array xArray, F32Array tArray, float r, float v) {
         if (kc.x<kc.maxX){
             float S = sArray.array(kc.x);
             float X = xArray.array(kc.x);
             float T = tArray.array(kc.x);
+            float expNegRt = (float) Math.exp(-r * T);
             float d1 = (float) ((Math.log(S / X) + (r + v * v * .5f) * T) / (v * Math.sqrt(T)));
             float d2 = (float) (d1 - v * Math.sqrt(T));
-            float value = (float) (S * CND(d1) - X * Math.exp(-r * T) * CND(d2));
-            f32Array.array(kc.x, value);
-            //put[i]  = call[i] + (float)Math.exp(-r * t[i]) - s0[i];
+            float value = (float) (S * CND(d1) - X * expNegRt * CND(d2));
+            call.array(kc.x, value);
+            put.array(kc.x, value + expNegRt - S);
         }
     }
 
@@ -78,45 +81,45 @@ public class Main {
     }
 
     @CodeReflection
-    public static void blackScholes(ComputeContext cc, F32Array f32Array, F32Array S, F32Array X, F32Array T, float r, float v) {
-        cc.dispatchKernel(f32Array.length(),
-                kc -> blackScholesKernel(kc, f32Array, S, X, T, r, v)
+    public static void blackScholes(ComputeContext cc, F32Array call, F32Array put, F32Array S, F32Array X, F32Array T, float r, float v) {
+        cc.dispatchKernel(call.length(),
+                kc -> blackScholesKernel(kc, call, put, S, X, T, r, v)
         );
     }
 
+    static F32Array floatArray(float low, float high, Accelerator accelerator) {
+        F32Array array = F32Array.create(accelerator, 50);
+        for (int i = 0; i < array.length(); i++) {
+            array.array(i, rand.nextFloat() * (high - low) + low);
+        }
+        return array;
+    }
+
     public static void main(String[] args) {
+        rand = new Random();
         var lookup = java.lang.invoke.MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);//new JavaMultiThreadedBackend());
-        var arr = F32Array.create(accelerator, 32);
-//        s0 = fillRandom(5.0f, 30.0f);
-//        x  = fillRandom(1.0f, 100.0f);
-//        t  = fillRandom(0.25f, 10.0f);
-        for (int i = 0; i < arr.length(); i++) {
-            arr.array(i, i);
+        var call = F32Array.create(accelerator, 50);
+        for (int i = 0; i < call.length(); i++) {
+            call.array(i, i);
         }
 
-        var S = F32Array.create(accelerator, 32);
-        for (int i = 0; i < S.length(); i++) {
-            S.array(i, i + 5);
+        var put = F32Array.create(accelerator, 50);
+        for (int i = 0; i < put.length(); i++) {
+            put.array(i, i);
         }
 
-        var X = F32Array.create(accelerator, 32);
-        for (int i = 0; i < X.length(); i++) {
-            X.array(i, i + 1);
-        }
-
-        var T = F32Array.create(accelerator, 32);
-        for (int i = 0; i < T.length(); i++) {
-            T.array(i, (float) (i + 1) /4);
-        }
+        var S = floatArray(5, 30, accelerator);
+        var X = floatArray(1, 100, accelerator);
+        var T = floatArray(0.25f, 10, accelerator);
         float r = 0.02f;
         float v = 0.30f;
 
         accelerator.compute(
-                cc -> Main.blackScholes(cc, arr, S, X, T, r, v)  //QuotableComputeContextConsumer
+                cc -> Main.blackScholes(cc, call, put, S, X, T, r, v)  //QuotableComputeContextConsumer
         );                                     //   extends Quotable, Consumer<ComputeContext>
-        for (int i = 0; i < arr.length(); i++) {
-            System.out.println("S=" + S.array(i) + "\t X=" + X.array(i) + "\t T=" + T.array(i) + "\t call option price = " + arr.array(i));
+        for (int i = 0; i < call.length(); i++) {
+            System.out.println("S=" + S.array(i) + "\t X=" + X.array(i) + "\t T=" + T.array(i) + "\t call option price = " + call.array(i) + "\t\t put option price = " + put.array(i));
         }
     }
 }

@@ -24,6 +24,7 @@
  */
 package hat.backend;
 
+import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.Schema;
 
 import java.lang.reflect.code.*;
@@ -34,20 +35,20 @@ public class PTXPtrOp extends ExternalizableOp {
     public String fieldName;
     public static final String NAME = "ptxPtr";
     final TypeElement resultType;
-    public Schema<?> schema;
+    public BoundSchema<?> boundSchema;
 
-    PTXPtrOp(TypeElement resultType, String fieldName, List<Value> operands, Schema<?> schema) {
+    PTXPtrOp(TypeElement resultType, String fieldName, List<Value> operands, BoundSchema<?> boundSchema) {
         super(NAME, operands);
         this.resultType = resultType;
         this.fieldName = fieldName;
-        this.schema = schema;
+        this.boundSchema = boundSchema;
     }
 
     PTXPtrOp(PTXPtrOp that, CopyContext cc) {
         super(that, cc);
         this.resultType = that.resultType;
         this.fieldName = that.fieldName;
-        this.schema = that.schema;
+        this.boundSchema = that.boundSchema;
     }
 
     @Override

@@ -62,7 +62,7 @@ public class PTXBackend extends C99NativeBackend {
 
     @Override
     public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
-        System.out.println("PTX dispatch kernel");
+        // System.out.println("PTX dispatch kernel");
         // Here we recieve a callgraph from the kernel entrypoint
         // The first time we see this we need to convert the kernel entrypoint
         // and rechable methods to PTX.
@@ -75,7 +75,7 @@ public class PTXBackend extends C99NativeBackend {
                         System.out.println(" call to -> "+kernelReachableResolvedMethod.method.getName())
                 );
 
-        System.out.println("Entrypoint ->"+kernelCallGraph.entrypoint.method.getName());
+        // System.out.println("Entrypoint ->"+kernelCallGraph.entrypoint.method.getName());
         String code = createCode(kernelCallGraph, new PTXCodeBuilder(), args);
         long programHandle = compileProgram(code);
         if (programOK(programHandle)) {
@@ -89,6 +89,7 @@ public class PTXBackend extends C99NativeBackend {
         StringBuilder out = new StringBuilder();
         FuncOpWrapper f = new FuncOpWrapper(kernelCallGraph.entrypoint.funcOpWrapper().op());
         FuncOpWrapper lowered = f.lower();
+        // System.out.println(lowered.toText());
         HashMap<String, Object> argsMap = new HashMap<>();
         for (int i = 0; i < args.length; i++) {
             argsMap.put(f.paramTable().list().get(i).varOp.varName(), args[i]);
@@ -130,7 +131,7 @@ public class PTXBackend extends C99NativeBackend {
                 List<Value> outputOperands = cc.getValues(inputOperands);
                 Op.Result inputResult = invokeOp.result();
                 BoundSchema<?> boundSchema = Buffer.getBoundSchema(buffer);
-                PTXPtrOp ptxOp = new PTXPtrOp(inputResult.type(), invokeOp.invokeDescriptor().name(), outputOperands, boundSchema.schema());
+                PTXPtrOp ptxOp = new PTXPtrOp(inputResult.type(), invokeOp.invokeDescriptor().name(), outputOperands, boundSchema);
                 Op.Result outputResult = block.op(ptxOp);
                 cc.mapValue(inputResult, outputResult);
             } else {
@@ -142,6 +143,8 @@ public class PTXBackend extends C99NativeBackend {
 
     public String createFunction(PTXCodeBuilder builder, FuncOpWrapper lowered, boolean entry) {
         FuncOpWrapper ssa = lowered.ssa();
+        // System.out.println("--------------func--------------");
+        // System.out.println(ssa.toText());
         String out, body;
 
         // building fn info (name, params)
