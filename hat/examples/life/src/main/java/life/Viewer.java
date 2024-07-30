@@ -157,11 +157,7 @@ public class Viewer extends JFrame {
     private final JTextField generationsPerSecond;
     volatile private boolean started=false;
 
-    void setGeneration(int generation, float ms){
-        this.generation.setText(String.format("%8d",generation));
-        this.generationsPerSecond.setText(String.format("%5.2f",(generation*1000)/ms));
-        mainPanel.repaint();
-    }
+
 
     Viewer(String title, Main.Control control, Main.CellGrid cellGrid) {
         super(title);
@@ -175,7 +171,7 @@ public class Viewer extends JFrame {
         (this.generation = (JTextField) menuBar.add(new JTextField("",8))).setEditable(false);
         menuBar.add(new JLabel("Gen/Sec"));
         (this.generationsPerSecond = (JTextField) menuBar.add(new JTextField("",6))).setEditable(false);
-        this.setGeneration(0,0);
+
 
         this.getContentPane().add(this.mainPanel);
 
@@ -195,6 +191,23 @@ public class Viewer extends JFrame {
                 }
             }
         }
+    }
+     long start=0L;
+    int generationCounter=0;
+    public boolean isVisible(){
+        return true;
+    }
+    public boolean isReadyForUpdate(){
+        if (start==0L) {
+            start = System.currentTimeMillis();
+        }else {
+            this.generation.setText(String.format("%8d", ++generationCounter));
+            this.generationsPerSecond.setText(
+                    String.format("%5.2f", (generationCounter * 1000f) / (System.currentTimeMillis() - start))
+            );
+            mainPanel.repaint();
+        }
+        return true;
     }
 
     public void update(Main.CellGrid cellGrid, int to) {
