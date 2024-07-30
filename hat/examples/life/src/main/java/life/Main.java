@@ -125,20 +125,18 @@ public class Main {
             }
         }
 
+
         @CodeReflection
-        static public void compute(final ComputeContext computeContext, Viewer viewer, Control control, CellGrid cellGrid) {
-            long start = System.currentTimeMillis();
-            int generation = 0;
-            while (true) {
-                computeContext.dispatchKernel(
-                        cellGrid.width() * cellGrid.height(),
-                        kc -> Compute.life(kc, control, cellGrid)
+        static public void compute(final ComputeContext cc, Viewer viewer, Control ctrl, CellGrid grid) {
+            while (viewer.isVisible()) {
+                cc.dispatchKernel(
+                        grid.width() * grid.height(),
+                        kc -> Compute.life(kc, ctrl, grid)
                 );
-                int to = control.from();control.from(control.to());control.to(to); //swap from/to
-                viewer.setGeneration(generation++, System.currentTimeMillis() - start);
-             //   if (generation % 50 == 0) {
-                    viewer.update(cellGrid, to);
-              //  }
+                int to = ctrl.from(); ctrl.from(ctrl.to()); ctrl.to(to); //swap from/to
+                if (viewer.isReadyForUpdate()) {
+                    viewer.update(grid, to);
+                }
             }
         }
     }
