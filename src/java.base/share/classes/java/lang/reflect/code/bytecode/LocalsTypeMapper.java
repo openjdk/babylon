@@ -28,23 +28,25 @@ import java.lang.classfile.CodeElement;
 import java.lang.classfile.Instruction;
 import java.lang.classfile.Label;
 import java.lang.classfile.Opcode;
-import java.lang.classfile.TypeKind;
 import java.lang.classfile.attribute.StackMapFrameInfo;
 import java.lang.classfile.attribute.StackMapFrameInfo.*;
 import java.lang.classfile.attribute.StackMapTableAttribute;
 import java.lang.classfile.instruction.*;
 import java.lang.constant.ClassDesc;
+import java.lang.constant.ConstantDescs;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
-import java.lang.constant.ConstantDescs;
 import static java.lang.constant.ConstantDescs.*;
-import java.util.HashMap;
+import java.lang.constant.DirectMethodHandleDesc;
+import java.lang.constant.DynamicConstantDesc;
+import java.lang.constant.MethodTypeDesc;
 
 final class LocalsTypeMapper {
 
@@ -205,8 +207,18 @@ final class LocalsTypeMapper {
                 }
             }
             case ConstantInstruction i ->
-                push(ClassDesc.ofDescriptor(i.typeKind() == TypeKind.ReferenceType ?
-                        i.constantValue().getClass().descriptorString() : i.typeKind().descriptor()));
+                push(switch (i.constantValue()) {
+                    case null -> CD_Object;
+                    case ClassDesc _ -> CD_Class;
+                    case Double _ -> CD_double;
+                    case Float _ -> CD_float;
+                    case Integer _ -> CD_int;
+                    case Long _ -> CD_long;
+                    case String _ -> CD_String;
+                    case DynamicConstantDesc<?> cd -> cd.constantType();
+                    case DirectMethodHandleDesc _ -> CD_MethodHandle;
+                    case MethodTypeDesc _ -> CD_MethodType;
+                });
             case ConvertInstruction i ->
                 pop(1).push(ClassDesc.ofDescriptor(i.toType().descriptor()));
             case FieldInstruction i -> {
