@@ -51,7 +51,7 @@ public class WorkStealer {
 
     public WorkStealer(Accelerator accelerator, int threadCount) {
         super();
-        System.out.println("new workstealer!");
+      //  System.out.println("new workstealer!");
         this.threadCount = threadCount;
         if (threadCount > 1) {
             taskCount = new AtomicInteger(0);
