@@ -101,23 +101,25 @@ public final class BytecodeLift {
 
     private final Block.Builder entryBlock;
     private final ClassModel classModel;
+    private final CodeAttribute codeAttribtue;
     private final List<ExceptionCatch> exceptionHandlers;
     private final Map<Label, Block.Builder> blockMap;
     private final LocalsTypeMapper codeTracker;
     private final List<CodeElement> elements;
     private final Deque<Value> stack;
     private final Map<Object, Op.Result> constantCache;
+    private final ArrayDeque<ExceptionRegion> exceptionRegionStack;
     private Block.Builder currentBlock;
 
     private BytecodeLift(Block.Builder entryBlock, ClassModel classModel, CodeModel codeModel, Value... capturedValues) {
         this.entryBlock = entryBlock;
         this.currentBlock = entryBlock;
         this.classModel = classModel;
-        var res = (CodeAttribute)codeModel;
+        this.codeAttribtue = (CodeAttribute)codeModel;
         // Filter out exception handlers overlapping with try blocks
         this.exceptionHandlers = codeModel.exceptionHandlers().stream().filter(
-                eh -> res.labelToBci(eh.handler()) >= res.labelToBci(eh.tryEnd())
-                   || res.labelToBci(eh.handler()) < res.labelToBci(eh.tryStart())).toList();
+                eh -> codeAttribtue.labelToBci(eh.handler()) >= codeAttribtue.labelToBci(eh.tryEnd())
+                   || codeAttribtue.labelToBci(eh.handler()) < codeAttribtue.labelToBci(eh.tryStart())).toList();
         this.elements = codeModel.elementList();
         this.stack = new ArrayDeque<>();
         var smta = codeModel.findAttribute(Attributes.stackMapTable());
@@ -134,6 +136,7 @@ public final class BytecodeLift {
                         StackMapFrameInfo::target,
                         smfi -> entryBlock.block(toBlockParams(smfi.stack()))))).orElseGet(Map::of);
         this.constantCache = new HashMap<>();
+        this.exceptionRegionStack = new ArrayDeque<>();
     }
 
     private List<TypeElement> toBlockParams(List<StackMapFrameInfo.VerificationTypeInfo> vtis) {
@@ -222,8 +225,25 @@ public final class BytecodeLift {
         stack.clear();
     }
 
+    record ExceptionRegion(Op.Result enter, Label startLabel, Label endLabel) {}
+
+    private Block.Builder insertExceptionRegionExits(Label targetLabel) {
+        Block.Builder targetBlock = blockMap.get(targetLabel);
+        for (ExceptionRegion er : exceptionRegionStack) {
+            int targetBci = codeAttribtue.labelToBci(targetLabel);
+            if (targetBci < codeAttribtue.labelToBci(er.startLabel()) || targetBci > codeAttribtue.labelToBci(er.endLabel())) {
+                // Branching out of the exception region, need to insert a block with ExceptionRegionExit
+                Block.Builder next = newBlock(targetBlock.parameters());
+                next.op(CoreOp.exceptionRegionExit(er.enter(), successor(targetBlock)));
+                targetBlock = next;
+            } else {
+                return targetBlock;
+            }
+        }
+        return targetBlock;
+    }
+
     private void liftBody() {
-        final Map<ExceptionCatch, Op.Result> exceptionRegionsMap = new HashMap<>();
         for (int i = 0; i < elements.size(); i++) {
             switch (elements.get(i)) {
                 case ExceptionCatch _ -> {
@@ -248,23 +268,22 @@ public final class BytecodeLift {
                             next = newBlock();
                             Op ere = CoreOp.exceptionRegionEnter(successor(next), successor(handler));
                             op(ere);
-                            // Store ERE into map for exit
-                            exceptionRegionsMap.put(ec, ere.result());
+                            // Push ExceptionRegion on stack
+                            exceptionRegionStack.push(new ExceptionRegion(ere.result(), ec.tryStart(), ec.tryEnd()));
                             moveTo(next);
                         }
                     }
-                    // Insert relevant tryEnd blocks in normal order
-                    for (ExceptionCatch ec : exceptionHandlers) {
-                        if (lt.label() == ec.tryEnd()) {
-                            // Create exit block with parameters constructed from the stack
-                            next = newBlock();
-                            op(CoreOp.exceptionRegionExit(exceptionRegionsMap.get(ec), successor(next)));
-                            moveTo(next);
-                        }
+                    // Insert relevant tryEnd blocks
+                    while (!exceptionRegionStack.isEmpty() && lt.label() == exceptionRegionStack.peek().endLabel()) {
+                        // Create exit block with parameters constructed from the stack
+                        ExceptionRegion er = exceptionRegionStack.pop();
+                        next = newBlock();
+                        op(CoreOp.exceptionRegionExit(er.enter(), successor(next)));
+                        moveTo(next);
                     }
                 }
                 case BranchInstruction inst when inst.opcode().isUnconditionalBranch() -> {
-                    op(CoreOp.branch(successor(blockMap.get(inst.target()))));
+                    op(CoreOp.branch(successor(insertExceptionRegionExits(inst.target()))));
                     endOfFlow();
                 }
                 case BranchInstruction inst -> {
@@ -289,7 +308,7 @@ public final class BytecodeLift {
                         case IF_ACMPNE -> CoreOp.eq(stack.pop(), operand);
                         default -> throw new UnsupportedOperationException("Unsupported branch instruction: " + inst);
                     };
-                    Block.Builder branch = blockMap.get(inst.target());
+                    Block.Builder branch = insertExceptionRegionExits(inst.target());
                     Block.Builder next = newBlock(branch.parameters());
                     op(CoreOp.conditionalBranch(op(cop),
                             successor(next),
@@ -787,12 +806,12 @@ public final class BytecodeLift {
     private void liftSwitch(Label defaultTarget, List<SwitchCase> cases) {
         Value v = toInt(stack.pop());
         SwitchCase last = cases.getLast();
-        Block.Builder def = blockMap.get(defaultTarget);
+        Block.Builder def = insertExceptionRegionExits(defaultTarget);
         for (SwitchCase sc : cases) {
             Block.Builder next = sc == last ? def : newBlock(def.parameters());
             op(CoreOp.conditionalBranch(
                     op(CoreOp.eq(v, liftConstant(sc.caseValue()))),
-                    successor(blockMap.get(sc.target())),
+                    successor(insertExceptionRegionExits(sc.target())),
                     successor(next)));
             moveTo(next);
         }
