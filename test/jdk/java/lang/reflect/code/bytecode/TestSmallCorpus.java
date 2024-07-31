@@ -50,6 +50,7 @@ import org.testng.annotations.Test;
 /*
  * @test
  * @enablePreview
+ * @modules java.base/java.lang.invoke:open
  * @run testng TestSmallCorpus
  */
 public class TestSmallCorpus {
@@ -57,6 +58,16 @@ public class TestSmallCorpus {
     private static final FileSystem JRT = FileSystems.getFileSystem(URI.create("jrt:/"));
     private static final ClassFile CF = ClassFile.of();
     private static final int COLUMN_WIDTH = 150;
+    private static final MethodHandles.Lookup TRUSTED_LOOKUP;
+    static {
+        try {
+            var lf = MethodHandles.Lookup.class.getDeclaredField("IMPL_LOOKUP");
+            lf.setAccessible(true);
+            TRUSTED_LOOKUP = (MethodHandles.Lookup)lf.get(null);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private int passed, notMatching;
     private Map<String, Map<String, Integer>> errorStats;
@@ -83,7 +94,7 @@ public class TestSmallCorpus {
         }
 
         // @@@ There is still several failing cases and a lot of errors
-        Assert.assertTrue(passed > 33670, String.format("""
+        Assert.assertTrue(passed > 33720, String.format("""
 
                     passed: %d
                     not matching: %d
@@ -173,7 +184,7 @@ public class TestSmallCorpus {
 
     private static MethodModel lower(CoreOp.FuncOp func) {
         return CF.parse(BytecodeGenerator.generateClassData(
-                MethodHandles.lookup(),
+                TRUSTED_LOOKUP,
                 func)).methods().get(0);
     }
 
