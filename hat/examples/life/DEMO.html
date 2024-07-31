@@ -1,0 +1,248 @@
+<html>
+   <head>
+       <style>
+           #side-by-side {
+               display: flex;
+           }
+
+           #left {
+               flex: 0 0 50%;
+           }
+
+           #right {
+               flex: 1;
+           }
+           pre{
+               font-family: "Courier New";
+               background-color: black;
+               color: yellow;
+               max-width: 800px;
+               overflow: clip;
+
+           }
+       </style>
+   </head>
+   <body>
+    <h3>COMPUTE entrypoint before injecting buffer tracking...</h3>
+    <div id="side-by-side">
+        <div id="left">
+    <pre>
+    func @"compute" @loc="129:9:file:/Users/grfrost/github/babylon-grfrost-fork/hat/examples/life/src/main/java/life/Main.java" (%0 : hat.ComputeContext, %1 : life.Viewer, %2 : life.Main$Control, %3 : life.Main$CellGrid)void -&gt; {
+       %4 : Var&lt;hat.ComputeContext&gt; = var %0 @"cc" @loc="129:9";
+       %5 : Var&lt;life.Viewer&gt; = var %1 @"viewer" @loc="129:9";
+       %6 : Var&lt;life.Main$Control&gt; = var %2 @"ctrl" @loc="129:9";
+       %7 : Var&lt;life.Main$CellGrid&gt; = var %3 @"grid" @loc="129:9";
+       java.while @loc="131:13"
+           ()boolean -&gt; {
+               %8 : life.Viewer = var.load %5 @loc="131:20";
+               %9 : boolean = invoke %8 @"life.Viewer::isVisible()boolean" @loc="131:20";
+               yield %9 @loc="131:13";
+           }
+           ()void -&gt; {
+               %10 : hat.ComputeContext = var.load %4 @loc="132:17";
+               %11 : life.Main$CellGrid = var.load %7 @loc="133:25";
+
+               %12 : int = invoke %11 @"life.Main$CellGrid::width()int" @loc="133:25";
+
+               %13 : life.Main$CellGrid = var.load %7 @loc="133:40";
+
+               %14 : int = invoke %13 @"life.Main$CellGrid::height()int" @loc="133:40";
+
+               %15 : int = mul %12 %14 @loc="133:25";
+               %16 : hat.ComputeContext$QuotableKernelContextConsumer = lambda @loc="134:25" (%17 : hat.KernelContext)void -&gt; {
+                   %18 : Var&lt;hat.KernelContext&gt; = var %17 @"kc" @loc="134:25";
+                   %19 : hat.KernelContext = var.load %18 @loc="134:44";
+                   %20 : life.Main$Control = var.load %6 @loc="134:48";
+                   %21 : life.Main$CellGrid = var.load %7 @loc="134:54";
+                   invoke %19 %20 %21 @"life.Main$Compute::life(hat.KernelContext, life.Main$Control, life.Main$CellGrid)void" @loc="134:31";
+                   return @loc="134:25";
+               };
+               invoke %10 %15 %16 @"hat.ComputeContext::dispatchKernel(int, hat.ComputeContext$QuotableKernelContextConsumer)void" @loc="132:17";
+               %22 : life.Main$Control = var.load %6 @loc="136:26";
+
+               %23 : int = invoke %22 @"life.Main$Control::from()int" @loc="136:26";
+
+               %24 : Var&lt;int&gt; = var %23 @"to" @loc="136:17";
+               %25 : life.Main$Control = var.load %6 @loc="136:39";
+               %26 : life.Main$Control = var.load %6 @loc="136:49";
+
+               %27 : int = invoke %26 @"life.Main$Control::to()int" @loc="136:49";
+
+               invoke %25 %27 @"life.Main$Control::from(int)void" @loc="136:39";
+
+               %28 : life.Main$Control = var.load %6 @loc="136:61";
+               %29 : int = var.load %24 @loc="136:69";
+
+               invoke %28 %29 @"life.Main$Control::to(int)void" @loc="136:61";
+
+               java.if @loc="137:17"
+                   ()boolean -&gt; {
+                       %30 : life.Viewer = var.load %5 @loc="137:21";
+                       %31 : boolean = invoke %30 @"life.Viewer::isReadyForUpdate()boolean" @loc="137:21";
+                       yield %31 @loc="137:17";
+                   }
+                   ()void -&gt; {
+                       %32 : life.Viewer = var.load %5 @loc="138:21";
+                       %33 : life.Main$CellGrid = var.load %7 @loc="138:35";
+                       %34 : int = var.load %24 @loc="138:41";
+                       invoke %32 %33 %34 @"life.Viewer::update(life.Main$CellGrid, int)void" @loc="138:21";
+                       yield @loc="137:17";
+                   }
+                   ()void -&gt; {
+                       yield;
+                   };
+               java.continue @loc="131:13";
+           };
+       return @loc="129:9";
+    }
+    </pre>
+        </div>
+        <div id="right">
+    <pre>
+    func @"compute" @loc="129:9:file:/Users/grfrost/github/babylon-grfrost-fork/hat/examples/life/src/main/java/life/Main.java" (%0 : hat.ComputeContext, %1 : life.Viewer, %2 : life.Main$Control, %3 : life.Main$CellGrid)void -&gt; {
+        %4 : Var&lt;hat.ComputeContext&gt; = var %0 @"cc" @loc="129:9";
+        %5 : Var&lt;life.Viewer&gt; = var %1 @"viewer" @loc="129:9";
+        %6 : Var&lt;life.Main$Control&gt; = var %2 @"ctrl" @loc="129:9";
+        %7 : Var&lt;life.Main$CellGrid&gt; = var %3 @"grid" @loc="129:9";
+        java.while @loc="131:13"
+            ()boolean -&gt; {
+                %8 : life.Viewer = var.load %5 @loc="131:20";
+                %9 : boolean = invoke %8 @"life.Viewer::isVisible()boolean" @loc="131:20";
+                yield %9 @loc="131:13";
+            }
+            ()void -&gt; {
+                %10 : hat.ComputeContext = var.load %4 @loc="132:17";
+                %11 : life.Main$CellGrid = var.load %7 @loc="133:25";
+                invoke %0 %11 @"hat.ComputeContext::preAccess(hat.buffer.Buffer)void";
+                %12 : int = invoke %11 @"life.Main$CellGrid::width()int" @loc="133:25";
+                invoke %0 %11 @"hat.ComputeContext::postAccess(hat.buffer.Buffer)void";
+                %13 : life.Main$CellGrid = var.load %7 @loc="133:40";
+                invoke %0 %13 @"hat.ComputeContext::preAccess(hat.buffer.Buffer)void";
+                %14 : int = invoke %13 @"life.Main$CellGrid::height()int" @loc="133:40";
+                invoke %0 %13 @"hat.ComputeContext::postAccess(hat.buffer.Buffer)void";
+                %15 : int = mul %12 %14 @loc="133:25";
+                %16 : hat.ComputeContext$QuotableKernelContextConsumer = lambda @loc="134:25" (%17 : hat.KernelContext)void -&gt; {
+                    %18 : Var&lt;hat.KernelContext&gt; = var %17 @"kc" @loc="134:25";
+                    %19 : hat.KernelContext = var.load %18 @loc="134:44";
+                    %20 : life.Main$Control = var.load %6 @loc="134:48";
+                    %21 : life.Main$CellGrid = var.load %7 @loc="134:54";
+                    invoke %19 %20 %21 @"life.Main$Compute::life(hat.KernelContext, life.Main$Control, life.Main$CellGrid)void" @loc="134:31";
+                    return @loc="134:25";
+                };
+                invoke %10 %15 %16 @"hat.ComputeContext::dispatchKernel(int, hat.ComputeContext$QuotableKernelContextConsumer)void" @loc="132:17";
+                %22 : life.Main$Control = var.load %6 @loc="136:26";
+                invoke %0 %22 @"hat.ComputeContext::preAccess(hat.buffer.Buffer)void";
+                %23 : int = invoke %22 @"life.Main$Control::from()int" @loc="136:26";
+                invoke %0 %22 @"hat.ComputeContext::postAccess(hat.buffer.Buffer)void";
+                %24 : Var&lt;int&gt; = var %23 @"to" @loc="136:17";
+                %25 : life.Main$Control = var.load %6 @loc="136:39";
+                %26 : life.Main$Control = var.load %6 @loc="136:49";
+                invoke %0 %26 @"hat.ComputeContext::preAccess(hat.buffer.Buffer)void";
+                %27 : int = invoke %26 @"life.Main$Control::to()int" @loc="136:49";
+                invoke %0 %26 @"hat.ComputeContext::postAccess(hat.buffer.Buffer)void";
+                invoke %0 %25 @"hat.ComputeContext::preMutate(hat.buffer.Buffer)void";
+                invoke %25 %27 @"life.Main$Control::from(int)void" @loc="136:39";
+                invoke %0 %25 @"hat.ComputeContext::postMutate(hat.buffer.Buffer)void";
+                %28 : life.Main$Control = var.load %6 @loc="136:61";
+                %29 : int = var.load %24 @loc="136:69";
+                invoke %0 %28 @"hat.ComputeContext::preMutate(hat.buffer.Buffer)void";
+                invoke %28 %29 @"life.Main$Control::to(int)void" @loc="136:61";
+                invoke %0 %28 @"hat.ComputeContext::postMutate(hat.buffer.Buffer)void";
+                java.if @loc="137:17"
+                    ()boolean -&gt; {
+                        %30 : life.Viewer = var.load %5 @loc="137:21";
+                        %31 : boolean = invoke %30 @"life.Viewer::isReadyForUpdate()boolean" @loc="137:21";
+                        yield %31 @loc="137:17";
+                    }
+                    ()void -&gt; {
+                        %32 : life.Viewer = var.load %5 @loc="138:21";
+                        %33 : life.Main$CellGrid = var.load %7 @loc="138:35";
+                        %34 : int = var.load %24 @loc="138:41";
+                        invoke %32 %33 %34 @"life.Viewer::update(life.Main$CellGrid, int)void" @loc="138:21";
+                        yield @loc="137:17";
+                    }
+                    ()void -&gt; {
+                        yield;
+                    };
+                java.continue @loc="131:13";
+            };
+        return @loc="129:9";
+    };
+    </pre>
+        </div>
+    </div>
+    <h3>Resulting OpenCL</h3>
+    <pre>
+        #define NDRANGE_OPENCL
+        #pragma OPENCL EXTENSION cl_khr_global_int32_base_atomics : enable
+        #pragma OPENCL EXTENSION cl_khr_local_int32_base_atomics : enable
+        #ifndef NULL
+        #define NULL 0
+        #endif
+        #pragma OPENCL EXTENSION cl_khr_global_int32_base_atomics : enable
+        #pragma OPENCL EXTENSION cl_khr_local_int32_base_atomics : enable
+        typedef char s8_t;
+        typedef char byte;
+        typedef char boolean;
+        typedef unsigned char u8_t;
+        typedef short s16_t;
+        typedef unsigned short u16_t;
+        typedef unsigned int u32_t;
+        typedef int s32_t;
+        typedef float f32_t;
+        typedef long s64_t;
+        typedef unsigned long u64_t;
+        typedef struct KernelContext_s{
+            int x;
+            int maxX;
+        }KernelContext_t;
+        typedef struct Control_s{
+            int from;
+            int to;
+        }Control_t;
+        
+        typedef struct CellGrid_s{
+            int width;
+            int height;
+            byte cell[1];
+        }CellGrid_t;
+        
+        
+        
+        inline int val(
+            __global CellGrid_t* grid, int from, int w, int x, int y
+        ){
+            return (int)grid-&gt;cell[(long)y*(long)w+(long)x+(long)from]&1;
+        }
+        
+        
+        __kernel void life(
+            __global KernelContext_t *kc, __global Control_t* control, __global CellGrid_t* cellGrid
+        ){
+            kc-&gt;x=get_global_id(0);
+            if(kc-&gt;x&lt;kc-&gt;maxX){
+                int w = cellGrid-&gt;width;
+                int h = cellGrid-&gt;height;
+                int from = control-&gt;from;
+                int to = control-&gt;to;
+                int x = kc-&gt;x%w;
+                int y = kc-&gt;x/w;
+                byte cell = cellGrid-&gt;cell[(long)(kc-&gt;x+from)];
+                if(x&gt;0 && x&lt;w-1 && y&gt;0 && y&lt;h-1){
+                    int count = val(cellGrid, from, w, x-1, y-1)
+                        +val(cellGrid, from, w, x-1, y+0)
+                        +val(cellGrid, from, w, x-1, y+1)
+                        +val(cellGrid, from, w, x+0, y-1)
+                        +val(cellGrid, from, w, x+0, y+1)
+                        +val(cellGrid, from, w, x+1, y+0)
+                        +val(cellGrid, from, w, x+1, y-1)
+                        +val(cellGrid, from, w, x+1, y+1);
+                    cell=(count==3 || count==2 && (int)cell==(int)-1?-1:0);
+                }
+                cellGrid-&gt;cell[(long)(kc-&gt;x+to)]=cell;
+            }
+            return;
+        }
+    </pre>
+</body>
+</html>

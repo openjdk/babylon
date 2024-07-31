@@ -48,6 +48,7 @@ import hat.Accelerator;
 import hat.buffer.S32Array2D;
 
 import javax.swing.JPanel;
+import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import java.awt.Color;
@@ -84,7 +85,7 @@ public  class Viewer extends JPanel {
     volatile  Point bestMatchOffset = null;
 
 
-    public Viewer(Accelerator accelerator,BufferedImage image) {
+    public Viewer(Accelerator accelerator,BufferedImage image, JTextField searchTB, JTextField maskTB, JTextField healTB) {
         this.image = image;
         this.rasterData = ((DataBufferInt) (image.getRaster().getDataBuffer())).getData();
         this.s32Array2D =  S32Array2D.create(accelerator,image.getWidth(),image.getHeight());
@@ -94,8 +95,8 @@ public  class Viewer extends JPanel {
             @Override
             public void mouseReleased(MouseEvent e) {
                 if (SwingUtilities.isLeftMouseButton(e)) {
-                    bestMatchOffset = Compute.getBestMatchOffset(accelerator, s32Array2D, selection.close());
-                    Compute.heal(accelerator,s32Array2D, selection, bestMatchOffset);
+                    bestMatchOffset = Compute.getBestMatchOffset(accelerator, s32Array2D, selection.close(), searchTB);
+                    Compute.heal(accelerator,s32Array2D, selection, bestMatchOffset, maskTB, healTB);
                     Timer t = new Timer(1000, new ActionListener() {
                         @Override
                         public void actionPerformed(ActionEvent e) {
