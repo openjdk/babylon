@@ -36,45 +36,43 @@ import java.lang.classfile.MethodModel;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.PseudoInstruction;
 import java.lang.classfile.TypeKind;
+import java.lang.classfile.attribute.CodeAttribute;
 import java.lang.classfile.attribute.StackMapFrameInfo;
 import java.lang.classfile.instruction.*;
 import java.lang.constant.ClassDesc;
+import java.lang.constant.ConstantDesc;
 import java.lang.constant.ConstantDescs;
+import java.lang.constant.DirectMethodHandleDesc;
+import java.lang.constant.DynamicConstantDesc;
+import java.lang.constant.MethodTypeDesc;
+import java.lang.invoke.CallSite;
+import java.lang.invoke.MethodHandle;
 import java.lang.reflect.AccessFlag;
-
 import java.lang.reflect.code.Block;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.type.FieldRef;
-import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
+import java.lang.reflect.code.type.MethodRef;
+import java.lang.reflect.code.type.PrimitiveType;
+import java.lang.reflect.code.type.VarType;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
-import java.lang.constant.ConstantDesc;
-import static java.lang.constant.ConstantDescs.CD_void;
-import java.lang.constant.DirectMethodHandleDesc;
-import java.lang.constant.DynamicConstantDesc;
-import java.lang.constant.MethodTypeDesc;
-import java.lang.invoke.CallSite;
-import java.lang.invoke.MethodHandle;
-import java.lang.reflect.code.op.CoreOp.LambdaOp;
-import java.lang.reflect.code.type.PrimitiveType;
-import java.lang.reflect.code.type.VarType;
-import java.util.Arrays;
-import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
+import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
 
 public final class BytecodeLift {
 
@@ -115,7 +113,11 @@ public final class BytecodeLift {
         this.entryBlock = entryBlock;
         this.currentBlock = entryBlock;
         this.classModel = classModel;
-        this.exceptionHandlers = codeModel.exceptionHandlers();
+        var res = (CodeAttribute)codeModel;
+        // Filter out exception handlers overlapping with try blocks
+        this.exceptionHandlers = codeModel.exceptionHandlers().stream().filter(
+                eh -> res.labelToBci(eh.handler()) >= res.labelToBci(eh.tryEnd())
+                   || res.labelToBci(eh.handler()) < res.labelToBci(eh.tryStart())).toList();
         this.elements = codeModel.elementList();
         this.stack = new ArrayDeque<>();
         var smta = codeModel.findAttribute(Attributes.stackMapTable());
@@ -465,9 +467,9 @@ public final class BytecodeLift {
                         }
                         FunctionType lambdaFunc = FunctionType.functionType(JavaType.type(mt.returnType()),
                                                                             mt.parameterList().stream().map(JavaType::type).toList());
-                        LambdaOp.Builder lambda = CoreOp.lambda(currentBlock.parentBody(),
-                                                                lambdaFunc,
-                                                                JavaType.type(inst.typeSymbol().returnType()));
+                        CoreOp.LambdaOp.Builder lambda = CoreOp.lambda(currentBlock.parentBody(),
+                                                                       lambdaFunc,
+                                                                       JavaType.type(inst.typeSymbol().returnType()));
                         if (dmhd.methodName().startsWith("lambda$") && dmhd.owner().equals(classModel.thisClass().asSymbol())) {
                             // inline lambda impl method
                             MethodModel implMethod = classModel.methods().stream().filter(m -> m.methodName().equalsString(dmhd.methodName())).findFirst().orElseThrow();
@@ -733,7 +735,7 @@ public final class BytecodeLift {
                             //CoreOp.invoke(MethodRef.method(e), "findSpecial", owner, name, liftConstant(invDesc.dropParameterTypes(0, 1)), lookup.lookupClass());
                             throw new UnsupportedOperationException(dmh.toString());
                         case CONSTRUCTOR       ->
-                            CoreOp.invoke(FIND_CONSTRUCTOR, lookup, owner, liftConstant(invDesc.changeReturnType(CD_void)));
+                            CoreOp.invoke(FIND_CONSTRUCTOR, lookup, owner, liftConstant(invDesc.changeReturnType(ConstantDescs.CD_Void)));
                         case GETTER            ->
                             CoreOp.invoke(FIND_GETTER, lookup, owner, name, liftConstant(invDesc.returnType()));
                         case STATIC_GETTER     ->
