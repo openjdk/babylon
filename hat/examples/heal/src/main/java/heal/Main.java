@@ -45,7 +45,10 @@ public class Main {
     public static void main(String[] args) throws IOException {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
-        var image= ImageIO.read(Main.class.getResourceAsStream("/images/bolton.png"));
+        var image= ImageIO.read(Main.class.getResourceAsStream(
+                "/images/raw.jpg"
+              //  "/images/bolton.png"
+        ));
         if (image.getType() != BufferedImage.TYPE_INT_RGB){//Better way?
             var rgbimage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
             rgbimage.getGraphics().drawImage(image, 0, 0, null);
