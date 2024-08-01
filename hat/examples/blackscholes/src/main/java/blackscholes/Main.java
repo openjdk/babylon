@@ -46,9 +46,11 @@ public class Main {
             float expNegRt = (float) Math.exp(-r * T);
             float d1 = (float) ((Math.log(S / X) + (r + v * v * .5f) * T) / (v * Math.sqrt(T)));
             float d2 = (float) (d1 - v * Math.sqrt(T));
-            float value = (float) (S * CND(d1) - X * expNegRt * CND(d2));
+            float cnd1 = CND(d1);
+            float cnd2 = CND(d2);
+            float value = (float) (S * cnd1 - expNegRt * X * cnd2);
             call.array(kc.x, value);
-            put.array(kc.x, value + expNegRt - S);
+            put.array(kc.x, expNegRt * X * (1 - cnd2) - S * (1 - cnd1));
         }
     }
 
@@ -109,7 +111,7 @@ public class Main {
             put.array(i, i);
         }
 
-        var S = floatArray(5, 30, accelerator);
+        var S = floatArray(1, 100, accelerator);
         var X = floatArray(1, 100, accelerator);
         var T = floatArray(0.25f, 10, accelerator);
         float r = 0.02f;
