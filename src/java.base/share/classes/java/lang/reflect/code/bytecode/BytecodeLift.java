@@ -278,7 +278,7 @@ public final class BytecodeLift {
                             Block.Builder handler = blockMap.get(ec.handler());
                             // Create start block
                             next = newBlock();
-                            Op ere = CoreOp.exceptionRegionEnter(successor(next), successor(handler));
+                            Op ere = CoreOp.exceptionRegionEnter(successor(next), handler.successor());
                             op(ere);
                             // Push ExceptionRegion on stack
                             exceptionRegionStack.push(new ExceptionRegion(ere.result(), ec.tryStart(), ec.tryEnd()));

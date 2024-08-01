@@ -243,6 +243,9 @@ public final class BytecodeGenerator {
     }
 
     private Label getLabel(int blockIndex) {
+        if (blockIndex == blockLabels.length) {
+            return cob.endLabel();
+        }
         Label l = blockLabels[blockIndex];
         if (l == null) {
             blockLabels[blockIndex] = l = cob.newLabel();
