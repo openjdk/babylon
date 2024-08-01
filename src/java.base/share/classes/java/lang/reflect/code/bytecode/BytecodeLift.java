@@ -250,7 +250,18 @@ public final class BytecodeLift {
                     // Exception blocks are inserted by label target (below)
                 }
                 case LabelTarget lt -> {
+                    // Insert relevant tryEnd blocks
+                    while (!exceptionRegionStack.isEmpty() && lt.label() == exceptionRegionStack.peek().endLabel()) {
+                        // Create exit block with parameters constructed from the stack
+                        ExceptionRegion er = exceptionRegionStack.pop();
+                        if (currentBlock != null) {
+                            Block.Builder next = newBlock();
+                            op(CoreOp.exceptionRegionExit(er.enter(), successor(next)));
+                            moveTo(next);
+                        }
+                    }
                     Block.Builder next = blockMap.get(lt.label());
+
                     // Start of a new block if defined by stack maps
                     if (next != null) {
                         if (currentBlock != null) {
@@ -260,9 +271,10 @@ public final class BytecodeLift {
                         }
                         moveTo(next);
                     }
+
                     // Insert relevant tryStart and construct handler blocks, all in reversed order
                     for (ExceptionCatch ec : exceptionHandlers.reversed()) {
-                        if (lt.label() == ec.tryStart()) {
+                        if (lt.label() == ec.tryStart() && ec.tryStart() != ec.tryEnd()) {
                             Block.Builder handler = blockMap.get(ec.handler());
                             // Create start block
                             next = newBlock();
@@ -272,14 +284,6 @@ public final class BytecodeLift {
                             exceptionRegionStack.push(new ExceptionRegion(ere.result(), ec.tryStart(), ec.tryEnd()));
                             moveTo(next);
                         }
-                    }
-                    // Insert relevant tryEnd blocks
-                    while (!exceptionRegionStack.isEmpty() && lt.label() == exceptionRegionStack.peek().endLabel()) {
-                        // Create exit block with parameters constructed from the stack
-                        ExceptionRegion er = exceptionRegionStack.pop();
-                        next = newBlock();
-                        op(CoreOp.exceptionRegionExit(er.enter(), successor(next)));
-                        moveTo(next);
                     }
                 }
                 case BranchInstruction inst when inst.opcode().isUnconditionalBranch() -> {

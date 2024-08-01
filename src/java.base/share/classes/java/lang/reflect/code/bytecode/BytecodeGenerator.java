@@ -465,15 +465,18 @@ public final class BytecodeGenerator {
             int start  = erNode.blocks.nextSetBit(0);
             while (start >= 0) {
                 int end = erNode.blocks.nextClearBit(start);
-                Label startLabel = getLabel(start);
-                Label endLabel = getLabel(end);
-                for (Block.Reference cbr : erNode.ere.catchBlocks()) {
-                    List<Block.Parameter> params = cbr.targetBlock().parameters();
-                    if (!params.isEmpty()) {
-                        JavaType jt = (JavaType) params.get(0).type();
-                        cob.exceptionCatch(startLabel, endLabel, getLabel(cbr), jt.toNominalDescriptor());
-                    } else {
-                        cob.exceptionCatchAll(startLabel, endLabel, getLabel(cbr));
+                // Avoid declaration of empty exception regions
+                if (!(blocks.get(start).firstOp() instanceof ExceptionRegionExit erEx) || erEx.end().targetBlock().index() != end) {
+                    Label startLabel = getLabel(start);
+                    Label endLabel = getLabel(end);
+                    for (Block.Reference cbr : erNode.ere.catchBlocks()) {
+                        List<Block.Parameter> params = cbr.targetBlock().parameters();
+                        if (!params.isEmpty()) {
+                            JavaType jt = (JavaType) params.get(0).type();
+                            cob.exceptionCatch(startLabel, endLabel, getLabel(cbr), jt.toNominalDescriptor());
+                        } else {
+                            cob.exceptionCatchAll(startLabel, endLabel, getLabel(cbr));
+                        }
                     }
                 }
                 start = erNode.blocks.nextSetBit(end);

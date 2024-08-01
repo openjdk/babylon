@@ -512,6 +512,15 @@ public class TestBytecode {
         return -i;
     }
 
+    @CodeReflection
+    static int excHandlerFollowingSplitTable(boolean b) {
+        try {
+            if (b) return 1;
+            else throw new Exception();
+        } catch (Exception ex) {}
+        return 2;
+    }
+
     record TestData(Method testMethod) {
         @Override
         public String toString() {
