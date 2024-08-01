@@ -73,6 +73,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
+import java.util.BitSet;
 
 public final class BytecodeLift {
 
@@ -116,13 +117,10 @@ public final class BytecodeLift {
         this.currentBlock = entryBlock;
         this.classModel = classModel;
         this.codeAttribtue = (CodeAttribute)codeModel;
-        // Filter out exception handlers overlapping with try blocks
-        this.exceptionHandlers = codeModel.exceptionHandlers().stream().filter(
-                eh -> codeAttribtue.labelToBci(eh.handler()) >= codeAttribtue.labelToBci(eh.tryEnd())
-                   || codeAttribtue.labelToBci(eh.handler()) < codeAttribtue.labelToBci(eh.tryStart())).toList();
+        var smta = codeModel.findAttribute(Attributes.stackMapTable());
+        this.exceptionHandlers = extractExceptionHandlers(codeAttribtue);
         this.elements = codeModel.elementList();
         this.stack = new ArrayDeque<>();
-        var smta = codeModel.findAttribute(Attributes.stackMapTable());
         ArrayList<ClassDesc> locals = new ArrayList<>();
         Stream.concat(Arrays.stream(capturedValues), entryBlock.parameters().stream()).forEachOrdered(val -> {
             op(SlotOp.store(locals.size(), val));
@@ -137,6 +135,70 @@ public final class BytecodeLift {
                         smfi -> entryBlock.block(toBlockParams(smfi.stack()))))).orElseGet(Map::of);
         this.constantCache = new HashMap<>();
         this.exceptionRegionStack = new ArrayDeque<>();
+    }
+
+    private static List<ExceptionCatch> extractExceptionHandlers(CodeAttribute codeAttribute) {
+        record JumpTarget(int targetBci, Label target, List<Integer> sourceBcis) {}
+        BitSet targetBcis = new BitSet(codeAttribute.codeLength());
+        var jumpMap = new HashMap<Integer, JumpTarget>() {
+            void add(Label target, int sourceBci) {
+                computeIfAbsent(codeAttribute.labelToBci(target), targetBci -> {
+                    targetBcis.set(targetBci);
+                    return new JumpTarget(targetBci, target, new ArrayList<>());
+                }).sourceBcis.add(sourceBci);
+            }
+        };
+
+        int bci = 0;
+        // First collect jump map
+        for (CodeElement ce : codeAttribute) {
+            switch (ce) {
+                case BranchInstruction bi -> {
+                    jumpMap.add(bi.target(), bci);
+                }
+                case TableSwitchInstruction tsi -> {
+                    jumpMap.add(tsi.defaultTarget(), bci);
+                    for (var c : tsi.cases()) {
+                        jumpMap.add(c.target(), bci);
+                    }
+                }
+                case LookupSwitchInstruction lsi -> {
+                    jumpMap.add(lsi.defaultTarget(), bci);
+                    for (var c : lsi.cases()) {
+                        jumpMap.add(c.target(), bci);
+                    }
+                }
+                default -> {}
+            }
+            if (ce instanceof Instruction i) {
+                bci += i.sizeInBytes();
+            }
+        }
+
+        // Filter and split exception handlers
+        var exceptionHandlers = new ArrayList<ExceptionCatch>();
+        for (var eh : codeAttribute.exceptionHandlers()) {
+            final int tryStart = codeAttribute.labelToBci(eh.tryStart());
+            final int tryEnd = codeAttribute.labelToBci(eh.tryEnd());
+            final int handler = codeAttribute.labelToBci(eh.handler());
+            // Filter out exception handlers overlapping with try blocks
+            if (handler >= tryEnd || handler < tryStart) {
+                Label startLabel = eh.tryStart();
+                int breakIndex = tryStart;
+                // Detect additional exception region entries
+                while ((breakIndex = targetBcis.nextSetBit(breakIndex + 1)) >= 0 &&  breakIndex < tryEnd) {
+                    JumpTarget jt = jumpMap.get(breakIndex);
+                    // Split the exception region by each external entry (jump from outside of the region)
+                    if (jt.sourceBcis.stream().anyMatch(sourceBci -> sourceBci < tryStart || sourceBci > tryEnd)) {
+                        Label breakLabel = jt.target();
+                        exceptionHandlers.add(ExceptionCatch.of(eh.handler(), startLabel, breakLabel, eh.catchType()));
+                        startLabel = breakLabel;
+                    }
+                }
+                exceptionHandlers.add(ExceptionCatch.of(eh.handler(), startLabel, eh.tryEnd(), eh.catchType()));
+            }
+        }
+        return exceptionHandlers;
     }
 
     private List<TypeElement> toBlockParams(List<StackMapFrameInfo.VerificationTypeInfo> vtis) {

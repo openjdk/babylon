@@ -521,6 +521,20 @@ public class TestBytecode {
         return 2;
     }
 
+    @CodeReflection
+    static boolean finallyWithLoop(boolean b) {
+        try {
+            while (b) {
+                if (b)
+                    return false;
+                b = !b;
+            }
+            return true;
+        } finally {
+            b = false;
+        }
+    }
+
     record TestData(Method testMethod) {
         @Override
         public String toString() {
