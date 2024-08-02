@@ -821,7 +821,7 @@ public final class BytecodeLift {
     }
 
     private Op.Result liftConstant(Object c) {
-        Op.Result res = c instanceof ClassDesc ? null : constantCache.get(c); // Do not cache class constants
+        Op.Result res = constantCache.get(c);
         if (res == null) {
             res = switch (c) {
                 case null -> op(CoreOp.constant(JavaType.J_L_OBJECT, null));

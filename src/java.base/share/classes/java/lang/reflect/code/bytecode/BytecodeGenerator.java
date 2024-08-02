@@ -928,7 +928,7 @@ public final class BytecodeGenerator {
         }
     }
 
-    private boolean inBlockArgs(Op.Result res) {
+    private static boolean inBlockArgs(Op.Result res) {
         // Check if used in successor
         for (Block.Reference s : res.declaringBlock().successors()) {
             if (s.arguments().contains(res)) {
@@ -938,11 +938,18 @@ public final class BytecodeGenerator {
         return false;
     }
 
+    private static boolean moreThanOneUse(Op.Result res) {
+        Set<Op.Result> uses = res.uses();
+        return uses.size() > 1
+            || uses.size() == 1 && uses.iterator().next().op().operands().stream().filter(o -> o == res).count() > 1
+            || inBlockArgs(res);
+    }
+
     private void push(Op.Result res) {
         assert oprOnStack == null;
         if (res.type().equals(JavaType.VOID)) return;
         if (isNextUse(res)) {
-            if (res.uses().size() > 1 || inBlockArgs(res)) {
+            if (moreThanOneUse(res)) {
                 switch (toTypeKind(res.type()).slotSize()) {
                     case 1 -> cob.dup();
                     case 2 -> cob.dup2();

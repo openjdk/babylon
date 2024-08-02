@@ -535,6 +535,12 @@ public class TestBytecode {
         }
     }
 
+    @CodeReflection
+    static long doubleUseOfOperand(int x) {
+        long piece = x;
+        return piece * piece;
+    }
+
     record TestData(Method testMethod) {
         @Override
         public String toString() {
