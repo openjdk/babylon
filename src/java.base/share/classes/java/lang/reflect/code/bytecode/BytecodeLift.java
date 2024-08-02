@@ -174,29 +174,36 @@ public final class BytecodeLift {
         }
 
         // Filter and split exception handlers
-        var exceptionHandlers = new ArrayList<ExceptionCatch>();
-        for (var eh : codeAttribute.exceptionHandlers()) {
-            final int tryStart = codeAttribute.labelToBci(eh.tryStart());
-            final int tryEnd = codeAttribute.labelToBci(eh.tryEnd());
-            final int handler = codeAttribute.labelToBci(eh.handler());
-            // Filter out exception handlers overlapping with try blocks
-            if (handler >= tryEnd || handler < tryStart) {
-                Label startLabel = eh.tryStart();
-                int breakIndex = tryStart;
-                // Detect additional exception region entries
-                while ((breakIndex = targetBcis.nextSetBit(breakIndex + 1)) >= 0 &&  breakIndex < tryEnd) {
-                    JumpTarget jt = jumpMap.get(breakIndex);
-                    // Split the exception region by each external entry (jump from outside of the region)
-                    if (jt.sourceBcis.stream().anyMatch(sourceBci -> sourceBci < tryStart || sourceBci > tryEnd)) {
-                        Label breakLabel = jt.target();
-                        exceptionHandlers.add(ExceptionCatch.of(eh.handler(), startLabel, breakLabel, eh.catchType()));
-                        startLabel = breakLabel;
+        var handlers = codeAttribute.exceptionHandlers();
+        boolean split;
+        do {
+            split = false;
+            var newHandlers = new ArrayList<ExceptionCatch>();
+            for (var eh : handlers) {
+                final int tryStart = codeAttribute.labelToBci(eh.tryStart());
+                final int tryEnd = codeAttribute.labelToBci(eh.tryEnd());
+                final int handler = codeAttribute.labelToBci(eh.handler());
+                // Filter out exception handlers overlapping with try blocks
+                if (handler >= tryEnd || handler < tryStart) {
+                    Label startLabel = eh.tryStart();
+                    int breakIndex = tryStart;
+                    // Detect additional exception region entries
+                    while ((breakIndex = targetBcis.nextSetBit(breakIndex + 1)) >= 0 &&  breakIndex < tryEnd) {
+                        JumpTarget jt = jumpMap.get(breakIndex);
+                        // Split the exception region by each external entry (jump from outside of the region)
+                        if (jt.sourceBcis.stream().anyMatch(sourceBci -> sourceBci < tryStart || sourceBci > tryEnd)) {
+                            Label breakLabel = jt.target();
+                            newHandlers.add(ExceptionCatch.of(eh.handler(), startLabel, breakLabel, eh.catchType()));
+                            startLabel = breakLabel;
+                            split = true;
+                        }
                     }
+                    newHandlers.add(ExceptionCatch.of(eh.handler(), startLabel, eh.tryEnd(), eh.catchType()));
                 }
-                exceptionHandlers.add(ExceptionCatch.of(eh.handler(), startLabel, eh.tryEnd(), eh.catchType()));
             }
-        }
-        return exceptionHandlers;
+            handlers = newHandlers;
+        } while (split); // Each new split may change branch status to an external entry and imply more splits
+        return handlers;
     }
 
     private List<TypeElement> toBlockParams(List<StackMapFrameInfo.VerificationTypeInfo> vtis) {
