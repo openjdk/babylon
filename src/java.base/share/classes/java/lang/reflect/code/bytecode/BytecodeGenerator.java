@@ -666,7 +666,7 @@ public final class BytecodeGenerator {
                         processOperands(op);
                         adjustRightTypeToInt(op);
                         switch (rvt) { //this can be moved to CodeBuilder::shl(TypeKind)
-                            case IntType -> cob.ishl();
+                            case ByteType, CharType, IntType, ShortType -> cob.ishl();
                             case LongType -> cob.lshl();
                             default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
                         }
