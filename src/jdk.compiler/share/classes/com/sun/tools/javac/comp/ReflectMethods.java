@@ -1042,7 +1042,7 @@ public class ReflectMethods extends TreeTranslator {
 
             Value array = toValue(tree.indexed);
 
-            Value index = toValue(tree.index);
+            Value index = toValue(tree.index, typeElementToType(JavaType.INT));
 
             result = append(CoreOp.arrayLoadOp(array, index));
         }
