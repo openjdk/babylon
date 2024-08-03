@@ -49,7 +49,13 @@ import java.awt.image.DataBufferByte;
 
 public class Viewer extends JFrame {
 
-    final public class MainPanel extends JComponent {
+
+    private final Object doorBell = new Object();
+    final Controls controls;
+    final MainPanel mainPanel;
+    volatile private boolean started=false;
+
+    static final public class MainPanel extends JComponent {
         final double IN = 1.1;
         final double OUT = 1/IN;
         private final BufferedImage image;
@@ -149,36 +155,35 @@ public class Viewer extends JFrame {
             g2.drawImage(image, 0,0, image.getWidth(), image.getHeight(), 0, 0, image.getWidth(), image.getHeight(), this);
         }
     }
+    public static class Controls{
+        JTextField generation;
+        JTextField generationsPerSecond;
 
-
-    private final Object doorBell = new Object();
-    final MainPanel mainPanel;
-    private final JTextField generation;
-    private final JTextField generationsPerSecond;
-    volatile private boolean started=false;
-
-    void setGeneration(int generation, float ms){
-        this.generation.setText(String.format("%8d",generation));
-        this.generationsPerSecond.setText(String.format("%5.2f",(generation*1000)/ms));
-        mainPanel.repaint();
+        JButton start;
+        JMenuBar menuBar;
+        Controls(){
+            menuBar = new JMenuBar();
+            ((JButton) menuBar.add(new JButton("Exit"))).addActionListener(_ -> System.exit(0));
+            this.start = (JButton) menuBar.add(new JButton("Start"));
+            menuBar.add(Box.createHorizontalStrut(40));
+            generation = create ("Gen");
+            generationsPerSecond = create ("Gen/Sec");
+        }
+        JTextField create (String name){
+            menuBar.add(new JLabel(name));
+            JTextField textField = (JTextField) menuBar.add(new JTextField("",5));
+            textField.setEditable(false);
+            return textField;
+        }
     }
 
-    Viewer(String title, Main.Control control, Main.CellGrid cellGrid) {
+    Viewer(String title, Main.Control control,Main.CellGrid cellGrid) {
         super(title);
         this.mainPanel = new MainPanel(new BufferedImage(cellGrid.width(), cellGrid.height(), BufferedImage.TYPE_BYTE_GRAY));
-        var menuBar = new JMenuBar();
-        this.setJMenuBar(menuBar);
-        ((JButton) menuBar.add(new JButton("Exit"))).addActionListener(_ -> System.exit(0));
-        ((JButton) menuBar.add(new JButton("Start"))).addActionListener(_ -> {started=true;synchronized (doorBell) {doorBell.notify();}});
-        menuBar.add(Box.createHorizontalStrut(400));
-        menuBar.add(new JLabel("Gen"));
-        (this.generation = (JTextField) menuBar.add(new JTextField("",8))).setEditable(false);
-        menuBar.add(new JLabel("Gen/Sec"));
-        (this.generationsPerSecond = (JTextField) menuBar.add(new JTextField("",6))).setEditable(false);
-        this.setGeneration(0,0);
-
+        this.controls = new Controls();
+        setJMenuBar(controls.menuBar);
+        controls.start.addActionListener(_ -> {started=true;synchronized (doorBell) {doorBell.notify();}});
         this.getContentPane().add(this.mainPanel);
-
         this.setLocationRelativeTo(null);
         this.pack();
         this.setVisible(true);
@@ -195,6 +200,23 @@ public class Viewer extends JFrame {
                 }
             }
         }
+    }
+     long start=0L;
+    int generationCounter=0;
+    public boolean isVisible(){
+        return true;
+    }
+    public boolean isReadyForUpdate(){
+        if (start==0L) {
+            start = System.currentTimeMillis();
+        }else {
+            this.controls.generation.setText(String.format("%8d", ++generationCounter));
+            this.controls.generationsPerSecond.setText(
+                    String.format("%5.2f", (generationCounter * 1000f) / (System.currentTimeMillis() - start))
+            );
+            mainPanel.repaint();
+        }
+        return true;
     }
 
     public void update(Main.CellGrid cellGrid, int to) {

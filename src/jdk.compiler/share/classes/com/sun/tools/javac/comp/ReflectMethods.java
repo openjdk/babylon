@@ -1044,7 +1044,7 @@ public class ReflectMethods extends TreeTranslator {
 
             Value array = toValue(tree.indexed);
 
-            Value index = toValue(tree.index);
+            Value index = toValue(tree.index, typeElementToType(JavaType.INT));
 
             result = append(CoreOp.arrayLoadOp(array, index));
         }
@@ -1440,13 +1440,13 @@ public class ReflectMethods extends TreeTranslator {
             List<Body.Builder> bodies = new ArrayList<>();
 
             while (tree != null) {
-                // @@@ cond.type can be boolean or Boolean
                 JCTree.JCExpression cond = TreeInfo.skipParens(tree.cond);
 
                 // Push if condition
                 pushBody(cond,
                         functionType(JavaType.BOOLEAN));
                 Value last = toValue(cond);
+                last = convert(last, typeElementToType(JavaType.BOOLEAN));
                 // Yield the boolean result of the condition
                 append(CoreOp._yield(last));
                 bodies.add(stack.body);
@@ -1670,13 +1670,13 @@ public class ReflectMethods extends TreeTranslator {
         @Override
         public void visitWhileLoop(JCTree.JCWhileLoop tree) {
             // @@@ Patterns
-            // @@@ cond.type can be boolean or Boolean
             JCTree.JCExpression cond = TreeInfo.skipParens(tree.cond);
 
             // Push while condition
             pushBody(cond, functionType(JavaType.BOOLEAN));
             Value last = toValue(cond);
             // Yield the boolean result of the condition
+            last = convert(last, typeElementToType(JavaType.BOOLEAN));
             append(CoreOp._yield(last));
             Body.Builder condition = stack.body;
 
@@ -1699,7 +1699,6 @@ public class ReflectMethods extends TreeTranslator {
         @Override
         public void visitDoLoop(JCTree.JCDoWhileLoop tree) {
             // @@@ Patterns
-            // @@@ cond.type can be boolean or Boolean
             JCTree.JCExpression cond = TreeInfo.skipParens(tree.cond);
 
             // Push while body
@@ -1714,6 +1713,7 @@ public class ReflectMethods extends TreeTranslator {
             // Push while condition
             pushBody(cond, functionType(JavaType.BOOLEAN));
             Value last = toValue(cond);
+            last = convert(last, typeElementToType(JavaType.BOOLEAN));
             // Yield the boolean result of the condition
             append(CoreOp._yield(last));
             Body.Builder condition = stack.body;
