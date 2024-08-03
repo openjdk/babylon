@@ -321,4 +321,38 @@ public class IfTest {
         else
             i = 3;
     }
+
+    @IR("""
+            func @"test9" (%0 : java.lang.Boolean)void -> {
+                %1 : Var<java.lang.Boolean> = var %0 @"b";
+                %2 : int = constant @"0";
+                %3 : Var<int> = var %2 @"i";
+                java.if
+                    ()boolean -> {
+                        %4 : java.lang.Boolean = var.load %1;
+                        %5 : boolean = invoke %4 @"java.lang.Boolean::booleanValue()boolean";
+                        yield %5;
+                    }
+                    ()void -> {
+                        %6 : int = constant @"1";
+                        var.store %3 %6;
+                        yield;
+                    }
+                    ()void -> {
+                        %7 : int = constant @"2";
+                        var.store %3 %7;
+                        yield;
+                    };
+                return;
+            };
+            """)
+    @CodeReflection
+    static void test9(Boolean b) {
+        int i;
+        if (b) {
+            i = 1;
+        } else {
+            i = 2;
+        }
+    }
 }
