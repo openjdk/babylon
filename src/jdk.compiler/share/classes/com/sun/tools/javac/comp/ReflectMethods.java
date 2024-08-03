@@ -1427,7 +1427,6 @@ public class ReflectMethods extends TreeTranslator {
             List<Body.Builder> bodies = new ArrayList<>();
 
             while (tree != null) {
-                // @@@ cond.type can be boolean or Boolean
                 JCTree.JCExpression cond = TreeInfo.skipParens(tree.cond);
 
                 // Push if condition
@@ -1639,7 +1638,6 @@ public class ReflectMethods extends TreeTranslator {
         @Override
         public void visitWhileLoop(JCTree.JCWhileLoop tree) {
             // @@@ Patterns
-            // @@@ cond.type can be boolean or Boolean
             JCTree.JCExpression cond = TreeInfo.skipParens(tree.cond);
 
             // Push while condition
@@ -1669,7 +1667,6 @@ public class ReflectMethods extends TreeTranslator {
         @Override
         public void visitDoLoop(JCTree.JCDoWhileLoop tree) {
             // @@@ Patterns
-            // @@@ cond.type can be boolean or Boolean
             JCTree.JCExpression cond = TreeInfo.skipParens(tree.cond);
 
             // Push while body
