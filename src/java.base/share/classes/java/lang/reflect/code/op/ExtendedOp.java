@@ -862,22 +862,14 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 Block.Builder curr = blocks.get(i);
                 if (isLabelBody) {
                     Block.Builder expression = blocks.get(i + 1);
-                    boolean isLastLabel = i == blocks.size() - 2;
-                    Block.Builder nextLabel = isLastLabel ? null : blocks.get(i + 2);
+                    boolean isDefaultLabel = i == blocks.size() - 2;
+                    Block.Builder nextLabel = isDefaultLabel ? null : blocks.get(i + 2);
                     Body body = bodies().get(i);
                     curr.transformBody(bodies().get(i), List.of(selectorExpression), opT.andThen((block, op) -> {
                         switch (op) {
                             case YieldOp yop -> {
-                                if (isLastLabel) {
-                                    if (isDefaultLabel(body)) {
+                                if (isDefaultLabel) {
                                         block.op(branch(expression.successor()));
-                                    } else {
-                                        Block.Builder throwBlock = block.block();
-                                        throwBlock.op(_throw(
-                                                throwBlock.op(_new(FunctionType.functionType(JavaType.type(MatchException.class))))
-                                        ));
-                                        block.op(conditionalBranch(block.context().getValue(yop.yieldValue()), expression.successor(), throwBlock.successor()));
-                                    }
                                 } else {
                                     block.op(conditionalBranch(
                                             block.context().getValue(yop.yieldValue()),
@@ -904,11 +896,6 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             }
 
             return exit;
-        }
-
-        static boolean isDefaultLabel(Body body) {
-            return body.blocks().size() == 1 &&
-                    body.entryBlock().terminatingOp() instanceof YieldOp y && y.operands().isEmpty();
         }
     }
 
