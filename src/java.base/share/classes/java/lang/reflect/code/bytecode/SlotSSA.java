@@ -65,8 +65,6 @@ public final class SlotSSA {
             // Compute join points and value mappings for body
             visited.computeIfAbsent(op.ancestorBody(), b -> {
                 findJoinPoints(b, joinPoints);
-                // @@@ Remove all catch blocks from join points to avoid adding block parameters to them
-                removeCatchBlocksFromJoinPoints(b, joinPoints);
                 variableToValue(b, joinPoints, loadValues, joinSuccessorValues);
                 return true;
             });
@@ -258,6 +256,14 @@ public final class SlotSSA {
      */
     public static void findJoinPoints(Body body, Map<Block, Set<Integer>> joinPoints) {
         Map<Block, Set<Block>> df = body.dominanceFrontier();
+
+        // @@@ Remove all catch blocks from dominance frontier to avoid adding block parameters to them
+        for (Block b : body.blocks()) {
+            if (b.terminatingOp() instanceof CoreOp.ExceptionRegionEnter ere) {
+                df.values().forEach(dfs -> dfs.removeAll(ere.catchBlocks().stream().map(Block.Reference::targetBlock).toList()));
+            }
+        }
+
         Map<Integer, SlotAccesses> a = findSlots(body);
 
         int iterCount = 0;
@@ -290,20 +296,6 @@ public final class SlotSSA {
                         }
                     }
                 }
-            }
-        }
-    }
-
-    /**
-     * Removes all catch blocks from join points to avoid adding block parameters to them.
-     *
-     * @param body the body
-     * @param joinPoints the join points to clean.
-     */
-    public static void removeCatchBlocksFromJoinPoints(Body body, Map<Block, Set<Integer>> joinPoints) {
-        for (Block b : body.blocks()) {
-            if (b.terminatingOp() instanceof CoreOp.ExceptionRegionEnter ere) {
-                ere.catchBlocks().forEach(r -> joinPoints.remove(r.targetBlock()));
             }
         }
     }
