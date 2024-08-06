@@ -620,25 +620,8 @@ public final class BytecodeLift {
                                                             bsm.methodName(),
                                                             JavaType.type(bsmDesc.returnType()),
                                                             bsmDesc.parameterList().stream().map(JavaType::type).toArray(TypeElement[]::new));
-                        Value[] bootstrapArgs = new Value[bsmDesc.parameterCount()];
-                        bootstrapArgs[0] = lookup();
-                        bootstrapArgs[1] = liftConstant(inst.name().toString());
-                        bootstrapArgs[2] = liftConstant(mtd);
-                        ClassDesc lastArgType = bsmDesc.parameterType(bsmDesc.parameterCount() - 1);
-                        List<ConstantDesc> bsmArgs = inst.bootstrapArgs();
-                        if (lastArgType.isArray()) {
-                            for (int ai = 0; ai < bootstrapArgs.length - 4; ai++) {
-                                bootstrapArgs[ai + 3] = liftConstant(bsmArgs.get(ai));
-                            }
-                            // Vararg tail of the bootstrap method parameters
-                            bootstrapArgs[bootstrapArgs.length - 1] =
-                                    liftConstantsIntoArray(JavaType.type(lastArgType),
-                                                           bsmArgs.subList(bootstrapArgs.length - 4, bsmArgs.size()).toArray());
-                        } else {
-                            for (int ai = 0; ai < bootstrapArgs.length - 3; ai++) {
-                                bootstrapArgs[ai + 3] = liftConstant(bsmArgs.get(ai));
-                            }
-                        }
+
+                        Value[] bootstrapArgs = liftBootstrapArgs(bsmDesc, inst.name().toString(), mtd, inst.bootstrapArgs());
                         Value methodHandle = op(CoreOp.invoke(MethodRef.method(CallSite.class, "dynamicInvoker", MethodHandle.class),
                                                     op(CoreOp.invoke(JavaType.type(ConstantDescs.CD_CallSite), bsmRef, bootstrapArgs))));
 
@@ -865,15 +848,9 @@ public final class BytecodeLift {
                                              && v.bootstrapMethod().methodName().equals("nullConstant")
                         -> liftConstant(null);
                 case DynamicConstantDesc<?> dcd -> {
-                    List<Value> bootstrapArgs = new ArrayList<>();
-                    bootstrapArgs.add(lookup());
-                    bootstrapArgs.add(liftConstant(dcd.constantName()));
-                    bootstrapArgs.add(liftConstant(dcd.constantType()));
-                    for (ConstantDesc barg : dcd.bootstrapArgs()) {
-                        bootstrapArgs.add(liftConstant(barg));
-                    }
                     DirectMethodHandleDesc bsm = dcd.bootstrapMethod();
                     MethodTypeDesc bsmDesc = bsm.invocationType();
+                    Value[] bootstrapArgs = liftBootstrapArgs(bsmDesc, dcd.constantName(), dcd.constantType(), dcd.bootstrapArgsList());
                     MethodRef bsmRef = MethodRef.method(JavaType.type(bsm.owner()),
                                                         bsm.methodName(),
                                                         JavaType.type(bsmDesc.returnType()),
@@ -886,6 +863,28 @@ public final class BytecodeLift {
             constantCache.put(c, res);
         }
         return res;
+    }
+
+    private Value[] liftBootstrapArgs(MethodTypeDesc bsmDesc, String name, ConstantDesc desc, List<ConstantDesc> bsmArgs) {
+        Value[] bootstrapArgs = new Value[bsmDesc.parameterCount()];
+        bootstrapArgs[0] = lookup();
+        bootstrapArgs[1] = liftConstant(name);
+        bootstrapArgs[2] = liftConstant(desc);
+        ClassDesc lastArgType = bsmDesc.parameterType(bsmDesc.parameterCount() - 1);
+        if (lastArgType.isArray()) {
+            for (int ai = 0; ai < bootstrapArgs.length - 4; ai++) {
+                bootstrapArgs[ai + 3] = liftConstant(bsmArgs.get(ai));
+            }
+            // Vararg tail of the bootstrap method parameters
+            bootstrapArgs[bootstrapArgs.length - 1] =
+                    liftConstantsIntoArray(JavaType.type(lastArgType),
+                                           bsmArgs.subList(bootstrapArgs.length - 4, bsmArgs.size()).toArray());
+        } else {
+            for (int ai = 0; ai < bootstrapArgs.length - 3; ai++) {
+                bootstrapArgs[ai + 3] = liftConstant(bsmArgs.get(ai));
+            }
+        }
+        return bootstrapArgs;
     }
 
     private void liftSwitch(Label defaultTarget, List<SwitchCase> cases) {

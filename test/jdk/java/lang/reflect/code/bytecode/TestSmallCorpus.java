@@ -30,8 +30,6 @@ import java.lang.classfile.MethodModel;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.instruction.*;
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.code.OpTransformer;
-import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.reflect.code.bytecode.BytecodeLift;
 import java.lang.reflect.code.op.CoreOp;
@@ -114,43 +112,32 @@ public class TestSmallCorpus {
             if (originalModel.code().isPresent()) try {
                 CoreOp.FuncOp firstLift = lift(originalModel);
                 try {
-                    CoreOp.FuncOp firstTransform = transform(firstLift);
+                    MethodModel firstModel = lower(firstLift);
                     try {
-                        MethodModel firstModel = lower(firstTransform);
+                        CoreOp.FuncOp secondLift = lift(firstModel);
                         try {
-                            CoreOp.FuncOp secondLift = lift(firstModel);
-                            try {
-                                CoreOp.FuncOp secondTransform = transform(secondLift);
-                                try {
-                                    MethodModel secondModel = lower(secondTransform);
+                            MethodModel secondModel = lower(secondLift);
 
-                                    // testing only methods passing through
-                                    var firstNormalized = normalize(firstModel);
-                                    var secondNormalized = normalize(secondModel);
-                                    if (!firstNormalized.equals(secondNormalized)) {
-                                        notMatching++;
-                                        System.out.println(clm.thisClass().asInternalName() + "::" + originalModel.methodName().stringValue() + originalModel.methodTypeSymbol().displayDescriptor());
-                                        printInColumns(firstLift, secondLift);
-                                        printInColumns(firstTransform, secondTransform);
-                                        printInColumns(firstNormalized, secondNormalized);
-                                        System.out.println();
-                                    } else {
-                                        passed++;
-                                    }
-                                } catch (Exception e) {
-                                    error("second lower", e);
-                                }
-                            } catch (Exception e) {
-                                error("second transform", e);
+                            // testing only methods passing through
+                            var firstNormalized = normalize(firstModel);
+                            var secondNormalized = normalize(secondModel);
+                            if (!firstNormalized.equals(secondNormalized)) {
+                                notMatching++;
+                                System.out.println(clm.thisClass().asInternalName() + "::" + originalModel.methodName().stringValue() + originalModel.methodTypeSymbol().displayDescriptor());
+                                printInColumns(firstLift, secondLift);
+                                printInColumns(firstNormalized, secondNormalized);
+                                System.out.println();
+                            } else {
+                                passed++;
                             }
                         } catch (Exception e) {
-                            error("second lift", e);
+                            error("second lower", e);
                         }
                     } catch (Exception e) {
-                        error("first lower", e);
+                        error("second lift", e);
                     }
                 } catch (Exception e) {
-                    error("first transform", e);
+                    error("first lower", e);
                 }
             } catch (Exception e) {
                 error("first lift", e);
@@ -176,10 +163,6 @@ public class TestSmallCorpus {
 
     private static CoreOp.FuncOp lift(MethodModel mm) {
         return BytecodeLift.lift(mm);
-    }
-
-    private static CoreOp.FuncOp transform(CoreOp.FuncOp func) {
-        return SSA.transform(func.transform(OpTransformer.LOWERING_TRANSFORMER));
     }
 
     private static MethodModel lower(CoreOp.FuncOp func) {

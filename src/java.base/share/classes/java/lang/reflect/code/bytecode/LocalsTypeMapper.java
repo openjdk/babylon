@@ -84,7 +84,7 @@ final class LocalsTypeMapper {
     private Frame toFrame(StackMapFrameInfo smfi) {
         List<ClassDesc> fstack = new ArrayList<>(smfi.stack().size());
         List<ClassDesc> flocals = new ArrayList<>(smfi.locals().size() * 2);
-        for (var vti : smfi.stack().reversed()) {
+        for (var vti : smfi.stack()) {
             fstack.add(vtiToStackType(vti));
         }
         for (var vti : smfi.locals()) {
@@ -140,7 +140,7 @@ final class LocalsTypeMapper {
     }
 
     private void push(ClassDesc type) {
-        if (!ConstantDescs.CD_void.equals(type)) stack.addLast(type);
+        if (!ConstantDescs.CD_void.equals(type)) stack.add(type);
     }
 
     private void pushAt(int pos, ClassDesc... types) {
