@@ -899,6 +899,61 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
     }
 
     /**
+     * The switch statement operation, that can model Java language switch statement.
+     */
+    @OpFactory.OpDeclaration(JavaSwitchStatementOp.NAME)
+    public static final class JavaSwitchStatementOp extends ExtendedOp
+            implements Op.Nested, JavaStatement {
+        public static final String NAME = "java.switch.statement";
+
+        final List<Body> bodies;
+
+        public JavaSwitchStatementOp(ExternalizedOp def) {
+            super(def);
+
+            if (def.operands().size() != 1) {
+                throw new IllegalStateException("Operation must have one operand");
+            }
+
+            // @@@ Validate
+            this.bodies = def.bodyDefinitions().stream().map(bd -> bd.build(this)).toList();
+        }
+
+        JavaSwitchStatementOp(JavaSwitchStatementOp that, CopyContext cc, OpTransformer ot) {
+            super(that, cc);
+
+            // Copy body
+            this.bodies = that.bodies.stream()
+                    .map(b -> b.transform(cc, ot).build(this)).toList();
+        }
+
+        @Override
+        public JavaSwitchStatementOp transform(CopyContext cc, OpTransformer ot) {
+            return new JavaSwitchStatementOp(this, cc, ot);
+        }
+
+        JavaSwitchStatementOp(Value target, List<Body.Builder> bodyCs) {
+            super(NAME, List.of(target));
+
+            // Each case is modelled as a contiguous pair of bodies
+            // The first body models the case labels, and the second models the case statements
+            // The labels body has a parameter whose type is target operand's type and returns a boolean value
+            // The statements body has no parameters and returns void
+            this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
+        }
+
+        @Override
+        public List<Body> bodies() {
+            return bodies;
+        }
+
+        @Override
+        public TypeElement resultType() {
+            return VOID;
+        }
+    }
+
+    /**
      * The switch fall-through operation, that can model fall-through to the next statement in the switch block after
      * the last statement of the current switch label.
      */
@@ -3043,6 +3098,16 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                                                           List<Body.Builder> bodies) {
         Objects.requireNonNull(resultType);
         return new JavaSwitchExpressionOp(resultType, target, bodies);
+    }
+
+    /**
+     * Creates a switch statement operation.
+     * @param target the switch target value
+     * @param bodies the body builders of the operation to be built and become its children
+     * @return the switch statement operation
+     */
+    public static JavaSwitchStatementOp switchStatement(Value target, List<Body.Builder> bodies) {
+        return new JavaSwitchStatementOp(target, bodies);
     }
 
     /**
