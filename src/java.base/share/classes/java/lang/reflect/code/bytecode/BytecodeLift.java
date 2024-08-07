@@ -101,13 +101,13 @@ public final class BytecodeLift {
     private final Block.Builder entryBlock;
     private final ClassModel classModel;
     private final CodeAttribute codeAttribtue;
-    private final List<ExceptionCatch> exceptionHandlers;
+    private final List<ExcRegion> exceptionRegions;
     private final Map<Label, Block.Builder> blockMap;
     private final LocalsTypeMapper codeTracker;
     private final List<CodeElement> elements;
     private final Deque<Value> stack;
     private final Map<Object, Op.Result> constantCache;
-    private final ArrayDeque<ExceptionRegion> exceptionRegionStack;
+    private final ArrayDeque<ExceptionEntry> exceptionRegionStack;
     private Block.Builder currentBlock;
 
     private BytecodeLift(Block.Builder entryBlock, ClassModel classModel, CodeModel codeModel, Value... capturedValues) {
@@ -116,7 +116,7 @@ public final class BytecodeLift {
         this.classModel = classModel;
         this.codeAttribtue = (CodeAttribute)codeModel;
         var smta = codeModel.findAttribute(Attributes.stackMapTable());
-        this.exceptionHandlers = extractExceptionHandlers(codeAttribtue);
+        this.exceptionRegions = extractExceptionRegions(codeAttribtue);
         this.elements = codeModel.elementList();
         this.stack = new ArrayDeque<>();
         ArrayList<ClassDesc> locals = new ArrayList<>();
@@ -135,7 +135,7 @@ public final class BytecodeLift {
         this.exceptionRegionStack = new ArrayDeque<>();
     }
 
-    private static List<ExceptionCatch> extractExceptionHandlers(CodeAttribute codeAttribute) {
+    private static List<ExcRegion> extractExceptionRegions(CodeAttribute codeAttribute) {
         record JumpTarget(int targetBci, Label target, List<Integer> sourceBcis) {}
         BitSet targetBcis = new BitSet(codeAttribute.codeLength());
         var jumpMap = new HashMap<Integer, JumpTarget>() {
@@ -173,37 +173,40 @@ public final class BytecodeLift {
             }
         }
 
-        // Filter and split exception handlers
-        var handlers = codeAttribute.exceptionHandlers();
+
+        // Filter and split exception regions
+        var regions = codeAttribute.exceptionHandlers().stream()
+                .filter(ec -> ec.tryStart() != ec.tryEnd() && ec.tryStart() != ec.handler())
+                .map(ec -> new ExcRegion(ec.tryStart(), ec.tryEnd(), ec.handler())).distinct().toList();
         boolean split;
         do {
             split = false;
-            var newHandlers = new ArrayList<ExceptionCatch>();
-            for (var eh : handlers) {
-                final int tryStart = codeAttribute.labelToBci(eh.tryStart());
-                final int tryEnd = codeAttribute.labelToBci(eh.tryEnd());
-                final int handler = codeAttribute.labelToBci(eh.handler());
+            var newRegions = new ArrayList<ExcRegion>();
+            for (var reg : regions) {
+                final int startBci = codeAttribute.labelToBci(reg.startLabel());
+                final int endBci = codeAttribute.labelToBci(reg.endLabel());
+                final int handlerBci = codeAttribute.labelToBci(reg.handlerLabel());
                 // Filter out exception handlers overlapping with try blocks
-                if (handler >= tryEnd || handler < tryStart) {
-                    Label startLabel = eh.tryStart();
-                    int breakIndex = tryStart;
+                if (handlerBci >= endBci || handlerBci < startBci) {
+                    Label startLabel = reg.startLabel();
+                    int breakIndex = startBci;
                     // Detect additional exception region entries
-                    while ((breakIndex = targetBcis.nextSetBit(breakIndex + 1)) >= 0 &&  breakIndex < tryEnd) {
+                    while ((breakIndex = targetBcis.nextSetBit(breakIndex + 1)) >= 0 &&  breakIndex < endBci) {
                         JumpTarget jt = jumpMap.get(breakIndex);
                         // Split the exception region by each external entry (jump from outside of the region)
-                        if (jt.sourceBcis.stream().anyMatch(sourceBci -> sourceBci < tryStart || sourceBci > tryEnd)) {
+                        if (jt.sourceBcis.stream().anyMatch(sourceBci -> sourceBci < startBci || sourceBci > endBci)) {
                             Label breakLabel = jt.target();
-                            newHandlers.add(ExceptionCatch.of(eh.handler(), startLabel, breakLabel, eh.catchType()));
+                            newRegions.add(new ExcRegion(startLabel, breakLabel, reg.handlerLabel()));
                             startLabel = breakLabel;
                             split = true;
                         }
                     }
-                    newHandlers.add(ExceptionCatch.of(eh.handler(), startLabel, eh.tryEnd(), eh.catchType()));
+                    newRegions.add(new ExcRegion(startLabel, reg.endLabel(), reg.handlerLabel()));
                 }
             }
-            handlers = newHandlers;
+            regions = newRegions;
         } while (split); // Each new split may change branch status to an external entry and imply more splits
-        return handlers;
+        return regions;
     }
 
     private List<TypeElement> toBlockParams(List<StackMapFrameInfo.VerificationTypeInfo> vtis) {
@@ -292,16 +295,17 @@ public final class BytecodeLift {
         stack.clear();
     }
 
-    record ExceptionRegion(Op.Result enter, Label startLabel, Label endLabel) {}
+    record ExcRegion(Label startLabel, Label endLabel, Label handlerLabel) {}
+    record ExceptionEntry(Op.Result enter, ExcRegion region) {}
 
     private Block.Builder insertExceptionRegionExits(Label targetLabel) {
         Block.Builder targetBlock = blockMap.get(targetLabel);
-        for (ExceptionRegion er : exceptionRegionStack) {
+        for (ExceptionEntry ee : exceptionRegionStack) {
             int targetBci = codeAttribtue.labelToBci(targetLabel);
-            if (targetBci < codeAttribtue.labelToBci(er.startLabel()) || targetBci > codeAttribtue.labelToBci(er.endLabel())) {
+            if (targetBci < codeAttribtue.labelToBci(ee.region.startLabel) || targetBci >= codeAttribtue.labelToBci(ee.region.endLabel)) {
                 // Branching out of the exception region, need to insert a block with ExceptionRegionExit
                 Block.Builder next = newBlock(targetBlock.parameters());
-                next.op(CoreOp.exceptionRegionExit(er.enter(), successor(targetBlock)));
+                next.op(CoreOp.exceptionRegionExit(ee.enter(), targetBlock.successor(next.parameters())));
                 targetBlock = next;
             } else {
                 return targetBlock;
@@ -318,9 +322,9 @@ public final class BytecodeLift {
                 }
                 case LabelTarget lt -> {
                     // Insert relevant tryEnd blocks
-                    while (!exceptionRegionStack.isEmpty() && lt.label() == exceptionRegionStack.peek().endLabel()) {
+                    while (!exceptionRegionStack.isEmpty() && lt.label() == exceptionRegionStack.peek().region.endLabel) {
                         // Create exit block with parameters constructed from the stack
-                        ExceptionRegion er = exceptionRegionStack.pop();
+                        ExceptionEntry er = exceptionRegionStack.pop();
                         if (currentBlock != null) {
                             Block.Builder next = newBlock();
                             op(CoreOp.exceptionRegionExit(er.enter(), successor(next)));
@@ -340,15 +344,14 @@ public final class BytecodeLift {
                     }
 
                     // Insert relevant tryStart and construct handler blocks, all in reversed order
-                    for (ExceptionCatch ec : exceptionHandlers.reversed()) {
-                        if (lt.label() == ec.tryStart() && ec.tryStart() != ec.tryEnd()) {
-                            Block.Builder handler = blockMap.get(ec.handler());
+                    for (ExcRegion reg : exceptionRegions.reversed()) {
+                        if (lt.label() == reg.startLabel()) {
                             // Create start block
                             next = newBlock();
-                            Op ere = CoreOp.exceptionRegionEnter(successor(next), handler.successor());
+                            Op ere = CoreOp.exceptionRegionEnter(successor(next), insertExceptionRegionExits(reg.handlerLabel()).successor());
                             op(ere);
-                            // Push ExceptionRegion on stack
-                            exceptionRegionStack.push(new ExceptionRegion(ere.result(), ec.tryStart(), ec.tryEnd()));
+                            // Push ExceptionEntry on stack
+                            exceptionRegionStack.push(new ExceptionEntry(ere.result(), reg));
                             moveTo(next);
                         }
                     }

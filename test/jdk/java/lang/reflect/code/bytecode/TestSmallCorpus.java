@@ -92,7 +92,7 @@ public class TestSmallCorpus {
         }
 
         // @@@ There is still several failing cases and a lot of errors
-        Assert.assertTrue(passed > 33750, String.format("""
+        Assert.assertTrue(passed > 33890, String.format("""
 
                     passed: %d
                     not matching: %d
@@ -130,17 +130,17 @@ public class TestSmallCorpus {
                             } else {
                                 passed++;
                             }
-                        } catch (Exception e) {
-                            error("second lower", e);
+                        } catch (Throwable t) {
+                            error("second lower", t);
                         }
-                    } catch (Exception e) {
-                        error("second lift", e);
+                    } catch (Throwable t) {
+                        error("second lift", t);
                     }
-                } catch (Exception e) {
-                    error("first lower", e);
+                } catch (Throwable t) {
+                    error("first lower", t);
                 }
-            } catch (Exception e) {
-                error("first lift", e);
+            } catch (Throwable t) {
+                error("first lift", t);
             }
         }
     }
@@ -247,9 +247,9 @@ public class TestSmallCorpus {
         return i > 2 ? name.substring(0, i) : name;
     }
 
-    private void error(String category, Exception e) {
+    private void error(String category, Throwable t) {
         StringWriter sw = new StringWriter();
-        e.printStackTrace(new PrintWriter(sw));
+        t.printStackTrace(new PrintWriter(sw));
         errorStats.computeIfAbsent(category, _ -> new HashMap<>())
                   .compute(sw.toString(), (_, i) -> i == null ? 1 : i + 1);
     }
