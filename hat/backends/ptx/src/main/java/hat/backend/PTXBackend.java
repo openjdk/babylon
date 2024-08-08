@@ -52,8 +52,8 @@ public class PTXBackend extends C99NativeBackend {
         target = "sm_52";
         addressSize = 64;
         mathFns = new HashMap<>();
-        loadMathFns();
         usedMathFns = new HashSet<>();
+        loadMathFns();
         getBackend(null);
     }
 
@@ -156,8 +156,6 @@ public class PTXBackend extends C99NativeBackend {
 
     public String createFunction(PTXCodeBuilder builder, FuncOpWrapper lowered, boolean entry) {
         FuncOpWrapper ssa = lowered.ssa();
-        // System.out.println("--------------func--------------");
-        // System.out.println(ssa.toText());
         String out, body;
 
         // building fn info (name, params)
@@ -189,8 +187,8 @@ public class PTXBackend extends C99NativeBackend {
                 	.reg .pred 	%p<4>;
                 	.reg .f32 	%f<36>;
                 	.reg .b32 	%r<5>;
-                                
-                                
+                               \s
+                               \s
                 	ld.param.f32 	%f5, [log_param_0];
                 	setp.lt.f32 	%p1, %f5, 0f00800000;
                 	mul.f32 	%f6, %f5, 0f4B000000;
@@ -228,16 +226,16 @@ public class PTXBackend extends C99NativeBackend {
                 	fma.rn.f32 	%f35, %f11, %f32, %f31;
                 	setp.lt.u32 	%p2, %r1, 2139095040;
                 	@%p2 bra 	$L__BB0_2;
-                                
+                               \s
                 	mov.f32 	%f33, 0f7F800000;
                 	fma.rn.f32 	%f35, %f1, %f33, %f33;
-                                
+                               \s
                 $L__BB0_2:
                 	setp.eq.f32 	%p3, %f1, 0f00000000;
                 	selp.f32 	%f34, 0fFF800000, %f35, %p3;
                 	st.param.f32 	[func_retval0+0], %f34;
                 	ret;
-                                
+                               \s
                 }""");
         mathFns.put("log_double", """
                 .func  (.param .b64 func_retval0) log(
@@ -248,8 +246,8 @@ public class PTXBackend extends C99NativeBackend {
                 	.reg .f32 	%f<2>;
                 	.reg .b32 	%r<28>;
                 	.reg .f64 	%fd<59>;
-                                
-                                
+                               \s
+                               \s
                 	ld.param.f64 	%fd56, [log_param_0];
                 	{
                 	.reg .b32 %temp;\s
@@ -262,7 +260,7 @@ public class PTXBackend extends C99NativeBackend {
                 	setp.gt.s32 	%p1, %r24, 1048575;
                 	mov.u32 	%r26, -1023;
                 	@%p1 bra 	$L__BB0_2;
-                                
+                               \s
                 	mul.f64 	%fd56, %fd56, 0d4350000000000000;
                 	{
                 	.reg .b32 %temp;\s
@@ -273,13 +271,13 @@ public class PTXBackend extends C99NativeBackend {
                 	mov.b64 	{%r25, %temp}, %fd56;
                 	}
                 	mov.u32 	%r26, -1077;
-                                
+                               \s
                 $L__BB0_2:
                 	add.s32 	%r13, %r24, -1;
                 	setp.lt.u32 	%p2, %r13, 2146435071;
                 	@%p2 bra 	$L__BB0_4;
                 	bra.uni 	$L__BB0_3;
-                                
+                               \s
                 $L__BB0_4:
                 	shr.u32 	%r15, %r24, 20;
                 	add.s32 	%r27, %r26, %r15;
@@ -288,7 +286,7 @@ public class PTXBackend extends C99NativeBackend {
                 	mov.b64 	%fd57, {%r25, %r17};
                 	setp.lt.s32 	%p4, %r17, 1073127583;
                 	@%p4 bra 	$L__BB0_6;
-                                
+                               \s
                 	{
                 	.reg .b32 %temp;\s
                 	mov.b64 	{%r18, %temp}, %fd57;
@@ -300,7 +298,7 @@ public class PTXBackend extends C99NativeBackend {
                 	add.s32 	%r20, %r19, -1048576;
                 	mov.b64 	%fd57, {%r18, %r20};
                 	add.s32 	%r27, %r27, 1;
-                                
+                               \s
                 $L__BB0_6:
                 	add.f64 	%fd12, %fd57, 0d3FF0000000000000;
                 	mov.f64 	%fd13, 0d3FF0000000000000;
@@ -351,7 +349,7 @@ public class PTXBackend extends C99NativeBackend {
                 	fma.rn.f64 	%fd55, %fd47, %fd54, %fd53;
                 	add.f64 	%fd58, %fd49, %fd55;
                 	bra.uni 	$L__BB0_7;
-                                
+                               \s
                 $L__BB0_3:
                 	mov.f64 	%fd10, 0d7FF0000000000000;
                 	fma.rn.f64 	%fd11, %fd56, %fd10, %fd10;
@@ -362,11 +360,11 @@ public class PTXBackend extends C99NativeBackend {
                 	mov.b32 	%f1, %r14;
                 	setp.eq.f32 	%p3, %f1, 0f00000000;
                 	selp.f64 	%fd58, 0dFFF0000000000000, %fd11, %p3;
-                                
+                               \s
                 $L__BB0_7:
                 	st.param.f64 	[func_retval0+0], %fd58;
                 	ret;
-                                
+                               \s
                 }""");
         mathFns.put("exp_float", """
                 .func  (.param .b32 func_retval0) exp(
@@ -375,8 +373,8 @@ public class PTXBackend extends C99NativeBackend {
                 {
                 	.reg .f32 	%f<18>;
                 	.reg .b32 	%r<3>;
-                                
-                                
+                               \s
+                               \s
                 	ld.param.f32 	%f1, [exp_param_0];
                 	mov.f32 	%f2, 0f3F000000;
                 	mov.f32 	%f3, 0f3BBB989D;
@@ -398,7 +396,7 @@ public class PTXBackend extends C99NativeBackend {
                 	mul.f32 	%f17, %f16, %f15;
                 	st.param.f32 	[func_retval0+0], %f17;
                 	ret;
-                                
+                               \s
                 }""");
         mathFns.put("exp_double", """
                 .func  (.param .b64 func_retval0) exp(
@@ -409,8 +407,8 @@ public class PTXBackend extends C99NativeBackend {
                 	.reg .f32 	%f<3>;
                 	.reg .b32 	%r<16>;
                 	.reg .f64 	%fd<41>;
-                                
-                                
+                               \s
+                               \s
                 	ld.param.f64 	%fd5, [exp_param_0];
                 	mov.f64 	%fd6, 0d4338000000000000;
                 	mov.f64 	%fd7, 0d3FF71547652B82FE;
@@ -466,13 +464,13 @@ public class PTXBackend extends C99NativeBackend {
                 	abs.f32 	%f1, %f2;
                 	setp.lt.f32 	%p1, %f1, 0f4086232B;
                 	@%p1 bra 	$L__BB0_3;
-                                
+                               \s
                 	setp.lt.f64 	%p2, %fd5, 0d0000000000000000;
                 	add.f64 	%fd37, %fd5, 0d7FF0000000000000;
                 	selp.f64 	%fd40, 0d0000000000000000, %fd37, %p2;
                 	setp.geu.f32 	%p3, %f1, 0f40874800;
                 	@%p3 bra 	$L__BB0_3;
-                                
+                               \s
                 	shr.u32 	%r7, %r1, 31;
                 	add.s32 	%r8, %r1, %r7;
                 	shr.s32 	%r9, %r8, 1;
@@ -485,11 +483,11 @@ public class PTXBackend extends C99NativeBackend {
                 	mov.u32 	%r15, 0;
                 	mov.b64 	%fd39, {%r15, %r14};
                 	mul.f64 	%fd40, %fd38, %fd39;
-                                
+                               \s
                 $L__BB0_3:
                 	st.param.f64 	[func_retval0+0], %fd40;
                 	ret;
-                                
+                               \s
                 }""");
     }
 }

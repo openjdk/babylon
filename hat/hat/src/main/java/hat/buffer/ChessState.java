@@ -46,8 +46,14 @@ public interface ChessState extends Buffer {
     boolean bCheck();
     void bCheck(boolean value);
 
+    int score();
+    void score(int value);
+
+    int turn();
+    void turn(int value);
+
     Schema<ChessState> schema = Schema.of(ChessState.class, s->s
-            .array("array", 64).fields("wCanCastle", "bCanCastle", "wCheck", "bCheck"));
+            .array("array", 64).fields("wCanCastle", "bCanCastle", "wCheck", "bCheck", "score", "turn"));
 
     static ChessState create(Accelerator accelerator, int length){
         return schema.allocate(accelerator, length);

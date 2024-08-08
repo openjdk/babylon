@@ -24,7 +24,6 @@
  */
 package hat.backend;
 
-import hat.ifacemapper.Schema;
 import hat.optools.*;
 import hat.text.CodeBuilder;
 import hat.util.StreamCounter;
@@ -190,9 +189,7 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
 
     public void ptxPtr(PTXPtrOp op) {
         PTXRegister source;
-        int offset = 0;
-
-        offset = (int) op.boundSchema.groupLayout().byteOffset(MemoryLayout.PathElement.groupElement(op.fieldName));
+        int offset = (int) op.boundSchema.groupLayout().byteOffset(MemoryLayout.PathElement.groupElement(op.fieldName));
 
         if (op.fieldName.equals("array")) {
             source = new PTXRegister(incrOrdinal(addressType()), addressType());
