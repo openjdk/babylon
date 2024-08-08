@@ -1112,6 +1112,7 @@ public final class BytecodeGenerator {
         List<Block.Parameter> bargs = ref.targetBlock().parameters();
         // First push successor arguments on the stack, then pop and assign
         // so as not to overwrite slots that are reused slots at different argument positions
+        boolean jumpingToCatchBlock = catchingBlocks.get(ref.targetBlock().index());
         for (int i = 0; i < bargs.size(); i++) {
             Block.Parameter barg = bargs.get(i);
             Value value = sargs.get(i);
@@ -1121,7 +1122,9 @@ public final class BytecodeGenerator {
                 } else {
                     load(value);
                 }
-                storeIfUsed(barg);
+                if (!jumpingToCatchBlock) { // Catch block expects the exception parameter on stack
+                    storeIfUsed(barg);
+                }
             }
         }
     }
