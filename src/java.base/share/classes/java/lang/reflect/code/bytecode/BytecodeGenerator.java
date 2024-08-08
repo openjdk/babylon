@@ -765,6 +765,7 @@ public final class BytecodeGenerator {
                             }
                         }
                         MethodRef md = op.invokeDescriptor();
+                        MethodTypeDesc mDesc = MethodRef.toNominalDescriptor(md.type());
                         cob.invoke(
                                 switch (descKind) {
                                     case STATIC, INTERFACE_STATIC   -> Opcode.INVOKESTATIC;
@@ -777,12 +778,16 @@ public final class BytecodeGenerator {
                                 },
                                 ((JavaType) md.refType()).toNominalDescriptor(),
                                 md.name(),
-                                MethodRef.toNominalDescriptor(md.type()),
+                                mDesc,
                                 switch (descKind) {
                                     case INTERFACE_STATIC, INTERFACE_VIRTUAL, INTERFACE_SPECIAL -> true;
                                     default -> false;
                                 });
-
+                        ClassDesc ret = toClassDesc(op.resultType());
+                        if (ret.isClassOrInterface() && !ret.equals(mDesc.returnType())) {
+                            // Explicit cast if method return type differs
+                            cob.checkcast(ret);
+                        }
                         push(op.result());
                     }
                     case FieldAccessOp.FieldLoadOp op -> {
