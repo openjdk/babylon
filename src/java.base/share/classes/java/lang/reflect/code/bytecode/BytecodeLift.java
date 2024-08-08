@@ -176,11 +176,17 @@ public final class BytecodeLift {
             }
         }
 
-
         // Filter and split exception regions
-        var regions = codeAttribute.exceptionHandlers().stream()
+        List<ExceptionRegion> regions = codeAttribute.exceptionHandlers().stream()
                 .filter(ec -> ec.tryStart() != ec.tryEnd() && ec.tryStart() != ec.handler())
                 .map(ec -> new ExceptionRegion(ec.tryStart(), ec.tryEnd(), ec.handler())).distinct().toList();
+
+        // Exception handlers also represent jump targets
+        // @@@ not listed all source bcis
+        for (ExceptionRegion er : regions) {
+            jumpMap.add(er.handlerLabel, codeAttribute.labelToBci(er.startLabel));
+        }
+
         boolean split;
         do {
             split = false;
@@ -300,7 +306,7 @@ public final class BytecodeLift {
 
     private Block.Builder insertExceptionRegionExits(Label targetLabel) {
         Block.Builder targetBlock = blockMap.get(targetLabel);
-        for (ExceptionRegionEntry ee : exceptionRegionStack) {
+        for (ExceptionRegionEntry ee : exceptionRegionStack.reversed()) {
             int targetBci = codeAttribtue.labelToBci(targetLabel);
             if (targetBci < codeAttribtue.labelToBci(ee.region.startLabel) || targetBci >= codeAttribtue.labelToBci(ee.region.endLabel)) {
                 // Branching out of the exception region, need to insert a block with ExceptionRegionExit
