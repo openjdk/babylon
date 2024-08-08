@@ -699,7 +699,7 @@ public final class BytecodeGenerator {
                     }
                     case ArrayAccessOp.ArrayStoreOp op -> {
                         processOperands(op);
-                        cob.arrayStore(toTypeKind(op.operands().get(2).type()));
+                        cob.arrayStore(toTypeKind(((ArrayType)op.operands().getFirst().type()).componentType()));
                         push(op.result());
                     }
                     case ArrayLengthOp op -> {
