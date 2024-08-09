@@ -25,50 +25,101 @@
 package java.lang.reflect.code.bytecode;
 
 import java.lang.classfile.CodeElement;
+import java.lang.classfile.Instruction;
 import java.lang.classfile.Label;
 import java.lang.classfile.Opcode;
-import java.lang.classfile.TypeKind;
 import java.lang.classfile.attribute.StackMapFrameInfo;
-import java.lang.classfile.attribute.StackMapFrameInfo.ObjectVerificationTypeInfo;
+import java.lang.classfile.attribute.StackMapFrameInfo.*;
 import java.lang.classfile.attribute.StackMapTableAttribute;
 import java.lang.classfile.instruction.*;
 import java.lang.constant.ClassDesc;
+import java.lang.constant.ConstantDescs;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
-import java.lang.constant.ConstantDescs;
 import static java.lang.constant.ConstantDescs.*;
-import java.util.IdentityHashMap;
+import java.lang.constant.DirectMethodHandleDesc;
+import java.lang.constant.DynamicConstantDesc;
+import java.lang.constant.MethodTypeDesc;
 
 final class LocalsTypeMapper {
 
-    private final Map<LoadInstruction, ClassDesc> insMap;
+    record Frame(List<ClassDesc> stack, List<ClassDesc> locals) {}
+
+    private final Map<Integer, ClassDesc> insMap;
     private final ClassDesc thisClass;
     private final List<ClassDesc> stack, locals;
-    private final Map<Label, StackMapFrameInfo> stackMap;
+    final Map<Label, Frame> stackMap;
+    private final Map<Label, ClassDesc> newMap;
+    private boolean frameDirty;
 
     LocalsTypeMapper(ClassDesc thisClass,
                          List<ClassDesc> initFrameLocals,
                          Optional<StackMapTableAttribute> stackMapTableAttribute,
                          List<CodeElement> codeElements) {
-        this.insMap = new IdentityHashMap<>();
+        this.insMap = new HashMap<>();
         this.thisClass = thisClass;
         this.stack = new ArrayList<>();
-        this.locals = new ArrayList<>(initFrameLocals);
+        this.locals = new ArrayList<>(initFrameLocals.size());
+        this.newMap = computeNewMap(codeElements);
         this.stackMap = stackMapTableAttribute.map(a -> a.entries().stream().collect(Collectors.toMap(
                 StackMapFrameInfo::target,
-                Function.identity()))).orElse(Map.of());
-        codeElements.forEach(this::accept);
+                this::toFrame))).orElse(Map.of());
+        do {
+            this.locals.addAll(initFrameLocals);
+            this.frameDirty = false;
+            for (int i = 0; i < codeElements.size(); i++) {
+                accept(i, codeElements.get(i));
+            }
+            endOfFlow();
+        } while (this.frameDirty);
     }
 
-    ClassDesc getTypeOf(LoadInstruction li) {
+    private Frame toFrame(StackMapFrameInfo smfi) {
+        List<ClassDesc> fstack = new ArrayList<>(smfi.stack().size());
+        List<ClassDesc> flocals = new ArrayList<>(smfi.locals().size() * 2);
+        for (var vti : smfi.stack()) {
+            fstack.add(vtiToStackType(vti));
+        }
+        for (var vti : smfi.locals()) {
+            flocals.add(vtiToStackType(vti));
+            if (vti == ITEM_DOUBLE || vti == ITEM_LONG) {
+                flocals.add(null);
+            }
+        }
+        return new Frame(fstack, flocals);
+    }
+
+    private static Map<Label, ClassDesc> computeNewMap(List<CodeElement> codeElements) {
+        Map<Label, ClassDesc> newMap = new HashMap<>();
+        Label lastLabel = null;
+        for (int i = 0; i < codeElements.size(); i++) {
+            switch (codeElements.get(i)) {
+                case LabelTarget lt -> lastLabel = lt.label();
+                case NewObjectInstruction newI -> {
+                    if (lastLabel != null) {
+                        newMap.put(lastLabel, newI.className().asSymbol());
+                    }
+                }
+                case Instruction _ -> lastLabel = null; //invalidate label
+                default -> {} //skip
+            }
+        }
+        return newMap;
+    }
+
+    ClassDesc getTypeOf(int li) {
         return insMap.get(li);
+    }
+
+    ClassDesc getUninitTypeOf(Label newLabel) {
+        return newMap.get(newLabel);
     }
 
     private ClassDesc vtiToStackType(StackMapFrameInfo.VerificationTypeInfo vti) {
@@ -78,13 +129,18 @@ final class LocalsTypeMapper {
             case ITEM_DOUBLE -> CD_double;
             case ITEM_LONG -> CD_long;
             case ITEM_UNINITIALIZED_THIS -> thisClass;
+            case ITEM_NULL -> CD_Object;
             case ObjectVerificationTypeInfo ovti -> ovti.classSymbol();
-            default -> null;
+            case UninitializedVerificationTypeInfo uvti ->
+                newMap.computeIfAbsent(uvti.newTarget(), l -> {
+                    throw new IllegalArgumentException("Unitialized type does not point to a new instruction");
+                });
+            case ITEM_TOP -> null;
         };
     }
 
     private void push(ClassDesc type) {
-        if (!ConstantDescs.CD_void.equals(type)) stack.addLast(type);
+        if (!ConstantDescs.CD_void.equals(type)) stack.add(type);
     }
 
     private void pushAt(int pos, ClassDesc... types) {
@@ -128,17 +184,41 @@ final class LocalsTypeMapper {
         return locals.get(slot);
     }
 
-    private void accept(CodeElement el) {
+    private void accept(int elIndex, CodeElement el) {
         switch (el) {
             case ArrayLoadInstruction _ ->
                 pop(1).push(pop().componentType());
             case ArrayStoreInstruction _ ->
                 pop(3);
-            case BranchInstruction i when !i.opcode().isUnconditionalBranch() ->
-                pop(1);
+            case BranchInstruction i -> {
+                switch (i.opcode()) {
+                    case IFEQ, IFGE, IFGT, IFLE, IFLT, IFNE, IFNONNULL, IFNULL -> {
+                        pop();
+                        mergeToTargetFrame(i.target());
+                    }
+                    case IF_ACMPEQ, IF_ACMPNE, IF_ICMPEQ, IF_ICMPGE, IF_ICMPGT, IF_ICMPLE, IF_ICMPLT, IF_ICMPNE -> {
+                        pop(2);
+                        mergeToTargetFrame(i.target());
+                    }
+                    case GOTO, GOTO_W -> {
+                        mergeToTargetFrame(i.target());
+                        endOfFlow();
+                    }
+                }
+            }
             case ConstantInstruction i ->
-                push(ClassDesc.ofDescriptor(i.typeKind() == TypeKind.ReferenceType ?
-                        i.constantValue().getClass().descriptorString() : i.typeKind().descriptor()));
+                push(switch (i.constantValue()) {
+                    case null -> CD_Object;
+                    case ClassDesc _ -> CD_Class;
+                    case Double _ -> CD_double;
+                    case Float _ -> CD_float;
+                    case Integer _ -> CD_int;
+                    case Long _ -> CD_long;
+                    case String _ -> CD_String;
+                    case DynamicConstantDesc<?> cd -> cd.constantType();
+                    case DirectMethodHandleDesc _ -> CD_MethodHandle;
+                    case MethodTypeDesc _ -> CD_MethodType;
+                });
             case ConvertInstruction i ->
                 pop(1).push(ClassDesc.ofDescriptor(i.toType().descriptor()));
             case FieldInstruction i -> {
@@ -160,7 +240,7 @@ final class LocalsTypeMapper {
                         .push(i.typeSymbol().returnType());
             case LoadInstruction i -> {
                 push(load(i.slot()));
-                insMap.put(i, locals.get(i.slot()));
+                insMap.put(elIndex, locals.get(i.slot()));
             }
             case StoreInstruction i ->
                 store(i.slot(), pop());
@@ -213,21 +293,65 @@ final class LocalsTypeMapper {
             case TypeCheckInstruction i ->
                 pop(1).push(i.opcode() == Opcode.CHECKCAST ? i.type().asSymbol() : ConstantDescs.CD_int);
             case LabelTarget lt -> {
-                var smfi = stackMap.get(lt.label());
-                if (smfi != null) {
-                    stack.clear();
-                    for (var vti : smfi.stack()) {
-                        push(vtiToStackType(vti));
+                var frame = stackMap.get(lt.label());
+                if (frame != null) {
+                    if (!stack.isEmpty() || !locals.isEmpty()) {
+                        mergeToTargetFrame(lt.label());
+                        endOfFlow();
                     }
-                    locals.clear();
-                    int slot = 0;
-                    for (var vti : smfi.locals()) {
-                        store(slot, vtiToStackType(vti));
-                        slot += (vti == ITEM_DOUBLE || vti == ITEM_LONG) ? 2 : 1;
-                    }
+                    stack.addAll(frame.stack());
+                    locals.addAll(frame.locals());
                 }
             }
+            case ReturnInstruction _ , ThrowInstruction _ -> {
+                endOfFlow();
+            }
+            case TableSwitchInstruction tsi -> {
+                pop();
+                mergeToTargetFrame(tsi.defaultTarget());
+                for (var c : tsi.cases()) {
+                    mergeToTargetFrame(c.target());
+                }
+                endOfFlow();
+            }
+            case LookupSwitchInstruction lsi -> {
+                pop();
+                mergeToTargetFrame(lsi.defaultTarget());
+                for (var c : lsi.cases()) {
+                    mergeToTargetFrame(c.target());
+                }
+                endOfFlow();
+            }
             default -> {}
+        }
+    }
+
+    private void endOfFlow() {
+        stack.clear();
+        locals.clear();
+    }
+
+    private void mergeToTargetFrame(Label target) {
+        Frame targetFrame = stackMap.get(target);
+        // Merge stack
+        assert stack.size() == targetFrame.stack.size();
+        for (int i = 0; i < targetFrame.stack.size(); i++) {
+            ClassDesc se = stack.get(i);
+            ClassDesc fe = targetFrame.stack.get(i);
+            if (!se.equals(fe) && se.isPrimitive() && CD_int.equals(fe)) {
+                targetFrame.stack.set(i, se);
+                this.frameDirty = true;
+            }
+        }
+        // Merge locals
+        int lSize = Math.min(locals.size(), targetFrame.locals.size());
+        for (int i = 0; i < lSize; i++) {
+            ClassDesc le = locals.get(i);
+            ClassDesc fe = targetFrame.locals.get(i);
+            if (le != null && !le.equals(fe) && le.isPrimitive() && CD_int.equals(fe)) {
+                targetFrame.locals.set(i, le);
+                this.frameDirty = true;
+            }
         }
     }
 }
