@@ -1715,14 +1715,15 @@ public class ReflectMethods extends TreeTranslator {
                 switch (c.caseKind) {
                     case RULE -> {
                         pushBody(c.body, actionType);
-                        // we should add yield when no break
-                        if (c.body instanceof JCTree.JCExpressionStatement es) {
-                            Value bodyVal = toValue(es);
-                            append(CoreOp._yield());
-                        }
-                        else if (c.body instanceof JCTree.JCBlock b) {
+                        if (c.body instanceof JCTree.JCBlock b) {
                             toValue(b);
                             if (!(b.stats.last() instanceof JCTree.JCBreak)) {
+                                append(CoreOp._yield()); // @@@ _break is also an option
+                            }
+                        }
+                        else if (c.body instanceof JCTree.JCStatement s) {
+                            toValue(s);
+                            if (!(s instanceof JCThrow)) {
                                 append(CoreOp._yield());
                             }
                         }
