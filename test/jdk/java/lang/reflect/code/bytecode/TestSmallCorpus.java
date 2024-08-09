@@ -31,7 +31,6 @@ import java.lang.classfile.Opcode;
 import java.lang.classfile.components.ClassPrinter;
 import java.lang.classfile.instruction.*;
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.code.Block;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.reflect.code.bytecode.BytecodeLift;
 import java.lang.reflect.code.op.CoreOp;
@@ -78,7 +77,7 @@ public class TestSmallCorpus {
         passed = 0;
         notMatching = 0;
         errorStats = new LinkedHashMap<>();
-        for (Path p : Files.walk(JRT.getPath("modules/java.base/java"))
+        for (Path p : Files.walk(JRT.getPath("modules/java.base/"))
                 .filter(p -> Files.isRegularFile(p) && p.toString().endsWith(".class"))
                 .toList()) {
             testDoubleRoundtripStability(p);
@@ -93,8 +92,8 @@ public class TestSmallCorpus {
             stats.getValue().entrySet().stream().sorted((e1, e2) -> Integer.compare(e2.getValue(), e1.getValue())).forEach(e -> System.out.println(e.getValue() +"x " + e.getKey() + "\n"));
         }
 
-        // @@@ There is still several failing cases and a lot of errors
-        Assert.assertTrue(passed > 33890, String.format("""
+        // Roundtrip is >90% stable, no exceptions, no verification errors
+        Assert.assertTrue(passed > 59900 && errorStats.isEmpty(), String.format("""
 
                     passed: %d
                     not matching: %d
@@ -115,52 +114,23 @@ public class TestSmallCorpus {
                 CoreOp.FuncOp firstLift = lift(originalModel);
                 try {
                     MethodModel firstModel = lower(firstLift);
-                    boolean vError = false;
-                    for (var e : ClassFile.of().verify(firstModel.parent().get())) {
-                        if (!e.getMessage().contains("Illegal call to internal method")) {
-                            if (!vError) System.out.println("--------------------------------------");
-                            System.out.println(e);
-                            vError = true;
-                        }
-                    }
-                    if (vError) {
-                        System.out.println(path);
-                        ClassPrinter.toYaml(originalModel, ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES, System.out::print);
-                        firstLift.writeTo(System.out);
-                        ClassPrinter.toYaml(firstModel, ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES, System.out::print);
-                        System.out.println("--------------------------------------");
-                        error("first verify", path.toString());
-                    } else try {
+                    verify("first verify", firstModel);
+                    try {
                         CoreOp.FuncOp secondLift = lift(firstModel);
                         try {
                             MethodModel secondModel = lower(secondLift);
-                            for (var e : ClassFile.of().verify(secondModel.parent().get())) {
-                                if (!e.getMessage().contains("Illegal call to internal method")) {
-                                    if (!vError) System.out.println("--------------------------------------");
-                                    System.out.println(e);
-                                    vError = true;
-                                }
-                            }
-                            if (vError) {
-//                                System.out.println(path);
-//                                ClassPrinter.toYaml(firstModel, ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES, System.out::print);
-//                                secondLift.writeTo(System.out);
-//                                ClassPrinter.toYaml(secondModel, ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES, System.out::print);
-//                                System.out.println("--------------------------------------");
-                                error("second verify", path.toString());
+                            verify("second verify", secondModel);
+                            // testing only methods passing through
+                            var firstNormalized = normalize(firstModel);
+                            var secondNormalized = normalize(secondModel);
+                            if (!firstNormalized.equals(secondNormalized)) {
+                                notMatching++;
+//                                System.out.println(clm.thisClass().asInternalName() + "::" + originalModel.methodName().stringValue() + originalModel.methodTypeSymbol().displayDescriptor());
+//                                printInColumns(firstLift, secondLift);
+//                                printInColumns(firstNormalized, secondNormalized);
+//                                System.out.println();
                             } else {
-                                // testing only methods passing through
-                                var firstNormalized = normalize(firstModel);
-                                var secondNormalized = normalize(secondModel);
-                                if (!firstNormalized.equals(secondNormalized)) {
-                                    notMatching++;
-//                                    System.out.println(clm.thisClass().asInternalName() + "::" + originalModel.methodName().stringValue() + originalModel.methodTypeSymbol().displayDescriptor());
-//                                    printInColumns(firstLift, secondLift);
-//                                    printInColumns(firstNormalized, secondNormalized);
-//                                    System.out.println();
-                                } else {
-                                    passed++;
-                                }
+                                passed++;
                             }
                         } catch (Throwable t) {
                             error("second lower", t);
@@ -177,36 +147,30 @@ public class TestSmallCorpus {
         }
     }
 
-//    private static void printBlockGraph(CoreOp.FuncOp func) {
-//        for (Block b : func.body().blocks()) {
-//            System.out.println(b.index() + ": " + switch (b.terminatingOp()) {
-//                case CoreOp.ReturnOp _ -> "return";
-//                case CoreOp.ThrowOp _ -> "throw";
-//                case CoreOp.BranchOp br -> "-> " + br.branch().targetBlock().index();
-//                case CoreOp.ConditionalBranchOp br -> "-> " + br.trueBranch().targetBlock().index() + ", " + br.falseBranch().targetBlock().index();
-//                case CoreOp.ExceptionRegionEnter er -> "try " + er.start().targetBlock().index() + " catch " + er.catchBlocks().stream().map(r -> String.valueOf(r.targetBlock().index())).collect(Collectors.joining(", "));
-//                case CoreOp.ExceptionRegionExit er -> " -> exit " + er.regionStart().parentBlock().index() + " -> " + er.end().targetBlock().index();
-//                default -> b.terminatingOp().opName();
-//            });
-//        }
-//    }
-
-    private static void printInColumns(CoreOp.FuncOp first, CoreOp.FuncOp second) {
-        StringWriter fw = new StringWriter();
-        first.writeTo(fw);
-        StringWriter sw = new StringWriter();
-        second.writeTo(sw);
-        printInColumns(fw.toString().lines().toList(), sw.toString().lines().toList());
-    }
-
-    private static void printInColumns(List<String> first, List<String> second) {
-        System.out.println("-".repeat(COLUMN_WIDTH ) + "--+-" + "-".repeat(COLUMN_WIDTH ));
-        for (int i = 0; i < first.size() || i < second.size(); i++) {
-            String f = i < first.size() ? first.get(i) : "";
-            String s = i < second.size() ? second.get(i) : "";
-            System.out.println(" " + f + (f.length() < COLUMN_WIDTH ? " ".repeat(COLUMN_WIDTH - f.length()) : "") + (f.equals(s) ? " | " : " x ") + s);
+    private void verify(String category, MethodModel model) {
+        for (var e : ClassFile.of().verify(model.parent().get())) {
+            if (!e.getMessage().contains("Illegal call to internal method")) {
+                error(category, e.getMessage());
+            }
         }
     }
+
+//    private static void printInColumns(CoreOp.FuncOp first, CoreOp.FuncOp second) {
+//        StringWriter fw = new StringWriter();
+//        first.writeTo(fw);
+//        StringWriter sw = new StringWriter();
+//        second.writeTo(sw);
+//        printInColumns(fw.toString().lines().toList(), sw.toString().lines().toList());
+//    }
+//
+//    private static void printInColumns(List<String> first, List<String> second) {
+//        System.out.println("-".repeat(COLUMN_WIDTH ) + "--+-" + "-".repeat(COLUMN_WIDTH ));
+//        for (int i = 0; i < first.size() || i < second.size(); i++) {
+//            String f = i < first.size() ? first.get(i) : "";
+//            String s = i < second.size() ? second.get(i) : "";
+//            System.out.println(" " + f + (f.length() < COLUMN_WIDTH ? " ".repeat(COLUMN_WIDTH - f.length()) : "") + (f.equals(s) ? " | " : " x ") + s);
+//        }
+//    }
 
     private static CoreOp.FuncOp lift(MethodModel mm) {
         return BytecodeLift.lift(mm);
