@@ -1756,6 +1756,7 @@ public class ReflectMethods extends TreeTranslator {
             boolean enhancedSw = !List.of(JavaType.BYTE, JavaType.CHAR, JavaType.SHORT, JavaType.INT,
                     JavaType.J_L_BYTE, JavaType.J_L_CHARACTER, JavaType.J_L_SHORT, JavaType.J_L_INTEGER,
                     JavaType.J_L_STRING).contains(typeToTypeElement(tree.selector.type));
+            enhancedSw = enhancedSw && !isEnum(tree.selector.type.tsym);
             enhancedSw = enhancedSw || tree.patternSwitch;
             enhancedSw = enhancedSw || tree.cases.stream().anyMatch(c -> c.labels.stream().anyMatch(l -> {
                 return l instanceof JCTree.JCConstantCaseLabel ccl && ccl.expr instanceof JCLiteral literal && literal.value == null;

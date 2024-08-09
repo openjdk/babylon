@@ -313,4 +313,171 @@ public class SwitchStatementTest {
             default -> System.out.println("An integer");
         };
     }
+
+    @IR("""
+            func @"caseConstantNullLabel" (%0 : java.lang.String)void -> {
+                %1 : Var<java.lang.String> = var %0 @"s";
+                %2 : java.lang.String = var.load %1;
+                java.switch.statement %2
+                    (%3 : java.lang.String)boolean -> {
+                        %4 : java.lang.Object = constant @null;
+                        %5 : boolean = invoke %3 %4 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                        yield %5;
+                    }
+                    ()void -> {
+                        %6 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
+                        %7 : java.lang.String = constant @"null";
+                        invoke %6 %7 @"java.io.PrintStream::println(java.lang.String)void";
+                        yield;
+                    }
+                    ()void -> {
+                        yield;
+                    }
+                    ()void -> {
+                        %8 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
+                        %9 : java.lang.String = constant @"non null";
+                        invoke %8 %9 @"java.io.PrintStream::println(java.lang.String)void";
+                        yield;
+                    };
+                return;
+            };
+            """)
+    @CodeReflection
+    private static void caseConstantNullLabel(String s) {
+        switch (s) {
+            case null -> System.out.println("null");
+            default -> System.out.println("non null");
+        };
+    }
+
+    @IR("""
+            func @"caseConstantFallThrough" (%0 : char)java.lang.String -> {
+                %1 : Var<char> = var %0 @"c";
+                %2 : char = var.load %1;
+                %3 : java.lang.String = java.switch.expression %2
+                    (%4 : char)boolean -> {
+                        %5 : char = constant @"A";
+                        %6 : boolean = eq %4 %5;
+                        yield %6;
+                    }
+                    ()java.lang.String -> {
+                        java.switch.fallthrough;
+                    }
+                    (%7 : char)boolean -> {
+                        %8 : char = constant @"B";
+                        %9 : boolean = eq %7 %8;
+                        yield %9;
+                    }
+                    ()java.lang.String -> {
+                        %10 : java.lang.String = constant @"A or B";
+                        java.yield %10;
+                    }
+                    ()void -> {
+                        yield;
+                    }
+                    ()java.lang.String -> {
+                        %11 : java.lang.String = constant @"Neither A nor B";
+                        java.yield %11;
+                    };
+                return %3;
+            };
+            """)
+    @CodeReflection
+    private static String caseConstantFallThrough(char c) {
+        return switch (c) {
+            case 'A':
+            case 'B':
+                yield "A or B";
+            default:
+                yield "Neither A nor B";
+        };
+    }
+
+    enum Day {
+        MON, TUE, WED, THU, FRI, SAT, SUN
+    }
+    @IR("""
+            func @"caseConstantEnum" (%0 : SwitchStatementTest$Day)void -> {
+                %1 : Var<SwitchStatementTest$Day> = var %0 @"d";
+                %2 : SwitchStatementTest$Day = var.load %1;
+                java.switch.statement %2
+                    (%3 : SwitchStatementTest$Day)boolean -> {
+                        %4 : boolean = java.cor
+                            ()boolean -> {
+                                %5 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::MON()SwitchStatementTest$Day";
+                                %6 : boolean = invoke %3 %5 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                                yield %6;
+                            }
+                            ()boolean -> {
+                                %7 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::FRI()SwitchStatementTest$Day";
+                                %8 : boolean = invoke %3 %7 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                                yield %8;
+                            }
+                            ()boolean -> {
+                                %9 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::SUN()SwitchStatementTest$Day";
+                                %10 : boolean = invoke %3 %9 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                                yield %10;
+                            };
+                        yield %4;
+                    }
+                    ()void -> {
+                        %11 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
+                        %12 : int = constant @"6";
+                        invoke %11 %12 @"java.io.PrintStream::println(int)void";
+                        yield;
+                    }
+                    (%13 : SwitchStatementTest$Day)boolean -> {
+                        %14 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::TUE()SwitchStatementTest$Day";
+                        %15 : boolean = invoke %13 %14 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                        yield %15;
+                    }
+                    ()void -> {
+                        %16 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
+                        %17 : int = constant @"7";
+                        invoke %16 %17 @"java.io.PrintStream::println(int)void";
+                        yield;
+                    }
+                    (%18 : SwitchStatementTest$Day)boolean -> {
+                        %19 : boolean = java.cor
+                            ()boolean -> {
+                                %20 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::THU()SwitchStatementTest$Day";
+                                %21 : boolean = invoke %18 %20 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                                yield %21;
+                            }
+                            ()boolean -> {
+                                %22 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::SAT()SwitchStatementTest$Day";
+                                %23 : boolean = invoke %18 %22 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                                yield %23;
+                            };
+                        yield %19;
+                    }
+                    ()void -> {
+                        %24 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
+                        %25 : int = constant @"8";
+                        invoke %24 %25 @"java.io.PrintStream::println(int)void";
+                        yield;
+                    }
+                    (%26 : SwitchStatementTest$Day)boolean -> {
+                        %27 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::WED()SwitchStatementTest$Day";
+                        %28 : boolean = invoke %26 %27 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                        yield %28;
+                    }
+                    ()void -> {
+                        %29 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
+                        %30 : int = constant @"9";
+                        invoke %29 %30 @"java.io.PrintStream::println(int)void";
+                        yield;
+                    };
+                return;
+            };
+            """)
+    @CodeReflection
+    private static void caseConstantEnum(Day d) {
+        switch (d) {
+            case MON, FRI, SUN -> System.out.println(6);
+            case TUE -> System.out.println(7);
+            case THU, SAT -> System.out.println(8);
+            case WED -> System.out.println(9);
+        }
+    }
 }
