@@ -49,7 +49,13 @@ import java.awt.image.DataBufferByte;
 
 public class Viewer extends JFrame {
 
-    final public class MainPanel extends JComponent {
+
+    private final Object doorBell = new Object();
+    final Controls controls;
+    final MainPanel mainPanel;
+    volatile private boolean started=false;
+
+    static final public class MainPanel extends JComponent {
         final double IN = 1.1;
         final double OUT = 1/IN;
         private final BufferedImage image;
@@ -62,8 +68,7 @@ public class Viewer extends JFrame {
         private double xOffset = 0;
         private double yOffset = 0;
         private Point startPoint;
-        private Life.CellGrid cellGrid;
-        private Life.Control control;
+
 
         class Drag{
             public int xDiff;
@@ -79,13 +84,11 @@ public class Viewer extends JFrame {
         public Dimension getPreferredSize() {
             return new Dimension((int)(image.getWidth()*zoomFactor), (int)(image.getHeight()*zoomFactor));
         }
-        public MainPanel(BufferedImage image, Life.Control control, Life.CellGrid cellGrid) {
+        public MainPanel(BufferedImage image) {
             this.image = image;
             Rectangle bounds = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
             this.initialZoomFactor = Math.min((bounds.width-20)/(float)image.getWidth(),
                     (bounds.height-20)/(float)image.getHeight());
-            this.control = control;
-            this.cellGrid = cellGrid;
             this.rasterData = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
             this.prevZoomFactor =initialZoomFactor;
             this.zoomFactor = initialZoomFactor;
@@ -147,42 +150,40 @@ public class Viewer extends JFrame {
             }
             at.scale(zoomFactor, zoomFactor);
             g2.transform(at);
-            cellGrid.copySliceTo(rasterData, control.to());
             g2.setColor(Color.BLACK);
-            g2.fillRect(0-5000, 0-5000, cellGrid.width()+10000, cellGrid.height()+10000);
-            g2.drawImage(image, 0,0, cellGrid.width(), cellGrid.height(), 0, 0, cellGrid.width(), cellGrid.height(), this);
+            g2.fillRect(0-5000, 0-5000, image.getWidth()+10000, image.getHeight()+10000);
+            g2.drawImage(image, 0,0, image.getWidth(), image.getHeight(), 0, 0, image.getWidth(), image.getHeight(), this);
+        }
+    }
+    public static class Controls{
+        JTextField generation;
+        JTextField generationsPerSecond;
+
+        JButton start;
+        JMenuBar menuBar;
+        Controls(){
+            menuBar = new JMenuBar();
+            ((JButton) menuBar.add(new JButton("Exit"))).addActionListener(_ -> System.exit(0));
+            this.start = (JButton) menuBar.add(new JButton("Start"));
+            menuBar.add(Box.createHorizontalStrut(40));
+            generation = create ("Gen");
+            generationsPerSecond = create ("Gen/Sec");
+        }
+        JTextField create (String name){
+            menuBar.add(new JLabel(name));
+            JTextField textField = (JTextField) menuBar.add(new JTextField("",5));
+            textField.setEditable(false);
+            return textField;
         }
     }
 
-
-    private final Object doorBell = new Object();
-    private final MainPanel mainPanel;
-    private final JTextField generation;
-    private final JTextField generationsPerSecond;
-    volatile private boolean started=false;
-
-    void setGeneration(int generation, float generationsPerSecond){
-        this.generation.setText(String.format("%8d",generation));
-        this.generationsPerSecond.setText(String.format("%5.2f",generationsPerSecond));
-        mainPanel.repaint();
-    }
-
-    Viewer(String title, Life.Control control, Life.CellGrid cellGrid) {
+    Viewer(String title, Main.Control control,Main.CellGrid cellGrid) {
         super(title);
-        this.mainPanel = new MainPanel(new BufferedImage(cellGrid.width(), cellGrid.height(), BufferedImage.TYPE_BYTE_GRAY),control,cellGrid);
-        var menuBar = new JMenuBar();
-        this.setJMenuBar(menuBar);
-        ((JButton) menuBar.add(new JButton("Exit"))).addActionListener(_ -> System.exit(0));
-        ((JButton) menuBar.add(new JButton("Start"))).addActionListener(_ -> {started=true;synchronized (doorBell) {doorBell.notify();}});
-        menuBar.add(Box.createHorizontalStrut(400));
-        menuBar.add(new JLabel("Gen"));
-        (this.generation = (JTextField) menuBar.add(new JTextField("",8))).setEditable(false);
-        menuBar.add(new JLabel("Gen/Sec"));
-        (this.generationsPerSecond = (JTextField) menuBar.add(new JTextField("",6))).setEditable(false);
-        this.setGeneration(0,0);
-
+        this.mainPanel = new MainPanel(new BufferedImage(cellGrid.width(), cellGrid.height(), BufferedImage.TYPE_BYTE_GRAY));
+        this.controls = new Controls();
+        setJMenuBar(controls.menuBar);
+        controls.start.addActionListener(_ -> {started=true;synchronized (doorBell) {doorBell.notify();}});
         this.getContentPane().add(this.mainPanel);
-
         this.setLocationRelativeTo(null);
         this.pack();
         this.setVisible(true);
@@ -200,8 +201,26 @@ public class Viewer extends JFrame {
             }
         }
     }
+     long start=0L;
+    int generationCounter=0;
+    public boolean isVisible(){
+        return true;
+    }
+    public boolean isReadyForUpdate(){
+        if (start==0L) {
+            start = System.currentTimeMillis();
+        }else {
+            this.controls.generation.setText(String.format("%8d", ++generationCounter));
+            this.controls.generationsPerSecond.setText(
+                    String.format("%5.2f", (generationCounter * 1000f) / (System.currentTimeMillis() - start))
+            );
+            mainPanel.repaint();
+        }
+        return true;
+    }
 
-    public void update() {
+    public void update(Main.CellGrid cellGrid, int to) {
+        cellGrid.copySliceTo(mainPanel.rasterData, to);
         mainPanel.repaint();
     }
 }

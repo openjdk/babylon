@@ -30,11 +30,10 @@ import hat.ComputeContext;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
-import hat.buffer.S32Array;
 
 import java.lang.runtime.CodeReflection;
 
-public class BlackScholes {
+public class Main {
 
     @CodeReflection
     public static void blackScholesKernel(KernelContext kc, F32Array f32Array, F32Array sArray, F32Array xArray, F32Array tArray, float r, float v) {
@@ -114,7 +113,7 @@ public class BlackScholes {
         float v = 0.30f;
 
         accelerator.compute(
-                cc -> BlackScholes.blackScholes(cc, arr, S, X, T, r, v)  //QuotableComputeContextConsumer
+                cc -> Main.blackScholes(cc, arr, S, X, T, r, v)  //QuotableComputeContextConsumer
         );                                     //   extends Quotable, Consumer<ComputeContext>
         for (int i = 0; i < arr.length(); i++) {
             System.out.println("S=" + S.array(i) + "\t X=" + X.array(i) + "\t T=" + T.array(i) + "\t call option price = " + arr.array(i));

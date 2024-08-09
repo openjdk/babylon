@@ -24,31 +24,37 @@
  */
 package heal;
 
-import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.Polygon;
+import hat.Accelerator;
+import hat.backend.Backend;
+import hat.buffer.S32Array2D;
+
+import javax.imageio.ImageIO;
+import javax.swing.Box;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenuBar;
+import javax.swing.JTextField;
+import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferInt;
-import java.util.Arrays;
+import java.io.IOException;
+import java.lang.invoke.MethodHandles;
 
-class Mask {
-    public final int[] data;
-    public final int width;
-    public final int height;
+public class Main {
 
-    public Mask(Path path) {
-        width = path.width()+2;
-        height = path.height()+2;
-        Polygon polygon = new Polygon();
-        for (int i = 0; i < path.xyList.length(); i++) {
-            XYList.XY xy = path.xyList.xy(i);
-            polygon.addPoint(xy.x() - path.x1() + 1, xy.y() - path.y1() + 1);
+    public static void main(String[] args) throws IOException {
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+
+        var image= ImageIO.read(Main.class.getResourceAsStream(
+                "/images/raw.jpg"
+              //  "/images/bolton.png"
+        ));
+        if (image.getType() != BufferedImage.TYPE_INT_RGB){//Better way?
+            var rgbimage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
+            rgbimage.getGraphics().drawImage(image, 0, 0, null);
+            image=rgbimage;
         }
-        BufferedImage maskImg = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-        data = ((DataBufferInt) (maskImg.getRaster().getDataBuffer())).getData();
-        Arrays.fill(data, 0);
-        Graphics2D g = maskImg.createGraphics();
-        g.setColor(Color.WHITE);
-        g.fillPolygon(polygon);
+        new Viewer(accelerator, image);
     }
+
 }

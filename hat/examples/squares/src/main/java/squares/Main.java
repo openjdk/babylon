@@ -28,12 +28,11 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
 import hat.backend.Backend;
-import hat.backend.JavaMultiThreadedBackend;
 import hat.buffer.S32Array;
 
 import java.lang.runtime.CodeReflection;
 
-public class Squares {
+public class Main {
     @CodeReflection
     public static int squareit(int v) {
         return  v * v;
@@ -63,7 +62,7 @@ public class Squares {
             arr.array(i, i);
         }
         accelerator.compute(
-                cc -> Squares.square(cc, arr)  //QuotableComputeContextConsumer
+                cc -> Main.square(cc, arr)  //QuotableComputeContextConsumer
         );                                     //   extends Quotable, Consumer<ComputeContext>
         for (int i = 0; i < arr.length(); i++) {
             System.out.println(i + " " + arr.array(i));

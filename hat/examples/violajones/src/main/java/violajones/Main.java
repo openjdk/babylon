@@ -41,7 +41,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 
-public class ViolaJonesCompute {
+public class Main {
 
     public static void main(String[] args) throws IOException, ParserConfigurationException, SAXException {
         boolean headless = Boolean.getBoolean("headless") ||( args.length>0 && args[0].equals("--headless"));

@@ -43,55 +43,92 @@
  */
 package heal;
 
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.Point;
+import java.awt.Polygon;
 import java.awt.Rectangle;
+import java.awt.geom.Point2D;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferInt;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
-public class Path  {
+public class Selection {
+    public static class Mask {
+        public final Selection selection;
+        public final int[] maskRGBData;
+        public final int width;
+        public final int height;
+        public final Polygon polygon;
+        private Mask(Selection selection) {
+            this.selection = selection;
+            width = selection.width()+2;
+            height = selection.height()+2;
 
-    final XYList xyList;
-    private Rectangle bounds = new Rectangle(Integer.MAX_VALUE,Integer.MAX_VALUE,Integer.MIN_VALUE,Integer.MIN_VALUE);
-    Path(XYList xyList){
-        this.xyList =xyList;
-    }
+            this.polygon = new Polygon();
+            selection.pointList.forEach(p->
+                    polygon.addPoint(p.x- selection.x1() + 1,p.y- selection.y1() + 1)
+            );
 
-    public void add(int x, int y){
-        if (xyList.length()>0) {
-            XYList.XY lastxy = xyList.xy(xyList.length() - 1);
-            add(lastxy.x(), lastxy.y(), x, y);
-        }else{
-            ( (XYListImpl)xyList).add(x, y);
-            bounds.add(x,y);
+            BufferedImage maskImg = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+            maskRGBData = ((DataBufferInt) (maskImg.getRaster().getDataBuffer())).getData();
+            Arrays.fill(maskRGBData, 0);
+            Graphics2D g = maskImg.createGraphics();
+            g.setColor(Color.WHITE);
+            g.fillPolygon(polygon);
         }
     }
-    public Path close(){
-        var first = xyList.xy(0);
-        add(first.x(), first.y());
+
+    private Rectangle bounds = new Rectangle(Integer.MAX_VALUE,Integer.MAX_VALUE,Integer.MIN_VALUE,Integer.MIN_VALUE);
+    final List<Point> pointList = new ArrayList<>();
+    final Point first;
+    Point prevPoint = null;
+
+    Selection(Point2D point){
+        this.first = new Point((int)point.getX(),(int)point.getY());
+        this.prevPoint=first;
+        this.bounds.add(first);
+    }
+    public void add(Point2D point){
+        var newPoint = new Point((int)point.getX(),(int)point.getY());
+        add(prevPoint, newPoint);
+        bounds.add(newPoint);
+        prevPoint = newPoint;
+    }
+    public Selection close(){
+        add(first);
         return this;
     }
 
-    int x1(){
-        return bounds.x;
-    }
-    int y1(){
-        return bounds.y;
-    }
-    int width(){
-        return bounds.width;
-    }
-    int height(){
-        return bounds.height;
-    }
-    int x2(){
-        return x1()+width();
-    }
-    int y2(){
-        return y1()+height();
+    public Mask getMask(){
+        return new Mask(this);
     }
 
-    private void add(int x1, int y1, int x2, int y2) {
-        int x = x1;
-        int y = y1;
-        int w = x2 - x;
-        int h = y2 - y;
+    public int x1(){
+        return bounds.x;
+    }
+    public int y1(){
+        return bounds.y;
+    }
+    public int width(){
+        return bounds.width;
+    }
+    public int height(){
+        return bounds.height;
+    }
+    public int x2(){
+        return x1()+width();
+    }
+    public int y2(){
+        return y1()+height();
+    }
+    private void add(Point2D from, Point2D to) {
+        int x = (int)from.getX();
+        int y = (int)from.getY();
+        int w = (int)(to.getX() - from.getX());
+        int h = (int)(to.getY() - from.getY());
         int dx1 = Integer.compare(w, 0);
         int dy1 = Integer.compare(h, 0);
         int dx2 = dx1;
@@ -106,9 +143,9 @@ public class Path  {
         }
         int numerator = longest >> 1;
         for (int i = 0; i <= longest; i++) {
-
-            ( (XYListImpl)xyList).add(x, y);
-            bounds.add(x,y);
+            Point point  = new Point(x, y);
+            pointList.add(point);
+            bounds.add(point);
             numerator += shortest;
             if (numerator >= longest) {
                 numerator -= longest;

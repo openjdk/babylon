@@ -26,23 +26,30 @@ package heal;
 
 import hat.Accelerator;
 import hat.buffer.Buffer;
-import hat.buffer.BufferAllocator;
 import hat.ifacemapper.Schema;
 
-import java.lang.invoke.MethodHandles;
-
-public interface XY extends Buffer {
-    int x();
-    void x(int x);
-    int y();
-    void y(int y);
-
-    Schema<XY> schema = Schema.of(XY.class, s -> s.fields("x", "y"));
-
-    static XY create(Accelerator accelerator, int x,int y) {
-        XY xy = schema.allocate(accelerator);
-        xy.x(x);
-        xy.y(y);
-        return xy;
+public interface XYRGBList extends Buffer {
+    interface XYRGB extends Buffer.Struct{
+        int x();
+        int y();
+        void y(int y);
+        void x(int x);
+        int r();
+        int g();
+        int b();
+        void r(int r);
+        void g(int g);
+        void b(int b);
+    }
+    int length();
+    XYRGB xyrgb(long idx);
+    Schema<XYRGBList> schema= Schema.of(XYRGBList.class, s->s
+            .arrayLen("length")
+            .array("xyrgb", xy->xy
+                    .fields("x","y","r","g","b")
+            )
+    );
+    static XYRGBList create(Accelerator accelerator, Selection selection) {
+        return  schema.allocate(accelerator,selection.pointList.size());
     }
 }

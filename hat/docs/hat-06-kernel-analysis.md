@@ -492,7 +492,7 @@ func @"compute" (%0 : hat.ComputeContext, %1 : hat.buffer.S32Array2D, %2 : float
     %8 : Var<float> = var %3 @"y";
     %9 : Var<float> = var %4 @"scale";
     %10 : float = var.load %9;
-    %11 : float = invoke %10 @"mandel.MandelCompute::scaleUp(float)float";
+    %11 : float = invoke %10 @"mandel.Main::scaleUp(float)float";
     var.store %9 %11;
     %12 : hat.ComputeContext = var.load %5;
     %13 : hat.Accelerator = field.load %12 @"hat.ComputeContext::accelerator()hat.Accelerator";
@@ -522,7 +522,7 @@ func @"compute" (%0 : hat.ComputeContext, %1 : hat.buffer.S32Array2D, %2 : float
     %8 : Var<float> = var %3 @"y";
     %9 : Var<float> = var %4 @"scale";
     %10 : float = var.load %9;
-    %11 : float = invoke %10 @"mandel.MandelCompute::scaleUp(float)float";
+    %11 : float = invoke %10 @"mandel.Main::scaleUp(float)float";
     var.store %9 %11;
     %12 : hat.ComputeContext = var.load %5;
     %13 : hat.Accelerator = field.load %12 @"hat.ComputeContext::accelerator()hat.Accelerator";

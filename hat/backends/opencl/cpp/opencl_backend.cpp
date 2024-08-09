@@ -131,11 +131,18 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
         Arg_s *arg = argSled.arg(i);
         switch (arg->variant) {
             case '&': {
+               auto openclBuffer = new OpenCLBuffer(this, arg);
                 if (arg->idx == 0){
                     ndrange = static_cast<NDRange *>(arg->value.buffer.memorySegment);
-
+                }else{
+                     if (INFO){
+                        if (arg->value.buffer.state == 1) { //Java described this as dirty
+                            std::cout << "JAVA_DIRTY !"<<std::endl;
+                         }else{
+                            std::cout << "NOT JAVA_DIRTY"<<std::endl;
+                          }
+                     }
                 }
-                auto openclBuffer = new OpenCLBuffer(this, arg);
                 openclBuffer->copyToDevice();
                 cl_int status = clSetKernelArg(kernel, arg->idx, sizeof(cl_mem), &openclBuffer->clMem);
                 if (status != CL_SUCCESS) {

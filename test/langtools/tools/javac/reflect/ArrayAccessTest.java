@@ -336,4 +336,19 @@ public class ArrayAccessTest {
         return ia.length + ia.hashCode();
     }
 
+    @CodeReflection
+    @IR("""
+            func @"test17" (%0 : java.lang.Object[])java.lang.Object -> {
+                %1 : Var<java.lang.Object[]> = var %0 @"a";
+                %2 : java.lang.Object[] = var.load %1;
+                %3 : char = constant @"c";
+                %4 : int = conv %3;
+                %5 : java.lang.Object = array.load %2 %4;
+                return %5;
+            };
+            """)
+    static Object test17(Object[] a) {
+        return a['c'];
+    }
+
 }

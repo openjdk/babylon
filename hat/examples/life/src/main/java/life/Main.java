@@ -41,7 +41,7 @@ import java.lang.runtime.CodeReflection;
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-public class Life {
+public class Main {
 
     public interface CellGrid extends Buffer {
         int width();
@@ -57,7 +57,7 @@ public class Life {
         );
 
         static CellGrid create(Accelerator accelerator, int width, int height) {
-            return schema.allocate(accelerator, width,height);
+            return schema.allocate(accelerator, width, height);
         }
 
         ValueLayout valueLayout = JAVA_BYTE;
@@ -65,7 +65,7 @@ public class Life {
 
         default CellGrid copySliceTo(byte[] bytes, int to) {
             long offset = headerOffset + to * valueLayout.byteOffset();
-            MemorySegment.copy(Buffer.getMemorySegment(this), valueLayout, offset, bytes, 0, width()*height());
+            MemorySegment.copy(Buffer.getMemorySegment(this), valueLayout, offset, bytes, 0, width() * height());
             return this;
         }
     }
@@ -83,7 +83,7 @@ public class Life {
 
         static Control create(Accelerator accelerator, CellGrid cellGrid) {
             var instance = schema.allocate(accelerator);
-            instance.to(cellGrid.width()*cellGrid.height());
+            instance.to(cellGrid.width() * cellGrid.height());
             instance.from(0);
             return instance;
         }
@@ -95,33 +95,49 @@ public class Life {
 
     public static class Compute {
         @CodeReflection
+        public static int val(CellGrid grid, int from, int w, int x, int y) {
+            return grid.cell( ((long) y * w)  + x +from)&1;
+        }
+
+        @CodeReflection
         public static void life(KernelContext kc, Control control, CellGrid cellGrid) {
             if (kc.x < kc.maxX) {
                 int w = cellGrid.width();
                 int h = cellGrid.height();
                 int from = control.from();
+                int to = control.to();
                 int x = kc.x % w;
                 int y = kc.x / w;
                 byte cell = cellGrid.cell(kc.x + from);
-                if (x > 0 && x < (w - 1) && y > 0 && y < (h - 1)) { // passports please
-                    int count = 0;
-                    for (int dx = -1; dx <= 1; dx++) {
-                        for (int dy = -1; dy <= 1; dy++) {
-                            if (!(dx == 0 && dy == 0)) {
-                                int offset = from + y * w + dy * w + x + dx;
-                                count += cellGrid.cell(offset) & 1;
-                            }
-                        }
-                    }
-                    cell = ((count == 3) || ((count == 2) && (cell == ALIVE))) ? ALIVE : DEAD;// B3/S23.
+                if (x>0 && x<(w-1) && y>0 && y<(h-1)) { // passports please
+                    int count =
+                            val(cellGrid,from,w,x-1,y-1)
+                            +val(cellGrid,from,w,x-1,y+0)
+                            +val(cellGrid,from,w,x-1,y+1)
+                            +val(cellGrid,from,w,x+0,y-1)
+                            +val(cellGrid,from,w,x+0,y+1)
+                            +val(cellGrid,from,w,x+1,y+0)
+                            +val(cellGrid,from,w,x+1,y-1)
+                            +val(cellGrid,from,w,x+1,y+1);
+                    cell =  ((count == 3) || ((count == 2) && (cell == ALIVE))) ? ALIVE : DEAD;// B3/S23.
                 }
-                cellGrid.cell(kc.x + control.to(), cell);
+                cellGrid.cell(kc.x + to, cell);
             }
         }
 
+
         @CodeReflection
-        static public void compute(final ComputeContext computeContext, Control control, CellGrid cellGrid) {
-            computeContext.dispatchKernel(cellGrid.width()*cellGrid.height(), kc -> Compute.life(kc, control, cellGrid));
+        static public void compute(final ComputeContext cc, Viewer viewer, Control ctrl, CellGrid grid) {
+            while (viewer.isVisible()) {
+                cc.dispatchKernel(
+                        grid.width() * grid.height(),
+                        kc -> Compute.life(kc, ctrl, grid)
+                );
+                int to = ctrl.from(); ctrl.from(ctrl.to()); ctrl.to(to); //swap from/to
+                if (viewer.isReadyForUpdate()) {
+                    viewer.update(grid, to);
+                }
+            }
         }
     }
 
@@ -129,14 +145,15 @@ public class Life {
     public static void main(String[] args) {
         boolean headless = Boolean.getBoolean("headless") || (args.length > 0 && args[0].equals("--headless"));
 
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup(), /*Backend.JAVA_MULTITHREADED);//*/Backend.FIRST);
 
         PatternData patternData = RleParser.readPatternData(
-                Life.class.getClassLoader().getResourceAsStream("orig.rle")
+                Main.class.getClassLoader().getResourceAsStream("orig.rle")
         );
         CellGrid cellGrid = CellGrid.create(accelerator,
-                (((patternData.getMetaData().getWidth() + 2) / 16) + 1) * 16,
-                (((patternData.getMetaData().getHeight() + 2) / 16) + 1) * 16
+                  patternData.getMetaData().getWidth() + 2,
+                patternData.getMetaData().getHeight() + 2
+
         );
         patternData.getLiveCells().getCoordinates().stream().forEach(c ->
                 cellGrid.cell((1 + c.getX()) + (1 + c.getY()) * cellGrid.width(), ALIVE)
@@ -144,19 +161,9 @@ public class Life {
 
         Control control = Control.create(accelerator, cellGrid);
         final Viewer viewer = new Viewer("Life", control, cellGrid);
-        viewer.update();
+        viewer.update(cellGrid, 0);
         viewer.waitForStart();
+        accelerator.compute(cc -> Compute.compute(cc, viewer, control, cellGrid));
 
-        final long startMillis = System.currentTimeMillis();
-
-        for (int generation = 0; generation < Integer.MAX_VALUE; generation++) {
-            accelerator.compute(cc -> Compute.compute(cc, control, cellGrid));
-            //swap from/to
-            int tmp = control.from();
-            control.from(control.to());
-            control.to(tmp);
-            long elapsedMs = System.currentTimeMillis() - startMillis;
-            viewer.setGeneration(generation, ((generation * 1000f) / elapsedMs));
-        }
     }
 }

@@ -24,10 +24,12 @@
  */
 package hat.optools;
 
+import hat.ComputeContext;
 import hat.buffer.Buffer;
 import hat.buffer.KernelContext;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.code.Block;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.type.JavaType;
@@ -37,6 +39,8 @@ import java.util.stream.Stream;
 
 // Is this really a root?
 public class InvokeOpWrapper extends OpWrapper<CoreOp.InvokeOp> {
+
+
     public InvokeOpWrapper(CoreOp.InvokeOp op) {
         super(op);
     }
@@ -50,13 +54,28 @@ public class InvokeOpWrapper extends OpWrapper<CoreOp.InvokeOp> {
     }
 
     public boolean isIfaceBufferMethod() {
-        return FuncOpWrapper.ParamTable.Info.isIfaceBuffer(javaRefType());
-
+        return isIface(javaRefType());
     }
+
+
+    public boolean isRawKernelCall() {
+        boolean isRawKernelCall = (operandCount() > 1 && operandNAsValue(0) instanceof Value value
+                && value.type() instanceof JavaType javaType
+                && (isAssignable(javaType, hat.KernelContext.class) || isAssignable(javaType, hat.buffer.KernelContext.class))
+        );
+        return isRawKernelCall;
+    }
+
     public boolean isKernelContextMethod() {
-        return FuncOpWrapper.ParamTable.Info.isKernelContext(javaRefType());
+        return isAssignable(javaRefType(), KernelContext.class);
 
     }
+
+    public boolean isComputeContextMethod() {
+        return isAssignable(javaRefType(), ComputeContext.class);
+
+    }
+
     private boolean isReturnTypeAssignableFrom(Class<?> clazz) {
         Optional<Class<?>> optionalClazz = javaReturnClass();
         return optionalClazz.isPresent() && clazz.isAssignableFrom(optionalClazz.get());
@@ -82,17 +101,17 @@ public class InvokeOpWrapper extends OpWrapper<CoreOp.InvokeOp> {
         Optional<Method> nonDeclaredMethod = Stream.of(declaringClass.getMethods())
                 .filter(method -> method.getName().equals(methodRef().name()))
                 .findFirst();
-        if (nonDeclaredMethod.isPresent()){
+        if (nonDeclaredMethod.isPresent()) {
             return nonDeclaredMethod.get();
-        }else {
+        } else {
             throw new IllegalStateException("what were we looking for ?"); // getClass causes this
-            //return nonDeclaredMethod.get();
         }
     }
 
     public Value getReceiver() {
-        return hasReceiver()?operandNAsValue(0):null;
+        return hasReceiver() ? operandNAsValue(0) : null;
     }
+
     public boolean hasReceiver() {
         return op().hasReceiver();
     }
@@ -107,9 +126,6 @@ public class InvokeOpWrapper extends OpWrapper<CoreOp.InvokeOp> {
         }
     }
 
-    public boolean isKernelContextAccessor() {
-        return isKernelContextMethod();
-    }
 
     public boolean isIfaceMutator() {
         return isIfaceBufferMethod() && returnsVoid();
