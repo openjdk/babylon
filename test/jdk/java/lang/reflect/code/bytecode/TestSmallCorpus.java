@@ -68,14 +68,14 @@ public class TestSmallCorpus {
         }
     }
 
-    private int passed, notMatching;
+    private int stable, unstable;
     private Map<String, Map<String, Integer>> errorStats;
 
     @Ignore
     @Test
     public void testDoubleRoundtripStability() throws Exception {
-        passed = 0;
-        notMatching = 0;
+        stable = 0;
+        unstable = 0;
         errorStats = new LinkedHashMap<>();
         for (Path p : Files.walk(JRT.getPath("modules/java.base/"))
                 .filter(p -> Files.isRegularFile(p) && p.toString().endsWith(".class"))
@@ -93,14 +93,14 @@ public class TestSmallCorpus {
         }
 
         // Roundtrip is >90% stable, no exceptions, no verification errors
-        Assert.assertTrue(passed > 59900 && errorStats.isEmpty(), String.format("""
+        Assert.assertTrue(stable > 59900 && unstable < 5500 && errorStats.isEmpty(), String.format("""
 
-                    passed: %d
-                    not matching: %d
+                    stable: %d
+                    unstable: %d
                     %s
                 """,
-                passed,
-                notMatching,
+                stable,
+                unstable,
                 errorStats.entrySet().stream().map(e -> e.getKey() +
                         " errors: "
                         + e.getValue().values().stream().mapToInt(Integer::intValue).sum()).collect(Collectors.joining("\n    "))
@@ -124,13 +124,13 @@ public class TestSmallCorpus {
                             var firstNormalized = normalize(firstModel);
                             var secondNormalized = normalize(secondModel);
                             if (!firstNormalized.equals(secondNormalized)) {
-                                notMatching++;
+                                unstable++;
 //                                System.out.println(clm.thisClass().asInternalName() + "::" + originalModel.methodName().stringValue() + originalModel.methodTypeSymbol().displayDescriptor());
 //                                printInColumns(firstLift, secondLift);
 //                                printInColumns(firstNormalized, secondNormalized);
 //                                System.out.println();
                             } else {
-                                passed++;
+                                stable++;
                             }
                         } catch (Throwable t) {
                             error("second lower", t);
