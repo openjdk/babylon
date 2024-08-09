@@ -24,11 +24,11 @@
  */
 package hat.backend;
 
-import hat.ifacemapper.Schema;
 import hat.optools.*;
 import hat.text.CodeBuilder;
 import hat.util.StreamCounter;
 
+import java.lang.foreign.MemoryLayout;
 import java.lang.reflect.code.Block;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.TypeElement;
@@ -42,8 +42,8 @@ import java.util.stream.Stream;
 public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
 
     Map<Value, PTXRegister> varToRegMap;
-    List<String> params;
-    Map<String, Block.Parameter> paramMap;
+    List<String> paramNames;
+    List<Block.Parameter> paramObjects;
     Map<Field, PTXRegister> fieldToRegMap;
 
     HashMap<PTXRegister.Type, Integer> ordinalMap;
@@ -74,9 +74,9 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
 
     public PTXCodeBuilder(int addressSize) {
         varToRegMap = new HashMap<>();
-        params = new ArrayList<>();
+        paramNames = new ArrayList<>();
         fieldToRegMap = new HashMap<>();
-        paramMap = new HashMap<>();
+        paramObjects = new ArrayList<>();
         ordinalMap = new HashMap<>();
         this.addressSize = addressSize;
     }
@@ -111,7 +111,7 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
         paren(_ -> nl().commaNlSeparated(infoList, (info) -> {
             ptxIndent().dot().param().space().paramType(info.javaType);
             space().regName(info.varOp.varName());
-            params.add(info.varOp.varName());
+            paramNames.add(info.varOp.varName());
         }).nl()).nl();
         return this;
     }
@@ -121,8 +121,8 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
             for (Block.Parameter p : block.parameters()) {
                 ptxIndent().ld().dot().param();
                 resultType(p.type(), false).ptxIndent().space();
-                reg(p, getResultType(p.type())).commaSpace().osbrace().regName(params.get(p.index())).csbrace().semicolon().nl();
-                paramMap.putIfAbsent(params.get(p.index()), p);
+                reg(p, getResultType(p.type())).commaSpace().osbrace().regName(paramNames.get(p.index())).csbrace().semicolon().nl();
+                paramObjects.add(p);
             }
         }
         nl();
@@ -130,8 +130,7 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
         colon().nl();
         ops.forEach(op -> {
             if (op instanceof InvokeOpWrapper invoke && !invoke.isIfaceBufferMethod()) {
-                ptxIndent().obrace().nl().ptxIndent().convert(op).ptxNl();
-                cbrace().nl();
+                ptxIndent().convert(op).nl();
             } else {
                 ptxIndent().convert(op).semicolon().nl();
             }
@@ -190,26 +189,7 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
 
     public void ptxPtr(PTXPtrOp op) {
         PTXRegister source;
-        int offset = 0;
-
-        // TODO: account for nested schema
-        // calculate offset
-        for (Schema.FieldNode fieldNode : op.schema.rootIfaceType.fields) {
-            if (fieldNode.name.equals(op.fieldName)) {
-                break;
-            }
-            switch (fieldNode) {
-                case Schema.SchemaNode.Padding f -> {
-                    StringBuilder padding = new StringBuilder();
-                    Consumer<String> consumer = a -> padding.append(a.replaceAll("[^0-9]", ""));
-                    f.toText("", consumer);
-                    offset += Integer.parseInt(padding.toString());
-                }
-                case Schema.FieldNode.PrimitiveFixedArray f -> offset += f.len * 4;
-                case Schema.FieldNode.IfaceFixedArray f -> offset += f.len * 4;
-                default -> offset += 4;
-            }
-        }
+        int offset = (int) op.boundSchema.groupLayout().byteOffset(MemoryLayout.PathElement.groupElement(op.fieldName));
 
         if (op.fieldName.equals("array")) {
             source = new PTXRegister(incrOrdinal(addressType()), addressType());
@@ -219,9 +199,9 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
         }
 
         if (op.resultType.toString().equals("void")) {
-            st().global().u32().space().address(source.name(), offset).commaSpace().reg(op.operands().get(2));
+            st().global().dot().regType(op.operands().getLast()).space().address(source.name(), offset).commaSpace().reg(op.operands().getLast());
         } else {
-            ld().global().u32().space().reg(op.result(), PTXRegister.Type.U32).commaSpace().address(source.name(), offset);
+            ld().global().resultType(op.resultType(), true).space().reg(op.result(), getResultType(op.resultType())).commaSpace().address(source.name(), offset);
         }
     }
 
@@ -245,7 +225,7 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
 
     public void loadKcX(Value value) {
         cvta().to().global().size().space().fieldReg(Field.KC_ADDR).commaSpace()
-                .reg(paramMap.get("kc"), addressType()).ptxNl();
+                .reg(paramObjects.get(paramNames.indexOf(Field.KC_ADDR.toString())), addressType()).ptxNl();
         mov().u32().space().fieldReg(Field.NTID_X).commaSpace().percent().regName(Field.NTID_X.toString()).ptxNl();
         mov().u32().space().fieldReg(Field.CTAID_X).commaSpace().percent().regName(Field.CTAID_X.toString()).ptxNl();
         mov().u32().space().fieldReg(Field.TID_X).commaSpace().percent().regName(Field.TID_X.toString()).ptxNl();
@@ -283,8 +263,13 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
 
     public void binaryOperation(BinaryArithmeticOrLogicOperation op) {
         symbol(op.op());
-        if (op.resultType().toString().equals("float") && op.op() instanceof CoreOp.DivOp) rn();
-        if (!op.resultType().toString().equals("float") && op.op() instanceof CoreOp.MulOp) lo();
+        if (getResultType(op.resultType()).getBasicType().equals(PTXRegister.Type.BasicType.FLOATING)
+                && (op.op() instanceof CoreOp.DivOp || op.op() instanceof CoreOp.MulOp)) {
+            rn();
+        } else if (!getResultType(op.resultType()).getBasicType().equals(PTXRegister.Type.BasicType.FLOATING)
+                && op.op() instanceof CoreOp.MulOp) {
+            lo();
+        }
         resultType(op.resultType(), true).space();
         resultReg(op, getResultType(op.resultType()));
         commaSpace();
@@ -309,17 +294,27 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
                 mul().wide().s32().space().resultReg(op, PTXRegister.Type.U64).commaSpace()
                         .reg(op.operandNAsValue(0)).commaSpace().intVal(4);
             } else {
-                cvt().rn().u64().dot().regType(op.operandNAsValue(0)).space()
+                cvt().u64().dot().regType(op.operandNAsValue(0)).space()
                         .resultReg(op, PTXRegister.Type.U64).commaSpace().reg(op.operandNAsValue(0)).ptxNl();
             }
         } else if (op.resultJavaType().equals(JavaType.FLOAT)) {
             cvt().rn().f32().dot().regType(op.operandNAsValue(0)).space()
                     .resultReg(op, PTXRegister.Type.F32).commaSpace().reg(op.operandNAsValue(0));
         } else if (op.resultJavaType().equals(JavaType.DOUBLE)) {
-            cvt().rn().f64().dot().regType(op.operandNAsValue(0)).space()
+            cvt();
+            if (op.operandNAsValue(0).type().equals(JavaType.INT)) {
+                rn();
+            }
+            f64().dot().regType(op.operandNAsValue(0)).space()
                     .resultReg(op, PTXRegister.Type.F64).commaSpace().reg(op.operandNAsValue(0));
         } else if (op.resultJavaType().equals(JavaType.INT)) {
-            cvt().rn().s32().dot().regType(op.operandNAsValue(0)).space()
+            cvt();
+            if (op.operandNAsValue(0).type().equals(JavaType.DOUBLE) || op.operandNAsValue(0).type().equals(JavaType.FLOAT)) {
+                rzi();
+            } else {
+                rn();
+            }
+            s32().dot().regType(op.operandNAsValue(0)).space()
                     .resultReg(op, PTXRegister.Type.S32).commaSpace().reg(op.operandNAsValue(0));
         } else {
             cvt().rn().s32().dot().regType(op.operandNAsValue(0)).space()
@@ -337,9 +332,11 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
     public void constant(ConstantOpWrapper op) {
         mov().resultType(op.resultType(), false).space().resultReg(op, getResultType(op.resultType())).commaSpace();
         if (op.resultType().toString().equals("float")) {
-            append("0f");
-            append(Integer.toHexString(Float.floatToIntBits(Float.parseFloat(op.op().value().toString()))).toUpperCase());
-            if (op.op().value().toString().equals("0.0")) append("0000000");
+            if (op.op().value().toString().equals("0.0")) {
+                floatVal("00000000");
+            } else {
+                floatVal(Integer.toHexString(Float.floatToIntBits(Float.parseFloat(op.op().value().toString()))).toUpperCase());
+            }
         } else {
             append(op.op().value().toString());
         }
@@ -349,6 +346,7 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
         exit();
     }
 
+    // S32Array and S32Array2D functions can be deleted after schema is done
     public void methodCall(InvokeOpWrapper op) {
         switch (op.methodRef().toString()) {
             // S32Array functions
@@ -377,83 +375,12 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
             case "hat.buffer.S32Array2D::height()int" -> {
                 ld().global().u32().space().resultReg(op, PTXRegister.Type.U32).commaSpace().address(getReg(op.operandNAsValue(0)).name(), 4);
             }
-            // Java Math functions
+            // Java Math function
             case "java.lang.Math::sqrt(double)double" -> {
-                sqrt().rn().f32().space().resultReg(op, PTXRegister.Type.F32).commaSpace().getReg(op.operandNAsValue(0)).name();
-            }
-            // TODO: add these
-            case "java.lang.Math::exp(double)double" -> {
-                /*
-                mov.f32         %f2, 0f3F000000;
-                mov.f32         %f3, 0f3BBB989D;
-                fma.rn.f32      %f4, %f1, %f3, %f2;
-                mov.f32         %f5, 0f3FB8AA3B;
-                mov.f32         %f6, 0f437C0000;
-                cvt.sat.f32.f32         %f7, %f4;
-                mov.f32         %f8, 0f4B400001;
-                fma.rm.f32      %f9, %f7, %f6, %f8;
-                add.f32         %f10, %f9, 0fCB40007F;
-                neg.f32         %f11, %f10;
-                fma.rn.f32      %f12, %f1, %f5, %f11;
-                mov.f32         %f13, 0f32A57060;
-                fma.rn.f32      %f14, %f1, %f13, %f12;
-                mov.b32         %r6, %f9;
-                shl.b32         %r7, %r6, 23;
-                mov.b32         %f15, %r7;
-                ex2.approx.ftz.f32      %f16, %f14;
-                mul.f32         %f17, %f16, %f15;
-                 */
-            }
-            case "java.lang.Math::log(double)double" -> {
-                /*
-                mul.f32         %f6, %f5, 0f4B000000;
-                setp.lt.f32     %p2, %f5, 0f00800000;
-                selp.f32        %f1, %f6, %f5, %p2;
-                selp.f32        %f7, 0fC1B80000, 0f00000000, %p2;
-                mov.b32         %r6, %f1;
-                add.s32         %r7, %r6, -1059760811;
-                and.b32         %r8, %r7, -8388608;
-                sub.s32         %r9, %r6, %r8;
-                mov.b32         %f8, %r9;
-                cvt.rn.f32.s32  %f9, %r8;
-                mov.f32         %f10, 0f34000000;
-                fma.rn.f32      %f11, %f9, %f10, %f7;
-                add.f32         %f12, %f8, 0fBF800000;
-                mov.f32         %f13, 0f3E1039F6;
-                mov.f32         %f14, 0fBE055027;
-                fma.rn.f32      %f15, %f14, %f12, %f13;
-                mov.f32         %f16, 0fBDF8CDCC;
-                fma.rn.f32      %f17, %f15, %f12, %f16;
-                mov.f32         %f18, 0f3E0F2955;
-                fma.rn.f32      %f19, %f17, %f12, %f18;
-                mov.f32         %f20, 0fBE2AD8B9;
-                fma.rn.f32      %f21, %f19, %f12, %f20;
-                mov.f32         %f22, 0f3E4CED0B;
-                fma.rn.f32      %f23, %f21, %f12, %f22;
-                mov.f32         %f24, 0fBE7FFF22;
-                fma.rn.f32      %f25, %f23, %f12, %f24;
-                mov.f32         %f26, 0f3EAAAA78;
-                fma.rn.f32      %f27, %f25, %f12, %f26;
-                mov.f32         %f28, 0fBF000000;
-                fma.rn.f32      %f29, %f27, %f12, %f28;
-                mul.f32         %f30, %f12, %f29;
-                fma.rn.f32      %f31, %f30, %f12, %f12;
-                mov.f32         %f32, 0f3F317218;
-                fma.rn.f32      %f35, %f11, %f32, %f31;
-                setp.lt.u32     %p3, %r6, 2139095040;
-                @%p3 bra        $L__BB0_3;
-
-                mov.f32         %f33, 0f7F800000;
-                fma.rn.f32      %f35, %f1, %f33, %f33;
-
-        $L__BB0_3:
-                cvta.to.global.u64      %rd4, %rd1;
-                setp.eq.f32     %p4, %f1, 0f00000000;
-                selp.f32        %f34, 0fFF800000, %f35, %p4;
-                 */
-                ld().global().u32().space().resultReg(op, PTXRegister.Type.U32).commaSpace().address(getReg(op.operandNAsValue(0)).name(), 4);
+                sqrt().rn().f64().space().resultReg(op, PTXRegister.Type.F64).commaSpace().reg(op.operandNAsValue(0)).semicolon();
             }
             default -> {
+                obrace().nl().ptxIndent();
                 for (int i = 0; i < op.operands().size(); i++) {
                     dot().param().space().paramType(op.operandNAsValue(i).type()).space().param().intVal(i).ptxNl();
                     st().dot().param().paramType(op.operandNAsValue(i).type()).space().osbrace().param().intVal(i).csbrace().commaSpace().reg(op.operandNAsValue(i)).ptxNl();
@@ -463,6 +390,7 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
                 final int[] counter = {0};
                 paren(_ -> commaSeparated(op.operands(), _ -> param().intVal(counter[0]++))).ptxNl();
                 ld().dot().param().paramType(op.resultType()).space().resultReg(op, getResultType(op.resultType())).commaSpace().osbrace().retVal().csbrace();
+                ptxNl().cbrace();
             }
         }
     }
@@ -632,6 +560,9 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
             case "float" -> {
                 return PTXRegister.Type.F32;
             }
+            case "double" -> {
+                return PTXRegister.Type.F64;
+            }
             case "int" -> {
                 return PTXRegister.Type.U32;
             }
@@ -674,8 +605,8 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
         return intVal(offset).csbrace();
     }
 
-    public void ptxNl() {
-        semicolon().nl().ptxIndent();
+    public PTXCodeBuilder ptxNl() {
+        return semicolon().nl().ptxIndent();
     }
 
     public PTXCodeBuilder commaSpace() {
@@ -694,6 +625,14 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
         return dot().append("rn");
     }
 
+    public PTXCodeBuilder rm() {
+        return dot().append("rm");
+    }
+
+    public PTXCodeBuilder rzi() {
+        return dot().append("rzi");
+    }
+
     public PTXCodeBuilder to() {
         return dot().append("to");
     }
@@ -710,12 +649,28 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
         return dot().append("uni");
     }
 
+    public PTXCodeBuilder sat() {
+        return dot().append("sat");
+    }
+
+    public PTXCodeBuilder ftz() {
+        return dot().append("ftz");
+    }
+
+    public PTXCodeBuilder approx() {
+        return dot().append("approx");
+    }
+
     public PTXCodeBuilder mov() {
         return append("mov");
     }
 
     public PTXCodeBuilder setp() {
         return append("setp");
+    }
+
+    public PTXCodeBuilder selp() {
+        return append("selp");
     }
 
     public PTXCodeBuilder ld() {
@@ -750,6 +705,10 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
         return append("div");
     }
 
+    public PTXCodeBuilder rcp() {
+        return append("rcp");
+    }
+
     public PTXCodeBuilder add() {
         return append("add");
     }
@@ -772,6 +731,10 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
 
     public PTXCodeBuilder ge() {
         return append("ge");
+    }
+
+    public PTXCodeBuilder geu() {
+        return append("geu");
     }
 
     public PTXCodeBuilder ne() {
@@ -802,8 +765,20 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
         return append("mad");
     }
 
+    public PTXCodeBuilder fma() {
+        return append("fma");
+    }
+
     public PTXCodeBuilder sqrt() {
         return append("sqrt");
+    }
+
+    public PTXCodeBuilder abs() {
+        return append("abs");
+    }
+
+    public PTXCodeBuilder ex2() {
+        return append("ex2");
     }
 
     public PTXCodeBuilder shl() {
@@ -946,7 +921,19 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
         return append("retval");
     }
 
+    public PTXCodeBuilder temp() {
+        return append("temp");
+    }
+
     public PTXCodeBuilder intVal(int i) {
         return append(String.valueOf(i));
+    }
+
+    public PTXCodeBuilder floatVal(String s) {
+        return append("0f").append(s);
+    }
+
+    public PTXCodeBuilder doubleVal(String s) {
+        return append("0d").append(s);
     }
 }
