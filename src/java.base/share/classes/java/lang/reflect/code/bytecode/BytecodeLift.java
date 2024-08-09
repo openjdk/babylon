@@ -78,7 +78,7 @@ import java.util.BitSet;
 public final class BytecodeLift {
 
     private record ExceptionRegion(Label startLabel, Label endLabel, Label handlerLabel) {}
-    private record ExceptionRegionEntry(Op.Result enter, ExceptionRegion region) {}
+    private record ExceptionRegionEntry(Op.Result enter, Block.Builder startBlock, ExceptionRegion region) {}
 
     private static final ClassDesc CD_LambdaMetafactory = ClassDesc.ofDescriptor("Ljava/lang/invoke/LambdaMetafactory;");
     private static final ClassDesc CD_StringConcatFactory = ClassDesc.ofDescriptor("Ljava/lang/invoke/StringConcatFactory;");
@@ -304,17 +304,18 @@ public final class BytecodeLift {
         stack.clear();
     }
 
-    private Block.Builder insertExceptionRegionExits(Label targetLabel) {
+    private Block.Builder findTargetBlock(Label targetLabel) {
         Block.Builder targetBlock = blockMap.get(targetLabel);
+        int targetBci = codeAttribtue.labelToBci(targetLabel);
         for (ExceptionRegionEntry ee : exceptionRegionStack.reversed()) {
-            int targetBci = codeAttribtue.labelToBci(targetLabel);
-            if (targetBci < codeAttribtue.labelToBci(ee.region.startLabel) || targetBci >= codeAttribtue.labelToBci(ee.region.endLabel)) {
-                // Branching out of the exception region, need to insert a block with ExceptionRegionExit
+            if (ee.region.startLabel == targetLabel) {
+                // Avoid region re-entry
+                targetBlock = ee.startBlock;
+            } else if (targetBci < codeAttribtue.labelToBci(ee.region.startLabel) || targetBci >= codeAttribtue.labelToBci(ee.region.endLabel)) {
+                // Leaving the exception region, need to insert ExceptionRegionExit
                 Block.Builder next = newBlock(targetBlock.parameters());
                 next.op(CoreOp.exceptionRegionExit(ee.enter(), targetBlock.successor(next.parameters())));
                 targetBlock = next;
-            } else {
-                return targetBlock;
             }
         }
         return targetBlock;
@@ -354,16 +355,16 @@ public final class BytecodeLift {
                         if (lt.label() == reg.startLabel()) {
                             // Create start block
                             next = newBlock();
-                            Op ere = CoreOp.exceptionRegionEnter(successor(next), insertExceptionRegionExits(reg.handlerLabel()).successor());
+                            Op ere = CoreOp.exceptionRegionEnter(successor(next), findTargetBlock(reg.handlerLabel()).successor());
                             op(ere);
                             // Push ExceptionRegionEntry on stack
-                            exceptionRegionStack.push(new ExceptionRegionEntry(ere.result(), reg));
+                            exceptionRegionStack.push(new ExceptionRegionEntry(ere.result(), next, reg));
                             moveTo(next);
                         }
                     }
                 }
                 case BranchInstruction inst when inst.opcode().isUnconditionalBranch() -> {
-                    op(CoreOp.branch(successor(insertExceptionRegionExits(inst.target()))));
+                    op(CoreOp.branch(successor(findTargetBlock(inst.target()))));
                     endOfFlow();
                 }
                 case BranchInstruction inst -> {
@@ -388,7 +389,7 @@ public final class BytecodeLift {
                         case IF_ACMPNE -> CoreOp.eq(stack.pop(), operand);
                         default -> throw new UnsupportedOperationException("Unsupported branch instruction: " + inst);
                     };
-                    Block.Builder branch = insertExceptionRegionExits(inst.target());
+                    Block.Builder branch = findTargetBlock(inst.target());
                     Block.Builder next = newBlock(branch.parameters());
                     op(CoreOp.conditionalBranch(op(cop),
                             successor(next),
@@ -899,12 +900,12 @@ public final class BytecodeLift {
     private void liftSwitch(Label defaultTarget, List<SwitchCase> cases) {
         Value v = toInt(stack.pop());
         SwitchCase last = cases.getLast();
-        Block.Builder def = insertExceptionRegionExits(defaultTarget);
+        Block.Builder def = findTargetBlock(defaultTarget);
         for (SwitchCase sc : cases) {
             Block.Builder next = sc == last ? def : newBlock(def.parameters());
             op(CoreOp.conditionalBranch(
                     op(CoreOp.eq(v, liftConstant(sc.caseValue()))),
-                    successor(insertExceptionRegionExits(sc.target())),
+                    successor(findTargetBlock(sc.target())),
                     successor(next)));
             moveTo(next);
         }
