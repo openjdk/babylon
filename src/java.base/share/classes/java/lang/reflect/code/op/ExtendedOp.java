@@ -864,11 +864,12 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                     Block.Builder expression = blocks.get(i + 1);
                     boolean isDefaultLabel = i == blocks.size() - 2;
                     Block.Builder nextLabel = isDefaultLabel ? null : blocks.get(i + 2);
+                    Body body = bodies().get(i);
                     curr.transformBody(bodies().get(i), List.of(selectorExpression), opT.andThen((block, op) -> {
                         switch (op) {
                             case YieldOp yop -> {
                                 if (isDefaultLabel) {
-                                    block.op(branch(expression.successor()));
+                                        block.op(branch(expression.successor()));
                                 } else {
                                     block.op(conditionalBranch(
                                             block.context().getValue(yop.yieldValue()),
