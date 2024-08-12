@@ -1646,9 +1646,8 @@ public class ReflectMethods extends TreeTranslator {
 
                 // statement
                 pushBody(tree, actionType);
-                Class<?> exClass = isEnum(tree.selector.type.tsym) ? IncompatibleClassChangeError.class : MatchException.class;
                 append(_throw(
-                        append(_new(functionType(type(exClass))))
+                        append(_new(functionType(type(MatchException.class))))
                 ));
                 bodies.add(stack.body);
                 popBody();

@@ -430,7 +430,7 @@ public class SwitchExpressionTest2 {
                         yield;
                     }
                     ()int -> {
-                        %28 : java.lang.IncompatibleClassChangeError = new @"func<java.lang.IncompatibleClassChangeError>";
+                        %28 : java.lang.MatchException = new @"func<java.lang.MatchException>";
                         throw %28;
                     };
                 return %3;
@@ -780,7 +780,7 @@ public class SwitchExpressionTest2 {
                         yield;
                     }
                     ()java.lang.String -> {
-                        %12 : java.lang.IncompatibleClassChangeError = new @"func<java.lang.IncompatibleClassChangeError>";
+                        %12 : java.lang.MatchException = new @"func<java.lang.MatchException>";
                         throw %12;
                     };
                 return %3;
