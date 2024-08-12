@@ -898,4 +898,46 @@ public class SwitchExpressionTest2 {
             case C c -> "C";
         };
     }
+
+    @IR("""
+            func @"defaultNotTheLastLabel" (%0 : java.lang.String)java.lang.String -> {
+                %1 : Var<java.lang.String> = var %0 @"s";
+                %2 : java.lang.String = var.load %1;
+                %3 : java.lang.String = java.switch.expression %2
+                    ()void -> {
+                        yield;
+                    }
+                    ()java.lang.String -> {
+                        %4 : java.lang.String = constant @"else";
+                        yield %4;
+                    }
+                    (%5 : java.lang.String)boolean -> {
+                        %6 : java.lang.String = constant @"M";
+                        %7 : boolean = invoke %5 %6 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                        yield %7;
+                    }
+                    ()java.lang.String -> {
+                        %8 : java.lang.String = constant @"Mow";
+                        yield %8;
+                    }
+                    (%9 : java.lang.String)boolean -> {
+                        %10 : java.lang.String = constant @"A";
+                        %11 : boolean = invoke %9 %10 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                        yield %11;
+                    }
+                    ()java.lang.String -> {
+                        %12 : java.lang.String = constant @"Aow";
+                        yield %12;
+                    };
+                return %3;
+            };
+            """)
+    @CodeReflection
+    static String defaultNotTheLastLabel(String s) {
+        return switch (s) {
+            default -> "else";
+            case "M" -> "Mow";
+            case "A" -> "Aow";
+        };
+    }
 }
