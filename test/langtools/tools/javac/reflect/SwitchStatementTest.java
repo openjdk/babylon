@@ -948,4 +948,245 @@ public class SwitchStatementTest {
         }
         return r;
     }
+
+    @IR("""
+            func @"nonEnhancedSwStatNoDefault" (%0 : int)java.lang.String -> {
+                %1 : Var<int> = var %0 @"a";
+                %2 : java.lang.String = constant @"";
+                %3 : Var<java.lang.String> = var %2 @"r";
+                %4 : int = var.load %1;
+                java.switch.statement %4
+                    (%5 : int)boolean -> {
+                        %6 : int = constant @"1";
+                        %7 : boolean = eq %5 %6;
+                        yield %7;
+                    }
+                    ()void -> {
+                        %8 : java.lang.String = var.load %3;
+                        %9 : java.lang.String = constant @"1";
+                        %10 : java.lang.String = add %8 %9;
+                        var.store %3 %10;
+                        yield;
+                    }
+                    (%11 : int)boolean -> {
+                        %12 : int = constant @"2";
+                        %13 : boolean = eq %11 %12;
+                        yield %13;
+                    }
+                    ()void -> {
+                        %14 : java.lang.String = var.load %3;
+                        %15 : int = constant @"2";
+                        %16 : java.lang.Integer = invoke %15 @"java.lang.Integer::valueOf(int)java.lang.Integer";
+                        %17 : java.lang.String = add %14 %16;
+                        var.store %3 %17;
+                        yield;
+                    };
+                %18 : java.lang.String = var.load %3;
+                return %18;
+            };
+            """)
+    @CodeReflection
+    static String nonEnhancedSwStatNoDefault(int a) {
+        String r = "";
+        switch (a) {
+            case 1 -> r += "1";
+            case 2 -> r += 2;
+        }
+        return r;
+    }
+
+    enum E {A, B}
+    @IR("""
+            func @"enhancedSwStatNoDefault1" (%0 : SwitchStatementTest$E)java.lang.String -> {
+                %1 : Var<SwitchStatementTest$E> = var %0 @"e";
+                %2 : java.lang.String = constant @"";
+                %3 : Var<java.lang.String> = var %2 @"r";
+                %4 : SwitchStatementTest$E = var.load %1;
+                java.switch.statement %4
+                    (%5 : SwitchStatementTest$E)boolean -> {
+                        %6 : SwitchStatementTest$E = field.load @"SwitchStatementTest$E::A()SwitchStatementTest$E";
+                        %7 : boolean = invoke %5 %6 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                        yield %7;
+                    }
+                    ()void -> {
+                        %8 : java.lang.String = var.load %3;
+                        %9 : SwitchStatementTest$E = field.load @"SwitchStatementTest$E::A()SwitchStatementTest$E";
+                        %10 : java.lang.String = cast %9 @"java.lang.String";
+                        %11 : java.lang.String = add %8 %10;
+                        var.store %3 %11;
+                        yield;
+                    }
+                    (%12 : SwitchStatementTest$E)boolean -> {
+                        %13 : SwitchStatementTest$E = field.load @"SwitchStatementTest$E::B()SwitchStatementTest$E";
+                        %14 : boolean = invoke %12 %13 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                        yield %14;
+                    }
+                    ()void -> {
+                        %15 : java.lang.String = var.load %3;
+                        %16 : SwitchStatementTest$E = field.load @"SwitchStatementTest$E::B()SwitchStatementTest$E";
+                        %17 : java.lang.String = cast %16 @"java.lang.String";
+                        %18 : java.lang.String = add %15 %17;
+                        var.store %3 %18;
+                        yield;
+                    }
+                    (%19 : SwitchStatementTest$E)boolean -> {
+                        %20 : java.lang.Object = constant @null;
+                        %21 : boolean = invoke %19 %20 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                        yield %21;
+                    }
+                    ()void -> {
+                        %22 : java.lang.String = var.load %3;
+                        %23 : java.lang.String = constant @"null";
+                        %24 : java.lang.String = add %22 %23;
+                        var.store %3 %24;
+                        yield;
+                    }
+                    ()void -> {
+                        yield;
+                    }
+                    ()void -> {
+                        %25 : java.lang.MatchException = new @"func<java.lang.MatchException>";
+                        throw %25;
+                    };
+                %26 : java.lang.String = var.load %3;
+                return %26;
+            };
+            """)
+    @CodeReflection
+    static String enhancedSwStatNoDefault1(E e) {
+        String r = "";
+        switch (e) {
+            case A -> r += E.A;
+            case B -> r += E.B;
+            case null -> r += "null";
+        }
+        return r;
+    }
+
+    sealed interface I permits K, J {}
+    record K() implements I {}
+    static final class J implements I {}
+    @IR("""
+            func @"enhancedSwStatNoDefault2" (%0 : SwitchStatementTest$I)java.lang.String -> {
+                %1 : Var<SwitchStatementTest$I> = var %0 @"i";
+                %2 : java.lang.String = constant @"";
+                %3 : Var<java.lang.String> = var %2 @"r";
+                %4 : SwitchStatementTest$I = var.load %1;
+                %5 : SwitchStatementTest$K = constant @null;
+                %6 : Var<SwitchStatementTest$K> = var %5 @"k";
+                %7 : SwitchStatementTest$J = constant @null;
+                %8 : Var<SwitchStatementTest$J> = var %7 @"j";
+                java.switch.statement %4
+                    (%9 : SwitchStatementTest$I)boolean -> {
+                        %10 : boolean = pattern.match %9
+                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<SwitchStatementTest$K> -> {
+                                %11 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<SwitchStatementTest$K> = pattern.binding @"k";
+                                yield %11;
+                            }
+                            (%12 : SwitchStatementTest$K)void -> {
+                                var.store %6 %12;
+                                yield;
+                            };
+                        yield %10;
+                    }
+                    ()void -> {
+                        %13 : java.lang.String = var.load %3;
+                        %14 : java.lang.String = constant @"K";
+                        %15 : java.lang.String = add %13 %14;
+                        var.store %3 %15;
+                        yield;
+                    }
+                    (%16 : SwitchStatementTest$I)boolean -> {
+                        %17 : boolean = pattern.match %16
+                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<SwitchStatementTest$J> -> {
+                                %18 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<SwitchStatementTest$J> = pattern.binding @"j";
+                                yield %18;
+                            }
+                            (%19 : SwitchStatementTest$J)void -> {
+                                var.store %8 %19;
+                                yield;
+                            };
+                        yield %17;
+                    }
+                    ()void -> {
+                        %20 : java.lang.String = var.load %3;
+                        %21 : java.lang.String = constant @"J";
+                        %22 : java.lang.String = add %20 %21;
+                        var.store %3 %22;
+                        yield;
+                    }
+                    ()void -> {
+                        yield;
+                    }
+                    ()void -> {
+                        %23 : java.lang.MatchException = new @"func<java.lang.MatchException>";
+                        throw %23;
+                    };
+                %24 : java.lang.String = var.load %3;
+                return %24;
+            };
+            """)
+    @CodeReflection
+    static String enhancedSwStatNoDefault2(I i) {
+        String r = "";
+        switch (i) {
+            case K k -> r += "K";
+            case J j -> r += "J";
+        }
+        return r;
+    }
+
+    @IR("""
+            func @"enhancedSwStatUnconditionalPattern" (%0 : java.lang.String)java.lang.String -> {
+                %1 : Var<java.lang.String> = var %0 @"s";
+                %2 : java.lang.String = constant @"";
+                %3 : Var<java.lang.String> = var %2 @"r";
+                %4 : java.lang.String = var.load %1;
+                %5 : java.lang.Object = constant @null;
+                %6 : Var<java.lang.Object> = var %5 @"o";
+                java.switch.statement %4
+                    (%7 : java.lang.String)boolean -> {
+                        %8 : java.lang.String = constant @"A";
+                        %9 : boolean = invoke %7 %8 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                        yield %9;
+                    }
+                    ()void -> {
+                        %10 : java.lang.String = var.load %3;
+                        %11 : java.lang.String = constant @"A";
+                        %12 : java.lang.String = add %10 %11;
+                        var.store %3 %12;
+                        yield;
+                    }
+                    (%13 : java.lang.String)boolean -> {
+                        %14 : boolean = pattern.match %13
+                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Object> -> {
+                                %15 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Object> = pattern.binding @"o";
+                                yield %15;
+                            }
+                            (%16 : java.lang.Object)void -> {
+                                var.store %6 %16;
+                                yield;
+                            };
+                        yield %14;
+                    }
+                    ()void -> {
+                        %17 : java.lang.String = var.load %3;
+                        %18 : java.lang.String = constant @"obj";
+                        %19 : java.lang.String = add %17 %18;
+                        var.store %3 %19;
+                        yield;
+                    };
+                %20 : java.lang.String = var.load %3;
+                return %20;
+            };
+            """)
+    @CodeReflection
+    static String enhancedSwStatUnconditionalPattern(String s) {
+        String r = "";
+        switch (s) {
+            case "A" -> r += "A";
+            case Object o -> r += "obj";
+        }
+        return r;
+    }
 }
