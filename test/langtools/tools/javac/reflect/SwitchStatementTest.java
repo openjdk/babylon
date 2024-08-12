@@ -9,695 +9,801 @@ import java.lang.runtime.CodeReflection;
 public class SwitchStatementTest {
 
     @IR("""
-            func @"caseConstantRuleExpression" (%0 : java.lang.String)void -> {
+            func @"caseConstantRuleExpression" (%0 : java.lang.String)java.lang.String -> {
                 %1 : Var<java.lang.String> = var %0 @"r";
-                %2 : java.lang.String = var.load %1;
-                java.switch.statement %2
-                    (%3 : java.lang.String)boolean -> {
-                        %4 : java.lang.String = constant @"FOO";
-                        %5 : boolean = invoke %3 %4 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                        yield %5;
+                %2 : java.lang.String = constant @"";
+                %3 : Var<java.lang.String> = var %2 @"s";
+                %4 : java.lang.String = var.load %1;
+                java.switch.statement %4
+                    (%5 : java.lang.String)boolean -> {
+                        %6 : java.lang.String = constant @"FOO";
+                        %7 : boolean = invoke %5 %6 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                        yield %7;
                     }
                     ()void -> {
-                        %6 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %7 : java.lang.String = constant @"BAR";
-                        invoke %6 %7 @"java.io.PrintStream::println(java.lang.String)void";
-                        yield;
-                    }
-                    (%8 : java.lang.String)boolean -> {
+                        %8 : java.lang.String = var.load %3;
                         %9 : java.lang.String = constant @"BAR";
-                        %10 : boolean = invoke %8 %9 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                        yield %10;
-                    }
-                    ()void -> {
-                        %11 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %12 : java.lang.String = constant @"BAZ";
-                        invoke %11 %12 @"java.io.PrintStream::println(java.lang.String)void";
+                        %10 : java.lang.String = add %8 %9;
+                        var.store %3 %10;
                         yield;
                     }
-                    (%13 : java.lang.String)boolean -> {
-                        %14 : java.lang.String = constant @"BAZ";
-                        %15 : boolean = invoke %13 %14 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                        yield %15;
+                    (%11 : java.lang.String)boolean -> {
+                        %12 : java.lang.String = constant @"BAR";
+                        %13 : boolean = invoke %11 %12 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                        yield %13;
                     }
                     ()void -> {
-                        %16 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %17 : java.lang.String = constant @"FOO";
-                        invoke %16 %17 @"java.io.PrintStream::println(java.lang.String)void";
+                        %14 : java.lang.String = var.load %3;
+                        %15 : java.lang.String = constant @"BAZ";
+                        %16 : java.lang.String = add %14 %15;
+                        var.store %3 %16;
+                        yield;
+                    }
+                    (%17 : java.lang.String)boolean -> {
+                        %18 : java.lang.String = constant @"BAZ";
+                        %19 : boolean = invoke %17 %18 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                        yield %19;
+                    }
+                    ()void -> {
+                        %20 : java.lang.String = var.load %3;
+                        %21 : java.lang.String = constant @"FOO";
+                        %22 : java.lang.String = add %20 %21;
+                        var.store %3 %22;
                         yield;
                     }
                     ()void -> {
                         yield;
                     }
                     ()void -> {
-                        %18 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %19 : java.lang.String = constant @"else";
-                        invoke %18 %19 @"java.io.PrintStream::println(java.lang.String)void";
+                        %23 : java.lang.String = var.load %3;
+                        %24 : java.lang.String = constant @"else";
+                        %25 : java.lang.String = add %23 %24;
+                        var.store %3 %25;
                         yield;
                     };
-                return;
+                %26 : java.lang.String = var.load %3;
+                return %26;
             };
             """)
     @CodeReflection
-    public static void caseConstantRuleExpression(String r) {
+    public static String caseConstantRuleExpression(String r) {
+        String s = "";
         switch (r) {
-            case "FOO" -> System.out.println("BAR");
-            case "BAR" -> System.out.println("BAZ");
-            case "BAZ" -> System.out.println("FOO");
-            default -> System.out.println("else");
+            case "FOO" -> s += "BAR";
+            case "BAR" -> s += "BAZ";
+            case "BAZ" -> s += "FOO";
+            default -> s += "else";
         }
+        return s;
     }
 
     @IR("""
-            func @"caseConstantRuleBlock" (%0 : java.lang.String)void -> {
+            func @"caseConstantRuleBlock" (%0 : java.lang.String)java.lang.String -> {
                 %1 : Var<java.lang.String> = var %0 @"r";
-                %2 : java.lang.String = var.load %1;
-                java.switch.statement %2
-                    (%3 : java.lang.String)boolean -> {
-                        %4 : java.lang.String = constant @"FOO";
-                        %5 : boolean = invoke %3 %4 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                        yield %5;
+                %2 : java.lang.String = constant @"";
+                %3 : Var<java.lang.String> = var %2 @"s";
+                %4 : java.lang.String = var.load %1;
+                java.switch.statement %4
+                    (%5 : java.lang.String)boolean -> {
+                        %6 : java.lang.String = constant @"FOO";
+                        %7 : boolean = invoke %5 %6 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                        yield %7;
                     }
                     ()void -> {
-                        %6 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %7 : java.lang.String = constant @"BAR";
-                        invoke %6 %7 @"java.io.PrintStream::println(java.lang.String)void";
-                        yield;
-                    }
-                    (%8 : java.lang.String)boolean -> {
+                        %8 : java.lang.String = var.load %3;
                         %9 : java.lang.String = constant @"BAR";
-                        %10 : boolean = invoke %8 %9 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                        yield %10;
-                    }
-                    ()void -> {
-                        %11 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %12 : java.lang.String = constant @"BAZ";
-                        invoke %11 %12 @"java.io.PrintStream::println(java.lang.String)void";
+                        %10 : java.lang.String = add %8 %9;
+                        var.store %3 %10;
                         yield;
                     }
-                    (%13 : java.lang.String)boolean -> {
-                        %14 : java.lang.String = constant @"BAZ";
-                        %15 : boolean = invoke %13 %14 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                        yield %15;
+                    (%11 : java.lang.String)boolean -> {
+                        %12 : java.lang.String = constant @"BAR";
+                        %13 : boolean = invoke %11 %12 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                        yield %13;
                     }
                     ()void -> {
-                        %16 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %17 : java.lang.String = constant @"FOO";
-                        invoke %16 %17 @"java.io.PrintStream::println(java.lang.String)void";
+                        %14 : java.lang.String = var.load %3;
+                        %15 : java.lang.String = constant @"BAZ";
+                        %16 : java.lang.String = add %14 %15;
+                        var.store %3 %16;
+                        yield;
+                    }
+                    (%17 : java.lang.String)boolean -> {
+                        %18 : java.lang.String = constant @"BAZ";
+                        %19 : boolean = invoke %17 %18 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                        yield %19;
+                    }
+                    ()void -> {
+                        %20 : java.lang.String = var.load %3;
+                        %21 : java.lang.String = constant @"FOO";
+                        %22 : java.lang.String = add %20 %21;
+                        var.store %3 %22;
                         yield;
                     }
                     ()void -> {
                         yield;
                     }
                     ()void -> {
-                        %18 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %19 : java.lang.String = constant @"else";
-                        invoke %18 %19 @"java.io.PrintStream::println(java.lang.String)void";
+                        %23 : java.lang.String = var.load %3;
+                        %24 : java.lang.String = constant @"else";
+                        %25 : java.lang.String = add %23 %24;
+                        var.store %3 %25;
                         yield;
                     };
-                return;
+                %26 : java.lang.String = var.load %3;
+                return %26;
             };
             """)
     @CodeReflection
-    public static void caseConstantRuleBlock(String r) {
+    public static String caseConstantRuleBlock(String r) {
+        String s = "";
         switch (r) {
             case "FOO" -> {
-                System.out.println("BAR");
+                s += "BAR";
             }
             case "BAR" -> {
-                System.out.println("BAZ");
+                s += "BAZ";
             }
             case "BAZ" -> {
-                System.out.println("FOO");
+                s += "FOO";
             }
             default -> {
-                System.out.println("else");
+                s += "else";
             }
         }
+        return s;
     }
 
     @IR("""
-            func @"caseConstantStatement" (%0 : java.lang.String)void -> {
+            func @"caseConstantStatement" (%0 : java.lang.String)java.lang.String -> {
                 %1 : Var<java.lang.String> = var %0 @"s";
-                %2 : java.lang.String = var.load %1;
-                java.switch.statement %2
-                    (%3 : java.lang.String)boolean -> {
-                        %4 : java.lang.String = constant @"FOO";
-                        %5 : boolean = invoke %3 %4 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                        yield %5;
+                %2 : java.lang.String = constant @"";
+                %3 : Var<java.lang.String> = var %2 @"r";
+                %4 : java.lang.String = var.load %1;
+                java.switch.statement %4
+                    (%5 : java.lang.String)boolean -> {
+                        %6 : java.lang.String = constant @"FOO";
+                        %7 : boolean = invoke %5 %6 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                        yield %7;
                     }
                     ()void -> {
-                        %6 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %7 : java.lang.String = constant @"BAR";
-                        invoke %6 %7 @"java.io.PrintStream::println(java.lang.String)void";
-                        java.break;
-                    }
-                    (%8 : java.lang.String)boolean -> {
+                        %8 : java.lang.String = var.load %3;
                         %9 : java.lang.String = constant @"BAR";
-                        %10 : boolean = invoke %8 %9 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                        yield %10;
-                    }
-                    ()void -> {
-                        %11 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %12 : java.lang.String = constant @"BAZ";
-                        invoke %11 %12 @"java.io.PrintStream::println(java.lang.String)void";
+                        %10 : java.lang.String = add %8 %9;
+                        var.store %3 %10;
                         java.break;
                     }
-                    (%13 : java.lang.String)boolean -> {
-                        %14 : java.lang.String = constant @"BAZ";
-                        %15 : boolean = invoke %13 %14 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                        yield %15;
+                    (%11 : java.lang.String)boolean -> {
+                        %12 : java.lang.String = constant @"BAR";
+                        %13 : boolean = invoke %11 %12 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                        yield %13;
                     }
                     ()void -> {
-                        %16 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %17 : java.lang.String = constant @"FOO";
-                        invoke %16 %17 @"java.io.PrintStream::println(java.lang.String)void";
+                        %14 : java.lang.String = var.load %3;
+                        %15 : java.lang.String = constant @"BAZ";
+                        %16 : java.lang.String = add %14 %15;
+                        var.store %3 %16;
+                        java.break;
+                    }
+                    (%17 : java.lang.String)boolean -> {
+                        %18 : java.lang.String = constant @"BAZ";
+                        %19 : boolean = invoke %17 %18 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                        yield %19;
+                    }
+                    ()void -> {
+                        %20 : java.lang.String = var.load %3;
+                        %21 : java.lang.String = constant @"FOO";
+                        %22 : java.lang.String = add %20 %21;
+                        var.store %3 %22;
                         java.break;
                     }
                     ()void -> {
                         yield;
                     }
                     ()void -> {
-                        %18 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %19 : java.lang.String = constant @"else";
-                        invoke %18 %19 @"java.io.PrintStream::println(java.lang.String)void";
+                        %23 : java.lang.String = var.load %3;
+                        %24 : java.lang.String = constant @"else";
+                        %25 : java.lang.String = add %23 %24;
+                        var.store %3 %25;
                         yield;
                     };
-                return;
+                %26 : java.lang.String = var.load %3;
+                return %26;
             };
             """)
     @CodeReflection
-    private static void caseConstantStatement(String s) {
+    private static String caseConstantStatement(String s) {
+        String r = "";
         switch (s) {
             case "FOO":
-                System.out.println("BAR");
+                r += "BAR";
                 break;
             case "BAR":
-                System.out.println("BAZ");
+                r += "BAZ";
                 break;
             case "BAZ":
-                System.out.println("FOO");;
+                r += "FOO";
                 break;
             default:
-                System.out.println("else");
-        };
+                r += "else";
+        }
+        return r;
     }
 
     @IR("""
-            func @"caseConstantMultiLabels" (%0 : char)void -> {
+            func @"caseConstantMultiLabels" (%0 : char)java.lang.String -> {
                 %1 : Var<char> = var %0 @"c";
-                %2 : char = var.load %1;
-                %3 : char = invoke %2 @"java.lang.Character::toLowerCase(char)char";
-                java.switch.statement %3
-                    (%4 : char)boolean -> {
-                        %5 : boolean = java.cor
+                %2 : java.lang.String = constant @"";
+                %3 : Var<java.lang.String> = var %2 @"r";
+                %4 : char = var.load %1;
+                %5 : char = invoke %4 @"java.lang.Character::toLowerCase(char)char";
+                java.switch.statement %5
+                    (%6 : char)boolean -> {
+                        %7 : boolean = java.cor
                             ()boolean -> {
-                                %6 : char = constant @"a";
-                                %7 : boolean = eq %4 %6;
-                                yield %7;
-                            }
-                            ()boolean -> {
-                                %8 : char = constant @"e";
-                                %9 : boolean = eq %4 %8;
+                                %8 : char = constant @"a";
+                                %9 : boolean = eq %6 %8;
                                 yield %9;
                             }
                             ()boolean -> {
-                                %10 : char = constant @"i";
-                                %11 : boolean = eq %4 %10;
+                                %10 : char = constant @"e";
+                                %11 : boolean = eq %6 %10;
                                 yield %11;
                             }
                             ()boolean -> {
-                                %12 : char = constant @"o";
-                                %13 : boolean = eq %4 %12;
+                                %12 : char = constant @"i";
+                                %13 : boolean = eq %6 %12;
                                 yield %13;
                             }
                             ()boolean -> {
-                                %14 : char = constant @"u";
-                                %15 : boolean = eq %4 %14;
+                                %14 : char = constant @"o";
+                                %15 : boolean = eq %6 %14;
                                 yield %15;
+                            }
+                            ()boolean -> {
+                                %16 : char = constant @"u";
+                                %17 : boolean = eq %6 %16;
+                                yield %17;
                             };
-                        yield %5;
+                        yield %7;
                     }
                     ()void -> {
-                        %16 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %17 : java.lang.String = constant @"vowel";
-                        invoke %16 %17 @"java.io.PrintStream::println(java.lang.String)void";
-                        java.switch.fallthrough;
+                        %18 : java.lang.String = var.load %3;
+                        %19 : java.lang.String = constant @"vowel";
+                        %20 : java.lang.String = add %18 %19;
+                        var.store %3 %20;
+                        java.break;
                     }
                     ()void -> {
                         yield;
                     }
                     ()void -> {
-                        %18 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %19 : java.lang.String = constant @"else";
-                        invoke %18 %19 @"java.io.PrintStream::println(java.lang.String)void";
+                        %21 : java.lang.String = var.load %3;
+                        %22 : java.lang.String = constant @"consonant";
+                        %23 : java.lang.String = add %21 %22;
+                        var.store %3 %23;
                         yield;
                     };
-                return;
+                %24 : java.lang.String = var.load %3;
+                return %24;
             };
             """)
     @CodeReflection
-    private static void caseConstantMultiLabels(char c) {
+    private static String caseConstantMultiLabels(char c) {
+        String r = "";
         switch (Character.toLowerCase(c)) {
             case 'a', 'e', 'i', 'o', 'u':
-                System.out.println("vowel");
+                r += "vowel";
+                break;
             default:
-                System.out.println("else");
-        };
+                r += "consonant";
+        }
+        return r;
     }
 
     @IR("""
-            func @"caseConstantThrow" (%0 : java.lang.Integer)void -> {
+            func @"caseConstantThrow" (%0 : java.lang.Integer)java.lang.String -> {
                 %1 : Var<java.lang.Integer> = var %0 @"i";
-                %2 : java.lang.Integer = var.load %1;
-                java.switch.statement %2
-                    (%3 : java.lang.Integer)boolean -> {
-                        %4 : int = constant @"8";
-                        %5 : java.lang.Integer = invoke %4 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %6 : boolean = invoke %3 %5 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                        yield %6;
+                %2 : java.lang.String = constant @"";
+                %3 : Var<java.lang.String> = var %2 @"r";
+                %4 : java.lang.Integer = var.load %1;
+                java.switch.statement %4
+                    (%5 : java.lang.Integer)boolean -> {
+                        %6 : int = constant @"8";
+                        %7 : java.lang.Integer = invoke %6 @"java.lang.Integer::valueOf(int)java.lang.Integer";
+                        %8 : boolean = invoke %5 %7 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                        yield %8;
                     }
                     ()void -> {
-                        %7 : java.lang.IllegalArgumentException = new @"func<java.lang.IllegalArgumentException>";
-                        throw %7;
+                        %9 : java.lang.IllegalArgumentException = new @"func<java.lang.IllegalArgumentException>";
+                        throw %9;
                     }
-                    (%8 : java.lang.Integer)boolean -> {
-                        %9 : int = constant @"9";
-                        %10 : java.lang.Integer = invoke %9 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %11 : boolean = invoke %8 %10 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                        yield %11;
+                    (%10 : java.lang.Integer)boolean -> {
+                        %11 : int = constant @"9";
+                        %12 : java.lang.Integer = invoke %11 @"java.lang.Integer::valueOf(int)java.lang.Integer";
+                        %13 : boolean = invoke %10 %12 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                        yield %13;
                     }
                     ()void -> {
-                        %12 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %13 : java.lang.String = constant @"Nine";
-                        invoke %12 %13 @"java.io.PrintStream::println(java.lang.String)void";
+                        %14 : java.lang.String = var.load %3;
+                        %15 : java.lang.String = constant @"Nine";
+                        %16 : java.lang.String = add %14 %15;
+                        var.store %3 %16;
                         yield;
                     }
                     ()void -> {
                         yield;
                     }
                     ()void -> {
-                        %14 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %15 : java.lang.String = constant @"An integer";
-                        invoke %14 %15 @"java.io.PrintStream::println(java.lang.String)void";
+                        %17 : java.lang.String = var.load %3;
+                        %18 : java.lang.String = constant @"An integer";
+                        %19 : java.lang.String = add %17 %18;
+                        var.store %3 %19;
                         yield;
                     };
-                return;
+                %20 : java.lang.String = var.load %3;
+                return %20;
             };
             """)
     @CodeReflection
-    private static void caseConstantThrow(Integer i) {
+    private static String caseConstantThrow(Integer i) {
+        String r = "";
         switch (i) {
             case 8 -> throw new IllegalArgumentException();
-            case 9 -> System.out.println("Nine");
-            default -> System.out.println("An integer");
-        };
+            case 9 -> r += "Nine";
+            default -> r += "An integer";
+        }
+        return r;
     }
 
     @IR("""
-            func @"caseConstantNullLabel" (%0 : java.lang.String)void -> {
-                %1 : Var<java.lang.String> = var %0 @"s";
-                %2 : java.lang.String = var.load %1;
-                java.switch.statement %2
-                    (%3 : java.lang.String)boolean -> {
-                        %4 : java.lang.Object = constant @null;
-                        %5 : boolean = invoke %3 %4 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                        yield %5;
-                    }
-                    ()void -> {
-                        %6 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %7 : java.lang.String = constant @"null";
-                        invoke %6 %7 @"java.io.PrintStream::println(java.lang.String)void";
-                        yield;
-                    }
-                    ()void -> {
-                        yield;
-                    }
-                    ()void -> {
-                        %8 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %9 : java.lang.String = constant @"non null";
-                        invoke %8 %9 @"java.io.PrintStream::println(java.lang.String)void";
-                        yield;
-                    };
-                return;
-            };
+            func @"caseConstantNullLabel" (%0 : java.lang.String)java.lang.String -> {
+                  %1 : Var<java.lang.String> = var %0 @"s";
+                  %2 : java.lang.String = constant @"";
+                  %3 : Var<java.lang.String> = var %2 @"r";
+                  %4 : java.lang.String = var.load %1;
+                  java.switch.statement %4
+                      (%5 : java.lang.String)boolean -> {
+                          %6 : java.lang.Object = constant @null;
+                          %7 : boolean = invoke %5 %6 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                          yield %7;
+                      }
+                      ()void -> {
+                          %8 : java.lang.String = var.load %3;
+                          %9 : java.lang.String = constant @"null";
+                          %10 : java.lang.String = add %8 %9;
+                          var.store %3 %10;
+                          yield;
+                      }
+                      ()void -> {
+                          yield;
+                      }
+                      ()void -> {
+                          %11 : java.lang.String = var.load %3;
+                          %12 : java.lang.String = constant @"non null";
+                          %13 : java.lang.String = add %11 %12;
+                          var.store %3 %13;
+                          yield;
+                      };
+                  %14 : java.lang.String = var.load %3;
+                  return %14;
+              };
             """)
     @CodeReflection
-    private static void caseConstantNullLabel(String s) {
+    private static String caseConstantNullLabel(String s) {
+        String r = "";
         switch (s) {
-            case null -> System.out.println("null");
-            default -> System.out.println("non null");
-        };
+            case null -> r += "null";
+            default -> r += "non null";
+        }
+        return r;
     }
 
     @IR("""
             func @"caseConstantFallThrough" (%0 : char)java.lang.String -> {
                 %1 : Var<char> = var %0 @"c";
-                %2 : char = var.load %1;
-                %3 : java.lang.String = java.switch.expression %2
-                    (%4 : char)boolean -> {
-                        %5 : char = constant @"A";
-                        %6 : boolean = eq %4 %5;
-                        yield %6;
+                %2 : java.lang.String = constant @"";
+                %3 : Var<java.lang.String> = var %2 @"r";
+                %4 : char = var.load %1;
+                java.switch.statement %4
+                    (%5 : char)boolean -> {
+                        %6 : char = constant @"A";
+                        %7 : boolean = eq %5 %6;
+                        yield %7;
                     }
-                    ()java.lang.String -> {
+                    ()void -> {
                         java.switch.fallthrough;
                     }
-                    (%7 : char)boolean -> {
-                        %8 : char = constant @"B";
-                        %9 : boolean = eq %7 %8;
-                        yield %9;
+                    (%8 : char)boolean -> {
+                        %9 : char = constant @"B";
+                        %10 : boolean = eq %8 %9;
+                        yield %10;
                     }
-                    ()java.lang.String -> {
-                        %10 : java.lang.String = constant @"A or B";
-                        java.yield %10;
+                    ()void -> {
+                        %11 : java.lang.String = var.load %3;
+                        %12 : java.lang.String = constant @"A or B";
+                        %13 : java.lang.String = add %11 %12;
+                        var.store %3 %13;
+                        java.break;
                     }
                     ()void -> {
                         yield;
                     }
-                    ()java.lang.String -> {
-                        %11 : java.lang.String = constant @"Neither A nor B";
-                        java.yield %11;
+                    ()void -> {
+                        %14 : java.lang.String = var.load %3;
+                        %15 : java.lang.String = constant @"Neither A nor B";
+                        %16 : java.lang.String = add %14 %15;
+                        var.store %3 %16;
+                        yield;
                     };
-                return %3;
+                %17 : java.lang.String = var.load %3;
+                return %17;
             };
             """)
     @CodeReflection
     private static String caseConstantFallThrough(char c) {
-        return switch (c) {
+        String r = "";
+        switch (c) {
             case 'A':
             case 'B':
-                yield "A or B";
+                r += "A or B";
+                break;
             default:
-                yield "Neither A nor B";
-        };
+                r += "Neither A nor B";
+        }
+        return r;
     }
 
     enum Day {
         MON, TUE, WED, THU, FRI, SAT, SUN
     }
     @IR("""
-            func @"caseConstantEnum" (%0 : SwitchStatementTest$Day)void -> {
+            func @"caseConstantEnum" (%0 : SwitchStatementTest$Day)java.lang.String -> {
                 %1 : Var<SwitchStatementTest$Day> = var %0 @"d";
-                %2 : SwitchStatementTest$Day = var.load %1;
-                java.switch.statement %2
-                    (%3 : SwitchStatementTest$Day)boolean -> {
-                        %4 : boolean = java.cor
+                %2 : java.lang.String = constant @"";
+                %3 : Var<java.lang.String> = var %2 @"r";
+                %4 : SwitchStatementTest$Day = var.load %1;
+                java.switch.statement %4
+                    (%5 : SwitchStatementTest$Day)boolean -> {
+                        %6 : boolean = java.cor
                             ()boolean -> {
-                                %5 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::MON()SwitchStatementTest$Day";
-                                %6 : boolean = invoke %3 %5 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                                yield %6;
-                            }
-                            ()boolean -> {
-                                %7 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::FRI()SwitchStatementTest$Day";
-                                %8 : boolean = invoke %3 %7 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                                %7 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::MON()SwitchStatementTest$Day";
+                                %8 : boolean = invoke %5 %7 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
                                 yield %8;
                             }
                             ()boolean -> {
-                                %9 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::SUN()SwitchStatementTest$Day";
-                                %10 : boolean = invoke %3 %9 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                                %9 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::FRI()SwitchStatementTest$Day";
+                                %10 : boolean = invoke %5 %9 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
                                 yield %10;
-                            };
-                        yield %4;
-                    }
-                    ()void -> {
-                        %11 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %12 : int = constant @"6";
-                        invoke %11 %12 @"java.io.PrintStream::println(int)void";
-                        yield;
-                    }
-                    (%13 : SwitchStatementTest$Day)boolean -> {
-                        %14 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::TUE()SwitchStatementTest$Day";
-                        %15 : boolean = invoke %13 %14 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                        yield %15;
-                    }
-                    ()void -> {
-                        %16 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %17 : int = constant @"7";
-                        invoke %16 %17 @"java.io.PrintStream::println(int)void";
-                        yield;
-                    }
-                    (%18 : SwitchStatementTest$Day)boolean -> {
-                        %19 : boolean = java.cor
-                            ()boolean -> {
-                                %20 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::THU()SwitchStatementTest$Day";
-                                %21 : boolean = invoke %18 %20 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                                yield %21;
                             }
                             ()boolean -> {
-                                %22 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::SAT()SwitchStatementTest$Day";
-                                %23 : boolean = invoke %18 %22 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                                yield %23;
+                                %11 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::SUN()SwitchStatementTest$Day";
+                                %12 : boolean = invoke %5 %11 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                                yield %12;
                             };
+                        yield %6;
+                    }
+                    ()void -> {
+                        %13 : java.lang.String = var.load %3;
+                        %14 : int = constant @"6";
+                        %15 : java.lang.Integer = invoke %14 @"java.lang.Integer::valueOf(int)java.lang.Integer";
+                        %16 : java.lang.String = add %13 %15;
+                        var.store %3 %16;
+                        yield;
+                    }
+                    (%17 : SwitchStatementTest$Day)boolean -> {
+                        %18 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::TUE()SwitchStatementTest$Day";
+                        %19 : boolean = invoke %17 %18 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
                         yield %19;
                     }
                     ()void -> {
-                        %24 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %25 : int = constant @"8";
-                        invoke %24 %25 @"java.io.PrintStream::println(int)void";
+                        %20 : java.lang.String = var.load %3;
+                        %21 : int = constant @"7";
+                        %22 : java.lang.Integer = invoke %21 @"java.lang.Integer::valueOf(int)java.lang.Integer";
+                        %23 : java.lang.String = add %20 %22;
+                        var.store %3 %23;
                         yield;
                     }
-                    (%26 : SwitchStatementTest$Day)boolean -> {
-                        %27 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::WED()SwitchStatementTest$Day";
-                        %28 : boolean = invoke %26 %27 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                        yield %28;
+                    (%24 : SwitchStatementTest$Day)boolean -> {
+                        %25 : boolean = java.cor
+                            ()boolean -> {
+                                %26 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::THU()SwitchStatementTest$Day";
+                                %27 : boolean = invoke %24 %26 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                                yield %27;
+                            }
+                            ()boolean -> {
+                                %28 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::SAT()SwitchStatementTest$Day";
+                                %29 : boolean = invoke %24 %28 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                                yield %29;
+                            };
+                        yield %25;
                     }
                     ()void -> {
-                        %29 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %30 : int = constant @"9";
-                        invoke %29 %30 @"java.io.PrintStream::println(int)void";
+                        %30 : java.lang.String = var.load %3;
+                        %31 : int = constant @"8";
+                        %32 : java.lang.Integer = invoke %31 @"java.lang.Integer::valueOf(int)java.lang.Integer";
+                        %33 : java.lang.String = add %30 %32;
+                        var.store %3 %33;
+                        yield;
+                    }
+                    (%34 : SwitchStatementTest$Day)boolean -> {
+                        %35 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::WED()SwitchStatementTest$Day";
+                        %36 : boolean = invoke %34 %35 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                        yield %36;
+                    }
+                    ()void -> {
+                        %37 : java.lang.String = var.load %3;
+                        %38 : int = constant @"9";
+                        %39 : java.lang.Integer = invoke %38 @"java.lang.Integer::valueOf(int)java.lang.Integer";
+                        %40 : java.lang.String = add %37 %39;
+                        var.store %3 %40;
                         yield;
                     };
-                return;
+                %41 : java.lang.String = var.load %3;
+                return %41;
             };
             """)
     @CodeReflection
-    private static void caseConstantEnum(Day d) {
+    private static String caseConstantEnum(Day d) {
+        String r = "";
         switch (d) {
-            case MON, FRI, SUN -> System.out.println(6);
-            case TUE -> System.out.println(7);
-            case THU, SAT -> System.out.println(8);
-            case WED -> System.out.println(9);
+            // @@@ concat of String and int is modeled as: add str Integer
+            case MON, FRI, SUN -> r += 6;
+            case TUE -> r += 7;
+            case THU, SAT -> r += 8;
+            case WED -> r += 9;
         }
+        return r;
     }
 
     static class Constants {
         static final int c1 = 12;
     }
     @IR("""
-            func @"caseConstantOtherKindsOfExpr" (%0 : int)void -> {
+            func @"caseConstantOtherKindsOfExpr" (%0 : int)java.lang.String -> {
                 %1 : Var<int> = var %0 @"i";
-                %2 : int = constant @"11";
-                %3 : Var<int> = var %2 @"eleven";
-                %4 : int = var.load %1;
-                java.switch.statement %4
-                    (%5 : int)boolean -> {
-                        %6 : int = constant @"1";
-                        %7 : int = constant @"15";
-                        %8 : int = and %6 %7;
-                        %9 : boolean = eq %5 %8;
-                        yield %9;
+                %2 : java.lang.String = constant @"";
+                %3 : Var<java.lang.String> = var %2 @"r";
+                %4 : int = constant @"11";
+                %5 : Var<int> = var %4 @"eleven";
+                %6 : int = var.load %1;
+                java.switch.statement %6
+                    (%7 : int)boolean -> {
+                        %8 : int = constant @"1";
+                        %9 : int = constant @"15";
+                        %10 : int = and %8 %9;
+                        %11 : boolean = eq %7 %10;
+                        yield %11;
                     }
                     ()void -> {
-                        %10 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %11 : java.lang.String = constant @"1";
-                        invoke %10 %11 @"java.io.PrintStream::println(java.lang.String)void";
+                        %12 : java.lang.String = var.load %3;
+                        %13 : int = constant @"1";
+                        %14 : java.lang.Integer = invoke %13 @"java.lang.Integer::valueOf(int)java.lang.Integer";
+                        %15 : java.lang.String = add %12 %14;
+                        var.store %3 %15;
                         yield;
                     }
-                    (%12 : int)boolean -> {
-                        %13 : int = constant @"4";
-                        %14 : int = constant @"1";
-                        %15 : int = ashr %13 %14;
-                        %16 : boolean = eq %12 %15;
-                        yield %16;
+                    (%16 : int)boolean -> {
+                        %17 : int = constant @"4";
+                        %18 : int = constant @"1";
+                        %19 : int = ashr %17 %18;
+                        %20 : boolean = eq %16 %19;
+                        yield %20;
                     }
                     ()void -> {
-                        %17 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %18 : java.lang.String = constant @"2";
-                        invoke %17 %18 @"java.io.PrintStream::println(java.lang.String)void";
+                        %21 : java.lang.String = var.load %3;
+                        %22 : java.lang.String = constant @"2";
+                        %23 : java.lang.String = add %21 %22;
+                        var.store %3 %23;
                         yield;
                     }
-                    (%19 : int)boolean -> {
-                        %20 : long = constant @"3";
-                        %21 : int = conv %20;
-                        %22 : boolean = eq %19 %21;
-                        yield %22;
+                    (%24 : int)boolean -> {
+                        %25 : long = constant @"3";
+                        %26 : int = conv %25;
+                        %27 : boolean = eq %24 %26;
+                        yield %27;
                     }
                     ()void -> {
-                        %23 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %24 : java.lang.String = constant @"3";
-                        invoke %23 %24 @"java.io.PrintStream::println(java.lang.String)void";
-                        yield;
-                    }
-                    (%25 : int)boolean -> {
-                        %26 : int = constant @"2";
-                        %27 : int = constant @"1";
-                        %28 : int = lshl %26 %27;
-                        %29 : boolean = eq %25 %28;
-                        yield %29;
-                    }
-                    ()void -> {
-                        %30 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %31 : java.lang.String = constant @"4";
-                        invoke %30 %31 @"java.io.PrintStream::println(java.lang.String)void";
+                        %28 : java.lang.String = var.load %3;
+                        %29 : int = constant @"3";
+                        %30 : java.lang.Integer = invoke %29 @"java.lang.Integer::valueOf(int)java.lang.Integer";
+                        %31 : java.lang.String = add %28 %30;
+                        var.store %3 %31;
                         yield;
                     }
                     (%32 : int)boolean -> {
-                        %33 : int = constant @"10";
-                        %34 : int = constant @"2";
-                        %35 : int = div %33 %34;
+                        %33 : int = constant @"2";
+                        %34 : int = constant @"1";
+                        %35 : int = lshl %33 %34;
                         %36 : boolean = eq %32 %35;
                         yield %36;
                     }
                     ()void -> {
-                        %37 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %38 : java.lang.String = constant @"5";
-                        invoke %37 %38 @"java.io.PrintStream::println(java.lang.String)void";
+                        %37 : java.lang.String = var.load %3;
+                        %38 : int = constant @"4";
+                        %39 : java.lang.Integer = invoke %38 @"java.lang.Integer::valueOf(int)java.lang.Integer";
+                        %40 : java.lang.String = add %37 %39;
+                        var.store %3 %40;
                         yield;
                     }
-                    (%39 : int)boolean -> {
-                        %40 : int = constant @"12";
-                        %41 : int = constant @"6";
-                        %42 : int = sub %40 %41;
-                        %43 : boolean = eq %39 %42;
-                        yield %43;
+                    (%41 : int)boolean -> {
+                        %42 : int = constant @"10";
+                        %43 : int = constant @"2";
+                        %44 : int = div %42 %43;
+                        %45 : boolean = eq %41 %44;
+                        yield %45;
                     }
                     ()void -> {
-                        %44 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %45 : java.lang.String = constant @"6";
-                        invoke %44 %45 @"java.io.PrintStream::println(java.lang.String)void";
+                        %46 : java.lang.String = var.load %3;
+                        %47 : int = constant @"5";
+                        %48 : java.lang.Integer = invoke %47 @"java.lang.Integer::valueOf(int)java.lang.Integer";
+                        %49 : java.lang.String = add %46 %48;
+                        var.store %3 %49;
                         yield;
                     }
-                    (%46 : int)boolean -> {
-                        %47 : int = constant @"3";
-                        %48 : int = constant @"4";
-                        %49 : int = add %47 %48;
-                        %50 : boolean = eq %46 %49;
-                        yield %50;
+                    (%50 : int)boolean -> {
+                        %51 : int = constant @"12";
+                        %52 : int = constant @"6";
+                        %53 : int = sub %51 %52;
+                        %54 : boolean = eq %50 %53;
+                        yield %54;
                     }
                     ()void -> {
-                        %51 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %52 : java.lang.String = constant @"7";
-                        invoke %51 %52 @"java.io.PrintStream::println(java.lang.String)void";
+                        %55 : java.lang.String = var.load %3;
+                        %56 : int = constant @"6";
+                        %57 : java.lang.Integer = invoke %56 @"java.lang.Integer::valueOf(int)java.lang.Integer";
+                        %58 : java.lang.String = add %55 %57;
+                        var.store %3 %58;
                         yield;
                     }
-                    (%53 : int)boolean -> {
-                        %54 : int = constant @"2";
-                        %55 : int = constant @"2";
-                        %56 : int = mul %54 %55;
-                        %57 : int = constant @"2";
-                        %58 : int = mul %56 %57;
-                        %59 : boolean = eq %53 %58;
-                        yield %59;
+                    (%59 : int)boolean -> {
+                        %60 : int = constant @"3";
+                        %61 : int = constant @"4";
+                        %62 : int = add %60 %61;
+                        %63 : boolean = eq %59 %62;
+                        yield %63;
                     }
                     ()void -> {
-                        %60 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %61 : java.lang.String = constant @"8";
-                        invoke %60 %61 @"java.io.PrintStream::println(java.lang.String)void";
+                        %64 : java.lang.String = var.load %3;
+                        %65 : int = constant @"7";
+                        %66 : java.lang.Integer = invoke %65 @"java.lang.Integer::valueOf(int)java.lang.Integer";
+                        %67 : java.lang.String = add %64 %66;
+                        var.store %3 %67;
                         yield;
                     }
-                    (%62 : int)boolean -> {
-                        %63 : int = constant @"8";
-                        %64 : int = constant @"1";
-                        %65 : int = or %63 %64;
-                        %66 : boolean = eq %62 %65;
-                        yield %66;
+                    (%68 : int)boolean -> {
+                        %69 : int = constant @"2";
+                        %70 : int = constant @"2";
+                        %71 : int = mul %69 %70;
+                        %72 : int = constant @"2";
+                        %73 : int = mul %71 %72;
+                        %74 : boolean = eq %68 %73;
+                        yield %74;
                     }
                     ()void -> {
-                        %67 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %68 : java.lang.String = constant @"9";
-                        invoke %67 %68 @"java.io.PrintStream::println(java.lang.String)void";
-                        yield;
-                    }
-                    (%69 : int)boolean -> {
-                        %70 : int = constant @"10";
-                        %71 : boolean = eq %69 %70;
-                        yield %71;
-                    }
-                    ()void -> {
-                        %72 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %73 : java.lang.String = constant @"10";
-                        invoke %72 %73 @"java.io.PrintStream::println(java.lang.String)void";
-                        yield;
-                    }
-                    (%74 : int)boolean -> {
-                        %75 : int = var.load %3;
-                        %76 : boolean = eq %74 %75;
-                        yield %76;
-                    }
-                    ()void -> {
-                        %77 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %78 : java.lang.String = constant @"11";
-                        invoke %77 %78 @"java.io.PrintStream::println(java.lang.String)void";
+                        %75 : java.lang.String = var.load %3;
+                        %76 : int = constant @"8";
+                        %77 : java.lang.Integer = invoke %76 @"java.lang.Integer::valueOf(int)java.lang.Integer";
+                        %78 : java.lang.String = add %75 %77;
+                        var.store %3 %78;
                         yield;
                     }
                     (%79 : int)boolean -> {
-                        %80 : int = field.load @"SwitchStatementTest$Constants::c1()int";
-                        %81 : boolean = eq %79 %80;
-                        yield %81;
+                        %80 : int = constant @"8";
+                        %81 : int = constant @"1";
+                        %82 : int = or %80 %81;
+                        %83 : boolean = eq %79 %82;
+                        yield %83;
                     }
                     ()void -> {
-                        %82 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %83 : int = field.load @"SwitchStatementTest$Constants::c1()int";
-                        invoke %82 %83 @"java.io.PrintStream::println(int)void";
+                        %84 : java.lang.String = var.load %3;
+                        %85 : int = constant @"9";
+                        %86 : java.lang.Integer = invoke %85 @"java.lang.Integer::valueOf(int)java.lang.Integer";
+                        %87 : java.lang.String = add %84 %86;
+                        var.store %3 %87;
                         yield;
                     }
-                    (%84 : int)boolean -> {
-                        %85 : int = java.cexpression
+                    (%88 : int)boolean -> {
+                        %89 : int = constant @"10";
+                        %90 : boolean = eq %88 %89;
+                        yield %90;
+                    }
+                    ()void -> {
+                        %91 : java.lang.String = var.load %3;
+                        %92 : int = constant @"10";
+                        %93 : java.lang.Integer = invoke %92 @"java.lang.Integer::valueOf(int)java.lang.Integer";
+                        %94 : java.lang.String = add %91 %93;
+                        var.store %3 %94;
+                        yield;
+                    }
+                    (%95 : int)boolean -> {
+                        %96 : int = var.load %5;
+                        %97 : boolean = eq %95 %96;
+                        yield %97;
+                    }
+                    ()void -> {
+                        %98 : java.lang.String = var.load %3;
+                        %99 : int = constant @"11";
+                        %100 : java.lang.Integer = invoke %99 @"java.lang.Integer::valueOf(int)java.lang.Integer";
+                        %101 : java.lang.String = add %98 %100;
+                        var.store %3 %101;
+                        yield;
+                    }
+                    (%102 : int)boolean -> {
+                        %103 : int = field.load @"SwitchStatementTest$Constants::c1()int";
+                        %104 : boolean = eq %102 %103;
+                        yield %104;
+                    }
+                    ()void -> {
+                        %105 : java.lang.String = var.load %3;
+                        %106 : int = field.load @"SwitchStatementTest$Constants::c1()int";
+                        %107 : java.lang.Integer = invoke %106 @"java.lang.Integer::valueOf(int)java.lang.Integer";
+                        %108 : java.lang.String = add %105 %107;
+                        var.store %3 %108;
+                        yield;
+                    }
+                    (%109 : int)boolean -> {
+                        %110 : int = java.cexpression
                             ()boolean -> {
-                                %86 : int = constant @"1";
-                                %87 : int = constant @"0";
-                                %88 : boolean = gt %86 %87;
-                                yield %88;
+                                %111 : int = constant @"1";
+                                %112 : int = constant @"0";
+                                %113 : boolean = gt %111 %112;
+                                yield %113;
                             }
                             ()int -> {
-                                %89 : int = constant @"13";
-                                yield %89;
+                                %114 : int = constant @"13";
+                                yield %114;
                             }
                             ()int -> {
-                                %90 : int = constant @"133";
-                                yield %90;
+                                %115 : int = constant @"133";
+                                yield %115;
                             };
-                        %91 : boolean = eq %84 %85;
-                        yield %91;
+                        %116 : boolean = eq %109 %110;
+                        yield %116;
                     }
                     ()void -> {
-                        %92 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %93 : java.lang.String = constant @"13";
-                        invoke %92 %93 @"java.io.PrintStream::println(java.lang.String)void";
+                        %117 : java.lang.String = var.load %3;
+                        %118 : int = constant @"13";
+                        %119 : java.lang.Integer = invoke %118 @"java.lang.Integer::valueOf(int)java.lang.Integer";
+                        %120 : java.lang.String = add %117 %119;
+                        var.store %3 %120;
                         yield;
                     }
                     ()void -> {
                         yield;
                     }
                     ()void -> {
-                        %94 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %95 : java.lang.String = constant @"an int";
-                        invoke %94 %95 @"java.io.PrintStream::println(java.lang.String)void";
+                        %121 : java.lang.String = var.load %3;
+                        %122 : java.lang.String = constant @"an int";
+                        %123 : java.lang.String = add %121 %122;
+                        var.store %3 %123;
                         yield;
                     };
-                return;
+                %124 : java.lang.String = var.load %3;
+                return %124;
             };
             """)
     @CodeReflection
-    private static void caseConstantOtherKindsOfExpr(int i) {
+    private static String caseConstantOtherKindsOfExpr(int i) {
+        String r = "";
         final int eleven = 11;
         switch (i) {
-            case 1 & 0xF -> System.out.println("1");
-            case 4>>1 -> System.out.println("2");
-            case (int) 3L -> System.out.println("3");
-            case 2<<1 -> System.out.println("4");
-            case 10 / 2 -> System.out.println("5");
-            case 12 - 6 -> System.out.println("6");
-            case 3 + 4 -> System.out.println("7");
-            case 2 * 2 * 2 -> System.out.println("8");
-            case 8 | 1 -> System.out.println("9");
-            case (10) -> System.out.println("10");
-            case eleven -> System.out.println("11");
-            case Constants.c1 -> System.out.println(Constants.c1);
-            case 1 > 0 ? 13 : 133 -> System.out.println("13");
-            default -> System.out.println("an int");
+            case 1 & 0xF -> r += 1;
+            case 4>>1 -> r += "2";
+            case (int) 3L -> r += 3;
+            case 2<<1 -> r += 4;
+            case 10 / 2 -> r += 5;
+            case 12 - 6 -> r += 6;
+            case 3 + 4 -> r += 7;
+            case 2 * 2 * 2 -> r += 8;
+            case 8 | 1 -> r += 9;
+            case (10) -> r += 10;
+            case eleven -> r += 11;
+            case Constants.c1 -> r += Constants.c1;
+            case 1 > 0 ? 13 : 133 -> r += 13;
+            default -> r += "an int";
         }
+        return r;
     }
 
     @IR("""
