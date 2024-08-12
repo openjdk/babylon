@@ -415,6 +415,23 @@ public class TestSwitchExpressionOp {
         };
     }
 
+    @Test
+    void testUnconditionalPattern() {
+        CoreOp.FuncOp lmodel = lower("unconditionalPattern");
+        String[] args = {"A", "X"};
+        for (String arg : args) {
+            Assert.assertEquals(Interpreter.invoke(lmodel, arg), unconditionalPattern(arg));
+        }
+    }
+
+    @CodeReflection
+    static String unconditionalPattern(String s) {
+        return switch (s) {
+            case "A" -> "A";
+            case Object o -> "default";
+        };
+    }
+
     private static CoreOp.FuncOp lower(String methodName) {
         return lower(getCodeModel(methodName));
     }
