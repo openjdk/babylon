@@ -352,6 +352,7 @@ public final class BytecodeGenerator {
 
     // This method narrows the first operand inconveniences of some operations
     private static boolean isFirstOperand(Op nextOp, Op.Result opr) {
+        List<Value> values;
         return switch (nextOp) {
             // When there is no next operation
             case null -> false;
@@ -360,16 +361,19 @@ public final class BytecodeGenerator {
                 false;
             // For lambda the effective operands are captured values
             case LambdaOp op ->
-                !op.capturedValues().isEmpty() && op.capturedValues().getFirst() == opr;
+                !(values = op.capturedValues()).isEmpty() && values.getFirst() == opr;
             // Conditional branch may delegate to its binary test operation
             case ConditionalBranchOp op when getConditionForCondBrOp(op) instanceof CoreOp.BinaryTestOp bto ->
                 isFirstOperand(bto, opr);
             // Var store effective first operand is not the first one
             case VarAccessOp.VarStoreOp op ->
                 op.operands().get(1) == opr;
+            // Unconditional branch first target block argument
+            case BranchOp op ->
+                !(values = op.branch().arguments()).isEmpty() && values.getFirst() == opr;
             // regular check of the first operand
             default ->
-                !nextOp.operands().isEmpty() && nextOp.operands().getFirst() == opr;
+                !(values = nextOp.operands()).isEmpty() && values.getFirst() == opr;
         };
     }
 
@@ -933,21 +937,14 @@ public final class BytecodeGenerator {
         }
     }
 
-    private static boolean inBlockArgs(Op.Result res) {
-        // Check if used in successor
-        for (Block.Reference s : res.declaringBlock().successors()) {
-            if (s.arguments().contains(res)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
+    // Checks if the Op.Result is used more than once in operands and block arguments
     private static boolean moreThanOneUse(Op.Result res) {
-        Set<Op.Result> uses = res.uses();
-        return uses.size() > 1
-            || uses.size() == 1 && uses.iterator().next().op().operands().stream().filter(o -> o == res).count() > 1
-            || inBlockArgs(res);
+        return res.uses().stream().flatMap(u ->
+                Stream.concat(
+                        u.op().operands().stream(),
+                        u.op().successors().stream()
+                                .flatMap(r -> r.arguments().stream())))
+                .filter(res::equals).limit(2).count() > 1;
     }
 
     private void push(Op.Result res) {
