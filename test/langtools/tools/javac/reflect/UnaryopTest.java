@@ -34,26 +34,53 @@ import java.lang.runtime.CodeReflection;
 public class UnaryopTest {
     @CodeReflection
     @IR("""
-            func @"test" (%0 : UnaryopTest, %1 : int)int -> {
-                %2 : Var<int> = var %1 @"v";
-                %3 : int = var.load %2;
-                %4 : int = neg %3;
-                return %4;
+            func @"test" (%0 : int)int -> {
+                %1 : Var<int> = var %0 @"v" ;
+                %2 : int = var.load %1 ;
+                %3 : int = neg %2 ;
+                return %3 ;
             };
             """)
-    int test(int v) {
+    static int test(int v) {
         return -v;
     }
 
     @CodeReflection
     @IR("""
-            func @"test2" (%0 : UnaryopTest, %1 : int)int -> {
-                %2 : Var<int> = var %1 @"v";
-                %3 : int = var.load %2;
-                return %3;
+            func @"test2" (%0 : int)int -> {
+                %1 : Var<int> = var %0 @"v";
+                %2 : int = var.load %1;
+                return %2;
             };
             """)
-    int test2(int v) {
+    static int test2(int v) {
+        return +v;
+    }
+
+    @CodeReflection
+    @IR("""
+            func @"test3"  (%0 : int)java.lang.Integer -> {
+                %1 : Var<int> = var %0 @"v" ;
+                %2 : int = var.load %1 ;
+                %3 : java.lang.Integer = invoke %2 @"java.lang.Integer::valueOf(int)java.lang.Integer" ;
+                return %3 ;
+            };
+            """)
+    static Integer test3(int v) {
+        return +v;
+    }
+
+    @CodeReflection
+    @IR("""
+            func @"test4"  (%0 : java.lang.Integer)java.lang.Integer -> {
+                %1 : Var<java.lang.Integer> = var %0 @"v" ;
+                %2 : java.lang.Integer = var.load %1 ;
+                %3 : int = invoke %2 @"java.lang.Integer::intValue()int" ;
+                %4 : java.lang.Integer = invoke %3 @"java.lang.Integer::valueOf(int)java.lang.Integer" ;
+                return %4 ;
+            };
+            """)
+    static Integer test4(Integer v) {
         return +v;
     }
 }
