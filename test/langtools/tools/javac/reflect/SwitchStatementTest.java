@@ -1,4 +1,7 @@
 import java.lang.runtime.CodeReflection;
+import java.util.Collection;
+import java.util.RandomAccess;
+import java.util.Stack;
 
 /*
  * @test
@@ -1186,6 +1189,751 @@ public class SwitchStatementTest {
         switch (s) {
             case "A" -> r += "A";
             case Object o -> r += "obj";
+        }
+        return r;
+    }
+
+    @IR("""
+            func @"casePatternRuleExpression" (%0 : java.lang.Object)java.lang.String -> {
+                %1 : Var<java.lang.Object> = var %0 @"o";
+                %2 : java.lang.String = constant @"";
+                %3 : Var<java.lang.String> = var %2 @"r";
+                %4 : java.lang.Object = var.load %1;
+                %5 : java.lang.Integer = constant @null;
+                %6 : Var<java.lang.Integer> = var %5 @"i";
+                %7 : java.lang.String = constant @null;
+                %8 : Var<java.lang.String> = var %7 @"s";
+                java.switch.statement %4
+                    (%9 : java.lang.Object)boolean -> {
+                        %10 : boolean = pattern.match %9
+                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> -> {
+                                %11 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> = pattern.binding @"i";
+                                yield %11;
+                            }
+                            (%12 : java.lang.Integer)void -> {
+                                var.store %6 %12;
+                                yield;
+                            };
+                        yield %10;
+                    }
+                    ()void -> {
+                        %13 : java.lang.String = var.load %3;
+                        %14 : java.lang.String = constant @"integer";
+                        %15 : java.lang.String = add %13 %14;
+                        var.store %3 %15;
+                        yield;
+                    }
+                    (%16 : java.lang.Object)boolean -> {
+                        %17 : boolean = pattern.match %16
+                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
+                                %18 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.binding @"s";
+                                yield %18;
+                            }
+                            (%19 : java.lang.String)void -> {
+                                var.store %8 %19;
+                                yield;
+                            };
+                        yield %17;
+                    }
+                    ()void -> {
+                        %20 : java.lang.String = var.load %3;
+                        %21 : java.lang.String = constant @"string";
+                        %22 : java.lang.String = add %20 %21;
+                        var.store %3 %22;
+                        yield;
+                    }
+                    ()void -> {
+                        yield;
+                    }
+                    ()void -> {
+                        %23 : java.lang.String = var.load %3;
+                        %24 : java.lang.String = constant @"else";
+                        %25 : java.lang.String = add %23 %24;
+                        var.store %3 %25;
+                        yield;
+                    };
+                %26 : java.lang.String = var.load %3;
+                return %26;
+            };
+            """)
+    @CodeReflection
+    private static String casePatternRuleExpression(Object o) {
+        String r = "";
+        switch (o) {
+            case Integer i -> r += "integer";
+            case String s -> r+= "string";
+            default -> r+= "else";
+        }
+        return r;
+    }
+
+    @IR("""
+            func @"casePatternRuleBlock" (%0 : java.lang.Object)java.lang.String -> {
+                %1 : Var<java.lang.Object> = var %0 @"o";
+                %2 : java.lang.String = constant @"";
+                %3 : Var<java.lang.String> = var %2 @"r";
+                %4 : java.lang.Object = var.load %1;
+                %5 : java.lang.Integer = constant @null;
+                %6 : Var<java.lang.Integer> = var %5 @"i";
+                %7 : java.lang.String = constant @null;
+                %8 : Var<java.lang.String> = var %7 @"s";
+                java.switch.statement %4
+                    (%9 : java.lang.Object)boolean -> {
+                        %10 : boolean = pattern.match %9
+                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> -> {
+                                %11 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> = pattern.binding @"i";
+                                yield %11;
+                            }
+                            (%12 : java.lang.Integer)void -> {
+                                var.store %6 %12;
+                                yield;
+                            };
+                        yield %10;
+                    }
+                    ()void -> {
+                        %13 : java.lang.String = var.load %3;
+                        %14 : java.lang.String = constant @"integer";
+                        %15 : java.lang.String = add %13 %14;
+                        var.store %3 %15;
+                        yield;
+                    }
+                    (%16 : java.lang.Object)boolean -> {
+                        %17 : boolean = pattern.match %16
+                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
+                                %18 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.binding @"s";
+                                yield %18;
+                            }
+                            (%19 : java.lang.String)void -> {
+                                var.store %8 %19;
+                                yield;
+                            };
+                        yield %17;
+                    }
+                    ()void -> {
+                        %20 : java.lang.String = var.load %3;
+                        %21 : java.lang.String = constant @"string";
+                        %22 : java.lang.String = add %20 %21;
+                        var.store %3 %22;
+                        yield;
+                    }
+                    ()void -> {
+                        yield;
+                    }
+                    ()void -> {
+                        %23 : java.lang.String = var.load %3;
+                        %24 : java.lang.String = constant @"else";
+                        %25 : java.lang.String = add %23 %24;
+                        var.store %3 %25;
+                        yield;
+                    };
+                %26 : java.lang.String = var.load %3;
+                return %26;
+            };
+            """)
+    @CodeReflection
+    private static String casePatternRuleBlock(Object o) {
+        String r = "";
+        switch (o) {
+            case Integer i -> {
+                r += "integer";
+            }
+            case String s -> {
+                r += "string";
+            }
+            default -> {
+                r += "else";
+            }
+        }
+        return r;
+    }
+
+    @IR("""
+            func @"casePatternStatement" (%0 : java.lang.Object)java.lang.String -> {
+                %1 : Var<java.lang.Object> = var %0 @"o";
+                %2 : java.lang.String = constant @"";
+                %3 : Var<java.lang.String> = var %2 @"r";
+                %4 : java.lang.Object = var.load %1;
+                %5 : java.lang.Integer = constant @null;
+                %6 : Var<java.lang.Integer> = var %5 @"i";
+                %7 : java.lang.String = constant @null;
+                %8 : Var<java.lang.String> = var %7 @"s";
+                java.switch.statement %4
+                    (%9 : java.lang.Object)boolean -> {
+                        %10 : boolean = pattern.match %9
+                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> -> {
+                                %11 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> = pattern.binding @"i";
+                                yield %11;
+                            }
+                            (%12 : java.lang.Integer)void -> {
+                                var.store %6 %12;
+                                yield;
+                            };
+                        yield %10;
+                    }
+                    ()void -> {
+                        %13 : java.lang.String = var.load %3;
+                        %14 : java.lang.String = constant @"integer";
+                        %15 : java.lang.String = add %13 %14;
+                        var.store %3 %15;
+                        java.break;
+                    }
+                    (%16 : java.lang.Object)boolean -> {
+                        %17 : boolean = pattern.match %16
+                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
+                                %18 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.binding @"s";
+                                yield %18;
+                            }
+                            (%19 : java.lang.String)void -> {
+                                var.store %8 %19;
+                                yield;
+                            };
+                        yield %17;
+                    }
+                    ()void -> {
+                        %20 : java.lang.String = var.load %3;
+                        %21 : java.lang.String = constant @"string";
+                        %22 : java.lang.String = add %20 %21;
+                        var.store %3 %22;
+                        java.break;
+                    }
+                    ()void -> {
+                        yield;
+                    }
+                    ()void -> {
+                        %23 : java.lang.String = var.load %3;
+                        %24 : java.lang.String = constant @"else";
+                        %25 : java.lang.String = add %23 %24;
+                        var.store %3 %25;
+                        yield;
+                    };
+                %26 : java.lang.String = var.load %3;
+                return %26;
+            };
+            """)
+    @CodeReflection
+    private static String casePatternStatement(Object o) {
+        String r = "";
+        switch (o) {
+            case Integer i:
+                r += "integer";
+                break;
+            case String s:
+                r += "string";
+                break;
+            default:
+                r += "else";
+        }
+        return r;
+    }
+
+    @IR("""
+            func @"casePatternThrow" (%0 : java.lang.Object)java.lang.String -> {
+                %1 : Var<java.lang.Object> = var %0 @"o";
+                %2 : java.lang.String = constant @"";
+                %3 : Var<java.lang.String> = var %2 @"r";
+                %4 : java.lang.Object = var.load %1;
+                %5 : java.lang.Number = constant @null;
+                %6 : Var<java.lang.Number> = var %5 @"n";
+                %7 : java.lang.String = constant @null;
+                %8 : Var<java.lang.String> = var %7 @"s";
+                java.switch.statement %4
+                    (%9 : java.lang.Object)boolean -> {
+                        %10 : boolean = pattern.match %9
+                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Number> -> {
+                                %11 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Number> = pattern.binding @"n";
+                                yield %11;
+                            }
+                            (%12 : java.lang.Number)void -> {
+                                var.store %6 %12;
+                                yield;
+                            };
+                        yield %10;
+                    }
+                    ()void -> {
+                        %13 : java.lang.IllegalArgumentException = new @"func<java.lang.IllegalArgumentException>";
+                        throw %13;
+                    }
+                    (%14 : java.lang.Object)boolean -> {
+                        %15 : boolean = pattern.match %14
+                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
+                                %16 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.binding @"s";
+                                yield %16;
+                            }
+                            (%17 : java.lang.String)void -> {
+                                var.store %8 %17;
+                                yield;
+                            };
+                        yield %15;
+                    }
+                    ()void -> {
+                        %18 : java.lang.String = var.load %3;
+                        %19 : java.lang.String = constant @"a string";
+                        %20 : java.lang.String = add %18 %19;
+                        var.store %3 %20;
+                        yield;
+                    }
+                    ()void -> {
+                        yield;
+                    }
+                    ()void -> {
+                        %21 : java.lang.String = var.load %3;
+                        %22 : java.lang.Object = var.load %1;
+                        %23 : java.lang.Class<+<java.lang.Object>> = invoke %22 @"java.lang.Object::getClass()java.lang.Class";
+                        %24 : java.lang.String = invoke %23 @"java.lang.Class::getName()java.lang.String";
+                        %25 : java.lang.String = add %21 %24;
+                        var.store %3 %25;
+                        yield;
+                    };
+                %26 : java.lang.String = var.load %3;
+                return %26;
+            };
+            """)
+    @CodeReflection
+    private static String casePatternThrow(Object o) {
+        String r = "";
+        switch (o) {
+            case Number n -> throw new IllegalArgumentException();
+            case String s -> r += "a string";
+            default -> r += o.getClass().getName();
+        }
+        return r;
+    }
+
+    // @@@ code model for such as code is not supported
+//    @CodeReflection
+    private static String casePatternMultiLabel(Object o) {
+        String r = "";
+        switch (o) {
+            case Integer _, Long _, Character _, Byte _, Short _-> r += "integral type";
+            default -> r += "non integral type";
+        }
+        return r;
+    }
+
+    @IR("""
+            func @"casePatternWithCaseConstant" (%0 : java.lang.Integer)java.lang.String -> {
+                %1 : Var<java.lang.Integer> = var %0 @"a";
+                %2 : java.lang.String = constant @"";
+                %3 : Var<java.lang.String> = var %2 @"r";
+                %4 : java.lang.Integer = var.load %1;
+                %5 : java.lang.Integer = constant @null;
+                %6 : Var<java.lang.Integer> = var %5 @"i";
+                %7 : java.lang.Integer = constant @null;
+                %8 : Var<java.lang.Integer> = var %7 @"i";
+                java.switch.statement %4
+                    (%9 : java.lang.Integer)boolean -> {
+                        %10 : int = constant @"42";
+                        %11 : java.lang.Integer = invoke %10 @"java.lang.Integer::valueOf(int)java.lang.Integer";
+                        %12 : boolean = invoke %9 %11 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                        yield %12;
+                    }
+                    ()void -> {
+                        %13 : java.lang.String = var.load %3;
+                        %14 : java.lang.String = constant @"forty two";
+                        %15 : java.lang.String = add %13 %14;
+                        var.store %3 %15;
+                        yield;
+                    }
+                    (%16 : java.lang.Integer)boolean -> {
+                        %17 : boolean = java.cand
+                            ()boolean -> {
+                                %18 : boolean = pattern.match %16
+                                    ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> -> {
+                                        %19 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> = pattern.binding @"i";
+                                        yield %19;
+                                    }
+                                    (%20 : java.lang.Integer)void -> {
+                                        var.store %6 %20;
+                                        yield;
+                                    };
+                                yield %18;
+                            }
+                            ()boolean -> {
+                                %21 : java.lang.Integer = var.load %6;
+                                %22 : int = invoke %21 @"java.lang.Integer::intValue()int";
+                                %23 : int = constant @"0";
+                                %24 : boolean = gt %22 %23;
+                                yield %24;
+                            };
+                        yield %17;
+                    }
+                    ()void -> {
+                        %25 : java.lang.String = var.load %3;
+                        %26 : java.lang.String = constant @"positive int";
+                        %27 : java.lang.String = add %25 %26;
+                        var.store %3 %27;
+                        yield;
+                    }
+                    (%28 : java.lang.Integer)boolean -> {
+                        %29 : boolean = java.cand
+                            ()boolean -> {
+                                %30 : boolean = pattern.match %28
+                                    ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> -> {
+                                        %31 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> = pattern.binding @"i";
+                                        yield %31;
+                                    }
+                                    (%32 : java.lang.Integer)void -> {
+                                        var.store %8 %32;
+                                        yield;
+                                    };
+                                yield %30;
+                            }
+                            ()boolean -> {
+                                %33 : java.lang.Integer = var.load %8;
+                                %34 : int = invoke %33 @"java.lang.Integer::intValue()int";
+                                %35 : int = constant @"0";
+                                %36 : boolean = lt %34 %35;
+                                yield %36;
+                            };
+                        yield %29;
+                    }
+                    ()void -> {
+                        %37 : java.lang.String = var.load %3;
+                        %38 : java.lang.String = constant @"negative int";
+                        %39 : java.lang.String = add %37 %38;
+                        var.store %3 %39;
+                        yield;
+                    }
+                    ()void -> {
+                        yield;
+                    }
+                    ()void -> {
+                        %40 : java.lang.String = var.load %3;
+                        %41 : java.lang.String = constant @"zero";
+                        %42 : java.lang.String = add %40 %41;
+                        var.store %3 %42;
+                        yield;
+                    };
+                %43 : java.lang.String = var.load %3;
+                return %43;
+            };
+            """)
+    @CodeReflection
+    static String casePatternWithCaseConstant(Integer a) {
+        String r = "";
+        switch (a) {
+            case 42 -> r += "forty two";
+            // @@@ case int will not match, because of the way InstanceOfOp is interpreted
+            case Integer i when i > 0 -> r += "positive int";
+            case Integer i when i < 0 -> r += "negative int";
+            default -> r += "zero";
+        }
+        return r;
+    }
+
+    @IR("""
+            func @"caseTypePattern" (%0 : java.lang.Object)java.lang.String -> {
+                %1 : Var<java.lang.Object> = var %0 @"o";
+                %2 : java.lang.String = constant @"";
+                %3 : Var<java.lang.String> = var %2 @"r";
+                %4 : java.lang.Object = var.load %1;
+                %5 : java.lang.String = constant @null;
+                %6 : Var<java.lang.String> = var %5 @"";
+                %7 : java.util.RandomAccess = constant @null;
+                %8 : Var<java.util.RandomAccess> = var %7 @"";
+                %9 : int[] = constant @null;
+                %10 : Var<int[]> = var %9 @"";
+                %11 : java.util.Stack[][] = constant @null;
+                %12 : Var<java.util.Stack[][]> = var %11 @"";
+                %13 : java.util.Collection[][][] = constant @null;
+                %14 : Var<java.util.Collection[][][]> = var %13 @"";
+                %15 : java.lang.Number = constant @null;
+                %16 : Var<java.lang.Number> = var %15 @"n";
+                java.switch.statement %4
+                    (%17 : java.lang.Object)boolean -> {
+                        %18 : boolean = pattern.match %17
+                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
+                                %19 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.binding @"";
+                                yield %19;
+                            }
+                            (%20 : java.lang.String)void -> {
+                                var.store %6 %20;
+                                yield;
+                            };
+                        yield %18;
+                    }
+                    ()void -> {
+                        %21 : java.lang.String = var.load %3;
+                        %22 : java.lang.String = constant @"String";
+                        %23 : java.lang.String = add %21 %22;
+                        var.store %3 %23;
+                        yield;
+                    }
+                    (%24 : java.lang.Object)boolean -> {
+                        %25 : boolean = pattern.match %24
+                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.util.RandomAccess> -> {
+                                %26 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.util.RandomAccess> = pattern.binding @"";
+                                yield %26;
+                            }
+                            (%27 : java.util.RandomAccess)void -> {
+                                var.store %8 %27;
+                                yield;
+                            };
+                        yield %25;
+                    }
+                    ()void -> {
+                        %28 : java.lang.String = var.load %3;
+                        %29 : java.lang.String = constant @"RandomAccess";
+                        %30 : java.lang.String = add %28 %29;
+                        var.store %3 %30;
+                        yield;
+                    }
+                    (%31 : java.lang.Object)boolean -> {
+                        %32 : boolean = pattern.match %31
+                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<int[]> -> {
+                                %33 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<int[]> = pattern.binding @"";
+                                yield %33;
+                            }
+                            (%34 : int[])void -> {
+                                var.store %10 %34;
+                                yield;
+                            };
+                        yield %32;
+                    }
+                    ()void -> {
+                        %35 : java.lang.String = var.load %3;
+                        %36 : java.lang.String = constant @"int[]";
+                        %37 : java.lang.String = add %35 %36;
+                        var.store %3 %37;
+                        yield;
+                    }
+                    (%38 : java.lang.Object)boolean -> {
+                        %39 : boolean = pattern.match %38
+                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.util.Stack[][]> -> {
+                                %40 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.util.Stack[][]> = pattern.binding @"";
+                                yield %40;
+                            }
+                            (%41 : java.util.Stack[][])void -> {
+                                var.store %12 %41;
+                                yield;
+                            };
+                        yield %39;
+                    }
+                    ()void -> {
+                        %42 : java.lang.String = var.load %3;
+                        %43 : java.lang.String = constant @"Stack[][]";
+                        %44 : java.lang.String = add %42 %43;
+                        var.store %3 %44;
+                        yield;
+                    }
+                    (%45 : java.lang.Object)boolean -> {
+                        %46 : boolean = pattern.match %45
+                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.util.Collection[][][]> -> {
+                                %47 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.util.Collection[][][]> = pattern.binding @"";
+                                yield %47;
+                            }
+                            (%48 : java.util.Collection[][][])void -> {
+                                var.store %14 %48;
+                                yield;
+                            };
+                        yield %46;
+                    }
+                    ()void -> {
+                        %49 : java.lang.String = var.load %3;
+                        %50 : java.lang.String = constant @"Collection[][][]";
+                        %51 : java.lang.String = add %49 %50;
+                        var.store %3 %51;
+                        yield;
+                    }
+                    (%52 : java.lang.Object)boolean -> {
+                        %53 : boolean = pattern.match %52
+                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Number> -> {
+                                %54 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Number> = pattern.binding @"n";
+                                yield %54;
+                            }
+                            (%55 : java.lang.Number)void -> {
+                                var.store %16 %55;
+                                yield;
+                            };
+                        yield %53;
+                    }
+                    ()void -> {
+                        %56 : java.lang.String = var.load %3;
+                        %57 : java.lang.String = constant @"Number";
+                        %58 : java.lang.String = add %56 %57;
+                        var.store %3 %58;
+                        yield;
+                    }
+                    ()void -> {
+                        yield;
+                    }
+                    ()void -> {
+                        %59 : java.lang.String = var.load %3;
+                        %60 : java.lang.String = constant @"something else";
+                        %61 : java.lang.String = add %59 %60;
+                        var.store %3 %61;
+                        yield;
+                    };
+                %62 : java.lang.String = var.load %3;
+                return %62;
+            };
+            """)
+    @CodeReflection
+    static String caseTypePattern(Object o) {
+        String r = "";
+        switch (o) {
+            case String _ -> r+= "String"; // class
+            case RandomAccess _ -> r+= "RandomAccess"; // interface
+            case int[] _ -> r+= "int[]"; // array primitive
+            case Stack[][] _ -> r+= "Stack[][]"; // array class
+            case Collection[][][] _ -> r+= "Collection[][][]"; // array interface
+            case final Number n -> r+= "Number"; // final modifier
+            default -> r+= "something else";
+        }
+        return r;
+    }
+
+    record R(Number n) {}
+    @IR("""
+            func @"caseRecordPattern" (%0 : java.lang.Object)java.lang.String -> {
+                %1 : Var<java.lang.Object> = var %0 @"o";
+                %2 : java.lang.String = constant @"";
+                %3 : Var<java.lang.String> = var %2 @"r";
+                %4 : java.lang.Object = var.load %1;
+                %5 : java.lang.Number = constant @null;
+                %6 : Var<java.lang.Number> = var %5 @"n";
+                java.switch.statement %4
+                    (%7 : java.lang.Object)boolean -> {
+                        %8 : boolean = pattern.match %7
+                            ()java.lang.reflect.code.ExtendedOp$Pattern$Record<SwitchStatementTest$R> -> {
+                                %9 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Number> = pattern.binding @"n";
+                                %10 : java.lang.reflect.code.ExtendedOp$Pattern$Record<SwitchStatementTest$R> = pattern.record %9 @"(java.lang.Number n)SwitchStatementTest$R";
+                                yield %10;
+                            }
+                            (%11 : java.lang.Number)void -> {
+                                var.store %6 %11;
+                                yield;
+                            };
+                        yield %8;
+                    }
+                    ()void -> {
+                        %12 : java.lang.String = var.load %3;
+                        %13 : java.lang.String = constant @"R(_)";
+                        %14 : java.lang.String = add %12 %13;
+                        var.store %3 %14;
+                        yield;
+                    }
+                    ()void -> {
+                        yield;
+                    }
+                    ()void -> {
+                        %15 : java.lang.String = var.load %3;
+                        %16 : java.lang.String = constant @"else";
+                        %17 : java.lang.String = add %15 %16;
+                        var.store %3 %17;
+                        yield;
+                    };
+                %18 : java.lang.String = var.load %3;
+                return %18;
+            };
+            """)
+    @CodeReflection
+    static String caseRecordPattern(Object o) {
+        String r = "";
+        switch (o) {
+            case R(Number n) -> r += "R(_)";
+            default -> r+= "else";
+        }
+        return r;
+    }
+
+    @IR("""
+            func @"casePatternGuard" (%0 : java.lang.Object)java.lang.String -> {
+                %1 : Var<java.lang.Object> = var %0 @"obj";
+                %2 : java.lang.String = constant @"";
+                %3 : Var<java.lang.String> = var %2 @"r";
+                %4 : java.lang.Object = var.load %1;
+                %5 : java.lang.String = constant @null;
+                %6 : Var<java.lang.String> = var %5 @"s";
+                %7 : java.lang.Number = constant @null;
+                %8 : Var<java.lang.Number> = var %7 @"n";
+                java.switch.statement %4
+                    (%9 : java.lang.Object)boolean -> {
+                        %10 : boolean = java.cand
+                            ()boolean -> {
+                                %11 : boolean = pattern.match %9
+                                    ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
+                                        %12 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.binding @"s";
+                                        yield %12;
+                                    }
+                                    (%13 : java.lang.String)void -> {
+                                        var.store %6 %13;
+                                        yield;
+                                    };
+                                yield %11;
+                            }
+                            ()boolean -> {
+                                %14 : java.lang.String = var.load %6;
+                                %15 : int = invoke %14 @"java.lang.String::length()int";
+                                %16 : int = constant @"3";
+                                %17 : boolean = gt %15 %16;
+                                yield %17;
+                            };
+                        yield %10;
+                    }
+                    ()void -> {
+                        %18 : java.lang.String = var.load %3;
+                        %19 : java.lang.String = constant @"str with length > %d";
+                        %20 : java.lang.String = var.load %6;
+                        %21 : int = invoke %20 @"java.lang.String::length()int";
+                        %22 : java.lang.Integer = invoke %21 @"java.lang.Integer::valueOf(int)java.lang.Integer";
+                        %23 : java.lang.String = invoke %19 %22 @"java.lang.String::formatted(java.lang.Object[])java.lang.String";
+                        %24 : java.lang.String = add %18 %23;
+                        var.store %3 %24;
+                        yield;
+                    }
+                    (%25 : java.lang.Object)boolean -> {
+                        %26 : boolean = java.cand
+                            ()boolean -> {
+                                %27 : boolean = pattern.match %25
+                                    ()java.lang.reflect.code.ExtendedOp$Pattern$Record<SwitchStatementTest$R> -> {
+                                        %28 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Number> = pattern.binding @"n";
+                                        %29 : java.lang.reflect.code.ExtendedOp$Pattern$Record<SwitchStatementTest$R> = pattern.record %28 @"(java.lang.Number n)SwitchStatementTest$R";
+                                        yield %29;
+                                    }
+                                    (%30 : java.lang.Number)void -> {
+                                        var.store %8 %30;
+                                        yield;
+                                    };
+                                yield %27;
+                            }
+                            ()boolean -> {
+                                %31 : java.lang.Number = var.load %8;
+                                %32 : java.lang.Class<+<java.lang.Object>> = invoke %31 @"java.lang.Object::getClass()java.lang.Class";
+                                %33 : java.lang.Class = constant @"java.lang.Double";
+                                %34 : boolean = invoke %32 %33 @"java.lang.Object::equals(java.lang.Object)boolean";
+                                yield %34;
+                            };
+                        yield %26;
+                    }
+                    ()void -> {
+                        %35 : java.lang.String = var.load %3;
+                        %36 : java.lang.String = constant @"R(Double)";
+                        %37 : java.lang.String = add %35 %36;
+                        var.store %3 %37;
+                        yield;
+                    }
+                    ()void -> {
+                        yield;
+                    }
+                    ()void -> {
+                        %38 : java.lang.String = var.load %3;
+                        %39 : java.lang.String = constant @"else";
+                        %40 : java.lang.String = add %38 %39;
+                        var.store %3 %40;
+                        yield;
+                    };
+                %41 : java.lang.String = var.load %3;
+                return %41;
+            };
+            """)
+    @CodeReflection
+    static String casePatternGuard(Object obj) {
+        String r = "";
+        switch (obj) {
+            case String s when s.length() > 3 -> r += "str with length > %d".formatted(s.length());
+            case R(Number n) when n.getClass().equals(Double.class) -> r += "R(Double)";
+            default -> r += "else";
         }
         return r;
     }
