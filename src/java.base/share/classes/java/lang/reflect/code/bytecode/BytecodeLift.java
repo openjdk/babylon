@@ -279,10 +279,6 @@ public final class BytecodeLift {
                                          methodModel.code().orElseThrow()).liftBody());
     }
 
-    private Block.Builder newBlock() {
-        return entryBlock.block(stack.stream().map(Value::type).toList());
-    }
-
     private Block.Builder newBlock(List<Block.Parameter> otherBlockParams) {
         return entryBlock.block(otherBlockParams.stream().map(Block.Parameter::type).toList());
     }
@@ -333,9 +329,9 @@ public final class BytecodeLift {
                         // Create exit block with parameters constructed from the stack
                         ExceptionRegionEntry er = exceptionRegionStack.pop();
                         if (currentBlock != null) {
-                            Block.Builder next = newBlock();
-                            op(CoreOp.exceptionRegionExit(er.enter(), successor(next)));
-                            moveTo(next);
+                            Block.Builder next = entryBlock.block();
+                            op(CoreOp.exceptionRegionExit(er.enter(), next.successor()));
+                            currentBlock = next;
                         }
                     }
                     Block.Builder next = blockMap.get(lt.label());
@@ -354,12 +350,12 @@ public final class BytecodeLift {
                     for (ExceptionRegion reg : exceptionRegions.reversed()) {
                         if (lt.label() == reg.startLabel()) {
                             // Create start block
-                            next = newBlock();
-                            Op ere = CoreOp.exceptionRegionEnter(successor(next), findTargetBlock(reg.handlerLabel()).successor());
+                            next = entryBlock.block();
+                            Op ere = CoreOp.exceptionRegionEnter(next.successor(), findTargetBlock(reg.handlerLabel()).successor());
                             op(ere);
                             // Push ExceptionRegionEntry on stack
                             exceptionRegionStack.push(new ExceptionRegionEntry(ere.result(), next, reg));
-                            moveTo(next);
+                            currentBlock = next;
                         }
                     }
                 }
