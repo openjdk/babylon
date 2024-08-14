@@ -84,6 +84,51 @@ public class TestSwitchStatementOp {
         return r;
     }
 
+    @Test
+    void testCaseConstantMultiLabels() {
+        CoreOp.FuncOp lmodel = lower("caseConstantMultiLabels");
+        char[] args = {'a', 'e', 'i', 'o', 'u', 'j', 'p', 'g'};
+        for (char arg : args) {
+            Assert.assertEquals(Interpreter.invoke(lmodel, arg), caseConstantMultiLabels(arg));
+        }
+    }
+
+    @CodeReflection
+    private static String caseConstantMultiLabels(char c) {
+        String r = "";
+        switch (Character.toLowerCase(c)) {
+            case 'a', 'e', 'i', 'o', 'u':
+                r += "vowel";
+                break;
+            default:
+                r += "consonant";
+        }
+        return r;
+    }
+
+    @Test
+    void testCaseConstantThrow() {
+        CoreOp.FuncOp lmodel = lower("caseConstantThrow");
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> Interpreter.invoke(lmodel, 8));
+
+        int[] args = {9, 10};
+        for (int arg : args) {
+            Assert.assertEquals(Interpreter.invoke(lmodel, arg), caseConstantThrow(arg));
+        }
+    }
+
+    @CodeReflection
+    private static String caseConstantThrow(Integer i) {
+        String r = "";
+        switch (i) {
+            case 8 -> throw new IllegalArgumentException();
+            case 9 -> r += "Nine";
+            default -> r += "An integer";
+        }
+        return r;
+    }
+
     private static CoreOp.FuncOp lower(String methodName) {
         return lower(getCodeModel(methodName));
     }
