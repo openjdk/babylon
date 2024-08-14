@@ -833,8 +833,10 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 b = continueBlock;
             }
 
+            final int n = bodies().size();
+
             List<Block.Builder> blocks = new ArrayList<>();
-            for (int i = 0; i < bodies().size(); i++) {
+            for (int i = 0; i < n; i++) {
                 Block.Builder bb = b.block();
                 if (i == 0) {
                     bb = b;
@@ -853,29 +855,9 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             setBranchTarget(b.context(), this, new BranchTarget(exit, null));
             // map expr body to nextExprBlock
             // this mapping will be used for lowering SwitchFallThroughOp
-            for (int i = 1; i < bodies().size() - 2; i+=2) {
+            for (int i = 1; i < n - 2; i+=2) {
                 setBranchTarget(b.context(), bodies().get(i), new BranchTarget(null, blocks.get(i + 2)));
             }
-
-            // move default case to the last position
-            final int n = bodies().size();
-            final List<Body> bodies = new ArrayList<>(n);
-            int defaultLabelIndex = n - 2;
-            for (int i = 0; i < n - 1; i+=2) {
-                Body label = bodies().get(i);
-                Body expr = bodies().get(i + 1);
-                boolean isDefault = label.blocks().size() == 1 && label.entryBlock().terminatingOp() instanceof YieldOp yop
-                        && yop.operands().isEmpty();
-                boolean isLast = i == n - 2;
-                if (isDefault && !isLast) {
-                    defaultLabelIndex = i;
-                    continue;
-                }
-                bodies.add(label);
-                bodies.add(expr);
-            }
-            bodies.add(bodies().get(defaultLabelIndex));
-            bodies.add(bodies().get(defaultLabelIndex + 1));
 
             for (int i = 0; i < n; i++) {
                 boolean isLabelBody = i % 2 == 0;
@@ -884,7 +866,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                     Block.Builder expression = blocks.get(i + 1);
                     boolean isLastLabel = i == n - 2;
                     Block.Builder nextLabel = isLastLabel ? null : blocks.get(i + 2);
-                    curr.transformBody(bodies.get(i), List.of(selectorExpression), opT.andThen((block, op) -> {
+                    curr.transformBody(bodies().get(i), List.of(selectorExpression), opT.andThen((block, op) -> {
                         switch (op) {
                             case YieldOp yop -> {
                                 if (isLastLabel) {
@@ -903,7 +885,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                         return block;
                     }));
                 } else { // expression body
-                    curr.transformBody(bodies.get(i), blocks.get(i).parameters(), opT.andThen((block, op) -> {
+                    curr.transformBody(bodies().get(i), blocks.get(i).parameters(), opT.andThen((block, op) -> {
                         switch (op) {
                             case YieldOp yop -> block.op(branch(exit.successor(block.context().getValue(yop.yieldValue()))));
                             case Lowerable lop -> block = lop.lower(block);

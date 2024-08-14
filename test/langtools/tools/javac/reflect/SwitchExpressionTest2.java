@@ -904,13 +904,6 @@ public class SwitchExpressionTest2 {
                 %1 : Var<java.lang.String> = var %0 @"s";
                 %2 : java.lang.String = var.load %1;
                 %3 : java.lang.String = java.switch.expression %2
-                    ()void -> {
-                        yield;
-                    }
-                    ()java.lang.String -> {
-                        %4 : java.lang.String = constant @"else";
-                        yield %4;
-                    }
                     (%5 : java.lang.String)boolean -> {
                         %6 : java.lang.String = constant @"M";
                         %7 : boolean = invoke %5 %6 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
@@ -928,6 +921,13 @@ public class SwitchExpressionTest2 {
                     ()java.lang.String -> {
                         %12 : java.lang.String = constant @"Aow";
                         yield %12;
+                    }
+                    ()void -> {
+                        yield;
+                    }
+                    ()java.lang.String -> {
+                        %4 : java.lang.String = constant @"else";
+                        yield %4;
                     };
                 return %3;
             };
