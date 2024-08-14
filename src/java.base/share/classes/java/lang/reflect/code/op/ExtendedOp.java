@@ -121,11 +121,17 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 if (op == null) {
                     throw new IllegalStateException("No enclosing loop");
                 }
-            } while (!(op instanceof Op.Loop));
+            } while (!(op instanceof Op.Loop || op instanceof JavaSwitchStatementOp));
             // } while (!(op instanceof Op.Loop lop));
             // error: variable lop might not have been initialized
-            Op.Loop lop = (Op.Loop) op;
-            return lop.loopBody() == b ? op : null;
+            if (op instanceof Op.Loop lop) {
+                return lop.loopBody() == b ? op : null;
+            } else if (op instanceof JavaSwitchStatementOp swStat) {
+                return swStat.bodies().contains(b) ? op : null;
+            } else {
+                // @@@ can't happen (at least for now)
+                throw new IllegalStateException();
+            }
         }
 
         boolean isUnlabeled() {
@@ -1025,7 +1031,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 } else { // statement body
                     curr.transformBody(bodies().get(i), blocks.get(i).parameters(), opT.andThen((block, op) -> {
                         switch (op) {
-                            case YieldOp yop -> block.op(branch(exit.successor(block.context().getValue(yop.yieldValue()))));
+                            case YieldOp yop -> block.op(branch(exit.successor()));
                             case Lowerable lop -> block = lop.lower(block);
                             default -> block.op(op);
                         }

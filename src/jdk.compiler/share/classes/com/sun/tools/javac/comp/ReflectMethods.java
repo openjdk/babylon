@@ -808,7 +808,13 @@ public class ReflectMethods extends TreeTranslator {
                 Value assignOpResult = switch (tree.getTag()) {
 
                     // Arithmetic operations
-                    case PLUS_ASG -> append(CoreOp.add(lhs, rhs));
+                    case PLUS_ASG -> {
+                        if (tree.operator.opcode == ByteCodes.string_add) {
+                            yield append(CoreOp.concat(lhs, rhs));
+                        } else {
+                            yield append(CoreOp.add(lhs, rhs));
+                        }
+                    }
                     case MINUS_ASG -> append(CoreOp.sub(lhs, rhs));
                     case MUL_ASG -> append(CoreOp.mul(lhs, rhs));
                     case DIV_ASG -> append(CoreOp.div(lhs, rhs));
