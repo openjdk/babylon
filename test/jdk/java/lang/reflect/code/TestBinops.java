@@ -54,6 +54,34 @@ public class TestBinops {
     }
 
     @CodeReflection
+    public static int neg(int a) {
+        return -a;
+    }
+
+    @Test
+    public void testNeg() {
+        CoreOp.FuncOp f = getFuncOp("neg");
+
+        f.writeTo(System.out);
+
+        Assert.assertEquals(Interpreter.invoke(f, 42), neg(42));
+    }
+
+    @CodeReflection
+    public static int compl(int a) {
+        return ~a;
+    }
+
+    @Test
+    public void testCompl() {
+        CoreOp.FuncOp f = getFuncOp("compl");
+
+        f.writeTo(System.out);
+
+        Assert.assertEquals(Interpreter.invoke(f, 42), compl(42));
+    }
+
+    @CodeReflection
     public static int mod(int a, int b) {
         return a % b;
     }
