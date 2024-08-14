@@ -66,6 +66,7 @@ public class UnaryopTest {
                 return %3 ;
             };
             """)
+    // Tests that numeric promotion occurs
     static Integer test3(int v) {
         return +v;
     }
@@ -80,6 +81,7 @@ public class UnaryopTest {
                 return %4 ;
             };
             """)
+    // Tests that numeric promotion is retained
     static Integer test4(Integer v) {
         return +v;
     }
