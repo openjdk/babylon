@@ -451,7 +451,7 @@ public class ReflectMethods extends TreeTranslator {
                 // statements
                 Tag.SWITCH, Tag.SYNCHRONIZED,
                 // operators
-                Tag.COMPL, Tag.POS,
+                Tag.COMPL,
 
                 // the nodes below are not as relevant, either because they have already
                 // been handled by an earlier compiler pass, or because they are typically
@@ -463,7 +463,7 @@ public class ReflectMethods extends TreeTranslator {
                 Tag.TOPLEVEL, Tag.PACKAGEDEF, Tag.IMPORT, Tag.METHODDEF,
                 // modules (likely outside the scope for code models)
                 Tag.MODULEDEF, Tag.EXPORTS, Tag.OPENS, Tag.PROVIDES, Tag.REQUIRES, Tag.USES,
-                // switch labels (these are handled by the encloising construct, SWITCH or SWITCH_EXPRESSION)
+                // switch labels (these are handled by the enclosing construct, SWITCH or SWITCH_EXPRESSION)
                 Tag.CASE, Tag.DEFAULTCASELABEL, Tag.CONSTANTCASELABEL, Tag.PATTERNCASELABEL,
                 // patterns (these are handled by the enclosing construct, like IF, SWITCH_EXPRESSION, TYPETEST)
                 Tag.ANYPATTERN, Tag.BINDINGPATTERN, Tag.RECORDPATTERN,
@@ -2124,6 +2124,10 @@ public class ReflectMethods extends TreeTranslator {
                 case NOT -> {
                     Value rhs = toValue(tree.arg, tree.type);
                     result = append(CoreOp.not(rhs));
+                }
+                case POS -> {
+                    // Result is value of the operand
+                    result = toValue(tree.arg, tree.type);
                 }
                 default -> throw unsupported(tree);
             }
