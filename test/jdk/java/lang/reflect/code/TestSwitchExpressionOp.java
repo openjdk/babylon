@@ -451,6 +451,11 @@ public class TestSwitchExpressionOp {
         };
     }
 
+    // we are not testing switch expr that has no default,
+    // because to test for MatchException we need to set up separate compilation
+    // in compiler tests we are checking that the code model contains a default case that throws MatchException
+    // that should be enough
+
     private static CoreOp.FuncOp lower(String methodName) {
         return lower(getCodeModel(methodName));
     }
