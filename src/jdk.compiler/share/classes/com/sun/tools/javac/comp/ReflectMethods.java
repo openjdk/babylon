@@ -450,8 +450,6 @@ public class ReflectMethods extends TreeTranslator {
         private static final EnumSet<JCTree.Tag> UNSUPPORTED_TAGS = EnumSet.of(
                 // statements
                 Tag.SWITCH, Tag.SYNCHRONIZED,
-                // operators
-                Tag.COMPL,
 
                 // the nodes below are not as relevant, either because they have already
                 // been handled by an earlier compiler pass, or because they are typically
@@ -463,6 +461,8 @@ public class ReflectMethods extends TreeTranslator {
                 Tag.TOPLEVEL, Tag.PACKAGEDEF, Tag.IMPORT, Tag.METHODDEF,
                 // modules (likely outside the scope for code models)
                 Tag.MODULEDEF, Tag.EXPORTS, Tag.OPENS, Tag.PROVIDES, Tag.REQUIRES, Tag.USES,
+                // classes, ignore local class definitions (allows access to but does not model the definition)
+                // Tag.CLASSDEF,
                 // switch labels (these are handled by the enclosing construct, SWITCH or SWITCH_EXPRESSION)
                 Tag.CASE, Tag.DEFAULTCASELABEL, Tag.CONSTANTCASELABEL, Tag.PATTERNCASELABEL,
                 // patterns (these are handled by the enclosing construct, like IF, SWITCH_EXPRESSION, TYPETEST)
@@ -2153,6 +2153,10 @@ public class ReflectMethods extends TreeTranslator {
                 case NOT -> {
                     Value rhs = toValue(tree.arg, tree.type);
                     result = append(CoreOp.not(rhs));
+                }
+                case COMPL -> {
+                    Value rhs = toValue(tree.arg, tree.type);
+                    result = append(CoreOp.compl(rhs));
                 }
                 case POS -> {
                     // Result is value of the operand

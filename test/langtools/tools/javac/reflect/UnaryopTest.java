@@ -85,4 +85,17 @@ public class UnaryopTest {
     static Integer test4(Integer v) {
         return +v;
     }
+
+    @CodeReflection
+    @IR("""
+            func @"test5" (%0 : int)int -> {
+                %1 : Var<int> = var %0 @"v" ;
+                %2 : int = var.load %1 ;
+                %3 : int = compl %2 ;
+                return %3 ;
+            };
+            """)
+    static int test5(int v) {
+        return ~v;
+    }
 }

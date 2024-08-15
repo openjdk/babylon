@@ -579,6 +579,22 @@ public final class BytecodeGenerator {
                         }
                         push(op.result());
                     }
+                    case ComplOp op -> {
+                        // Lower to x ^ -1
+                        processFirstOperand(op);
+                        switch (rvt) {
+                            case IntType, BooleanType, ByteType, ShortType, CharType -> {
+                                cob.iconst_m1();
+                                cob.ixor();
+                            }
+                            case LongType -> {
+                                cob.ldc(-1L);
+                                cob.lxor();
+                            }
+                            default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
+                        }
+                        push(op.result());
+                    }
                     case NotOp op -> {
                         processFirstOperand(op);
                         cob.ifThenElse(CodeBuilder::iconst_0, CodeBuilder::iconst_1);
