@@ -92,12 +92,8 @@ public final class SlotSSA {
                         joinBlockArguments.computeIfAbsent(s.targetBlock(), b -> {
                             Block.Builder bb = cc.getBlock(b);
                             return joinPoints.get(b).entrySet().stream().collect(Collectors.toMap(
-                                    // @@@
                                     me -> me.getKey(),
-                                    me -> bb.parameter(joinValues.stream().filter(sv -> sv.slot == me.getKey()).findAny().map(sv ->
-                                            (sv.value instanceof SlotBlockArgument vba
-                                                ? joinBlockArguments.get(vba.b()).get(vba.slot())
-                                                : cc.getValue((Value) sv.value)).type()).orElseThrow())));
+                                    me -> bb.parameter(me.getValue())));
                         });
 
                         // Append successor arguments
