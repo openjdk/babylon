@@ -26,6 +26,7 @@
 package java.lang.reflect.code.bytecode;
 
 import java.lang.reflect.code.*;
+import java.lang.reflect.code.bytecode.SlotOp;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.type.PrimitiveType;
 import java.util.*;
@@ -54,7 +55,7 @@ public final class SlotSSA {
      * @param <T> the invokable type
      */
     public static <T extends Op & Op.Invokable> T transform(T iop) {
-        Map<Block, Set<Integer>> joinPoints = new HashMap<>();
+        Map<Block, Map<Integer, TypeElement>> joinPoints = new HashMap<>();
         Map<SlotOp.SlotLoadOp, Object> loadValues = new HashMap<>();
         Map<Block.Reference, List<SlotValue>> joinSuccessorValues = new HashMap<>();
 
@@ -76,14 +77,9 @@ public final class SlotSSA {
                     Object loadValue = loadValues.get(vl);
                     CopyContext cc = block.context();
                     Value v = loadValue instanceof SlotBlockArgument vba
-                            ? joinBlockArguments.get(vba.b()).get(vba.slot())
-                            : cc.getValue((Value) loadValue);
-                    if (vl.resultType().equals(v.type()) || v.type() instanceof PrimitiveType) {
-                        cc.mapValue(op.result(), v);
-                    } else {
-                        // @@@ Explicit cast to return type, mainly due to cast of aconst_null (j.l.Object) to a target array type
-                        cc.mapValue(op.result(), block.op(CoreOp.cast(vl.resultType(), v)));
-                    }
+                        ? joinBlockArguments.get(vba.b()).get(vba.slot())
+                        : cc.getValue((Value) loadValue);
+                    cc.mapValue(op.result(), v);
                 }
             } else if (op instanceof Op.Terminating) {
                 for (Block.Reference s : op.successors()) {
@@ -95,10 +91,10 @@ public final class SlotSSA {
                         // Lazily append target block arguments
                         joinBlockArguments.computeIfAbsent(s.targetBlock(), b -> {
                             Block.Builder bb = cc.getBlock(b);
-                            return joinPoints.get(b).stream().collect(Collectors.toMap(
-                                    slot -> slot,
+                            return joinPoints.get(b).entrySet().stream().collect(Collectors.toMap(
                                     // @@@
-                                    slot -> bb.parameter(joinValues.stream().filter(sv -> sv.slot == slot).findAny().map(sv ->
+                                    me -> me.getKey(),
+                                    me -> bb.parameter(joinValues.stream().filter(sv -> sv.slot == me.getKey()).findAny().map(sv ->
                                             (sv.value instanceof SlotBlockArgument vba
                                                 ? joinBlockArguments.get(vba.b()).get(vba.slot())
                                                 : cc.getValue((Value) sv.value)).type()).orElseThrow())));
@@ -142,7 +138,7 @@ public final class SlotSSA {
     //     to in an exception region and accessed from an associated catch region
 
     static void variableToValue(Body body,
-                                Map<Block, Set<Integer>> joinPoints,
+                                Map<Block, Map<Integer, TypeElement>> joinPoints,
                                 Map<SlotOp.SlotLoadOp, Object> loadValues,
                                 Map<Block.Reference, List<SlotValue>> joinSuccessorValues) {
         Map<Integer, Deque<Object>> variableStack = new HashMap<>();
@@ -166,7 +162,7 @@ public final class SlotSSA {
      */
     static void variableToValue(Node n,
                                 Map<Integer, Deque<Object>> variableStack,
-                                Map<Block, Set<Integer>> joinPoints,
+                                Map<Block, Map<Integer, TypeElement>> joinPoints,
                                 Map<SlotOp.SlotLoadOp, Object> loadValues,
                                 Map<Block.Reference, List<SlotValue>> joinSuccessorValues) {
 
@@ -175,9 +171,9 @@ public final class SlotSSA {
         // Check if slot is associated with block argument (phi)
         // Push argument onto slot's stack
         {
-            Set<Integer> slots = joinPoints.get(n.b());
+            Map<Integer, TypeElement> slots = joinPoints.get(n.b());
             if (slots != null) {
-                slots.forEach(slot -> {
+                slots.forEach((slot, _) -> {
                     // Regular variable is always declared in a dominant block, so it can be asserted in the variable SSA trasform.
                     // However slot is never declared, so it cannot be asserted in the SlotSSA transform.
                     variableStack.computeIfAbsent(slot, _ -> new ArrayDeque<>()).push(new SlotBlockArgument(n.b(), slot));
@@ -203,9 +199,9 @@ public final class SlotSSA {
 
             // Add successor args for joint points
             for (Block.Reference succ : n.b().successors()) {
-                Set<Integer> slots = joinPoints.get(succ.targetBlock());
+                Map<Integer, TypeElement> slots = joinPoints.get(succ.targetBlock());
                 if (slots != null) {
-                    List<SlotValue> joinValues = slots.stream()
+                    List<SlotValue> joinValues = slots.keySet().stream()
                             .map(vop -> new SlotValue(vop, variableStack.get(vop).peek())).toList();
                     joinSuccessorValues.put(succ, joinValues);
                 }
@@ -219,9 +215,9 @@ public final class SlotSSA {
 
         // Pop off values for slots
         {
-            Set<Integer> slots = joinPoints.get(n.b());
+            Map<Integer, TypeElement> slots = joinPoints.get(n.b());
             if (slots != null) {
-                slots.forEach(slot -> {
+                slots.forEach((slot, _) -> {
                     variableStack.get(slot).pop();
                 });
             }
@@ -254,7 +250,7 @@ public final class SlotSSA {
      * @implNote See "Efficiently Computing Static Single Assignment Form and the Control Dependence Graph" by Ron Cytron et. al.
      * Section 5.1 and Figure 11.
      */
-    public static void findJoinPoints(Body body, Map<Block, Set<Integer>> joinPoints) {
+    public static void findJoinPoints(Body body, Map<Block, Map<Integer, TypeElement>> joinPoints) {
         Map<Block, Set<Block>> df = body.dominanceFrontier();
 
         // @@@ Remove all catch blocks from dominance frontier to avoid adding block parameters to them
@@ -285,8 +281,12 @@ public final class SlotSSA {
 
                 for (Block y : df.getOrDefault(x, Set.of())) {
                     if (hasAlready[y.index()] < iterCount) {
-                        if (sa.loadsBeforeStores.contains(y)) {
-                            joinPoints.computeIfAbsent(y, _ -> new LinkedHashSet<>()).add(slot);
+                        Set<SlotOp.SlotLoadOp> slotLoads = sa.loadsBeforeStores.get(y);
+                        if (slotLoads != null) {
+                            var slo = slotLoads.stream().filter(sl -> sl.slot == slot).findFirst();
+                            if (slo.isPresent()) {
+                                joinPoints.computeIfAbsent(y, _ -> new LinkedHashMap<>()).put(slot, slo.get().resultType());
+                            }
                         }
                         hasAlready[y.index()] = iterCount;
 
@@ -300,9 +300,9 @@ public final class SlotSSA {
         }
     }
 
-    record SlotAccesses(Set<Block> stores, Set<Block> loadsBeforeStores) {
+    record SlotAccesses(Set<Block> stores, Map<Block, Set<SlotOp.SlotLoadOp>> loadsBeforeStores) {
         public SlotAccesses() {
-            this(new LinkedHashSet<>(), new LinkedHashSet<>());
+            this(new LinkedHashSet<>(), new LinkedHashMap<>());
         }
     }
 
@@ -317,29 +317,29 @@ public final class SlotSSA {
                     slotMap.computeIfAbsent(storeOp.slot(), _ -> new SlotAccesses()).stores.add(storeOp.parentBlock());
                 } else if (op instanceof SlotOp.SlotLoadOp loadOp) {
                     var sa = slotMap.computeIfAbsent(loadOp.slot(), _ -> new SlotAccesses());
-                    if (!sa.stores.contains(loadOp.parentBlock())) sa.loadsBeforeStores.add(loadOp.parentBlock());
+                    if (!sa.stores.contains(loadOp.parentBlock())) sa.loadsBeforeStores.computeIfAbsent(loadOp.parentBlock(), _ -> new LinkedHashSet<>()).add(loadOp);
                 }
             }
         }
 
         int iterCount = 0;
         int[] work = new int[r.blocks().size()];
-        Deque<Block> w = new ArrayDeque<>();
+        Deque<Map.Entry<Block, Set<SlotOp.SlotLoadOp>>> w = new ArrayDeque<>();
         for (SlotAccesses sa : slotMap.values()) {
             iterCount++;
-            for (Block cb : sa.loadsBeforeStores) {
-                work[cb.index()] = iterCount;
+            for (var cb : sa.loadsBeforeStores.entrySet()) {
+                work[cb.getKey().index()] = iterCount;
                 w.push(cb);
             }
             while (!w.isEmpty()) {
-                Block x = w.pop();
+                var x = w.pop();
                 // propagate loadsBeforeStores to predecessor blocks
-                for (Block y : x.predecessors()) {
+                for (Block y : x.getKey().predecessors()) {
                     if (work[y.index()] < iterCount){
                         work[y.index()] = iterCount;
-                        if (!sa.stores.contains(y) && !sa.loadsBeforeStores.contains(y)) {
-                            sa.loadsBeforeStores.add(y);
-                            w.push(y);
+                        if (!sa.stores.contains(y) && !sa.loadsBeforeStores.containsKey(y)) {
+                            sa.loadsBeforeStores.put(y, x.getValue());
+                            w.push(Map.entry(y, x.getValue()));
                         }
                     }
                 }
