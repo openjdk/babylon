@@ -425,6 +425,13 @@ public class SwitchExpressionTest2 {
                     ()int -> {
                         %27 : int = constant @"9";
                         yield %27;
+                    }
+                    ()void -> {
+                        yield;
+                    }
+                    ()int -> {
+                        %28 : java.lang.MatchException = new @"func<java.lang.MatchException>";
+                        throw %28;
                     };
                 return %3;
             };
@@ -742,6 +749,195 @@ public class SwitchExpressionTest2 {
             case 1 -> "one"; // narrowing primitive conversion followed by a boxing conversion
             case b -> "two"; // boxing
             default -> "default";
+        };
+    }
+
+    enum E { F, G }
+    @IR("""
+            func @"noDefaultLabelEnum" (%0 : SwitchExpressionTest2$E)java.lang.String -> {
+                %1 : Var<SwitchExpressionTest2$E> = var %0 @"e";
+                %2 : SwitchExpressionTest2$E = var.load %1;
+                %3 : java.lang.String = java.switch.expression %2
+                    (%4 : SwitchExpressionTest2$E)boolean -> {
+                        %5 : SwitchExpressionTest2$E = field.load @"SwitchExpressionTest2$E::F()SwitchExpressionTest2$E";
+                        %6 : boolean = invoke %4 %5 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                        yield %6;
+                    }
+                    ()java.lang.String -> {
+                        %7 : java.lang.String = constant @"f";
+                        yield %7;
+                    }
+                    (%8 : SwitchExpressionTest2$E)boolean -> {
+                        %9 : SwitchExpressionTest2$E = field.load @"SwitchExpressionTest2$E::G()SwitchExpressionTest2$E";
+                        %10 : boolean = invoke %8 %9 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                        yield %10;
+                    }
+                    ()java.lang.String -> {
+                        %11 : java.lang.String = constant @"g";
+                        yield %11;
+                    }
+                    ()void -> {
+                        yield;
+                    }
+                    ()java.lang.String -> {
+                        %12 : java.lang.MatchException = new @"func<java.lang.MatchException>";
+                        throw %12;
+                    };
+                return %3;
+            };
+            """)
+    @CodeReflection
+    static String noDefaultLabelEnum(E e) {
+        return switch (e) {
+            case F -> "f";
+            case G -> "g";
+        };
+    }
+
+    @IR("""
+            func @"unconditionalPattern" (%0 : java.lang.String)java.lang.String -> {
+                %1 : Var<java.lang.String> = var %0 @"s";
+                %2 : java.lang.String = var.load %1;
+                %3 : java.lang.Object = constant @null;
+                %4 : Var<java.lang.Object> = var %3 @"o";
+                %5 : java.lang.String = java.switch.expression %2
+                    (%6 : java.lang.String)boolean -> {
+                        %7 : java.lang.String = constant @"A";
+                        %8 : boolean = invoke %6 %7 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                        yield %8;
+                    }
+                    ()java.lang.String -> {
+                        %9 : java.lang.String = constant @"Alphabet";
+                        yield %9;
+                    }
+                    (%10 : java.lang.String)boolean -> {
+                        %11 : boolean = pattern.match %10
+                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Object> -> {
+                                %12 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Object> = pattern.binding @"o";
+                                yield %12;
+                            }
+                            (%13 : java.lang.Object)void -> {
+                                var.store %4 %13;
+                                yield;
+                            };
+                        yield %11;
+                    }
+                    ()java.lang.String -> {
+                        %14 : java.lang.String = constant @"default";
+                        yield %14;
+                    };
+                return %5;
+            };
+            """)
+    @CodeReflection
+    static String unconditionalPattern(String s) {
+        return switch (s) {
+            case "A" -> "Alphabet";
+            case Object o -> "default";
+        };
+    }
+
+    sealed interface A permits B, C {}
+    record B() implements A {}
+    final class C implements A {}
+    @IR("""
+            func @"noDefault" (%0 : SwitchExpressionTest2$A)java.lang.String -> {
+                %1 : Var<SwitchExpressionTest2$A> = var %0 @"a";
+                %2 : SwitchExpressionTest2$A = var.load %1;
+                %3 : SwitchExpressionTest2$B = constant @null;
+                %4 : Var<SwitchExpressionTest2$B> = var %3 @"b";
+                %5 : .<SwitchExpressionTest2, SwitchExpressionTest2$C> = constant @null;
+                %6 : Var<.<SwitchExpressionTest2, SwitchExpressionTest2$C>> = var %5 @"c";
+                %7 : java.lang.String = java.switch.expression %2
+                    (%8 : SwitchExpressionTest2$A)boolean -> {
+                        %9 : boolean = pattern.match %8
+                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<SwitchExpressionTest2$B> -> {
+                                %10 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<SwitchExpressionTest2$B> = pattern.binding @"b";
+                                yield %10;
+                            }
+                            (%11 : SwitchExpressionTest2$B)void -> {
+                                var.store %4 %11;
+                                yield;
+                            };
+                        yield %9;
+                    }
+                    ()java.lang.String -> {
+                        %12 : java.lang.String = constant @"B";
+                        yield %12;
+                    }
+                    (%13 : SwitchExpressionTest2$A)boolean -> {
+                        %14 : boolean = pattern.match %13
+                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<.<SwitchExpressionTest2, SwitchExpressionTest2$C>> -> {
+                                %15 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<.<SwitchExpressionTest2, SwitchExpressionTest2$C>> = pattern.binding @"c";
+                                yield %15;
+                            }
+                            (%16 : .<SwitchExpressionTest2, SwitchExpressionTest2$C>)void -> {
+                                var.store %6 %16;
+                                yield;
+                            };
+                        yield %14;
+                    }
+                    ()java.lang.String -> {
+                        %17 : java.lang.String = constant @"C";
+                        yield %17;
+                    }
+                    ()void -> {
+                        yield;
+                    }
+                    ()java.lang.String -> {
+                        %18 : java.lang.MatchException = new @"func<java.lang.MatchException>";
+                        throw %18;
+                    };
+                return %7;
+            };
+            """)
+    @CodeReflection
+    static String noDefault(A a) {
+        return switch (a) {
+            case B b -> "B";
+            case C c -> "C";
+        };
+    }
+
+    @IR("""
+            func @"defaultNotTheLastLabel" (%0 : java.lang.String)java.lang.String -> {
+                %1 : Var<java.lang.String> = var %0 @"s";
+                %2 : java.lang.String = var.load %1;
+                %3 : java.lang.String = java.switch.expression %2
+                    (%5 : java.lang.String)boolean -> {
+                        %6 : java.lang.String = constant @"M";
+                        %7 : boolean = invoke %5 %6 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                        yield %7;
+                    }
+                    ()java.lang.String -> {
+                        %8 : java.lang.String = constant @"Mow";
+                        yield %8;
+                    }
+                    (%9 : java.lang.String)boolean -> {
+                        %10 : java.lang.String = constant @"A";
+                        %11 : boolean = invoke %9 %10 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                        yield %11;
+                    }
+                    ()java.lang.String -> {
+                        %12 : java.lang.String = constant @"Aow";
+                        yield %12;
+                    }
+                    ()void -> {
+                        yield;
+                    }
+                    ()java.lang.String -> {
+                        %4 : java.lang.String = constant @"else";
+                        yield %4;
+                    };
+                return %3;
+            };
+            """)
+    @CodeReflection
+    static String defaultNotTheLastLabel(String s) {
+        return switch (s) {
+            default -> "else";
+            case "M" -> "Mow";
+            case "A" -> "Aow";
         };
     }
 }

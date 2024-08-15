@@ -1494,6 +1494,8 @@ public class ReflectMethods extends TreeTranslator {
             Type switchType = adaptBottom(tree.type);
             FunctionType actionType = FunctionType.functionType(typeToTypeElement(switchType));
             List<Body.Builder> bodies = new ArrayList<>();
+            Body.Builder defaultLabel = null;
+            Body.Builder defaultStatements = null;
             for (JCTree.JCCase c : tree.cases) {
                 // Labels body
                 JCTree.JCCaseLabel headCl = c.labels.head;
@@ -1584,7 +1586,7 @@ public class ReflectMethods extends TreeTranslator {
                     pushBody(headCl, FunctionType.VOID);
 
                     append(CoreOp._yield());
-                    bodies.add(stack.body);
+                    defaultLabel = stack.body;
 
                     // Pop label
                     popBody();
@@ -1610,7 +1612,11 @@ public class ReflectMethods extends TreeTranslator {
                                 bodyTarget = prevBodyTarget;
                             }
                         }
-                        bodies.add(stack.body);
+                        if (headCl instanceof JCTree.JCDefaultCaseLabel) {
+                            defaultStatements = stack.body;
+                        } else {
+                            bodies.add(stack.body);
+                        }
 
                         // Pop block
                         popBody();
@@ -1626,12 +1632,35 @@ public class ReflectMethods extends TreeTranslator {
                                 ? ExtendedOp::switchFallthroughOp
                                 : CoreOp::unreachable);
 
-                        bodies.add(stack.body);
+                        if (headCl instanceof JCTree.JCDefaultCaseLabel) {
+                            defaultStatements = stack.body;
+                        } else {
+                            bodies.add(stack.body);
+                        }
 
                         // Pop block
                         popBody();
                     }
                 };
+            }
+
+            if (defaultLabel != null) {
+                bodies.add(defaultLabel);
+                bodies.add(defaultStatements);
+            } else if (!tree.hasUnconditionalPattern) {
+                // label
+                pushBody(tree, FunctionType.VOID);
+                append(CoreOp._yield());
+                bodies.add(stack.body);
+                popBody();
+
+                // statement
+                pushBody(tree, actionType);
+                append(CoreOp._throw(
+                        append(CoreOp._new(FunctionType.functionType(JavaType.type(MatchException.class))))
+                ));
+                bodies.add(stack.body);
+                popBody();
             }
 
             result = append(ExtendedOp.switchExpression(actionType.returnType(), target, bodies));
