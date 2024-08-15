@@ -2994,7 +2994,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     }
 
     /**
-     * The bitwise complement neg operation, that can model the Java language unary {@code ~} operator for integral types
+     * The bitwise complement operation, that can model the Java language unary {@code ~} operator for integral types
      */
     @OpFactory.OpDeclaration(ComplOp.NAME)
     public static final class ComplOp extends UnaryOp {
