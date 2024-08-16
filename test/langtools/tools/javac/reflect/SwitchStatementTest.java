@@ -402,6 +402,17 @@ public class SwitchStatementTest {
         return r;
     }
 
+//    @CodeReflection
+//    @@@ not supported
+    private static String caseConstantNullAndDefault(String s) {
+        String r = "";
+        switch (s) {
+            case "abc" -> r += "alphabet";
+            case null, default -> r += "null or default";
+        }
+        return r;
+    }
+
     @IR("""
             func @"caseConstantFallThrough" (%0 : char)java.lang.String -> {
                 %1 : Var<char> = var %0 @"c";
