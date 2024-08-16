@@ -73,7 +73,27 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     /**
      * An operation that models a Java statement
      */
-    sealed interface JavaStatement permits ArrayAccessOp.ArrayStoreOp, AssertOp, FieldAccessOp.FieldStoreOp, InvokeOp, NewOp, ReturnOp, ThrowOp, VarAccessOp.VarStoreOp, VarOp, ExtendedOp.JavaBlockOp, ExtendedOp.JavaDoWhileOp, ExtendedOp.JavaEnhancedForOp, ExtendedOp.JavaForOp, ExtendedOp.JavaIfOp, ExtendedOp.JavaLabelOp, ExtendedOp.JavaLabeledOp, ExtendedOp.JavaSwitchStatementOp, ExtendedOp.JavaTryOp, ExtendedOp.JavaWhileOp, ExtendedOp.JavaYieldOp {
+    sealed interface JavaStatement permits
+            ArrayAccessOp.ArrayStoreOp,
+            AssertOp,
+            FieldAccessOp.FieldStoreOp,
+            InvokeOp,
+            NewOp,
+            ReturnOp,
+            ThrowOp,
+            VarAccessOp.VarStoreOp,
+            VarOp,
+            ExtendedOp.JavaBlockOp,
+            ExtendedOp.JavaDoWhileOp,
+            ExtendedOp.JavaEnhancedForOp,
+            ExtendedOp.JavaForOp,
+            ExtendedOp.JavaIfOp,
+            ExtendedOp.JavaLabelOp,
+            ExtendedOp.JavaLabeledOp,
+            ExtendedOp.JavaTryOp,
+            ExtendedOp.JavaWhileOp,
+            ExtendedOp.JavaYieldOp,
+            ExtendedOp.JavaSwitchStatementOp {
     }
 
     // Split string to ensure the name does not get rewritten
