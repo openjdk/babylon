@@ -449,7 +449,7 @@ public class ReflectMethods extends TreeTranslator {
         // unsupported tree nodes
         private static final EnumSet<JCTree.Tag> UNSUPPORTED_TAGS = EnumSet.of(
                 // statements
-                Tag.SWITCH, Tag.SYNCHRONIZED,
+                Tag.SYNCHRONIZED,
 
                 // the nodes below are not as relevant, either because they have already
                 // been handled by an earlier compiler pass, or because they are typically
@@ -1670,6 +1670,180 @@ public class ReflectMethods extends TreeTranslator {
             }
 
             result = append(ExtendedOp.switchExpression(actionType.returnType(), target, bodies));
+        }
+
+        @Override
+        public void visitSwitch(JCTree.JCSwitch tree) {
+            Value target = toValue(tree.selector);
+
+            FunctionType caseLabelType = FunctionType.functionType(JavaType.BOOLEAN, target.type());
+            FunctionType actionType = FunctionType.VOID;
+            List<Body.Builder> bodies = new ArrayList<>();
+            for (JCTree.JCCase c : tree.cases) {
+                // Labels body
+                JCTree.JCCaseLabel headCl = c.labels.head;
+                if (headCl instanceof JCTree.JCPatternCaseLabel pcl) {
+                    if (c.labels.size() > 1) {
+                        throw unsupported(c);
+                    }
+
+                    pushBody(pcl, caseLabelType);
+
+                    Value localTarget = stack.block.parameters().get(0);
+                    final Value localResult;
+                    if (c.guard != null) {
+                        List<Body.Builder> clBodies = new ArrayList<>();
+
+                        pushBody(pcl.pat, FunctionType.functionType(JavaType.BOOLEAN));
+                        Value patVal = scanPattern(pcl.pat, localTarget);
+                        append(CoreOp._yield(patVal));
+                        clBodies.add(stack.body);
+                        popBody();
+
+                        pushBody(c.guard, FunctionType.functionType(JavaType.BOOLEAN));
+                        append(CoreOp._yield(toValue(c.guard)));
+                        clBodies.add(stack.body);
+                        popBody();
+
+                        localResult = append(ExtendedOp.conditionalAnd(clBodies));
+                    } else {
+                        localResult = scanPattern(pcl.pat, localTarget);
+                    }
+                    // Yield the boolean result of the condition
+                    append(CoreOp._yield(localResult));
+                    bodies.add(stack.body);
+
+                    // Pop label
+                    popBody();
+                } else if (headCl instanceof JCTree.JCConstantCaseLabel ccl) {
+                    pushBody(headCl, caseLabelType);
+
+                    Value localTarget = stack.block.parameters().get(0);
+                    final Value localResult;
+                    if (c.labels.size() == 1) {
+                        Value expr = toValue(ccl.expr);
+                        // per java spec, constant type is compatible with the type of the selector expression
+                        // so, we convert constant to the type of the selector expression
+                        expr = convert(expr, tree.selector.type);
+                        if (tree.selector.type.isPrimitive()) {
+                            localResult = append(CoreOp.eq(localTarget, expr));
+                        } else {
+                            localResult = append(CoreOp.invoke(
+                                    MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class),
+                                    localTarget, expr));
+                        }
+                    } else {
+                        List<Body.Builder> clBodies = new ArrayList<>();
+                        for (JCTree.JCCaseLabel cl : c.labels) {
+                            ccl = (JCTree.JCConstantCaseLabel) cl;
+                            pushBody(ccl, FunctionType.functionType(JavaType.BOOLEAN));
+
+                            Value expr = toValue(ccl.expr);
+                            expr = convert(expr, tree.selector.type);
+                            final Value labelResult;
+                            if (tree.selector.type.isPrimitive()) {
+                                labelResult = append(CoreOp.eq(localTarget, expr));
+                            } else {
+                                labelResult = append(CoreOp.invoke(
+                                        MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class),
+                                        localTarget, expr));
+                            }
+
+                            append(CoreOp._yield(labelResult));
+                            clBodies.add(stack.body);
+
+                            // Pop label
+                            popBody();
+                        }
+
+                        localResult = append(ExtendedOp.conditionalOr(clBodies));
+                    }
+
+                    append(CoreOp._yield(localResult));
+                    bodies.add(stack.body);
+
+                    // Pop labels
+                    popBody();
+                } else if (headCl instanceof JCTree.JCDefaultCaseLabel) {
+                    // @@@ Do we need to model the default label body?
+                    pushBody(headCl, FunctionType.VOID);
+
+                    append(CoreOp._yield());
+                    bodies.add(stack.body);
+
+                    // Pop label
+                    popBody();
+                } else {
+                    throw unsupported(tree);
+                }
+
+                // Statements body
+                switch (c.caseKind) {
+                    case RULE -> {
+                        pushBody(c.body, actionType);
+                        if (c.body instanceof JCTree.JCBlock b) {
+                            toValue(b);
+                            if (!(b.stats.last() instanceof JCTree.JCBreak)) {
+                                append(CoreOp._yield()); // @@@ _break is also an option
+                            }
+                        }
+                        else if (c.body instanceof JCTree.JCStatement s) {
+                            toValue(s);
+                            if (!(s instanceof JCTree.JCThrow)) {
+                                append(CoreOp._yield());
+                            }
+                        }
+                        bodies.add(stack.body);
+
+                        // Pop block
+                        popBody();
+                    }
+                    case STATEMENT -> {
+                        // @@@ Avoid nesting for a single block? Goes against "say what you see"
+                        // boolean oneBlock = c.stats.size() == 1 && c.stats.head instanceof JCBlock;
+                        pushBody(c, actionType);
+
+                        scan(c.stats);
+
+                        appendTerminating(c.completesNormally ?
+                                headCl instanceof JCTree.JCDefaultCaseLabel ? CoreOp::_yield : ExtendedOp::switchFallthroughOp
+                                : CoreOp::unreachable);
+
+                        bodies.add(stack.body);
+
+                        // Pop block
+                        popBody();
+                    }
+                };
+            }
+
+            // if enhanced switch and no default label
+            // enhanced: target type not byte, char short, int, String, or, has case pattern or case null
+            boolean enhancedSw = !List.of(JavaType.BYTE, JavaType.CHAR, JavaType.SHORT, JavaType.INT,
+                    JavaType.J_L_BYTE, JavaType.J_L_CHARACTER, JavaType.J_L_SHORT, JavaType.J_L_INTEGER,
+                    JavaType.J_L_STRING).contains(typeToTypeElement(tree.selector.type));
+            enhancedSw = enhancedSw && !Flags.isEnum(tree.selector.type.tsym);
+            enhancedSw = enhancedSw || tree.patternSwitch;
+            enhancedSw = enhancedSw || tree.cases.stream().anyMatch(c -> c.labels.stream().anyMatch(l -> {
+                return l instanceof JCTree.JCConstantCaseLabel ccl && ccl.expr instanceof JCLiteral literal && literal.value == null;
+            }));
+            if (enhancedSw && !tree.hasUnconditionalPattern) {
+                // label
+                pushBody(tree, FunctionType.VOID);
+                append(CoreOp._yield());
+                bodies.add(stack.body);
+                popBody();
+
+                // statement
+                pushBody(tree, actionType);
+                append(CoreOp._throw(
+                        append(CoreOp._new(FunctionType.functionType(JavaType.type(MatchException.class))))
+                ));
+                bodies.add(stack.body);
+                popBody();
+            }
+
+            result = append(ExtendedOp.switchStatement(target, bodies));
         }
 
         @Override
