@@ -1114,7 +1114,7 @@ public final class BytecodeGenerator {
         Block target = ref.targetBlock();
         List<Value> sargs = ref.arguments();
         if (catchingBlocks.get(target.index())) {
-            // Jumping to an exceptio handler, exception parameter is expected on stack
+            // Jumping to an exception handler, exception parameter is expected on stack
             Value value = sargs.getFirst();
             if (oprOnStack == value) {
                 oprOnStack = null;
