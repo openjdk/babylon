@@ -839,8 +839,10 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 b = continueBlock;
             }
 
+            final int n = bodies().size();
+
             List<Block.Builder> blocks = new ArrayList<>();
-            for (int i = 0; i < bodies().size(); i++) {
+            for (int i = 0; i < n; i++) {
                 Block.Builder bb = b.block();
                 if (i == 0) {
                     bb = b;
@@ -859,21 +861,21 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             setBranchTarget(b.context(), this, new BranchTarget(exit, null));
             // map expr body to nextExprBlock
             // this mapping will be used for lowering SwitchFallThroughOp
-            for (int i = 1; i < bodies().size() - 2; i+=2) {
+            for (int i = 1; i < n - 2; i+=2) {
                 setBranchTarget(b.context(), bodies().get(i), new BranchTarget(null, blocks.get(i + 2)));
             }
 
-            for (int i = 0; i < bodies().size(); i++) {
+            for (int i = 0; i < n; i++) {
                 boolean isLabelBody = i % 2 == 0;
                 Block.Builder curr = blocks.get(i);
                 if (isLabelBody) {
                     Block.Builder expression = blocks.get(i + 1);
-                    boolean isDefaultLabel = i == blocks.size() - 2;
-                    Block.Builder nextLabel = isDefaultLabel ? null : blocks.get(i + 2);
+                    boolean isLastLabel = i == n - 2;
+                    Block.Builder nextLabel = isLastLabel ? null : blocks.get(i + 2);
                     curr.transformBody(bodies().get(i), List.of(selectorExpression), opT.andThen((block, op) -> {
                         switch (op) {
                             case YieldOp yop -> {
-                                if (isDefaultLabel) {
+                                if (isLastLabel) {
                                     block.op(branch(expression.successor()));
                                 } else {
                                     block.op(conditionalBranch(

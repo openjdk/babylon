@@ -46,6 +46,7 @@ import java.lang.runtime.CodeReflection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -116,27 +117,27 @@ public class TestBytecode {
 
     @CodeReflection
     static int intBitOps(int i, int j, int k) {
-        return i & j | k ^ j;
+        return ~(i & j | k ^ j);
     }
 
     @CodeReflection
     static byte byteBitOps(byte i, byte j, byte k) {
-        return (byte) (i & j | k ^ j);
+        return (byte) ~(i & j | k ^ j);
     }
 
     @CodeReflection
     static short shortBitOps(short i, short j, short k) {
-        return (short) (i & j | k ^ j);
+        return (short) ~(i & j | k ^ j);
     }
 
     @CodeReflection
     static char charBitOps(char i, char j, char k) {
-        return (char) (i & j | k ^ j);
+        return (char) ~(i & j | k ^ j);
     }
 
     @CodeReflection
     static long longBitOps(long i, long j, long k) {
-        return i & j | k ^ j;
+        return ~(i & j | k ^ j);
     }
 
     @CodeReflection
@@ -240,6 +241,14 @@ public class TestBytecode {
     }
 
     @CodeReflection
+    static int objectsCompare(Boolean b1, Boolean b2, Boolean b3) {
+        Object a = b1;
+        Object b = b2;
+        Object c = b3;
+        return a == b ? (a != c ? 1 : 2) : (b != c ? 3 : 4);
+    }
+
+    @CodeReflection
     static int conditionalExpr(int i, int j) {
         return ((i - 1 >= 0) ? i - 1 : j - 1);
     }
@@ -247,6 +256,13 @@ public class TestBytecode {
     @CodeReflection
     static int nestedConditionalExpr(int i, int j) {
         return (i < 2) ? (j < 3) ? i : j : i + j;
+    }
+
+    static final int[] MAP = {0, 1, 2, 3, 4};
+
+    @CodeReflection
+    static int deepStackBranches(boolean a, boolean b) {
+        return MAP[a ? MAP[b ? 1 : 2] : MAP[b ? 3 : 4]];
     }
 
     @CodeReflection
@@ -419,6 +435,21 @@ public class TestBytecode {
         return consume(i, this::instanceMethod);
     }
 
+    static void consume(boolean b, Consumer<Object> requireNonNull) {
+        if (b) {
+            requireNonNull.accept(new Object());
+        } else try {
+            requireNonNull.accept(null);
+            throw new AssertionError("Expectend NPE");
+        } catch (NullPointerException expected) {
+        }
+    }
+
+    @CodeReflection
+    static void nullReturningMethodHandle(boolean b) {
+        consume(b, Objects::requireNonNull);
+    }
+
     @CodeReflection
     static boolean compareLong(long i, long j) {
         return i > j;
@@ -465,7 +496,12 @@ public class TestBytecode {
 
     @CodeReflection
     static String stringConcat(String a, String b) {
-        return a + b;
+        return "a"+ a +"\u0001" + a + "b\u0002c" + b + "\u0001\u0002" + b + "dd";
+    }
+
+    @CodeReflection
+    static String multiTypeConcat(int i, Boolean b, char c, Short s, float f, Double d) {
+        return "i:"+ i +" b:" + b + " c:" + c + " f:" + f + " d:" + d;
     }
 
     @CodeReflection
@@ -474,6 +510,35 @@ public class TestBytecode {
             return i;
         }
         return -i;
+    }
+
+    @CodeReflection
+    static int excHandlerFollowingSplitTable(boolean b) {
+        try {
+            if (b) return 1;
+            else throw new Exception();
+        } catch (Exception ex) {}
+        return 2;
+    }
+
+    @CodeReflection
+    static boolean finallyWithLoop(boolean b) {
+        try {
+            while (b) {
+                if (b)
+                    return false;
+                b = !b;
+            }
+            return true;
+        } finally {
+            b = false;
+        }
+    }
+
+    @CodeReflection
+    static long doubleUseOfOperand(int x) {
+        long piece = x;
+        return piece * piece;
     }
 
     record TestData(Method testMethod) {

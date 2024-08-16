@@ -22,42 +22,40 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.backend;
+package hat.buffer;
 
-import hat.ifacemapper.BoundSchema;
+import hat.Accelerator;
 import hat.ifacemapper.Schema;
 
-import java.lang.reflect.code.*;
-import java.lang.reflect.code.op.ExternalizableOp;
-import java.util.List;
+import java.lang.foreign.MemorySegment;
 
-public class PTXPtrOp extends ExternalizableOp {
-    public String fieldName;
-    public static final String NAME = "ptxPtr";
-    final TypeElement resultType;
-    public BoundSchema<?> boundSchema;
+public interface ChessState extends Buffer {
 
-    PTXPtrOp(TypeElement resultType, String fieldName, List<Value> operands, BoundSchema<?> boundSchema) {
-        super(NAME, operands);
-        this.resultType = resultType;
-        this.fieldName = fieldName;
-        this.boundSchema = boundSchema;
-    }
+    byte array(long idx);
+    void array(long idx, byte i);
 
-    PTXPtrOp(PTXPtrOp that, CopyContext cc) {
-        super(that, cc);
-        this.resultType = that.resultType;
-        this.fieldName = that.fieldName;
-        this.boundSchema = that.boundSchema;
-    }
+    boolean wCanCastle();
+    void wCanCastle(boolean value);
 
-    @Override
-    public PTXPtrOp transform(CopyContext cc, OpTransformer ot) {
-        return new PTXPtrOp(this, cc);
-    }
+    boolean bCanCastle();
+    void bCanCastle(boolean value);
 
-    @Override
-    public TypeElement resultType() {
-        return resultType;
+    boolean wCheck();
+    void wCheck(boolean value);
+
+    boolean bCheck();
+    void bCheck(boolean value);
+
+    int score();
+    void score(int value);
+
+    int turn();
+    void turn(int value);
+
+    Schema<ChessState> schema = Schema.of(ChessState.class, s->s
+            .array("array", 64).fields("wCanCastle", "bCanCastle", "wCheck", "bCheck", "score", "turn"));
+
+    static ChessState create(Accelerator accelerator, int length){
+        return schema.allocate(accelerator, length);
     }
 }

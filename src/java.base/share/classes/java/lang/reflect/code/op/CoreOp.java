@@ -2995,6 +2995,31 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     }
 
     /**
+     * The bitwise complement operation, that can model the Java language unary {@code ~} operator for integral types
+     */
+    @OpFactory.OpDeclaration(ComplOp.NAME)
+    public static final class ComplOp extends UnaryOp {
+        public static final String NAME = "compl";
+
+        public ComplOp(ExternalizedOp opdef) {
+            super(opdef);
+        }
+
+        ComplOp(ComplOp that, CopyContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public ComplOp transform(CopyContext cc, OpTransformer ot) {
+            return new ComplOp(this, cc);
+        }
+
+        ComplOp(Value v) {
+            super(NAME, v);
+        }
+    }
+
+    /**
      * The not operation, that can model the Java language unary {@code !} operator for boolean types
      */
     @OpFactory.OpDeclaration(NotOp.NAME)
@@ -3981,6 +4006,16 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      */
     public static UnaryOp neg(Value v) {
         return new NegOp(v);
+    }
+
+    /**
+     * Creates a bitwise complement operation.
+     *
+     * @param v the operand
+     * @return the bitwise complement operation
+     */
+    public static UnaryOp compl(Value v) {
+        return new ComplOp(v);
     }
 
     /**

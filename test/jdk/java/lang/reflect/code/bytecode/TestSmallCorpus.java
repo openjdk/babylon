@@ -28,12 +28,9 @@ import java.lang.classfile.Instruction;
 import java.lang.classfile.Label;
 import java.lang.classfile.MethodModel;
 import java.lang.classfile.Opcode;
+import java.lang.classfile.components.ClassPrinter;
 import java.lang.classfile.instruction.*;
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.AccessFlag;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.OpTransformer;
-import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.reflect.code.bytecode.BytecodeLift;
 import java.lang.reflect.code.op.CoreOp;
@@ -52,6 +49,7 @@ import org.testng.annotations.Test;
 /*
  * @test
  * @enablePreview
+ * @modules java.base/java.lang.invoke:open
  * @run testng TestSmallCorpus
  */
 public class TestSmallCorpus {
@@ -59,17 +57,27 @@ public class TestSmallCorpus {
     private static final FileSystem JRT = FileSystems.getFileSystem(URI.create("jrt:/"));
     private static final ClassFile CF = ClassFile.of();
     private static final int COLUMN_WIDTH = 150;
+    private static final MethodHandles.Lookup TRUSTED_LOOKUP;
+    static {
+        try {
+            var lf = MethodHandles.Lookup.class.getDeclaredField("IMPL_LOOKUP");
+            lf.setAccessible(true);
+            TRUSTED_LOOKUP = (MethodHandles.Lookup)lf.get(null);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-    private int passed, notMatching;
+    private int stable, unstable;
     private Map<String, Map<String, Integer>> errorStats;
 
     @Ignore
     @Test
     public void testDoubleRoundtripStability() throws Exception {
-        passed = 0;
-        notMatching = 0;
+        stable = 0;
+        unstable = 0;
         errorStats = new LinkedHashMap<>();
-        for (Path p : Files.walk(JRT.getPath("modules/java.base/java"))
+        for (Path p : Files.walk(JRT.getPath("modules/java.base/"))
                 .filter(p -> Files.isRegularFile(p) && p.toString().endsWith(".class"))
                 .toList()) {
             testDoubleRoundtripStability(p);
@@ -84,15 +92,15 @@ public class TestSmallCorpus {
             stats.getValue().entrySet().stream().sorted((e1, e2) -> Integer.compare(e2.getValue(), e1.getValue())).forEach(e -> System.out.println(e.getValue() +"x " + e.getKey() + "\n"));
         }
 
-        // @@@ There is still several failing cases and a lot of errors
-        Assert.assertTrue(passed > 29000, String.format("""
+        // Roundtrip is >90% stable, no exceptions, no verification errors
+        Assert.assertTrue(stable > 59900 && unstable < 5500 && errorStats.isEmpty(), String.format("""
 
-                    passed: %d
-                    not matching: %d
+                    stable: %d
+                    unstable: %d
                     %s
                 """,
-                passed,
-                notMatching,
+                stable,
+                unstable,
                 errorStats.entrySet().stream().map(e -> e.getKey() +
                         " errors: "
                         + e.getValue().values().stream().mapToInt(Integer::intValue).sum()).collect(Collectors.joining("\n    "))
@@ -105,77 +113,72 @@ public class TestSmallCorpus {
             if (originalModel.code().isPresent()) try {
                 CoreOp.FuncOp firstLift = lift(originalModel);
                 try {
-                    CoreOp.FuncOp firstTransform = transform(firstLift);
+                    MethodModel firstModel = lower(firstLift);
+                    verify("first verify", firstModel);
                     try {
-                        MethodModel firstModel = lower(firstTransform);
+                        CoreOp.FuncOp secondLift = lift(firstModel);
                         try {
-                            CoreOp.FuncOp secondLift = lift(firstModel);
-                            try {
-                                CoreOp.FuncOp secondTransform = transform(secondLift);
-                                try {
-                                    MethodModel secondModel = lower(secondTransform);
-
-                                    // testing only methods passing through
-                                    var firstNormalized = normalize(firstModel);
-                                    var secondNormalized = normalize(secondModel);
-                                    if (!firstNormalized.equals(secondNormalized)) {
-                                        notMatching++;
-                                        System.out.println(clm.thisClass().asInternalName() + "::" + originalModel.methodName().stringValue() + originalModel.methodTypeSymbol().displayDescriptor());
-                                        printInColumns(firstLift, secondLift);
-                                        printInColumns(firstTransform, secondTransform);
-                                        printInColumns(firstNormalized, secondNormalized);
-                                        System.out.println();
-                                    } else {
-                                        passed++;
-                                    }
-                                } catch (Exception e) {
-                                    error("second lower", e);
-                                }
-                            } catch (Exception e) {
-                                error("second transform", e);
+                            MethodModel secondModel = lower(secondLift);
+                            verify("second verify", secondModel);
+                            // testing only methods passing through
+                            var firstNormalized = normalize(firstModel);
+                            var secondNormalized = normalize(secondModel);
+                            if (!firstNormalized.equals(secondNormalized)) {
+                                unstable++;
+//                                System.out.println(clm.thisClass().asInternalName() + "::" + originalModel.methodName().stringValue() + originalModel.methodTypeSymbol().displayDescriptor());
+//                                printInColumns(firstLift, secondLift);
+//                                printInColumns(firstNormalized, secondNormalized);
+//                                System.out.println();
+                            } else {
+                                stable++;
                             }
-                        } catch (Exception e) {
-                            error("second lift", e);
+                        } catch (Throwable t) {
+                            error("second lower", t);
                         }
-                    } catch (Exception e) {
-                        error("first lower", e);
+                    } catch (Throwable t) {
+                        error("second lift", t);
                     }
-                } catch (Exception e) {
-                    error("first transform", e);
+                } catch (Throwable t) {
+                    error("first lower", t);
                 }
-            } catch (Exception e) {
-                error("first lift", e);
+            } catch (Throwable t) {
+                error("first lift", t);
             }
         }
     }
-    private static void printInColumns(CoreOp.FuncOp first, CoreOp.FuncOp second) {
-        StringWriter fw = new StringWriter();
-        first.writeTo(fw);
-        StringWriter sw = new StringWriter();
-        second.writeTo(sw);
-        printInColumns(fw.toString().lines().toList(), sw.toString().lines().toList());
-    }
 
-    private static void printInColumns(List<String> first, List<String> second) {
-        System.out.println("-".repeat(COLUMN_WIDTH ) + "--+-" + "-".repeat(COLUMN_WIDTH ));
-        for (int i = 0; i < first.size() || i < second.size(); i++) {
-            String f = i < first.size() ? first.get(i) : "";
-            String s = i < second.size() ? second.get(i) : "";
-            System.out.println(" " + f + (f.length() < COLUMN_WIDTH ? " ".repeat(COLUMN_WIDTH - f.length()) : "") + (f.equals(s) ? " | " : " x ") + s);
+    private void verify(String category, MethodModel model) {
+        for (var e : ClassFile.of().verify(model.parent().get())) {
+            if (!e.getMessage().contains("Illegal call to internal method")) {
+                error(category, e.getMessage());
+            }
         }
     }
+
+//    private static void printInColumns(CoreOp.FuncOp first, CoreOp.FuncOp second) {
+//        StringWriter fw = new StringWriter();
+//        first.writeTo(fw);
+//        StringWriter sw = new StringWriter();
+//        second.writeTo(sw);
+//        printInColumns(fw.toString().lines().toList(), sw.toString().lines().toList());
+//    }
+//
+//    private static void printInColumns(List<String> first, List<String> second) {
+//        System.out.println("-".repeat(COLUMN_WIDTH ) + "--+-" + "-".repeat(COLUMN_WIDTH ));
+//        for (int i = 0; i < first.size() || i < second.size(); i++) {
+//            String f = i < first.size() ? first.get(i) : "";
+//            String s = i < second.size() ? second.get(i) : "";
+//            System.out.println(" " + f + (f.length() < COLUMN_WIDTH ? " ".repeat(COLUMN_WIDTH - f.length()) : "") + (f.equals(s) ? " | " : " x ") + s);
+//        }
+//    }
 
     private static CoreOp.FuncOp lift(MethodModel mm) {
         return BytecodeLift.lift(mm);
     }
 
-    private static CoreOp.FuncOp transform(CoreOp.FuncOp func) {
-        return SSA.transform(func.transform(OpTransformer.LOWERING_TRANSFORMER));
-    }
-
     private static MethodModel lower(CoreOp.FuncOp func) {
         return CF.parse(BytecodeGenerator.generateClassData(
-                MethodHandles.lookup(),
+                TRUSTED_LOOKUP,
                 func)).methods().get(0);
     }
 
@@ -255,10 +258,14 @@ public class TestSmallCorpus {
         return i > 2 ? name.substring(0, i) : name;
     }
 
-    private void error(String category, Exception e) {
+    private void error(String category, Throwable t) {
         StringWriter sw = new StringWriter();
-        e.printStackTrace(new PrintWriter(sw));
+        t.printStackTrace(new PrintWriter(sw));
+        error(category, sw.toString());
+    }
+
+    private void error(String category, String msg) {
         errorStats.computeIfAbsent(category, _ -> new HashMap<>())
-                  .compute(sw.toString(), (_, i) -> i == null ? 1 : i + 1);
+                  .compute(msg, (_, i) -> i == null ? 1 : i + 1);
     }
 }

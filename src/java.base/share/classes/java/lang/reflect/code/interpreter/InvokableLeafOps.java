@@ -51,6 +51,10 @@ final class InvokableLeafOps {
         return -l;
     }
 
+    public static int compl(int l) {
+        return ~l;
+    }
+
     public static int add(int l, int r) {
         return l + r;
     }
@@ -137,6 +141,10 @@ final class InvokableLeafOps {
         return (byte) -l;
     }
 
+    public static byte compl(byte l) {
+        return (byte) ~l;
+    }
+
     public static byte add(byte l, byte r) {
         return (byte) (l + r);
     }
@@ -193,6 +201,10 @@ final class InvokableLeafOps {
 
     public static short neg(short l) {
         return (short) -l;
+    }
+
+    public static short compl(short l) {
+        return (short) ~l;
     }
 
     public static short add(short l, short r) {
@@ -257,6 +269,10 @@ final class InvokableLeafOps {
         return (char) -l;
     }
 
+    public static char compl(char l) {
+        return (char) ~l;
+    }
+
     public static char add(char l, char r) {
         return (char) (l + r);
     }
@@ -317,6 +333,10 @@ final class InvokableLeafOps {
 
     public static long neg(long l) {
         return -l;
+    }
+
+    public static long compl(long l) {
+        return ~l;
     }
 
     public static long add(long l, long r) {

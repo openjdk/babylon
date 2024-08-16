@@ -415,6 +415,47 @@ public class TestSwitchExpressionOp {
         };
     }
 
+    @Test
+    void testUnconditionalPattern() {
+        CoreOp.FuncOp lmodel = lower("unconditionalPattern");
+        String[] args = {"A", "X"};
+        for (String arg : args) {
+            Assert.assertEquals(Interpreter.invoke(lmodel, arg), unconditionalPattern(arg));
+        }
+    }
+
+    @CodeReflection
+    static String unconditionalPattern(String s) {
+        return switch (s) {
+            case "A" -> "A";
+            case Object o -> "default";
+        };
+    }
+
+
+    @Test
+    void testDefaultCaseNotTheLast() {
+        CoreOp.FuncOp lmodel = lower("defaultCaseNotTheLast");
+        String[] args = {"something", "M", "A"};
+        for (String arg : args) {
+            Assert.assertEquals(Interpreter.invoke(lmodel, arg), defaultCaseNotTheLast(arg));
+        }
+    }
+
+    @CodeReflection
+    static String defaultCaseNotTheLast(String s) {
+        return switch (s) {
+            default -> "else";
+            case "M" -> "Mow";
+            case "A" -> "Aow";
+        };
+    }
+
+    // we are not testing switch expr that has no default,
+    // because to test for MatchException we need to set up separate compilation
+    // in compiler tests we are checking that the code model contains a default case that throws MatchException
+    // that should be enough
+
     private static CoreOp.FuncOp lower(String methodName) {
         return lower(getCodeModel(methodName));
     }

@@ -179,7 +179,7 @@ public final class BytecodeGenerator {
                         .map(Value::type).map(BytecodeGenerator::toClassDesc).toArray(ClassDesc[]::new));
         clb.withMethodBody(methodName, mtd, ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC,
                 cb -> cb.transforming(new BranchCompactor(), cob ->
-                    new BytecodeGenerator(lookup, className, capturedValues, new Liveness(iop),
+                    new BytecodeGenerator(lookup, className, capturedValues, TypeKind.from(mtd.returnType()), new Liveness(iop),
                                           iop.body().blocks(), cob, lambdaSink, quotable).generate()));
     }
 
@@ -189,6 +189,7 @@ public final class BytecodeGenerator {
     private final MethodHandles.Lookup lookup;
     private final ClassDesc className;
     private final List<Value> capturedValues;
+    private final TypeKind returnType;
     private final List<Block> blocks;
     private final CodeBuilder cob;
     private final Label[] blockLabels;
@@ -203,6 +204,7 @@ public final class BytecodeGenerator {
     private BytecodeGenerator(MethodHandles.Lookup lookup,
                               ClassDesc className,
                               List<Value> capturedValues,
+                              TypeKind returnType,
                               Liveness liveness,
                               List<Block> blocks,
                               CodeBuilder cob,
@@ -211,6 +213,7 @@ public final class BytecodeGenerator {
         this.lookup = lookup;
         this.className = className;
         this.capturedValues = capturedValues;
+        this.returnType = returnType;
         this.blocks = blocks;
         this.cob = cob;
         this.blockLabels = new Label[blocks.size()];
@@ -240,6 +243,9 @@ public final class BytecodeGenerator {
     }
 
     private Label getLabel(int blockIndex) {
+        if (blockIndex == blockLabels.length) {
+            return cob.endLabel();
+        }
         Label l = blockLabels[blockIndex];
         if (l == null) {
             blockLabels[blockIndex] = l = cob.newLabel();
@@ -346,6 +352,7 @@ public final class BytecodeGenerator {
 
     // This method narrows the first operand inconveniences of some operations
     private static boolean isFirstOperand(Op nextOp, Op.Result opr) {
+        List<Value> values;
         return switch (nextOp) {
             // When there is no next operation
             case null -> false;
@@ -354,16 +361,19 @@ public final class BytecodeGenerator {
                 false;
             // For lambda the effective operands are captured values
             case LambdaOp op ->
-                !op.capturedValues().isEmpty() && op.capturedValues().getFirst() == opr;
+                !(values = op.capturedValues()).isEmpty() && values.getFirst() == opr;
             // Conditional branch may delegate to its binary test operation
             case ConditionalBranchOp op when getConditionForCondBrOp(op) instanceof CoreOp.BinaryTestOp bto ->
                 isFirstOperand(bto, opr);
             // Var store effective first operand is not the first one
             case VarAccessOp.VarStoreOp op ->
                 op.operands().get(1) == opr;
+            // Unconditional branch first target block argument
+            case BranchOp op ->
+                !(values = op.branch().arguments()).isEmpty() && values.getFirst() == opr;
             // regular check of the first operand
             default ->
-                !nextOp.operands().isEmpty() && nextOp.operands().getFirst() == opr;
+                !(values = nextOp.operands()).isEmpty() && values.getFirst() == opr;
         };
     }
 
@@ -462,15 +472,18 @@ public final class BytecodeGenerator {
             int start  = erNode.blocks.nextSetBit(0);
             while (start >= 0) {
                 int end = erNode.blocks.nextClearBit(start);
-                Label startLabel = getLabel(start);
-                Label endLabel = getLabel(end);
-                for (Block.Reference cbr : erNode.ere.catchBlocks()) {
-                    List<Block.Parameter> params = cbr.targetBlock().parameters();
-                    if (!params.isEmpty()) {
-                        JavaType jt = (JavaType) params.get(0).type();
-                        cob.exceptionCatch(startLabel, endLabel, getLabel(cbr), jt.toNominalDescriptor());
-                    } else {
-                        cob.exceptionCatchAll(startLabel, endLabel, getLabel(cbr));
+                // Avoid declaration of empty exception regions
+                if (!(blocks.get(start).firstOp() instanceof ExceptionRegionExit erEx) || erEx.end().targetBlock().index() != end) {
+                    Label startLabel = getLabel(start);
+                    Label endLabel = getLabel(end);
+                    for (Block.Reference cbr : erNode.ere.catchBlocks()) {
+                        List<Block.Parameter> params = cbr.targetBlock().parameters();
+                        if (!params.isEmpty()) {
+                            JavaType jt = (JavaType) params.get(0).type();
+                            cob.exceptionCatch(startLabel, endLabel, getLabel(cbr), jt.toNominalDescriptor());
+                        } else {
+                            cob.exceptionCatchAll(startLabel, endLabel, getLabel(cbr));
+                        }
                     }
                 }
                 start = erNode.blocks.nextSetBit(end);
@@ -552,8 +565,7 @@ public final class BytecodeGenerator {
                     case ConvOp op -> {
                         Value first = op.operands().getFirst();
                         processOperand(first);
-                        TypeKind tk = toTypeKind(first.type());
-                        if (tk != rvt) conversion(cob, tk, rvt);
+                        cob.conversion(toTypeKind(first.type()), rvt);
                         push(op.result());
                     }
                     case NegOp op -> {
@@ -563,6 +575,22 @@ public final class BytecodeGenerator {
                             case LongType -> cob.lneg();
                             case FloatType -> cob.fneg();
                             case DoubleType -> cob.dneg();
+                            default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
+                        }
+                        push(op.result());
+                    }
+                    case ComplOp op -> {
+                        // Lower to x ^ -1
+                        processFirstOperand(op);
+                        switch (rvt) {
+                            case IntType, BooleanType, ByteType, ShortType, CharType -> {
+                                cob.iconst_m1();
+                                cob.ixor();
+                            }
+                            case LongType -> {
+                                cob.ldc(-1L);
+                                cob.lxor();
+                            }
                             default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
                         }
                         push(op.result());
@@ -658,7 +686,7 @@ public final class BytecodeGenerator {
                         processOperands(op);
                         adjustRightTypeToInt(op);
                         switch (rvt) { //this can be moved to CodeBuilder::shl(TypeKind)
-                            case IntType -> cob.ishl();
+                            case ByteType, CharType, IntType, ShortType -> cob.ishl();
                             case LongType -> cob.lshl();
                             default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
                         }
@@ -691,7 +719,7 @@ public final class BytecodeGenerator {
                     }
                     case ArrayAccessOp.ArrayStoreOp op -> {
                         processOperands(op);
-                        cob.arrayStore(toTypeKind(op.operands().get(2).type()));
+                        cob.arrayStore(toTypeKind(((ArrayType)op.operands().getFirst().type()).componentType()));
                         push(op.result());
                     }
                     case ArrayLengthOp op -> {
@@ -757,6 +785,7 @@ public final class BytecodeGenerator {
                             }
                         }
                         MethodRef md = op.invokeDescriptor();
+                        MethodTypeDesc mDesc = MethodRef.toNominalDescriptor(md.type());
                         cob.invoke(
                                 switch (descKind) {
                                     case STATIC, INTERFACE_STATIC   -> Opcode.INVOKESTATIC;
@@ -769,12 +798,16 @@ public final class BytecodeGenerator {
                                 },
                                 ((JavaType) md.refType()).toNominalDescriptor(),
                                 md.name(),
-                                MethodRef.toNominalDescriptor(md.type()),
+                                mDesc,
                                 switch (descKind) {
                                     case INTERFACE_STATIC, INTERFACE_VIRTUAL, INTERFACE_SPECIAL -> true;
                                     default -> false;
                                 });
-
+                        ClassDesc ret = toClassDesc(op.resultType());
+                        if (ret.isClassOrInterface() && !ret.equals(mDesc.returnType())) {
+                            // Explicit cast if method return type differs
+                            cob.checkcast(ret);
+                        }
                         push(op.result());
                     }
                     case FieldAccessOp.FieldLoadOp op -> {
@@ -871,7 +904,9 @@ public final class BytecodeGenerator {
                     }
                     case ConcatOp op -> {
                         processOperands(op);
-                        cob.invokedynamic(DynamicCallSiteDesc.of(DMHD_STRING_CONCAT, MethodTypeDesc.of(CD_String, CD_String, CD_String)));
+                        cob.invokedynamic(DynamicCallSiteDesc.of(DMHD_STRING_CONCAT, MethodTypeDesc.of(CD_String,
+                                toClassDesc(op.operands().get(0).type()),
+                                toClassDesc(op.operands().get(1).type()))));
                         push(op.result());
                     }
                     default ->
@@ -881,13 +916,11 @@ public final class BytecodeGenerator {
             Op top = b.terminatingOp();
             switch (top) {
                 case CoreOp.ReturnOp op -> {
-                    Value a = op.returnValue();
-                    if (a == null) {
-                        cob.return_();
-                    } else {
+                    if (returnType != TypeKind.VoidType) {
                         processFirstOperand(op);
-                        cob.return_(toTypeKind(a.type()));
+                        // @@@ box, unbox, cast here ?
                     }
+                    cob.return_(returnType);
                 }
                 case ThrowOp op -> {
                     processFirstOperand(op);
@@ -920,81 +953,21 @@ public final class BytecodeGenerator {
         }
     }
 
-    // @@@ this method will apperar in CodeBuilder with next merge/update from master
-    static CodeBuilder conversion(CodeBuilder cob, TypeKind fromType, TypeKind toType) {
-        return switch (fromType) {
-            case IntType, ByteType, CharType, ShortType, BooleanType ->
-                    switch (toType) {
-                        case IntType -> cob;
-                        case LongType -> cob.i2l();
-                        case DoubleType -> cob.i2d();
-                        case FloatType -> cob.i2f();
-                        case ByteType -> cob.i2b();
-                        case CharType -> cob.i2c();
-                        case ShortType -> cob.i2s();
-                        case BooleanType -> cob.iconst_1().iand();
-                        case VoidType, ReferenceType ->
-                            throw new IllegalArgumentException(String.format("convert %s -> %s", fromType, toType));
-                    };
-            case LongType ->
-                    switch (toType) {
-                        case IntType -> cob.l2i();
-                        case LongType -> cob;
-                        case DoubleType -> cob.l2d();
-                        case FloatType -> cob.l2f();
-                        case ByteType -> cob.l2i().i2b();
-                        case CharType -> cob.l2i().i2c();
-                        case ShortType -> cob.l2i().i2s();
-                        case BooleanType -> cob.l2i().iconst_1().iand();
-                        case VoidType, ReferenceType ->
-                            throw new IllegalArgumentException(String.format("convert %s -> %s", fromType, toType));
-                    };
-            case DoubleType ->
-                    switch (toType) {
-                        case IntType -> cob.d2i();
-                        case LongType -> cob.d2l();
-                        case DoubleType -> cob;
-                        case FloatType -> cob.d2f();
-                        case ByteType -> cob.d2i().i2b();
-                        case CharType -> cob.d2i().i2c();
-                        case ShortType -> cob.d2i().i2s();
-                        case BooleanType -> cob.d2i().iconst_1().iand();
-                        case VoidType, ReferenceType ->
-                            throw new IllegalArgumentException(String.format("convert %s -> %s", fromType, toType));
-                    };
-            case FloatType ->
-                    switch (toType) {
-                        case IntType -> cob.f2i();
-                        case LongType -> cob.f2l();
-                        case DoubleType -> cob.f2d();
-                        case FloatType -> cob;
-                        case ByteType -> cob.f2i().i2b();
-                        case CharType -> cob.f2i().i2c();
-                        case ShortType -> cob.f2i().i2s();
-                        case BooleanType -> cob.f2i().iconst_1().iand();
-                        case VoidType, ReferenceType ->
-                            throw new IllegalArgumentException(String.format("convert %s -> %s", fromType, toType));
-                    };
-            case VoidType, ReferenceType ->
-                throw new IllegalArgumentException(String.format("convert %s -> %s", fromType, toType));
-        };
-    }
-
-    private boolean inBlockArgs(Op.Result res) {
-        // Check if used in successor
-        for (Block.Reference s : res.declaringBlock().successors()) {
-            if (s.arguments().contains(res)) {
-                return true;
-            }
-        }
-        return false;
+    // Checks if the Op.Result is used more than once in operands and block arguments
+    private static boolean moreThanOneUse(Op.Result res) {
+        return res.uses().stream().flatMap(u ->
+                Stream.concat(
+                        u.op().operands().stream(),
+                        u.op().successors().stream()
+                                .flatMap(r -> r.arguments().stream())))
+                .filter(res::equals).limit(2).count() > 1;
     }
 
     private void push(Op.Result res) {
         assert oprOnStack == null;
         if (res.type().equals(JavaType.VOID)) return;
         if (isNextUse(res)) {
-            if (res.uses().size() > 1 || inBlockArgs(res)) {
+            if (moreThanOneUse(res)) {
                 switch (toTypeKind(res.type()).slotSize()) {
                     case 1 -> cob.dup();
                     case 2 -> cob.dup2();
@@ -1157,6 +1130,7 @@ public final class BytecodeGenerator {
         List<Block.Parameter> bargs = ref.targetBlock().parameters();
         // First push successor arguments on the stack, then pop and assign
         // so as not to overwrite slots that are reused slots at different argument positions
+        boolean jumpingToCatchBlock = catchingBlocks.get(ref.targetBlock().index());
         for (int i = 0; i < bargs.size(); i++) {
             Block.Parameter barg = bargs.get(i);
             Value value = sargs.get(i);
@@ -1166,7 +1140,9 @@ public final class BytecodeGenerator {
                 } else {
                     load(value);
                 }
-                storeIfUsed(barg);
+                if (!jumpingToCatchBlock) { // Catch block expects the exception parameter on stack
+                    storeIfUsed(barg);
+                }
             }
         }
     }
