@@ -197,7 +197,7 @@ public final class BytecodeGenerator {
     private final BitSet[] blocksRegionStack;
     private final BitSet blocksToVisit, catchingBlocks;
     private final Map<Value, Slot> slots;
-    private final Map<Value, Value> valueMap;
+    private final Map<Block.Parameter, Value> singlePredecessorsValues;
     private final List<LambdaOp> lambdaSink;
     private final BitSet quotable;
     private Op.Result oprOnStack;
@@ -223,7 +223,7 @@ public final class BytecodeGenerator {
         this.blocksToVisit = new BitSet(blocks.size());
         this.catchingBlocks = new BitSet();
         this.slots = new HashMap<>();
-        this.valueMap = new HashMap<>();
+        this.singlePredecessorsValues = new HashMap<>();
         this.lambdaSink = lambdaSink;
         this.quotable = quotable;
     }
@@ -276,7 +276,7 @@ public final class BytecodeGenerator {
     }
 
     private void load(Value v) {
-        v = valueMap.getOrDefault(v, v);
+        v = singlePredecessorsValues.getOrDefault(v, v);
         if (v instanceof Op.Result or &&
                 or.op() instanceof CoreOp.ConstantOp constantOp &&
                 !constantOp.resultType().equals(JavaType.J_L_CLASS)) {
@@ -1121,7 +1121,7 @@ public final class BytecodeGenerator {
             } else {
                 load(value);
             }
-        } else if (target.predecessors().size() > (target.isEntryBlock() ? 0 : 1)) {
+        } else if (target.predecessors().size() > 1) {
             List<Block.Parameter> bargs = target.parameters();
             // First push successor arguments on the stack, then pop and assign
             // so as not to overwrite slots that are reused slots at different argument positions
@@ -1147,7 +1147,7 @@ public final class BytecodeGenerator {
                     oprOnStack = null;
                 }
                 // Map slot of the block argument to slot of the value
-                valueMap.put(bargs.get(i), valueMap.getOrDefault(value, value));
+                singlePredecessorsValues.put(bargs.get(i), singlePredecessorsValues.getOrDefault(value, value));
             }
         }
     }
