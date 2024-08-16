@@ -4,6 +4,7 @@ import org.testng.annotations.Test;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.StringWriter;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.interpreter.Interpreter;
@@ -125,6 +126,105 @@ public class TestSwitchStatementOp {
             case 8 -> throw new IllegalArgumentException();
             case 9 -> r += "Nine";
             default -> r += "An integer";
+        }
+        return r;
+    }
+
+    @Test
+    void testCaseConstantNullLabel() {
+        CoreOp.FuncOp lmodel = lower("caseConstantNullLabel");
+        String[] args = {null, "non null"};
+        for (String arg : args) {
+            Assert.assertEquals(Interpreter.invoke(lmodel, arg), caseConstantNullLabel(arg));
+        }
+    }
+
+    @CodeReflection
+    private static String caseConstantNullLabel(String s) {
+        String r = "";
+        switch (s) {
+            case null -> r += "null";
+            default -> r += "non null";
+        }
+        return r;
+    }
+
+    @Test
+    void testCaseConstantFallThrough() {
+        CoreOp.FuncOp lmodel = lower("caseConstantFallThrough");
+        char[] args = {'A', 'B', 'C'};
+        for (char arg : args) {
+            Assert.assertEquals(Interpreter.invoke(lmodel, arg), caseConstantFallThrough(arg));
+        }
+    }
+
+    @CodeReflection
+    private static String caseConstantFallThrough(char c) {
+        String r = "";
+        switch (c) {
+            case 'A':
+            case 'B':
+                r += "A or B";
+                break;
+            default:
+                r += "Neither A nor B";
+        }
+        return r;
+    }
+
+    @Test
+    void testCaseConstantEnum() {
+        CoreOp.FuncOp lmodel = lower("caseConstantEnum");
+        for (Day day : Day.values()) {
+            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lmodel, day), caseConstantEnum(day));
+        }
+    }
+
+    enum Day {
+        MON, TUE, WED, THU, FRI, SAT, SUN
+    }
+    @CodeReflection
+    private static String caseConstantEnum(Day d) {
+        String r = "";
+        switch (d) {
+            case MON, FRI, SUN -> r += 6;
+            case TUE -> r += 7;
+            case THU, SAT -> r += 8;
+            case WED -> r += 9;
+        }
+        return r;
+    }
+
+    @Test
+    void testCaseConstantOtherKindsOfExpr() {
+        CoreOp.FuncOp lmodel = lower("caseConstantOtherKindsOfExpr");
+        for (int i = 0; i < 14; i++) {
+            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lmodel, i), caseConstantOtherKindsOfExpr(i));
+        }
+    }
+
+    static class Constants {
+        static final int c1 = 12;
+    }
+    @CodeReflection
+    private static String caseConstantOtherKindsOfExpr(int i) {
+        String r = "";
+        final int eleven = 11;
+        switch (i) {
+            case 1 & 0xF -> r += 1;
+            case 4>>1 -> r += "2";
+            case (int) 3L -> r += 3;
+            case 2<<1 -> r += 4;
+            case 10 / 2 -> r += 5;
+            case 12 - 6 -> r += 6;
+            case 3 + 4 -> r += 7;
+            case 2 * 2 * 2 -> r += 8;
+            case 8 | 1 -> r += 9;
+            case (10) -> r += 10;
+            case eleven -> r += 11;
+            case Constants.c1 -> r += Constants.c1;
+            case 1 > 0 ? 13 : 133 -> r += 13;
+            default -> r += "an int";
         }
         return r;
     }
