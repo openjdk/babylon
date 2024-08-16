@@ -197,6 +197,7 @@ public final class BytecodeGenerator {
     private final BitSet[] blocksRegionStack;
     private final BitSet blocksToVisit, catchingBlocks;
     private final Map<Value, Slot> slots;
+    private final Map<Block.Parameter, Value> singlePredecessorsValues;
     private final List<LambdaOp> lambdaSink;
     private final BitSet quotable;
     private Op.Result oprOnStack;
@@ -222,6 +223,7 @@ public final class BytecodeGenerator {
         this.blocksToVisit = new BitSet(blocks.size());
         this.catchingBlocks = new BitSet();
         this.slots = new HashMap<>();
+        this.singlePredecessorsValues = new HashMap<>();
         this.lambdaSink = lambdaSink;
         this.quotable = quotable;
     }
@@ -273,7 +275,8 @@ public final class BytecodeGenerator {
         }
     }
 
-    private Slot load(Value v) {
+    private void load(Value v) {
+        v = singlePredecessorsValues.getOrDefault(v, v);
         if (v instanceof Op.Result or &&
                 or.op() instanceof CoreOp.ConstantOp constantOp &&
                 !constantOp.resultType().equals(JavaType.J_L_CLASS)) {
@@ -288,11 +291,9 @@ public final class BytecodeGenerator {
                 case Constable c -> c.describeConstable().orElseThrow();
                 default -> throw new IllegalArgumentException("Unexpected constant value: " + constantOp.value());
             });
-            return null;
         } else {
             Slot slot = slots.get(v);
             cob.loadLocal(slot.typeKind(), slot.slot());
-            return slot;
         }
     }
 
@@ -1126,23 +1127,43 @@ public final class BytecodeGenerator {
     }
 
     private void assignBlockArguments(Block.Reference ref) {
+        Block target = ref.targetBlock();
         List<Value> sargs = ref.arguments();
-        List<Block.Parameter> bargs = ref.targetBlock().parameters();
-        // First push successor arguments on the stack, then pop and assign
-        // so as not to overwrite slots that are reused slots at different argument positions
-        boolean jumpingToCatchBlock = catchingBlocks.get(ref.targetBlock().index());
-        for (int i = 0; i < bargs.size(); i++) {
-            Block.Parameter barg = bargs.get(i);
-            Value value = sargs.get(i);
-            if (!barg.uses().isEmpty() && !barg.equals(value)) {
-                if (oprOnStack == value) {
-                    oprOnStack = null;
-                } else {
-                    load(value);
-                }
-                if (!jumpingToCatchBlock) { // Catch block expects the exception parameter on stack
+        if (catchingBlocks.get(target.index())) {
+            // Jumping to an exception handler, exception parameter is expected on stack
+            Value value = sargs.getFirst();
+            if (oprOnStack == value) {
+                oprOnStack = null;
+            } else {
+                load(value);
+            }
+        } else if (target.predecessors().size() > 1) {
+            List<Block.Parameter> bargs = target.parameters();
+            // First push successor arguments on the stack, then pop and assign
+            // so as not to overwrite slots that are reused slots at different argument positions
+            for (int i = 0; i < bargs.size(); i++) {
+                Block.Parameter barg = bargs.get(i);
+                Value value = sargs.get(i);
+                if (!barg.uses().isEmpty() && !barg.equals(value)) {
+                    if (oprOnStack == value) {
+                        oprOnStack = null;
+                    } else {
+                        load(value);
+                    }
                     storeIfUsed(barg);
                 }
+            }
+        } else {
+            // Single-predecessor block can just map parameter slots
+            List<Block.Parameter> bargs = ref.targetBlock().parameters();
+            for (int i = 0; i < bargs.size(); i++) {
+                Value value = sargs.get(i);
+                if (oprOnStack == value) {
+                    storeIfUsed(oprOnStack);
+                    oprOnStack = null;
+                }
+                // Map slot of the block argument to slot of the value
+                singlePredecessorsValues.put(bargs.get(i), singlePredecessorsValues.getOrDefault(value, value));
             }
         }
     }

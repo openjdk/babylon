@@ -73,7 +73,7 @@ public class TestSmallCorpus {
 
     @Ignore
     @Test
-    public void testDoubleRoundtripStability() throws Exception {
+    public void testTripleRoundtripStability() throws Exception {
         stable = 0;
         unstable = 0;
         errorStats = new LinkedHashMap<>();
@@ -92,8 +92,8 @@ public class TestSmallCorpus {
             stats.getValue().entrySet().stream().sorted((e1, e2) -> Integer.compare(e2.getValue(), e1.getValue())).forEach(e -> System.out.println(e.getValue() +"x " + e.getKey() + "\n"));
         }
 
-        // Roundtrip is >90% stable, no exceptions, no verification errors
-        Assert.assertTrue(stable > 59900 && unstable < 5500 && errorStats.isEmpty(), String.format("""
+        // Roundtrip is >99% stable, no exceptions, no verification errors
+        Assert.assertTrue(stable > 65200 && unstable < 140 && errorStats.isEmpty(), String.format("""
 
                     stable: %d
                     unstable: %d
@@ -120,17 +120,28 @@ public class TestSmallCorpus {
                         try {
                             MethodModel secondModel = lower(secondLift);
                             verify("second verify", secondModel);
-                            // testing only methods passing through
-                            var firstNormalized = normalize(firstModel);
-                            var secondNormalized = normalize(secondModel);
-                            if (!firstNormalized.equals(secondNormalized)) {
-                                unstable++;
-//                                System.out.println(clm.thisClass().asInternalName() + "::" + originalModel.methodName().stringValue() + originalModel.methodTypeSymbol().displayDescriptor());
-//                                printInColumns(firstLift, secondLift);
-//                                printInColumns(firstNormalized, secondNormalized);
-//                                System.out.println();
-                            } else {
-                                stable++;
+                            try {
+                                CoreOp.FuncOp thirdLift = lift(secondModel);
+                                try {
+                                    MethodModel thirdModel = lower(thirdLift);
+                                    verify("third verify", thirdModel);
+                                    // testing only methods passing through
+                                    var secondNormalized = normalize(secondModel);
+                                    var thirdNormalized = normalize(thirdModel);
+                                    if (!thirdNormalized.equals(secondNormalized)) {
+                                        unstable++;
+                                        System.out.println(clm.thisClass().asInternalName() + "::" + originalModel.methodName().stringValue() + originalModel.methodTypeSymbol().displayDescriptor());
+                                        printInColumns(secondLift, thirdLift);
+                                        printInColumns(secondNormalized, thirdNormalized);
+                                        System.out.println();
+                                    } else {
+                                        stable++;
+                                    }
+                                } catch (Throwable t) {
+                                    error("third lower", t);
+                                }
+                            } catch (Throwable t) {
+                                error("third lift", t);
                             }
                         } catch (Throwable t) {
                             error("second lower", t);
@@ -155,22 +166,22 @@ public class TestSmallCorpus {
         }
     }
 
-//    private static void printInColumns(CoreOp.FuncOp first, CoreOp.FuncOp second) {
-//        StringWriter fw = new StringWriter();
-//        first.writeTo(fw);
-//        StringWriter sw = new StringWriter();
-//        second.writeTo(sw);
-//        printInColumns(fw.toString().lines().toList(), sw.toString().lines().toList());
-//    }
-//
-//    private static void printInColumns(List<String> first, List<String> second) {
-//        System.out.println("-".repeat(COLUMN_WIDTH ) + "--+-" + "-".repeat(COLUMN_WIDTH ));
-//        for (int i = 0; i < first.size() || i < second.size(); i++) {
-//            String f = i < first.size() ? first.get(i) : "";
-//            String s = i < second.size() ? second.get(i) : "";
-//            System.out.println(" " + f + (f.length() < COLUMN_WIDTH ? " ".repeat(COLUMN_WIDTH - f.length()) : "") + (f.equals(s) ? " | " : " x ") + s);
-//        }
-//    }
+    private static void printInColumns(CoreOp.FuncOp first, CoreOp.FuncOp second) {
+        StringWriter fw = new StringWriter();
+        first.writeTo(fw);
+        StringWriter sw = new StringWriter();
+        second.writeTo(sw);
+        printInColumns(fw.toString().lines().toList(), sw.toString().lines().toList());
+    }
+
+    private static void printInColumns(List<String> first, List<String> second) {
+        System.out.println("-".repeat(COLUMN_WIDTH ) + "--+-" + "-".repeat(COLUMN_WIDTH ));
+        for (int i = 0; i < first.size() || i < second.size(); i++) {
+            String f = i < first.size() ? first.get(i) : "";
+            String s = i < second.size() ? second.get(i) : "";
+            System.out.println(" " + f + (f.length() < COLUMN_WIDTH ? " ".repeat(COLUMN_WIDTH - f.length()) : "") + (f.equals(s) ? " | " : " x ") + s);
+        }
+    }
 
     private static CoreOp.FuncOp lift(MethodModel mm) {
         return BytecodeLift.lift(mm);
