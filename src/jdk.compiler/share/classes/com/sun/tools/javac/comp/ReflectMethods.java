@@ -1817,17 +1817,7 @@ public class ReflectMethods extends TreeTranslator {
                 };
             }
 
-            // if enhanced switch and no default label
-            // enhanced: target type not byte, char short, int, String, or, has case pattern or case null
-            boolean enhancedSw = !List.of(JavaType.BYTE, JavaType.CHAR, JavaType.SHORT, JavaType.INT,
-                    JavaType.J_L_BYTE, JavaType.J_L_CHARACTER, JavaType.J_L_SHORT, JavaType.J_L_INTEGER,
-                    JavaType.J_L_STRING).contains(typeToTypeElement(tree.selector.type));
-            enhancedSw = enhancedSw && !Flags.isEnum(tree.selector.type.tsym);
-            enhancedSw = enhancedSw || tree.patternSwitch;
-            enhancedSw = enhancedSw || tree.cases.stream().anyMatch(c -> c.labels.stream().anyMatch(l -> {
-                return l instanceof JCTree.JCConstantCaseLabel ccl && ccl.expr instanceof JCLiteral literal && literal.value == null;
-            }));
-            if (enhancedSw && !tree.hasUnconditionalPattern) {
+            if (tree.patternSwitch && !tree.hasUnconditionalPattern) {
                 // label
                 pushBody(tree, FunctionType.VOID);
                 append(CoreOp._yield());
