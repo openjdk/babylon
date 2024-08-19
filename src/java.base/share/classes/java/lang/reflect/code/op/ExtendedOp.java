@@ -112,7 +112,6 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
 
             // No label
             // Get innermost enclosing loop operation
-            // @@@ expand to support innermost enclosing switch operation
             Op op = this;
             Body b;
             do {
@@ -122,8 +121,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                     throw new IllegalStateException("No enclosing loop");
                 }
             } while (!(op instanceof Op.Loop || op instanceof JavaSwitchStatementOp));
-            // } while (!(op instanceof Op.Loop lop));
-            // error: variable lop might not have been initialized
+
             if (op instanceof Op.Loop lop) {
                 return lop.loopBody() == b ? op : null;
             } else if (op instanceof JavaSwitchStatementOp swStat) {
