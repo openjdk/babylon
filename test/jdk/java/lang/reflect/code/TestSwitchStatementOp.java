@@ -11,7 +11,7 @@ import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.writer.OpWriter;
 import java.lang.runtime.CodeReflection;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Stream;
 
 /*
@@ -286,6 +286,202 @@ public class TestSwitchStatementOp {
         switch (a) {
             case 1 -> r += "1";
             case 2 -> r += 2;
+        }
+        return r;
+    }
+
+    // no reason to test enhanced switch statement that has no default
+    // because we can't test for MatchException without separate compilation
+
+    @Test
+    void testEnhancedSwStatUnconditionalPattern() {
+        CoreOp.FuncOp lmodel = lower("enhancedSwStatUnconditionalPattern");
+        String[] args = {"A", "B"};
+        for (String arg : args) {
+            Assert.assertEquals(Interpreter.invoke(lmodel, arg), enhancedSwStatUnconditionalPattern(arg));
+        }
+    }
+
+    @CodeReflection
+    static String enhancedSwStatUnconditionalPattern(String s) {
+        String r = "";
+        switch (s) {
+            case "A" -> r += "A";
+            case Object o -> r += "obj";
+        }
+        return r;
+    }
+
+    @Test
+    void testCasePatternBehaviorIsSyntaxIndependent() {
+        CoreOp.FuncOp ruleExpression = lower("casePatternRuleExpression");
+        CoreOp.FuncOp ruleBlock = lower("casePatternRuleBlock");
+        CoreOp.FuncOp statement = lower("casePatternStatement");
+
+        Object[] args = {1, "2", 3L};
+
+        for (Object arg : args) {
+            Assert.assertEquals(Interpreter.invoke(ruleExpression, arg), Interpreter.invoke(ruleBlock, arg));
+            Assert.assertEquals(Interpreter.invoke(ruleExpression, arg), Interpreter.invoke(statement, arg));
+        }
+    }
+
+    @CodeReflection
+    private static String casePatternRuleExpression(Object o) {
+        String r = "";
+        switch (o) {
+            case Integer i -> r += "integer";
+            case String s -> r+= "string";
+            default -> r+= "else";
+        }
+        return r;
+    }
+
+    @CodeReflection
+    private static String casePatternRuleBlock(Object o) {
+        String r = "";
+        switch (o) {
+            case Integer i -> {
+                r += "integer";
+            }
+            case String s -> {
+                r += "string";
+            }
+            default -> {
+                r += "else";
+            }
+        }
+        return r;
+    }
+
+    @CodeReflection
+    private static String casePatternStatement(Object o) {
+        String r = "";
+        switch (o) {
+            case Integer i:
+                r += "integer";
+                break;
+            case String s:
+                r += "string";
+                break;
+            default:
+                r += "else";
+        }
+        return r;
+    }
+
+    @Test
+    void testCasePatternThrow() {
+        CoreOp.FuncOp lmodel = lower("casePatternThrow");
+
+        Object[] args = {Byte.MAX_VALUE, Short.MIN_VALUE, 0, 1L, 11f, 22d};
+        for (Object arg : args) {
+            Assert.assertThrows(IllegalArgumentException.class, () -> Interpreter.invoke(lmodel, arg));
+        }
+
+        Object[] args2 = {"abc", List.of()};
+        for (Object arg : args2) {
+            Assert.assertEquals(Interpreter.invoke(lmodel, arg), casePatternThrow(arg));
+        }
+    }
+
+    @CodeReflection
+    private static String casePatternThrow(Object o) {
+        String r = "";
+        switch (o) {
+            case Number n -> throw new IllegalArgumentException();
+            case String s -> r += "a string";
+            default -> r += o.getClass().getName();
+        }
+        return r;
+    }
+
+    // @@@ when multi patterns is supported, we will test it
+
+    @Test
+    void testCasePatternWithCaseConstant() {
+        CoreOp.FuncOp lmodel = lower("casePatternWithCaseConstant");
+        int[] args = {42, 43, -44, 0};
+        for (int arg : args) {
+            Assert.assertEquals(Interpreter.invoke(lmodel, arg), casePatternWithCaseConstant(arg));
+        }
+    }
+
+    @CodeReflection
+    static String casePatternWithCaseConstant(Integer a) {
+        String r = "";
+        switch (a) {
+            case 42 -> r += "forty two";
+            // @@@ case int will not match, because of the way InstanceOfOp is interpreted
+            case Integer i when i > 0 -> r += "positive int";
+            case Integer i when i < 0 -> r += "negative int";
+            default -> r += "zero";
+        }
+        return r;
+    }
+
+    @Test
+    void testCaseTypePattern() {
+        CoreOp.FuncOp lmodel = lower("caseTypePattern");
+        Object[] args = {"str", new ArrayList<>(), new int[]{}, new Stack[][]{}, new Collection[][][]{}, 8, 'x'};
+        for (Object arg : args) {
+            Assert.assertEquals(Interpreter.invoke(lmodel, arg), caseTypePattern(arg));
+        }
+    }
+
+    @CodeReflection
+    static String caseTypePattern(Object o) {
+        String r = "";
+        switch (o) {
+            case String _ -> r+= "String"; // class
+            case RandomAccess _ -> r+= "RandomAccess"; // interface
+            case int[] _ -> r+= "int[]"; // array primitive
+            case Stack[][] _ -> r+= "Stack[][]"; // array class
+            case Collection[][][] _ -> r+= "Collection[][][]"; // array interface
+            case final Number n -> r+= "Number"; // final modifier
+            default -> r+= "something else";
+        }
+        return r;
+    }
+
+    @Test
+    void testCaseRecordPattern() {
+        // @@@ new R(null) must match the pattern R(Number c), but it doesn't
+        // @@@ test with generic record
+        CoreOp.FuncOp lmodel = lower("caseRecordPattern");
+        Object[] args = {new R(8), new R(1.0), new R(2L), "abc"};
+        for (Object arg : args) {
+            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lmodel, arg), caseRecordPattern(arg));
+        }
+    }
+
+    record R(Number n) {}
+    @CodeReflection
+    static String caseRecordPattern(Object o) {
+        String r = "";
+        switch (o) {
+            case R(Number n) -> r += "R(_)";
+            default -> r+= "else";
+        }
+        return r;
+    }
+
+    @Test
+    void testCasePatternGuard() {
+        CoreOp.FuncOp lmodel = lower("casePatternGuard");
+        Object[] args = {"c++", "java", new R(8), new R(2L), new R(3f), new R(4.0)};
+        for (Object arg : args) {
+            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lmodel, arg), casePatternGuard(arg));
+        }
+    }
+
+    @CodeReflection
+    static String casePatternGuard(Object obj) {
+        String r = "";
+        switch (obj) {
+            case String s when s.length() > 3 -> r += "str with length > %d".formatted(s.length());
+            case R(Number n) when n.getClass().equals(Double.class) -> r += "R(Double)";
+            default -> r += "else";
         }
         return r;
     }
