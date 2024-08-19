@@ -122,14 +122,11 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 }
             } while (!(op instanceof Op.Loop || op instanceof JavaSwitchStatementOp));
 
-            if (op instanceof Op.Loop lop) {
-                return lop.loopBody() == b ? op : null;
-            } else if (op instanceof JavaSwitchStatementOp swStat) {
-                return swStat.bodies().contains(b) ? op : null;
-            } else {
-                // @@@ can't happen (at least for now)
-                throw new IllegalStateException();
-            }
+            return switch (op) {
+                case Op.Loop lop -> lop.loopBody() == b ? op : null;
+                case JavaSwitchStatementOp swStat -> swStat.bodies().contains(b) ? op : null;
+                default -> throw new IllegalStateException();
+            };
         }
 
         boolean isUnlabeled() {
