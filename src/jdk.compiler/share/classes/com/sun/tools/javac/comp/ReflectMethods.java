@@ -841,6 +841,7 @@ public class ReflectMethods extends TreeTranslator {
                     // Arithmetic operations
                     case PLUS_ASG -> {
                         if (tree.operator.opcode == ByteCodes.string_add) {
+                            // @@@ avoid boxing of rhs when it's a primitive value
                             yield append(CoreOp.concat(lhs, rhs));
                         } else {
                             yield append(CoreOp.add(lhs, rhs));
