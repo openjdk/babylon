@@ -1947,4 +1947,60 @@ public class SwitchStatementTest {
         }
         return r;
     }
+
+    @IR("""
+            func @"defaultCaseNotTheLast" (%0 : java.lang.String)java.lang.String -> {
+                %1 : Var<java.lang.String> = var %0 @"s";
+                %2 : java.lang.String = constant @"";
+                %3 : Var<java.lang.String> = var %2 @"r";
+                %4 : java.lang.String = var.load %1;
+                java.switch.statement %4
+                    (%5 : java.lang.String)boolean -> {
+                        %6 : java.lang.String = constant @"M";
+                        %7 : boolean = invoke %5 %6 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                        yield %7;
+                    }
+                    ()void -> {
+                        %8 : java.lang.String = var.load %3;
+                        %9 : java.lang.String = constant @"Mow";
+                        %10 : java.lang.String = concat %8 %9;
+                        var.store %3 %10;
+                        yield;
+                    }
+                    (%11 : java.lang.String)boolean -> {
+                        %12 : java.lang.String = constant @"A";
+                        %13 : boolean = invoke %11 %12 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                        yield %13;
+                    }
+                    ()void -> {
+                        %14 : java.lang.String = var.load %3;
+                        %15 : java.lang.String = constant @"Aow";
+                        %16 : java.lang.String = concat %14 %15;
+                        var.store %3 %16;
+                        yield;
+                    }
+                    ()void -> {
+                        yield;
+                    }
+                    ()void -> {
+                        %17 : java.lang.String = var.load %3;
+                        %18 : java.lang.String = constant @"else";
+                        %19 : java.lang.String = concat %17 %18;
+                        var.store %3 %19;
+                        yield;
+                    };
+                %20 : java.lang.String = var.load %3;
+                return %20;
+            };
+            """)
+    @CodeReflection
+    static String defaultCaseNotTheLast(String s) {
+        String r = "";
+        switch (s) {
+            default -> r += "else";
+            case "M" -> r += "Mow";
+            case "A" -> r += "Aow";
+        }
+        return r;
+    }
 }

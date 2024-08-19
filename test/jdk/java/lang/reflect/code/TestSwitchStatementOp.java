@@ -486,6 +486,26 @@ public class TestSwitchStatementOp {
         return r;
     }
 
+    @Test
+    void testDefaultCaseNotTheLast() {
+        CoreOp.FuncOp lmodel = lower("defaultCaseNotTheLast");
+        String[] args = {"something", "M", "A"};
+        for (String arg : args) {
+            Assert.assertEquals(Interpreter.invoke(lmodel, arg), defaultCaseNotTheLast(arg));
+        }
+    }
+
+    @CodeReflection
+    static String defaultCaseNotTheLast(String s) {
+        String r = "";
+        switch (s) {
+            default -> r += "else";
+            case "M" -> r += "Mow";
+            case "A" -> r += "Aow";
+        }
+        return r;
+    }
+
     private static CoreOp.FuncOp lower(String methodName) {
         return lower(getCodeModel(methodName));
     }

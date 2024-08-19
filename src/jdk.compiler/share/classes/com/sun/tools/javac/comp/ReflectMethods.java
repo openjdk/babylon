@@ -1680,6 +1680,8 @@ public class ReflectMethods extends TreeTranslator {
             FunctionType caseLabelType = FunctionType.functionType(JavaType.BOOLEAN, target.type());
             FunctionType actionType = FunctionType.VOID;
             List<Body.Builder> bodies = new ArrayList<>();
+            Body.Builder defaultLabel = null;
+            Body.Builder defaultStatements = null;
             for (JCTree.JCCase c : tree.cases) {
                 // Labels body
                 JCTree.JCCaseLabel headCl = c.labels.head;
@@ -1770,7 +1772,7 @@ public class ReflectMethods extends TreeTranslator {
                     pushBody(headCl, FunctionType.VOID);
 
                     append(CoreOp._yield());
-                    bodies.add(stack.body);
+                    defaultLabel = stack.body;
 
                     // Pop label
                     popBody();
@@ -1794,7 +1796,12 @@ public class ReflectMethods extends TreeTranslator {
                                 append(CoreOp._yield());
                             }
                         }
-                        bodies.add(stack.body);
+
+                        if (headCl instanceof JCTree.JCDefaultCaseLabel) {
+                            defaultStatements = stack.body;
+                        } else {
+                            bodies.add(stack.body);
+                        }
 
                         // Pop block
                         popBody();
@@ -1810,7 +1817,11 @@ public class ReflectMethods extends TreeTranslator {
                                 headCl instanceof JCTree.JCDefaultCaseLabel ? CoreOp::_yield : ExtendedOp::switchFallthroughOp
                                 : CoreOp::unreachable);
 
-                        bodies.add(stack.body);
+                        if (headCl instanceof JCTree.JCDefaultCaseLabel) {
+                            defaultStatements = stack.body;
+                        } else {
+                            bodies.add(stack.body);
+                        }
 
                         // Pop block
                         popBody();
@@ -1818,7 +1829,10 @@ public class ReflectMethods extends TreeTranslator {
                 };
             }
 
-            if (tree.patternSwitch && !tree.hasUnconditionalPattern) {
+            if (defaultLabel != null) {
+                bodies.add(defaultLabel);
+                bodies.add(defaultStatements);
+            } else if (tree.patternSwitch && !tree.hasUnconditionalPattern) {
                 // label
                 pushBody(tree, FunctionType.VOID);
                 append(CoreOp._yield());
