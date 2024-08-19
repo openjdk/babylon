@@ -272,6 +272,24 @@ public class TestSwitchStatementOp {
         return r;
     }
 
+    @Test
+    void testNonEnhancedSwStatNoDefault() {
+        CoreOp.FuncOp lmodel = lower("nonEnhancedSwStatNoDefault");
+        for (int i = 1; i < 4; i++) {
+            Assert.assertEquals(Interpreter.invoke(lmodel, i), nonEnhancedSwStatNoDefault(i));
+        }
+    }
+
+    @CodeReflection
+    static String nonEnhancedSwStatNoDefault(int a) {
+        String r = "";
+        switch (a) {
+            case 1 -> r += "1";
+            case 2 -> r += 2;
+        }
+        return r;
+    }
+
     private static CoreOp.FuncOp lower(String methodName) {
         return lower(getCodeModel(methodName));
     }

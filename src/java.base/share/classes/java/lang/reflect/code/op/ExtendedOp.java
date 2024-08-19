@@ -1011,7 +1011,15 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                         switch (op) {
                             case YieldOp yop -> {
                                 if (isLastLabel) {
-                                    block.op(branch(statement.successor()));
+                                    if (yop.operands().isEmpty()) {
+                                        block.op(branch(statement.successor()));
+                                    } else {
+                                        block.op(conditionalBranch(
+                                                block.context().getValue(yop.yieldValue()),
+                                                statement.successor(),
+                                                exit.successor()
+                                        ));
+                                    }
                                 } else {
                                     block.op(conditionalBranch(
                                             block.context().getValue(yop.yieldValue()),
