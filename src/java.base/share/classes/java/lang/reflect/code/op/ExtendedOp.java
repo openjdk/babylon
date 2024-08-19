@@ -1009,25 +1009,12 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                     Block.Builder nextLabel = isLastLabel ? null : blocks.get(i + 2);
                     curr.transformBody(bodies().get(i), List.of(selectorExpression), opT.andThen((block, op) -> {
                         switch (op) {
-                            case YieldOp yop -> {
-                                if (isLastLabel) {
-                                    if (yop.operands().isEmpty()) {
-                                        block.op(branch(statement.successor()));
-                                    } else {
-                                        block.op(conditionalBranch(
-                                                block.context().getValue(yop.yieldValue()),
-                                                statement.successor(),
-                                                exit.successor()
-                                        ));
-                                    }
-                                } else {
-                                    block.op(conditionalBranch(
-                                            block.context().getValue(yop.yieldValue()),
-                                            statement.successor(),
-                                            nextLabel.successor()
-                                    ));
-                                }
-                            }
+                            case YieldOp yop when yop.operands().isEmpty() -> block.op(branch(statement.successor()));
+                            case YieldOp yop -> block.op(conditionalBranch(
+                                    block.context().getValue(yop.yieldValue()),
+                                    statement.successor(),
+                                    isLastLabel ? exit.successor() : nextLabel.successor()
+                            ));
                             case Lowerable lop -> block = lop.lower(block);
                             default -> block.op(op);
                         }
