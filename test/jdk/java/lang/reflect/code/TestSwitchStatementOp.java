@@ -229,6 +229,49 @@ public class TestSwitchStatementOp {
         return r;
     }
 
+    @Test
+    void testCaseConstantConv() {
+        CoreOp.FuncOp lmodel = lower("caseConstantConv");
+        for (short i = 1; i < 5; i++) {
+            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lmodel, i), caseConstantConv(i));
+        }
+    }
+
+    @CodeReflection
+    static String caseConstantConv(short a) {
+        final short s = 1;
+        final byte b = 2;
+        String r = "";
+        switch (a) {
+            case s -> r += "one"; // identity, short -> short
+            case b -> r += "two"; // widening primitive conversion, byte -> short
+            case 3 -> r += "three"; // narrowing primitive conversion, int -> short
+            default -> r += "else";
+        }
+        return r;
+    }
+
+    @Test
+    void testCaseConstantConv2() {
+        CoreOp.FuncOp lmodel = lower("caseConstantConv2");
+        Byte[] args = {1, 2, 3};
+        for (Byte arg : args) {
+            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lmodel, arg), caseConstantConv2(arg));
+        }
+    }
+
+    @CodeReflection
+    static String caseConstantConv2(Byte a) {
+        final byte b = 2;
+        String r = "";
+        switch (a) {
+            case 1 -> r+= "one"; // narrowing primitive conversion followed by a boxing conversion, int -> bye -> Byte
+            case b -> r+= "two"; // boxing, byte -> Byte
+            default -> r+= "default";
+        }
+        return r;
+    }
+
     private static CoreOp.FuncOp lower(String methodName) {
         return lower(getCodeModel(methodName));
     }
