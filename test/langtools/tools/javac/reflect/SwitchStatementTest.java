@@ -13,60 +13,60 @@ public class SwitchStatementTest {
 
     @IR("""
             func @"caseConstantRuleExpression" (%0 : java.lang.String)java.lang.String -> {
-                %1 : Var<java.lang.String> = var %0 @"r";
-                %2 : java.lang.String = constant @"";
-                %3 : Var<java.lang.String> = var %2 @"s";
-                %4 : java.lang.String = var.load %1;
-                java.switch.statement %4
-                    (%5 : java.lang.String)boolean -> {
-                        %6 : java.lang.String = constant @"FOO";
-                        %7 : boolean = invoke %5 %6 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                        yield %7;
-                    }
-                    ()void -> {
-                        %8 : java.lang.String = var.load %3;
-                        %9 : java.lang.String = constant @"BAR";
-                        %10 : java.lang.String = add %8 %9;
-                        var.store %3 %10;
-                        yield;
-                    }
-                    (%11 : java.lang.String)boolean -> {
-                        %12 : java.lang.String = constant @"BAR";
-                        %13 : boolean = invoke %11 %12 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                        yield %13;
-                    }
-                    ()void -> {
-                        %14 : java.lang.String = var.load %3;
-                        %15 : java.lang.String = constant @"BAZ";
-                        %16 : java.lang.String = add %14 %15;
-                        var.store %3 %16;
-                        yield;
-                    }
-                    (%17 : java.lang.String)boolean -> {
-                        %18 : java.lang.String = constant @"BAZ";
-                        %19 : boolean = invoke %17 %18 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                        yield %19;
-                    }
-                    ()void -> {
-                        %20 : java.lang.String = var.load %3;
-                        %21 : java.lang.String = constant @"FOO";
-                        %22 : java.lang.String = add %20 %21;
-                        var.store %3 %22;
-                        yield;
-                    }
-                    ()void -> {
-                        yield;
-                    }
-                    ()void -> {
-                        %23 : java.lang.String = var.load %3;
-                        %24 : java.lang.String = constant @"else";
-                        %25 : java.lang.String = add %23 %24;
-                        var.store %3 %25;
-                        yield;
-                    };
-                %26 : java.lang.String = var.load %3;
-                return %26;
-            };
+                  %1 : Var<java.lang.String> = var %0 @"r";
+                  %2 : java.lang.String = constant @"";
+                  %3 : Var<java.lang.String> = var %2 @"s";
+                  %4 : java.lang.String = var.load %1;
+                  java.switch.statement %4
+                      (%5 : java.lang.String)boolean -> {
+                          %6 : java.lang.String = constant @"FOO";
+                          %7 : boolean = invoke %5 %6 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                          yield %7;
+                      }
+                      ()void -> {
+                          %8 : java.lang.String = var.load %3;
+                          %9 : java.lang.String = constant @"BAR";
+                          %10 : java.lang.String = concat %8 %9;
+                          var.store %3 %10;
+                          yield;
+                      }
+                      (%11 : java.lang.String)boolean -> {
+                          %12 : java.lang.String = constant @"BAR";
+                          %13 : boolean = invoke %11 %12 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                          yield %13;
+                      }
+                      ()void -> {
+                          %14 : java.lang.String = var.load %3;
+                          %15 : java.lang.String = constant @"BAZ";
+                          %16 : java.lang.String = concat %14 %15;
+                          var.store %3 %16;
+                          yield;
+                      }
+                      (%17 : java.lang.String)boolean -> {
+                          %18 : java.lang.String = constant @"BAZ";
+                          %19 : boolean = invoke %17 %18 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                          yield %19;
+                      }
+                      ()void -> {
+                          %20 : java.lang.String = var.load %3;
+                          %21 : java.lang.String = constant @"FOO";
+                          %22 : java.lang.String = concat %20 %21;
+                          var.store %3 %22;
+                          yield;
+                      }
+                      ()void -> {
+                          yield;
+                      }
+                      ()void -> {
+                          %23 : java.lang.String = var.load %3;
+                          %24 : java.lang.String = constant @"else";
+                          %25 : java.lang.String = concat %23 %24;
+                          var.store %3 %25;
+                          yield;
+                      };
+                  %26 : java.lang.String = var.load %3;
+                  return %26;
+              };
             """)
     @CodeReflection
     public static String caseConstantRuleExpression(String r) {
@@ -82,60 +82,60 @@ public class SwitchStatementTest {
 
     @IR("""
             func @"caseConstantRuleBlock" (%0 : java.lang.String)java.lang.String -> {
-                %1 : Var<java.lang.String> = var %0 @"r";
-                %2 : java.lang.String = constant @"";
-                %3 : Var<java.lang.String> = var %2 @"s";
-                %4 : java.lang.String = var.load %1;
-                java.switch.statement %4
-                    (%5 : java.lang.String)boolean -> {
-                        %6 : java.lang.String = constant @"FOO";
-                        %7 : boolean = invoke %5 %6 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                        yield %7;
-                    }
-                    ()void -> {
-                        %8 : java.lang.String = var.load %3;
-                        %9 : java.lang.String = constant @"BAR";
-                        %10 : java.lang.String = add %8 %9;
-                        var.store %3 %10;
-                        yield;
-                    }
-                    (%11 : java.lang.String)boolean -> {
-                        %12 : java.lang.String = constant @"BAR";
-                        %13 : boolean = invoke %11 %12 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                        yield %13;
-                    }
-                    ()void -> {
-                        %14 : java.lang.String = var.load %3;
-                        %15 : java.lang.String = constant @"BAZ";
-                        %16 : java.lang.String = add %14 %15;
-                        var.store %3 %16;
-                        yield;
-                    }
-                    (%17 : java.lang.String)boolean -> {
-                        %18 : java.lang.String = constant @"BAZ";
-                        %19 : boolean = invoke %17 %18 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                        yield %19;
-                    }
-                    ()void -> {
-                        %20 : java.lang.String = var.load %3;
-                        %21 : java.lang.String = constant @"FOO";
-                        %22 : java.lang.String = add %20 %21;
-                        var.store %3 %22;
-                        yield;
-                    }
-                    ()void -> {
-                        yield;
-                    }
-                    ()void -> {
-                        %23 : java.lang.String = var.load %3;
-                        %24 : java.lang.String = constant @"else";
-                        %25 : java.lang.String = add %23 %24;
-                        var.store %3 %25;
-                        yield;
-                    };
-                %26 : java.lang.String = var.load %3;
-                return %26;
-            };
+                  %1 : Var<java.lang.String> = var %0 @"r";
+                  %2 : java.lang.String = constant @"";
+                  %3 : Var<java.lang.String> = var %2 @"s";
+                  %4 : java.lang.String = var.load %1;
+                  java.switch.statement %4
+                      (%5 : java.lang.String)boolean -> {
+                          %6 : java.lang.String = constant @"FOO";
+                          %7 : boolean = invoke %5 %6 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                          yield %7;
+                      }
+                      ()void -> {
+                          %8 : java.lang.String = var.load %3;
+                          %9 : java.lang.String = constant @"BAR";
+                          %10 : java.lang.String = concat %8 %9;
+                          var.store %3 %10;
+                          yield;
+                      }
+                      (%11 : java.lang.String)boolean -> {
+                          %12 : java.lang.String = constant @"BAR";
+                          %13 : boolean = invoke %11 %12 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                          yield %13;
+                      }
+                      ()void -> {
+                          %14 : java.lang.String = var.load %3;
+                          %15 : java.lang.String = constant @"BAZ";
+                          %16 : java.lang.String = concat %14 %15;
+                          var.store %3 %16;
+                          yield;
+                      }
+                      (%17 : java.lang.String)boolean -> {
+                          %18 : java.lang.String = constant @"BAZ";
+                          %19 : boolean = invoke %17 %18 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                          yield %19;
+                      }
+                      ()void -> {
+                          %20 : java.lang.String = var.load %3;
+                          %21 : java.lang.String = constant @"FOO";
+                          %22 : java.lang.String = concat %20 %21;
+                          var.store %3 %22;
+                          yield;
+                      }
+                      ()void -> {
+                          yield;
+                      }
+                      ()void -> {
+                          %23 : java.lang.String = var.load %3;
+                          %24 : java.lang.String = constant @"else";
+                          %25 : java.lang.String = concat %23 %24;
+                          var.store %3 %25;
+                          yield;
+                      };
+                  %26 : java.lang.String = var.load %3;
+                  return %26;
+              };
             """)
     @CodeReflection
     public static String caseConstantRuleBlock(String r) {
@@ -159,60 +159,60 @@ public class SwitchStatementTest {
 
     @IR("""
             func @"caseConstantStatement" (%0 : java.lang.String)java.lang.String -> {
-                %1 : Var<java.lang.String> = var %0 @"s";
-                %2 : java.lang.String = constant @"";
-                %3 : Var<java.lang.String> = var %2 @"r";
-                %4 : java.lang.String = var.load %1;
-                java.switch.statement %4
-                    (%5 : java.lang.String)boolean -> {
-                        %6 : java.lang.String = constant @"FOO";
-                        %7 : boolean = invoke %5 %6 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                        yield %7;
-                    }
-                    ()void -> {
-                        %8 : java.lang.String = var.load %3;
-                        %9 : java.lang.String = constant @"BAR";
-                        %10 : java.lang.String = add %8 %9;
-                        var.store %3 %10;
-                        java.break;
-                    }
-                    (%11 : java.lang.String)boolean -> {
-                        %12 : java.lang.String = constant @"BAR";
-                        %13 : boolean = invoke %11 %12 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                        yield %13;
-                    }
-                    ()void -> {
-                        %14 : java.lang.String = var.load %3;
-                        %15 : java.lang.String = constant @"BAZ";
-                        %16 : java.lang.String = add %14 %15;
-                        var.store %3 %16;
-                        java.break;
-                    }
-                    (%17 : java.lang.String)boolean -> {
-                        %18 : java.lang.String = constant @"BAZ";
-                        %19 : boolean = invoke %17 %18 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                        yield %19;
-                    }
-                    ()void -> {
-                        %20 : java.lang.String = var.load %3;
-                        %21 : java.lang.String = constant @"FOO";
-                        %22 : java.lang.String = add %20 %21;
-                        var.store %3 %22;
-                        java.break;
-                    }
-                    ()void -> {
-                        yield;
-                    }
-                    ()void -> {
-                        %23 : java.lang.String = var.load %3;
-                        %24 : java.lang.String = constant @"else";
-                        %25 : java.lang.String = add %23 %24;
-                        var.store %3 %25;
-                        yield;
-                    };
-                %26 : java.lang.String = var.load %3;
-                return %26;
-            };
+                  %1 : Var<java.lang.String> = var %0 @"s";
+                  %2 : java.lang.String = constant @"";
+                  %3 : Var<java.lang.String> = var %2 @"r";
+                  %4 : java.lang.String = var.load %1;
+                  java.switch.statement %4
+                      (%5 : java.lang.String)boolean -> {
+                          %6 : java.lang.String = constant @"FOO";
+                          %7 : boolean = invoke %5 %6 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                          yield %7;
+                      }
+                      ()void -> {
+                          %8 : java.lang.String = var.load %3;
+                          %9 : java.lang.String = constant @"BAR";
+                          %10 : java.lang.String = concat %8 %9;
+                          var.store %3 %10;
+                          java.break;
+                      }
+                      (%11 : java.lang.String)boolean -> {
+                          %12 : java.lang.String = constant @"BAR";
+                          %13 : boolean = invoke %11 %12 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                          yield %13;
+                      }
+                      ()void -> {
+                          %14 : java.lang.String = var.load %3;
+                          %15 : java.lang.String = constant @"BAZ";
+                          %16 : java.lang.String = concat %14 %15;
+                          var.store %3 %16;
+                          java.break;
+                      }
+                      (%17 : java.lang.String)boolean -> {
+                          %18 : java.lang.String = constant @"BAZ";
+                          %19 : boolean = invoke %17 %18 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                          yield %19;
+                      }
+                      ()void -> {
+                          %20 : java.lang.String = var.load %3;
+                          %21 : java.lang.String = constant @"FOO";
+                          %22 : java.lang.String = concat %20 %21;
+                          var.store %3 %22;
+                          java.break;
+                      }
+                      ()void -> {
+                          yield;
+                      }
+                      ()void -> {
+                          %23 : java.lang.String = var.load %3;
+                          %24 : java.lang.String = constant @"else";
+                          %25 : java.lang.String = concat %23 %24;
+                          var.store %3 %25;
+                          yield;
+                      };
+                  %26 : java.lang.String = var.load %3;
+                  return %26;
+              };
             """)
     @CodeReflection
     private static String caseConstantStatement(String s) {
@@ -273,7 +273,7 @@ public class SwitchStatementTest {
                     ()void -> {
                         %18 : java.lang.String = var.load %3;
                         %19 : java.lang.String = constant @"vowel";
-                        %20 : java.lang.String = add %18 %19;
+                        %20 : java.lang.String = concat %18 %19;
                         var.store %3 %20;
                         java.break;
                     }
@@ -283,7 +283,7 @@ public class SwitchStatementTest {
                     ()void -> {
                         %21 : java.lang.String = var.load %3;
                         %22 : java.lang.String = constant @"consonant";
-                        %23 : java.lang.String = add %21 %22;
+                        %23 : java.lang.String = concat %21 %22;
                         var.store %3 %23;
                         yield;
                     };
@@ -330,7 +330,7 @@ public class SwitchStatementTest {
                     ()void -> {
                         %14 : java.lang.String = var.load %3;
                         %15 : java.lang.String = constant @"Nine";
-                        %16 : java.lang.String = add %14 %15;
+                        %16 : java.lang.String = concat %14 %15;
                         var.store %3 %16;
                         yield;
                     }
@@ -340,7 +340,7 @@ public class SwitchStatementTest {
                     ()void -> {
                         %17 : java.lang.String = var.load %3;
                         %18 : java.lang.String = constant @"An integer";
-                        %19 : java.lang.String = add %17 %18;
+                        %19 : java.lang.String = concat %17 %18;
                         var.store %3 %19;
                         yield;
                     };
@@ -361,36 +361,36 @@ public class SwitchStatementTest {
 
     @IR("""
             func @"caseConstantNullLabel" (%0 : java.lang.String)java.lang.String -> {
-                  %1 : Var<java.lang.String> = var %0 @"s";
-                  %2 : java.lang.String = constant @"";
-                  %3 : Var<java.lang.String> = var %2 @"r";
-                  %4 : java.lang.String = var.load %1;
-                  java.switch.statement %4
-                      (%5 : java.lang.String)boolean -> {
-                          %6 : java.lang.Object = constant @null;
-                          %7 : boolean = invoke %5 %6 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                          yield %7;
-                      }
-                      ()void -> {
-                          %8 : java.lang.String = var.load %3;
-                          %9 : java.lang.String = constant @"null";
-                          %10 : java.lang.String = add %8 %9;
-                          var.store %3 %10;
-                          yield;
-                      }
-                      ()void -> {
-                          yield;
-                      }
-                      ()void -> {
-                          %11 : java.lang.String = var.load %3;
-                          %12 : java.lang.String = constant @"non null";
-                          %13 : java.lang.String = add %11 %12;
-                          var.store %3 %13;
-                          yield;
-                      };
-                  %14 : java.lang.String = var.load %3;
-                  return %14;
-              };
+                %1 : Var<java.lang.String> = var %0 @"s";
+                %2 : java.lang.String = constant @"";
+                %3 : Var<java.lang.String> = var %2 @"r";
+                %4 : java.lang.String = var.load %1;
+                java.switch.statement %4
+                    (%5 : java.lang.String)boolean -> {
+                        %6 : java.lang.Object = constant @null;
+                        %7 : boolean = invoke %5 %6 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                        yield %7;
+                    }
+                    ()void -> {
+                        %8 : java.lang.String = var.load %3;
+                        %9 : java.lang.String = constant @"null";
+                        %10 : java.lang.String = concat %8 %9;
+                        var.store %3 %10;
+                        yield;
+                    }
+                    ()void -> {
+                        yield;
+                    }
+                    ()void -> {
+                        %11 : java.lang.String = var.load %3;
+                        %12 : java.lang.String = constant @"non null";
+                        %13 : java.lang.String = concat %11 %12;
+                        var.store %3 %13;
+                        yield;
+                    };
+                %14 : java.lang.String = var.load %3;
+                return %14;
+            };
             """)
     @CodeReflection
     private static String caseConstantNullLabel(String s) {
@@ -415,44 +415,44 @@ public class SwitchStatementTest {
 
     @IR("""
             func @"caseConstantFallThrough" (%0 : char)java.lang.String -> {
-                %1 : Var<char> = var %0 @"c";
-                %2 : java.lang.String = constant @"";
-                %3 : Var<java.lang.String> = var %2 @"r";
-                %4 : char = var.load %1;
-                java.switch.statement %4
-                    (%5 : char)boolean -> {
-                        %6 : char = constant @"A";
-                        %7 : boolean = eq %5 %6;
-                        yield %7;
-                    }
-                    ()void -> {
-                        java.switch.fallthrough;
-                    }
-                    (%8 : char)boolean -> {
-                        %9 : char = constant @"B";
-                        %10 : boolean = eq %8 %9;
-                        yield %10;
-                    }
-                    ()void -> {
-                        %11 : java.lang.String = var.load %3;
-                        %12 : java.lang.String = constant @"A or B";
-                        %13 : java.lang.String = add %11 %12;
-                        var.store %3 %13;
-                        java.break;
-                    }
-                    ()void -> {
-                        yield;
-                    }
-                    ()void -> {
-                        %14 : java.lang.String = var.load %3;
-                        %15 : java.lang.String = constant @"Neither A nor B";
-                        %16 : java.lang.String = add %14 %15;
-                        var.store %3 %16;
-                        yield;
-                    };
-                %17 : java.lang.String = var.load %3;
-                return %17;
-            };
+                  %1 : Var<char> = var %0 @"c";
+                  %2 : java.lang.String = constant @"";
+                  %3 : Var<java.lang.String> = var %2 @"r";
+                  %4 : char = var.load %1;
+                  java.switch.statement %4
+                      (%5 : char)boolean -> {
+                          %6 : char = constant @"A";
+                          %7 : boolean = eq %5 %6;
+                          yield %7;
+                      }
+                      ()void -> {
+                          java.switch.fallthrough;
+                      }
+                      (%8 : char)boolean -> {
+                          %9 : char = constant @"B";
+                          %10 : boolean = eq %8 %9;
+                          yield %10;
+                      }
+                      ()void -> {
+                          %11 : java.lang.String = var.load %3;
+                          %12 : java.lang.String = constant @"A or B";
+                          %13 : java.lang.String = concat %11 %12;
+                          var.store %3 %13;
+                          java.break;
+                      }
+                      ()void -> {
+                          yield;
+                      }
+                      ()void -> {
+                          %14 : java.lang.String = var.load %3;
+                          %15 : java.lang.String = constant @"Neither A nor B";
+                          %16 : java.lang.String = concat %14 %15;
+                          var.store %3 %16;
+                          yield;
+                      };
+                  %17 : java.lang.String = var.load %3;
+                  return %17;
+              };
             """)
     @CodeReflection
     private static String caseConstantFallThrough(char c) {
@@ -501,7 +501,7 @@ public class SwitchStatementTest {
                         %13 : java.lang.String = var.load %3;
                         %14 : int = constant @"6";
                         %15 : java.lang.Integer = invoke %14 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %16 : java.lang.String = add %13 %15;
+                        %16 : java.lang.String = concat %13 %15;
                         var.store %3 %16;
                         yield;
                     }
@@ -514,7 +514,7 @@ public class SwitchStatementTest {
                         %20 : java.lang.String = var.load %3;
                         %21 : int = constant @"7";
                         %22 : java.lang.Integer = invoke %21 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %23 : java.lang.String = add %20 %22;
+                        %23 : java.lang.String = concat %20 %22;
                         var.store %3 %23;
                         yield;
                     }
@@ -536,7 +536,7 @@ public class SwitchStatementTest {
                         %30 : java.lang.String = var.load %3;
                         %31 : int = constant @"8";
                         %32 : java.lang.Integer = invoke %31 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %33 : java.lang.String = add %30 %32;
+                        %33 : java.lang.String = concat %30 %32;
                         var.store %3 %33;
                         yield;
                     }
@@ -549,7 +549,7 @@ public class SwitchStatementTest {
                         %37 : java.lang.String = var.load %3;
                         %38 : int = constant @"9";
                         %39 : java.lang.Integer = invoke %38 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %40 : java.lang.String = add %37 %39;
+                        %40 : java.lang.String = concat %37 %39;
                         var.store %3 %40;
                         yield;
                     };
@@ -593,7 +593,7 @@ public class SwitchStatementTest {
                         %12 : java.lang.String = var.load %3;
                         %13 : int = constant @"1";
                         %14 : java.lang.Integer = invoke %13 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %15 : java.lang.String = add %12 %14;
+                        %15 : java.lang.String = concat %12 %14;
                         var.store %3 %15;
                         yield;
                     }
@@ -607,7 +607,7 @@ public class SwitchStatementTest {
                     ()void -> {
                         %21 : java.lang.String = var.load %3;
                         %22 : java.lang.String = constant @"2";
-                        %23 : java.lang.String = add %21 %22;
+                        %23 : java.lang.String = concat %21 %22;
                         var.store %3 %23;
                         yield;
                     }
@@ -621,7 +621,7 @@ public class SwitchStatementTest {
                         %28 : java.lang.String = var.load %3;
                         %29 : int = constant @"3";
                         %30 : java.lang.Integer = invoke %29 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %31 : java.lang.String = add %28 %30;
+                        %31 : java.lang.String = concat %28 %30;
                         var.store %3 %31;
                         yield;
                     }
@@ -636,7 +636,7 @@ public class SwitchStatementTest {
                         %37 : java.lang.String = var.load %3;
                         %38 : int = constant @"4";
                         %39 : java.lang.Integer = invoke %38 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %40 : java.lang.String = add %37 %39;
+                        %40 : java.lang.String = concat %37 %39;
                         var.store %3 %40;
                         yield;
                     }
@@ -651,7 +651,7 @@ public class SwitchStatementTest {
                         %46 : java.lang.String = var.load %3;
                         %47 : int = constant @"5";
                         %48 : java.lang.Integer = invoke %47 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %49 : java.lang.String = add %46 %48;
+                        %49 : java.lang.String = concat %46 %48;
                         var.store %3 %49;
                         yield;
                     }
@@ -666,7 +666,7 @@ public class SwitchStatementTest {
                         %55 : java.lang.String = var.load %3;
                         %56 : int = constant @"6";
                         %57 : java.lang.Integer = invoke %56 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %58 : java.lang.String = add %55 %57;
+                        %58 : java.lang.String = concat %55 %57;
                         var.store %3 %58;
                         yield;
                     }
@@ -681,7 +681,7 @@ public class SwitchStatementTest {
                         %64 : java.lang.String = var.load %3;
                         %65 : int = constant @"7";
                         %66 : java.lang.Integer = invoke %65 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %67 : java.lang.String = add %64 %66;
+                        %67 : java.lang.String = concat %64 %66;
                         var.store %3 %67;
                         yield;
                     }
@@ -698,7 +698,7 @@ public class SwitchStatementTest {
                         %75 : java.lang.String = var.load %3;
                         %76 : int = constant @"8";
                         %77 : java.lang.Integer = invoke %76 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %78 : java.lang.String = add %75 %77;
+                        %78 : java.lang.String = concat %75 %77;
                         var.store %3 %78;
                         yield;
                     }
@@ -713,7 +713,7 @@ public class SwitchStatementTest {
                         %84 : java.lang.String = var.load %3;
                         %85 : int = constant @"9";
                         %86 : java.lang.Integer = invoke %85 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %87 : java.lang.String = add %84 %86;
+                        %87 : java.lang.String = concat %84 %86;
                         var.store %3 %87;
                         yield;
                     }
@@ -726,7 +726,7 @@ public class SwitchStatementTest {
                         %91 : java.lang.String = var.load %3;
                         %92 : int = constant @"10";
                         %93 : java.lang.Integer = invoke %92 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %94 : java.lang.String = add %91 %93;
+                        %94 : java.lang.String = concat %91 %93;
                         var.store %3 %94;
                         yield;
                     }
@@ -739,7 +739,7 @@ public class SwitchStatementTest {
                         %98 : java.lang.String = var.load %3;
                         %99 : int = constant @"11";
                         %100 : java.lang.Integer = invoke %99 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %101 : java.lang.String = add %98 %100;
+                        %101 : java.lang.String = concat %98 %100;
                         var.store %3 %101;
                         yield;
                     }
@@ -752,7 +752,7 @@ public class SwitchStatementTest {
                         %105 : java.lang.String = var.load %3;
                         %106 : int = field.load @"SwitchStatementTest$Constants::c1()int";
                         %107 : java.lang.Integer = invoke %106 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %108 : java.lang.String = add %105 %107;
+                        %108 : java.lang.String = concat %105 %107;
                         var.store %3 %108;
                         yield;
                     }
@@ -779,7 +779,7 @@ public class SwitchStatementTest {
                         %117 : java.lang.String = var.load %3;
                         %118 : int = constant @"13";
                         %119 : java.lang.Integer = invoke %118 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %120 : java.lang.String = add %117 %119;
+                        %120 : java.lang.String = concat %117 %119;
                         var.store %3 %120;
                         yield;
                     }
@@ -789,7 +789,7 @@ public class SwitchStatementTest {
                     ()void -> {
                         %121 : java.lang.String = var.load %3;
                         %122 : java.lang.String = constant @"an int";
-                        %123 : java.lang.String = add %121 %122;
+                        %123 : java.lang.String = concat %121 %122;
                         var.store %3 %123;
                         yield;
                     };
@@ -822,76 +822,75 @@ public class SwitchStatementTest {
 
     @IR("""
             func @"caseConstantConv" (%0 : short)java.lang.String -> {
-                %1 : Var<short> = var %0 @"a";
-                %2 : int = constant @"1";
-                %3 : short = conv %2;
-                %4 : Var<short> = var %3 @"s";
-                %5 : int = constant @"2";
-                %6 : byte = conv %5;
-                %7 : Var<byte> = var %6 @"b";
-                %8 : java.lang.String = constant @"";
-                %9 : Var<java.lang.String> = var %8 @"r";
-                %10 : short = var.load %1;
-                java.switch.statement %10
-                    (%11 : short)boolean -> {
-                        %12 : short = var.load %4;
-                        %13 : boolean = eq %11 %12;
-                        yield %13;
-                    }
-                    ()void -> {
-                        %14 : java.lang.String = var.load %9;
-                        %15 : java.lang.String = constant @"one";
-                        %16 : java.lang.String = add %14 %15;
-                        var.store %9 %16;
-                        yield;
-                    }
-                    (%17 : short)boolean -> {
-                        %18 : byte = var.load %7;
-                        %19 : short = conv %18;
-                        %20 : boolean = eq %17 %19;
-                        yield %20;
-                    }
-                    ()void -> {
-                        %21 : java.lang.String = var.load %9;
-                        %22 : java.lang.String = constant @"two";
-                        %23 : java.lang.String = add %21 %22;
-                        var.store %9 %23;
-                        yield;
-                    }
-                    (%24 : short)boolean -> {
-                        %25 : int = constant @"3";
-                        %26 : short = conv %25;
-                        %27 : boolean = eq %24 %26;
-                        yield %27;
-                    }
-                    ()void -> {
-                        %28 : java.lang.String = var.load %9;
-                        %29 : java.lang.String = constant @"three";
-                        %30 : java.lang.String = add %28 %29;
-                        var.store %9 %30;
-                        yield;
-                    }
-                    ()void -> {
-                        yield;
-                    }
-                    ()void -> {
-                        %31 : java.lang.String = var.load %9;
-                        %32 : java.lang.String = constant @"else";
-                        %33 : java.lang.String = add %31 %32;
-                        var.store %9 %33;
-                        yield;
-                    };
-                %34 : java.lang.String = var.load %9;
-                return %34;
-            };
+                  %1 : Var<short> = var %0 @"a";
+                  %2 : int = constant @"1";
+                  %3 : short = conv %2;
+                  %4 : Var<short> = var %3 @"s";
+                  %5 : int = constant @"2";
+                  %6 : byte = conv %5;
+                  %7 : Var<byte> = var %6 @"b";
+                  %8 : java.lang.String = constant @"";
+                  %9 : Var<java.lang.String> = var %8 @"r";
+                  %10 : short = var.load %1;
+                  java.switch.statement %10
+                      (%11 : short)boolean -> {
+                          %12 : short = var.load %4;
+                          %13 : boolean = eq %11 %12;
+                          yield %13;
+                      }
+                      ()void -> {
+                          %14 : java.lang.String = var.load %9;
+                          %15 : java.lang.String = constant @"one";
+                          %16 : java.lang.String = concat %14 %15;
+                          var.store %9 %16;
+                          yield;
+                      }
+                      (%17 : short)boolean -> {
+                          %18 : byte = var.load %7;
+                          %19 : short = conv %18;
+                          %20 : boolean = eq %17 %19;
+                          yield %20;
+                      }
+                      ()void -> {
+                          %21 : java.lang.String = var.load %9;
+                          %22 : java.lang.String = constant @"two";
+                          %23 : java.lang.String = concat %21 %22;
+                          var.store %9 %23;
+                          yield;
+                      }
+                      (%24 : short)boolean -> {
+                          %25 : int = constant @"3";
+                          %26 : short = conv %25;
+                          %27 : boolean = eq %24 %26;
+                          yield %27;
+                      }
+                      ()void -> {
+                          %28 : java.lang.String = var.load %9;
+                          %29 : java.lang.String = constant @"three";
+                          %30 : java.lang.String = concat %28 %29;
+                          var.store %9 %30;
+                          yield;
+                      }
+                      ()void -> {
+                          yield;
+                      }
+                      ()void -> {
+                          %31 : java.lang.String = var.load %9;
+                          %32 : java.lang.String = constant @"else";
+                          %33 : java.lang.String = concat %31 %32;
+                          var.store %9 %33;
+                          yield;
+                      };
+                  %34 : java.lang.String = var.load %9;
+                  return %34;
+              };
             """)
     @CodeReflection
-    static String caseConstantConv(short a) { // @@@ tests should be easy to test with interpreter, e.g. tests returning a string result
+    static String caseConstantConv(short a) {
         final short s = 1;
         final byte b = 2;
         String r = "";
         switch (a) {
-            // @@@ string concat is modeled as: add s1 s2
             case s -> r += "one"; // identity, short -> short
             case b -> r += "two"; // widening primitive conversion, byte -> short
             case 3 -> r += "three"; // narrowing primitive conversion, int -> short
@@ -920,7 +919,7 @@ public class SwitchStatementTest {
                     ()void -> {
                         %13 : java.lang.String = var.load %6;
                         %14 : java.lang.String = constant @"one";
-                        %15 : java.lang.String = add %13 %14;
+                        %15 : java.lang.String = concat %13 %14;
                         var.store %6 %15;
                         yield;
                     }
@@ -933,7 +932,7 @@ public class SwitchStatementTest {
                     ()void -> {
                         %20 : java.lang.String = var.load %6;
                         %21 : java.lang.String = constant @"two";
-                        %22 : java.lang.String = add %20 %21;
+                        %22 : java.lang.String = concat %20 %21;
                         var.store %6 %22;
                         yield;
                     }
@@ -943,7 +942,7 @@ public class SwitchStatementTest {
                     ()void -> {
                         %23 : java.lang.String = var.load %6;
                         %24 : java.lang.String = constant @"default";
-                        %25 : java.lang.String = add %23 %24;
+                        %25 : java.lang.String = concat %23 %24;
                         var.store %6 %25;
                         yield;
                     };
@@ -978,7 +977,7 @@ public class SwitchStatementTest {
                     ()void -> {
                         %8 : java.lang.String = var.load %3;
                         %9 : java.lang.String = constant @"1";
-                        %10 : java.lang.String = add %8 %9;
+                        %10 : java.lang.String = concat %8 %9;
                         var.store %3 %10;
                         yield;
                     }
@@ -991,7 +990,7 @@ public class SwitchStatementTest {
                         %14 : java.lang.String = var.load %3;
                         %15 : int = constant @"2";
                         %16 : java.lang.Integer = invoke %15 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %17 : java.lang.String = add %14 %16;
+                        %17 : java.lang.String = concat %14 %16;
                         var.store %3 %17;
                         yield;
                     };
@@ -1012,59 +1011,59 @@ public class SwitchStatementTest {
     enum E {A, B}
     @IR("""
             func @"enhancedSwStatNoDefault1" (%0 : SwitchStatementTest$E)java.lang.String -> {
-                %1 : Var<SwitchStatementTest$E> = var %0 @"e";
-                %2 : java.lang.String = constant @"";
-                %3 : Var<java.lang.String> = var %2 @"r";
-                %4 : SwitchStatementTest$E = var.load %1;
-                java.switch.statement %4
-                    (%5 : SwitchStatementTest$E)boolean -> {
-                        %6 : SwitchStatementTest$E = field.load @"SwitchStatementTest$E::A()SwitchStatementTest$E";
-                        %7 : boolean = invoke %5 %6 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                        yield %7;
-                    }
-                    ()void -> {
-                        %8 : java.lang.String = var.load %3;
-                        %9 : SwitchStatementTest$E = field.load @"SwitchStatementTest$E::A()SwitchStatementTest$E";
-                        %10 : java.lang.String = cast %9 @"java.lang.String";
-                        %11 : java.lang.String = add %8 %10;
-                        var.store %3 %11;
-                        yield;
-                    }
-                    (%12 : SwitchStatementTest$E)boolean -> {
-                        %13 : SwitchStatementTest$E = field.load @"SwitchStatementTest$E::B()SwitchStatementTest$E";
-                        %14 : boolean = invoke %12 %13 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                        yield %14;
-                    }
-                    ()void -> {
-                        %15 : java.lang.String = var.load %3;
-                        %16 : SwitchStatementTest$E = field.load @"SwitchStatementTest$E::B()SwitchStatementTest$E";
-                        %17 : java.lang.String = cast %16 @"java.lang.String";
-                        %18 : java.lang.String = add %15 %17;
-                        var.store %3 %18;
-                        yield;
-                    }
-                    (%19 : SwitchStatementTest$E)boolean -> {
-                        %20 : java.lang.Object = constant @null;
-                        %21 : boolean = invoke %19 %20 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                        yield %21;
-                    }
-                    ()void -> {
-                        %22 : java.lang.String = var.load %3;
-                        %23 : java.lang.String = constant @"null";
-                        %24 : java.lang.String = add %22 %23;
-                        var.store %3 %24;
-                        yield;
-                    }
-                    ()void -> {
-                        yield;
-                    }
-                    ()void -> {
-                        %25 : java.lang.MatchException = new @"func<java.lang.MatchException>";
-                        throw %25;
-                    };
-                %26 : java.lang.String = var.load %3;
-                return %26;
-            };
+                  %1 : Var<SwitchStatementTest$E> = var %0 @"e";
+                  %2 : java.lang.String = constant @"";
+                  %3 : Var<java.lang.String> = var %2 @"r";
+                  %4 : SwitchStatementTest$E = var.load %1;
+                  java.switch.statement %4
+                      (%5 : SwitchStatementTest$E)boolean -> {
+                          %6 : SwitchStatementTest$E = field.load @"SwitchStatementTest$E::A()SwitchStatementTest$E";
+                          %7 : boolean = invoke %5 %6 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                          yield %7;
+                      }
+                      ()void -> {
+                          %8 : java.lang.String = var.load %3;
+                          %9 : SwitchStatementTest$E = field.load @"SwitchStatementTest$E::A()SwitchStatementTest$E";
+                          %10 : java.lang.String = cast %9 @"java.lang.String";
+                          %11 : java.lang.String = concat %8 %10;
+                          var.store %3 %11;
+                          yield;
+                      }
+                      (%12 : SwitchStatementTest$E)boolean -> {
+                          %13 : SwitchStatementTest$E = field.load @"SwitchStatementTest$E::B()SwitchStatementTest$E";
+                          %14 : boolean = invoke %12 %13 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                          yield %14;
+                      }
+                      ()void -> {
+                          %15 : java.lang.String = var.load %3;
+                          %16 : SwitchStatementTest$E = field.load @"SwitchStatementTest$E::B()SwitchStatementTest$E";
+                          %17 : java.lang.String = cast %16 @"java.lang.String";
+                          %18 : java.lang.String = concat %15 %17;
+                          var.store %3 %18;
+                          yield;
+                      }
+                      (%19 : SwitchStatementTest$E)boolean -> {
+                          %20 : java.lang.Object = constant @null;
+                          %21 : boolean = invoke %19 %20 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                          yield %21;
+                      }
+                      ()void -> {
+                          %22 : java.lang.String = var.load %3;
+                          %23 : java.lang.String = constant @"null";
+                          %24 : java.lang.String = concat %22 %23;
+                          var.store %3 %24;
+                          yield;
+                      }
+                      ()void -> {
+                          yield;
+                      }
+                      ()void -> {
+                          %25 : java.lang.MatchException = new @"func<java.lang.MatchException>";
+                          throw %25;
+                      };
+                  %26 : java.lang.String = var.load %3;
+                  return %26;
+              };
             """)
     @CodeReflection
     static String enhancedSwStatNoDefault1(E e) {
@@ -1106,7 +1105,7 @@ public class SwitchStatementTest {
                     ()void -> {
                         %13 : java.lang.String = var.load %3;
                         %14 : java.lang.String = constant @"K";
-                        %15 : java.lang.String = add %13 %14;
+                        %15 : java.lang.String = concat %13 %14;
                         var.store %3 %15;
                         yield;
                     }
@@ -1125,7 +1124,7 @@ public class SwitchStatementTest {
                     ()void -> {
                         %20 : java.lang.String = var.load %3;
                         %21 : java.lang.String = constant @"J";
-                        %22 : java.lang.String = add %20 %21;
+                        %22 : java.lang.String = concat %20 %21;
                         var.store %3 %22;
                         yield;
                     }
@@ -1167,7 +1166,7 @@ public class SwitchStatementTest {
                     ()void -> {
                         %10 : java.lang.String = var.load %3;
                         %11 : java.lang.String = constant @"A";
-                        %12 : java.lang.String = add %10 %11;
+                        %12 : java.lang.String = concat %10 %11;
                         var.store %3 %12;
                         yield;
                     }
@@ -1186,7 +1185,7 @@ public class SwitchStatementTest {
                     ()void -> {
                         %17 : java.lang.String = var.load %3;
                         %18 : java.lang.String = constant @"obj";
-                        %19 : java.lang.String = add %17 %18;
+                        %19 : java.lang.String = concat %17 %18;
                         var.store %3 %19;
                         yield;
                     };
@@ -1206,66 +1205,66 @@ public class SwitchStatementTest {
 
     @IR("""
             func @"casePatternRuleExpression" (%0 : java.lang.Object)java.lang.String -> {
-                %1 : Var<java.lang.Object> = var %0 @"o";
-                %2 : java.lang.String = constant @"";
-                %3 : Var<java.lang.String> = var %2 @"r";
-                %4 : java.lang.Object = var.load %1;
-                %5 : java.lang.Integer = constant @null;
-                %6 : Var<java.lang.Integer> = var %5 @"i";
-                %7 : java.lang.String = constant @null;
-                %8 : Var<java.lang.String> = var %7 @"s";
-                java.switch.statement %4
-                    (%9 : java.lang.Object)boolean -> {
-                        %10 : boolean = pattern.match %9
-                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> -> {
-                                %11 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> = pattern.binding @"i";
-                                yield %11;
-                            }
-                            (%12 : java.lang.Integer)void -> {
-                                var.store %6 %12;
-                                yield;
-                            };
-                        yield %10;
-                    }
-                    ()void -> {
-                        %13 : java.lang.String = var.load %3;
-                        %14 : java.lang.String = constant @"integer";
-                        %15 : java.lang.String = add %13 %14;
-                        var.store %3 %15;
-                        yield;
-                    }
-                    (%16 : java.lang.Object)boolean -> {
-                        %17 : boolean = pattern.match %16
-                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
-                                %18 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.binding @"s";
-                                yield %18;
-                            }
-                            (%19 : java.lang.String)void -> {
-                                var.store %8 %19;
-                                yield;
-                            };
-                        yield %17;
-                    }
-                    ()void -> {
-                        %20 : java.lang.String = var.load %3;
-                        %21 : java.lang.String = constant @"string";
-                        %22 : java.lang.String = add %20 %21;
-                        var.store %3 %22;
-                        yield;
-                    }
-                    ()void -> {
-                        yield;
-                    }
-                    ()void -> {
-                        %23 : java.lang.String = var.load %3;
-                        %24 : java.lang.String = constant @"else";
-                        %25 : java.lang.String = add %23 %24;
-                        var.store %3 %25;
-                        yield;
-                    };
-                %26 : java.lang.String = var.load %3;
-                return %26;
-            };
+                  %1 : Var<java.lang.Object> = var %0 @"o";
+                  %2 : java.lang.String = constant @"";
+                  %3 : Var<java.lang.String> = var %2 @"r";
+                  %4 : java.lang.Object = var.load %1;
+                  %5 : java.lang.Integer = constant @null;
+                  %6 : Var<java.lang.Integer> = var %5 @"i";
+                  %7 : java.lang.String = constant @null;
+                  %8 : Var<java.lang.String> = var %7 @"s";
+                  java.switch.statement %4
+                      (%9 : java.lang.Object)boolean -> {
+                          %10 : boolean = pattern.match %9
+                              ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> -> {
+                                  %11 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> = pattern.binding @"i";
+                                  yield %11;
+                              }
+                              (%12 : java.lang.Integer)void -> {
+                                  var.store %6 %12;
+                                  yield;
+                              };
+                          yield %10;
+                      }
+                      ()void -> {
+                          %13 : java.lang.String = var.load %3;
+                          %14 : java.lang.String = constant @"integer";
+                          %15 : java.lang.String = concat %13 %14;
+                          var.store %3 %15;
+                          yield;
+                      }
+                      (%16 : java.lang.Object)boolean -> {
+                          %17 : boolean = pattern.match %16
+                              ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
+                                  %18 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.binding @"s";
+                                  yield %18;
+                              }
+                              (%19 : java.lang.String)void -> {
+                                  var.store %8 %19;
+                                  yield;
+                              };
+                          yield %17;
+                      }
+                      ()void -> {
+                          %20 : java.lang.String = var.load %3;
+                          %21 : java.lang.String = constant @"string";
+                          %22 : java.lang.String = concat %20 %21;
+                          var.store %3 %22;
+                          yield;
+                      }
+                      ()void -> {
+                          yield;
+                      }
+                      ()void -> {
+                          %23 : java.lang.String = var.load %3;
+                          %24 : java.lang.String = constant @"else";
+                          %25 : java.lang.String = concat %23 %24;
+                          var.store %3 %25;
+                          yield;
+                      };
+                  %26 : java.lang.String = var.load %3;
+                  return %26;
+              };
             """)
     @CodeReflection
     private static String casePatternRuleExpression(Object o) {
@@ -1280,66 +1279,66 @@ public class SwitchStatementTest {
 
     @IR("""
             func @"casePatternRuleBlock" (%0 : java.lang.Object)java.lang.String -> {
-                %1 : Var<java.lang.Object> = var %0 @"o";
-                %2 : java.lang.String = constant @"";
-                %3 : Var<java.lang.String> = var %2 @"r";
-                %4 : java.lang.Object = var.load %1;
-                %5 : java.lang.Integer = constant @null;
-                %6 : Var<java.lang.Integer> = var %5 @"i";
-                %7 : java.lang.String = constant @null;
-                %8 : Var<java.lang.String> = var %7 @"s";
-                java.switch.statement %4
-                    (%9 : java.lang.Object)boolean -> {
-                        %10 : boolean = pattern.match %9
-                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> -> {
-                                %11 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> = pattern.binding @"i";
-                                yield %11;
-                            }
-                            (%12 : java.lang.Integer)void -> {
-                                var.store %6 %12;
-                                yield;
-                            };
-                        yield %10;
-                    }
-                    ()void -> {
-                        %13 : java.lang.String = var.load %3;
-                        %14 : java.lang.String = constant @"integer";
-                        %15 : java.lang.String = add %13 %14;
-                        var.store %3 %15;
-                        yield;
-                    }
-                    (%16 : java.lang.Object)boolean -> {
-                        %17 : boolean = pattern.match %16
-                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
-                                %18 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.binding @"s";
-                                yield %18;
-                            }
-                            (%19 : java.lang.String)void -> {
-                                var.store %8 %19;
-                                yield;
-                            };
-                        yield %17;
-                    }
-                    ()void -> {
-                        %20 : java.lang.String = var.load %3;
-                        %21 : java.lang.String = constant @"string";
-                        %22 : java.lang.String = add %20 %21;
-                        var.store %3 %22;
-                        yield;
-                    }
-                    ()void -> {
-                        yield;
-                    }
-                    ()void -> {
-                        %23 : java.lang.String = var.load %3;
-                        %24 : java.lang.String = constant @"else";
-                        %25 : java.lang.String = add %23 %24;
-                        var.store %3 %25;
-                        yield;
-                    };
-                %26 : java.lang.String = var.load %3;
-                return %26;
-            };
+                  %1 : Var<java.lang.Object> = var %0 @"o";
+                  %2 : java.lang.String = constant @"";
+                  %3 : Var<java.lang.String> = var %2 @"r";
+                  %4 : java.lang.Object = var.load %1;
+                  %5 : java.lang.Integer = constant @null;
+                  %6 : Var<java.lang.Integer> = var %5 @"i";
+                  %7 : java.lang.String = constant @null;
+                  %8 : Var<java.lang.String> = var %7 @"s";
+                  java.switch.statement %4
+                      (%9 : java.lang.Object)boolean -> {
+                          %10 : boolean = pattern.match %9
+                              ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> -> {
+                                  %11 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> = pattern.binding @"i";
+                                  yield %11;
+                              }
+                              (%12 : java.lang.Integer)void -> {
+                                  var.store %6 %12;
+                                  yield;
+                              };
+                          yield %10;
+                      }
+                      ()void -> {
+                          %13 : java.lang.String = var.load %3;
+                          %14 : java.lang.String = constant @"integer";
+                          %15 : java.lang.String = concat %13 %14;
+                          var.store %3 %15;
+                          yield;
+                      }
+                      (%16 : java.lang.Object)boolean -> {
+                          %17 : boolean = pattern.match %16
+                              ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
+                                  %18 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.binding @"s";
+                                  yield %18;
+                              }
+                              (%19 : java.lang.String)void -> {
+                                  var.store %8 %19;
+                                  yield;
+                              };
+                          yield %17;
+                      }
+                      ()void -> {
+                          %20 : java.lang.String = var.load %3;
+                          %21 : java.lang.String = constant @"string";
+                          %22 : java.lang.String = concat %20 %21;
+                          var.store %3 %22;
+                          yield;
+                      }
+                      ()void -> {
+                          yield;
+                      }
+                      ()void -> {
+                          %23 : java.lang.String = var.load %3;
+                          %24 : java.lang.String = constant @"else";
+                          %25 : java.lang.String = concat %23 %24;
+                          var.store %3 %25;
+                          yield;
+                      };
+                  %26 : java.lang.String = var.load %3;
+                  return %26;
+              };
             """)
     @CodeReflection
     private static String casePatternRuleBlock(Object o) {
@@ -1360,66 +1359,66 @@ public class SwitchStatementTest {
 
     @IR("""
             func @"casePatternStatement" (%0 : java.lang.Object)java.lang.String -> {
-                %1 : Var<java.lang.Object> = var %0 @"o";
-                %2 : java.lang.String = constant @"";
-                %3 : Var<java.lang.String> = var %2 @"r";
-                %4 : java.lang.Object = var.load %1;
-                %5 : java.lang.Integer = constant @null;
-                %6 : Var<java.lang.Integer> = var %5 @"i";
-                %7 : java.lang.String = constant @null;
-                %8 : Var<java.lang.String> = var %7 @"s";
-                java.switch.statement %4
-                    (%9 : java.lang.Object)boolean -> {
-                        %10 : boolean = pattern.match %9
-                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> -> {
-                                %11 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> = pattern.binding @"i";
-                                yield %11;
-                            }
-                            (%12 : java.lang.Integer)void -> {
-                                var.store %6 %12;
-                                yield;
-                            };
-                        yield %10;
-                    }
-                    ()void -> {
-                        %13 : java.lang.String = var.load %3;
-                        %14 : java.lang.String = constant @"integer";
-                        %15 : java.lang.String = add %13 %14;
-                        var.store %3 %15;
-                        java.break;
-                    }
-                    (%16 : java.lang.Object)boolean -> {
-                        %17 : boolean = pattern.match %16
-                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
-                                %18 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.binding @"s";
-                                yield %18;
-                            }
-                            (%19 : java.lang.String)void -> {
-                                var.store %8 %19;
-                                yield;
-                            };
-                        yield %17;
-                    }
-                    ()void -> {
-                        %20 : java.lang.String = var.load %3;
-                        %21 : java.lang.String = constant @"string";
-                        %22 : java.lang.String = add %20 %21;
-                        var.store %3 %22;
-                        java.break;
-                    }
-                    ()void -> {
-                        yield;
-                    }
-                    ()void -> {
-                        %23 : java.lang.String = var.load %3;
-                        %24 : java.lang.String = constant @"else";
-                        %25 : java.lang.String = add %23 %24;
-                        var.store %3 %25;
-                        yield;
-                    };
-                %26 : java.lang.String = var.load %3;
-                return %26;
-            };
+                  %1 : Var<java.lang.Object> = var %0 @"o";
+                  %2 : java.lang.String = constant @"";
+                  %3 : Var<java.lang.String> = var %2 @"r";
+                  %4 : java.lang.Object = var.load %1;
+                  %5 : java.lang.Integer = constant @null;
+                  %6 : Var<java.lang.Integer> = var %5 @"i";
+                  %7 : java.lang.String = constant @null;
+                  %8 : Var<java.lang.String> = var %7 @"s";
+                  java.switch.statement %4
+                      (%9 : java.lang.Object)boolean -> {
+                          %10 : boolean = pattern.match %9
+                              ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> -> {
+                                  %11 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> = pattern.binding @"i";
+                                  yield %11;
+                              }
+                              (%12 : java.lang.Integer)void -> {
+                                  var.store %6 %12;
+                                  yield;
+                              };
+                          yield %10;
+                      }
+                      ()void -> {
+                          %13 : java.lang.String = var.load %3;
+                          %14 : java.lang.String = constant @"integer";
+                          %15 : java.lang.String = concat %13 %14;
+                          var.store %3 %15;
+                          java.break;
+                      }
+                      (%16 : java.lang.Object)boolean -> {
+                          %17 : boolean = pattern.match %16
+                              ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
+                                  %18 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.binding @"s";
+                                  yield %18;
+                              }
+                              (%19 : java.lang.String)void -> {
+                                  var.store %8 %19;
+                                  yield;
+                              };
+                          yield %17;
+                      }
+                      ()void -> {
+                          %20 : java.lang.String = var.load %3;
+                          %21 : java.lang.String = constant @"string";
+                          %22 : java.lang.String = concat %20 %21;
+                          var.store %3 %22;
+                          java.break;
+                      }
+                      ()void -> {
+                          yield;
+                      }
+                      ()void -> {
+                          %23 : java.lang.String = var.load %3;
+                          %24 : java.lang.String = constant @"else";
+                          %25 : java.lang.String = concat %23 %24;
+                          var.store %3 %25;
+                          yield;
+                      };
+                  %26 : java.lang.String = var.load %3;
+                  return %26;
+              };
             """)
     @CodeReflection
     private static String casePatternStatement(Object o) {
@@ -1479,7 +1478,7 @@ public class SwitchStatementTest {
                     ()void -> {
                         %18 : java.lang.String = var.load %3;
                         %19 : java.lang.String = constant @"a string";
-                        %20 : java.lang.String = add %18 %19;
+                        %20 : java.lang.String = concat %18 %19;
                         var.store %3 %20;
                         yield;
                     }
@@ -1491,7 +1490,7 @@ public class SwitchStatementTest {
                         %22 : java.lang.Object = var.load %1;
                         %23 : java.lang.Class<+<java.lang.Object>> = invoke %22 @"java.lang.Object::getClass()java.lang.Class";
                         %24 : java.lang.String = invoke %23 @"java.lang.Class::getName()java.lang.String";
-                        %25 : java.lang.String = add %21 %24;
+                        %25 : java.lang.String = concat %21 %24;
                         var.store %3 %25;
                         yield;
                     };
@@ -1523,101 +1522,101 @@ public class SwitchStatementTest {
 
     @IR("""
             func @"casePatternWithCaseConstant" (%0 : java.lang.Integer)java.lang.String -> {
-                %1 : Var<java.lang.Integer> = var %0 @"a";
-                %2 : java.lang.String = constant @"";
-                %3 : Var<java.lang.String> = var %2 @"r";
-                %4 : java.lang.Integer = var.load %1;
-                %5 : java.lang.Integer = constant @null;
-                %6 : Var<java.lang.Integer> = var %5 @"i";
-                %7 : java.lang.Integer = constant @null;
-                %8 : Var<java.lang.Integer> = var %7 @"i";
-                java.switch.statement %4
-                    (%9 : java.lang.Integer)boolean -> {
-                        %10 : int = constant @"42";
-                        %11 : java.lang.Integer = invoke %10 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %12 : boolean = invoke %9 %11 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                        yield %12;
-                    }
-                    ()void -> {
-                        %13 : java.lang.String = var.load %3;
-                        %14 : java.lang.String = constant @"forty two";
-                        %15 : java.lang.String = add %13 %14;
-                        var.store %3 %15;
-                        yield;
-                    }
-                    (%16 : java.lang.Integer)boolean -> {
-                        %17 : boolean = java.cand
-                            ()boolean -> {
-                                %18 : boolean = pattern.match %16
-                                    ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> -> {
-                                        %19 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> = pattern.binding @"i";
-                                        yield %19;
-                                    }
-                                    (%20 : java.lang.Integer)void -> {
-                                        var.store %6 %20;
-                                        yield;
-                                    };
-                                yield %18;
-                            }
-                            ()boolean -> {
-                                %21 : java.lang.Integer = var.load %6;
-                                %22 : int = invoke %21 @"java.lang.Integer::intValue()int";
-                                %23 : int = constant @"0";
-                                %24 : boolean = gt %22 %23;
-                                yield %24;
-                            };
-                        yield %17;
-                    }
-                    ()void -> {
-                        %25 : java.lang.String = var.load %3;
-                        %26 : java.lang.String = constant @"positive int";
-                        %27 : java.lang.String = add %25 %26;
-                        var.store %3 %27;
-                        yield;
-                    }
-                    (%28 : java.lang.Integer)boolean -> {
-                        %29 : boolean = java.cand
-                            ()boolean -> {
-                                %30 : boolean = pattern.match %28
-                                    ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> -> {
-                                        %31 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> = pattern.binding @"i";
-                                        yield %31;
-                                    }
-                                    (%32 : java.lang.Integer)void -> {
-                                        var.store %8 %32;
-                                        yield;
-                                    };
-                                yield %30;
-                            }
-                            ()boolean -> {
-                                %33 : java.lang.Integer = var.load %8;
-                                %34 : int = invoke %33 @"java.lang.Integer::intValue()int";
-                                %35 : int = constant @"0";
-                                %36 : boolean = lt %34 %35;
-                                yield %36;
-                            };
-                        yield %29;
-                    }
-                    ()void -> {
-                        %37 : java.lang.String = var.load %3;
-                        %38 : java.lang.String = constant @"negative int";
-                        %39 : java.lang.String = add %37 %38;
-                        var.store %3 %39;
-                        yield;
-                    }
-                    ()void -> {
-                        yield;
-                    }
-                    ()void -> {
-                        %40 : java.lang.String = var.load %3;
-                        %41 : java.lang.String = constant @"zero";
-                        %42 : java.lang.String = add %40 %41;
-                        var.store %3 %42;
-                        yield;
-                    };
-                %43 : java.lang.String = var.load %3;
-                return %43;
-            };
+                  %1 : Var<java.lang.Integer> = var %0 @"a";
+                  %2 : java.lang.String = constant @"";
+                  %3 : Var<java.lang.String> = var %2 @"r";
+                  %4 : java.lang.Integer = var.load %1;
+                  %5 : java.lang.Integer = constant @null;
+                  %6 : Var<java.lang.Integer> = var %5 @"i";
+                  %7 : java.lang.Integer = constant @null;
+                  %8 : Var<java.lang.Integer> = var %7 @"i";
+                  java.switch.statement %4
+                      (%9 : java.lang.Integer)boolean -> {
+                          %10 : int = constant @"42";
+                          %11 : java.lang.Integer = invoke %10 @"java.lang.Integer::valueOf(int)java.lang.Integer";
+                          %12 : boolean = invoke %9 %11 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                          yield %12;
+                      }
+                      ()void -> {
+                          %13 : java.lang.String = var.load %3;
+                          %14 : java.lang.String = constant @"forty two";
+                          %15 : java.lang.String = concat %13 %14;
+                          var.store %3 %15;
+                          yield;
+                      }
+                      (%16 : java.lang.Integer)boolean -> {
+                          %17 : boolean = java.cand
+                              ()boolean -> {
+                                  %18 : boolean = pattern.match %16
+                                      ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> -> {
+                                          %19 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> = pattern.binding @"i";
+                                          yield %19;
+                                      }
+                                      (%20 : java.lang.Integer)void -> {
+                                          var.store %6 %20;
+                                          yield;
+                                      };
+                                  yield %18;
+                              }
+                              ()boolean -> {
+                                  %21 : java.lang.Integer = var.load %6;
+                                  %22 : int = invoke %21 @"java.lang.Integer::intValue()int";
+                                  %23 : int = constant @"0";
+                                  %24 : boolean = gt %22 %23;
+                                  yield %24;
+                              };
+                          yield %17;
+                      }
+                      ()void -> {
+                          %25 : java.lang.String = var.load %3;
+                          %26 : java.lang.String = constant @"positive int";
+                          %27 : java.lang.String = concat %25 %26;
+                          var.store %3 %27;
+                          yield;
+                      }
+                      (%28 : java.lang.Integer)boolean -> {
+                          %29 : boolean = java.cand
+                              ()boolean -> {
+                                  %30 : boolean = pattern.match %28
+                                      ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> -> {
+                                          %31 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> = pattern.binding @"i";
+                                          yield %31;
+                                      }
+                                      (%32 : java.lang.Integer)void -> {
+                                          var.store %8 %32;
+                                          yield;
+                                      };
+                                  yield %30;
+                              }
+                              ()boolean -> {
+                                  %33 : java.lang.Integer = var.load %8;
+                                  %34 : int = invoke %33 @"java.lang.Integer::intValue()int";
+                                  %35 : int = constant @"0";
+                                  %36 : boolean = lt %34 %35;
+                                  yield %36;
+                              };
+                          yield %29;
+                      }
+                      ()void -> {
+                          %37 : java.lang.String = var.load %3;
+                          %38 : java.lang.String = constant @"negative int";
+                          %39 : java.lang.String = concat %37 %38;
+                          var.store %3 %39;
+                          yield;
+                      }
+                      ()void -> {
+                          yield;
+                      }
+                      ()void -> {
+                          %40 : java.lang.String = var.load %3;
+                          %41 : java.lang.String = constant @"zero";
+                          %42 : java.lang.String = concat %40 %41;
+                          var.store %3 %42;
+                          yield;
+                      };
+                  %43 : java.lang.String = var.load %3;
+                  return %43;
+              };
             """)
     @CodeReflection
     static String casePatternWithCaseConstant(Integer a) {
@@ -1666,7 +1665,7 @@ public class SwitchStatementTest {
                     ()void -> {
                         %21 : java.lang.String = var.load %3;
                         %22 : java.lang.String = constant @"String";
-                        %23 : java.lang.String = add %21 %22;
+                        %23 : java.lang.String = concat %21 %22;
                         var.store %3 %23;
                         yield;
                     }
@@ -1685,7 +1684,7 @@ public class SwitchStatementTest {
                     ()void -> {
                         %28 : java.lang.String = var.load %3;
                         %29 : java.lang.String = constant @"RandomAccess";
-                        %30 : java.lang.String = add %28 %29;
+                        %30 : java.lang.String = concat %28 %29;
                         var.store %3 %30;
                         yield;
                     }
@@ -1704,7 +1703,7 @@ public class SwitchStatementTest {
                     ()void -> {
                         %35 : java.lang.String = var.load %3;
                         %36 : java.lang.String = constant @"int[]";
-                        %37 : java.lang.String = add %35 %36;
+                        %37 : java.lang.String = concat %35 %36;
                         var.store %3 %37;
                         yield;
                     }
@@ -1723,7 +1722,7 @@ public class SwitchStatementTest {
                     ()void -> {
                         %42 : java.lang.String = var.load %3;
                         %43 : java.lang.String = constant @"Stack[][]";
-                        %44 : java.lang.String = add %42 %43;
+                        %44 : java.lang.String = concat %42 %43;
                         var.store %3 %44;
                         yield;
                     }
@@ -1742,7 +1741,7 @@ public class SwitchStatementTest {
                     ()void -> {
                         %49 : java.lang.String = var.load %3;
                         %50 : java.lang.String = constant @"Collection[][][]";
-                        %51 : java.lang.String = add %49 %50;
+                        %51 : java.lang.String = concat %49 %50;
                         var.store %3 %51;
                         yield;
                     }
@@ -1761,7 +1760,7 @@ public class SwitchStatementTest {
                     ()void -> {
                         %56 : java.lang.String = var.load %3;
                         %57 : java.lang.String = constant @"Number";
-                        %58 : java.lang.String = add %56 %57;
+                        %58 : java.lang.String = concat %56 %57;
                         var.store %3 %58;
                         yield;
                     }
@@ -1771,7 +1770,7 @@ public class SwitchStatementTest {
                     ()void -> {
                         %59 : java.lang.String = var.load %3;
                         %60 : java.lang.String = constant @"something else";
-                        %61 : java.lang.String = add %59 %60;
+                        %61 : java.lang.String = concat %59 %60;
                         var.store %3 %61;
                         yield;
                     };
@@ -1820,7 +1819,7 @@ public class SwitchStatementTest {
                     ()void -> {
                         %12 : java.lang.String = var.load %3;
                         %13 : java.lang.String = constant @"R(_)";
-                        %14 : java.lang.String = add %12 %13;
+                        %14 : java.lang.String = concat %12 %13;
                         var.store %3 %14;
                         yield;
                     }
@@ -1830,7 +1829,7 @@ public class SwitchStatementTest {
                     ()void -> {
                         %15 : java.lang.String = var.load %3;
                         %16 : java.lang.String = constant @"else";
-                        %17 : java.lang.String = add %15 %16;
+                        %17 : java.lang.String = concat %15 %16;
                         var.store %3 %17;
                         yield;
                     };
@@ -1889,7 +1888,7 @@ public class SwitchStatementTest {
                         %21 : int = invoke %20 @"java.lang.String::length()int";
                         %22 : java.lang.Integer = invoke %21 @"java.lang.Integer::valueOf(int)java.lang.Integer";
                         %23 : java.lang.String = invoke %19 %22 @"java.lang.String::formatted(java.lang.Object[])java.lang.String";
-                        %24 : java.lang.String = add %18 %23;
+                        %24 : java.lang.String = concat %18 %23;
                         var.store %3 %24;
                         yield;
                     }
@@ -1920,7 +1919,7 @@ public class SwitchStatementTest {
                     ()void -> {
                         %35 : java.lang.String = var.load %3;
                         %36 : java.lang.String = constant @"R(Double)";
-                        %37 : java.lang.String = add %35 %36;
+                        %37 : java.lang.String = concat %35 %36;
                         var.store %3 %37;
                         yield;
                     }
@@ -1930,7 +1929,7 @@ public class SwitchStatementTest {
                     ()void -> {
                         %38 : java.lang.String = var.load %3;
                         %39 : java.lang.String = constant @"else";
-                        %40 : java.lang.String = add %38 %39;
+                        %40 : java.lang.String = concat %38 %39;
                         var.store %3 %40;
                         yield;
                     };
