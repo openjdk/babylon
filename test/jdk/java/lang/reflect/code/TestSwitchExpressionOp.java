@@ -139,7 +139,7 @@ public class TestSwitchExpressionOp {
     }
 
     @Test
-    void testCasePatternBehaviorIsSyntaxIndependent() { // @@@ need to be updated
+    void testCasePatternBehaviorIsSyntaxIndependent() {
         CoreOp.FuncOp ruleExpression = lower("casePatternRuleExpression");
         CoreOp.FuncOp ruleBlock = lower("casePatternRuleBlock");
         CoreOp.FuncOp statement = lower("casePatternStatement");
