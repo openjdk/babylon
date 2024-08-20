@@ -910,6 +910,14 @@ public final class BytecodeGenerator {
                                 toClassDesc(op.operands().get(1).type()))));
                         push(op.result());
                     }
+                    case MonitorOp.MonitorEnterOp op -> {
+                        processFirstOperand(op);
+                        cob.monitorenter();
+                    }
+                    case MonitorOp.MonitorExitOp op -> {
+                        processFirstOperand(op);
+                        cob.monitorexit();
+                    }
                     default ->
                         throw new UnsupportedOperationException("Unsupported operation: " + ops.get(i));
                 }
