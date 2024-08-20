@@ -144,9 +144,9 @@ public class TestSwitchExpressionOp {
         CoreOp.FuncOp ruleBlock = lower("casePatternRuleBlock");
         CoreOp.FuncOp statement = lower("casePatternStatement");
 
-        String[] args = {"FOO", "BAR", "BAZ", "OTHER"};
+        Object[] args = {1, "2", 3L};
 
-        for (String arg : args) {
+        for (Object arg : args) {
             Assert.assertEquals(Interpreter.invoke(ruleExpression, arg), Interpreter.invoke(ruleBlock, arg));
             Assert.assertEquals(Interpreter.invoke(ruleExpression, arg), Interpreter.invoke(statement, arg));
         }

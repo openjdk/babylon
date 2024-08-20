@@ -112,7 +112,6 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
 
             // No label
             // Get innermost enclosing loop operation
-            // @@@ expand to support innermost enclosing switch operation
             Op op = this;
             Body b;
             do {
@@ -121,11 +120,13 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 if (op == null) {
                     throw new IllegalStateException("No enclosing loop");
                 }
-            } while (!(op instanceof Op.Loop));
-            // } while (!(op instanceof Op.Loop lop));
-            // error: variable lop might not have been initialized
-            Op.Loop lop = (Op.Loop) op;
-            return lop.loopBody() == b ? op : null;
+            } while (!(op instanceof Op.Loop || op instanceof JavaSwitchStatementOp));
+
+            return switch (op) {
+                case Op.Loop lop -> lop.loopBody() == b ? op : null;
+                case JavaSwitchStatementOp swStat -> swStat.bodies().contains(b) ? op : null;
+                default -> throw new IllegalStateException();
+            };
         }
 
         boolean isUnlabeled() {
@@ -1066,6 +1067,168 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             }
 
             return exit;
+        }
+    }
+
+    /**
+     * The switch statement operation, that can model Java language switch statement.
+     */
+    @OpFactory.OpDeclaration(JavaSwitchStatementOp.NAME)
+    public static final class JavaSwitchStatementOp extends ExtendedOp
+            implements Op.Nested, JavaStatement, Op.Lowerable {
+        public static final String NAME = "java.switch.statement";
+
+        final List<Body> bodies;
+
+        public JavaSwitchStatementOp(ExternalizedOp def) {
+            super(def);
+
+            if (def.operands().size() != 1) {
+                throw new IllegalStateException("Operation must have one operand");
+            }
+
+            // @@@ Validate
+            this.bodies = def.bodyDefinitions().stream().map(bd -> bd.build(this)).toList();
+        }
+
+        JavaSwitchStatementOp(JavaSwitchStatementOp that, CopyContext cc, OpTransformer ot) {
+            super(that, cc);
+
+            // Copy body
+            this.bodies = that.bodies.stream()
+                    .map(b -> b.transform(cc, ot).build(this)).toList();
+        }
+
+        @Override
+        public JavaSwitchStatementOp transform(CopyContext cc, OpTransformer ot) {
+            return new JavaSwitchStatementOp(this, cc, ot);
+        }
+
+        JavaSwitchStatementOp(Value target, List<Body.Builder> bodyCs) {
+            super(NAME, List.of(target));
+
+            // Each case is modelled as a contiguous pair of bodies
+            // The first body models the case labels, and the second models the case statements
+            // The labels body has a parameter whose type is target operand's type and returns a boolean value
+            // The statements body has no parameters and returns void
+            this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
+        }
+
+        @Override
+        public List<Body> bodies() {
+            return bodies;
+        }
+
+        @Override
+        public TypeElement resultType() {
+            return VOID;
+        }
+
+        @Override
+        public Block.Builder lower(Block.Builder b, OpTransformer opT) {
+
+            Value selectorExpression = b.context().getValue(operands().get(0));
+
+            // @@@ we can add this during model generation
+            // if no case null, add one that throws NPE
+            if (!(selectorExpression.type() instanceof PrimitiveType) && !haveNullCase()) {
+                Block.Builder throwBlock = b.block();
+                throwBlock.op(_throw(
+                        throwBlock.op(_new(FunctionType.functionType(JavaType.type(NullPointerException.class))))
+                ));
+
+                Block.Builder continueBlock = b.block();
+
+                Result p = b.op(invoke(MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class),
+                        selectorExpression, b.op(constant(J_L_OBJECT, null))));
+                b.op(conditionalBranch(p, throwBlock.successor(), continueBlock.successor()));
+
+                b = continueBlock;
+            }
+
+            List<Block.Builder> blocks = new ArrayList<>();
+            for (int i = 0; i < bodies().size(); i++) {
+                Block.Builder bb = b.block();
+                if (i == 0) {
+                    bb = b;
+                }
+                blocks.add(bb);
+            }
+
+            Block.Builder exit;
+            if (bodies.isEmpty()) {
+                exit = b;
+            } else {
+                exit = b.block();
+            }
+
+            setBranchTarget(b.context(), this, new BranchTarget(exit, null));
+            // map statement body to nextExprBlock
+            // this mapping will be used for lowering SwitchFallThroughOp
+            for (int i = 1; i < bodies().size() - 2; i+=2) {
+                setBranchTarget(b.context(), bodies().get(i), new BranchTarget(null, blocks.get(i + 2)));
+            }
+
+            for (int i = 0; i < bodies().size(); i++) {
+                boolean isLabelBody = i % 2 == 0;
+                Block.Builder curr = blocks.get(i);
+                if (isLabelBody) {
+                    Block.Builder statement = blocks.get(i + 1);
+                    boolean isLastLabel = i == blocks.size() - 2;
+                    Block.Builder nextLabel = isLastLabel ? null : blocks.get(i + 2);
+                    curr.transformBody(bodies().get(i), List.of(selectorExpression), opT.andThen((block, op) -> {
+                        switch (op) {
+                            case YieldOp yop when yop.operands().isEmpty() -> block.op(branch(statement.successor()));
+                            case YieldOp yop -> block.op(conditionalBranch(
+                                    block.context().getValue(yop.yieldValue()),
+                                    statement.successor(),
+                                    isLastLabel ? exit.successor() : nextLabel.successor()
+                            ));
+                            case Lowerable lop -> block = lop.lower(block);
+                            default -> block.op(op);
+                        }
+                        return block;
+                    }));
+                } else { // statement body
+                    curr.transformBody(bodies().get(i), blocks.get(i).parameters(), opT.andThen((block, op) -> {
+                        switch (op) {
+                            case YieldOp yop -> block.op(branch(exit.successor()));
+                            case Lowerable lop -> block = lop.lower(block);
+                            default -> block.op(op);
+                        }
+                        return block;
+                    }));
+                }
+            }
+
+            return exit;
+        }
+
+        private boolean haveNullCase() {
+            /*
+            case null is modeled like this:
+            (%4 : T)boolean -> {
+                %5 : java.lang.Object = constant @null;
+                %6 : boolean = invoke %4 %5 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                yield %6;
+            }
+            * */
+            for (int i = 0; i < bodies().size() - 2; i+=2) {
+                Body labelBody = bodies().get(i);
+                if (labelBody.blocks().size() != 1) {
+                    continue; // we skip, for now
+                }
+                Op terminatingOp = bodies().get(i).entryBlock().terminatingOp();
+                //@@@ when op pattern matching is ready, we can use it
+                if (terminatingOp instanceof YieldOp yieldOp &&
+                        yieldOp.yieldValue() instanceof Op.Result opr &&
+                        opr.op() instanceof InvokeOp invokeOp &&
+                        invokeOp.invokeDescriptor().equals(MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class)) &&
+                        invokeOp.operands().stream().anyMatch(o -> o instanceof Op.Result r && r.op() instanceof ConstantOp cop && cop.value() == null)) {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 
@@ -3225,6 +3388,16 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                                                           List<Body.Builder> bodies) {
         Objects.requireNonNull(resultType);
         return new JavaSwitchExpressionOp(resultType, target, bodies);
+    }
+
+    /**
+     * Creates a switch statement operation.
+     * @param target the switch target value
+     * @param bodies the body builders of the operation to be built and become its children
+     * @return the switch statement operation
+     */
+    public static JavaSwitchStatementOp switchStatement(Value target, List<Body.Builder> bodies) {
+        return new JavaSwitchStatementOp(target, bodies);
     }
 
     /**
