@@ -92,7 +92,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             ExtendedOp.JavaLabeledOp,
             ExtendedOp.JavaTryOp,
             ExtendedOp.JavaWhileOp,
-            ExtendedOp.JavaYieldOp {
+            ExtendedOp.JavaYieldOp,
+            ExtendedOp.JavaSwitchStatementOp {
     }
 
     // Split string to ensure the name does not get rewritten
