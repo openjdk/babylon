@@ -38,6 +38,8 @@ import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.type.VarType;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -61,7 +63,10 @@ public final class Interpreter {
     record BlockContext(Block b, Map<Value, Object> values) {
     }
 
+    static final ConcurrentHashMap<Object, ReentrantLock> locks = new ConcurrentHashMap<>();
+
     static final class OpContext {
+        final Map<Object, ReentrantLock> locks = new HashMap<>();
         final Deque<BlockContext> stack = new ArrayDeque<>();
         final Deque<ExceptionRegionRecord> erStack = new ArrayDeque<>();
 
@@ -559,6 +564,25 @@ public final class Interpreter {
                     .map(oc::getValue)
                     .map(String::valueOf)
                     .collect(Collectors.joining());
+        } else if (o instanceof CoreOp.MonitorOp.MonitorEnterOp) {
+            Object monitorTarget = oc.getValue(o.operands().get(0));
+            if (monitorTarget == null) {
+                throw new NullPointerException();
+            }
+            ReentrantLock lock = oc.locks.computeIfAbsent(monitorTarget, _ -> new ReentrantLock());
+            lock.lock();
+            return null;
+        } else if (o instanceof CoreOp.MonitorOp.MonitorExitOp) {
+            Object monitorTarget = oc.getValue(o.operands().get(0));
+            if (monitorTarget == null) {
+                throw new NullPointerException();
+            }
+            ReentrantLock lock = oc.locks.get(monitorTarget);
+            if (lock == null) {
+                throw new IllegalMonitorStateException();
+            }
+            lock.unlock();
+            return null;
         } else {
             throw interpreterException(
                     new UnsupportedOperationException("Unsupported operation: " + o.opName()));

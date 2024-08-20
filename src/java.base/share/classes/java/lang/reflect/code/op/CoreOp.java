@@ -90,6 +90,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             ExtendedOp.JavaIfOp,
             ExtendedOp.JavaLabelOp,
             ExtendedOp.JavaLabeledOp,
+            ExtendedOp.JavaSynchronizedOp,
             ExtendedOp.JavaTryOp,
             ExtendedOp.JavaWhileOp,
             ExtendedOp.JavaYieldOp {
@@ -962,6 +963,86 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         @Override
         public List<Body> bodies() {
             return this.bodies;
+        }
+    }
+
+    /**
+     * A monitor operation.
+     */
+    public sealed abstract static class MonitorOp extends CoreOp {
+        public MonitorOp(ExternalizedOp def) {
+            super(def);
+
+            if (def.operands().size() != 1) {
+                throw new IllegalArgumentException("Operation must have one operand " + def.name());
+            }
+        }
+
+        MonitorOp(MonitorOp that, CopyContext cc) {
+            super(that, cc);
+        }
+
+        MonitorOp(String name, Value monitor) {
+            super(name, List.of(monitor));
+        }
+
+        public Value monitorValue() {
+            return operands().getFirst();
+        }
+
+        @Override
+        public TypeElement resultType() {
+            return JavaType.VOID;
+        }
+
+        /**
+         * The monitor enter operation.
+         */
+        @OpFactory.OpDeclaration(MonitorEnterOp.NAME)
+        public static final class MonitorEnterOp extends MonitorOp {
+            public static final String NAME = "monitor.enter";
+
+            public MonitorEnterOp(ExternalizedOp def) {
+                super(def);
+            }
+
+            MonitorEnterOp(MonitorEnterOp that, CopyContext cc) {
+                super(that, cc);
+            }
+
+            @Override
+            public MonitorEnterOp transform(CopyContext cc, OpTransformer ot) {
+                return new MonitorEnterOp(this, cc);
+            }
+
+            MonitorEnterOp(Value monitor) {
+                super(NAME, monitor);
+            }
+        }
+
+        /**
+         * The monitor exit operation.
+         */
+        @OpFactory.OpDeclaration(MonitorExitOp.NAME)
+        public static final class MonitorExitOp extends MonitorOp {
+            public static final String NAME = "monitor.exit";
+
+            public MonitorExitOp(ExternalizedOp def) {
+                super(def);
+            }
+
+            MonitorExitOp(MonitorExitOp that, CopyContext cc) {
+                super(that, cc);
+            }
+
+            @Override
+            public MonitorExitOp transform(CopyContext cc, OpTransformer ot) {
+                return new MonitorExitOp(this, cc);
+            }
+
+            MonitorExitOp(Value monitor) {
+                super(NAME, monitor);
+            }
         }
     }
 
@@ -3488,6 +3569,14 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      */
     public static AssertOp _assert(List<Body.Builder> bodies) {
         return new AssertOp(bodies);
+    }
+
+    public static MonitorOp.MonitorEnterOp monitorEnter(Value monitor) {
+        return new MonitorOp.MonitorEnterOp(monitor);
+    }
+
+    public static MonitorOp.MonitorExitOp monitorExit(Value monitor) {
+        return new MonitorOp.MonitorExitOp(monitor);
     }
 
     /**

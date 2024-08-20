@@ -328,7 +328,6 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
      * The block operation, that can model Java language blocks.
      */
     @OpFactory.OpDeclaration(JavaBlockOp.NAME)
-    // @@@ Support synchronized attribute
     public static final class JavaBlockOp extends ExtendedOp
             implements Op.Nested, Op.Lowerable, JavaStatement {
         public static final String NAME = "java.block";
@@ -357,7 +356,6 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             return new JavaBlockOp(this, cc, ot);
         }
 
-        // @@@ Support non-void result type
         JavaBlockOp(Body.Builder bodyC) {
             super(NAME, List.of());
 
@@ -399,6 +397,177 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             }));
 
             return exit;
+        }
+
+        @Override
+        public TypeElement resultType() {
+            return VOID;
+        }
+    }
+
+    /**
+     * The synchronized operation, that can model Java synchronized statements.
+     */
+    @OpFactory.OpDeclaration(JavaSynchronizedOp.NAME)
+    public static final class JavaSynchronizedOp extends ExtendedOp
+            implements Op.Nested, Op.Lowerable, JavaStatement {
+        public static final String NAME = "java.synchronized";
+
+        final Body expr;
+        final Body blockBody;
+
+        public JavaSynchronizedOp(ExternalizedOp def) {
+            super(def);
+
+            this.expr = def.bodyDefinitions().get(0).build(this);
+            this.blockBody = def.bodyDefinitions().get(1).build(this);
+        }
+
+        JavaSynchronizedOp(JavaSynchronizedOp that, CopyContext cc, OpTransformer ot) {
+            super(that, cc);
+
+            // Copy bodies
+            this.expr = that.expr.transform(cc, ot).build(this);
+            this.blockBody = that.blockBody.transform(cc, ot).build(this);
+        }
+
+        @Override
+        public JavaSynchronizedOp transform(CopyContext cc, OpTransformer ot) {
+            return new JavaSynchronizedOp(this, cc, ot);
+        }
+
+        JavaSynchronizedOp(Body.Builder exprC, Body.Builder bodyC) {
+            super(NAME, List.of());
+
+            this.expr = exprC.build(this);
+            if (expr.bodyType().returnType().equals(VOID)) {
+                throw new IllegalArgumentException("Expression body should return non-void value: " + expr.bodyType());
+            }
+            if (!expr.bodyType().parameterTypes().isEmpty()) {
+                throw new IllegalArgumentException("Expression body should have zero parameters: " + expr.bodyType());
+            }
+
+            this.blockBody = bodyC.build(this);
+            if (!blockBody.bodyType().returnType().equals(VOID)) {
+                throw new IllegalArgumentException("Block body should return void: " + blockBody.bodyType());
+            }
+            if (!blockBody.bodyType().parameterTypes().isEmpty()) {
+                throw new IllegalArgumentException("Block body should have zero parameters: " + blockBody.bodyType());
+            }
+        }
+
+        @Override
+        public List<Body> bodies() {
+            return List.of(expr, blockBody);
+        }
+
+        public Body expr() {
+            return expr;
+        }
+
+        public Body blockBody() {
+            return blockBody;
+        }
+
+        @Override
+        public Block.Builder lower(Block.Builder b, OpTransformer opT) {
+            // Lower the expression body, yielding a monitor target
+            b = lowerExpr(b, opT);
+            Value monitorTarget = b.parameters().get(0);
+
+            // Monitor enter
+            b.op(CoreOp.monitorEnter(monitorTarget));
+
+            Block.Builder exit = b.block();
+            setBranchTarget(b.context(), this, new BranchTarget(exit, null));
+
+            // Exception region for the body
+            Block.Builder syncRegionEnter = b.block();
+            Block.Builder catcherFinally = b.block();
+            Result syncExceptionRegion = b.op(exceptionRegionEnter(
+                    syncRegionEnter.successor(), List.of(catcherFinally.successor())));
+
+            OpTransformer syncExitTransformer = opT.compose((block, op) -> {
+                if (op instanceof CoreOp.ReturnOp ||
+                    (op instanceof ExtendedOp.JavaLabelOp lop && ifExitFromSynchronized(lop))) {
+                    // Monitor exit
+                    block.op(CoreOp.monitorExit(monitorTarget));
+                    // Exit the exception region
+                    Block.Builder exitRegion = block.block();
+                    block.op(exceptionRegionExit(syncExceptionRegion, exitRegion.successor()));
+                    return exitRegion;
+                } else {
+                    return block;
+                }
+            });
+
+            syncRegionEnter.transformBody(blockBody, List.of(), syncExitTransformer.andThen((block, op) -> {
+                if (op instanceof YieldOp) {
+                    // Monitor exit
+                    block.op(CoreOp.monitorExit(monitorTarget));
+                    // Exit the exception region
+                    block.op(exceptionRegionExit(syncExceptionRegion, exit.successor()));
+                } else {
+                    // @@@ Composition of lowerable ops
+                    if (op instanceof Lowerable lop) {
+                        block = lop.lower(block, syncExitTransformer);
+                    } else {
+                        block.op(op);
+                    }
+                }
+                return block;
+            }));
+
+            // The catcher, with an exception region back branching to itself
+            Block.Builder catcherFinallyRegionEnter = b.block();
+            Result catcherExceptionRegion = catcherFinally.op(exceptionRegionEnter(
+                    catcherFinallyRegionEnter.successor(), List.of(catcherFinally.successor())));
+
+            // Monitor exit
+            catcherFinallyRegionEnter.op(CoreOp.monitorExit(monitorTarget));
+            Block.Builder catcherFinallyRegionExit = b.block();
+            // Exit the exception region
+            catcherFinallyRegionEnter.op(exceptionRegionExit(
+                    catcherExceptionRegion, catcherFinallyRegionExit.successor()));
+            // Rethrow outside of region
+            Block.Parameter t = catcherFinally.parameter(type(Throwable.class));
+            catcherFinallyRegionExit.op(_throw(t));
+
+            return exit;
+        }
+
+        Block.Builder lowerExpr(Block.Builder b, OpTransformer opT) {
+            Block.Builder exprExit = b.block(expr.bodyType().returnType());
+            b.transformBody(expr, List.of(), opT.andThen((block, op) -> {
+                if (op instanceof YieldOp yop) {
+                    Value monitorTarget = block.context().getValue(yop.yieldValue());
+                    block.op(branch(exprExit.successor(monitorTarget)));
+                } else {
+                    // @@@ Composition of lowerable ops
+                    if (op instanceof Lowerable lop) {
+                        block = lop.lower(block, opT);
+                    } else {
+                        block.op(op);
+                    }
+                }
+                return block;
+            }));
+            return exprExit;
+        }
+
+        boolean ifExitFromSynchronized(JavaLabelOp lop) {
+            Op target = lop.target();
+            return target == this || ifAncestorOp(target, this);
+        }
+
+        static boolean ifAncestorOp(Op ancestor, Op op) {
+            while (op.ancestorBody() != null) {
+                op = op.ancestorBody().parentOp();
+                if (op == ancestor) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         @Override
@@ -2983,6 +3152,17 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
      */
     public static JavaBlockOp block(Body.Builder body) {
         return new JavaBlockOp(body);
+    }
+
+    /**
+     * Creates a synchronized operation.
+     *
+     * @param expr the expression body builder of the operation to be built and become its child
+     * @param blockBody the block body builder of the operation to be built and become its child
+     * @return the synchronized operation
+     */
+    public static JavaSynchronizedOp synchronized_(Body.Builder expr, Body.Builder blockBody) {
+        return new JavaSynchronizedOp(expr, blockBody);
     }
 
     /**
