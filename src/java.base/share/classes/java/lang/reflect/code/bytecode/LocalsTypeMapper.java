@@ -48,6 +48,7 @@ import java.util.stream.Collectors;
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
 import static java.lang.constant.ConstantDescs.*;
 import java.util.ArrayDeque;
+import java.util.BitSet;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -92,28 +93,28 @@ final class LocalsTypeMapper {
     private final ClassDesc thisClass;
     private final List<ClassDesc> stack;
     private final List<Var> locals;
-    final List<Boolean> simpleGraphs;
+    final List<ClassDesc> varTypes;
     final Map<Label, Frame> stackMap;
     private final Map<Label, ClassDesc> newMap;
     private boolean frameDirty;
 
     LocalsTypeMapper(ClassDesc thisClass,
-                         List<ClassDesc> initFrameLocals,
+                         List<Var> initFrameLocals,
                          Optional<StackMapTableAttribute> stackMapTableAttribute,
                          List<CodeElement> codeElements) {
         this.insMap = new HashMap<>();
         this.thisClass = thisClass;
         this.stack = new ArrayList<>();
-        this.locals = new ArrayList<>(initFrameLocals.size());
-        this.allLocals = new ArrayList<>(initFrameLocals.size());
-        this.simpleGraphs = new ArrayList<>();
+        this.locals = new ArrayList<>();
+        this.allLocals = new ArrayList<>();
+        this.varTypes = new ArrayList<>();
         this.newMap = computeNewMap(codeElements);
         this.stackMap = stackMapTableAttribute.map(a -> a.entries().stream().collect(Collectors.toMap(
                 StackMapFrameInfo::target,
                 this::toFrame))).orElse(Map.of());
         do {
             for (int i = 0; i < initFrameLocals.size(); i++) {
-                store(i, initFrameLocals.get(i));
+                store(i, initFrameLocals.get(i), locals);
             }
             this.frameDirty = false;
             for (int i = 0; i < codeElements.size(); i++) {
@@ -124,6 +125,7 @@ final class LocalsTypeMapper {
 
         // Color var graphs
         int gr = 0;
+        varTypes.add(null);
         ArrayDeque<Var> q = new ArrayDeque<>();
         for (Set<Var> slotVars : allLocals) {
             Optional<Var> opt;
@@ -131,6 +133,7 @@ final class LocalsTypeMapper {
                 gr++;
                 q.add(opt.get());
                 int sources = 0;
+                ClassDesc type = opt.get().type;
                 while (!q.isEmpty()) {
                     Var v = q.pop();
                     if (v.graph == 0) {
@@ -138,6 +141,7 @@ final class LocalsTypeMapper {
                         v.graph = gr;
                         Link l = v.up;
                         while (l != null) {
+                            type = l.var.type;
                             if (l.var.graph == 0) q.add(l.var);
                             l = l.other;
                         }
@@ -148,7 +152,7 @@ final class LocalsTypeMapper {
                         }
                     }
                 }
-                simpleGraphs.add(sources < 2);
+                varTypes.add(sources > 1 ? type : null);
             }
         }
     }
@@ -252,10 +256,13 @@ final class LocalsTypeMapper {
     }
 
     private void store(int slot, ClassDesc type, List<Var> where) {
+        store(slot, type == null ? null : new Var(type), where);
+    }
+
+    private void store(int slot, Var v, List<Var> where) {
         for (int i = where.size(); i <= slot; i++) where.add(null);
         for (int i = allLocals.size(); i <= slot; i++) allLocals.add(null);
-        if (type != null) {
-            Var v = new Var(type);
+        if (v != null) {
             where.set(slot, v);
             Set<Var> all = allLocals.get(slot);
             if (all == null) {
@@ -318,6 +325,12 @@ final class LocalsTypeMapper {
                         pop(2);
                 }
             }
+            case IncrementInstruction i -> {
+                Var v = locals.get(i.slot());
+                link(new Var(CD_int), v);
+                link(new Var(CD_int), v);
+                insMap.put(elIndex, v);
+            }
             case InvokeDynamicInstruction i ->
                 pop(i.typeSymbol().parameterCount()).push(i.typeSymbol().returnType());
             case InvokeInstruction i ->
@@ -327,8 +340,10 @@ final class LocalsTypeMapper {
                 push(load(i.slot()));
                 insMap.put(elIndex, locals.get(i.slot()));
             }
-            case StoreInstruction i ->
+            case StoreInstruction i -> {
                 store(i.slot(), pop());
+                insMap.put(elIndex, locals.get(i.slot()));
+            }
             case MonitorInstruction _ ->
                 pop(1);
             case NewMultiArrayInstruction i ->

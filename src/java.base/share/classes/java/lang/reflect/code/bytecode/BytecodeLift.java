@@ -111,6 +111,9 @@ public final class BytecodeLift {
     private final Deque<Value> stack;
     private final Map<Object, Op.Result> constantCache;
     private final ArrayDeque<ExceptionRegionEntry> exceptionRegionStack;
+    private final Value[] variables;
+    private final List<LocalsTypeMapper.Var> initLocalVars;
+    private final List<Value> initLocalValues;
     private Block.Builder currentBlock;
 
     private BytecodeLift(Block.Builder entryBlock, ClassModel classModel, CodeModel codeModel, Value... capturedValues) {
@@ -122,20 +125,25 @@ public final class BytecodeLift {
         this.exceptionRegions = extractExceptionRegions(codeAttribtue);
         this.elements = codeModel.elementList();
         this.stack = new ArrayDeque<>();
-        ArrayList<ClassDesc> locals = new ArrayList<>();
+        this.initLocalVars = new ArrayList<>();
+        this.initLocalValues = new ArrayList<>();
         Stream.concat(Arrays.stream(capturedValues), entryBlock.parameters().stream()).forEachOrdered(val -> {
-            op(SlotOp.store(locals.size(), val));
             ClassDesc locType = BytecodeGenerator.toClassDesc(val.type());
-            locals.add(locType);
-            if (TypeKind.from(locType).slotSize() == 2) locals.add(null);
+            initLocalVars.add(new LocalsTypeMapper.Var(locType));
+            initLocalValues.add(val);
+            if (TypeKind.from(locType).slotSize() == 2) {
+                initLocalVars.add(null);
+                initLocalValues.add(null);
+            }
         });
-        this.codeTracker = new LocalsTypeMapper(classModel.thisClass().asSymbol(), locals, smta, elements);
+        this.codeTracker = new LocalsTypeMapper(classModel.thisClass().asSymbol(), initLocalVars, smta, elements);
         this.blockMap = smta.map(sma ->
                 sma.entries().stream().collect(Collectors.toUnmodifiableMap(
                         StackMapFrameInfo::target,
                         smfi -> entryBlock.block(toBlockParams(smfi.stack()))))).orElseGet(Map::of);
         this.constantCache = new HashMap<>();
         this.exceptionRegionStack = new ArrayDeque<>();
+        this.variables = new Value[codeTracker.varTypes.size()];
     }
 
     private static List<ExceptionRegion> extractExceptionRegions(CodeAttribute codeAttribute) {
@@ -261,11 +269,6 @@ public final class BytecodeLift {
     }
 
     public static CoreOp.FuncOp lift(MethodModel methodModel) {
-        CoreOp.FuncOp lifted = liftToSlots(methodModel);
-        return SlotSSA.transform(lifted);
-     }
-
-    private static CoreOp.FuncOp liftToSlots(MethodModel methodModel) {
         ClassModel classModel = methodModel.parent().orElseThrow();
         MethodTypeDesc mDesc = methodModel.methodTypeSymbol();
         if (!methodModel.flags().has(AccessFlag.STATIC)) {
@@ -317,7 +320,28 @@ public final class BytecodeLift {
         return targetBlock;
     }
 
+    private Value findInitLocalsValue(int grIndex) {
+        for (int i = 0; i < initLocalVars.size(); i++) {
+            LocalsTypeMapper.Var v = initLocalVars.get(i);
+            if (v != null && v.graph == grIndex) {
+                return initLocalValues.get(i);
+            }
+        }
+        return null;
+    }
+
     private void liftBody() {
+        // Declare variables and set init values or defaults
+        for (int i = 1; i < codeTracker.varTypes.size(); i++) {
+            ClassDesc varType = codeTracker.varTypes.get(i);
+            Value initValue = findInitLocalsValue(i);
+            if (varType != null) {
+                variables[i] = op(CoreOp.var(initValue == null ? liftDefault(varType) : initValue));
+            } else {
+                variables[i] = initValue;
+            }
+        }
+
         for (int i = 0; i < elements.size(); i++) {
             switch (elements.get(i)) {
                 case ExceptionCatch _ -> {
@@ -411,14 +435,26 @@ public final class BytecodeLift {
                     endOfFlow();
                 }
                 case LoadInstruction inst -> {
-                    stack.push(op(SlotOp.load(inst.slot(), JavaType.type(codeTracker.getVarOf(i).type))));
+                    int gr = codeTracker.getVarOf(i).graph;
+                    Value v = variables[gr];
+                    if (codeTracker.varTypes.get(gr) != null) {
+                        v = op(CoreOp.varLoad(v));
+                    }
+                    stack.push(v);
                 }
                 case StoreInstruction inst -> {
-                    op(SlotOp.store(inst.slot(), stack.pop()));
+                    int gr = codeTracker.getVarOf(i).graph;
+                    if (codeTracker.varTypes.get(gr) != null) {
+                        op(CoreOp.varStore(variables[gr], stack.pop()));
+                    } else {
+                        variables[gr] = stack.pop();
+                    }
                 }
                 case IncrementInstruction inst -> {
-                    op(SlotOp.store(inst.slot(), op(CoreOp.add(
-                            op(SlotOp.load(inst.slot(), JavaType.INT)),
+                    int gr = codeTracker.getVarOf(i).graph;
+                    Value v = variables[gr];
+                    op(CoreOp.varStore(v, op(CoreOp.add(
+                            op(CoreOp.varLoad(v)),
                             liftConstant(inst.constant())))));
                 }
                 case ConstantInstruction inst -> {
@@ -807,6 +843,27 @@ public final class BytecodeLift {
             op(CoreOp.arrayStoreOp(array, liftConstant(i), liftConstant(constants[i])));
         }
         return array;
+    }
+
+    private Op.Result liftDefault(ClassDesc cd) {
+        TypeKind tk = TypeKind.from(cd);
+        Op.Result res = constantCache.get(tk);
+        if (res == null) {
+            res = op(CoreOp.constant(JavaType.type(cd), switch (tk) {
+                case BooleanType -> false;
+                case ByteType -> (byte)0;
+                case CharType -> (char)0;
+                case DoubleType -> 0d;
+                case FloatType -> 0f;
+                case IntType -> 0;
+                case LongType -> 0l;
+                case ReferenceType -> null;
+                case ShortType -> (short)0;
+                case VoidType -> throw new UnsupportedOperationException(cd.descriptorString());
+            }));
+            constantCache.put(tk, res);
+        }
+        return res;
     }
 
     private Op.Result liftConstant(Object c) {
