@@ -411,7 +411,7 @@ public final class BytecodeLift {
                     endOfFlow();
                 }
                 case LoadInstruction inst -> {
-                    stack.push(op(SlotOp.load(inst.slot(), JavaType.type(codeTracker.getTypeOf(i)))));
+                    stack.push(op(SlotOp.load(inst.slot(), JavaType.type(codeTracker.getVarOf(i).type))));
                 }
                 case StoreInstruction inst -> {
                     op(SlotOp.store(inst.slot(), stack.pop()));
