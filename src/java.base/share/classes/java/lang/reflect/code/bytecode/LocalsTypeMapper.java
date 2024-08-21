@@ -34,6 +34,9 @@ import java.lang.classfile.attribute.StackMapTableAttribute;
 import java.lang.classfile.instruction.*;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
+import java.lang.constant.DirectMethodHandleDesc;
+import java.lang.constant.DynamicConstantDesc;
+import java.lang.constant.MethodTypeDesc;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -44,17 +47,32 @@ import java.util.stream.Collectors;
 
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
 import static java.lang.constant.ConstantDescs.*;
-import java.lang.constant.DirectMethodHandleDesc;
-import java.lang.constant.DynamicConstantDesc;
-import java.lang.constant.MethodTypeDesc;
 
 final class LocalsTypeMapper {
 
-    record Frame(List<ClassDesc> stack, List<ClassDesc> locals) {}
+    static class Var {
+        record Link(Var var, Link other) {}
+
+        ClassDesc type;
+        Link up, down;
+
+        Var(ClassDesc type) {
+            this.type = type;
+        }
+
+
+        static void link(Var source, Var target) {
+            source.down = new Link(target, source.down);
+            target.up = new Link(source, target.up);
+        }
+    }
+
+    record Frame(List<ClassDesc> stack, List<Var> locals) {}
 
     private final Map<Integer, ClassDesc> insMap;
     private final ClassDesc thisClass;
-    private final List<ClassDesc> stack, locals;
+    private final List<ClassDesc> stack;
+    private final List<Var> locals;
     final Map<Label, Frame> stackMap;
     private final Map<Label, ClassDesc> newMap;
     private boolean frameDirty;
@@ -72,7 +90,7 @@ final class LocalsTypeMapper {
                 StackMapFrameInfo::target,
                 this::toFrame))).orElse(Map.of());
         do {
-            this.locals.addAll(initFrameLocals);
+            initFrameLocals.forEach(l -> locals.add(l == null ? null : new Var(l)));
             this.frameDirty = false;
             for (int i = 0; i < codeElements.size(); i++) {
                 accept(i, codeElements.get(i));
@@ -83,12 +101,13 @@ final class LocalsTypeMapper {
 
     private Frame toFrame(StackMapFrameInfo smfi) {
         List<ClassDesc> fstack = new ArrayList<>(smfi.stack().size());
-        List<ClassDesc> flocals = new ArrayList<>(smfi.locals().size() * 2);
+        List<Var> flocals = new ArrayList<>(smfi.locals().size() * 2);
         for (var vti : smfi.stack()) {
             fstack.add(vtiToStackType(vti));
         }
         for (var vti : smfi.locals()) {
-            flocals.add(vtiToStackType(vti));
+            ClassDesc lt = vtiToStackType(vti);
+            flocals.add(lt == null ? null : new Var(lt));
             if (vti == ITEM_DOUBLE || vti == ITEM_LONG) {
                 flocals.add(null);
             }
@@ -116,10 +135,6 @@ final class LocalsTypeMapper {
 
     ClassDesc getTypeOf(int li) {
         return insMap.get(li);
-    }
-
-    ClassDesc getUninitTypeOf(Label newLabel) {
-        return newMap.get(newLabel);
     }
 
     private ClassDesc vtiToStackType(StackMapFrameInfo.VerificationTypeInfo vti) {
@@ -177,11 +192,11 @@ final class LocalsTypeMapper {
 
     private void store(int slot, ClassDesc type) {
         for (int i = locals.size(); i <= slot; i++) locals.add(null);
-        locals.set(slot, type);
+        locals.set(slot, new Var(type));
     }
 
     private ClassDesc load(int slot) {
-        return locals.get(slot);
+        return locals.get(slot).type;
     }
 
     private void accept(int elIndex, CodeElement el) {
@@ -240,7 +255,7 @@ final class LocalsTypeMapper {
                         .push(i.typeSymbol().returnType());
             case LoadInstruction i -> {
                 push(load(i.slot()));
-                insMap.put(elIndex, locals.get(i.slot()));
+                insMap.put(elIndex, locals.get(i.slot()).type);
             }
             case StoreInstruction i ->
                 store(i.slot(), pop());
@@ -338,19 +353,30 @@ final class LocalsTypeMapper {
         for (int i = 0; i < targetFrame.stack.size(); i++) {
             ClassDesc se = stack.get(i);
             ClassDesc fe = targetFrame.stack.get(i);
-            if (!se.equals(fe) && se.isPrimitive() && CD_int.equals(fe)) {
-                targetFrame.stack.set(i, se);
-                this.frameDirty = true;
+            if (!se.equals(fe)) {
+                if (se.isPrimitive() && CD_int.equals(fe)) {
+                    targetFrame.stack.set(i, se); // Override int target frame type with more specific int sub-type
+                    this.frameDirty = true;
+                } else {
+                    stack.set(i, fe); // Override stack type with target frame type
+                }
             }
         }
         // Merge locals
         int lSize = Math.min(locals.size(), targetFrame.locals.size());
         for (int i = 0; i < lSize; i++) {
-            ClassDesc le = locals.get(i);
-            ClassDesc fe = targetFrame.locals.get(i);
-            if (le != null && !le.equals(fe) && le.isPrimitive() && CD_int.equals(fe)) {
-                targetFrame.locals.set(i, le);
-                this.frameDirty = true;
+            Var le = locals.get(i);
+            Var fe = targetFrame.locals.get(i);
+            if (le != null && fe != null) {
+                Var.link(fe, le); // Link target frame var with its source
+                if (!le.type.equals(fe.type)) {
+                    if (le.type.isPrimitive() && CD_int.equals(fe.type) ) {
+                        fe.type = le.type; // Override int target frame type with more specific int sub-type
+                        this.frameDirty = true;
+                    } else {
+                        le.type = fe.type; // Override var type with target frame type
+                    }
+                }
             }
         }
     }
