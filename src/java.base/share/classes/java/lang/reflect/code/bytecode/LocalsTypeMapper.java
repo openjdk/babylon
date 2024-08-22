@@ -54,7 +54,7 @@ import java.util.Set;
 
 final class LocalsTypeMapper {
 
-    record Link(Slot slot, Link other) {}
+    private record Link(Slot slot, Link other) {}
 
     static class Variable {
         ClassDesc type;
@@ -63,33 +63,28 @@ final class LocalsTypeMapper {
     }
 
     static class Slot {
-
         ClassDesc type;
         Link up, down;
         Variable var;
         int writes;
-
-        Slot(ClassDesc type, boolean newValue) {
-            this.type = type;
-            this.writes = newValue ? 1 : 0;
-        }
     }
 
     record Frame(List<ClassDesc> stack, List<Slot> locals) {}
 
     private static final ClassDesc NULL_TYPE = ClassDesc.ofDescriptor(CD_Object.descriptorString());
     private final Map<Integer, Slot> insMap;
-    private final List<Set<Slot>> allLocals;
+    private final Set<Slot> allSlots;
     private final ClassDesc thisClass;
     private final List<ExceptionCatch> exceptionHandlers;
     private final List<ClassDesc> stack;
     private final List<Slot> locals;
-    final Map<Label, Frame> stackMap;
+    private final Map<Label, Frame> stackMap;
     private final Map<Label, ClassDesc> newMap;
     private boolean frameDirty;
+    final List<Slot> slotsToInitialize;
 
     LocalsTypeMapper(ClassDesc thisClass,
-                         List<Slot> initFrameLocals,
+                         List<ClassDesc> initFrameLocals,
                          List<ExceptionCatch> exceptionHandlers,
                          Optional<StackMapTableAttribute> stackMapTableAttribute,
                          List<CodeElement> codeElements) {
@@ -98,14 +93,18 @@ final class LocalsTypeMapper {
         this.exceptionHandlers = exceptionHandlers;
         this.stack = new ArrayList<>();
         this.locals = new ArrayList<>();
-        this.allLocals = new ArrayList<>();
+        this.allSlots = new HashSet<>();
         this.newMap = computeNewMap(codeElements);
+        this.slotsToInitialize = new ArrayList<>();
         this.stackMap = stackMapTableAttribute.map(a -> a.entries().stream().collect(Collectors.toMap(
                 StackMapFrameInfo::target,
                 this::toFrame))).orElse(Map.of());
+        for (ClassDesc cd : initFrameLocals) {
+            slotsToInitialize.add(cd == null ? null : newSlot(cd, true));
+        }
         do {
             for (int i = 0; i < initFrameLocals.size(); i++) {
-                store(i, initFrameLocals.get(i), locals);
+                store(i, slotsToInitialize.get(i), locals);
             }
             this.frameDirty = false;
             for (int i = 0; i < codeElements.size(); i++) {
@@ -114,15 +113,14 @@ final class LocalsTypeMapper {
             endOfFlow();
         } while (this.frameDirty);
 
-        // Assign slots to variables
+        // Assign variable to slots
         ArrayDeque<Slot> q = new ArrayDeque<>();
-        for (Set<Slot> slotVars : allLocals) {
-            Optional<Slot> opt;
-            if (slotVars != null) while ((opt = slotVars.stream().filter(v -> v.var == null).findAny()).isPresent()) {
+        for (Slot slot : allSlots) {
+            if (slot.var == null) {
                 Variable var = new Variable();
-                q.add(opt.get());
+                q.add(slot);
                 int sources = 0;
-                var.type = opt.get().type;
+                var.type = slot.type;
                 while (!q.isEmpty()) {
                     Slot v = q.pop();
                     if (v.var == null) {
@@ -148,8 +146,10 @@ final class LocalsTypeMapper {
     }
 
     void link(Slot source, Slot target) {
-        target.up = new Link(source, target.up);
-        source.down = new Link(target, source.down);
+        if (source != target) {
+            target.up = new Link(source, target.up);
+            source.down = new Link(target, source.down);
+        }
     }
 
     private Frame toFrame(StackMapFrameInfo smfi) {
@@ -184,8 +184,16 @@ final class LocalsTypeMapper {
         return newMap;
     }
 
-    Slot getVarOf(int li) {
-        return insMap.get(li);
+    Variable getVarOf(int li) {
+        return insMap.get(li).var;
+    }
+
+    private Slot newSlot(ClassDesc type, boolean newValue) {
+        Slot s = new Slot();
+        s.type = type;
+        s.writes = newValue ? 1 : 0;
+        allSlots.add(s);
+        return s;
     }
 
     private ClassDesc vtiToStackType(StackMapFrameInfo.VerificationTypeInfo vti) {
@@ -246,19 +254,13 @@ final class LocalsTypeMapper {
     }
 
     private void store(int slot, ClassDesc type, List<Slot> where, boolean newValue) {
-        store(slot, type == null ? null : new Slot(type, newValue), where);
+        store(slot, type == null ? null : newSlot(type, newValue), where);
     }
 
-    private void store(int slot, Slot v, List<Slot> where) {
-        for (int i = where.size(); i <= slot; i++) where.add(null);
-        for (int i = allLocals.size(); i <= slot; i++) allLocals.add(null);
-        if (v != null) {
-            where.set(slot, v);
-            Set<Slot> all = allLocals.get(slot);
-            if (all == null) {
-                allLocals.set(slot, all = new HashSet<>());
-            }
-            all.add(v);
+    private void store(int slot, Slot s, List<Slot> where) {
+        if (s != null) {
+            for (int i = where.size(); i <= slot; i++) where.add(null);
+            where.set(slot, s);
         }
     }
 

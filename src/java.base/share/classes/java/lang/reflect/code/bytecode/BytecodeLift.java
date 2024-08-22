@@ -111,7 +111,6 @@ public final class BytecodeLift {
     private final Deque<Value> stack;
     private final Map<Object, Op.Result> constantCache;
     private final ArrayDeque<ExceptionRegionEntry> exceptionRegionStack;
-    private final List<LocalsTypeMapper.Slot> initLocalVars;
     private final List<Value> initLocalValues;
     private Block.Builder currentBlock;
 
@@ -124,18 +123,18 @@ public final class BytecodeLift {
         this.exceptionRegions = extractExceptionRegions(codeAttribtue);
         this.elements = codeModel.elementList();
         this.stack = new ArrayDeque<>();
-        this.initLocalVars = new ArrayList<>();
+        List<ClassDesc> initLocalTypes = new ArrayList<>();
         this.initLocalValues = new ArrayList<>();
         Stream.concat(Arrays.stream(capturedValues), entryBlock.parameters().stream()).forEachOrdered(val -> {
             ClassDesc locType = BytecodeGenerator.toClassDesc(val.type());
-            initLocalVars.add(new LocalsTypeMapper.Slot(locType, true));
+            initLocalTypes.add(locType);
             initLocalValues.add(val);
             if (TypeKind.from(locType).slotSize() == 2) {
-                initLocalVars.add(null);
+                initLocalTypes.add(null);
                 initLocalValues.add(null);
             }
         });
-        this.codeTracker = new LocalsTypeMapper(classModel.thisClass().asSymbol(), initLocalVars, codeModel.exceptionHandlers(), smta, elements);
+        this.codeTracker = new LocalsTypeMapper(classModel.thisClass().asSymbol(), initLocalTypes, codeModel.exceptionHandlers(), smta, elements);
         this.blockMap = smta.map(sma ->
                 sma.entries().stream().collect(Collectors.toUnmodifiableMap(
                         StackMapFrameInfo::target,
@@ -320,8 +319,8 @@ public final class BytecodeLift {
 
     private void liftBody() {
         // Declare initial variables
-        for (int i = 0; i < initLocalVars.size(); i++) {
-            LocalsTypeMapper.Slot sl = initLocalVars.get(i);
+        for (int i = 0; i < codeTracker.slotsToInitialize.size(); i++) {
+            LocalsTypeMapper.Slot sl = codeTracker.slotsToInitialize.get(i);
             if (sl != null) {
                 if (sl.var.isSingleValue) {
                     sl.var.value = initLocalValues.get(i);
@@ -424,7 +423,7 @@ public final class BytecodeLift {
                     endOfFlow();
                 }
                 case LoadInstruction inst -> {
-                    LocalsTypeMapper.Variable var = codeTracker.getVarOf(i).var;
+                    LocalsTypeMapper.Variable var = codeTracker.getVarOf(i);
                     if (var.isSingleValue) {
                         assert var.value != null;
                         stack.push(var.value);
@@ -434,13 +433,13 @@ public final class BytecodeLift {
                     }
                 }
                 case StoreInstruction inst -> {
-                    LocalsTypeMapper.Variable var = codeTracker.getVarOf(i).var;
+                    LocalsTypeMapper.Variable var = codeTracker.getVarOf(i);
                     if (var.isSingleValue) {
                         assert var.value == null;
                         var.value = stack.pop();
                     } else {
                         if (var.value == null) {
-                            var.value = op(CoreOp.var(stack.pop()));
+                            var.value = op(CoreOp.var(null, JavaType.type(var.type), stack.pop()));
                         } else {
                             assert var.value instanceof Op.Result r && r.op() instanceof CoreOp.VarOp;
                             op(CoreOp.varStore(var.value, stack.pop()));
@@ -448,7 +447,7 @@ public final class BytecodeLift {
                     }
                 }
                 case IncrementInstruction inst -> {
-                    LocalsTypeMapper.Variable var = codeTracker.getVarOf(i).var;
+                    LocalsTypeMapper.Variable var = codeTracker.getVarOf(i);
                     assert !var.isSingleValue && var.value instanceof Op.Result r && r.op() instanceof CoreOp.VarOp;
                     op(CoreOp.varStore(var.value, op(CoreOp.add(
                             op(CoreOp.varLoad(var.value)),
