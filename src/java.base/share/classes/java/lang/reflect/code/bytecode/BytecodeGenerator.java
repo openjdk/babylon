@@ -341,9 +341,9 @@ public final class BytecodeGenerator {
         return !op.resultType().equals(JavaType.J_L_CLASS);
     }
 
-    // Var with a single-use block parameter operand can be deferred
+    // Var with a single-use entry block parameter operand can be deferred
     private static boolean canDefer(VarOp op) {
-        return op.operands().getFirst() instanceof Block.Parameter bp && bp.uses().size() == 1;
+        return op.operands().getFirst() instanceof Block.Parameter bp && bp.declaringBlock().isEntryBlock() && bp.uses().size() == 1;
     }
 
     // Var load can be deferred when not used as immediate operand
@@ -522,7 +522,7 @@ public final class BytecodeGenerator {
             // If b is a catch block then the exception argument will be represented on the stack
             if (catchingBlocks.get(b.index())) {
                 // Retain block argument for exception table generation
-                storeIfUsed(b.parameters().get(0));
+                storeIfUsed(b.parameters().getFirst());
             }
 
             List<Op> ops = b.ops();
@@ -547,8 +547,9 @@ public final class BytecodeGenerator {
                     case VarOp op -> {
                         //     %1 : Var<int> = var %0 @"i";
                         if (canDefer(op)) {
-                            // Var with a single-use block parameter operand can be deferred
-                            slots.put(op.result(), slots.get(op.operands().getFirst()));
+                            // Var with a single-use entry block parameter operand can be deferred
+                            var v = slots.get(op.operands().getFirst());
+                            slots.put(op.result(), v);
                         } else {
                             processOperand(op.operands().getFirst());
                             allocateSlot(op.result());
