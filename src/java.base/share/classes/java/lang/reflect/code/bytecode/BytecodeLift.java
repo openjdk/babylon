@@ -129,14 +129,14 @@ public final class BytecodeLift {
         this.initLocalValues = new ArrayList<>();
         Stream.concat(Arrays.stream(capturedValues), entryBlock.parameters().stream()).forEachOrdered(val -> {
             ClassDesc locType = BytecodeGenerator.toClassDesc(val.type());
-            initLocalVars.add(new LocalsTypeMapper.Var(locType));
+            initLocalVars.add(new LocalsTypeMapper.Var(locType, true));
             initLocalValues.add(val);
             if (TypeKind.from(locType).slotSize() == 2) {
                 initLocalVars.add(null);
                 initLocalValues.add(null);
             }
         });
-        this.codeTracker = new LocalsTypeMapper(classModel.thisClass().asSymbol(), initLocalVars, smta, elements);
+        this.codeTracker = new LocalsTypeMapper(classModel.thisClass().asSymbol(), initLocalVars, codeModel.exceptionHandlers(), smta, elements);
         this.blockMap = smta.map(sma ->
                 sma.entries().stream().collect(Collectors.toUnmodifiableMap(
                         StackMapFrameInfo::target,

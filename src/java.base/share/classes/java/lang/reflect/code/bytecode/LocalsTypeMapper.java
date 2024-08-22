@@ -48,7 +48,6 @@ import java.util.stream.Collectors;
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
 import static java.lang.constant.ConstantDescs.*;
 import java.util.ArrayDeque;
-import java.util.BitSet;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -62,9 +61,11 @@ final class LocalsTypeMapper {
         ClassDesc type;
         Link up, down;
         int graph;
+        int writes;
 
-        Var(ClassDesc type) {
+        Var(ClassDesc type, boolean newValue) {
             this.type = type;
+            this.writes = newValue ? 1 : 0;
         }
 
         @Override
@@ -91,6 +92,7 @@ final class LocalsTypeMapper {
     private final Map<Integer, Var> insMap;
     private final List<Set<Var>> allLocals;
     private final ClassDesc thisClass;
+    private final List<ExceptionCatch> exceptionHandlers;
     private final List<ClassDesc> stack;
     private final List<Var> locals;
     final List<ClassDesc> varTypes;
@@ -100,10 +102,12 @@ final class LocalsTypeMapper {
 
     LocalsTypeMapper(ClassDesc thisClass,
                          List<Var> initFrameLocals,
+                         List<ExceptionCatch> exceptionHandlers,
                          Optional<StackMapTableAttribute> stackMapTableAttribute,
                          List<CodeElement> codeElements) {
         this.insMap = new HashMap<>();
         this.thisClass = thisClass;
+        this.exceptionHandlers = exceptionHandlers;
         this.stack = new ArrayList<>();
         this.locals = new ArrayList<>();
         this.allLocals = new ArrayList<>();
@@ -137,7 +141,7 @@ final class LocalsTypeMapper {
                 while (!q.isEmpty()) {
                     Var v = q.pop();
                     if (v.graph == 0) {
-                        if (v.up == null) sources++;
+                        sources += v.writes;
                         v.graph = gr;
                         Link l = v.up;
                         while (l != null) {
@@ -170,7 +174,7 @@ final class LocalsTypeMapper {
         }
         int i = 0;
         for (var vti : smfi.locals()) {
-            store(i, vtiToStackType(vti), flocals);
+            store(i, vtiToStackType(vti), flocals, false);
             i += vti == ITEM_DOUBLE || vti == ITEM_LONG ? 2 : 1;
         }
         return new Frame(fstack, flocals);
@@ -252,11 +256,11 @@ final class LocalsTypeMapper {
     }
 
     private void store(int slot, ClassDesc type) {
-        store(slot, type, locals);
+        store(slot, type, locals, true);
     }
 
-    private void store(int slot, ClassDesc type, List<Var> where) {
-        store(slot, type == null ? null : new Var(type), where);
+    private void store(int slot, ClassDesc type, List<Var> where, boolean newValue) {
+        store(slot, type == null ? null : new Var(type, newValue), where);
     }
 
     private void store(int slot, Var v, List<Var> where) {
@@ -327,8 +331,7 @@ final class LocalsTypeMapper {
             }
             case IncrementInstruction i -> {
                 Var v = locals.get(i.slot());
-                link(new Var(CD_int), v);
-                link(new Var(CD_int), v);
+                v.writes++;
                 insMap.put(elIndex, v);
             }
             case InvokeDynamicInstruction i ->
@@ -402,6 +405,11 @@ final class LocalsTypeMapper {
                     stack.addAll(frame.stack());
                     locals.addAll(frame.locals());
                 }
+                for (ExceptionCatch ec : exceptionHandlers) {
+                    if (lt.label() == ec.tryStart()) {
+                        mergeLocalsToTargetFrame(stackMap.get(ec.handler()));
+                    }
+                }
             }
             case ReturnInstruction _ , ThrowInstruction _ -> {
                 endOfFlow();
@@ -447,6 +455,10 @@ final class LocalsTypeMapper {
                 }
             }
         }
+        mergeLocalsToTargetFrame(targetFrame);
+    }
+
+    private void mergeLocalsToTargetFrame(Frame targetFrame) {
         // Merge locals
         int lSize = Math.min(locals.size(), targetFrame.locals.size());
         for (int i = 0; i < lSize; i++) {
