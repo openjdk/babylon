@@ -111,8 +111,7 @@ public final class BytecodeLift {
     private final Deque<Value> stack;
     private final Map<Object, Op.Result> constantCache;
     private final ArrayDeque<ExceptionRegionEntry> exceptionRegionStack;
-    private final Value[] variables;
-    private final List<LocalsTypeMapper.Var> initLocalVars;
+    private final List<LocalsTypeMapper.Slot> initLocalVars;
     private final List<Value> initLocalValues;
     private Block.Builder currentBlock;
 
@@ -129,7 +128,7 @@ public final class BytecodeLift {
         this.initLocalValues = new ArrayList<>();
         Stream.concat(Arrays.stream(capturedValues), entryBlock.parameters().stream()).forEachOrdered(val -> {
             ClassDesc locType = BytecodeGenerator.toClassDesc(val.type());
-            initLocalVars.add(new LocalsTypeMapper.Var(locType, true));
+            initLocalVars.add(new LocalsTypeMapper.Slot(locType, true));
             initLocalValues.add(val);
             if (TypeKind.from(locType).slotSize() == 2) {
                 initLocalVars.add(null);
@@ -143,7 +142,6 @@ public final class BytecodeLift {
                         smfi -> entryBlock.block(toBlockParams(smfi.stack()))))).orElseGet(Map::of);
         this.constantCache = new HashMap<>();
         this.exceptionRegionStack = new ArrayDeque<>();
-        this.variables = new Value[codeTracker.varTypes.size()];
     }
 
     private static List<ExceptionRegion> extractExceptionRegions(CodeAttribute codeAttribute) {
@@ -320,25 +318,16 @@ public final class BytecodeLift {
         return targetBlock;
     }
 
-    private Value findInitLocalsValue(int grIndex) {
-        for (int i = 0; i < initLocalVars.size(); i++) {
-            LocalsTypeMapper.Var v = initLocalVars.get(i);
-            if (v != null && v.graph == grIndex) {
-                return initLocalValues.get(i);
-            }
-        }
-        return null;
-    }
-
     private void liftBody() {
-        // Declare variables and set init values or defaults
-        for (int i = 1; i < codeTracker.varTypes.size(); i++) {
-            ClassDesc varType = codeTracker.varTypes.get(i);
-            Value initValue = findInitLocalsValue(i);
-            if (varType != null) {
-                variables[i] = op(CoreOp.var(null, JavaType.type(varType), initValue == null ? liftDefault(varType) : initValue));
-            } else {
-                variables[i] = initValue;
+        // Declare initial variables
+        for (int i = 0; i < initLocalVars.size(); i++) {
+            LocalsTypeMapper.Slot sl = initLocalVars.get(i);
+            if (sl != null) {
+                if (sl.var.isSingleValue) {
+                    sl.var.value = initLocalValues.get(i);
+                } else {
+                    sl.var.value = op(CoreOp.var(initLocalValues.get(i)));
+                }
             }
         }
 
@@ -435,26 +424,34 @@ public final class BytecodeLift {
                     endOfFlow();
                 }
                 case LoadInstruction inst -> {
-                    int gr = codeTracker.getVarOf(i).graph;
-                    Value v = variables[gr];
-                    if (codeTracker.varTypes.get(gr) != null) {
-                        v = op(CoreOp.varLoad(v));
+                    LocalsTypeMapper.Variable var = codeTracker.getVarOf(i).var;
+                    if (var.isSingleValue) {
+                        assert var.value != null;
+                        stack.push(var.value);
+                    } else {
+                        assert var.value instanceof Op.Result r && r.op() instanceof CoreOp.VarOp;
+                        stack.push(op(CoreOp.varLoad(var.value)));
                     }
-                    stack.push(v);
                 }
                 case StoreInstruction inst -> {
-                    int gr = codeTracker.getVarOf(i).graph;
-                    if (codeTracker.varTypes.get(gr) != null) {
-                        op(CoreOp.varStore(variables[gr], stack.pop()));
+                    LocalsTypeMapper.Variable var = codeTracker.getVarOf(i).var;
+                    if (var.isSingleValue) {
+                        assert var.value == null;
+                        var.value = stack.pop();
                     } else {
-                        variables[gr] = stack.pop();
+                        if (var.value == null) {
+                            var.value = op(CoreOp.var(stack.pop()));
+                        } else {
+                            assert var.value instanceof Op.Result r && r.op() instanceof CoreOp.VarOp;
+                            op(CoreOp.varStore(var.value, stack.pop()));
+                        }
                     }
                 }
                 case IncrementInstruction inst -> {
-                    int gr = codeTracker.getVarOf(i).graph;
-                    Value v = variables[gr];
-                    op(CoreOp.varStore(v, op(CoreOp.add(
-                            op(CoreOp.varLoad(v)),
+                    LocalsTypeMapper.Variable var = codeTracker.getVarOf(i).var;
+                    assert !var.isSingleValue && var.value instanceof Op.Result r && r.op() instanceof CoreOp.VarOp;
+                    op(CoreOp.varStore(var.value, op(CoreOp.add(
+                            op(CoreOp.varLoad(var.value)),
                             liftConstant(inst.constant())))));
                 }
                 case ConstantInstruction inst -> {
