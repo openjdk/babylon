@@ -535,7 +535,12 @@ public final class BytecodeGenerator {
                     case ConstantOp op -> {
                         if (!canDefer(op)) {
                             // Constant can be deferred, except for a class constant, which  may throw an exception
-                            cob.ldc(((JavaType)op.value()).toNominalDescriptor());
+                            Object v = op.value();
+                            if (v == null) {
+                                cob.aconst_null();
+                            } else {
+                                cob.ldc(((JavaType)v).toNominalDescriptor());
+                            }
                             push(op.result());
                         }
                     }

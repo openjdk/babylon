@@ -49,14 +49,13 @@ import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerification
 import static java.lang.constant.ConstantDescs.*;
 import java.util.ArrayDeque;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
 
 final class LocalsTypeMapper {
 
     record Link(Var var, Link other) {}
 
-    static class Var implements Iterable<Var> {
+    static class Var {
 
         ClassDesc type;
         Link up, down;
@@ -67,28 +66,11 @@ final class LocalsTypeMapper {
             this.type = type;
             this.writes = newValue ? 1 : 0;
         }
-
-        @Override
-        public Iterator<Var> iterator() {
-            return new Iterator<Var>() {
-                Link it = up;
-                @Override
-                public boolean hasNext() {
-                    return it != null;
-                }
-
-                @Override
-                public Var next() {
-                    Var v = it.var;
-                    it = it.other;
-                    return v;
-                }
-            };
-        }
     }
 
     record Frame(List<ClassDesc> stack, List<Var> locals) {}
 
+    private static final ClassDesc NULL_TYPE = ClassDesc.ofDescriptor(CD_Object.descriptorString());
     private final Map<Integer, Var> insMap;
     private final List<Set<Var>> allLocals;
     private final ClassDesc thisClass;
@@ -145,12 +127,13 @@ final class LocalsTypeMapper {
                         v.graph = gr;
                         Link l = v.up;
                         while (l != null) {
-                            type = l.var.type;
+                            if (type == NULL_TYPE) type = l.var.type;
                             if (l.var.graph == 0) q.add(l.var);
                             l = l.other;
                         }
                         l = v.down;
                         while (l != null) {
+                            if (type == NULL_TYPE) type = l.var.type;
                             if (l.var.graph == 0) q.add(l.var);
                             l = l.other;
                         }
@@ -209,7 +192,7 @@ final class LocalsTypeMapper {
             case ITEM_DOUBLE -> CD_double;
             case ITEM_LONG -> CD_long;
             case ITEM_UNINITIALIZED_THIS -> thisClass;
-            case ITEM_NULL -> CD_Object;
+            case ITEM_NULL -> NULL_TYPE;
             case ObjectVerificationTypeInfo ovti -> ovti.classSymbol();
             case UninitializedVerificationTypeInfo uvti ->
                 newMap.computeIfAbsent(uvti.newTarget(), l -> {
@@ -304,7 +287,7 @@ final class LocalsTypeMapper {
             }
             case ConstantInstruction i ->
                 push(switch (i.constantValue()) {
-                    case null -> CD_Object;
+                    case null -> NULL_TYPE;
                     case ClassDesc _ -> CD_Class;
                     case Double _ -> CD_double;
                     case Float _ -> CD_float;

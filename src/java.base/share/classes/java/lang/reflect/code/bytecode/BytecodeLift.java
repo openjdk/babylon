@@ -336,7 +336,7 @@ public final class BytecodeLift {
             ClassDesc varType = codeTracker.varTypes.get(i);
             Value initValue = findInitLocalsValue(i);
             if (varType != null) {
-                variables[i] = op(CoreOp.var(initValue == null ? liftDefault(varType) : initValue));
+                variables[i] = op(CoreOp.var(null, JavaType.type(varType), initValue == null ? liftDefault(varType) : initValue));
             } else {
                 variables[i] = initValue;
             }
