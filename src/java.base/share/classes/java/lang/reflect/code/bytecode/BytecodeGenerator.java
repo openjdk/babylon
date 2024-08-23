@@ -200,7 +200,7 @@ public final class BytecodeGenerator {
     private final Map<Block.Parameter, Value> singlePredecessorsValues;
     private final List<LambdaOp> lambdaSink;
     private final BitSet quotable;
-    private Op.Result oprOnStack;
+    private Value oprOnStack;
 
     private BytecodeGenerator(MethodHandles.Lookup lookup,
                               ClassDesc className,
@@ -343,7 +343,8 @@ public final class BytecodeGenerator {
 
     // Var with a single-use entry block parameter operand can be deferred
     private static boolean canDefer(VarOp op) {
-        return op.operands().getFirst() instanceof Block.Parameter bp && bp.declaringBlock().isEntryBlock() && !moreThanOneUse(bp);
+        return op.result().uses().isEmpty()
+            || op.operands().getFirst() instanceof Block.Parameter bp && bp.declaringBlock().isEntryBlock() && !moreThanOneUse(bp);
     }
 
     // Var load can be deferred when not used as immediate operand
@@ -352,7 +353,7 @@ public final class BytecodeGenerator {
     }
 
     // This method narrows the first operand inconveniences of some operations
-    private static boolean isFirstOperand(Op nextOp, Op.Result opr) {
+    private static boolean isFirstOperand(Op nextOp, Value opr) {
         List<Value> values;
         return switch (nextOp) {
             // When there is no next operation
@@ -379,12 +380,15 @@ public final class BytecodeGenerator {
     }
 
     // Determines if the operation result is immediatelly used by the next operation and so can stay on stack
-    private static boolean isNextUse(Op.Result opr) {
+    private static boolean isNextUse(Value opr) {
+        Op nextOp = switch (opr) {
+            case Block.Parameter p -> p.declaringBlock().firstOp();
+            case Op.Result r -> r.declaringBlock().nextOp(r.op());
+        };
         // Pass over deferred operations
-        Op nextOp = opr.op();
-        do {
-            nextOp = opr.declaringBlock().nextOp(nextOp);
-        } while (canDefer(nextOp));
+        while (canDefer(nextOp)) {
+            nextOp = nextOp.parentBlock().nextOp(nextOp);
+        }
         return isFirstOperand(nextOp, opr);
     }
 
@@ -519,14 +523,15 @@ public final class BytecodeGenerator {
                 }
             }
 
+            oprOnStack = null;
+
             // If b is a catch block then the exception argument will be represented on the stack
             if (catchingBlocks.get(b.index())) {
                 // Retain block argument for exception table generation
-                storeIfUsed(b.parameters().getFirst());
+                push(b.parameters().getFirst());
             }
 
             List<Op> ops = b.ops();
-            oprOnStack = null;
             for (int i = 0; i < ops.size() - 1; i++) {
                 final Op o = ops.get(i);
                 final TypeElement oprType = o.resultType();
@@ -547,8 +552,11 @@ public final class BytecodeGenerator {
                     case VarOp op -> {
                         //     %1 : Var<int> = var %0 @"i";
                         if (canDefer(op)) {
-                            // Var with a single-use entry block parameter can reuse its slot
-                            slots.put(op.result(), slots.get(op.operands().getFirst()));
+                            Slot s = slots.get(op.operands().getFirst());
+                            if (s != null) {
+                                // Var with a single-use entry block parameter can reuse its slot
+                                slots.put(op.result(), s);
+                            }
                         } else {
                             processFirstOperand(op);
                             storeIfUsed(op.result());
@@ -969,7 +977,7 @@ public final class BytecodeGenerator {
                 .filter(val::equals).limit(2).count() > 1;
     }
 
-    private void push(Op.Result res) {
+    private void push(Value res) {
         assert oprOnStack == null;
         if (res.type().equals(JavaType.VOID)) return;
         if (isNextUse(res)) {
