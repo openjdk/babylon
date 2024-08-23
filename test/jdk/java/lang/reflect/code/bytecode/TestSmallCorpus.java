@@ -73,7 +73,7 @@ public class TestSmallCorpus {
 
     @Ignore
     @Test
-    public void testTripleRoundtripStability() throws Exception {
+    public void testDoubleRoundtripStability() throws Exception {
         stable = 0;
         unstable = 0;
         errorStats = new LinkedHashMap<>();
@@ -92,8 +92,8 @@ public class TestSmallCorpus {
             stats.getValue().entrySet().stream().sorted((e1, e2) -> Integer.compare(e2.getValue(), e1.getValue())).forEach(e -> System.out.println(e.getValue() +"x " + e.getKey() + "\n"));
         }
 
-        // Roundtrip is >99% stable, no exceptions, no verification errors
-        Assert.assertTrue(stable > 65200 && unstable < 140 && errorStats.isEmpty(), String.format("""
+        // Roundtrip is >94% stable, no exceptions, no verification errors
+        Assert.assertTrue(stable > 61810 && unstable < 3480 && errorStats.isEmpty(), String.format("""
 
                     stable: %d
                     unstable: %d
@@ -120,28 +120,17 @@ public class TestSmallCorpus {
                         try {
                             MethodModel secondModel = lower(secondLift);
                             verify("second verify", secondModel);
-                            try {
-                                CoreOp.FuncOp thirdLift = lift(secondModel);
-                                try {
-                                    MethodModel thirdModel = lower(thirdLift);
-                                    verify("third verify", thirdModel);
-                                    // testing only methods passing through
-                                    var secondNormalized = normalize(secondModel);
-                                    var thirdNormalized = normalize(thirdModel);
-                                    if (!thirdNormalized.equals(secondNormalized)) {
-                                        unstable++;
-                                        System.out.println(clm.thisClass().asInternalName() + "::" + originalModel.methodName().stringValue() + originalModel.methodTypeSymbol().displayDescriptor());
-                                        printInColumns(secondLift, thirdLift);
-                                        printInColumns(secondNormalized, thirdNormalized);
-                                        System.out.println();
-                                    } else {
-                                        stable++;
-                                    }
-                                } catch (Throwable t) {
-                                    error("third lower", t);
-                                }
-                            } catch (Throwable t) {
-                                error("third lift", t);
+                            // testing only methods passing through
+                            var firstdNormalized = normalize(firstModel);
+                            var secondNormalized = normalize(secondModel);
+                            if (!secondNormalized.equals(firstdNormalized)) {
+                                unstable++;
+                                System.out.println(clm.thisClass().asInternalName() + "::" + originalModel.methodName().stringValue() + originalModel.methodTypeSymbol().displayDescriptor());
+                                printInColumns(firstLift, secondLift);
+                                printInColumns(firstdNormalized, secondNormalized);
+                                System.out.println();
+                            } else {
+                                stable++;
                             }
                         } catch (Throwable t) {
                             error("second lower", t);
