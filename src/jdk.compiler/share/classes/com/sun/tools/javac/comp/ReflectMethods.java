@@ -448,9 +448,6 @@ public class ReflectMethods extends TreeTranslator {
 
         // unsupported tree nodes
         private static final EnumSet<JCTree.Tag> UNSUPPORTED_TAGS = EnumSet.of(
-                // statements
-                Tag.SYNCHRONIZED,
-
                 // the nodes below are not as relevant, either because they have already
                 // been handled by an earlier compiler pass, or because they are typically
                 // not handled directly, but in the context of some enclosing statement.
@@ -2176,7 +2173,6 @@ public class ReflectMethods extends TreeTranslator {
                 scan(tree.stats);
             } else {
                 // Otherwise, independent block structure
-                // @@@ Support synchronized blocks
                 // Push block
                 pushBody(tree, FunctionType.VOID);
                 scan(tree.stats);
@@ -2189,6 +2185,30 @@ public class ReflectMethods extends TreeTranslator {
                 append(ExtendedOp.block(body));
             }
             result = null;
+        }
+
+        @Override
+        public void visitSynchronized(JCTree.JCSynchronized tree) {
+            // Push expr
+            pushBody(tree.lock, FunctionType.functionType(typeToTypeElement(tree.lock.type)));
+            Value last = toValue(tree.lock);
+            append(CoreOp._yield(last));
+            Body.Builder expr = stack.body;
+
+            // Pop expr
+            popBody();
+
+            // Push body block
+            pushBody(tree.body, FunctionType.VOID);
+            // Scan body block statements
+            scan(tree.body.stats);
+            appendTerminating(CoreOp::_yield);
+            Body.Builder blockBody = stack.body;
+
+            // Pop body block
+            popBody();
+
+            append(ExtendedOp.synchronized_(expr, blockBody));
         }
 
         @Override
