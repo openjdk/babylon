@@ -48,6 +48,7 @@ import java.util.stream.Collectors;
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
 import static java.lang.constant.ConstantDescs.*;
 import java.lang.reflect.code.Value;
+import java.lang.reflect.code.type.JavaType;
 import java.util.ArrayDeque;
 import java.util.HashSet;
 import java.util.Set;
@@ -57,9 +58,13 @@ final class LocalsTypeMapper {
     private record Link(Slot slot, Link other) {}
 
     static class Variable {
-        ClassDesc type;
+        private ClassDesc type;
         boolean isSingleValue;
         Value value;
+
+        JavaType type() {
+            return type == NULL_TYPE ? JavaType.wildcard() : JavaType.type(type);
+        }
     }
 
     static class Slot {
