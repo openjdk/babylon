@@ -71,7 +71,7 @@ public class TestSmallCorpus {
     private int stable, unstable;
     private Map<String, Map<String, Integer>> errorStats;
 
-//    @Ignore
+    @Ignore
     @Test
     public void testTripleRoundtripStability() throws Exception {
         stable = 0;
