@@ -50,7 +50,7 @@ import static java.lang.constant.ConstantDescs.*;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.type.JavaType;
 import java.util.ArrayDeque;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 final class LocalsTypeMapper {
@@ -98,7 +98,7 @@ final class LocalsTypeMapper {
         this.exceptionHandlers = exceptionHandlers;
         this.stack = new ArrayList<>();
         this.locals = new ArrayList<>();
-        this.allSlots = new HashSet<>();
+        this.allSlots = new LinkedHashSet<>();
         this.newMap = computeNewMap(codeElements);
         this.slotsToInitialize = new ArrayList<>();
         this.stackMap = stackMapTableAttribute.map(a -> a.entries().stream().collect(Collectors.toMap(
@@ -118,7 +118,7 @@ final class LocalsTypeMapper {
             endOfFlow();
         } while (this.frameDirty);
 
-        // Assign variable to slots
+        // Assign variable to slots and calculate var type
         ArrayDeque<Slot> q = new ArrayDeque<>();
         for (Slot slot : allSlots) {
             if (slot.var == null) {
@@ -304,6 +304,7 @@ final class LocalsTypeMapper {
                     case Integer _ -> CD_int;
                     case Long _ -> CD_long;
                     case String _ -> CD_String;
+                    case DynamicConstantDesc<?> cd when cd.equals(NULL) -> NULL_TYPE;
                     case DynamicConstantDesc<?> cd -> cd.constantType();
                     case DirectMethodHandleDesc _ -> CD_MethodHandle;
                     case MethodTypeDesc _ -> CD_MethodType;
