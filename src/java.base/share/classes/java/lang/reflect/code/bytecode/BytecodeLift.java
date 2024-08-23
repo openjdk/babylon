@@ -841,27 +841,6 @@ public final class BytecodeLift {
         return array;
     }
 
-    private Op.Result liftDefault(ClassDesc cd) {
-        TypeKind tk = TypeKind.from(cd);
-        Op.Result res = constantCache.get(tk);
-        if (res == null) {
-            res = op(CoreOp.constant(JavaType.type(cd), switch (tk) {
-                case BooleanType -> false;
-                case ByteType -> (byte)0;
-                case CharType -> (char)0;
-                case DoubleType -> 0d;
-                case FloatType -> 0f;
-                case IntType -> 0;
-                case LongType -> 0l;
-                case ReferenceType -> null;
-                case ShortType -> (short)0;
-                case VoidType -> throw new UnsupportedOperationException(cd.descriptorString());
-            }));
-            constantCache.put(tk, res);
-        }
-        return res;
-    }
-
     private Op.Result liftConstant(Object c) {
         Op.Result res = constantCache.get(c);
         if (res == null) {
