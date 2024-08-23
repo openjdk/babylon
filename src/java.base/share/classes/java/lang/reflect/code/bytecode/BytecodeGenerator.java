@@ -343,7 +343,7 @@ public final class BytecodeGenerator {
 
     // Var with a single-use entry block parameter operand can be deferred
     private static boolean canDefer(VarOp op) {
-        return op.operands().getFirst() instanceof Block.Parameter bp && bp.declaringBlock().isEntryBlock() && bp.uses().size() == 1;
+        return op.operands().getFirst() instanceof Block.Parameter bp && bp.declaringBlock().isEntryBlock() && !moreThanOneUse(bp);
     }
 
     // Var load can be deferred when not used as immediate operand
@@ -960,13 +960,13 @@ public final class BytecodeGenerator {
     }
 
     // Checks if the Op.Result is used more than once in operands and block arguments
-    private static boolean moreThanOneUse(Op.Result res) {
-        return res.uses().stream().flatMap(u ->
+    private static boolean moreThanOneUse(Value val) {
+        return val.uses().stream().flatMap(u ->
                 Stream.concat(
                         u.op().operands().stream(),
                         u.op().successors().stream()
                                 .flatMap(r -> r.arguments().stream())))
-                .filter(res::equals).limit(2).count() > 1;
+                .filter(val::equals).limit(2).count() > 1;
     }
 
     private void push(Op.Result res) {
