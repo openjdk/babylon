@@ -547,13 +547,11 @@ public final class BytecodeGenerator {
                     case VarOp op -> {
                         //     %1 : Var<int> = var %0 @"i";
                         if (canDefer(op)) {
-                            // Var with a single-use entry block parameter operand can be deferred
-                            var v = slots.get(op.operands().getFirst());
-                            slots.put(op.result(), v);
+                            // Var with a single-use entry block parameter can reuse its slot
+                            slots.put(op.result(), slots.get(op.operands().getFirst()));
                         } else {
-                            processOperand(op.operands().getFirst());
-                            allocateSlot(op.result());
-                            push(op.result());
+                            processFirstOperand(op);
+                            storeIfUsed(op.result());
                         }
                     }
                     case VarAccessOp.VarLoadOp op -> {
@@ -561,13 +559,14 @@ public final class BytecodeGenerator {
                             // Var load can be deferred when not used as immediate operand
                             slots.computeIfAbsent(op.result(), r -> slots.get(op.operands().getFirst()));
                         } else {
-                            processFirstOperand(op);
+                            load(op.operands().getFirst());
                             push(op.result());
                         }
                     }
                     case VarAccessOp.VarStoreOp op -> {
                         processOperand(op.operands().get(1));
-                        storeIfUsed(op.operands().get(0));
+                        Slot slot = allocateSlot(op.operands().getFirst());
+                        cob.storeLocal(slot.typeKind(), slot.slot());
                     }
                     case ConvOp op -> {
                         Value first = op.operands().getFirst();
