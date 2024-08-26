@@ -71,7 +71,7 @@ final class LocalsTypeMapper {
         ClassDesc type;
         Link up, down;
         Variable var;
-        int writes;
+        boolean newValue;
     }
 
     record Frame(List<ClassDesc> stack, List<Slot> locals) {}
@@ -129,7 +129,7 @@ final class LocalsTypeMapper {
                 while (!q.isEmpty()) {
                     Slot v = q.pop();
                     if (v.var == null) {
-                        sources += v.writes;
+                        if (v.newValue) sources++;
                         v.var = var;
                         Link l = v.up;
                         while (l != null) {
@@ -196,7 +196,7 @@ final class LocalsTypeMapper {
     private Slot newSlot(ClassDesc type, boolean newValue) {
         Slot s = new Slot();
         s.type = type;
-        s.writes = newValue ? 1 : 0;
+        s.newValue = newValue;
         allSlots.add(s);
         return s;
     }
@@ -325,7 +325,8 @@ final class LocalsTypeMapper {
             }
             case IncrementInstruction i -> {
                 Slot v = locals.get(i.slot());
-                v.writes++;
+                store(i.slot(), load(i.slot()));
+                link(v, locals.get(i.slot()));
                 insMap.put(elIndex, v);
             }
             case InvokeDynamicInstruction i ->
