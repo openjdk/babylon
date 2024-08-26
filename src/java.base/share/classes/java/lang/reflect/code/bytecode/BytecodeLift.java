@@ -325,7 +325,7 @@ public final class BytecodeLift {
                 if (sl.var.isSingleValue) {
                     sl.var.value = initLocalValues.get(i);
                 } else {
-                    sl.var.value = op(CoreOp.var(initLocalValues.get(i)));
+                    sl.var.value = op(CoreOp.var("slot#" + i, sl.var.type(), initLocalValues.get(i)));
                 }
             }
         }
@@ -439,7 +439,7 @@ public final class BytecodeLift {
                         var.value = stack.pop();
                     } else {
                         if (var.value == null) {
-                            var.value = op(CoreOp.var(null, var.type(), stack.pop()));
+                            var.value = op(CoreOp.var("slot#" + inst.slot(), var.type(), stack.pop()));
                         } else {
                             assert var.value instanceof Op.Result r && r.op() instanceof CoreOp.VarOp;
                             op(CoreOp.varStore(var.value, stack.pop()));
