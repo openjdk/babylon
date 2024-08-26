@@ -63,7 +63,7 @@ final class LocalsTypeMapper {
         Value value;
 
         JavaType type() {
-            return type == NULL_TYPE ? JavaType.wildcard() : JavaType.type(type);
+            return JavaType.type(type);
         }
     }
 

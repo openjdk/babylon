@@ -232,7 +232,7 @@ public final class BytecodeLift {
                 case ITEM_FLOAT -> params.add(JavaType.FLOAT);
                 case ITEM_DOUBLE -> params.add(JavaType.DOUBLE);
                 case ITEM_LONG -> params.add(JavaType.LONG);
-                case ITEM_NULL -> params.add(JavaType.wildcard());
+                case ITEM_NULL -> params.add(JavaType.J_L_OBJECT);
                 case ITEM_UNINITIALIZED_THIS ->
                     params.add(JavaType.type(classModel.thisClass().asSymbol()));
                 case StackMapFrameInfo.ObjectVerificationTypeInfo ovti ->
@@ -845,7 +845,7 @@ public final class BytecodeLift {
         Op.Result res = constantCache.get(c);
         if (res == null) {
             res = switch (c) {
-                case null -> op(CoreOp.constant(JavaType.wildcard(), null));
+                case null -> op(CoreOp.constant(JavaType.J_L_OBJECT, null));
                 case ClassDesc cd -> op(CoreOp.constant(JavaType.J_L_CLASS, JavaType.type(cd)));
                 case Double d -> op(CoreOp.constant(JavaType.DOUBLE, d));
                 case Float f -> op(CoreOp.constant(JavaType.FLOAT, f));
