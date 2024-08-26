@@ -92,8 +92,8 @@ public class TestSmallCorpus {
             stats.getValue().entrySet().stream().sorted((e1, e2) -> Integer.compare(e2.getValue(), e1.getValue())).forEach(e -> System.out.println(e.getValue() +"x " + e.getKey() + "\n"));
         }
 
-        // Roundtrip is >98% stable, no exceptions, no verification errors
-        Assert.assertTrue(stable > 64490 && unstable < 870 && errorStats.isEmpty(), String.format("""
+        // Roundtrip is >99% stable, no exceptions, no verification errors
+        Assert.assertTrue(stable > 65240 && unstable < 120 && errorStats.isEmpty(), String.format("""
 
                     stable: %d
                     unstable: %d
