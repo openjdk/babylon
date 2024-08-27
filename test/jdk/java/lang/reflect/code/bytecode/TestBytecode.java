@@ -522,6 +522,19 @@ public class TestBytecode {
     }
 
     @CodeReflection
+    static int varModifiedInTryBlock(boolean b) {
+        int i = 0;
+        try {
+            i++;
+            if (b) throw new Exception();
+            i++;
+            throw new Exception();
+        } catch (Exception ex) {
+            return i;
+        }
+    }
+
+    @CodeReflection
     static boolean finallyWithLoop(boolean b) {
         try {
             while (b) {

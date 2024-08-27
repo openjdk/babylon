@@ -93,7 +93,7 @@ public class TestSmallCorpus {
         }
 
         // Roundtrip is >99% stable, no exceptions, no verification errors
-        Assert.assertTrue(stable > 65200 && unstable < 140 && errorStats.isEmpty(), String.format("""
+        Assert.assertTrue(stable > 65240 && unstable < 120 && errorStats.isEmpty(), String.format("""
 
                     stable: %d
                     unstable: %d

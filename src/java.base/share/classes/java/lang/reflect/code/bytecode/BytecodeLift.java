@@ -111,6 +111,7 @@ public final class BytecodeLift {
     private final Deque<Value> stack;
     private final Map<Object, Op.Result> constantCache;
     private final ArrayDeque<ExceptionRegionEntry> exceptionRegionStack;
+    private final List<Value> initLocalValues;
     private Block.Builder currentBlock;
 
     private BytecodeLift(Block.Builder entryBlock, ClassModel classModel, CodeModel codeModel, Value... capturedValues) {
@@ -122,14 +123,18 @@ public final class BytecodeLift {
         this.exceptionRegions = extractExceptionRegions(codeAttribtue);
         this.elements = codeModel.elementList();
         this.stack = new ArrayDeque<>();
-        ArrayList<ClassDesc> locals = new ArrayList<>();
+        List<ClassDesc> initLocalTypes = new ArrayList<>();
+        this.initLocalValues = new ArrayList<>();
         Stream.concat(Arrays.stream(capturedValues), entryBlock.parameters().stream()).forEachOrdered(val -> {
-            op(SlotOp.store(locals.size(), val));
             ClassDesc locType = BytecodeGenerator.toClassDesc(val.type());
-            locals.add(locType);
-            if (TypeKind.from(locType).slotSize() == 2) locals.add(null);
+            initLocalTypes.add(locType);
+            initLocalValues.add(val);
+            if (TypeKind.from(locType).slotSize() == 2) {
+                initLocalTypes.add(null);
+                initLocalValues.add(null);
+            }
         });
-        this.codeTracker = new LocalsTypeMapper(classModel.thisClass().asSymbol(), locals, smta, elements);
+        this.codeTracker = new LocalsTypeMapper(classModel.thisClass().asSymbol(), initLocalTypes, codeModel.exceptionHandlers(), smta, elements);
         this.blockMap = smta.map(sma ->
                 sma.entries().stream().collect(Collectors.toUnmodifiableMap(
                         StackMapFrameInfo::target,
@@ -261,11 +266,6 @@ public final class BytecodeLift {
     }
 
     public static CoreOp.FuncOp lift(MethodModel methodModel) {
-        CoreOp.FuncOp lifted = liftToSlots(methodModel);
-        return SlotSSA.transform(lifted);
-     }
-
-    private static CoreOp.FuncOp liftToSlots(MethodModel methodModel) {
         ClassModel classModel = methodModel.parent().orElseThrow();
         MethodTypeDesc mDesc = methodModel.methodTypeSymbol();
         if (!methodModel.flags().has(AccessFlag.STATIC)) {
@@ -318,6 +318,18 @@ public final class BytecodeLift {
     }
 
     private void liftBody() {
+        // Declare initial variables
+        for (int i = 0; i < codeTracker.slotsToInitialize.size(); i++) {
+            LocalsTypeMapper.Slot sl = codeTracker.slotsToInitialize.get(i);
+            if (sl != null) {
+                if (sl.var.isSingleValue) {
+                    sl.var.value = initLocalValues.get(i);
+                } else {
+                    sl.var.value = op(CoreOp.var("slot#" + i, sl.var.type(), initLocalValues.get(i)));
+                }
+            }
+        }
+
         for (int i = 0; i < elements.size(); i++) {
             switch (elements.get(i)) {
                 case ExceptionCatch _ -> {
@@ -411,14 +423,34 @@ public final class BytecodeLift {
                     endOfFlow();
                 }
                 case LoadInstruction inst -> {
-                    stack.push(op(SlotOp.load(inst.slot(), JavaType.type(codeTracker.getTypeOf(i)))));
+                    LocalsTypeMapper.Variable var = codeTracker.getVarOf(i);
+                    if (var.isSingleValue) {
+                        assert var.value != null;
+                        stack.push(var.value);
+                    } else {
+                        assert var.value instanceof Op.Result r && r.op() instanceof CoreOp.VarOp;
+                        stack.push(op(CoreOp.varLoad(var.value)));
+                    }
                 }
                 case StoreInstruction inst -> {
-                    op(SlotOp.store(inst.slot(), stack.pop()));
+                    LocalsTypeMapper.Variable var = codeTracker.getVarOf(i);
+                    if (var.isSingleValue) {
+                        assert var.value == null;
+                        var.value = stack.pop();
+                    } else {
+                        if (var.value == null) {
+                            var.value = op(CoreOp.var("slot#" + inst.slot(), var.type(), stack.pop()));
+                        } else {
+                            assert var.value instanceof Op.Result r && r.op() instanceof CoreOp.VarOp;
+                            op(CoreOp.varStore(var.value, stack.pop()));
+                        }
+                    }
                 }
                 case IncrementInstruction inst -> {
-                    op(SlotOp.store(inst.slot(), op(CoreOp.add(
-                            op(SlotOp.load(inst.slot(), JavaType.INT)),
+                    LocalsTypeMapper.Variable var = codeTracker.getVarOf(i);
+                    assert !var.isSingleValue && var.value instanceof Op.Result r && r.op() instanceof CoreOp.VarOp;
+                    op(CoreOp.varStore(var.value, op(CoreOp.add(
+                            op(CoreOp.varLoad(var.value)),
                             liftConstant(inst.constant())))));
                 }
                 case ConstantInstruction inst -> {

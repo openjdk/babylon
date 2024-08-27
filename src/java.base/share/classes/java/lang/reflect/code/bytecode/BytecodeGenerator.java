@@ -184,7 +184,7 @@ public final class BytecodeGenerator {
     }
 
     private record Slot(int slot, TypeKind typeKind) {}
-    private record ExceptionRegionWithBlocks(CoreOp.ExceptionRegionEnter ere, BitSet blocks) {}
+    private record ExceptionRegionWithBlocks(ExceptionRegionEnter ere, BitSet blocks) {}
 
     private final MethodHandles.Lookup lookup;
     private final ClassDesc className;
@@ -200,7 +200,7 @@ public final class BytecodeGenerator {
     private final Map<Block.Parameter, Value> singlePredecessorsValues;
     private final List<LambdaOp> lambdaSink;
     private final BitSet quotable;
-    private Op.Result oprOnStack;
+    private Value oprOnStack;
 
     private BytecodeGenerator(MethodHandles.Lookup lookup,
                               ClassDesc className,
@@ -278,7 +278,7 @@ public final class BytecodeGenerator {
     private void load(Value v) {
         v = singlePredecessorsValues.getOrDefault(v, v);
         if (v instanceof Op.Result or &&
-                or.op() instanceof CoreOp.ConstantOp constantOp &&
+                or.op() instanceof ConstantOp constantOp &&
                 !constantOp.resultType().equals(JavaType.J_L_CLASS)) {
             cob.loadConstant(switch (constantOp.value()) {
                 case null -> null;
@@ -293,7 +293,23 @@ public final class BytecodeGenerator {
             });
         } else {
             Slot slot = slots.get(v);
-            cob.loadLocal(slot.typeKind(), slot.slot());
+            if (slot == null) {
+                if (v instanceof Op.Result or) {
+                    // Handling of deferred variables
+                    switch (or.op()) {
+                        case VarOp vop ->
+                            load(vop.initOperand());
+                        case VarAccessOp.VarLoadOp vlop ->
+                            load(vlop.varOperand());
+                        default ->
+                            throw new IllegalStateException("Missing slot for: " + or.op());
+                    }
+                } else {
+                    throw new IllegalStateException("Missing slot for: " + v);
+                }
+            } else {
+                cob.loadLocal(slot.typeKind(), slot.slot());
+            }
         }
     }
 
@@ -341,9 +357,10 @@ public final class BytecodeGenerator {
         return !op.resultType().equals(JavaType.J_L_CLASS);
     }
 
-    // Var with a single-use block parameter operand can be deferred
+    // Var with a single-use entry block parameter operand can be deferred
     private static boolean canDefer(VarOp op) {
-        return op.operands().getFirst() instanceof Block.Parameter bp && bp.uses().size() == 1;
+        return !moreThanOneUse(op.result())
+            || op.operands().getFirst() instanceof Block.Parameter bp && bp.declaringBlock().isEntryBlock() && !moreThanOneUse(bp);
     }
 
     // Var load can be deferred when not used as immediate operand
@@ -352,7 +369,7 @@ public final class BytecodeGenerator {
     }
 
     // This method narrows the first operand inconveniences of some operations
-    private static boolean isFirstOperand(Op nextOp, Op.Result opr) {
+    private static boolean isFirstOperand(Op nextOp, Value opr) {
         List<Value> values;
         return switch (nextOp) {
             // When there is no next operation
@@ -364,7 +381,7 @@ public final class BytecodeGenerator {
             case LambdaOp op ->
                 !(values = op.capturedValues()).isEmpty() && values.getFirst() == opr;
             // Conditional branch may delegate to its binary test operation
-            case ConditionalBranchOp op when getConditionForCondBrOp(op) instanceof CoreOp.BinaryTestOp bto ->
+            case ConditionalBranchOp op when getConditionForCondBrOp(op) instanceof BinaryTestOp bto ->
                 isFirstOperand(bto, opr);
             // Var store effective first operand is not the first one
             case VarAccessOp.VarStoreOp op ->
@@ -379,16 +396,19 @@ public final class BytecodeGenerator {
     }
 
     // Determines if the operation result is immediatelly used by the next operation and so can stay on stack
-    private static boolean isNextUse(Op.Result opr) {
+    private static boolean isNextUse(Value opr) {
+        Op nextOp = switch (opr) {
+            case Block.Parameter p -> p.declaringBlock().firstOp();
+            case Op.Result r -> r.declaringBlock().nextOp(r.op());
+        };
         // Pass over deferred operations
-        Op nextOp = opr.op();
-        do {
-            nextOp = opr.declaringBlock().nextOp(nextOp);
-        } while (canDefer(nextOp));
+        while (canDefer(nextOp)) {
+            nextOp = nextOp.parentBlock().nextOp(nextOp);
+        }
         return isFirstOperand(nextOp, opr);
     }
 
-    private static boolean isConditionForCondBrOp(CoreOp.BinaryTestOp op) {
+    private static boolean isConditionForCondBrOp(BinaryTestOp op) {
         // Result of op has one use as the operand of a CondBrOp op,
         // and both ops are in the same block
 
@@ -409,7 +429,7 @@ public final class BytecodeGenerator {
             }
         }
 
-        return use.op() instanceof CoreOp.ConditionalBranchOp;
+        return use.op() instanceof ConditionalBranchOp;
     }
 
     static ClassDesc toClassDesc(TypeElement t) {
@@ -441,13 +461,13 @@ public final class BytecodeGenerator {
             Block b = blocks.get(blockIndex);
             Op top = b.terminatingOp();
             switch (top) {
-                case CoreOp.BranchOp bop ->
+                case BranchOp bop ->
                     setExceptionRegionStack(bop.branch(), activeRegionStack);
-                case CoreOp.ConditionalBranchOp cop -> {
+                case ConditionalBranchOp cop -> {
                     setExceptionRegionStack(cop.falseBranch(), activeRegionStack);
                     setExceptionRegionStack(cop.trueBranch(), activeRegionStack);
                 }
-                case CoreOp.ExceptionRegionEnter er -> {
+                case ExceptionRegionEnter er -> {
                     for (Block.Reference catchBlock : er.catchBlocks().reversed()) {
                         catchingBlocks.set(catchBlock.targetBlock().index());
                         setExceptionRegionStack(catchBlock, activeRegionStack);
@@ -458,7 +478,7 @@ public final class BytecodeGenerator {
                     allExceptionRegions.add(newNode);
                     setExceptionRegionStack(er.start(), activeRegionStack);
                 }
-                case CoreOp.ExceptionRegionExit er -> {
+                case ExceptionRegionExit er -> {
                     activeRegionStack = (BitSet)activeRegionStack.clone();
                     activeRegionStack.clear(activeRegionStack.length() - 1);
                     setExceptionRegionStack(er.end(), activeRegionStack);
@@ -519,14 +539,15 @@ public final class BytecodeGenerator {
                 }
             }
 
+            oprOnStack = null;
+
             // If b is a catch block then the exception argument will be represented on the stack
             if (catchingBlocks.get(b.index())) {
                 // Retain block argument for exception table generation
-                storeIfUsed(b.parameters().get(0));
+                push(b.parameters().getFirst());
             }
 
             List<Op> ops = b.ops();
-            oprOnStack = null;
             for (int i = 0; i < ops.size() - 1; i++) {
                 final Op o = ops.get(i);
                 final TypeElement oprType = o.resultType();
@@ -535,19 +556,26 @@ public final class BytecodeGenerator {
                     case ConstantOp op -> {
                         if (!canDefer(op)) {
                             // Constant can be deferred, except for a class constant, which  may throw an exception
-                            cob.ldc(((JavaType)op.value()).toNominalDescriptor());
+                            Object v = op.value();
+                            if (v == null) {
+                                cob.aconst_null();
+                            } else {
+                                cob.ldc(((JavaType)v).toNominalDescriptor());
+                            }
                             push(op.result());
                         }
                     }
                     case VarOp op -> {
                         //     %1 : Var<int> = var %0 @"i";
                         if (canDefer(op)) {
-                            // Var with a single-use block parameter operand can be deferred
-                            slots.put(op.result(), slots.get(op.operands().getFirst()));
+                            Slot s = slots.get(op.operands().getFirst());
+                            if (s != null) {
+                                // Var with a single-use entry block parameter can reuse its slot
+                                slots.put(op.result(), s);
+                            }
                         } else {
-                            processOperand(op.operands().getFirst());
-                            allocateSlot(op.result());
-                            push(op.result());
+                            processFirstOperand(op);
+                            storeIfUsed(op.result());
                         }
                     }
                     case VarAccessOp.VarLoadOp op -> {
@@ -555,13 +583,14 @@ public final class BytecodeGenerator {
                             // Var load can be deferred when not used as immediate operand
                             slots.computeIfAbsent(op.result(), r -> slots.get(op.operands().getFirst()));
                         } else {
-                            processFirstOperand(op);
+                            load(op.operands().getFirst());
                             push(op.result());
                         }
                     }
                     case VarAccessOp.VarStoreOp op -> {
                         processOperand(op.operands().get(1));
-                        storeIfUsed(op.operands().get(0));
+                        Slot slot = allocateSlot(op.operands().getFirst());
+                        cob.storeLocal(slot.typeKind(), slot.slot());
                     }
                     case ConvOp op -> {
                         Value first = op.operands().getFirst();
@@ -924,7 +953,7 @@ public final class BytecodeGenerator {
             }
             Op top = b.terminatingOp();
             switch (top) {
-                case CoreOp.ReturnOp op -> {
+                case ReturnOp op -> {
                     if (returnType != TypeKind.VoidType) {
                         processFirstOperand(op);
                         // @@@ box, unbox, cast here ?
@@ -940,7 +969,7 @@ public final class BytecodeGenerator {
                     cob.goto_(getLabel(op.branch()));
                 }
                 case ConditionalBranchOp op -> {
-                    if (getConditionForCondBrOp(op) instanceof CoreOp.BinaryTestOp btop) {
+                    if (getConditionForCondBrOp(op) instanceof BinaryTestOp btop) {
                         // Processing of the BinaryTestOp was deferred, so it can be merged with CondBrOp
                         processOperands(btop);
                         conditionalBranch(btop, op.trueBranch(), op.falseBranch());
@@ -963,16 +992,16 @@ public final class BytecodeGenerator {
     }
 
     // Checks if the Op.Result is used more than once in operands and block arguments
-    private static boolean moreThanOneUse(Op.Result res) {
-        return res.uses().stream().flatMap(u ->
+    private static boolean moreThanOneUse(Value val) {
+        return val.uses().stream().flatMap(u ->
                 Stream.concat(
                         u.op().operands().stream(),
                         u.op().successors().stream()
                                 .flatMap(r -> r.arguments().stream())))
-                .filter(res::equals).limit(2).count() > 1;
+                .filter(val::equals).limit(2).count() > 1;
     }
 
-    private void push(Op.Result res) {
+    private void push(Value res) {
         assert oprOnStack == null;
         if (res.type().equals(JavaType.VOID)) return;
         if (isNextUse(res)) {
@@ -998,7 +1027,7 @@ public final class BytecodeGenerator {
         }
     }
 
-    private static Op getConditionForCondBrOp(CoreOp.ConditionalBranchOp op) {
+    private static Op getConditionForCondBrOp(ConditionalBranchOp op) {
         Value p = op.predicate();
         if (p.uses().size() != 1) {
             return null;
@@ -1192,14 +1221,14 @@ public final class BytecodeGenerator {
         return dmhd;
     }
 
-    static CoreOp.FuncOp quote(CoreOp.LambdaOp lop) {
+    static FuncOp quote(LambdaOp lop) {
         List<Value> captures = lop.capturedValues();
 
         // Build the function type
         List<TypeElement> params = captures.stream()
                 .map(v -> v.type() instanceof VarType vt ? vt.valueType() : v.type())
                 .toList();
-        FunctionType ft = FunctionType.functionType(CoreOp.QuotedOp.QUOTED_TYPE, params);
+        FunctionType ft = FunctionType.functionType(QuotedOp.QUOTED_TYPE, params);
 
         // Build the function that quotes the lambda
         return CoreOp.func("q", ft).body(b -> {
