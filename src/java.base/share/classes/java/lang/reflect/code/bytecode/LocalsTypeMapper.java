@@ -55,8 +55,6 @@ import java.util.Set;
 
 final class LocalsTypeMapper {
 
-    private record Link(Slot slot, Link other) {}
-
     static class Variable {
         private ClassDesc type;
         boolean isSingleValue;
@@ -68,10 +66,21 @@ final class LocalsTypeMapper {
     }
 
     static class Slot {
+
+        record Link(Slot slot, Link other) {}
+
         ClassDesc type;
         Link up, down;
         Variable var;
         boolean newValue;
+
+
+        void link(Slot target) {
+            if (this != target) {
+                target.up = new Link(this, target.up);
+                this.down = new Link(target, this.down);
+            }
+        }
     }
 
     record Frame(List<ClassDesc> stack, List<Slot> locals) {}
@@ -131,7 +140,7 @@ final class LocalsTypeMapper {
                     if (v.var == null) {
                         if (v.newValue) sources++;
                         v.var = var;
-                        Link l = v.up;
+                        Slot.Link l = v.up;
                         while (l != null) {
                             if (var.type == NULL_TYPE) var.type = l.slot.type;
                             if (l.slot.var == null) q.add(l.slot);
@@ -147,13 +156,6 @@ final class LocalsTypeMapper {
                 }
                 var.isSingleValue = sources < 2;
             }
-        }
-    }
-
-    void link(Slot source, Slot target) {
-        if (source != target) {
-            target.up = new Link(source, target.up);
-            source.down = new Link(target, source.down);
         }
     }
 
@@ -326,7 +328,7 @@ final class LocalsTypeMapper {
             case IncrementInstruction i -> {
                 Slot v = locals.get(i.slot());
                 store(i.slot(), load(i.slot()));
-                link(v, locals.get(i.slot()));
+                v.link(locals.get(i.slot()));
                 insMap.put(elIndex, v);
             }
             case InvokeDynamicInstruction i ->
@@ -460,7 +462,7 @@ final class LocalsTypeMapper {
             Slot le = locals.get(i);
             Slot fe = targetFrame.locals.get(i);
             if (le != null && fe != null) {
-                link(fe, le); // Link target frame var with its source
+                fe.link(le); // Link target frame var with its source
                 if (!le.type.equals(fe.type)) {
                     if (le.type.isPrimitive() && CD_int.equals(fe.type) ) {
                         fe.type = le.type; // Override int target frame type with more specific int sub-type
