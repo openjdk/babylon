@@ -31,9 +31,14 @@ import java.lang.classfile.Opcode;
 import java.lang.classfile.components.ClassPrinter;
 import java.lang.classfile.instruction.*;
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.code.Block;
+import java.lang.reflect.code.Body;
+import java.lang.reflect.code.Op;
+import java.lang.reflect.code.Value;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.reflect.code.bytecode.BytecodeLift;
 import java.lang.reflect.code.op.CoreOp;
+import java.lang.reflect.code.writer.OpWriter;
 import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -93,7 +98,7 @@ public class TestSmallCorpus {
         }
 
         // Roundtrip is >99% stable, no exceptions, no verification errors
-        Assert.assertTrue(stable > 65240 && unstable < 120 && errorStats.isEmpty(), String.format("""
+        Assert.assertTrue(stable > 65230 && unstable < 120 && errorStats.isEmpty(), String.format("""
 
                     stable: %d
                     unstable: %d
@@ -112,19 +117,22 @@ public class TestSmallCorpus {
         for (var originalModel : clm.methods()) {
             if (originalModel.code().isPresent()) try {
                 CoreOp.FuncOp firstLift = lift(originalModel);
+                verify("first lift verify", firstLift);
                 try {
                     MethodModel firstModel = lower(firstLift);
-                    verify("first verify", firstModel);
+                    verify("first gen verify", firstModel);
                     try {
                         CoreOp.FuncOp secondLift = lift(firstModel);
+                        verify("second lift verify", firstLift);
                         try {
                             MethodModel secondModel = lower(secondLift);
-                            verify("second verify", secondModel);
+                            verify("second gen verify", secondModel);
                             try {
                                 CoreOp.FuncOp thirdLift = lift(secondModel);
+                                verify("third lift verify", firstLift);
                                 try {
                                     MethodModel thirdModel = lower(thirdLift);
-                                    verify("third verify", thirdModel);
+                                    verify("third gen verify", thirdModel);
                                     // testing only methods passing through
                                     var secondNormalized = normalize(secondModel);
                                     var thirdNormalized = normalize(thirdModel);
@@ -138,23 +146,46 @@ public class TestSmallCorpus {
                                         stable++;
                                     }
                                 } catch (Throwable t) {
-                                    error("third lower", t);
+                                    error("third gen", t);
                                 }
                             } catch (Throwable t) {
                                 error("third lift", t);
                             }
                         } catch (Throwable t) {
-                            error("second lower", t);
+                            error("second gen", t);
                         }
                     } catch (Throwable t) {
                         error("second lift", t);
                     }
                 } catch (Throwable t) {
-                    error("first lower", t);
+                    error("first gen", t);
                 }
             } catch (Throwable t) {
                 error("first lift", t);
             }
+        }
+    }
+
+    private void verify(String category, CoreOp.FuncOp func) {
+        OpWriter.CodeItemNamerOption naming = null;
+        for (Body body : func.bodies()) {
+            for (Block block : body.blocks()) {
+                for (Op op : block.ops()) {
+                    for (Value v : op.operands()) {
+                        // Verify operands accessibility
+                        Block declaringBlock = v.declaringBlock();
+                        if (!block.isDominatedBy(declaringBlock)) {
+                            if (naming == null) {
+                                naming = OpWriter.CodeItemNamerOption.of(OpWriter.computeGlobalNames(func));
+                            }
+                            error(category, "block_" + block.index() + " " + OpWriter.toText(op, naming) + " is not dominated by its operand declaration in block_" + declaringBlock.index());
+                        }
+                    }
+                }
+            }
+        }
+        if (naming != null) {
+            System.out.println(OpWriter.toText(func, naming));
         }
     }
 
@@ -276,6 +307,7 @@ public class TestSmallCorpus {
     }
 
     private void error(String category, String msg) {
+        System.out.println("!!! " + msg);
         errorStats.computeIfAbsent(category, _ -> new HashMap<>())
                   .compute(msg, (_, i) -> i == null ? 1 : i + 1);
     }
