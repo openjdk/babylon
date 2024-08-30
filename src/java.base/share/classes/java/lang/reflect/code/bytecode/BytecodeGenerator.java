@@ -361,7 +361,7 @@ public final class BytecodeGenerator {
         return !op.resultType().equals(JavaType.J_L_CLASS);
     }
 
-    // Singl-use var or var with a single-use entry block parameter operand can be deferred
+    // Single-use var or var with a single-use entry block parameter operand can be deferred
     private static boolean canDefer(VarOp op) {
         return !moreThanOneUse(op.result())
             || op.operands().getFirst() instanceof Block.Parameter bp && bp.declaringBlock().isEntryBlock() && !moreThanOneUse(bp)

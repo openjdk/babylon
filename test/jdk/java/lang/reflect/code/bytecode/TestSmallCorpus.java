@@ -307,7 +307,6 @@ public class TestSmallCorpus {
     }
 
     private void error(String category, String msg) {
-        System.out.println("!!! " + msg);
         errorStats.computeIfAbsent(category, _ -> new HashMap<>())
                   .compute(msg, (_, i) -> i == null ? 1 : i + 1);
     }
