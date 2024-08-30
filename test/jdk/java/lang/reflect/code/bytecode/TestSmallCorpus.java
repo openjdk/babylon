@@ -172,13 +172,12 @@ public class TestSmallCorpus {
             for (Block block : body.blocks()) {
                 for (Op op : block.ops()) {
                     for (Value v : op.operands()) {
-                        // Verify operands accessibility
-                        Block declaringBlock = v.declaringBlock();
-                        if (!block.isDominatedBy(declaringBlock)) {
+                        // Verify operands dominance
+                        if (!op.result().isDominatedBy(v)) {
                             if (naming == null) {
                                 naming = OpWriter.CodeItemNamerOption.of(OpWriter.computeGlobalNames(func));
                             }
-                            error(category, "block_" + block.index() + " " + OpWriter.toText(op, naming) + " is not dominated by its operand declaration in block_" + declaringBlock.index());
+                            error(category, "block_" + block.index() + " " + OpWriter.toText(op, naming) + " is not dominated by its operand declaration in block_" + v.declaringBlock().index());
                         }
                     }
                 }
