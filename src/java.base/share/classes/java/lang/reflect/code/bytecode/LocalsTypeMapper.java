@@ -92,7 +92,6 @@ final class LocalsTypeMapper {
         boolean newValue;
         Slot previous; // Previous Slot, not necessary of the same variable
 
-
         void link(Slot target) {
             if (this != target) {
                 target.up = new Link(this, target.up);
@@ -105,7 +104,7 @@ final class LocalsTypeMapper {
 
     private static final ClassDesc NULL_TYPE = ClassDesc.ofDescriptor(CD_Object.descriptorString());
     private final Map<Integer, Slot> insMap;
-    private final Set<Slot> allSlots;
+    private final LinkedHashSet<Slot> allSlots;
     private final ClassDesc thisClass;
     private final List<ExceptionCatch> exceptionHandlers;
     private final List<ClassDesc> stack;
@@ -134,7 +133,18 @@ final class LocalsTypeMapper {
         for (ClassDesc cd : initFrameLocals) {
             slotsToInitialize.add(cd == null ? null : newSlot(cd, true));
         }
+        int initSize = allSlots.size();
         do {
+            // Slot states reset if running additional rounds with adjusted frames
+            if (allSlots.size() > initSize) {
+                while (allSlots.size() > initSize) allSlots.removeLast();
+                allSlots.forEach(sl -> {
+                    sl.up = null;
+                    sl.down = null;
+                    sl.previous = null;
+                    sl.var = null;
+                });
+            }
             for (int i = 0; i < initFrameLocals.size(); i++) {
                 store(i, slotsToInitialize.get(i), locals);
             }
