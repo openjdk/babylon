@@ -188,9 +188,6 @@ final class LocalsTypeMapper {
                     }
                 }
                 if (initialSlots.size() > 1) {
-                    if (var.isSingleValue) {
-                        System.out.println("wat?");
-                    }
                     // Add synthetic dominant slot, which needs to be initialized with a default value
                     Slot initialSlot = new Slot();
                     initialSlot.var = var;
