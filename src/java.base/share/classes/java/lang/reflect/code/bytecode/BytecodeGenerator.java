@@ -370,17 +370,15 @@ public final class BytecodeGenerator {
     }
 
     // Detection of var declaration in a dominant block, initialized with a redundant default value
-    // Combo of ConstantOp and VarOp can be deferred if all its VarLoadOp are dominated by VarStoreOp
+    // Combo of ConstantOp and VarOp can be deferred if all its VarLoadOps are dominated by VarStoreOp
     private static boolean canDeferVarCombo(VarOp op) {
         if (op.initOperand() instanceof Op.Result or && or.op() instanceof ConstantOp cop && canDefer(cop)) {
             Set<Op.Result> allUses = op.result().uses();
-            Set<Op.Result> storeResults = allUses.stream().filter(r -> r.op() instanceof VarAccessOp.VarStoreOp).collect(Collectors.toSet());
-            // All VarLoadOp must be dominated by a VarStoreOp
-            for (Op.Result loadResult : allUses) {
-                if (loadResult.op() instanceof VarAccessOp.VarLoadOp) {
-                    if (!isDominatedBy(loadResult, storeResults)) {
-                        return false;
-                    }
+            Set<Op.Result> stores = allUses.stream().filter(r -> r.op() instanceof VarAccessOp.VarStoreOp).collect(Collectors.toSet());
+            // All VarLoadOps must be dominated by a VarStoreOp
+            for (Op.Result load : allUses) {
+                if (load.op() instanceof VarAccessOp.VarLoadOp && !isDominatedBy(load, stores)) {
+                    return false;
                 }
             }
             return true;
