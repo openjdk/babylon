@@ -31,9 +31,7 @@ import java.lang.classfile.Opcode;
 import java.lang.classfile.components.ClassPrinter;
 import java.lang.classfile.instruction.*;
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.code.Block;
-import java.lang.reflect.code.Body;
-import java.lang.reflect.code.Op;
+import java.lang.reflect.code.CodeElement;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.reflect.code.bytecode.BytecodeLift;
@@ -167,22 +165,19 @@ public class TestSmallCorpus {
     }
 
     private void verify(String category, CoreOp.FuncOp func) {
-        OpWriter.CodeItemNamerOption naming = null;
-        for (Body body : func.bodies()) {
-            for (Block block : body.blocks()) {
-                for (Op op : block.ops()) {
-                    for (Value v : op.operands()) {
-                        // Verify operands dominance
-                        if (!op.result().isDominatedBy(v)) {
-                            if (naming == null) {
-                                naming = OpWriter.CodeItemNamerOption.of(OpWriter.computeGlobalNames(func));
-                            }
-                            error(category, "block_" + block.index() + " " + OpWriter.toText(op, naming) + " is not dominated by its operand declaration in block_" + v.declaringBlock().index());
-                        }
+        OpWriter.CodeItemNamerOption naming = func.traverse(null, CodeElement.opVisitor((n, op) -> {
+            for (Value v : op.operands()) {
+                // Verify operands dominance
+                if (!op.result().isDominatedBy(v)) {
+                    if (n == null) {
+                        n = OpWriter.CodeItemNamerOption.of(OpWriter.computeGlobalNames(func));
                     }
+                    error(category, "block_%d %s is not dominated by its operand declaration in block_%d".formatted(
+                            op.parentBlock().index(), OpWriter.toText(op, n), v.declaringBlock().index()));
                 }
             }
-        }
+            return n;
+        }));
         if (naming != null) {
             System.out.println(OpWriter.toText(func, naming));
         }
