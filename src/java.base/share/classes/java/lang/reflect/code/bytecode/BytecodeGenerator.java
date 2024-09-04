@@ -365,25 +365,22 @@ public final class BytecodeGenerator {
     private static boolean canDefer(VarOp op) {
         return !moreThanOneUse(op.result())
             || op.operands().getFirst() instanceof Block.Parameter bp && bp.declaringBlock().isEntryBlock() && !moreThanOneUse(bp)
-            || canDeferVarCombo(op);
+            || op.initOperand() instanceof Op.Result or && or.op() instanceof ConstantOp cop && canDefer(cop) && isDefinitelyAssigned(op);
 
     }
 
-    // Detection of var declaration in a dominant block, initialized with a redundant default value
-    // Combo of ConstantOp and VarOp can be deferred if all its VarLoadOps are dominated by VarStoreOp
-    private static boolean canDeferVarCombo(VarOp op) {
-        if (op.initOperand() instanceof Op.Result or && or.op() instanceof ConstantOp cop && canDefer(cop)) {
-            Set<Op.Result> allUses = op.result().uses();
-            Set<Op.Result> stores = allUses.stream().filter(r -> r.op() instanceof VarAccessOp.VarStoreOp).collect(Collectors.toSet());
-            // All VarLoadOps must be dominated by a VarStoreOp
-            for (Op.Result load : allUses) {
-                if (load.op() instanceof VarAccessOp.VarLoadOp && !isDominatedBy(load, stores)) {
-                    return false;
-                }
+    // Detection if VarOp is definitelly assigned (all its VarLoadOps are dominated by VarStoreOp)
+    // VarOp can be deferred in such case
+    private static boolean isDefinitelyAssigned(VarOp op) {
+        Set<Op.Result> allUses = op.result().uses();
+        Set<Op.Result> stores = allUses.stream().filter(r -> r.op() instanceof VarAccessOp.VarStoreOp).collect(Collectors.toSet());
+        // All VarLoadOps must be dominated by a VarStoreOp
+        for (Op.Result load : allUses) {
+            if (load.op() instanceof VarAccessOp.VarLoadOp && !isDominatedBy(load, stores)) {
+                return false;
             }
-            return true;
         }
-        return false;
+        return true;
     }
 
     // @@@ Test for dominant set
