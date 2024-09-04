@@ -1497,13 +1497,45 @@ public class ReflectMethods extends TreeTranslator {
             Type switchType = adaptBottom(tree.type);
             FunctionType actionType = FunctionType.functionType(typeToTypeElement(switchType));
 
+            List<Body.Builder> bodies = visitSwitchStatAndExpr(tree, actionType, !tree.hasUnconditionalPattern);
+
+            result = append(ExtendedOp.switchExpression(actionType.returnType(), target, bodies));
+        }
+
+        @Override
+        public void visitSwitch(JCTree.JCSwitch tree) {
+            Value target = toValue(tree.selector);
+
+            FunctionType actionType = FunctionType.VOID;
+
+            List<Body.Builder> bodies = visitSwitchStatAndExpr(tree, actionType,
+                    tree.patternSwitch && !tree.hasUnconditionalPattern);
+
+            result = append(ExtendedOp.switchStatement(target, bodies));
+        }
+
+        private List<Body.Builder> visitSwitchStatAndExpr(JCTree tree, FunctionType caseBodyType, boolean isDefaultCaseNeeded) {
+            JCExpression selector;
+            List<JCTree.JCCase> cases;
+            if (tree instanceof JCTree.JCSwitch sw) {
+                selector = sw.selector;
+                cases = sw.cases;
+            } else if (tree instanceof JCTree.JCSwitchExpression sw) {
+                selector = sw.selector;
+                cases = sw.cases;
+            } else {
+                throw new IllegalStateException();
+            }
+
+            Value target = toValue(selector);
+
             List<Body.Builder> bodies = new ArrayList<>();
             Body.Builder defaultLabel = null;
             Body.Builder defaultBody = null;
 
-            for (JCTree.JCCase c : tree.cases) {
-                Body.Builder caseLabel = visitCaseLabel(tree, target, c);
+            for (JCTree.JCCase c : cases) {
 
+                Body.Builder caseLabel = visitCaseLabel(tree, target, c);
                 Body.Builder caseBody = visitCaseBody(tree, c);
 
                 if (c.labels.head instanceof JCTree.JCDefaultCaseLabel) {
@@ -1518,7 +1550,7 @@ public class ReflectMethods extends TreeTranslator {
             if (defaultLabel != null) {
                 bodies.add(defaultLabel);
                 bodies.add(defaultBody);
-            } else if (!tree.hasUnconditionalPattern) {
+            } else if (isDefaultCaseNeeded) {
                 // label
                 pushBody(tree, FunctionType.VOID);
                 append(CoreOp._yield());
@@ -1526,7 +1558,7 @@ public class ReflectMethods extends TreeTranslator {
                 popBody();
 
                 // body
-                pushBody(tree, actionType);
+                pushBody(tree, caseBodyType);
                 append(CoreOp._throw(
                         append(CoreOp._new(FunctionType.functionType(JavaType.type(MatchException.class))))
                 ));
@@ -1534,53 +1566,7 @@ public class ReflectMethods extends TreeTranslator {
                 popBody();
             }
 
-            result = append(ExtendedOp.switchExpression(actionType.returnType(), target, bodies));
-        }
-
-        @Override
-        public void visitSwitch(JCTree.JCSwitch tree) {
-            Value target = toValue(tree.selector);
-
-            FunctionType actionType = FunctionType.VOID;
-
-            List<Body.Builder> bodies = new ArrayList<>();
-            Body.Builder defaultLabel = null;
-            Body.Builder defaultStatement = null;
-
-            for (JCTree.JCCase c : tree.cases) {
-                Body.Builder caseBody = visitCaseLabel(tree, target, c);
-
-                Body.Builder statementBody = visitCaseBody(tree, c);
-
-                if (c.labels.head instanceof JCTree.JCDefaultCaseLabel) {
-                    defaultLabel = caseBody;
-                    defaultStatement = statementBody;
-                } else {
-                    bodies.add(caseBody);
-                    bodies.add(statementBody);
-                }
-            }
-
-            if (defaultLabel != null) {
-                bodies.add(defaultLabel);
-                bodies.add(defaultStatement);
-            } else if (tree.patternSwitch && !tree.hasUnconditionalPattern) {
-                // label
-                pushBody(tree, FunctionType.VOID);
-                append(CoreOp._yield());
-                bodies.add(stack.body);
-                popBody();
-
-                // statement
-                pushBody(tree, actionType);
-                append(CoreOp._throw(
-                        append(CoreOp._new(FunctionType.functionType(JavaType.type(MatchException.class))))
-                ));
-                bodies.add(stack.body);
-                popBody();
-            }
-
-            result = append(ExtendedOp.switchStatement(target, bodies));
+            return bodies;
         }
 
         private Body.Builder visitCaseLabel(JCTree tree, Value target, JCTree.JCCase c) {
@@ -1699,13 +1685,13 @@ public class ReflectMethods extends TreeTranslator {
         private Body.Builder visitCaseBody(JCTree tree, JCTree.JCCase c) {
             Body.Builder body = null;
 
-            FunctionType actionType;
+            FunctionType caseBodyType;
             Type yieldType = null;
             if (tree instanceof JCTree.JCSwitch) {
-                actionType = FunctionType.VOID;
+                caseBodyType = FunctionType.VOID;
             } else if (tree instanceof JCTree.JCSwitchExpression) {
                 Type switchType = adaptBottom(tree.type);
-                actionType = FunctionType.functionType(typeToTypeElement(switchType));
+                caseBodyType = FunctionType.functionType(typeToTypeElement(switchType));
                 yieldType = adaptBottom(tree.type);
             } else {
                 throw new IllegalStateException();
@@ -1714,7 +1700,7 @@ public class ReflectMethods extends TreeTranslator {
             JCTree.JCCaseLabel headCl = c.labels.head;
             switch (c.caseKind) {
                 case RULE -> {
-                    pushBody(c.body, actionType);
+                    pushBody(c.body, caseBodyType);
 
                     if (c.body instanceof JCTree.JCExpression e) {
                         Value bodyVal = toValue(e, yieldType);
@@ -1738,7 +1724,7 @@ public class ReflectMethods extends TreeTranslator {
                 case STATEMENT -> {
                     // @@@ Avoid nesting for a single block? Goes against "say what you see"
                     // boolean oneBlock = c.stats.size() == 1 && c.stats.head instanceof JCBlock;
-                    pushBody(c, actionType);
+                    pushBody(c, caseBodyType);
 
                     scan(c.stats);
 
