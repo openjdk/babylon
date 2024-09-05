@@ -84,12 +84,16 @@ final class LocalsTypeMapper {
 
     static class Slot {
 
+        enum Kind {
+            NEW_VALUE, USE, FRAME;
+        }
+
         record Link(Slot slot, Link other) {}
 
+        Kind kind;
         ClassDesc type;
         Link up, down;
         Variable var;
-        boolean newValue;
         Slot previous; // Previous Slot, not necessary of the same variable
 
         void link(Slot target) {
@@ -131,7 +135,7 @@ final class LocalsTypeMapper {
                 StackMapFrameInfo::target,
                 this::toFrame))).orElse(Map.of());
         for (ClassDesc cd : initFrameLocals) {
-            slotsToInitialize.add(cd == null ? null : newSlot(cd, true));
+            slotsToInitialize.add(cd == null ? null : newSlot(cd, Slot.Kind.NEW_VALUE));
         }
         int initSize = allSlots.size();
         do {
@@ -155,11 +159,19 @@ final class LocalsTypeMapper {
             endOfFlow();
         } while (this.frameDirty);
 
-        // Assign variable to slots, calculate var type, detect single value variables and dominant slot
-        ArrayDeque<Slot> q = new ArrayDeque<>();
-        Set<Slot> initialSlots = new HashSet<>();
+        // Filter out FRAME slots of no use
+        // Such slot may form fake junction between two distinct variables
+        HashSet<Slot> visited = new HashSet<>();
         for (Slot slot : allSlots) {
-            if (slot.var == null) {
+            isSlotUsed(slot, visited);
+            visited.clear();
+        }
+
+        // Assign variable to slots, calculate var type, detect single value variables and dominant slot
+        Set<Slot> initialSlots = new HashSet<>();
+        ArrayDeque<Slot> q = new ArrayDeque<>();
+        for (Slot slot : allSlots) {
+            if (slot.var == null && slot.kind != Slot.Kind.FRAME) {
                 Variable var = new Variable();
                 q.add(slot);
                 int sources = 0;
@@ -167,7 +179,7 @@ final class LocalsTypeMapper {
                 while (!q.isEmpty()) {
                     Slot sl = q.pop();
                     if (sl.var == null) {
-                        if (sl.newValue) {
+                        if (sl.kind == Slot.Kind.NEW_VALUE) {
                             sources++;
                             if (sl.up == null) {
                                 initialSlots.add(sl);
@@ -176,14 +188,18 @@ final class LocalsTypeMapper {
                         sl.var = var;
                         Slot.Link l = sl.up;
                         while (l != null) {
-                            if (var.type == NULL_TYPE) var.type = l.slot.type;
-                            if (l.slot.var == null) q.add(l.slot);
+                            if (l.slot.kind != Slot.Kind.FRAME) {
+                                if (var.type == NULL_TYPE) var.type = l.slot.type;
+                                if (l.slot.var == null) q.add(l.slot);
+                            }
                             l = l.other;
                         }
                         l = sl.down;
                         while (l != null) {
-                            if (var.type == NULL_TYPE) var.type = l.slot.type;
-                            if (l.slot.var == null) q.add(l.slot);
+                            if (l.slot.kind != Slot.Kind.FRAME) {
+                                if (var.type == NULL_TYPE) var.type = l.slot.type;
+                                if (l.slot.var == null) q.add(l.slot);
+                            }
                             l = l.other;
                         }
                     }
@@ -211,6 +227,24 @@ final class LocalsTypeMapper {
         }
     }
 
+    static boolean isSlotUsed(Slot slot, Set<Slot> visited) {
+        if (slot.kind == Slot.Kind.FRAME) {
+            if (visited.add(slot)) {
+                Slot.Link l = slot.down;
+                while (l != null) {
+                    if (isSlotUsed(l.slot(), visited)) {
+                        slot.kind = Slot.Kind.USE;
+                        return true;
+                    }
+                    l = l.other;
+                }
+            }
+            return false;
+        } else {
+            return true;
+        }
+    }
+
     private Frame toFrame(StackMapFrameInfo smfi) {
         List<ClassDesc> fstack = new ArrayList<>(smfi.stack().size());
         List<Slot> flocals = new ArrayList<>(smfi.locals().size() * 2);
@@ -219,7 +253,7 @@ final class LocalsTypeMapper {
         }
         int i = 0;
         for (var vti : smfi.locals()) {
-            store(i, vtiToStackType(vti), flocals, false);
+            store(i, vtiToStackType(vti), flocals, Slot.Kind.FRAME);
             i += vti == ITEM_DOUBLE || vti == ITEM_LONG ? 2 : 1;
         }
         return new Frame(fstack, flocals);
@@ -247,10 +281,10 @@ final class LocalsTypeMapper {
         return insMap.get(li).var;
     }
 
-    private Slot newSlot(ClassDesc type, boolean newValue) {
+    private Slot newSlot(ClassDesc type, Slot.Kind kind) {
         Slot s = new Slot();
+        s.kind = kind;
         s.type = type;
-        s.newValue = newValue;
         allSlots.add(s);
         return s;
     }
@@ -309,22 +343,30 @@ final class LocalsTypeMapper {
     }
 
     private void store(int slot, ClassDesc type) {
-        store(slot, type, locals, true);
+        store(slot, type, locals, Slot.Kind.NEW_VALUE);
     }
 
-    private void store(int slot, ClassDesc type, List<Slot> where, boolean newValue) {
-        store(slot, type == null ? null : newSlot(type, newValue), where);
+    private void store(int slot, ClassDesc type, List<Slot> where, Slot.Kind kind) {
+        store(slot, type == null ? null : newSlot(type, kind), where);
     }
 
     private void store(int slot, Slot s, List<Slot> where) {
         if (s != null) {
             for (int i = where.size(); i <= slot; i++) where.add(null);
-            s.previous = where.set(slot, s);
+            Slot prev = where.set(slot, s);
+            if (prev != null) {
+                s.previous = prev;
+                if (prev.kind == Slot.Kind.FRAME) {
+                    prev.kind = Slot.Kind.USE;
+                }
+            }
         }
     }
 
     private ClassDesc load(int slot) {
-        return locals.get(slot).type;
+        Slot sl = locals.get(slot);
+        if (sl.kind == Slot.Kind.FRAME) sl.kind = Slot.Kind.USE;
+        return sl.type;
     }
 
     private void accept(int elIndex, CodeElement el) {
