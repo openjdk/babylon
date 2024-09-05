@@ -101,7 +101,7 @@ public final class BytecodeGenerator {
 
         MethodHandles.Lookup hcl;
         try {
-            hcl = l.defineHiddenClass(classBytes, true);
+            hcl = l.defineHiddenClass(classBytes, true, MethodHandles.Lookup.ClassOption.NESTMATE);
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }
@@ -815,7 +815,14 @@ public final class BytecodeGenerator {
                         Opcode invokeOpcode;
                         if (isInstance) {
                             if (isSuper) {
-                                invokeOpcode = Opcode.INVOKESPECIAL;
+                                // @@@ We cannot generate an invokespecial as it will result in a verify error,
+                                //     since the owner is not assignable to generated hidden class
+                                // @@@ Construct method handle via lookup.findSpecial
+                                //     using the lookup's class as the specialCaller and
+                                //     add that method handle to the to be defined hidden class's constant data
+                                //     Use and ldc+constant dynamic to access the class data,
+                                //     extract the method handle and then invoke it
+                                throw new UnsupportedOperationException("invoke super unsupported: " + op.invokeDescriptor());
                             } else if (isInterface) {
                                 invokeOpcode = Opcode.INVOKEINTERFACE;
                             } else {
