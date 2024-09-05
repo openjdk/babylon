@@ -797,42 +797,40 @@ public final class BytecodeGenerator {
                         push(op.result());
                     }
                     case InvokeOp op -> {
+                        // @@@ var args
                         processOperands(op);
-                        // @@@ Enhance method descriptor to include how the method is to be invoked
-                        // Example result of DirectMethodHandleDesc.toString()
-                        //   INTERFACE_VIRTUAL/IntBinaryOperator::applyAsInt(IntBinaryOperator,int,int)int
-                        // This will avoid the need to reflectively operate on the descriptor
-                        // which may be insufficient in certain cases.
-                        DirectMethodHandleDesc.Kind descKind;
-                        try {
-                            descKind = resolveToMethodHandleDesc(lookup, op.invokeDescriptor()).kind();
-                        } catch (ReflectiveOperationException e) {
-                            // @@@ Approximate fallback
-                            if (op.hasReceiver()) {
-                                descKind = DirectMethodHandleDesc.Kind.VIRTUAL;
-                            } else {
-                                descKind = DirectMethodHandleDesc.Kind.STATIC;
-                            }
-                        }
+                        // Resolve referenced class to determine if interface
                         MethodRef md = op.invokeDescriptor();
+                        JavaType refType = (JavaType)md.refType();
+                        Class<?> refClass;
+                        try {
+                             refClass = (Class<?>)refType.erasure().resolve(lookup);
+                        } catch (ReflectiveOperationException e) {
+                            throw new IllegalArgumentException(e);
+                        }
+                        // Determine invoke opcode
+                        final boolean isInterface = refClass.isInterface();
+                        final boolean isInstance = op.hasReceiver();
+                        final boolean isSuper = op instanceof InvokeOp.InvokeSuperOp;
+                        Opcode invokeOpcode;
+                        if (isInstance) {
+                            if (isSuper) {
+                                invokeOpcode = Opcode.INVOKESPECIAL;
+                            } else if (isInterface) {
+                                invokeOpcode = Opcode.INVOKEINTERFACE;
+                            } else {
+                                invokeOpcode = Opcode.INVOKEVIRTUAL;
+                            }
+                        } else {
+                            invokeOpcode = Opcode.INVOKESTATIC;
+                        }
                         MethodTypeDesc mDesc = MethodRef.toNominalDescriptor(md.type());
                         cob.invoke(
-                                switch (descKind) {
-                                    case STATIC, INTERFACE_STATIC   -> Opcode.INVOKESTATIC;
-                                    case VIRTUAL                    -> Opcode.INVOKEVIRTUAL;
-                                    case INTERFACE_VIRTUAL          -> Opcode.INVOKEINTERFACE;
-                                    case SPECIAL, INTERFACE_SPECIAL -> Opcode.INVOKESPECIAL;
-                                    default ->
-                                        throw new IllegalStateException("Bad method descriptor resolution: "
-                                                                        + op.opType() + " > " + op.invokeDescriptor());
-                                },
-                                ((JavaType) md.refType()).toNominalDescriptor(),
+                                invokeOpcode,
+                                refType.toNominalDescriptor(),
                                 md.name(),
                                 mDesc,
-                                switch (descKind) {
-                                    case INTERFACE_STATIC, INTERFACE_VIRTUAL, INTERFACE_SPECIAL -> true;
-                                    default -> false;
-                                });
+                                isInterface);
                         ClassDesc ret = toClassDesc(op.resultType());
                         if (ret.isClassOrInterface() && !ret.equals(mDesc.returnType())) {
                             // Explicit cast if method return type differs

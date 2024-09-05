@@ -68,8 +68,6 @@ public final class Tokens {
         ERROR(),
         IDENTIFIER(Token.Tag.NAMED),
         VALUE_IDENTIFIER(Token.Tag.NAMED),
-        EXTENDS("extends", Token.Tag.NAMED),
-        SUPER("super", Token.Tag.NAMED),
         INTLITERAL(Token.Tag.NUMERIC),
         LONGLITERAL(Token.Tag.NUMERIC),
         FLOATLITERAL(Token.Tag.NUMERIC),

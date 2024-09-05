@@ -413,13 +413,26 @@ public final class Interpreter {
                                 "Function " + name + " cannot be resolved: top level op is not a module"));
             }
         } else if (o instanceof CoreOp.InvokeOp co) {
-            MethodHandle mh;
-            if (co.hasReceiver()) {
-                mh = methodHandle(l, co.invokeDescriptor());
-            } else {
-                mh = methodStaticHandle(l, co.invokeDescriptor());
-            }
             MethodType target = resolveToMethodType(l, o.opType());
+            MethodHandle mh;
+//            if (co.hasReceiver()) {
+//                if (co instanceof CoreOp.InvokeOp.InvokeSuperOp) {
+//                    MethodHandles.Lookup in = l.in(target.parameterType(0));
+//                    mh = resolveToMethodHandle(in, co.invokeDescriptor(), MethodRef.ResolveKind.invokeSuper);
+//                } else {
+//                    mh = resolveToMethodHandle(l, co.invokeDescriptor(), MethodRef.ResolveKind.invokeInstance);
+//                }
+//            } else {
+//                mh = resolveToMethodHandle(l, co.invokeDescriptor(), MethodRef.ResolveKind.invokeClass);
+//            }
+
+            if (co instanceof CoreOp.InvokeOp.InvokeSuperOp) {
+                MethodHandles.Lookup in = l.in(target.parameterType(0));
+                mh = resolveToMethodHandle(in, co.invokeDescriptor(), MethodRef.ResolveKind.invokeSuper);
+            } else {
+                mh = resolveToMethodHandle(l, co.invokeDescriptor());
+            }
+
             mh = mh.asType(target).asFixedArity();
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
@@ -614,11 +627,11 @@ public final class Interpreter {
     }
 
     static MethodHandle methodStaticHandle(MethodHandles.Lookup l, MethodRef d) {
-        return resolveToMethodHandle(l, d);
+        return resolveToMethodHandle(l, d, MethodRef.ResolveKind.invokeClass);
     }
 
     static MethodHandle methodHandle(MethodHandles.Lookup l, MethodRef d) {
-        return resolveToMethodHandle(l, d);
+        return resolveToMethodHandle(l, d, MethodRef.ResolveKind.invokeInstance);
     }
 
     static MethodHandle constructorHandle(MethodHandles.Lookup l, FunctionType ft) {
@@ -659,6 +672,14 @@ public final class Interpreter {
     static MethodHandle resolveToMethodHandle(MethodHandles.Lookup l, MethodRef d) {
         try {
             return d.resolveToHandle(l);
+        } catch (ReflectiveOperationException e) {
+            throw interpreterException(e);
+        }
+    }
+
+    static MethodHandle resolveToMethodHandle(MethodHandles.Lookup l, MethodRef d, MethodRef.ResolveKind kind) {
+        try {
+            return d.resolveToHandle(l, kind);
         } catch (ReflectiveOperationException e) {
             throw interpreterException(e);
         }
