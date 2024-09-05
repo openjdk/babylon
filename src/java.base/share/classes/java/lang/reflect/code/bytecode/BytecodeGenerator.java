@@ -33,6 +33,7 @@ import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.op.CoreOp.*;
 
 import java.lang.classfile.ClassBuilder;
+import java.lang.classfile.ClassTransform;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
 import java.lang.classfile.attribute.ConstantValueAttribute;
@@ -129,7 +130,7 @@ public final class BytecodeGenerator {
      * @return the class file bytes
      */
     public static byte[] generateClassData(MethodHandles.Lookup lookup, FuncOp fop) {
-        return generateClassData(lookup, fop.funcName(), fop);
+        return ClassFile.of().transform(ClassFile.of().parse(generateClassData(lookup, fop.funcName(), fop)), LocalsCompactor.INSTANCE);
     }
 
     /**

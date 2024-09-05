@@ -25,8 +25,6 @@
 package java.lang.reflect.code.bytecode;
 
 import java.lang.classfile.Attributes;
-import java.lang.classfile.ClassBuilder;
-import java.lang.classfile.ClassElement;
 import java.lang.classfile.ClassTransform;
 import java.lang.classfile.CodeModel;
 import java.lang.classfile.MethodModel;
