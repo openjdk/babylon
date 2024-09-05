@@ -415,6 +415,7 @@ public final class Interpreter {
         } else if (o instanceof CoreOp.InvokeOp co) {
             MethodType target = resolveToMethodType(l, o.opType());
             MethodHandle mh;
+            // @@@ This does not work for vararg methods
 //            if (co.hasReceiver()) {
 //                if (co instanceof CoreOp.InvokeOp.InvokeSuperOp) {
 //                    MethodHandles.Lookup in = l.in(target.parameterType(0));
@@ -425,11 +426,11 @@ public final class Interpreter {
 //            } else {
 //                mh = resolveToMethodHandle(l, co.invokeDescriptor(), MethodRef.ResolveKind.invokeClass);
 //            }
-
             if (co instanceof CoreOp.InvokeOp.InvokeSuperOp) {
                 MethodHandles.Lookup in = l.in(target.parameterType(0));
                 mh = resolveToMethodHandle(in, co.invokeDescriptor(), MethodRef.ResolveKind.invokeSuper);
             } else {
+                // @@@ resolves to class or instance method handle
                 mh = resolveToMethodHandle(l, co.invokeDescriptor());
             }
 
@@ -624,14 +625,6 @@ public final class Interpreter {
         } catch (NoSuchMethodException | IllegalAccessException e) {
             throw interpreterException(e);
         }
-    }
-
-    static MethodHandle methodStaticHandle(MethodHandles.Lookup l, MethodRef d) {
-        return resolveToMethodHandle(l, d, MethodRef.ResolveKind.invokeClass);
-    }
-
-    static MethodHandle methodHandle(MethodHandles.Lookup l, MethodRef d) {
-        return resolveToMethodHandle(l, d, MethodRef.ResolveKind.invokeInstance);
     }
 
     static MethodHandle constructorHandle(MethodHandles.Lookup l, FunctionType ft) {

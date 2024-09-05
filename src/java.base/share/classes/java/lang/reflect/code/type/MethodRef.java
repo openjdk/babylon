@@ -53,8 +53,10 @@ public sealed interface MethodRef extends TypeVarRef.Owner permits MethodRefImpl
 
     // Resolutions to methods and method handles
 
+    // Resolve using ResolveKind.invokeClass, on failure resolve using ResolveKind.invokeInstance
     Method resolveToMethod(MethodHandles.Lookup l) throws ReflectiveOperationException;
 
+    // Resolve using ResolveKind.invokeClass, on failure resolve using ResolveKind.invokeInstance
     MethodHandle resolveToHandle(MethodHandles.Lookup l) throws ReflectiveOperationException;
 
     enum ResolveKind {
@@ -65,9 +67,10 @@ public sealed interface MethodRef extends TypeVarRef.Owner permits MethodRefImpl
 
     Method resolveToMethod(MethodHandles.Lookup l, ResolveKind kind) throws ReflectiveOperationException;
 
+    // For ResolveKind.invokeSuper the specialCaller == l.lookupClass() for Lookup::findSpecial
     MethodHandle resolveToHandle(MethodHandles.Lookup l, ResolveKind kind) throws ReflectiveOperationException;
 
-        // Factories
+    // Factories
 
     static MethodRef method(Executable e) {
         return method(e.getDeclaringClass(), e.getName(),

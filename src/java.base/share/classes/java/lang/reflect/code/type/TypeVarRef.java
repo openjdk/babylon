@@ -51,6 +51,7 @@ public final class TypeVarRef implements JavaType {
     public Type resolve(Lookup lookup) throws ReflectiveOperationException {
         TypeVariable<?>[] typeVariables = switch (owner) {
             case MethodRef methodRef -> {
+                // @@@ resolves to class or instance method
                 Method method = ((MethodRef)owner).resolveToMethod(lookup);
                 yield method.getTypeParameters();
             }
