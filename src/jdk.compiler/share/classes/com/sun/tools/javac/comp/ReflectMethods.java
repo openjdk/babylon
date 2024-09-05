@@ -1492,42 +1492,34 @@ public class ReflectMethods extends TreeTranslator {
 
         @Override
         public void visitSwitchExpression(JCTree.JCSwitchExpression tree) {
+
             Value target = toValue(tree.selector);
 
             Type switchType = adaptBottom(tree.type);
-            FunctionType actionType = FunctionType.functionType(typeToTypeElement(switchType));
+            FunctionType caseBodyType = FunctionType.functionType(typeToTypeElement(switchType));
 
-            List<Body.Builder> bodies = visitSwitchStatAndExpr(tree, actionType, !tree.hasUnconditionalPattern);
+            List<Body.Builder> bodies = visitSwitchStatAndExpr(tree, tree.selector, target, tree.cases, caseBodyType,
+                    !tree.hasUnconditionalPattern);
 
-            result = append(ExtendedOp.switchExpression(actionType.returnType(), target, bodies));
+            result = append(ExtendedOp.switchExpression(caseBodyType.returnType(), target, bodies));
         }
 
         @Override
         public void visitSwitch(JCTree.JCSwitch tree) {
+
             Value target = toValue(tree.selector);
 
             FunctionType actionType = FunctionType.VOID;
 
-            List<Body.Builder> bodies = visitSwitchStatAndExpr(tree, actionType,
+            List<Body.Builder> bodies = visitSwitchStatAndExpr(tree, tree.selector, target, tree.cases, actionType,
                     tree.patternSwitch && !tree.hasUnconditionalPattern);
 
             result = append(ExtendedOp.switchStatement(target, bodies));
         }
 
-        private List<Body.Builder> visitSwitchStatAndExpr(JCTree tree, FunctionType caseBodyType, boolean isDefaultCaseNeeded) {
-            JCExpression selector;
-            List<JCTree.JCCase> cases;
-            if (tree instanceof JCTree.JCSwitch sw) {
-                selector = sw.selector;
-                cases = sw.cases;
-            } else if (tree instanceof JCTree.JCSwitchExpression sw) {
-                selector = sw.selector;
-                cases = sw.cases;
-            } else {
-                throw new IllegalStateException();
-            }
-
-            Value target = toValue(selector);
+        private List<Body.Builder> visitSwitchStatAndExpr(JCTree tree, JCExpression selector, Value target,
+                                                          List<JCTree.JCCase> cases, FunctionType caseBodyType,
+                                                          boolean isDefaultCaseNeeded) {
 
             List<Body.Builder> bodies = new ArrayList<>();
             Body.Builder defaultLabel = null;
@@ -1535,8 +1527,8 @@ public class ReflectMethods extends TreeTranslator {
 
             for (JCTree.JCCase c : cases) {
 
-                Body.Builder caseLabel = visitCaseLabel(tree, target, c);
-                Body.Builder caseBody = visitCaseBody(tree, c);
+                Body.Builder caseLabel = visitCaseLabel(tree, selector, target, c);
+                Body.Builder caseBody = visitCaseBody(c, caseBodyType);
 
                 if (c.labels.head instanceof JCTree.JCDefaultCaseLabel) {
                     defaultLabel = caseLabel;
@@ -1569,18 +1561,9 @@ public class ReflectMethods extends TreeTranslator {
             return bodies;
         }
 
-        private Body.Builder visitCaseLabel(JCTree tree, Value target, JCTree.JCCase c) {
+        private Body.Builder visitCaseLabel(JCTree tree, JCExpression selector, Value target, JCTree.JCCase c) {
+
             Body.Builder body;
-
-            JCExpression selector;
-            if (tree instanceof JCTree.JCSwitch sw) {
-                selector = sw.selector;
-            } else if (tree instanceof JCTree.JCSwitchExpression sw) {
-                selector = sw.selector;
-            } else {
-                throw new IllegalStateException();
-            }
-
             FunctionType caseLabelType = FunctionType.functionType(JavaType.BOOLEAN, target.type());
 
             JCTree.JCCaseLabel headCl = c.labels.head;
@@ -1682,20 +1665,10 @@ public class ReflectMethods extends TreeTranslator {
             return body;
         }
 
-        private Body.Builder visitCaseBody(JCTree tree, JCTree.JCCase c) {
-            Body.Builder body = null;
+        private Body.Builder visitCaseBody(JCTree.JCCase c, FunctionType caseBodyType) {
 
-            FunctionType caseBodyType;
-            Type yieldType = null;
-            if (tree instanceof JCTree.JCSwitch) {
-                caseBodyType = FunctionType.VOID;
-            } else if (tree instanceof JCTree.JCSwitchExpression) {
-                Type switchType = adaptBottom(tree.type);
-                caseBodyType = FunctionType.functionType(typeToTypeElement(switchType));
-                yieldType = adaptBottom(tree.type);
-            } else {
-                throw new IllegalStateException();
-            }
+            Body.Builder body = null;
+            Type yieldType = typeElementToType(caseBodyType.returnType());
 
             JCTree.JCCaseLabel headCl = c.labels.head;
             switch (c.caseKind) {
