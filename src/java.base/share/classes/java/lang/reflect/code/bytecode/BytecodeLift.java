@@ -325,7 +325,7 @@ public final class BytecodeLift {
                 if (sl.var.isSingleValue) {
                     sl.var.value = initLocalValues.get(i);
                 } else {
-                    sl.var.value = op(CoreOp.var("slot#" + i, sl.var.type(), initLocalValues.get(i)));
+                    sl.var.value = op(CoreOp.var("slot#" + i, sl.var.type(), i < initLocalValues.size() ? initLocalValues.get(i) : liftConstant(sl.var.defaultValue())));
                 }
             }
         }
@@ -902,6 +902,9 @@ public final class BytecodeLift {
                     yield op(CoreOp.invoke(bsmRef, bootstrapArgs));
                 }
                 case Boolean b -> op(CoreOp.constant(JavaType.BOOLEAN, b));
+                case Byte b -> op(CoreOp.constant(JavaType.BYTE, b));
+                case Short s -> op(CoreOp.constant(JavaType.SHORT, s));
+                case Character ch -> op(CoreOp.constant(JavaType.CHAR, ch));
                 default -> throw new UnsupportedOperationException(c.getClass().toString());
             };
             constantCache.put(c, res);

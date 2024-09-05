@@ -28,6 +28,7 @@ import java.lang.classfile.CodeElement;
 import java.lang.classfile.Instruction;
 import java.lang.classfile.Label;
 import java.lang.classfile.Opcode;
+import java.lang.classfile.TypeKind;
 import java.lang.classfile.attribute.StackMapFrameInfo;
 import java.lang.classfile.attribute.StackMapFrameInfo.*;
 import java.lang.classfile.attribute.StackMapTableAttribute;
@@ -50,6 +51,7 @@ import static java.lang.constant.ConstantDescs.*;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.type.JavaType;
 import java.util.ArrayDeque;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -63,6 +65,21 @@ final class LocalsTypeMapper {
         JavaType type() {
             return JavaType.type(type);
         }
+
+        Object defaultValue() {
+            return switch (TypeKind.from(type)) {
+                case BooleanType -> false;
+                case ByteType -> (byte)0;
+                case CharType -> (char)0;
+                case DoubleType -> 0d;
+                case FloatType -> 0f;
+                case IntType -> 0;
+                case LongType -> 0l;
+                case ReferenceType -> null;
+                case ShortType -> (short)0;
+                default -> throw new IllegalStateException("Invalid type " + type.displayName());
+            };
+        }
     }
 
     static class Slot {
@@ -73,7 +90,7 @@ final class LocalsTypeMapper {
         Link up, down;
         Variable var;
         boolean newValue;
-
+        Slot previous; // Previous Slot, not necessary of the same variable
 
         void link(Slot target) {
             if (this != target) {
@@ -87,7 +104,7 @@ final class LocalsTypeMapper {
 
     private static final ClassDesc NULL_TYPE = ClassDesc.ofDescriptor(CD_Object.descriptorString());
     private final Map<Integer, Slot> insMap;
-    private final Set<Slot> allSlots;
+    private final LinkedHashSet<Slot> allSlots;
     private final ClassDesc thisClass;
     private final List<ExceptionCatch> exceptionHandlers;
     private final List<ClassDesc> stack;
@@ -116,7 +133,18 @@ final class LocalsTypeMapper {
         for (ClassDesc cd : initFrameLocals) {
             slotsToInitialize.add(cd == null ? null : newSlot(cd, true));
         }
+        int initSize = allSlots.size();
         do {
+            // Slot states reset if running additional rounds with adjusted frames
+            if (allSlots.size() > initSize) {
+                while (allSlots.size() > initSize) allSlots.removeLast();
+                allSlots.forEach(sl -> {
+                    sl.up = null;
+                    sl.down = null;
+                    sl.previous = null;
+                    sl.var = null;
+                });
+            }
             for (int i = 0; i < initFrameLocals.size(); i++) {
                 store(i, slotsToInitialize.get(i), locals);
             }
@@ -127,8 +155,9 @@ final class LocalsTypeMapper {
             endOfFlow();
         } while (this.frameDirty);
 
-        // Assign variable to slots and calculate var type
+        // Assign variable to slots, calculate var type, detect single value variables and dominant slot
         ArrayDeque<Slot> q = new ArrayDeque<>();
+        Set<Slot> initialSlots = new HashSet<>();
         for (Slot slot : allSlots) {
             if (slot.var == null) {
                 Variable var = new Variable();
@@ -136,17 +165,22 @@ final class LocalsTypeMapper {
                 int sources = 0;
                 var.type = slot.type;
                 while (!q.isEmpty()) {
-                    Slot v = q.pop();
-                    if (v.var == null) {
-                        if (v.newValue) sources++;
-                        v.var = var;
-                        Slot.Link l = v.up;
+                    Slot sl = q.pop();
+                    if (sl.var == null) {
+                        if (sl.newValue) {
+                            sources++;
+                            if (sl.up == null) {
+                                initialSlots.add(sl);
+                            }
+                        }
+                        sl.var = var;
+                        Slot.Link l = sl.up;
                         while (l != null) {
                             if (var.type == NULL_TYPE) var.type = l.slot.type;
                             if (l.slot.var == null) q.add(l.slot);
                             l = l.other;
                         }
-                        l = v.down;
+                        l = sl.down;
                         while (l != null) {
                             if (var.type == NULL_TYPE) var.type = l.slot.type;
                             if (l.slot.var == null) q.add(l.slot);
@@ -155,6 +189,24 @@ final class LocalsTypeMapper {
                     }
                 }
                 var.isSingleValue = sources < 2;
+
+                // Filter out slots, which are not initial (store into the same variable)
+                for (var tsit = initialSlots.iterator(); tsit.hasNext();) {
+                    Slot sl = tsit.next();
+                    if (sl.previous != null && sl.previous.var == sl.var) {
+                        tsit.remove();
+                    }
+                }
+                if (initialSlots.size() > 1) {
+                    // Add synthetic dominant slot, which needs to be initialized with a default value
+                    Slot initialSlot = new Slot();
+                    initialSlot.var = var;
+                    slotsToInitialize.add(initialSlot);
+                    if (var.type == CD_long || var.type == CD_double) {
+                        slotsToInitialize.add(null);
+                    }
+                }
+                initialSlots.clear();
             }
         }
     }
@@ -267,7 +319,7 @@ final class LocalsTypeMapper {
     private void store(int slot, Slot s, List<Slot> where) {
         if (s != null) {
             for (int i = where.size(); i <= slot; i++) where.add(null);
-            where.set(slot, s);
+            s.previous = where.set(slot, s);
         }
     }
 
@@ -462,7 +514,7 @@ final class LocalsTypeMapper {
             Slot le = locals.get(i);
             Slot fe = targetFrame.locals.get(i);
             if (le != null && fe != null) {
-                fe.link(le); // Link target frame var with its source
+                le.link(fe); // Link target frame var with its source
                 if (!le.type.equals(fe.type)) {
                     if (le.type.isPrimitive() && CD_int.equals(fe.type) ) {
                         fe.type = le.type; // Override int target frame type with more specific int sub-type

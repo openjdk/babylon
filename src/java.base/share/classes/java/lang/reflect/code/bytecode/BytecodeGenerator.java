@@ -64,6 +64,10 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.code.Quotable;
 import java.lang.reflect.code.type.PrimitiveType;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -357,10 +361,55 @@ public final class BytecodeGenerator {
         return !op.resultType().equals(JavaType.J_L_CLASS);
     }
 
-    // Var with a single-use entry block parameter operand can be deferred
+    // Single-use var or var with a single-use entry block parameter operand can be deferred
     private static boolean canDefer(VarOp op) {
         return !moreThanOneUse(op.result())
-            || op.operands().getFirst() instanceof Block.Parameter bp && bp.declaringBlock().isEntryBlock() && !moreThanOneUse(bp);
+            || op.operands().getFirst() instanceof Block.Parameter bp && bp.declaringBlock().isEntryBlock() && !moreThanOneUse(bp)
+            || op.initOperand() instanceof Op.Result or && or.op() instanceof ConstantOp cop && canDefer(cop) && isDefinitelyAssigned(op);
+
+    }
+
+    // Detection if VarOp is definitelly assigned (all its VarLoadOps are dominated by VarStoreOp)
+    // VarOp can be deferred in such case
+    private static boolean isDefinitelyAssigned(VarOp op) {
+        Set<Op.Result> allUses = op.result().uses();
+        Set<Op.Result> stores = allUses.stream().filter(r -> r.op() instanceof VarAccessOp.VarStoreOp).collect(Collectors.toSet());
+        // All VarLoadOps must be dominated by a VarStoreOp
+        for (Op.Result load : allUses) {
+            if (load.op() instanceof VarAccessOp.VarLoadOp && !isDominatedBy(load, stores)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // @@@ Test for dominant set
+    private static boolean isDominatedBy(Op.Result n, Set<Op.Result> doms) {
+        for (Op.Result dom : doms) {
+            if (n.isDominatedBy(dom)) {
+                return true;
+            }
+        }
+
+        Set<Block> stopBlocks = new HashSet<>();
+        for (Op.Result dom : doms) {
+            stopBlocks.add(dom.declaringBlock());
+        }
+
+        Deque<Block> toProcess = new ArrayDeque<>();
+        toProcess.add(n.declaringBlock());
+        stopBlocks.add(n.declaringBlock());
+        while (!toProcess.isEmpty()) {
+            for (Block b : toProcess.pop().predecessors()) {
+                if (b.isEntryBlock()) {
+                    return false;
+                }
+                if (stopBlocks.add(b)) {
+                    toProcess.add(b);
+                }
+            }
+        }
+        return true;
     }
 
     // Var load can be deferred when not used as immediate operand
