@@ -1528,7 +1528,7 @@ public class ReflectMethods extends TreeTranslator {
             for (JCTree.JCCase c : cases) {
 
                 Body.Builder caseLabel = visitCaseLabel(tree, selector, target, c);
-                Body.Builder caseBody = visitCaseBody(c, caseBodyType);
+                Body.Builder caseBody = visitCaseBody(tree, c, caseBodyType);
 
                 if (c.labels.head instanceof JCTree.JCDefaultCaseLabel) {
                     defaultLabel = caseLabel;
@@ -1665,10 +1665,10 @@ public class ReflectMethods extends TreeTranslator {
             return body;
         }
 
-        private Body.Builder visitCaseBody(JCTree.JCCase c, FunctionType caseBodyType) {
+        private Body.Builder visitCaseBody(JCTree tree, JCTree.JCCase c, FunctionType caseBodyType) {
 
             Body.Builder body = null;
-            Type yieldType = typeElementToType(caseBodyType.returnType());
+            Type yieldType = tree.type != null ? adaptBottom(tree.type) : null;
 
             JCTree.JCCaseLabel headCl = c.labels.head;
             switch (c.caseKind) {
