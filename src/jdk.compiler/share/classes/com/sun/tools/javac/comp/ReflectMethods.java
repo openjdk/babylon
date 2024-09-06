@@ -1092,6 +1092,7 @@ public class ReflectMethods extends TreeTranslator {
                     boolean isSuper;
                     if (!sym.isStatic()) {
                         args.add(receiver);
+                        // @@@ expr.super(...) for inner class super constructor calls
                         isSuper = switch (access.selected) {
                             case JCIdent i when i.sym.name.equals(names._super) -> true;
                             case JCFieldAccess fa when fa.sym.name.equals(names._super) -> true;
