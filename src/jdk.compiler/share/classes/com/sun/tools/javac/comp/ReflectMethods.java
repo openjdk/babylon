@@ -1492,352 +1492,65 @@ public class ReflectMethods extends TreeTranslator {
 
         @Override
         public void visitSwitchExpression(JCTree.JCSwitchExpression tree) {
+
             Value target = toValue(tree.selector);
 
-            FunctionType caseLabelType = FunctionType.functionType(JavaType.BOOLEAN, target.type());
             Type switchType = adaptBottom(tree.type);
-            FunctionType actionType = FunctionType.functionType(typeToTypeElement(switchType));
-            List<Body.Builder> bodies = new ArrayList<>();
-            Body.Builder defaultLabel = null;
-            Body.Builder defaultStatements = null;
-            for (JCTree.JCCase c : tree.cases) {
-                // Labels body
-                JCTree.JCCaseLabel headCl = c.labels.head;
-                if (headCl instanceof JCTree.JCPatternCaseLabel pcl) {
-                    if (c.labels.size() > 1) {
-                        throw unsupported(c);
-                    }
+            FunctionType caseBodyType = FunctionType.functionType(typeToTypeElement(switchType));
 
-                    pushBody(pcl, caseLabelType);
+            List<Body.Builder> bodies = visitSwitchStatAndExpr(tree, tree.selector, target, tree.cases, caseBodyType,
+                    !tree.hasUnconditionalPattern);
 
-                    Value localTarget = stack.block.parameters().get(0);
-                    final Value localResult;
-                    if (c.guard != null) {
-                        List<Body.Builder> clBodies = new ArrayList<>();
-
-                        pushBody(pcl.pat, FunctionType.functionType(JavaType.BOOLEAN));
-                        Value patVal = scanPattern(pcl.pat, localTarget);
-                        append(CoreOp._yield(patVal));
-                        clBodies.add(stack.body);
-                        popBody();
-
-                        pushBody(c.guard, FunctionType.functionType(JavaType.BOOLEAN));
-                        append(CoreOp._yield(toValue(c.guard)));
-                        clBodies.add(stack.body);
-                        popBody();
-
-                        localResult = append(ExtendedOp.conditionalAnd(clBodies));
-                    } else {
-                        localResult = scanPattern(pcl.pat, localTarget);
-                    }
-                    // Yield the boolean result of the condition
-                    append(CoreOp._yield(localResult));
-                    bodies.add(stack.body);
-
-                    // Pop label
-                    popBody();
-                } else if (headCl instanceof JCTree.JCConstantCaseLabel ccl) {
-                    pushBody(headCl, caseLabelType);
-
-                    Value localTarget = stack.block.parameters().get(0);
-                    final Value localResult;
-                    if (c.labels.size() == 1) {
-                        Value expr = toValue(ccl.expr);
-                        // per java spec, constant type is compatible with the type of the selector expression
-                        // so, we convert constant to the type of the selector expression
-                        expr = convert(expr, tree.selector.type);
-                        if (tree.selector.type.isPrimitive()) {
-                            localResult = append(CoreOp.eq(localTarget, expr));
-                        } else {
-                            localResult = append(CoreOp.invoke(
-                                    MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class),
-                                    localTarget, expr));
-                        }
-                    } else {
-                        List<Body.Builder> clBodies = new ArrayList<>();
-                        for (JCTree.JCCaseLabel cl : c.labels) {
-                            ccl = (JCTree.JCConstantCaseLabel) cl;
-                            pushBody(ccl, FunctionType.functionType(JavaType.BOOLEAN));
-
-                            Value expr = toValue(ccl.expr);
-                            expr = convert(expr, tree.selector.type);
-                            final Value labelResult;
-                            if (tree.selector.type.isPrimitive()) {
-                                labelResult = append(CoreOp.eq(localTarget, expr));
-                            } else {
-                                labelResult = append(CoreOp.invoke(
-                                        MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class),
-                                        localTarget, expr));
-                            }
-
-                            append(CoreOp._yield(labelResult));
-                            clBodies.add(stack.body);
-
-                            // Pop label
-                            popBody();
-                        }
-
-                        localResult = append(ExtendedOp.conditionalOr(clBodies));
-                    }
-
-                    append(CoreOp._yield(localResult));
-                    bodies.add(stack.body);
-
-                    // Pop labels
-                    popBody();
-                } else if (headCl instanceof JCTree.JCDefaultCaseLabel) {
-                    // @@@ Do we need to model the default label body?
-                    pushBody(headCl, FunctionType.VOID);
-
-                    append(CoreOp._yield());
-                    defaultLabel = stack.body;
-
-                    // Pop label
-                    popBody();
-                } else {
-                    throw unsupported(tree);
-                }
-
-                // Statements body
-                switch (c.caseKind) {
-                    case RULE -> {
-                        pushBody(c.body, actionType);
-                        Type yieldType = adaptBottom(tree.type);
-                        if (c.body instanceof JCTree.JCExpression e) {
-                            Value bodyVal = toValue(e, yieldType);
-                            append(CoreOp._yield(bodyVal));
-                        } else if (c.body instanceof JCTree.JCStatement s){
-                            // Otherwise there is a yield statement
-                            Type prevBodyTarget = bodyTarget;
-                            try {
-                                bodyTarget = yieldType;
-                                Value bodyVal = toValue(s);
-                            } finally {
-                                bodyTarget = prevBodyTarget;
-                            }
-                        }
-                        if (headCl instanceof JCTree.JCDefaultCaseLabel) {
-                            defaultStatements = stack.body;
-                        } else {
-                            bodies.add(stack.body);
-                        }
-
-                        // Pop block
-                        popBody();
-                    }
-                    case STATEMENT -> {
-                        // @@@ Avoid nesting for a single block? Goes against "say what you see"
-                        // boolean oneBlock = c.stats.size() == 1 && c.stats.head instanceof JCBlock;
-                        pushBody(c, actionType);
-
-                        scan(c.stats);
-
-                        appendTerminating(c.completesNormally
-                                ? ExtendedOp::switchFallthroughOp
-                                : CoreOp::unreachable);
-
-                        if (headCl instanceof JCTree.JCDefaultCaseLabel) {
-                            defaultStatements = stack.body;
-                        } else {
-                            bodies.add(stack.body);
-                        }
-
-                        // Pop block
-                        popBody();
-                    }
-                };
-            }
-
-            if (defaultLabel != null) {
-                bodies.add(defaultLabel);
-                bodies.add(defaultStatements);
-            } else if (!tree.hasUnconditionalPattern) {
-                // label
-                pushBody(tree, FunctionType.VOID);
-                append(CoreOp._yield());
-                bodies.add(stack.body);
-                popBody();
-
-                // statement
-                pushBody(tree, actionType);
-                append(CoreOp._throw(
-                        append(CoreOp._new(FunctionType.functionType(JavaType.type(MatchException.class))))
-                ));
-                bodies.add(stack.body);
-                popBody();
-            }
-
-            result = append(ExtendedOp.switchExpression(actionType.returnType(), target, bodies));
+            result = append(ExtendedOp.switchExpression(caseBodyType.returnType(), target, bodies));
         }
 
         @Override
         public void visitSwitch(JCTree.JCSwitch tree) {
+
             Value target = toValue(tree.selector);
 
-            FunctionType caseLabelType = FunctionType.functionType(JavaType.BOOLEAN, target.type());
             FunctionType actionType = FunctionType.VOID;
+
+            List<Body.Builder> bodies = visitSwitchStatAndExpr(tree, tree.selector, target, tree.cases, actionType,
+                    tree.patternSwitch && !tree.hasUnconditionalPattern);
+
+            result = append(ExtendedOp.switchStatement(target, bodies));
+        }
+
+        private List<Body.Builder> visitSwitchStatAndExpr(JCTree tree, JCExpression selector, Value target,
+                                                          List<JCTree.JCCase> cases, FunctionType caseBodyType,
+                                                          boolean isDefaultCaseNeeded) {
+
             List<Body.Builder> bodies = new ArrayList<>();
             Body.Builder defaultLabel = null;
-            Body.Builder defaultStatements = null;
-            for (JCTree.JCCase c : tree.cases) {
-                // Labels body
-                JCTree.JCCaseLabel headCl = c.labels.head;
-                if (headCl instanceof JCTree.JCPatternCaseLabel pcl) {
-                    if (c.labels.size() > 1) {
-                        throw unsupported(c);
-                    }
+            Body.Builder defaultBody = null;
 
-                    pushBody(pcl, caseLabelType);
+            for (JCTree.JCCase c : cases) {
 
-                    Value localTarget = stack.block.parameters().get(0);
-                    final Value localResult;
-                    if (c.guard != null) {
-                        List<Body.Builder> clBodies = new ArrayList<>();
+                Body.Builder caseLabel = visitCaseLabel(tree, selector, target, c);
+                Body.Builder caseBody = visitCaseBody(c, caseBodyType);
 
-                        pushBody(pcl.pat, FunctionType.functionType(JavaType.BOOLEAN));
-                        Value patVal = scanPattern(pcl.pat, localTarget);
-                        append(CoreOp._yield(patVal));
-                        clBodies.add(stack.body);
-                        popBody();
-
-                        pushBody(c.guard, FunctionType.functionType(JavaType.BOOLEAN));
-                        append(CoreOp._yield(toValue(c.guard)));
-                        clBodies.add(stack.body);
-                        popBody();
-
-                        localResult = append(ExtendedOp.conditionalAnd(clBodies));
-                    } else {
-                        localResult = scanPattern(pcl.pat, localTarget);
-                    }
-                    // Yield the boolean result of the condition
-                    append(CoreOp._yield(localResult));
-                    bodies.add(stack.body);
-
-                    // Pop label
-                    popBody();
-                } else if (headCl instanceof JCTree.JCConstantCaseLabel ccl) {
-                    pushBody(headCl, caseLabelType);
-
-                    Value localTarget = stack.block.parameters().get(0);
-                    final Value localResult;
-                    if (c.labels.size() == 1) {
-                        Value expr = toValue(ccl.expr);
-                        // per java spec, constant type is compatible with the type of the selector expression
-                        // so, we convert constant to the type of the selector expression
-                        expr = convert(expr, tree.selector.type);
-                        if (tree.selector.type.isPrimitive()) {
-                            localResult = append(CoreOp.eq(localTarget, expr));
-                        } else {
-                            localResult = append(CoreOp.invoke(
-                                    MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class),
-                                    localTarget, expr));
-                        }
-                    } else {
-                        List<Body.Builder> clBodies = new ArrayList<>();
-                        for (JCTree.JCCaseLabel cl : c.labels) {
-                            ccl = (JCTree.JCConstantCaseLabel) cl;
-                            pushBody(ccl, FunctionType.functionType(JavaType.BOOLEAN));
-
-                            Value expr = toValue(ccl.expr);
-                            expr = convert(expr, tree.selector.type);
-                            final Value labelResult;
-                            if (tree.selector.type.isPrimitive()) {
-                                labelResult = append(CoreOp.eq(localTarget, expr));
-                            } else {
-                                labelResult = append(CoreOp.invoke(
-                                        MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class),
-                                        localTarget, expr));
-                            }
-
-                            append(CoreOp._yield(labelResult));
-                            clBodies.add(stack.body);
-
-                            // Pop label
-                            popBody();
-                        }
-
-                        localResult = append(ExtendedOp.conditionalOr(clBodies));
-                    }
-
-                    append(CoreOp._yield(localResult));
-                    bodies.add(stack.body);
-
-                    // Pop labels
-                    popBody();
-                } else if (headCl instanceof JCTree.JCDefaultCaseLabel) {
-                    // @@@ Do we need to model the default label body?
-                    pushBody(headCl, FunctionType.VOID);
-
-                    append(CoreOp._yield());
-                    defaultLabel = stack.body;
-
-                    // Pop label
-                    popBody();
+                if (c.labels.head instanceof JCTree.JCDefaultCaseLabel) {
+                    defaultLabel = caseLabel;
+                    defaultBody = caseBody;
                 } else {
-                    throw unsupported(tree);
+                    bodies.add(caseLabel);
+                    bodies.add(caseBody);
                 }
-
-                // Statements body
-                switch (c.caseKind) {
-                    case RULE -> {
-                        pushBody(c.body, actionType);
-                        if (c.body instanceof JCTree.JCBlock b) {
-                            toValue(b);
-                            if (!(b.stats.last() instanceof JCTree.JCBreak)) {
-                                append(CoreOp._yield()); // @@@ _break is also an option
-                            }
-                        }
-                        else if (c.body instanceof JCTree.JCStatement s) {
-                            toValue(s);
-                            if (!(s instanceof JCTree.JCThrow)) {
-                                append(CoreOp._yield());
-                            }
-                        }
-
-                        if (headCl instanceof JCTree.JCDefaultCaseLabel) {
-                            defaultStatements = stack.body;
-                        } else {
-                            bodies.add(stack.body);
-                        }
-
-                        // Pop block
-                        popBody();
-                    }
-                    case STATEMENT -> {
-                        // @@@ Avoid nesting for a single block? Goes against "say what you see"
-                        // boolean oneBlock = c.stats.size() == 1 && c.stats.head instanceof JCBlock;
-                        pushBody(c, actionType);
-
-                        scan(c.stats);
-
-                        appendTerminating(c.completesNormally ?
-                                headCl instanceof JCTree.JCDefaultCaseLabel ? CoreOp::_yield : ExtendedOp::switchFallthroughOp
-                                : CoreOp::unreachable);
-
-                        if (headCl instanceof JCTree.JCDefaultCaseLabel) {
-                            defaultStatements = stack.body;
-                        } else {
-                            bodies.add(stack.body);
-                        }
-
-                        // Pop block
-                        popBody();
-                    }
-                };
             }
 
             if (defaultLabel != null) {
                 bodies.add(defaultLabel);
-                bodies.add(defaultStatements);
-            } else if (tree.patternSwitch && !tree.hasUnconditionalPattern) {
+                bodies.add(defaultBody);
+            } else if (isDefaultCaseNeeded) {
                 // label
                 pushBody(tree, FunctionType.VOID);
                 append(CoreOp._yield());
                 bodies.add(stack.body);
                 popBody();
 
-                // statement
-                pushBody(tree, actionType);
+                // body
+                pushBody(tree, caseBodyType);
                 append(CoreOp._throw(
                         append(CoreOp._new(FunctionType.functionType(JavaType.type(MatchException.class))))
                 ));
@@ -1845,7 +1558,160 @@ public class ReflectMethods extends TreeTranslator {
                 popBody();
             }
 
-            result = append(ExtendedOp.switchStatement(target, bodies));
+            return bodies;
+        }
+
+        private Body.Builder visitCaseLabel(JCTree tree, JCExpression selector, Value target, JCTree.JCCase c) {
+
+            Body.Builder body;
+            FunctionType caseLabelType = FunctionType.functionType(JavaType.BOOLEAN, target.type());
+
+            JCTree.JCCaseLabel headCl = c.labels.head;
+            if (headCl instanceof JCTree.JCPatternCaseLabel pcl) {
+                if (c.labels.size() > 1) {
+                    throw unsupported(c);
+                }
+
+                pushBody(pcl, caseLabelType);
+
+                Value localTarget = stack.block.parameters().get(0);
+                final Value localResult;
+                if (c.guard != null) {
+                    List<Body.Builder> clBodies = new ArrayList<>();
+
+                    pushBody(pcl.pat, FunctionType.functionType(JavaType.BOOLEAN));
+                    Value patVal = scanPattern(pcl.pat, localTarget);
+                    append(CoreOp._yield(patVal));
+                    clBodies.add(stack.body);
+                    popBody();
+
+                    pushBody(c.guard, FunctionType.functionType(JavaType.BOOLEAN));
+                    append(CoreOp._yield(toValue(c.guard)));
+                    clBodies.add(stack.body);
+                    popBody();
+
+                    localResult = append(ExtendedOp.conditionalAnd(clBodies));
+                } else {
+                    localResult = scanPattern(pcl.pat, localTarget);
+                }
+                // Yield the boolean result of the condition
+                append(CoreOp._yield(localResult));
+                body = stack.body;
+
+                // Pop label
+                popBody();
+            } else if (headCl instanceof JCTree.JCConstantCaseLabel ccl) {
+                pushBody(headCl, caseLabelType);
+
+                Value localTarget = stack.block.parameters().get(0);
+                final Value localResult;
+                if (c.labels.size() == 1) {
+                    Value expr = toValue(ccl.expr);
+                    // per java spec, constant type is compatible with the type of the selector expression
+                    // so, we convert constant to the type of the selector expression
+                    expr = convert(expr, selector.type);
+                    if (selector.type.isPrimitive()) {
+                        localResult = append(CoreOp.eq(localTarget, expr));
+                    } else {
+                        localResult = append(CoreOp.invoke(
+                                MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class),
+                                localTarget, expr));
+                    }
+                } else {
+                    List<Body.Builder> clBodies = new ArrayList<>();
+                    for (JCTree.JCCaseLabel cl : c.labels) {
+                        ccl = (JCTree.JCConstantCaseLabel) cl;
+                        pushBody(ccl, FunctionType.functionType(JavaType.BOOLEAN));
+
+                        Value expr = toValue(ccl.expr);
+                        expr = convert(expr, selector.type);
+                        final Value labelResult;
+                        if (selector.type.isPrimitive()) {
+                            labelResult = append(CoreOp.eq(localTarget, expr));
+                        } else {
+                            labelResult = append(CoreOp.invoke(
+                                    MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class),
+                                    localTarget, expr));
+                        }
+
+                        append(CoreOp._yield(labelResult));
+                        clBodies.add(stack.body);
+
+                        // Pop label
+                        popBody();
+                    }
+
+                    localResult = append(ExtendedOp.conditionalOr(clBodies));
+                }
+
+                append(CoreOp._yield(localResult));
+                body = stack.body;
+
+                // Pop labels
+                popBody();
+            } else if (headCl instanceof JCTree.JCDefaultCaseLabel) {
+                // @@@ Do we need to model the default label body?
+                pushBody(headCl, FunctionType.VOID);
+
+                append(CoreOp._yield());
+                body = stack.body;
+
+                // Pop label
+                popBody();
+            } else {
+                throw unsupported(tree);
+            }
+
+            return body;
+        }
+
+        private Body.Builder visitCaseBody(JCTree.JCCase c, FunctionType caseBodyType) {
+
+            Body.Builder body = null;
+            Type yieldType = typeElementToType(caseBodyType.returnType());
+
+            JCTree.JCCaseLabel headCl = c.labels.head;
+            switch (c.caseKind) {
+                case RULE -> {
+                    pushBody(c.body, caseBodyType);
+
+                    if (c.body instanceof JCTree.JCExpression e) {
+                        Value bodyVal = toValue(e, yieldType);
+                        append(CoreOp._yield(bodyVal));
+                    } else if (c.body instanceof JCTree.JCStatement s){ // this includes Block
+                        // Otherwise there is a yield statement
+                        Type prevBodyTarget = bodyTarget;
+                        try {
+                            bodyTarget = yieldType;
+                            Value bodyVal = toValue(s);
+                            appendTerminating(CoreOp::_yield);
+                        } finally {
+                            bodyTarget = prevBodyTarget;
+                        }
+                    }
+                    body = stack.body;
+
+                    // Pop block
+                    popBody();
+                }
+                case STATEMENT -> {
+                    // @@@ Avoid nesting for a single block? Goes against "say what you see"
+                    // boolean oneBlock = c.stats.size() == 1 && c.stats.head instanceof JCBlock;
+                    pushBody(c, caseBodyType);
+
+                    scan(c.stats);
+
+                    appendTerminating(c.completesNormally ?
+                            headCl instanceof JCTree.JCDefaultCaseLabel ? CoreOp::_yield : ExtendedOp::switchFallthroughOp
+                            : CoreOp::unreachable);
+
+                    body = stack.body;
+
+                    // Pop block
+                    popBody();
+                }
+            }
+            return body;
         }
 
         @Override
