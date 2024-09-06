@@ -1544,8 +1544,8 @@ public class ReflectMethods extends TreeTranslator {
                 bodies.add(defaultBody);
             } else if (isDefaultCaseNeeded) {
                 // label
-                pushBody(tree, FunctionType.VOID);
-                append(CoreOp._yield());
+                pushBody(tree, FunctionType.functionType(JavaType.BOOLEAN));
+                append(CoreOp._yield(append(CoreOp.constant(JavaType.BOOLEAN, true))));
                 bodies.add(stack.body);
                 popBody();
 
@@ -1651,9 +1651,9 @@ public class ReflectMethods extends TreeTranslator {
                 popBody();
             } else if (headCl instanceof JCTree.JCDefaultCaseLabel) {
                 // @@@ Do we need to model the default label body?
-                pushBody(headCl, FunctionType.VOID);
+                pushBody(headCl, FunctionType.functionType(JavaType.BOOLEAN));
 
-                append(CoreOp._yield());
+                append(CoreOp._yield(append(CoreOp.constant(JavaType.BOOLEAN, true))));
                 body = stack.body;
 
                 // Pop label
