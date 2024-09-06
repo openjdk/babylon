@@ -1061,10 +1061,6 @@ public class ReflectMethods extends TreeTranslator {
 
             // @@@ this.xyz(...) calls in a constructor
 
-            // @@@ super.xyz(...) calls
-            // Modeling with a call operation would result in the receiver type differing from that
-            // in the method reference, perhaps that is sufficient?
-
             JCTree meth = TreeInfo.skipParens(tree.meth);
             switch (meth.getTag()) {
                 case IDENT: {
