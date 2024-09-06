@@ -960,7 +960,7 @@ public class ReflectMethods extends TreeTranslator {
                 case LOCAL_VARIABLE, RESOURCE_VARIABLE, BINDING_VARIABLE, PARAMETER, EXCEPTION_PARAMETER ->
                     result = loadVar(sym);
                 case FIELD, ENUM_CONSTANT -> {
-                    if (sym.name.equals(names._this)) {
+                    if (sym.name.equals(names._this) || sym.name.equals(names._super)) {
                         result = thisValue();
                     } else {
                         FieldRef fr = symbolToFieldRef(sym, symbolSiteType(sym));
@@ -1020,13 +1020,17 @@ public class ReflectMethods extends TreeTranslator {
                 Symbol sym = tree.sym;
                 switch (sym.getKind()) {
                     case FIELD, ENUM_CONSTANT -> {
-                        FieldRef fr = symbolToFieldRef(sym, qualifierTarget.hasTag(NONE) ?
-                                tree.selected.type : qualifierTarget);
-                        TypeElement resultType = typeToTypeElement(types.memberType(tree.selected.type, sym));
-                        if (sym.isStatic()) {
-                            result = append(CoreOp.fieldLoad(resultType, fr));
+                        if (sym.name.equals(names._this) || sym.name.equals(names._super)) {
+                            result = thisValue();
                         } else {
-                            result = append(CoreOp.fieldLoad(resultType, fr, receiver));
+                            FieldRef fr = symbolToFieldRef(sym, qualifierTarget.hasTag(NONE) ?
+                                    tree.selected.type : qualifierTarget);
+                            TypeElement resultType = typeToTypeElement(types.memberType(tree.selected.type, sym));
+                            if (sym.isStatic()) {
+                                result = append(CoreOp.fieldLoad(resultType, fr));
+                            } else {
+                                result = append(CoreOp.fieldLoad(resultType, fr, receiver));
+                            }
                         }
                     }
                     case INTERFACE, CLASS, ENUM -> {
@@ -1057,10 +1061,6 @@ public class ReflectMethods extends TreeTranslator {
 
             // @@@ this.xyz(...) calls in a constructor
 
-            // @@@ super.xyz(...) calls
-            // Modeling with a call operation would result in the receiver type differing from that
-            // in the method reference, perhaps that is sufficient?
-
             JCTree meth = TreeInfo.skipParens(tree.meth);
             switch (meth.getTag()) {
                 case IDENT: {
@@ -1089,15 +1089,28 @@ public class ReflectMethods extends TreeTranslator {
 
                     Symbol sym = access.sym;
                     List<Value> args = new ArrayList<>();
+                    boolean isSuper;
                     if (!sym.isStatic()) {
                         args.add(receiver);
+                        // @@@ expr.super(...) for inner class super constructor calls
+                        isSuper = switch (access.selected) {
+                            case JCIdent i when i.sym.name.equals(names._super) -> true;
+                            case JCFieldAccess fa when fa.sym.name.equals(names._super) -> true;
+                            default -> false;
+                        };
+                    } else {
+                        isSuper = false;
                     }
 
                     args.addAll(scanMethodArguments(tree.args, tree.meth.type, tree.varargsElement));
 
                     MethodRef mr = symbolToErasedMethodRef(sym, qualifierTarget.hasTag(NONE) ?
                             access.selected.type : qualifierTarget);
-                    Value res = append(CoreOp.invoke(typeToTypeElement(meth.type.getReturnType()), mr, args));
+                    JavaType returnType = typeToTypeElement(meth.type.getReturnType());
+                    CoreOp.InvokeOp iop = isSuper
+                            ? CoreOp.invokeSuper(returnType, mr, args)
+                            : CoreOp.invoke(returnType, mr, args);
+                    Value res = append(iop);
                     if (sym.type.getReturnType().getTag() != TypeTag.VOID) {
                         result = res;
                     }

@@ -1396,25 +1396,13 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     /**
      * The invoke operation, that can model Java language method invocation expressions.
      */
-    @OpFactory.OpDeclaration(InvokeOp.NAME)
-    public static final class InvokeOp extends CoreOp
+    public sealed static abstract class InvokeOp extends CoreOp
             implements ReflectiveOp, JavaExpression, JavaStatement {
         public static final String NAME = "invoke";
         public static final String ATTRIBUTE_INVOKE_DESCRIPTOR = NAME + ".descriptor";
 
         final MethodRef invokeDescriptor;
         final TypeElement resultType;
-
-        public static InvokeOp create(ExternalizedOp def) {
-            MethodRef invokeDescriptor = def.extractAttributeValue(ATTRIBUTE_INVOKE_DESCRIPTOR,
-                    true, v -> switch (v) {
-                        case String s -> MethodRef.ofString(s);
-                        case MethodRef md -> md;
-                        case null, default -> throw new UnsupportedOperationException("Unsupported invoke descriptor value:" + v);
-                    });
-
-            return new InvokeOp(def, invokeDescriptor);
-        }
 
         InvokeOp(ExternalizedOp def, MethodRef invokeDescriptor) {
             super(def);
@@ -1430,17 +1418,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             this.resultType = that.resultType;
         }
 
-        @Override
-        public InvokeOp transform(CopyContext cc, OpTransformer ot) {
-            return new InvokeOp(this, cc);
-        }
-
-        InvokeOp(MethodRef invokeDescriptor, List<Value> args) {
-            this(invokeDescriptor.type().returnType(), invokeDescriptor, args);
-        }
-
-        InvokeOp(TypeElement resultType, MethodRef invokeDescriptor, List<Value> args) {
-            super(NAME, args);
+        InvokeOp(String name, TypeElement resultType, MethodRef invokeDescriptor, List<Value> args) {
+            super(name, args);
 
             this.invokeDescriptor = invokeDescriptor;
             this.resultType = resultType;
@@ -1465,6 +1444,77 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         public TypeElement resultType() {
             return resultType;
         }
+
+        static MethodRef createInvokeDescriptor(ExternalizedOp def) {
+            return def.extractAttributeValue(ATTRIBUTE_INVOKE_DESCRIPTOR,
+                    true, v -> switch (v) {
+                        case String s -> MethodRef.ofString(s);
+                        case MethodRef md -> md;
+                        case null, default -> throw new UnsupportedOperationException("Unsupported invoke descriptor value:" + v);
+                    });
+        }
+
+
+        /**
+         * The invoke instance or class (static) operation, that can model Java language instance or class method
+         * invocation expressions.
+         */
+        @OpFactory.OpDeclaration(InvokeInstanceClassOp.NAME)
+        public static final class InvokeInstanceClassOp extends InvokeOp {
+            public static final String NAME = InvokeOp.NAME;
+
+            public static InvokeInstanceClassOp create(ExternalizedOp def) {
+                return new InvokeInstanceClassOp(def, createInvokeDescriptor(def));
+            }
+
+            InvokeInstanceClassOp(ExternalizedOp def, MethodRef invokeDescriptor) {
+                super(def, invokeDescriptor);
+            }
+
+            InvokeInstanceClassOp(InvokeOp that, CopyContext cc) {
+                super(that, cc);
+            }
+
+            @Override
+            public InvokeInstanceClassOp transform(CopyContext cc, OpTransformer ot) {
+                return new InvokeInstanceClassOp(this, cc);
+            }
+
+            InvokeInstanceClassOp(TypeElement resultType, MethodRef invokeDescriptor, List<Value> args) {
+                super(NAME, resultType, invokeDescriptor, args);
+            }
+        }
+
+        /**
+         * The invoke super operation, that can model Java language super method
+         * invocation expressions.
+         */
+        @OpFactory.OpDeclaration(InvokeSuperOp.NAME)
+        public static final class InvokeSuperOp extends InvokeOp {
+            public static final String NAME = InvokeOp.NAME + ".super";
+
+            public static InvokeSuperOp create(ExternalizedOp def) {
+                return new InvokeSuperOp(def, createInvokeDescriptor(def));
+            }
+
+            InvokeSuperOp(ExternalizedOp def, MethodRef invokeDescriptor) {
+                super(def, invokeDescriptor);
+            }
+
+            InvokeSuperOp(InvokeOp that, CopyContext cc) {
+                super(that, cc);
+            }
+
+            @Override
+            public InvokeSuperOp transform(CopyContext cc, OpTransformer ot) {
+                return new InvokeSuperOp(this, cc);
+            }
+
+            InvokeSuperOp(TypeElement resultType, MethodRef invokeDescriptor, List<Value> args) {
+                super(NAME, resultType, invokeDescriptor, args);
+            }
+        }
+
     }
 
     /**
@@ -3615,29 +3665,29 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     }
 
     /**
-     * Creates an invoke operation.
+     * Creates an invoke instance or class (static) operation.
      *
      * @param invokeDescriptor the invocation descriptor
      * @param args             the invoke parameters
      * @return the invoke operation
      */
     public static InvokeOp invoke(MethodRef invokeDescriptor, Value... args) {
-        return new InvokeOp(invokeDescriptor, List.of(args));
+        return invoke(invokeDescriptor, List.of(args));
     }
 
     /**
-     * Creates an invoke operation.
+     * Creates an invoke instance or class (static) operation.
      *
      * @param invokeDescriptor the invocation descriptor
      * @param args             the invoke parameters
      * @return the invoke operation
      */
     public static InvokeOp invoke(MethodRef invokeDescriptor, List<Value> args) {
-        return new InvokeOp(invokeDescriptor, args);
+        return invoke(invokeDescriptor.type().returnType(), invokeDescriptor, args);
     }
 
     /**
-     * Creates an invoke operation.
+     * Creates an invoke instance or class (static) operation.
      *
      * @param returnType       the invocation return type
      * @param invokeDescriptor the invocation descriptor
@@ -3645,19 +3695,31 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      * @return the invoke operation
      */
     public static InvokeOp invoke(TypeElement returnType, MethodRef invokeDescriptor, Value... args) {
-        return new InvokeOp(returnType, invokeDescriptor, List.of(args));
+        return invoke(returnType, invokeDescriptor, List.of(args));
     }
 
     /**
-     * Creates an invoke operation.
+     * Creates an invoke instance or class (static) operation.
+     *
+     * @param returnType       the invocation return type
+     * @param invokeDescriptor the invocation descriptor
+     * @param args             the invoke parameters
+     * @return the invoke super operation
+     */
+    public static InvokeOp invoke(TypeElement returnType, MethodRef invokeDescriptor, List<Value> args) {
+        return new InvokeOp.InvokeInstanceClassOp(returnType, invokeDescriptor, args);
+    }
+
+    /**
+     * Creates an invoke super operation.
      *
      * @param returnType       the invocation return type
      * @param invokeDescriptor the invocation descriptor
      * @param args             the invoke parameters
      * @return the invoke operation
      */
-    public static InvokeOp invoke(TypeElement returnType, MethodRef invokeDescriptor, List<Value> args) {
-        return new InvokeOp(returnType, invokeDescriptor, args);
+    public static InvokeOp.InvokeSuperOp invokeSuper(TypeElement returnType, MethodRef invokeDescriptor, List<Value> args) {
+        return new InvokeOp.InvokeSuperOp(returnType, invokeDescriptor, args);
     }
 
     /**

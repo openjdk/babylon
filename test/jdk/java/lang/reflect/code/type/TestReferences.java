@@ -97,15 +97,4 @@ public class TestReferences {
         RecordTypeRef rtr = RecordTypeRef.ofString(rtds);
         Assert.assertEquals(rtr.toString(), rtds);
     }
-
-
-    @CodeReflection
-    static void x() {}
-
-    @Test
-    public void testAccessCodeModel() throws ReflectiveOperationException {
-        MethodRef xr = MethodRef.method(TestReferences.class, "x", void.class);
-        Optional<CoreOp.FuncOp> m = xr.codeModel(MethodHandles.lookup());
-        Assert.assertTrue(m.isPresent());
-    }
 }
