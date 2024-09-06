@@ -134,7 +134,7 @@ public final class BytecodeLift {
                 initLocalValues.add(null);
             }
         });
-        this.codeTracker = new LocalsTypeMapper(classModel.thisClass().asSymbol(), initLocalTypes, codeModel.exceptionHandlers(), smta, elements);
+        this.codeTracker = new LocalsTypeMapper(classModel.thisClass().asSymbol(), initLocalTypes, codeModel.exceptionHandlers(), smta, elements, codeAttribtue);
         this.blockMap = smta.map(sma ->
                 sma.entries().stream().collect(Collectors.toUnmodifiableMap(
                         StackMapFrameInfo::target,
@@ -423,35 +423,13 @@ public final class BytecodeLift {
                     endOfFlow();
                 }
                 case LoadInstruction inst -> {
-                    LocalsTypeMapper.Variable var = codeTracker.getVarOf(i);
-                    if (var.isSingleValue) {
-                        assert var.value != null;
-                        stack.push(var.value);
-                    } else {
-                        assert var.value instanceof Op.Result r && r.op() instanceof CoreOp.VarOp;
-                        stack.push(op(CoreOp.varLoad(var.value)));
-                    }
+                    stack.push(load(i));
                 }
                 case StoreInstruction inst -> {
-                    LocalsTypeMapper.Variable var = codeTracker.getVarOf(i);
-                    if (var.isSingleValue) {
-                        assert var.value == null;
-                        var.value = stack.pop();
-                    } else {
-                        if (var.value == null) {
-                            var.value = op(CoreOp.var("slot#" + inst.slot(), var.type(), stack.pop()));
-                        } else {
-                            assert var.value instanceof Op.Result r && r.op() instanceof CoreOp.VarOp;
-                            op(CoreOp.varStore(var.value, stack.pop()));
-                        }
-                    }
+                    store(i, inst.slot(), stack.pop());
                 }
                 case IncrementInstruction inst -> {
-                    LocalsTypeMapper.Variable var = codeTracker.getVarOf(i);
-                    assert !var.isSingleValue && var.value instanceof Op.Result r && r.op() instanceof CoreOp.VarOp;
-                    op(CoreOp.varStore(var.value, op(CoreOp.add(
-                            op(CoreOp.varLoad(var.value)),
-                            liftConstant(inst.constant())))));
+                    store(i, inst.slot(), op(CoreOp.add(load(-i), liftConstant(inst.constant()))));
                 }
                 case ConstantInstruction inst -> {
                     stack.push(liftConstant(inst.constantValue()));
@@ -831,6 +809,32 @@ public final class BytecodeLift {
                     throw new UnsupportedOperationException("Unsupported instruction: " + inst.opcode().name());
                 default ->
                     throw new UnsupportedOperationException("Unsupported code element: " + elements.get(i));
+            }
+        }
+    }
+
+    private Value load(int i) {
+        LocalsTypeMapper.Variable var = codeTracker.getVarOf(i);
+        if (var.isSingleValue) {
+            assert var.value != null;
+            return var.value;
+        } else {
+            assert var.value instanceof Op.Result r && r.op() instanceof CoreOp.VarOp;
+            return op(CoreOp.varLoad(var.value));
+        }
+    }
+
+    private void store(int i, int slot, Value value) {
+        LocalsTypeMapper.Variable var = codeTracker.getVarOf(i);
+        if (var.isSingleValue) {
+            assert var.value == null;
+            var.value = value;
+        } else {
+            if (var.value == null) {
+                var.value = op(CoreOp.var("slot#" + slot, var.type(), value));
+            } else {
+                assert var.value instanceof Op.Result r && r.op() instanceof CoreOp.VarOp;
+                op(CoreOp.varStore(var.value, value));
             }
         }
     }

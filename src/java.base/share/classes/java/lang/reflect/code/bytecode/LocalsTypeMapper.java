@@ -29,6 +29,7 @@ import java.lang.classfile.Instruction;
 import java.lang.classfile.Label;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
+import java.lang.classfile.attribute.CodeAttribute;
 import java.lang.classfile.attribute.StackMapFrameInfo;
 import java.lang.classfile.attribute.StackMapFrameInfo.*;
 import java.lang.classfile.attribute.StackMapTableAttribute;
@@ -47,12 +48,14 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
+import java.lang.classfile.components.ClassPrinter;
 import static java.lang.constant.ConstantDescs.*;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.type.JavaType;
 import java.util.ArrayDeque;
-import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.NoSuchElementException;
 import java.util.Set;
 
 final class LocalsTypeMapper {
@@ -80,26 +83,64 @@ final class LocalsTypeMapper {
                 default -> throw new IllegalStateException("Invalid type " + type.displayName());
             };
         }
+
+        @Override
+        public String toString() {
+            return Integer.toHexString(hashCode()).substring(0, 2) + " " + isSingleValue;
+        }
     }
 
-    static class Slot {
+    static final class Slot {
 
         enum Kind {
-            NEW_VALUE, USE, FRAME;
+            STORE, LOAD, FRAME;
         }
 
-        record Link(Slot slot, Link other) {}
+        private record Link(Slot slot, Link other) {}
 
+        int bci, sl;
         Kind kind;
         ClassDesc type;
-        Link up, down;
         Variable var;
-        Slot previous; // Previous Slot, not necessary of the same variable
+        private Link up, down;
 
         void link(Slot target) {
             if (this != target) {
                 target.up = new Link(this, target.up);
                 this.down = new Link(target, this.down);
+            }
+        }
+
+        Iterable<Slot> upSlots() {
+            return () -> new LinkIterator(up);
+        }
+
+        Iterable<Slot> downSlots() {
+            return () -> new LinkIterator(down);
+        }
+
+        @Override
+        public String toString() {
+            return "%d: #%d %s %s var:%s".formatted(bci, sl, kind, type.displayName(),  var == null ? null : var.toString());
+        }
+
+        static final class LinkIterator implements Iterator<Slot> {
+            Link l;
+            public LinkIterator(Link l) {
+                this.l = l;
+            }
+
+            @Override
+            public boolean hasNext() {
+                return l != null;
+            }
+
+            @Override
+            public Slot next() {
+                if (l == null) throw new NoSuchElementException();
+                Slot s = l.slot();
+                l = l.other();
+                return s;
             }
         }
     }
@@ -111,10 +152,12 @@ final class LocalsTypeMapper {
     private final LinkedHashSet<Slot> allSlots;
     private final ClassDesc thisClass;
     private final List<ExceptionCatch> exceptionHandlers;
+    private final Set<ExceptionCatch> handlersStack;
     private final List<ClassDesc> stack;
     private final List<Slot> locals;
     private final Map<Label, Frame> stackMap;
     private final Map<Label, ClassDesc> newMap;
+    private final CodeAttribute ca;
     private boolean frameDirty;
     final List<Slot> slotsToInitialize;
 
@@ -122,30 +165,33 @@ final class LocalsTypeMapper {
                          List<ClassDesc> initFrameLocals,
                          List<ExceptionCatch> exceptionHandlers,
                          Optional<StackMapTableAttribute> stackMapTableAttribute,
-                         List<CodeElement> codeElements) {
+                         List<CodeElement> codeElements,
+                         CodeAttribute ca) {
         this.insMap = new HashMap<>();
         this.thisClass = thisClass;
         this.exceptionHandlers = exceptionHandlers;
+        this.handlersStack = new LinkedHashSet<>();
         this.stack = new ArrayList<>();
         this.locals = new ArrayList<>();
         this.allSlots = new LinkedHashSet<>();
         this.newMap = computeNewMap(codeElements);
         this.slotsToInitialize = new ArrayList<>();
+        this.ca = ca;
         this.stackMap = stackMapTableAttribute.map(a -> a.entries().stream().collect(Collectors.toMap(
                 StackMapFrameInfo::target,
                 this::toFrame))).orElse(Map.of());
         for (ClassDesc cd : initFrameLocals) {
-            slotsToInitialize.add(cd == null ? null : newSlot(cd, Slot.Kind.NEW_VALUE));
+            slotsToInitialize.add(cd == null ? null : newSlot(cd, Slot.Kind.STORE, -1, slotsToInitialize.size()));
         }
         int initSize = allSlots.size();
         do {
+            handlersStack.clear();
             // Slot states reset if running additional rounds with adjusted frames
             if (allSlots.size() > initSize) {
                 while (allSlots.size() > initSize) allSlots.removeLast();
                 allSlots.forEach(sl -> {
                     sl.up = null;
                     sl.down = null;
-                    sl.previous = null;
                     sl.var = null;
                 });
             }
@@ -153,67 +199,86 @@ final class LocalsTypeMapper {
                 store(i, slotsToInitialize.get(i), locals);
             }
             this.frameDirty = false;
+            int bci = 0;
             for (int i = 0; i < codeElements.size(); i++) {
-                accept(i, codeElements.get(i));
+                var ce = codeElements.get(i);
+                accept(i, ce, bci);
+                if (ce instanceof Instruction ins) bci += ins.sizeInBytes();
             }
             endOfFlow();
         } while (this.frameDirty);
 
-        // Filter out FRAME slots of no use
-        // Such slot may form fake junction between two distinct variables
-        HashSet<Slot> visited = new HashSet<>();
-        for (Slot slot : allSlots) {
-            isSlotUsed(slot, visited);
-            visited.clear();
+        // Pull LOADs up the FRAMEs
+        boolean changed = true;
+        while (changed) {
+            changed = false;
+            for (Slot slot : allSlots) {
+                if (slot.kind == Slot.Kind.FRAME) {
+                    for (Slot down : slot.downSlots()) {
+                        if (down.kind == Slot.Kind.LOAD) {
+                            changed = true;
+                            slot.kind = Slot.Kind.LOAD;
+                            break;
+                        }
+                    }
+                }
+            }
         }
 
-        // Assign variable to slots, calculate var type, detect single value variables and dominant slot
-        Set<Slot> initialSlots = new HashSet<>();
+        // Assign variable to slots, calculate var type
+        Set<Slot> stores = new LinkedHashSet<>();
         ArrayDeque<Slot> q = new ArrayDeque<>();
+        Set<Slot> visited = new LinkedHashSet<>();
         for (Slot slot : allSlots) {
             if (slot.var == null && slot.kind != Slot.Kind.FRAME) {
                 Variable var = new Variable();
                 q.add(slot);
-                int sources = 0;
                 var.type = slot.type;
                 while (!q.isEmpty()) {
                     Slot sl = q.pop();
                     if (sl.var == null) {
-                        if (sl.kind == Slot.Kind.NEW_VALUE) {
-                            sources++;
-                            if (sl.up == null) {
-                                initialSlots.add(sl);
-                            }
-                        }
                         sl.var = var;
-                        Slot.Link l = sl.up;
-                        while (l != null) {
-                            if (l.slot.kind != Slot.Kind.FRAME) {
-                                if (var.type == NULL_TYPE) var.type = l.slot.type;
-                                if (l.slot.var == null) q.add(l.slot);
+                        for (Slot down : sl.downSlots()) {
+                            if (down.kind != Slot.Kind.FRAME) {
+                                if (var.type == NULL_TYPE) var.type = down.type;
+                                if (down.var == null) q.add(down);
                             }
-                            l = l.other;
                         }
-                        l = sl.down;
-                        while (l != null) {
-                            if (l.slot.kind != Slot.Kind.FRAME) {
-                                if (var.type == NULL_TYPE) var.type = l.slot.type;
-                                if (l.slot.var == null) q.add(l.slot);
+                        if (sl.kind == Slot.Kind.LOAD) {
+                            for (Slot up : sl.upSlots()) {
+                                if (up.kind != Slot.Kind.FRAME) {
+                                    if (var.type == NULL_TYPE) var.type = up.type;
+                                    if (up.var == null) {
+                                        q.add(up);
+                                    }
+                                }
                             }
-                            l = l.other;
                         }
                     }
+                    if (sl.var == var && sl.kind == Slot.Kind.STORE) {
+                        stores.add(sl);
+                    }
                 }
-                var.isSingleValue = sources < 2;
 
-                // Filter out slots, which are not initial (store into the same variable)
-                for (var tsit = initialSlots.iterator(); tsit.hasNext();) {
-                    Slot sl = tsit.next();
-                    if (sl.previous != null && sl.previous.var == sl.var) {
-                        tsit.remove();
+                // Detect single value
+                var.isSingleValue = stores.size() < 2;
+
+                // Filter initial stores
+                for (var it = stores.iterator(); it.hasNext();) {
+                    visited.clear();
+                    if (isDominantVar(it.next(), var, visited)) {
+                        it.remove();
                     }
+//                    for (Slot up : it.next().upSlots()) {
+//                        if (up.kind != Slot.Kind.FRAME) {
+//                            it.remove();
+//                            break;
+//                        } else
+//                    }
                 }
-                if (initialSlots.size() > 1) {
+
+                // Insert var initialization if necessary
+                if (stores.size() > 1) {
                     // Add synthetic dominant slot, which needs to be initialized with a default value
                     Slot initialSlot = new Slot();
                     initialSlot.var = var;
@@ -222,27 +287,39 @@ final class LocalsTypeMapper {
                         slotsToInitialize.add(null);
                     }
                 }
-                initialSlots.clear();
+                stores.clear();
             }
         }
+
+//        ClassPrinter.toYaml(ca, ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES, System.out::print);
+//
+//        System.out.println("digraph {");
+//        for (Slot s : allSlots) {
+//            System.out.println("    S" + Integer.toHexString(s.hashCode()) + " [label=\"" + s.toString() + "\"]");
+//        }
+//        System.out.println();
+//        for (Slot s : allSlots) {
+//            var it = s.downSlots().iterator();
+//            if (it.hasNext()) {
+//                System.out.print("    S" + Integer.toHexString(s.hashCode()) + " -> {S" + Integer.toHexString(it.next().hashCode()));
+//                while (it.hasNext()) {
+//                    System.out.print(", S" + Integer.toHexString(it.next().hashCode()));
+//                }
+//                System.out.println("};");
+//            }
+//        }
+//        System.out.println("}");
     }
 
-    static boolean isSlotUsed(Slot slot, Set<Slot> visited) {
-        if (slot.kind == Slot.Kind.FRAME) {
-            if (visited.add(slot)) {
-                Slot.Link l = slot.down;
-                while (l != null) {
-                    if (isSlotUsed(l.slot(), visited)) {
-                        slot.kind = Slot.Kind.USE;
-                        return true;
-                    }
-                    l = l.other;
+    private static boolean isDominantVar(Slot slot, Variable var, Set<Slot> visited) {
+        if (visited.add(slot)) {
+            for (Slot up : slot.upSlots()) {
+                if (up.var == null ? up.kind != Slot.Kind.FRAME || !isDominantVar(up, var, visited) : up.var != var) {
+                    return false;
                 }
             }
-            return false;
-        } else {
-            return true;
         }
+        return true;
     }
 
     private Frame toFrame(StackMapFrameInfo smfi) {
@@ -252,8 +329,9 @@ final class LocalsTypeMapper {
             fstack.add(vtiToStackType(vti));
         }
         int i = 0;
+        int bci = ca.labelToBci(smfi.target());
         for (var vti : smfi.locals()) {
-            store(i, vtiToStackType(vti), flocals, Slot.Kind.FRAME);
+            store(i, vtiToStackType(vti), flocals, Slot.Kind.FRAME, bci);
             i += vti == ITEM_DOUBLE || vti == ITEM_LONG ? 2 : 1;
         }
         return new Frame(fstack, flocals);
@@ -281,10 +359,12 @@ final class LocalsTypeMapper {
         return insMap.get(li).var;
     }
 
-    private Slot newSlot(ClassDesc type, Slot.Kind kind) {
+    private Slot newSlot(ClassDesc type, Slot.Kind kind, int bci, int sl) {
         Slot s = new Slot();
         s.kind = kind;
         s.type = type;
+        s.bci = bci;
+        s.sl = sl;
         allSlots.add(s);
         return s;
     }
@@ -342,12 +422,12 @@ final class LocalsTypeMapper {
         return this;
     }
 
-    private void store(int slot, ClassDesc type) {
-        store(slot, type, locals, Slot.Kind.NEW_VALUE);
+    private void store(int slot, ClassDesc type, int bci) {
+        store(slot, type, locals, Slot.Kind.STORE, bci);
     }
 
-    private void store(int slot, ClassDesc type, List<Slot> where, Slot.Kind kind) {
-        store(slot, type == null ? null : newSlot(type, kind), where);
+    private void store(int slot, ClassDesc type, List<Slot> where, Slot.Kind kind, int bci) {
+        store(slot, type == null ? null : newSlot(type, kind, bci, slot), where);
     }
 
     private void store(int slot, Slot s, List<Slot> where) {
@@ -355,21 +435,19 @@ final class LocalsTypeMapper {
             for (int i = where.size(); i <= slot; i++) where.add(null);
             Slot prev = where.set(slot, s);
             if (prev != null) {
-                s.previous = prev;
-                if (prev.kind == Slot.Kind.FRAME) {
-                    prev.kind = Slot.Kind.USE;
-                }
+                prev.link(s);
             }
         }
     }
 
-    private ClassDesc load(int slot) {
+    private ClassDesc load(int slot, int bci) {
         Slot sl = locals.get(slot);
-        if (sl.kind == Slot.Kind.FRAME) sl.kind = Slot.Kind.USE;
+        Slot nsl = newSlot(sl.type, Slot.Kind.LOAD, bci, slot);
+        sl.link(nsl);
         return sl.type;
     }
 
-    private void accept(int elIndex, CodeElement el) {
+    private void accept(int elIndex, CodeElement el, int bci) {
         switch (el) {
             case ArrayLoadInstruction _ ->
                 pop(1).push(pop().componentType());
@@ -420,10 +498,13 @@ final class LocalsTypeMapper {
                 }
             }
             case IncrementInstruction i -> {
-                Slot v = locals.get(i.slot());
-                store(i.slot(), load(i.slot()));
-                v.link(locals.get(i.slot()));
-                insMap.put(elIndex, v);
+                load(i.slot(), bci);
+                insMap.put(-elIndex, locals.get(i.slot()));
+                store(i.slot(), CD_int, bci);
+                insMap.put(elIndex, locals.get(i.slot()));
+                for (var ec : handlersStack) {
+                    mergeLocalsToTargetFrame(stackMap.get(ec.handler()));
+                }
             }
             case InvokeDynamicInstruction i ->
                 pop(i.typeSymbol().parameterCount()).push(i.typeSymbol().returnType());
@@ -431,12 +512,15 @@ final class LocalsTypeMapper {
                 pop(i.typeSymbol().parameterCount() + (i.opcode() == Opcode.INVOKESTATIC ? 0 : 1))
                         .push(i.typeSymbol().returnType());
             case LoadInstruction i -> {
-                push(load(i.slot()));
+                push(load(i.slot(), bci));
                 insMap.put(elIndex, locals.get(i.slot()));
             }
             case StoreInstruction i -> {
-                store(i.slot(), pop());
+                store(i.slot(), pop(), bci);
                 insMap.put(elIndex, locals.get(i.slot()));
+                for (var ec : handlersStack) {
+                    mergeLocalsToTargetFrame(stackMap.get(ec.handler()));
+                }
             }
             case MonitorInstruction _ ->
                 pop(1);
@@ -498,7 +582,11 @@ final class LocalsTypeMapper {
                 }
                 for (ExceptionCatch ec : exceptionHandlers) {
                     if (lt.label() == ec.tryStart()) {
+                        handlersStack.add(ec);
                         mergeLocalsToTargetFrame(stackMap.get(ec.handler()));
+                    }
+                    if (lt.label() == ec.tryEnd()) {
+                        handlersStack.remove(ec);
                     }
                 }
             }
@@ -561,8 +649,8 @@ final class LocalsTypeMapper {
                     if (le.type.isPrimitive() && CD_int.equals(fe.type) ) {
                         fe.type = le.type; // Override int target frame type with more specific int sub-type
                         this.frameDirty = true;
-                    } else {
-                        le.type = fe.type; // Override var type with target frame type
+//                    } else {
+//                        le.type = fe.type; // Override var type with target frame type
                     }
                 }
             }

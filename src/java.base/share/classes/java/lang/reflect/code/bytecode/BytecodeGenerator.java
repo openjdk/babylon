@@ -130,7 +130,11 @@ public final class BytecodeGenerator {
      * @return the class file bytes
      */
     public static byte[] generateClassData(MethodHandles.Lookup lookup, FuncOp fop) {
-        return ClassFile.of().transform(ClassFile.of().parse(generateClassData(lookup, fop.funcName(), fop)), LocalsCompactor.INSTANCE);
+        return
+//                ClassFile.of().transform(ClassFile.of().parse(
+                        generateClassData(lookup, fop.funcName(), fop)
+//                ), LocalsCompactor.INSTANCE)
+                ;
     }
 
     /**
