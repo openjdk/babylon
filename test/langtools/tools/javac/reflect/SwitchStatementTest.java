@@ -54,8 +54,9 @@ public class SwitchStatementTest {
                           var.store %3 %22;
                           yield;
                       }
-                      ()void -> {
-                          yield;
+                      ()boolean -> {
+                          %26 : boolean = constant @"true";
+                          yield %26;
                       }
                       ()void -> {
                           %23 : java.lang.String = var.load %3;
@@ -123,8 +124,9 @@ public class SwitchStatementTest {
                           var.store %3 %22;
                           yield;
                       }
-                      ()void -> {
-                          yield;
+                      ()boolean -> {
+                          %26 : boolean = constant @"true";
+                          yield %26;
                       }
                       ()void -> {
                           %23 : java.lang.String = var.load %3;
@@ -200,8 +202,9 @@ public class SwitchStatementTest {
                           var.store %3 %22;
                           java.break;
                       }
-                      ()void -> {
-                          yield;
+                      ()boolean -> {
+                          %26 : boolean = constant @"true";
+                          yield %26;
                       }
                       ()void -> {
                           %23 : java.lang.String = var.load %3;
@@ -277,8 +280,9 @@ public class SwitchStatementTest {
                         var.store %3 %20;
                         java.break;
                     }
-                    ()void -> {
-                        yield;
+                    ()boolean -> {
+                        %24 : boolean = constant @"true";
+                        yield %24;
                     }
                     ()void -> {
                         %21 : java.lang.String = var.load %3;
@@ -334,8 +338,9 @@ public class SwitchStatementTest {
                         var.store %3 %16;
                         yield;
                     }
-                    ()void -> {
-                        yield;
+                    ()boolean -> {
+                        %17 : boolean = constant @"true";
+                        yield %17;
                     }
                     ()void -> {
                         %17 : java.lang.String = var.load %3;
@@ -378,8 +383,9 @@ public class SwitchStatementTest {
                         var.store %3 %10;
                         yield;
                     }
-                    ()void -> {
-                        yield;
+                    ()boolean -> {
+                        %17 : boolean = constant @"true";
+                        yield %17;
                     }
                     ()void -> {
                         %11 : java.lang.String = var.load %3;
@@ -440,8 +446,9 @@ public class SwitchStatementTest {
                           var.store %3 %13;
                           java.break;
                       }
-                      ()void -> {
-                          yield;
+                      ()boolean -> {
+                          %17 : boolean = constant @"true";
+                          yield %17;
                       }
                       ()void -> {
                           %14 : java.lang.String = var.load %3;
@@ -783,8 +790,9 @@ public class SwitchStatementTest {
                         var.store %3 %120;
                         yield;
                     }
-                    ()void -> {
-                        yield;
+                    ()boolean -> {
+                        %17 : boolean = constant @"true";
+                        yield %17;
                     }
                     ()void -> {
                         %121 : java.lang.String = var.load %3;
@@ -871,8 +879,9 @@ public class SwitchStatementTest {
                           var.store %9 %30;
                           yield;
                       }
-                      ()void -> {
-                          yield;
+                      ()boolean -> {
+                          %17 : boolean = constant @"true";
+                          yield %17;
                       }
                       ()void -> {
                           %31 : java.lang.String = var.load %9;
@@ -936,8 +945,9 @@ public class SwitchStatementTest {
                         var.store %6 %22;
                         yield;
                     }
-                    ()void -> {
-                        yield;
+                    ()boolean -> {
+                        %17 : boolean = constant @"true";
+                        yield %17;
                     }
                     ()void -> {
                         %23 : java.lang.String = var.load %6;
@@ -1054,8 +1064,9 @@ public class SwitchStatementTest {
                           var.store %3 %24;
                           yield;
                       }
-                      ()void -> {
-                          yield;
+                      ()boolean -> {
+                          %17 : boolean = constant @"true";
+                          yield %17;
                       }
                       ()void -> {
                           %25 : java.lang.MatchException = new @"func<java.lang.MatchException>";
@@ -1128,8 +1139,9 @@ public class SwitchStatementTest {
                         var.store %3 %22;
                         yield;
                     }
-                    ()void -> {
-                        yield;
+                    ()boolean -> {
+                        %17 : boolean = constant @"true";
+                        yield %17;
                     }
                     ()void -> {
                         %23 : java.lang.MatchException = new @"func<java.lang.MatchException>";
@@ -1252,8 +1264,9 @@ public class SwitchStatementTest {
                           var.store %3 %22;
                           yield;
                       }
-                      ()void -> {
-                          yield;
+                      ()boolean -> {
+                          %17 : boolean = constant @"true";
+                          yield %17;
                       }
                       ()void -> {
                           %23 : java.lang.String = var.load %3;
@@ -1326,8 +1339,9 @@ public class SwitchStatementTest {
                           var.store %3 %22;
                           yield;
                       }
-                      ()void -> {
-                          yield;
+                      ()boolean -> {
+                          %17 : boolean = constant @"true";
+                          yield %17;
                       }
                       ()void -> {
                           %23 : java.lang.String = var.load %3;
@@ -1406,8 +1420,9 @@ public class SwitchStatementTest {
                           var.store %3 %22;
                           java.break;
                       }
-                      ()void -> {
-                          yield;
+                      ()boolean -> {
+                          %17 : boolean = constant @"true";
+                          yield %17;
                       }
                       ()void -> {
                           %23 : java.lang.String = var.load %3;
@@ -1482,8 +1497,9 @@ public class SwitchStatementTest {
                         var.store %3 %20;
                         yield;
                     }
-                    ()void -> {
-                        yield;
+                    ()boolean -> {
+                        %17 : boolean = constant @"true";
+                        yield %17;
                     }
                     ()void -> {
                         %21 : java.lang.String = var.load %3;
@@ -1604,8 +1620,9 @@ public class SwitchStatementTest {
                           var.store %3 %39;
                           yield;
                       }
-                      ()void -> {
-                          yield;
+                      ()boolean -> {
+                          %17 : boolean = constant @"true";
+                          yield %17;
                       }
                       ()void -> {
                           %40 : java.lang.String = var.load %3;
@@ -1764,8 +1781,9 @@ public class SwitchStatementTest {
                         var.store %3 %58;
                         yield;
                     }
-                    ()void -> {
-                        yield;
+                    ()boolean -> {
+                        %17 : boolean = constant @"true";
+                        yield %17;
                     }
                     ()void -> {
                         %59 : java.lang.String = var.load %3;
@@ -1823,8 +1841,9 @@ public class SwitchStatementTest {
                         var.store %3 %14;
                         yield;
                     }
-                    ()void -> {
-                        yield;
+                    ()boolean -> {
+                        %17 : boolean = constant @"true";
+                        yield %17;
                     }
                     ()void -> {
                         %15 : java.lang.String = var.load %3;
@@ -1923,8 +1942,9 @@ public class SwitchStatementTest {
                         var.store %3 %37;
                         yield;
                     }
-                    ()void -> {
-                        yield;
+                    ()boolean -> {
+                        %17 : boolean = constant @"true";
+                        yield %17;
                     }
                     ()void -> {
                         %38 : java.lang.String = var.load %3;
@@ -1979,8 +1999,9 @@ public class SwitchStatementTest {
                         var.store %3 %16;
                         yield;
                     }
-                    ()void -> {
-                        yield;
+                    ()boolean -> {
+                        %17 : boolean = constant @"true";
+                        yield %17;
                     }
                     ()void -> {
                         %17 : java.lang.String = var.load %3;

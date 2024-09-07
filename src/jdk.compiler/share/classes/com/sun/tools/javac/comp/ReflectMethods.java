@@ -1541,7 +1541,7 @@ public class ReflectMethods extends TreeTranslator {
             for (JCTree.JCCase c : cases) {
 
                 Body.Builder caseLabel = visitCaseLabel(tree, selector, target, c);
-                Body.Builder caseBody = visitCaseBody(c, caseBodyType);
+                Body.Builder caseBody = visitCaseBody(tree, c, caseBodyType);
 
                 if (c.labels.head instanceof JCTree.JCDefaultCaseLabel) {
                     defaultLabel = caseLabel;
@@ -1557,8 +1557,8 @@ public class ReflectMethods extends TreeTranslator {
                 bodies.add(defaultBody);
             } else if (isDefaultCaseNeeded) {
                 // label
-                pushBody(tree, FunctionType.VOID);
-                append(CoreOp._yield());
+                pushBody(tree, FunctionType.functionType(JavaType.BOOLEAN));
+                append(CoreOp._yield(append(CoreOp.constant(JavaType.BOOLEAN, true))));
                 bodies.add(stack.body);
                 popBody();
 
@@ -1664,9 +1664,9 @@ public class ReflectMethods extends TreeTranslator {
                 popBody();
             } else if (headCl instanceof JCTree.JCDefaultCaseLabel) {
                 // @@@ Do we need to model the default label body?
-                pushBody(headCl, FunctionType.VOID);
+                pushBody(headCl, FunctionType.functionType(JavaType.BOOLEAN));
 
-                append(CoreOp._yield());
+                append(CoreOp._yield(append(CoreOp.constant(JavaType.BOOLEAN, true))));
                 body = stack.body;
 
                 // Pop label
@@ -1678,10 +1678,10 @@ public class ReflectMethods extends TreeTranslator {
             return body;
         }
 
-        private Body.Builder visitCaseBody(JCTree.JCCase c, FunctionType caseBodyType) {
+        private Body.Builder visitCaseBody(JCTree tree, JCTree.JCCase c, FunctionType caseBodyType) {
 
             Body.Builder body = null;
-            Type yieldType = typeElementToType(caseBodyType.returnType());
+            Type yieldType = tree.type != null ? adaptBottom(tree.type) : null;
 
             JCTree.JCCaseLabel headCl = c.labels.head;
             switch (c.caseKind) {

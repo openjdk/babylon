@@ -228,8 +228,9 @@ public class ImplicitConversionTest {
                         %8 : long = constant @"1";
                         yield %8;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %17 : boolean = constant @"true";
+                        yield %17;
                     }
                     ()long -> {
                         %9 : int = constant @"0";
@@ -263,8 +264,9 @@ public class ImplicitConversionTest {
                         %9 : long = conv %8;
                         yield %9;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %17 : boolean = constant @"true";
+                        yield %17;
                     }
                     ()long -> {
                         %10 : long = constant @"0";
@@ -297,8 +299,9 @@ public class ImplicitConversionTest {
                         %9 : long = conv %8;
                         yield %9;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %17 : boolean = constant @"true";
+                        yield %17;
                     }
                     ()long -> {
                         %10 : int = constant @"0";
@@ -331,8 +334,9 @@ public class ImplicitConversionTest {
                         %8 : long = constant @"1";
                         java.yield %8;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %17 : boolean = constant @"true";
+                        yield %17;
                     }
                     ()long -> {
                         %9 : int = constant @"0";
@@ -366,8 +370,9 @@ public class ImplicitConversionTest {
                         %9 : long = conv %8;
                         java.yield %9;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %17 : boolean = constant @"true";
+                        yield %17;
                     }
                     ()long -> {
                         %10 : long = constant @"0";
@@ -400,8 +405,9 @@ public class ImplicitConversionTest {
                         %9 : long = conv %8;
                         java.yield %9;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %17 : boolean = constant @"true";
+                        yield %17;
                     }
                     ()long -> {
                         %10 : int = constant @"0";
