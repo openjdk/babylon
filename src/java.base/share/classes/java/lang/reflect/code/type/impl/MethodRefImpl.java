@@ -25,7 +25,6 @@
 
 package java.lang.reflect.code.type.impl;
 
-import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.type.MethodRef;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandleInfo;
@@ -35,7 +34,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.TypeElement;
-import java.util.Optional;
 
 import static java.util.stream.Collectors.joining;
 
@@ -66,43 +64,35 @@ public final class MethodRefImpl implements MethodRef {
     }
 
     @Override
-    public Method resolveToMember(MethodHandles.Lookup l) throws ReflectiveOperationException {
-        // @@@ Constructor
+    public Method resolveToMethod(MethodHandles.Lookup l) throws ReflectiveOperationException {
         MethodHandleInfo methodHandleInfo = l.revealDirect(resolveToHandle(l));
         return methodHandleInfo.reflectAs(Method.class, l);
     }
 
     @Override
     public MethodHandle resolveToHandle(MethodHandles.Lookup l) throws ReflectiveOperationException {
-        // @@@ kind
-        Class<?> refC = resolve(l, refType);
-
-        MethodType mt = MethodRef.toNominalDescriptor(type).resolveConstantDesc(l);
-
-        MethodHandle mh = null;
-        ReflectiveOperationException c = null;
-
         try {
-            mh = l.findStatic(refC, name, mt);
+            return resolveToHandle(l, ResolveKind.invokeClass);
         } catch (NoSuchMethodException | IllegalAccessException e) {
-            c = e;
+            return resolveToHandle(l, ResolveKind.invokeInstance);
         }
+    }
 
-        if (c != null) {
-            c = null;
-            try {
-                mh = l.findVirtual(refC, name, mt);
-            } catch (NoSuchMethodException | IllegalAccessException e) {
-                c = e;
-            }
-        }
+    @Override
+    public Method resolveToMethod(MethodHandles.Lookup l, ResolveKind kind) throws ReflectiveOperationException {
+        MethodHandleInfo methodHandleInfo = l.revealDirect(resolveToHandle(l, kind));
+        return methodHandleInfo.reflectAs(Method.class, l);
+    }
 
-        if (c != null) {
-            throw c;
-        }
-
-        assert mh != null;
-        return mh;
+    @Override
+    public MethodHandle resolveToHandle(MethodHandles.Lookup l, ResolveKind kind) throws ReflectiveOperationException {
+        Class<?> refC = resolve(l, refType);
+        MethodType mt = MethodRef.toNominalDescriptor(type).resolveConstantDesc(l);
+        return switch (kind) {
+            case invokeSuper -> l.findSpecial(refC, name, mt, l.lookupClass());
+            case invokeClass -> l.findStatic(refC, name, mt);
+            case invokeInstance -> l.findVirtual(refC, name, mt);
+        };
     }
 
     static Class<?> resolve(MethodHandles.Lookup l, TypeElement t) throws ReflectiveOperationException {
@@ -112,12 +102,6 @@ public final class MethodRefImpl implements MethodRef {
             // @@@
             throw new ReflectiveOperationException();
         }
-    }
-
-    // Copied code in jdk.compiler module throws UOE
-    @Override
-    public Optional<CoreOp.FuncOp> codeModel(MethodHandles.Lookup l) throws ReflectiveOperationException {
-/*__throw new UnsupportedOperationException();__*/        return resolveToMember(l).getCodeModel();
     }
 
     @Override

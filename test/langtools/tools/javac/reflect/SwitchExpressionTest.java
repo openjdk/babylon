@@ -69,8 +69,9 @@ public class SwitchExpressionTest {
                         %15 : java.lang.String = constant @"FOO";
                         yield %15;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %17 : boolean = constant @"true";
+                        yield %17;
                     }
                     ()java.lang.Object -> {
                         %16 : java.lang.String = constant @"";
@@ -117,8 +118,9 @@ public class SwitchExpressionTest {
                         %12 : java.lang.String = constant @"FOO";
                         yield %12;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %14 : boolean = constant @"true";
+                        yield %14;
                     }
                     ()java.lang.Object -> {
                         %13 : java.lang.String = constant @"";
@@ -169,8 +171,9 @@ public class SwitchExpressionTest {
                         %15 : java.lang.String = constant @"FOO";
                         java.yield %15;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %17 : boolean = constant @"true";
+                        yield %17;
                     }
                     ()java.lang.Object -> {
                         %16 : java.lang.String = constant @"";
@@ -217,8 +220,9 @@ public class SwitchExpressionTest {
                         %12 : java.lang.String = constant @"FOO";
                         java.yield %12;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %17 : boolean = constant @"true";
+                        yield %17;
                     }
                     ()java.lang.Object -> {
                         java.block ()void -> {
@@ -261,8 +265,9 @@ public class SwitchExpressionTest {
                         };
                         unreachable;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %11 : boolean = constant @"true";
+                        yield %11;
                     }
                     ()java.lang.Object -> {
                         %10 : java.lang.String = constant @"";
@@ -303,8 +308,9 @@ public class SwitchExpressionTest {
                         };
                         java.switch.fallthrough;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %10 : boolean = constant @"true";
+                        yield %10;
                     }
                     ()java.lang.Object -> {
                         %9 : java.lang.String = constant @"";
@@ -368,8 +374,9 @@ public class SwitchExpressionTest {
                         %18 : java.lang.String = var.load %6;
                         java.yield %18;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %10 : boolean = constant @"true";
+                        yield %10;
                     }
                     ()java.lang.Object -> {
                         %19 : java.lang.String = constant @"";
@@ -475,8 +482,9 @@ public class SwitchExpressionTest {
                         %35 : java.lang.String = var.load %8;
                         java.yield %35;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %37 : boolean = constant @"true";
+                        yield %37;
                     }
                     ()java.lang.Object -> {
                         %36 : java.lang.String = constant @"";

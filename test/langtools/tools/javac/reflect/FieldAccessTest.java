@@ -113,6 +113,29 @@ public class FieldAccessTest {
 
     @CodeReflection
     @IR("""
+            func @"test2_3" (%0 : FieldAccessTest)void -> {
+                %1 : int = constant @"1";
+                field.store %0 %1 @"FieldAccessTest::f()int";
+                return;
+            };
+            """)
+    void test2_3() {
+        FieldAccessTest.this.f = 1;
+    }
+
+    @CodeReflection
+    @IR("""
+            func @"test2_4" (%0 : FieldAccessTest)int -> {
+                %1 : int = field.load %0 @"FieldAccessTest::f()int";
+                return %1;
+            };
+            """)
+    int test2_4() {
+        return FieldAccessTest.this.f;
+    }
+
+    @CodeReflection
+    @IR("""
             func @"test3" (%0 : FieldAccessTest)int -> {
                 %1 : int = field.load @"FieldAccessTest::s_f()int";
                 %2 : int = field.load %0 @"FieldAccessTest::f()int";

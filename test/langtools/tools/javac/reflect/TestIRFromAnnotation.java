@@ -61,6 +61,8 @@ import javax.tools.ToolProvider;
 public class TestIRFromAnnotation {
 
     static final Set<String> EXCLUDED_TEST = Set.of(
+            "SuperTest.java",                   // @@@ Might be issue referencing auxiliary interface
+                                                // in method superInterfaceMethodInvocation
             "LocalClassTest.java",              // name of local classes is not stable at annotation processing time
             "TestLocalCapture.java",            // plain testng test
             "TestCaptureQuoted.java",           // plain testng test

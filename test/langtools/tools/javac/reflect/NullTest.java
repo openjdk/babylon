@@ -173,8 +173,9 @@ public class NullTest {
                         %8 : java.lang.String = constant @"";
                         yield %8;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %9 : boolean = constant @"true";
+                        yield %9;
                     }
                     ()java.lang.String -> {
                         %9 : java.lang.String = constant @null;
@@ -205,8 +206,9 @@ public class NullTest {
                         %8 : java.lang.String = constant @null;
                         yield %8;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %9 : boolean = constant @"true";
+                        yield %9;
                     }
                     ()java.lang.String -> {
                         %9 : java.lang.String = constant @"";
@@ -237,8 +239,9 @@ public class NullTest {
                         %8 : java.lang.String = constant @null;
                         yield %8;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %9 : boolean = constant @"true";
+                        yield %9;
                     }
                     ()java.lang.String -> {
                         %9 : java.lang.String = constant @null;
@@ -269,8 +272,9 @@ public class NullTest {
                         %8 : java.lang.Object = constant @null;
                         yield %8;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %9 : boolean = constant @"true";
+                        yield %9;
                     }
                     ()java.lang.Object -> {
                         %9 : java.lang.Object = constant @null;
@@ -302,8 +306,9 @@ public class NullTest {
                         %8 : java.lang.String = constant @"";
                         java.yield %8;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %9 : boolean = constant @"true";
+                        yield %9;
                     }
                     ()java.lang.String -> {
                         %9 : java.lang.String = constant @null;
@@ -334,8 +339,9 @@ public class NullTest {
                         %8 : java.lang.String = constant @null;
                         java.yield %8;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %9 : boolean = constant @"true";
+                        yield %9;
                     }
                     ()java.lang.String -> {
                         %9 : java.lang.String = constant @"";
@@ -366,8 +372,9 @@ public class NullTest {
                         %8 : java.lang.String = constant @null;
                         java.yield %8;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %9 : boolean = constant @"true";
+                        yield %9;
                     }
                     ()java.lang.String -> {
                         %9 : java.lang.String = constant @null;
@@ -398,8 +405,9 @@ public class NullTest {
                         %8 : java.lang.Object = constant @null;
                         java.yield %8;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %9 : boolean = constant @"true";
+                        yield %9;
                     }
                     ()java.lang.Object -> {
                         %9 : java.lang.Object = constant @null;

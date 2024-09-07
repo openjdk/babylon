@@ -960,7 +960,7 @@ public class ReflectMethods extends TreeTranslator {
                 case LOCAL_VARIABLE, RESOURCE_VARIABLE, BINDING_VARIABLE, PARAMETER, EXCEPTION_PARAMETER ->
                     result = loadVar(sym);
                 case FIELD, ENUM_CONSTANT -> {
-                    if (sym.name.equals(names._this)) {
+                    if (sym.name.equals(names._this) || sym.name.equals(names._super)) {
                         result = thisValue();
                     } else {
                         FieldRef fr = symbolToFieldRef(sym, symbolSiteType(sym));
@@ -1020,13 +1020,17 @@ public class ReflectMethods extends TreeTranslator {
                 Symbol sym = tree.sym;
                 switch (sym.getKind()) {
                     case FIELD, ENUM_CONSTANT -> {
-                        FieldRef fr = symbolToFieldRef(sym, qualifierTarget.hasTag(NONE) ?
-                                tree.selected.type : qualifierTarget);
-                        TypeElement resultType = typeToTypeElement(types.memberType(tree.selected.type, sym));
-                        if (sym.isStatic()) {
-                            result = append(CoreOp.fieldLoad(resultType, fr));
+                        if (sym.name.equals(names._this) || sym.name.equals(names._super)) {
+                            result = thisValue();
                         } else {
-                            result = append(CoreOp.fieldLoad(resultType, fr, receiver));
+                            FieldRef fr = symbolToFieldRef(sym, qualifierTarget.hasTag(NONE) ?
+                                    tree.selected.type : qualifierTarget);
+                            TypeElement resultType = typeToTypeElement(types.memberType(tree.selected.type, sym));
+                            if (sym.isStatic()) {
+                                result = append(CoreOp.fieldLoad(resultType, fr));
+                            } else {
+                                result = append(CoreOp.fieldLoad(resultType, fr, receiver));
+                            }
                         }
                     }
                     case INTERFACE, CLASS, ENUM -> {
@@ -1057,10 +1061,6 @@ public class ReflectMethods extends TreeTranslator {
 
             // @@@ this.xyz(...) calls in a constructor
 
-            // @@@ super.xyz(...) calls
-            // Modeling with a call operation would result in the receiver type differing from that
-            // in the method reference, perhaps that is sufficient?
-
             JCTree meth = TreeInfo.skipParens(tree.meth);
             switch (meth.getTag()) {
                 case IDENT: {
@@ -1089,15 +1089,28 @@ public class ReflectMethods extends TreeTranslator {
 
                     Symbol sym = access.sym;
                     List<Value> args = new ArrayList<>();
+                    boolean isSuper;
                     if (!sym.isStatic()) {
                         args.add(receiver);
+                        // @@@ expr.super(...) for inner class super constructor calls
+                        isSuper = switch (access.selected) {
+                            case JCIdent i when i.sym.name.equals(names._super) -> true;
+                            case JCFieldAccess fa when fa.sym.name.equals(names._super) -> true;
+                            default -> false;
+                        };
+                    } else {
+                        isSuper = false;
                     }
 
                     args.addAll(scanMethodArguments(tree.args, tree.meth.type, tree.varargsElement));
 
                     MethodRef mr = symbolToErasedMethodRef(sym, qualifierTarget.hasTag(NONE) ?
                             access.selected.type : qualifierTarget);
-                    Value res = append(CoreOp.invoke(typeToTypeElement(meth.type.getReturnType()), mr, args));
+                    JavaType returnType = typeToTypeElement(meth.type.getReturnType());
+                    CoreOp.InvokeOp iop = isSuper
+                            ? CoreOp.invokeSuper(returnType, mr, args)
+                            : CoreOp.invoke(returnType, mr, args);
+                    Value res = append(iop);
                     if (sym.type.getReturnType().getTag() != TypeTag.VOID) {
                         result = res;
                     }
@@ -1528,7 +1541,7 @@ public class ReflectMethods extends TreeTranslator {
             for (JCTree.JCCase c : cases) {
 
                 Body.Builder caseLabel = visitCaseLabel(tree, selector, target, c);
-                Body.Builder caseBody = visitCaseBody(c, caseBodyType);
+                Body.Builder caseBody = visitCaseBody(tree, c, caseBodyType);
 
                 if (c.labels.head instanceof JCTree.JCDefaultCaseLabel) {
                     defaultLabel = caseLabel;
@@ -1544,8 +1557,8 @@ public class ReflectMethods extends TreeTranslator {
                 bodies.add(defaultBody);
             } else if (isDefaultCaseNeeded) {
                 // label
-                pushBody(tree, FunctionType.VOID);
-                append(CoreOp._yield());
+                pushBody(tree, FunctionType.functionType(JavaType.BOOLEAN));
+                append(CoreOp._yield(append(CoreOp.constant(JavaType.BOOLEAN, true))));
                 bodies.add(stack.body);
                 popBody();
 
@@ -1651,9 +1664,9 @@ public class ReflectMethods extends TreeTranslator {
                 popBody();
             } else if (headCl instanceof JCTree.JCDefaultCaseLabel) {
                 // @@@ Do we need to model the default label body?
-                pushBody(headCl, FunctionType.VOID);
+                pushBody(headCl, FunctionType.functionType(JavaType.BOOLEAN));
 
-                append(CoreOp._yield());
+                append(CoreOp._yield(append(CoreOp.constant(JavaType.BOOLEAN, true))));
                 body = stack.body;
 
                 // Pop label
@@ -1665,10 +1678,10 @@ public class ReflectMethods extends TreeTranslator {
             return body;
         }
 
-        private Body.Builder visitCaseBody(JCTree.JCCase c, FunctionType caseBodyType) {
+        private Body.Builder visitCaseBody(JCTree tree, JCTree.JCCase c, FunctionType caseBodyType) {
 
             Body.Builder body = null;
-            Type yieldType = typeElementToType(caseBodyType.returnType());
+            Type yieldType = tree.type != null ? adaptBottom(tree.type) : null;
 
             JCTree.JCCaseLabel headCl = c.labels.head;
             switch (c.caseKind) {
