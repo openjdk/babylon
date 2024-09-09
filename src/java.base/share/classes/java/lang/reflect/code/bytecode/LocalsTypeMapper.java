@@ -266,15 +266,10 @@ final class LocalsTypeMapper {
                 // Filter initial stores
                 for (var it = stores.iterator(); it.hasNext();) {
                     visited.clear();
-                    if (isDominantVar(it.next(), var, visited)) {
+                    Slot s = it.next();
+                    if (s.up != null && preceedsWithTheVar(s, var, visited)) {
                         it.remove();
                     }
-//                    for (Slot up : it.next().upSlots()) {
-//                        if (up.kind != Slot.Kind.FRAME) {
-//                            it.remove();
-//                            break;
-//                        } else
-//                    }
                 }
 
                 // Insert var initialization if necessary
@@ -311,10 +306,11 @@ final class LocalsTypeMapper {
 //        System.out.println("}");
     }
 
-    private static boolean isDominantVar(Slot slot, Variable var, Set<Slot> visited) {
+    // Detects if all of the preceding slots belong to the var
+    private static boolean preceedsWithTheVar(Slot slot, Variable var, Set<Slot> visited) {
         if (visited.add(slot)) {
             for (Slot up : slot.upSlots()) {
-                if (up.var == null ? up.kind != Slot.Kind.FRAME || !isDominantVar(up, var, visited) : up.var != var) {
+                if (up.var == null ? up.kind != Slot.Kind.FRAME || !preceedsWithTheVar(up, var, visited) : up.var != var) {
                     return false;
                 }
             }
@@ -649,8 +645,6 @@ final class LocalsTypeMapper {
                     if (le.type.isPrimitive() && CD_int.equals(fe.type) ) {
                         fe.type = le.type; // Override int target frame type with more specific int sub-type
                         this.frameDirty = true;
-//                    } else {
-//                        le.type = fe.type; // Override var type with target frame type
                     }
                 }
             }
