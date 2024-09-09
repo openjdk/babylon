@@ -43,14 +43,6 @@ import static java.lang.reflect.code.type.FunctionType.functionType;
 /**
  * The symbolic reference to a Java method.
  */
-// @@@ require invoke kind:
-//    special, static, virtual
-//    interface_special, interface_static, interface_virtual
-//  Otherwise it is not possible to generate correct bytecode invoke instruction with
-//  a symbolic reference to a method or an interface method, specifically a
-//  constant pool entry of CONSTANT_Methodref_info or CONSTANT_InterfaceMethodref_info.
-//
-//  We can infer the kind, if we can resolve the types and lookup the declared method
 public sealed interface MethodRef extends TypeVarRef.Owner permits MethodRefImpl {
 
     TypeElement refType();
@@ -59,13 +51,24 @@ public sealed interface MethodRef extends TypeVarRef.Owner permits MethodRefImpl
 
     FunctionType type();
 
-    // Resolutions and model access
+    // Resolutions to methods and method handles
 
-    Executable resolveToMember(MethodHandles.Lookup l) throws ReflectiveOperationException;
+    // Resolve using ResolveKind.invokeClass, on failure resolve using ResolveKind.invokeInstance
+    Method resolveToMethod(MethodHandles.Lookup l) throws ReflectiveOperationException;
 
+    // Resolve using ResolveKind.invokeClass, on failure resolve using ResolveKind.invokeInstance
     MethodHandle resolveToHandle(MethodHandles.Lookup l) throws ReflectiveOperationException;
 
-    Optional<CoreOp.FuncOp> codeModel(MethodHandles.Lookup l) throws ReflectiveOperationException;
+    enum ResolveKind {
+        invokeClass,
+        invokeInstance,
+        invokeSuper
+    }
+
+    Method resolveToMethod(MethodHandles.Lookup l, ResolveKind kind) throws ReflectiveOperationException;
+
+    // For ResolveKind.invokeSuper the specialCaller == l.lookupClass() for Lookup::findSpecial
+    MethodHandle resolveToHandle(MethodHandles.Lookup l, ResolveKind kind) throws ReflectiveOperationException;
 
     // Factories
 
