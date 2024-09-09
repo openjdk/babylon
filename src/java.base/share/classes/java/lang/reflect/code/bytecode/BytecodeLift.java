@@ -78,6 +78,8 @@ import java.util.BitSet;
 
 public final class BytecodeLift {
 
+    public static boolean DUMP = false;
+
     private record ExceptionRegion(Label startLabel, Label endLabel, Label handlerLabel) {}
     private record ExceptionRegionEntry(Op.Result enter, Block.Builder startBlock, ExceptionRegion region) {}
 
@@ -102,7 +104,6 @@ public final class BytecodeLift {
     private static final MethodRef METHOD_TYPE_1 = MethodRef.method(MT, "methodType", MT, JavaType.J_L_CLASS, JavaType.J_L_CLASS);
     private static final MethodRef METHOD_TYPE_L = MethodRef.method(MT, "methodType", MT, JavaType.J_L_CLASS, CLASS_ARRAY);
 
-    private final MethodHandles.Lookup lookup;
     private final Block.Builder entryBlock;
     private final ClassModel classModel;
     private final CodeAttribute codeAttribtue;
@@ -116,8 +117,7 @@ public final class BytecodeLift {
     private final List<Value> initLocalValues;
     private Block.Builder currentBlock;
 
-    private BytecodeLift(MethodHandles.Lookup lookup, Block.Builder entryBlock, ClassModel classModel, CodeModel codeModel, Value... capturedValues) {
-        this.lookup = lookup;
+    private BytecodeLift(Block.Builder entryBlock, ClassModel classModel, CodeModel codeModel, Value... capturedValues) {
         this.entryBlock = entryBlock;
         this.currentBlock = entryBlock;
         this.classModel = classModel;
@@ -137,7 +137,7 @@ public final class BytecodeLift {
                 initLocalValues.add(null);
             }
         });
-        this.codeTracker = new LocalsTypeMapper(classModel.thisClass().asSymbol(), initLocalTypes, codeModel.exceptionHandlers(), smta, elements, codeAttribtue, lookup);
+        this.codeTracker = new LocalsTypeMapper(classModel.thisClass().asSymbol(), initLocalTypes, codeModel.exceptionHandlers(), smta, elements, codeAttribtue);
         this.blockMap = smta.map(sma ->
                 sma.entries().stream().collect(Collectors.toUnmodifiableMap(
                         StackMapFrameInfo::target,
@@ -281,8 +281,7 @@ public final class BytecodeLift {
         return CoreOp.func(
                 methodModel.methodName().stringValue(),
                 MethodRef.ofNominalDescriptor(mDesc)).body(entryBlock ->
-                        new BytecodeLift(lookup,
-                                         entryBlock,
+                        new BytecodeLift(entryBlock,
                                          classModel,
                                          methodModel.code().orElseThrow()).liftBody());
     }
@@ -588,8 +587,7 @@ public final class BytecodeLift {
                             // inline lambda impl method
                             MethodModel implMethod = classModel.methods().stream().filter(m -> m.methodName().equalsString(dmhd.methodName())).findFirst().orElseThrow();
                             stack.push(op(lambda.body(
-                                    eb -> new BytecodeLift(lookup,
-                                                           eb,
+                                    eb -> new BytecodeLift(eb,
                                                            classModel,
                                                            implMethod.code().orElseThrow(),
                                                            capturedValues).liftBody())));

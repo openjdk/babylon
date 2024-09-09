@@ -50,7 +50,6 @@ import java.util.stream.Collectors;
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
 import java.lang.classfile.components.ClassPrinter;
 import static java.lang.constant.ConstantDescs.*;
-import java.lang.invoke.MethodHandles;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.type.JavaType;
 import java.util.ArrayDeque;
@@ -159,7 +158,6 @@ final class LocalsTypeMapper {
     private final Map<Label, Frame> stackMap;
     private final Map<Label, ClassDesc> newMap;
     private final CodeAttribute ca;
-    private final MethodHandles.Lookup lookup;
     private boolean frameDirty;
     final List<Slot> slotsToInitialize;
 
@@ -168,8 +166,7 @@ final class LocalsTypeMapper {
                      List<ExceptionCatch> exceptionHandlers,
                      Optional<StackMapTableAttribute> stackMapTableAttribute,
                      List<CodeElement> codeElements,
-                     CodeAttribute ca,
-                     MethodHandles.Lookup lookup) {
+                     CodeAttribute ca) {
         this.insMap = new HashMap<>();
         this.thisClass = thisClass;
         this.exceptionHandlers = exceptionHandlers;
@@ -180,7 +177,6 @@ final class LocalsTypeMapper {
         this.newMap = computeNewMap(codeElements);
         this.slotsToInitialize = new ArrayList<>();
         this.ca = ca;
-        this.lookup = lookup;
         this.stackMap = stackMapTableAttribute.map(a -> a.entries().stream().collect(Collectors.toMap(
                 StackMapFrameInfo::target,
                 this::toFrame))).orElse(Map.of());
@@ -243,7 +239,7 @@ final class LocalsTypeMapper {
                     if (sl.var == null) {
                         sl.var = var;
                         for (Slot down : sl.downSlots()) {
-                            if (down.kind != Slot.Kind.FRAME) {
+                            if (down.kind == Slot.Kind.LOAD) {
                                 if (var.type == NULL_TYPE) var.type = down.type;
                                 if (down.var == null) q.add(down);
                             }
@@ -290,24 +286,25 @@ final class LocalsTypeMapper {
             }
         }
 
-//        ClassPrinter.toYaml(ca, ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES, System.out::print);
-//
-//        System.out.println("digraph {");
-//        for (Slot s : allSlots) {
-//            System.out.println("    S" + Integer.toHexString(s.hashCode()) + " [label=\"" + s.toString() + "\"]");
-//        }
-//        System.out.println();
-//        for (Slot s : allSlots) {
-//            var it = s.downSlots().iterator();
-//            if (it.hasNext()) {
-//                System.out.print("    S" + Integer.toHexString(s.hashCode()) + " -> {S" + Integer.toHexString(it.next().hashCode()));
-//                while (it.hasNext()) {
-//                    System.out.print(", S" + Integer.toHexString(it.next().hashCode()));
-//                }
-//                System.out.println("};");
-//            }
-//        }
-//        System.out.println("}");
+        if (BytecodeLift.DUMP) {
+            ClassPrinter.toYaml(ca, ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES, System.out::print);
+            System.out.println("digraph {");
+            for (Slot s : allSlots) {
+                System.out.println("    S" + Integer.toHexString(s.hashCode()) + " [label=\"" + s.toString() + "\"]");
+            }
+            System.out.println();
+            for (Slot s : allSlots) {
+                var it = s.downSlots().iterator();
+                if (it.hasNext()) {
+                    System.out.print("    S" + Integer.toHexString(s.hashCode()) + " -> {S" + Integer.toHexString(it.next().hashCode()));
+                    while (it.hasNext()) {
+                        System.out.print(", S" + Integer.toHexString(it.next().hashCode()));
+                    }
+                    System.out.println("};");
+                }
+            }
+            System.out.println("}");
+        }
     }
 
     // Detects if all of the preceding slots belong to the var
@@ -434,7 +431,7 @@ final class LocalsTypeMapper {
         if (s != null) {
             for (int i = where.size(); i <= slot; i++) where.add(null);
             Slot prev = where.set(slot, s);
-            if (prev != null && isAssignable(prev.type, s.type)) {
+            if (prev != null) {
                 prev.link(s);
             }
         }
@@ -643,7 +640,7 @@ final class LocalsTypeMapper {
         for (int i = 0; i < lSize; i++) {
             Slot le = locals.get(i);
             Slot fe = targetFrame.locals.get(i);
-            if (le != null && fe != null && isAssignable(le.type, fe.type)) {
+            if (le != null && fe != null) {
                 le.link(fe); // Link target frame var with its source
                 if (!le.type.equals(fe.type)) {
                     if (le.type.isPrimitive() && CD_int.equals(fe.type) ) {
@@ -652,23 +649,6 @@ final class LocalsTypeMapper {
                     }
                 }
             }
-        }
-    }
-
-    boolean isAssignable(ClassDesc from, ClassDesc to) {
-        if (from.equals(to)) {
-            return true;
-        }
-        if (from.isPrimitive() || to.isPrimitive()) {
-            return TypeKind.from(from).asLoadable() == TypeKind.from(to).asLoadable();
-        }
-        if (from == NULL_TYPE || to.equals(CD_Object)) {
-            return true;
-        }
-        try {
-            return to.resolveConstantDesc(lookup).isAssignableFrom(from.resolveConstantDesc(lookup));
-        } catch (ReflectiveOperationException ex) {
-            throw new RuntimeException(ex);
         }
     }
 }

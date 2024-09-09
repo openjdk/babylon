@@ -21,7 +21,6 @@
  * questions.
  */
 
-import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.Instruction;
@@ -35,7 +34,6 @@ import java.lang.reflect.code.CodeElement;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.reflect.code.bytecode.BytecodeLift;
-import java.lang.reflect.code.bytecode.LocalsCompactor;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.writer.OpWriter;
 import java.net.URI;
@@ -58,11 +56,17 @@ import org.testng.annotations.Test;
  */
 public class TestSmallCorpus {
 
+    private static final String ROOT_PATH = "modules/java.base/";
+    private static final String CLASS_NAME_SUFFIX = ".class";
+    private static final String METHOD_NAME = null;
+    private static final int ROUNDS = 3;
+
     private static final FileSystem JRT = FileSystems.getFileSystem(URI.create("jrt:/"));
     private static final ClassFile CF = ClassFile.of();
     private static final int COLUMN_WIDTH = 150;
     private static final MethodHandles.Lookup TRUSTED_LOOKUP;
     static {
+        BytecodeLift.DUMP = false;
         try {
             var lf = MethodHandles.Lookup.class.getDeclaredField("IMPL_LOOKUP");
             lf.setAccessible(true);
@@ -72,157 +76,88 @@ public class TestSmallCorpus {
         }
     }
 
+    private MethodModel bytecode;
+    CoreOp.FuncOp reflection;
     private int stable, unstable;
-    private Map<String, Map<String, Integer>> errorStats;
 
-        int minSize = Integer.MAX_VALUE;
-        Path minPath = null;
-        String minName = null;
-
-
-//    @Ignore
+    @Ignore
     @Test
-    public void testTripleRoundtripStability() throws Exception {
+    public void testRoundTripStability() throws Exception {
         stable = 0;
         unstable = 0;
-        errorStats = new LinkedHashMap<>();
-        for (Path p : Files.walk(JRT.getPath("modules/java.base/"))
-                .filter(p -> Files.isRegularFile(p) && p.toString().endsWith(".class")) //ProcessHandleImpl
+        for (Path p : Files.walk(JRT.getPath(ROOT_PATH))
+                .filter(p -> Files.isRegularFile(p) && p.toString().endsWith(CLASS_NAME_SUFFIX))
                 .toList()) {
-            testDoubleRoundtripStability(p);
-//            testCompaction(p);
+            testRoundTripStability(p);
         }
-
-        for (var stats : errorStats.entrySet()) {
-            System.out.println(String.format("""
-
-            %s errors:
-            -----------------------------------------------------
-            """, stats.getKey()));
-            stats.getValue().entrySet().stream().sorted((e1, e2) -> Integer.compare(e2.getValue(), e1.getValue())).forEach(e -> System.out.println(e.getValue() +"x " + e.getKey() + "\n"));
-        }
-
-        System.out.println(minPath);
-        System.out.println(minName);
 
         // Roundtrip is >99% stable, no exceptions, no verification errors
-        Assert.assertTrue(stable > 65240 && unstable < 110 && errorStats.isEmpty(), String.format("""
-
+        Assert.assertTrue(stable > 65280 && unstable < 100, String.format("""
                     stable: %d
                     unstable: %d
-                    %s
                 """,
                 stable,
-                unstable,
-                errorStats.entrySet().stream().map(e -> e.getKey() +
-                        " errors: "
-                        + e.getValue().values().stream().mapToInt(Integer::intValue).sum()).collect(Collectors.joining("\n    "))
-                ));
+                unstable));
     }
 
-    private void testCompaction(Path path) throws Exception {
+    private void testRoundTripStability(Path path) throws Exception {
         var clm = CF.parse(path);
         for (var originalModel : clm.methods()) {
-            if (originalModel.code().isPresent()) {
-                CoreOp.FuncOp lift = lift(originalModel);
-                MethodModel gen = lower(lift);
-                MethodModel compact = compact(gen);
-                CoreOp.FuncOp liftGen = lift(gen);
-                CoreOp.FuncOp liftCompact = lift(compact);
-                if (!liftGen.toText().equals(liftCompact.toText())) {
-                    System.out.println(path);
-                    System.out.println(originalModel.methodName().stringValue());
-                    printInColumns(liftGen, liftCompact);
-                    printInColumns(normalize(gen), normalize(compact));
+            if (originalModel.code().isPresent() && (METHOD_NAME == null || originalModel.methodName().equalsString(METHOD_NAME))) {
+                bytecode = originalModel;
+                reflection = null;
+                MethodModel prevBytecode = null;
+                CoreOp.FuncOp prevReflection = null;
+                for (int round = 1; round <= ROUNDS; round++) try {
+                    prevBytecode = bytecode;
+                    prevReflection = reflection;
+                    lift();
+                    verifyReflection();
+                    generate();
+                    verifyBytecode();
+                } catch (Throwable t) {
+                    System.out.println(" at " + path + " " + originalModel.methodName() + originalModel.methodType() + " round " + round);
+                    throw t;
+                }
+                if (ROUNDS > 0) {
+                    var normPrevBytecode = normalize(prevBytecode);
+                    var normBytecode = normalize(bytecode);
+                    if (normPrevBytecode.equals(normBytecode)) {
+                        stable++;
+                    } else {
+                        unstable++;
+                        printInColumns(normPrevBytecode, normBytecode);
+                        printInColumns(prevReflection, reflection);
+                    }
                 }
             }
         }
     }
 
-    private void testDoubleRoundtripStability(Path path) throws Exception {
-        var clm = CF.parse(path);
-        for (var originalModel : clm.methods()) {
-            if (originalModel.code().isPresent()) try {
-                CoreOp.FuncOp firstLift = lift(originalModel);
-                verify("first lift verify", firstLift);
-//                try {
-//                    MethodModel firstModel = lower(firstLift);
-//                    verify("first gen verify", firstModel);
-//                    try {
-//                        CoreOp.FuncOp secondLift = lift(firstModel);
-//                        verify("second lift verify", firstLift);
-//                        try {
-//                            MethodModel secondModel = lower(secondLift);
-//                            verify("second gen verify", secondModel);
-//                            try {
-//                                CoreOp.FuncOp thirdLift = lift(secondModel);
-//                                verify("third lift verify", firstLift);
-//                                try {
-//                                    MethodModel thirdModel = lower(thirdLift);
-//                                    verify("third gen verify", thirdModel);
-//                                    // testing only methods passing through
-//                                    var secondNormalized = normalize(secondModel);
-//                                    var thirdNormalized = normalize(thirdModel);
-//                                    if (!thirdNormalized.equals(secondNormalized)) {
-//                                        unstable++;
-//                                        System.out.println(clm.thisClass().asInternalName() + "::" + originalModel.methodName().stringValue() + originalModel.methodTypeSymbol().displayDescriptor());
-//                                        printInColumns(secondLift, thirdLift);
-//                                        printInColumns(secondNormalized, thirdNormalized);
-//                                        System.out.println();
-//                                    } else {
-//                                        stable++;
-//                                    }
-//                                } catch (Throwable t) {
-//                                    error("third gen", t);
-//                                }
-//                            } catch (Throwable t) {
-//                                error("third lift", t);
-//                            }
-//                        } catch (Throwable t) {
-//                            error("second gen", t);
-//                        }
-//                    } catch (Throwable t) {
-//                        error("second lift", t);
-//                    }
-//                } catch (Throwable t) {
-//                    error("first gen", t);
-//                }
-            } catch (Throwable t) {
-//                int size = originalModel.code().get().elementList().size();
-//                if (size < minSize) {
-//                    minSize = size;
-//                    minPath = path;
-//                    minName = originalModel.methodName().stringValue();
-//                }
-                error("first lift", t);
-                throw t;
-            }
-        }
-    }
-
-    private void verify(String category, CoreOp.FuncOp func) {
-        OpWriter.CodeItemNamerOption naming = func.traverse(null, CodeElement.opVisitor((n, op) -> {
+    private void verifyReflection() {
+        reflection.traverse(null, CodeElement.opVisitor((n, op) -> {
             for (Value v : op.operands()) {
                 // Verify operands dominance
                 if (!op.result().isDominatedBy(v)) {
-                    if (n == null) {
-                        n = OpWriter.CodeItemNamerOption.of(OpWriter.computeGlobalNames(func));
-                    }
-                    error(category, "block_%d %s is not dominated by its operand declaration in block_%d".formatted(
-                            op.parentBlock().index(), OpWriter.toText(op, n), v.declaringBlock().index()));
+                    printBytecode();
+                    var naming = OpWriter.CodeItemNamerOption.of(OpWriter.computeGlobalNames(reflection));
+                    System.out.println(OpWriter.toText(reflection, naming));
+                    System.out.println("Reflection verification failed");
+                    throw new AssertionError("block_%d %s is not dominated by its operand declaration in block_%d".formatted(
+                            op.parentBlock().index(), OpWriter.toText(op, naming), v.declaringBlock().index()));
                 }
             }
-            return n;
+            return null;
         }));
-        if (naming != null) {
-            System.out.println(OpWriter.toText(func, naming));
-        }
     }
 
-    private void verify(String category, MethodModel model) {
-        for (var e : ClassFile.of().verify(model.parent().get())) {
+    private void verifyBytecode() {
+        for (var e : ClassFile.of().verify(bytecode.parent().get())) {
             if (!e.getMessage().contains("Illegal call to internal method")) {
-                error(category, e.getMessage());
+                printReflection();
+                printBytecode();
+                System.out.println("Bytecode verification failed");
+                throw new AssertionError(e.getMessage());
             }
         }
     }
@@ -244,18 +179,36 @@ public class TestSmallCorpus {
         }
     }
 
-    private static CoreOp.FuncOp lift(MethodModel mm) {
-        return BytecodeLift.lift(mm);
+    private void lift() {
+        try {
+            reflection = BytecodeLift.lift(bytecode, TRUSTED_LOOKUP);
+        } catch (Throwable t) {
+            printReflection();
+            printBytecode();
+            System.out.println("Lift failed");
+            throw t;
+        }
     }
 
-    private static MethodModel lower(CoreOp.FuncOp func) {
-        return CF.parse(BytecodeGenerator.generateClassData(
+    private void generate() {
+        try {
+            bytecode = CF.parse(BytecodeGenerator.generateClassData(
                 TRUSTED_LOOKUP,
-                func)).methods().getFirst();
+                reflection)).methods().getFirst();
+        } catch (Throwable t) {
+            printBytecode();
+            printReflection();
+            System.out.println("Generation failed");
+            throw t;
+        }
     }
 
-    private static MethodModel compact(MethodModel mm) {
-        return CF.parse(CF.transform(mm.parent().get(), LocalsCompactor.INSTANCE)).methods().getFirst();
+    private void printBytecode() {
+        ClassPrinter.toYaml(bytecode, ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES, System.out::print);
+    }
+
+    private void printReflection() {
+        if (reflection != null) System.out.println(reflection.toText());
     }
 
     public static List<String> normalize(MethodModel mm) {
@@ -331,16 +284,5 @@ public class TestSmallCorpus {
         var name = opcode.toString();
         int i = name.indexOf('_');
         return i > 2 ? name.substring(0, i) : name;
-    }
-
-    private void error(String category, Throwable t) {
-        StringWriter sw = new StringWriter();
-        t.printStackTrace(new PrintWriter(sw));
-        error(category, sw.toString());
-    }
-
-    private void error(String category, String msg) {
-        errorStats.computeIfAbsent(category, _ -> new HashMap<>())
-                  .compute(msg, (_, i) -> i == null ? 1 : i + 1);
     }
 }
