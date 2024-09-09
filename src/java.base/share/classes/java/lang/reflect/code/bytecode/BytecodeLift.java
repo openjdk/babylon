@@ -73,6 +73,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
+import java.lang.invoke.MethodHandles;
 import java.util.BitSet;
 
 public final class BytecodeLift {
@@ -101,6 +102,7 @@ public final class BytecodeLift {
     private static final MethodRef METHOD_TYPE_1 = MethodRef.method(MT, "methodType", MT, JavaType.J_L_CLASS, JavaType.J_L_CLASS);
     private static final MethodRef METHOD_TYPE_L = MethodRef.method(MT, "methodType", MT, JavaType.J_L_CLASS, CLASS_ARRAY);
 
+    private final MethodHandles.Lookup lookup;
     private final Block.Builder entryBlock;
     private final ClassModel classModel;
     private final CodeAttribute codeAttribtue;
@@ -114,7 +116,8 @@ public final class BytecodeLift {
     private final List<Value> initLocalValues;
     private Block.Builder currentBlock;
 
-    private BytecodeLift(Block.Builder entryBlock, ClassModel classModel, CodeModel codeModel, Value... capturedValues) {
+    private BytecodeLift(MethodHandles.Lookup lookup, Block.Builder entryBlock, ClassModel classModel, CodeModel codeModel, Value... capturedValues) {
+        this.lookup = lookup;
         this.entryBlock = entryBlock;
         this.currentBlock = entryBlock;
         this.classModel = classModel;
@@ -134,7 +137,7 @@ public final class BytecodeLift {
                 initLocalValues.add(null);
             }
         });
-        this.codeTracker = new LocalsTypeMapper(classModel.thisClass().asSymbol(), initLocalTypes, codeModel.exceptionHandlers(), smta, elements, codeAttribtue);
+        this.codeTracker = new LocalsTypeMapper(classModel.thisClass().asSymbol(), initLocalTypes, codeModel.exceptionHandlers(), smta, elements, codeAttribtue, lookup);
         this.blockMap = smta.map(sma ->
                 sma.entries().stream().collect(Collectors.toUnmodifiableMap(
                         StackMapFrameInfo::target,
@@ -266,6 +269,10 @@ public final class BytecodeLift {
     }
 
     public static CoreOp.FuncOp lift(MethodModel methodModel) {
+        return lift(methodModel, MethodHandles.lookup());
+    }
+
+    public static CoreOp.FuncOp lift(MethodModel methodModel, MethodHandles.Lookup lookup) {
         ClassModel classModel = methodModel.parent().orElseThrow();
         MethodTypeDesc mDesc = methodModel.methodTypeSymbol();
         if (!methodModel.flags().has(AccessFlag.STATIC)) {
@@ -274,7 +281,8 @@ public final class BytecodeLift {
         return CoreOp.func(
                 methodModel.methodName().stringValue(),
                 MethodRef.ofNominalDescriptor(mDesc)).body(entryBlock ->
-                        new BytecodeLift(entryBlock,
+                        new BytecodeLift(lookup,
+                                         entryBlock,
                                          classModel,
                                          methodModel.code().orElseThrow()).liftBody());
     }
@@ -580,7 +588,8 @@ public final class BytecodeLift {
                             // inline lambda impl method
                             MethodModel implMethod = classModel.methods().stream().filter(m -> m.methodName().equalsString(dmhd.methodName())).findFirst().orElseThrow();
                             stack.push(op(lambda.body(
-                                    eb -> new BytecodeLift(eb,
+                                    eb -> new BytecodeLift(lookup,
+                                                           eb,
                                                            classModel,
                                                            implMethod.code().orElseThrow(),
                                                            capturedValues).liftBody())));

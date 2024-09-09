@@ -50,6 +50,7 @@ import java.util.stream.Collectors;
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
 import java.lang.classfile.components.ClassPrinter;
 import static java.lang.constant.ConstantDescs.*;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.type.JavaType;
 import java.util.ArrayDeque;
@@ -158,15 +159,17 @@ final class LocalsTypeMapper {
     private final Map<Label, Frame> stackMap;
     private final Map<Label, ClassDesc> newMap;
     private final CodeAttribute ca;
+    private final MethodHandles.Lookup lookup;
     private boolean frameDirty;
     final List<Slot> slotsToInitialize;
 
     LocalsTypeMapper(ClassDesc thisClass,
-                         List<ClassDesc> initFrameLocals,
-                         List<ExceptionCatch> exceptionHandlers,
-                         Optional<StackMapTableAttribute> stackMapTableAttribute,
-                         List<CodeElement> codeElements,
-                         CodeAttribute ca) {
+                     List<ClassDesc> initFrameLocals,
+                     List<ExceptionCatch> exceptionHandlers,
+                     Optional<StackMapTableAttribute> stackMapTableAttribute,
+                     List<CodeElement> codeElements,
+                     CodeAttribute ca,
+                     MethodHandles.Lookup lookup) {
         this.insMap = new HashMap<>();
         this.thisClass = thisClass;
         this.exceptionHandlers = exceptionHandlers;
@@ -177,6 +180,7 @@ final class LocalsTypeMapper {
         this.newMap = computeNewMap(codeElements);
         this.slotsToInitialize = new ArrayList<>();
         this.ca = ca;
+        this.lookup = lookup;
         this.stackMap = stackMapTableAttribute.map(a -> a.entries().stream().collect(Collectors.toMap(
                 StackMapFrameInfo::target,
                 this::toFrame))).orElse(Map.of());
@@ -430,7 +434,7 @@ final class LocalsTypeMapper {
         if (s != null) {
             for (int i = where.size(); i <= slot; i++) where.add(null);
             Slot prev = where.set(slot, s);
-            if (prev != null) {
+            if (prev != null && isAssignable(prev.type, s.type)) {
                 prev.link(s);
             }
         }
@@ -639,7 +643,7 @@ final class LocalsTypeMapper {
         for (int i = 0; i < lSize; i++) {
             Slot le = locals.get(i);
             Slot fe = targetFrame.locals.get(i);
-            if (le != null && fe != null) {
+            if (le != null && fe != null && isAssignable(le.type, fe.type)) {
                 le.link(fe); // Link target frame var with its source
                 if (!le.type.equals(fe.type)) {
                     if (le.type.isPrimitive() && CD_int.equals(fe.type) ) {
@@ -648,6 +652,23 @@ final class LocalsTypeMapper {
                     }
                 }
             }
+        }
+    }
+
+    boolean isAssignable(ClassDesc from, ClassDesc to) {
+        if (from.equals(to)) {
+            return true;
+        }
+        if (from.isPrimitive() || to.isPrimitive()) {
+            return TypeKind.from(from).asLoadable() == TypeKind.from(to).asLoadable();
+        }
+        if (from == NULL_TYPE || to.equals(CD_Object)) {
+            return true;
+        }
+        try {
+            return to.resolveConstantDesc(lookup).isAssignableFrom(from.resolveConstantDesc(lookup));
+        } catch (ReflectiveOperationException ex) {
+            throw new RuntimeException(ex);
         }
     }
 }
