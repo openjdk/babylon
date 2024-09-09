@@ -130,8 +130,8 @@ public final class BytecodeGenerator {
      * @return the class file bytes
      */
     public static byte[] generateClassData(MethodHandles.Lookup lookup, FuncOp fop) {
-        return ClassFile.of().transform(ClassFile.of().parse(generateClassData(lookup, fop.funcName(), fop)), LocalsCompactor.INSTANCE);
-//        return generateClassData(lookup, fop.funcName(), fop);
+//        return ClassFile.of().transform(ClassFile.of().parse(generateClassData(lookup, fop.funcName(), fop)), LocalsCompactor.INSTANCE);
+        return generateClassData(lookup, fop.funcName(), fop);
     }
 
     /**
@@ -206,6 +206,7 @@ public final class BytecodeGenerator {
     private final Map<Block.Parameter, Value> singlePredecessorsValues;
     private final List<LambdaOp> lambdaSink;
     private final BitSet quotable;
+    private final Map<Op, Boolean> deferCache;
     private Value oprOnStack;
 
     private BytecodeGenerator(MethodHandles.Lookup lookup,
@@ -232,6 +233,7 @@ public final class BytecodeGenerator {
         this.singlePredecessorsValues = new HashMap<>();
         this.lambdaSink = lambdaSink;
         this.quotable = quotable;
+        this.deferCache = new HashMap<>();
     }
 
     private void setExceptionRegionStack(Block.Reference target, BitSet activeRegionStack) {
@@ -349,13 +351,18 @@ public final class BytecodeGenerator {
     }
 
     // Some of the operations can be deferred
-    private static boolean canDefer(Op op) {
-        return switch (op) {
-            case ConstantOp cop -> canDefer(cop);
-            case VarOp vop -> canDefer(vop);
-            case VarAccessOp.VarLoadOp vlop -> canDefer(vlop);
-            default -> false;
-        };
+    private boolean canDefer(Op op) {
+        Boolean can = deferCache.get(op);
+        if (can == null) {
+            can = switch (op) {
+                case ConstantOp cop -> canDefer(cop);
+                case VarOp vop -> canDefer(vop);
+                case VarAccessOp.VarLoadOp vlop -> canDefer(vlop);
+                default -> false;
+            };
+            deferCache.put(op, can);
+        }
+        return can;
     }
 
     // Constant can be deferred, except for loading of a class constant, which  may throw an exception
@@ -415,7 +422,7 @@ public final class BytecodeGenerator {
     }
 
     // Var load can be deferred when not used as immediate operand
-    private static boolean canDefer(VarAccessOp.VarLoadOp op) {
+    private boolean canDefer(VarAccessOp.VarLoadOp op) {
         return !isNextUse(op.result());
     }
 
@@ -447,7 +454,7 @@ public final class BytecodeGenerator {
     }
 
     // Determines if the operation result is immediatelly used by the next operation and so can stay on stack
-    private static boolean isNextUse(Value opr) {
+    private boolean isNextUse(Value opr) {
         Op nextOp = switch (opr) {
             case Block.Parameter p -> p.declaringBlock().firstOp();
             case Op.Result r -> r.declaringBlock().nextOp(r.op());
