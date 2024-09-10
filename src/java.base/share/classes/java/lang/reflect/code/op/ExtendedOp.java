@@ -991,7 +991,9 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                     Block.Builder nextLabel = isLastLabel ? null : blocks.get(i + 2);
                     curr.transformBody(bodies().get(i), List.of(selectorExpression), opT.andThen((block, op) -> {
                         switch (op) {
-                            case YieldOp yop when yop.operands().isEmpty() -> block.op(branch(statement.successor()));
+                            case YieldOp yop when isLastLabel && this instanceof JavaSwitchExpressionOp -> {
+                                block.op(branch(statement.successor()));
+                            }
                             case YieldOp yop -> block.op(conditionalBranch(
                                     block.context().getValue(yop.yieldValue()),
                                     statement.successor(),
