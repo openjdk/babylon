@@ -496,7 +496,7 @@ final class LocalsTypeMapper {
             }
             case IncrementInstruction i -> {
                 load(i.slot(), bci);
-                insMap.put(-elIndex, locals.get(i.slot()));
+                insMap.put(-elIndex - 1, locals.get(i.slot()));
                 store(i.slot(), CD_int, bci);
                 insMap.put(elIndex, locals.get(i.slot()));
                 for (var ec : handlersStack) {

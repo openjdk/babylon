@@ -436,7 +436,7 @@ public final class BytecodeLift {
                     store(i, inst.slot(), stack.pop());
                 }
                 case IncrementInstruction inst -> {
-                    store(i, inst.slot(), op(CoreOp.add(load(-i), liftConstant(inst.constant()))));
+                    store(i, inst.slot(), op(CoreOp.add(load(-i - 1), liftConstant(inst.constant()))));
                 }
                 case ConstantInstruction inst -> {
                     stack.push(liftConstant(inst.constantValue()));
