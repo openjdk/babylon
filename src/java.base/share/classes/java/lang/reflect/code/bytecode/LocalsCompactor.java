@@ -27,6 +27,7 @@ package java.lang.reflect.code.bytecode;
 import java.lang.classfile.Attributes;
 import java.lang.classfile.ClassTransform;
 import java.lang.classfile.CodeModel;
+import java.lang.classfile.Label;
 import java.lang.classfile.MethodModel;
 import java.lang.classfile.TypeKind;
 import java.lang.classfile.attribute.StackMapFrameInfo;
@@ -46,6 +47,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
+import java.lang.classfile.instruction.SwitchCase;
 import static java.lang.constant.ConstantDescs.CD_double;
 import static java.lang.constant.ConstantDescs.CD_long;
 
@@ -91,15 +93,16 @@ public final class LocalsCompactor {
     private final List<BitSet> maps;
     private final BitSet doubleSlots;
     private final int[] slotMap;
+    private final Map<Label, BitSet> frames;
 
     private LocalsCompactor(CodeModel com, int fixedSlots) {
-        var frames = com.findAttribute(Attributes.stackMapTable()).map(
+        doubleSlots = new BitSet();
+        frames = com.findAttribute(Attributes.stackMapTable()).map(
                 smta -> smta.entries().stream().collect(
-                        Collectors.toMap(StackMapFrameInfo::target, StackMapFrameInfo::locals)))
+                        Collectors.toMap(StackMapFrameInfo::target, smfi -> toSlots(smfi.locals()))))
                 .orElse(Map.of());
         var exceptionHandlers = com.exceptionHandlers();
         maps = new ArrayList<>();
-        doubleSlots = new BitSet();
         int pc = 0;
         // Initialization of fixed slots
         for (int slot = 0; slot < fixedSlots; slot++) {
@@ -108,44 +111,33 @@ public final class LocalsCompactor {
         for (var e : com) {
             switch(e) {
                 case LabelTarget lt -> {
-                    var frame = frames.get(lt.label());
-                    if (frame != null) {
-                        int slot = 0;
-                        for (var vti : frame) {
-                            boolean doubleSlot = vti == ITEM_LONG || vti == ITEM_DOUBLE;
-                            if (vti != ITEM_TOP) {
-                                store(pc, slot, doubleSlot);
-                            }
-                            slot += doubleSlot ? 2 : 1;
-                        }
-                    }
                     for (var eh : exceptionHandlers) {
                         if (eh.tryStart() == lt.label()) {
-                            load(pc, frames.get(eh.handler()));
+                            mergeFrom(pc, eh.handler());
                         }
                     }
                 }
                 case LoadInstruction li ->
                     load(pc, li.slot(), li.typeKind());
                 case StoreInstruction si ->
-                    store(pc, si.slot(), si.typeKind() == TypeKind.LongType || si.typeKind() == TypeKind.DoubleType);
+                    store(pc, si.slot(), si.typeKind());
                 case IncrementInstruction ii ->
-                    load(pc, ii.slot(), false);
+                    loadSingle(pc, ii.slot());
                 case BranchInstruction bi ->
-                    load(pc, frames.get(bi.target()));
+                    mergeFrom(pc, bi.target());
                 case LookupSwitchInstruction si -> {
-                    load(pc, frames.get(si.defaultTarget()));
+                    mergeFrom(pc, si.defaultTarget());
                     for (var sc : si.cases()) {
-                        load(pc, frames.get(sc.target()));
+                        mergeFrom(pc, sc.target());
                     }
                 }
                 case TableSwitchInstruction si -> {
-                    load(pc, frames.get(si.defaultTarget()));
+                    mergeFrom(pc, si.defaultTarget());
                     for (var sc : si.cases()) {
-                        load(pc, frames.get(sc.target()));
+                        mergeFrom(pc, sc.target());
                     }
                 }
-                default -> {}
+                default -> pc--;
             }
             pc++;
         }
@@ -177,6 +169,19 @@ public final class LocalsCompactor {
         }
     }
 
+    private BitSet toSlots(List<StackMapFrameInfo.VerificationTypeInfo> vtis) {
+        var slots = new BitSet();
+        int slot = 0;
+        for (var vti : vtis) {
+            slots.set(slot++, vti != StackMapFrameInfo.SimpleVerificationTypeInfo.ITEM_TOP);
+            if (vti == StackMapFrameInfo.SimpleVerificationTypeInfo.ITEM_LONG || vti == StackMapFrameInfo.SimpleVerificationTypeInfo.ITEM_DOUBLE) {
+                doubleSlots.set(slot, slot + 2);
+                slots.set(slot++);
+            }
+        }
+        return slots;
+    }
+
     private BitSet getMap(int slot) {
         while (slot >= maps.size()) {
             maps.add(new BitSet());
@@ -184,36 +189,31 @@ public final class LocalsCompactor {
         return maps.get(slot);
     }
 
-    private void load(int pc, int slot, boolean doubleSlot) {
+    private void loadSingle(int pc, int slot) {
         BitSet map = getMap(slot);
         int start = map.nextSetBit(0) + 1;
         map.set(start, pc + 1);
-        if (doubleSlot) {
+    }
+
+    private void load(int pc, int slot, TypeKind tk) {
+        BitSet map = getMap(slot);
+        int start = map.nextSetBit(0) + 1;
+        map.set(start, pc + 1);
+        if (tk.slotSize() == 2) {
             doubleSlots.set(slot, slot + 2);
             getMap(slot + 1).set(start, pc + 1);
         }
     }
 
-    private void load(int pc, int slot, TypeKind tk) {
-        load(pc, slot, tk == TypeKind.LongType || tk == TypeKind.DoubleType);
+    private void mergeFrom(int pc, Label target) {
+        frames.get(target).stream().forEach(slot -> {
+            loadSingle(pc, slot);
+        });
     }
 
-    private void load(int pc, List<StackMapFrameInfo.VerificationTypeInfo> frame) {
-        if (frame != null) {
-            int slot = 0;
-            for (var vti : frame) {
-                boolean doubleSlot = vti == ITEM_LONG || vti == ITEM_DOUBLE;
-                if (vti != ITEM_TOP) {
-                    load(pc, slot, doubleSlot);
-                }
-                slot += doubleSlot ? 2 : 1;
-            }
-        }
-    }
-
-    private void store(int pc, int slot, boolean doubleSlot) {
+    private void store(int pc, int slot, TypeKind tk) {
         getMap(slot).set(pc);
-        if (doubleSlot) {
+        if (tk.slotSize() == 2) {
             doubleSlots.set(slot, slot + 2);
             getMap(slot + 1).set(pc);
         }
