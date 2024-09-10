@@ -90,13 +90,13 @@ public final class LocalsCompactor {
     }
 
     static final class Slot {
-        final BitSet map = new BitSet();
-        int flags;
+        final BitSet map = new BitSet(); // Liveness map of the slot
+        int flags; // 0 - single slot, 1 - first of double slots, 2 - second of double slots, 3 - mixed
     }
 
-    private final List<Slot> maps;
-    private final int[] slotMap;
+    private final List<Slot> maps; // Intermediate slots liveness maps
     private final Map<Label, List<StackMapFrameInfo.VerificationTypeInfo>> frames;
+    private final int[] slotMap; // Output mapping of the slots
 
     private LocalsCompactor(CodeModel com, int fixedSlots) {
         frames = com.findAttribute(Attributes.stackMapTable()).map(
@@ -110,6 +110,7 @@ public final class LocalsCompactor {
         for (int slot = 0; slot < fixedSlots; slot++) {
             getMap(slot).map.set(0);
         }
+        // Filling the slots liveness maps
         for (var e : com) {
             switch(e) {
                 case LabelTarget lt -> {
@@ -143,10 +144,12 @@ public final class LocalsCompactor {
             }
             pc++;
         }
+        // Initialization of slots mapping
         slotMap = new int[maps.size()];
         for (int slot = 0; slot < slotMap.length; slot++) {
             slotMap[slot] = slot;
         }
+        // Iterative merging of slots
         for (int targetSlot = 0; targetSlot < maps.size() - 1; targetSlot++) {
             for (int sourceSlot = Math.max(targetSlot + 1, fixedSlots); sourceSlot < maps.size(); sourceSlot++) {
                 Slot source = maps.get(sourceSlot);
@@ -154,6 +157,7 @@ public final class LocalsCompactor {
                 if (source.flags == 0) {
                     Slot target = maps.get(targetSlot);
                     if (!target.map.intersects(source.map)) {
+                        // Single re-mapping, merge of the liveness maps and shift of the following slots by 1 left
                         target.map.or(source.map);
                         maps.remove(sourceSlot);
                         for (int slot = 0; slot < slotMap.length; slot++) {
@@ -171,6 +175,7 @@ public final class LocalsCompactor {
                         Slot target = maps.get(targetSlot);
                         Slot target2 = maps.get(targetSlot + 1);
                         if (!target.map.intersects(source.map) && !target2.map.intersects(source2.map)) {
+                            // Double re-mapping, merge of the liveness maps and shift of the following slots by 2 left
                             target.map.or(source.map);
                             target2.map.or(source2.map);
                             maps.remove(sourceSlot + 1);

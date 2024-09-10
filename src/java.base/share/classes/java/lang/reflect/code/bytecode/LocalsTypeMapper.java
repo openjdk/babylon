@@ -287,6 +287,7 @@ final class LocalsTypeMapper {
             }
         }
 
+        // @@@ only for debugging purpose
         if (BytecodeLift.DUMP) {
             ClassPrinter.toYaml(ca, ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES, System.out::print);
             System.out.println("digraph {");
