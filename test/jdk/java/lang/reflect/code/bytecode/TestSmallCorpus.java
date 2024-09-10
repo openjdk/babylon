@@ -27,6 +27,7 @@ import java.lang.classfile.Instruction;
 import java.lang.classfile.Label;
 import java.lang.classfile.MethodModel;
 import java.lang.classfile.Opcode;
+import java.lang.classfile.attribute.CodeAttribute;
 import java.lang.classfile.components.ClassPrinter;
 import java.lang.classfile.instruction.*;
 import java.lang.invoke.MethodHandles;
@@ -78,13 +79,15 @@ public class TestSmallCorpus {
 
     private MethodModel bytecode;
     CoreOp.FuncOp reflection;
-    private int stable, unstable;
+    private int stable, unstable, originalMaxLocals, maxLocals;
 
-    @Ignore
+//    @Ignore
     @Test
     public void testRoundTripStability() throws Exception {
         stable = 0;
         unstable = 0;
+        originalMaxLocals = 0;
+        maxLocals = 0;
         for (Path p : Files.walk(JRT.getPath(ROOT_PATH))
                 .filter(p -> Files.isRegularFile(p) && p.toString().endsWith(CLASS_NAME_SUFFIX))
                 .toList()) {
@@ -92,7 +95,7 @@ public class TestSmallCorpus {
         }
 
         // Roundtrip is >99% stable, no exceptions, no verification errors
-        Assert.assertTrue(stable > 65290 && unstable < 100, String.format("stable: %d unstable: %d", stable, unstable));
+        Assert.assertTrue(stable > 65290 && unstable < 10, String.format("stable: %d unstable: %d original maxLocals: %d maxLocals: %d", stable, unstable, originalMaxLocals, maxLocals));
     }
 
     private void testRoundTripStability(Path path) throws Exception {
@@ -126,6 +129,8 @@ public class TestSmallCorpus {
                         printInColumns(prevReflection, reflection);
                         System.out.println();
                     }
+                    originalMaxLocals += ((CodeAttribute)originalModel.code().get()).maxLocals();
+                    maxLocals += ((CodeAttribute)bytecode.code().get()).maxLocals();
                 }
             }
         }
