@@ -1516,8 +1516,12 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         public Map<String, Object> attributes() {
             HashMap<String, Object> m = new HashMap<>(super.attributes());
             m.put("", invokeDescriptor);
-            m.put(ATTRIBUTE_INVOKE_KIND, invokeKind);
-            m.put(ATTRIBUTE_INVOKE_VARARGS, isVarArgs);
+            if (isVarArgs) {
+                m.put(ATTRIBUTE_INVOKE_KIND, invokeKind);
+                m.put(ATTRIBUTE_INVOKE_VARARGS, isVarArgs);
+            } else if (invokeKind == InvokeKind.SUPER) {
+                m.put(ATTRIBUTE_INVOKE_KIND, invokeKind);
+            }
             return Collections.unmodifiableMap(m);
         }
 
