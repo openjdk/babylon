@@ -830,7 +830,6 @@ public class ReflectMethods extends TreeTranslator {
             // Capture applying rhs and operation
             Function<Value, Value> scanRhs = (lhs) -> {
                 Type unboxedType = types.unboxedTypeOrType(tree.type);
-                // if string concat and rhs is primitive, toValue(rhs)
                 Value rhs;
                 if (tree.operator.opcode == ByteCodes.string_add && tree.rhs.type.isPrimitive()) {
                     rhs = toValue(tree.rhs);
