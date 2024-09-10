@@ -970,7 +970,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 exit = b;
             } else {
                 exit = b.block(resultType());
-                if (resultType() != VOID) {
+                if (this instanceof JavaSwitchExpressionOp) {
                     exit.context().mapValue(result(), exit.parameters().get(0));
                 }
             }
