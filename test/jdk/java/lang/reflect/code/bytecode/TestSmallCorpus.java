@@ -92,12 +92,7 @@ public class TestSmallCorpus {
         }
 
         // Roundtrip is >99% stable, no exceptions, no verification errors
-        Assert.assertTrue(stable > 65280 && unstable < 100, String.format("""
-                    stable: %d
-                    unstable: %d
-                """,
-                stable,
-                unstable));
+        Assert.assertTrue(stable > 65290 && unstable < 100, String.format("stable: %d unstable: %d", stable, unstable));
     }
 
     private void testRoundTripStability(Path path) throws Exception {
@@ -126,8 +121,10 @@ public class TestSmallCorpus {
                         stable++;
                     } else {
                         unstable++;
+                        System.out.println("Unstable code " + path + " " + originalModel.methodName() + originalModel.methodType() + " after " + ROUNDS +" round(s)");
                         printInColumns(normPrevBytecode, normBytecode);
                         printInColumns(prevReflection, reflection);
+                        System.out.println();
                     }
                 }
             }
