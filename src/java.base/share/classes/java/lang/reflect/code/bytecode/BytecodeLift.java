@@ -78,7 +78,7 @@ import java.util.BitSet;
 
 public final class BytecodeLift {
 
-    public static boolean DUMP = false;
+    public static boolean DUMP = false; // @@@ only for debugging purpose
 
     private record ExceptionRegion(Label startLabel, Label endLabel, Label handlerLabel) {}
     private record ExceptionRegionEntry(Op.Result enter, Block.Builder startBlock, ExceptionRegion region) {}

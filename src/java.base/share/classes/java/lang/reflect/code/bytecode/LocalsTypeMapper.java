@@ -98,7 +98,7 @@ final class LocalsTypeMapper {
 
         private record Link(Slot slot, Link other) {}
 
-        int bci, sl;
+        int bci, sl; // @@@ only for debugging purpose
         Kind kind;
         ClassDesc type;
         Variable var;
@@ -121,6 +121,7 @@ final class LocalsTypeMapper {
 
         @Override
         public String toString() {
+             // @@@ only for debugging purpose
             return "%d: #%d %s %s var:%s".formatted(bci, sl, kind, type.displayName(),  var == null ? null : var.toString());
         }
 
@@ -176,7 +177,7 @@ final class LocalsTypeMapper {
         this.allSlots = new LinkedHashSet<>();
         this.newMap = computeNewMap(codeElements);
         this.slotsToInitialize = new ArrayList<>();
-        this.ca = ca;
+        this.ca = ca; // @@@ only for debugging purpose
         this.stackMap = stackMapTableAttribute.map(a -> a.entries().stream().collect(Collectors.toMap(
                 StackMapFrameInfo::target,
                 this::toFrame))).orElse(Map.of());
@@ -326,7 +327,7 @@ final class LocalsTypeMapper {
             fstack.add(vtiToStackType(vti));
         }
         int i = 0;
-        int bci = ca.labelToBci(smfi.target());
+        int bci = ca.labelToBci(smfi.target()); //@@@ only for debugging purpose
         for (var vti : smfi.locals()) {
             store(i, vtiToStackType(vti), flocals, Slot.Kind.FRAME, bci);
             i += vti == ITEM_DOUBLE || vti == ITEM_LONG ? 2 : 1;
@@ -361,7 +362,7 @@ final class LocalsTypeMapper {
         s.kind = kind;
         s.type = type;
         s.bci = bci;
-        s.sl = sl;
+        s.sl = sl; // @@@ only for debugging purpose
         allSlots.add(s);
         return s;
     }
