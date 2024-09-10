@@ -444,7 +444,7 @@ public class NullTest {
     @IR("""
             func @"test16" (%0 : NullTest)void -> {
                 %1 : java.lang.String = constant @null;
-                invoke %1 @"NullTest::m(java.lang.String, java.lang.String[])void";
+                invoke %1 @invoke.kind="STATIC" @invoke.varargs="true" @"NullTest::m(java.lang.String, java.lang.String[])void";
                 return;
             };
             """)
@@ -457,7 +457,7 @@ public class NullTest {
             func @"test17" (%0 : NullTest)void -> {
                 %1 : java.lang.String = constant @null;
                 %2 : java.lang.String[] = constant @null;
-                invoke %1 %2 @"NullTest::m(java.lang.String, java.lang.String[])void";
+                invoke %1 %2 @invoke.kind="STATIC" @invoke.varargs="false" @"NullTest::m(java.lang.String, java.lang.String[])void";
                 return;
             };
             """)
@@ -471,7 +471,7 @@ public class NullTest {
                 %1 : java.lang.String = constant @null;
                 %2 : java.lang.String = constant @null;
                 %3 : java.lang.String = constant @null;
-                invoke %1 %2 %3 @"NullTest::m(java.lang.String, java.lang.String[])void";
+                invoke %1 %2 %3 @invoke.kind="STATIC" @invoke.varargs="true" @"NullTest::m(java.lang.String, java.lang.String[])void";
                 return;
             };
             """)

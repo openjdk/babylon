@@ -835,9 +835,9 @@ public final class BytecodeGenerator {
                                 processOperands(op);
                                 cob.invokespecial(
                                         ((JavaType) op.resultType()).toNominalDescriptor(),
-                                        ConstantDescs.INIT_NAME,
+                                        INIT_NAME,
                                         MethodRef.toNominalDescriptor(op.constructorType())
-                                                 .changeReturnType(ConstantDescs.CD_void));
+                                                 .changeReturnType(CD_void));
                             }
                             default ->
                                 throw new IllegalArgumentException("Invalid return type: "
@@ -859,27 +859,24 @@ public final class BytecodeGenerator {
                         }
                         // Determine invoke opcode
                         final boolean isInterface = refClass.isInterface();
-                        final boolean isInstance = op.hasReceiver();
-                        final boolean isSuper = op instanceof InvokeOp.InvokeSuperOp;
-                        Opcode invokeOpcode;
-                        if (isInstance) {
-                            if (isSuper) {
-                                // @@@ We cannot generate an invokespecial as it will result in a verify error,
-                                //     since the owner is not assignable to generated hidden class
-                                // @@@ Construct method handle via lookup.findSpecial
-                                //     using the lookup's class as the specialCaller and
-                                //     add that method handle to the to be defined hidden class's constant data
-                                //     Use and ldc+constant dynamic to access the class data,
-                                //     extract the method handle and then invoke it
-                                throw new UnsupportedOperationException("invoke super unsupported: " + op.invokeDescriptor());
-                            } else if (isInterface) {
-                                invokeOpcode = Opcode.INVOKEINTERFACE;
-                            } else {
-                                invokeOpcode = Opcode.INVOKEVIRTUAL;
-                            }
-                        } else {
-                            invokeOpcode = Opcode.INVOKESTATIC;
+                        if (op.isVarArgs()) {
+                            throw new UnsupportedOperationException("invoke varargs unsupported: " + op.invokeDescriptor());
                         }
+                        Opcode invokeOpcode = switch (op.invokeKind()) {
+                            case STATIC ->
+                                    Opcode.INVOKESTATIC;
+                            case INSTANCE ->
+                                    isInterface ? Opcode.INVOKEINTERFACE : Opcode.INVOKEVIRTUAL;
+                            case SUPER ->
+                                    // @@@ We cannot generate an invokespecial as it will result in a verify error,
+                                    //     since the owner is not assignable to generated hidden class
+                                    // @@@ Construct method handle via lookup.findSpecial
+                                    //     using the lookup's class as the specialCaller and
+                                    //     add that method handle to the to be defined hidden class's constant data
+                                    //     Use and ldc+constant dynamic to access the class data,
+                                    //     extract the method handle and then invoke it
+                                    throw new UnsupportedOperationException("invoke super unsupported: " + op.invokeDescriptor());
+                        };
                         MethodTypeDesc mDesc = MethodRef.toNominalDescriptor(md.type());
                         cob.invoke(
                                 invokeOpcode,
@@ -1257,22 +1254,6 @@ public final class BytecodeGenerator {
                 singlePredecessorsValues.put(bargs.get(i), singlePredecessorsValues.getOrDefault(value, value));
             }
         }
-    }
-
-    static DirectMethodHandleDesc resolveToMethodHandleDesc(MethodHandles.Lookup l,
-                                                            MethodRef d) throws ReflectiveOperationException {
-        MethodHandle mh = d.resolveToHandle(l);
-
-        if (mh.describeConstable().isEmpty()) {
-            throw new NoSuchMethodException();
-        }
-
-        MethodHandleDesc mhd = mh.describeConstable().get();
-        if (!(mhd instanceof DirectMethodHandleDesc dmhd)) {
-            throw new NoSuchMethodException();
-        }
-
-        return dmhd;
     }
 
     static FuncOp quote(LambdaOp lop) {

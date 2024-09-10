@@ -548,7 +548,7 @@ public class BoxingConversionTest {
                 %2 : Var<int> = var %1 @"i";
                 %3 : int = var.load %2;
                 %4 : int = var.load %2;
-                invoke %0 %3 %4 @"BoxingConversionTest::m(int, int, java.lang.Integer[])void";
+                invoke %0 %3 %4 @invoke.kind="INSTANCE" @invoke.varargs="true" @"BoxingConversionTest::m(int, int, java.lang.Integer[])void";
                 return;
             };
             """)
@@ -564,7 +564,7 @@ public class BoxingConversionTest {
                 %4 : int = var.load %2;
                 %5 : int = var.load %2;
                 %6 : java.lang.Integer = invoke %5 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                invoke %0 %3 %4 %6 @"BoxingConversionTest::m(int, int, java.lang.Integer[])void";
+                invoke %0 %3 %4 %6 @invoke.kind="INSTANCE" @invoke.varargs="true" @"BoxingConversionTest::m(int, int, java.lang.Integer[])void";
                 return;
             };
             """)
@@ -582,7 +582,7 @@ public class BoxingConversionTest {
                 %6 : java.lang.Integer = invoke %5 @"java.lang.Integer::valueOf(int)java.lang.Integer";
                 %7 : int = var.load %2;
                 %8 : java.lang.Integer = invoke %7 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                invoke %0 %3 %4 %6 %8 @"BoxingConversionTest::m(int, int, java.lang.Integer[])void";
+                invoke %0 %3 %4 %6 %8 @invoke.kind="INSTANCE" @invoke.varargs="true" @"BoxingConversionTest::m(int, int, java.lang.Integer[])void";
                 return;
             };
             """)

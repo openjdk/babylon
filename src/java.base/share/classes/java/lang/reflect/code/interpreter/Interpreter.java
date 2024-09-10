@@ -414,25 +414,11 @@ public final class Interpreter {
             }
         } else if (o instanceof CoreOp.InvokeOp co) {
             MethodType target = resolveToMethodType(l, o.opType());
-            MethodHandle mh;
-            // @@@ This does not work for vararg methods
-//            if (co.hasReceiver()) {
-//                if (co instanceof CoreOp.InvokeOp.InvokeSuperOp) {
-//                    MethodHandles.Lookup in = l.in(target.parameterType(0));
-//                    mh = resolveToMethodHandle(in, co.invokeDescriptor(), MethodRef.ResolveKind.invokeSuper);
-//                } else {
-//                    mh = resolveToMethodHandle(l, co.invokeDescriptor(), MethodRef.ResolveKind.invokeInstance);
-//                }
-//            } else {
-//                mh = resolveToMethodHandle(l, co.invokeDescriptor(), MethodRef.ResolveKind.invokeClass);
-//            }
-            if (co instanceof CoreOp.InvokeOp.InvokeSuperOp) {
-                MethodHandles.Lookup in = l.in(target.parameterType(0));
-                mh = resolveToMethodHandle(in, co.invokeDescriptor(), MethodRef.ResolveKind.invokeSuper);
-            } else {
-                // @@@ resolves to class or instance method handle
-                mh = resolveToMethodHandle(l, co.invokeDescriptor());
-            }
+            MethodHandles.Lookup il = switch (co.invokeKind()) {
+                case STATIC, INSTANCE -> l;
+                case SUPER -> l.in(target.parameterType(0));
+            };
+            MethodHandle mh = resolveToMethodHandle(il, co.invokeDescriptor(), co.invokeKind());
 
             mh = mh.asType(target).asFixedArity();
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
@@ -662,15 +648,7 @@ public final class Interpreter {
         return c.cast(v);
     }
 
-    static MethodHandle resolveToMethodHandle(MethodHandles.Lookup l, MethodRef d) {
-        try {
-            return d.resolveToHandle(l);
-        } catch (ReflectiveOperationException e) {
-            throw interpreterException(e);
-        }
-    }
-
-    static MethodHandle resolveToMethodHandle(MethodHandles.Lookup l, MethodRef d, MethodRef.ResolveKind kind) {
+    static MethodHandle resolveToMethodHandle(MethodHandles.Lookup l, MethodRef d, CoreOp.InvokeOp.InvokeKind kind) {
         try {
             return d.resolveToHandle(l, kind);
         } catch (ReflectiveOperationException e) {
