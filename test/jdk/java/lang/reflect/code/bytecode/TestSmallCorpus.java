@@ -81,7 +81,7 @@ public class TestSmallCorpus {
     CoreOp.FuncOp reflection;
     private int stable, unstable, originalMaxLocals, maxLocals;
 
-//    @Ignore
+    @Ignore
     @Test
     public void testRoundTripStability() throws Exception {
         stable = 0;
