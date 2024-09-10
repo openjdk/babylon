@@ -1005,8 +1005,8 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 } else { // statement body
                     curr.transformBody(bodies().get(i), blocks.get(i).parameters(), opT.andThen((block, op) -> {
                         switch (op) {
-                            case YieldOp yop when yop.operands().isEmpty() -> block.op(branch(exit.successor()));
-                            case YieldOp yop -> block.op(branch(exit.successor(block.context().getValue(yop.yieldValue()))));
+                            case YieldOp yop when this instanceof JavaSwitchStatementOp -> block.op(branch(exit.successor()));
+                            case YieldOp yop when this instanceof JavaSwitchExpressionOp -> block.op(branch(exit.successor(block.context().getValue(yop.yieldValue()))));
                             case Lowerable lop -> block = lop.lower(block);
                             default -> block.op(op);
                         }
