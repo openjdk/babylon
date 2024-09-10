@@ -347,4 +347,24 @@ public class PatternsTest {
             System.out.println(n);
         }
     }
+
+    @IR("""
+            func @"test8" (%0 : PatternsTest, %1 : java.lang.Object)boolean -> {
+                %2 : Var<java.lang.Object> = var %1 @"o";
+                %3 : java.lang.Object = var.load %2;
+                %4 : boolean = pattern.match %3
+                    ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
+                        %5 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.binding @"_";
+                        yield %5;
+                    }
+                    ()void -> {
+                        yield;
+                    };
+                return %4;
+            };
+            """)
+    @CodeReflection
+    boolean test8(Object o) {
+        return o instanceof String _;
+    }
 }
