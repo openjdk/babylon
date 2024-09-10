@@ -47,7 +47,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
-import java.lang.classfile.instruction.SwitchCase;
 import static java.lang.constant.ConstantDescs.CD_double;
 import static java.lang.constant.ConstantDescs.CD_long;
 
@@ -149,6 +148,7 @@ public final class LocalsCompactor {
         }
         for (int targetSlot = 0; targetSlot < maps.size() - 1; targetSlot++) {
             for (int sourceSlot = Math.max(targetSlot + 1, fixedSlots); sourceSlot < maps.size(); sourceSlot++) {
+                // @@@ re-mapping of double slots
                 if (!isDouble.get(sourceSlot)) {
                     BitSet targetMap = maps.get(targetSlot);
                     BitSet sourceMap = maps.get(sourceSlot);
@@ -173,8 +173,8 @@ public final class LocalsCompactor {
         var slots = new BitSet();
         int slot = 0;
         for (var vti : vtis) {
-            slots.set(slot++, vti != StackMapFrameInfo.SimpleVerificationTypeInfo.ITEM_TOP);
-            if (vti == StackMapFrameInfo.SimpleVerificationTypeInfo.ITEM_LONG || vti == StackMapFrameInfo.SimpleVerificationTypeInfo.ITEM_DOUBLE) {
+            slots.set(slot++, vti != ITEM_TOP);
+            if (vti == ITEM_LONG || vti == ITEM_DOUBLE) {
                 doubleSlots.set(slot, slot + 2);
                 slots.set(slot++);
             }
@@ -196,12 +196,10 @@ public final class LocalsCompactor {
     }
 
     private void load(int pc, int slot, TypeKind tk) {
-        BitSet map = getMap(slot);
-        int start = map.nextSetBit(0) + 1;
-        map.set(start, pc + 1);
+        loadSingle(pc, slot);
         if (tk.slotSize() == 2) {
+            loadSingle(pc, slot + 1);
             doubleSlots.set(slot, slot + 2);
-            getMap(slot + 1).set(start, pc + 1);
         }
     }
 
