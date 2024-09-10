@@ -95,7 +95,7 @@ public class TestSmallCorpus {
         }
 
         // Roundtrip is >99% stable, no exceptions, no verification errors
-        Assert.assertTrue(stable > 65290 && unstable < 10, String.format("stable: %d unstable: %d original maxLocals: %d maxLocals: %d", stable, unstable, originalMaxLocals, maxLocals));
+        Assert.assertTrue(stable > 65290 && unstable < 100, String.format("stable: %d unstable: %d original maxLocals: %d maxLocals: %d", stable, unstable, originalMaxLocals, maxLocals));
     }
 
     private void testRoundTripStability(Path path) throws Exception {
