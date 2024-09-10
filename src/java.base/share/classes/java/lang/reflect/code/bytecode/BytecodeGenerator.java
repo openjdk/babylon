@@ -835,9 +835,9 @@ public final class BytecodeGenerator {
                                 processOperands(op);
                                 cob.invokespecial(
                                         ((JavaType) op.resultType()).toNominalDescriptor(),
-                                        INIT_NAME,
+                                        ConstantDescs.INIT_NAME,
                                         MethodRef.toNominalDescriptor(op.constructorType())
-                                                 .changeReturnType(CD_void));
+                                                 .changeReturnType(ConstantDescs.CD_void));
                             }
                             default ->
                                 throw new IllegalArgumentException("Invalid return type: "
