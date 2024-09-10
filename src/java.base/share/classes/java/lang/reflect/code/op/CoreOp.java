@@ -1429,6 +1429,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         final TypeElement resultType;
 
         public static InvokeOp create(ExternalizedOp def) {
+            // Required attribute
             MethodRef invokeDescriptor = def.extractAttributeValue(ATTRIBUTE_INVOKE_DESCRIPTOR,
                     true, v -> switch (v) {
                         case String s -> MethodRef.ofString(s);
@@ -1453,6 +1454,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
                         case InvokeKind k -> k;
                         case null, default -> {
                             if (isVarArgs) {
+                                // If varargs then we cannot infer invoke kind
                                 throw new UnsupportedOperationException("Unsupported invoke kind value:" + v);
                             }
                             int paramCount = invokeDescriptor.type().parameterTypes().size();
@@ -1517,6 +1519,10 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             HashMap<String, Object> m = new HashMap<>(super.attributes());
             m.put("", invokeDescriptor);
             if (isVarArgs) {
+                // If varargs then we need to declare the invoke.kind attribute
+                // Given a method `A::m(A... more)` and an invocation with one
+                // operand, we don't know if that operand corresponds to the
+                // receiver or a method argument
                 m.put(ATTRIBUTE_INVOKE_KIND, invokeKind);
                 m.put(ATTRIBUTE_INVOKE_VARARGS, isVarArgs);
             } else if (invokeKind == InvokeKind.SUPER) {
