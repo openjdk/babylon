@@ -895,12 +895,12 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
         }
     }
 
-    abstract static sealed class JavaSwitch extends ExtendedOp implements Op.Nested, Op.Lowerable
+    public abstract static sealed class JavaSwitchOp extends ExtendedOp implements Op.Nested, Op.Lowerable
             permits JavaSwitchStatementOp, JavaSwitchExpressionOp {
 
         final List<Body> bodies;
 
-        public JavaSwitch(ExternalizedOp def) {
+        public JavaSwitchOp(ExternalizedOp def) {
             super(def);
 
             if (def.operands().size() != 1) {
@@ -911,7 +911,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             this.bodies = def.bodyDefinitions().stream().map(bd -> bd.build(this)).toList();
         }
 
-        JavaSwitch(JavaSwitch that, CopyContext cc, OpTransformer ot) {
+        JavaSwitchOp(JavaSwitchOp that, CopyContext cc, OpTransformer ot) {
             super(that, cc);
 
             // Copy body
@@ -919,7 +919,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                     .map(b -> b.transform(cc, ot).build(this)).toList();
         }
 
-        JavaSwitch(String name, Value target, List<Body.Builder> bodyCs) {
+        JavaSwitchOp(String name, Value target, List<Body.Builder> bodyCs) {
             super(name, List.of(target));
 
             // Each case is modelled as a contiguous pair of bodies
@@ -1050,7 +1050,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
      * The switch expression operation, that can model Java language switch expressions.
      */
     @OpFactory.OpDeclaration(JavaSwitchExpressionOp.NAME)
-    public static final class JavaSwitchExpressionOp extends JavaSwitch
+    public static final class JavaSwitchExpressionOp extends JavaSwitchOp
             implements JavaExpression {
         public static final String NAME = "java.switch.expression";
 
@@ -1089,7 +1089,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
      * The switch statement operation, that can model Java language switch statement.
      */
     @OpFactory.OpDeclaration(JavaSwitchStatementOp.NAME)
-    public static final class JavaSwitchStatementOp extends JavaSwitch
+    public static final class JavaSwitchStatementOp extends JavaSwitchOp
             implements JavaStatement {
         public static final String NAME = "java.switch.statement";
 
