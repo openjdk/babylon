@@ -89,23 +89,26 @@ public final class LocalsCompactor {
         return slots;
     }
 
-    private final List<BitSet> maps;
-    private final BitSet doubleSlots;
+    static final class Slot {
+        final BitSet map = new BitSet();
+        int flags;
+    }
+
+    private final List<Slot> maps;
     private final int[] slotMap;
-    private final Map<Label, BitSet> frames;
+    private final Map<Label, List<StackMapFrameInfo.VerificationTypeInfo>> frames;
 
     private LocalsCompactor(CodeModel com, int fixedSlots) {
-        doubleSlots = new BitSet();
         frames = com.findAttribute(Attributes.stackMapTable()).map(
                 smta -> smta.entries().stream().collect(
-                        Collectors.toMap(StackMapFrameInfo::target, smfi -> toSlots(smfi.locals()))))
+                        Collectors.toMap(StackMapFrameInfo::target, StackMapFrameInfo::locals)))
                 .orElse(Map.of());
         var exceptionHandlers = com.exceptionHandlers();
         maps = new ArrayList<>();
         int pc = 0;
         // Initialization of fixed slots
         for (int slot = 0; slot < fixedSlots; slot++) {
-            getMap(slot).set(0);
+            getMap(slot).map.set(0);
         }
         for (var e : com) {
             switch(e) {
@@ -141,21 +144,18 @@ public final class LocalsCompactor {
             pc++;
         }
         slotMap = new int[maps.size()];
-        List<Boolean> isDouble = new ArrayList<>(slotMap.length);
         for (int slot = 0; slot < slotMap.length; slot++) {
             slotMap[slot] = slot;
-            isDouble.add(doubleSlots.get(slot));
         }
         for (int targetSlot = 0; targetSlot < maps.size() - 1; targetSlot++) {
             for (int sourceSlot = Math.max(targetSlot + 1, fixedSlots); sourceSlot < maps.size(); sourceSlot++) {
-                // @@@ re-mapping of double slots
-                if (!isDouble.get(sourceSlot)) {
-                    BitSet targetMap = maps.get(targetSlot);
-                    BitSet sourceMap = maps.get(sourceSlot);
-                    if (!targetMap.intersects(sourceMap)) {
-                        targetMap.or(sourceMap);
+                Slot source = maps.get(sourceSlot);
+                // Re-mapping single slot
+                if (source.flags == 0) {
+                    Slot target = maps.get(targetSlot);
+                    if (!target.map.intersects(source.map)) {
+                        target.map.or(source.map);
                         maps.remove(sourceSlot);
-                        isDouble.remove(sourceSlot);
                         for (int slot = 0; slot < slotMap.length; slot++) {
                             if (slotMap[slot] == sourceSlot) {
                                 slotMap[slot] = targetSlot;
@@ -164,56 +164,86 @@ public final class LocalsCompactor {
                             }
                         }
                     }
+                } else if (source.flags == 1 && sourceSlot > targetSlot + 1) {
+                    Slot source2 = maps.get(sourceSlot + 1);
+                    // Re-mapping distinct double slot
+                    if (source2.flags == 2) {
+                        Slot target = maps.get(targetSlot);
+                        Slot target2 = maps.get(targetSlot + 1);
+                        if (!target.map.intersects(source.map) && !target2.map.intersects(source2.map)) {
+                            target.map.or(source.map);
+                            target2.map.or(source2.map);
+                            maps.remove(sourceSlot + 1);
+                            maps.remove(sourceSlot);
+                            for (int slot = 0; slot < slotMap.length; slot++) {
+                                if (slotMap[slot] == sourceSlot) {
+                                    slotMap[slot] = targetSlot;
+                                } else if (slotMap[slot] == sourceSlot + 1) {
+                                    slotMap[slot] = targetSlot + 1;
+                                } else if (slotMap[slot] > sourceSlot + 1) {
+                                    slotMap[slot] -= 2;
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 
-    private BitSet toSlots(List<StackMapFrameInfo.VerificationTypeInfo> vtis) {
-        var slots = new BitSet();
-        int slot = 0;
-        for (var vti : vtis) {
-            slots.set(slot++, vti != ITEM_TOP);
-            if (vti == ITEM_LONG || vti == ITEM_DOUBLE) {
-                doubleSlots.set(slot, slot + 2);
-                slots.set(slot++);
-            }
-        }
-        return slots;
-    }
-
-    private BitSet getMap(int slot) {
+    private Slot getMap(int slot) {
         while (slot >= maps.size()) {
-            maps.add(new BitSet());
+            maps.add(new Slot());
         }
         return maps.get(slot);
     }
 
-    private void loadSingle(int pc, int slot) {
-        BitSet map = getMap(slot);
-        int start = map.nextSetBit(0) + 1;
-        map.set(start, pc + 1);
+    private Slot loadSingle(int pc, int slot) {
+        Slot s =  getMap(slot);
+        int start = s.map.nextSetBit(0) + 1;
+        s.map.set(start, pc + 1);
+        return s;
     }
 
     private void load(int pc, int slot, TypeKind tk) {
-        loadSingle(pc, slot);
-        if (tk.slotSize() == 2) {
-            loadSingle(pc, slot + 1);
-            doubleSlots.set(slot, slot + 2);
+        load(pc, slot, tk.slotSize() == 2);
+    }
+
+    private void load(int pc, int slot, boolean dual) {
+        if (dual) {
+            loadSingle(pc, slot).flags |= 1;
+            loadSingle(pc, slot + 1).flags |= 2;
+        } else {
+            loadSingle(pc, slot);
         }
     }
 
     private void mergeFrom(int pc, Label target) {
-        frames.get(target).stream().forEach(slot -> {
-            loadSingle(pc, slot);
-        });
+        int slot = 0;
+        for (var vti : frames.get(target)) {
+            if (vti != ITEM_TOP) {
+                if (vti == ITEM_LONG || vti == ITEM_DOUBLE) {
+                    load(pc, slot++, true);
+                } else {
+                    loadSingle(pc, slot);
+                }
+            }
+            slot++;
+        }
+    }
+
+    private Slot storeSingle(int pc, int slot) {
+        Slot s = getMap(slot);
+        s.map.set(pc);
+        return s;
     }
 
     private void store(int pc, int slot, TypeKind tk) {
-        getMap(slot).set(pc);
         if (tk.slotSize() == 2) {
-            doubleSlots.set(slot, slot + 2);
-            getMap(slot + 1).set(pc);
+            storeSingle(pc, slot).flags |= 1;
+            storeSingle(pc, slot + 1).flags |= 2;
+        } else {
+            storeSingle(pc, slot);
         }
     }
 }
