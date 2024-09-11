@@ -55,6 +55,7 @@ import static java.lang.constant.ConstantDescs.CD_long;
 /// It collects slot maps, compacts them and transforms the Code attribute accordingly.
 ///
 /// Example of maps before compaction (max_locals = 13):
+///
 /// |  slot| 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10| 11| 12| 13|
 /// |-----:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
 /// |bci 0:| * | * |   |   |   |   |   |   |   |   |   |   |   |   |
@@ -75,6 +76,7 @@ import static java.lang.constant.ConstantDescs.CD_long;
 /// |   54:|   |   |   |   |   |   |   |   |   |   |   |   | * | * |
 ///
 /// Compact form of the maps (max_locals = 5):
+///
 /// |  slot| 0 + 12| 1 + 13|2 + 6 + 10|3 + 7 + 11|4 + 8|5 + 9|
 /// |-----:|:-----:|:-----:|:--------:|:--------:|:---:|:---:|
 /// |bci 0:|   *   |   *   |          |          |     |     |
