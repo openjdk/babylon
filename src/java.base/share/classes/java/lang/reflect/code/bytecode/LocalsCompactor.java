@@ -52,7 +52,7 @@ import static java.lang.constant.ConstantDescs.CD_long;
 
 /// LocalsCompactor transforms class to reduce allocation of local slots in the Code attribute (max_locals).
 ///
-/// It collects slot maps, compacts them and transforms the code accordingly.
+/// It collects slot maps, compacts them and transforms the Code attribute accordingly.
 ///
 /// Example of maps before compaction (max_locals = 13):
 /// |  slot| 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10| 11| 12| 13|
