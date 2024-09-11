@@ -1225,10 +1225,8 @@ public class ReflectMethods extends TreeTranslator {
                     if (!unnamedPatternVariable) {
                         variables.add(var);
                     }
-                    // pass null to signal no binding
-                    // align with JLS terminology
-                    // bindingPattern -> typePattern
-                    result = append(ExtendedOp.bindingPattern(typeToTypeElement(var.type), unnamedPatternVariable ? null : var.name.toString()));
+                    String bindingName = unnamedPatternVariable ? null : var.name.toString();
+                    result = append(ExtendedOp.typePattern(typeToTypeElement(var.type), bindingName));
                 }
 
                 @Override
