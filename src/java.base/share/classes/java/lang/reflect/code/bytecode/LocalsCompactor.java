@@ -75,7 +75,7 @@ import static java.lang.constant.ConstantDescs.CD_long;
 /// |   52:|   |   |   |   |   |   |   |   |   |   | * | * | * | * |
 /// |   54:|   |   |   |   |   |   |   |   |   |   |   |   | * | * |
 ///
-/// Compact form of the maps (max_locals = 5):
+/// Compact form of the same maps (max_locals = 5):
 ///
 /// |  slot| 0 + 12| 1 + 13|2 + 6 + 10|3 + 7 + 11|4 + 8|5 + 9|
 /// |-----:|:-----:|:-----:|:--------:|:--------:|:---:|:---:|
@@ -89,11 +89,11 @@ import static java.lang.constant.ConstantDescs.CD_long;
 /// |   27:|       |   *   |     *    |     *    |     |     |
 /// |   32:|       |   *   |     *    |     *    |  *  |  *  |
 /// |   34:|       |   *   |     *    |     *    |  *  |  *  |
-/// |   36:|       |   *   |     *    |     *    |     |     |
+/// |   36:|       |   *   |          |          |  *  |  *  |
 /// |   43:|       |   *   |     *    |     *    |     |     |
 /// |   45:|       |   *   |     *    |     *    |     |     |
-/// |   50:|   *   |   *   |     *    |     *    |  *  |  *  |
-/// |   52:|   *   |   *   |     *    |     *    |  *  |  *  |
+/// |   50:|   *   |   *   |     *    |     *    |     |     |
+/// |   52:|   *   |   *   |     *    |     *    |     |     |
 /// |   54:|   *   |   *   |          |          |     |     |
 public final class LocalsCompactor {
 
