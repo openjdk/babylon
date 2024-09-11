@@ -1660,7 +1660,7 @@ public class SwitchStatementTest {
                     (%7 : java.lang.Object)boolean -> {
                         %8 : boolean = pattern.match %7
                             ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
-                                %9 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.binding @"_";
+                                %9 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.binding;
                                 yield %9;
                             }
                             ()void -> {
@@ -1678,7 +1678,7 @@ public class SwitchStatementTest {
                     (%13 : java.lang.Object)boolean -> {
                         %14 : boolean = pattern.match %13
                             ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.util.RandomAccess> -> {
-                                %15 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.util.RandomAccess> = pattern.binding @"_";
+                                %15 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.util.RandomAccess> = pattern.binding;
                                 yield %15;
                             }
                             ()void -> {
@@ -1696,7 +1696,7 @@ public class SwitchStatementTest {
                     (%19 : java.lang.Object)boolean -> {
                         %20 : boolean = pattern.match %19
                             ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<int[]> -> {
-                                %21 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<int[]> = pattern.binding @"_";
+                                %21 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<int[]> = pattern.binding;
                                 yield %21;
                             }
                             ()void -> {
@@ -1714,7 +1714,7 @@ public class SwitchStatementTest {
                     (%25 : java.lang.Object)boolean -> {
                         %26 : boolean = pattern.match %25
                             ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.util.Stack[][]> -> {
-                                %27 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.util.Stack[][]> = pattern.binding @"_";
+                                %27 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.util.Stack[][]> = pattern.binding;
                                 yield %27;
                             }
                             ()void -> {
@@ -1732,7 +1732,7 @@ public class SwitchStatementTest {
                     (%31 : java.lang.Object)boolean -> {
                         %32 : boolean = pattern.match %31
                             ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.util.Collection[][][]> -> {
-                                %33 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.util.Collection[][][]> = pattern.binding @"_";
+                                %33 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.util.Collection[][][]> = pattern.binding;
                                 yield %33;
                             }
                             ()void -> {

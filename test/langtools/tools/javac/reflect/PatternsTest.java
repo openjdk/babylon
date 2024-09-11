@@ -354,7 +354,7 @@ public class PatternsTest {
                 %3 : java.lang.Object = var.load %2;
                 %4 : boolean = pattern.match %3
                     ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
-                        %5 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.binding @"_";
+                        %5 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.binding;
                         yield %5;
                     }
                     ()void -> {

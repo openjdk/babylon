@@ -2956,8 +2956,8 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 String name = def.extractAttributeValue(ATTRIBUTE_BINDING_NAME, true,
                         v -> switch (v) {
                             case String s -> s;
-                            case null, default ->
-                                    throw new UnsupportedOperationException("Unsupported pattern binding name value:" + v);
+                            case null -> null;
+                            default -> throw new UnsupportedOperationException("Unsupported pattern binding name value:" + v);
                         });
                 return new BindingPatternOp(def, name);
             }
@@ -2991,7 +2991,9 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             @Override
             public Map<String, Object> attributes() {
                 HashMap<String, Object> attrs = new HashMap<>(super.attributes());
-                attrs.put("", bindingName);
+                if (bindingName != null) {
+                    attrs.put("", bindingName);
+                }
                 return attrs;
             }
 
