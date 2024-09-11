@@ -269,10 +269,6 @@ public final class BytecodeLift {
     }
 
     public static CoreOp.FuncOp lift(MethodModel methodModel) {
-        return lift(methodModel, MethodHandles.lookup());
-    }
-
-    public static CoreOp.FuncOp lift(MethodModel methodModel, MethodHandles.Lookup lookup) {
         ClassModel classModel = methodModel.parent().orElseThrow();
         MethodTypeDesc mDesc = methodModel.methodTypeSymbol();
         if (!methodModel.flags().has(AccessFlag.STATIC)) {

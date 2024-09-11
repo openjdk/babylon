@@ -183,7 +183,7 @@ public class TestSmallCorpus {
 
     private void lift() {
         try {
-            reflection = BytecodeLift.lift(bytecode, TRUSTED_LOOKUP);
+            reflection = BytecodeLift.lift(bytecode);
         } catch (Throwable t) {
             printReflection();
             printBytecode();
