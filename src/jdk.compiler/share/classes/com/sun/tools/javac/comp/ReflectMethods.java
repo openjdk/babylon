@@ -1221,10 +1221,8 @@ public class ReflectMethods extends TreeTranslator {
                 @Override
                 public void visitBindingPattern(JCTree.JCBindingPattern binding) {
                     JCVariableDecl var = binding.var;
+                    variables.add(var);
                     boolean unnamedPatternVariable = var.name.isEmpty();
-                    if (!unnamedPatternVariable) {
-                        variables.add(var);
-                    }
                     String bindingName = unnamedPatternVariable ? null : var.name.toString();
                     result = append(ExtendedOp.typePattern(typeToTypeElement(var.type), bindingName));
                 }

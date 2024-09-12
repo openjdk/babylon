@@ -350,17 +350,20 @@ public class PatternsTest {
 
     @IR("""
             func @"test8" (%0 : PatternsTest, %1 : java.lang.Object)boolean -> {
-                %2 : Var<java.lang.Object> = var %1 @"o";
-                %3 : java.lang.Object = var.load %2;
-                %4 : boolean = pattern.match %3
-                    ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
-                        %5 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.type;
-                        yield %5;
-                    }
-                    ()void -> {
-                        yield;
-                    };
-                return %4;
+                   %2 : Var<java.lang.Object> = var %1 @"o";
+                   %3 : java.lang.Object = var.load %2;
+                   %4 : java.lang.String = constant @null;
+                   %5 : Var<java.lang.String> = var %4;
+                   %6 : boolean = pattern.match %3
+                       ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
+                           %7 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.type;
+                           yield %7;
+                       }
+                       (%8 : java.lang.String)void -> {
+                           var.store %5 %8;
+                           yield;
+                       };
+                   return %6;
             };
             """)
     @CodeReflection
