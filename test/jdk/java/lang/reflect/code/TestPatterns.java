@@ -105,6 +105,34 @@ public class TestPatterns {
         }
     }
 
+    @CodeReflection
+    static String recordPatterns2(Object o) {
+        return o instanceof Rectangle(_, _) ? "match" : "no-match";
+    }
+
+    @Test
+    void testRecordPattern2() {
+
+        CoreOp.FuncOp f = getFuncOp("recordPatterns2");
+        f.writeTo(System.out);
+
+        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        lf.writeTo(System.out);
+
+        {
+            Rectangle r = new Rectangle(
+                    new ColoredPoint(new ConcretePoint(1, 2), Color.BLUE),
+                    new ConcretePoint(3, 4)
+            );
+            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, r), recordPatterns2(r));
+        }
+
+        {
+            Number n = 99;
+            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, n), recordPatterns2(n));
+        }
+    }
+
 
     static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestPatterns.class.getDeclaredMethods())
