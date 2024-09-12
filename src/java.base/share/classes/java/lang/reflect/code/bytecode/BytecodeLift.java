@@ -73,8 +73,8 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
-import java.lang.invoke.MethodHandles;
 import java.util.BitSet;
+import java.util.Objects;
 
 public final class BytecodeLift {
 
@@ -109,8 +109,9 @@ public final class BytecodeLift {
     private final CodeAttribute codeAttribtue;
     private final List<ExceptionRegion> exceptionRegions;
     private final Map<Label, Block.Builder> blockMap;
-    private final LocalsTypeMapper codeTracker;
+    private final LocalsToVarMapper localsToVarMapper;
     private final List<CodeElement> elements;
+    private final Map<LocalsToVarMapper.Variable, Value> varToValueMap;
     private final Deque<Value> stack;
     private final Map<Object, Op.Result> constantCache;
     private final ArrayDeque<ExceptionRegionEntry> exceptionRegionStack;
@@ -125,6 +126,7 @@ public final class BytecodeLift {
         var smta = codeModel.findAttribute(Attributes.stackMapTable());
         this.exceptionRegions = extractExceptionRegions(codeAttribtue);
         this.elements = codeModel.elementList();
+        this.varToValueMap = new HashMap<>();
         this.stack = new ArrayDeque<>();
         List<ClassDesc> initLocalTypes = new ArrayList<>();
         this.initLocalValues = new ArrayList<>();
@@ -137,7 +139,7 @@ public final class BytecodeLift {
                 initLocalValues.add(null);
             }
         });
-        this.codeTracker = new LocalsTypeMapper(classModel.thisClass().asSymbol(), initLocalTypes, codeModel.exceptionHandlers(), smta, elements, codeAttribtue);
+        this.localsToVarMapper = new LocalsToVarMapper(classModel.thisClass().asSymbol(), initLocalTypes, codeModel.exceptionHandlers(), smta, elements, codeAttribtue);
         this.blockMap = smta.map(sma ->
                 sma.entries().stream().collect(Collectors.toUnmodifiableMap(
                         StackMapFrameInfo::target,
@@ -322,13 +324,17 @@ public final class BytecodeLift {
 
     private void liftBody() {
         // Declare initial variables
-        for (int i = 0; i < codeTracker.slotsToInitialize.size(); i++) {
-            LocalsTypeMapper.Slot sl = codeTracker.slotsToInitialize.get(i);
-            if (sl != null) {
-                if (sl.var.isSingleValue) {
-                    sl.var.value = initLocalValues.get(i);
+        for (int i = 0; i < localsToVarMapper.slotsToInit(); i++) {
+            LocalsToVarMapper.Variable v = localsToVarMapper.initSlotVariable(i);
+            if (v != null) {
+                if (v.isSingleValue()) {
+                    varToValueMap.put(v, initLocalValues.get(i)); // Single value var initialized with entry block parameter
                 } else {
-                    sl.var.value = op(CoreOp.var("slot#" + i, sl.var.type(), i < initLocalValues.size() ? initLocalValues.get(i) : liftConstant(sl.var.defaultValue())));
+                    varToValueMap.put(v, op(CoreOp.var("slot#" + i, // New var with slot# name
+                                                       JavaType.type(v.type()), // Type calculated by LocalsToVarMapper
+                                                       i < initLocalValues.size()
+                                                               ? initLocalValues.get(i) // Initialized with entry block parameter
+                                                               : liftDefaultValue(v.type())))); // Initialized with default
                 }
             }
         }
@@ -817,28 +823,35 @@ public final class BytecodeLift {
     }
 
     private Value load(int i) {
-        LocalsTypeMapper.Variable var = codeTracker.getVarOf(i);
-        if (var.isSingleValue) {
-            assert var.value != null;
-            return var.value;
+        LocalsToVarMapper.Variable var = localsToVarMapper.instructionVariable(i);
+        if (var.isSingleValue()) {
+            Value value = varToValueMap.get(var);
+            assert value != null: "Uninitialized single-value variable";
+            return value;
         } else {
-            assert var.value instanceof Op.Result r && r.op() instanceof CoreOp.VarOp;
-            return op(CoreOp.varLoad(var.value));
+            Value value = varToValueMap.get(var);
+            assert value instanceof Op.Result r && r.op() instanceof CoreOp.VarOp: "Invalid variable reference";
+            return op(CoreOp.varLoad(value));
         }
     }
 
     private void store(int i, int slot, Value value) {
-        LocalsTypeMapper.Variable var = codeTracker.getVarOf(i);
-        if (var.isSingleValue) {
-            assert var.value == null;
-            var.value = value;
+        LocalsToVarMapper.Variable var = localsToVarMapper.instructionVariable(i);
+        if (var.isSingleValue()) {
+            Value expectedNull = varToValueMap.put(var, value);
+            assert expectedNull == null: "Multiple assignements to a single-value variable";
         } else {
-            if (var.value == null) {
-                var.value = op(CoreOp.var("slot#" + slot, var.type(), value));
-            } else {
-                assert var.value instanceof Op.Result r && r.op() instanceof CoreOp.VarOp;
-                op(CoreOp.varStore(var.value, value));
-            }
+            varToValueMap.compute(var, (_, varOpResult) -> {
+                if (varOpResult == null) {
+                    return op(CoreOp.var("slot#" + slot,  // Initial variable declaration with slot# name
+                                         JavaType.type(var.type()), // Type calculated by LocalsToVarMapper
+                                         value));
+                } else {
+                    assert varOpResult instanceof Op.Result r && r.op() instanceof CoreOp.VarOp: "Invalid variable reference";
+                    op(CoreOp.varStore(varOpResult, value)); // Store into an existig variable
+                    return varOpResult;
+                }
+            });
         }
     }
 
@@ -852,6 +865,21 @@ public final class BytecodeLift {
             op(CoreOp.arrayStoreOp(array, liftConstant(i), liftConstant(constants[i])));
         }
         return array;
+    }
+
+    private Op.Result liftDefaultValue(ClassDesc type) {
+        return liftConstant(switch (TypeKind.from(type)) {
+            case BooleanType -> false;
+            case ByteType -> (byte)0;
+            case CharType -> (char)0;
+            case DoubleType -> 0d;
+            case FloatType -> 0f;
+            case IntType -> 0;
+            case LongType -> 0l;
+            case ReferenceType -> null;
+            case ShortType -> (short)0;
+            default -> throw new IllegalStateException("Invalid type " + type.displayName());
+        });
     }
 
     private Op.Result liftConstant(Object c) {

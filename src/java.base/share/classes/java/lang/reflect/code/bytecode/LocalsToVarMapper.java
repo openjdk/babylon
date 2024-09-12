@@ -28,69 +28,53 @@ import java.lang.classfile.CodeElement;
 import java.lang.classfile.Instruction;
 import java.lang.classfile.Label;
 import java.lang.classfile.Opcode;
-import java.lang.classfile.TypeKind;
 import java.lang.classfile.attribute.CodeAttribute;
 import java.lang.classfile.attribute.StackMapFrameInfo;
 import java.lang.classfile.attribute.StackMapFrameInfo.*;
 import java.lang.classfile.attribute.StackMapTableAttribute;
+import java.lang.classfile.components.ClassPrinter;
 import java.lang.classfile.instruction.*;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
 import java.lang.constant.DirectMethodHandleDesc;
 import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodTypeDesc;
-
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
-import java.lang.classfile.components.ClassPrinter;
 import static java.lang.constant.ConstantDescs.*;
-import java.lang.reflect.code.Value;
-import java.lang.reflect.code.type.JavaType;
-import java.util.ArrayDeque;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.NoSuchElementException;
-import java.util.Set;
 
-final class LocalsTypeMapper {
+final class LocalsToVarMapper {
 
-    static class Variable {
+    public static class Variable {
         private ClassDesc type;
-        boolean isSingleValue;
-        Value value;
+        private boolean singleValue;
 
-        JavaType type() {
-            return JavaType.type(type);
+        ClassDesc type() {
+            return type;
         }
 
-        Object defaultValue() {
-            return switch (TypeKind.from(type)) {
-                case BooleanType -> false;
-                case ByteType -> (byte)0;
-                case CharType -> (char)0;
-                case DoubleType -> 0d;
-                case FloatType -> 0f;
-                case IntType -> 0;
-                case LongType -> 0l;
-                case ReferenceType -> null;
-                case ShortType -> (short)0;
-                default -> throw new IllegalStateException("Invalid type " + type.displayName());
-            };
+        boolean isSingleValue() {
+            return singleValue;
         }
 
         @Override
         public String toString() {
-            return Integer.toHexString(hashCode()).substring(0, 2) + " " + isSingleValue;
+            return Integer.toHexString(hashCode()).substring(0, 2) + " " + singleValue;
         }
     }
 
-    static final class Slot {
+    private static final class Slot {
 
         enum Kind {
             STORE, LOAD, FRAME;
@@ -125,7 +109,7 @@ final class LocalsTypeMapper {
             return "%d: #%d %s %s var:%s".formatted(bci, sl, kind, type.displayName(),  var == null ? null : var.toString());
         }
 
-        static final class LinkIterator implements Iterator<Slot> {
+        private static final class LinkIterator implements Iterator<Slot> {
             Link l;
             public LinkIterator(Link l) {
                 this.l = l;
@@ -146,7 +130,7 @@ final class LocalsTypeMapper {
         }
     }
 
-    record Frame(List<ClassDesc> stack, List<Slot> locals) {}
+    private record Frame(List<ClassDesc> stack, List<Slot> locals) {}
 
     private static final ClassDesc NULL_TYPE = ClassDesc.ofDescriptor(CD_Object.descriptorString());
     private final Map<Integer, Slot> insMap;
@@ -160,9 +144,9 @@ final class LocalsTypeMapper {
     private final Map<Label, ClassDesc> newMap;
     private final CodeAttribute ca;
     private boolean frameDirty;
-    final List<Slot> slotsToInitialize;
+    private final List<Slot> initSlots;
 
-    LocalsTypeMapper(ClassDesc thisClass,
+    public LocalsToVarMapper(ClassDesc thisClass,
                      List<ClassDesc> initFrameLocals,
                      List<ExceptionCatch> exceptionHandlers,
                      Optional<StackMapTableAttribute> stackMapTableAttribute,
@@ -176,13 +160,13 @@ final class LocalsTypeMapper {
         this.locals = new ArrayList<>();
         this.allSlots = new LinkedHashSet<>();
         this.newMap = computeNewMap(codeElements);
-        this.slotsToInitialize = new ArrayList<>();
+        this.initSlots = new ArrayList<>();
         this.ca = ca; // @@@ only for debugging purpose
         this.stackMap = stackMapTableAttribute.map(a -> a.entries().stream().collect(Collectors.toMap(
                 StackMapFrameInfo::target,
                 this::toFrame))).orElse(Map.of());
         for (ClassDesc cd : initFrameLocals) {
-            slotsToInitialize.add(cd == null ? null : newSlot(cd, Slot.Kind.STORE, -1, slotsToInitialize.size()));
+            initSlots.add(cd == null ? null : newSlot(cd, Slot.Kind.STORE, -1, initSlots.size()));
         }
         int initSize = allSlots.size();
         do {
@@ -197,7 +181,7 @@ final class LocalsTypeMapper {
                 });
             }
             for (int i = 0; i < initFrameLocals.size(); i++) {
-                store(i, slotsToInitialize.get(i), locals);
+                store(i, initSlots.get(i), locals);
             }
             this.frameDirty = false;
             int bci = 0;
@@ -262,7 +246,7 @@ final class LocalsTypeMapper {
                 }
 
                 // Detect single value
-                var.isSingleValue = stores.size() < 2;
+                var.singleValue = stores.size() < 2;
 
                 // Filter initial stores
                 for (var it = stores.iterator(); it.hasNext();) {
@@ -278,9 +262,9 @@ final class LocalsTypeMapper {
                     // Add synthetic dominant slot, which needs to be initialized with a default value
                     Slot initialSlot = new Slot();
                     initialSlot.var = var;
-                    slotsToInitialize.add(initialSlot);
+                    initSlots.add(initialSlot);
                     if (var.type == CD_long || var.type == CD_double) {
-                        slotsToInitialize.add(null);
+                        initSlots.add(null);
                     }
                 }
                 stores.clear();
@@ -307,6 +291,19 @@ final class LocalsTypeMapper {
             }
             System.out.println("}");
         }
+    }
+
+    public int slotsToInit() {
+        return initSlots.size();
+    }
+
+    public Variable initSlotVariable(int slot) {
+        Slot s = slot < initSlots.size() ? initSlots.get(slot) : null;
+        return s == null ? null : s.var;
+    }
+
+    public Variable instructionVariable(int instructionIndex) {
+        return insMap.get(instructionIndex).var;
     }
 
     // Detects if all of the preceding slots belong to the var
@@ -352,10 +349,6 @@ final class LocalsTypeMapper {
             }
         }
         return newMap;
-    }
-
-    Variable getVarOf(int li) {
-        return insMap.get(li).var;
     }
 
     private Slot newSlot(ClassDesc type, Slot.Kind kind, int bci, int sl) {
@@ -416,7 +409,7 @@ final class LocalsTypeMapper {
         return new ClassDesc[] {stack.get(stack.size() - 2), stack.getLast()};
     }
 
-    private LocalsTypeMapper pop(int i) {
+    private LocalsToVarMapper pop(int i) {
         while (i-- > 0) pop();
         return this;
     }
