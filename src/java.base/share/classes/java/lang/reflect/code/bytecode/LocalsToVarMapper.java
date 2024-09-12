@@ -52,50 +52,122 @@ import java.util.stream.Collectors;
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
 import static java.lang.constant.ConstantDescs.*;
 
+/**
+ * LocalsToVarMapper scans bytecode for slot operations, forms oriented flow graphs of the slot operation segments,
+ * analyzes the graphs and maps the segments to distinct variables, calculates each variable type and identifies
+ * single-assigned variables and variables requiring initialization in the entry block.
+ */
 final class LocalsToVarMapper {
 
-    public static class Variable {
+    /**
+     * Variable identity object result of the LocalsToVarMapper analysis.
+     */
+    public static final class Variable {
         private ClassDesc type;
-        private boolean singleValue;
+        private boolean single;
 
+        /**
+         * {@return Variable type}
+         */
         ClassDesc type() {
             return type;
         }
 
-        boolean isSingleValue() {
-            return singleValue;
+        /**
+         * {@return whether the variable has only single assignement}
+         */
+        boolean hasSingleAssignment() {
+            return single;
         }
     }
 
-    private static final class Slot {
+    /**
+     * Segment of bytecode related one local slot, a node in the segment graph.
+     */
+    private static final class Segment {
 
+        /**
+         * Categorization of the segment graph nodes.
+         */
         enum Kind {
-            STORE, LOAD, FRAME;
+
+            /**
+             * Segment storing a value into the local slot.
+             */
+            STORE,
+
+            /**
+             * Segment requesting to load value from the local slot.
+             */
+            LOAD,
+
+            /**
+             * Segment forming a frame of connection to other segments.
+             * This kind of segment is later either resolved as LOAD or it identifies false connection.
+             */
+            FRAME;
         }
 
-        private record Link(Slot slot, Link other) {}
+        /**
+         * Link between segments.
+         */
+        record Link(Segment segment, Link other) {}
 
+        /**
+         * Kind of segment.
+         * The value is not final, {@link Kind.FRAME} segments may be later resolved to {@link Kind.LOAD}.
+         */
         Kind kind;
-        ClassDesc type;
-        Variable var;
-        private Link up, down;
 
-        void link(Slot target) {
-            if (this != target) {
-                target.up = new Link(this, target.up);
-                this.down = new Link(target, this.down);
+        /**
+         * Segment type.
+         * The value is not final, int type may be later changed to {@code boolean}, {@code byte}, {@code short} or {@code char}.
+         */
+        ClassDesc type;
+
+        /**
+         * Variable this segment belongs to.
+         * The value is calculated later in the process.
+         */
+        Variable var;
+
+
+        /**
+         * Incoming segments in the flow graph.
+         */
+        Link from;
+
+        /**
+         * Outgoing segments in the flow graph.
+         */
+        Link to;
+
+        /**
+         * Links this segment to an outgoing segment.
+         * @param toSegment outgoing segment
+         */
+        void link(Segment toSegment) {
+            if (this != toSegment) {
+                toSegment.from = new Link(this, toSegment.from);
+                this.to = new Link(toSegment, this.to);
             }
         }
 
-        Iterable<Slot> upSlots() {
-            return () -> new LinkIterator(up);
+        /**
+         * {@return Iterable over incomming segments.}
+         */
+        Iterable<Segment> fromSegments() {
+            return () -> new LinkIterator(from);
         }
 
-        Iterable<Slot> downSlots() {
-            return () -> new LinkIterator(down);
+        /**
+         * {@return Iterable over outgoing segments.}
+         */
+        Iterable<Segment> toSegments() {
+            return () -> new LinkIterator(to);
         }
 
-        private static final class LinkIterator implements Iterator<Slot> {
+        private static final class LinkIterator implements Iterator<Segment> {
             Link l;
             public LinkIterator(Link l) {
                 this.l = l;
@@ -107,30 +179,90 @@ final class LocalsToVarMapper {
             }
 
             @Override
-            public Slot next() {
+            public Segment next() {
                 if (l == null) throw new NoSuchElementException();
-                Slot s = l.slot();
+                Segment s = l.segment();
                 l = l.other();
                 return s;
             }
         }
     }
 
-    private record Frame(List<ClassDesc> stack, List<Slot> locals) {}
+    /**
+     * Stack map frame
+     */
+    private record Frame(List<ClassDesc> stack, List<Segment> locals) {}
 
+    /**
+     * Specific instance of CD_Object identifying null initialized objects.
+     */
     private static final ClassDesc NULL_TYPE = ClassDesc.ofDescriptor(CD_Object.descriptorString());
-    private final Map<Integer, Slot> insMap;
-    private final LinkedHashSet<Slot> allSlots;
-    private final ClassDesc thisClass;
-    private final List<ExceptionCatch> exceptionHandlers;
-    private final Set<ExceptionCatch> handlersStack;
-    private final List<ClassDesc> stack;
-    private final List<Slot> locals;
-    private final Map<Label, Frame> stackMap;
-    private final Map<Label, ClassDesc> newMap;
-    private boolean frameDirty;
-    private final List<Slot> initSlots;
 
+    /**
+     * Map from instruction index to a segment.
+     */
+    private final Map<Integer, Segment> insMap;
+
+    /**
+     * Set of all involved segments.
+     */
+    private final LinkedHashSet<Segment> allSegments;
+
+    /**
+     * This class descriptor.
+     */
+    private final ClassDesc thisClass;
+
+    /**
+     * All exception handlers.
+     */
+    private final List<ExceptionCatch> exceptionHandlers;
+
+    /**
+     * Actual exception handlers stack.
+     */
+    private final Set<ExceptionCatch> handlersStack;
+
+    /**
+     * Actual stack.
+     */
+    private final List<ClassDesc> stack;
+
+    /**
+     * Actual locals.
+     */
+    private final List<Segment> locals;
+
+    /**
+     * Stack map.
+     */
+    private final Map<Label, Frame> stackMap;
+
+    /**
+     * Map of new object types (to resolve unitialized verification types in the stack map).
+     */
+    private final Map<Label, ClassDesc> newMap;
+
+    /**
+     * Dirty flag indicates modified stack map frame (sub-int adjustments), so the scanning process must restart
+     */
+    private boolean frameDirty;
+
+    /**
+     * Initial set of slots. Static part comes from method arguments.
+     * Later phase of the analysis adds synthetic slots (declarations of multiple-assigned variables)
+     * with mandatory initialization in the entry block.
+     */
+    private final List<Segment> initSlots;
+
+    /**
+     * Constructor and executor of the LocalsToVarMapper.
+     * @param thisClass This class descriptor.
+     * @param initFrameLocals Entry frame locals, expanded form of the method receiver and arguments. Second positions of double slots are null.
+     * @param exceptionHandlers Exception handlers.
+     * @param stackMapTableAttribute Stack map table attribute.
+     * @param codeElements Code elements list. Indexes of this list are keys to the {@link #instructionVar(int) } method.
+     */
     public LocalsToVarMapper(ClassDesc thisClass,
                      List<ClassDesc> initFrameLocals,
                      List<ExceptionCatch> exceptionHandlers,
@@ -142,31 +274,36 @@ final class LocalsToVarMapper {
         this.handlersStack = new LinkedHashSet<>();
         this.stack = new ArrayList<>();
         this.locals = new ArrayList<>();
-        this.allSlots = new LinkedHashSet<>();
+        this.allSegments = new LinkedHashSet<>();
         this.newMap = computeNewMap(codeElements);
         this.initSlots = new ArrayList<>();
         this.stackMap = stackMapTableAttribute.map(a -> a.entries().stream().collect(Collectors.toMap(
                 StackMapFrameInfo::target,
                 this::toFrame))).orElse(Map.of());
         for (ClassDesc cd : initFrameLocals) {
-            initSlots.add(cd == null ? null : newSlot(cd, Slot.Kind.STORE));
+            initSlots.add(cd == null ? null : newSlot(cd, Segment.Kind.STORE));
         }
-        int initSize = allSlots.size();
+        int initSize = allSegments.size();
+
+        // Main loop of the scan phase
         do {
+            // Reset of the exception handler stack
             handlersStack.clear();
-            // Slot states reset if running additional rounds with adjusted frames
-            if (allSlots.size() > initSize) {
-                while (allSlots.size() > initSize) allSlots.removeLast();
-                allSlots.forEach(sl -> {
-                    sl.up = null;
-                    sl.down = null;
+            // Slot states reset if running additional rounds (changed stack map frames)
+            if (allSegments.size() > initSize) {
+                while (allSegments.size() > initSize) allSegments.removeLast();
+                allSegments.forEach(sl -> {
+                    sl.from = null;
+                    sl.to = null;
                     sl.var = null;
                 });
             }
+            // Initial frame store
             for (int i = 0; i < initFrameLocals.size(); i++) {
                 store(i, initSlots.get(i), locals);
             }
             this.frameDirty = false;
+            // Iteration over all code elements
             for (int i = 0; i < codeElements.size(); i++) {
                 var ce = codeElements.get(i);
                 accept(i, ce);
@@ -174,16 +311,18 @@ final class LocalsToVarMapper {
             endOfFlow();
         } while (this.frameDirty);
 
-        // Pull LOADs up the FRAMEs
+        // Segment graph analysis phase
+        // First resolve FRAME segments to LOAD segments if directly followed by a LOAD segment
+        // Remaining FRAME segments do not form connection with segments of the same variable and will be ignored.
         boolean changed = true;
         while (changed) {
             changed = false;
-            for (Slot slot : allSlots) {
-                if (slot.kind == Slot.Kind.FRAME) {
-                    for (Slot down : slot.downSlots()) {
-                        if (down.kind == Slot.Kind.LOAD) {
+            for (Segment segment : allSegments) {
+                if (segment.kind == Segment.Kind.FRAME) {
+                    for (Segment to : segment.toSegments()) {
+                        if (to.kind == Segment.Kind.LOAD) {
                             changed = true;
-                            slot.kind = Slot.Kind.LOAD;
+                            segment.kind = Segment.Kind.LOAD;
                             break;
                         }
                     }
@@ -191,61 +330,72 @@ final class LocalsToVarMapper {
             }
         }
 
-        // Assign variable to slots, calculate var type
-        Set<Slot> stores = new LinkedHashSet<>();
-        ArrayDeque<Slot> q = new ArrayDeque<>();
-        Set<Slot> visited = new LinkedHashSet<>();
-        for (Slot slot : allSlots) {
-            if (slot.var == null && slot.kind != Slot.Kind.FRAME) {
-                Variable var = new Variable();
-                q.add(slot);
-                var.type = slot.type;
+        // Assign variable to segments, calculate var type
+        Set<Segment> stores = new LinkedHashSet<>(); // Helper set to collect all STORE segments of a variable
+        ArrayDeque<Segment> q = new ArrayDeque<>(); // Working queue
+        Set<Segment> visited = new LinkedHashSet<>(); // Helper set to traverse segment graph to filter initial stores
+        for (Segment segment : allSegments) {
+            // Only STORE and LOAD segments withou assigned var are computed
+            if (segment.var == null && segment.kind != Segment.Kind.FRAME) {
+                Variable var = new Variable(); // New variable
+                q.add(segment);
+                var.type = segment.type; // Initial variable type
                 while (!q.isEmpty()) {
-                    Slot sl = q.pop();
-                    if (sl.var == null) {
-                        sl.var = var;
-                        for (Slot down : sl.downSlots()) {
-                            if (down.kind == Slot.Kind.LOAD) {
-                                if (var.type == NULL_TYPE) var.type = down.type;
-                                if (down.var == null) q.add(down);
+                    Segment se = q.pop();
+                    if (se.var == null) {
+                        se.var = var; // Assign variable to the segment
+                        for (Segment to : se.toSegments()) {
+                            // All following LOAD segments belong to the same variable
+                            if (to.kind == Segment.Kind.LOAD) {
+                                if (var.type == NULL_TYPE) {
+                                    var.type = to.type; // Initially null type re-assignemnt
+                                }
+                                if (to.var == null) {
+                                    q.add(to);
+                                }
                             }
                         }
-                        if (sl.kind == Slot.Kind.LOAD) {
-                            for (Slot up : sl.upSlots()) {
-                                if (up.kind != Slot.Kind.FRAME) {
-                                    if (var.type == NULL_TYPE) var.type = up.type;
-                                    if (up.var == null) {
-                                        q.add(up);
+                        if (se.kind == Segment.Kind.LOAD) {
+                            // Segments preceeding LOAD segment also belong to the same variable
+                            for (Segment from : se.fromSegments()) {
+                                if (from.kind != Segment.Kind.FRAME) { // FRAME segments are ignored
+                                    if (var.type == NULL_TYPE) {
+                                        var.type = from.type; // Initially null type re-assignemnt
+                                    }
+                                    if (from.var == null) {
+                                        q.add(from);
                                     }
                                 }
                             }
                         }
                     }
-                    if (sl.var == var && sl.kind == Slot.Kind.STORE) {
-                        stores.add(sl);
+                    if (se.var == var && se.kind == Segment.Kind.STORE) {
+                        stores.add(se); // Collection of all STORE segments of the variable
                     }
                 }
 
-                // Detect single value
-                var.singleValue = stores.size() < 2;
+                // Single-assigned variable has only one STORE segment
+                var.single = stores.size() < 2;
 
-                // Filter initial stores
+                // Identification of initial STORE segments
                 for (var it = stores.iterator(); it.hasNext();) {
                     visited.clear();
-                    Slot s = it.next();
-                    if (s.up != null && preceedsWithTheVar(s, var, visited)) {
+                    Segment s = it.next();
+                    if (s.from != null && preceedsWithTheVar(s, var, visited)) {
+                        // A store preceeding dominantly with segments of the same variable is not initial
                         it.remove();
                     }
                 }
 
-                // Insert var initialization if necessary
+                // Remaining stores are all initial.
                 if (stores.size() > 1) {
-                    // Add synthetic dominant slot, which needs to be initialized with a default value
-                    Slot initialSlot = new Slot();
-                    initialSlot.var = var;
-                    initSlots.add(initialSlot);
+                    // A synthetic default-initialized dominant segment must be inserted to the variable, if there is more than one.
+                    // It is not necessary to link it with other variable segments, the analysys ends here.
+                    Segment initialSegment = new Segment();
+                    initialSegment.var = var;
+                    initSlots.add(initialSegment);
                     if (var.type == CD_long || var.type == CD_double) {
-                        initSlots.add(null);
+                        initSlots.add(null); // Do not forget to alocate second slot for double slots.
                     }
                 }
                 stores.clear();
@@ -253,24 +403,47 @@ final class LocalsToVarMapper {
         }
     }
 
+    /**
+     * {@return Number of slots to initialize at entry block (method receiver + arguments + synthetic variables).}
+     */
     public int slotsToInit() {
         return initSlots.size();
     }
 
-    public Variable initSlotVariable(int slot) {
-        Slot s = slot < initSlots.size() ? initSlots.get(slot) : null;
+    /**
+     * {@return Variable related to the given slot or null}
+     * @param slot slot index
+     */
+    public Variable initSlotVar(int slot) {
+        Segment s = initSlots.get(slot);
         return s == null ? null : s.var;
     }
 
-    public Variable instructionVariable(int instructionIndex) {
-        return insMap.get(instructionIndex).var;
+    /**
+     * Method returns relevant {@link Variable} for instructions operating with local slots,
+     * such as {@link LoadInstruction}, {@link StoreInstruction} and {@link IncrementInstruction}.
+     * For all other elements it returns {@code null}.
+     *
+     * Instructions are identified by index into the {@code codeElements} list used in the {@link LocalsToVarMapper} initializer.
+     *
+     * {@link IncrementInstruction} relates to two potentially distinct variables (the first variable used to load
+     * the value from and the second variable to store the incremented value).
+     * To obtain the first one pass {@code -incrementInstructionIndex - 1} as an argument to this method (see: {@link BytecodeLift#liftBody() }).
+     *
+     * @param codeElementIndex code element index
+     * @return Variable related to the given code element index or null
+     */
+    public Variable instructionVar(int codeElementIndex) {
+        return insMap.get(codeElementIndex).var;
     }
 
-    // Detects if all of the preceding slots belong to the var
-    private static boolean preceedsWithTheVar(Slot slot, Variable var, Set<Slot> visited) {
-        if (visited.add(slot)) {
-            for (Slot up : slot.upSlots()) {
-                if (up.var == null ? up.kind != Slot.Kind.FRAME || !preceedsWithTheVar(up, var, visited) : up.var != var) {
+    /**
+     * Detects if all of the preceding slots belong to the variable
+     */
+    private static boolean preceedsWithTheVar(Segment segment, Variable var, Set<Segment> visited) {
+        if (visited.add(segment)) {
+            for (Segment up : segment.fromSegments()) {
+                if (up.var == null ? up.kind != Segment.Kind.FRAME || !preceedsWithTheVar(up, var, visited) : up.var != var) {
                     return false;
                 }
             }
@@ -280,13 +453,13 @@ final class LocalsToVarMapper {
 
     private Frame toFrame(StackMapFrameInfo smfi) {
         List<ClassDesc> fstack = new ArrayList<>(smfi.stack().size());
-        List<Slot> flocals = new ArrayList<>(smfi.locals().size() * 2);
+        List<Segment> flocals = new ArrayList<>(smfi.locals().size() * 2);
         for (var vti : smfi.stack()) {
             fstack.add(vtiToStackType(vti));
         }
         int i = 0;
         for (var vti : smfi.locals()) {
-            store(i, vtiToStackType(vti), flocals, Slot.Kind.FRAME);
+            store(i, vtiToStackType(vti), flocals, Segment.Kind.FRAME);
             i += vti == ITEM_DOUBLE || vti == ITEM_LONG ? 2 : 1;
         }
         return new Frame(fstack, flocals);
@@ -310,11 +483,11 @@ final class LocalsToVarMapper {
         return newMap;
     }
 
-    private Slot newSlot(ClassDesc type, Slot.Kind kind) {
-        Slot s = new Slot();
+    private Segment newSlot(ClassDesc type, Segment.Kind kind) {
+        Segment s = new Segment();
         s.kind = kind;
         s.type = type;
-        allSlots.add(s);
+        allSegments.add(s);
         return s;
     }
 
@@ -372,28 +545,28 @@ final class LocalsToVarMapper {
     }
 
     private void store(int slot, ClassDesc type) {
-        store(slot, type, locals, Slot.Kind.STORE);
+        store(slot, type, locals, Segment.Kind.STORE);
     }
 
-    private void store(int slot, ClassDesc type, List<Slot> where, Slot.Kind kind) {
+    private void store(int slot, ClassDesc type, List<Segment> where, Segment.Kind kind) {
         store(slot, type == null ? null : newSlot(type, kind), where);
     }
 
-    private void store(int slot, Slot s, List<Slot> where) {
-        if (s != null) {
+    private void store(int slot, Segment segment, List<Segment> where) {
+        if (segment != null) {
             for (int i = where.size(); i <= slot; i++) where.add(null);
-            Slot prev = where.set(slot, s);
+            Segment prev = where.set(slot, segment);
             if (prev != null) {
-                prev.link(s);
+                prev.link(segment);
             }
         }
     }
 
     private ClassDesc load(int slot) {
-        Slot sl = locals.get(slot);
-        Slot nsl = newSlot(sl.type, Slot.Kind.LOAD);
-        sl.link(nsl);
-        return sl.type;
+        Segment segment = locals.get(slot);
+        Segment newSegment = newSlot(segment.type, Segment.Kind.LOAD);
+        segment.link(newSegment);
+        return segment.type;
     }
 
     private void accept(int elIndex, CodeElement el) {
@@ -590,8 +763,8 @@ final class LocalsToVarMapper {
         // Merge locals
         int lSize = Math.min(locals.size(), targetFrame.locals.size());
         for (int i = 0; i < lSize; i++) {
-            Slot le = locals.get(i);
-            Slot fe = targetFrame.locals.get(i);
+            Segment le = locals.get(i);
+            Segment fe = targetFrame.locals.get(i);
             if (le != null && fe != null) {
                 le.link(fe); // Link target frame var with its source
                 if (!le.type.equals(fe.type)) {

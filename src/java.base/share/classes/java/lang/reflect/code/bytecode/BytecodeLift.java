@@ -322,9 +322,9 @@ public final class BytecodeLift {
     private void liftBody() {
         // Declare initial variables
         for (int i = 0; i < localsToVarMapper.slotsToInit(); i++) {
-            LocalsToVarMapper.Variable v = localsToVarMapper.initSlotVariable(i);
+            LocalsToVarMapper.Variable v = localsToVarMapper.initSlotVar(i);
             if (v != null) {
-                if (v.isSingleValue()) {
+                if (v.hasSingleAssignment()) {
                     varToValueMap.put(v, initLocalValues.get(i)); // Single value var initialized with entry block parameter
                 } else {
                     varToValueMap.put(v, op(CoreOp.var("slot#" + i, // New var with slot# name
@@ -820,8 +820,8 @@ public final class BytecodeLift {
     }
 
     private Value load(int i) {
-        LocalsToVarMapper.Variable var = localsToVarMapper.instructionVariable(i);
-        if (var.isSingleValue()) {
+        LocalsToVarMapper.Variable var = localsToVarMapper.instructionVar(i);
+        if (var.hasSingleAssignment()) {
             Value value = varToValueMap.get(var);
             assert value != null: "Uninitialized single-value variable";
             return value;
@@ -833,8 +833,8 @@ public final class BytecodeLift {
     }
 
     private void store(int i, int slot, Value value) {
-        LocalsToVarMapper.Variable var = localsToVarMapper.instructionVariable(i);
-        if (var.isSingleValue()) {
+        LocalsToVarMapper.Variable var = localsToVarMapper.instructionVar(i);
+        if (var.hasSingleAssignment()) {
             Value expectedNull = varToValueMap.put(var, value);
             assert expectedNull == null: "Multiple assignements to a single-value variable";
         } else {
