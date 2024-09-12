@@ -36,7 +36,7 @@
 * [JTREG](https://github.com/openjdk/jtreg)
 * [jexctract](https://github.com/openjdk/jextract)
 
-### 
+### General GPGPU
 * [A nice GPGPU state of play video](https://www.youtube.com/watch?v=48AdJgTYSFQ)
 * [Interesting project ](https://www.phoronix.com/news/SCALE-CUDA-Apps-For-AMD-GPUs)
 * [More ](https://www.phoronix.com/review/radeon-cuda-zluda)
