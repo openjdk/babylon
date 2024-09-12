@@ -335,7 +335,7 @@ final class LocalsToVarMapper {
         ArrayDeque<Segment> q = new ArrayDeque<>(); // Working queue
         Set<Segment> visited = new LinkedHashSet<>(); // Helper set to traverse segment graph to filter initial stores
         for (Segment segment : allSegments) {
-            // Only STORE and LOAD segments withou assigned var are computed
+            // Only STORE and LOAD segments without assigned var are computed
             if (segment.var == null && segment.kind != Segment.Kind.FRAME) {
                 Variable var = new Variable(); // New variable
                 q.add(segment);
@@ -404,18 +404,18 @@ final class LocalsToVarMapper {
     }
 
     /**
-     * {@return Number of slots to initialize at entry block (method receiver + arguments + synthetic variables).}
+     * {@return Number of slots to initialize at entry block (method receiver + arguments + synthetic variable initialization segments).}
      */
     public int slotsToInit() {
         return initSlots.size();
     }
 
     /**
-     * {@return Variable related to the given slot or null}
-     * @param slot slot index
+     * {@return Variable related to the given initial slot or null}
+     * @param initSlot initial slot index
      */
-    public Variable initSlotVar(int slot) {
-        Segment s = initSlots.get(slot);
+    public Variable initSlotVar(int initSlot) {
+        Segment s = initSlots.get(initSlot);
         return s == null ? null : s.var;
     }
 
