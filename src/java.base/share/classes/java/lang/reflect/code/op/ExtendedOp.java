@@ -2877,12 +2877,12 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
     public sealed interface Pattern {
 
         /**
-         * Synthetic binding pattern type.
+         * Synthetic type pattern type.
          *
          * @param <T> the type of values that are bound
          */
-        final class Binding<T> implements Pattern {
-            Binding() {
+        final class Type<T> implements Pattern {
+            Type() {
             }
         }
 
@@ -2899,7 +2899,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
         // @@@ Pattern types
 
         JavaType PATTERN_BINDING_TYPE = JavaType.type(ClassDesc.of(Pattern_CLASS_NAME +
-                "$" + Binding.class.getSimpleName()));
+                "$" + Type.class.getSimpleName()));
         JavaType PATTERN_RECORD_TYPE = JavaType.type(ClassDesc.of(Pattern_CLASS_NAME +
                 "$" + Pattern.Record.class.getSimpleName()));
 

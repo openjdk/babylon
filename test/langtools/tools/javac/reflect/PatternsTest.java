@@ -43,8 +43,8 @@ public class PatternsTest {
                 %4 : java.lang.String = constant @null;
                 %5 : Var<java.lang.String> = var %4 @"s";
                 %6 : boolean = pattern.match %3
-                    ^pattern()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
-                        %7 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.type @"s";
+                    ^pattern()java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.String> -> {
+                        %7 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.String> = pattern.type @"s";
                         yield %7;
                     }
                     ^match(%8 : java.lang.String)void -> {
@@ -69,8 +69,8 @@ public class PatternsTest {
                     ()boolean -> {
                         %5 : java.lang.Object = var.load %2;
                         %6 : boolean = pattern.match %5
-                            ^pattern()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
-                                %7 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.type @"s";
+                            ^pattern()java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.String> -> {
+                                %7 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.String> = pattern.type @"s";
                                 yield %7;
                             }
                             ^match(%8 : java.lang.String)void -> {
@@ -108,8 +108,8 @@ public class PatternsTest {
                     ()boolean -> {
                         %5 : java.lang.Object = var.load %2;
                         %6 : boolean = pattern.match %5
-                            ^pattern()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
-                                %7 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.type @"s";
+                            ^pattern()java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.String> -> {
+                                %7 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.String> = pattern.type @"s";
                                 yield %7;
                             }
                             ^match(%8 : java.lang.String)void -> {
@@ -167,10 +167,10 @@ public class PatternsTest {
                         %9 : PatternsTest$Rectangle = var.load %2;
                         %10 : boolean = pattern.match %9
                             ^pattern()java.lang.reflect.code.ExtendedOp$Pattern$Record<PatternsTest$Rectangle> -> {
-                                %11 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<PatternsTest$ConcretePoint> = pattern.type @"p";
-                                %12 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<PatternsTest$Color> = pattern.type @"c";
+                                %11 : java.lang.reflect.code.ExtendedOp$Pattern$Type<PatternsTest$ConcretePoint> = pattern.type @"p";
+                                %12 : java.lang.reflect.code.ExtendedOp$Pattern$Type<PatternsTest$Color> = pattern.type @"c";
                                 %13 : java.lang.reflect.code.ExtendedOp$Pattern$Record<PatternsTest$ColoredPoint> = pattern.record %11 %12 @"(PatternsTest$ConcretePoint p, PatternsTest$Color c)PatternsTest$ColoredPoint";
-                                %14 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<PatternsTest$ColoredPoint> = pattern.type @"lr";
+                                %14 : java.lang.reflect.code.ExtendedOp$Pattern$Type<PatternsTest$ColoredPoint> = pattern.type @"lr";
                                 %15 : java.lang.reflect.code.ExtendedOp$Pattern$Record<PatternsTest$Rectangle> = pattern.record %13 %14 @"(PatternsTest$Point upperLeft, PatternsTest$Point lowerRight)PatternsTest$Rectangle";
                                 yield %15;
                             }
@@ -227,8 +227,8 @@ public class PatternsTest {
                     ^cond()boolean -> {
                         %5 : java.lang.Object = var.load %2;
                         %6 : boolean = pattern.match %5
-                            ^pattern()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
-                                %7 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.type @"s";
+                            ^pattern()java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.String> -> {
+                                %7 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.String> = pattern.type @"s";
                                 yield %7;
                             }
                             ^match(%8 : java.lang.String)void -> {
@@ -265,8 +265,8 @@ public class PatternsTest {
                     ^cond()boolean -> {
                         %5 : java.lang.Object = var.load %2;
                         %6 : boolean = pattern.match %5
-                            ^pattern()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
-                                %7 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.type @"s";
+                            ^pattern()java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.String> -> {
+                                %7 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.String> = pattern.type @"s";
                                 yield %7;
                             }
                             ^match(%8 : java.lang.String)void -> {
@@ -312,8 +312,8 @@ public class PatternsTest {
                             ()boolean -> {
                                 %12 : java.lang.Object = var.load %2;
                                 %13 : boolean = pattern.match %12
-                                    ^pattern()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Number> -> {
-                                        %14 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Number> = pattern.type @"n";
+                                    ^pattern()java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.Number> -> {
+                                        %14 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.Number> = pattern.type @"n";
                                         yield %14;
                                     }
                                     ^match(%15 : java.lang.Number)void -> {
@@ -355,8 +355,8 @@ public class PatternsTest {
                    %4 : java.lang.String = constant @null;
                    %5 : Var<java.lang.String> = var %4;
                    %6 : boolean = pattern.match %3
-                       ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
-                           %7 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.type;
+                       ()java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.String> -> {
+                           %7 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.String> = pattern.type;
                            yield %7;
                        }
                        (%8 : java.lang.String)void -> {
