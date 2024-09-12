@@ -135,7 +135,8 @@ public class LevelZero {
         MemorySegment pNumQueueGroups = lzArena.allocate(JAVA_INT, 1);
         check(zeDeviceGetCommandQueueGroupProperties(deviceHandle, pNumQueueGroups, MemorySegment.NULL));
         assert pNumQueueGroups.get(JAVA_INT, 0) == 1;
-        MemorySegment pGroupProperties = lzArena.allocate(ze_command_queue_group_properties_t.layout());
+        MemorySegment pGroupProperties = lzArena.allocate(ze_command_queue_group_properties_t.layout(),
+                                                          pNumQueueGroups.get(JAVA_INT, 0));
         check(zeDeviceGetCommandQueueGroupProperties(deviceHandle, pNumQueueGroups, pGroupProperties));
 
         MemorySegment pQueueDesc = lzArena.allocate(ze_command_queue_desc_t.layout());
@@ -166,7 +167,7 @@ public class LevelZero {
         String kernelName = funcOp.funcName();
         // System.out.println(funcOp.toText());
         MemorySegment spirvBinary = SpirvModuleGenerator.generateModule(kernelName, kernelCallGraph);
-        String path = "/home/steve/spirv_binaries/" + kernelName + ".spv";
+        String path = "/tmp/" + kernelName + ".spv";
         SpirvModuleGenerator.writeModuleToFile(spirvBinary, path);
         // System.out.println("generated module \n" + SpirvModuleGenerator.disassembleModule(spirvBinary));
         args[0] = ndRange.kid;
@@ -349,7 +350,7 @@ public class LevelZero {
     {
         try
         {
-            MemorySegment codeBytes = MemorySegment.ofArray(Files.readAllBytes(Paths.get("/home/steve/spirv_binaries/" + moduleName + ".spv")));
+            MemorySegment codeBytes = MemorySegment.ofArray(Files.readAllBytes(Paths.get("/tmp/" + moduleName + ".spv")));
             MemorySegment spirvCode = lzArena.allocate(codeBytes.byteSize());
             MemorySegment.copy(codeBytes, 0, spirvCode, 0, spirvCode.byteSize());
             MemorySegment pModuleHandle = lzArena.allocate(ze_module_handle_t);
