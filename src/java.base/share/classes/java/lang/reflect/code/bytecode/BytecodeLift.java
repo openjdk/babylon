@@ -74,11 +74,8 @@ import java.util.stream.Stream;
 
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
 import java.util.BitSet;
-import java.util.Objects;
 
 public final class BytecodeLift {
-
-    public static boolean DUMP = false; // @@@ only for debugging purpose
 
     private record ExceptionRegion(Label startLabel, Label endLabel, Label handlerLabel) {}
     private record ExceptionRegionEntry(Op.Result enter, Block.Builder startBlock, ExceptionRegion region) {}
@@ -139,7 +136,7 @@ public final class BytecodeLift {
                 initLocalValues.add(null);
             }
         });
-        this.localsToVarMapper = new LocalsToVarMapper(classModel.thisClass().asSymbol(), initLocalTypes, codeModel.exceptionHandlers(), smta, elements, codeAttribtue);
+        this.localsToVarMapper = new LocalsToVarMapper(classModel.thisClass().asSymbol(), initLocalTypes, codeModel.exceptionHandlers(), smta, elements);
         this.blockMap = smta.map(sma ->
                 sma.entries().stream().collect(Collectors.toUnmodifiableMap(
                         StackMapFrameInfo::target,

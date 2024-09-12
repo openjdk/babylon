@@ -28,11 +28,9 @@ import java.lang.classfile.CodeElement;
 import java.lang.classfile.Instruction;
 import java.lang.classfile.Label;
 import java.lang.classfile.Opcode;
-import java.lang.classfile.attribute.CodeAttribute;
 import java.lang.classfile.attribute.StackMapFrameInfo;
 import java.lang.classfile.attribute.StackMapFrameInfo.*;
 import java.lang.classfile.attribute.StackMapTableAttribute;
-import java.lang.classfile.components.ClassPrinter;
 import java.lang.classfile.instruction.*;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
@@ -67,11 +65,6 @@ final class LocalsToVarMapper {
         boolean isSingleValue() {
             return singleValue;
         }
-
-        @Override
-        public String toString() {
-            return Integer.toHexString(hashCode()).substring(0, 2) + " " + singleValue;
-        }
     }
 
     private static final class Slot {
@@ -82,7 +75,6 @@ final class LocalsToVarMapper {
 
         private record Link(Slot slot, Link other) {}
 
-        int bci, sl; // @@@ only for debugging purpose
         Kind kind;
         ClassDesc type;
         Variable var;
@@ -101,12 +93,6 @@ final class LocalsToVarMapper {
 
         Iterable<Slot> downSlots() {
             return () -> new LinkIterator(down);
-        }
-
-        @Override
-        public String toString() {
-             // @@@ only for debugging purpose
-            return "%d: #%d %s %s var:%s".formatted(bci, sl, kind, type.displayName(),  var == null ? null : var.toString());
         }
 
         private static final class LinkIterator implements Iterator<Slot> {
@@ -142,7 +128,6 @@ final class LocalsToVarMapper {
     private final List<Slot> locals;
     private final Map<Label, Frame> stackMap;
     private final Map<Label, ClassDesc> newMap;
-    private final CodeAttribute ca;
     private boolean frameDirty;
     private final List<Slot> initSlots;
 
@@ -150,8 +135,7 @@ final class LocalsToVarMapper {
                      List<ClassDesc> initFrameLocals,
                      List<ExceptionCatch> exceptionHandlers,
                      Optional<StackMapTableAttribute> stackMapTableAttribute,
-                     List<CodeElement> codeElements,
-                     CodeAttribute ca) {
+                     List<CodeElement> codeElements) {
         this.insMap = new HashMap<>();
         this.thisClass = thisClass;
         this.exceptionHandlers = exceptionHandlers;
@@ -161,12 +145,11 @@ final class LocalsToVarMapper {
         this.allSlots = new LinkedHashSet<>();
         this.newMap = computeNewMap(codeElements);
         this.initSlots = new ArrayList<>();
-        this.ca = ca; // @@@ only for debugging purpose
         this.stackMap = stackMapTableAttribute.map(a -> a.entries().stream().collect(Collectors.toMap(
                 StackMapFrameInfo::target,
                 this::toFrame))).orElse(Map.of());
         for (ClassDesc cd : initFrameLocals) {
-            initSlots.add(cd == null ? null : newSlot(cd, Slot.Kind.STORE, -1, initSlots.size()));
+            initSlots.add(cd == null ? null : newSlot(cd, Slot.Kind.STORE));
         }
         int initSize = allSlots.size();
         do {
@@ -184,11 +167,9 @@ final class LocalsToVarMapper {
                 store(i, initSlots.get(i), locals);
             }
             this.frameDirty = false;
-            int bci = 0;
             for (int i = 0; i < codeElements.size(); i++) {
                 var ce = codeElements.get(i);
-                accept(i, ce, bci);
-                if (ce instanceof Instruction ins) bci += ins.sizeInBytes();
+                accept(i, ce);
             }
             endOfFlow();
         } while (this.frameDirty);
@@ -270,27 +251,6 @@ final class LocalsToVarMapper {
                 stores.clear();
             }
         }
-
-        // @@@ only for debugging purpose
-        if (BytecodeLift.DUMP) {
-            ClassPrinter.toYaml(ca, ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES, System.out::print);
-            System.out.println("digraph {");
-            for (Slot s : allSlots) {
-                System.out.println("    S" + Integer.toHexString(s.hashCode()) + " [label=\"" + s.toString() + "\"]");
-            }
-            System.out.println();
-            for (Slot s : allSlots) {
-                var it = s.downSlots().iterator();
-                if (it.hasNext()) {
-                    System.out.print("    S" + Integer.toHexString(s.hashCode()) + " -> {S" + Integer.toHexString(it.next().hashCode()));
-                    while (it.hasNext()) {
-                        System.out.print(", S" + Integer.toHexString(it.next().hashCode()));
-                    }
-                    System.out.println("};");
-                }
-            }
-            System.out.println("}");
-        }
     }
 
     public int slotsToInit() {
@@ -325,9 +285,8 @@ final class LocalsToVarMapper {
             fstack.add(vtiToStackType(vti));
         }
         int i = 0;
-        int bci = ca.labelToBci(smfi.target()); //@@@ only for debugging purpose
         for (var vti : smfi.locals()) {
-            store(i, vtiToStackType(vti), flocals, Slot.Kind.FRAME, bci);
+            store(i, vtiToStackType(vti), flocals, Slot.Kind.FRAME);
             i += vti == ITEM_DOUBLE || vti == ITEM_LONG ? 2 : 1;
         }
         return new Frame(fstack, flocals);
@@ -351,12 +310,10 @@ final class LocalsToVarMapper {
         return newMap;
     }
 
-    private Slot newSlot(ClassDesc type, Slot.Kind kind, int bci, int sl) {
+    private Slot newSlot(ClassDesc type, Slot.Kind kind) {
         Slot s = new Slot();
         s.kind = kind;
         s.type = type;
-        s.bci = bci;
-        s.sl = sl; // @@@ only for debugging purpose
         allSlots.add(s);
         return s;
     }
@@ -414,12 +371,12 @@ final class LocalsToVarMapper {
         return this;
     }
 
-    private void store(int slot, ClassDesc type, int bci) {
-        store(slot, type, locals, Slot.Kind.STORE, bci);
+    private void store(int slot, ClassDesc type) {
+        store(slot, type, locals, Slot.Kind.STORE);
     }
 
-    private void store(int slot, ClassDesc type, List<Slot> where, Slot.Kind kind, int bci) {
-        store(slot, type == null ? null : newSlot(type, kind, bci, slot), where);
+    private void store(int slot, ClassDesc type, List<Slot> where, Slot.Kind kind) {
+        store(slot, type == null ? null : newSlot(type, kind), where);
     }
 
     private void store(int slot, Slot s, List<Slot> where) {
@@ -432,14 +389,14 @@ final class LocalsToVarMapper {
         }
     }
 
-    private ClassDesc load(int slot, int bci) {
+    private ClassDesc load(int slot) {
         Slot sl = locals.get(slot);
-        Slot nsl = newSlot(sl.type, Slot.Kind.LOAD, bci, slot);
+        Slot nsl = newSlot(sl.type, Slot.Kind.LOAD);
         sl.link(nsl);
         return sl.type;
     }
 
-    private void accept(int elIndex, CodeElement el, int bci) {
+    private void accept(int elIndex, CodeElement el) {
         switch (el) {
             case ArrayLoadInstruction _ ->
                 pop(1).push(pop().componentType());
@@ -490,9 +447,9 @@ final class LocalsToVarMapper {
                 }
             }
             case IncrementInstruction i -> {
-                load(i.slot(), bci);
+                load(i.slot());
                 insMap.put(-elIndex - 1, locals.get(i.slot()));
-                store(i.slot(), CD_int, bci);
+                store(i.slot(), CD_int);
                 insMap.put(elIndex, locals.get(i.slot()));
                 for (var ec : handlersStack) {
                     mergeLocalsToTargetFrame(stackMap.get(ec.handler()));
@@ -504,11 +461,11 @@ final class LocalsToVarMapper {
                 pop(i.typeSymbol().parameterCount() + (i.opcode() == Opcode.INVOKESTATIC ? 0 : 1))
                         .push(i.typeSymbol().returnType());
             case LoadInstruction i -> {
-                push(load(i.slot(), bci));
+                push(load(i.slot()));
                 insMap.put(elIndex, locals.get(i.slot()));
             }
             case StoreInstruction i -> {
-                store(i.slot(), pop(), bci);
+                store(i.slot(), pop());
                 insMap.put(elIndex, locals.get(i.slot()));
                 for (var ec : handlersStack) {
                     mergeLocalsToTargetFrame(stackMap.get(ec.handler()));
