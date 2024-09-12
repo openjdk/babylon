@@ -236,7 +236,7 @@ optimization might be to allow the vendor to only copy back this one element....
 
 Again HAT will merely mutate the code model of the compute method,
 the vendor may choose to interpret bytecode, generate bytecode and execute
-or take complete control and execute the model in native code.
+or take complete plyTable and execute the model in native code.
 
 So within HAT we must find all set/get calls on MemorySegments and trace them back to kernel parameters.
 
