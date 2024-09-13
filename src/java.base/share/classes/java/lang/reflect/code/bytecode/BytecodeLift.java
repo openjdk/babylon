@@ -62,6 +62,7 @@ import java.lang.reflect.code.type.VarType;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
@@ -73,7 +74,6 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
-import java.util.BitSet;
 
 public final class BytecodeLift {
 
@@ -1001,8 +1001,7 @@ public final class BytecodeLift {
     }
 
     private Value zero(Value otherOperand) {
-       var vt = valueType(otherOperand);
-        return vt.equals(PrimitiveType.BOOLEAN) ? liftConstant(false) : liftConstant(0);
+        return liftDefaultValue(BytecodeGenerator.toClassDesc(otherOperand.type()));
     }
 
     private static boolean isCategory1(Value v) {

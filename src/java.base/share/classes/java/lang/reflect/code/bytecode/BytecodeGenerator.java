@@ -25,51 +25,56 @@
 
 package java.lang.reflect.code.bytecode;
 
+import java.lang.classfile.ClassBuilder;
 import java.lang.classfile.ClassFile;
+import java.lang.classfile.ClassModel;
 import java.lang.classfile.CodeBuilder;
 import java.lang.classfile.Label;
-import java.lang.constant.*;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.op.CoreOp.*;
-
-import java.lang.classfile.ClassBuilder;
-import java.lang.classfile.ClassModel;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
 import java.lang.classfile.attribute.ConstantValueAttribute;
+import java.lang.constant.ClassDesc;
+import java.lang.constant.Constable;
+import java.lang.constant.ConstantDescs;
+import java.lang.constant.DirectMethodHandleDesc;
+import java.lang.constant.DynamicCallSiteDesc;
+import java.lang.constant.MethodHandleDesc;
+import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.LambdaMetafactory;
-import java.lang.reflect.code.Block;
-import java.lang.reflect.code.Op;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
-import java.lang.reflect.code.Value;
-import java.lang.reflect.code.analysis.Liveness;
-import java.lang.reflect.code.type.ArrayType;
-import java.lang.reflect.code.type.FieldRef;
-import java.lang.reflect.code.type.MethodRef;
-import java.lang.reflect.code.type.FunctionType;
-import java.lang.reflect.code.type.JavaType;
-import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.type.VarType;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static java.lang.constant.ConstantDescs.*;
 import java.lang.invoke.StringConcatFactory;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.code.Block;
+import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Quotable;
+import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.Value;
+import java.lang.reflect.code.analysis.Liveness;
+import java.lang.reflect.code.op.CoreOp;
+import java.lang.reflect.code.op.CoreOp.*;
+import java.lang.reflect.code.type.ArrayType;
+import java.lang.reflect.code.type.FieldRef;
+import java.lang.reflect.code.type.FunctionType;
+import java.lang.reflect.code.type.JavaType;
+import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.type.PrimitiveType;
+import java.lang.reflect.code.type.VarType;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static java.lang.constant.ConstantDescs.*;
 
 /**
  * Transformer of code models to bytecode.
@@ -323,7 +328,7 @@ public final class BytecodeGenerator {
     }
 
     private void processFirstOperand(Op op) {
-        processOperand(op.operands().getFirst());;
+        processOperand(op.operands().getFirst());
     }
 
     private void processOperand(Value operand) {
@@ -818,8 +823,7 @@ public final class BytecodeGenerator {
                     }
                     case BinaryTestOp op -> {
                         if (!isConditionForCondBrOp(op)) {
-                            processOperands(op);
-                            cob.ifThenElse(prepareReverseCondition(op), CodeBuilder::iconst_0, CodeBuilder::iconst_1);
+                            cob.ifThenElse(prepareConditionalBranch(op), CodeBuilder::iconst_0, CodeBuilder::iconst_1);
                             push(op.result());
                         }
                         // Processing is deferred to the CondBrOp, do not process the op result
@@ -1035,11 +1039,10 @@ public final class BytecodeGenerator {
                 case ConditionalBranchOp op -> {
                     if (getConditionForCondBrOp(op) instanceof BinaryTestOp btop) {
                         // Processing of the BinaryTestOp was deferred, so it can be merged with CondBrOp
-                        processOperands(btop);
-                        conditionalBranch(btop, op.trueBranch(), op.falseBranch());
+                        conditionalBranch(prepareConditionalBranch(btop), op.trueBranch(), op.falseBranch());
                     } else {
-                        processOperands(op);
-                        conditionalBranch(Opcode.IFEQ, op, op.trueBranch(), op.falseBranch());
+                        processFirstOperand(op);
+                        conditionalBranch(Opcode.IFEQ, op.trueBranch(), op.falseBranch());
                     }
                 }
                 case ExceptionRegionEnter op -> {
@@ -1145,11 +1148,7 @@ public final class BytecodeGenerator {
         return uniqueName;
     }
 
-    private void conditionalBranch(BinaryTestOp op, Block.Reference trueBlock, Block.Reference falseBlock) {
-        conditionalBranch(prepareReverseCondition(op), op, trueBlock, falseBlock);
-    }
-
-    private void conditionalBranch(Opcode reverseOpcode, Op op, Block.Reference trueBlock, Block.Reference falseBlock) {
+    private void conditionalBranch(Opcode reverseOpcode, Block.Reference trueBlock, Block.Reference falseBlock) {
         if (!needToAssignBlockArguments(falseBlock)) {
             cob.branch(reverseOpcode, getLabel(falseBlock));
         } else {
@@ -1163,8 +1162,37 @@ public final class BytecodeGenerator {
         cob.goto_(getLabel(trueBlock));
     }
 
-    private Opcode prepareReverseCondition(BinaryTestOp op) {
-        return switch (toTypeKind(op.operands().get(0).type())) {
+    private Opcode prepareConditionalBranch(BinaryTestOp op) {
+        Value firstOperand = op.operands().get(0);
+        TypeKind typeKind = toTypeKind(firstOperand.type());
+        Value secondOperand = op.operands().get(1);
+        processOperand(firstOperand);
+        if (isZeroIntOrNullConstant(secondOperand)) {
+            return switch (typeKind) {
+                case IntType, BooleanType, ByteType, ShortType, CharType ->
+                    switch (op) {
+                        case EqOp _ -> Opcode.IFNE;
+                        case NeqOp _ -> Opcode.IFEQ;
+                        case GtOp _ -> Opcode.IFLE;
+                        case GeOp _ -> Opcode.IFLT;
+                        case LtOp _ -> Opcode.IFGE;
+                        case LeOp _ -> Opcode.IFGT;
+                        default ->
+                            throw new UnsupportedOperationException(op.opName() + " on int");
+                    };
+                case ReferenceType ->
+                    switch (op) {
+                        case EqOp _ -> Opcode.IFNONNULL;
+                        case NeqOp _ -> Opcode.IFNULL;
+                        default ->
+                            throw new UnsupportedOperationException(op.opName() + " on Object");
+                    };
+                default ->
+                    throw new UnsupportedOperationException(op.opName() + " on " + op.operands().get(0).type());
+            };
+        }
+        processOperand(secondOperand);
+        return switch (typeKind) {
             case IntType, BooleanType, ByteType, ShortType, CharType ->
                 switch (op) {
                     case EqOp _ -> Opcode.IF_ICMPNE;
@@ -1198,6 +1226,20 @@ public final class BytecodeGenerator {
             default ->
                 throw new UnsupportedOperationException(op.opName() + " on " + op.operands().get(0).type());
         };
+    }
+
+    private boolean isZeroIntOrNullConstant(Value v) {
+        return v instanceof Op.Result or
+                && or.op() instanceof ConstantOp cop
+                && switch (cop.value()) {
+                    case null -> true;
+                    case Integer i -> i == 0;
+                    case Boolean b -> !b;
+                    case Byte b -> b == 0;
+                    case Short s -> s == 0;
+                    case Character ch -> ch == 0;
+                    default -> false;
+                };
     }
 
     private static Opcode reverseIfOpcode(BinaryTestOp op) {
