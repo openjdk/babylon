@@ -50,51 +50,55 @@ import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerification
 import static java.lang.constant.ConstantDescs.CD_double;
 import static java.lang.constant.ConstantDescs.CD_long;
 
-/// LocalsCompactor transforms class to reduce allocation of local slots in the Code attribute (max_locals).
-///
-/// It collects slot maps, compacts them and transforms the Code attribute accordingly.
-///
-/// Example of maps before compaction (max_locals = 13):
-///
-/// |  slot| 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10| 11| 12| 13|
-/// |-----:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
-/// |bci 0:| * | * |   |   |   |   |   |   |   |   |   |   |   |   |
-/// |    8:|   | * | * | * |   |   |   |   |   |   |   |   |   |   |
-/// |   10:|   | * | * | * |   |   |   |   |   |   |   |   |   |   |
-/// |   15:|   | * | * | * | * | * |   |   |   |   |   |   |   |   |
-/// |   17:|   | * | * | * | * | * |   |   |   |   |   |   |   |   |
-/// |   18:|   | * |   |   | * | * |   |   |   |   |   |   |   |   |
-/// |   25:|   | * |   |   |   |   | * | * |   |   |   |   |   |   |
-/// |   27:|   | * |   |   |   |   | * | * |   |   |   |   |   |   |
-/// |   32:|   | * |   |   |   |   | * | * | * | * |   |   |   |   |
-/// |   34:|   | * |   |   |   |   | * | * | * | * |   |   |   |   |
-/// |   36:|   | * |   |   |   |   |   |   | * | * |   |   |   |   |
-/// |   43:|   | * |   |   |   |   |   |   |   |   | * | * |   |   |
-/// |   45:|   | * |   |   |   |   |   |   |   |   | * | * |   |   |
-/// |   50:|   |   |   |   |   |   |   |   |   |   | * | * | * | * |
-/// |   52:|   |   |   |   |   |   |   |   |   |   | * | * | * | * |
-/// |   54:|   |   |   |   |   |   |   |   |   |   |   |   | * | * |
-///
-/// Compact form of the same maps (max_locals = 5):
-///
-/// |  slot| 0 + 12| 1 + 13|2 + 6 + 10|3 + 7 + 11|4 + 8|5 + 9|
-/// |-----:|:-----:|:-----:|:--------:|:--------:|:---:|:---:|
-/// |bci 0:|   *   |   *   |          |          |     |     |
-/// |    8:|       |   *   |     *    |     *    |     |     |
-/// |   10:|       |   *   |     *    |     *    |     |     |
-/// |   15:|       |   *   |     *    |     *    |  *  |  *  |
-/// |   17:|       |   *   |     *    |     *    |  *  |  *  |
-/// |   18:|       |   *   |          |          |  *  |  *  |
-/// |   25:|       |   *   |     *    |     *    |     |     |
-/// |   27:|       |   *   |     *    |     *    |     |     |
-/// |   32:|       |   *   |     *    |     *    |  *  |  *  |
-/// |   34:|       |   *   |     *    |     *    |  *  |  *  |
-/// |   36:|       |   *   |          |          |  *  |  *  |
-/// |   43:|       |   *   |     *    |     *    |     |     |
-/// |   45:|       |   *   |     *    |     *    |     |     |
-/// |   50:|   *   |   *   |     *    |     *    |     |     |
-/// |   52:|   *   |   *   |     *    |     *    |     |     |
-/// |   54:|   *   |   *   |          |          |     |     |
+/**
+ * LocalsCompactor transforms class to reduce allocation of local slots in the Code attribute (max_locals).
+ * It collects slot maps, compacts them and transforms the Code attribute accordingly.
+ * <p>
+ * Example of maps before compaction (max_locals = 13):
+ * <pre>
+ *  slots:  0   1   2   3   4   5   6   7   8   9   10  11  12  13
+ *  ---------------------------------------------------------------
+ *  bci 0:  *   *
+ *      8:      *   *   *
+ *     10:      *   *   *
+ *     15:      *   *   *   *   *
+ *     17:      *   *   *   *   *
+ *     18:      *           *   *
+ *     25:      *                   *   *
+ *     27:      *                   *   *
+ *     32:      *                   *   *   *   *
+ *     34:      *                   *   *   *   *
+ *     36:      *                           *   *
+ *     43:      *                                   *   *
+ *     45:      *                                   *   *
+ *     50:                                          *   *   *   *
+ *     52:                                          *   *   *   *
+ *     54:                                                  *   *
+ * </pre>
+ * Compact form of the same maps (max_locals = 5):
+ * <pre>
+ *  slots:   0   1   2   3   4   5
+ *         +12 +13  +6  +7  +8  +9
+ *                 +10 +11
+ *  -------------------------------
+ *  bci 0:  *   *
+ *      8:      *   *   *
+ *     10:      *   *   *
+ *     15:      *   *   *   *   *
+ *     17:      *   *   *   *   *
+ *     18:      *           *   *
+ *     25:      *   *   *
+ *     27:      *   *   *
+ *     32:      *   *   *   *   *
+ *     34:      *   *   *   *   *
+ *     36:      *           *   *
+ *     43:      *   *   *
+ *     45:      *   *   *
+ *     50:  *   *   *   *
+ *     52:  *   *   *   *
+ *     54:  *   *
+ * </pre>
+ */
 public final class LocalsCompactor {
 
     public static final ClassTransform INSTANCE = (clb,cle) -> {
