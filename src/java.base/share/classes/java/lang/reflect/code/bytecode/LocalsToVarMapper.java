@@ -82,7 +82,7 @@ final class LocalsToVarMapper {
     }
 
     /**
-     * Segment of bytecode related one local slot, a node in the segment graph.
+     * Segment of bytecode related to one local slot, it represents a node in the segment graph.
      */
     private static final class Segment {
 
