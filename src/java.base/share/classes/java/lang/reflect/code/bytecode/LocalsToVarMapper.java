@@ -281,7 +281,7 @@ final class LocalsToVarMapper {
                 StackMapFrameInfo::target,
                 this::toFrame))).orElse(Map.of());
         for (ClassDesc cd : initFrameLocals) {
-            initSlots.add(cd == null ? null : newSlot(cd, Segment.Kind.STORE));
+            initSlots.add(cd == null ? null : newSegment(cd, Segment.Kind.STORE));
         }
         int initSize = allSegments.size();
 
@@ -300,13 +300,13 @@ final class LocalsToVarMapper {
             }
             // Initial frame store
             for (int i = 0; i < initFrameLocals.size(); i++) {
-                store(i, initSlots.get(i), locals);
+                storeLocal(i, initSlots.get(i), locals);
             }
             this.frameDirty = false;
             // Iteration over all code elements
             for (int i = 0; i < codeElements.size(); i++) {
                 var ce = codeElements.get(i);
-                accept(i, ce);
+                scan(i, ce);
             }
             endOfFlow();
         } while (this.frameDirty);
@@ -381,7 +381,7 @@ final class LocalsToVarMapper {
                 for (var it = stores.iterator(); it.hasNext();) {
                     visited.clear();
                     Segment s = it.next();
-                    if (s.from != null && preceedsWithTheVar(s, var, visited)) {
+                    if (s.from != null && varDominatesOverSegmentPredecessors(s, var, visited)) {
                         // A store preceeding dominantly with segments of the same variable is not initial
                         it.remove();
                     }
@@ -438,12 +438,22 @@ final class LocalsToVarMapper {
     }
 
     /**
-     * Detects if all of the preceding slots belong to the variable
+     * Tests if variable dominates over the segment predecessors.
+     * All incoming paths to the segment must lead from segments of the given variable and not of any other variable.
+     * The paths may pass through {@code FRAME} segments, which do not belong to any variable and their dominance must be computed.
+     * Implementation relies on loops-avoiding breadth-first negative search.
      */
-    private static boolean preceedsWithTheVar(Segment segment, Variable var, Set<Segment> visited) {
+    private static boolean varDominatesOverSegmentPredecessors(Segment segment, Variable var, Set<Segment> visited) {
         if (visited.add(segment)) {
-            for (Segment up : segment.fromSegments()) {
-                if (up.var == null ? up.kind != Segment.Kind.FRAME || !preceedsWithTheVar(up, var, visited) : up.var != var) {
+            for (Segment pred : segment.fromSegments()) {
+                // Breath-first
+                if (pred.kind != Segment.Kind.FRAME && pred.var != var) {
+                    return false;
+                }
+            }
+            for (Segment pred : segment.fromSegments()) {
+                // Preceeding FRAME segment implies there is no directly preceeding variable and the dominance test must go deeper
+                if (pred.kind == Segment.Kind.FRAME && !varDominatesOverSegmentPredecessors(pred, var, visited)) {
                     return false;
                 }
             }
@@ -451,6 +461,12 @@ final class LocalsToVarMapper {
         return true;
     }
 
+    /**
+     * Cconverts {@link StackMapFrameInfo} to {@code Frame}, where locals are expanded form ({@code null}-filled second slots for double-slots)
+     * of {@code FRAME} segments.
+     * @param smfi StackMapFrameInfo
+     * @return Frame
+     */
     private Frame toFrame(StackMapFrameInfo smfi) {
         List<ClassDesc> fstack = new ArrayList<>(smfi.stack().size());
         List<Segment> flocals = new ArrayList<>(smfi.locals().size() * 2);
@@ -459,12 +475,17 @@ final class LocalsToVarMapper {
         }
         int i = 0;
         for (var vti : smfi.locals()) {
-            store(i, vtiToStackType(vti), flocals, Segment.Kind.FRAME);
+            storeLocal(i, vtiToStackType(vti), flocals, Segment.Kind.FRAME);
             i += vti == ITEM_DOUBLE || vti == ITEM_LONG ? 2 : 1;
         }
         return new Frame(fstack, flocals);
     }
 
+    /**
+     * {@return map of labels immediately preceding {@link NewObjectInstruction} to the object types}
+     * The map is important to resolve unitialized verification types in the stack map.
+     * @param codeElements List of code elements to scan
+     */
     private static Map<Label, ClassDesc> computeNewMap(List<CodeElement> codeElements) {
         Map<Label, ClassDesc> newMap = new HashMap<>();
         Label lastLabel = null;
@@ -483,7 +504,12 @@ final class LocalsToVarMapper {
         return newMap;
     }
 
-    private Segment newSlot(ClassDesc type, Segment.Kind kind) {
+    /**
+     * {@return new segment and registers it in {@code allSegments} list}
+     * @param type class descriptor of segment type
+     * @param kind one of the segment kinds: {@code STORE}, {@code LOAD} or {@code FRAME}
+     */
+    private Segment newSegment(ClassDesc type, Segment.Kind kind) {
         Segment s = new Segment();
         s.kind = kind;
         s.type = type;
@@ -491,6 +517,11 @@ final class LocalsToVarMapper {
         return s;
     }
 
+    /**
+     * {@return resolved class descriptor of the stack map frame verification type, custom {@code NULL_TYPE} for {@code ITEM_NULL}
+     * or {@code null} for {@code ITEM_TOP}}
+     * @param vti stack map frame verification type
+     */
     private ClassDesc vtiToStackType(StackMapFrameInfo.VerificationTypeInfo vti) {
         return switch (vti) {
             case ITEM_INTEGER -> CD_int;
@@ -508,51 +539,103 @@ final class LocalsToVarMapper {
         };
     }
 
+    /**
+     * Pushes the class descriptor on {@link #stack}, except for {@code void}.
+     * @param type class descriptor
+     */
     private void push(ClassDesc type) {
         if (!ConstantDescs.CD_void.equals(type)) stack.add(type);
     }
 
+    /**
+     * Pushes the class descriptors on the {@link #stack} at the relative position, except for {@code void}.
+     * @param pos position relative to the stack tip
+     * @param types class descriptors
+     */
     private void pushAt(int pos, ClassDesc... types) {
         for (var t : types)
             if (!ConstantDescs.CD_void.equals(t))
                 stack.add(stack.size() + pos, t);
     }
 
+    /**
+     * {@return if class descriptor on the {@link #stack} at the relative position is {@code long} or {@code double}}
+     * @param pos position relative to the stack tip
+     */
     private boolean doubleAt(int pos) {
         var t  = stack.get(stack.size() + pos);
         return t.equals(CD_long) || t.equals(CD_double);
     }
 
+    /**
+     * {@return class descriptor poped from the {@link #stack}}
+     */
     private ClassDesc pop() {
         return stack.removeLast();
     }
 
+    /**
+     * {@return class descriptor from the relative position of the {@link #stack}}
+     * @param pos position relative to the stack tip
+     */
     private ClassDesc get(int pos) {
         return stack.get(stack.size() + pos);
     }
 
+    /**
+     * {@return class descriptor from the tip of the {@link #stack}}
+     */
     private ClassDesc top() {
         return stack.getLast();
     }
 
+    /**
+     * {@return two class descriptors from the tip of the {@link #stack}}
+     */
     private ClassDesc[] top2() {
         return new ClassDesc[] {stack.get(stack.size() - 2), stack.getLast()};
     }
 
+    /**
+     * Pops given number of class descriptors from the {@link #stack}.
+     * @param i number of class descriptors to pop
+     * @return this LocalsToVarMapper
+     */
     private LocalsToVarMapper pop(int i) {
         while (i-- > 0) pop();
         return this;
     }
 
-    private void store(int slot, ClassDesc type) {
-        store(slot, type, locals, Segment.Kind.STORE);
+    /**
+     * Stores class descriptor as a new {@code STORE} {@link Segment} to the {@link #locals}.
+     * The new segment is linked with the previous segment on the same slot position (if any).
+     * @param slot locals slot number
+     * @param type new segment class descriptor
+     */
+    private void storeLocal(int slot, ClassDesc type) {
+        storeLocal(slot, type, locals, Segment.Kind.STORE);
     }
 
-    private void store(int slot, ClassDesc type, List<Segment> where, Segment.Kind kind) {
-        store(slot, type == null ? null : newSlot(type, kind), where);
+    /**
+     * Stores class descriptor as a new {@link Segment} of given kind to the given list .
+     * The new segment is linked with the previous segment on the same slot position (if any).
+     * @param slot locals slot number
+     * @param type new segment class descriptor
+     * @param where target list of segments
+     * @param kind new segment kind
+     */
+    private void storeLocal(int slot, ClassDesc type, List<Segment> where, Segment.Kind kind) {
+        storeLocal(slot, type == null ? null : newSegment(type, kind), where);
     }
 
-    private void store(int slot, Segment segment, List<Segment> where) {
+    /**
+     * Stores the {@link Segment} to the given list.
+     * The new segment is linked with the previous segment on the same slot position (if any).
+     * @param slot locals slot number
+     * @param segment the segment to store
+     * @param where target list of segments
+     */
+    private void storeLocal(int slot, Segment segment, List<Segment> where) {
         if (segment != null) {
             for (int i = where.size(); i <= slot; i++) where.add(null);
             Segment prev = where.set(slot, segment);
@@ -562,14 +645,24 @@ final class LocalsToVarMapper {
         }
     }
 
-    private ClassDesc load(int slot) {
+    /**
+     * Links existing {@link Segment} of the {@link #locals} with a new {@code LOAD} {@link Segment} with inherited type.
+     * @param slot slot number to load
+     * @return type of the local
+     */
+    private ClassDesc loadLocal(int slot) {
         Segment segment = locals.get(slot);
-        Segment newSegment = newSlot(segment.type, Segment.Kind.LOAD);
+        Segment newSegment = newSegment(segment.type, Segment.Kind.LOAD);
         segment.link(newSegment);
         return segment.type;
     }
 
-    private void accept(int elIndex, CodeElement el) {
+    /**
+     * Main code element scanning method of the scan loop.
+     * @param elementIndex element index
+     * @param el code element
+     */
+    private void scan(int elementIndex, CodeElement el) {
         switch (el) {
             case ArrayLoadInstruction _ ->
                 pop(1).push(pop().componentType());
@@ -619,11 +712,11 @@ final class LocalsToVarMapper {
                         pop(2);
                 }
             }
-            case IncrementInstruction i -> {
-                load(i.slot());
-                insMap.put(-elIndex - 1, locals.get(i.slot()));
-                store(i.slot(), CD_int);
-                insMap.put(elIndex, locals.get(i.slot()));
+            case IncrementInstruction i -> { // Increment instruction maps to two segments
+                loadLocal(i.slot());
+                insMap.put(-elementIndex - 1, locals.get(i.slot())); // source segment is mapped with -elementIndex - 1 key
+                storeLocal(i.slot(), CD_int);
+                insMap.put(elementIndex, locals.get(i.slot())); // target segment is mapped with elementIndex key
                 for (var ec : handlersStack) {
                     mergeLocalsToTargetFrame(stackMap.get(ec.handler()));
                 }
@@ -634,12 +727,12 @@ final class LocalsToVarMapper {
                 pop(i.typeSymbol().parameterCount() + (i.opcode() == Opcode.INVOKESTATIC ? 0 : 1))
                         .push(i.typeSymbol().returnType());
             case LoadInstruction i -> {
-                push(load(i.slot()));
-                insMap.put(elIndex, locals.get(i.slot()));
+                push(loadLocal(i.slot())); // Load instruction segment is mapped with elementIndex key
+                insMap.put(elementIndex, locals.get(i.slot()));
             }
             case StoreInstruction i -> {
-                store(i.slot(), pop());
-                insMap.put(elIndex, locals.get(i.slot()));
+                storeLocal(i.slot(), pop());
+                insMap.put(elementIndex, locals.get(i.slot()));  // Store instruction segment is mapped with elementIndex key
                 for (var ec : handlersStack) {
                     mergeLocalsToTargetFrame(stackMap.get(ec.handler()));
                 }
@@ -694,20 +787,21 @@ final class LocalsToVarMapper {
                 pop(1).push(i.opcode() == Opcode.CHECKCAST ? i.type().asSymbol() : ConstantDescs.CD_int);
             case LabelTarget lt -> {
                 var frame = stackMap.get(lt.label());
-                if (frame != null) {
+                if (frame != null) { // Here we reached a stack map frame, so we merge actual stack and locals into the frame
                     if (!stack.isEmpty() || !locals.isEmpty()) {
                         mergeToTargetFrame(lt.label());
                         endOfFlow();
                     }
+                    // Stack and locals are then taken from the frame
                     stack.addAll(frame.stack());
                     locals.addAll(frame.locals());
                 }
                 for (ExceptionCatch ec : exceptionHandlers) {
-                    if (lt.label() == ec.tryStart()) {
+                    if (lt.label() == ec.tryStart()) { // Entering a try block
                         handlersStack.add(ec);
                         mergeLocalsToTargetFrame(stackMap.get(ec.handler()));
                     }
-                    if (lt.label() == ec.tryEnd()) {
+                    if (lt.label() == ec.tryEnd()) { // Leaving a try block
                         handlersStack.remove(ec);
                     }
                 }
@@ -740,6 +834,10 @@ final class LocalsToVarMapper {
         locals.clear();
     }
 
+    /**
+     * Merge of the actual {@link #stack} and {@link #locals} to the target stack map frame
+     * @param target label of the target stack map frame
+     */
     private void mergeToTargetFrame(Label target) {
         Frame targetFrame = stackMap.get(target);
         // Merge stack
@@ -750,7 +848,7 @@ final class LocalsToVarMapper {
             if (!se.equals(fe)) {
                 if (se.isPrimitive() && CD_int.equals(fe)) {
                     targetFrame.stack.set(i, se); // Override int target frame type with more specific int sub-type
-                    this.frameDirty = true;
+                    this.frameDirty = true; // This triggers scan loop to run again, as the stack map frame has been adjusted
                 } else {
                     stack.set(i, fe); // Override stack type with target frame type
                 }
@@ -759,6 +857,11 @@ final class LocalsToVarMapper {
         mergeLocalsToTargetFrame(targetFrame);
     }
 
+
+    /**
+     * Merge of the actual {@link #locals} to the target stack map frame
+     * @param targetFrame target stack map frame
+     */
     private void mergeLocalsToTargetFrame(Frame targetFrame) {
         // Merge locals
         int lSize = Math.min(locals.size(), targetFrame.locals.size());
@@ -770,7 +873,7 @@ final class LocalsToVarMapper {
                 if (!le.type.equals(fe.type)) {
                     if (le.type.isPrimitive() && CD_int.equals(fe.type) ) {
                         fe.type = le.type; // Override int target frame type with more specific int sub-type
-                        this.frameDirty = true;
+                        this.frameDirty = true; // This triggers scan loop to run again, as the stack map frame has been adjusted
                     }
                 }
             }
