@@ -389,7 +389,7 @@ final class LocalsToVarMapper {
 
                 // Remaining stores are all initial.
                 if (stores.size() > 1) {
-                    // A synthetic default-initialized dominant segment must be inserted to the variable, if there is more than one.
+                    // A synthetic default-initialized dominant segment must be inserted to the variable, if there is more than one initial store segment.
                     // It is not necessary to link it with other variable segments, the analysys ends here.
                     Segment initialSegment = new Segment();
                     initialSegment.var = var;
@@ -426,9 +426,8 @@ final class LocalsToVarMapper {
      *
      * Instructions are identified by index into the {@code codeElements} list used in the {@link LocalsToVarMapper} initializer.
      *
-     * {@link IncrementInstruction} relates to two potentially distinct variables (the first variable used to load
-     * the value from and the second variable to store the incremented value).
-     * To obtain the first one pass {@code -incrementInstructionIndex - 1} as an argument to this method (see: {@link BytecodeLift#liftBody() }).
+     * {@link IncrementInstruction} relates to two potentially distinct variables, one variable to load the value from
+     * and one variable to store the incremented value into (see: {@link BytecodeLift#liftBody() }).
      *
      * @param codeElementIndex code element index
      * @return Variable related to the given code element index or null
