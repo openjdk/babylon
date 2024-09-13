@@ -375,21 +375,24 @@ public class PatternsTest {
             func @"test9" (%0 : PatternsTest, %1 : java.lang.Object)boolean -> {
                 %2 : Var<java.lang.Object> = var %1 @"o";
                 %3 : java.lang.Object = var.load %2;
-                %4 : boolean = pattern.match %3
+                %4 : PatternsTest$ConcretePoint = constant @null;
+                %5 : Var<PatternsTest$ConcretePoint> = var %4 @"cp";
+                %6 : boolean = pattern.match %3
                     ()java.lang.reflect.code.ExtendedOp$Pattern$Record<PatternsTest$Rectangle> -> {
-                        %5 : java.lang.reflect.code.ExtendedOp$Pattern$Type<PatternsTest$Point> = pattern.type;
-                        %6 : java.lang.reflect.code.ExtendedOp$Pattern$Type<PatternsTest$Point> = pattern.type;
-                        %7 : java.lang.reflect.code.ExtendedOp$Pattern$Record<PatternsTest$Rectangle> = pattern.record %5 %6 @"(PatternsTest$Point upperLeft, PatternsTest$Point lowerRight)PatternsTest$Rectangle";
-                        yield %7;
+                        %7 : java.lang.reflect.code.ExtendedOp$Pattern$MatchAll = pattern.match.all;
+                        %8 : java.lang.reflect.code.ExtendedOp$Pattern$Type<PatternsTest$ConcretePoint> = pattern.type @"cp";
+                        %9 : java.lang.reflect.code.ExtendedOp$Pattern$Record<PatternsTest$Rectangle> = pattern.record %7 %8 @"(PatternsTest$Point upperLeft, PatternsTest$Point lowerRight)PatternsTest$Rectangle";
+                        yield %9;
                     }
-                    ()void -> {
+                    (%10 : PatternsTest$ConcretePoint)void -> {
+                        var.store %5 %10;
                         yield;
                     };
-                return %4;
+                return %6;
             };
             """)
     @CodeReflection
     boolean test9(Object o) {
-        return o instanceof Rectangle(_, _);
+        return o instanceof Rectangle(_, ConcretePoint cp);
     }
 }

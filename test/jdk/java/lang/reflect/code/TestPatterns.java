@@ -107,7 +107,7 @@ public class TestPatterns {
 
     @CodeReflection
     static String recordPatterns2(Object o) {
-        return o instanceof Rectangle(_, _) ? "match" : "no-match";
+        return o instanceof Rectangle(_, ConcretePoint cp) ? "match" : "no-match";
     }
 
     @Test
@@ -128,8 +128,11 @@ public class TestPatterns {
         }
 
         {
-            Number n = 99;
-            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, n), recordPatterns2(n));
+            Rectangle r = new Rectangle(
+                    new ConcretePoint(1, 2),
+                    new ConcretePoint(3, 4)
+            );
+            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, r), recordPatterns2(r));
         }
     }
 

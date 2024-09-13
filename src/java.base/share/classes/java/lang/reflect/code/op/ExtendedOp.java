@@ -2896,6 +2896,11 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             }
         }
 
+        final class MatchAll implements Pattern {
+            MatchAll() {
+            }
+        }
+
         // @@@ Pattern types
 
         JavaType PATTERN_BINDING_TYPE = JavaType.type(ClassDesc.of(Pattern_CLASS_NAME +
@@ -2903,12 +2908,19 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
         JavaType PATTERN_RECORD_TYPE = JavaType.type(ClassDesc.of(Pattern_CLASS_NAME +
                 "$" + Pattern.Record.class.getSimpleName()));
 
+        JavaType PATTERN_MATCH_ALL_TYPE = JavaType.type(ClassDesc.of(Pattern_CLASS_NAME +
+                "$" + Pattern.MatchAll.class.getSimpleName()));
+
         static JavaType bindingType(TypeElement t) {
             return parameterized(PATTERN_BINDING_TYPE, (JavaType) t);
         }
 
         static JavaType recordType(TypeElement t) {
             return parameterized(PATTERN_RECORD_TYPE, (JavaType) t);
+        }
+
+        static JavaType MatchAllType() {
+            return PATTERN_MATCH_ALL_TYPE;
         }
 
         static TypeElement targetType(TypeElement t) {
@@ -3080,6 +3092,38 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             }
         }
 
+        @OpFactory.OpDeclaration(MatchAllPatternOp.NAME)
+        public static final class MatchAllPatternOp extends PatternOp {
+
+            public static final String NAME = "pattern.match.all";
+
+            MatchAllPatternOp(ExternalizedOp def) {
+                super(def);
+            }
+
+            MatchAllPatternOp(MatchAllPatternOp that, CopyContext cc) {
+                super(that, cc);
+            }
+
+            MatchAllPatternOp() {
+                super(NAME, List.of());
+            }
+
+            public static MatchAllPatternOp create(ExternalizedOp def) {
+                return new MatchAllPatternOp(def);
+            }
+
+            @Override
+            public Op transform(CopyContext cc, OpTransformer ot) {
+                return new MatchAllPatternOp(this, cc);
+            }
+
+            @Override
+            public TypeElement resultType() {
+                return Pattern.MatchAllType();
+            }
+        }
+
         /**
          * The match operation, that can model Java language pattern matching.
          */
@@ -3209,6 +3253,9 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 List<Value> dArgs = rpOp.operands();
                 for (int i = 0; i < dArgs.size(); i++) {
                     Op.Result nestedPattern = (Op.Result) dArgs.get(i);
+                    if (nestedPattern.op() instanceof MatchAllPatternOp) {
+                        continue;
+                    }
                     // @@@ Handle exceptions?
                     Value nestedTarget = currentBlock.op(CoreOp.invoke(rpOp.recordDescriptor().methodForComponent(i), target));
 
@@ -3710,6 +3757,10 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
      */
     public static PatternOps.RecordPatternOp recordPattern(RecordTypeRef recordDescriptor, List<Value> nestedPatterns) {
         return new PatternOps.RecordPatternOp(recordDescriptor, nestedPatterns);
+    }
+
+    public static PatternOps.MatchAllPatternOp matchAllPattern() {
+        return new PatternOps.MatchAllPatternOp();
     }
 
 }

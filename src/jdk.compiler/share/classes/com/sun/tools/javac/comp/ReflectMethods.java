@@ -1244,7 +1244,7 @@ public class ReflectMethods extends TreeTranslator {
 
                 @Override
                 public void visitAnyPattern(JCTree.JCAnyPattern anyPattern) {
-                    result = append(ExtendedOp.typePattern(typeToTypeElement(anyPattern.type), null));
+                    result = append(ExtendedOp.matchAllPattern());
                 }
 
                 Value toValue(JCTree tree) {
