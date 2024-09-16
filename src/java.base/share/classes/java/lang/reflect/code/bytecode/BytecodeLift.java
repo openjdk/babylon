@@ -113,6 +113,7 @@ public final class BytecodeLift {
     private final Map<Object, Op.Result> constantCache;
     private final ArrayDeque<ExceptionRegionEntry> exceptionRegionStack;
     private final List<Value> initLocalValues;
+    private final ArrayDeque<ClassDesc> newStack;
     private Block.Builder currentBlock;
 
     private BytecodeLift(Block.Builder entryBlock, ClassModel classModel, CodeModel codeModel, Value... capturedValues) {
@@ -143,6 +144,7 @@ public final class BytecodeLift {
                         smfi -> entryBlock.block(toBlockParams(smfi.stack()))))).orElseGet(Map::of);
         this.constantCache = new HashMap<>();
         this.exceptionRegionStack = new ArrayDeque<>();
+        this.newStack = new ArrayDeque<>();
     }
 
     private static List<ExceptionRegion> extractExceptionRegions(CodeAttribute codeAttribute) {
@@ -541,7 +543,8 @@ public final class BytecodeLift {
                         case INVOKESTATIC ->
                             op(CoreOp.invoke(mDesc, operands.reversed()));
                         case INVOKESPECIAL -> {
-                            if (inst.name().equalsString(ConstantDescs.INIT_NAME)) {
+                            if (inst.owner().asSymbol().equals(newStack.peek()) && inst.name().equalsString(ConstantDescs.INIT_NAME)) {
+                                newStack.pop();
                                 yield op(CoreOp._new(
                                         FunctionType.functionType(
                                                 mDesc.refType(),
@@ -549,7 +552,7 @@ public final class BytecodeLift {
                                         operands.reversed()));
                             } else {
                                 operands.add(stack.pop());
-                                yield op(CoreOp.invoke(mDesc, operands.reversed()));
+                                yield op(CoreOp.invokeSuper(mDesc.type().returnType(), mDesc, operands.reversed()));
                             }
                         }
                         default ->
@@ -662,12 +665,13 @@ public final class BytecodeLift {
                         }
                     }
                 }
-                case NewObjectInstruction _ -> {
+                case NewObjectInstruction inst -> {
                     // Skip over this and the dup to process the invoke special
                     if (i + 2 < elements.size() - 1
                             && elements.get(i + 1) instanceof StackInstruction dup
                             && dup.opcode() == Opcode.DUP) {
                         i++;
+                        newStack.push(inst.className().asSymbol());
                     } else {
                         throw new UnsupportedOperationException("New must be followed by dup");
                     }
@@ -817,6 +821,7 @@ public final class BytecodeLift {
                     throw new UnsupportedOperationException("Unsupported code element: " + elements.get(i));
             }
         }
+        assert newStack.isEmpty();
     }
 
     private Value load(int i) {
