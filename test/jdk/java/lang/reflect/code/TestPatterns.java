@@ -105,9 +105,11 @@ public class TestPatterns {
         }
     }
 
+    record R(Number n) {}
+
     @CodeReflection
-    static String recordPatterns2(Object o) {
-        return o instanceof Rectangle(_, ConcretePoint cp) ? "match" : "no-match";
+    static boolean recordPatterns2(Object o) {
+        return o instanceof R(_);
     }
 
     @Test
@@ -119,20 +121,9 @@ public class TestPatterns {
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
         lf.writeTo(System.out);
 
-        {
-            Rectangle r = new Rectangle(
-                    new ColoredPoint(new ConcretePoint(1, 2), Color.BLUE),
-                    new ConcretePoint(3, 4)
-            );
-            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, r), recordPatterns2(r));
-        }
-
-        {
-            Rectangle r = new Rectangle(
-                    new ConcretePoint(1, 2),
-                    new ConcretePoint(3, 4)
-            );
-            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, r), recordPatterns2(r));
+        Object[] objects = {new R(1), "str", null};
+        for (Object o : objects) {
+            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, o), recordPatterns2(o));
         }
     }
 
