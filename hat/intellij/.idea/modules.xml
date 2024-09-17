@@ -11,6 +11,7 @@
       <module fileurl="file://$PROJECT_DIR$/backend_shared.iml" filepath="$PROJECT_DIR$/backend_shared.iml" />
       <module fileurl="file://$PROJECT_DIR$/mandel.iml" filepath="$PROJECT_DIR$/mandel.iml" />
       <module fileurl="file://$PROJECT_DIR$/heal.iml" filepath="$PROJECT_DIR$/heal.iml" />
+      <module fileurl="file://$PROJECT_DIR$/chess.iml" filepath="$PROJECT_DIR$/chess.iml" />
       <module fileurl="file://$PROJECT_DIR$/blackscholes.iml" filepath="$PROJECT_DIR$/blackscholes.iml" />
       <module fileurl="file://$PROJECT_DIR$/view.iml" filepath="$PROJECT_DIR$/view.iml" />
       <module fileurl="file://$PROJECT_DIR$/life.iml" filepath="$PROJECT_DIR$/life.iml" />

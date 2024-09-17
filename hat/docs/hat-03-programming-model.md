@@ -6,7 +6,7 @@
 * House Keeping
     * [Project Layout](hat-01-01-project-layout.md)
     * [Building Babylon](hat-01-02-building-babylon.md)
-    * [Maven and CMake](hat-01-03-maven-cmake.md)
+    * [Building HAT](hat-01-03-building-hat.md)
 * Programming Model
     * [Programming Model](hat-03-programming-model.md)
 * Interface Mapping
@@ -129,8 +129,8 @@ methods` have much fewer Java restrictions than kernels but generally...
 * Java Synchronization is discouraged
 * Don't assume any allocation of local `ifaceMappedSegmants` are allocated
 * Java accesses/mutations to `ifaceMappedSegment` will likely impact performance
-* Code should ideally just contain simple control flow and kernel dispatches.
-* Data movements (to and from backend) will automatically be derived from control flow and `ifaceMappedSegment` accesses
+* Code should ideally just contain simple plyTable flow and kernel dispatches.
+* Data movements (to and from backend) will automatically be derived from plyTable flow and `ifaceMappedSegment` accesses
    - We hope to never have to add `cc.moveToDevice(hatBuffer)`
 * All methods reachable from a `compute entrypoint` are either :-
   * Compute Reachable Methods
