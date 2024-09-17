@@ -2919,7 +2919,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             return parameterized(PATTERN_RECORD_TYPE, (JavaType) t);
         }
 
-        static JavaType MatchAllType() {
+        static JavaType matchAllType() {
             return PATTERN_MATCH_ALL_TYPE;
         }
 
@@ -3097,7 +3097,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
 
             public static final String NAME = "pattern.match.all";
 
-            MatchAllPatternOp(ExternalizedOp def) {
+            public MatchAllPatternOp(ExternalizedOp def) {
                 super(def);
             }
 
@@ -3109,10 +3109,6 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 super(NAME, List.of());
             }
 
-            public static MatchAllPatternOp create(ExternalizedOp def) {
-                return new MatchAllPatternOp(def);
-            }
-
             @Override
             public Op transform(CopyContext cc, OpTransformer ot) {
                 return new MatchAllPatternOp(this, cc);
@@ -3120,7 +3116,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
 
             @Override
             public TypeElement resultType() {
-                return Pattern.MatchAllType();
+                return Pattern.matchAllType();
             }
         }
 
@@ -3229,6 +3225,8 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                     return lowerRecordPattern(endNoMatchBlock, currentBlock, bindings, rp, target);
                 } else if (pattern instanceof TypePatternOp bp) {
                     return lowerBindingPattern(endNoMatchBlock, currentBlock, bindings, bp, target);
+                } else if (pattern instanceof MatchAllPatternOp) {
+                    return lowerMatchAllPattern(currentBlock);
                 } else {
                     throw new UnsupportedOperationException("Unknown pattern op: " + pattern);
                 }
@@ -3253,9 +3251,6 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 List<Value> dArgs = rpOp.operands();
                 for (int i = 0; i < dArgs.size(); i++) {
                     Op.Result nestedPattern = (Op.Result) dArgs.get(i);
-                    if (nestedPattern.op() instanceof MatchAllPatternOp) {
-                        continue;
-                    }
                     // @@@ Handle exceptions?
                     Value nestedTarget = currentBlock.op(CoreOp.invoke(rpOp.recordDescriptor().methodForComponent(i), target));
 
@@ -3281,6 +3276,10 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 target = currentBlock.op(CoreOp.cast(targetType, target));
                 bindings.add(target);
 
+                return currentBlock;
+            }
+
+            static Block.Builder lowerMatchAllPattern(Block.Builder currentBlock) {
                 return currentBlock;
             }
 
