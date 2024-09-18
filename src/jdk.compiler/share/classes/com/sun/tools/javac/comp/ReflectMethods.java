@@ -1223,15 +1223,16 @@ public class ReflectMethods extends TreeTranslator {
                 private Value result;
 
                 public PatternScanner() {
-                    super(Set.of(Tag.BINDINGPATTERN, Tag.RECORDPATTERN));
+                    super(Set.of(Tag.BINDINGPATTERN, Tag.RECORDPATTERN, Tag.ANYPATTERN));
                 }
 
                 @Override
                 public void visitBindingPattern(JCTree.JCBindingPattern binding) {
                     JCVariableDecl var = binding.var;
                     variables.add(var);
-
-                    result = append(ExtendedOp.bindingPattern(typeToTypeElement(var.type), var.name.toString()));
+                    boolean unnamedPatternVariable = var.name.isEmpty();
+                    String bindingName = unnamedPatternVariable ? null : var.name.toString();
+                    result = append(ExtendedOp.typePattern(typeToTypeElement(var.type), bindingName));
                 }
 
                 @Override
@@ -1247,6 +1248,11 @@ public class ReflectMethods extends TreeTranslator {
                     }
 
                     result = append(ExtendedOp.recordPattern(symbolToRecordTypeRef(record.record), nestedValues));
+                }
+
+                @Override
+                public void visitAnyPattern(JCTree.JCAnyPattern anyPattern) {
+                    result = append(ExtendedOp.matchAllPattern());
                 }
 
                 Value toValue(JCTree tree) {

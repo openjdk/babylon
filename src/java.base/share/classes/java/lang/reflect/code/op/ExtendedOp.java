@@ -2763,12 +2763,12 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
     public sealed interface Pattern {
 
         /**
-         * Synthetic binding pattern type.
+         * Synthetic type pattern type.
          *
          * @param <T> the type of values that are bound
          */
-        final class Binding<T> implements Pattern {
-            Binding() {
+        final class Type<T> implements Pattern {
+            Type() {
             }
         }
 
@@ -2782,12 +2782,20 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             }
         }
 
+        final class MatchAll implements Pattern {
+            MatchAll() {
+            }
+        }
+
         // @@@ Pattern types
 
         JavaType PATTERN_BINDING_TYPE = JavaType.type(ClassDesc.of(Pattern_CLASS_NAME +
-                "$" + Binding.class.getSimpleName()));
+                "$" + Type.class.getSimpleName()));
         JavaType PATTERN_RECORD_TYPE = JavaType.type(ClassDesc.of(Pattern_CLASS_NAME +
                 "$" + Pattern.Record.class.getSimpleName()));
+
+        JavaType PATTERN_MATCH_ALL_TYPE = JavaType.type(ClassDesc.of(Pattern_CLASS_NAME +
+                "$" + Pattern.MatchAll.class.getSimpleName()));
 
         static JavaType bindingType(TypeElement t) {
             return parameterized(PATTERN_BINDING_TYPE, (JavaType) t);
@@ -2795,6 +2803,10 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
 
         static JavaType recordType(TypeElement t) {
             return parameterized(PATTERN_RECORD_TYPE, (JavaType) t);
+        }
+
+        static JavaType matchAllType() {
+            return PATTERN_MATCH_ALL_TYPE;
         }
 
         static TypeElement targetType(TypeElement t) {
@@ -2829,33 +2841,33 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
         /**
          * The binding pattern operation, that can model Java language type patterns.
          */
-        @OpFactory.OpDeclaration(BindingPatternOp.NAME)
-        public static final class BindingPatternOp extends PatternOp {
-            public static final String NAME = "pattern.binding";
+        @OpFactory.OpDeclaration(TypePatternOp.NAME)
+        public static final class TypePatternOp extends PatternOp {
+            public static final String NAME = "pattern.type";
 
             public static final String ATTRIBUTE_BINDING_NAME = NAME + ".binding.name";
 
             final TypeElement resultType;
             final String bindingName;
 
-            public static BindingPatternOp create(ExternalizedOp def) {
+            public static TypePatternOp create(ExternalizedOp def) {
                 String name = def.extractAttributeValue(ATTRIBUTE_BINDING_NAME, true,
                         v -> switch (v) {
                             case String s -> s;
-                            case null, default ->
-                                    throw new UnsupportedOperationException("Unsupported pattern binding name value:" + v);
+                            case null -> null;
+                            default -> throw new UnsupportedOperationException("Unsupported pattern binding name value:" + v);
                         });
-                return new BindingPatternOp(def, name);
+                return new TypePatternOp(def, name);
             }
 
-            BindingPatternOp(ExternalizedOp def, String bindingName) {
+            TypePatternOp(ExternalizedOp def, String bindingName) {
                 super(def);
 
                 this.bindingName = bindingName;
                 this.resultType = def.resultType();
             }
 
-            BindingPatternOp(BindingPatternOp that, CopyContext cc) {
+            TypePatternOp(TypePatternOp that, CopyContext cc) {
                 super(that, cc);
 
                 this.bindingName = that.bindingName;
@@ -2863,11 +2875,11 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             }
 
             @Override
-            public BindingPatternOp transform(CopyContext cc, OpTransformer ot) {
-                return new BindingPatternOp(this, cc);
+            public TypePatternOp transform(CopyContext cc, OpTransformer ot) {
+                return new TypePatternOp(this, cc);
             }
 
-            BindingPatternOp(TypeElement targetType, String bindingName) {
+            TypePatternOp(TypeElement targetType, String bindingName) {
                 super(NAME, List.of());
 
                 this.bindingName = bindingName;
@@ -2877,7 +2889,9 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             @Override
             public Map<String, Object> attributes() {
                 HashMap<String, Object> attrs = new HashMap<>(super.attributes());
-                attrs.put("", bindingName);
+                if (bindingName != null) {
+                    attrs.put("", bindingName);
+                }
                 return attrs;
             }
 
@@ -2961,6 +2975,37 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             @Override
             public TypeElement resultType() {
                 return Pattern.recordType(recordDescriptor.recordType());
+            }
+        }
+
+        @OpFactory.OpDeclaration(MatchAllPatternOp.NAME)
+        public static final class MatchAllPatternOp extends PatternOp {
+
+            // @@@ we may need to add info about the type of the record component
+            // this info can be used when lowering
+
+            public static final String NAME = "pattern.match.all";
+
+            public MatchAllPatternOp(ExternalizedOp def) {
+                super(def);
+            }
+
+            MatchAllPatternOp(MatchAllPatternOp that, CopyContext cc) {
+                super(that, cc);
+            }
+
+            MatchAllPatternOp() {
+                super(NAME, List.of());
+            }
+
+            @Override
+            public Op transform(CopyContext cc, OpTransformer ot) {
+                return new MatchAllPatternOp(this, cc);
+            }
+
+            @Override
+            public TypeElement resultType() {
+                return Pattern.matchAllType();
             }
         }
 
@@ -3065,13 +3110,12 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             static Block.Builder lower(Block.Builder endNoMatchBlock, Block.Builder currentBlock,
                                        List<Value> bindings,
                                        Op pattern, Value target) {
-                if (pattern instanceof ExtendedOp.PatternOps.RecordPatternOp rp) {
-                    return lowerRecordPattern(endNoMatchBlock, currentBlock, bindings, rp, target);
-                } else if (pattern instanceof ExtendedOp.PatternOps.BindingPatternOp bp) {
-                    return lowerBindingPattern(endNoMatchBlock, currentBlock, bindings, bp, target);
-                } else {
-                    throw new UnsupportedOperationException("Unknown pattern op: " + pattern);
-                }
+                return switch (pattern) {
+                    case RecordPatternOp rp -> lowerRecordPattern(endNoMatchBlock, currentBlock, bindings, rp, target);
+                    case TypePatternOp tp -> lowerBindingPattern(endNoMatchBlock, currentBlock, bindings, tp, target);
+                    case MatchAllPatternOp map -> lowerMatchAllPattern(currentBlock);
+                    case null, default -> throw new UnsupportedOperationException("Unknown pattern op: " + pattern);
+                };
             }
 
             static Block.Builder lowerRecordPattern(Block.Builder endNoMatchBlock, Block.Builder currentBlock,
@@ -3104,8 +3148,8 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
 
             static Block.Builder lowerBindingPattern(Block.Builder endNoMatchBlock, Block.Builder currentBlock,
                                                      List<Value> bindings,
-                                                     ExtendedOp.PatternOps.BindingPatternOp bpOp, Value target) {
-                TypeElement targetType = bpOp.targetType();
+                                                     TypePatternOp tpOp, Value target) {
+                TypeElement targetType = tpOp.targetType();
 
                 Block.Builder nextBlock = currentBlock.block();
 
@@ -3118,6 +3162,10 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 target = currentBlock.op(CoreOp.cast(targetType, target));
                 bindings.add(target);
 
+                return currentBlock;
+            }
+
+            static Block.Builder lowerMatchAllPattern(Block.Builder currentBlock) {
                 return currentBlock;
             }
 
@@ -3570,8 +3618,8 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
      * @param bindingName the binding name
      * @return the pattern binding operation
      */
-    public static PatternOps.BindingPatternOp bindingPattern(TypeElement type, String bindingName) {
-        return new PatternOps.BindingPatternOp(type, bindingName);
+    public static PatternOps.TypePatternOp typePattern(TypeElement type, String bindingName) {
+        return new PatternOps.TypePatternOp(type, bindingName);
     }
 
     /**
@@ -3594,6 +3642,10 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
      */
     public static PatternOps.RecordPatternOp recordPattern(RecordTypeRef recordDescriptor, List<Value> nestedPatterns) {
         return new PatternOps.RecordPatternOp(recordDescriptor, nestedPatterns);
+    }
+
+    public static PatternOps.MatchAllPatternOp matchAllPattern() {
+        return new PatternOps.MatchAllPatternOp();
     }
 
 }

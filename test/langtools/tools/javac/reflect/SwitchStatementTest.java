@@ -1103,8 +1103,8 @@ public class SwitchStatementTest {
                 java.switch.statement %4
                     (%9 : SwitchStatementTest$I)boolean -> {
                         %10 : boolean = pattern.match %9
-                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<SwitchStatementTest$K> -> {
-                                %11 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<SwitchStatementTest$K> = pattern.binding @"k";
+                            ()java.lang.reflect.code.ExtendedOp$Pattern$Type<SwitchStatementTest$K> -> {
+                                %11 : java.lang.reflect.code.ExtendedOp$Pattern$Type<SwitchStatementTest$K> = pattern.type @"k";
                                 yield %11;
                             }
                             (%12 : SwitchStatementTest$K)void -> {
@@ -1122,8 +1122,8 @@ public class SwitchStatementTest {
                     }
                     (%16 : SwitchStatementTest$I)boolean -> {
                         %17 : boolean = pattern.match %16
-                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<SwitchStatementTest$J> -> {
-                                %18 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<SwitchStatementTest$J> = pattern.binding @"j";
+                            ()java.lang.reflect.code.ExtendedOp$Pattern$Type<SwitchStatementTest$J> -> {
+                                %18 : java.lang.reflect.code.ExtendedOp$Pattern$Type<SwitchStatementTest$J> = pattern.type @"j";
                                 yield %18;
                             }
                             (%19 : SwitchStatementTest$J)void -> {
@@ -1184,8 +1184,8 @@ public class SwitchStatementTest {
                     }
                     (%13 : java.lang.String)boolean -> {
                         %14 : boolean = pattern.match %13
-                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Object> -> {
-                                %15 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Object> = pattern.binding @"o";
+                            ()java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.Object> -> {
+                                %15 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.Object> = pattern.type @"o";
                                 yield %15;
                             }
                             (%16 : java.lang.Object)void -> {
@@ -1228,8 +1228,8 @@ public class SwitchStatementTest {
                   java.switch.statement %4
                       (%9 : java.lang.Object)boolean -> {
                           %10 : boolean = pattern.match %9
-                              ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> -> {
-                                  %11 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> = pattern.binding @"i";
+                              ()java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.Integer> -> {
+                                  %11 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.Integer> = pattern.type @"i";
                                   yield %11;
                               }
                               (%12 : java.lang.Integer)void -> {
@@ -1247,8 +1247,8 @@ public class SwitchStatementTest {
                       }
                       (%16 : java.lang.Object)boolean -> {
                           %17 : boolean = pattern.match %16
-                              ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
-                                  %18 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.binding @"s";
+                              ()java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.String> -> {
+                                  %18 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.String> = pattern.type @"s";
                                   yield %18;
                               }
                               (%19 : java.lang.String)void -> {
@@ -1303,8 +1303,8 @@ public class SwitchStatementTest {
                   java.switch.statement %4
                       (%9 : java.lang.Object)boolean -> {
                           %10 : boolean = pattern.match %9
-                              ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> -> {
-                                  %11 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> = pattern.binding @"i";
+                              ()java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.Integer> -> {
+                                  %11 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.Integer> = pattern.type @"i";
                                   yield %11;
                               }
                               (%12 : java.lang.Integer)void -> {
@@ -1322,8 +1322,8 @@ public class SwitchStatementTest {
                       }
                       (%16 : java.lang.Object)boolean -> {
                           %17 : boolean = pattern.match %16
-                              ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
-                                  %18 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.binding @"s";
+                              ()java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.String> -> {
+                                  %18 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.String> = pattern.type @"s";
                                   yield %18;
                               }
                               (%19 : java.lang.String)void -> {
@@ -1384,8 +1384,8 @@ public class SwitchStatementTest {
                   java.switch.statement %4
                       (%9 : java.lang.Object)boolean -> {
                           %10 : boolean = pattern.match %9
-                              ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> -> {
-                                  %11 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> = pattern.binding @"i";
+                              ()java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.Integer> -> {
+                                  %11 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.Integer> = pattern.type @"i";
                                   yield %11;
                               }
                               (%12 : java.lang.Integer)void -> {
@@ -1403,8 +1403,8 @@ public class SwitchStatementTest {
                       }
                       (%16 : java.lang.Object)boolean -> {
                           %17 : boolean = pattern.match %16
-                              ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
-                                  %18 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.binding @"s";
+                              ()java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.String> -> {
+                                  %18 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.String> = pattern.type @"s";
                                   yield %18;
                               }
                               (%19 : java.lang.String)void -> {
@@ -1464,8 +1464,8 @@ public class SwitchStatementTest {
                 java.switch.statement %4
                     (%9 : java.lang.Object)boolean -> {
                         %10 : boolean = pattern.match %9
-                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Number> -> {
-                                %11 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Number> = pattern.binding @"n";
+                            ()java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.Number> -> {
+                                %11 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.Number> = pattern.type @"n";
                                 yield %11;
                             }
                             (%12 : java.lang.Number)void -> {
@@ -1480,8 +1480,8 @@ public class SwitchStatementTest {
                     }
                     (%14 : java.lang.Object)boolean -> {
                         %15 : boolean = pattern.match %14
-                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
-                                %16 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.binding @"s";
+                            ()java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.String> -> {
+                                %16 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.String> = pattern.type @"s";
                                 yield %16;
                             }
                             (%17 : java.lang.String)void -> {
@@ -1564,8 +1564,8 @@ public class SwitchStatementTest {
                           %17 : boolean = java.cand
                               ()boolean -> {
                                   %18 : boolean = pattern.match %16
-                                      ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> -> {
-                                          %19 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> = pattern.binding @"i";
+                                      ()java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.Integer> -> {
+                                          %19 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.Integer> = pattern.type @"i";
                                           yield %19;
                                       }
                                       (%20 : java.lang.Integer)void -> {
@@ -1594,8 +1594,8 @@ public class SwitchStatementTest {
                           %29 : boolean = java.cand
                               ()boolean -> {
                                   %30 : boolean = pattern.match %28
-                                      ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> -> {
-                                          %31 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Integer> = pattern.binding @"i";
+                                      ()java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.Integer> -> {
+                                          %31 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.Integer> = pattern.type @"i";
                                           yield %31;
                                       }
                                       (%32 : java.lang.Integer)void -> {
@@ -1650,150 +1650,150 @@ public class SwitchStatementTest {
 
     @IR("""
             func @"caseTypePattern" (%0 : java.lang.Object)java.lang.String -> {
-                %1 : Var<java.lang.Object> = var %0 @"o";
-                %2 : java.lang.String = constant @"";
-                %3 : Var<java.lang.String> = var %2 @"r";
-                %4 : java.lang.Object = var.load %1;
-                %5 : java.lang.String = constant @null;
-                %6 : Var<java.lang.String> = var %5 @"";
-                %7 : java.util.RandomAccess = constant @null;
-                %8 : Var<java.util.RandomAccess> = var %7 @"";
-                %9 : int[] = constant @null;
-                %10 : Var<int[]> = var %9 @"";
-                %11 : java.util.Stack[][] = constant @null;
-                %12 : Var<java.util.Stack[][]> = var %11 @"";
-                %13 : java.util.Collection[][][] = constant @null;
-                %14 : Var<java.util.Collection[][][]> = var %13 @"";
-                %15 : java.lang.Number = constant @null;
-                %16 : Var<java.lang.Number> = var %15 @"n";
-                java.switch.statement %4
-                    (%17 : java.lang.Object)boolean -> {
-                        %18 : boolean = pattern.match %17
-                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
-                                %19 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.binding @"";
-                                yield %19;
-                            }
-                            (%20 : java.lang.String)void -> {
-                                var.store %6 %20;
-                                yield;
-                            };
-                        yield %18;
-                    }
-                    ()void -> {
-                        %21 : java.lang.String = var.load %3;
-                        %22 : java.lang.String = constant @"String";
-                        %23 : java.lang.String = concat %21 %22;
-                        var.store %3 %23;
-                        yield;
-                    }
-                    (%24 : java.lang.Object)boolean -> {
-                        %25 : boolean = pattern.match %24
-                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.util.RandomAccess> -> {
-                                %26 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.util.RandomAccess> = pattern.binding @"";
-                                yield %26;
-                            }
-                            (%27 : java.util.RandomAccess)void -> {
-                                var.store %8 %27;
-                                yield;
-                            };
-                        yield %25;
-                    }
-                    ()void -> {
-                        %28 : java.lang.String = var.load %3;
-                        %29 : java.lang.String = constant @"RandomAccess";
-                        %30 : java.lang.String = concat %28 %29;
-                        var.store %3 %30;
-                        yield;
-                    }
-                    (%31 : java.lang.Object)boolean -> {
-                        %32 : boolean = pattern.match %31
-                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<int[]> -> {
-                                %33 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<int[]> = pattern.binding @"";
-                                yield %33;
-                            }
-                            (%34 : int[])void -> {
-                                var.store %10 %34;
-                                yield;
-                            };
-                        yield %32;
-                    }
-                    ()void -> {
-                        %35 : java.lang.String = var.load %3;
-                        %36 : java.lang.String = constant @"int[]";
-                        %37 : java.lang.String = concat %35 %36;
-                        var.store %3 %37;
-                        yield;
-                    }
-                    (%38 : java.lang.Object)boolean -> {
-                        %39 : boolean = pattern.match %38
-                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.util.Stack[][]> -> {
-                                %40 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.util.Stack[][]> = pattern.binding @"";
-                                yield %40;
-                            }
-                            (%41 : java.util.Stack[][])void -> {
-                                var.store %12 %41;
-                                yield;
-                            };
-                        yield %39;
-                    }
-                    ()void -> {
-                        %42 : java.lang.String = var.load %3;
-                        %43 : java.lang.String = constant @"Stack[][]";
-                        %44 : java.lang.String = concat %42 %43;
-                        var.store %3 %44;
-                        yield;
-                    }
-                    (%45 : java.lang.Object)boolean -> {
-                        %46 : boolean = pattern.match %45
-                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.util.Collection[][][]> -> {
-                                %47 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.util.Collection[][][]> = pattern.binding @"";
-                                yield %47;
-                            }
-                            (%48 : java.util.Collection[][][])void -> {
-                                var.store %14 %48;
-                                yield;
-                            };
-                        yield %46;
-                    }
-                    ()void -> {
-                        %49 : java.lang.String = var.load %3;
-                        %50 : java.lang.String = constant @"Collection[][][]";
-                        %51 : java.lang.String = concat %49 %50;
-                        var.store %3 %51;
-                        yield;
-                    }
-                    (%52 : java.lang.Object)boolean -> {
-                        %53 : boolean = pattern.match %52
-                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Number> -> {
-                                %54 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Number> = pattern.binding @"n";
-                                yield %54;
-                            }
-                            (%55 : java.lang.Number)void -> {
-                                var.store %16 %55;
-                                yield;
-                            };
-                        yield %53;
-                    }
-                    ()void -> {
-                        %56 : java.lang.String = var.load %3;
-                        %57 : java.lang.String = constant @"Number";
-                        %58 : java.lang.String = concat %56 %57;
-                        var.store %3 %58;
-                        yield;
-                    }
-                    ()boolean -> {
-                        %17 : boolean = constant @"true";
-                        yield %17;
-                    }
-                    ()void -> {
-                        %59 : java.lang.String = var.load %3;
-                        %60 : java.lang.String = constant @"something else";
-                        %61 : java.lang.String = concat %59 %60;
-                        var.store %3 %61;
-                        yield;
-                    };
-                %62 : java.lang.String = var.load %3;
-                return %62;
+                  %1 : Var<java.lang.Object> = var %0 @"o";
+                  %2 : java.lang.String = constant @"";
+                  %3 : Var<java.lang.String> = var %2 @"r";
+                  %4 : java.lang.Object = var.load %1;
+                  %5 : java.lang.String = constant @null;
+                  %6 : Var<java.lang.String> = var %5;
+                  %7 : java.util.RandomAccess = constant @null;
+                  %8 : Var<java.util.RandomAccess> = var %7;
+                  %9 : int[] = constant @null;
+                  %10 : Var<int[]> = var %9;
+                  %11 : java.util.Stack[][] = constant @null;
+                  %12 : Var<java.util.Stack[][]> = var %11;
+                  %13 : java.util.Collection[][][] = constant @null;
+                  %14 : Var<java.util.Collection[][][]> = var %13;
+                  %15 : java.lang.Number = constant @null;
+                  %16 : Var<java.lang.Number> = var %15 @"n";
+                  java.switch.statement %4
+                      (%17 : java.lang.Object)boolean -> {
+                          %18 : boolean = pattern.match %17
+                              ()java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.String> -> {
+                                  %19 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.String> = pattern.type;
+                                  yield %19;
+                              }
+                              (%20 : java.lang.String)void -> {
+                                  var.store %6 %20;
+                                  yield;
+                              };
+                          yield %18;
+                      }
+                      ()void -> {
+                          %21 : java.lang.String = var.load %3;
+                          %22 : java.lang.String = constant @"String";
+                          %23 : java.lang.String = concat %21 %22;
+                          var.store %3 %23;
+                          yield;
+                      }
+                      (%24 : java.lang.Object)boolean -> {
+                          %25 : boolean = pattern.match %24
+                              ()java.lang.reflect.code.ExtendedOp$Pattern$Type<java.util.RandomAccess> -> {
+                                  %26 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.util.RandomAccess> = pattern.type;
+                                  yield %26;
+                              }
+                              (%27 : java.util.RandomAccess)void -> {
+                                  var.store %8 %27;
+                                  yield;
+                              };
+                          yield %25;
+                      }
+                      ()void -> {
+                          %28 : java.lang.String = var.load %3;
+                          %29 : java.lang.String = constant @"RandomAccess";
+                          %30 : java.lang.String = concat %28 %29;
+                          var.store %3 %30;
+                          yield;
+                      }
+                      (%31 : java.lang.Object)boolean -> {
+                          %32 : boolean = pattern.match %31
+                              ()java.lang.reflect.code.ExtendedOp$Pattern$Type<int[]> -> {
+                                  %33 : java.lang.reflect.code.ExtendedOp$Pattern$Type<int[]> = pattern.type;
+                                  yield %33;
+                              }
+                              (%34 : int[])void -> {
+                                  var.store %10 %34;
+                                  yield;
+                              };
+                          yield %32;
+                      }
+                      ()void -> {
+                          %35 : java.lang.String = var.load %3;
+                          %36 : java.lang.String = constant @"int[]";
+                          %37 : java.lang.String = concat %35 %36;
+                          var.store %3 %37;
+                          yield;
+                      }
+                      (%38 : java.lang.Object)boolean -> {
+                          %39 : boolean = pattern.match %38
+                              ()java.lang.reflect.code.ExtendedOp$Pattern$Type<java.util.Stack[][]> -> {
+                                  %40 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.util.Stack[][]> = pattern.type;
+                                  yield %40;
+                              }
+                              (%41 : java.util.Stack[][])void -> {
+                                  var.store %12 %41;
+                                  yield;
+                              };
+                          yield %39;
+                      }
+                      ()void -> {
+                          %42 : java.lang.String = var.load %3;
+                          %43 : java.lang.String = constant @"Stack[][]";
+                          %44 : java.lang.String = concat %42 %43;
+                          var.store %3 %44;
+                          yield;
+                      }
+                      (%45 : java.lang.Object)boolean -> {
+                          %46 : boolean = pattern.match %45
+                              ()java.lang.reflect.code.ExtendedOp$Pattern$Type<java.util.Collection[][][]> -> {
+                                  %47 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.util.Collection[][][]> = pattern.type;
+                                  yield %47;
+                              }
+                              (%48 : java.util.Collection[][][])void -> {
+                                  var.store %14 %48;
+                                  yield;
+                              };
+                          yield %46;
+                      }
+                      ()void -> {
+                          %49 : java.lang.String = var.load %3;
+                          %50 : java.lang.String = constant @"Collection[][][]";
+                          %51 : java.lang.String = concat %49 %50;
+                          var.store %3 %51;
+                          yield;
+                      }
+                      (%52 : java.lang.Object)boolean -> {
+                          %53 : boolean = pattern.match %52
+                              ()java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.Number> -> {
+                                  %54 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.Number> = pattern.type @"n";
+                                  yield %54;
+                              }
+                              (%55 : java.lang.Number)void -> {
+                                  var.store %16 %55;
+                                  yield;
+                              };
+                          yield %53;
+                      }
+                      ()void -> {
+                          %56 : java.lang.String = var.load %3;
+                          %57 : java.lang.String = constant @"Number";
+                          %58 : java.lang.String = concat %56 %57;
+                          var.store %3 %58;
+                          yield;
+                      }
+                      ()boolean -> {
+                          %59 : boolean = constant @"true";
+                          yield %59;
+                      }
+                      ()void -> {
+                          %60 : java.lang.String = var.load %3;
+                          %61 : java.lang.String = constant @"something else";
+                          %62 : java.lang.String = concat %60 %61;
+                          var.store %3 %62;
+                          yield;
+                      };
+                  %63 : java.lang.String = var.load %3;
+                  return %63;
             };
             """)
     @CodeReflection
@@ -1824,7 +1824,7 @@ public class SwitchStatementTest {
                     (%7 : java.lang.Object)boolean -> {
                         %8 : boolean = pattern.match %7
                             ()java.lang.reflect.code.ExtendedOp$Pattern$Record<SwitchStatementTest$R> -> {
-                                %9 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Number> = pattern.binding @"n";
+                                %9 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.Number> = pattern.type @"n";
                                 %10 : java.lang.reflect.code.ExtendedOp$Pattern$Record<SwitchStatementTest$R> = pattern.record %9 @"(java.lang.Number n)SwitchStatementTest$R";
                                 yield %10;
                             }
@@ -1881,8 +1881,8 @@ public class SwitchStatementTest {
                         %10 : boolean = java.cand
                             ()boolean -> {
                                 %11 : boolean = pattern.match %9
-                                    ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
-                                        %12 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.binding @"s";
+                                    ()java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.String> -> {
+                                        %12 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.String> = pattern.type @"s";
                                         yield %12;
                                     }
                                     (%13 : java.lang.String)void -> {
@@ -1916,7 +1916,7 @@ public class SwitchStatementTest {
                             ()boolean -> {
                                 %27 : boolean = pattern.match %25
                                     ()java.lang.reflect.code.ExtendedOp$Pattern$Record<SwitchStatementTest$R> -> {
-                                        %28 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Number> = pattern.binding @"n";
+                                        %28 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.Number> = pattern.type @"n";
                                         %29 : java.lang.reflect.code.ExtendedOp$Pattern$Record<SwitchStatementTest$R> = pattern.record %28 @"(java.lang.Number n)SwitchStatementTest$R";
                                         yield %29;
                                     }

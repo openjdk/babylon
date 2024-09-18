@@ -2217,7 +2217,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         VarOp(String varName, TypeElement type, Value init) {
             super(NAME, List.of(init));
 
-            this.varName = varName;
+            this.varName = varName == null || varName.isEmpty() ? null : varName;
             this.resultType = VarType.varType(type);
         }
 
