@@ -2981,6 +2981,9 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
         @OpFactory.OpDeclaration(MatchAllPatternOp.NAME)
         public static final class MatchAllPatternOp extends PatternOp {
 
+            // @@@ we may need to add info about the type of the record component
+            // this info can be used when lowering
+
             public static final String NAME = "pattern.match.all";
 
             public MatchAllPatternOp(ExternalizedOp def) {
