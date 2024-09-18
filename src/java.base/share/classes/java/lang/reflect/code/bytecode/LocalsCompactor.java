@@ -51,7 +51,53 @@ import static java.lang.constant.ConstantDescs.CD_double;
 import static java.lang.constant.ConstantDescs.CD_long;
 
 /**
- * LocalsCompactor is a CodeTransform reducing maxLocals.
+ * LocalsCompactor transforms class to reduce allocation of local slots in the Code attribute (max_locals).
+ * It collects slot maps, compacts them and transforms the Code attribute accordingly.
+ * <p>
+ * Example of maps before compaction (max_locals = 13):
+ * <pre>
+ *  slots:  0   1   2   3   4   5   6   7   8   9   10  11  12  13
+ *  ---------------------------------------------------------------
+ *  bci 0:  *   *
+ *      8:      *   *   *
+ *     10:      *   *   *
+ *     15:      *   *   *   *   *
+ *     17:      *   *   *   *   *
+ *     18:      *           *   *
+ *     25:      *                   *   *
+ *     27:      *                   *   *
+ *     32:      *                   *   *   *   *
+ *     34:      *                   *   *   *   *
+ *     36:      *                           *   *
+ *     43:      *                                   *   *
+ *     45:      *                                   *   *
+ *     50:                                          *   *   *   *
+ *     52:                                          *   *   *   *
+ *     54:                                                  *   *
+ * </pre>
+ * Compact form of the same maps (max_locals = 5):
+ * <pre>
+ *  slots:   0   1   2   3   4   5
+ *         +12 +13  +6  +7  +8  +9
+ *                 +10 +11
+ *  -------------------------------
+ *  bci 0:  *   *
+ *      8:      *   *   *
+ *     10:      *   *   *
+ *     15:      *   *   *   *   *
+ *     17:      *   *   *   *   *
+ *     18:      *           *   *
+ *     25:      *   *   *
+ *     27:      *   *   *
+ *     32:      *   *   *   *   *
+ *     34:      *   *   *   *   *
+ *     36:      *           *   *
+ *     43:      *   *   *
+ *     45:      *   *   *
+ *     50:  *   *   *   *
+ *     52:  *   *   *   *
+ *     54:  *   *
+ * </pre>
  */
 public final class LocalsCompactor {
 
@@ -149,7 +195,7 @@ public final class LocalsCompactor {
         for (int slot = 0; slot < slotMap.length; slot++) {
             slotMap[slot] = slot;
         }
-        // Iterative merging of slots
+        // Iterative compaction of slots
         for (int targetSlot = 0; targetSlot < maps.size() - 1; targetSlot++) {
             for (int sourceSlot = Math.max(targetSlot + 1, fixedSlots); sourceSlot < maps.size(); sourceSlot++) {
                 Slot source = maps.get(sourceSlot);
