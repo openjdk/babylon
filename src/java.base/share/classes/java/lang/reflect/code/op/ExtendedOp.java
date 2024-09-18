@@ -3107,15 +3107,12 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             static Block.Builder lower(Block.Builder endNoMatchBlock, Block.Builder currentBlock,
                                        List<Value> bindings,
                                        Op pattern, Value target) {
-                if (pattern instanceof ExtendedOp.PatternOps.RecordPatternOp rp) {
-                    return lowerRecordPattern(endNoMatchBlock, currentBlock, bindings, rp, target);
-                } else if (pattern instanceof TypePatternOp bp) {
-                    return lowerBindingPattern(endNoMatchBlock, currentBlock, bindings, bp, target);
-                } else if (pattern instanceof MatchAllPatternOp) {
-                    return lowerMatchAllPattern(currentBlock);
-                } else {
-                    throw new UnsupportedOperationException("Unknown pattern op: " + pattern);
-                }
+                return switch (pattern) {
+                    case RecordPatternOp rp -> lowerRecordPattern(endNoMatchBlock, currentBlock, bindings, rp, target);
+                    case TypePatternOp tp -> lowerBindingPattern(endNoMatchBlock, currentBlock, bindings, tp, target);
+                    case MatchAllPatternOp map -> lowerMatchAllPattern(currentBlock);
+                    case null, default -> throw new UnsupportedOperationException("Unknown pattern op: " + pattern);
+                };
             }
 
             static Block.Builder lowerRecordPattern(Block.Builder endNoMatchBlock, Block.Builder currentBlock,
