@@ -830,7 +830,12 @@ public class ReflectMethods extends TreeTranslator {
             // Capture applying rhs and operation
             Function<Value, Value> scanRhs = (lhs) -> {
                 Type unboxedType = types.unboxedTypeOrType(tree.type);
-                Value rhs = toValue(tree.rhs, unboxedType);
+                Value rhs;
+                if (tree.operator.opcode == ByteCodes.string_add && tree.rhs.type.isPrimitive()) {
+                    rhs = toValue(tree.rhs);
+                } else {
+                    rhs = toValue(tree.rhs, unboxedType);
+                }
                 lhs = unboxIfNeeded(lhs);
 
                 Value assignOpResult = switch (tree.getTag()) {
@@ -838,7 +843,6 @@ public class ReflectMethods extends TreeTranslator {
                     // Arithmetic operations
                     case PLUS_ASG -> {
                         if (tree.operator.opcode == ByteCodes.string_add) {
-                            // @@@ avoid boxing of rhs when it's a primitive value
                             yield append(CoreOp.concat(lhs, rhs));
                         } else {
                             yield append(CoreOp.add(lhs, rhs));

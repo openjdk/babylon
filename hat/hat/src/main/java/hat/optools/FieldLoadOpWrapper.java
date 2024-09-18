@@ -41,6 +41,7 @@ public class FieldLoadOpWrapper extends FieldAccessOpWrapper<CoreOp.FieldAccessO
         try {
             Class<?> clazz = Class.forName(te.toString());
             Field field = clazz.getField(fieldName);
+            field.setAccessible(true);
            return  field.get(null);
 
         } catch (ClassNotFoundException e) {

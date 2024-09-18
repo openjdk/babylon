@@ -56,7 +56,7 @@ function example(){
    fi
 }
 
-if [ $# -eq 0 ]; then 
+if [ $# -eq 0 ]; then
    echo 'usage:'
    echo '   bash hatrun.bash [headless] backend package args ...'
    echo '       headless : Optional passes -Dheadless=true to app'
@@ -64,7 +64,7 @@ if [ $# -eq 0 ]; then
    echo '       backend  : opencl|cuda|spirv|ptx|mock'
    echo '       Class name is assumed to be package.Main '
 else
-   if [ $1 == headless ]; then 
+   if [ $1 == headless ]; then
       echo headless!
       shift 1
       example true $*
