@@ -3145,8 +3145,8 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
 
             static Block.Builder lowerBindingPattern(Block.Builder endNoMatchBlock, Block.Builder currentBlock,
                                                      List<Value> bindings,
-                                                     TypePatternOp bpOp, Value target) {
-                TypeElement targetType = bpOp.targetType();
+                                                     TypePatternOp tpOp, Value target) {
+                TypeElement targetType = tpOp.targetType();
 
                 Block.Builder nextBlock = currentBlock.block();
 
