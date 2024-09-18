@@ -445,7 +445,7 @@ final class LocalsToVarMapper {
     private static boolean varDominatesOverSegmentPredecessors(Segment segment, Variable var, Set<Segment> visited) {
         if (visited.add(segment)) {
             for (Segment pred : segment.fromSegments()) {
-                // Breath-first
+                // Breadth-first
                 if (pred.kind != Segment.Kind.FRAME && pred.var != var) {
                     return false;
                 }
