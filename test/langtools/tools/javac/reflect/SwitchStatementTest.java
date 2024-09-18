@@ -1906,7 +1906,7 @@ public class SwitchStatementTest {
                         %20 : java.lang.String = var.load %6;
                         %21 : int = invoke %20 @"java.lang.String::length()int";
                         %22 : java.lang.Integer = invoke %21 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %23 : java.lang.String = invoke %19 %22 @"java.lang.String::formatted(java.lang.Object[])java.lang.String";
+                        %23 : java.lang.String = invoke %19 %22 @invoke.kind="INSTANCE" @invoke.varargs="true" @"java.lang.String::formatted(java.lang.Object[])java.lang.String";
                         %24 : java.lang.String = concat %18 %23;
                         var.store %3 %24;
                         yield;
