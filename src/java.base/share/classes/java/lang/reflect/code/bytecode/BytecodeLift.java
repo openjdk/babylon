@@ -538,10 +538,12 @@ public final class BytecodeLift {
                     Op.Result result = switch (inst.opcode()) {
                         case INVOKEVIRTUAL, INVOKEINTERFACE -> {
                             operands.add(stack.pop());
-                            yield op(CoreOp.invoke(mDesc, operands.reversed()));
+                            yield op(CoreOp.invoke(CoreOp.InvokeOp.InvokeKind.INSTANCE, false,
+                                    mDesc.type().returnType(), mDesc, operands.reversed()));
                         }
                         case INVOKESTATIC ->
-                            op(CoreOp.invoke(mDesc, operands.reversed()));
+                                op(CoreOp.invoke(CoreOp.InvokeOp.InvokeKind.STATIC, false,
+                                        mDesc.type().returnType(), mDesc, operands.reversed()));
                         case INVOKESPECIAL -> {
                             if (inst.owner().asSymbol().equals(newStack.peek()) && inst.name().equalsString(ConstantDescs.INIT_NAME)) {
                                 newStack.pop();
@@ -552,7 +554,8 @@ public final class BytecodeLift {
                                         operands.reversed()));
                             } else {
                                 operands.add(stack.pop());
-                                yield op(CoreOp.invokeSuper(mDesc.type().returnType(), mDesc, operands.reversed()));
+                                yield op(CoreOp.invoke(CoreOp.InvokeOp.InvokeKind.SUPER, false,
+                                        mDesc.type().returnType(), mDesc, operands.reversed()));
                             }
                         }
                         default ->
