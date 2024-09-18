@@ -43,9 +43,9 @@ function example(){
       if test -f ${example_jar} ; then
          ${JAVA_HOME}/bin/java \
             --enable-preview --enable-native-access=ALL-UNNAMED \
-            --class-path maven-build/hat-1.0.jar:${example_jar}:${backend_jar} \
+            --class-path maven-build/hat-1.0.jar:${example_jar}:${backend_jar}:maven-build/levelzero.jar:maven-build/beehive-spirv-lib-0.0.4.jar \
             --add-exports=java.base/jdk.internal=ALL-UNNAMED \
-            -Djava.library.path=maven-build\
+            -Djava.library.path=maven-build:/usr/local/lib \
             -Dheadless=${headless} \
             ${example}.Main
       else

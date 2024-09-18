@@ -24,57 +24,40 @@
  */
 package hat.backend;
 
-
 import hat.ComputeContext;
+import hat.KernelContext;
 import hat.NDRange;
+import hat.buffer.Buffer;
+import hat.ifacemapper.BoundSchema;
+import hat.ifacemapper.SegmentMapper;
+import hat.callgraph.KernelEntrypoint;
 import hat.callgraph.KernelCallGraph;
-import intel.code.spirv.SpirvModuleGenerator;
-import intel.code.spirv.SpirvOps;
-import intel.code.spirv.TranslateToSpirvModel;
+import java.lang.foreign.Arena;
+import intel.code.spirv.LevelZero;
 
-import java.lang.foreign.MemorySegment;
+public class SpirvBackend extends JavaBackend {
 
-public class SpirvBackend extends NativeBackend {
+    private final LevelZero levelZero;
+
     public SpirvBackend() {
-        super("spirv_backend");
-        getBackend(null);
+        levelZero = LevelZero.create(arena);
     }
 
+    public void info() {
+        System.out.println("hat.backend.SpirvBackend v.0.1.0");
+    }
+
+    @Override
+    public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema){
+        return segmentMapper.allocate(levelZero.arena(), boundSchema);
+    }
 
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
-        System.out.println("Spirv backend recieved closed closure");
-        System.out.println("Spirv backend will mutate  " + computeContext.computeCallGraph.entrypoint + computeContext.computeCallGraph.entrypoint.method);
-        injectBufferTracking(computeContext.computeCallGraph.entrypoint);
-        boolean doSpirv = false;
-        if (doSpirv) {
-            TranslateToSpirvModel translateToSpirvModel = new TranslateToSpirvModel();
-            computeContext.computeCallGraph.kernelCallGraphStream().forEach(kernelCallGraph -> {
-                kernelCallGraph.kernelReachableResolvedStream().forEach(kr -> {
-                    String methodName = kr.method.getName();
-
-                    SpirvOps.FuncOp spirvFunc = TranslateToSpirvModel.translateFunction(kr.funcOpWrapper().op());
-                    MemorySegment spirvBinary = SpirvModuleGenerator.generateModule(methodName, spirvFunc);
-
-                    System.out.println("\n------- Java Model -------");
-                    System.out.println(kr.funcOpWrapper().op().toText());
-                    System.out.println("------- SPIR-V Model -------");
-                    System.out.println(spirvFunc.toText());
-                    System.out.println("------- SPIR-V Module -------");
-                    System.out.println(SpirvModuleGenerator.disassembleModule(spirvBinary));
-                });
-
-            });
-
-        }
-
-        //  var codeBuilder = new SpirvCodeReflectionBuilder();
-        //  Code code = createCode(computeContext, codeBuilder);
-        // System.out.println(codeBuilder);
     }
 
     @Override
     public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
-        System.out.println("implement spirv dispatch kernel");
+        levelZero.dispatchKernel(kernelCallGraph, ndRange, args);
     }
 }

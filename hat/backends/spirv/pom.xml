@@ -45,6 +45,16 @@ questions.
             <version>1.0</version>
             <artifactId>hat</artifactId>
         </dependency>
+        <dependency>
+            <groupId>beehive-lab</groupId>
+            <version>0.0.4</version>
+            <artifactId>beehive-spirv-lib</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>oneapi</groupId>
+            <version>0.0.1</version>
+            <artifactId>levelzero</artifactId>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
@@ -90,8 +100,8 @@ questions.
                         </goals>
                         <configuration>
                             <sources>
-                                <source>${babylon.dir}/cr-examples/spirv/src/main/java/</source>
-                                <source>${beehive.spirv.toolkit.dir}/lib/src/main/java/</source>
+                                <!-- <source>${babylon.dir}/cr-examples/spirv/src/main/java/</source> -->
+                                <!-- <source>${beehive.spirv.toolkit.dir}/lib/src/main/java/</source> -->
                             </sources>
                         </configuration>
                     </execution>
