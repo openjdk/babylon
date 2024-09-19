@@ -213,6 +213,8 @@ public class TestSmallCorpus {
             bytecode = CF.parse(BytecodeGenerator.generateClassData(
                 TRUSTED_LOOKUP,
                 reflection)).methods().getFirst();
+        } catch (UnsupportedOperationException uoe) {
+            throw uoe;
         } catch (Throwable t) {
             printBytecode();
             printReflection();
