@@ -78,7 +78,7 @@ import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerification
 public final class BytecodeLift {
 
     private record ExceptionRegion(Label startLabel, Label endLabel, Label handlerLabel) {}
-    private record ExceptionRegionEntry(Op.Result enter, Block.Builder startBlock, ExceptionRegion region) {}
+    private record ExceptionRegionEntry(Op.Result enter, Block.Builder startBlock, ExceptionRegion region, Map<Block.Builder, Block.Builder> exitMap) {}
 
     private static final ClassDesc CD_LambdaMetafactory = ClassDesc.ofDescriptor("Ljava/lang/invoke/LambdaMetafactory;");
     private static final ClassDesc CD_StringConcatFactory = ClassDesc.ofDescriptor("Ljava/lang/invoke/StringConcatFactory;");
@@ -312,10 +312,12 @@ public final class BytecodeLift {
                 // Avoid region re-entry
                 targetBlock = ee.startBlock;
             } else if (targetBci < codeAttribtue.labelToBci(ee.region.startLabel) || targetBci >= codeAttribtue.labelToBci(ee.region.endLabel)) {
-                // Leaving the exception region, need to insert ExceptionRegionExit
-                Block.Builder next = newBlock(targetBlock.parameters());
-                next.op(CoreOp.exceptionRegionExit(ee.enter(), targetBlock.successor(next.parameters())));
-                targetBlock = next;
+                // Leaving the exception region, need to find existing or insert ExceptionRegionExit
+                targetBlock = ee.exitMap.computeIfAbsent(targetBlock, tb -> {
+                    Block.Builder next = newBlock(tb.parameters());
+                    next.op(CoreOp.exceptionRegionExit(ee.enter(), tb.successor(next.parameters())));
+                    return next;
+                });
             }
         }
         return targetBlock;
@@ -374,7 +376,7 @@ public final class BytecodeLift {
                             Op ere = CoreOp.exceptionRegionEnter(next.successor(), findTargetBlock(reg.handlerLabel()).successor());
                             op(ere);
                             // Push ExceptionRegionEntry on stack
-                            exceptionRegionStack.push(new ExceptionRegionEntry(ere.result(), next, reg));
+                            exceptionRegionStack.push(new ExceptionRegionEntry(ere.result(), next, reg, new HashMap<>()));
                             currentBlock = next;
                         }
                     }
