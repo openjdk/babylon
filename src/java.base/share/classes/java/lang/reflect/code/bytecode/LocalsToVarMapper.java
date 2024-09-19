@@ -422,9 +422,9 @@ final class LocalsToVarMapper {
     /**
      * Method returns relevant {@link Variable} for instructions operating with local slots,
      * such as {@link LoadInstruction}, {@link StoreInstruction} and {@link IncrementInstruction}.
-     * For all other elements it returns {@code null}.
+     * For all other elements it throws {@link IllegalArgumentException}.
      *
-     * Instructions are identified by index into the {@code codeElements} list used in the {@link LocalsToVarMapper} initializer.
+     * Instructions are identified by index into the {@code codeElements} list used in the {@link LocalsToVarMapper} constructor.
      *
      * {@link IncrementInstruction} relates to two potentially distinct variables, one variable to load the value from
      * and one variable to store the incremented value into (see: {@link BytecodeLift#liftBody() }).
@@ -433,7 +433,9 @@ final class LocalsToVarMapper {
      * @return Variable related to the given code element index or null
      */
     public Variable instructionVar(int codeElementIndex) {
-        return insMap.get(codeElementIndex).var;
+        return insMap.computeIfAbsent(codeElementIndex, _ -> {
+                throw new IllegalArgumentException("Code element index does not match any slot operation instruction.");
+        }).var;
     }
 
     /**
@@ -461,7 +463,7 @@ final class LocalsToVarMapper {
     }
 
     /**
-     * Cconverts {@link StackMapFrameInfo} to {@code Frame}, where locals are expanded form ({@code null}-filled second slots for double-slots)
+     * Converts {@link StackMapFrameInfo} to {@code Frame}, where locals are expanded form ({@code null}-filled second slots for double-slots)
      * of {@code FRAME} segments.
      * @param smfi StackMapFrameInfo
      * @return Frame
@@ -571,14 +573,6 @@ final class LocalsToVarMapper {
      */
     private ClassDesc pop() {
         return stack.removeLast();
-    }
-
-    /**
-     * {@return class descriptor from the relative position of the {@link #stack}}
-     * @param pos position relative to the stack tip
-     */
-    private ClassDesc get(int pos) {
-        return stack.get(stack.size() + pos);
     }
 
     /**
