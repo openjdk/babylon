@@ -251,8 +251,6 @@ public class TestSmallCorpus {
                     lastLabel = lt.label();
                     yield null;
                 }
-                case ExceptionCatch ec ->
-                    new El(i++, "ExceptionCatch start: @%d end: @%d handler: @%d" + ec.catchType().map(ct -> " catch type: " + ct.asInternalName()).orElse(""), ec.tryStart(), ec.tryEnd(), ec.handler());
                 case BranchInstruction ins ->
                     new El(i++, ins, "@%d", ins.target());
                 case ConstantInstruction ins ->
@@ -297,6 +295,12 @@ public class TestSmallCorpus {
                 elements.add(er);
             }
         }
+        for (var e : mm.code().orElseThrow()) {
+            if (e instanceof ExceptionCatch ec) {
+                    elements.add(new El(i++, "ExceptionCatch start: @%d end: @%d handler: @%d" + ec.catchType().map(ct -> " catch type: " + ct.asInternalName()).orElse(""), ec.tryStart(), ec.tryEnd(), ec.handler()));
+            }
+        }
+
         return elements.stream().map(el -> el.toString(targetsMap)).toList();
     }
 
