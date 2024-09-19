@@ -32,6 +32,7 @@ import java.lang.classfile.MethodModel;
 import java.lang.classfile.TypeKind;
 import java.lang.classfile.attribute.StackMapFrameInfo;
 import java.lang.classfile.instruction.BranchInstruction;
+import java.lang.classfile.instruction.ExceptionCatch;
 import java.lang.classfile.instruction.IncrementInstruction;
 import java.lang.classfile.instruction.LabelTarget;
 import java.lang.classfile.instruction.LoadInstruction;
@@ -108,6 +109,9 @@ public final class LocalsCompactor {
                     int[] slotMap = new LocalsCompactor(com, countParamSlots(mm)).slotMap;
                     mb.transformCode(com, (cob, coe) -> {
                         switch (coe) {
+                            // @@@ Can be moved into a separate transform when recent master fixes are merged to code-reflection
+                            case ExceptionCatch ec when ec.tryStart() == ec.tryEnd() -> {} // Filter empty try blocks
+
                             case LoadInstruction li ->
                                 cob.loadLocal(li.typeKind(), slotMap[li.slot()]);
                             case StoreInstruction si ->
