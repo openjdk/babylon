@@ -3940,6 +3940,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
     /**
      * Creates a var operation.
+     * <p>
+     * Null or empty string means unnamed variable
      *
      * @param name the name of the var
      * @param init the initial value of the var
@@ -3951,6 +3953,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
     /**
      * Creates a var operation.
+     * <p>
+     * Null or empty string means unnamed variable
      *
      * @param name the name of the var
      * @param type the type of the var's value
