@@ -32,14 +32,25 @@ import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.SegmentMapper;
 import hat.optools.FuncOpWrapper;
 import hat.optools.LambdaOpWrapper;
+import hat.optools.ModuleOpWrapper;
 import hat.optools.OpWrapper;
 
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
+import java.lang.reflect.code.CopyContext;
+import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Quotable;
 import java.lang.reflect.code.Quoted;
+import java.lang.reflect.code.Value;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.type.MethodRef;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -64,15 +75,21 @@ import java.util.function.Consumer;
  */
 public class ComputeContext implements BufferAllocator {
 
-    public  enum WRAPPER {
+
+
+
+
+    public enum WRAPPER {
         MUTATE("Mutate"), ACCESS("Access"), ESCAPE("Escape");
         final public MethodRef pre;
         final public MethodRef post;
-        WRAPPER(String name){
-            this.pre = MethodRef.method(ComputeContext.class, "pre"+name, void.class, Buffer.class);
-            this.post = MethodRef.method(ComputeContext.class, "post"+name, void.class, Buffer.class);
+
+        WRAPPER(String name) {
+            this.pre = MethodRef.method(ComputeContext.class, "pre" + name, void.class, Buffer.class);
+            this.post = MethodRef.method(ComputeContext.class, "post" + name, void.class, Buffer.class);
         }
     }
+
     public final Accelerator accelerator;
 
 
@@ -102,7 +119,13 @@ public class ComputeContext implements BufferAllocator {
 
     protected ComputeContext(Accelerator accelerator, Method computeMethod) {
         this.accelerator = accelerator;
+
+     //   ModuleOpWrapper module = ModuleOpWrapper.createTransitiveInvokeModule(accelerator.lookup, computeMethod);
+
+       // System.out.println(module.op().toText());
+
         FuncOpWrapper funcOpWrapper = OpWrapper.wrap(computeMethod.getCodeModel().orElseThrow());
+
         this.computeCallGraph = new ComputeCallGraph(this, computeMethod, funcOpWrapper);
 
         this.computeCallGraph.close();
@@ -136,43 +159,45 @@ public class ComputeContext implements BufferAllocator {
         runtimeInfo = new RuntimeInfo();
     }
 
-    public static class RuntimeInfo{
+    public static class RuntimeInfo {
         public Set<Buffer> javaDirty = new HashSet<>();
         Set<Buffer> gpuDirty = new HashSet<>();
     }
-    public  RuntimeInfo runtimeInfo = null;
+
+    public RuntimeInfo runtimeInfo = null;
 
     public void preMutate(Buffer b) {
-       // System.out.println("preMutate " + b);
-        if (runtimeInfo.gpuDirty.contains(b)){
+        // System.out.println("preMutate " + b);
+        if (runtimeInfo.gpuDirty.contains(b)) {
             throw new IllegalStateException("We want to mutate a buffer on the java side but it is marked as gpu dirty.");
         }
     }
 
     public void postMutate(Buffer b) {
-       // System.out.println("postMutate " + b);
+        // System.out.println("postMutate " + b);
         runtimeInfo.javaDirty.add(b);
     }
 
     public void preAccess(Buffer b) {
-       // System.out.println("preAccess " + b);
-        if (runtimeInfo.gpuDirty.contains(b)){
+        // System.out.println("preAccess " + b);
+        if (runtimeInfo.gpuDirty.contains(b)) {
             throw new IllegalStateException("We want to access a buffer on the java side but it is marked as gpu dirty.");
         }
     }
 
     public void postAccess(Buffer b) {
-       // System.out.println("postAccess " + b);
+        // System.out.println("postAccess " + b);
     }
 
     public void preEscape(Buffer b) {
-       // System.out.println("preEscape " + b);
-        if (runtimeInfo.gpuDirty.contains(b)){
+        // System.out.println("preEscape " + b);
+        if (runtimeInfo.gpuDirty.contains(b)) {
             throw new IllegalStateException("We called a method which escapes a buffer on the java side but it is marked as gpu dirty.");
         }
     }
+
     public void postEscape(Buffer b) {
-       // System.out.println("postEscape " + b);
+        // System.out.println("postEscape " + b);
         runtimeInfo.javaDirty.add(b);
     }
 
