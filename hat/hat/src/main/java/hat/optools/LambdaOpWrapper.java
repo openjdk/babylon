@@ -26,6 +26,7 @@ package hat.optools;
 
 import hat.util.Result;
 
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Quoted;
@@ -53,8 +54,8 @@ public class LambdaOpWrapper extends OpWrapper<CoreOp.LambdaOp> {
         return op().operands();
     }
 
-    public Method getQuotableTargetMethod() {
-        return getQuotableTargetInvokeOpWrapper().method();
+    public Method getQuotableTargetMethod(MethodHandles.Lookup lookup) {
+        return getQuotableTargetInvokeOpWrapper().method(lookup);
     }
 
     public InvokeOpWrapper getQuotableTargetInvokeOpWrapper() {
