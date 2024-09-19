@@ -2199,6 +2199,10 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         public VarType resultType() {
             return resultType;
         }
+
+        public boolean isUnnamedVariable() {
+            return varName == null;
+        }
     }
 
     /**
