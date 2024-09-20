@@ -3933,7 +3933,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     }
 
     /**
-     * Creates a var operation.
+     * Creates a var operation modeling an unnamed variable, either an unnamed local variable or an unnamed parameter.
      *
      * @param init the initial value of the var
      * @return the var operation
@@ -3943,9 +3943,9 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     }
 
     /**
-     * Creates a var operation.
+     * Creates a var operation modeling a variable, either a local variable or a parameter.
      * <p>
-     * Null or empty string means unnamed variable
+     * If the given name is {@code null} or an empty string then the variable is an unnamed variable.
      *
      * @param name the name of the var
      * @param init the initial value of the var
@@ -3956,9 +3956,9 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     }
 
     /**
-     * Creates a var operation.
+     * Creates a var operation modeling a variable, either a local variable or a parameter.
      * <p>
-     * Null or empty string means unnamed variable
+     * If the given name is {@code null} or an empty string then the variable is an unnamed variable.
      *
      * @param name the name of the var
      * @param type the type of the var's value
