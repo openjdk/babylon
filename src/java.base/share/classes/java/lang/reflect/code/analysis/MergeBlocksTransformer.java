@@ -30,14 +30,15 @@ import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.op.CoreOp;
-import java.util.BitSet;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * A model transformer that merges redundant blocks with their predecessors, those which are unconditionally
  * branched to and have only one predecessor.
  */
 public final class MergeBlocksTransformer implements OpTransformer {
-    final BitSet mergedBlocks = new BitSet();
+    final Set<Block> mergedBlocks = new HashSet<>();
 
     private MergeBlocksTransformer() {}
 
@@ -56,7 +57,7 @@ public final class MergeBlocksTransformer implements OpTransformer {
     @Override
     public void apply(Block.Builder block, Block b) {
         // Ignore merged block
-        if (!mergedBlocks.get(b.index())) {
+        if (!mergedBlocks.contains(b)) {
             OpTransformer.super.apply(block, b);
         }
     }
@@ -85,7 +86,7 @@ public final class MergeBlocksTransformer implements OpTransformer {
     }
 
     void mergeBlock(Block.Builder b, Block successor) {
-        mergedBlocks.set(successor.index());
+        mergedBlocks.add(successor);
 
         // Merge non-terminal operations
         for (int i = 0; i < successor.ops().size() - 1; i++) {

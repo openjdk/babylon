@@ -32,10 +32,8 @@ import org.testng.annotations.Test;
 
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.analysis.MergeBlocksTransformer;
-import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.op.ExtendedOp;
 import java.lang.reflect.code.parser.OpParser;
-import java.util.List;
 import java.util.stream.Stream;
 
 public class TestMergeBlocksTransformer {
