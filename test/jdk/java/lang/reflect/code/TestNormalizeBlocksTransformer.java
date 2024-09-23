@@ -41,19 +41,19 @@ public class TestNormalizeBlocksTransformer {
             func @"f" (%0 : int)int -> {
                 %1 : int = invoke @"C::m()int";
                 branch ^block_1;
-            
+
               ^block_1:
                 %2 : int = invoke %1 @"C::m(int)int";
                 branch ^block_2(%2);
-            
+
               ^block_2(%3: int):
                 %4 : int = invoke %2 %3 @"C::m(int, int)int";
                 branch ^block_3(%3);
-            
+
               ^block_3(%5: int):
                 %6 : int = invoke %4 %3 %5 @"C::m(int, int, int)int";
                 branch ^block_4;
-            
+
               ^block_4:
                 return %6;
             };
@@ -72,31 +72,31 @@ public class TestNormalizeBlocksTransformer {
             func @"f" (%0 : java.lang.Object)void -> {
                 %1 : Var<java.lang.Object> = var %0 @"o";
                 %2 : java.lang.reflect.code.op.CoreOp$ExceptionRegion = exception.region.enter ^block_1 ^block_3 ^block_8;
-            
+
               ^block_1:
                 %3 : int = invoke @"A::try_()int";
                 branch ^block_2;
-            
+
               ^block_2:
                 exception.region.exit %2 ^block_6;
-            
+
               ^block_3(%4 : java.lang.RuntimeException):
                 %5 : java.lang.reflect.code.op.CoreOp$ExceptionRegion = exception.region.enter ^block_4 ^block_8;
-            
+
               ^block_4:
                 %6 : Var<java.lang.RuntimeException> = var %4 @"e";
                 branch ^block_5;
-            
+
               ^block_5:
                 exception.region.exit %5 ^block_6;
-            
+
               ^block_6:
                 %7 : int = invoke @"A::finally_()int";
                 branch ^block_7;
-            
+
               ^block_7:
                 return;
-            
+
               ^block_8(%8 : java.lang.Throwable):
                 %9 : int = invoke @"A::finally_()int";
                 throw %8;
@@ -106,22 +106,22 @@ public class TestNormalizeBlocksTransformer {
             func @"f" (%0 : java.lang.Object)void -> {
                 %1 : Var<java.lang.Object> = var %0 @"o";
                 %2 : java.lang.reflect.code.op.CoreOp$ExceptionRegion = exception.region.enter ^block_1 ^block_2 ^block_5;
-            
+
               ^block_1:
                 %3 : int = invoke @"A::try_()int";
                 exception.region.exit %2 ^block_4;
-            
+
               ^block_2(%4 : java.lang.RuntimeException):
                 %5 : java.lang.reflect.code.op.CoreOp$ExceptionRegion = exception.region.enter ^block_3 ^block_5;
-            
+
               ^block_3:
                 %6 : Var<java.lang.RuntimeException> = var %4 @"e";
                 exception.region.exit %5 ^block_4;
-            
+
               ^block_4:
                 %7 : int = invoke @"A::finally_()int";
                 return;
-            
+
               ^block_5(%8 : java.lang.Throwable):
                 %9 : int = invoke @"A::finally_()int";
                 throw %8;
@@ -132,21 +132,21 @@ public class TestNormalizeBlocksTransformer {
                 %1 : int = constant @"0";
                 %2 : boolean = gt %0 %1;
                 cbranch %2 ^block_1 ^block_2;
-            
+
               ^block_1:
                 %3 : int = constant @"1";
                 branch ^block_1_1;
-            
+
               ^block_1_1:
                 branch ^block_3(%3);
-            
+
               ^block_2:
                 %4 : int = constant @"-1";
                 branch ^block_2_1;
-            
+
               ^block_2_1:
                 branch ^block_3(%4);
-            
+
               ^block_3(%5 : int):
                 return %5;
             };""";
@@ -155,15 +155,15 @@ public class TestNormalizeBlocksTransformer {
                 %1 : int = constant @"0";
                 %2 : boolean = gt %0 %1;
                 cbranch %2 ^block_1 ^block_2;
-            
+
               ^block_1:
                 %3 : int = constant @"1";
                 branch ^block_3(%3);
-            
+
               ^block_2:
                 %4 : int = constant @"-1";
                 branch ^block_3(%4);
-            
+
               ^block_3(%5 : int):
                 return %5;
             };
@@ -174,21 +174,21 @@ public class TestNormalizeBlocksTransformer {
                 %1 : int = constant @"0";
                 %2 : boolean = gt %0 %1;
                 cbranch %2 ^block_1 ^block_2;
-            
+
               ^block_1:
                 %3 : int = constant @"1";
                 branch ^block_1_1;
-            
+
               ^block_1_1:
                 branch ^block_3(%3, %3, %3);
-            
+
               ^block_2:
                 %4 : int = constant @"-1";
                 branch ^block_2_1;
-            
+
               ^block_2_1:
                 branch ^block_3(%4, %4, %4);
-            
+
               ^block_3(%unused_1 : int, %5 : int, %unused_2 : int):
                 return %5;
             };""";
@@ -197,15 +197,15 @@ public class TestNormalizeBlocksTransformer {
                 %1 : int = constant @"0";
                 %2 : boolean = gt %0 %1;
                 cbranch %2 ^block_1 ^block_2;
-            
+
               ^block_1:
                 %3 : int = constant @"1";
                 branch ^block_3(%3);
-            
+
               ^block_2:
                 %4 : int = constant @"-1";
                 branch ^block_3(%4);
-            
+
               ^block_3(%5 : int):
                 return %5;
             };
