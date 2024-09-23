@@ -180,14 +180,14 @@ public class TestNormalizeBlocksTransformer {
                 branch ^block_1_1;
 
               ^block_1_1:
-                branch ^block_3(%3, %3, %3);
+                branch ^block_3(%0, %3, %1);
 
               ^block_2:
                 %4 : int = constant @"-1";
                 branch ^block_2_1;
 
               ^block_2_1:
-                branch ^block_3(%4, %4, %4);
+                branch ^block_3(%0, %4, %1);
 
               ^block_3(%unused_1 : int, %5 : int, %unused_2 : int):
                 return %5;
