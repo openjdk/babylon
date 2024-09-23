@@ -23,7 +23,7 @@
 
 /*
  * @test
- * @run testng TestMergeBlocksTransformer
+ * @run testng TestNormalizeBlocksTransformer
  */
 
 import org.testng.Assert;
@@ -31,17 +31,17 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.code.Op;
-import java.lang.reflect.code.analysis.MergeBlocksTransformer;
+import java.lang.reflect.code.analysis.NormalizeBlocksTransformer;
 import java.lang.reflect.code.op.ExtendedOp;
 import java.lang.reflect.code.parser.OpParser;
 import java.util.stream.Stream;
 
-public class TestMergeBlocksTransformer {
+public class TestNormalizeBlocksTransformer {
     static final String TEST1_INPUT = """
             func @"f" (%0 : int)int -> {
                 %1 : int = invoke @"C::m()int";
                 branch ^block_1;
-
+            
               ^block_1:
                 %2 : int = invoke %1 @"C::m(int)int";
                 branch ^block_2(%2);
@@ -136,7 +136,7 @@ public class TestMergeBlocksTransformer {
               ^block_1:
                 %3 : int = constant @"1";
                 branch ^block_1_1;
-
+            
               ^block_1_1:
                 branch ^block_3(%3);
             
@@ -146,7 +146,7 @@ public class TestMergeBlocksTransformer {
             
               ^block_2_1:
                 branch ^block_3(%4);
-
+            
               ^block_3(%5 : int):
                 return %5;
             };""";
@@ -169,12 +169,55 @@ public class TestMergeBlocksTransformer {
             };
             """;
 
+    static final String TEST4_INPUT = """
+            func @"f" (%0 : int)int -> {
+                %1 : int = constant @"0";
+                %2 : boolean = gt %0 %1;
+                cbranch %2 ^block_1 ^block_2;
+            
+              ^block_1:
+                %3 : int = constant @"1";
+                branch ^block_1_1;
+            
+              ^block_1_1:
+                branch ^block_3(%3, %3, %3);
+            
+              ^block_2:
+                %4 : int = constant @"-1";
+                branch ^block_2_1;
+            
+              ^block_2_1:
+                branch ^block_3(%4, %4, %4);
+            
+              ^block_3(%unused_1 : int, %5 : int, %unused_2 : int):
+                return %5;
+            };""";
+    static final String TEST4_EXPECTED = """
+            func @"f" (%0 : int)int -> {
+                %1 : int = constant @"0";
+                %2 : boolean = gt %0 %1;
+                cbranch %2 ^block_1 ^block_2;
+            
+              ^block_1:
+                %3 : int = constant @"1";
+                branch ^block_3(%3);
+            
+              ^block_2:
+                %4 : int = constant @"-1";
+                branch ^block_3(%4);
+            
+              ^block_3(%5 : int):
+                return %5;
+            };
+            """;
+
     @DataProvider
     static Object[][] testModels() {
-        return new Object[][] {
+        return new Object[][]{
                 parse(TEST1_INPUT, TEST1_EXPECTED),
                 parse(TEST2_INPUT, TEST2_EXPECTED),
                 parse(TEST3_INPUT, TEST3_EXPECTED),
+                parse(TEST4_INPUT, TEST4_EXPECTED),
         };
     }
 
@@ -185,7 +228,7 @@ public class TestMergeBlocksTransformer {
 
     @Test(dataProvider = "testModels")
     public void test(Op input, Op expected) {
-        Op actual = MergeBlocksTransformer.transform(input);
+        Op actual = NormalizeBlocksTransformer.transform(input);
         Assert.assertEquals(actual.toText(), expected.toText());
     }
 }
