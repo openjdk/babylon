@@ -116,7 +116,7 @@ public class TritonTestExtension implements ParameterResolver {
             if (!directory.exists()) {
                 directory.mkdirs();
             }
-            try (BufferedWriter writer = new BufferedWriter(new FileWriter("result/" + javaKernelName))) {
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter("result/" + javaKernelName + ".mlir"))) {
                 writer.write(mlirText);
             } catch (IOException e) {
                 e.printStackTrace();
