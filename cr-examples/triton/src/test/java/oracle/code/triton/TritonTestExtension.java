@@ -28,6 +28,10 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.api.extension.ParameterResolver;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -106,6 +110,17 @@ public class TritonTestExtension implements ParameterResolver {
             TritonOps.ModuleOp actualTritonKernel = ScopedValue.callWhere(TritonTransformer.SV_SSA, doSSA,() -> {
                 return TritonTransformer.tritonModule(javaKernel, JavaType.VOID, argTypes);
             });
+
+            String mlirText = MLIRGenerator.transform(actualTritonKernel);
+            File directory = new File("result");
+            if (!directory.exists()) {
+                directory.mkdirs();
+            }
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter("result/" + javaKernelName))) {
+                writer.write(mlirText);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
 
             Assertions.assertEquals(
                     expectedTritonKernel == null ? "NO @TritonCodeModel" : expectedTritonKernel.toText(),
