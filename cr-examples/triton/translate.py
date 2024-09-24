@@ -6,25 +6,27 @@ import triton.language as tl
 import shutil
 import os
 
-# declare the dummy functions
+HOME = os.environ['HOME']
+BABYLON_PATH = os.path.join(HOME, 'babylon')
+
 @triton.jit
 def add_kernel():
-   a = 0
+   pass
 
 @triton.jit
 def matmul_kernel():
-   a = 0
+   pass
 
 @triton.jit
 def softmax_kernel():
-   a = 0
+   pass
 
-ADD_KERNEL_MLIR = "/home/intel/babylon/cr-examples/triton/result/add_kernel.mlir"
-MATMUL_MLIR = "/home/intel/babylon/cr-examples/triton/result/matmul_kernel.mlir"
-SOFTMAX_MLIR = "/home/intel/babylon/cr-examples/triton/result/softmax_kernel.mlir"
+ADD_KERNEL_MLIR = f"{BABYLON_PATH}/cr-examples/triton/result/add_kernel"
+MATMUL_MLIR = f"{BABYLON_PATH}/cr-examples/triton/result/matmul_kernel"
+SOFTMAX_MLIR = f"{BABYLON_PATH}/cr-examples/triton/result/softmax_kernel"
 
-if os.path.isdir('/home/intel/.triton/cache'):
-   shutil.rmtree('/home/intel/.triton/cache')
+if os.path.isdir(f'{HOME}/.triton/cache'):
+   shutil.rmtree(f'{HOME}/.triton/cache')
 
 triton.compile(triton.compiler.ASTSource(fn=add_kernel, signature={}, constants={}), target_mlir=ADD_KERNEL_MLIR)
 triton.compile(triton.compiler.ASTSource(fn=softmax_kernel, signature={}, constants={}), target_mlir=SOFTMAX_MLIR, options={"num_warps":32})
