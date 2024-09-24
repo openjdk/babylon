@@ -101,7 +101,7 @@ public final class TypeVarRef implements JavaType {
 
     @Override
     public String toString() {
-        return externalize().toString();
+        return name;
     }
 
     @Override
