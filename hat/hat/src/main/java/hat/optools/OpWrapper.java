@@ -44,6 +44,7 @@ public class OpWrapper<T extends Op> {
     @SuppressWarnings("unchecked")
     public static <O extends Op, OW extends OpWrapper<O>> OW wrap(O op) {
         // We have one special case
+        // This is possibly a premature optimization. But it allows us to treat vardeclarations differently from params.
         if (op instanceof CoreOp.VarOp varOp) {
             // this gets called a lot and we can't wrap yet or we recurse so we
             // use the raw model. Basically we want a different wrapper for VarDeclations
@@ -56,6 +57,7 @@ public class OpWrapper<T extends Op> {
             }
         }
         return switch (op) {
+            case CoreOp.ModuleOp $ -> (OW) new ModuleOpWrapper($);
             case ExtendedOp.JavaForOp $ -> (OW) new ForOpWrapper($);
             case ExtendedOp.JavaWhileOp $ -> (OW) new WhileOpWrapper($);
             case ExtendedOp.JavaIfOp $ -> (OW) new IfOpWrapper($);

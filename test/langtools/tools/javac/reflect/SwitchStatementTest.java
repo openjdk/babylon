@@ -480,89 +480,85 @@ public class SwitchStatementTest {
     }
     @IR("""
             func @"caseConstantEnum" (%0 : SwitchStatementTest$Day)java.lang.String -> {
-                %1 : Var<SwitchStatementTest$Day> = var %0 @"d";
-                %2 : java.lang.String = constant @"";
-                %3 : Var<java.lang.String> = var %2 @"r";
-                %4 : SwitchStatementTest$Day = var.load %1;
-                java.switch.statement %4
-                    (%5 : SwitchStatementTest$Day)boolean -> {
-                        %6 : boolean = java.cor
-                            ()boolean -> {
-                                %7 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::MON()SwitchStatementTest$Day";
-                                %8 : boolean = invoke %5 %7 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                                yield %8;
-                            }
-                            ()boolean -> {
-                                %9 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::FRI()SwitchStatementTest$Day";
-                                %10 : boolean = invoke %5 %9 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                                yield %10;
-                            }
-                            ()boolean -> {
-                                %11 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::SUN()SwitchStatementTest$Day";
-                                %12 : boolean = invoke %5 %11 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                                yield %12;
-                            };
-                        yield %6;
-                    }
-                    ()void -> {
-                        %13 : java.lang.String = var.load %3;
-                        %14 : int = constant @"6";
-                        %15 : java.lang.Integer = invoke %14 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %16 : java.lang.String = concat %13 %15;
-                        var.store %3 %16;
-                        yield;
-                    }
-                    (%17 : SwitchStatementTest$Day)boolean -> {
-                        %18 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::TUE()SwitchStatementTest$Day";
-                        %19 : boolean = invoke %17 %18 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                        yield %19;
-                    }
-                    ()void -> {
-                        %20 : java.lang.String = var.load %3;
-                        %21 : int = constant @"7";
-                        %22 : java.lang.Integer = invoke %21 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %23 : java.lang.String = concat %20 %22;
-                        var.store %3 %23;
-                        yield;
-                    }
-                    (%24 : SwitchStatementTest$Day)boolean -> {
-                        %25 : boolean = java.cor
-                            ()boolean -> {
-                                %26 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::THU()SwitchStatementTest$Day";
-                                %27 : boolean = invoke %24 %26 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                                yield %27;
-                            }
-                            ()boolean -> {
-                                %28 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::SAT()SwitchStatementTest$Day";
-                                %29 : boolean = invoke %24 %28 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                                yield %29;
-                            };
-                        yield %25;
-                    }
-                    ()void -> {
-                        %30 : java.lang.String = var.load %3;
-                        %31 : int = constant @"8";
-                        %32 : java.lang.Integer = invoke %31 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %33 : java.lang.String = concat %30 %32;
-                        var.store %3 %33;
-                        yield;
-                    }
-                    (%34 : SwitchStatementTest$Day)boolean -> {
-                        %35 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::WED()SwitchStatementTest$Day";
-                        %36 : boolean = invoke %34 %35 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                        yield %36;
-                    }
-                    ()void -> {
-                        %37 : java.lang.String = var.load %3;
-                        %38 : int = constant @"9";
-                        %39 : java.lang.Integer = invoke %38 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %40 : java.lang.String = concat %37 %39;
-                        var.store %3 %40;
-                        yield;
-                    };
-                %41 : java.lang.String = var.load %3;
-                return %41;
-            };
+                  %1 : Var<SwitchStatementTest$Day> = var %0 @"d";
+                  %2 : java.lang.String = constant @"";
+                  %3 : Var<java.lang.String> = var %2 @"r";
+                  %4 : SwitchStatementTest$Day = var.load %1;
+                  java.switch.statement %4
+                      (%5 : SwitchStatementTest$Day)boolean -> {
+                          %6 : boolean = java.cor
+                              ()boolean -> {
+                                  %7 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::MON()SwitchStatementTest$Day";
+                                  %8 : boolean = invoke %5 %7 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                                  yield %8;
+                              }
+                              ()boolean -> {
+                                  %9 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::FRI()SwitchStatementTest$Day";
+                                  %10 : boolean = invoke %5 %9 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                                  yield %10;
+                              }
+                              ()boolean -> {
+                                  %11 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::SUN()SwitchStatementTest$Day";
+                                  %12 : boolean = invoke %5 %11 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                                  yield %12;
+                              };
+                          yield %6;
+                      }
+                      ()void -> {
+                          %13 : java.lang.String = var.load %3;
+                          %14 : int = constant @"6";
+                          %15 : java.lang.String = concat %13 %14;
+                          var.store %3 %15;
+                          yield;
+                      }
+                      (%16 : SwitchStatementTest$Day)boolean -> {
+                          %17 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::TUE()SwitchStatementTest$Day";
+                          %18 : boolean = invoke %16 %17 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                          yield %18;
+                      }
+                      ()void -> {
+                          %19 : java.lang.String = var.load %3;
+                          %20 : int = constant @"7";
+                          %21 : java.lang.String = concat %19 %20;
+                          var.store %3 %21;
+                          yield;
+                      }
+                      (%22 : SwitchStatementTest$Day)boolean -> {
+                          %23 : boolean = java.cor
+                              ()boolean -> {
+                                  %24 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::THU()SwitchStatementTest$Day";
+                                  %25 : boolean = invoke %22 %24 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                                  yield %25;
+                              }
+                              ()boolean -> {
+                                  %26 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::SAT()SwitchStatementTest$Day";
+                                  %27 : boolean = invoke %22 %26 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                                  yield %27;
+                              };
+                          yield %23;
+                      }
+                      ()void -> {
+                          %28 : java.lang.String = var.load %3;
+                          %29 : int = constant @"8";
+                          %30 : java.lang.String = concat %28 %29;
+                          var.store %3 %30;
+                          yield;
+                      }
+                      (%31 : SwitchStatementTest$Day)boolean -> {
+                          %32 : SwitchStatementTest$Day = field.load @"SwitchStatementTest$Day::WED()SwitchStatementTest$Day";
+                          %33 : boolean = invoke %31 %32 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                          yield %33;
+                      }
+                      ()void -> {
+                          %34 : java.lang.String = var.load %3;
+                          %35 : int = constant @"9";
+                          %36 : java.lang.String = concat %34 %35;
+                          var.store %3 %36;
+                          yield;
+                      };
+                  %37 : java.lang.String = var.load %3;
+                  return %37;
+              };
             """)
     @CodeReflection
     private static String caseConstantEnum(Day d) {
@@ -582,228 +578,216 @@ public class SwitchStatementTest {
     }
     @IR("""
             func @"caseConstantOtherKindsOfExpr" (%0 : int)java.lang.String -> {
-                %1 : Var<int> = var %0 @"i";
-                %2 : java.lang.String = constant @"";
-                %3 : Var<java.lang.String> = var %2 @"r";
-                %4 : int = constant @"11";
-                %5 : Var<int> = var %4 @"eleven";
-                %6 : int = var.load %1;
-                java.switch.statement %6
-                    (%7 : int)boolean -> {
-                        %8 : int = constant @"1";
-                        %9 : int = constant @"15";
-                        %10 : int = and %8 %9;
-                        %11 : boolean = eq %7 %10;
-                        yield %11;
-                    }
-                    ()void -> {
-                        %12 : java.lang.String = var.load %3;
-                        %13 : int = constant @"1";
-                        %14 : java.lang.Integer = invoke %13 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %15 : java.lang.String = concat %12 %14;
-                        var.store %3 %15;
-                        yield;
-                    }
-                    (%16 : int)boolean -> {
-                        %17 : int = constant @"4";
-                        %18 : int = constant @"1";
-                        %19 : int = ashr %17 %18;
-                        %20 : boolean = eq %16 %19;
-                        yield %20;
-                    }
-                    ()void -> {
-                        %21 : java.lang.String = var.load %3;
-                        %22 : java.lang.String = constant @"2";
-                        %23 : java.lang.String = concat %21 %22;
-                        var.store %3 %23;
-                        yield;
-                    }
-                    (%24 : int)boolean -> {
-                        %25 : long = constant @"3";
-                        %26 : int = conv %25;
-                        %27 : boolean = eq %24 %26;
-                        yield %27;
-                    }
-                    ()void -> {
-                        %28 : java.lang.String = var.load %3;
-                        %29 : int = constant @"3";
-                        %30 : java.lang.Integer = invoke %29 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %31 : java.lang.String = concat %28 %30;
-                        var.store %3 %31;
-                        yield;
-                    }
-                    (%32 : int)boolean -> {
-                        %33 : int = constant @"2";
-                        %34 : int = constant @"1";
-                        %35 : int = lshl %33 %34;
-                        %36 : boolean = eq %32 %35;
-                        yield %36;
-                    }
-                    ()void -> {
-                        %37 : java.lang.String = var.load %3;
-                        %38 : int = constant @"4";
-                        %39 : java.lang.Integer = invoke %38 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %40 : java.lang.String = concat %37 %39;
-                        var.store %3 %40;
-                        yield;
-                    }
-                    (%41 : int)boolean -> {
-                        %42 : int = constant @"10";
-                        %43 : int = constant @"2";
-                        %44 : int = div %42 %43;
-                        %45 : boolean = eq %41 %44;
-                        yield %45;
-                    }
-                    ()void -> {
-                        %46 : java.lang.String = var.load %3;
-                        %47 : int = constant @"5";
-                        %48 : java.lang.Integer = invoke %47 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %49 : java.lang.String = concat %46 %48;
-                        var.store %3 %49;
-                        yield;
-                    }
-                    (%50 : int)boolean -> {
-                        %51 : int = constant @"12";
-                        %52 : int = constant @"6";
-                        %53 : int = sub %51 %52;
-                        %54 : boolean = eq %50 %53;
-                        yield %54;
-                    }
-                    ()void -> {
-                        %55 : java.lang.String = var.load %3;
-                        %56 : int = constant @"6";
-                        %57 : java.lang.Integer = invoke %56 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %58 : java.lang.String = concat %55 %57;
-                        var.store %3 %58;
-                        yield;
-                    }
-                    (%59 : int)boolean -> {
-                        %60 : int = constant @"3";
-                        %61 : int = constant @"4";
-                        %62 : int = add %60 %61;
-                        %63 : boolean = eq %59 %62;
-                        yield %63;
-                    }
-                    ()void -> {
-                        %64 : java.lang.String = var.load %3;
-                        %65 : int = constant @"7";
-                        %66 : java.lang.Integer = invoke %65 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %67 : java.lang.String = concat %64 %66;
-                        var.store %3 %67;
-                        yield;
-                    }
-                    (%68 : int)boolean -> {
-                        %69 : int = constant @"2";
-                        %70 : int = constant @"2";
-                        %71 : int = mul %69 %70;
-                        %72 : int = constant @"2";
-                        %73 : int = mul %71 %72;
-                        %74 : boolean = eq %68 %73;
-                        yield %74;
-                    }
-                    ()void -> {
-                        %75 : java.lang.String = var.load %3;
-                        %76 : int = constant @"8";
-                        %77 : java.lang.Integer = invoke %76 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %78 : java.lang.String = concat %75 %77;
-                        var.store %3 %78;
-                        yield;
-                    }
-                    (%79 : int)boolean -> {
-                        %80 : int = constant @"8";
-                        %81 : int = constant @"1";
-                        %82 : int = or %80 %81;
-                        %83 : boolean = eq %79 %82;
-                        yield %83;
-                    }
-                    ()void -> {
-                        %84 : java.lang.String = var.load %3;
-                        %85 : int = constant @"9";
-                        %86 : java.lang.Integer = invoke %85 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %87 : java.lang.String = concat %84 %86;
-                        var.store %3 %87;
-                        yield;
-                    }
-                    (%88 : int)boolean -> {
-                        %89 : int = constant @"10";
-                        %90 : boolean = eq %88 %89;
-                        yield %90;
-                    }
-                    ()void -> {
-                        %91 : java.lang.String = var.load %3;
-                        %92 : int = constant @"10";
-                        %93 : java.lang.Integer = invoke %92 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %94 : java.lang.String = concat %91 %93;
-                        var.store %3 %94;
-                        yield;
-                    }
-                    (%95 : int)boolean -> {
-                        %96 : int = var.load %5;
-                        %97 : boolean = eq %95 %96;
-                        yield %97;
-                    }
-                    ()void -> {
-                        %98 : java.lang.String = var.load %3;
-                        %99 : int = constant @"11";
-                        %100 : java.lang.Integer = invoke %99 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %101 : java.lang.String = concat %98 %100;
-                        var.store %3 %101;
-                        yield;
-                    }
-                    (%102 : int)boolean -> {
-                        %103 : int = field.load @"SwitchStatementTest$Constants::c1()int";
-                        %104 : boolean = eq %102 %103;
-                        yield %104;
-                    }
-                    ()void -> {
-                        %105 : java.lang.String = var.load %3;
-                        %106 : int = field.load @"SwitchStatementTest$Constants::c1()int";
-                        %107 : java.lang.Integer = invoke %106 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %108 : java.lang.String = concat %105 %107;
-                        var.store %3 %108;
-                        yield;
-                    }
-                    (%109 : int)boolean -> {
-                        %110 : int = java.cexpression
-                            ()boolean -> {
-                                %111 : int = constant @"1";
-                                %112 : int = constant @"0";
-                                %113 : boolean = gt %111 %112;
-                                yield %113;
-                            }
-                            ()int -> {
-                                %114 : int = constant @"13";
-                                yield %114;
-                            }
-                            ()int -> {
-                                %115 : int = constant @"133";
-                                yield %115;
-                            };
-                        %116 : boolean = eq %109 %110;
-                        yield %116;
-                    }
-                    ()void -> {
-                        %117 : java.lang.String = var.load %3;
-                        %118 : int = constant @"13";
-                        %119 : java.lang.Integer = invoke %118 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %120 : java.lang.String = concat %117 %119;
-                        var.store %3 %120;
-                        yield;
-                    }
-                    ()boolean -> {
-                        %17 : boolean = constant @"true";
-                        yield %17;
-                    }
-                    ()void -> {
-                        %121 : java.lang.String = var.load %3;
-                        %122 : java.lang.String = constant @"an int";
-                        %123 : java.lang.String = concat %121 %122;
-                        var.store %3 %123;
-                        yield;
-                    };
-                %124 : java.lang.String = var.load %3;
-                return %124;
-            };
+                  %1 : Var<int> = var %0 @"i";
+                  %2 : java.lang.String = constant @"";
+                  %3 : Var<java.lang.String> = var %2 @"r";
+                  %4 : int = constant @"11";
+                  %5 : Var<int> = var %4 @"eleven";
+                  %6 : int = var.load %1;
+                  java.switch.statement %6
+                      (%7 : int)boolean -> {
+                          %8 : int = constant @"1";
+                          %9 : int = constant @"15";
+                          %10 : int = and %8 %9;
+                          %11 : boolean = eq %7 %10;
+                          yield %11;
+                      }
+                      ()void -> {
+                          %12 : java.lang.String = var.load %3;
+                          %13 : int = constant @"1";
+                          %14 : java.lang.String = concat %12 %13;
+                          var.store %3 %14;
+                          yield;
+                      }
+                      (%15 : int)boolean -> {
+                          %16 : int = constant @"4";
+                          %17 : int = constant @"1";
+                          %18 : int = ashr %16 %17;
+                          %19 : boolean = eq %15 %18;
+                          yield %19;
+                      }
+                      ()void -> {
+                          %20 : java.lang.String = var.load %3;
+                          %21 : java.lang.String = constant @"2";
+                          %22 : java.lang.String = concat %20 %21;
+                          var.store %3 %22;
+                          yield;
+                      }
+                      (%23 : int)boolean -> {
+                          %24 : long = constant @"3";
+                          %25 : int = conv %24;
+                          %26 : boolean = eq %23 %25;
+                          yield %26;
+                      }
+                      ()void -> {
+                          %27 : java.lang.String = var.load %3;
+                          %28 : int = constant @"3";
+                          %29 : java.lang.String = concat %27 %28;
+                          var.store %3 %29;
+                          yield;
+                      }
+                      (%30 : int)boolean -> {
+                          %31 : int = constant @"2";
+                          %32 : int = constant @"1";
+                          %33 : int = lshl %31 %32;
+                          %34 : boolean = eq %30 %33;
+                          yield %34;
+                      }
+                      ()void -> {
+                          %35 : java.lang.String = var.load %3;
+                          %36 : int = constant @"4";
+                          %37 : java.lang.String = concat %35 %36;
+                          var.store %3 %37;
+                          yield;
+                      }
+                      (%38 : int)boolean -> {
+                          %39 : int = constant @"10";
+                          %40 : int = constant @"2";
+                          %41 : int = div %39 %40;
+                          %42 : boolean = eq %38 %41;
+                          yield %42;
+                      }
+                      ()void -> {
+                          %43 : java.lang.String = var.load %3;
+                          %44 : int = constant @"5";
+                          %45 : java.lang.String = concat %43 %44;
+                          var.store %3 %45;
+                          yield;
+                      }
+                      (%46 : int)boolean -> {
+                          %47 : int = constant @"12";
+                          %48 : int = constant @"6";
+                          %49 : int = sub %47 %48;
+                          %50 : boolean = eq %46 %49;
+                          yield %50;
+                      }
+                      ()void -> {
+                          %51 : java.lang.String = var.load %3;
+                          %52 : int = constant @"6";
+                          %53 : java.lang.String = concat %51 %52;
+                          var.store %3 %53;
+                          yield;
+                      }
+                      (%54 : int)boolean -> {
+                          %55 : int = constant @"3";
+                          %56 : int = constant @"4";
+                          %57 : int = add %55 %56;
+                          %58 : boolean = eq %54 %57;
+                          yield %58;
+                      }
+                      ()void -> {
+                          %59 : java.lang.String = var.load %3;
+                          %60 : int = constant @"7";
+                          %61 : java.lang.String = concat %59 %60;
+                          var.store %3 %61;
+                          yield;
+                      }
+                      (%62 : int)boolean -> {
+                          %63 : int = constant @"2";
+                          %64 : int = constant @"2";
+                          %65 : int = mul %63 %64;
+                          %66 : int = constant @"2";
+                          %67 : int = mul %65 %66;
+                          %68 : boolean = eq %62 %67;
+                          yield %68;
+                      }
+                      ()void -> {
+                          %69 : java.lang.String = var.load %3;
+                          %70 : int = constant @"8";
+                          %71 : java.lang.String = concat %69 %70;
+                          var.store %3 %71;
+                          yield;
+                      }
+                      (%72 : int)boolean -> {
+                          %73 : int = constant @"8";
+                          %74 : int = constant @"1";
+                          %75 : int = or %73 %74;
+                          %76 : boolean = eq %72 %75;
+                          yield %76;
+                      }
+                      ()void -> {
+                          %77 : java.lang.String = var.load %3;
+                          %78 : int = constant @"9";
+                          %79 : java.lang.String = concat %77 %78;
+                          var.store %3 %79;
+                          yield;
+                      }
+                      (%80 : int)boolean -> {
+                          %81 : int = constant @"10";
+                          %82 : boolean = eq %80 %81;
+                          yield %82;
+                      }
+                      ()void -> {
+                          %83 : java.lang.String = var.load %3;
+                          %84 : int = constant @"10";
+                          %85 : java.lang.String = concat %83 %84;
+                          var.store %3 %85;
+                          yield;
+                      }
+                      (%86 : int)boolean -> {
+                          %87 : int = var.load %5;
+                          %88 : boolean = eq %86 %87;
+                          yield %88;
+                      }
+                      ()void -> {
+                          %89 : java.lang.String = var.load %3;
+                          %90 : int = constant @"11";
+                          %91 : java.lang.String = concat %89 %90;
+                          var.store %3 %91;
+                          yield;
+                      }
+                      (%92 : int)boolean -> {
+                          %93 : int = field.load @"SwitchStatementTest$Constants::c1()int";
+                          %94 : boolean = eq %92 %93;
+                          yield %94;
+                      }
+                      ()void -> {
+                          %95 : java.lang.String = var.load %3;
+                          %96 : int = field.load @"SwitchStatementTest$Constants::c1()int";
+                          %97 : java.lang.String = concat %95 %96;
+                          var.store %3 %97;
+                          yield;
+                      }
+                      (%98 : int)boolean -> {
+                          %99 : int = java.cexpression
+                              ()boolean -> {
+                                  %100 : int = constant @"1";
+                                  %101 : int = constant @"0";
+                                  %102 : boolean = gt %100 %101;
+                                  yield %102;
+                              }
+                              ()int -> {
+                                  %103 : int = constant @"13";
+                                  yield %103;
+                              }
+                              ()int -> {
+                                  %104 : int = constant @"133";
+                                  yield %104;
+                              };
+                          %105 : boolean = eq %98 %99;
+                          yield %105;
+                      }
+                      ()void -> {
+                          %106 : java.lang.String = var.load %3;
+                          %107 : int = constant @"13";
+                          %108 : java.lang.String = concat %106 %107;
+                          var.store %3 %108;
+                          yield;
+                      }
+                      ()boolean -> {
+                          %109 : boolean = constant @"true";
+                          yield %109;
+                      }
+                      ()void -> {
+                          %110 : java.lang.String = var.load %3;
+                          %111 : java.lang.String = constant @"an int";
+                          %112 : java.lang.String = concat %110 %111;
+                          var.store %3 %112;
+                          yield;
+                      };
+                  %113 : java.lang.String = var.load %3;
+                  return %113;
+              };
             """)
     @CodeReflection
     private static String caseConstantOtherKindsOfExpr(int i) {
@@ -974,39 +958,38 @@ public class SwitchStatementTest {
 
     @IR("""
             func @"nonEnhancedSwStatNoDefault" (%0 : int)java.lang.String -> {
-                %1 : Var<int> = var %0 @"a";
-                %2 : java.lang.String = constant @"";
-                %3 : Var<java.lang.String> = var %2 @"r";
-                %4 : int = var.load %1;
-                java.switch.statement %4
-                    (%5 : int)boolean -> {
-                        %6 : int = constant @"1";
-                        %7 : boolean = eq %5 %6;
-                        yield %7;
-                    }
-                    ()void -> {
-                        %8 : java.lang.String = var.load %3;
-                        %9 : java.lang.String = constant @"1";
-                        %10 : java.lang.String = concat %8 %9;
-                        var.store %3 %10;
-                        yield;
-                    }
-                    (%11 : int)boolean -> {
-                        %12 : int = constant @"2";
-                        %13 : boolean = eq %11 %12;
-                        yield %13;
-                    }
-                    ()void -> {
-                        %14 : java.lang.String = var.load %3;
-                        %15 : int = constant @"2";
-                        %16 : java.lang.Integer = invoke %15 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %17 : java.lang.String = concat %14 %16;
-                        var.store %3 %17;
-                        yield;
-                    };
-                %18 : java.lang.String = var.load %3;
-                return %18;
-            };
+                  %1 : Var<int> = var %0 @"a";
+                  %2 : java.lang.String = constant @"";
+                  %3 : Var<java.lang.String> = var %2 @"r";
+                  %4 : int = var.load %1;
+                  java.switch.statement %4
+                      (%5 : int)boolean -> {
+                          %6 : int = constant @"1";
+                          %7 : boolean = eq %5 %6;
+                          yield %7;
+                      }
+                      ()void -> {
+                          %8 : java.lang.String = var.load %3;
+                          %9 : java.lang.String = constant @"1";
+                          %10 : java.lang.String = concat %8 %9;
+                          var.store %3 %10;
+                          yield;
+                      }
+                      (%11 : int)boolean -> {
+                          %12 : int = constant @"2";
+                          %13 : boolean = eq %11 %12;
+                          yield %13;
+                      }
+                      ()void -> {
+                          %14 : java.lang.String = var.load %3;
+                          %15 : int = constant @"2";
+                          %16 : java.lang.String = concat %14 %15;
+                          var.store %3 %16;
+                          yield;
+                      };
+                  %17 : java.lang.String = var.load %3;
+                  return %17;
+              };
             """)
     @CodeReflection
     static String nonEnhancedSwStatNoDefault(int a) {
@@ -1906,7 +1889,7 @@ public class SwitchStatementTest {
                         %20 : java.lang.String = var.load %6;
                         %21 : int = invoke %20 @"java.lang.String::length()int";
                         %22 : java.lang.Integer = invoke %21 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                        %23 : java.lang.String = invoke %19 %22 @"java.lang.String::formatted(java.lang.Object[])java.lang.String";
+                        %23 : java.lang.String = invoke %19 %22 @invoke.kind="INSTANCE" @invoke.varargs="true" @"java.lang.String::formatted(java.lang.Object[])java.lang.String";
                         %24 : java.lang.String = concat %18 %23;
                         var.store %3 %24;
                         yield;

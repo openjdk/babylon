@@ -465,7 +465,7 @@ public class ImplicitConversionTest {
                 %2 : Var<int> = var %1 @"i";
                 %3 : int = var.load %2;
                 %4 : int = var.load %2;
-                invoke %0 %3 %4 @"ImplicitConversionTest::m(int, int, long[])void";
+                invoke %0 %3 %4 @invoke.kind="INSTANCE" @invoke.varargs="true" @"ImplicitConversionTest::m(int, int, long[])void";
                 return;
             };
             """)
@@ -481,7 +481,7 @@ public class ImplicitConversionTest {
                 %4 : int = var.load %2;
                 %5 : int = var.load %2;
                 %6 : long = conv %5;
-                invoke %0 %3 %4 %6 @"ImplicitConversionTest::m(int, int, long[])void";
+                invoke %0 %3 %4 %6 @invoke.kind="INSTANCE" @invoke.varargs="true" @"ImplicitConversionTest::m(int, int, long[])void";
                 return;
            };
            """)
@@ -499,7 +499,7 @@ public class ImplicitConversionTest {
                 %6 : long = conv %5;
                 %7 : int = var.load %2;
                 %8 : long = conv %7;
-                invoke %0 %3 %4 %6 %8 @"ImplicitConversionTest::m(int, int, long[])void";
+                invoke %0 %3 %4 %6 %8 @invoke.kind="INSTANCE" @invoke.varargs="true" @"ImplicitConversionTest::m(int, int, long[])void";
                 return;
             };
             """)

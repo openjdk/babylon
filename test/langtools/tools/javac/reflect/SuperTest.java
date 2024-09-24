@@ -76,8 +76,8 @@ public class SuperTest extends SuperClass implements SuperInterface {
     @CodeReflection
     @IR("""
             func @"superClassMethodInvocation" (%0 : SuperTest)void -> {
-                invoke.super %0 @"SuperClass::get()void";
-                invoke.super %0 @"SuperClass::get()void";
+                invoke %0 @invoke.kind="SUPER" @"SuperClass::get()void";
+                invoke %0 @invoke.kind="SUPER" @"SuperClass::get()void";
                 invoke @"SuperClass::sget()void";
                 invoke @"SuperClass::sget()void";
                 return;
@@ -94,7 +94,7 @@ public class SuperTest extends SuperClass implements SuperInterface {
     @CodeReflection
     @IR("""
             func @"superInterfaceMethodInvocation" (%0 : SuperTest)void -> {
-                invoke.super %0 @"SuperInterface::get()void";
+                invoke %0 @invoke.kind="SUPER" @"SuperInterface::get()void";
                 return;
             };
             """)

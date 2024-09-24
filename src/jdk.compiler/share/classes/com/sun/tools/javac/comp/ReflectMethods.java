@@ -1072,14 +1072,19 @@ public class ReflectMethods extends TreeTranslator {
 
                     Symbol sym = access.sym;
                     List<Value> args = new ArrayList<>();
+                    CoreOp.InvokeOp.InvokeKind ik;
                     if (!sym.isStatic()) {
+                        ik = CoreOp.InvokeOp.InvokeKind.INSTANCE;
                         args.add(thisValue());
+                    } else {
+                        ik = CoreOp.InvokeOp.InvokeKind.STATIC;
                     }
 
                     args.addAll(scanMethodArguments(tree.args, tree.meth.type, tree.varargsElement));
 
                     MethodRef mr = symbolToErasedMethodRef(sym, symbolSiteType(sym));
-                    Value res = append(CoreOp.invoke(typeToTypeElement(meth.type.getReturnType()), mr, args));
+                    Value res = append(CoreOp.invoke(ik, tree.varargsElement != null,
+                            typeToTypeElement(meth.type.getReturnType()), mr, args));
                     if (sym.type.getReturnType().getTag() != TypeTag.VOID) {
                         result = res;
                     }
@@ -1093,17 +1098,17 @@ public class ReflectMethods extends TreeTranslator {
 
                     Symbol sym = access.sym;
                     List<Value> args = new ArrayList<>();
-                    boolean isSuper;
+                    CoreOp.InvokeOp.InvokeKind ik;
                     if (!sym.isStatic()) {
                         args.add(receiver);
                         // @@@ expr.super(...) for inner class super constructor calls
-                        isSuper = switch (access.selected) {
-                            case JCIdent i when i.sym.name.equals(names._super) -> true;
-                            case JCFieldAccess fa when fa.sym.name.equals(names._super) -> true;
-                            default -> false;
+                        ik = switch (access.selected) {
+                            case JCIdent i when i.sym.name.equals(names._super) -> CoreOp.InvokeOp.InvokeKind.SUPER;
+                            case JCFieldAccess fa when fa.sym.name.equals(names._super) -> CoreOp.InvokeOp.InvokeKind.SUPER;
+                            default -> CoreOp.InvokeOp.InvokeKind.INSTANCE;
                         };
                     } else {
-                        isSuper = false;
+                        ik = CoreOp.InvokeOp.InvokeKind.STATIC;
                     }
 
                     args.addAll(scanMethodArguments(tree.args, tree.meth.type, tree.varargsElement));
@@ -1111,9 +1116,8 @@ public class ReflectMethods extends TreeTranslator {
                     MethodRef mr = symbolToErasedMethodRef(sym, qualifierTarget.hasTag(NONE) ?
                             access.selected.type : qualifierTarget);
                     JavaType returnType = typeToTypeElement(meth.type.getReturnType());
-                    CoreOp.InvokeOp iop = isSuper
-                            ? CoreOp.invokeSuper(returnType, mr, args)
-                            : CoreOp.invoke(returnType, mr, args);
+                    CoreOp.InvokeOp iop = CoreOp.invoke(ik, tree.varargsElement != null,
+                            returnType, mr, args);
                     Value res = append(iop);
                     if (sym.type.getReturnType().getTag() != TypeTag.VOID) {
                         result = res;

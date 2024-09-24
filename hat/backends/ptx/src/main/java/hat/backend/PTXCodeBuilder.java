@@ -386,7 +386,7 @@ public class PTXCodeBuilder extends CodeBuilder<PTXCodeBuilder> {
                     st().dot().param().paramType(op.operandNAsValue(i).type()).space().osbrace().param().intVal(i).csbrace().commaSpace().reg(op.operandNAsValue(i)).ptxNl();
                 }
                 dot().param().space().paramType(op.resultType()).space().retVal().ptxNl();
-                call().uni().space().oparen().retVal().cparen().commaSpace().append(op.method().getName()).commaSpace();
+                call().uni().space().oparen().retVal().cparen().commaSpace().append(op.methodNoLookup().getName()).commaSpace();
                 final int[] counter = {0};
                 paren(_ -> commaSeparated(op.operands(), _ -> param().intVal(counter[0]++))).ptxNl();
                 ld().dot().param().paramType(op.resultType()).space().resultReg(op, getResultType(op.resultType())).commaSpace().osbrace().retVal().csbrace();

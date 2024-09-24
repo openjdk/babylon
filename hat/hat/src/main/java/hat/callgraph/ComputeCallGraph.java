@@ -125,27 +125,29 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
     }
 
     public void updateDag(ComputeReachableResolvedMethodCall computeReachableResolvedMethodCall) {
-        /**
-         * A ResolvedComputeMethodCall (entrypoint or java  methdod reachable from a compute entrypojnt)  has the following calls
+        /*
+         * A ResolvedComputeMethodCall (entrypoint or java  method reachable from a compute entrypojnt)  has the following calls
          * <p>
          * 1) java calls to compute class static functions
-         * a) we must have the code model available for these and must extend the dag
+         *    a) we must have the code model available for these and must be included in the dag
          * 2) calls to buffer based interface mappings
-         * a) getters (return non void)
-         * b) setters (return void)
+         *    a) getters (return non void)
+         *    b) setters (return void)
+         *    c) default helpers with @CodeReflection?
          * 3) calls to the compute context
-         * a) kernel dispatches
+         *    a) kernel dispatches
+         *    b) mapped math functions?
+         *    c) maybe we also handle range creations?
          * 4) calls through compute context.accelerator;
-         * a) range creations (maybe computecontext shuld manage ranges?)
+         *    a) range creations (maybe compute context should manage ranges?)
          * 5) References to the dispatched kernels
-         * a) We must also have the code models for these and must extend the dag to include these.
-         **/
-
+         *    a) We must also have the code models for these and must extend the dag to include these.
+         */
 
         computeReachableResolvedMethodCall.funcOpWrapper().selectCalls((invokeWrapper) -> {
-            var methodRef = invokeWrapper.methodRef();
+            MethodRef methodRef = invokeWrapper.methodRef();
             Class<?> javaRefClass = invokeWrapper.javaRefClass().orElseThrow();
-            Method invokeWrapperCalledMethod = invokeWrapper.method();
+            Method invokeWrapperCalledMethod = invokeWrapper.method(this.computeContext.accelerator.lookup);
             if (Buffer.class.isAssignableFrom(javaRefClass)) {
                 // System.out.println("iface mapped buffer call  -> " + methodRef);
                 computeReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
@@ -182,7 +184,6 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
                     computeReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
                             new ComputeReachableUnresolvedMethodCall(this, methodRef, invokeWrapperCalledMethod)
                     ));
-
                 }
             } else {
                 //TODO what about ifacenestings?
@@ -211,7 +212,6 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
                 updated = true;
             }
         }
-
     }
 
     public void close() {

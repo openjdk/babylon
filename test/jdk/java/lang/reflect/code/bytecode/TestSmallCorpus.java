@@ -147,7 +147,7 @@ public class TestSmallCorpus {
                     stats[5] += ca.maxStack();
                 }
             } catch (UnsupportedOperationException uoe) {
-                // InvokeSuperOp
+                // InvokeOp when InvokeKind == SUPER
             }
         }
     }
