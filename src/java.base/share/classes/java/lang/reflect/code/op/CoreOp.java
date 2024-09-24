@@ -2131,7 +2131,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             String name = def.extractAttributeValue(ATTRIBUTE_NAME, true,
                     v -> switch (v) {
                         case String s -> s;
-                        case null -> null;
+                        case null -> "";
                         default -> throw new UnsupportedOperationException("Unsupported var name value:" + v);
                     });
             return new VarOp(def, name);
@@ -2168,13 +2168,13 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         VarOp(String varName, TypeElement type, Value init) {
             super(NAME, List.of(init));
 
-            this.varName = varName == null || varName.isEmpty() ? null : varName;
+            this.varName =  varName == null ? "" : varName;
             this.resultType = VarType.varType(type);
         }
 
         @Override
         public Map<String, Object> attributes() {
-            if (varName == null) {
+            if (isUnnamedVariable()) {
                 return super.attributes();
             }
 
@@ -2201,7 +2201,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         }
 
         public boolean isUnnamedVariable() {
-            return varName == null;
+            return varName.isEmpty();
         }
     }
 
