@@ -584,31 +584,8 @@ public final class Interpreter {
             }
             lock.unlock();
             return null;
-        } else if (o instanceof CoreOp.IfExp e) {
-            var testResult = (boolean) oc.getValue(e.getTest());
-            if (testResult) {
-                throw new UnsupportedOperationException();
-                //return interpretBody(l, e.thenBody(), oc);
-            } else {
-                throw new UnsupportedOperationException();
-                //return interpretBody(l, e.elseBody(), oc);
-            }
-        } else if (o instanceof CoreOp.LetExp e) {
-           //List<Object> evaluatedBindings = e.letBindings.stream().map(b -> interpretBody(l,b,oc)).toList();
-           //Body exprBody = e.letExp;
-           //return invoke(l, exprBody.entryBlock(), Map.of(), oc, evaluatedBindings);
-           return null;
-        } else if (o instanceof CoreOp.LetRecExp e) {
-           List<Object> functionBindings = e.functions.stream().map(Object.class::cast).toList();
-           Op exprBody = e.expBody;
-           //return invoke(l, exprBody.entryBlock(), Map.of(), oc, functionBindings);
-           return null;
-        } else if (o instanceof CoreOp.FunApp e) {
-            var funOp = (CoreOp.FuncOp) oc.getValue(e.funOp());
-            var funCallOp = CoreOp.funcCall(funOp,e.args());
-            return exec(l,oc,funCallOp);
-        }
-        else {
+
+        } else {
             throw interpreterException(
                     new UnsupportedOperationException("Unsupported operation: " + o.opName()));
         }
