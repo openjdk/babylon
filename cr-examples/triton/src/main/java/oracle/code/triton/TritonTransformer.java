@@ -222,6 +222,7 @@ public final class TritonTransformer {
         try {
             Optional<Method> om = Stream.of(TritonTypeInterpreter.class.getDeclaredMethods())
                     .filter(m -> m.getName().equals(name))
+                    .filter(m -> m.isVarArgs() ? m.getParameterCount() <= op.operands().size() : m.getParameterCount() == op.operands().size())
                     .findFirst();
             mh = MethodHandles.lookup().unreflect(
                     om.orElseThrow(() -> new NoSuchMethodException(name)));
@@ -283,6 +284,16 @@ public final class TritonTransformer {
 
         //                Tensor load(Tensor ptr, Tensor mask)
         public static TensorType load(TensorType ptr, TensorType mask) {
+            checkTensorShape(ptr, mask);
+            if (ptr.eType() instanceof PtrType eptr) {
+                return new TensorType(eptr.rType(), ptr.shape());
+            }
+
+            throw new IllegalStateException();
+        }
+
+        //                Tensor load(Tensor ptr, Tensor mask, ConstantType other) {
+        public static TensorType load(TensorType ptr, TensorType mask, ConstantType other) {
             checkTensorShape(ptr, mask);
             if (ptr.eType() instanceof PtrType eptr) {
                 return new TensorType(eptr.rType(), ptr.shape());
@@ -397,7 +408,12 @@ public final class TritonTransformer {
         public static TypeElement compare(TypeElement a, TypeElement b, ConstantType kind) {
             assert kind.cType().equals(JavaType.type(Triton.CompareKind.class));
 
-            return binary(a, b);
+            TypeElement t = binary(a, b);
+            if (t instanceof TensorType tt) {
+                return new TensorType(JavaType.BOOLEAN, tt.shape());
+            } else {
+                return t;
+            }
         }
 
         //                Tensor dot(Tensor a, Tensor b)
@@ -842,6 +858,9 @@ public final class TritonTransformer {
             try {
                 Optional<Method> om = Stream.of(TritonBuilderInterpreter.class.getDeclaredMethods())
                         .filter(m -> m.getName().equals(name))
+                        .filter(m -> m.isVarArgs() 
+                        ? m.getParameterCount() / 2 - 1 <= op.operands().size() 
+                        : m.getParameterCount() / 2 - 1 == op.operands().size())
                         .findFirst();
                 mh = MethodHandles.lookup().unreflect(
                         om.orElseThrow(() -> new NoSuchMethodException(name)));
@@ -909,6 +928,20 @@ public final class TritonTransformer {
                     rType,
                     block.context().getValue(ptr),
                     block.context().getValue(mask)));
+        }
+
+        public Value load(TensorType rType, Op.Result r,
+                          TensorType ptrType, Value ptr,
+                          TensorType maskType, Value mask,
+                          ConstantType otherType, Value other) {
+            broadcastConversionRight(ptrType, maskType, mask);
+            Value mb = block.op(ArithMathOps.constant(rType, (float)otherType.value()));
+            block.context().mapValue(other, mb);
+            return block.op(TritonOps.load(
+                    rType,
+                    block.context().getValue(ptr),
+                    block.context().getValue(mask),
+                    block.context().getValue(other)));
         }
 
         public Value store(TensorType rType, Op.Result r,
@@ -1018,8 +1051,15 @@ public final class TritonTransformer {
                          TypeElement bType, Value b) {
             a = block.context().getValue(a);
             b = block.context().getValue(b);
-
-            return block.op(TritonOps.dot(rType, a, b));
+            Object zero;
+            try {
+                JavaType zeroType = JavaType.DOUBLE;
+                zero = MethodHandles.zero((Class<?>) zeroType.resolve(MethodHandles.lookup())).invoke();
+            } catch (Throwable e) {
+                throw new RuntimeException(e);
+            }
+            var c = block.op(ArithMathOps.constant(rType, zero));
+            return block.op(TritonOps.dot(rType, a, b, c));
         }
 
         public Value cdiv(TypeElement rType, Op.Result r,
@@ -1083,7 +1123,7 @@ public final class TritonTransformer {
                 default -> throw new UnsupportedOperationException("Unsupported comparison: " + ck);
             };
 
-            broadcastConversion(rType, aType, a, bType, b);
+            broadcastConversionRight(aType, bType, b);
             a = block.context().getValue(a);
             b = block.context().getValue(b);
 
