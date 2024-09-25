@@ -64,7 +64,8 @@ public class LevelZero {
     private final MemorySegment deviceHandle;
     private final MemorySegment queueHandle;
     private final MemorySegment eventPoolDescription;
-    private final String cacheDir = "/home/intel/.triton/cache/";
+    private final String homeDir = System.getProperty("user.home");
+    private final String cacheDir = homeDir + "/.triton/cache/";
     private final String addKernelCache = "7961f2e8b433c656051d8638d6a3bb65f43f6cb885525c05d611100dd905aa31";
     private final String softmaxKernelCache = "f0c32acd1173759227ef8e0e8d197c94493b90ebf8d1fc254399ffac6b527d6a";
     private final String matmulKernelCache = "07e17c2833c9c9efea8ccd782af1c3ee05dcac3efb2cb75f2f8a6eecffe381ef";
