@@ -2180,7 +2180,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             String name = def.extractAttributeValue(ATTRIBUTE_NAME, true,
                     v -> switch (v) {
                         case String s -> s;
-                        case null -> null;
+                        case null -> "";
                         default -> throw new UnsupportedOperationException("Unsupported var name value:" + v);
                     });
             return new VarOp(def, name);
@@ -2217,13 +2217,13 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         VarOp(String varName, TypeElement type, Value init) {
             super(NAME, List.of(init));
 
-            this.varName = varName == null || varName.isEmpty() ? null : varName;
+            this.varName =  varName == null ? "" : varName;
             this.resultType = VarType.varType(type);
         }
 
         @Override
         public Map<String, Object> attributes() {
-            if (varName == null) {
+            if (isUnnamedVariable()) {
                 return super.attributes();
             }
 
@@ -2247,6 +2247,10 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         @Override
         public VarType resultType() {
             return resultType;
+        }
+
+        public boolean isUnnamedVariable() {
+            return varName.isEmpty();
         }
     }
 
@@ -4024,7 +4028,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     }
 
     /**
-     * Creates a var operation.
+     * Creates a var operation modeling an unnamed variable, either an unnamed local variable or an unnamed parameter.
      *
      * @param init the initial value of the var
      * @return the var operation
@@ -4034,7 +4038,9 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     }
 
     /**
-     * Creates a var operation.
+     * Creates a var operation modeling a variable, either a local variable or a parameter.
+     * <p>
+     * If the given name is {@code null} or an empty string then the variable is an unnamed variable.
      *
      * @param name the name of the var
      * @param init the initial value of the var
@@ -4045,7 +4051,9 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     }
 
     /**
-     * Creates a var operation.
+     * Creates a var operation modeling a variable, either a local variable or a parameter.
+     * <p>
+     * If the given name is {@code null} or an empty string then the variable is an unnamed variable.
      *
      * @param name the name of the var
      * @param type the type of the var's value

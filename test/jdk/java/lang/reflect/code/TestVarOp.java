@@ -85,7 +85,7 @@ public class TestVarOp {
         Op op = OpParser.fromString(CoreOp.FACTORY, CoreTypeFactory.CORE_TYPE_FACTORY, f.toText()).get(0);
         boolean allNullNames = op.elements()
                 .flatMap(ce -> ce instanceof CoreOp.VarOp vop ? Stream.of(vop) : null)
-                .allMatch(vop -> vop.varName() == null);
+                .allMatch(CoreOp.VarOp::isUnnamedVariable);
         Assert.assertTrue(allNullNames);
     }
 
