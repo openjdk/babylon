@@ -232,7 +232,7 @@ public class LevelZero {
             int threads_per_warp = jsonObject.getInt("threads_per_warp");
             int num_warps = jsonObject.getInt("num_warps");
             int shared = jsonObject.getInt("shared");
-            
+
             int M = 1024, N = 1024, K = 1024;
             int BLOCK_SIZE_M = 32, BLOCK_SIZE_N = 64;
             int gridSize = ((M + BLOCK_SIZE_M - 1) / BLOCK_SIZE_M) * ((N + BLOCK_SIZE_N - 1) / BLOCK_SIZE_N);
@@ -240,7 +240,7 @@ public class LevelZero {
             float[] b = new float[K * N];
             float[] c = new float[M * N];
             byte[] sharedMemory = new byte[shared];
-            
+
             for (int i = 0; i < M * K; i++) {
                 a[i] = rand.nextFloat();
             }
@@ -249,7 +249,7 @@ public class LevelZero {
             }
             args = new Object[] {a, b, c, M, N, K, K, N, N, sharedMemory};
             run(kernelName, moduleName, args, threads_per_warp, num_warps, shared, gridSize);
-            
+
             float[] expected = Test.matmul(a, b, M, N, K);
             Test.check(expected, c);
         } else {
@@ -446,7 +446,7 @@ public class LevelZero {
         Double timeElapsed = Duration.between(start, finish).toNanos() * 1e-6;
         timeElapsedForRun += timeElapsed;
         debug("time: %f %f\n", timeElapsed, timeElapsedForRun);
-        
+
         start = Instant.now();
         check(zeCommandQueueExecuteCommandLists(queueHandle, 1, pCommandListHandle, fenceHandle));
         check(zeCommandQueueSynchronize(queueHandle, -1L));
@@ -575,7 +575,7 @@ public class LevelZero {
         int num_warps = jsonObject.getInt("num_warps");
         int shared = jsonObject.getInt("shared");
         Random rand = new Random();
-        
+
         Writer writer = new Writer("benchmark/vector_add_benchmark.txt");
         writer.write("elementSize timeElapsed timeElapsedForRerun RTT gb/s \n");
 
@@ -591,11 +591,11 @@ public class LevelZero {
                 input2[i] = rand.nextFloat();
             }
             Object[] args = new Object[] {input1, input2, output, elementSize};
-            
+
             // warmup
             run(kernelName, moduleName, args, threads_per_warp, num_warps, shared, gridSize);
             this.timeElapsedForRun = this.timeElapsedForRerun = (double) 0;
-            
+
             int nTimes = 10;
             Instant start = Instant.now();
             for (int i = 0; i < nTimes; ++i)
@@ -633,7 +633,7 @@ public class LevelZero {
                 input[j] = rand.nextFloat();
             }
             Object[] args = new Object[] {output, input, elementSizeY, elementSizeY, elementSizeY, sharedMemory};
-            
+
             // warmup
             run(kernelName, moduleName, args, threads_per_warp, num_warps, shared, gridSize);
             this.timeElapsedForRun = this.timeElapsedForRerun = (double) 0;
@@ -650,7 +650,7 @@ public class LevelZero {
         }
         writer.close();
     }
-    
+
     public void benchMatmulKernel() {
         String jsonFileName = cacheDir + matmulKernelCache + "/matmul_kernel.json";
         String moduleName = cacheDir + matmulKernelCache + "/matmul_kernel.spv";

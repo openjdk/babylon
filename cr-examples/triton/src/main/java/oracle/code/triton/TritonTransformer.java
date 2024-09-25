@@ -858,8 +858,8 @@ public final class TritonTransformer {
             try {
                 Optional<Method> om = Stream.of(TritonBuilderInterpreter.class.getDeclaredMethods())
                         .filter(m -> m.getName().equals(name))
-                        .filter(m -> m.isVarArgs() 
-                        ? m.getParameterCount() / 2 - 1 <= op.operands().size() 
+                        .filter(m -> m.isVarArgs()
+                        ? m.getParameterCount() / 2 - 1 <= op.operands().size()
                         : m.getParameterCount() / 2 - 1 == op.operands().size())
                         .findFirst();
                 mh = MethodHandles.lookup().unreflect(

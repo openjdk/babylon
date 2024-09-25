@@ -49,7 +49,7 @@ public final class MLIRGenerator {
 
     /**
      * A function that will get value from multiple result values
-     * 
+     *
      * @param codeItem the code item
      * @return the string representation of the code item
      */
@@ -489,7 +489,7 @@ public final class MLIRGenerator {
     /**
      * Add additional attributes to the operation
      * This can be removed after babylon support these function attributes
-     * 
+     *
      * @param op the operation
      * @param attributes the attributes of the operation
      * @return the updated attributes
@@ -518,7 +518,7 @@ public final class MLIRGenerator {
         } else if (op.opName().equals("tt.load")) {
             attributes = new HashMap<>(attributes);
             attributes.put("operandSegmentSizes", "array<i32: " + (op.operands().size() < 3 ? "1, 1, 0" : "1, 1, 1") + ">");
-		} else if (op.opName().equals("arith.constant")) {
+        } else if (op.opName().equals("arith.constant")) {
             if (op.result().type() instanceof TensorType) {
                 attributes = new HashMap<>(attributes);
                 String val = attributes.get("value")
