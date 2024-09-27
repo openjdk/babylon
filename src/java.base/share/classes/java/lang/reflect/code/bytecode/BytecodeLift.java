@@ -74,6 +74,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
+import java.lang.reflect.code.analysis.NormalizeBlocksTransformer;
 
 public final class BytecodeLift {
 
@@ -275,12 +276,12 @@ public final class BytecodeLift {
         if (!methodModel.flags().has(AccessFlag.STATIC)) {
             mDesc = mDesc.insertParameterTypes(0, classModel.thisClass().asSymbol());
         }
-        return CoreOp.func(
-                methodModel.methodName().stringValue(),
-                MethodRef.ofNominalDescriptor(mDesc)).body(entryBlock ->
-                        new BytecodeLift(entryBlock,
-                                         classModel,
-                                         methodModel.code().orElseThrow()).liftBody());
+        return NormalizeBlocksTransformer.transform(
+                CoreOp.func(methodModel.methodName().stringValue(),
+                            MethodRef.ofNominalDescriptor(mDesc)).body(entryBlock ->
+                                    new BytecodeLift(entryBlock,
+                                                     classModel,
+                                                     methodModel.code().orElseThrow()).liftBody()));
     }
 
     private Block.Builder newBlock(List<Block.Parameter> otherBlockParams) {
