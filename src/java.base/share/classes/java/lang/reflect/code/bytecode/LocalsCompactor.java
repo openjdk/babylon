@@ -26,12 +26,16 @@ package java.lang.reflect.code.bytecode;
 
 import java.lang.classfile.Attributes;
 import java.lang.classfile.ClassTransform;
+import java.lang.classfile.CodeBuilder;
+import java.lang.classfile.CodeElement;
 import java.lang.classfile.CodeModel;
+import java.lang.classfile.CodeTransform;
 import java.lang.classfile.Label;
 import java.lang.classfile.MethodModel;
 import java.lang.classfile.TypeKind;
 import java.lang.classfile.attribute.StackMapFrameInfo;
 import java.lang.classfile.instruction.BranchInstruction;
+import java.lang.classfile.instruction.ExceptionCatch;
 import java.lang.classfile.instruction.IncrementInstruction;
 import java.lang.classfile.instruction.LabelTarget;
 import java.lang.classfile.instruction.LoadInstruction;
@@ -101,12 +105,48 @@ import static java.lang.constant.ConstantDescs.CD_long;
  */
 public final class LocalsCompactor {
 
+    static class ExceptionTableCompactor implements CodeTransform {
+        ExceptionCatch last = null;
+
+        @Override
+        public void accept(CodeBuilder cob, CodeElement coe) {
+            if (coe instanceof ExceptionCatch ec) {
+                if (ec.tryStart() != ec.tryEnd()) {
+                    if (last != null) {
+                        if (last.handler() == ec.handler() && last.catchType().equals(ec.catchType())) {
+                            if (last.tryStart() == ec.tryEnd()) {
+                                last = ExceptionCatch.of(last.handler(), ec.tryStart(), last.tryEnd(), last.catchType());
+                                return;
+                            } else if (last.tryEnd() == ec.tryStart()) {
+                                last = ExceptionCatch.of(last.handler(), last.tryStart(), ec.tryEnd(), last.catchType());
+                                return;
+                            }
+                        }
+                        cob.with(last);
+                    }
+                    last = ec;
+                }
+            } else {
+                cob.with(coe);
+            }
+        }
+
+        @Override
+        public void atEnd(CodeBuilder cob) {
+            if (last != null) {
+                cob.with(last);
+                last = null;
+            }
+        }
+    }
+
     public static final ClassTransform INSTANCE = (clb,cle) -> {
         if (cle instanceof MethodModel mm) {
             clb.transformMethod(mm, (mb, me) -> {
                 if (me instanceof CodeModel com) {
                     int[] slotMap = new LocalsCompactor(com, countParamSlots(mm)).slotMap;
-                    mb.transformCode(com, (cob, coe) -> {
+                    // @@@ ExceptionTableCompactor can be chained on ClassTransform level when the recent Class-File API is merged into code-reflection
+                    mb.transformCode(com, new ExceptionTableCompactor().andThen((cob, coe) -> {
                         switch (coe) {
                             case LoadInstruction li ->
                                 cob.loadLocal(li.typeKind(), slotMap[li.slot()]);
@@ -117,7 +157,7 @@ public final class LocalsCompactor {
                             default ->
                                 cob.with(coe);
                         }
-                    });
+                    }));
                 } else {
                     mb.with(me);
                 }
