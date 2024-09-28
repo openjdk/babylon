@@ -112,6 +112,7 @@ public class InvokeOpWrapper extends OpWrapper<CoreOp.InvokeOp> {
         Method invokedMethod = null;
         try {
             invokedMethod = methodRef().resolveToMethod(lookup, op().invokeKind());
+            MethodRef methodRef = methodRef();
             return invokedMethod;
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
