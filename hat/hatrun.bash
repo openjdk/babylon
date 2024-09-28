@@ -31,21 +31,31 @@ function example(){
    backend=$2
    example=$3
    shift 3
+   if test -d maven-build; then 
+      echo using trad maven-build
+      build_dir=maven-build
+   elif test -d build; then 
+      echo using new build dir
+      build_dir=build
+   else
+      echo No maven-build or build dir!
+      exit 1
+   fi
    if test "${backend}" =  "java"; then
        backend_jar=backends/shared/src/main/resources
    else
-       backend_jar=maven-build/hat-backend-${backend}-1.0.jar
+       backend_jar=${build_dir}/hat-backend-${backend}-1.0.jar
    fi
    echo checking backend_jar = ${backend_jar}
    if test -f ${backend_jar} -o -d ${backend_jar} ;then
-      example_jar=maven-build/hat-example-${example}-1.0.jar
+      example_jar=${build_dir}/hat-example-${example}-1.0.jar
       echo checking example_jar = ${example_jar}
       if test -f ${example_jar} ; then
          ${JAVA_HOME}/bin/java \
             --enable-preview --enable-native-access=ALL-UNNAMED \
-            --class-path maven-build/hat-1.0.jar:${example_jar}:${backend_jar}:maven-build/levelzero.jar:maven-build/beehive-spirv-lib-0.0.4.jar \
+            --class-path ${build_dir}/hat-1.0.jar:${example_jar}:${backend_jar}:${build_dir}/levelzero.jar:${build_dir}/beehive-spirv-lib-0.0.4.jar \
             --add-exports=java.base/jdk.internal=ALL-UNNAMED \
-            -Djava.library.path=maven-build:/usr/local/lib \
+            -Djava.library.path=${build_dir}:/usr/local/lib \
             -Dheadless=${headless} \
             ${example}.Main
       else
