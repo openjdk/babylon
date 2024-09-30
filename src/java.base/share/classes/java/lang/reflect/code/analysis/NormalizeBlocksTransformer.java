@@ -75,19 +75,27 @@ public final class NormalizeBlocksTransformer implements OpTransformer {
             // successor's target block
             mergeBlock(b, bop);
             return b;
+        } else if (op instanceof CoreOp.ExceptionRegionEnter ere) {
+            // Cannot remove block parameters from exception handlers
+            removeUnusedBlockParameters(b, ere.start());
         } else if (op instanceof Op.BlockTerminating) {
-            // Remove any unused block parameters and successor arguments
             for (Block.Reference successor : op.successors()) {
-                Block target = successor.targetBlock();
-                BitSet unusedParameterIndexes = adjustedBlocks.computeIfAbsent(target,
-                        k -> adjustBlock(b, k));
-                if (!unusedParameterIndexes.isEmpty()) {
-                    adjustSuccessor(unusedParameterIndexes, b, successor);
-                }
+                removeUnusedBlockParameters(b, successor);
             }
         }
         b.op(op);
         return b;
+    }
+
+    // Remove any unused block parameters and successor arguments
+    private void removeUnusedBlockParameters(Block.Builder b, Block.Reference successor) {
+        Block target = successor.targetBlock();
+        BitSet unusedParameterIndexes = adjustedBlocks.computeIfAbsent(target,
+                k -> adjustBlock(b, k));
+        if (!unusedParameterIndexes.isEmpty()) {
+            adjustSuccessor(unusedParameterIndexes, b, successor);
+        }
+
     }
 
     // Remove any unused block parameters

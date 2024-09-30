@@ -211,6 +211,46 @@ public class TestNormalizeBlocksTransformer {
             };
             """;
 
+    static final String TEST5_INPUT = """
+            func @"f" ()void -> {
+                %0 : java.lang.reflect.code.op.CoreOp$ExceptionRegion = exception.region.enter ^block_1 ^block_4;
+
+              ^block_1:
+                invoke @"A::m()void";
+                branch ^block_2;
+
+              ^block_2:
+                exception.region.exit %0 ^block_3;
+
+              ^block_3:
+                branch ^block_5;
+
+              ^block_4(%1 : java.lang.Throwable):
+                branch ^block_5;
+
+              ^block_5:
+                return;
+            };
+            """;
+    static final String TEST5_EXPECTED = """
+            func @"f" ()void -> {
+                %0 : java.lang.reflect.code.op.CoreOp$ExceptionRegion = exception.region.enter ^block_1 ^block_3;
+
+              ^block_1:
+                invoke @"A::m()void";
+                exception.region.exit %0 ^block_2;
+
+              ^block_2:
+                branch ^block_4;
+
+              ^block_3(%1 : java.lang.Throwable):
+                branch ^block_4;
+
+              ^block_4:
+                return;
+            };
+            """;
+
     @DataProvider
     static Object[][] testModels() {
         return new Object[][]{
@@ -218,6 +258,7 @@ public class TestNormalizeBlocksTransformer {
                 parse(TEST2_INPUT, TEST2_EXPECTED),
                 parse(TEST3_INPUT, TEST3_EXPECTED),
                 parse(TEST4_INPUT, TEST4_EXPECTED),
+                parse(TEST5_INPUT, TEST5_EXPECTED),
         };
     }
 
