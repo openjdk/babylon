@@ -50,7 +50,8 @@ public class TestReferences {
                 {"java.io.PrintStream::println(java.lang.String)void", "java.io.PrintStream", "println"},
                 {"MethodReferenceTest$A::m(java.lang.Object)java.lang.Object", "MethodReferenceTest$A", "m"},
                 {"MethodReferenceTest$X::<new>(int)MethodReferenceTest$X", "MethodReferenceTest$X", "<new>"},
-                {"MethodReferenceTest$A[]::<new>(int)MethodReferenceTest$A[]", "MethodReferenceTest$A[]", "<new>"}
+                {"MethodReferenceTest$A[]::<new>(int)MethodReferenceTest$A[]", "MethodReferenceTest$A[]", "<new>"},
+                {"R<#R::T<java.lang.Number>>::n()#R::T<java.lang.Number>", "R<#R::T<java.lang.Number>>", "n"}
         };
     }
 
@@ -69,6 +70,7 @@ public class TestReferences {
                 {"a.b::c()int", "a.b", "c", "int"},
                 {"a.b.c::d()int", "a.b.c", "d", "int"},
                 {"java.lang.System::out()java.io.PrintStream", "java.lang.System", "out", "java.io.PrintStream"},
+                {"R<#R::T<java.lang.Number>>::n()#R::T<java.lang.Number>", "R<#R::T<java.lang.Number>>", "n", "T"}
         };
     }
 
@@ -89,6 +91,7 @@ public class TestReferences {
                 {"(B b)A"},
                 {"(B b, C c)A"},
                 {"(p.Func<String, Number> f, Entry<List<String>, val> e, int i, long l)p.A<R>"},
+                {"(#R::T<java.lang.Number> n)R<#R::T<java.lang.Number>>"}
         };
     }
 
