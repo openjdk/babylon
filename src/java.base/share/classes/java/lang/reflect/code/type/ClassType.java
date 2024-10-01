@@ -107,7 +107,7 @@ public final class ClassType implements TypeVarRef.Owner, JavaType {
                 type.displayName() :
                 type.displayName().substring(enclosing.type.displayName().length() + 1);
         String typeArgs = hasTypeArguments() ?
-                typeArguments().stream().map(t -> t.externalize().toString())
+                typeArguments().stream().map(JavaType::toString)
                         .collect(Collectors.joining(", ", "<", ">")) :
                 "";
         return String.format("%s%s%s", prefix, name, typeArgs);

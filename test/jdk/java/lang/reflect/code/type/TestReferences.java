@@ -59,7 +59,7 @@ public class TestReferences {
     public void testMethodRef(String mds, String refType, String name) {
         MethodRef mr = MethodRef.ofString(mds);
         Assert.assertEquals(mr.toString(), mds);
-        Assert.assertEquals(mr.refType().toString(), refType);
+        Assert.assertEquals(mr.refType().externalize().toString(), refType);
         Assert.assertEquals(mr.name(), name);
     }
 
@@ -70,7 +70,7 @@ public class TestReferences {
                 {"a.b::c()int", "a.b", "c", "int"},
                 {"a.b.c::d()int", "a.b.c", "d", "int"},
                 {"java.lang.System::out()java.io.PrintStream", "java.lang.System", "out", "java.io.PrintStream"},
-                {"R<#R::T<java.lang.Number>>::n()#R::T<java.lang.Number>", "R<#R::T<java.lang.Number>>", "n", "T"}
+                {"R<#R::T<java.lang.Number>>::n()#R::T<java.lang.Number>", "R<#R::T<java.lang.Number>>", "n", "#R::T<java.lang.Number>"}
         };
     }
 
@@ -78,9 +78,9 @@ public class TestReferences {
     public void testFieldRef(String fds, String refType, String name, String type) {
         FieldRef fr = FieldRef.ofString(fds);
         Assert.assertEquals(fr.toString(), fds);
-        Assert.assertEquals(fr.refType().toString(), refType);
+        Assert.assertEquals(fr.refType().externalize().toString(), refType);
         Assert.assertEquals(fr.name(), name);
-        Assert.assertEquals(fr.type().toString(), type);
+        Assert.assertEquals(fr.type().externalize().toString(), type);
     }
 
 
