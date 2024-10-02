@@ -485,7 +485,8 @@ public final class OpWriter {
         }
         w.in();
         for (Op op : block.ops()) {
-            writeOp(op);
+            //writeOp(op);
+            op.writeTo(this.w);
             write("\n");
         }
         w.out();

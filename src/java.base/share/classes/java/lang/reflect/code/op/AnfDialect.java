@@ -25,6 +25,9 @@
 
 package java.lang.reflect.code.op;
 
+import java.io.IOException;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.type.FunctionType;
 import java.util.*;
@@ -377,6 +380,12 @@ public final class AnfDialect {
             return new AnfApply(this, cc);
         }
 
+        @Override
+        public TypeElement resultType() {
+            FunctionType ft = (FunctionType) operands().get(0).type();
+            return ft.returnType();
+        }
+
         public AnfApply(List<Value> arguments) {
             super(AnfApply.NAME, arguments);
 
@@ -384,11 +393,6 @@ public final class AnfDialect {
             // Subsequent arguments are func arguments
         }
 
-        @Override
-        public TypeElement resultType() {
-            FunctionType ft = (FunctionType) operands().get(0).type();
-            return ft.returnType();
-        }
 
         public List<Value> args() {
             return operands().subList(1, this.operands().size());
@@ -447,6 +451,32 @@ public final class AnfDialect {
 
             // First argument is func value
             // Subsequent arguments are func arguments
+        }
+
+        @Override
+        public void writeTo(Writer w) {
+            try {
+                w.write(NAME);
+                w.write(" ");
+                w.write(this.callSiteName);
+                if (!operands().isEmpty()) {
+                    w.write(" ");
+                    for (var op : operands()) {
+                        w.write(op.toString());
+                        w.write(" ");
+                    }
+                }
+
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public String toText() {
+            StringWriter w = new StringWriter();
+            writeTo(w);
+            return w.toString();
         }
 
         @Override
