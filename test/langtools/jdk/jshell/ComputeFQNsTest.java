@@ -68,12 +68,12 @@ public class ComputeFQNsTest extends KullaTesting {
         assertInferredFQNs("Object l = Arrays", "Arrays".length(), false, "java.util.Arrays");
         assertInferredFQNs("class X<T extends ArrayList", "ArrayList".length(), false, "java.util.ArrayList");
         assertInferredFQNs("class X extends ArrayList", "ArrayList".length(), false, "java.util.ArrayList");
-        assertInferredFQNs("class X extends java.util.ArrayList<TypeElement", "TypeElement".length(), false, "javax.lang.model.element.TypeElement");
-        assertInferredFQNs("class X extends java.util.ArrayList<TypeMirror, TypeElement", "TypeElement".length(), false, "javax.lang.model.element.TypeElement");
-        assertInferredFQNs("class X implements TypeElement", "TypeElement".length(), false, "javax.lang.model.element.TypeElement");
-        assertInferredFQNs("class X implements TypeMirror, TypeElement", "TypeElement".length(), false, "javax.lang.model.element.TypeElement");
-        assertInferredFQNs("class X implements java.util.List<TypeElement", "TypeElement".length(), false, "javax.lang.model.element.TypeElement");
-        assertInferredFQNs("class X implements java.util.List<TypeMirror, TypeElement", "TypeElement".length(), false, "javax.lang.model.element.TypeElement");
+        assertInferredFQNs("class X extends java.util.ArrayList<TypeElement", "TypeElement".length(), false, "java.lang.reflect.code.TypeElement", "javax.lang.model.element.TypeElement");
+        assertInferredFQNs("class X extends java.util.ArrayList<TypeMirror, TypeElement", "TypeElement".length(), false, "java.lang.reflect.code.TypeElement", "javax.lang.model.element.TypeElement");
+        assertInferredFQNs("class X implements TypeElement", "TypeElement".length(), false, "java.lang.reflect.code.TypeElement", "javax.lang.model.element.TypeElement");
+        assertInferredFQNs("class X implements TypeMirror, TypeElement", "TypeElement".length(), false, "java.lang.reflect.code.TypeElement", "javax.lang.model.element.TypeElement");
+        assertInferredFQNs("class X implements java.util.List<TypeElement", "TypeElement".length(), false, "java.lang.reflect.code.TypeElement", "javax.lang.model.element.TypeElement");
+        assertInferredFQNs("class X implements java.util.List<TypeMirror, TypeElement", "TypeElement".length(), false, "java.lang.reflect.code.TypeElement", "javax.lang.model.element.TypeElement");
         assertInferredFQNs("class X { ArrayList", "ArrayList".length(), false, "java.util.ArrayList");
     }
 

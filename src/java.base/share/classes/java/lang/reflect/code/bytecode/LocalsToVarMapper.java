@@ -50,6 +50,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
+import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.NULL;
 import static java.lang.constant.ConstantDescs.*;
 
 /**
@@ -475,7 +476,7 @@ final class LocalsToVarMapper {
         int i = 0;
         for (var vti : smfi.locals()) {
             storeLocal(i, vtiToStackType(vti), flocals, Segment.Kind.FRAME);
-            i += vti == ITEM_DOUBLE || vti == ITEM_LONG ? 2 : 1;
+            i += vti == DOUBLE || vti == LONG ? 2 : 1;
         }
         return new Frame(fstack, flocals);
     }
@@ -523,18 +524,18 @@ final class LocalsToVarMapper {
      */
     private ClassDesc vtiToStackType(StackMapFrameInfo.VerificationTypeInfo vti) {
         return switch (vti) {
-            case ITEM_INTEGER -> CD_int;
-            case ITEM_FLOAT -> CD_float;
-            case ITEM_DOUBLE -> CD_double;
-            case ITEM_LONG -> CD_long;
-            case ITEM_UNINITIALIZED_THIS -> thisClass;
-            case ITEM_NULL -> NULL_TYPE;
+            case INTEGER -> CD_int;
+            case FLOAT -> CD_float;
+            case DOUBLE -> CD_double;
+            case LONG -> CD_long;
+            case UNINITIALIZED_THIS -> thisClass;
+            case NULL -> NULL_TYPE;
             case ObjectVerificationTypeInfo ovti -> ovti.classSymbol();
             case UninitializedVerificationTypeInfo uvti ->
                 newMap.computeIfAbsent(uvti.newTarget(), l -> {
                     throw new IllegalArgumentException("Unitialized type does not point to a new instruction");
                 });
-            case ITEM_TOP -> null;
+            case TOP -> null;
         };
     }
 
@@ -698,7 +699,7 @@ final class LocalsToVarMapper {
                     case MethodTypeDesc _ -> CD_MethodType;
                 });
             case ConvertInstruction i ->
-                pop(1).push(ClassDesc.ofDescriptor(i.toType().descriptor()));
+                pop(1).push(i.toType().upperBound());
             case FieldInstruction i -> {
                 switch (i.opcode()) {
                     case GETSTATIC ->
@@ -743,14 +744,14 @@ final class LocalsToVarMapper {
             case NewObjectInstruction i ->
                 push(i.className().asSymbol());
             case NewPrimitiveArrayInstruction i ->
-                pop(1).push(ClassDesc.ofDescriptor(i.typeKind().descriptor()).arrayType());
+                pop(1).push(i.typeKind().upperBound().arrayType());
             case NewReferenceArrayInstruction i ->
                 pop(1).push(i.componentType().asSymbol().arrayType());
             case OperatorInstruction i ->
                 pop(switch (i.opcode()) {
                     case ARRAYLENGTH, INEG, LNEG, FNEG, DNEG -> 1;
                     default -> 2;
-                }).push(ClassDesc.ofDescriptor(i.typeKind().descriptor()));
+                }).push(i.typeKind().upperBound());
             case StackInstruction i -> {
                 switch (i.opcode()) {
                     case POP -> pop(1);

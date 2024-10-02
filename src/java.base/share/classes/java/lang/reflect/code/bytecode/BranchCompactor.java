@@ -24,6 +24,8 @@
  */
 package java.lang.reflect.code.bytecode;
 
+import jdk.internal.classfile.impl.BytecodeHelpers;
+
 import java.lang.classfile.CodeBuilder;
 import java.lang.classfile.CodeElement;
 import java.lang.classfile.CodeTransform;
@@ -47,7 +49,7 @@ public final class BranchCompactor implements CodeTransform {
     @Override
     public void accept(CodeBuilder cob, CodeElement coe) {
         if (branch == null) {
-            if (coe instanceof BranchInstruction bi && bi.opcode().isUnconditionalBranch()) {
+            if (coe instanceof BranchInstruction bi && BytecodeHelpers.isUnconditionalBranch(bi.opcode())) {
                 //unconditional branch is stored
                 branch = bi;
             } else {

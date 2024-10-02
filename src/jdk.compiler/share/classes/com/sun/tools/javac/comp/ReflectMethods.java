@@ -43,6 +43,7 @@ import com.sun.tools.javac.code.Type.WildcardType;
 import com.sun.tools.javac.code.TypeTag;
 import com.sun.tools.javac.code.Types;
 import com.sun.tools.javac.comp.DeferredAttr.FilterScanner;
+import com.sun.tools.javac.comp.Lower.FreeVarCollector;
 import com.sun.tools.javac.jvm.ByteCodes;
 import com.sun.tools.javac.jvm.Gen;
 import com.sun.tools.javac.resources.CompilerProperties.Notes;
@@ -92,6 +93,7 @@ import java.lang.constant.ClassDesc;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import static com.sun.tools.javac.code.Flags.NOOUTERTHIS;
 import static com.sun.tools.javac.code.Flags.PARAMETER;
@@ -2391,31 +2393,19 @@ public class ReflectMethods extends TreeTranslator {
         public void visitClassDef(JCClassDecl tree) {
             if (tree.sym.isDirectlyOrIndirectlyLocal()) {
                 // we need to keep track of captured locals using same strategy as Lower
-                class FreeVarScanner extends Lower.BasicFreeVarCollector {
-                    List<Symbol> freevars = new ArrayList<>();
-                    Symbol owner;
-
-                    FreeVarScanner(Symbol owner) {
-                        lower.super();
-                        this.owner = owner;
+                class FreeVarScanner extends Lower.FreeVarCollector {
+                    FreeVarScanner() {
+                        lower.super(tree);
                     }
 
                     @Override
                     void addFreeVars(ClassSymbol c) {
-                        freevars.addAll(localCaptures.getOrDefault(c, List.of()));
-                    }
-
-                    @Override
-                    public void visitSymbol(Symbol sym) {
-                        if (sym.kind == VAR && sym.owner == owner &&
-                                ((VarSymbol)sym).getConstValue() == null) {
-                            freevars.add(sym);
-                        }
+                        localCaptures.getOrDefault(c, List.of())
+                                .forEach(s -> addFreeVar((VarSymbol)s));
                     }
                 }
-                FreeVarScanner fvs = new FreeVarScanner(tree.sym.owner);
-                fvs.scan(tree);
-                localCaptures.put(tree.sym, fvs.freevars);
+                FreeVarScanner fvs = new FreeVarScanner();
+                localCaptures.put(tree.sym, List.copyOf(fvs.analyzeCaptures()));
             }
         }
 

@@ -811,6 +811,8 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
         public Type target;
         /** code reflection specific metadata. */
         public CodeReflectionInfo codeReflectionInfo;
+        /** The owner of this functional expression. */
+        public Symbol owner;
 
         public Type getDescriptorType(Types types) {
             if (target == null) {
@@ -2026,6 +2028,7 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
         public JCTree body;
         public boolean canCompleteNormally = true;
         public ParameterKind paramKind;
+        public boolean wasMethodReference;
 
         public JCLambda(List<JCVariableDecl> params,
                         JCTree body) {
