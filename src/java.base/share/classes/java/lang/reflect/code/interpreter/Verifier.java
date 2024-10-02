@@ -1,0 +1,110 @@
+/*
+ * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
+
+package java.lang.reflect.code.interpreter;
+
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.code.*;
+import java.lang.reflect.code.writer.OpWriter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public final class Verifier {
+
+    @SuppressWarnings("serial")
+    public final class VerifyError extends Error {
+
+        public VerifyError(String message) {
+            super(message);
+        }
+
+        public String getPrintedContext() {
+            return toText(rootOp);
+        }
+    }
+
+    public static List<Verifier.VerifyError> verify(Op op) {
+        return verify(MethodHandles.publicLookup(), op);
+    }
+
+    public static List<Verifier.VerifyError> verify(MethodHandles.Lookup l, Op op) {
+        var verifier = new Verifier(op);
+        verifier.verifyOperandsDeclarationDominance();
+        return verifier.errors == null ? List.of() : Collections.unmodifiableList(verifier.errors);
+    }
+
+
+    private final Op rootOp;
+    private OpWriter.CodeItemNamerOption namerOption;
+    private List<Verifier.VerifyError> errors;
+
+    private Verifier(Op rootOp) {
+        this.rootOp = rootOp;
+    }
+
+    private OpWriter.CodeItemNamerOption getNamer() {
+        if (namerOption == null) {
+            namerOption = OpWriter.CodeItemNamerOption.of(OpWriter.computeGlobalNames(rootOp));
+        }
+        return namerOption;
+    }
+
+    private String toText(Op op) {
+        return OpWriter.toText(op, getNamer());
+    }
+
+    private String getName(CodeItem codeItem) {
+        return getNamer().namer().apply(codeItem);
+    }
+
+    private void error(String message, Object... args) {
+        if (errors == null) {
+            errors = new ArrayList<>();
+        }
+        for (int i = 0; i < args.length; i++) {
+            var arg = args[i];
+            if (arg instanceof Op op) {
+                args[i] = toText(op);
+            } else if (arg instanceof CodeItem ci) {
+                args[i] = getName(ci);
+            }
+        }
+        errors.add(new VerifyError(message.formatted(args)));
+    }
+
+    private void verifyOperandsDeclarationDominance() {
+        rootOp.traverse(null, CodeElement.opVisitor((n, op) -> {
+            var operands = op.operands();
+            for (int i = 0; i < operands.size(); i++) {
+                Value v = operands.get(i);
+                if (!op.result().isDominatedBy(v)) {
+                    error("%s %s operand %s is not dominated by its declaration in %s", op.parentBlock(), op, v, v.declaringBlock());
+                }
+            }
+            return null;
+        }));
+    }
+}
