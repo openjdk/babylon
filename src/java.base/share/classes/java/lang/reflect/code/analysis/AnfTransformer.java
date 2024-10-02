@@ -129,10 +129,10 @@ public class AnfTransformer {
 
         List<Block> dominates = idomMap.idominates(b);
         List<AnfDialect.AnfFuncOp> funs = new ArrayList<>();
-                //dominates.stream().map((block) -> transformDomBlock(block, letrecBody)).toList();
+        //dominates.stream().map((block) -> transformDomBlock(block, letrecBody)).toList();
         for (Block dblock : dominates) {
-           var res = transformDomBlock(dblock, letrecBody);
-           funs.add(res);
+            var res = transformDomBlock(dblock, letrecBody);
+            funs.add(res);
         }
 
         Block.Builder blockBuilder = letrecBody.entryBlock();
@@ -142,49 +142,62 @@ public class AnfTransformer {
             this.funMap.put(f.funcName(), res);
         }
 
-        AnfDialect.AnfLetOp let = transformOps(b, letrecBody);
-        funcBodyBuilder.entryBlock().op(let);
+        var letBody = Body.Builder.of(letrecBody, letrecBody.bodyType(), CopyContext.create(letrecBody.entryBlock().context()));
+        transformBlockOps(b, letBody.entryBlock());
+        var let = AnfDialect.let(letBody);
+
+        letrecBody.entryBlock().op(let);
+
+        var letrec = AnfDialect.letrec(letrecBody);
+        funcBodyBuilder.entryBlock().op(letrec);
         return AnfDialect.func(b.toString(), funcBodyBuilder);
 
     }
 
     private TypeElement getBlockReturnType(Block b) {
-        var ops = b.ops().iterator();
-        while(ops.hasNext()) {
-            var op = ops.next();
-            if (op instanceof Op.Terminating) {
-                List<Block.Reference> destBlocks = new ArrayList<>();
-                if (op instanceof CoreOp.ReturnOp || op instanceof CoreOp.YieldOp) {
-                    return op.resultType();
-                } else if (op instanceof CoreOp.BranchOp bop) {
-                    destBlocks.addAll(bop.successors());
-                } else if (op instanceof CoreOp.ConditionalBranchOp cbop) {
-                    destBlocks.addAll(cbop.successors());
-                }
-                //Traverse until we find a yield or return type, TODO: not going to try to unify types
-
-                Set<Block> visitedBlocks = new HashSet<>();
-                visitedBlocks.add(b);
-
-                while (!destBlocks.isEmpty()) {
-                    var block = destBlocks.removeFirst().targetBlock();
-                    if (visitedBlocks.contains(block)) {
-                        continue;
-                    }
-
-                    //Discovered a terminator with a return value, use its type
-                    if (block.successors().isEmpty()) {
-                        return block.ops().getLast().resultType();
-                    } else {
-                        visitedBlocks.add(block);
-                        var newDests = block.successors().stream().filter((s) -> !visitedBlocks.contains(s.targetBlock())).toList();
-                        destBlocks.addAll(newDests);
-                    }
-                }
-
+        var op = b.ops().getLast();
+        if (op instanceof Op.Terminating) {
+            List<Block.Reference> destBlocks = new ArrayList<>();
+            if (op instanceof CoreOp.ReturnOp ro) {
+                return ro.returnValue().type();
+            } else if (op instanceof CoreOp.YieldOp yo) {
+                return yo.yieldValue().type();
+            } else if (op instanceof CoreOp.BranchOp bop) {
+                destBlocks.addAll(bop.successors());
+            } else if (op instanceof CoreOp.ConditionalBranchOp cbop) {
+                destBlocks.addAll(cbop.successors());
             }
+            //Traverse until we find a yield or return type, TODO: not going to try to unify types
+
+            Set<Block> visitedBlocks = new HashSet<>();
+            visitedBlocks.add(b);
+
+            while (!destBlocks.isEmpty()) {
+                var block = destBlocks.removeFirst().targetBlock();
+                if (visitedBlocks.contains(block)) {
+                    continue;
+                }
+
+                //Discovered a terminator with a return value, use its type
+                if (block.successors().isEmpty()) {
+                    var o = block.ops().getLast();
+                    if (o instanceof CoreOp.ReturnOp ro) {
+                        return ro.returnValue().type();
+                    } else if (o instanceof CoreOp.YieldOp yo) {
+                        return yo.yieldValue().type();
+                    } else {
+                        throw new UnsupportedOperationException("Unsupported terminator encountered: " + o.opName());
+                    }
+                } else {
+                    visitedBlocks.add(block);
+                    var newDests = block.successors().stream().filter((s) -> !visitedBlocks.contains(s.targetBlock())).toList();
+                    destBlocks.addAll(newDests);
+                }
+            }
+
         }
-        throw new RuntimeException("Encountered Block with no return");
+
+        throw new RuntimeException("Encountered Block with no return " + op.opName());
     }
 
     private Block.Builder transformEndOp(Block.Builder b, Op op) {
@@ -214,10 +227,10 @@ public class AnfTransformer {
                     var falseApp = AnfDialect.applyStub(c.falseBranch().targetBlock().toString(), falseArgs, getBlockReturnType(c.falseBranch().targetBlock()));
 
                     var ifExp = AnfDialect.if_(b.parentBody(),
-                            c.trueBranch().targetBlock().terminatingOp().resultType(),
-                            b.context().getValue(c.predicate()))
-                        .if_((bodyBuilder) -> bodyBuilder.op(trueApp))
-                        .else_((bodyBuilder) -> bodyBuilder.op(falseApp));
+                                    c.trueBranch().targetBlock().terminatingOp().resultType(),
+                                    b.context().getValue(c.predicate()))
+                            .if_((bodyBuilder) -> bodyBuilder.op(trueApp))
+                            .else_((bodyBuilder) -> bodyBuilder.op(falseApp));
 
                     b.op(ifExp);
 
@@ -264,90 +277,16 @@ public class AnfTransformer {
     }
 
     public AnfDialect.AnfLetOp transformOps(Block b, Block.Builder blockBuilder) {
-        for (var op : b.ops()) {
-            transformEndOp(blockBuilder, op);
-        }
+        transformBlockOps(b, blockBuilder);
         return AnfDialect.let(blockBuilder.parentBody());
     }
 
-    /*
-    private Map<Block, AnfDialect.AnfFuncOp> letRecConstruction(Body b, Body.Builder bodyBuilder) {
-        List<Block> workQueue = new LinkedList<>(processedFunctions.keySet().stream().map(Block::immediateDominator).toList());
-        Set<Block> processed = new HashSet<>(processedFunctions.keySet());
-        processed.add(b.entryBlock());
-
-        while (!workQueue.isEmpty()) {
-            Block workBlock = workQueue.removeFirst();
-
-            if (workBlock == null || processed.contains(workBlock)) {
-                continue;
-            }
-
-            //Ugly slow. Blocks dominated by this one.
-            var domBlocks = b.blocks().stream().filter((block) -> block.immediateDominator() != null && block.immediateDominator().equals(workBlock)).toList();
-
-            var unProcessedDomBlocks = domBlocks.stream().filter((block) -> !processedFunctions.containsKey(block)).toList();
-
-            //If all dependencies aren't processed, queue them in front, requeue, and continue
-            if (!unProcessedDomBlocks.isEmpty()) {
-                unProcessedDomBlocks.forEach(workQueue::addLast);
-                workQueue.addLast(workBlock);
-                continue;
-            }
-
-            List<AnfDialect.AnfFuncOp> funcs = domBlocks.stream().map(processedFunctions::get).toList();
-
-
-            //var letrecBodyBuilder = Body.Builder.of(bodyBuilder,FunctionType.VOID); //TODO: Solve Void Type
-            var letrecBuilder = AnfDialect.letrec(bodyBuilder, FunctionType.VOID); // TODO: Solve Void Type
-
-            var letRec = letrecBuilder.body(block -> {
-                //Define the functions
-                for (var func : funcs) {
-                    block.op(func);
-                }
-                //LetRec "in" Body here
-                transformOps(workBlock, block);
-            });
-
-
-            //var paramTys = workBlock.parameters().stream().map(Block.Parameter::type).toList();
-            var funBuilder = AnfDialect.func(bodyBuilder,workBlock.toString(),bodyBuilder.bodyType());
-            var fun = funBuilder.body(c -> c.op(letRec));
-
-            processedFunctions.put(workBlock,fun);
-        }
-
-        return processedFunctions;
-    }
-
-    public AnfDialect.AnfFuncOp funcConstructor(Block b, Body.Builder ancestorBody)
-
-    private void leafFunctions(Body b) {
-        List<Block> leafBlocks = leafBlocks(b);
-        //HashMap<Block, AnfDialect.AnfFuncOp> functions = new HashMap<>();
-
-        for (Block leafBlock : leafBlocks) {
-            Function<Body.Builder, AnfDialect.AnfFuncOp> fBuilder = (Body.Builder bodyBuilder) -> transformBlock(leafBlock, bodyBuilder);
-            funcOps.put(leafBlock, fBuilder);
+    public void transformBlockOps(Block b, Block.Builder blockBuilder) {
+        for (var op : b.ops()) {
+            transformEndOp(blockBuilder, op);
         }
     }
 
-    private static List<Block> leafBlocks(Body b) {
-        var idoms = b.immediateDominators();
-        HashSet<Block> leafBlocks = new HashSet<>(b.blocks());
-        leafBlocks.remove(b.entryBlock());
-        b.blocks().forEach((block) -> {
-            var dom = idoms.get(block);
-            //Remove all blocks that dominate other blocks.
-            if (dom != null) {
-                leafBlocks.remove(dom);
-            }
-        });
-        //Return blocks that dominate nothing. These are leaves.
-        return leafBlocks.stream().toList();
-    }
-*/
     static class ImmediateDominatorMap {
 
         private final Map <Block, List<Block>> dominatesMap;
@@ -359,18 +298,18 @@ public class AnfTransformer {
 
             //Reverse the idom relation
             b.immediateDominators().forEach((dominated, dominator) -> {
-               if (!dominated.equals(dominator)) {
-                   dominatesMap.compute(dominator, (k, v) -> {
-                       if (v == null) {
-                           var newList = new ArrayList<Block>();
-                           newList.add(dominated);
-                           return newList;
-                       } else {
-                           v.add(dominated);
-                           return v;
-                       }
-                   });
-               }
+                if (!dominated.equals(dominator)) {
+                    dominatesMap.compute(dominator, (k, v) -> {
+                        if (v == null) {
+                            var newList = new ArrayList<Block>();
+                            newList.add(dominated);
+                            return newList;
+                        } else {
+                            v.add(dominated);
+                            return v;
+                        }
+                    });
+                }
             });
 
         }
