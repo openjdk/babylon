@@ -25,8 +25,11 @@
 
 package java.lang.reflect.code.interpreter;
 
+import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.code.*;
+import java.lang.reflect.code.op.CoreOp;
+import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.writer.OpWriter;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -52,7 +55,7 @@ public final class Verifier {
 
     public static List<Verifier.VerifyError> verify(MethodHandles.Lookup l, Op op) {
         var verifier = new Verifier(op);
-        verifier.verifyOperandsDeclarationDominance();
+        verifier.verifyOps();
         return verifier.errors == null ? List.of() : Collections.unmodifiableList(verifier.errors);
     }
 
@@ -88,23 +91,43 @@ public final class Verifier {
             var arg = args[i];
             if (arg instanceof Op op) {
                 args[i] = toText(op);
-            } else if (arg instanceof CodeItem ci) {
-                args[i] = getName(ci);
+            } else if (arg instanceof Block b) {
+                args[i] = getName(b);
+            } else if (arg instanceof Value v) {
+                args[i] = getName(v);
             }
         }
         errors.add(new VerifyError(message.formatted(args)));
     }
 
-    private void verifyOperandsDeclarationDominance() {
+    private void verifyOps() {
         rootOp.traverse(null, CodeElement.opVisitor((n, op) -> {
-            var operands = op.operands();
-            for (int i = 0; i < operands.size(); i++) {
-                Value v = operands.get(i);
+            // Verify operands declaration dominannce
+            for (var v : op.operands()) {
                 if (!op.result().isDominatedBy(v)) {
                     error("%s %s operand %s is not dominated by its declaration in %s", op.parentBlock(), op, v, v.declaringBlock());
                 }
             }
+
+            // Verify individual Ops
+            switch (op) {
+                case CoreOp.ArithmeticOperation _, CoreOp.TestOperation _ ->
+                    opHandleVerify(op, op.opName());
+                case CoreOp.ConvOp _ -> {
+                    opHandleVerify(op, op.opName() + "_" + op.opType().returnType());
+                }
+                default -> {}
+
+            }
             return null;
         }));
+    }
+
+    private void opHandleVerify(Op op, String opName) {
+        try {
+            Interpreter.opHandle(opName, op.opType());
+        } catch (Exception e) {
+            error("%s %s of type %s is not supported", op.parentBlock(), op, op.opType());
+        }
     }
 }
