@@ -395,6 +395,69 @@ public final class AnfDialect {
         }
     }
 
+    @OpFactory.OpDeclaration(AnfApplyStub.NAME)
+    public static final class AnfApplyStub extends ExternalizableOp implements Op.Terminating {
+        public static final String NAME = "anf.apply.stub";
+        public static final String ATTRIBUTE_RESULT_TYPE = ".resultType";
+        public static final String ATTRIBUTE_CALLSITE_NAME = ".callsiteName";
+
+        public final TypeElement resultType;
+        public final String callSiteName;
+
+        public static AnfApplyStub create(ExternalizedOp def) {
+            if (!def.operands().isEmpty()) {
+                throw new IllegalStateException("Bad op " + def.name());
+            }
+
+            TypeElement resultType = def.extractAttributeValue(ATTRIBUTE_RESULT_TYPE, true,
+                    v -> switch (v) {
+                        case TypeElement s -> s;
+                        case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
+                    });
+            String callsiteName = def.extractAttributeValue(ATTRIBUTE_CALLSITE_NAME, true,
+                    v -> switch (v) {
+                        case String s -> s;
+                        case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
+                    });
+            return new AnfApplyStub(def, callsiteName, resultType);
+        }
+
+        public AnfApplyStub(ExternalizedOp def, String name, TypeElement resultType) {
+            super(def);
+            this.resultType = resultType;
+            this.callSiteName = name;
+        }
+
+        public AnfApplyStub(AnfApplyStub that, CopyContext cc) {
+            super(that, cc);
+            this.resultType = that.resultType;
+            this.callSiteName = that.callSiteName;
+        }
+
+
+        @Override
+        public Op transform(CopyContext cc, OpTransformer ot) {
+            return new AnfApplyStub(this, cc);
+        }
+
+        public AnfApplyStub(String callSiteName, List<Value> arguments, TypeElement resultType) {
+            super(AnfApplyStub.NAME, arguments);
+            this.resultType = resultType;
+            this.callSiteName = callSiteName;
+
+            // First argument is func value
+            // Subsequent arguments are func arguments
+        }
+
+        @Override
+        public TypeElement resultType() {
+            return this.resultType;
+        }
+
+        public List<Value> args() {
+            return operands().subList(1, this.operands().size());
+        }
+    }
 
     public static AnfLetRecOp.Builder letrec(Body.Builder ancestorBody, TypeElement yieldType) {
         return new AnfLetRecOp.Builder(ancestorBody, yieldType);
@@ -434,4 +497,5 @@ public final class AnfDialect {
     public static AnfApply apply(List<Value> arguments) {
         return new AnfApply(arguments);
     }
+    public static AnfApplyStub applyStub(String name, List<Value> arguments, TypeElement type) { return new AnfApplyStub(name, arguments, type);}
 }
