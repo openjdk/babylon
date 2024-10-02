@@ -26,8 +26,10 @@
 package java.lang.reflect.code.op;
 
 import java.lang.constant.ClassDesc;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.type.*;
+import java.lang.runtime.ExactConversionsSupport;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -3154,15 +3156,40 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 Block.Builder nextBlock = currentBlock.block();
 
                 // Check if instance of target type
-                currentBlock.op(conditionalBranch(currentBlock.op(CoreOp.instanceOf(targetType, target)),
-                        nextBlock.successor(), endNoMatchBlock.successor()));
+                Result p;
+                boolean patternWithPrimitive = false;
+                if (targetType instanceof PrimitiveType tt && target.type() instanceof PrimitiveType st) {
+                    patternWithPrimitive = true;
+                    try {
+                        String s = capitalize(st.toString());
+                        String t = capitalize(tt.toString());
+                        String mn = "is%sTo%sExact".formatted(s, t);
+                        MethodRef mref = MethodRef.method(ExactConversionsSupport.class, mn, boolean.class,
+                                st.toNominalDescriptor().resolveConstantDesc(MethodHandles.lookup()));
+                        p = currentBlock.op(invoke(mref, target));
+                    } catch (ReflectiveOperationException e) {
+                        throw new RuntimeException(e);
+                    }
+                } else {
+                    p = currentBlock.op(CoreOp.instanceOf(targetType, target));
+                }
+
+                currentBlock.op(conditionalBranch(p, nextBlock.successor(), endNoMatchBlock.successor()));
 
                 currentBlock = nextBlock;
 
-                target = currentBlock.op(CoreOp.cast(targetType, target));
+                if (patternWithPrimitive) {
+                    target = currentBlock.op(CoreOp.conv(targetType, target));
+                } else {
+                    target = currentBlock.op(CoreOp.cast(targetType, target));
+                }
                 bindings.add(target);
 
                 return currentBlock;
+            }
+
+            private static String capitalize(String s) {
+                return s.substring(0, 1).toUpperCase() + s.substring(1);
             }
 
             static Block.Builder lowerMatchAllPattern(Block.Builder currentBlock) {
