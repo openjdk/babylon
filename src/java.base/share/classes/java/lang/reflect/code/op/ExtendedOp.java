@@ -3114,7 +3114,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                                        Op pattern, Value target) {
                 return switch (pattern) {
                     case RecordPatternOp rp -> lowerRecordPattern(endNoMatchBlock, currentBlock, bindings, rp, target);
-                    case TypePatternOp tp -> lowerBindingPattern(endNoMatchBlock, currentBlock, bindings, tp, target);
+                    case TypePatternOp tp -> lowerTypePattern(endNoMatchBlock, currentBlock, bindings, tp, target);
                     case MatchAllPatternOp map -> lowerMatchAllPattern(currentBlock);
                     case null, default -> throw new UnsupportedOperationException("Unknown pattern op: " + pattern);
                 };
@@ -3148,9 +3148,9 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 return currentBlock;
             }
 
-            static Block.Builder lowerBindingPattern(Block.Builder endNoMatchBlock, Block.Builder currentBlock,
-                                                     List<Value> bindings,
-                                                     TypePatternOp tpOp, Value target) {
+            static Block.Builder lowerTypePattern(Block.Builder endNoMatchBlock, Block.Builder currentBlock,
+                                                  List<Value> bindings,
+                                                  TypePatternOp tpOp, Value target) {
                 TypeElement targetType = tpOp.targetType();
 
                 Block.Builder nextBlock = currentBlock.block();
