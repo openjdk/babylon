@@ -139,9 +139,9 @@ public final class MethodRefImpl implements MethodRef {
 
     @Override
     public String toString() {
-        return refType + "::" + name +
-            type.parameterTypes().stream().map(TypeElement::toString)
-                    .collect(joining(", ", "(", ")")) + type.returnType();
+        return refType.externalize() + "::" + name +
+            type.parameterTypes().stream().map(t -> t.externalize().toString())
+                    .collect(joining(", ", "(", ")")) + type.returnType().externalize();
     }
 
     @Override
