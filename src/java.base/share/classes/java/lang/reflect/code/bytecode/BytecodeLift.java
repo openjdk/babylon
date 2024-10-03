@@ -335,10 +335,10 @@ public final class BytecodeLift {
         for (int i = 0; i < localsToVarMapper.slotsToInit(); i++) {
             LocalsToVarMapper.Variable v = localsToVarMapper.initSlotVar(i);
             if (v != null) {
+                var type = JavaType.type(v.type());
                 if (v.hasSingleAssignment()) {
-                    varToValueMap.put(v, initLocalValues.get(i)); // Single value var initialized with entry block parameter
+                    varToValueMap.put(v, convert(initLocalValues.get(i), type)); // Single value var initialized with entry block parameter
                 } else {
-                    var type = JavaType.type(v.type());
                     varToValueMap.put(v, op(CoreOp.var("slot#" + i, // New var with slot# name
                                                        type, // Type calculated by LocalsToVarMapper
                                                        i < initLocalValues.size()
