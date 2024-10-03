@@ -50,6 +50,7 @@ import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.CallSite;
 import java.lang.invoke.MethodHandle;
 import java.lang.reflect.AccessFlag;
+import java.lang.reflect.WildcardType;
 import java.lang.reflect.code.Block;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.op.CoreOp;
@@ -76,6 +77,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
+
 import java.lang.reflect.code.analysis.NormalizeBlocksTransformer;
 
 public final class BytecodeLift {
@@ -283,7 +285,33 @@ public final class BytecodeLift {
                             MethodRef.ofNominalDescriptor(mDesc)).body(entryBlock ->
                                     new BytecodeLift(entryBlock,
                                                      classModel,
-                                                     methodModel.code().orElseThrow()).liftBody()));
+                                                     methodModel.code().orElseThrow()).liftBody())
+                        .transform((block, op) -> {
+                            // Resolve and replace wildcard type null ConstantOps
+                            if (op instanceof CoreOp.ConstantOp cop && cop.value() == null && cop.resultType() instanceof WildcardType) {
+                               block.op(CoreOp.constant(pullReferenceTypeFromUses(op.result()), null));
+                            } else {
+                               block.op(op);
+                            }
+                            return block;
+                        }));
+    }
+
+    private static TypeElement pullReferenceTypeFromUses(Op.Result r) {
+        for (Op.Result u : r.uses()) {
+            // Pull block parameter type when used as block argument
+            for (Block.Reference sr : u.op().successors()) {
+                int i = sr.arguments().indexOf(u);
+                if (i >= 0) {
+                    TypeElement bpt = sr.targetBlock().parameters().get(i).type();
+                    if (!(bpt instanceof WildcardType)) {
+                        return bpt;
+                    }
+                }
+            }
+            // @@@ Pull type from specific ops when used as operand
+        }
+        return JavaType.J_L_OBJECT;
     }
 
     private Block.Builder newBlock(List<Block.Parameter> otherBlockParams) {
@@ -901,7 +929,7 @@ public final class BytecodeLift {
         Op.Result res = constantCache.get(c);
         if (res == null) {
             res = switch (c) {
-                case null -> op(CoreOp.constant(JavaType.J_L_OBJECT, null));
+                case null -> op(CoreOp.constant(JavaType.wildcard(), null));
                 case ClassDesc cd -> op(CoreOp.constant(JavaType.J_L_CLASS, JavaType.type(cd)));
                 case Double d -> op(CoreOp.constant(JavaType.DOUBLE, d));
                 case Float f -> op(CoreOp.constant(JavaType.FLOAT, f));

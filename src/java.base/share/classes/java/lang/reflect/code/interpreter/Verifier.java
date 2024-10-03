@@ -154,9 +154,7 @@ public final class Verifier {
             return to == int.class && (from == byte.class || from == short.class || from == char.class);
         } else {
             // Objects assignability
-            return to.isAssignableFrom(from)
-                // @@@ null Object assignability ?
-                || fromValue instanceof Op.Result or && or.op() instanceof CoreOp.ConstantOp cop && cop.value() == null && !to.isPrimitive();
+            return to.isAssignableFrom(from);
         }
     }
 
