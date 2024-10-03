@@ -348,8 +348,8 @@ final class LocalsToVarMapper {
                         for (Segment to : se.toSegments()) {
                             // All following LOAD segments belong to the same variable
                             if (to.kind == Segment.Kind.LOAD) {
-                                if (var.type == NULL_TYPE) {
-                                    var.type = to.type; // Initially null type re-assignemnt
+                                if (to.type != NULL_TYPE) {
+                                    var.type = to.type;
                                 }
                                 if (to.var == null) {
                                     q.add(to);
