@@ -52,17 +52,19 @@ public final class Verifier {
     }
 
     public static List<Verifier.VerifyError> verify(MethodHandles.Lookup l, Op op) {
-        var verifier = new Verifier(op);
+        var verifier = new Verifier(l, op);
         verifier.verifyOps();
         return verifier.errors == null ? List.of() : Collections.unmodifiableList(verifier.errors);
     }
 
 
+    private final MethodHandles.Lookup lookup;
     private final Op rootOp;
     private OpWriter.CodeItemNamerOption namerOption;
     private List<Verifier.VerifyError> errors;
 
-    private Verifier(Op rootOp) {
+    private Verifier(MethodHandles.Lookup lookup, Op rootOp) {
+        this.lookup = lookup;
         this.rootOp = rootOp;
     }
 
@@ -123,9 +125,12 @@ public final class Verifier {
 
     private void opHandleVerify(Op op, String opName) {
         try {
-            Interpreter.opHandle(opName, op.opType());
-        } catch (Exception e) {
+            var mt = Interpreter.resolveToMethodType(lookup, op.opType()).erase();
+            MethodHandles.lookup().findStatic(InvokableLeafOps.class, opName, mt);
+        } catch (NoSuchMethodException nsme) {
             error("%s %s of type %s is not supported", op.parentBlock(), op, op.opType());
+        } catch (IllegalAccessException iae) {
+            error("%s %s %s",  op.parentBlock(), op, iae.getMessage());
         }
     }
 }
