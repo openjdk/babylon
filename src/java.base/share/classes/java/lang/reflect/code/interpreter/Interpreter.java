@@ -537,11 +537,11 @@ public final class Interpreter {
             Array.set(a, (int) index, v);
             return null;
         } else if (o instanceof CoreOp.ArithmeticOperation || o instanceof CoreOp.TestOperation) {
-            MethodHandle mh = opHandle(o.opName(), o.opType());
+            MethodHandle mh = opHandle(l, o.opName(), o.opType());
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
         } else if (o instanceof CoreOp.ConvOp) {
-            MethodHandle mh = opHandle(o.opName() + "_" + o.opType().returnType(), o.opType());
+            MethodHandle mh = opHandle(l, o.opName() + "_" + o.opType().returnType(), o.opType());
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
         } else if (o instanceof CoreOp.AssertOp _assert) {
@@ -604,8 +604,8 @@ public final class Interpreter {
         return invoke(l, op, capturedValues, args);
     }
 
-    static MethodHandle opHandle(String opName, FunctionType ft) {
-        MethodType mt = resolveToMethodType(MethodHandles.lookup(), ft).erase();
+    static MethodHandle opHandle(MethodHandles.Lookup l, String opName, FunctionType ft) {
+        MethodType mt = resolveToMethodType(l, ft).erase();
         try {
             return MethodHandles.lookup().findStatic(InvokableLeafOps.class, opName, mt);
         } catch (NoSuchMethodException | IllegalAccessException e) {
