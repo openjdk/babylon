@@ -324,6 +324,12 @@ public final class BytecodeLift {
         return targetBlock;
     }
 
+    private Value convert(Value v, JavaType t) {
+        // @@@ explicit conversions of booleans from entry block parameters
+        var vt = v.type();
+        return !vt.equals(t) && vt.equals(JavaType.BOOLEAN) ? toInt(v) : v;
+    }
+
     private void liftBody() {
         // Declare initial variables
         for (int i = 0; i < localsToVarMapper.slotsToInit(); i++) {
@@ -332,10 +338,11 @@ public final class BytecodeLift {
                 if (v.hasSingleAssignment()) {
                     varToValueMap.put(v, initLocalValues.get(i)); // Single value var initialized with entry block parameter
                 } else {
+                    var type = JavaType.type(v.type());
                     varToValueMap.put(v, op(CoreOp.var("slot#" + i, // New var with slot# name
-                                                       JavaType.type(v.type()), // Type calculated by LocalsToVarMapper
+                                                       type, // Type calculated by LocalsToVarMapper
                                                        i < initLocalValues.size()
-                                                               ? initLocalValues.get(i) // Initialized with entry block parameter
+                                                               ? convert(initLocalValues.get(i), type) // Initialized with entry block parameter
                                                                : liftDefaultValue(v.type())))); // Initialized with default
                 }
             }
