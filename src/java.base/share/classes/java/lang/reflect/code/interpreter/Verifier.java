@@ -25,9 +25,11 @@
 
 package java.lang.reflect.code.interpreter;
 
+import java.lang.classfile.instruction.BranchInstruction;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.op.CoreOp;
+import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.writer.OpWriter;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -111,10 +113,12 @@ public final class Verifier {
 
             // Verify individual Ops
             switch (op) {
+                case CoreOp.BranchOp br ->
+                    verifyBlockReferences(op, br.successors());
                 case CoreOp.ArithmeticOperation _, CoreOp.TestOperation _ ->
-                    opHandleVerify(op, op.opName());
+                    verifyOpHandleExists(op, op.opName());
                 case CoreOp.ConvOp _ -> {
-                    opHandleVerify(op, op.opName() + "_" + op.opType().returnType());
+                    verifyOpHandleExists(op, op.opName() + "_" + op.opType().returnType());
                 }
                 default -> {}
 
@@ -123,7 +127,53 @@ public final class Verifier {
         }));
     }
 
-    private void opHandleVerify(Op op, String opName) {
+    private void verifyBlockReferences(Op op, List<Block.Reference> references) {
+        for (Block.Reference r : references) {
+            Block b = r.targetBlock();
+            List<Value> args = r.arguments();
+            List<Block.Parameter> params = r.targetBlock().parameters();
+            if (args.size() != params.size()) {
+                error("%s %s block reference arguments size to target block parameters size mismatch", b, op);
+            } else {
+                Block tb = r.targetBlock();
+                for (int i = 0; i < args.size(); i++) {
+                    if (!isAssignable(params.get(i).type(), args.get(i), tb, b)) {
+                        error("%s %s %s is not assignable from %s", op.parentBlock(), op, params.get(i).type(), args.get(i).type());
+                    }
+                }
+            }
+        }
+    }
+
+    private boolean isAssignable(TypeElement toType, Value fromValue,  Object toContext, Object fromContext) {
+        if (toType.equals(fromValue.type())) return true;
+        var to = resolveToClass(toType, toContext);
+        var from = resolveToClass(fromValue.type(), fromContext);
+        if (from.isPrimitive()) {
+            // Primitive types assignability
+            return to == int.class && (from == byte.class || from == short.class || from == char.class);
+        } else {
+            // Objects assignability
+            return to.isAssignableFrom(from)
+                // @@@ null Object assignability ?
+                || fromValue instanceof Op.Result or && or.op() instanceof CoreOp.ConstantOp cop && cop.value() == null && !to.isPrimitive();
+        }
+    }
+
+    public Class<?> resolveToClass(TypeElement d, Object context) {
+        try {
+            if (d instanceof JavaType jt) {
+                return (Class<?>)jt.erasure().resolve(lookup);
+            } else {
+                error("%s %s is not a Java type", context, d);
+            }
+        } catch (ReflectiveOperationException e) {
+            error("%s %s", context, e.getMessage());
+        }
+        return Object.class;
+    }
+
+    private void verifyOpHandleExists(Op op, String opName) {
         try {
             var mt = Interpreter.resolveToMethodType(lookup, op.opType()).erase();
             MethodHandles.lookup().findStatic(InvokableLeafOps.class, opName, mt);
