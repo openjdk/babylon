@@ -312,8 +312,8 @@ public final class LocalsCompactor {
     private void mergeFrom(int pc, Label target) {
         int slot = 0;
         for (var vti : frames.get(target)) {
-            if (vti != ITEM_TOP) {
-                if (vti == ITEM_LONG || vti == ITEM_DOUBLE) {
+            if (vti != TOP) {
+                if (vti == LONG || vti == DOUBLE) {
                     load(pc, slot++, true);
                 } else {
                     loadSingle(pc, slot);

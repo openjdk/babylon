@@ -393,6 +393,7 @@ void Threads::initialize_java_lang_classes(JavaThread* main_thread, TRAPS) {
   initialize_class(vmSymbols::java_lang_ClassCastException(), CHECK);
   initialize_class(vmSymbols::java_lang_ArrayStoreException(), CHECK);
   initialize_class(vmSymbols::java_lang_ArithmeticException(), CHECK);
+  initialize_class(vmSymbols::java_lang_ArrayIndexOutOfBoundsException(), CHECK);
   initialize_class(vmSymbols::java_lang_StackOverflowError(), CHECK);
   initialize_class(vmSymbols::java_lang_IllegalMonitorStateException(), CHECK);
   initialize_class(vmSymbols::java_lang_IllegalArgumentException(), CHECK);
@@ -818,7 +819,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
 #endif
 
   if (CDSConfig::is_dumping_static_archive()) {
-    MetaspaceShared::preload_and_dump();
+    MetaspaceShared::preload_and_dump(CHECK_JNI_ERR);
   }
 
   if (log_is_enabled(Info, perf, class, link)) {
@@ -984,6 +985,7 @@ jboolean Threads::is_supported_jni_version(jint version) {
   if (version == JNI_VERSION_19) return JNI_TRUE;
   if (version == JNI_VERSION_20) return JNI_TRUE;
   if (version == JNI_VERSION_21) return JNI_TRUE;
+  if (version == JNI_VERSION_24) return JNI_TRUE;
   return JNI_FALSE;
 }
 
