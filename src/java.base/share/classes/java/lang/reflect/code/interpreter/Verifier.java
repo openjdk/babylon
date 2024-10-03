@@ -25,11 +25,9 @@
 
 package java.lang.reflect.code.interpreter;
 
-import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.writer.OpWriter;
 import java.util.ArrayList;
 import java.util.Collections;
