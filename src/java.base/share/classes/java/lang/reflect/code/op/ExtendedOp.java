@@ -3160,16 +3160,11 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 boolean patternWithPrimitive = false;
                 if (targetType instanceof PrimitiveType tt && target.type() instanceof PrimitiveType st) {
                     patternWithPrimitive = true;
-                    try {
-                        String s = capitalize(st.toString());
-                        String t = capitalize(tt.toString());
-                        String mn = "is%sTo%sExact".formatted(s, t);
-                        MethodRef mref = MethodRef.method(ExactConversionsSupport.class, mn, boolean.class,
-                                st.toNominalDescriptor().resolveConstantDesc(MethodHandles.lookup()));
-                        p = currentBlock.op(invoke(mref, target));
-                    } catch (ReflectiveOperationException e) {
-                        throw new RuntimeException(e);
-                    }
+                    String s = capitalize(st.toString());
+                    String t = capitalize(tt.toString());
+                    String mn = "is%sTo%sExact".formatted(s, t);
+                    MethodRef mref = MethodRef.method(JavaType.type(ExactConversionsSupport.class), mn, BOOLEAN, st);
+                    p = currentBlock.op(invoke(mref, target));
                 } else {
                     p = currentBlock.op(CoreOp.instanceOf(targetType, target));
                 }
