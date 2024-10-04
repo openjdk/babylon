@@ -1221,6 +1221,60 @@ public class LambdaToMethod extends TreeTranslator {
             return types.erasure(tree.getDescriptorType(types));
         }
 
+        /**
+         * Compute the set of local variables captured by this lambda expression.
+         * Also determines whether this lambda expression captures the enclosing 'this'.
+         */
+        class LambdaCaptureScanner extends CaptureScanner {
+            boolean capturesThis;
+            Set<ClassSymbol> seenClasses = new HashSet<>();
+
+            LambdaCaptureScanner(JCLambda ownerTree) {
+                super(ownerTree);
+            }
+
+            @Override
+            public void visitClassDef(JCClassDecl tree) {
+                seenClasses.add(tree.sym);
+                super.visitClassDef(tree);
+            }
+
+            @Override
+            public void visitIdent(JCIdent tree) {
+                if (!tree.sym.isStatic() &&
+                        tree.sym.owner.kind == TYP &&
+                        (tree.sym.kind == VAR || tree.sym.kind == MTH) &&
+                        !seenClasses.contains(tree.sym.owner)) {
+                    if ((tree.sym.flags() & LOCAL_CAPTURE_FIELD) != 0) {
+                        // a local, captured by Lower - re-capture!
+                        addFreeVar((VarSymbol) tree.sym);
+                    } else {
+                        // a reference to an enclosing field or method, we need to capture 'this'
+                        capturesThis = true;
+                    }
+                } else {
+                    // might be a local capture
+                    super.visitIdent(tree);
+                }
+            }
+
+            @Override
+            public void visitSelect(JCFieldAccess tree) {
+                if (tree.sym.kind == VAR &&
+                        (tree.sym.name == names._this ||
+                                tree.sym.name == names._super) &&
+                        !seenClasses.contains(tree.sym.type.tsym)) {
+                    capturesThis = true;
+                }
+                super.visitSelect(tree);
+            }
+
+            @Override
+            public void visitAnnotation(JCAnnotation tree) {
+                // do nothing (annotation values look like captured instance fields)
+            }
+        }
+
         /*
          * These keys provide mappings for various translated lambda symbols
          * and the prevailing order must be maintained.
@@ -1229,60 +1283,6 @@ public class LambdaToMethod extends TreeTranslator {
             PARAM,          // original to translated lambda parameters
             LOCAL_VAR,      // original to translated lambda locals
             CAPTURED_VAR;   // variables in enclosing scope to translated synthetic parameters
-        }
-    }
-
-    /**
-     * Compute the set of local variables captured by this lambda expression.
-     * Also determines whether this lambda expression captures the enclosing 'this'.
-     */
-    class LambdaCaptureScanner extends CaptureScanner {
-        boolean capturesThis;
-        Set<ClassSymbol> seenClasses = new HashSet<>();
-
-        LambdaCaptureScanner(JCLambda ownerTree) {
-            super(ownerTree);
-        }
-
-        @Override
-        public void visitClassDef(JCClassDecl tree) {
-            seenClasses.add(tree.sym);
-            super.visitClassDef(tree);
-        }
-
-        @Override
-        public void visitIdent(JCIdent tree) {
-            if (!tree.sym.isStatic() &&
-                    tree.sym.owner.kind == TYP &&
-                    (tree.sym.kind == VAR || tree.sym.kind == MTH) &&
-                    !seenClasses.contains(tree.sym.owner)) {
-                if ((tree.sym.flags() & LOCAL_CAPTURE_FIELD) != 0) {
-                    // a local, captured by Lower - re-capture!
-                    addFreeVar((VarSymbol) tree.sym);
-                } else {
-                    // a reference to an enclosing field or method, we need to capture 'this'
-                    capturesThis = true;
-                }
-            } else {
-                // might be a local capture
-                super.visitIdent(tree);
-            }
-        }
-
-        @Override
-        public void visitSelect(JCFieldAccess tree) {
-            if (tree.sym.kind == VAR &&
-                    (tree.sym.name == names._this ||
-                            tree.sym.name == names._super) &&
-                    !seenClasses.contains(tree.sym.type.tsym)) {
-                capturesThis = true;
-            }
-            super.visitSelect(tree);
-        }
-
-        @Override
-        public void visitAnnotation(JCAnnotation tree) {
-            // do nothing (annotation values look like captured instance fields)
         }
     }
 

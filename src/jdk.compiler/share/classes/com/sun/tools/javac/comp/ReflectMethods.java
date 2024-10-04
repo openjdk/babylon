@@ -47,6 +47,7 @@ import com.sun.tools.javac.jvm.ByteCodes;
 import com.sun.tools.javac.jvm.Gen;
 import com.sun.tools.javac.resources.CompilerProperties.Notes;
 import com.sun.tools.javac.tree.JCTree;
+import com.sun.tools.javac.tree.JCTree.JCAnnotation;
 import com.sun.tools.javac.tree.JCTree.JCArrayAccess;
 import com.sun.tools.javac.tree.JCTree.JCAssign;
 import com.sun.tools.javac.tree.JCTree.JCBinary;
@@ -94,9 +95,12 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import static com.sun.tools.javac.code.Flags.LOCAL_CAPTURE_FIELD;
 import static com.sun.tools.javac.code.Flags.NOOUTERTHIS;
 import static com.sun.tools.javac.code.Flags.PARAMETER;
 import static com.sun.tools.javac.code.Flags.SYNTHETIC;
+import static com.sun.tools.javac.code.Kinds.Kind.MTH;
+import static com.sun.tools.javac.code.Kinds.Kind.TYP;
 import static com.sun.tools.javac.code.Kinds.Kind.VAR;
 import static com.sun.tools.javac.code.TypeTag.BOT;
 import static com.sun.tools.javac.code.TypeTag.METHOD;
@@ -324,7 +328,8 @@ public class ReflectMethods extends TreeTranslator {
                 if (var.getConstValue() == null) {
                     capturedArgs.add(make.at(pos).Ident(capturedSym));
                 } else {
-                    capturedArgs.add(make.at(pos).Literal(var.getConstValue()));
+                    // skip
+                    //capturedArgs.add(make.at(pos).Literal(var.getConstValue()));
                 }
             } else {
                 throw new AssertionError("Unexpected captured symbol: " + capturedSym);
@@ -445,7 +450,7 @@ public class ReflectMethods extends TreeTranslator {
         private Op lastOp;
         private Value result;
         private Type pt = Type.noType;
-        private boolean isQuoted;
+        private final boolean isQuoted;
         private Type bodyTarget;
         private JCTree currentNode;
         private Map<Symbol, List<Symbol>> localCaptures = new HashMap<>();
@@ -527,8 +532,8 @@ public class ReflectMethods extends TreeTranslator {
             this.name = names.fromString("quotedLambda");
             this.isQuoted = true;
 
-            LambdaToMethod.LambdaCaptureScanner lambdaCaptureScanner =
-                    lambdaToMethod.new LambdaCaptureScanner(tree);
+            QuotableLambdaCaptureScanner lambdaCaptureScanner =
+                    new QuotableLambdaCaptureScanner(tree);
 
             List<VarSymbol> capturedSymbols = lambdaCaptureScanner.analyzeCaptures();
             int blockArgOffset = 0;
@@ -549,10 +554,12 @@ public class ReflectMethods extends TreeTranslator {
 
             this.stack = this.top = new BodyStack(null, tree.body, mtDesc);
 
+            // add "this" capture (if needed)
             if (lambdaCaptureScanner.capturesThis) {
                 top.localToOp.put(currentClassSym, null); // @@@ just make translation happy
             }
 
+            // add captured variables mappings
             for (int i = 0 ; i < capturedSymbols.size() ; i++) {
                 var capturedArg = top.block.parameters().get(blockArgOffset + i);
                 Symbol capturedSymbol = capturedSymbols.get(i);
@@ -560,7 +567,68 @@ public class ReflectMethods extends TreeTranslator {
                         append(CoreOp.var(capturedSymbol.name.toString(), capturedArg)));
             }
 
+            // add captured constant mappings
+            for (Map.Entry<Symbol, Object> constantCapture : lambdaCaptureScanner.constantCaptures.entrySet()) {
+                Symbol constantCaptureSym = constantCapture.getKey();
+                Object constantCaptureValue = constantCapture.getValue();
+                top.localToOp.put(constantCaptureSym,
+                        append(CoreOp.constant(typeToTypeElement(constantCaptureSym.type), constantCaptureValue)));
+            }
+
             bodyTarget = tree.target.getReturnType();
+        }
+
+        /**
+         * Compute the set of local variables captured by a quotable lambda expression.
+         * Inspired from LambdaToMethod's LambdaCaptureScanner.
+         */
+        class QuotableLambdaCaptureScanner extends CaptureScanner {
+            boolean capturesThis;
+            Set<ClassSymbol> seenClasses = new HashSet<>();
+            Map<Symbol, Object> constantCaptures = new HashMap<>();
+
+            QuotableLambdaCaptureScanner(JCLambda ownerTree) {
+                super(ownerTree);
+            }
+
+            @Override
+            public void visitClassDef(JCClassDecl tree) {
+                seenClasses.add(tree.sym);
+                super.visitClassDef(tree);
+            }
+
+            @Override
+            public void visitIdent(JCIdent tree) {
+                if (!tree.sym.isStatic() &&
+                        tree.sym.owner.kind == TYP &&
+                        (tree.sym.kind == VAR || tree.sym.kind == MTH) &&
+                        !seenClasses.contains(tree.sym.owner)) {
+                    // a reference to an enclosing field or method, we need to capture 'this'
+                    capturesThis = true;
+                } else if (tree.sym.kind == VAR && ((VarSymbol)tree.sym).getConstValue() != null) {
+                    // record the constant value associated with this
+                    constantCaptures.put(tree.sym, ((VarSymbol)tree.sym).getConstValue());
+                } else {
+                    // might be a local capture
+                    super.visitIdent(tree);
+                }
+            }
+
+            @Override
+            public void visitSelect(JCFieldAccess tree) {
+                if (tree.sym.kind == VAR &&
+                        (tree.sym.name == names._this ||
+                                tree.sym.name == names._super) &&
+                        !seenClasses.contains(tree.sym.type.tsym)) {
+                    capturesThis = true;
+                }
+                super.visitSelect(tree);
+            }
+
+            @Override
+            public void visitAnnotation(JCAnnotation tree) {
+                // do nothing (annotation values look like captured instance fields)
+            }
         }
 
         @Override
@@ -592,22 +660,7 @@ public class ReflectMethods extends TreeTranslator {
                 }
                 s = s.parent;
             }
-            if (isQuoted && sym instanceof VarSymbol var && var.getConstValue() != null) {
-                // reference to constant symbols are not captured in quoted contexts
-                return append(CoreOp.constant(typeToTypeElement(sym.type), var.getConstValue()));
-            } else {
-                throw new NoSuchElementException(sym.toString());
-            }
-        }
-
-        Value capturedOpValue(Symbol sym) {
-            var capturedVar = top.localToOp.get(sym);
-            if (capturedVar == null) {
-                var capturedArg = top.block.parameter(typeToTypeElement(sym.type));
-                capturedVar = top.block.op(CoreOp.var(sym.name.toString(), capturedArg));
-                top.localToOp.put(sym, capturedVar);
-            }
-            return capturedVar;
+            throw new NoSuchElementException(sym.toString());
         }
 
         Value thisValue() { // @@@: outer this?
