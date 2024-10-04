@@ -26,7 +26,6 @@
 package java.lang.reflect.code.op;
 
 import java.lang.constant.ClassDesc;
-import java.lang.invoke.MethodHandles;
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.type.*;
 import java.lang.runtime.ExactConversionsSupport;
