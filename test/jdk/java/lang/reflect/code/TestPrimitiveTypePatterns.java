@@ -17,11 +17,11 @@ import static java.lang.reflect.code.type.FunctionType.*;
 
 /*
  * @test
- * @run testng TestPatternsWithPrimitives
+ * @run testng TestPrimitiveTypePatterns
  * @enablePreview
  */
 
-public class TestPatternsWithPrimitives {
+public class TestPrimitiveTypePatterns {
 
     @DataProvider
     public static Object[][] patternsOfInt() {
