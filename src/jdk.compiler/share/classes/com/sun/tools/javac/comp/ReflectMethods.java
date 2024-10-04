@@ -43,7 +43,6 @@ import com.sun.tools.javac.code.Type.WildcardType;
 import com.sun.tools.javac.code.TypeTag;
 import com.sun.tools.javac.code.Types;
 import com.sun.tools.javac.comp.DeferredAttr.FilterScanner;
-import com.sun.tools.javac.comp.Lower.FreeVarCollector;
 import com.sun.tools.javac.jvm.ByteCodes;
 import com.sun.tools.javac.jvm.Gen;
 import com.sun.tools.javac.resources.CompilerProperties.Notes;
@@ -125,6 +124,7 @@ public class ReflectMethods extends TreeTranslator {
     private final Gen gen;
     private final Log log;
     private final Lower lower;
+    private final LambdaToMethod lambdaToMethod;
     private final boolean dumpIR;
     private final boolean lineDebugInfo;
 
@@ -149,6 +149,7 @@ public class ReflectMethods extends TreeTranslator {
         gen = Gen.instance(context);
         log = Log.instance(context);
         lower = Lower.instance(context);
+        lambdaToMethod = LambdaToMethod.instance(context);
     }
 
     // Cannot compute within constructor due to circular dependencies on bootstrap compilation
@@ -307,6 +308,7 @@ public class ReflectMethods extends TreeTranslator {
         }
     }
 
+    // @@@ Remove
     ListBuffer<JCExpression> quotedCapturedArgs(DiagnosticPosition pos, BodyScanner bodyScanner, JCVariableDecl recvDecl) {
         ListBuffer<JCExpression> capturedArgs = new ListBuffer<>();
         for (Symbol capturedSym : bodyScanner.stack.localToOp.keySet()) {
@@ -525,12 +527,38 @@ public class ReflectMethods extends TreeTranslator {
             this.name = names.fromString("quotedLambda");
             this.isQuoted = true;
 
-            com.sun.tools.javac.util.List<Type> nil = com.sun.tools.javac.util.List.nil();
-            MethodType mtype = new MethodType(nil, syms.quotedType, nil, syms.methodClass);
+            LambdaToMethod.LambdaCaptureScanner lambdaCaptureScanner =
+                    lambdaToMethod.new LambdaCaptureScanner(tree);
+
+            List<VarSymbol> capturedSymbols = lambdaCaptureScanner.analyzeCaptures();
+            int blockArgOffset = 0;
+
+            ListBuffer<Type> capturedTypes = new ListBuffer<>();
+            if (lambdaCaptureScanner.capturesThis) {
+                capturedTypes.add(currentClassSym.type);
+                blockArgOffset++;
+            }
+            for (Symbol s : capturedSymbols) {
+                capturedTypes.add(s.type);
+            }
+
+            MethodType mtype = new MethodType(capturedTypes.toList(), syms.quotedType,
+                    com.sun.tools.javac.util.List.nil(), syms.methodClass);
             FunctionType mtDesc = FunctionType.functionType(typeToTypeElement(mtype.restype),
                     mtype.getParameterTypes().map(this::typeToTypeElement));
 
             this.stack = this.top = new BodyStack(null, tree.body, mtDesc);
+
+            if (lambdaCaptureScanner.capturesThis) {
+                top.localToOp.put(currentClassSym, null); // @@@ just make translation happy
+            }
+
+            for (int i = 0 ; i < capturedSymbols.size() ; i++) {
+                var capturedArg = top.block.parameters().get(blockArgOffset + i);
+                Symbol capturedSymbol = capturedSymbols.get(i);
+                top.localToOp.put(capturedSymbol,
+                        append(CoreOp.var(capturedSymbol.name.toString(), capturedArg)));
+            }
 
             bodyTarget = tree.target.getReturnType();
         }
@@ -564,8 +592,9 @@ public class ReflectMethods extends TreeTranslator {
                 }
                 s = s.parent;
             }
-            if (isQuoted) {
-                return capturedOpValue(sym);
+            if (isQuoted && sym instanceof VarSymbol var && var.getConstValue() != null) {
+                // reference to constant symbols are not captured in quoted contexts
+                return append(CoreOp.constant(typeToTypeElement(sym.type), var.getConstValue()));
             } else {
                 throw new NoSuchElementException(sym.toString());
             }
@@ -582,17 +611,7 @@ public class ReflectMethods extends TreeTranslator {
         }
 
         Value thisValue() { // @@@: outer this?
-            if (isQuoted) {
-                // capture this - add captured class symbol to the stack top local mappings
-                var capturedThis = top.localToOp.get(currentClassSym);
-                if (capturedThis == null) {
-                    capturedThis = top.block.parameter(typeToTypeElement(currentClassSym.type));
-                    top.localToOp.put(currentClassSym, capturedThis);
-                }
-                return capturedThis;
-            } else {
-                return top.block.parameters().get(0);
-            }
+            return top.block.parameters().get(0);
         }
 
         Value getLabel(String labelName) {
