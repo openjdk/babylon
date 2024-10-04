@@ -980,7 +980,7 @@ public final class BytecodeLift {
                 case Character ch -> op(CoreOp.constant(JavaType.CHAR, ch));
                 default -> throw new UnsupportedOperationException(c.getClass().toString());
             };
-            constantCache.put(c, res);
+            if (c != null) constantCache.put(c, res); // Do not cache null constants, they may differ in types
         }
         return res;
     }

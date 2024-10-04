@@ -151,7 +151,7 @@ public final class Verifier {
         var from = resolveToClass(fromValue.type(), fromContext);
         if (from.isPrimitive()) {
             // Primitive types assignability
-            return to == int.class && (from == byte.class || from == short.class || from == char.class);
+            return to == int.class && (from == byte.class || from == short.class || from == char.class || from == boolean.class); // @@@ still troubles with boolean
         } else {
             // Objects assignability
             return to.isAssignableFrom(from);
