@@ -50,12 +50,12 @@ import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.CallSite;
 import java.lang.invoke.MethodHandle;
 import java.lang.reflect.AccessFlag;
-import java.lang.reflect.WildcardType;
 import java.lang.reflect.code.Block;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
+import java.lang.reflect.code.analysis.NormalizeBlocksTransformer;
 import java.lang.reflect.code.type.FieldRef;
 import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
@@ -78,9 +78,16 @@ import java.util.stream.Stream;
 
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
 
-import java.lang.reflect.code.analysis.NormalizeBlocksTransformer;
-
 public final class BytecodeLift {
+
+    private static final TypeElement NULL_TYPE = new TypeElement() {
+
+        private static final ExternalizedTypeElement EXT_TYPE = new ExternalizedTypeElement("NULL", List.of());
+        @Override
+        public ExternalizedTypeElement externalize() {
+            return EXT_TYPE;
+        }
+    };
 
     private record ExceptionRegion(Label startLabel, Label endLabel, Label handlerLabel) {}
     private record ExceptionRegionEntry(Op.Result enter, Block.Builder startBlock, ExceptionRegion region) {}
@@ -288,10 +295,10 @@ public final class BytecodeLift {
                                                      methodModel.code().orElseThrow()).liftBody())
                         .transform((block, op) -> {
                             // Resolve and replace wildcard type null ConstantOps
-                            if (op instanceof CoreOp.ConstantOp cop && cop.value() == null && cop.resultType() instanceof WildcardType) {
-                               block.op(CoreOp.constant(pullReferenceTypeFromUses(op.result()), null));
+                            if (op instanceof CoreOp.ConstantOp && op.resultType() == NULL_TYPE) {
+                               block.context().mapValue(op.result(), block.op(CoreOp.constant(pullReferenceTypeFromUses(op.result()), null)));
                             } else {
-                               block.op(op);
+                                block.op(op);
                             }
                             return block;
                         }));
@@ -301,10 +308,10 @@ public final class BytecodeLift {
         for (Op.Result u : r.uses()) {
             // Pull block parameter type when used as block argument
             for (Block.Reference sr : u.op().successors()) {
-                int i = sr.arguments().indexOf(u);
+                int i = sr.arguments().indexOf(r);
                 if (i >= 0) {
                     TypeElement bpt = sr.targetBlock().parameters().get(i).type();
-                    if (!(bpt instanceof WildcardType)) {
+                    if (bpt != NULL_TYPE) {
                         return bpt;
                     }
                 }
@@ -316,16 +323,6 @@ public final class BytecodeLift {
 
     private Block.Builder newBlock(List<Block.Parameter> otherBlockParams) {
         return entryBlock.block(otherBlockParams.stream().map(Block.Parameter::type).toList());
-    }
-
-    private void moveTo(Block.Builder next) {
-        currentBlock = next;
-        constantCache.clear();
-        // Stack is reconstructed from block parameters
-        stack.clear();
-        if (currentBlock != null) {
-            currentBlock.parameters().forEach(stack::add);
-        }
     }
 
     private void endOfFlow() {
@@ -352,12 +349,6 @@ public final class BytecodeLift {
         return targetBlock;
     }
 
-    private Value convert(Value v, JavaType t) {
-        // @@@ explicit conversions of booleans from entry block parameters
-        var vt = v.type();
-        return !vt.equals(t) && vt.equals(JavaType.BOOLEAN) ? toInt(v) : v;
-    }
-
     private void liftBody() {
         // Declare initial variables
         for (int i = 0; i < localsToVarMapper.slotsToInit(); i++) {
@@ -365,12 +356,12 @@ public final class BytecodeLift {
             if (v != null) {
                 var type = JavaType.type(v.type());
                 if (v.hasSingleAssignment()) {
-                    varToValueMap.put(v, convert(initLocalValues.get(i), type)); // Single value var initialized with entry block parameter
+                    varToValueMap.put(v, initLocalValues.get(i)); // Single value var initialized with entry block parameter
                 } else {
                     varToValueMap.put(v, op(CoreOp.var("slot#" + i, // New var with slot# name
                                                        type, // Type calculated by LocalsToVarMapper
                                                        i < initLocalValues.size()
-                                                               ? convert(initLocalValues.get(i), type) // Initialized with entry block parameter
+                                                               ? initLocalValues.get(i) // Initialized with entry block parameter
                                                                : liftDefaultValue(v.type())))); // Initialized with default
                 }
             }
@@ -401,7 +392,11 @@ public final class BytecodeLift {
                             // Use stack content as next block arguments
                             op(CoreOp.branch(successor(next)));
                         }
-                        moveTo(next);
+                        constantCache.clear();
+                        // Stack is reconstructed from block parameters
+                        stack.clear();
+                        stack.addAll(next.parameters());
+                        currentBlock = next;
                     }
 
                     // Insert relevant tryStart and construct handler blocks, all in reversed order
@@ -444,11 +439,11 @@ public final class BytecodeLift {
                         default -> throw new UnsupportedOperationException("Unsupported branch instruction: " + inst);
                     };
                     Block.Builder branch = findTargetBlock(inst.target());
-                    Block.Builder next = newBlock(branch.parameters());
+                    Block.Builder next = entryBlock.block();
                     op(CoreOp.conditionalBranch(op(cop),
-                            successor(next),
+                            next.successor(),
                             successor(branch)));
-                    moveTo(next);
+                    currentBlock = next;
                 }
                 case LookupSwitchInstruction si -> {
                     liftSwitch(si.defaultTarget(), si.cases());
@@ -929,7 +924,7 @@ public final class BytecodeLift {
         Op.Result res = constantCache.get(c);
         if (res == null) {
             res = switch (c) {
-                case null -> op(CoreOp.constant(JavaType.wildcard(), null));
+                case null -> op(CoreOp.constant(NULL_TYPE, null));
                 case ClassDesc cd -> op(CoreOp.constant(JavaType.J_L_CLASS, JavaType.type(cd)));
                 case Double d -> op(CoreOp.constant(JavaType.DOUBLE, d));
                 case Float f -> op(CoreOp.constant(JavaType.FLOAT, f));
@@ -1017,12 +1012,19 @@ public final class BytecodeLift {
         SwitchCase last = cases.getLast();
         Block.Builder def = findTargetBlock(defaultTarget);
         for (SwitchCase sc : cases) {
-            Block.Builder next = sc == last ? def : newBlock(def.parameters());
-            op(CoreOp.conditionalBranch(
-                    op(CoreOp.eq(v, liftConstant(sc.caseValue()))),
-                    successor(findTargetBlock(sc.target())),
-                    successor(next)));
-            moveTo(next);
+            if (sc == last) {
+                op(CoreOp.conditionalBranch(
+                        op(CoreOp.eq(v, liftConstant(sc.caseValue()))),
+                        successor(findTargetBlock(sc.target())),
+                        successor(def)));
+            } else {
+                Block.Builder next = entryBlock.block();
+                op(CoreOp.conditionalBranch(
+                        op(CoreOp.eq(v, liftConstant(sc.caseValue()))),
+                        successor(findTargetBlock(sc.target())),
+                        next.successor()));
+                currentBlock = next;
+            }
         }
         endOfFlow();
     }
