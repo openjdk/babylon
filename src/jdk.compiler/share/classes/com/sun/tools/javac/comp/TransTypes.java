@@ -682,7 +682,7 @@ public class TransTypes extends TreeTranslator {
                 slam.owner = tree.owner;
                 slam.type = tree.type;
                 slam.pos = tree.pos;
-                slam.codeReflectionInfo = tree.codeReflectionInfo;
+                slam.codeModel = tree.codeModel;
                 slam.wasMethodReference = true;
                 if (receiverExpression != null) {
                     // use a let expression so that the receiver expression is evaluated eagerly

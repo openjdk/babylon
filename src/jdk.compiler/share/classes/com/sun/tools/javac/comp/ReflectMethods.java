@@ -56,7 +56,6 @@ import com.sun.tools.javac.tree.JCTree.JCClassDecl;
 import com.sun.tools.javac.tree.JCTree.JCExpression;
 import com.sun.tools.javac.tree.JCTree.JCFieldAccess;
 import com.sun.tools.javac.tree.JCTree.JCFunctionalExpression;
-import com.sun.tools.javac.tree.JCTree.JCFunctionalExpression.CodeReflectionInfo;
 import com.sun.tools.javac.tree.JCTree.JCIdent;
 import com.sun.tools.javac.tree.JCTree.JCLambda;
 import com.sun.tools.javac.tree.JCTree.JCLiteral;
@@ -72,7 +71,6 @@ import com.sun.tools.javac.tree.JCTree.JCAssert;
 import com.sun.tools.javac.tree.JCTree.Tag;
 import com.sun.tools.javac.tree.TreeInfo;
 import com.sun.tools.javac.tree.TreeMaker;
-import com.sun.tools.javac.tree.TreeScanner;
 import com.sun.tools.javac.tree.TreeTranslator;
 import com.sun.tools.javac.util.Assert;
 import com.sun.tools.javac.util.Context;
@@ -242,7 +240,6 @@ public class ReflectMethods extends TreeTranslator {
                 // The name of the field is foo$op, where 'foo' is the name of the corresponding method.
                 JCVariableDecl opField = opFieldDecl(lambdaName(), 0, funcOp);
                 classOps.add(opField);
-                ListBuffer<JCExpression> capturedArgs = quotedCapturedArgs(tree, bodyScanner, null);
 
                 switch (kind) {
                     case QUOTED_STRUCTURAL -> {
@@ -251,6 +248,7 @@ public class ReflectMethods extends TreeTranslator {
                         JCMethodInvocation parsedOp = make.App(make.Ident(syms.opParserFromString), com.sun.tools.javac.util.List.of(opFieldId));
                         interpreterArgs.append(parsedOp);
                         // append captured vars
+                        ListBuffer<JCExpression> capturedArgs = quotedCapturedArgs(tree, bodyScanner, null);
                         interpreterArgs.appendList(capturedArgs.toList());
 
                         JCMethodInvocation interpreterInvoke = make.App(make.Ident(syms.opInterpreterInvoke), interpreterArgs.toList());
@@ -260,7 +258,7 @@ public class ReflectMethods extends TreeTranslator {
                     }
                     case QUOTABLE -> {
                         // leave the lambda in place, but also leave a trail for LambdaToMethod
-                        tree.codeReflectionInfo = new CodeReflectionInfo(opField.sym, capturedArgs.toList());
+                        tree.codeModel = opField.sym;
                         super.visitLambda(tree);
                     }
                 }
@@ -296,8 +294,7 @@ public class ReflectMethods extends TreeTranslator {
                 // The name of the field is foo$op, where 'foo' is the name of the corresponding method.
                 JCVariableDecl opField = opFieldDecl(lambdaName(), 0, funcOp);
                 classOps.add(opField);
-                ListBuffer<JCExpression> capturedArgs = quotedCapturedArgs(tree, bodyScanner, recvDecl);
-                tree.codeReflectionInfo = new CodeReflectionInfo(opField.sym, capturedArgs.toList());
+                tree.codeModel = opField.sym;
                 super.visitReference(tree);
                 if (recvDecl != null) {
                     result = copyReferenceWithReceiverVar(tree, recvDecl);
@@ -312,7 +309,7 @@ public class ReflectMethods extends TreeTranslator {
         }
     }
 
-    // @@@ Remove
+    // @@@: Only used for quoted lambda, not quotable ones. Remove?
     ListBuffer<JCExpression> quotedCapturedArgs(DiagnosticPosition pos, BodyScanner bodyScanner, JCVariableDecl recvDecl) {
         ListBuffer<JCExpression> capturedArgs = new ListBuffer<>();
         for (Symbol capturedSym : bodyScanner.stack.localToOp.keySet()) {
@@ -355,7 +352,7 @@ public class ReflectMethods extends TreeTranslator {
         newRef.varargsElement = ref.varargsElement;
         newRef.ownerAccessible = ref.ownerAccessible;
         newRef.sym = ref.sym;
-        newRef.codeReflectionInfo = ref.codeReflectionInfo;
+        newRef.codeModel = ref.codeModel;
         return make.at(ref).LetExpr(recvDecl, newRef).setType(newRef.type);
     }
 

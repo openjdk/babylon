@@ -5404,4 +5404,30 @@ public class Types {
     public boolean isQuoted(Type type) {
         return type.tsym == syms.quotedType.tsym;
     }
+
+    public enum FunctionalExpressionKind {
+        QUOTED_STRUCTURAL(true), // this is transitional
+        QUOTABLE(true),
+        NOT_QUOTED(false);
+
+        final boolean isQuoted;
+
+        FunctionalExpressionKind(boolean isQuoted) {
+            this.isQuoted = isQuoted;
+        }
+
+        public boolean isQuoted() {
+            return isQuoted;
+        }
+    }
+
+    public FunctionalExpressionKind functionalKind(Type target) {
+        if (target.hasTag(TypeTag.METHOD)) {
+            return FunctionalExpressionKind.QUOTED_STRUCTURAL;
+        } else if (asSuper(target, syms.quotableType.tsym) != null) {
+            return FunctionalExpressionKind.QUOTABLE;
+        } else {
+            return FunctionalExpressionKind.NOT_QUOTED;
+        }
+    }
 }
