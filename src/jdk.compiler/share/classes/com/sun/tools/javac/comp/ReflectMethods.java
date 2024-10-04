@@ -623,6 +623,14 @@ public class ReflectMethods extends TreeTranslator {
             }
 
             @Override
+            public void visitNewClass(JCNewClass tree) {
+                if (tree.type.tsym.owner.kind == MTH &&
+                    !seenClasses.contains(tree.type.tsym)) {
+                    throw unsupported(tree);
+                }
+            }
+
+            @Override
             public void visitAnnotation(JCAnnotation tree) {
                 // do nothing (annotation values look like captured instance fields)
             }
