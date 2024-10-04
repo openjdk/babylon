@@ -419,11 +419,6 @@ public class LambdaToMethod extends TreeTranslator {
             syntheticInits.append(captured_local);
         }
 
-        //add quotable captures
-        if (isQuotable(tree)) {
-            syntheticInits.appendList(syntheticInits);
-        }
-
         //then, determine the arguments to the indy call
         List<JCExpression> indy_args = translate(syntheticInits.toList());
 
@@ -517,11 +512,6 @@ public class LambdaToMethod extends TreeTranslator {
 
         List<JCExpression> indy_args = (init == null) ?
                 List.nil() : translate(List.of(init));
-
-        // add quotable captures
-        if (isQuotable(tree)) {
-            indy_args = indy_args.appendList(indy_args);
-        }
 
         //build a sam instance using an indy call to the meta-factory
         result = makeMetafactoryIndyCall(tree, refSym.asHandle(), refSym, indy_args);

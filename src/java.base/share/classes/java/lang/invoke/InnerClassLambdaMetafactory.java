@@ -470,16 +470,16 @@ import sun.invoke.util.Wrapper;
 
         // load captured args in array
 
-        cob.loadConstant(quotableOpType.parameterCount())
+        int capturedArity = factoryType.parameterCount();
+        cob.loadConstant(capturedArity)
            .anewarray(CD_Object);
-        int capturedArity = factoryType.parameterCount() - reflectiveCaptureCount();
         // initialize quoted captures
-        for (int i = 0; i < reflectiveCaptureCount(); i++) {
+        for (int i = 0; i < capturedArity; i++) {
             cob.dup()
                .loadConstant(i)
                .aload(0)
-               .getfield(lambdaClassEntry.asSymbol(), argNames[capturedArity + i], argDescs[capturedArity + i]);
-            TypeConvertingMethodAdapter.boxIfTypePrimitive(cob, TypeKind.from(argDescs[capturedArity + i]));
+               .getfield(lambdaClassEntry.asSymbol(), argNames[i], argDescs[i]);
+            TypeConvertingMethodAdapter.boxIfTypePrimitive(cob, TypeKind.from(argDescs[i]));
             cob.aastore();
         }
 
@@ -605,7 +605,7 @@ import sun.invoke.util.Wrapper;
                     cob.ldc(cp.constantDynamicEntry(cp.bsmEntry(cp.methodHandleEntry(BSM_CLASS_DATA_AT), List.of(cp.intEntry(0))),
                                                     cp.nameAndTypeEntry(DEFAULT_NAME, CD_MethodHandle)));
                 }
-                for (int i = 0; i < argNames.length - reflectiveCaptureCount(); i++) {
+                for (int i = 0; i < argNames.length ; i++) {
                     cob.aload(0)
                        .getfield(pool.fieldRefEntry(lambdaClassEntry, pool.nameAndTypeEntry(argNames[i], argDescs[i])));
                 }
@@ -635,7 +635,7 @@ import sun.invoke.util.Wrapper;
 
     private void convertArgumentTypes(CodeBuilder cob, MethodType samType) {
         int samParametersLength = samType.parameterCount();
-        int captureArity = factoryType.parameterCount() - reflectiveCaptureCount();
+        int captureArity = factoryType.parameterCount();
         for (int i = 0; i < samParametersLength; i++) {
             Class<?> argType = samType.parameterType(i);
             cob.loadLocal(TypeKind.from(argType), cob.parameterSlot(i));
