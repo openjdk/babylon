@@ -419,13 +419,6 @@ public class LambdaToMethod extends TreeTranslator {
             syntheticInits.append(captured_local);
         }
 
-        //add quotable captures
-        if (isQuotable(tree)) {
-            for (JCExpression capturedArg : tree.codeReflectionInfo.capturedArgs()) {
-                syntheticInits.append(capturedArg);
-            }
-        }
-
         //then, determine the arguments to the indy call
         List<JCExpression> indy_args = translate(syntheticInits.toList());
 
@@ -519,13 +512,6 @@ public class LambdaToMethod extends TreeTranslator {
 
         List<JCExpression> indy_args = (init == null) ?
                 List.nil() : translate(List.of(init));
-
-        // add quotable captures
-        if (isQuotable(tree)) {
-            for (JCExpression capturedArg : tree.codeReflectionInfo.capturedArgs()) {
-                indy_args = indy_args.append(capturedArg);
-            }
-        }
 
         //build a sam instance using an indy call to the meta-factory
         result = makeMetafactoryIndyCall(tree, refSym.asHandle(), refSym, indy_args);
@@ -893,7 +879,7 @@ public class LambdaToMethod extends TreeTranslator {
                 }
             }
             if (isQuotable) {
-                VarSymbol reflectField = (VarSymbol)tree.codeReflectionInfo.quotedField();
+                VarSymbol reflectField = (VarSymbol)tree.codeModel;
                 staticArgs = staticArgs.append(reflectField.asMethodHandle(true));
             }
             if (isSerializable) {
@@ -963,7 +949,7 @@ public class LambdaToMethod extends TreeTranslator {
     }
 
     boolean isQuotable(JCFunctionalExpression tree) {
-        return tree.codeReflectionInfo != null;
+        return tree.codeModel != null;
     }
 
     void dumpStats(JCFunctionalExpression tree, boolean needsAltMetafactory, Symbol sym) {

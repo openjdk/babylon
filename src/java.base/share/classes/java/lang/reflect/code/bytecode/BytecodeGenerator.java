@@ -956,17 +956,11 @@ public final class BytecodeGenerator {
                                     .map(Value::type).map(BytecodeGenerator::toClassDesc).toArray(ClassDesc[]::new);
                             int lambdaIndex = lambdaSink.size();
                             if (Quotable.class.isAssignableFrom(intfClass)) {
-                                // @@@ double the captured values to enable LambdaMetafactory.FLAG_QUOTABLE
-                                for (Value cv : op.capturedValues()) {
-                                    load(cv);
-                                }
                                 cob.invokedynamic(DynamicCallSiteDesc.of(
                                         DMHD_LAMBDA_ALT_METAFACTORY,
                                         funcIntfMethodName(intfClass),
-                                        // @@@ double the descriptor parameters
                                         MethodTypeDesc.of(intfType.toNominalDescriptor(),
-                                                          Stream.concat(Stream.of(captureTypes),
-                                                                        Stream.of(captureTypes)).toList()),
+                                                          captureTypes),
                                         mtd,
                                         MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,
                                                                   className,
