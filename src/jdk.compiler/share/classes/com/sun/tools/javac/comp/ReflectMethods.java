@@ -91,9 +91,7 @@ import java.lang.constant.ClassDesc;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
-import static com.sun.tools.javac.code.Flags.LOCAL_CAPTURE_FIELD;
 import static com.sun.tools.javac.code.Flags.NOOUTERTHIS;
 import static com.sun.tools.javac.code.Flags.PARAMETER;
 import static com.sun.tools.javac.code.Flags.SYNTHETIC;
@@ -126,7 +124,6 @@ public class ReflectMethods extends TreeTranslator {
     private final Gen gen;
     private final Log log;
     private final Lower lower;
-    private final LambdaToMethod lambdaToMethod;
     private final boolean dumpIR;
     private final boolean lineDebugInfo;
 
@@ -151,7 +148,6 @@ public class ReflectMethods extends TreeTranslator {
         gen = Gen.instance(context);
         log = Log.instance(context);
         lower = Lower.instance(context);
-        lambdaToMethod = LambdaToMethod.instance(context);
     }
 
     // Cannot compute within constructor due to circular dependencies on bootstrap compilation
