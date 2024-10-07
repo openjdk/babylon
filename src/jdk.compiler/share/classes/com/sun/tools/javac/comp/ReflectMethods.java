@@ -524,7 +524,7 @@ public class ReflectMethods extends TreeTranslator {
                     new QuotableLambdaCaptureScanner(tree);
 
             List<VarSymbol> capturedSymbols = lambdaCaptureScanner.analyzeCaptures();
-            int blockArgOffset = 0;
+            int blockParamOffset = 0;
 
             ListBuffer<Type> capturedTypes = new ListBuffer<>();
             if (lambdaCaptureScanner.capturesThis) {
