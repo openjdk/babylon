@@ -37,6 +37,8 @@ import java.lang.constant.ConstantDescs;
 import java.lang.constant.DirectMethodHandleDesc;
 import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodTypeDesc;
+import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.type.JavaType;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -327,9 +329,7 @@ final class LocalsToVarMapper {
                         for (Segment to : se.toSegments()) {
                             // All following LOAD segments belong to the same variable
                             if (to.kind == Segment.Kind.LOAD) {
-                                if (to.type != NULL_TYPE) {
-                                    var.type = to.type;
-                                }
+                                var.type = merge(var.type, to.type);
                                 if (to.var == null) {
                                     q.add(to);
                                 }
@@ -339,9 +339,7 @@ final class LocalsToVarMapper {
                             // Segments preceeding LOAD segment also belong to the same variable
                             for (Segment from : se.fromSegments()) {
                                 if (from.kind != Segment.Kind.FRAME) { // FRAME segments are ignored
-                                    if (var.type == NULL_TYPE) {
-                                        var.type = from.type; // Initially null type re-assignemnt
-                                    }
+                                    var.type = merge(from.type, var.type);
                                     if (from.var == null) {
                                         q.add(from);
                                     }
@@ -381,6 +379,10 @@ final class LocalsToVarMapper {
                 stores.clear();
             }
         }
+    }
+
+    private static ClassDesc merge(ClassDesc fromType, ClassDesc toType) {
+        return toType == NULL_TYPE || fromType == CD_boolean ? fromType : toType;
     }
 
     /**

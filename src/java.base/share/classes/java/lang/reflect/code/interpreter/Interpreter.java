@@ -304,11 +304,6 @@ public final class Interpreter {
                 Object bop = oc.getValue(cb.predicate());
                 if (bop instanceof Boolean bp) {
                     p = bp;
-                } else if (bop instanceof Integer ip) {
-                    // @@@ This is required when lifting up from bytecode, since boolean values
-                    // are erased to int values, abd the bytecode lifting implementation is not currently
-                    // sophisticated enough to recover the type information
-                    p = ip != 0;
                 } else {
                     throw interpreterException(
                             new UnsupportedOperationException("Unsupported type input to operation: " + cb));
