@@ -544,18 +544,19 @@ public class ReflectMethods extends TreeTranslator {
 
             // add captured variables mappings
             for (int i = 0 ; i < capturedSymbols.size() ; i++) {
-                var capturedArg = top.block.parameters().get(blockParamOffset + i);
                 Symbol capturedSymbol = capturedSymbols.get(i);
+                var capturedArg = top.block.parameters().get(blockParamOffset + i);
                 top.localToOp.put(capturedSymbol,
                         append(CoreOp.var(capturedSymbol.name.toString(), capturedArg)));
             }
 
             // add captured constant mappings
             for (Map.Entry<Symbol, Object> constantCapture : lambdaCaptureScanner.constantCaptures.entrySet()) {
-                Symbol constantCaptureSym = constantCapture.getKey();
-                Object constantCaptureValue = constantCapture.getValue();
-                top.localToOp.put(constantCaptureSym,
-                        append(CoreOp.constant(typeToTypeElement(constantCaptureSym.type), constantCaptureValue)));
+                Symbol capturedSymbol = constantCapture.getKey();
+                var capturedArg = append(CoreOp.constant(typeToTypeElement(capturedSymbol.type),
+                        constantCapture.getValue()));
+                top.localToOp.put(capturedSymbol,
+                        append(CoreOp.var(capturedSymbol.name.toString(), capturedArg)));
             }
 
             bodyTarget = tree.target.getReturnType();
