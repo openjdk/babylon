@@ -80,15 +80,6 @@ import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerification
 
 public final class BytecodeLift {
 
-    private static final TypeElement NULL_TYPE = new TypeElement() {
-
-        private static final ExternalizedTypeElement EXT_TYPE = new ExternalizedTypeElement("NULL", List.of());
-        @Override
-        public ExternalizedTypeElement externalize() {
-            return EXT_TYPE;
-        }
-    };
-
     private record ExceptionRegion(Label startLabel, Label endLabel, Label handlerLabel) {}
     private record ExceptionRegionEntry(Op.Result enter, Block.Builder startBlock, ExceptionRegion region) {}
 
@@ -248,7 +239,7 @@ public final class BytecodeLift {
                 case FLOAT -> params.add(JavaType.FLOAT);
                 case DOUBLE -> params.add(JavaType.DOUBLE);
                 case LONG -> params.add(JavaType.LONG);
-                case NULL -> params.add(JavaType.J_L_OBJECT);
+                case NULL -> params.add(NullTypeResolver.NULL_TYPE);
                 case UNINITIALIZED_THIS ->
                     params.add(JavaType.type(classModel.thisClass().asSymbol()));
                 case StackMapFrameInfo.ObjectVerificationTypeInfo ovti ->
@@ -293,32 +284,7 @@ public final class BytecodeLift {
                                     new BytecodeLift(entryBlock,
                                                      classModel,
                                                      methodModel.code().orElseThrow()).liftBody())
-                        .transform((block, op) -> {
-                            // Resolve and replace wildcard type null ConstantOps
-                            if (op instanceof CoreOp.ConstantOp && op.resultType() == NULL_TYPE) {
-                               block.context().mapValue(op.result(), block.op(CoreOp.constant(pullReferenceTypeFromUses(op.result()), null)));
-                            } else {
-                                block.op(op);
-                            }
-                            return block;
-                        }));
-    }
-
-    private static TypeElement pullReferenceTypeFromUses(Op.Result r) {
-        for (Op.Result u : r.uses()) {
-            // Pull block parameter type when used as block argument
-            for (Block.Reference sr : u.op().successors()) {
-                int i = sr.arguments().indexOf(r);
-                if (i >= 0) {
-                    TypeElement bpt = sr.targetBlock().parameters().get(i).type();
-                    if (bpt != NULL_TYPE) {
-                        return bpt;
-                    }
-                }
-            }
-            // @@@ Pull type from specific ops when used as operand
-        }
-        return JavaType.J_L_OBJECT;
+                        .transform(new NullTypeResolver()));
     }
 
     private Block.Builder newBlock(List<Block.Parameter> otherBlockParams) {
@@ -924,7 +890,7 @@ public final class BytecodeLift {
         Op.Result res = constantCache.get(c);
         if (res == null) {
             res = switch (c) {
-                case null -> op(CoreOp.constant(NULL_TYPE, null));
+                case null -> op(CoreOp.constant(NullTypeResolver.NULL_TYPE, null));
                 case ClassDesc cd -> op(CoreOp.constant(JavaType.J_L_CLASS, JavaType.type(cd)));
                 case Double d -> op(CoreOp.constant(JavaType.DOUBLE, d));
                 case Float f -> op(CoreOp.constant(JavaType.FLOAT, f));
