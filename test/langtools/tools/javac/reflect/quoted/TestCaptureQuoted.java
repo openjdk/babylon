@@ -27,11 +27,14 @@
  * @run testng TestCaptureQuoted
  */
 
+import java.lang.reflect.code.Quotable;
 import java.lang.reflect.code.op.CoreOp.Var;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Quoted;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
+import java.util.Iterator;
+import java.util.function.ToIntFunction;
 import java.util.stream.IntStream;
 
 import org.testng.annotations.*;
@@ -69,6 +72,21 @@ public class TestCaptureQuoted {
         int res = (int)Interpreter.invoke(MethodHandles.lookup(), (Op & Op.Invokable) quoted.op(),
                 quoted.capturedValues(), 1);
         assertEquals(res, x + 1);
+    }
+
+    @Test
+    public void testCaptureThisRefAndIntConstant() {
+        final int x = 100;
+        String hello = "hello";
+        Quoted quoted = (Integer y) -> y.intValue() + hashCode() + hello.length() + x;
+        assertEquals(quoted.capturedValues().size(), 3);
+        Iterator<Object> it = quoted.capturedValues().values().iterator();
+        assertEquals(it.next(), this);
+        assertEquals(((Var)it.next()).value(), hello);
+        assertEquals(it.next(), x);
+        int res = (int)Interpreter.invoke(MethodHandles.lookup(), (Op & Op.Invokable) quoted.op(),
+                quoted.capturedValues(), 1);
+        assertEquals(res, x + 1 + hashCode() + hello.length());
     }
 
     @DataProvider(name = "ints")

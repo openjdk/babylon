@@ -244,7 +244,7 @@ public class ReflectMethods extends TreeTranslator {
                         JCMethodInvocation parsedOp = make.App(make.Ident(syms.opParserFromString), com.sun.tools.javac.util.List.of(opFieldId));
                         interpreterArgs.append(parsedOp);
                         // append captured vars
-                        ListBuffer<JCExpression> capturedArgs = quotedCapturedArgs(tree, bodyScanner, null);
+                        ListBuffer<JCExpression> capturedArgs = quotedCapturedArgs(tree, bodyScanner);
                         interpreterArgs.appendList(capturedArgs.toList());
 
                         JCMethodInvocation interpreterInvoke = make.App(make.Ident(syms.opInterpreterInvoke), interpreterArgs.toList());
@@ -306,27 +306,22 @@ public class ReflectMethods extends TreeTranslator {
     }
 
     // @@@: Only used for quoted lambda, not quotable ones. Remove?
-    ListBuffer<JCExpression> quotedCapturedArgs(DiagnosticPosition pos, BodyScanner bodyScanner, JCVariableDecl recvDecl) {
+    ListBuffer<JCExpression> quotedCapturedArgs(DiagnosticPosition pos, BodyScanner bodyScanner) {
         ListBuffer<JCExpression> capturedArgs = new ListBuffer<>();
         for (Symbol capturedSym : bodyScanner.stack.localToOp.keySet()) {
-            if (capturedSym.kind == Kind.TYP) {
-                // captured this
-                capturedArgs.add(make.at(pos).This(capturedSym.type));
-            } else if (recvDecl != null && capturedSym == recvDecl.sym) {
-                // captured method reference receiver
-                capturedArgs.add(make.at(pos).Ident(recvDecl.sym));
-            } else if (capturedSym.kind == Kind.VAR) {
+            if (capturedSym.kind == Kind.VAR) {
                 // captured var
                 VarSymbol var = (VarSymbol)capturedSym;
                 if (var.getConstValue() == null) {
                     capturedArgs.add(make.at(pos).Ident(capturedSym));
-                } else {
-                    // skip
-                    //capturedArgs.add(make.at(pos).Literal(var.getConstValue()));
                 }
             } else {
                 throw new AssertionError("Unexpected captured symbol: " + capturedSym);
             }
+        }
+        if (capturedArgs.size() < bodyScanner.top.body.entryBlock().parameters().size()) {
+            // needs to capture 'this'
+            capturedArgs.prepend(make.at(pos).This(currentClassSym.type));
         }
         return capturedArgs;
     }
@@ -546,11 +541,6 @@ public class ReflectMethods extends TreeTranslator {
                     mtype.getParameterTypes().map(this::typeToTypeElement));
 
             this.stack = this.top = new BodyStack(null, tree.body, mtDesc);
-
-            // add "this" capture (if needed)
-            if (lambdaCaptureScanner.capturesThis) {
-                top.localToOp.put(currentClassSym, null); // @@@ just make translation happy
-            }
 
             // add captured variables mappings
             for (int i = 0 ; i < capturedSymbols.size() ; i++) {
