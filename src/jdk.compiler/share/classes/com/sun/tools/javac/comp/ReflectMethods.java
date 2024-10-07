@@ -529,7 +529,7 @@ public class ReflectMethods extends TreeTranslator {
             ListBuffer<Type> capturedTypes = new ListBuffer<>();
             if (lambdaCaptureScanner.capturesThis) {
                 capturedTypes.add(currentClassSym.type);
-                blockArgOffset++;
+                blockParamOffset++;
             }
             for (Symbol s : capturedSymbols) {
                 capturedTypes.add(s.type);
@@ -544,7 +544,7 @@ public class ReflectMethods extends TreeTranslator {
 
             // add captured variables mappings
             for (int i = 0 ; i < capturedSymbols.size() ; i++) {
-                var capturedArg = top.block.parameters().get(blockArgOffset + i);
+                var capturedArg = top.block.parameters().get(blockParamOffset + i);
                 Symbol capturedSymbol = capturedSymbols.get(i);
                 top.localToOp.put(capturedSymbol,
                         append(CoreOp.var(capturedSymbol.name.toString(), capturedArg)));
