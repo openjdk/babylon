@@ -405,25 +405,20 @@ public final class AnfDialect {
         public static final String ATTRIBUTE_RESULT_TYPE = ".resultType";
         public static final String ATTRIBUTE_CALLSITE_NAME = ".callsiteName";
 
-        public final TypeElement resultType;
         public final String callSiteName;
+        public final TypeElement resultType;
 
         public static AnfApplyStub create(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalStateException("Bad op " + def.name());
             }
 
-            TypeElement resultType = def.extractAttributeValue(ATTRIBUTE_RESULT_TYPE, true,
-                    v -> switch (v) {
-                        case TypeElement s -> s;
-                        case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
-                    });
             String callsiteName = def.extractAttributeValue(ATTRIBUTE_CALLSITE_NAME, true,
                     v -> switch (v) {
                         case String s -> s;
                         case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
                     });
-            return new AnfApplyStub(def, callsiteName, resultType);
+            return new AnfApplyStub(def,callsiteName,def.resultType());
         }
 
         public AnfApplyStub(ExternalizedOp def, String name, TypeElement resultType) {
@@ -434,10 +429,16 @@ public final class AnfDialect {
 
         public AnfApplyStub(AnfApplyStub that, CopyContext cc) {
             super(that, cc);
-            this.resultType = that.resultType;
             this.callSiteName = that.callSiteName;
+            this.resultType = that.resultType;
         }
 
+        @Override
+        public Map<String, Object> attributes() {
+            HashMap<String, Object> m = new HashMap<>(super.attributes());
+            m.put("", callSiteName);
+            return Collections.unmodifiableMap(m);
+        }
 
         @Override
         public Op transform(CopyContext cc, OpTransformer ot) {
@@ -451,32 +452,6 @@ public final class AnfDialect {
 
             // First argument is func value
             // Subsequent arguments are func arguments
-        }
-
-        @Override
-        public void writeTo(Writer w) {
-            try {
-                w.write(NAME);
-                w.write(" ");
-                w.write(this.callSiteName);
-                if (!operands().isEmpty()) {
-                    w.write(" ");
-                    for (var op : operands()) {
-                        w.write(op.toString());
-                        w.write(" ");
-                    }
-                }
-
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        @Override
-        public String toText() {
-            StringWriter w = new StringWriter();
-            writeTo(w);
-            return w.toString();
         }
 
         @Override
@@ -527,5 +502,5 @@ public final class AnfDialect {
     public static AnfApply apply(List<Value> arguments) {
         return new AnfApply(arguments);
     }
-    public static AnfApplyStub applyStub(String name, List<Value> arguments, TypeElement type) { return new AnfApplyStub(name, arguments, type);}
+    //public static AnfApplyStub applyStub(String name, List<Value> arguments, TypeElement type) { return new AnfApplyStub(name, arguments, type);}
 }

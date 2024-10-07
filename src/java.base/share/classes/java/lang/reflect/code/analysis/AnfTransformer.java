@@ -35,12 +35,12 @@ import java.util.function.Function;
 
 public class AnfTransformer {
 
+
     final CoreOp.FuncOp sourceOp;
     final Map<Block, Function<Body.Builder, AnfDialect.AnfFuncOp>> fBuilders = new HashMap<>();
     final Body.Builder outerBodyBuilder;
     final ImmediateDominatorMap idomMap;
-    final Map<String, Value> funMap = new HashMap<>();
-    final Map<String, AnfDialect.AnfApply> appMap = new HashMap<>();
+    final Map<Block, Value> funMap = new HashMap<>();
 
     public AnfTransformer(CoreOp.FuncOp funcOp) {
         sourceOp = funcOp;
@@ -96,6 +96,10 @@ public class AnfTransformer {
         var blockFType = FunctionType.functionType(blockReturnType, blockParamTypes);
 
         Body.Builder newBodyBuilder = Body.Builder.of(ancestorBodyBuilder, blockFType, CopyContext.create(ancestorBodyBuilder.entryBlock().context()));
+
+        var selfRefParam = newBodyBuilder.entryBlock().parameter(blockFType);
+        funMap.put(b, selfRefParam);
+
         for (Block.Parameter param : b.parameters()) {
             var p = newBodyBuilder.entryBlock().parameter(param.type());
             newBodyBuilder.entryBlock().context().mapValue(param, p);
@@ -119,6 +123,10 @@ public class AnfTransformer {
         //Function body contains letrec and its bodies
         Body.Builder funcBodyBuilder = Body.Builder.of(ancestorBodyBuilder, blockFType, CopyContext.create(ancestorBodyBuilder.entryBlock().context()));
 
+        //Self param
+        var selfRefParam = funcBodyBuilder.entryBlock().parameter(blockFType);
+        funMap.put(b, selfRefParam);
+
         for (Block.Parameter param : b.parameters()) {
             var p = funcBodyBuilder.entryBlock().parameter(param.type());
             funcBodyBuilder.entryBlock().context().mapValue(param, p);
@@ -136,11 +144,6 @@ public class AnfTransformer {
         }
 
         Block.Builder blockBuilder = letrecBody.entryBlock();
-
-        for (AnfDialect.AnfFuncOp f : funs) {
-            var res = blockBuilder.op(f);
-            this.funMap.put(f.funcName(), res);
-        }
 
         var letBody = Body.Builder.of(letrecBody, letrecBody.bodyType(), CopyContext.create(letrecBody.entryBlock().context()));
         transformBlockOps(b, letBody.entryBlock());
@@ -215,16 +218,15 @@ public class AnfTransformer {
                     var falseFuncVal = b.op(falseFuncName);
 
                     List<Value> trueArgs = new ArrayList<>();
-                    //trueArgs.add(funMap.get(c.trueBranch().targetBlock().toString()));
+                    trueArgs.add(funMap.get(c.trueBranch().targetBlock()));
                     trueArgs.addAll(tbranch_args);
 
                     List<Value> falseArgs = new ArrayList<>();
-                    //falseArgs.add(get(c.falseBranch().targetBlock().toString()));
+                    falseArgs.add(funMap.get(c.falseBranch().targetBlock()));
                     falseArgs.addAll(fbranch_args);
 
-
-                    var trueApp = AnfDialect.applyStub(c.trueBranch().targetBlock().toString(), trueArgs, getBlockReturnType(c.trueBranch().targetBlock()));
-                    var falseApp = AnfDialect.applyStub(c.falseBranch().targetBlock().toString(), falseArgs, getBlockReturnType(c.falseBranch().targetBlock()));
+                    var trueApp = AnfDialect.apply(trueArgs);
+                    var falseApp = AnfDialect.apply(falseArgs);
 
                     var ifExp = AnfDialect.if_(b.parentBody(),
                                     c.trueBranch().targetBlock().terminatingOp().resultType(),
@@ -243,10 +245,10 @@ public class AnfTransformer {
                     //var targetFuncVal = b.op(targetFuncConst);
 
                     List<Value> funcArgs = new ArrayList<>();
-                    //funcArgs.add(funMap.get(br.branch().targetBlock().toString()));
+                    funcArgs.add(funMap.get(br.branch().targetBlock()));
                     funcArgs.addAll(args);
 
-                    var funcApp = AnfDialect.applyStub(br.branch().targetBlock().toString(), funcArgs, getBlockReturnType(br.branch().targetBlock()));
+                    var funcApp = AnfDialect.apply(funcArgs);
 
                     b.op(funcApp);
                     return b;
