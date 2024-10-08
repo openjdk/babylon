@@ -25,7 +25,6 @@
 
 package java.lang.reflect.code.interpreter;
 
-import java.lang.classfile.instruction.BranchInstruction;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.op.CoreOp;

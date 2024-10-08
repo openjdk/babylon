@@ -239,7 +239,7 @@ public final class BytecodeLift {
                 case FLOAT -> params.add(JavaType.FLOAT);
                 case DOUBLE -> params.add(JavaType.DOUBLE);
                 case LONG -> params.add(JavaType.LONG);
-                case NULL -> params.add(NullTypeResolver.NULL_TYPE);
+                case NULL -> params.add(JavaType.J_L_OBJECT);
                 case UNINITIALIZED_THIS ->
                     params.add(JavaType.type(classModel.thisClass().asSymbol()));
                 case StackMapFrameInfo.ObjectVerificationTypeInfo ovti ->
@@ -283,8 +283,7 @@ public final class BytecodeLift {
                             MethodRef.ofNominalDescriptor(mDesc)).body(entryBlock ->
                                     new BytecodeLift(entryBlock,
                                                      classModel,
-                                                     methodModel.code().orElseThrow()).liftBody())
-                        .transform(new NullTypeResolver()));
+                                                     methodModel.code().orElseThrow()).liftBody()));
     }
 
     private Block.Builder newBlock(List<Block.Parameter> otherBlockParams) {
@@ -890,7 +889,7 @@ public final class BytecodeLift {
         Op.Result res = constantCache.get(c);
         if (res == null) {
             res = switch (c) {
-                case null -> op(CoreOp.constant(NullTypeResolver.NULL_TYPE, null));
+                case null -> op(CoreOp.constant(JavaType.J_L_OBJECT, null));
                 case ClassDesc cd -> op(CoreOp.constant(JavaType.J_L_CLASS, JavaType.type(cd)));
                 case Double d -> op(CoreOp.constant(JavaType.DOUBLE, d));
                 case Float f -> op(CoreOp.constant(JavaType.FLOAT, f));
