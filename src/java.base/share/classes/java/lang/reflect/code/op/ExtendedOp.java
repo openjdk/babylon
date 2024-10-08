@@ -28,7 +28,6 @@ package java.lang.reflect.code.op;
 import java.lang.constant.ClassDesc;
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.type.*;
-import java.lang.runtime.ExactConversionsSupport;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -3162,7 +3161,8 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                     String s = capitalize(st.toString());
                     String t = capitalize(tt.toString());
                     String mn = "is%sTo%sExact".formatted(s, t);
-                    MethodRef mref = MethodRef.method(JavaType.type(ExactConversionsSupport.class), mn, BOOLEAN, st);
+                    JavaType exactConversionSupport = JavaType.type(ClassDesc.of("java.lang.runtime.ExactConversionsSupport"));
+                    MethodRef mref = MethodRef.method(exactConversionSupport, mn, BOOLEAN, st);
                     p = currentBlock.op(invoke(mref, target));
                 } else {
                     p = currentBlock.op(CoreOp.instanceOf(targetType, target));
