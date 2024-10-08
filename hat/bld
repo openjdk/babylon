@@ -1,4 +1,4 @@
-#!/usr/bin/env java --enable-preview --source 24 
+#!/usr/bin/env java --enable-preview --source 24 --class-path bldr/classes
 /*
  * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -25,226 +25,69 @@
  */
 
 import module java.compiler;
-
-
-static String join(List<Path> paths, char separator){
-   StringBuilder sb = new StringBuilder();
-   paths.forEach(path -> {
-      if (!sb.isEmpty()) {
-         sb.append(separator);
-      }
-      sb.append(path);
-   });
-   return sb.toString();
-}
-
-static void addEntry(JarOutputStream jarStream, Path root, Path path){
-    try{
-       var attributes = Files.readAttributes(path, PosixFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
-       var entry = new JarEntry(root.relativize(path).toString()+(attributes.isDirectory()?"/":""));
-       entry.setTime(attributes.lastModifiedTime().toMillis());
-       jarStream.putNextEntry(entry);
-       if (attributes.isRegularFile()){
-          Files.newInputStream(path).transferTo(jarStream);
-       }
-       jarStream.closeEntry();
-    }catch(IOException ioe){
-      println(ioe);
-    }
-}
-
-
-static Path javacjar(Path jar, Path classesDir, List<Path> sourcePath, List<Path> classPath, List<Path> resourcePath) throws IOException{
-     var src = new ArrayList<Path>();
-     sourcePath.forEach(path->{
-         try{
-            Files.walk(path).forEach(s->{if (s.toString().endsWith(".java")){src.add(s);}});
-         }catch(IOException ioe){
-            println(ioe);
-         }
-     });
-
-     if (Files.exists(classesDir)) {
-       Files.walk(classesDir).sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
-     }
-     Files.createDirectories(classesDir);
-     DiagnosticListener<JavaFileObject> dl = (diagnostic)-> System.out.println(diagnostic.getKind() + " " + diagnostic.getMessage(null));
-
-     var opts = new ArrayList<String>(List.of(
-         "--source","24",
-         "--enable-preview",
-         "--add-exports=java.base/jdk.internal=ALL-UNNAMED",
-         "--add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED",
-         "-d", classesDir.toString(),
-         "--source-path", join(sourcePath,':')
-     ));
-     if (!classPath.isEmpty()){ 
-        opts.addAll(List.of(
-           "--class-path", join(classPath,':')
-        ));
-     }
-     //println(opts);
-     
-     List<Path> pathsToJar = new ArrayList<>();
-     JavaCompiler javac = javax.tools.ToolProvider.getSystemJavaCompiler();
-     ((com.sun.source.util.JavacTask) javac.getTask(new PrintWriter(System.err), javac.getStandardFileManager(dl, null, null), dl, opts, null,
-        src.stream().map(path->
-             new SimpleJavaFileObject(path.toUri(),JavaFileObject.Kind.SOURCE){
-                public CharSequence getCharContent(boolean ignoreEncodingErrors) {
-                   try {
-                     return Files.readString(Path.of(toUri()));
-                   } catch (IOException e) {
-                      throw new RuntimeException(e);
-                  }
-             }
-          }).toList()
-     )).generate().forEach(fileObject->pathsToJar.add(Path.of(fileObject.toUri())));
-
-     var jarStream = new JarOutputStream(Files.newOutputStream(jar));
-     var setOfDirs = new HashSet<Path>();
-     pathsToJar.stream().sorted().forEach(path -> {
-          var parentDir = path.getParent();
-          if (!setOfDirs.contains(parentDir)){
-             setOfDirs.add(parentDir);
-             addEntry(jarStream, classesDir, parentDir);
-          }
-          addEntry(jarStream, classesDir, path);
-     });
-     resourcePath.stream().sorted().forEach(resourceDir->{
-          if (Files.isDirectory(resourceDir)){
-             //println("Trying "+resourceDir);
-             try{
-               Files.walk(resourceDir).filter(path->Files.isRegularFile(path)).forEach(path->{
-                 var parentDir = path.getParent();
-                 if (!setOfDirs.contains(parentDir)){
-                    setOfDirs.add(parentDir);
-                    addEntry(jarStream, resourceDir, parentDir);
-                 }
-                 addEntry(jarStream, resourceDir, path);
-               });
-             }catch(IOException ioe){
-               println(ioe);
-             } 
-          //}else{
-          // println("no resources "+resourceDir);
-          }
-        }
-     );
-     jarStream.finish();
-     jarStream.close();
-     return jar;
-}
-static Path javacjar(Path jar, Path classesDir, List<Path> sourcePath, List<Path> classPath) throws IOException{
-    return javacjar(jar, classesDir, sourcePath, classPath, List.of( /*resources*/));
-}
-static Path javacjar(Path jar, Path classesDir, List<Path> sourcePath) throws IOException{
-    return javacjar(jar, classesDir, sourcePath, List.of( /*classpath*/));
-}
-
-static Path path(String name){
-   return Path.of(name);
-}
-
-static List<Path> paths(Path ...paths){
-     List<Path> selectedPaths = new ArrayList<>();
-     Arrays.asList(paths).forEach(path->{
-        if (Files.isDirectory(path)){
-           selectedPaths.add(path);
-        }
-     });
-     return selectedPaths;
-}
-
+import static bldr.Bldr.*;
 void main(String[] args) throws IOException, InterruptedException {
-     var hatDir = path("/Users/grfrost/github/babylon-grfrost-fork/hat");
+       var hatDir = Path.of(System.getProperty("user.dir"));
+        var licensePattern = Pattern.compile("^.*Copyright.*202[4-9].*(Intel|Oracle).*$");
+        var eolws = Pattern.compile("^.* $");
+        var tab = Pattern.compile("^.*\\t.*");
 
-     Set.of("hat", "examples", "backends").forEach(dirName->{
-         try{
-            Files.walk(Paths.get(dirName)).filter(p->{
-              var name = p.toString();
-              return !name.contains("cmake-build-debug")
-                && !name.contains("rleparser")
-                && ( name.endsWith(".java") || name.endsWith(".cpp") || name.endsWith(".h"));
-              }).forEach(path->{
-                try{
-                   boolean license = false;
-                   for (String line: Files.readAllLines(path,  StandardCharsets.UTF_8)){
-                      if (line.contains("\t")){
-                        System.err.println("ERR TAB "+path+":"+line);
-                      }
-                      if (line.endsWith(" ")) {
-                        System.err.println("ERR TRAILING WHITESPACE "+path+":"+line);
-                      }
-                      if (Pattern.matches("^  *(package|import).*$",line)) { // I saw this a few times....?
-                        System.err.println("ERR WEIRD INDENT "+path+":"+line);
-                      }
-                      if (Pattern.matches("^.*Copyright.*202[4-9].*Intel.*$",line)) { // not foolproof I know
-                        license = true;
-                      }
-                      if (Pattern.matches("^.*Copyright.*202[4-9].*Oracle.*$",line)) { // not foolproof I know
-                        license = true;
-                      }
-                   }
-                   if (!license){
-                      System.err.println("ERR MISSING LICENSE "+path);
-                   }
-                } catch(IOException ioe){
-                  System.err.println(ioe);
+        paths(hatDir, "hat", "examples", "backends").forEach(dir -> {
+            paths(dir, path -> !Pattern.matches("^.*(-debug|rleparser).*$", path.toString())
+                       && Pattern.matches("^.*\\.(java|cpp|h|hpp)$", path.toString())
+            ).stream().map(path -> new TextFile(path)).forEach(textFile -> {
+                if (!textFile.grep(licensePattern)){
+                    System.err.println("ERR MISSING LICENSE " + textFile.path());
                 }
+                textFile.lines().forEach(line -> {
+                    if (line.grep(tab)) {
+                        System.err.println("ERR TAB " + textFile.path() + ":" + line.line() + "#" + line.num());
+                    }
+                    if (line.grep(eolws)) {
+                        System.err.println("ERR TRAILING WHITESPACE " + textFile.path() + ":" + line.line() + "#" + line.num());
+                    }
+                });
             });
-         } catch(IOException ioe){
-           System.err.println(ioe);
-         }
-      });
+        });
 
-     
-     var target = hatDir.resolve("build");
+        var target = mkdir(rmdir(path(hatDir, "build")));
+        var hatJavacOpts = List.of(
+                "--source", "24",
+                "--enable-preview",
+                "--add-exports=java.base/jdk.internal=ALL-UNNAMED",
+                "--add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED"
+        );
 
-     var hatJar = javacjar(
-         target.resolve("hat-1.0.jar"),
-         target.resolve("hat-1.0.jar.classes"),
-         List.of(hatDir.resolve("hat/src/main/java"))
-     );
-     println(hatJar);
+        var hatJarResult = javacjar($ -> $
+                .opts(hatJavacOpts)
+                .jar(path(target, "hat-1.0.jar"))
+                .source_path(path(hatDir, "hat/src/main/java"))
+        );
+        println(hatJarResult.jar);
+        for (var exampleDir : paths(path(hatDir, "examples"), "mandel", "squares", "heal", "violajones", "life")) {
+            javacjar($ -> $
+                    .opts(hatJavacOpts)
+                    .jar(path(target, "hat-example-" + exampleDir.getFileName() + "-1.0.jar"))
+                    .source_path(path(exampleDir, "src/main/java"))
+                    .class_path(hatJarResult.jar)
+                    .resource_path(path(exampleDir, "src/main/resources"))
+            );
+        }
+        var backendsDir = path(hatDir, "backends");
+        for (var backendDir : paths(backendsDir, "opencl", "ptx")) {
+            javacjar($ -> $
+                    .opts(hatJavacOpts)
+                    .jar(path(target, "hat-backend-" + backendDir.getFileName() + "-1.0.jar"))
+                    .source_path(path(backendDir, "src/main/java"))
+                    .class_path(hatJarResult.jar)
+                    .resource_path(path(backendDir, "src/main/resources"))
+            );
+        }
 
-     for (var example: List.of("mandel", "squares", "heal", "violajones", "life")){
-       var exampleJar = javacjar(
-         target.resolve("hat-example-"+example+"-1.0.jar"),
-         target.resolve("hat-example-"+example+"-1.0.jar.classes"),
-         List.of(hatDir.resolve("examples/"+example+"/src/main/java")),
-         List.of(hatJar),
-         List.of(hatDir.resolve("examples/"+example+"/src/main/resources"))
-       );
-       println(exampleJar);
-     }
-     var backendsDir = hatDir.resolve("backends");
-     for (var backend: List.of("opencl")){
-       var backendDir = backendsDir.resolve(backend);
-       var backendJar = javacjar(
-         target.resolve("hat-backend-"+backend+"-1.0.jar"),
-         target.resolve("hat-backend-"+backend+"-1.0.jar.classes"),
-         List.of(backendDir.resolve("src/main/java")),
-         List.of(hatJar),
-         List.of(backendDir.resolve("src/main/resources"))
-       );
-       println(backendJar);
-     }
-  
-     var cmakeBldDebugDir = backendsDir.resolve("bld-debug");
-     Files.createDirectories(cmakeBldDebugDir);
-     var cmakeInit  = new ProcessBuilder()
-        .directory(backendsDir.toFile())
-        .inheritIO()
-        .command("cmake","-B", cmakeBldDebugDir.getFileName().toString(), "-DHAT_TARGET="+target)
-        .start();
-    cmakeInit.waitFor();
-
-     var cmakeBuild  = new ProcessBuilder()
-        .directory(backendsDir.toFile())
-        .inheritIO()
-        .command("cmake","--build", cmakeBldDebugDir.getFileName().toString(),"--target", "copy_libs")
-        .start();
-     cmakeBuild.waitFor();
-
-}
-
+        var cmakeBldDebugDir = backendsDir.resolve("bld-debug");
+        if (!existingDir(cmakeBldDebugDir)) {
+            mkdir(cmakeBldDebugDir);
+            cmake($ -> $.cwd(backendsDir)._B(cmakeBldDebugDir).opts("-DHAT_TARGET=" + target));
+        }
+        cmake($ -> $.cwd(backendsDir).__build(cmakeBldDebugDir));
+  } 

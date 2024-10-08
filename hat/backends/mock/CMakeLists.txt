@@ -3,11 +3,13 @@ project(opencl_backend)
 
 set(CMAKE_CXX_STANDARD 14)
 
-find_package(OpenCL)
+#find_package(OpenCL)
+
 if ("${MOCK_BACKEND}EMPTY" STREQUAL "EMPTY")
     set (MOCK_BACKEND "${CMAKE_SOURCE_DIR}")
     message("MOCK_BACKEND=${MOCK_BACKEND}")
 endif()
+
 if ("${SHARED_BACKEND}EMPTY" STREQUAL "EMPTY")
     set (SHARED_BACKEND "${CMAKE_SOURCE_DIR}/../shared")
     message("SHARED_BACKEND=${SHARED_BACKEND}")
@@ -38,12 +40,7 @@ add_executable(mock_info
 target_link_libraries(mock_info
     mock_backend
 )
-add_custom_target(mock_natives DEPENDS mock_info mock_backend)
-add_custom_target(copy_mock_libs DEPENDS mock_info mock_backend
-    COMMAND cp ${CMAKE_BINARY_DIR}/mock/libmock_backend.* ${HAT_TARGET}
-    COMMAND cp ${CMAKE_BINARY_DIR}/mock/mock_info ${HAT_TARGET}
-)
-add_dependencies(copy_libs copy_mock_libs)
+
 
 
 

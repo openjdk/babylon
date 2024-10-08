@@ -3,11 +3,11 @@ project(spirv_backend)
 
 set(CMAKE_CXX_STANDARD 14)
 
-find_package(OpenCL)
 if ("${SPIRV_BACKEND}EMPTY" STREQUAL "EMPTY")
     set (SPIRV_BACKEND "${CMAKE_SOURCE_DIR}")
     message("SPIRV_BACKEND=${SPIRV_BACKEND}")
 endif()
+
 if ("${SHARED_BACKEND}EMPTY" STREQUAL "EMPTY")
     set (SHARED_BACKEND "${CMAKE_SOURCE_DIR}/../shared")
     message("SHARED_BACKEND=${SHARED_BACKEND}")
@@ -29,7 +29,6 @@ add_library(spirv_backend SHARED
     ${SPIRV_BACKEND}/cpp/spirv_backend.cpp
 )
 
-
 add_executable(spirv_info
     ${SPIRV_BACKEND}/cpp/info.cpp
 )
@@ -37,13 +36,5 @@ add_executable(spirv_info
 target_link_libraries(spirv_info
     spirv_backend
 )
-
-add_custom_target(spirv_natives DEPENDS spirv_info spirv_backend)
-
-add_custom_target(copy_spirv_libs DEPENDS spirv_info spirv_backend
-   COMMAND cp ${CMAKE_BINARY_DIR}/spirv/libspirv_backend.* ${HAT_TARGET}
-   COMMAND cp ${CMAKE_BINARY_DIR}/spirv/spirv_info ${HAT_TARGET}
-)
-add_dependencies(copy_libs copy_spirv_libs)
 
 
