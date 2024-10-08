@@ -10,6 +10,7 @@ if(OPENCL_FOUND)
         set (OPENCL_BACKEND "${CMAKE_SOURCE_DIR}")
         message("OPENCL_BACKEND=${OPENCL_BACKEND}")
     endif()
+
     if ("${SHARED_BACKEND}EMPTY" STREQUAL "EMPTY")
         set (SHARED_BACKEND "${CMAKE_SOURCE_DIR}/../shared")
         message("SHARED_BACKEND=${SHARED_BACKEND}")
@@ -48,11 +49,5 @@ if(OPENCL_FOUND)
         opencl_backend
         ${OPENCL_LIB}
     )
-    add_custom_target(opencl_natives DEPENDS opencl_info opencl_backend)
-    add_custom_target(copy_opencl_libs DEPENDS opencl_info opencl_backend
-       COMMAND cp ${CMAKE_BINARY_DIR}/opencl/libopencl_backend.*  ${HAT_TARGET}
-       COMMAND cp ${CMAKE_BINARY_DIR}/opencl/opencl_info ${HAT_TARGET}
-    )
-    add_dependencies(copy_libs copy_opencl_libs)
 
 endif()
