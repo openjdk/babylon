@@ -31,10 +31,10 @@ function example(){
    backend=$2
    example=$3
    shift 3
-   if test -d maven-build; then 
+   if test -d maven-build; then
       echo using trad maven-build
       build_dir=maven-build
-   elif test -d build; then 
+   elif test -d build; then
       echo using new build dir
       build_dir=build
    else
