@@ -3,13 +3,18 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Method;
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.reflect.code.interpreter.Interpreter;
-import java.lang.reflect.code.op.ExtendedOp;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.type.PrimitiveType;
+import java.lang.runtime.CodeReflection;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 import static java.lang.reflect.code.op.CoreOp.*;
 import static java.lang.reflect.code.op.ExtendedOp.*;
@@ -35,8 +40,13 @@ public class TestPrimitiveTypePatterns {
     @Test(dataProvider = "patternsOfInt")
     void testPatternsOfInt(JavaType targetType, int[] values) throws Throwable {
 
-        var model = buildTypePatternModel(JavaType.INT, targetType);
+        var genericModel = getCodeModel("f");
+
+        var model = buildTypePatternModel(genericModel, JavaType.INT, targetType);
+        model.writeTo(System.out);
+
         var lmodel = model.transform(OpTransformer.LOWERING_TRANSFORMER);
+        lmodel.writeTo(System.out);
 
         var mh = BytecodeGenerator.generate(MethodHandles.lookup(), lmodel);
 
@@ -45,29 +55,43 @@ public class TestPrimitiveTypePatterns {
         }
     }
 
-    static FuncOp buildTypePatternModel(JavaType sourceType, JavaType targetType) {
-        // builds the model of:
-        // static boolean f(sourceType a) { return a instanceof targetType _; }
-        return func("f", functionType(JavaType.BOOLEAN, sourceType)).body(fblock -> {
+    @CodeReflection
+    // works as generic model that will be transformed to test conversion from a sourceType to targetType
+    static boolean f(byte b) {
+        return b instanceof byte _;
+    }
 
-            var param = fblock.op(var(fblock.parameters().get(0)));
-            var paramVal = fblock.op(varLoad(param));
+    static FuncOp buildTypePatternModel(FuncOp genericModel, JavaType sourceType, JavaType targetType) {
+        List<VarOp> patternVariables = getPatternVariables(genericModel);
+        return func(genericModel.funcName(), functionType(JavaType.BOOLEAN, sourceType)).body(fblock -> {
+            fblock.transformBody(genericModel.body(), fblock.parameters(), ((block, op) -> {
+               if (op instanceof ConstantOp cop && cop.parentBlock().nextOp(cop) instanceof VarOp vop &&
+                       patternVariables.contains(vop)) {
+                   var newCop = constant(targetType, defaultValue(targetType));
+                   block.op(newCop);
+                   block.context().mapValue(cop.result(), newCop.result());
+               } else if (op instanceof PatternOps.TypePatternOp tpop) {
+                   var newTpop = typePattern(targetType, tpop.bindingName());
+                   block.op(newTpop);
+                   block.context().mapValue(tpop.result(), newTpop.result());
+               } else {
+                   block.op(op);
+               }
+               return block;
+           }));
+        });
+    }
 
-            var patternVar = fblock.op(var(fblock.op(constant(targetType, defaultValue(targetType)))));
-
-            var pattern = Body.Builder.of(fblock.parentBody(), functionType(ExtendedOp.Pattern.bindingType(targetType)));
-            pattern.entryBlock().op(_yield(
-                    pattern.entryBlock().op(typePattern(targetType, null))
-            ));
-
-            var match = Body.Builder.of(fblock.parentBody(), functionType(JavaType.VOID, targetType));
-            var binding = match.entryBlock().parameters().get(0);
-            match.entryBlock().op(varStore(patternVar, binding));
-            match.entryBlock().op(_yield());
-
-            var result = fblock.op(match(paramVal, pattern, match));
-
-            fblock.op(_return(result));
+    static List<VarOp> getPatternVariables(FuncOp f) {
+        return f.traverse(new ArrayList<>(), (l, e) -> {
+            if (e instanceof Block b && b.parentBody().parentOp() instanceof PatternOps.MatchOp) {
+                b.ops().forEach(op -> {
+                    if (op instanceof VarAccessOp.VarStoreOp vsop) {
+                        l.add(vsop.varOp());
+                    }
+                });
+            }
+            return l;
         });
     }
 
@@ -84,5 +108,13 @@ public class TestPrimitiveTypePatterns {
             return false;
         }
         return null;
+    }
+
+    private static CoreOp.FuncOp getCodeModel(String methodName) {
+        Optional<Method> om = Stream.of(TestPrimitiveTypePatterns.class.getDeclaredMethods())
+                .filter(m -> m.getName().equals(methodName))
+                .findFirst();
+
+        return om.get().getCodeModel().get();
     }
 }
