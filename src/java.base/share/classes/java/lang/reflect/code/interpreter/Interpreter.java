@@ -42,6 +42,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import sun.invoke.util.Wrapper;
 
 import static java.util.stream.Collectors.toMap;
 
@@ -419,9 +420,9 @@ public final class Interpreter {
                 case SUPER -> l.in(target.parameterType(0));
             };
             MethodHandle mh = resolveToMethodHandle(il, co.invokeDescriptor(), co.invokeKind());
-
-            mh = mh.asType(target).asFixedArity();
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
+            target = eraseInts(mh.type(), target, values);
+            mh = mh.asType(target).asFixedArity();
             return invoke(mh, values);
         } else if (o instanceof CoreOp.NewOp no) {
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
@@ -587,6 +588,30 @@ public final class Interpreter {
             throw interpreterException(
                     new UnsupportedOperationException("Unsupported operation: " + o.opName()));
         }
+    }
+
+    // method type with converted int types and int values wrapped as expected by the handleType
+    static MethodType eraseInts(MethodType handleType, MethodType target, Object[] values) {
+        for (int i = 0; i < Math.min(values.length, handleType.parameterCount()); i++) {
+            Object v = values[i];
+            Class<?> ht = handleType.parameterType(i);
+            Class<?> vt;
+            Wrapper w;
+            if (v != null && ht != (vt = v.getClass()) && (w = intTypeWrapper(ht)) != null && w.wrapperType() != vt) {
+                values[i] = w.wrap(v);
+                target = target.changeParameterType(i, ht);
+            }
+        }
+        return target;
+    }
+
+    static Wrapper intTypeWrapper(Class<?> type) {
+        if (type == int.class)      return Wrapper.INT;
+        if (type == boolean.class)  return Wrapper.BOOLEAN;
+        if (type == byte.class)     return Wrapper.BYTE;
+        if (type == char.class)     return Wrapper.CHAR;
+        if (type == short.class)    return Wrapper.SHORT;
+        return null;
     }
 
     static final MethodHandle INVOKE_LAMBDA_MH;
