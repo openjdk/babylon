@@ -23,7 +23,7 @@
 
 /*
  * @test
- * @run testng TestTryFinallyNested
+ * @run testng TestTryNested
  */
 
 import org.testng.Assert;
@@ -31,7 +31,6 @@ import org.testng.annotations.Test;
 
 import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.Op;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
@@ -43,7 +42,7 @@ import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.stream.Stream;
 
-public class TestTryFinallyNested {
+public class TestTryNested {
     @CodeReflection
     public static void tryCatchFinally(IntConsumer c, int i) {
         try {
@@ -114,6 +113,64 @@ public class TestTryFinallyNested {
 
 
     @CodeReflection
+    public static void tryCatchBreak(IntConsumer c, int i) {
+        a: try {
+            try {
+                if (i == 0) {
+                    break a;
+                }
+                c.accept(0);
+            } catch (IllegalStateException e) {
+                if (i == 1) {
+                    break a;
+                }
+                c.accept(1);
+            }
+            if (i == 2) {
+                break a;
+            }
+            c.accept(2);
+        } catch (IllegalStateException e) {
+            if (i == 3) {
+                break a;
+            }
+            c.accept(3);
+        }
+        c.accept(4);
+    }
+
+    @Test
+    public void testCatchBreak() {
+        CoreOp.FuncOp f = getFuncOp("tryCatchBreak");
+
+        f.writeTo(System.out);
+
+        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+
+        lf.writeTo(System.out);
+
+        for (int ra = -1; ra < 4; ra++) {
+            int fra = ra;
+
+            Consumer<IntConsumer> test = testConsumer(
+                    c -> Interpreter.invoke(MethodHandles.lookup(), lf, c, fra),
+                    c -> tryCatchBreak(c, fra)
+            );
+
+            test.accept(i -> {});
+            for (int ea = 0; ea <= 4; ea++) {
+                int fea = ea;
+                test.accept(i -> {
+                    if (i == fea) throw new IllegalStateException();
+                });
+                test.accept(i -> {
+                    if (i == fea) throw new RuntimeException();
+                });
+            }
+        }
+    }
+
+    @CodeReflection
     public static void tryCatchFinallyBreak(IntConsumer c, int i) {
         a: try {
             try {
@@ -169,7 +226,7 @@ public class TestTryFinallyNested {
             );
 
             test.accept(i -> {});
-            for (int ea = 0; ea < 6; ea++) {
+            for (int ea = 0; ea <= 6; ea++) {
                 int fea = ea;
                 test.accept(i -> {
                     if (i == fea) throw new IllegalStateException();
@@ -193,7 +250,7 @@ public class TestTryFinallyNested {
                     break;
                 }
                 c.accept(1);
-            } finally {
+            } catch (IllegalStateException e) {
                 c.accept(2);
             }
             c.accept(3);
@@ -213,10 +270,65 @@ public class TestTryFinallyNested {
 
         Consumer<IntConsumer> test = testConsumer(
                 c -> Interpreter.invoke(MethodHandles.lookup(), lf, c),
-                TestTryFinallyNested::tryForLoop
+                TestTryNested::tryForLoop
         );
 
         test.accept(i -> { });
+        for (int ea = 0; ea <= 4; ea++) {
+            int fea = ea;
+            test.accept(i -> {
+                if (i == fea) throw new IllegalStateException();
+            });
+            test.accept(i -> {
+                if (i == fea) throw new RuntimeException();
+            });
+        }
+    }
+
+    @CodeReflection
+    public static void tryForLoopFinally(IntConsumer c) {
+        for (int i = 0; i < 8; i++) {
+            c.accept(0);
+            try {
+                if (i == 4) {
+                    continue;
+                } else if (i == 5) {
+                    break;
+                }
+                c.accept(1);
+            } finally {
+                c.accept(2);
+            }
+            c.accept(3);
+        }
+        c.accept(4);
+    }
+
+    @Test
+    public void testTryForLoopFinally() {
+        CoreOp.FuncOp f = getFuncOp("tryForLoopFinally");
+
+        f.writeTo(System.out);
+
+        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+
+        lf.writeTo(System.out);
+
+        Consumer<IntConsumer> test = testConsumer(
+                c -> Interpreter.invoke(MethodHandles.lookup(), lf, c),
+                TestTryNested::tryForLoopFinally
+        );
+
+        test.accept(i -> { });
+        for (int ea = 0; ea <= 4; ea++) {
+            int fea = ea;
+            test.accept(i -> {
+                if (i == fea) throw new IllegalStateException();
+            });
+            test.accept(i -> {
+                if (i == fea) throw new RuntimeException();
+            });
+        }
     }
 
 
@@ -256,7 +368,7 @@ public class TestTryFinallyNested {
 
         Consumer<IntConsumer> test = testConsumer(
                 c -> Interpreter.invoke(MethodHandles.lookup(), lf, c),
-                TestTryFinallyNested::tryLabeledForLoop
+                TestTryNested::tryLabeledForLoop
         );
 
         test.accept(i -> { });
@@ -305,7 +417,7 @@ public class TestTryFinallyNested {
 
 
     static CoreOp.FuncOp getFuncOp(String name) {
-        Optional<Method> om = Stream.of(TestTryFinallyNested.class.getDeclaredMethods())
+        Optional<Method> om = Stream.of(TestTryNested.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
                 .findFirst();
 

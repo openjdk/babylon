@@ -2551,9 +2551,8 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             OpTransformer tryExitTransformer;
             if (finalizer != null) {
                 tryExitTransformer = opT.compose((block, op) -> {
-                    if (op instanceof CoreOp.ReturnOp) {
-                        return inlineFinalizer(block, tryExceptionRegion, opT);
-                    } else if (op instanceof ExtendedOp.JavaLabelOp lop && ifExitFromTry(lop)) {
+                    if (op instanceof CoreOp.ReturnOp ||
+                            (op instanceof ExtendedOp.JavaLabelOp lop && ifExitFromTry(lop))) {
                         return inlineFinalizer(block, tryExceptionRegion, opT);
                     } else {
                         return block;
@@ -2561,9 +2560,8 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 });
             } else {
                 tryExitTransformer = opT.compose((block, op) -> {
-                    // @@@ break and continue
-                    // when target break/continue is enclosing the try
-                    if (op instanceof CoreOp.ReturnOp) {
+                    if (op instanceof CoreOp.ReturnOp ||
+                            (op instanceof ExtendedOp.JavaLabelOp lop && ifExitFromTry(lop))) {
                         Block.Builder tryRegionReturnExit = block.block();
                         block.op(exceptionRegionExit(tryExceptionRegion, tryRegionReturnExit.successor()));
                         return tryRegionReturnExit;
