@@ -42,6 +42,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
    <modules>
      <module>opencl</module>
      <module>cuda</module>
+     <module>hip</module>
      <module>mock</module>
      <module>ptx</module>
      <!--<module>spirv</module>-->

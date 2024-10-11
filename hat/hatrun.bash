@@ -71,7 +71,7 @@ if [ $# -eq 0 ]; then
    echo '   bash hatrun.bash [headless] backend package args ...'
    echo '       headless : Optional passes -Dheadless=true to app'
    echo '       package  : the examples package (and dirname under hat/examples)'
-   echo '       backend  : opencl|cuda|spirv|ptx|mock'
+   echo '       backend  : opencl|cuda|hip|spirv|ptx|mock'
    echo '       Class name is assumed to be package.Main '
 else
    if [ $1 == headless ]; then
