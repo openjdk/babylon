@@ -37,15 +37,25 @@ import java.util.List;
 
 public final class Verifier {
 
-    @SuppressWarnings("serial")
-    public final class VerifyError extends Error {
+    public final class VerifyError {
+
+        private final String message;
 
         public VerifyError(String message) {
-            super(message);
+            this.message = message;
+        }
+
+        public String getMeessage() {
+            return message;
         }
 
         public String getPrintedContext() {
             return toText(rootOp);
+        }
+
+        @Override
+        public String toString() {
+            return getMeessage() + " in " + getPrintedContext();
         }
     }
 

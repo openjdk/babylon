@@ -157,7 +157,7 @@ public class TestSmallCorpus {
             System.out.println("Code reflection model verification failed");
             errors.forEach(System.out::println);
             System.out.println(errors.getFirst().getPrintedContext());
-            throw errors.getFirst();
+            throw new AssertionError(errors.getFirst());
         }
     }
 
