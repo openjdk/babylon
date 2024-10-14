@@ -40,7 +40,7 @@ public class TestPrimitiveTypePatterns {
             boolean.class, int.class);
 
     @DataProvider
-    public static Object[][] patternsOfInt() {
+    public static Object[][] fromInt() {
         return new Object[][]{
                 {JavaType.BYTE, new int[] {Byte.MIN_VALUE, Byte.MAX_VALUE, Byte.MIN_VALUE - 1, Byte.MAX_VALUE + 1}, intToByte},
                 {JavaType.SHORT, new int[] {Short.MIN_VALUE, Short.MAX_VALUE, Short.MIN_VALUE - 1, Short.MAX_VALUE + 1}, intToShort},
@@ -51,8 +51,8 @@ public class TestPrimitiveTypePatterns {
         };
     }
 
-    @Test(dataProvider = "patternsOfInt")
-    void testPatternsOfInt(JavaType targetType, int[] values, MethodRef expectedConversionMethod) throws Throwable {
+    @Test(dataProvider = "fromInt")
+    void fromInt(JavaType targetType, int[] values, MethodRef expectedConversionMethod) throws Throwable {
 
         var model = buildTypePatternModel(JavaType.INT, targetType);
         model.writeTo(System.out);
