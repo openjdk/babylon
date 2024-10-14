@@ -25,7 +25,6 @@
 
 package java.lang.reflect.code.interpreter;
 
-import java.lang.classfile.TypeKind;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.op.CoreOp;
@@ -147,20 +146,38 @@ public final class Verifier {
             } else {
                 Block tb = r.targetBlock();
                 for (int i = 0; i < args.size(); i++) {
-                    if (toTypeKind(params.get(i).type(), tb).asLoadable() != toTypeKind(args.get(i).type(), b).asLoadable()) {
-                        error("%s %s parameter type %s is not compatible with argument type %s", op.parentBlock(), op, params.get(i).type(), args.get(i).type());
+                    if (!isAssignable(params.get(i).type(), args.get(i), tb, b)) {
+                        error("%s %s %s is not assignable from %s", op.parentBlock(), op, params.get(i).type(), args.get(i).type());
                     }
                 }
             }
         }
     }
 
-    private TypeKind toTypeKind(TypeElement e, Block context) {
-        if (e instanceof JavaType jt) {
-            return TypeKind.from(jt.toNominalDescriptor());
+    private boolean isAssignable(TypeElement toType, Value fromValue,  Object toContext, Object fromContext) {
+        if (toType.equals(fromValue.type())) return true;
+        var to = resolveToClass(toType, toContext);
+        var from = resolveToClass(fromValue.type(), fromContext);
+        if (from.isPrimitive()) {
+            // Primitive types assignability
+            return to == int.class && (from == byte.class || from == short.class || from == char.class || from == boolean.class); // @@@ still troubles with boolean
+        } else {
+            // Objects assignability
+            return to.isAssignableFrom(from);
         }
-        error("%s %s is not a Java type", context, e);
-        return TypeKind.REFERENCE;
+    }
+
+    public Class<?> resolveToClass(TypeElement d, Object context) {
+        try {
+            if (d instanceof JavaType jt) {
+                return (Class<?>)jt.erasure().resolve(lookup);
+            } else {
+                error("%s %s is not a Java type", context, d);
+            }
+        } catch (ReflectiveOperationException e) {
+            error("%s %s", context, e.getMessage());
+        }
+        return Object.class;
     }
 
     private void verifyOpHandleExists(Op op, String opName) {
