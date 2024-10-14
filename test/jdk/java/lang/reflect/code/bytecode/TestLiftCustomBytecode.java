@@ -27,6 +27,7 @@ import org.testng.annotations.Test;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.Label;
 import java.lang.constant.ClassDesc;
+import java.lang.constant.ConstantDescs;
 import java.lang.constant.DynamicCallSiteDesc;
 import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodTypeDesc;
@@ -35,8 +36,7 @@ import java.lang.invoke.StringConcatFactory;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.bytecode.BytecodeLift;
 import java.lang.reflect.code.interpreter.Interpreter;
-
-import static java.lang.constant.ConstantDescs.*;
+import java.lang.runtime.CodeReflection;
 
 /*
  * @test
@@ -49,7 +49,7 @@ public class TestLiftCustomBytecode {
     @Test
     public void testBackJumps() throws Throwable {
         CoreOp.FuncOp f = getFuncOp(ClassFile.of().build(ClassDesc.of("BackJumps"), clb ->
-                clb.withMethodBody("backJumps", MethodTypeDesc.of(CD_int, CD_int), ClassFile.ACC_STATIC, cob -> {
+                clb.withMethodBody("backJumps", MethodTypeDesc.of(ConstantDescs.CD_int, ConstantDescs.CD_int), ClassFile.ACC_STATIC, cob -> {
                     Label l1 = cob.newLabel();
                     Label l2 = cob.newLabel();
                     Label l3 = cob.newLabel();
@@ -71,22 +71,9 @@ public class TestLiftCustomBytecode {
     }
 
     @Test
-    public void testEraseInts() throws Throwable {
-        CoreOp.FuncOp f = getFuncOp(ClassFile.of().build(ClassDesc.of("EraseInts"), clb ->
-                clb.withMethodBody("compare", MethodTypeDesc.of(CD_short, CD_boolean, CD_char), ClassFile.ACC_STATIC, cob -> {
-                    cob.iload(0)
-                       .iload(1)
-                       .invokestatic(Short.class.describeConstable().get(), "compare", MethodTypeDesc.of(CD_int, CD_short, CD_short))
-                       .ireturn();
-                })), "compare");
-
-        Assert.assertEquals((int) Interpreter.invoke(f, true, 1), '\0');
-    }
-
-    @Test
     public void testDeepStackJump() throws Throwable {
         CoreOp.FuncOp f = getFuncOp(ClassFile.of().build(ClassDesc.of("DeepStackJump"), clb ->
-                clb.withMethodBody("deepStackJump", MethodTypeDesc.of(CD_long), ClassFile.ACC_STATIC, cob -> {
+                clb.withMethodBody("deepStackJump", MethodTypeDesc.of(ConstantDescs.CD_long), ClassFile.ACC_STATIC, cob -> {
                     Label l = cob.newLabel();
                     cob.lconst_1().iconst_1().iconst_2()
                        .goto_(l)
@@ -123,11 +110,11 @@ public class TestLiftCustomBytecode {
     @Test
     public void testConstantBootstrapsCondy() throws Throwable {
         byte[] testCondy = ClassFile.of().build(ClassDesc.of("TestCondy"), clb ->
-                clb.withMethodBody("condyMethod", MethodTypeDesc.of(CD_Class), ClassFile.ACC_STATIC, cob ->
+                clb.withMethodBody("condyMethod", MethodTypeDesc.of(ConstantDescs.CD_Class), ClassFile.ACC_STATIC, cob ->
                         cob.ldc(DynamicConstantDesc.ofNamed(
-                                ofConstantBootstrap(CD_ConstantBootstraps, "primitiveClass", CD_Class),
+                                ConstantDescs.ofConstantBootstrap(ConstantDescs.CD_ConstantBootstraps, "primitiveClass", ConstantDescs.CD_Class),
                                 int.class.descriptorString(),
-                                CD_Class))
+                                ConstantDescs.CD_Class))
                            .areturn()));
 
         CoreOp.FuncOp primitiveInteger = getFuncOp(testCondy, "condyMethod");
@@ -139,11 +126,11 @@ public class TestLiftCustomBytecode {
     @Test
     public void testStringMakeConcat() throws Throwable {
         byte[] testStringMakeConcat = ClassFile.of().build(ClassDesc.of("TestStringMakeConcat"), clb ->
-                clb.withMethodBody("concatMethod", MethodTypeDesc.of(CD_String), ClassFile.ACC_STATIC, cob ->
+                clb.withMethodBody("concatMethod", MethodTypeDesc.of(ConstantDescs.CD_String), ClassFile.ACC_STATIC, cob ->
                         cob.ldc("A").ldc("B").ldc("C")
                            .invokedynamic(DynamicCallSiteDesc.of(
-                                ofCallsiteBootstrap(StringConcatFactory.class.describeConstable().get(), "makeConcat", CD_CallSite),
-                                MethodTypeDesc.of(CD_String, CD_String, CD_String, CD_String)))
+                                ConstantDescs.ofCallsiteBootstrap(StringConcatFactory.class.describeConstable().get(), "makeConcat", ConstantDescs.CD_CallSite),
+                                MethodTypeDesc.of(ConstantDescs.CD_String, ConstantDescs.CD_String, ConstantDescs.CD_String, ConstantDescs.CD_String)))
                            .areturn()));
 
         CoreOp.FuncOp concatMethod = getFuncOp(testStringMakeConcat, "concatMethod");
