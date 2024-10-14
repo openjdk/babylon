@@ -3,14 +3,19 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.code.Block;
 import java.lang.reflect.code.Body;
+import java.lang.reflect.code.Op;
 import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.code.op.ExtendedOp;
 import java.lang.reflect.code.type.JavaType;
+import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.type.PrimitiveType;
+import java.lang.runtime.ExactConversionsSupport;
 import java.util.List;
+import java.util.function.Predicate;
 
 import static java.lang.reflect.code.op.CoreOp.*;
 import static java.lang.reflect.code.op.ExtendedOp.match;
@@ -25,23 +30,39 @@ import static java.lang.reflect.code.type.FunctionType.functionType;
 
 public class TestPrimitiveTypePatterns {
 
+    static final MethodRef intToByte = MethodRef.method(ExactConversionsSupport.class, "isIntToByteExact",
+            boolean.class, int.class);
+    static final MethodRef intToShort = MethodRef.method(ExactConversionsSupport.class, "isIntToShortExact",
+            boolean.class, int.class);
+    static final MethodRef intToChar = MethodRef.method(ExactConversionsSupport.class, "isIntToCharExact",
+            boolean.class, int.class);
+    static final MethodRef intToFloat = MethodRef.method(ExactConversionsSupport.class, "isIntToFloatExact",
+            boolean.class, int.class);
+
     @DataProvider
     public static Object[][] patternsOfInt() {
         return new Object[][]{
-                {JavaType.BYTE, new int[] {Byte.MIN_VALUE, Byte.MAX_VALUE, Byte.MIN_VALUE -1, Byte.MAX_VALUE + 1}},
-                {JavaType.SHORT, new int[] {Short.MIN_VALUE, Short.MAX_VALUE, Short.MIN_VALUE -1, Short.MAX_VALUE + 1}},
-                {JavaType.CHAR, new int[] {Character.MIN_VALUE, Character.MAX_VALUE, Character.MIN_VALUE -1, Character.MAX_VALUE + 1}},
+                {JavaType.BYTE, new int[] {Byte.MIN_VALUE, Byte.MAX_VALUE, Byte.MIN_VALUE - 1, Byte.MAX_VALUE + 1}, intToByte},
+                {JavaType.SHORT, new int[] {Short.MIN_VALUE, Short.MAX_VALUE, Short.MIN_VALUE - 1, Short.MAX_VALUE + 1}, intToShort},
+                {JavaType.CHAR, new int[] {Character.MIN_VALUE, Character.MAX_VALUE, Character.MIN_VALUE - 1, Character.MAX_VALUE + 1}, intToChar},
+                // (1<<24) + 1 : first int that's not an instanceof float
+                // 1<<31) - (1<<7): largest int that's an instance of float
+                {JavaType.FLOAT, new int[] {1<<24, (1<<24) + 1, (1<<31) - (1<<7), -((1<<24) + 1)}, intToFloat}
         };
     }
 
     @Test(dataProvider = "patternsOfInt")
-    void testPatternsOfInt(JavaType targetType, int[] values) throws Throwable {
+    void testPatternsOfInt(JavaType targetType, int[] values, MethodRef expectedConversionMethod) throws Throwable {
 
         var model = buildTypePatternModel(JavaType.INT, targetType);
         model.writeTo(System.out);
 
         var lmodel = model.transform(OpTransformer.LOWERING_TRANSFORMER);
         lmodel.writeTo(System.out);
+        Assert.assertTrue(
+                containsOp(lmodel.body(), op -> op instanceof InvokeOp invOp && invOp.invokeDescriptor().equals(expectedConversionMethod))
+        );
+
 
         var mh = BytecodeGenerator.generate(MethodHandles.lookup(), lmodel);
 
@@ -50,13 +71,30 @@ public class TestPrimitiveTypePatterns {
         }
     }
 
+    static Op findOp(Body b, Predicate<Op> p) {
+        for (Block block : b.blocks()) {
+            for (Op op : block.ops()) {
+                if (p.test(op)) {
+                    return op;
+                }
+                for (Body body : op.bodies()) {
+                    return findOp(body, p);
+                }
+            }
+        }
+        return null;
+    }
+
+    static boolean containsOp(Body b, Predicate<Op> p) {
+        return findOp(b, p) != null;
+    }
+
     static FuncOp buildTypePatternModel(JavaType sourceType, JavaType targetType) {
         // builds the model of:
         // static boolean f(sourceType a) { return a instanceof targetType _; }
         return func("f", functionType(JavaType.BOOLEAN, sourceType)).body(fblock -> {
 
-            var param = fblock.op(var(fblock.parameters().get(0)));
-            var paramVal = fblock.op(varLoad(param));
+            var paramVal = fblock.parameters().get(0);
 
             var patternVar = fblock.op(var(fblock.op(constant(targetType, defaultValue(targetType)))));
 
