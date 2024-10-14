@@ -25,6 +25,7 @@
 package java.lang.reflect.code.bytecode;
 
 import java.lang.reflect.code.Block;
+import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.Value;
@@ -32,19 +33,30 @@ import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.type.MethodRef;
 
-import static java.lang.Thread.yield;
+import java.util.List;
 
 /**
- * Fixes null constant types and injects mandatory explicit casts and conversions.
+ * Fixes null constant types and injects mandatory explicit conversions.
  */
 final class PostLiftTypesTransformer {
 
     static CoreOp.FuncOp transform(CoreOp.FuncOp func) {
         return func.transform((block, op) -> {
-            if (op instanceof CoreOp.ConstantOp cop && JavaType.J_L_OBJECT.equals(op.resultType()) && cop.value() == null) {
-                block.context().mapValue(op.result(), block.op(CoreOp.constant(inferNullTypeFromDirectUse(op.result()), null)));
-            } else {
-                block.op(op);
+            CopyContext cc = block.context();
+            switch (op) {
+                case CoreOp.ConstantOp cop when JavaType.J_L_OBJECT.equals(op.resultType()) && cop.value() == null ->
+                    cc.mapValue(op.result(), block.op(CoreOp.constant(inferNullTypeFromDirectUse(op.result()), null)));
+                case CoreOp.BranchOp bo -> {
+                    Value[] args = cc.getValues(bo.branch().arguments()).toArray(Value[]::new);
+                    Block target = bo.branch().targetBlock();
+                    if (convertArgs(block, args, target.parameterTypes())) {
+                        block.op(CoreOp.branch(cc.getBlock(target).successor(args)));
+                    } else {
+                        block.op(op);
+                    }
+                }
+                default ->
+                    block.op(op);
             }
             return block;
         });
@@ -91,5 +103,25 @@ final class PostLiftTypesTransformer {
             }
         }
         return JavaType.J_L_OBJECT;
+    }
+
+
+    private static boolean convertArgs(Block.Builder block, Value[] args, List<TypeElement> paramTypes) {
+        assert args.length == paramTypes.size();
+        boolean convert = false;
+        for (int i = 0; i < args.length; i++) {
+            TypeElement pt = paramTypes.get(i);
+            Value arg = args[i];
+            if (requiresExplicitConversion(arg.type(), pt)) {
+                args[i] = block.op(CoreOp.conv(pt, arg));
+                convert = true;
+            }
+        }
+        return convert;
+    }
+
+    private static boolean requiresExplicitConversion(TypeElement from, TypeElement to) {
+        return from.equals(JavaType.BOOLEAN) && to.equals(JavaType.INT)
+            || from.equals(JavaType.INT) && to.equals(JavaType.BOOLEAN);
     }
 }
