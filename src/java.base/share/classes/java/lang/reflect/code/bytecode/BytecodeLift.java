@@ -279,11 +279,12 @@ public final class BytecodeLift {
             mDesc = mDesc.insertParameterTypes(0, classModel.thisClass().asSymbol());
         }
         return NormalizeBlocksTransformer.transform(
+                PostLiftTypesTransformer.transform(
                 CoreOp.func(methodModel.methodName().stringValue(),
                             MethodRef.ofNominalDescriptor(mDesc)).body(entryBlock ->
                                     new BytecodeLift(entryBlock,
                                                      classModel,
-                                                     methodModel.code().orElseThrow()).liftBody()));
+                                                     methodModel.code().orElseThrow()).liftBody())));
     }
 
     private Block.Builder newBlock(List<Block.Parameter> otherBlockParams) {
@@ -928,7 +929,10 @@ public final class BytecodeLift {
                 });
                 case DynamicConstantDesc<?> v when v.bootstrapMethod().owner().equals(ConstantDescs.CD_ConstantBootstraps)
                                              && v.bootstrapMethod().methodName().equals("nullConstant")
-                        -> liftConstant(null);
+                        -> {
+                    c = null;
+                    yield liftConstant(null);
+                }
                 case DynamicConstantDesc<?> dcd -> {
                     DirectMethodHandleDesc bsm = dcd.bootstrapMethod();
                     MethodTypeDesc bsmDesc = bsm.invocationType();
