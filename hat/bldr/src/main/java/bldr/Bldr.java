@@ -397,8 +397,11 @@ public class Bldr {
 
     public static class CMakeConfig {
         public List<String> opts = new ArrayList<>(List.of("cmake"));
+        public List<String> libraries = new ArrayList<>();
         public Path cmakeBldDebugDir;
         public Path cwd;
+        private String targetPackage;
+        private Path output;
 
         public CMakeConfig _B(Path cmakeBldDebugDir) {
             this.cmakeBldDebugDir = cmakeBldDebugDir;
@@ -421,6 +424,7 @@ public class Bldr {
             this.opts.addAll(Arrays.asList(opts));
             return this;
         }
+
     }
 
     public static void cmake(Consumer<CMakeConfig> cMakeConfigConsumer) {
@@ -429,16 +433,111 @@ public class Bldr {
         try {
             Files.createDirectories(cmakeConfig.cmakeBldDebugDir);
             //System.out.println(cmakeConfig.opts);
-            var cmakeInit = new ProcessBuilder()
+            var cmakeProcessBuilder = new ProcessBuilder()
                     .directory(cmakeConfig.cwd.toFile())
                     .inheritIO()
                     .command(cmakeConfig.opts)
                     .start();
-            cmakeInit.waitFor();
+            cmakeProcessBuilder.waitFor();
         } catch (InterruptedException ie) {
             System.out.println(ie);
         } catch (IOException ioe) {
             System.out.println(ioe);
+        }
+    }
+
+    public static class JExtractConfig {
+        public List<String> opts = new ArrayList<>(List.of("extract"));
+        public List<String> compileFlags = new ArrayList<>();
+        public List<Path> libraries = new ArrayList<>();
+        public List<Path> headers = new ArrayList<>();
+        public Path cwd;
+
+        public Path home;
+        private String targetPackage;
+        private Path output;
+
+        public JExtractConfig cwd(Path cwd) {
+            this.cwd = cwd;
+            return this;
+        }
+
+        public JExtractConfig home(Path home) {
+            this.home = home;
+            opts.remove(0);
+            opts.add(0, path(home, "bin/jextract").toString());
+            return this;
+        }
+
+        public JExtractConfig opts(String... opts) {
+            this.opts.addAll(Arrays.asList(opts));
+            return this;
+        }
+
+        public JExtractConfig target_package(String targetPackage) {
+            this.targetPackage = targetPackage;
+            this.opts.addAll(List.of(
+                    "--target-package",
+                    targetPackage
+            ));
+            return this;
+        }
+
+        public JExtractConfig output(Path output) {
+            this.output = output;
+            this.opts.addAll(List.of(
+                    "--output",
+                    output.toString()
+            ));
+            return this;
+        }
+
+        public JExtractConfig library(Path... libraries) {
+            this.libraries.addAll(Arrays.asList(libraries));
+            for (Path library : libraries) {
+                this.opts.addAll(List.of("--library", ":" + library));
+            }
+            return this;
+        }
+
+        public JExtractConfig l(Path... libraries) {
+            return library(libraries);
+        }
+
+        public JExtractConfig compile_flag(String... compileFlags) {
+            this.compileFlags.addAll(Arrays.asList(compileFlags));
+            return this;
+        }
+
+        public JExtractConfig header(Path header) {
+            this.headers.add(header);
+            this.opts.add(header.toString());
+            return this;
+        }
+    }
+
+    public static void jextract(Consumer<JExtractConfig> jextractConfigConsumer) {
+        JExtractConfig extractConfig = new JExtractConfig();
+        jextractConfigConsumer.accept(extractConfig);
+        System.out.println(extractConfig.opts);
+        var compilerFlags = path(extractConfig.cwd, "compiler_flags.txt");
+        try {
+            PrintWriter compilerFlagsWriter = new PrintWriter(Files.newOutputStream(compilerFlags));
+            compilerFlagsWriter.println(extractConfig.compileFlags);
+            compilerFlagsWriter.close();
+
+            Files.createDirectories(extractConfig.output);
+            var jextractProcessBuilder = new ProcessBuilder()
+                    .directory(extractConfig.cwd.toFile())
+                    .inheritIO()
+                    .command(extractConfig.opts)
+                    .start();
+            jextractProcessBuilder.waitFor();
+            Files.deleteIfExists(compilerFlags);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (InterruptedException ie) {
+            System.out.println(ie);
         }
     }
 
@@ -585,13 +684,12 @@ public class Bldr {
 
     //  https://stackoverflow.com/questions/23272861/how-to-call-testng-xml-from-java-main-method
     public static void main(String[] args) throws Throwable {
-
         var hatDir = path("/Users/grfrost/github/babylon-grfrost-fork/hat");
         var repo = new Repo(mkdir(rmdir(hatDir.resolve("thirdparty"))));
-        GroupArtifactVersion g= new GroupArtifactVersion("org.testng", "testng", "7.1.0");
-        GroupArtifactVersion aparapi = new GroupArtifactVersion("com.aparapi","aparapi","3.0.2");
-        GroupArtifactVersion aparapi_jni = new GroupArtifactVersion("com.aparapi","aparapi-jni","1.4.3");
-        GroupArtifactVersion aparapi_examples = new GroupArtifactVersion("com.aparapi","aparapi-examples","3.0.0");
+        GroupArtifactVersion g = new GroupArtifactVersion("org.testng", "testng", "7.1.0");
+        GroupArtifactVersion aparapi = new GroupArtifactVersion("com.aparapi", "aparapi", "3.0.2");
+        GroupArtifactVersion aparapi_jni = new GroupArtifactVersion("com.aparapi", "aparapi-jni", "1.4.3");
+        GroupArtifactVersion aparapi_examples = new GroupArtifactVersion("com.aparapi", "aparapi-examples", "3.0.0");
         RepoPom testng = repo.get("org.testng", "testng", "7.1.0");
 
         //  var url = new URI("https://repo1.maven.org/maven2/org/testng/testng/7.1.0/testng-7.1.0.pom").toURL();
@@ -602,38 +700,6 @@ public class Bldr {
         // testng.dependencies().stream().forEach(dependency->println(dependency.pomURL()));
 
         // https://repo1.maven.org/maven2/org/testng/testng/7.1.0/testng-7.1.0.jar
-        /*
-        <project>
-          <groupId>org.testng</groupId>
-          <artifactId>testng</artifactId>
-          <version>7.1.0</version>
-          <name>testng</name>
-          <description>Testing framework for Java</description>
-          <url>https://testng.org</url>
-
-          <dependencies>
-             <dependency>
-                <groupId>com.beust</groupId>
-                <artifactId>jcommander</artifactId>
-                <version>1.72</version>
-                <scope>compile</scope>
-             </dependency>
-<dependency>
-<groupId>com.google.inject</groupId>
-<artifactId>guice</artifactId>
-<version>4.1.0</version>
-<classifier>no_aop</classifier>
-<scope>compile</scope>
-</dependency>
-<dependency>
-<groupId>org.yaml</groupId>
-<artifactId>snakeyaml</artifactId>
-<version>1.21</version>
-<scope>compile</scope>
-</dependency>
-</dependencies>
-</project>
-         */
         // var hatDir = path("/Users/grfrost/github/babylon-grfrost-fork/hat");
         var licensePattern = Pattern.compile("^.*Copyright.*202[4-9].*(Intel|Oracle).*$");
         var eolws = Pattern.compile("^.* $");
@@ -665,6 +731,7 @@ public class Bldr {
                 "--add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED"
         );
 
+
         var hatJarResult = javacjar($ -> $
                 .opts(hatJavacOpts)
                 .jar(path(target, "hat-1.0.jar"))
@@ -690,12 +757,73 @@ public class Bldr {
                     .resource_path(path(backendDir, "src/main/resources"))
             );
         }
+        var hattricksDir = path(hatDir, "hattricks");
+        if (Files.exists(hattricksDir)) {
+            for (var hattrickDir : paths(hattricksDir, "chess", "view")) {
+                javacjar($ -> $
+                        .opts(hatJavacOpts)
+                        .jar(path(target, "hat-example-" + hattrickDir.getFileName() + "-1.0.jar"))
+                        .source_path(path(hattrickDir, "src/main/java"))
+                        .class_path(hatJarResult.jar)
+                        .resource_path(path(hattrickDir, "src/main/resources"))
+                );
+            }
+            for (var hattrickDir : paths(hattricksDir, "nbody")) {
+                var appFrameworks = "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks";
+                var MAC_APP_FRAMEWORKS = Path.of(appFrameworks);
+                var MAC_LIB_FRAMEWORKS = Path.of("/System/Library/Frameworks");
+                jextract($ -> $
+                        .home(Path.of("/Users/grfrost/jextract-22/"))
+                        .cwd(hattrickDir)
+                        .target_package("opencl")
+                        .output(path(hattrickDir, "src/main/extracted-java/"))
+                        .library(path(MAC_LIB_FRAMEWORKS, "OpenCL.framework/OpenCL"))
+                        .compile_flag("-F" + MAC_APP_FRAMEWORKS)
+                        .header(path(MAC_APP_FRAMEWORKS, "OpenCL.framework/Headers/opencl.h"))
+                );
+
+                jextract($ -> $
+                        .home(Path.of("/Users/grfrost/jextract-22/"))
+                        .cwd(hattrickDir)
+                        .target_package("opengl")
+                        .output(path(hattrickDir, "src/main/extracted-java/"))
+                        .library(path(MAC_LIB_FRAMEWORKS, "GLUT.framework/GLUT"), path(MAC_LIB_FRAMEWORKS, "OpenGL.framework/OpenGL"))
+                        .compile_flag("-F" + MAC_APP_FRAMEWORKS)
+                        .header(path(MAC_APP_FRAMEWORKS, "GLUT.framework/Headers/glut.h"))
+                );
+
+                /*
+                cat compile_flags.txt
+                     -F/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks
+
+                ~/jextract-22/bin/jextract  \
+                     -t opengl \
+                     -l :${MAC_LIB_FRAMEWORKS}/GLUT.framework/GLUT \
+                     -l :${MAC_LIB_FRAMEWORKS}/OpenGL.framework/OpenGL \
+                      ${MAC_APP_FRAMEWORKS}/GLUT.framework/Headers/glut.h
+
+
+                ~/jextract-22/bin/jextract \
+                    -t opencl \
+                    -l :${MAC_LIB_FRAMEWORKS}/OpenCL.framework/OpenCL \
+                    ${MAC_APP_FRAMEWORKS}/OpenCL.framework/Headers/opencl.h
+                 */
+                javacjar($ -> $
+                        .opts(hatJavacOpts)
+                        .jar(path(target, "hat-example-" + hattrickDir.getFileName() + "-1.0.jar"))
+                        .source_path(path(hattrickDir, "src/main/java"), path(hattrickDir, "src/main/extracted-java"))
+                        .class_path(hatJarResult.jar)
+                        .resource_path(path(hattrickDir, "src/main/resources"))
+                );
+            }
+        }
 
         var cmakeBldDebugDir = backendsDir.resolve("bld-debug");
         if (!existingDir(cmakeBldDebugDir)) {
             mkdir(cmakeBldDebugDir);
             cmake($ -> $.cwd(backendsDir)._B(cmakeBldDebugDir).opts("-DHAT_TARGET=" + target));
         }
-        cmake($ -> $.cwd(backendsDir).__build(cmakeBldDebugDir).opts("--target", "copy_libs"));
+        cmake($ -> $.cwd(backendsDir).__build(cmakeBldDebugDir));
+
     }
 }

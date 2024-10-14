@@ -35,6 +35,8 @@ find . \
    -o -name "*.h" \
    -o -name "*.md" \
    -o -name "*.cpp" \
+   -o -name "mkbld" \
+   -o -name "bld" \
    -o -name CMakeFiles.list \
    | xargs grep "  *$" \
    | cut -d: -f1 \
@@ -49,6 +51,8 @@ find . \
    -o -name "*.h" \
    -o -name "*.md" \
    -o -name "*.cpp" \
+   -o -name "mkbld" \
+   -o -name "bld" \
    -o -name CMakeFiles.list \
    | xargs grep "\t" \
    | cut -d: -f1 \
