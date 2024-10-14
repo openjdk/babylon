@@ -85,7 +85,7 @@ void HIPBackend::HIPProgram::HIPKernel::HIPBuffer::copyFromDevice() {
         exit(-1);
     }
     HIP_CHECK(hipMemcpyDtoHAsync(arg->value.buffer.memorySegment, devicePtr, arg->value.buffer.sizeInBytes, hipKernel->hipStream));
-    
+
     ifacefacade1 = *reinterpret_cast<unsigned long*>(ptr+arg->value.buffer.sizeInBytes-16);
     ifacefacade2 = *reinterpret_cast<unsigned long*>(ptr+arg->value.buffer.sizeInBytes-8);
 
@@ -297,13 +297,13 @@ long HIPBackend::compileProgram(int len, char *source) {
         size_t logSize;
         hiprtcGetProgramLogSize(prog, &logSize);
 
-	std::cerr << "hiprtcCreateProgram(() HIP error = " << std::endl;
+        std::cerr << "hiprtcCreateProgram(() HIP error = " << std::endl;
         if (logSize) {
             std::string log(logSize, '\0');
             hiprtcGetProgramLog(prog, &log[0]);
             std::cerr <<" " << log
                       <<" " << __FILE__ << " line " << __LINE__ << std::endl;
-	}
+        }
         exit(-1);
     }
 

@@ -69,7 +69,7 @@ public:
         };
 
     private:
-	hipModule_t module;
+        hipModule_t module;
 
     public:
         HIPProgram(Backend *backend, BuildInfo *buildInfo, hipModule_t module);
