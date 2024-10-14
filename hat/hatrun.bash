@@ -49,15 +49,33 @@ function example(){
    echo checking backend_jar = ${backend_jar}
    if test -f ${backend_jar} -o -d ${backend_jar} ;then
       example_jar=${build_dir}/hat-example-${example}-1.0.jar
+      case ${example} in
+        nbody)
+           extraVmOpts=-XstartOnFirstThread;;
+      esac
+      case ${backend} in
+        spirv)
+           extraJars=:${build_dir}/levelzero.jar:${build_dir}/beehive-spirv-lib-0.0.4.jar;;
+      esac
+
       echo checking example_jar = ${example_jar}
       if test -f ${example_jar} ; then
-         ${JAVA_HOME}/bin/java \
+         echo ${JAVA_HOME}/bin/java \
             --enable-preview --enable-native-access=ALL-UNNAMED \
-            --class-path ${build_dir}/hat-1.0.jar:${example_jar}:${backend_jar}:${build_dir}/levelzero.jar:${build_dir}/beehive-spirv-lib-0.0.4.jar \
+            ${extraVmOpts} \
+            --class-path ${build_dir}/hat-1.0.jar:${example_jar}:${backend_jar}${extraJars} \
             --add-exports=java.base/jdk.internal=ALL-UNNAMED \
             -Djava.library.path=${build_dir}:/usr/local/lib \
             -Dheadless=${headless} \
-            ${example}.Main
+            ${example}.Main $*
+         ${JAVA_HOME}/bin/java \
+            --enable-preview --enable-native-access=ALL-UNNAMED \
+            ${extraVmOpts} \
+            --class-path ${build_dir}/hat-1.0.jar:${example_jar}:${backend_jar}${extraJars} \
+            --add-exports=java.base/jdk.internal=ALL-UNNAMED \
+            -Djava.library.path=${build_dir}:/usr/local/lib \
+            -Dheadless=${headless} \
+            ${example}.Main $*
       else
          echo no such example example_jar = ${example_jar}
       fi
