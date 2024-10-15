@@ -142,11 +142,7 @@ sealed abstract class SlotOp extends ExternalizableOp {
     }
 
     public static SlotLoadOp load(int slot) {
-        return load(slot, JavaType.J_L_OBJECT);
-    }
-
-    public static SlotLoadOp load(int slot, TypeElement resultType) {
-        return new SlotLoadOp(slot, resultType);
+        return new SlotLoadOp(slot, UnresolvedType.unresolvedType());
     }
 
     public static SlotStoreOp store(int slot, Value v) {

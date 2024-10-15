@@ -101,9 +101,9 @@ public final class BytecodeLift2 {
 
     private final Block.Builder entryBlock;
     private final ClassModel classModel;
-    private final List<ExceptionCatch> exceptionRegions;
+    private final List<Label> exceptionHandlers;
     private final BitSet ereStack;
-    private final Map<Label, BitSet> ereStackMap;
+    private final Map<Label, BitSet> exceptionHandlersMap;
     private final Map<Label, Block.Builder> blockMap;
     private final List<CodeElement> elements;
     private final Deque<Value> stack;
@@ -114,12 +114,12 @@ public final class BytecodeLift2 {
         this.entryBlock = entryBlock;
         this.currentBlock = entryBlock;
         this.classModel = classModel;
-        this.exceptionRegions = new ArrayList<>();
+        this.exceptionHandlers = new ArrayList<>();
         this.ereStack = new BitSet();
         this.newStack = new ArrayDeque<>();
         this.elements = codeModel.elementList();
         this.stack = new ArrayDeque<>();
-        this.ereStackMap = new HashMap<>();
+        this.exceptionHandlersMap = new HashMap<>();
         this.blockMap = codeModel.findAttribute(Attributes.stackMapTable()).map(sma ->
                 sma.entries().stream().collect(Collectors.toUnmodifiableMap(
                         StackMapFrameInfo::target,
@@ -182,27 +182,35 @@ public final class BytecodeLift2 {
     }
 
     private void liftBody() {
-        // fill exception regions and exception regions stack map
+        // store entry block
+        int slot = 0;
+        for (var ep : entryBlock.parameters()) {
+            op(SlotOp.store(slot, ep));
+            slot += ep.type().equals(JavaType.LONG) || ep.type().equals(JavaType.DOUBLE) ? 2 : 1;
+        }
+
+        // fill exceptionHandlers and exceptionHandlersMap
         BitSet eStack = new BitSet();
+        var ecs = new ArrayList<ExceptionCatch>();
         for (var e : elements) {
             if (e instanceof ExceptionCatch ec) {
-                exceptionRegions.add(ec);
+                ecs.add(ec);
+                // ecs are squashed by handler
+                if (exceptionHandlers.indexOf(ec.handler()) < 0) {
+                    exceptionHandlers.add(ec.handler());
+                }
             } else if (e instanceof LabelTarget lt) {
                 BitSet newEreStack = null;
-                for (int i = 0; i < exceptionRegions.size(); i++) {
-                    var er = exceptionRegions.get(i);
-                    if (lt.label() == er.tryStart()) {
+                for (var er : ecs) {
+                    if (lt.label() == er.tryStart() || lt.label() == er.tryEnd()) {
                         if (newEreStack == null) newEreStack = (BitSet)eStack.clone();
-                        newEreStack.set(i);
-                    }
-                    if (lt.label() == er.tryEnd()) {
-                        if (newEreStack == null) newEreStack = (BitSet)eStack.clone();
-                        newEreStack.clear(i);
+
+                        newEreStack.set(exceptionHandlers.indexOf(er.handler()), lt.label() == er.tryStart());
                     }
                 }
                 if (newEreStack != null || blockMap.containsKey(lt.label()))  {
                     if (newEreStack != null) eStack = newEreStack;
-                    ereStackMap.put(lt.label(), eStack);
+                    exceptionHandlersMap.put(lt.label(), eStack);
                 }
             }
         }
@@ -213,7 +221,7 @@ public final class BytecodeLift2 {
                     // Exception blocks are inserted by label target (below)
                 }
                 case LabelTarget lt -> {
-                    var newEreStack = ereStackMap.get(lt.label());
+                    var newEreStack = exceptionHandlersMap.get(lt.label());
                     if (newEreStack != null) {
                         if (currentBlock != null) {
                             var eresToLeave = (BitSet)ereStack.clone();
@@ -221,7 +229,7 @@ public final class BytecodeLift2 {
                             if (!eresToLeave.isEmpty()) {
                                 Block.Builder next = entryBlock.block();
                                 op(TryOp.tryEnd(next.successor(), eresToLeave.stream().mapToObj(ei ->
-                                        blockMap.get(exceptionRegions.get(ei).handler()).successor()).toList()));
+                                        blockMap.get(exceptionHandlers.get(ei)).successor()).toList()));
                                 currentBlock = next;
                             }
                         }
@@ -242,7 +250,7 @@ public final class BytecodeLift2 {
                         if (!eresToEnter.isEmpty()) {
                             next = entryBlock.block();
                             op(TryOp.tryStart(next.successor(), eresToEnter.stream().mapToObj(ei ->
-                                    blockMap.get(exceptionRegions.get(ei).handler()).successor()).toList().reversed()));
+                                    blockMap.get(exceptionHandlers.get(ei)).successor()).toList().reversed()));
                             currentBlock = next;
                         }
                         ereStack.clear();
@@ -301,7 +309,7 @@ public final class BytecodeLift2 {
                     endOfFlow();
                 }
                 case LoadInstruction inst -> {
-                    stack.push(op(SlotOp.load(i)));
+                    stack.push(op(SlotOp.load(inst.slot())));
                 }
                 case StoreInstruction inst -> {
                     op(SlotOp.store(inst.slot(), stack.pop()));
@@ -725,7 +733,7 @@ public final class BytecodeLift2 {
             case ClassDesc cd -> op(CoreOp.constant(JavaType.J_L_CLASS, JavaType.type(cd)));
             case Double d -> op(CoreOp.constant(JavaType.DOUBLE, d));
             case Float f -> op(CoreOp.constant(JavaType.FLOAT, f));
-            case Integer ii -> op(CoreOp.constant(JavaType.INT, ii));
+            case Integer ii -> op(CoreOp.constant(UnresolvedType.unresolvedType(), ii));
             case Long l -> op(CoreOp.constant(JavaType.LONG, l));
             case String s -> op(CoreOp.constant(JavaType.J_L_STRING, s));
             case DirectMethodHandleDesc dmh -> {
@@ -841,14 +849,14 @@ public final class BytecodeLift2 {
 
     private Block.Builder targetBlockForBranch(Label targetLabel) {
         Block.Builder targetBlock = blockMap.get(targetLabel);
-        var targetEreStack = ereStackMap.get(targetLabel);
+        var targetEreStack = exceptionHandlersMap.get(targetLabel);
         var eresToEnter = (BitSet)targetEreStack.clone();
         eresToEnter.andNot(ereStack);
         if (!eresToEnter.isEmpty()) {
             // prepend exception region exits
             Block.Builder prev = newBlock(targetBlock.parameters());
             prev.op(TryOp.tryStart(successorWithStack(targetBlock), eresToEnter.stream().mapToObj(ei ->
-                    blockMap.get(exceptionRegions.get(ei).handler()).successor()).toList().reversed()));
+                    blockMap.get(exceptionHandlers.get(ei)).successor()).toList().reversed()));
             targetBlock = prev;
         }
         var eresToLeave = (BitSet)ereStack.clone();
@@ -857,7 +865,7 @@ public final class BytecodeLift2 {
             // prepend exception region enters
             Block.Builder prev = newBlock(targetBlock.parameters());
             prev.op(TryOp.tryEnd(successorWithStack(targetBlock), eresToLeave.stream().mapToObj(ei ->
-                    blockMap.get(exceptionRegions.get(ei).handler()).successor()).toList()));
+                    blockMap.get(exceptionHandlers.get(ei)).successor()).toList()));
             targetBlock = prev;
         }
         return targetBlock;

@@ -30,7 +30,7 @@ import java.util.List;
 
 final class UnresolvedType implements TypeElement {
 
-    private static final TypeElement.ExternalizedTypeElement UNRESOLVED_EXT = new TypeElement.ExternalizedTypeElement("UNRESOLVED", List.of());
+    private static final TypeElement.ExternalizedTypeElement UNRESOLVED_EXT = new TypeElement.ExternalizedTypeElement("?", List.of());
 
     static UnresolvedType unresolvedType() {
         return new UnresolvedType();
