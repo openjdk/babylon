@@ -40,21 +40,32 @@ public class TestPrimitiveTypePatterns {
             boolean.class, int.class);
 
     @DataProvider
-    public static Object[][] fromInt() {
+    public static Object[][] dp() {
         return new Object[][]{
-                {JavaType.BYTE, new int[] {Byte.MIN_VALUE, Byte.MAX_VALUE, Byte.MIN_VALUE - 1, Byte.MAX_VALUE + 1}, intToByte},
-                {JavaType.SHORT, new int[] {Short.MIN_VALUE, Short.MAX_VALUE, Short.MIN_VALUE - 1, Short.MAX_VALUE + 1}, intToShort},
-                {JavaType.CHAR, new int[] {Character.MIN_VALUE, Character.MAX_VALUE, Character.MIN_VALUE - 1, Character.MAX_VALUE + 1}, intToChar},
+                {JavaType.INT, JavaType.BYTE, new Object[] {Byte.MIN_VALUE - 1, Byte.MIN_VALUE, Byte.MAX_VALUE,
+                        Byte.MAX_VALUE + 1}, intToByte},
+                {JavaType.INT, JavaType.SHORT, new Object[] {Short.MIN_VALUE - 1, Short.MIN_VALUE, Short.MAX_VALUE,
+                        Short.MAX_VALUE + 1}, intToShort},
+                {JavaType.INT, JavaType.CHAR, new Object[] {Character.MIN_VALUE - 1, Character.MIN_VALUE, Character.MAX_VALUE,
+                        Character.MAX_VALUE + 1}, intToChar},
                 // (1<<24) + 1 : first int that's not an instanceof float
                 // 1<<31) - (1<<7): largest int that's an instance of float
-                {JavaType.FLOAT, new int[] {1<<24, (1<<24) + 1, (1<<31) - (1<<7), -((1<<24) + 1)}, intToFloat}
+                {JavaType.INT, JavaType.FLOAT, new Object[] {1<<24, (1<<24) + 1, (1<<31) - (1<<7), (1<<31) - (1<<7) + 1,
+                        Integer.MAX_VALUE, Integer.MIN_VALUE}, intToFloat},
+
+                {JavaType.SHORT, JavaType.BYTE, new Object[]{(short) (Byte.MIN_VALUE - 1), Byte.MIN_VALUE, Byte.MAX_VALUE,
+                        (short) (Byte.MAX_VALUE + 1)}, intToByte},
+                {JavaType.SHORT, JavaType.CHAR, new Object[]{Short.MIN_VALUE, (short) -1, (short) 0, Short.MAX_VALUE}, intToChar},
+
+                {JavaType.CHAR, JavaType.BYTE, new Object[]{(char) 0, (char) Byte.MAX_VALUE, (char) (Byte.MAX_VALUE + 1)}, intToByte},
+                {JavaType.CHAR, JavaType.SHORT, new Object[]{(char) 0, (char) Short.MAX_VALUE, (char) (Short.MAX_VALUE + 1)}, intToShort},
         };
     }
 
-    @Test(dataProvider = "fromInt")
-    void fromInt(JavaType targetType, int[] values, MethodRef expectedConversionMethod) throws Throwable {
+    @Test(dataProvider = "dp")
+    void test(JavaType sourceType, JavaType targetType, Object[] values, MethodRef expectedConversionMethod) throws Throwable {
 
-        var model = buildTypePatternModel(JavaType.INT, targetType);
+        var model = buildTypePatternModel(sourceType, targetType);
         model.writeTo(System.out);
 
         var lmodel = model.transform(OpTransformer.LOWERING_TRANSFORMER);
@@ -63,10 +74,9 @@ public class TestPrimitiveTypePatterns {
                 containsOp(lmodel.body(), op -> op instanceof InvokeOp invOp && invOp.invokeDescriptor().equals(expectedConversionMethod))
         );
 
-
         var mh = BytecodeGenerator.generate(MethodHandles.lookup(), lmodel);
 
-        for (int v : values) {
+        for (Object v : values) {
             Assert.assertEquals(Interpreter.invoke(lmodel, v), mh.invoke(v));
         }
     }

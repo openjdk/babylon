@@ -3158,6 +3158,9 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 boolean patternWithPrimitive = false;
                 if (targetType instanceof PrimitiveType tt && target.type() instanceof PrimitiveType st) {
                     patternWithPrimitive = true;
+                    if (List.of(CHAR, SHORT).contains(st)) {
+                        st = INT;
+                    }
                     String s = capitalize(st.toString());
                     String t = capitalize(tt.toString());
                     String mn = "is%sTo%sExact".formatted(s, t);
