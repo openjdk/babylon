@@ -44,7 +44,7 @@ public class AnfTransformer {
 
     public AnfTransformer(CoreOp.FuncOp funcOp) {
         sourceOp = funcOp;
-        outerBodyBuilder = Body.Builder.of(null, funcOp.invokableType());
+        outerBodyBuilder = Body.Builder.of(null, FunctionType.functionType(funcOp.body().yieldType()));
         idomMap = new ImmediateDominatorMap(funcOp.body());
     }
 
@@ -86,13 +86,11 @@ public class AnfTransformer {
 
     //"Leaf" in this case is a leaf of the dominator tree
     public AnfDialect.AnfFuncOp transformLeafBlock(Block b, Body.Builder ancestorBodyBuilder) {
-        var blockParamTypes = b.parameters().stream().map(Value::type).toList();
         var blockReturnType = getBlockReturnType(b);
-        var blockFType = FunctionType.functionType(blockReturnType, blockParamTypes);
+        var blockFType = FunctionType.functionType(blockReturnType);
 
         List<TypeElement> synthParamTypes = new ArrayList<>();
         synthParamTypes.add(blockFType);
-        synthParamTypes.addAll(blockParamTypes);
 
         var blockFTypeSynth = FunctionType.functionType(blockReturnType, synthParamTypes);
 
@@ -106,7 +104,6 @@ public class AnfTransformer {
             newBodyBuilder.entryBlock().context().mapValue(param, p);
         }
 
-
         var letBody = Body.Builder.of(newBodyBuilder, FunctionType.functionType(blockReturnType, List.of()), CopyContext.create(newBodyBuilder.entryBlock().context()));
 
         AnfDialect.AnfLetOp let = transformOps(b, letBody);
@@ -116,14 +113,11 @@ public class AnfTransformer {
 
     //Non leaf nodes of the dominator tree
     public AnfDialect.AnfFuncOp transformDomBlock(Block b, Body.Builder ancestorBodyBuilder) {
-        //This block dominates another block, and will return a function containing a letrec structure
-        var blockParamTypes = b.parameters().stream().map(Value::type).toList();
         var blockReturnType = getBlockReturnType(b);
-        var blockFType = FunctionType.functionType(blockReturnType, blockParamTypes);
+        var blockFType = FunctionType.functionType(blockReturnType);
 
         List<TypeElement> synthParamTypes = new ArrayList<>();
         synthParamTypes.add(blockFType);
-        synthParamTypes.addAll(blockParamTypes);
 
         var blockFTypeSynth = FunctionType.functionType(blockReturnType, synthParamTypes);
 
@@ -148,8 +142,6 @@ public class AnfTransformer {
             var fval = letrecBody.entryBlock().op(res);
             funMap2.put(dblock, fval);
         }
-
-        Block.Builder blockBuilder = letrecBody.entryBlock();
 
         var letBody = Body.Builder.of(letrecBody, letrecBody.bodyType(), CopyContext.create(letrecBody.entryBlock().context()));
         transformBlockOps(b, letBody.entryBlock());

@@ -1,6 +1,7 @@
 import java.lang.reflect.Method;
 import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.analysis.AnfTransformer;
+import java.lang.reflect.code.analysis.NormalizeBlocksTransformer;
 import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.runtime.CodeReflection;
@@ -37,6 +38,7 @@ public class TestAnfBasicFuns {
             //Ensure we're fully lowered before testing.
             var fz = f.transform(OpTransformer.LOWERING_TRANSFORMER);
             fz = SSA.transform(fz);
+            fz = NormalizeBlocksTransformer.transform(fz);
 
             System.out.println(fz.toText());
 

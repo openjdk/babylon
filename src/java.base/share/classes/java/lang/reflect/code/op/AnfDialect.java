@@ -490,7 +490,7 @@ public final class AnfDialect {
 
     public static AnfFuncOp.Builder func(Body.Builder ancestorBody, String funcName, FunctionType funcType) {
         List<TypeElement> params = new ArrayList<>();
-        params.add(funcType);
+        params.add(funcType.returnType());
         params.addAll(funcType.parameterTypes());
         return new AnfFuncOp.Builder(ancestorBody, funcName, FunctionType.functionType(funcType.returnType(), params));
     }
