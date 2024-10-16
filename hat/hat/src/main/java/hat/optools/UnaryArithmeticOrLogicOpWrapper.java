@@ -26,8 +26,8 @@ package hat.optools;
 
 import java.lang.reflect.code.op.CoreOp;
 
-public class UnaryArithmeticOrLogicOperation extends UnaryOpWrapper<CoreOp.UnaryOp> {
-    UnaryArithmeticOrLogicOperation(CoreOp.UnaryOp op) {
+public class UnaryArithmeticOrLogicOpWrapper extends UnaryOpWrapper<CoreOp.UnaryOp> {
+    UnaryArithmeticOrLogicOpWrapper(CoreOp.UnaryOp op) {
         super(op);
     }
 }
