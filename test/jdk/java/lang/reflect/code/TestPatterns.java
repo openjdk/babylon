@@ -105,6 +105,28 @@ public class TestPatterns {
         }
     }
 
+    record R(Number n) {}
+
+    @CodeReflection
+    static boolean recordPatterns2(Object o) {
+        return o instanceof R(_);
+    }
+
+    @Test
+    void testRecordPattern2() {
+
+        CoreOp.FuncOp f = getFuncOp("recordPatterns2");
+        f.writeTo(System.out);
+
+        CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        lf.writeTo(System.out);
+
+        Object[] objects = {new R(1), "str", null};
+        for (Object o : objects) {
+            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, o), recordPatterns2(o));
+        }
+    }
+
 
     static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestPatterns.class.getDeclaredMethods())

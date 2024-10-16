@@ -27,7 +27,7 @@ package java.lang.reflect.code.type;
 
 import java.lang.constant.ClassDesc;
 import java.lang.invoke.MethodHandles.Lookup;
-import java.lang.reflect.Executable;
+import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.util.List;
@@ -51,7 +51,7 @@ public final class TypeVarRef implements JavaType {
     public Type resolve(Lookup lookup) throws ReflectiveOperationException {
         TypeVariable<?>[] typeVariables = switch (owner) {
             case MethodRef methodRef -> {
-                Executable method = ((MethodRef)owner).resolveToMember(lookup);
+                Method method = methodRef.resolveToDirectMethod(lookup);
                 yield method.getTypeParameters();
             }
             case JavaType type -> {

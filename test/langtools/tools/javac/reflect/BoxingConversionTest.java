@@ -308,8 +308,9 @@ public class BoxingConversionTest {
                         %11 : int = invoke %10 @"java.lang.Integer::intValue()int";
                         yield %11;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %17 : boolean = constant @"true";
+                        yield %17;
                     }
                     ()int -> {
                         %12 : int = constant @"0";
@@ -342,8 +343,9 @@ public class BoxingConversionTest {
                         %10 : int = constant @"1";
                         yield %10;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %17 : boolean = constant @"true";
+                        yield %17;
                     }
                     ()int -> {
                         %11 : java.lang.Integer = var.load %4;
@@ -377,8 +379,9 @@ public class BoxingConversionTest {
                         %9 : java.lang.Integer = invoke %8 @"java.lang.Integer::valueOf(int)java.lang.Integer";
                         yield %9;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %17 : boolean = constant @"true";
+                        yield %17;
                     }
                     ()java.lang.Integer -> {
                         %10 : int = constant @"0";
@@ -413,8 +416,9 @@ public class BoxingConversionTest {
                         %11 : int = invoke %10 @"java.lang.Integer::intValue()int";
                         java.yield %11;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %17 : boolean = constant @"true";
+                        yield %17;
                     }
                     ()int -> {
                         %12 : int = constant @"0";
@@ -447,8 +451,9 @@ public class BoxingConversionTest {
                         %10 : int = constant @"1";
                         java.yield %10;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %17 : boolean = constant @"true";
+                        yield %17;
                     }
                     ()int -> {
                         %11 : java.lang.Integer = var.load %4;
@@ -482,8 +487,9 @@ public class BoxingConversionTest {
                         %9 : java.lang.Integer = invoke %8 @"java.lang.Integer::valueOf(int)java.lang.Integer";
                         java.yield %9;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %17 : boolean = constant @"true";
+                        yield %17;
                     }
                     ()java.lang.Integer -> {
                         %10 : int = constant @"0";
@@ -542,7 +548,7 @@ public class BoxingConversionTest {
                 %2 : Var<int> = var %1 @"i";
                 %3 : int = var.load %2;
                 %4 : int = var.load %2;
-                invoke %0 %3 %4 @"BoxingConversionTest::m(int, int, java.lang.Integer[])void";
+                invoke %0 %3 %4 @invoke.kind="INSTANCE" @invoke.varargs="true" @"BoxingConversionTest::m(int, int, java.lang.Integer[])void";
                 return;
             };
             """)
@@ -558,7 +564,7 @@ public class BoxingConversionTest {
                 %4 : int = var.load %2;
                 %5 : int = var.load %2;
                 %6 : java.lang.Integer = invoke %5 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                invoke %0 %3 %4 %6 @"BoxingConversionTest::m(int, int, java.lang.Integer[])void";
+                invoke %0 %3 %4 %6 @invoke.kind="INSTANCE" @invoke.varargs="true" @"BoxingConversionTest::m(int, int, java.lang.Integer[])void";
                 return;
             };
             """)
@@ -576,7 +582,7 @@ public class BoxingConversionTest {
                 %6 : java.lang.Integer = invoke %5 @"java.lang.Integer::valueOf(int)java.lang.Integer";
                 %7 : int = var.load %2;
                 %8 : java.lang.Integer = invoke %7 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                invoke %0 %3 %4 %6 %8 @"BoxingConversionTest::m(int, int, java.lang.Integer[])void";
+                invoke %0 %3 %4 %6 %8 @invoke.kind="INSTANCE" @invoke.varargs="true" @"BoxingConversionTest::m(int, int, java.lang.Integer[])void";
                 return;
             };
             """)

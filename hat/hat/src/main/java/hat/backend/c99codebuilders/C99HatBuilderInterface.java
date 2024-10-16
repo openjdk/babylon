@@ -44,7 +44,7 @@ import hat.optools.OpWrapper;
 import hat.optools.ReturnOpWrapper;
 import hat.optools.TernaryOpWrapper;
 import hat.optools.TupleOpWrapper;
-import hat.optools.UnaryArithmeticOrLogicOperation;
+import hat.optools.UnaryArithmeticOrLogicOpWrapper;
 import hat.optools.VarDeclarationOpWrapper;
 import hat.optools.VarFuncDeclarationOpWrapper;
 import hat.optools.VarLoadOpWrapper;
@@ -71,7 +71,7 @@ public interface C99HatBuilderInterface<T extends C99HatBuilder<?>> {
 
     public T fieldStore(C99HatBuildContext buildContext, FieldStoreOpWrapper fieldStoreOpWrapper);
 
-    T unaryOperation(C99HatBuildContext buildContext, UnaryArithmeticOrLogicOperation unaryOperatorOpWrapper);
+    T unaryOperation(C99HatBuildContext buildContext, UnaryArithmeticOrLogicOpWrapper unaryOperatorOpWrapper);
 
 
     T binaryOperation(C99HatBuildContext buildContext, BinaryArithmeticOrLogicOperation binaryOperatorOpWrapper);
@@ -127,7 +127,7 @@ public interface C99HatBuilderInterface<T extends C99HatBuilder<?>> {
             case FieldLoadOpWrapper $ -> fieldLoad(buildContext, $);
             case FieldStoreOpWrapper $ -> fieldStore(buildContext, $);
             case BinaryArithmeticOrLogicOperation $ -> binaryOperation(buildContext, $);
-            case UnaryArithmeticOrLogicOperation $ -> unaryOperation(buildContext, $);
+            case UnaryArithmeticOrLogicOpWrapper $ -> unaryOperation(buildContext, $);
             case BinaryTestOpWrapper $ -> binaryTest(buildContext, $);
             case ConvOpWrapper $ -> conv(buildContext, $);
             case ConstantOpWrapper $ -> constant(buildContext, $);

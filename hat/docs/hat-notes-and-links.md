@@ -8,7 +8,7 @@
 * House Keeping
     * [Project Layout](hat-01-01-project-layout.md)
     * [Building Babylon](hat-01-02-building-babylon.md)
-    * [Maven and CMake](hat-01-03-maven-cmake.md)
+    * [Building HAT](hat-01-03-building-hat.md)
 * Programming Model
     * [Programming Model](hat-03-programming-model.md)
 * Interface Mapping
@@ -35,3 +35,10 @@
 * [Babylon OpenJDK](https://github.com/openjdk/babylon)
 * [JTREG](https://github.com/openjdk/jtreg)
 * [jexctract](https://github.com/openjdk/jextract)
+
+### General GPGPU
+* [A nice GPGPU state of play video](https://www.youtube.com/watch?v=48AdJgTYSFQ)
+* [Interesting project ](https://www.phoronix.com/news/SCALE-CUDA-Apps-For-AMD-GPUs)
+* [More ](https://www.phoronix.com/review/radeon-cuda-zluda)
+* [More](https://scale-lang.com/posts/2024-07-12-release-announcement)
+* [Scale](https://docs.scale-lang.com/)

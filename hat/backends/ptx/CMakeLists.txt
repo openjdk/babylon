@@ -15,7 +15,6 @@ if(CUDAToolkit_FOUND)
         message("SHARED_BACKEND=${SHARED_BACKEND}")
     endif()
 
-
     include_directories(
             ${CUDAToolkit_INCLUDE_DIR}
 	    ${SHARED_BACKEND}/include
@@ -46,13 +45,7 @@ if(CUDAToolkit_FOUND)
             -lcudart
             -lcuda
     )
-    add_custom_target(ptx_natives DEPENDS ptx_info ptx_backend)
 
-    add_custom_target(copy_ptx_libs DEPENDS ptx_info ptx_backend
-        COMMAND cp ${CMAKE_BINARY_DIR}/ptx/libptx_backend.* ${HAT_TARGET}
-        COMMAND cp ${CMAKE_BINARY_DIR}/ptx/ptx_info ${HAT_TARGET}
-    ) 
-    add_dependencies(copy_libs copy_ptx_libs)
 endif()
 
 

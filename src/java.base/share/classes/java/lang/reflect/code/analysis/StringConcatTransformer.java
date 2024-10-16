@@ -38,7 +38,7 @@ import java.util.*;
  * from blocks and replaces them with equivalent {@link java.lang.StringBuilder} operations. This provides a pathway
  * to remove {@link java.lang.reflect.code.op.CoreOp.ConcatOp} for easier lowering to Bytecode.
  */
-public class StringConcatTransformer implements OpTransformer {
+public final class StringConcatTransformer implements OpTransformer {
 
     private static final JavaType J_L_STRING_BUILDER = JavaType.type(StringBuilder.class);
     private static final MethodRef SB_TO_STRING_REF = MethodRef.method(

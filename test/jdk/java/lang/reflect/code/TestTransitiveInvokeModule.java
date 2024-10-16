@@ -108,9 +108,9 @@ public class TestTransitiveInvokeModule {
             CoreOp.FuncOp tf = rf.f.transform(rf.r.toString(), (block, op) -> {
                 if (op instanceof CoreOp.InvokeOp iop) {
                     MethodRef r = iop.invokeDescriptor();
-                    Executable em = null;
+                    Method em = null;
                     try {
-                        em = r.resolveToMember(l);
+                        em = r.resolveToMethod(l, iop.invokeKind());
                     } catch (ReflectiveOperationException _) {
                     }
                     if (em instanceof Method m) {

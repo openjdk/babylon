@@ -414,13 +414,13 @@ public final class Interpreter {
                                 "Function " + name + " cannot be resolved: top level op is not a module"));
             }
         } else if (o instanceof CoreOp.InvokeOp co) {
-            MethodHandle mh;
-            if (co.hasReceiver()) {
-                mh = methodHandle(l, co.invokeDescriptor());
-            } else {
-                mh = methodStaticHandle(l, co.invokeDescriptor());
-            }
             MethodType target = resolveToMethodType(l, o.opType());
+            MethodHandles.Lookup il = switch (co.invokeKind()) {
+                case STATIC, INSTANCE -> l;
+                case SUPER -> l.in(target.parameterType(0));
+            };
+            MethodHandle mh = resolveToMethodHandle(il, co.invokeDescriptor(), co.invokeKind());
+
             mh = mh.asType(target).asFixedArity();
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
@@ -615,14 +615,6 @@ public final class Interpreter {
         }
     }
 
-    static MethodHandle methodStaticHandle(MethodHandles.Lookup l, MethodRef d) {
-        return resolveToMethodHandle(l, d);
-    }
-
-    static MethodHandle methodHandle(MethodHandles.Lookup l, MethodRef d) {
-        return resolveToMethodHandle(l, d);
-    }
-
     static MethodHandle constructorHandle(MethodHandles.Lookup l, FunctionType ft) {
         MethodType mt = resolveToMethodType(l, ft);
 
@@ -658,9 +650,9 @@ public final class Interpreter {
         return c.cast(v);
     }
 
-    static MethodHandle resolveToMethodHandle(MethodHandles.Lookup l, MethodRef d) {
+    static MethodHandle resolveToMethodHandle(MethodHandles.Lookup l, MethodRef d, CoreOp.InvokeOp.InvokeKind kind) {
         try {
-            return d.resolveToHandle(l);
+            return d.resolveToHandle(l, kind);
         } catch (ReflectiveOperationException e) {
             throw interpreterException(e);
         }

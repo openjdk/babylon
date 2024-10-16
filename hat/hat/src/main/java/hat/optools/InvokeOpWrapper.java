@@ -28,6 +28,7 @@ import hat.ComputeContext;
 import hat.buffer.Buffer;
 import hat.buffer.KernelContext;
 
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.Block;
 import java.lang.reflect.code.Value;
@@ -89,7 +90,7 @@ public class InvokeOpWrapper extends OpWrapper<CoreOp.InvokeOp> {
         return javaReturnType().equals(JavaType.VOID);
     }
 
-    public Method method() {
+    public Method methodNoLookup() {
         Class<?> declaringClass = javaRefClass().orElseThrow();
         // TODO this is just matching the name....
         Optional<Method> declaredMethod = Stream.of(declaringClass.getDeclaredMethods())
@@ -105,6 +106,16 @@ public class InvokeOpWrapper extends OpWrapper<CoreOp.InvokeOp> {
             return nonDeclaredMethod.get();
         } else {
             throw new IllegalStateException("what were we looking for ?"); // getClass causes this
+        }
+    }
+    public Method method(MethodHandles.Lookup lookup) {
+        Method invokedMethod = null;
+        try {
+            invokedMethod = methodRef().resolveToMethod(lookup, op().invokeKind());
+            MethodRef methodRef = methodRef();
+            return invokedMethod;
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -135,14 +146,14 @@ public class InvokeOpWrapper extends OpWrapper<CoreOp.InvokeOp> {
         return isIfaceAccessor() ? IfaceBufferAccess.Access : isIfaceMutator() ? IfaceBufferAccess.Mutate : IfaceBufferAccess.None;
     }
 
-
     public String name() {
         return op().invokeDescriptor().name();
     }
 
     public Optional<Class<?>> javaRefClass() {
         try {
-            String className = javaRefType().toString();
+            JavaType refType = javaRefType();
+            String className = refType.toString();
             Class<?> javaRefClass = Class.forName(className);
             return Optional.of(javaRefClass);
         } catch (ClassNotFoundException e) {

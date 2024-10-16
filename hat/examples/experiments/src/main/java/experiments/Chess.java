@@ -334,21 +334,23 @@ public class Chess {
 
         while (!checkmate) {
             while (!validInput) {
-                System.out.println("Your move : ");
-                str = scanner.nextLine().toLowerCase();
+                do {
+                    System.out.println("Your move : [pnbrqk][a-h][1-8][a-h][1-8]");
+                    str = scanner.nextLine().toLowerCase();
+                }while(str.isEmpty());
                 if (!("pnbrqk".contains(String.valueOf(str.charAt(0)))
-                        && Character.isLetter(str.charAt(1))
-                        && str.charAt(1) > 96
-                        && str.charAt(1) < 105
-                        && Character.isDigit(str.charAt(2))
-                        && str.charAt(2) > 48
-                        && str.charAt(2) < 57
-                        && Character.isLetter(str.charAt(3))
-                        && str.charAt(3) > 96
-                        && str.charAt(3) < 105
-                        && Character.isDigit(str.charAt(4))
-                        && str.charAt(4) > 48
-                        && str.charAt(4) < 57)) {
+                      //  && Character.isLetter(str.charAt(1))
+                        && str.charAt(1) >='a'
+                        && str.charAt(1) <='h'
+                        //&& Character.isDigit(str.charAt(2))
+                        && str.charAt(2) >= '1'
+                        && str.charAt(2) <= '8'
+                     //   && Character.isLetter(str.charAt(3))
+                        && str.charAt(3) >='a'
+                        && str.charAt(3) <='h'
+                       // && Character.isDigit(str.charAt(4))
+                        && str.charAt(4) >= '1'
+                        && str.charAt(4) <= '8')) {
                     System.out.println("Invalid input!");
                 } else {
                     piece = pieces.indexOf(str.charAt(0));

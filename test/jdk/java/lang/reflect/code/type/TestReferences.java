@@ -50,7 +50,8 @@ public class TestReferences {
                 {"java.io.PrintStream::println(java.lang.String)void", "java.io.PrintStream", "println"},
                 {"MethodReferenceTest$A::m(java.lang.Object)java.lang.Object", "MethodReferenceTest$A", "m"},
                 {"MethodReferenceTest$X::<new>(int)MethodReferenceTest$X", "MethodReferenceTest$X", "<new>"},
-                {"MethodReferenceTest$A[]::<new>(int)MethodReferenceTest$A[]", "MethodReferenceTest$A[]", "<new>"}
+                {"MethodReferenceTest$A[]::<new>(int)MethodReferenceTest$A[]", "MethodReferenceTest$A[]", "<new>"},
+                {"R<#R::T<java.lang.Number>>::n()#R::T<java.lang.Number>", "R<#R::T<java.lang.Number>>", "n"}
         };
     }
 
@@ -58,7 +59,7 @@ public class TestReferences {
     public void testMethodRef(String mds, String refType, String name) {
         MethodRef mr = MethodRef.ofString(mds);
         Assert.assertEquals(mr.toString(), mds);
-        Assert.assertEquals(mr.refType().toString(), refType);
+        Assert.assertEquals(mr.refType().externalize().toString(), refType);
         Assert.assertEquals(mr.name(), name);
     }
 
@@ -69,6 +70,7 @@ public class TestReferences {
                 {"a.b::c()int", "a.b", "c", "int"},
                 {"a.b.c::d()int", "a.b.c", "d", "int"},
                 {"java.lang.System::out()java.io.PrintStream", "java.lang.System", "out", "java.io.PrintStream"},
+                {"R<#R::T<java.lang.Number>>::n()#R::T<java.lang.Number>", "R<#R::T<java.lang.Number>>", "n", "#R::T<java.lang.Number>"}
         };
     }
 
@@ -76,9 +78,9 @@ public class TestReferences {
     public void testFieldRef(String fds, String refType, String name, String type) {
         FieldRef fr = FieldRef.ofString(fds);
         Assert.assertEquals(fr.toString(), fds);
-        Assert.assertEquals(fr.refType().toString(), refType);
+        Assert.assertEquals(fr.refType().externalize().toString(), refType);
         Assert.assertEquals(fr.name(), name);
-        Assert.assertEquals(fr.type().toString(), type);
+        Assert.assertEquals(fr.type().externalize().toString(), type);
     }
 
 
@@ -89,6 +91,7 @@ public class TestReferences {
                 {"(B b)A"},
                 {"(B b, C c)A"},
                 {"(p.Func<String, Number> f, Entry<List<String>, val> e, int i, long l)p.A<R>"},
+                {"(#R::T<java.lang.Number> n)R<#R::T<java.lang.Number>>"}
         };
     }
 
@@ -96,16 +99,5 @@ public class TestReferences {
     public void testRecordTypeRef(String rtds) {
         RecordTypeRef rtr = RecordTypeRef.ofString(rtds);
         Assert.assertEquals(rtr.toString(), rtds);
-    }
-
-
-    @CodeReflection
-    static void x() {}
-
-    @Test
-    public void testAccessCodeModel() throws ReflectiveOperationException {
-        MethodRef xr = MethodRef.method(TestReferences.class, "x", void.class);
-        Optional<CoreOp.FuncOp> m = xr.codeModel(MethodHandles.lookup());
-        Assert.assertTrue(m.isPresent());
     }
 }

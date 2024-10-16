@@ -1,0 +1,152 @@
+#!/usr/bin/env java --enable-preview --source 24 --class-path bldr/classes
+/*
+ * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
+
+import module java.compiler;
+import static bldr.Bldr.*;
+void main(String[] args) throws IOException, InterruptedException, URISyntaxException {
+   var hatDir = Path.of(System.getProperty("user.dir"));
+   var thirdPartyDir = path(hatDir, "thirdparty");// maybe clean?
+   var jextractDir = untarIfNeeded(
+         curlIfNeeded(
+            new URI("https://download.java.net/java/early_access/jextract/22/5/openjdk-22-jextract+5-33_macos-aarch64_bin.tar.gz").toURL(),
+            path(thirdPartyDir, "jextract.tar")),
+         path(thirdPartyDir, "jextract-22"));
+
+   var licensePattern = Pattern.compile("^.*Copyright.*202[4-9].*(Intel|Oracle).*$");
+   var eolws = Pattern.compile("^.* $");
+   var tab = Pattern.compile("^.*\\t.*");
+
+   paths(hatDir, "docs", "hat", "examples", "backends").forEach(dir -> {
+         paths(dir, path -> !Pattern.matches("^.*(-debug|rleparser).*$", path.toString())
+               && Pattern.matches("^.*\\.(java|md|cpp|h|hpp)$", path.toString())
+              ).stream().map(path -> new TextFile(path)).forEach(textFile -> {
+                 if (!Pattern.matches("^.*md$", textFile.path().toString()) && !textFile.grep(licensePattern)) {
+                     System.err.println("ERR MISSING LICENSE " + textFile.path());
+                 }
+                 textFile.lines().forEach(line -> {
+                    if (line.grep(tab)) {
+                       System.err.println("ERR TAB " + textFile.path() + ":" + line.line() + "#" + line.num());
+                    }
+                    if (line.grep(eolws)) {
+                       System.err.println("ERR TRAILING WHITESPACE " + textFile.path() + ":" + line.line() + "#" + line.num());
+                    }
+                 });
+         });
+   });
+
+   var target = path(hatDir, "build");// mkdir(rmdir(path(hatDir, "build")));
+
+   var hatJavacOpts = javacjarconfig($ -> $.opts(
+            "--source", "24",
+            "--enable-preview",
+            "--add-exports=java.base/jdk.internal=ALL-UNNAMED",
+            "--add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED"
+            ));
+
+
+   var hatJarResult = javacjar($ -> $
+         .seed(hatJavacOpts)
+         .jar(path(target, "hat-1.0.jar"))
+         .source_path(path(hatDir, "hat/src/main/java"))
+         );
+   var hatExampleJavaConfig = javacjarconfig($ -> $.seed(hatJavacOpts).class_path(hatJarResult.jar));
+   println(hatJarResult.jar);
+   for (var exampleDir : paths(path(hatDir, "examples"), "blackscholes", "mandel", "squares", "heal", "violajones", "life")) {
+      javacjar($ -> $
+            .seed(hatExampleJavaConfig)
+            .jar(path(target, "hat-example-" + exampleDir.getFileName() + "-1.0.jar"))
+            .source_path(path(exampleDir, "src/main/java"))
+            .resource_path(path(exampleDir, "src/main/resources"))
+            );
+   }
+   var backendsDir = path(hatDir, "backends");
+   for (var backendDir : paths(backendsDir, "opencl", "ptx")) {
+      javacjar($ -> $
+            .seed(hatExampleJavaConfig)
+            .jar(path(target, "hat-backend-" + backendDir.getFileName() + "-1.0.jar"))
+            .source_path(path(backendDir, "src/main/java"))
+            .resource_path(path(backendDir, "src/main/resources"))
+            );
+   }
+   var hattricksDir = path(hatDir, "hattricks");
+
+   if (Files.exists(hattricksDir)) {
+      for (var hattrickDir : paths(hattricksDir, "chess", "view")) {
+         javacjar($ -> $
+               .seed(hatExampleJavaConfig)
+               .jar(path(target, "hat-example-" + hattrickDir.getFileName() + "-1.0.jar"))
+               .source_path(path(hattrickDir, "src/main/java"))
+               .resource_path(path(hattrickDir, "src/main/resources"))
+               );
+      }
+
+      for (var hattrickDir : paths(hattricksDir, "nbody")) {
+         var appFrameworks = "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks";
+         var MAC_APP_FRAMEWORKS = Path.of(appFrameworks);
+         var MAC_LIB_FRAMEWORKS = Path.of("/System/Library/Frameworks");
+         var jextractedJava = path(target, "jextracted-java");
+         mkdir(jextractedJava);
+         var jextractedOpenCL = path(jextractedJava, "opencl");
+         var jextractedOpenGL = path(jextractedJava, "opengl");
+         var jextractconfig = jextractconfig($ -> $
+               .home(jextractDir)
+               .cwd(hattrickDir)
+               .output(jextractedJava)
+               .compile_flag("-F" + MAC_APP_FRAMEWORKS)
+               );
+         if (!existingDir(jextractedOpenCL)) {
+            jextract($ -> $
+                  .seed(jextractconfig)
+                  .target_package("opencl")
+                  .library(path(MAC_LIB_FRAMEWORKS, "OpenCL.framework/OpenCL"))
+                  .header(path(MAC_APP_FRAMEWORKS, "OpenCL.framework/Headers/opencl.h"))
+                  );
+         }
+         if (!existingDir(jextractedOpenGL)) {
+            jextract($ -> $
+                  .seed(jextractconfig)
+                  .target_package("opengl")
+                  .library(path(MAC_LIB_FRAMEWORKS, "GLUT.framework/GLUT"), path(MAC_LIB_FRAMEWORKS, "OpenGL.framework/OpenGL"))
+                  .header(path(MAC_APP_FRAMEWORKS, "GLUT.framework/Headers/glut.h"))
+                  );
+         }
+
+         javacjar($ -> $
+               .seed(hatExampleJavaConfig)
+               .jar(path(target, "hat-example-" + hattrickDir.getFileName() + "-1.0.jar"))
+               .source_path(path(hattrickDir, "src/main/java"), jextractedOpenCL, jextractedOpenGL)
+               .resource_path(path(hattrickDir, "src/main/resources"))
+               );
+      }
+   }
+
+   var cmakeBldDebugDir = backendsDir.resolve("bld-debug");
+   if (!existingDir(cmakeBldDebugDir)) {
+      mkdir(cmakeBldDebugDir);
+      cmake($ -> $.cwd(backendsDir)._B(cmakeBldDebugDir).opts("-DHAT_TARGET=" + target));
+   }
+   cmake($ -> $.cwd(backendsDir).__build(cmakeBldDebugDir));
+}

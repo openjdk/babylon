@@ -548,6 +548,9 @@ final class InvokableLeafOps {
     static byte conv_byte(double i) {
         return (byte) i;
     }
+    static boolean conv_boolean(double i) {
+        return ((int)i & 1) == 1;
+    }
 
     // float conversion
     static double conv_double(float i) {
@@ -570,6 +573,9 @@ final class InvokableLeafOps {
     }
     static byte conv_byte(float i) {
         return (byte) i;
+    }
+    static boolean conv_boolean(float i) {
+        return ((int)i & 1) == 1;
     }
 
     // long conversion
@@ -594,6 +600,9 @@ final class InvokableLeafOps {
     static byte conv_byte(long i) {
         return (byte) i;
     }
+    static boolean conv_boolean(long i) {
+        return (i & 1) == 1;
+    }
 
     // int conversion
     static double conv_double(int i) {
@@ -616,6 +625,9 @@ final class InvokableLeafOps {
     }
     static byte conv_byte(int i) {
         return (byte) i;
+    }
+    static boolean conv_boolean(int i) {
+        return (i & 1) == 1;
     }
 
     // short conversion
@@ -640,6 +652,9 @@ final class InvokableLeafOps {
     static byte conv_byte(short i) {
         return (byte) i;
     }
+    static boolean conv_boolean(short i) {
+        return (i & 1) == 1;
+    }
 
     // char conversion
     static double conv_double(char i) {
@@ -663,6 +678,9 @@ final class InvokableLeafOps {
     static byte conv_byte(char i) {
         return (byte) i;
     }
+    static boolean conv_boolean(char i) {
+        return (i & 1) == 1;
+    }
 
     // byte conversion
     static double conv_double(byte i) {
@@ -684,6 +702,35 @@ final class InvokableLeafOps {
         return (char) i;
     }
     static byte conv_byte(byte i) {
+        return i;
+    }
+    static boolean conv_boolean(byte i) {
+        return (i & 1) == 1;
+    }
+
+    // boolean conversion
+    static double conv_double(boolean i) {
+        return i ? 1d : 0d;
+    }
+    static float conv_float(boolean i) {
+        return i ? 1f : 0f;
+    }
+    static long conv_long(boolean i) {
+        return i ? 1l : 0l;
+    }
+    static int conv_int(boolean i) {
+        return i ? 1 : 0;
+    }
+    static short conv_short(boolean i) {
+        return i ? (short)1 : 0;
+    }
+    static char conv_char(boolean i) {
+        return i ? (char)1 : 0;
+    }
+    static byte conv_byte(boolean i) {
+        return i ? (byte)1 : 0;
+    }
+    static boolean conv_boolean(boolean i) {
         return i;
     }
 }

@@ -82,22 +82,6 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
                    </arguments>
                 </configuration>
              </execution>
-              <execution>
-                <id>cmake_install_copy_libs</id>
-                <phase>install</phase>
-                <goals>
-                   <goal>exec</goal>
-                </goals>
-                <configuration>
-                   <executable>cmake</executable>
-                   <arguments>
-                      <argument>--build</argument>
-                      <argument>cmake-build-debug</argument>
-                      <argument>--target</argument>
-                      <argument>copy_libs</argument>
-                   </arguments>
-                </configuration>
-             </execution>
 
              <execution>
                 <id>cmake_clean</id>

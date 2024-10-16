@@ -25,6 +25,8 @@
 
 package java.lang.reflect.code.bytecode;
 
+import jdk.internal.classfile.impl.BytecodeHelpers;
+
 import java.lang.classfile.Attributes;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.ClassModel;
@@ -62,6 +64,7 @@ import java.lang.reflect.code.type.VarType;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
@@ -73,7 +76,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
-import java.util.BitSet;
+import java.lang.reflect.code.analysis.NormalizeBlocksTransformer;
 
 public final class BytecodeLift {
 
@@ -106,12 +109,14 @@ public final class BytecodeLift {
     private final CodeAttribute codeAttribtue;
     private final List<ExceptionRegion> exceptionRegions;
     private final Map<Label, Block.Builder> blockMap;
-    private final LocalsTypeMapper codeTracker;
+    private final LocalsToVarMapper localsToVarMapper;
     private final List<CodeElement> elements;
+    private final Map<LocalsToVarMapper.Variable, Value> varToValueMap;
     private final Deque<Value> stack;
     private final Map<Object, Op.Result> constantCache;
     private final ArrayDeque<ExceptionRegionEntry> exceptionRegionStack;
     private final List<Value> initLocalValues;
+    private final ArrayDeque<ClassDesc> newStack;
     private Block.Builder currentBlock;
 
     private BytecodeLift(Block.Builder entryBlock, ClassModel classModel, CodeModel codeModel, Value... capturedValues) {
@@ -122,6 +127,7 @@ public final class BytecodeLift {
         var smta = codeModel.findAttribute(Attributes.stackMapTable());
         this.exceptionRegions = extractExceptionRegions(codeAttribtue);
         this.elements = codeModel.elementList();
+        this.varToValueMap = new HashMap<>();
         this.stack = new ArrayDeque<>();
         List<ClassDesc> initLocalTypes = new ArrayList<>();
         this.initLocalValues = new ArrayList<>();
@@ -134,13 +140,14 @@ public final class BytecodeLift {
                 initLocalValues.add(null);
             }
         });
-        this.codeTracker = new LocalsTypeMapper(classModel.thisClass().asSymbol(), initLocalTypes, codeModel.exceptionHandlers(), smta, elements);
+        this.localsToVarMapper = new LocalsToVarMapper(classModel.thisClass().asSymbol(), initLocalTypes, codeModel.exceptionHandlers(), smta, elements);
         this.blockMap = smta.map(sma ->
                 sma.entries().stream().collect(Collectors.toUnmodifiableMap(
                         StackMapFrameInfo::target,
                         smfi -> entryBlock.block(toBlockParams(smfi.stack()))))).orElseGet(Map::of);
         this.constantCache = new HashMap<>();
         this.exceptionRegionStack = new ArrayDeque<>();
+        this.newStack = new ArrayDeque<>();
     }
 
     private static List<ExceptionRegion> extractExceptionRegions(CodeAttribute codeAttribute) {
@@ -228,12 +235,12 @@ public final class BytecodeLift {
         for (int i = vtis.size() - 1; i >= 0; i--) {
             var vti = vtis.get(i);
             switch (vti) {
-                case ITEM_INTEGER -> params.add(JavaType.INT);
-                case ITEM_FLOAT -> params.add(JavaType.FLOAT);
-                case ITEM_DOUBLE -> params.add(JavaType.DOUBLE);
-                case ITEM_LONG -> params.add(JavaType.LONG);
-                case ITEM_NULL -> params.add(JavaType.J_L_OBJECT);
-                case ITEM_UNINITIALIZED_THIS ->
+                case INTEGER -> params.add(JavaType.INT);
+                case FLOAT -> params.add(JavaType.FLOAT);
+                case DOUBLE -> params.add(JavaType.DOUBLE);
+                case LONG -> params.add(JavaType.LONG);
+                case NULL -> params.add(JavaType.J_L_OBJECT);
+                case UNINITIALIZED_THIS ->
                     params.add(JavaType.type(classModel.thisClass().asSymbol()));
                 case StackMapFrameInfo.ObjectVerificationTypeInfo ovti ->
                     params.add(JavaType.type(ovti.classSymbol()));
@@ -271,12 +278,12 @@ public final class BytecodeLift {
         if (!methodModel.flags().has(AccessFlag.STATIC)) {
             mDesc = mDesc.insertParameterTypes(0, classModel.thisClass().asSymbol());
         }
-        return CoreOp.func(
-                methodModel.methodName().stringValue(),
-                MethodRef.ofNominalDescriptor(mDesc)).body(entryBlock ->
-                        new BytecodeLift(entryBlock,
-                                         classModel,
-                                         methodModel.code().orElseThrow()).liftBody());
+        return NormalizeBlocksTransformer.transform(
+                CoreOp.func(methodModel.methodName().stringValue(),
+                            MethodRef.ofNominalDescriptor(mDesc)).body(entryBlock ->
+                                    new BytecodeLift(entryBlock,
+                                                     classModel,
+                                                     methodModel.code().orElseThrow()).liftBody()));
     }
 
     private Block.Builder newBlock(List<Block.Parameter> otherBlockParams) {
@@ -319,13 +326,17 @@ public final class BytecodeLift {
 
     private void liftBody() {
         // Declare initial variables
-        for (int i = 0; i < codeTracker.slotsToInitialize.size(); i++) {
-            LocalsTypeMapper.Slot sl = codeTracker.slotsToInitialize.get(i);
-            if (sl != null) {
-                if (sl.var.isSingleValue) {
-                    sl.var.value = initLocalValues.get(i);
+        for (int i = 0; i < localsToVarMapper.slotsToInit(); i++) {
+            LocalsToVarMapper.Variable v = localsToVarMapper.initSlotVar(i);
+            if (v != null) {
+                if (v.hasSingleAssignment()) {
+                    varToValueMap.put(v, initLocalValues.get(i)); // Single value var initialized with entry block parameter
                 } else {
-                    sl.var.value = op(CoreOp.var("slot#" + i, sl.var.type(), initLocalValues.get(i)));
+                    varToValueMap.put(v, op(CoreOp.var("slot#" + i, // New var with slot# name
+                                                       JavaType.type(v.type()), // Type calculated by LocalsToVarMapper
+                                                       i < initLocalValues.size()
+                                                               ? initLocalValues.get(i) // Initialized with entry block parameter
+                                                               : liftDefaultValue(v.type())))); // Initialized with default
                 }
             }
         }
@@ -371,7 +382,7 @@ public final class BytecodeLift {
                         }
                     }
                 }
-                case BranchInstruction inst when inst.opcode().isUnconditionalBranch() -> {
+                case BranchInstruction inst when BytecodeHelpers.isUnconditionalBranch(inst.opcode()) -> {
                     op(CoreOp.branch(successor(findTargetBlock(inst.target()))));
                     endOfFlow();
                 }
@@ -387,12 +398,12 @@ public final class BytecodeLift {
                         case IFLT -> CoreOp.ge(operand, zero(operand));
                         case IFNULL -> CoreOp.neq(operand, liftConstant(null));
                         case IFNONNULL -> CoreOp.eq(operand, liftConstant(null));
-                        case IF_ICMPNE -> unifyOperands(CoreOp::eq, stack.pop(), operand, TypeKind.IntType);
-                        case IF_ICMPEQ -> unifyOperands(CoreOp::neq, stack.pop(), operand, TypeKind.IntType);
-                        case IF_ICMPGE -> unifyOperands(CoreOp::lt, stack.pop(), operand, TypeKind.IntType);
-                        case IF_ICMPLE -> unifyOperands(CoreOp::gt, stack.pop(), operand, TypeKind.IntType);
-                        case IF_ICMPGT -> unifyOperands(CoreOp::le, stack.pop(), operand, TypeKind.IntType);
-                        case IF_ICMPLT -> unifyOperands(CoreOp::ge, stack.pop(), operand, TypeKind.IntType);
+                        case IF_ICMPNE -> unifyOperands(CoreOp::eq, stack.pop(), operand, TypeKind.INT);
+                        case IF_ICMPEQ -> unifyOperands(CoreOp::neq, stack.pop(), operand, TypeKind.INT);
+                        case IF_ICMPGE -> unifyOperands(CoreOp::lt, stack.pop(), operand, TypeKind.INT);
+                        case IF_ICMPLE -> unifyOperands(CoreOp::gt, stack.pop(), operand, TypeKind.INT);
+                        case IF_ICMPGT -> unifyOperands(CoreOp::le, stack.pop(), operand, TypeKind.INT);
+                        case IF_ICMPLT -> unifyOperands(CoreOp::ge, stack.pop(), operand, TypeKind.INT);
                         case IF_ACMPEQ -> CoreOp.neq(stack.pop(), operand);
                         case IF_ACMPNE -> CoreOp.eq(stack.pop(), operand);
                         default -> throw new UnsupportedOperationException("Unsupported branch instruction: " + inst);
@@ -410,7 +421,7 @@ public final class BytecodeLift {
                 case TableSwitchInstruction si -> {
                     liftSwitch(si.defaultTarget(), si.cases());
                 }
-                case ReturnInstruction inst when inst.typeKind() == TypeKind.VoidType -> {
+                case ReturnInstruction inst when inst.typeKind() == TypeKind.VOID -> {
                     op(CoreOp._return());
                     endOfFlow();
                 }
@@ -423,49 +434,27 @@ public final class BytecodeLift {
                     endOfFlow();
                 }
                 case LoadInstruction inst -> {
-                    LocalsTypeMapper.Variable var = codeTracker.getVarOf(i);
-                    if (var.isSingleValue) {
-                        assert var.value != null;
-                        stack.push(var.value);
-                    } else {
-                        assert var.value instanceof Op.Result r && r.op() instanceof CoreOp.VarOp;
-                        stack.push(op(CoreOp.varLoad(var.value)));
-                    }
+                    stack.push(load(i));
                 }
                 case StoreInstruction inst -> {
-                    LocalsTypeMapper.Variable var = codeTracker.getVarOf(i);
-                    if (var.isSingleValue) {
-                        assert var.value == null;
-                        var.value = stack.pop();
-                    } else {
-                        if (var.value == null) {
-                            var.value = op(CoreOp.var("slot#" + inst.slot(), var.type(), stack.pop()));
-                        } else {
-                            assert var.value instanceof Op.Result r && r.op() instanceof CoreOp.VarOp;
-                            op(CoreOp.varStore(var.value, stack.pop()));
-                        }
-                    }
+                    store(i, inst.slot(), stack.pop());
                 }
                 case IncrementInstruction inst -> {
-                    LocalsTypeMapper.Variable var = codeTracker.getVarOf(i);
-                    assert !var.isSingleValue && var.value instanceof Op.Result r && r.op() instanceof CoreOp.VarOp;
-                    op(CoreOp.varStore(var.value, op(CoreOp.add(
-                            op(CoreOp.varLoad(var.value)),
-                            liftConstant(inst.constant())))));
+                    store(i, inst.slot(), op(CoreOp.add(load(-i - 1), liftConstant(inst.constant()))));
                 }
                 case ConstantInstruction inst -> {
                     stack.push(liftConstant(inst.constantValue()));
                 }
                 case ConvertInstruction inst -> {
                     stack.push(op(CoreOp.conv(switch (inst.toType()) {
-                        case ByteType -> JavaType.BYTE;
-                        case ShortType -> JavaType.SHORT;
-                        case IntType -> JavaType.INT;
-                        case FloatType -> JavaType.FLOAT;
-                        case LongType -> JavaType.LONG;
-                        case DoubleType -> JavaType.DOUBLE;
-                        case CharType -> JavaType.CHAR;
-                        case BooleanType -> JavaType.BOOLEAN;
+                        case BYTE -> JavaType.BYTE;
+                        case SHORT -> JavaType.SHORT;
+                        case INT -> JavaType.INT;
+                        case FLOAT -> JavaType.FLOAT;
+                        case LONG -> JavaType.LONG;
+                        case DOUBLE -> JavaType.DOUBLE;
+                        case CHAR -> JavaType.CHAR;
+                        case BOOLEAN -> JavaType.BOOLEAN;
                         default ->
                             throw new IllegalArgumentException("Unsupported conversion target: " + inst.toType());
                     }, stack.pop())));
@@ -552,12 +541,15 @@ public final class BytecodeLift {
                     Op.Result result = switch (inst.opcode()) {
                         case INVOKEVIRTUAL, INVOKEINTERFACE -> {
                             operands.add(stack.pop());
-                            yield op(CoreOp.invoke(mDesc, operands.reversed()));
+                            yield op(CoreOp.invoke(CoreOp.InvokeOp.InvokeKind.INSTANCE, false,
+                                    mDesc.type().returnType(), mDesc, operands.reversed()));
                         }
                         case INVOKESTATIC ->
-                            op(CoreOp.invoke(mDesc, operands.reversed()));
+                                op(CoreOp.invoke(CoreOp.InvokeOp.InvokeKind.STATIC, false,
+                                        mDesc.type().returnType(), mDesc, operands.reversed()));
                         case INVOKESPECIAL -> {
-                            if (inst.name().equalsString(ConstantDescs.INIT_NAME)) {
+                            if (inst.owner().asSymbol().equals(newStack.peek()) && inst.name().equalsString(ConstantDescs.INIT_NAME)) {
+                                newStack.pop();
                                 yield op(CoreOp._new(
                                         FunctionType.functionType(
                                                 mDesc.refType(),
@@ -565,7 +557,8 @@ public final class BytecodeLift {
                                         operands.reversed()));
                             } else {
                                 operands.add(stack.pop());
-                                yield op(CoreOp.invoke(mDesc, operands.reversed()));
+                                yield op(CoreOp.invoke(CoreOp.InvokeOp.InvokeKind.SUPER, false,
+                                        mDesc.type().returnType(), mDesc, operands.reversed()));
                             }
                         }
                         default ->
@@ -678,12 +671,13 @@ public final class BytecodeLift {
                         }
                     }
                 }
-                case NewObjectInstruction _ -> {
+                case NewObjectInstruction inst -> {
                     // Skip over this and the dup to process the invoke special
                     if (i + 2 < elements.size() - 1
                             && elements.get(i + 1) instanceof StackInstruction dup
                             && dup.opcode() == Opcode.DUP) {
                         i++;
+                        newStack.push(inst.className().asSymbol());
                     } else {
                         throw new UnsupportedOperationException("New must be followed by dup");
                     }
@@ -691,14 +685,14 @@ public final class BytecodeLift {
                 case NewPrimitiveArrayInstruction inst -> {
                     stack.push(op(CoreOp.newArray(
                             switch (inst.typeKind()) {
-                                case BooleanType -> JavaType.BOOLEAN_ARRAY;
-                                case ByteType -> JavaType.BYTE_ARRAY;
-                                case CharType -> JavaType.CHAR_ARRAY;
-                                case DoubleType -> JavaType.DOUBLE_ARRAY;
-                                case FloatType -> JavaType.FLOAT_ARRAY;
-                                case IntType -> JavaType.INT_ARRAY;
-                                case LongType -> JavaType.LONG_ARRAY;
-                                case ShortType -> JavaType.SHORT_ARRAY;
+                                case BOOLEAN -> JavaType.BOOLEAN_ARRAY;
+                                case BYTE -> JavaType.BYTE_ARRAY;
+                                case CHAR -> JavaType.CHAR_ARRAY;
+                                case DOUBLE -> JavaType.DOUBLE_ARRAY;
+                                case FLOAT -> JavaType.FLOAT_ARRAY;
+                                case INT -> JavaType.INT_ARRAY;
+                                case LONG -> JavaType.LONG_ARRAY;
+                                case SHORT -> JavaType.SHORT_ARRAY;
                                 default ->
                                         throw new UnsupportedOperationException("Unsupported new primitive array type: " + inst.typeKind());
                             },
@@ -833,6 +827,40 @@ public final class BytecodeLift {
                     throw new UnsupportedOperationException("Unsupported code element: " + elements.get(i));
             }
         }
+        assert newStack.isEmpty();
+    }
+
+    private Value load(int i) {
+        LocalsToVarMapper.Variable var = localsToVarMapper.instructionVar(i);
+        if (var.hasSingleAssignment()) {
+            Value value = varToValueMap.get(var);
+            assert value != null: "Uninitialized single-value variable";
+            return value;
+        } else {
+            Value value = varToValueMap.get(var);
+            assert value instanceof Op.Result r && r.op() instanceof CoreOp.VarOp: "Invalid variable reference";
+            return op(CoreOp.varLoad(value));
+        }
+    }
+
+    private void store(int i, int slot, Value value) {
+        LocalsToVarMapper.Variable var = localsToVarMapper.instructionVar(i);
+        if (var.hasSingleAssignment()) {
+            Value expectedNull = varToValueMap.put(var, value);
+            assert expectedNull == null: "Multiple assignements to a single-value variable";
+        } else {
+            varToValueMap.compute(var, (_, varOpResult) -> {
+                if (varOpResult == null) {
+                    return op(CoreOp.var("slot#" + slot,  // Initial variable declaration with slot# name
+                                         JavaType.type(var.type()), // Type calculated by LocalsToVarMapper
+                                         value));
+                } else {
+                    assert varOpResult instanceof Op.Result r && r.op() instanceof CoreOp.VarOp: "Invalid variable reference";
+                    op(CoreOp.varStore(varOpResult, value)); // Store into an existig variable
+                    return varOpResult;
+                }
+            });
+        }
     }
 
     private Op.Result lookup() {
@@ -845,6 +873,21 @@ public final class BytecodeLift {
             op(CoreOp.arrayStoreOp(array, liftConstant(i), liftConstant(constants[i])));
         }
         return array;
+    }
+
+    private Op.Result liftDefaultValue(ClassDesc type) {
+        return liftConstant(switch (TypeKind.from(type)) {
+            case BOOLEAN -> false;
+            case BYTE -> (byte)0;
+            case CHAR -> (char)0;
+            case DOUBLE -> 0d;
+            case FLOAT -> 0f;
+            case INT -> 0;
+            case LONG -> 0l;
+            case REFERENCE -> null;
+            case SHORT -> (short)0;
+            default -> throw new IllegalStateException("Invalid type " + type.displayName());
+        });
     }
 
     private Op.Result liftConstant(Object c) {
@@ -902,6 +945,9 @@ public final class BytecodeLift {
                     yield op(CoreOp.invoke(bsmRef, bootstrapArgs));
                 }
                 case Boolean b -> op(CoreOp.constant(JavaType.BOOLEAN, b));
+                case Byte b -> op(CoreOp.constant(JavaType.BYTE, b));
+                case Short s -> op(CoreOp.constant(JavaType.SHORT, s));
+                case Character ch -> op(CoreOp.constant(JavaType.CHAR, ch));
                 default -> throw new UnsupportedOperationException(c.getClass().toString());
             };
             constantCache.put(c, res);
@@ -957,7 +1003,7 @@ public final class BytecodeLift {
     }
 
     private Op unifyOperands(BiFunction<Value, Value, Op> operator, Value v1, Value v2, TypeKind tk) {
-        if (tk != TypeKind.IntType || valueType(v1).equals(valueType(v2))) return operator.apply(v1, v2);
+        if (tk != TypeKind.INT || valueType(v1).equals(valueType(v2))) return operator.apply(v1, v2);
         return operator.apply(toInt(v1), toInt(v2));
     }
 
@@ -966,8 +1012,7 @@ public final class BytecodeLift {
     }
 
     private Value zero(Value otherOperand) {
-       var vt = valueType(otherOperand);
-        return vt.equals(PrimitiveType.BOOLEAN) ? liftConstant(false) : liftConstant(0);
+        return liftDefaultValue(BytecodeGenerator.toClassDesc(otherOperand.type()));
     }
 
     private static boolean isCategory1(Value v) {

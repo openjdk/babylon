@@ -31,23 +31,51 @@ function example(){
    backend=$2
    example=$3
    shift 3
+   if test -d maven-build; then
+      echo using trad maven-build
+      build_dir=maven-build
+   elif test -d build; then
+      echo using new build dir
+      build_dir=build
+   else
+      echo No maven-build or build dir!
+      exit 1
+   fi
    if test "${backend}" =  "java"; then
        backend_jar=backends/shared/src/main/resources
    else
-       backend_jar=maven-build/hat-backend-${backend}-1.0.jar
+       backend_jar=${build_dir}/hat-backend-${backend}-1.0.jar
    fi
    echo checking backend_jar = ${backend_jar}
    if test -f ${backend_jar} -o -d ${backend_jar} ;then
-      example_jar=maven-build/hat-example-${example}-1.0.jar
+      example_jar=${build_dir}/hat-example-${example}-1.0.jar
+      case ${example} in
+        nbody)
+           extraVmOpts=-XstartOnFirstThread;;
+      esac
+      case ${backend} in
+        spirv)
+           extraJars=:${build_dir}/levelzero.jar:${build_dir}/beehive-spirv-lib-0.0.4.jar;;
+      esac
+
       echo checking example_jar = ${example_jar}
       if test -f ${example_jar} ; then
+         echo ${JAVA_HOME}/bin/java \
+            --enable-preview --enable-native-access=ALL-UNNAMED \
+            ${extraVmOpts} \
+            --class-path ${build_dir}/hat-1.0.jar:${example_jar}:${backend_jar}${extraJars} \
+            --add-exports=java.base/jdk.internal=ALL-UNNAMED \
+            -Djava.library.path=${build_dir}:/usr/local/lib \
+            -Dheadless=${headless} \
+            ${example}.Main $*
          ${JAVA_HOME}/bin/java \
             --enable-preview --enable-native-access=ALL-UNNAMED \
-            --class-path maven-build/hat-1.0.jar:${example_jar}:${backend_jar} \
+            ${extraVmOpts} \
+            --class-path ${build_dir}/hat-1.0.jar:${example_jar}:${backend_jar}${extraJars} \
             --add-exports=java.base/jdk.internal=ALL-UNNAMED \
-            -Djava.library.path=maven-build\
+            -Djava.library.path=${build_dir}:/usr/local/lib \
             -Dheadless=${headless} \
-            ${example}.Main
+            ${example}.Main $*
       else
          echo no such example example_jar = ${example_jar}
       fi
@@ -56,7 +84,7 @@ function example(){
    fi
 }
 
-if [ $# -eq 0 ]; then 
+if [ $# -eq 0 ]; then
    echo 'usage:'
    echo '   bash hatrun.bash [headless] backend package args ...'
    echo '       headless : Optional passes -Dheadless=true to app'
@@ -64,7 +92,7 @@ if [ $# -eq 0 ]; then
    echo '       backend  : opencl|cuda|spirv|ptx|mock'
    echo '       Class name is assumed to be package.Main '
 else
-   if [ $1 == headless ]; then 
+   if [ $1 == headless ]; then
       echo headless!
       shift 1
       example true $*

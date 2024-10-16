@@ -41,8 +41,9 @@ public class SwitchExpressionTest2 {
                         %15 : java.lang.String = constant @"FOO";
                         yield %15;
                     }
-                    ()void -> {
-                        yield;
+                    ()boolean -> {
+                        %17 : boolean = constant @"true";
+                        yield %17;
                     }
                     ()java.lang.String -> {
                         %16 : java.lang.String = constant @"";
@@ -93,8 +94,9 @@ public class SwitchExpressionTest2 {
                         %15 : java.lang.String = constant @"FOO";
                         java.yield %15;
                     }
-                    ()void -> {
-                        yield;
+                    ()boolean -> {
+                        %17 : boolean = constant @"true";
+                        yield %17;
                     }
                     ()java.lang.String -> {
                         %16 : java.lang.String = constant @"";
@@ -153,8 +155,9 @@ public class SwitchExpressionTest2 {
                         %15 : java.lang.String = constant @"FOO";
                         java.yield %15;
                     }
-                    ()void -> {
-                        yield;
+                    ()boolean -> {
+                        %17 : boolean = constant @"true";
+                        yield %17;
                     }
                     ()java.lang.String -> {
                         %16 : java.lang.String = constant @"";
@@ -212,8 +215,9 @@ public class SwitchExpressionTest2 {
                         %17 : java.lang.String = constant @"vowel";
                         java.yield %17;
                     }
-                    ()void -> {
-                        yield;
+                    ()boolean -> {
+                        %19 : boolean = constant @"true";
+                        yield %19;
                     }
                     ()java.lang.String -> {
                         %18 : java.lang.String = constant @"consonant";
@@ -255,8 +259,9 @@ public class SwitchExpressionTest2 {
                         %13 : java.lang.String = constant @"NINE";
                         yield %13;
                     }
-                    ()void -> {
-                        yield;
+                    ()boolean -> {
+                        %15 : boolean = constant @"true";
+                        yield %15;
                     }
                     ()java.lang.String -> {
                         %14 : java.lang.String = constant @"An integer";
@@ -288,8 +293,9 @@ public class SwitchExpressionTest2 {
                         %7 : java.lang.String = constant @"null";
                         yield %7;
                     }
-                    ()void -> {
-                        yield;
+                    ()boolean -> {
+                        %9 : boolean = constant @"true";
+                        yield %9;
                     }
                     ()java.lang.String -> {
                         %8 : java.lang.String = constant @"non null";
@@ -338,8 +344,9 @@ public class SwitchExpressionTest2 {
                         %10 : java.lang.String = constant @"A or B";
                         java.yield %10;
                     }
-                    ()void -> {
-                        yield;
+                    ()boolean -> {
+                        %12 : boolean = constant @"true";
+                        yield %12;
                     }
                     ()java.lang.String -> {
                         %11 : java.lang.String = constant @"Neither A nor B";
@@ -426,8 +433,9 @@ public class SwitchExpressionTest2 {
                         %27 : int = constant @"9";
                         yield %27;
                     }
-                    ()void -> {
-                        yield;
+                    ()boolean -> {
+                        %29 : boolean = constant @"true";
+                        yield %29;
                     }
                     ()int -> {
                         %28 : java.lang.MatchException = new @"func<java.lang.MatchException>";
@@ -607,8 +615,9 @@ public class SwitchExpressionTest2 {
                         %82 : java.lang.String = constant @"13";
                         yield %82;
                     }
-                    ()void -> {
-                        yield;
+                    ()boolean -> {
+                        %84 : boolean = constant @"true";
+                        yield %84;
                     }
                     ()java.lang.String -> {
                         %83 : java.lang.String = constant @"an int";
@@ -680,8 +689,9 @@ public class SwitchExpressionTest2 {
                         %23 : java.lang.String = constant @"two";
                         yield %23;
                     }
-                    ()void -> {
-                        yield;
+                    ()boolean -> {
+                        %25 : boolean = constant @"true";
+                        yield %25;
                     }
                     ()java.lang.String -> {
                         %24 : java.lang.String = constant @"default";
@@ -731,8 +741,9 @@ public class SwitchExpressionTest2 {
                         %17 : java.lang.String = constant @"two";
                         yield %17;
                     }
-                    ()void -> {
-                        yield;
+                    ()boolean -> {
+                        %19 : boolean = constant @"true";
+                        yield %19;
                     }
                     ()java.lang.String -> {
                         %18 : java.lang.String = constant @"default";
@@ -776,8 +787,9 @@ public class SwitchExpressionTest2 {
                         %11 : java.lang.String = constant @"g";
                         yield %11;
                     }
-                    ()void -> {
-                        yield;
+                    ()boolean -> {
+                        %13 : boolean = constant @"true";
+                        yield %13;
                     }
                     ()java.lang.String -> {
                         %12 : java.lang.MatchException = new @"func<java.lang.MatchException>";
@@ -812,8 +824,8 @@ public class SwitchExpressionTest2 {
                     }
                     (%10 : java.lang.String)boolean -> {
                         %11 : boolean = pattern.match %10
-                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Object> -> {
-                                %12 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Object> = pattern.binding @"o";
+                            ()java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.Object> -> {
+                                %12 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.Object> = pattern.type @"o";
                                 yield %12;
                             }
                             (%13 : java.lang.Object)void -> {
@@ -851,8 +863,8 @@ public class SwitchExpressionTest2 {
                 %7 : java.lang.String = java.switch.expression %2
                     (%8 : SwitchExpressionTest2$A)boolean -> {
                         %9 : boolean = pattern.match %8
-                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<SwitchExpressionTest2$B> -> {
-                                %10 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<SwitchExpressionTest2$B> = pattern.binding @"b";
+                            ()java.lang.reflect.code.ExtendedOp$Pattern$Type<SwitchExpressionTest2$B> -> {
+                                %10 : java.lang.reflect.code.ExtendedOp$Pattern$Type<SwitchExpressionTest2$B> = pattern.type @"b";
                                 yield %10;
                             }
                             (%11 : SwitchExpressionTest2$B)void -> {
@@ -867,8 +879,8 @@ public class SwitchExpressionTest2 {
                     }
                     (%13 : SwitchExpressionTest2$A)boolean -> {
                         %14 : boolean = pattern.match %13
-                            ()java.lang.reflect.code.ExtendedOp$Pattern$Binding<.<SwitchExpressionTest2, SwitchExpressionTest2$C>> -> {
-                                %15 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<.<SwitchExpressionTest2, SwitchExpressionTest2$C>> = pattern.binding @"c";
+                            ()java.lang.reflect.code.ExtendedOp$Pattern$Type<.<SwitchExpressionTest2, SwitchExpressionTest2$C>> -> {
+                                %15 : java.lang.reflect.code.ExtendedOp$Pattern$Type<.<SwitchExpressionTest2, SwitchExpressionTest2$C>> = pattern.type @"c";
                                 yield %15;
                             }
                             (%16 : .<SwitchExpressionTest2, SwitchExpressionTest2$C>)void -> {
@@ -881,8 +893,9 @@ public class SwitchExpressionTest2 {
                         %17 : java.lang.String = constant @"C";
                         yield %17;
                     }
-                    ()void -> {
-                        yield;
+                    ()boolean -> {
+                        %19 : boolean = constant @"true";
+                        yield %19;
                     }
                     ()java.lang.String -> {
                         %18 : java.lang.MatchException = new @"func<java.lang.MatchException>";
@@ -922,8 +935,9 @@ public class SwitchExpressionTest2 {
                         %12 : java.lang.String = constant @"Aow";
                         yield %12;
                     }
-                    ()void -> {
-                        yield;
+                    ()boolean -> {
+                        %13 : boolean = constant @"true";
+                        yield %13;
                     }
                     ()java.lang.String -> {
                         %4 : java.lang.String = constant @"else";
