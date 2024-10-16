@@ -29,7 +29,6 @@ import java.lang.reflect.code.*;
 import java.lang.reflect.code.op.AnfDialect;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.type.FunctionType;
-import java.lang.reflect.code.type.JavaType;
 import java.util.*;
 import java.util.function.Function;
 
@@ -41,6 +40,7 @@ public class AnfTransformer {
     final Body.Builder outerBodyBuilder;
     final ImmediateDominatorMap idomMap;
     final Map<Block, Value> funMap = new HashMap<>();
+    final Map<Block, Value> funMap2 = new HashMap<>();
 
     public AnfTransformer(CoreOp.FuncOp funcOp) {
         sourceOp = funcOp;
@@ -59,6 +59,9 @@ public class AnfTransformer {
 
         var builderEntry = outerBodyBuilder.entryBlock();
 
+        var selfRefP = builderEntry.parameter(((CoreOp.FuncOp) b.parentOp()).invokableType());
+        funMap.put(entry, selfRefP);
+
         for (Block.Parameter p : entry.parameters()) {
             var newP = builderEntry.parameter(p.type());
             builderEntry.context().mapValue(p,newP);
@@ -69,15 +72,7 @@ public class AnfTransformer {
         List<Block> dominatedBlocks = idomMap.idominates(entry);
         List<AnfDialect.AnfFuncOp> funs = dominatedBlocks.stream().map(block -> transformBlock(block, outerLetRecBody)).toList();
 
-        //Remove ApplyStubs
         var res = transformBlock(entry, outerLetRecBody);
-
-        //var transformContext = CopyContext.create();
-        //for (Value v : funMap.values()) {
-        //    transformContext.mapValue(v,v);
-        //}
-        //res = res.transform(transformContext, new ApplyStubTransformer());
-
         return res;
 
     }
@@ -95,9 +90,15 @@ public class AnfTransformer {
         var blockReturnType = getBlockReturnType(b);
         var blockFType = FunctionType.functionType(blockReturnType, blockParamTypes);
 
-        Body.Builder newBodyBuilder = Body.Builder.of(ancestorBodyBuilder, blockFType, CopyContext.create(ancestorBodyBuilder.entryBlock().context()));
+        List<TypeElement> synthParamTypes = new ArrayList<>();
+        synthParamTypes.add(blockFType);
+        synthParamTypes.addAll(blockParamTypes);
 
-        var selfRefParam = newBodyBuilder.entryBlock().parameter(blockFType);
+        var blockFTypeSynth = FunctionType.functionType(blockReturnType, synthParamTypes);
+
+        Body.Builder newBodyBuilder = Body.Builder.of(ancestorBodyBuilder, blockFTypeSynth, CopyContext.create(ancestorBodyBuilder.entryBlock().context()));
+
+        var selfRefParam = newBodyBuilder.entryBlock().parameters().get(0);
         funMap.put(b, selfRefParam);
 
         for (Block.Parameter param : b.parameters()) {
@@ -120,11 +121,17 @@ public class AnfTransformer {
         var blockReturnType = getBlockReturnType(b);
         var blockFType = FunctionType.functionType(blockReturnType, blockParamTypes);
 
+        List<TypeElement> synthParamTypes = new ArrayList<>();
+        synthParamTypes.add(blockFType);
+        synthParamTypes.addAll(blockParamTypes);
+
+        var blockFTypeSynth = FunctionType.functionType(blockReturnType, synthParamTypes);
+
         //Function body contains letrec and its bodies
-        Body.Builder funcBodyBuilder = Body.Builder.of(ancestorBodyBuilder, blockFType, CopyContext.create(ancestorBodyBuilder.entryBlock().context()));
+        Body.Builder funcBodyBuilder = Body.Builder.of(ancestorBodyBuilder, blockFTypeSynth, CopyContext.create(ancestorBodyBuilder.entryBlock().context()));
 
         //Self param
-        var selfRefParam = funcBodyBuilder.entryBlock().parameter(blockFType);
+        var selfRefParam = funcBodyBuilder.entryBlock().parameters().get(0);
         funMap.put(b, selfRefParam);
 
         for (Block.Parameter param : b.parameters()) {
@@ -136,11 +143,10 @@ public class AnfTransformer {
         Body.Builder letrecBody = Body.Builder.of(funcBodyBuilder, FunctionType.functionType(blockReturnType, List.of()), CopyContext.create(funcBodyBuilder.entryBlock().context()));
 
         List<Block> dominates = idomMap.idominates(b);
-        List<AnfDialect.AnfFuncOp> funs = new ArrayList<>();
-        //dominates.stream().map((block) -> transformDomBlock(block, letrecBody)).toList();
         for (Block dblock : dominates) {
             var res = transformDomBlock(dblock, letrecBody);
-            funs.add(res);
+            var fval = letrecBody.entryBlock().op(res);
+            funMap2.put(dblock, fval);
         }
 
         Block.Builder blockBuilder = letrecBody.entryBlock();
@@ -212,45 +218,31 @@ public class AnfTransformer {
                     var fbranch_args = c.falseBranch().arguments();
                     fbranch_args = fbranch_args.stream().map(b.context()::getValue).toList();
 
-                    var trueFuncName = CoreOp.constant(JavaType.J_L_STRING, c.trueBranch().targetBlock().toString());
-                    var falseFuncName = CoreOp.constant(JavaType.J_L_STRING, c.falseBranch().targetBlock().toString());
-                    var trueFuncVal = b.op(trueFuncName);
-                    var falseFuncVal = b.op(falseFuncName);
-
                     List<Value> trueArgs = new ArrayList<>();
-                    trueArgs.add(funMap.get(c.trueBranch().targetBlock()));
                     trueArgs.addAll(tbranch_args);
 
                     List<Value> falseArgs = new ArrayList<>();
-                    falseArgs.add(funMap.get(c.falseBranch().targetBlock()));
                     falseArgs.addAll(fbranch_args);
 
-                    var trueApp = AnfDialect.apply(trueArgs);
-                    var falseApp = AnfDialect.apply(falseArgs);
 
                     var ifExp = AnfDialect.if_(b.parentBody(),
-                                    c.trueBranch().targetBlock().terminatingOp().resultType(),
+                                    getBlockReturnType(c.trueBranch().targetBlock()),
                                     b.context().getValue(c.predicate()))
-                            .if_((bodyBuilder) -> bodyBuilder.op(trueApp))
-                            .else_((bodyBuilder) -> bodyBuilder.op(falseApp));
+                            .if_((bodyBuilder) -> bindFunApp(bodyBuilder, trueArgs, c.trueBranch().targetBlock()))
+                            .else_((bodyBuilder) -> bindFunApp(bodyBuilder, falseArgs, c.falseBranch().targetBlock()));
 
                     b.op(ifExp);
 
                     return b;
                 }
                 case CoreOp.BranchOp br -> {
-                    var args = br.branch().arguments().stream().toList();
+                    var args = br.branch().arguments();
                     args = args.stream().map(b.context()::getValue).toList();
-                    //var targetFuncConst = CoreOp.constant(JavaType.J_L_STRING, br.branch().targetBlock().toString());
-                    //var targetFuncVal = b.op(targetFuncConst);
 
                     List<Value> funcArgs = new ArrayList<>();
-                    funcArgs.add(funMap.get(br.branch().targetBlock()));
                     funcArgs.addAll(args);
+                    bindFunApp(b, funcArgs, br.branch().targetBlock());
 
-                    var funcApp = AnfDialect.apply(funcArgs);
-
-                    b.op(funcApp);
                     return b;
                 }
                 case CoreOp.ReturnOp ro -> {
@@ -272,6 +264,29 @@ public class AnfTransformer {
             return b;
         }
     }
+
+
+    private void bindFunApp(Block.Builder b, List<Value> args, Block target) {
+
+        List<Value> synthArgs = new ArrayList<>();
+        synthArgs.addAll(args);
+        synthArgs.addFirst(funMap.get(target));
+        try {
+            b.op(AnfDialect.apply(synthArgs));
+            return;
+        } catch (IllegalStateException e) {}
+
+        synthArgs.removeFirst();
+        synthArgs.addFirst(funMap2.get(target));
+
+        try {
+            b.op(AnfDialect.apply(synthArgs));
+        } catch (IllegalStateException e) {
+            throw new IllegalStateException("No valid mapping to FuncOp for apply");
+        }
+
+    }
+
 
     public AnfDialect.AnfLetOp transformOps(Block b, Body.Builder bodyBuilder) {
         Block.Builder blockb = bodyBuilder.entryBlock();
@@ -324,37 +339,6 @@ public class AnfTransformer {
         //Looks "up" the dominator tree toward start node
         public Block idominatedBy(Block b) {
             return dominatorsMap.get(b);
-        }
-    }
-
-    class ApplyStubTransformer implements OpTransformer {
-
-        //public Map<String, Value> fmap = new HashMap<>();
-
-        @Override
-        public Block.Builder apply(Block.Builder builder, Op op) {
-            switch (op) {
-
-                /*
-                case AnfDialect.AnfFuncOp af -> {
-                    var name = af.funcName();
-                    var val = builder.op(af);
-                    fmap.put(name, val);
-                }
-                 */
-                case AnfDialect.AnfApplyStub as -> {
-                    var name = as.callSiteName;
-                    var args = as.args();
-                    List<Value> newArgs = new ArrayList<>();
-                    newArgs.add(funMap.get(name));
-                    newArgs.addAll(args);
-                    builder.op(AnfDialect.apply(newArgs));
-                }
-                default -> {
-                    builder.op(op);
-                }
-            }
-            return builder;
         }
     }
 }

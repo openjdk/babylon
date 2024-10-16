@@ -23,10 +23,14 @@
  * questions.
  */
 
-import java.lang.reflect.code.analysis.AnfTransformer;
+/*
+ * @test
+ * @run main TestAnfTransform
+ */
 
 import java.lang.reflect.Method;
 import java.lang.reflect.code.OpTransformer;
+import java.lang.reflect.code.analysis.AnfTransformer;
 import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.runtime.CodeReflection;
