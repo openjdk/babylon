@@ -155,7 +155,7 @@ public final class Block implements CodeElement<Block, Op> {
     // @@@ In topological order
     // @@@ Create lazily
     //     Can the representation be more efficient e.g. an array?
-    final Set<Block> predecessors;
+    final SequencedSet<Block> predecessors;
 
     // Reverse postorder index
     // Set when block's body has sorted its blocks and therefore set when built
@@ -312,8 +312,8 @@ public final class Block implements CodeElement<Block, Op> {
      * @return the set of predecessors, as an unmodifiable list.
      * @apiNote A block may refer to itself as a successor and therefore also be its predecessor.
      */
-    public Set<Block> predecessors() {
-        return Collections.unmodifiableSet(predecessors);
+    public SequencedSet<Block> predecessors() {
+        return Collections.unmodifiableSequencedSet(predecessors);
     }
 
     /**
