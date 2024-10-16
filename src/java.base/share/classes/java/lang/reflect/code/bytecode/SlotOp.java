@@ -25,6 +25,7 @@
 package java.lang.reflect.code.bytecode;
 
 import java.lang.reflect.code.CopyContext;
+import java.lang.reflect.code.Op;
 import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.Value;
@@ -38,6 +39,14 @@ import java.util.Map;
 
 sealed abstract class SlotOp extends ExternalizableOp {
     public static final String ATTRIBUTE_SLOT = "slot";
+
+    public static SlotLoadOp load(int slot) {
+        return new SlotLoadOp(slot, UnresolvedType.unresolvedType());
+    }
+
+    public static SlotStoreOp store(int slot, Value v) {
+        return new SlotStoreOp(slot, v);
+    }
 
     final int slot;
 
@@ -141,11 +150,13 @@ sealed abstract class SlotOp extends ExternalizableOp {
         }
     }
 
-    public static SlotLoadOp load(int slot) {
-        return new SlotLoadOp(slot, UnresolvedType.unresolvedType());
+
+    // Support for SlotToVarTransformer
+
+    static final class Var {
+        boolean singleAssignment;
+        Op.Result varOp;
     }
 
-    public static SlotStoreOp store(int slot, Value v) {
-        return new SlotStoreOp(slot, v);
-    }
+    Var var;
 }

@@ -174,7 +174,9 @@ public final class BytecodeLift2 {
         if (!methodModel.flags().has(AccessFlag.STATIC)) {
             mDesc = mDesc.insertParameterTypes(0, classModel.thisClass().asSymbol());
         }
-        return NormalizeBlocksTransformer.transform(PostLiftTypesTransformer.transform(CoreOp.func(methodModel.methodName().stringValue(),
+        return NormalizeBlocksTransformer.transform(
+                SlotToVarTransformer.transform(
+                        CoreOp.func(methodModel.methodName().stringValue(),
                             MethodRef.ofNominalDescriptor(mDesc)).body(entryBlock ->
                                     new BytecodeLift2(entryBlock,
                                                      classModel,
