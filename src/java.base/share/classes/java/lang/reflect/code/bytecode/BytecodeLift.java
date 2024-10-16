@@ -55,6 +55,7 @@ import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Value;
+import java.lang.reflect.code.analysis.NormalizeBlocksTransformer;
 import java.lang.reflect.code.type.FieldRef;
 import java.lang.reflect.code.type.FunctionType;
 import java.lang.reflect.code.type.JavaType;
@@ -76,7 +77,6 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
-import java.lang.reflect.code.analysis.NormalizeBlocksTransformer;
 
 public final class BytecodeLift {
 
@@ -279,25 +279,16 @@ public final class BytecodeLift {
             mDesc = mDesc.insertParameterTypes(0, classModel.thisClass().asSymbol());
         }
         return NormalizeBlocksTransformer.transform(
+                PostLiftTypesTransformer.transform(
                 CoreOp.func(methodModel.methodName().stringValue(),
                             MethodRef.ofNominalDescriptor(mDesc)).body(entryBlock ->
                                     new BytecodeLift(entryBlock,
                                                      classModel,
-                                                     methodModel.code().orElseThrow()).liftBody()));
+                                                     methodModel.code().orElseThrow()).liftBody())));
     }
 
     private Block.Builder newBlock(List<Block.Parameter> otherBlockParams) {
         return entryBlock.block(otherBlockParams.stream().map(Block.Parameter::type).toList());
-    }
-
-    private void moveTo(Block.Builder next) {
-        currentBlock = next;
-        constantCache.clear();
-        // Stack is reconstructed from block parameters
-        stack.clear();
-        if (currentBlock != null) {
-            currentBlock.parameters().forEach(stack::add);
-        }
     }
 
     private void endOfFlow() {
@@ -329,11 +320,12 @@ public final class BytecodeLift {
         for (int i = 0; i < localsToVarMapper.slotsToInit(); i++) {
             LocalsToVarMapper.Variable v = localsToVarMapper.initSlotVar(i);
             if (v != null) {
+                var type = JavaType.type(v.type());
                 if (v.hasSingleAssignment()) {
                     varToValueMap.put(v, initLocalValues.get(i)); // Single value var initialized with entry block parameter
                 } else {
                     varToValueMap.put(v, op(CoreOp.var("slot#" + i, // New var with slot# name
-                                                       JavaType.type(v.type()), // Type calculated by LocalsToVarMapper
+                                                       type, // Type calculated by LocalsToVarMapper
                                                        i < initLocalValues.size()
                                                                ? initLocalValues.get(i) // Initialized with entry block parameter
                                                                : liftDefaultValue(v.type())))); // Initialized with default
@@ -366,7 +358,11 @@ public final class BytecodeLift {
                             // Use stack content as next block arguments
                             op(CoreOp.branch(successor(next)));
                         }
-                        moveTo(next);
+                        constantCache.clear();
+                        // Stack is reconstructed from block parameters
+                        stack.clear();
+                        stack.addAll(next.parameters());
+                        currentBlock = next;
                     }
 
                     // Insert relevant tryStart and construct handler blocks, all in reversed order
@@ -409,11 +405,11 @@ public final class BytecodeLift {
                         default -> throw new UnsupportedOperationException("Unsupported branch instruction: " + inst);
                     };
                     Block.Builder branch = findTargetBlock(inst.target());
-                    Block.Builder next = newBlock(branch.parameters());
+                    Block.Builder next = entryBlock.block();
                     op(CoreOp.conditionalBranch(op(cop),
-                            successor(next),
+                            next.successor(),
                             successor(branch)));
-                    moveTo(next);
+                    currentBlock = next;
                 }
                 case LookupSwitchInstruction si -> {
                     liftSwitch(si.defaultTarget(), si.cases());
@@ -933,7 +929,10 @@ public final class BytecodeLift {
                 });
                 case DynamicConstantDesc<?> v when v.bootstrapMethod().owner().equals(ConstantDescs.CD_ConstantBootstraps)
                                              && v.bootstrapMethod().methodName().equals("nullConstant")
-                        -> liftConstant(null);
+                        -> {
+                    c = null;
+                    yield liftConstant(null);
+                }
                 case DynamicConstantDesc<?> dcd -> {
                     DirectMethodHandleDesc bsm = dcd.bootstrapMethod();
                     MethodTypeDesc bsmDesc = bsm.invocationType();
@@ -950,7 +949,7 @@ public final class BytecodeLift {
                 case Character ch -> op(CoreOp.constant(JavaType.CHAR, ch));
                 default -> throw new UnsupportedOperationException(c.getClass().toString());
             };
-            constantCache.put(c, res);
+            if (c != null) constantCache.put(c, res); // Do not cache null constants, they may differ in types
         }
         return res;
     }
@@ -982,12 +981,19 @@ public final class BytecodeLift {
         SwitchCase last = cases.getLast();
         Block.Builder def = findTargetBlock(defaultTarget);
         for (SwitchCase sc : cases) {
-            Block.Builder next = sc == last ? def : newBlock(def.parameters());
-            op(CoreOp.conditionalBranch(
-                    op(CoreOp.eq(v, liftConstant(sc.caseValue()))),
-                    successor(findTargetBlock(sc.target())),
-                    successor(next)));
-            moveTo(next);
+            if (sc == last) {
+                op(CoreOp.conditionalBranch(
+                        op(CoreOp.eq(v, liftConstant(sc.caseValue()))),
+                        successor(findTargetBlock(sc.target())),
+                        successor(def)));
+            } else {
+                Block.Builder next = entryBlock.block();
+                op(CoreOp.conditionalBranch(
+                        op(CoreOp.eq(v, liftConstant(sc.caseValue()))),
+                        successor(findTargetBlock(sc.target())),
+                        next.successor()));
+                currentBlock = next;
+            }
         }
         endOfFlow();
     }
