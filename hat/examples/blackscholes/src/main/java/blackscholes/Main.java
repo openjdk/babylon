@@ -77,9 +77,15 @@ public class Main {
 
         if (input >= 0f) {
             return 1f - part1 * part2;
-        } else {
-            return part1 * part2;
         }
+        // note this was an else{} but failed C99 generation
+         /*
+         else{
+           return part1 * part2;
+         }
+         */
+       return part1 * part2;
+
     }
 
     @CodeReflection

@@ -61,7 +61,8 @@ public class OpWrapper<T extends Op> {
             case ExtendedOp.JavaForOp $ -> (OW) new ForOpWrapper($);
             case ExtendedOp.JavaWhileOp $ -> (OW) new WhileOpWrapper($);
             case ExtendedOp.JavaIfOp $ -> (OW) new IfOpWrapper($);
-            case CoreOp.NotOp $ -> (OW) new UnaryArithmeticOrLogicOperation($);
+            case CoreOp.NotOp $ -> (OW) new UnaryArithmeticOrLogicOpWrapper($);
+            case CoreOp.NegOp $ -> (OW) new UnaryArithmeticOrLogicOpWrapper($);
             case CoreOp.BinaryOp $ -> (OW) new BinaryArithmeticOrLogicOperation($);
             case CoreOp.BinaryTestOp $ -> (OW) new BinaryTestOpWrapper($);
             case CoreOp.FuncOp $ -> (OW) new FuncOpWrapper($);
