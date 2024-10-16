@@ -152,11 +152,9 @@ sealed abstract class SlotOp extends ExternalizableOp {
 
 
     // Support for SlotToVarTransformer
-
     static final class Var {
-        boolean singleAssignment;
-        Op.Result varOp;
+        boolean single;
+        Value value;
     }
-
     Var var;
 }

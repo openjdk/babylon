@@ -731,7 +731,7 @@ public final class BytecodeLift2 {
 
     private Op.Result liftConstant(Object c) {
         return switch (c) {
-            case null -> op(CoreOp.constant(JavaType.J_L_OBJECT, null));
+            case null -> op(CoreOp.constant(UnresolvedType.unresolvedType(), null));
             case ClassDesc cd -> op(CoreOp.constant(JavaType.J_L_CLASS, JavaType.type(cd)));
             case Double d -> op(CoreOp.constant(JavaType.DOUBLE, d));
             case Float f -> op(CoreOp.constant(JavaType.FLOAT, f));

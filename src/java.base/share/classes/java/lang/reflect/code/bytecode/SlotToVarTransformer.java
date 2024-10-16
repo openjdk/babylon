@@ -27,6 +27,7 @@ package java.lang.reflect.code.bytecode;
 
 import java.lang.reflect.code.Block;
 import java.lang.reflect.code.CodeElement;
+import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.op.CoreOp;
 import java.util.ArrayDeque;
@@ -43,7 +44,7 @@ final class SlotToVarTransformer {
 
     static CoreOp.FuncOp transform(CoreOp.FuncOp func) {
 
-        func.body().traverse(null, CodeElement.opVisitor((_, op) -> {
+        List<SlotOp.Var> toInitialize = func.body().traverse(new ArrayList<>(), CodeElement.opVisitor((toInit, op) -> {
             if (op instanceof SlotOp slotOp && slotOp.var == null) {
 
                 // Assign variable to segments, calculate var slotType
@@ -78,7 +79,7 @@ final class SlotToVarTransformer {
                 }
 
                 // Single-assigned variable has only one SlotStoreOp
-                var.singleAssignment = stores.size() < 2;
+                var.single = stores.size() < 2;
 
                 // Identification of initial SlotStoreOp
                 for (var it = stores.iterator(); it.hasNext();) {
@@ -93,26 +94,36 @@ final class SlotToVarTransformer {
                 if (stores.size() > 1) {
                     // A synthetic default-initialized dominant segment must be inserted to the variable, if there is more than one initial store segment.
                     // It is not necessary to link it with other variable segments, the analysys ends here.
-//                    Segment initialSegment = new Segment();
-//                    initialSegment.var = var;
-//                    initSlots.add(initialSegment);
-//                    if (var.slotType == CD_long || var.slotType == CD_double) {
-//                        initSlots.add(null); // Do not forget to alocate second slot for double slots.
-//                    }
+                    toInit.add(stores.getFirst().var);
                 }
 
 
             }
-            return null;
+            return toInit;
         }));
 
         return func.transform((block, op) -> {
+            if (!toInitialize.isEmpty()) {
+                for (SlotOp.Var var : toInitialize) {
+                    var.value = block.op(CoreOp.var(block.op(CoreOp.constant(UnresolvedType.unresolvedType(), null))));
+                }
+                toInitialize.clear();
+            }
+            CopyContext cc = block.context();
             switch (op) {
-                case SlotOp.SlotLoadOp slo ->
-                    block.context().mapValue(op.result(), block.op(CoreOp.varLoad(slo.var.varOp)));
-                case SlotOp.SlotStoreOp sso ->
-                    block.op(sso.var.varOp == null ? CoreOp.var(sso.operands().getFirst())
-                                                   : CoreOp.varStore(sso.var.varOp, sso.operands().getFirst()));
+                case SlotOp.SlotLoadOp slo -> {
+                    assert slo.var.value != null;
+                    cc.mapValue(op.result(), slo.var.single ? slo.var.value : block.op(CoreOp.varLoad(slo.var.value)));
+                }
+                case SlotOp.SlotStoreOp sso -> {
+                    if (sso.var.single) {
+                        sso.var.value = cc.getValue(sso.operands().getFirst());
+                    } else if (sso.var.value == null) {
+                        sso.var.value = block.op(CoreOp.var(cc.getValue(sso.operands().getFirst())));
+                    } else {
+                        block.op(CoreOp.varStore(sso.var.value, cc.getValue(sso.operands().getFirst())));
+                    }
+                }
                 default ->
                     block.op(op);
             }
@@ -194,8 +205,8 @@ final class SlotToVarTransformer {
                             }
                         }
                     }
-                    if (!toVisit.isEmpty()) {
-                        b = toVisit.pop();
+                    b = toVisit.poll();
+                    if (b != null) {
                         ops = fwd ? b.ops() : b.ops().reversed();
                         i = 0;
                     }
