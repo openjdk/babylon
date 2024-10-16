@@ -44,6 +44,12 @@ if ("${PTX_BACKEND}EMPTY" STREQUAL "EMPTY")
 endif()
 add_subdirectory(ptx)
 
+if ("${HIP_BACKEND}EMPTY" STREQUAL "EMPTY")
+    set (HIP_BACKEND "${CMAKE_SOURCE_DIR}/hip")
+    message("HIP_BACKEND=${HIP_BACKEND}")
+endif()
+add_subdirectory(hip)
+
 if ("${MOCK_BACKEND}EMPTY" STREQUAL "EMPTY")
     set (MOCK_BACKEND "${CMAKE_SOURCE_DIR}/mock")
     message("MOCK_BACKEND=${MOCK_BACKEND}")

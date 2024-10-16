@@ -1,0 +1,3 @@
+hat.backend.HIPBackend
+hat.backend.JavaSequentialBackend
+hat.backend.JavaMultiThreadedBackend
