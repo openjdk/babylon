@@ -64,7 +64,7 @@ public class ArithMathOps {
     @OpFactory.OpDeclaration(ConstantOp.NAME)
     public static class ConstantOp extends ArithMathOp implements Op.Pure {
         public static final String NAME = "arith.constant";
-        public static final String ATTRIBUTE_CONSTANT_VALUE = NAME + ".value";
+        public static final String ATTRIBUTE_CONSTANT_VALUE = "value";
 
         final Object value;
 
@@ -160,7 +160,7 @@ public class ArithMathOps {
         @Override
         public Map<String, Object> attributes() {
             HashMap<String, Object> attrs = new HashMap<>(super.attributes());
-            attrs.put("", value);
+            attrs.put(ATTRIBUTE_CONSTANT_VALUE, value);
             return attrs;
         }
 
@@ -395,10 +395,19 @@ public class ArithMathOps {
     @OpFactory.OpDeclaration(CompareOp.NAME)
     public static class CompareOp extends ArithMathOp implements Op.Pure {
         public static final String NAME = "arith.cmp";
-        public static final String ATTRIBUTE_CONSTANT_VALUE = NAME + ".compare";
+        public static final String ATTRIBUTE_CONSTANT_VALUE = "predicate";
 
         public enum CompareKind {
-            slt
+            eq,
+            ne,
+            slt,
+            sle,
+            sgt,
+            sge,
+            ult,
+            ule,
+            ugt,
+            uge
         }
 
         final CompareKind ck;
@@ -431,7 +440,14 @@ public class ArithMathOps {
         }
 
         CompareOp(CompareKind ck, Value a, Value b) {
-            super(NAME + nameSuffixFromType(a.type(), false), a.type(), List.of(a, b));
+            TypeElement t;
+            if (a.type() instanceof TensorType ot) {
+                t = new TensorType(JavaType.BOOLEAN, ot.shape());
+            }
+            else {
+                t = JavaType.BOOLEAN;
+            }
+            super(NAME + nameSuffixFromType(a.type(), false), t, List.of(a, b));
 
             this.ck = ck;
         }
@@ -439,7 +455,7 @@ public class ArithMathOps {
         @Override
         public Map<String, Object> attributes() {
             HashMap<String, Object> attrs = new HashMap<>(super.attributes());
-            attrs.put("", ck);
+            attrs.put(ATTRIBUTE_CONSTANT_VALUE, Long.valueOf(ck.ordinal()));
             return attrs;
         }
 

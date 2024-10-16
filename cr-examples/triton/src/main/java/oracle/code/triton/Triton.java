@@ -45,6 +45,10 @@ public class Triton {
         throw new UnsupportedOperationException();
     }
 
+    public static Tensor load(Tensor ptr, Tensor mask, @Constant float other) {
+        throw new UnsupportedOperationException();
+    }
+
     public static void store(Tensor ptr, Tensor value, Tensor mask) {
         throw new UnsupportedOperationException();
     }
