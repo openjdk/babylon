@@ -227,7 +227,7 @@ public class Bldr {
     }
 
 
-    public static class JavaJarConfig {
+    public static class JavacJarConfig {
         public Path jar;
         public List<String> opts = new ArrayList<>();
         public Path classesDir;
@@ -235,62 +235,87 @@ public class Bldr {
         public List<Path> classPath;
         public List<Path> resourcePath;
 
-        public JavaJarConfig jar(Path jar) {
+        public JavacJarConfig seed(JavacJarConfig stem) {
+            if (stem != null) {
+                if (stem.jar != null) {
+                    this.jar = stem.jar;
+                }
+                if (stem.opts != null) {
+                    this.opts = new ArrayList<>(stem.opts);
+                }
+                if (stem.classesDir != null) {
+                    this.classesDir = stem.classesDir;
+                }
+                if (stem.sourcePath != null) {
+                    this.sourcePath = new ArrayList<>(stem.sourcePath);
+                }
+                if (stem.classPath != null) {
+                    this.classPath = new ArrayList<>(stem.classPath);
+                }
+                if (stem.resourcePath != null) {
+                    this.resourcePath = new ArrayList<>(stem.resourcePath);
+                }
+            }
+            return this;
+        }
+
+        public JavacJarConfig jar(Path jar) {
             this.jar = jar;
             return this;
         }
 
-        public JavaJarConfig opts(List<String> opts) {
+        public JavacJarConfig opts(List<String> opts) {
             this.opts.addAll(opts);
             return this;
         }
 
-        public JavaJarConfig opts(String... opts) {
+        public JavacJarConfig opts(String... opts) {
             opts(Arrays.asList(opts));
             return this;
         }
 
-        public JavaJarConfig source_path(Path... sourcePaths) {
+        public JavacJarConfig source_path(Path... sourcePaths) {
             this.sourcePath = new ArrayList<>(Arrays.asList(sourcePaths));
             return this;
         }
 
-        public JavaJarConfig class_path(Path... classPaths) {
+        public JavacJarConfig class_path(Path... classPaths) {
             this.classPath = new ArrayList<>(Arrays.asList(classPaths));
             return this;
         }
 
-        public JavaJarConfig resource_path(Path... resourcePaths) {
-            this.resourcePath = new ArrayList<>(Arrays.asList(resourcePaths));
-            return this;
-        }
-
-        public JavaJarConfig resourcepathIgnoreIfNon(Path... resourcePaths) {
+        public JavacJarConfig resource_path(Path... resourcePaths) {
             this.resourcePath = new ArrayList<>(Arrays.asList(resourcePaths));
             return this;
         }
     }
 
-    public static JavaJarConfig javacjar(Consumer<JavaJarConfig> jjb) throws IOException {
-        JavaJarConfig builder = new JavaJarConfig();
-        jjb.accept(builder);
-        if (builder.classesDir == null) {
-            builder.classesDir = builder.jar.resolveSibling(builder.jar.getFileName().toString() + ".classes");
-        }
-        builder.opts.addAll(List.of("-d", builder.classesDir.toString()));
-        mkdir(rmdir(builder.classesDir));
+    public static JavacJarConfig javacjarconfig(Consumer<JavacJarConfig> javacJarConfigConsumer) {
+        JavacJarConfig javacJarConfig = new JavacJarConfig();
+        javacJarConfigConsumer.accept(javacJarConfig);
+        return javacJarConfig;
+    }
 
-        if (builder.classPath != null) {
-            builder.opts.addAll(List.of("--class-path", pathCharSeparated(builder.classPath)));
+    public static JavacJarConfig javacjar(Consumer<JavacJarConfig> javacJarConfigConsumer) throws IOException {
+        JavacJarConfig javacJarConfig = javacjarconfig(javacJarConfigConsumer);
+
+        if (javacJarConfig.classesDir == null) {
+            javacJarConfig.classesDir = javacJarConfig.jar.resolveSibling(javacJarConfig.jar.getFileName().toString() + ".classes");
+        }
+        javacJarConfig.opts.addAll(List.of("-d", javacJarConfig.classesDir.toString()));
+        mkdir(rmdir(javacJarConfig.classesDir));
+
+        if (javacJarConfig.classPath != null) {
+            javacJarConfig.opts.addAll(List.of("--class-path", pathCharSeparated(javacJarConfig.classPath)));
         }
 
-        builder.opts.addAll(List.of("--source-path", pathCharSeparated(builder.sourcePath)));
+        javacJarConfig.opts.addAll(List.of("--source-path", pathCharSeparated(javacJarConfig.sourcePath)));
         var src = new ArrayList<Path>();
-        builder.sourcePath.forEach(entry ->
+        javacJarConfig.sourcePath.forEach(entry ->
                 src.addAll(paths(entry, path -> path.toString().endsWith(".java")))
         );
-        if (builder.resourcePath == null) {
-            builder.resourcePath = new ArrayList<>();
+        if (javacJarConfig.resourcePath == null) {
+            javacJarConfig.resourcePath = new ArrayList<>();
         }
         DiagnosticListener<JavaFileObject> dl = (diagnostic) -> {
             if (!diagnostic.getKind().equals(Diagnostic.Kind.NOTE)) {
@@ -307,7 +332,7 @@ public class Bldr {
         }
         List<RootAndPath> pathsToJar = new ArrayList<>();
         JavaCompiler javac = javax.tools.ToolProvider.getSystemJavaCompiler();
-        ((com.sun.source.util.JavacTask) javac.getTask(new PrintWriter(System.err), javac.getStandardFileManager(dl, null, null), dl, builder.opts, null,
+        ((com.sun.source.util.JavacTask) javac.getTask(new PrintWriter(System.err), javac.getStandardFileManager(dl, null, null), dl, javacJarConfig.opts, null,
                 src.stream().map(path ->
                         new SimpleJavaFileObject(path.toUri(), JavaFileObject.Kind.SOURCE) {
                             public CharSequence getCharContent(boolean ignoreEncodingErrors) {
@@ -318,11 +343,11 @@ public class Bldr {
                                 }
                             }
                         }).toList()
-        )).generate().forEach(fileObject -> pathsToJar.add(new RootAndPath(builder.classesDir, Path.of(fileObject.toUri()))));
+        )).generate().forEach(fileObject -> pathsToJar.add(new RootAndPath(javacJarConfig.classesDir, Path.of(fileObject.toUri()))));
 
-        var jarStream = new JarOutputStream(Files.newOutputStream(builder.jar));
+        var jarStream = new JarOutputStream(Files.newOutputStream(javacJarConfig.jar));
         var setOfDirs = new HashSet<Path>();
-        builder.resourcePath.stream().sorted().forEach(resourceDir -> {
+        javacJarConfig.resourcePath.stream().sorted().forEach(resourceDir -> {
                     if (Files.isDirectory(resourceDir)) {
                         paths(resourceDir, Files::isRegularFile).forEach(path -> pathsToJar.add(new RootAndPath(resourceDir, path)));
                     }
@@ -355,7 +380,7 @@ public class Bldr {
 
         jarStream.finish();
         jarStream.close();
-        return builder;
+        return javacJarConfig;
     }
 
     public static Path path(String name) {
@@ -403,6 +428,31 @@ public class Bldr {
         private String targetPackage;
         private Path output;
 
+        public CMakeConfig seed(CMakeConfig stem) {
+
+            if (stem != null) {
+                if (stem.output != null) {
+                    this.output = stem.output;
+                }
+                if (stem.opts != null) {
+                    this.opts = new ArrayList<>(stem.opts);
+                }
+                if (stem.libraries != null) {
+                    this.libraries = new ArrayList<>(stem.libraries);
+                }
+                if (stem.cwd != null) {
+                    this.cwd = stem.cwd;
+                }
+                if (stem.cmakeBldDebugDir != null) {
+                    this.cmakeBldDebugDir = stem.cmakeBldDebugDir;
+                }
+                if (stem.targetPackage != null) {
+                    this.targetPackage = targetPackage;
+                }
+            }
+            return this;
+        }
+
         public CMakeConfig _B(Path cmakeBldDebugDir) {
             this.cmakeBldDebugDir = cmakeBldDebugDir;
             opts.addAll(List.of("-B", cmakeBldDebugDir.getFileName().toString()));
@@ -427,9 +477,14 @@ public class Bldr {
 
     }
 
-    public static void cmake(Consumer<CMakeConfig> cMakeConfigConsumer) {
+    public static CMakeConfig cmakeconfig(Consumer<CMakeConfig> cMakeConfigConsumer) {
         CMakeConfig cmakeConfig = new CMakeConfig();
         cMakeConfigConsumer.accept(cmakeConfig);
+        return cmakeConfig;
+    }
+
+    public static void cmake(Consumer<CMakeConfig> cMakeConfigConsumer) {
+        CMakeConfig cmakeConfig = cmakeconfig(cMakeConfigConsumer);
         try {
             Files.createDirectories(cmakeConfig.cmakeBldDebugDir);
             //System.out.println(cmakeConfig.opts);
@@ -447,7 +502,7 @@ public class Bldr {
     }
 
     public static class JExtractConfig {
-        public List<String> opts = new ArrayList<>(List.of("extract"));
+        public List<String> opts = new ArrayList<>(List.of("jextract"));
         public List<String> compileFlags = new ArrayList<>();
         public List<Path> libraries = new ArrayList<>();
         public List<Path> headers = new ArrayList<>();
@@ -456,6 +511,34 @@ public class Bldr {
         public Path home;
         private String targetPackage;
         private Path output;
+
+        public JExtractConfig seed(JExtractConfig stem) {
+            if (stem != null) {
+                if (stem.output != null) {
+                    this.output = stem.output;
+                }
+                if (stem.opts != null) {
+                    this.opts = new ArrayList<>(stem.opts);
+                }
+                if (stem.compileFlags != null) {
+                    this.compileFlags = new ArrayList<>(stem.compileFlags);
+                }
+                if (stem.libraries != null) {
+                    this.libraries = new ArrayList<>(stem.libraries);
+                }
+                if (stem.home != null) {
+                    this.home = stem.home;
+                }
+                if (stem.cwd != null) {
+                    this.cwd = stem.cwd;
+                }
+                if (stem.headers != null) {
+                    this.headers = new ArrayList<>(stem.headers);
+                }
+            }
+            return this;
+        }
+
 
         public JExtractConfig cwd(Path cwd) {
             this.cwd = cwd;
@@ -516,9 +599,14 @@ public class Bldr {
         }
     }
 
-    public static void jextract(Consumer<JExtractConfig> jextractConfigConsumer) {
+    public static JExtractConfig jextractconfig(Consumer<JExtractConfig> jextractConfigConsumer) {
         JExtractConfig extractConfig = new JExtractConfig();
         jextractConfigConsumer.accept(extractConfig);
+        return extractConfig;
+    }
+
+    public static void jextract(Consumer<JExtractConfig> jextractConfigConsumer) {
+        JExtractConfig extractConfig = jextractconfig(jextractConfigConsumer);
         System.out.println(extractConfig.opts);
         var compilerFlags = path(extractConfig.cwd, "compiler_flags.txt");
         try {
@@ -682,10 +770,72 @@ public class Bldr {
 
     }
 
+    public static Path curl(URL url, Path file) {
+        try {
+            println("Downloading " + url + "->" + file);
+            url.openStream().transferTo(Files.newOutputStream(file));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return file;
+    }
+
+    public static Path curlIfNeeded(URL url, Path file) {
+        if (!Files.isRegularFile(file)) {
+            curl(url, file);
+        }
+        return file;
+    }
+
+    public static Path untarIfNeeded(Path tarFile, Path expectedDir) {
+        if (!existingDir(expectedDir)) {
+            untar(tarFile, tarFile.getParent());
+        }
+        return expectedDir;
+    }
+
+    public static boolean available(String execName) {
+        // We could just look up the env.PATH?  or we could just try to execute assuming it will need some args ;)
+        try {
+            new ProcessBuilder().command(execName).start().waitFor();
+            return true;
+        } catch (
+                InterruptedException e) { // We get IOException if the executable not found, at least on Mac so interuppted means it exists
+            return true;
+        } catch (IOException e) { // We get IOException if the executable not found, at least on Mac
+            //throw new RuntimeException(e);
+            return false;
+        }
+    }
+
+    public static boolean untar(Path tarFile, Path dir) {
+        // We could just look up the env.PATH?  or we could just try to execute assuming it will need some args ;)
+        try {
+            // tar xvf thirdparty/jextract.tar --directory thirdparty
+            new ProcessBuilder().inheritIO().command("tar", "xvf", tarFile.toString(), "--directory", dir.toString()).start().waitFor();
+            return true;
+        } catch (
+                InterruptedException e) { // We get IOException if the executable not found, at least on Mac so interuppted means it exists
+            return false;
+        } catch (IOException e) { // We get IOException if the executable not found, at least on Mac
+            //throw new RuntimeException(e);
+            return false;
+        }
+    }
+
     //  https://stackoverflow.com/questions/23272861/how-to-call-testng-xml-from-java-main-method
     public static void main(String[] args) throws Throwable {
         var hatDir = path("/Users/grfrost/github/babylon-grfrost-fork/hat");
-        var repo = new Repo(mkdir(rmdir(hatDir.resolve("thirdparty"))));
+        var thirdPartyDir = path(hatDir, "thirdparty");// maybe clean?
+        var repo = new Repo(thirdPartyDir);
+
+        var jextractDir = untarIfNeeded(
+                curlIfNeeded(
+                        new URI("https://download.java.net/java/early_access/jextract/22/5/openjdk-22-jextract+5-33_macos-aarch64_bin.tar.gz").toURL(),
+                        path(thirdPartyDir, "jextract.tar")),
+                path(thirdPartyDir, "jextract-22"));
+
+
         GroupArtifactVersion g = new GroupArtifactVersion("org.testng", "testng", "7.1.0");
         GroupArtifactVersion aparapi = new GroupArtifactVersion("com.aparapi", "aparapi", "3.0.2");
         GroupArtifactVersion aparapi_jni = new GroupArtifactVersion("com.aparapi", "aparapi-jni", "1.4.3");
@@ -723,96 +873,87 @@ public class Bldr {
             });
         });
 
-        var target = mkdir(rmdir(path(hatDir, "build")));
-        var hatJavacOpts = List.of(
+        var target = path(hatDir, "build");// mkdir(rmdir(path(hatDir, "build")));
+
+        var hatJavacOpts = javacjarconfig($ -> $.opts(
                 "--source", "24",
                 "--enable-preview",
                 "--add-exports=java.base/jdk.internal=ALL-UNNAMED",
                 "--add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED"
-        );
+        ));
 
 
         var hatJarResult = javacjar($ -> $
-                .opts(hatJavacOpts)
+                .seed(hatJavacOpts)
                 .jar(path(target, "hat-1.0.jar"))
                 .source_path(path(hatDir, "hat/src/main/java"))
         );
+        var hatExampleJavaConfig = javacjarconfig($ -> $.seed(hatJavacOpts).class_path(hatJarResult.jar));
         println(hatJarResult.jar);
         for (var exampleDir : paths(path(hatDir, "examples"), "mandel", "squares", "heal", "violajones", "life")) {
             javacjar($ -> $
-                    .opts(hatJavacOpts)
+                    .seed(hatExampleJavaConfig)
                     .jar(path(target, "hat-example-" + exampleDir.getFileName() + "-1.0.jar"))
                     .source_path(path(exampleDir, "src/main/java"))
-                    .class_path(hatJarResult.jar)
                     .resource_path(path(exampleDir, "src/main/resources"))
             );
         }
         var backendsDir = path(hatDir, "backends");
         for (var backendDir : paths(backendsDir, "opencl", "ptx")) {
             javacjar($ -> $
-                    .opts(hatJavacOpts)
+                    .seed(hatExampleJavaConfig)
                     .jar(path(target, "hat-backend-" + backendDir.getFileName() + "-1.0.jar"))
                     .source_path(path(backendDir, "src/main/java"))
-                    .class_path(hatJarResult.jar)
                     .resource_path(path(backendDir, "src/main/resources"))
             );
         }
         var hattricksDir = path(hatDir, "hattricks");
+
         if (Files.exists(hattricksDir)) {
             for (var hattrickDir : paths(hattricksDir, "chess", "view")) {
                 javacjar($ -> $
-                        .opts(hatJavacOpts)
+                        .seed(hatExampleJavaConfig)
                         .jar(path(target, "hat-example-" + hattrickDir.getFileName() + "-1.0.jar"))
                         .source_path(path(hattrickDir, "src/main/java"))
-                        .class_path(hatJarResult.jar)
                         .resource_path(path(hattrickDir, "src/main/resources"))
                 );
             }
+
             for (var hattrickDir : paths(hattricksDir, "nbody")) {
                 var appFrameworks = "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks";
                 var MAC_APP_FRAMEWORKS = Path.of(appFrameworks);
                 var MAC_LIB_FRAMEWORKS = Path.of("/System/Library/Frameworks");
-                jextract($ -> $
-                        .home(Path.of("/Users/grfrost/jextract-22/"))
+                var jextractedJava = path(target, "jextracted-java");
+                mkdir(jextractedJava);
+                var jextractedOpenCL = path(jextractedJava, "opencl");
+                var jextractedOpenGL = path(jextractedJava, "opengl");
+                var jextractconfig = jextractconfig($ -> $
+                        .home(jextractDir)
                         .cwd(hattrickDir)
-                        .target_package("opencl")
-                        .output(path(hattrickDir, "src/main/extracted-java/"))
-                        .library(path(MAC_LIB_FRAMEWORKS, "OpenCL.framework/OpenCL"))
+                        .output(jextractedJava)
                         .compile_flag("-F" + MAC_APP_FRAMEWORKS)
-                        .header(path(MAC_APP_FRAMEWORKS, "OpenCL.framework/Headers/opencl.h"))
                 );
+                if (!existingDir(jextractedOpenCL)) {
+                    jextract($ -> $
+                            .seed(jextractconfig)
+                            .target_package("opencl")
+                            .library(path(MAC_LIB_FRAMEWORKS, "OpenCL.framework/OpenCL"))
+                            .header(path(MAC_APP_FRAMEWORKS, "OpenCL.framework/Headers/opencl.h"))
+                    );
+                }
+                if (!existingDir(jextractedOpenGL)) {
+                    jextract($ -> $
+                            .seed(jextractconfig)
+                            .target_package("opengl")
+                            .library(path(MAC_LIB_FRAMEWORKS, "GLUT.framework/GLUT"), path(MAC_LIB_FRAMEWORKS, "OpenGL.framework/OpenGL"))
+                            .header(path(MAC_APP_FRAMEWORKS, "GLUT.framework/Headers/glut.h"))
+                    );
+                }
 
-                jextract($ -> $
-                        .home(Path.of("/Users/grfrost/jextract-22/"))
-                        .cwd(hattrickDir)
-                        .target_package("opengl")
-                        .output(path(hattrickDir, "src/main/extracted-java/"))
-                        .library(path(MAC_LIB_FRAMEWORKS, "GLUT.framework/GLUT"), path(MAC_LIB_FRAMEWORKS, "OpenGL.framework/OpenGL"))
-                        .compile_flag("-F" + MAC_APP_FRAMEWORKS)
-                        .header(path(MAC_APP_FRAMEWORKS, "GLUT.framework/Headers/glut.h"))
-                );
-
-                /*
-                cat compile_flags.txt
-                     -F/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks
-
-                ~/jextract-22/bin/jextract  \
-                     -t opengl \
-                     -l :${MAC_LIB_FRAMEWORKS}/GLUT.framework/GLUT \
-                     -l :${MAC_LIB_FRAMEWORKS}/OpenGL.framework/OpenGL \
-                      ${MAC_APP_FRAMEWORKS}/GLUT.framework/Headers/glut.h
-
-
-                ~/jextract-22/bin/jextract \
-                    -t opencl \
-                    -l :${MAC_LIB_FRAMEWORKS}/OpenCL.framework/OpenCL \
-                    ${MAC_APP_FRAMEWORKS}/OpenCL.framework/Headers/opencl.h
-                 */
                 javacjar($ -> $
-                        .opts(hatJavacOpts)
+                        .seed(hatExampleJavaConfig)
                         .jar(path(target, "hat-example-" + hattrickDir.getFileName() + "-1.0.jar"))
-                        .source_path(path(hattrickDir, "src/main/java"), path(hattrickDir, "src/main/extracted-java"))
-                        .class_path(hatJarResult.jar)
+                        .source_path(path(hattrickDir, "src/main/java"), jextractedOpenCL, jextractedOpenGL)
                         .resource_path(path(hattrickDir, "src/main/resources"))
                 );
             }
