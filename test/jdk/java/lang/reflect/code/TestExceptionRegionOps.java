@@ -81,7 +81,7 @@ public class TestExceptionRegionOps {
                     var c = fblock.parameters().get(0);
                     fblock.op(exceptionRegionEnter(
                             enterER1.successor(),
-                            catchER1ISE.successor(), catchER1IAE.successor()));
+                            catchER1IAE.successor(), catchER1ISE.successor()));
 
                     // Start of exception region
                     enterER1.ops(b -> {
@@ -89,7 +89,7 @@ public class TestExceptionRegionOps {
                         b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         // End of exception region
                         b.op(exceptionRegionExit(end.successor(),
-                            catchER1IAE.successor(), catchER1ISE.successor()));
+                            catchER1ISE.successor(), catchER1IAE.successor()));
                     });
 
                     // First catch block for exception region
@@ -173,7 +173,7 @@ public class TestExceptionRegionOps {
                     var c = fblock.parameters().get(0);
                     fblock.op(exceptionRegionEnter(
                             enterER1.successor(),
-                            catchER1ISE.successor(), catchER1T.successor()));
+                            catchER1T.successor(), catchER1ISE.successor()));
 
                     // Start of exception region
                     enterER1.ops(b -> {
@@ -181,7 +181,7 @@ public class TestExceptionRegionOps {
                         b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         // End of exception region
                         b.op(exceptionRegionExit(end.successor(),
-                            catchER1T.successor(), catchER1ISE.successor()));
+                            catchER1ISE.successor(), catchER1T.successor()));
 
                     });
 
@@ -395,7 +395,7 @@ public class TestExceptionRegionOps {
                     var c = fblock.parameters().get(0);
                     fblock.op(exceptionRegionEnter(
                             enterER1.successor(),
-                            catchRE.successor(), catchAll.successor()));
+                            catchAll.successor(), catchRE.successor()));
 
                     // Start of exception region
                     enterER1.ops(b -> {
@@ -403,7 +403,7 @@ public class TestExceptionRegionOps {
                         b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         // End of exception region
                         b.op(exceptionRegionExit(exitER1.successor(),
-                            catchAll.successor(), catchRE.successor()));
+                            catchRE.successor(), catchAll.successor()));
                     });
                     // Inline finally
                     exitER1.ops(b -> {

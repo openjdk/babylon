@@ -2536,8 +2536,10 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             List<Block.Builder> catchers = catchers().stream()
                     .map(catcher -> b.block())
                     .toList();
-            Block.Builder catcherFinally = null;
-            if (finalizer != null) {
+            Block.Builder catcherFinally;
+            if (finalizer == null) {
+                catcherFinally = null;
+            } else {
                 catcherFinally = b.block();
                 catchers = new ArrayList<>(catchers);
                 catchers.add(catcherFinally);
@@ -2617,9 +2619,9 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
 
                     OpTransformer catchExitTransformer = opT.compose((block, op) -> {
                         if (op instanceof CoreOp.ReturnOp) {
-                            return inlineFinalizer(block, exitHandlers, opT);
+                            return inlineFinalizer(block, List.of(catcherFinally.successor()), opT);
                         } else if (op instanceof ExtendedOp.JavaLabelOp lop && ifExitFromTry(lop)) {
-                            return inlineFinalizer(block, exitHandlers, opT);
+                            return inlineFinalizer(block, List.of(catcherFinally.successor()), opT);
                         } else {
                             return block;
                         }
@@ -2644,7 +2646,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                     // Exit the catch exception region
                     if (hasCatchRegionExit.get()) {
                         hasTryRegionExit.set(true);
-                        catchRegionExit.op(exceptionRegionExit(finallyEnter.successor(), exitHandlers));
+                        catchRegionExit.op(exceptionRegionExit(finallyEnter.successor(), catcherFinally.successor()));
                     }
                 } else {
                     // Inline the catch body
