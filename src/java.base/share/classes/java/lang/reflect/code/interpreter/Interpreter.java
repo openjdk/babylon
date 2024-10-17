@@ -27,6 +27,7 @@ package java.lang.reflect.code.interpreter;
 
 import java.lang.invoke.*;
 import java.lang.reflect.Array;
+import java.lang.reflect.Parameter;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.op.CoreOp;
@@ -583,6 +584,7 @@ public final class Interpreter {
             }
             lock.unlock();
             return null;
+
         } else {
             throw interpreterException(
                     new UnsupportedOperationException("Unsupported operation: " + o.opName()));

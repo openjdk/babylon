@@ -34,6 +34,8 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.jar.Attributes;
+import java.util.stream.IntStream;
 
 /**
  * The top-level operation class for the set of enclosed core operations.
@@ -2749,7 +2751,6 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             return JavaType.J_L_STRING;
         }
     }
-
     //
     // Arithmetic ops
 
