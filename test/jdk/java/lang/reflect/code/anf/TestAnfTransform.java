@@ -40,20 +40,6 @@ import java.util.List;
 public class TestAnfTransform {
 
     @CodeReflection
-    public static int test1(int arg1, int arg2) {
-       return arg1 + arg2 - 52;
-    }
-
-    @CodeReflection
-    public static int test2(int arg1, int arg2) {
-        if (arg1 > arg2) {
-            return arg1 + 21;
-        } else {
-            return arg2 + 42;
-        }
-    }
-
-    @CodeReflection
     public static int fibonacci(int v) {
         if (v == 0) {
             return 0;
@@ -79,7 +65,6 @@ public class TestAnfTransform {
 
     public static void main(String[] args) {
 
-        //testRun("test2", List.of(int.class, int.class), 20, 1);
         testRun("fibonacci", List.of(int.class), 20);
 
     }
@@ -98,10 +83,6 @@ public class TestAnfTransform {
             System.out.println(fz.toText());
 
             var res = new AnfTransformer(fz).transform();
-            //var labeled = new Labeler().label(res);
-            //p.print(res);
-            //p.print(labeled);
-
             System.out.println("---------------------");
             System.out.println(res.toText());
 

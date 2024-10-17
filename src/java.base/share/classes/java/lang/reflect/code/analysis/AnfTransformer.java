@@ -53,7 +53,6 @@ public class AnfTransformer {
     }
 
     //Outer body corresponds to outermost letrec
-    //F_p
     public AnfDialect.AnfFuncOp transformOuterBody(Body b) {
         var entry = b.entryBlock();
 
