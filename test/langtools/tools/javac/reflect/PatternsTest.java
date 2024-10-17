@@ -87,7 +87,7 @@ public class PatternsTest {
                         %10 : java.lang.String = constant @"";
                         return %10;
                     };
-                return;
+                unreachable;
             };
             """)
     String test2(Object o) {

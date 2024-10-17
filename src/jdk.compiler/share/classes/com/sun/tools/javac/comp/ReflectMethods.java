@@ -124,6 +124,8 @@ public class ReflectMethods extends TreeTranslator {
     private final Gen gen;
     private final Log log;
     private final Lower lower;
+    private final TypeEnvs typeEnvs;
+    private final Flow flow;
     private final boolean dumpIR;
     private final boolean lineDebugInfo;
 
@@ -148,6 +150,8 @@ public class ReflectMethods extends TreeTranslator {
         gen = Gen.instance(context);
         log = Log.instance(context);
         lower = Lower.instance(context);
+        typeEnvs = TypeEnvs.instance(context);
+        flow = Flow.instance(context);
     }
 
     // Cannot compute within constructor due to circular dependencies on bootstrap compilation
@@ -699,6 +703,23 @@ public class ReflectMethods extends TreeTranslator {
                 path = null;
             }
             return new Location(path, line, col);
+        }
+
+        private void appendReturnOrUnreachable(JCTree body) {
+            // Append only if an existing terminating operation is not present
+            if (lastOp == null || !(lastOp instanceof Op.Terminating)) {
+                // If control can continue after the body append return.
+                // Otherwise, append unreachable.
+                if (isAliveAfter(body)) {
+                    append(CoreOp._return());
+                } else {
+                    append(CoreOp.unreachable());
+                }
+            }
+        }
+
+        private boolean isAliveAfter(JCTree node) {
+            return flow.aliveAfter(typeEnvs.get(currentClassSym), node, make);
         }
 
         private <O extends Op & Op.Terminating> void appendTerminating(Supplier<O> sop) {
@@ -1488,8 +1509,7 @@ public class ReflectMethods extends TreeTranslator {
                 try {
                     bodyTarget = tree.getDescriptorType(types).getReturnType();
                     toValue(((JCTree.JCStatement) tree.body));
-                    // @@@ Check if unreachable
-                    appendTerminating(CoreOp::_return);
+                    appendReturnOrUnreachable(tree.body);
                 } finally {
                     bodyTarget = prevBodyTarget;
                 }
@@ -2479,8 +2499,7 @@ public class ReflectMethods extends TreeTranslator {
 
         CoreOp.FuncOp scanMethod() {
             scan(body);
-            // @@@ Check if unreachable
-            appendTerminating(CoreOp::_return);
+            appendReturnOrUnreachable(body);
             CoreOp.FuncOp func = CoreOp.func(name.toString(), stack.body);
             func.setLocation(generateLocation(currentNode, true));
             return func;
@@ -2488,6 +2507,7 @@ public class ReflectMethods extends TreeTranslator {
 
         CoreOp.FuncOp scanLambda() {
             scan(body);
+            // Return the quoted result
             append(CoreOp._return(result));
             return CoreOp.func(name.toString(), stack.body);
         }

@@ -263,7 +263,7 @@ public class TryTest {
                     ^finally()void -> {
                         return;
                     };
-                return;
+                unreachable;
             };
             """)
     void test6() {
