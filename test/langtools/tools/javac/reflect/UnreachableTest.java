@@ -164,22 +164,22 @@ public class UnreachableTest {
 
     @IR("""
             func @"f" ()void -> {
-                %1 : func<int, int> = closure @loc="189:39:file:///Users/sandoz/Projects/jdk/babylon/test/langtools/tools/javac/reflect/UnreachableTest.java" (%2 : int)int -> {
-                    %3 : Var<int> = var %2 @"i" @loc="189:39";
-                    java.if @loc="190:9"
+                %1 : func<int, int> = closure (%2 : int)int -> {
+                    %3 : Var<int> = var %2 @"i";
+                    java.if
                         ()boolean -> {
-                            %4 : boolean = constant @"true" @loc="190:13";
-                            yield %4 @loc="190:9";
+                            %4 : boolean = constant @"true";
+                            yield %4;
                         }
                         ()void -> {
-                            %5 : int = var.load %3 @loc="191:20";
-                            return %5 @loc="191:13";
+                            %5 : int = var.load %3;
+                            return %5;
                         }
                         ()void -> {
-                            %6 : int = var.load %3 @loc="193:20";
-                            return %6 @loc="193:13";
+                            %6 : int = var.load %3;
+                            return %6;
                         };
-                    unreachable @loc="189:39";
+                    unreachable;
                 };
                 return;
             };
