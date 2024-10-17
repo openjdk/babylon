@@ -157,7 +157,7 @@ public class BlockTest {
                         };
                         java.continue;
                     };
-                return;
+                unreachable;
             };
             """)
     void test3() {
