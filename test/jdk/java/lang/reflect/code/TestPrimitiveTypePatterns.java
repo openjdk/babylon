@@ -30,14 +30,27 @@ import static java.lang.reflect.code.type.FunctionType.functionType;
 
 public class TestPrimitiveTypePatterns {
 
-    static final MethodRef intToByte = MethodRef.method(ExactConversionsSupport.class, "isIntToByteExact",
-            boolean.class, int.class);
-    static final MethodRef intToShort = MethodRef.method(ExactConversionsSupport.class, "isIntToShortExact",
-            boolean.class, int.class);
-    static final MethodRef intToChar = MethodRef.method(ExactConversionsSupport.class, "isIntToCharExact",
-            boolean.class, int.class);
-    static final MethodRef intToFloat = MethodRef.method(ExactConversionsSupport.class, "isIntToFloatExact",
-            boolean.class, int.class);
+    static final MethodRef intToByte = conversionMethodRef(JavaType.INT, JavaType.BYTE);
+    static final MethodRef intToShort = conversionMethodRef(JavaType.INT, JavaType.SHORT);
+    static final MethodRef intToChar = conversionMethodRef(JavaType.INT, JavaType.CHAR);
+    static final MethodRef intToFloat = conversionMethodRef(JavaType.INT, JavaType.FLOAT);
+    static final MethodRef longToByte = conversionMethodRef(JavaType.LONG, JavaType.BYTE);
+    static final MethodRef longToShort = conversionMethodRef(JavaType.LONG, JavaType.SHORT);
+    static final MethodRef longToChar = conversionMethodRef(JavaType.LONG, JavaType.CHAR);
+    static final MethodRef longToInt = conversionMethodRef(JavaType.LONG, JavaType.INT);
+    static final MethodRef longToFloat = conversionMethodRef(JavaType.LONG, JavaType.FLOAT);
+    static final MethodRef longToDouble = conversionMethodRef(JavaType.LONG, JavaType.DOUBLE);
+
+
+    static MethodRef conversionMethodRef(JavaType sourceType, JavaType targetType) {
+        String n = "is%sTo%sExact".formatted(capitalize(sourceType.toString()), capitalize(targetType.toString()));
+        JavaType c = JavaType.type(ExactConversionsSupport.class);
+        return MethodRef.method(c, n, PrimitiveType.BOOLEAN, sourceType);
+    }
+
+    static String capitalize(String s) {
+        return s.substring(0, 1).toUpperCase() + s.substring(1);
+    }
 
     @DataProvider
     public static Object[][] dp() {
@@ -59,6 +72,20 @@ public class TestPrimitiveTypePatterns {
 
                 {JavaType.CHAR, JavaType.BYTE, new Object[]{(char) 0, (char) Byte.MAX_VALUE, (char) (Byte.MAX_VALUE + 1)}, intToByte},
                 {JavaType.CHAR, JavaType.SHORT, new Object[]{(char) 0, (char) Short.MAX_VALUE, (char) (Short.MAX_VALUE + 1)}, intToShort},
+
+                {JavaType.LONG, JavaType.BYTE, new Object[] {Byte.MIN_VALUE - 1, Byte.MIN_VALUE, Byte.MAX_VALUE,
+                        Byte.MAX_VALUE + 1}, longToByte},
+                {JavaType.LONG, JavaType.SHORT, new Object[] {Short.MIN_VALUE - 1, Short.MIN_VALUE, Short.MAX_VALUE,
+                        Short.MAX_VALUE + 1}, longToShort},
+                {JavaType.LONG, JavaType.CHAR, new Object[] {Character.MIN_VALUE - 1, Character.MIN_VALUE, Character.MAX_VALUE,
+                        Character.MAX_VALUE + 1}, longToChar},
+                {JavaType.LONG, JavaType.INT, new Object[] {(long)Integer.MIN_VALUE - 1, Integer.MIN_VALUE, Integer.MAX_VALUE,
+                        (long)Integer.MAX_VALUE + 1}, longToInt},
+                // long -> float .. double
+
+                // float -> byte .. long
+
+                // double -> byte .. float
         };
     }
 
