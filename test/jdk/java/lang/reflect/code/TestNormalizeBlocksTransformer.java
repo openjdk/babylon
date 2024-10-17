@@ -71,24 +71,24 @@ public class TestNormalizeBlocksTransformer {
     static final String TEST2_INPUT = """
             func @"f" (%0 : java.lang.Object)void -> {
                 %1 : Var<java.lang.Object> = var %0 @"o";
-                %2 : java.lang.reflect.code.op.CoreOp$ExceptionRegion = exception.region.enter ^block_1 ^block_3 ^block_8;
+                exception.region.enter ^block_1 ^block_8 ^block_3;
 
               ^block_1:
                 %3 : int = invoke @"A::try_()int";
                 branch ^block_2;
 
               ^block_2:
-                exception.region.exit %2 ^block_6;
+                exception.region.exit ^block_6 ^block_3 ^block_8;
 
               ^block_3(%4 : java.lang.RuntimeException):
-                %5 : java.lang.reflect.code.op.CoreOp$ExceptionRegion = exception.region.enter ^block_4 ^block_8;
+                exception.region.enter ^block_4 ^block_8;
 
               ^block_4:
                 %6 : Var<java.lang.RuntimeException> = var %4 @"e";
                 branch ^block_5;
 
               ^block_5:
-                exception.region.exit %5 ^block_6;
+                exception.region.exit ^block_6 ^block_8;
 
               ^block_6:
                 %7 : int = invoke @"A::finally_()int";
@@ -105,18 +105,18 @@ public class TestNormalizeBlocksTransformer {
     static final String TEST2_EXPECTED = """
             func @"f" (%0 : java.lang.Object)void -> {
                 %1 : Var<java.lang.Object> = var %0 @"o";
-                %2 : java.lang.reflect.code.op.CoreOp$ExceptionRegion = exception.region.enter ^block_1 ^block_2 ^block_5;
+                exception.region.enter ^block_1 ^block_5 ^block_2;
 
               ^block_1:
                 %3 : int = invoke @"A::try_()int";
-                exception.region.exit %2 ^block_4;
+                exception.region.exit ^block_4 ^block_2 ^block_5;
 
               ^block_2(%4 : java.lang.RuntimeException):
-                %5 : java.lang.reflect.code.op.CoreOp$ExceptionRegion = exception.region.enter ^block_3 ^block_5;
+                exception.region.enter ^block_3 ^block_5;
 
               ^block_3:
                 %6 : Var<java.lang.RuntimeException> = var %4 @"e";
-                exception.region.exit %5 ^block_4;
+                exception.region.exit ^block_4 ^block_5;
 
               ^block_4:
                 %7 : int = invoke @"A::finally_()int";
@@ -213,14 +213,14 @@ public class TestNormalizeBlocksTransformer {
 
     static final String TEST5_INPUT = """
             func @"f" ()void -> {
-                %0 : java.lang.reflect.code.op.CoreOp$ExceptionRegion = exception.region.enter ^block_1 ^block_4;
+                exception.region.enter ^block_1 ^block_4;
 
               ^block_1:
                 invoke @"A::m()void";
                 branch ^block_2;
 
               ^block_2:
-                exception.region.exit %0 ^block_3;
+                exception.region.exit ^block_3 ^block_4;
 
               ^block_3:
                 branch ^block_5;
@@ -234,11 +234,11 @@ public class TestNormalizeBlocksTransformer {
             """;
     static final String TEST5_EXPECTED = """
             func @"f" ()void -> {
-                %0 : java.lang.reflect.code.op.CoreOp$ExceptionRegion = exception.region.enter ^block_1 ^block_3;
+                exception.region.enter ^block_1 ^block_3;
 
               ^block_1:
                 invoke @"A::m()void";
-                exception.region.exit %0 ^block_2;
+                exception.region.exit ^block_2 ^block_3;
 
               ^block_2:
                 branch ^block_4;
