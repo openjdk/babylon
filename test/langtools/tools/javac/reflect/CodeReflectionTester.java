@@ -90,7 +90,6 @@ public class CodeReflectionTester {
             }
         } else if (Quotable.class.isAssignableFrom(field.getType())) {
             Quotable quotable = (Quotable) field.get(null);
-            System.out.println("XXX: " + quotable.quoted());
             String found = canonicalizeModel(field, getModelOfQuotedOp(quotable.quoted()));
             String expected = canonicalizeModel(field, ir.value());
             if (!found.equals(expected)) {
