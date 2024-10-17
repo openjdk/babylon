@@ -81,7 +81,7 @@ import java.lang.reflect.code.analysis.NormalizeBlocksTransformer;
 public final class BytecodeLift {
 
     private record ExceptionRegion(Label startLabel, Label endLabel, Label handlerLabel) {}
-    private record ExceptionRegionEntry(Op.Result enter, Block.Builder startBlock, ExceptionRegion region) {}
+    private record ExceptionRegionEntry(CoreOp.ExceptionRegionEnter enter, Block.Builder startBlock, ExceptionRegion region) {}
 
     private static final ClassDesc CD_LambdaMetafactory = ClassDesc.ofDescriptor("Ljava/lang/invoke/LambdaMetafactory;");
     private static final ClassDesc CD_StringConcatFactory = ClassDesc.ofDescriptor("Ljava/lang/invoke/StringConcatFactory;");
@@ -317,7 +317,7 @@ public final class BytecodeLift {
             } else if (targetBci < codeAttribtue.labelToBci(ee.region.startLabel) || targetBci >= codeAttribtue.labelToBci(ee.region.endLabel)) {
                 // Leaving the exception region, need to insert ExceptionRegionExit
                 Block.Builder next = newBlock(targetBlock.parameters());
-                next.op(CoreOp.exceptionRegionExit(ee.enter(), targetBlock.successor(next.parameters())));
+                next.op(CoreOp.exceptionRegionExit(targetBlock.successor(next.parameters()), ee.enter().catchBlocks().reversed()));
                 targetBlock = next;
             }
         }
@@ -353,7 +353,7 @@ public final class BytecodeLift {
                         ExceptionRegionEntry er = exceptionRegionStack.pop();
                         if (currentBlock != null) {
                             Block.Builder next = entryBlock.block();
-                            op(CoreOp.exceptionRegionExit(er.enter(), next.successor()));
+                            op(CoreOp.exceptionRegionExit(next.successor(), er.enter().catchBlocks().reversed()));
                             currentBlock = next;
                         }
                     }
@@ -374,10 +374,10 @@ public final class BytecodeLift {
                         if (lt.label() == reg.startLabel()) {
                             // Create start block
                             next = entryBlock.block();
-                            Op ere = CoreOp.exceptionRegionEnter(next.successor(), findTargetBlock(reg.handlerLabel()).successor());
+                            var ere = CoreOp.exceptionRegionEnter(next.successor(), findTargetBlock(reg.handlerLabel()).successor());
                             op(ere);
                             // Push ExceptionRegionEntry on stack
-                            exceptionRegionStack.push(new ExceptionRegionEntry(ere.result(), next, reg));
+                            exceptionRegionStack.push(new ExceptionRegionEntry(ere, next, reg));
                             currentBlock = next;
                         }
                     }

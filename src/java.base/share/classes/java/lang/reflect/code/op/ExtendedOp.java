@@ -485,8 +485,8 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             // Exception region for the body
             Block.Builder syncRegionEnter = b.block();
             Block.Builder catcherFinally = b.block();
-            Result syncExceptionRegion = b.op(exceptionRegionEnter(
-                    syncRegionEnter.successor(), List.of(catcherFinally.successor())));
+            b.op(exceptionRegionEnter(
+                    syncRegionEnter.successor(), catcherFinally.successor()));
 
             OpTransformer syncExitTransformer = opT.compose((block, op) -> {
                 if (op instanceof CoreOp.ReturnOp ||
@@ -495,7 +495,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                     block.op(CoreOp.monitorExit(monitorTarget));
                     // Exit the exception region
                     Block.Builder exitRegion = block.block();
-                    block.op(exceptionRegionExit(syncExceptionRegion, exitRegion.successor()));
+                    block.op(exceptionRegionExit(exitRegion.successor(), catcherFinally.successor()));
                     return exitRegion;
                 } else {
                     return block;
@@ -507,7 +507,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                     // Monitor exit
                     block.op(CoreOp.monitorExit(monitorTarget));
                     // Exit the exception region
-                    block.op(exceptionRegionExit(syncExceptionRegion, exit.successor()));
+                    block.op(exceptionRegionExit(exit.successor(), catcherFinally.successor()));
                 } else {
                     // @@@ Composition of lowerable ops
                     if (op instanceof Lowerable lop) {
@@ -521,15 +521,15 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
 
             // The catcher, with an exception region back branching to itself
             Block.Builder catcherFinallyRegionEnter = b.block();
-            Result catcherExceptionRegion = catcherFinally.op(exceptionRegionEnter(
-                    catcherFinallyRegionEnter.successor(), List.of(catcherFinally.successor())));
+            catcherFinally.op(exceptionRegionEnter(
+                    catcherFinallyRegionEnter.successor(), catcherFinally.successor()));
 
             // Monitor exit
             catcherFinallyRegionEnter.op(CoreOp.monitorExit(monitorTarget));
             Block.Builder catcherFinallyRegionExit = b.block();
             // Exit the exception region
             catcherFinallyRegionEnter.op(exceptionRegionExit(
-                    catcherExceptionRegion, catcherFinallyRegionExit.successor()));
+                    catcherFinallyRegionExit.successor(), catcherFinally.successor()));
             // Rethrow outside of region
             Block.Parameter t = catcherFinally.parameter(type(Throwable.class));
             catcherFinallyRegionExit.op(_throw(t));
@@ -2544,16 +2544,17 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             }
 
             // Enter the try exception region
-            Result tryExceptionRegion = b.op(exceptionRegionEnter(tryRegionEnter.successor(), catchers.stream()
+            List<Block.Reference> exitHandlers = catchers.stream()
                     .map(Block.Builder::successor)
-                    .toList()));
+                    .toList();
+            b.op(exceptionRegionEnter(tryRegionEnter.successor(), exitHandlers.reversed()));
 
             OpTransformer tryExitTransformer;
             if (finalizer != null) {
                 tryExitTransformer = opT.compose((block, op) -> {
                     if (op instanceof CoreOp.ReturnOp ||
                             (op instanceof ExtendedOp.JavaLabelOp lop && ifExitFromTry(lop))) {
-                        return inlineFinalizer(block, tryExceptionRegion, opT);
+                        return inlineFinalizer(block, exitHandlers, opT);
                     } else {
                         return block;
                     }
@@ -2563,7 +2564,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                     if (op instanceof CoreOp.ReturnOp ||
                             (op instanceof ExtendedOp.JavaLabelOp lop && ifExitFromTry(lop))) {
                         Block.Builder tryRegionReturnExit = block.block();
-                        block.op(exceptionRegionExit(tryExceptionRegion, tryRegionReturnExit.successor()));
+                        block.op(exceptionRegionExit(tryRegionReturnExit.successor(), exitHandlers));
                         return tryRegionReturnExit;
                     } else {
                         return block;
@@ -2592,11 +2593,11 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 finallyEnter = b.block();
                 if (hasTryRegionExit.get()) {
                     // Exit the try exception region
-                    tryRegionExit.op(exceptionRegionExit(tryExceptionRegion, finallyEnter.successor()));
+                    tryRegionExit.op(exceptionRegionExit(finallyEnter.successor(), exitHandlers));
                 }
             } else if (hasTryRegionExit.get()) {
                 // Exit the try exception region
-                tryRegionExit.op(exceptionRegionExit(tryExceptionRegion, exit.successor()));
+                tryRegionExit.op(exceptionRegionExit(exit.successor(), exitHandlers));
             }
 
             // Inline the catch bodies
@@ -2616,9 +2617,9 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
 
                     OpTransformer catchExitTransformer = opT.compose((block, op) -> {
                         if (op instanceof CoreOp.ReturnOp) {
-                            return inlineFinalizer(block, catchExceptionRegion, opT);
+                            return inlineFinalizer(block, exitHandlers, opT);
                         } else if (op instanceof ExtendedOp.JavaLabelOp lop && ifExitFromTry(lop)) {
-                            return inlineFinalizer(block, catchExceptionRegion, opT);
+                            return inlineFinalizer(block, exitHandlers, opT);
                         } else {
                             return block;
                         }
@@ -2643,7 +2644,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                     // Exit the catch exception region
                     if (hasCatchRegionExit.get()) {
                         hasTryRegionExit.set(true);
-                        catchRegionExit.op(exceptionRegionExit(catchExceptionRegion, finallyEnter.successor()));
+                        catchRegionExit.op(exceptionRegionExit(finallyEnter.successor(), exitHandlers));
                     }
                 } else {
                     // Inline the catch body
@@ -2717,11 +2718,11 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             return false;
         }
 
-        Block.Builder inlineFinalizer(Block.Builder block1, Value exceptionRegion, OpTransformer opT) {
+        Block.Builder inlineFinalizer(Block.Builder block1, List<Block.Reference> tryHandlers, OpTransformer opT) {
             Block.Builder finallyEnter = block1.block();
             Block.Builder finallyExit = block1.block();
 
-            block1.op(exceptionRegionExit(exceptionRegion, finallyEnter.successor()));
+            block1.op(exceptionRegionExit(finallyEnter.successor(), tryHandlers));
 
             // Inline the finally body
             finallyEnter.transformBody(finalizer, List.of(), opT.andThen((block2, op2) -> {

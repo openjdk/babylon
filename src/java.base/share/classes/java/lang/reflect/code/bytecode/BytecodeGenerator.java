@@ -532,7 +532,7 @@ public final class BytecodeGenerator {
                     setExceptionRegionStack(cop.trueBranch(), activeRegionStack);
                 }
                 case ExceptionRegionEnter er -> {
-                    for (Block.Reference catchBlock : er.catchBlocks().reversed()) {
+                    for (Block.Reference catchBlock : er.catchBlocks()) {
                         catchingBlocks.set(catchBlock.targetBlock().index());
                         setExceptionRegionStack(catchBlock, activeRegionStack);
                     }
