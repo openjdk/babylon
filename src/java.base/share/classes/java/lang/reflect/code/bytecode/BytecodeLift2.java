@@ -131,11 +131,11 @@ public final class BytecodeLift2 {
         for (int i = vtis.size() - 1; i >= 0; i--) {
             var vti = vtis.get(i);
             switch (vti) {
-                case INTEGER -> params.add(UnresolvedType.unresolvedType());
+                case INTEGER -> params.add(UnresolvedType.unresolvedInt());
                 case FLOAT -> params.add(JavaType.FLOAT);
                 case DOUBLE -> params.add(JavaType.DOUBLE);
                 case LONG -> params.add(JavaType.LONG);
-                case NULL -> params.add(UnresolvedType.unresolvedType());
+                case NULL -> params.add(UnresolvedType.unresolvedRef());
                 case UNINITIALIZED_THIS ->
                     params.add(JavaType.type(classModel.thisClass().asSymbol()));
                 case StackMapFrameInfo.ObjectVerificationTypeInfo ovti ->
@@ -230,7 +230,7 @@ public final class BytecodeLift2 {
                             eresToLeave.andNot(newEreStack);
                             if (!eresToLeave.isEmpty()) {
                                 Block.Builder next = entryBlock.block();
-                                op(TryOp.tryEnd(next.successor(), eresToLeave.stream().mapToObj(ei ->
+                                op(CoreOp.exceptionRegionExit(next.successor(), eresToLeave.stream().mapToObj(ei ->
                                         blockMap.get(exceptionHandlers.get(ei)).successor()).toList()));
                                 currentBlock = next;
                             }
@@ -251,7 +251,7 @@ public final class BytecodeLift2 {
                         eresToEnter.andNot(ereStack);
                         if (!eresToEnter.isEmpty()) {
                             next = entryBlock.block();
-                            op(TryOp.tryStart(next.successor(), eresToEnter.stream().mapToObj(ei ->
+                            op(CoreOp.exceptionRegionEnter(next.successor(), eresToEnter.stream().mapToObj(ei ->
                                     blockMap.get(exceptionHandlers.get(ei)).successor()).toList().reversed()));
                             currentBlock = next;
                         }
@@ -311,13 +311,13 @@ public final class BytecodeLift2 {
                     endOfFlow();
                 }
                 case LoadInstruction inst -> {
-                    stack.push(op(SlotOp.load(inst.slot())));
+                    stack.push(op(SlotOp.load(inst.slot(), inst.typeKind())));
                 }
                 case StoreInstruction inst -> {
                     op(SlotOp.store(inst.slot(), stack.pop()));
                 }
                 case IncrementInstruction inst -> {
-                    op(SlotOp.store(inst.slot(), op(CoreOp.add(op(SlotOp.load(i)), liftConstant(inst.constant())))));
+                    op(SlotOp.store(inst.slot(), op(CoreOp.add(op(SlotOp.load(i, TypeKind.INT)), liftConstant(inst.constant())))));
                 }
                 case ConstantInstruction inst -> {
                     stack.push(liftConstant(inst.constantValue()));
@@ -731,11 +731,11 @@ public final class BytecodeLift2 {
 
     private Op.Result liftConstant(Object c) {
         return switch (c) {
-            case null -> op(CoreOp.constant(UnresolvedType.unresolvedType(), null));
+            case null -> op(CoreOp.constant(UnresolvedType.unresolvedRef(), null));
             case ClassDesc cd -> op(CoreOp.constant(JavaType.J_L_CLASS, JavaType.type(cd)));
             case Double d -> op(CoreOp.constant(JavaType.DOUBLE, d));
             case Float f -> op(CoreOp.constant(JavaType.FLOAT, f));
-            case Integer ii -> op(CoreOp.constant(UnresolvedType.unresolvedType(), ii));
+            case Integer ii -> op(CoreOp.constant(UnresolvedType.unresolvedInt(), ii));
             case Long l -> op(CoreOp.constant(JavaType.LONG, l));
             case String s -> op(CoreOp.constant(JavaType.J_L_STRING, s));
             case DirectMethodHandleDesc dmh -> {
@@ -857,7 +857,7 @@ public final class BytecodeLift2 {
         if (!eresToEnter.isEmpty()) {
             // prepend exception region exits
             Block.Builder prev = newBlock(targetBlock.parameters());
-            prev.op(TryOp.tryStart(successorWithStack(targetBlock), eresToEnter.stream().mapToObj(ei ->
+            prev.op(CoreOp.exceptionRegionEnter(successorWithStack(targetBlock), eresToEnter.stream().mapToObj(ei ->
                     blockMap.get(exceptionHandlers.get(ei)).successor()).toList().reversed()));
             targetBlock = prev;
         }
@@ -866,7 +866,7 @@ public final class BytecodeLift2 {
         if (!eresToLeave.isEmpty()) {
             // prepend exception region enters
             Block.Builder prev = newBlock(targetBlock.parameters());
-            prev.op(TryOp.tryEnd(successorWithStack(targetBlock), eresToLeave.stream().mapToObj(ei ->
+            prev.op(CoreOp.exceptionRegionExit(successorWithStack(targetBlock), eresToLeave.stream().mapToObj(ei ->
                     blockMap.get(exceptionHandlers.get(ei)).successor()).toList()));
             targetBlock = prev;
         }
@@ -884,7 +884,7 @@ public final class BytecodeLift2 {
     }
 
     private Value zero() {
-        return op(CoreOp.constant(UnresolvedType.unresolvedType(), 0));
+        return op(CoreOp.constant(UnresolvedType.unresolvedInt(), 0));
     }
 
     private static boolean isCategory1(Value v) {

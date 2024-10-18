@@ -28,17 +28,31 @@ package java.lang.reflect.code.bytecode;
 import java.lang.reflect.code.TypeElement;
 import java.util.List;
 
-final class UnresolvedType implements TypeElement {
+sealed interface UnresolvedType extends TypeElement {
 
-    private static final TypeElement.ExternalizedTypeElement UNRESOLVED_EXT = new TypeElement.ExternalizedTypeElement("?", List.of());
-
-    static UnresolvedType unresolvedType() {
-        return new UnresolvedType();
+    static Ref unresolvedRef() {
+        return new Ref();
     }
 
-    @Override
-    public TypeElement.ExternalizedTypeElement externalize() {
-        return UNRESOLVED_EXT;
+    static Int unresolvedInt() {
+        return new Int();
     }
 
+    final class Ref implements UnresolvedType {
+        private static final TypeElement.ExternalizedTypeElement UNRESOLVED_REF = new TypeElement.ExternalizedTypeElement("?REF", List.of());
+
+        @Override
+        public TypeElement.ExternalizedTypeElement externalize() {
+            return UNRESOLVED_REF;
+        }
+    }
+
+    final class Int implements UnresolvedType {
+        private static final TypeElement.ExternalizedTypeElement UNRESOLVED_INT = new TypeElement.ExternalizedTypeElement("?INT", List.of());
+
+        @Override
+        public TypeElement.ExternalizedTypeElement externalize() {
+            return UNRESOLVED_INT;
+        }
+    }
 }

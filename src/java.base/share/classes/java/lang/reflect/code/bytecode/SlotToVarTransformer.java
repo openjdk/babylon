@@ -25,11 +25,13 @@
 
 package java.lang.reflect.code.bytecode;
 
+import java.lang.classfile.TypeKind;
 import java.lang.reflect.code.Block;
 import java.lang.reflect.code.CodeElement;
 import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.op.CoreOp;
+import java.lang.reflect.code.type.JavaType;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -56,6 +58,7 @@ final class SlotToVarTransformer {
                     SlotOp se = q.pop();
                     if (se.var == null) {
                         se.var = var; // Assign variable to the segment
+                        var.typeKind = se.typeKind(); // TypeKind is identical for all SlotOps of the same variable
                         for (SlotOp to : slotImmediateSuccessors(se)) {
                             // All following SlotLoadOp belong to the same variable
                             if (to instanceof SlotOp.SlotLoadOp) {
@@ -105,7 +108,7 @@ final class SlotToVarTransformer {
         return func.transform((block, op) -> {
             if (!toInitialize.isEmpty()) {
                 for (SlotOp.Var var : toInitialize) {
-                    var.value = block.op(CoreOp.var(block.op(CoreOp.constant(UnresolvedType.unresolvedType(), null))));
+                    var.value = block.op(CoreOp.var(block.op(liftDefaultValue(var.typeKind))));
                 }
                 toInitialize.clear();
             }
@@ -129,6 +132,22 @@ final class SlotToVarTransformer {
             }
             return block;
         });
+    }
+
+    // @@@ can be replaced with unitialized VarOp
+    private static CoreOp.ConstantOp liftDefaultValue(TypeKind tk) {
+        return switch (tk) {
+            case INT -> CoreOp.constant(UnresolvedType.unresolvedInt(), 0);
+            case REFERENCE -> CoreOp.constant(UnresolvedType.unresolvedRef(), null);
+            case LONG -> CoreOp.constant(JavaType.LONG, 0l);
+            case DOUBLE -> CoreOp.constant(JavaType.DOUBLE, 0d);
+            case FLOAT -> CoreOp.constant(JavaType.FLOAT, 0f);
+            case BOOLEAN -> CoreOp.constant(JavaType.BOOLEAN, false);
+            case BYTE -> CoreOp.constant(JavaType.BYTE, (byte)0);
+            case SHORT -> CoreOp.constant(JavaType.SHORT, (short)0);
+            case CHAR -> CoreOp.constant(JavaType.CHAR, (char)0);
+            case VOID -> throw new IllegalStateException("Unexpected void type.");
+        };
     }
 
     // Traverse immediate same-slot successors of a SlotOp
@@ -157,6 +176,7 @@ final class SlotToVarTransformer {
 
         SlotOp op;
         final int slot;
+        final TypeKind tk;
         final boolean fwd;
         Block b;
         List<Op> ops;
@@ -167,6 +187,7 @@ final class SlotToVarTransformer {
 
         public SlotOpIterator(SlotOp slotOp, boolean forward) {
             slot = slotOp.slot;
+            tk = slotOp.typeKind();
             fwd = forward;
             b = slotOp.parentBlock();
             ops = fwd ? b.ops() : b.ops().reversed();
@@ -175,6 +196,17 @@ final class SlotToVarTransformer {
 
         @Override
         public boolean hasNext() {
+            while (hasNextSlot()) {
+                // filter loads and stores of the same TypeKind
+                if (op.typeKind() == tk) {
+                    return true;
+                }
+                op = null;
+            }
+            return false;
+        }
+
+        private boolean hasNextSlot() {
             if (op != null) {
                 return true;
             } else {

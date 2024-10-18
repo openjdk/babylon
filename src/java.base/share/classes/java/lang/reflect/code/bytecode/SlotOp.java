@@ -24,24 +24,34 @@
  */
 package java.lang.reflect.code.bytecode;
 
+import java.lang.classfile.TypeKind;
+import java.lang.reflect.code.CodeElement;
 import java.lang.reflect.code.CopyContext;
-import java.lang.reflect.code.Op;
 import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.op.ExternalizableOp;
 import java.lang.reflect.code.op.OpFactory;
 import java.lang.reflect.code.type.JavaType;
+import java.lang.reflect.code.type.PrimitiveType;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 sealed abstract class SlotOp extends ExternalizableOp {
     public static final String ATTRIBUTE_SLOT = "slot";
 
-    public static SlotLoadOp load(int slot) {
-        return new SlotLoadOp(slot, UnresolvedType.unresolvedType());
+    public static SlotLoadOp load(int slot, TypeKind tk) {
+        return new SlotLoadOp(slot, switch (tk) {
+            case INT -> UnresolvedType.unresolvedInt();
+            case REFERENCE -> UnresolvedType.unresolvedRef();
+            case LONG -> JavaType.LONG;
+            case DOUBLE -> JavaType.DOUBLE;
+            case FLOAT -> JavaType.FLOAT;
+            default -> throw new IllegalStateException("Unexpected load instruction type: " + tk);
+        });
     }
 
     public static SlotStoreOp store(int slot, Value v) {
@@ -74,6 +84,8 @@ sealed abstract class SlotOp extends ExternalizableOp {
     public int slot() {
         return slot;
     }
+
+    public abstract TypeKind typeKind();
 
     @Override
     public Map<String, Object> attributes() {
@@ -117,6 +129,11 @@ sealed abstract class SlotOp extends ExternalizableOp {
         public TypeElement resultType() {
             return resultType;
         }
+
+        @Override
+        public TypeKind typeKind() {
+            return toTypeKind(resultType);
+        }
     }
 
     @OpFactory.OpDeclaration(SlotStoreOp.NAME)
@@ -148,12 +165,28 @@ sealed abstract class SlotOp extends ExternalizableOp {
         public TypeElement resultType() {
             return JavaType.VOID;
         }
+
+        @Override
+        public TypeKind typeKind() {
+            return toTypeKind(operands().getFirst().type());
+        }
     }
 
+    private static TypeKind toTypeKind(TypeElement type) {
+        return switch (type) {
+            case UnresolvedType.Int _ ->
+                TypeKind.INT;
+            case PrimitiveType pt ->
+                TypeKind.from(pt.toNominalDescriptor());
+            default ->
+                TypeKind.REFERENCE;
+        };
+    }
 
     // Support for SlotToVarTransformer
     static final class Var {
         boolean single;
+        TypeKind typeKind;
         Value value;
     }
     Var var;
