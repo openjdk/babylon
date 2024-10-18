@@ -2565,19 +2565,6 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         }
     }
 
-    // @@@ Sealed
-    // Synthetic/hidden type that is the result type of an ExceptionRegionStart operation
-    // and is an operand of an ExceptionRegionEnd operation
-
-    /**
-     * A synthetic exception region type, that is the operation result-type of an exception region
-     * start operation.
-     */
-    // @@@: Create as new type element
-    public interface ExceptionRegion {
-        TypeElement EXCEPTION_REGION_TYPE = JavaType.type(ExceptionRegion.class);
-    }
-
     /**
      * The exception region start operation.
      */
@@ -2638,7 +2625,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
         @Override
         public TypeElement resultType() {
-            return ExceptionRegion.EXCEPTION_REGION_TYPE;
+            return JavaType.VOID;
         }
     }
 
@@ -2650,26 +2637,24 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             implements Op.BlockTerminating {
         public static final String NAME = "exception.region.exit";
 
-        final Block.Reference end;
+        // First successor is the non-exceptional successor whose target indicates
+        // the first block following the exception region.
+        final List<Block.Reference> s;
 
         public ExceptionRegionExit(ExternalizedOp def) {
             super(def);
 
-            if (def.operands().size() != 1) {
-                throw new IllegalArgumentException("Operation must have one operand" + def.name());
+            if (def.successors().size() < 2) {
+                throw new IllegalArgumentException("Operation must have two or more successors" + def.name());
             }
 
-            if (def.successors().size() != 1) {
-                throw new IllegalArgumentException("Operation must have one successor" + def.name());
-            }
-
-            this.end = def.successors().get(0);
+            this.s = List.copyOf(def.successors());
         }
 
         ExceptionRegionExit(ExceptionRegionExit that, CopyContext cc) {
             super(that, cc);
 
-            this.end = cc.getSuccessorOrCreate(that.end);
+            this.s = that.s.stream().map(cc::getSuccessorOrCreate).toList();
         }
 
         @Override
@@ -2677,36 +2662,27 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             return new ExceptionRegionExit(this, cc);
         }
 
-        ExceptionRegionExit(Value exceptionRegion, Block.Reference end) {
-            super(NAME, checkValue(exceptionRegion));
+        ExceptionRegionExit(List<Block.Reference> s) {
+            super(NAME, List.of());
 
-            this.end = end;
-        }
-
-        static List<Value> checkValue(Value er) {
-            if (!(er instanceof Result or && or.op() instanceof ExceptionRegionEnter)) {
-                throw new IllegalArgumentException(
-                        "Operand not the result of an exception.region.start operation: " + er);
+            if (s.size() < 2) {
+                throw new IllegalArgumentException("Operation must have two or more successors" + opName());
             }
 
-            return List.of(er);
+            this.s = List.copyOf(s);
         }
 
         @Override
         public List<Block.Reference> successors() {
-            return List.of(end);
+            return s;
         }
 
         public Block.Reference end() {
-            return end;
+            return s.get(0);
         }
 
-        public ExceptionRegionEnter regionStart() {
-            if (operands().get(0) instanceof Result or &&
-                    or.op() instanceof ExceptionRegionEnter ers) {
-                return ers;
-            }
-            throw new InternalError("Should not reach here");
+        public List<Block.Reference> catchBlocks() {
+            return s.subList(1, s.size());
         }
 
         @Override
@@ -3600,12 +3576,26 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     /**
      * Creates an exception region exit operation
      *
-     * @param exceptionRegion the exception region to be exited
      * @param end             the block to which control is transferred after the exception region is exited
+     * @param catchers the blocks handling exceptions thrown by the region block
      * @return the exception region exit operation
      */
-    public static ExceptionRegionExit exceptionRegionExit(Value exceptionRegion, Block.Reference end) {
-        return new ExceptionRegionExit(exceptionRegion, end);
+    public static ExceptionRegionExit exceptionRegionExit(Block.Reference end, Block.Reference... catchers) {
+        return exceptionRegionExit(end, List.of(catchers));
+    }
+
+    /**
+     * Creates an exception region exit operation
+     *
+     * @param end             the block to which control is transferred after the exception region is exited
+     * @param catchers the blocks handling exceptions thrown by the region block
+     * @return the exception region exit operation
+     */
+    public static ExceptionRegionExit exceptionRegionExit(Block.Reference end, List<Block.Reference> catchers) {
+        List<Block.Reference> s = new ArrayList<>();
+        s.add(end);
+        s.addAll(catchers);
+        return new ExceptionRegionExit(s);
     }
 
     /**

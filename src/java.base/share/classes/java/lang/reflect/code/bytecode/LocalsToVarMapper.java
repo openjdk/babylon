@@ -245,11 +245,6 @@ final class LocalsToVarMapper {
     private final Map<Label, ClassDesc> newMap;
 
     /**
-     * Dirty flag indicates modified stack map frame (sub-int adjustments), so the scanning process must restart
-     */
-    private boolean frameDirty;
-
-    /**
      * Initial set of slots. Static part comes from method arguments.
      * Later phase of the analysis adds synthetic slots (declarations of multiple-assigned variables)
      * with mandatory initialization in the entry block.
@@ -284,33 +279,17 @@ final class LocalsToVarMapper {
         for (ClassDesc cd : initFrameLocals) {
             initSlots.add(cd == null ? null : newSegment(cd, Segment.Kind.STORE));
         }
-        int initSize = allSegments.size();
 
-        // Main loop of the scan phase
-        do {
-            // Reset of the exception handler stack
-            handlersStack.clear();
-            // Slot states reset if running additional rounds (changed stack map frames)
-            if (allSegments.size() > initSize) {
-                while (allSegments.size() > initSize) allSegments.removeLast();
-                allSegments.forEach(sl -> {
-                    sl.from = null;
-                    sl.to = null;
-                    sl.var = null;
-                });
-            }
-            // Initial frame store
-            for (int i = 0; i < initFrameLocals.size(); i++) {
-                storeLocal(i, initSlots.get(i), locals);
-            }
-            this.frameDirty = false;
-            // Iteration over all code elements
-            for (int i = 0; i < codeElements.size(); i++) {
-                var ce = codeElements.get(i);
-                scan(i, ce);
-            }
-            endOfFlow();
-        } while (this.frameDirty);
+        // Scan phase
+        // Initial frame store
+        for (int i = 0; i < initFrameLocals.size(); i++) {
+            storeLocal(i, initSlots.get(i), locals);
+        }
+        // Iteration over all code elements
+        for (int i = 0; i < codeElements.size(); i++) {
+            var ce = codeElements.get(i);
+            scan(i, ce);
+        }
 
         // Segment graph analysis phase
         // First resolve FRAME segments to LOAD segments if directly followed by a LOAD segment
@@ -348,9 +327,7 @@ final class LocalsToVarMapper {
                         for (Segment to : se.toSegments()) {
                             // All following LOAD segments belong to the same variable
                             if (to.kind == Segment.Kind.LOAD) {
-                                if (var.type == NULL_TYPE) {
-                                    var.type = to.type; // Initially null type re-assignemnt
-                                }
+                                var.type = merge(var.type, to.type);
                                 if (to.var == null) {
                                     q.add(to);
                                 }
@@ -360,9 +337,7 @@ final class LocalsToVarMapper {
                             // Segments preceeding LOAD segment also belong to the same variable
                             for (Segment from : se.fromSegments()) {
                                 if (from.kind != Segment.Kind.FRAME) { // FRAME segments are ignored
-                                    if (var.type == NULL_TYPE) {
-                                        var.type = from.type; // Initially null type re-assignemnt
-                                    }
+                                    var.type = merge(from.type, var.type);
                                     if (from.var == null) {
                                         q.add(from);
                                     }
@@ -402,6 +377,10 @@ final class LocalsToVarMapper {
                 stores.clear();
             }
         }
+    }
+
+    private static ClassDesc merge(ClassDesc fromType, ClassDesc toType) {
+        return toType == NULL_TYPE || fromType == CD_boolean ? fromType : toType;
     }
 
     /**
@@ -846,12 +825,7 @@ final class LocalsToVarMapper {
             ClassDesc se = stack.get(i);
             ClassDesc fe = targetFrame.stack.get(i);
             if (!se.equals(fe)) {
-                if (se.isPrimitive() && CD_int.equals(fe)) {
-                    targetFrame.stack.set(i, se); // Override int target frame type with more specific int sub-type
-                    this.frameDirty = true; // This triggers scan loop to run again, as the stack map frame has been adjusted
-                } else {
-                    stack.set(i, fe); // Override stack type with target frame type
-                }
+                stack.set(i, fe); // Override stack type with target frame type
             }
         }
         mergeLocalsToTargetFrame(targetFrame);
@@ -870,12 +844,6 @@ final class LocalsToVarMapper {
             Segment fe = targetFrame.locals.get(i);
             if (le != null && fe != null) {
                 le.link(fe); // Link target frame var with its source
-                if (!le.type.equals(fe.type)) {
-                    if (le.type.isPrimitive() && CD_int.equals(fe.type) ) {
-                        fe.type = le.type; // Override int target frame type with more specific int sub-type
-                        this.frameDirty = true; // This triggers scan loop to run again, as the stack map frame has been adjusted
-                    }
-                }
             }
         }
     }

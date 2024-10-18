@@ -133,12 +133,14 @@ public final class Interpreter {
             erStack.push(erb);
         }
 
-        void popExceptionRegion(CoreOp.ExceptionRegionEnter ers) {
-            if (erStack.peek().ers != ers) {
-                // @@@ Use internal exception type
-                throw interpreterException(new IllegalStateException("Mismatched exception regions"));
-            }
-            erStack.pop();
+        void popExceptionRegion(CoreOp.ExceptionRegionExit ere) {
+            ere.catchBlocks().forEach(catchBlock -> {
+                if (erStack.peek().catchBlock != catchBlock.targetBlock()) {
+                    // @@@ Use internal exception type
+                    throw interpreterException(new IllegalStateException("Mismatched exception regions"));
+                }
+                erStack.pop();
+            });
         }
 
         Block exception(MethodHandles.Lookup l, Throwable e) {
@@ -156,6 +158,9 @@ public final class Interpreter {
 
             // Pop the block context to the block defining the start of the exception region
             popTo(er.mark);
+            while (erStack.size() > er.erStackDepth()) {
+                erStack.pop();
+            }
             return cb;
         }
     }
@@ -189,22 +194,18 @@ public final class Interpreter {
         }
     }
 
-    record ExceptionRegionRecord(BlockContext mark, CoreOp.ExceptionRegionEnter ers)
-            implements CoreOp.ExceptionRegion {
+    record ExceptionRegionRecord(BlockContext mark, int erStackDepth, Block catchBlock) {
         Block match(MethodHandles.Lookup l, Throwable e) {
-            for (Block.Reference catchBlock : ers.catchBlocks()) {
-                Block target = catchBlock.targetBlock();
-                List<Block.Parameter> args = target.parameters();
-                if (args.size() != 1) {
-                    throw interpreterException(new IllegalStateException("Catch block must have one argument"));
-                }
-                TypeElement et = args.get(0).type();
-                if (et instanceof VarType vt) {
-                    et = vt.valueType();
-                }
-                if (resolveToClass(l, et).isInstance(e)) {
-                    return target;
-                }
+            List<Block.Parameter> args = catchBlock.parameters();
+            if (args.size() != 1) {
+                throw interpreterException(new IllegalStateException("Catch block must have one argument"));
+            }
+            TypeElement et = args.get(0).type();
+            if (et instanceof VarType vt) {
+                et = vt.valueType();
+            }
+            if (resolveToClass(l, et).isInstance(e)) {
+                return catchBlock;
             }
             return null;
         }
@@ -329,14 +330,15 @@ public final class Interpreter {
                 Value yv = yop.yieldValue();
                 return yv == null ? null : oc.getValue(yv);
             } else if (to instanceof CoreOp.ExceptionRegionEnter ers) {
-                var er = new ExceptionRegionRecord(oc.stack.peek(), ers);
-                oc.setValue(ers.result(), er);
-
-                oc.pushExceptionRegion(er);
+                int erStackDepth = oc.erStack.size();
+                ers.catchBlocks().forEach(catchBlock -> {
+                    var er = new ExceptionRegionRecord(oc.stack.peek(), erStackDepth, catchBlock.targetBlock());
+                    oc.pushExceptionRegion(er);
+                });
 
                 oc.successor(ers.start());
             } else if (to instanceof CoreOp.ExceptionRegionExit ere) {
-                oc.popExceptionRegion(ere.regionStart());
+                oc.popExceptionRegion(ere);
 
                 oc.successor(ere.end());
             } else {
@@ -537,11 +539,11 @@ public final class Interpreter {
             Array.set(a, (int) index, v);
             return null;
         } else if (o instanceof CoreOp.ArithmeticOperation || o instanceof CoreOp.TestOperation) {
-            MethodHandle mh = opHandle(o.opName(), o.opType());
+            MethodHandle mh = opHandle(l, o.opName(), o.opType());
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
         } else if (o instanceof CoreOp.ConvOp) {
-            MethodHandle mh = opHandle(o.opName() + "_" + o.opType().returnType(), o.opType());
+            MethodHandle mh = opHandle(l, o.opName() + "_" + o.opType().returnType(), o.opType());
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
         } else if (o instanceof CoreOp.AssertOp _assert) {
@@ -604,8 +606,8 @@ public final class Interpreter {
         return invoke(l, op, capturedValues, args);
     }
 
-    static MethodHandle opHandle(String opName, FunctionType ft) {
-        MethodType mt = resolveToMethodType(MethodHandles.lookup(), ft).erase();
+    static MethodHandle opHandle(MethodHandles.Lookup l, String opName, FunctionType ft) {
+        MethodType mt = resolveToMethodType(l, ft).erase();
         try {
             return MethodHandles.lookup().findStatic(InvokableLeafOps.class, opName, mt);
         } catch (NoSuchMethodException | IllegalAccessException e) {

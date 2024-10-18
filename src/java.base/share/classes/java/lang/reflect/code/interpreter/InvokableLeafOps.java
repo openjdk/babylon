@@ -197,6 +197,30 @@ final class InvokableLeafOps {
         return (byte) (l >>> r);
     }
 
+    public static boolean eq(byte l, byte r) {
+        return l == r;
+    }
+
+    public static boolean neq(byte l, byte r) {
+        return l != r;
+    }
+
+    public static boolean gt(byte l, byte r) {
+        return l > r;
+    }
+
+    public static boolean ge(byte l, byte r) {
+        return l >= r;
+    }
+
+    public static boolean lt(byte l, byte r) {
+        return l < r;
+    }
+
+    public static boolean le(byte l, byte r) {
+        return l <= r;
+    }
+
     // short
 
     public static short neg(short l) {
@@ -259,8 +283,28 @@ final class InvokableLeafOps {
         return (short) (l >>> r);
     }
 
-    public static boolean eq(short a, short b) {
-        return a == b;
+    public static boolean eq(short l, short r) {
+        return l == r;
+    }
+
+    public static boolean neq(short l, short r) {
+        return l != r;
+    }
+
+    public static boolean gt(short l, short r) {
+        return l > r;
+    }
+
+    public static boolean ge(short l, short r) {
+        return l >= r;
+    }
+
+    public static boolean lt(short l, short r) {
+        return l < r;
+    }
+
+    public static boolean le(short l, short r) {
+        return l <= r;
     }
 
     // char
@@ -329,6 +373,25 @@ final class InvokableLeafOps {
         return l == r;
     }
 
+    public static boolean neq(char l, char r) {
+        return l != r;
+    }
+
+    public static boolean gt(char l, char r) {
+        return l > r;
+    }
+
+    public static boolean ge(char l, char r) {
+        return l >= r;
+    }
+
+    public static boolean lt(char l, char r) {
+        return l < r;
+    }
+
+    public static boolean le(char l, char r) {
+        return l <= r;
+    }
    // long
 
     public static long neg(long l) {
@@ -499,6 +562,29 @@ final class InvokableLeafOps {
         return l % r;
     }
 
+    public static boolean eq(double l, double r) {
+        return l == r;
+    }
+
+    public static boolean neq(double l, double r) {
+        return l != r;
+    }
+
+    public static boolean gt(double l, double r) {
+        return l > r;
+    }
+
+    public static boolean ge(double l, double r) {
+        return l >= r;
+    }
+
+    public static boolean lt(double l, double r) {
+        return l < r;
+    }
+
+    public static boolean le(double l, double r) {
+        return l <= r;
+    }
 
 
     // boolean

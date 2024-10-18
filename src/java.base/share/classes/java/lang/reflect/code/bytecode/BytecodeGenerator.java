@@ -532,7 +532,7 @@ public final class BytecodeGenerator {
                     setExceptionRegionStack(cop.trueBranch(), activeRegionStack);
                 }
                 case ExceptionRegionEnter er -> {
-                    for (Block.Reference catchBlock : er.catchBlocks().reversed()) {
+                    for (Block.Reference catchBlock : er.catchBlocks()) {
                         catchingBlocks.set(catchBlock.targetBlock().index());
                         setExceptionRegionStack(catchBlock, activeRegionStack);
                     }
@@ -561,7 +561,7 @@ public final class BytecodeGenerator {
                 if (!(blocks.get(start).firstOp() instanceof ExceptionRegionExit erEx) || erEx.end().targetBlock().index() != end) {
                     Label startLabel = getLabel(start);
                     Label endLabel = getLabel(end);
-                    for (Block.Reference cbr : erNode.ere.catchBlocks()) {
+                    for (Block.Reference cbr : erNode.ere.catchBlocks().reversed()) {
                         List<Block.Parameter> params = cbr.targetBlock().parameters();
                         if (!params.isEmpty()) {
                             JavaType jt = (JavaType) params.get(0).type();
