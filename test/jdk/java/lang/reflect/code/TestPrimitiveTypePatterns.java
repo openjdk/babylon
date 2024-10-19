@@ -45,6 +45,14 @@ public class TestPrimitiveTypePatterns {
     static final MethodRef floatToChar = conversionMethodRef(JavaType.FLOAT, JavaType.CHAR);
     static final MethodRef floatToInt = conversionMethodRef(JavaType.FLOAT, JavaType.INT);
     static final MethodRef floatToLong = conversionMethodRef(JavaType.FLOAT, JavaType.LONG);
+    static final MethodRef doubleToByte = conversionMethodRef(JavaType.DOUBLE, JavaType.BYTE);
+    static final MethodRef doubleToShort = conversionMethodRef(JavaType.DOUBLE, JavaType.SHORT);
+    static final MethodRef doubleToChar = conversionMethodRef(JavaType.DOUBLE, JavaType.CHAR);
+    static final MethodRef doubleToInt = conversionMethodRef(JavaType.DOUBLE, JavaType.INT);
+    static final MethodRef doubleToLong = conversionMethodRef(JavaType.DOUBLE, JavaType.LONG);
+    static final MethodRef doubleToFloat = conversionMethodRef(JavaType.DOUBLE, JavaType.FLOAT);
+
+
 
 
     static MethodRef conversionMethodRef(JavaType sourceType, JavaType targetType) {
@@ -104,8 +112,22 @@ public class TestPrimitiveTypePatterns {
                 {JavaType.FLOAT, JavaType.INT, new Object[] {Float.MIN_VALUE, Float.NEGATIVE_INFINITY, 0f,
                         Float.POSITIVE_INFINITY, Float.MAX_VALUE}, floatToInt},
                 {JavaType.FLOAT, JavaType.LONG, new Object[] {Float.MIN_VALUE, Float.NEGATIVE_INFINITY, 0f,
-                        Float.POSITIVE_INFINITY, Float.MAX_VALUE}, floatToLong}
-                // double -> byte .. float
+                        Float.POSITIVE_INFINITY, Float.MAX_VALUE}, floatToLong},
+
+                {JavaType.DOUBLE, JavaType.BYTE, new Object[] {Byte.MIN_VALUE - 1, Byte.MIN_VALUE, -0.0, +0.0, Byte.MAX_VALUE,
+                        Byte.MIN_VALUE + 1}, doubleToByte},
+                {JavaType.DOUBLE, JavaType.SHORT, new Object[] {Double.NEGATIVE_INFINITY, Short.MIN_VALUE - 1, Short.MIN_VALUE,
+                        -0.0, +0.0, Short.MAX_VALUE, Short.MAX_VALUE + 1, Double.POSITIVE_INFINITY}, doubleToShort},
+                {JavaType.DOUBLE, JavaType.CHAR, new Object[] {Double.NEGATIVE_INFINITY, Character.MIN_VALUE - 1,
+                        Character.MIN_VALUE, -0.0, +0.0, Character.MAX_VALUE, Character.MAX_VALUE + 1, Double.POSITIVE_INFINITY},
+                        doubleToChar},
+                {JavaType.DOUBLE, JavaType.INT, new Object[] {Double.NEGATIVE_INFINITY, -0d, +0d, Double.POSITIVE_INFINITY,
+                        Double.NaN}, doubleToInt},
+                {JavaType.DOUBLE, JavaType.LONG, new Object[] {Double.NEGATIVE_INFINITY, Double.MIN_VALUE, -0d, +0d,
+                        Double.MAX_VALUE, Double.POSITIVE_INFINITY, Double.NaN}, doubleToLong},
+                {JavaType.DOUBLE, JavaType.FLOAT, new Object[] {Double.NEGATIVE_INFINITY, Double.MIN_VALUE, -0d, +0d,
+                        Double.MAX_VALUE, Double.POSITIVE_INFINITY, Double.NaN}, doubleToFloat}
+
         };
     }
 
