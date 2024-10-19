@@ -40,6 +40,11 @@ public class TestPrimitiveTypePatterns {
     static final MethodRef longToInt = conversionMethodRef(JavaType.LONG, JavaType.INT);
     static final MethodRef longToFloat = conversionMethodRef(JavaType.LONG, JavaType.FLOAT);
     static final MethodRef longToDouble = conversionMethodRef(JavaType.LONG, JavaType.DOUBLE);
+    static final MethodRef floatToByte = conversionMethodRef(JavaType.FLOAT, JavaType.BYTE);
+    static final MethodRef floatToShort = conversionMethodRef(JavaType.FLOAT, JavaType.SHORT);
+    static final MethodRef floatToChar = conversionMethodRef(JavaType.FLOAT, JavaType.CHAR);
+    static final MethodRef floatToInt = conversionMethodRef(JavaType.FLOAT, JavaType.INT);
+    static final MethodRef floatToLong = conversionMethodRef(JavaType.FLOAT, JavaType.LONG);
 
 
     static MethodRef conversionMethodRef(JavaType sourceType, JavaType targetType) {
@@ -90,8 +95,16 @@ public class TestPrimitiveTypePatterns {
                 {JavaType.LONG, JavaType.DOUBLE, new Object[] {Long.MIN_VALUE, 1L<<53, (1L<<53) + 1, (1L<<63) - (1<<10),
                         (1L<<63) - (1<<10) + 1, Long.MAX_VALUE}, longToDouble},
 
-                // float -> byte .. long
-
+                {JavaType.FLOAT, JavaType.BYTE, new Object[] {Byte.MIN_VALUE - 1, Byte.MIN_VALUE, Byte.MAX_VALUE,
+                        Byte.MIN_VALUE + 1}, floatToByte},
+                {JavaType.FLOAT, JavaType.SHORT, new Object[] {Short.MIN_VALUE - 1, Short.MIN_VALUE, Short.MAX_VALUE,
+                        Short.MAX_VALUE + 1}, floatToShort},
+                {JavaType.FLOAT, JavaType.CHAR, new Object[] {Character.MIN_VALUE - 1, Character.MIN_VALUE,
+                        Character.MAX_VALUE, Character.MAX_VALUE + 1}, floatToChar},
+                {JavaType.FLOAT, JavaType.INT, new Object[] {Float.MIN_VALUE, Float.NEGATIVE_INFINITY, 0f,
+                        Float.POSITIVE_INFINITY, Float.MAX_VALUE}, floatToInt},
+                {JavaType.FLOAT, JavaType.LONG, new Object[] {Float.MIN_VALUE, Float.NEGATIVE_INFINITY, 0f,
+                        Float.POSITIVE_INFINITY, Float.MAX_VALUE}, floatToLong}
                 // double -> byte .. float
         };
     }
