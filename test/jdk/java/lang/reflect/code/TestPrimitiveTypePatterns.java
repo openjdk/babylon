@@ -81,7 +81,14 @@ public class TestPrimitiveTypePatterns {
                         Character.MAX_VALUE + 1}, longToChar},
                 {JavaType.LONG, JavaType.INT, new Object[] {(long)Integer.MIN_VALUE - 1, Integer.MIN_VALUE, Integer.MAX_VALUE,
                         (long)Integer.MAX_VALUE + 1}, longToInt},
-                // long -> float .. double
+                // (1<<24) + 1 : first long that can't be represented as float
+                // (1L<<63) - (1L<<39) : largest long that can be represented as float
+                {JavaType.LONG, JavaType.FLOAT, new Object[] {Long.MIN_VALUE, (1L<<24), (1<<24) + 1, (1L<<63) - (1L<<39),
+                        (1L<<63) - (1L<<39) + 1, Long.MAX_VALUE}, longToFloat},
+                // (1L<<53) + 1 : first long that can't be represented as double
+                // (1L<<63) - (1<<10) : largest long that can be represented as double
+                {JavaType.LONG, JavaType.DOUBLE, new Object[] {Long.MIN_VALUE, 1L<<53, (1L<<53) + 1, (1L<<63) - (1<<10),
+                        (1L<<63) - (1<<10) + 1, Long.MAX_VALUE}, longToDouble},
 
                 // float -> byte .. long
 
