@@ -175,7 +175,7 @@ sealed abstract class SlotOp extends ExternalizableOp {
             case UnresolvedType.Int _ ->
                 TypeKind.INT;
             case PrimitiveType pt ->
-                TypeKind.from(pt.toNominalDescriptor());
+                TypeKind.from(pt.toNominalDescriptor()).asLoadable();
             default ->
                 TypeKind.REFERENCE;
         };

@@ -100,6 +100,7 @@ public final class BytecodeLift {
     private static final MethodRef METHOD_TYPE_L = MethodRef.method(MT, "methodType", MT, JavaType.J_L_CLASS, CLASS_ARRAY);
 
     private final Block.Builder entryBlock;
+    private final List<Value> initialValues;
     private final ClassModel classModel;
     private final List<Label> exceptionHandlers;
     private final BitSet ereStack;
@@ -112,6 +113,7 @@ public final class BytecodeLift {
 
     private BytecodeLift(Block.Builder entryBlock, ClassModel classModel, CodeModel codeModel, Value... capturedValues) {
         this.entryBlock = entryBlock;
+        this.initialValues = Stream.concat(Stream.of(capturedValues), entryBlock.parameters().stream()).toList();
         this.currentBlock = entryBlock;
         this.classModel = classModel;
         this.exceptionHandlers = new ArrayList<>();
@@ -187,7 +189,7 @@ public final class BytecodeLift {
     private void liftBody() {
         // store entry block
         int slot = 0;
-        for (var ep : entryBlock.parameters()) {
+        for (var ep : initialValues) {
             op(SlotOp.store(slot, ep));
             slot += ep.type().equals(JavaType.LONG) || ep.type().equals(JavaType.DOUBLE) ? 2 : 1;
         }
@@ -318,7 +320,7 @@ public final class BytecodeLift {
                     op(SlotOp.store(inst.slot(), stack.pop()));
                 }
                 case IncrementInstruction inst -> {
-                    op(SlotOp.store(inst.slot(), op(CoreOp.add(op(SlotOp.load(i, TypeKind.INT)), liftConstant(inst.constant())))));
+                    op(SlotOp.store(inst.slot(), op(CoreOp.add(op(SlotOp.load(inst.slot(), TypeKind.INT)), liftConstant(inst.constant())))));
                 }
                 case ConstantInstruction inst -> {
                     stack.push(liftConstant(inst.constantValue()));

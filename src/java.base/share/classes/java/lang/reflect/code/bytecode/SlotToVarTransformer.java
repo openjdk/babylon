@@ -30,6 +30,7 @@ import java.lang.reflect.code.Block;
 import java.lang.reflect.code.CodeElement;
 import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.Op;
+import java.lang.reflect.code.Value;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.type.JavaType;
 import java.util.ArrayDeque;
@@ -119,12 +120,14 @@ final class SlotToVarTransformer {
                     cc.mapValue(op.result(), slo.var.single ? slo.var.value : block.op(CoreOp.varLoad(slo.var.value)));
                 }
                 case SlotOp.SlotStoreOp sso -> {
+                    Value val = sso.operands().getFirst();
+                    val = cc.getValueOrDefault(val, val);
                     if (sso.var.single) {
-                        sso.var.value = cc.getValue(sso.operands().getFirst());
+                        sso.var.value = val;
                     } else if (sso.var.value == null) {
-                        sso.var.value = block.op(CoreOp.var(cc.getValue(sso.operands().getFirst())));
+                        sso.var.value = block.op(CoreOp.var(val));
                     } else {
-                        block.op(CoreOp.varStore(sso.var.value, cc.getValue(sso.operands().getFirst())));
+                        block.op(CoreOp.varStore(sso.var.value, val));
                     }
                 }
                 default ->
