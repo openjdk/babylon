@@ -206,7 +206,7 @@ public class IfTest {
                       %11 : int = constant @"3";
                       return %11;
                   };
-              return;
+              unreachable;
             };
             """)
     @CodeReflection
