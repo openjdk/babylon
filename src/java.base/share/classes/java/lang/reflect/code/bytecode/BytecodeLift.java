@@ -268,12 +268,12 @@ public final class BytecodeLift {
                     // Conditional branch
                     Value operand = stack.pop();
                     Op cop = switch (inst.opcode()) {
-                        case IFNE -> CoreOp.eq(operand, zero());
-                        case IFEQ -> CoreOp.neq(operand, zero());
-                        case IFGE -> CoreOp.lt(operand, zero());
-                        case IFLE -> CoreOp.gt(operand, zero());
-                        case IFGT -> CoreOp.le(operand, zero());
-                        case IFLT -> CoreOp.ge(operand, zero());
+                        case IFNE -> CoreOp.eq(operand, liftConstant(0));
+                        case IFEQ -> CoreOp.neq(operand, liftConstant(0));
+                        case IFGE -> CoreOp.lt(operand, liftConstant(0));
+                        case IFLE -> CoreOp.gt(operand, liftConstant(0));
+                        case IFGT -> CoreOp.le(operand, liftConstant(0));
+                        case IFLT -> CoreOp.ge(operand, liftConstant(0));
                         case IFNULL -> CoreOp.neq(operand, liftConstant(null));
                         case IFNONNULL -> CoreOp.eq(operand, liftConstant(null));
                         case IF_ICMPNE -> CoreOp.eq(stack.pop(), operand);
@@ -882,10 +882,6 @@ public final class BytecodeLift {
         var t = v.type();
         while (t instanceof VarType vt) t = vt.valueType();
         return t;
-    }
-
-    private Value zero() {
-        return op(CoreOp.constant(UnresolvedType.unresolvedInt(), 0));
     }
 
     private static boolean isCategory1(Value v) {
