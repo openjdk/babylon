@@ -1959,8 +1959,9 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             @Override
             public TypeElement resultType() {
                 Value array = operands().get(0);
-                ArrayType t = (ArrayType) array.type();
-                return t.componentType();
+                TypeElement t = array.type();
+                return t instanceof ArrayType at ? at.componentType() :
+                        () -> new TypeElement.ExternalizedTypeElement("*", List.of(t.externalize()));
             }
         }
 
