@@ -26,6 +26,7 @@
 package java.lang.reflect.code.bytecode;
 
 import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.Value;
 import java.lang.reflect.code.type.JavaType;
 import java.util.List;
 
@@ -89,4 +90,15 @@ sealed abstract class UnresolvedType implements TypeElement {
 
     JavaType resolved;
     abstract Object convertValue(Object value);
+
+    boolean resolveWith(TypeElement type) {
+        if (type instanceof UnresolvedType utt) {
+            type = utt.resolved;
+        }
+        if (type != null) {
+            resolved = (JavaType)type;
+            return true;
+        }
+        return false;
+    }
 }

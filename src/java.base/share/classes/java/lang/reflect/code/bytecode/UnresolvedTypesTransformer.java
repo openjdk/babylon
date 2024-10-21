@@ -33,6 +33,8 @@ import java.lang.reflect.code.Value;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.type.MethodRef;
+import java.lang.reflect.code.type.PrimitiveType;
+import java.util.ArrayDeque;
 import java.util.List;
 
 /**
@@ -42,73 +44,100 @@ final class UnresolvedTypesTransformer {
 
     static CoreOp.FuncOp transform(CoreOp.FuncOp func) {
 
-        func.traverse(null, (_, e) -> {
+        var unresolved = func.traverse(new ArrayDeque<Value>(), (q, e) -> {
             switch (e) {
-               case Block b -> b.parameters().forEach(UnresolvedTypesTransformer::resolve);
-               case Op op -> resolve(op.result());
-               default -> {}
+                case Block b -> b.parameters().forEach(v -> {
+                   if (!resolve(v)) q.add(v);
+                });
+                case Op op when !resolve(op.result()) ->
+                   q.add(op.result());
+                default -> {}
            }
-           return null;
+           return q;
         });
 
-        return func.transform(blockParamTypesTransformer()).transform(opTypesTransformer());
-    }
-
-    private static void resolve(Value v) {
-        if (v != null && v.type() instanceof UnresolvedType ut && ut.resolved == null) {
-            for (Op.Result useRes : v.uses()) {
-                // Pull type from operands
-                int i = useRes.op().operands().indexOf(v);
-                if (i >= 0) {
-                    TypeElement type = switch (useRes.op()) {
-                        case CoreOp.BinaryTestOp bto ->
-                            bto.operands().get(1 - i).type();
-                        case CoreOp.BinaryOp bo ->
-                            bo.resultType();
-                        case CoreOp.InvokeOp io -> {
-                            MethodRef id = io.invokeDescriptor();
-                            if (io.hasReceiver()) {
-                                if (i == 0) yield id.refType();
-                                i--;
-                            }
-                            yield id.type().parameterTypes().get(i);
-                        }
-                        case CoreOp.FieldAccessOp fao ->
-                            fao.fieldDescriptor().refType();
-                        case CoreOp.ReturnOp ro ->
-                            ro.ancestorBody().bodyType().returnType();
-                        case CoreOp.VarOp vo ->
-                            vo.varValueType();
-                        case CoreOp.VarAccessOp.VarStoreOp vso ->
-                            vso.varType().valueType();
-                        default -> null;
-                    };
-                    if (type instanceof UnresolvedType utt) {
-                        type = utt.resolved;
-                    }
-                    if (type != null) {
-                        ut.resolved = (JavaType)type;
-                        return;
-                    }
-                } else {
-                    // Pull block parameter type when used as block argument
-                    for (Block.Reference sucRef : useRes.op().successors()) {
-                        i = sucRef.arguments().indexOf(v);
-                        if (i >= 0) {
-                            TypeElement type = sucRef.targetBlock().parameters().get(i).type();
-                            if (type instanceof UnresolvedType utt) {
-                                type = utt.resolved;
-                            }
-                            if (type != null) {
-                                ut.resolved = (JavaType)type;
-                                return;
-                            }
-                        }
-                    }
+        boolean changed = true;
+        while (changed && !unresolved.isEmpty()) {
+            changed = false;
+            for (var it = unresolved.iterator(); it.hasNext();) {
+                Value v = it.next();
+                if (resolve(v)) {
+                    it.remove();
+                    changed = true;
                 }
             }
-            System.out.println("wat?");
         }
+
+        // Remaining types are resolved to defaults
+        for (Value v : unresolved) {
+            switch (v.type()) {
+                case UnresolvedType.Int ui when ui.resolved == null ->
+                    ui.resolved = JavaType.INT;
+                case UnresolvedType.Ref ur when ur.resolved == null ->
+                    ur.resolved = JavaType.J_L_OBJECT;
+                default -> {}
+            }
+        }
+
+        return func.transform(blockParamTypesTransformer())
+                   .transform(opTypesTransformer())
+                   .transform(unifyOperandsTransformer());
+    }
+
+    private static boolean resolve(Value v) {
+        if (v == null || !(v.type() instanceof UnresolvedType ut) || ut.resolved != null) {
+            return true;
+        }
+        if (v instanceof Op.Result or && switch (or.op()) {
+                case CoreOp.UnaryOp uo ->
+                    ut.resolveWith(uo.operands().getFirst().type());
+                case CoreOp.BinaryOp bo ->
+                    ut.resolveWith(bo.operands().getFirst().type())
+                    || ut.resolveWith(bo.operands().get(1).type());
+                default -> false;
+            }) {
+            return true;
+        }
+        for (Op.Result useRes : v.uses()) {
+            Op op = useRes.op();
+            int i = op.operands().indexOf(v);
+            if (i >= 0 && (boolean)switch (op) {
+                    case CoreOp.BinaryTestOp bto ->
+                        ut.resolveWith(bto.operands().get(1 - i).type());
+                    case CoreOp.LshlOp _, CoreOp.LshrOp _, CoreOp.AshrOp _ -> // Second operands are asymetric
+                        i == 0 && ut.resolveWith(op.resultType());
+                    case CoreOp.BinaryOp bo ->
+                        ut.resolveWith(bo.resultType())
+                        || ut.resolveWith(bo.operands().get(1 - i).type());
+                    case CoreOp.InvokeOp io -> {
+                        MethodRef id = io.invokeDescriptor();
+                        if (io.hasReceiver()) {
+                            if (i == 0) yield id.refType();
+                            i--;
+                        }
+                        yield ut.resolveWith(id.type().parameterTypes().get(i));
+                    }
+                    case CoreOp.FieldAccessOp fao ->
+                        ut.resolveWith(fao.fieldDescriptor().refType());
+                    case CoreOp.ReturnOp ro ->
+                        ut.resolveWith(ro.ancestorBody().bodyType().returnType());
+                    case CoreOp.VarOp vo ->
+                        ut.resolveWith(vo.varValueType());
+                    case CoreOp.VarAccessOp.VarStoreOp vso ->
+                        ut.resolveWith(vso.varType().valueType());
+                    case CoreOp.NewOp no ->
+                        ut.resolveWith(no.constructorType().parameterTypes().get(i));
+                    default -> false;
+                }) return true;
+            // Pull block parameter type when used as block argument
+            for (Block.Reference sucRef : useRes.op().successors()) {
+                i = sucRef.arguments().indexOf(v);
+                if (i >= 0 && ut.resolveWith(sucRef.targetBlock().parameters().get(i).type())) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private UnresolvedTypesTransformer() {
@@ -161,74 +190,41 @@ final class UnresolvedTypesTransformer {
             return block;
         };
     }
-}
 
-//            private static boolean isBoolean(Set<Block.Parameter> booleans, Block.Parameter bp) {
-//                for (Value v : bp.dependsOn()) {
-//                    if (v.type().equals(JavaType.BOOLEAN) || v instanceof Block.Parameter dbp && booleans.contains(dbp)) {
-//                        return true;
-//                    }
-//                }
-//                for (Op.Result useRes : bp.uses()) {
-//                    // Pull type from operands
-//                    int i = useRes.op().operands().indexOf(bp);
-//                    if (i >= 0) {
-//                        TypeElement type = switch (useRes.op()) {
-//                            case CoreOp.InvokeOp io -> {
-//                                MethodRef id = io.invokeDescriptor();
-//                                if (io.hasReceiver()) {
-//                                    if (i == 0) yield id.refType();
-//                                    i--;
-//                                }
-//                                yield id.type().parameterTypes().get(i);
-//                            }
-//                            case CoreOp.FieldAccessOp fao ->
-//                                fao.fieldDescriptor().refType();
-//                            case CoreOp.ReturnOp ro ->
-//                                ro.ancestorBody().bodyType().returnType();
-//                            case CoreOp.VarOp vo ->
-//                                vo.varValueType();
-//                            case CoreOp.VarAccessOp.VarStoreOp vso ->
-//                                vso.varType().valueType();
-//                            default -> null;
-//                        };
-//                        if (JavaType.BOOLEAN.equals(type)) {
-//                            return true;
-//                        }
-//                    } else {
-//                        // Pull block parameter type when used as block argument
-//                        for (Block.Reference sucRef : useRes.op().successors()) {
-//                            i = sucRef.arguments().indexOf(bp);
-//                            if (i >= 0) {
-//                                Block.Parameter sbp = sucRef.targetBlock().parameters().get(i);
-//                                if (JavaType.BOOLEAN.equals(sbp.type()) || booleans.contains(sbp)) {
-//                                    return true;
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
-//                return false;
-//            }
-//
-//
-//    private static Block.Reference convert(Block.Builder block, Block.Reference ref) {
-//        CopyContext cc = block.context();
-//        Value[] args = cc.getValues(ref.arguments()).toArray(Value[]::new);
-//        Block target = ref.targetBlock();
-//        List<TypeElement> paramTypes = target.parameterTypes();
-//        assert args.length == paramTypes.size();
-//        for (int i = 0; i < args.length; i++) {
-//            TypeElement pt = paramTypes.get(i);
-//            Value arg = args[i];
-//            if (requiresExplicitConversion(arg.type(), pt)) {
-//                args[i] = block.op(CoreOp.conv(pt, arg));
-//            }
-//        }
-//        return cc.getBlock(target).successor(args);
-//    }
-//
-//    private static boolean requiresExplicitConversion(TypeElement from, TypeElement to) {
-//        return from.equals(JavaType.BOOLEAN) && to.equals(JavaType.INT)
-//            || from.equals(JavaType.INT) && to.equals(JavaType.BOOLEAN);
-//    }
+    private static OpTransformer unifyOperandsTransformer() {
+        return (block, op) -> {
+            switch (op) {
+                case CoreOp.BinaryTestOp _ ->
+                    unify(block, op, JavaType.INT, JavaType.INT);
+                case CoreOp.LshlOp _, CoreOp.LshrOp _, CoreOp.AshrOp _ ->
+                    unify(block, op, op.resultType(), JavaType.INT);
+                case CoreOp.BinaryOp _ ->
+                    unify(block, op, op.resultType(), op.resultType());
+                default ->
+                    block.op(op);
+            }
+            return block;
+        };
+    }
+
+    private static void unify(Block.Builder block, Op op, TypeElement firstType, TypeElement secondType) {
+        List<Value> operands = op.operands();
+        CopyContext cc = CopyContext.create(block.context());
+        Value first = operands.getFirst();
+        boolean changed = false;
+        if (first.type() instanceof PrimitiveType && !first.type().equals(firstType)) {
+            cc.mapValue(first, block.op(CoreOp.conv(firstType, cc.getValueOrDefault(first, first))));
+            changed = true;
+        }
+        Value second = operands.get(1);
+        if (second.type() instanceof PrimitiveType && !second.type().equals(secondType)) {
+            cc.mapValue(second, block.op(CoreOp.conv(secondType, cc.getValueOrDefault(second, second))));
+            changed = true;
+        }
+        if (changed) {
+            block.context().mapValue(op.result(), block.op(op.copy(cc)));
+        } else {
+            block.op(op);
+        }
+    }
+}
