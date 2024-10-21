@@ -38,7 +38,6 @@ import java.lang.classfile.MethodModel;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.PseudoInstruction;
 import java.lang.classfile.TypeKind;
-import java.lang.classfile.attribute.CodeAttribute;
 import java.lang.classfile.attribute.StackMapFrameInfo;
 import java.lang.classfile.instruction.*;
 import java.lang.constant.ClassDesc;
@@ -71,7 +70,6 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -79,9 +77,6 @@ import java.util.stream.Stream;
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
 
 public final class BytecodeLift {
-
-    private record ExceptionRegion(Label startLabel, Label endLabel, Label handlerLabel) {}
-    private record ExceptionRegionEntry(CoreOp.ExceptionRegionEnter enter, Block.Builder startBlock, ExceptionRegion region) {}
 
     private static final ClassDesc CD_LambdaMetafactory = ClassDesc.ofDescriptor("Ljava/lang/invoke/LambdaMetafactory;");
     private static final ClassDesc CD_StringConcatFactory = ClassDesc.ofDescriptor("Ljava/lang/invoke/StringConcatFactory;");
@@ -106,128 +101,29 @@ public final class BytecodeLift {
 
     private final Block.Builder entryBlock;
     private final ClassModel classModel;
-    private final CodeAttribute codeAttribtue;
-    private final List<ExceptionRegion> exceptionRegions;
+    private final List<Label> exceptionHandlers;
+    private final BitSet ereStack;
+    private final Map<Label, BitSet> exceptionHandlersMap;
     private final Map<Label, Block.Builder> blockMap;
-    private final LocalsToVarMapper localsToVarMapper;
     private final List<CodeElement> elements;
-    private final Map<LocalsToVarMapper.Variable, Value> varToValueMap;
     private final Deque<Value> stack;
-    private final Map<Object, Op.Result> constantCache;
-    private final ArrayDeque<ExceptionRegionEntry> exceptionRegionStack;
-    private final List<Value> initLocalValues;
-    private final ArrayDeque<ClassDesc> newStack;
+    private final Deque<ClassDesc> newStack;
     private Block.Builder currentBlock;
 
     private BytecodeLift(Block.Builder entryBlock, ClassModel classModel, CodeModel codeModel, Value... capturedValues) {
         this.entryBlock = entryBlock;
         this.currentBlock = entryBlock;
         this.classModel = classModel;
-        this.codeAttribtue = (CodeAttribute)codeModel;
-        var smta = codeModel.findAttribute(Attributes.stackMapTable());
-        this.exceptionRegions = extractExceptionRegions(codeAttribtue);
+        this.exceptionHandlers = new ArrayList<>();
+        this.ereStack = new BitSet();
+        this.newStack = new ArrayDeque<>();
         this.elements = codeModel.elementList();
-        this.varToValueMap = new HashMap<>();
         this.stack = new ArrayDeque<>();
-        List<ClassDesc> initLocalTypes = new ArrayList<>();
-        this.initLocalValues = new ArrayList<>();
-        Stream.concat(Arrays.stream(capturedValues), entryBlock.parameters().stream()).forEachOrdered(val -> {
-            ClassDesc locType = BytecodeGenerator.toClassDesc(val.type());
-            initLocalTypes.add(locType);
-            initLocalValues.add(val);
-            if (TypeKind.from(locType).slotSize() == 2) {
-                initLocalTypes.add(null);
-                initLocalValues.add(null);
-            }
-        });
-        this.localsToVarMapper = new LocalsToVarMapper(classModel.thisClass().asSymbol(), initLocalTypes, codeModel.exceptionHandlers(), smta, elements);
-        this.blockMap = smta.map(sma ->
+        this.exceptionHandlersMap = new HashMap<>();
+        this.blockMap = codeModel.findAttribute(Attributes.stackMapTable()).map(sma ->
                 sma.entries().stream().collect(Collectors.toUnmodifiableMap(
                         StackMapFrameInfo::target,
                         smfi -> entryBlock.block(toBlockParams(smfi.stack()))))).orElseGet(Map::of);
-        this.constantCache = new HashMap<>();
-        this.exceptionRegionStack = new ArrayDeque<>();
-        this.newStack = new ArrayDeque<>();
-    }
-
-    private static List<ExceptionRegion> extractExceptionRegions(CodeAttribute codeAttribute) {
-        record JumpTarget(int targetBci, Label target, List<Integer> sourceBcis) {}
-        BitSet targetBcis = new BitSet(codeAttribute.codeLength());
-        var jumpMap = new HashMap<Integer, JumpTarget>() {
-            void add(Label target, int sourceBci) {
-                computeIfAbsent(codeAttribute.labelToBci(target), targetBci -> {
-                    targetBcis.set(targetBci);
-                    return new JumpTarget(targetBci, target, new ArrayList<>());
-                }).sourceBcis.add(sourceBci);
-            }
-        };
-
-        int bci = 0;
-        // First collect jump map
-        for (CodeElement ce : codeAttribute) {
-            switch (ce) {
-                case BranchInstruction bi -> {
-                    jumpMap.add(bi.target(), bci);
-                }
-                case TableSwitchInstruction tsi -> {
-                    jumpMap.add(tsi.defaultTarget(), bci);
-                    for (var c : tsi.cases()) {
-                        jumpMap.add(c.target(), bci);
-                    }
-                }
-                case LookupSwitchInstruction lsi -> {
-                    jumpMap.add(lsi.defaultTarget(), bci);
-                    for (var c : lsi.cases()) {
-                        jumpMap.add(c.target(), bci);
-                    }
-                }
-                default -> {}
-            }
-            if (ce instanceof Instruction i) {
-                bci += i.sizeInBytes();
-            }
-        }
-
-        // Filter and split exception regions
-        List<ExceptionRegion> regions = codeAttribute.exceptionHandlers().stream()
-                .filter(ec -> ec.tryStart() != ec.tryEnd() && ec.tryStart() != ec.handler())
-                .map(ec -> new ExceptionRegion(ec.tryStart(), ec.tryEnd(), ec.handler())).distinct().toList();
-
-        // Exception handlers also represent jump targets
-        // @@@ not listed all source bcis
-        for (ExceptionRegion er : regions) {
-            jumpMap.add(er.handlerLabel, codeAttribute.labelToBci(er.startLabel));
-        }
-
-        boolean split;
-        do {
-            split = false;
-            var newRegions = new ArrayList<ExceptionRegion>();
-            for (var reg : regions) {
-                final int startBci = codeAttribute.labelToBci(reg.startLabel());
-                final int endBci = codeAttribute.labelToBci(reg.endLabel());
-                final int handlerBci = codeAttribute.labelToBci(reg.handlerLabel());
-                // Filter out exception handlers overlapping with try blocks
-                if (handlerBci >= endBci || handlerBci < startBci) {
-                    Label startLabel = reg.startLabel();
-                    int breakIndex = startBci;
-                    // Detect additional exception region entries
-                    while ((breakIndex = targetBcis.nextSetBit(breakIndex + 1)) >= 0 &&  breakIndex < endBci) {
-                        JumpTarget jt = jumpMap.get(breakIndex);
-                        // Split the exception region by each external entry (jump from outside of the region)
-                        if (jt.sourceBcis.stream().anyMatch(sourceBci -> sourceBci < startBci || sourceBci > endBci)) {
-                            Label breakLabel = jt.target();
-                            newRegions.add(new ExceptionRegion(startLabel, breakLabel, reg.handlerLabel()));
-                            startLabel = breakLabel;
-                            split = true;
-                        }
-                    }
-                    newRegions.add(new ExceptionRegion(startLabel, reg.endLabel(), reg.handlerLabel()));
-                }
-            }
-            regions = newRegions;
-        } while (split); // Each new split may change branch status to an external entry and imply more splits
-        return regions;
     }
 
     private List<TypeElement> toBlockParams(List<StackMapFrameInfo.VerificationTypeInfo> vtis) {
@@ -235,11 +131,11 @@ public final class BytecodeLift {
         for (int i = vtis.size() - 1; i >= 0; i--) {
             var vti = vtis.get(i);
             switch (vti) {
-                case INTEGER -> params.add(JavaType.INT);
+                case INTEGER -> params.add(UnresolvedType.unresolvedInt());
                 case FLOAT -> params.add(JavaType.FLOAT);
                 case DOUBLE -> params.add(JavaType.DOUBLE);
                 case LONG -> params.add(JavaType.LONG);
-                case NULL -> params.add(JavaType.J_L_OBJECT);
+                case NULL -> params.add(UnresolvedType.unresolvedRef());
                 case UNINITIALIZED_THIS ->
                     params.add(JavaType.type(classModel.thisClass().asSymbol()));
                 case StackMapFrameInfo.ObjectVerificationTypeInfo ovti ->
@@ -278,57 +174,43 @@ public final class BytecodeLift {
         if (!methodModel.flags().has(AccessFlag.STATIC)) {
             mDesc = mDesc.insertParameterTypes(0, classModel.thisClass().asSymbol());
         }
-        return NormalizeBlocksTransformer.transform(
-                PostLiftTypesTransformer.transform(
-                CoreOp.func(methodModel.methodName().stringValue(),
+        return NormalizeBlocksTransformer.transform(SlotToVarTransformer.transform(CoreOp.func(methodModel.methodName().stringValue(),
                             MethodRef.ofNominalDescriptor(mDesc)).body(entryBlock ->
                                     new BytecodeLift(entryBlock,
                                                      classModel,
                                                      methodModel.code().orElseThrow()).liftBody())));
     }
 
-    private Block.Builder newBlock(List<Block.Parameter> otherBlockParams) {
-        return entryBlock.block(otherBlockParams.stream().map(Block.Parameter::type).toList());
-    }
-
-    private void endOfFlow() {
-        currentBlock = null;
-        constantCache.clear();
-        // Flow discontinued, stack cleared to be ready for the next label target
-        stack.clear();
-    }
-
-    private Block.Builder findTargetBlock(Label targetLabel) {
-        Block.Builder targetBlock = blockMap.get(targetLabel);
-        int targetBci = codeAttribtue.labelToBci(targetLabel);
-        for (ExceptionRegionEntry ee : exceptionRegionStack.reversed()) {
-            if (ee.region.startLabel == targetLabel) {
-                // Avoid region re-entry
-                targetBlock = ee.startBlock;
-            } else if (targetBci < codeAttribtue.labelToBci(ee.region.startLabel) || targetBci >= codeAttribtue.labelToBci(ee.region.endLabel)) {
-                // Leaving the exception region, need to insert ExceptionRegionExit
-                Block.Builder next = newBlock(targetBlock.parameters());
-                next.op(CoreOp.exceptionRegionExit(targetBlock.successor(next.parameters()), ee.enter().catchBlocks().reversed()));
-                targetBlock = next;
-            }
-        }
-        return targetBlock;
-    }
-
     private void liftBody() {
-        // Declare initial variables
-        for (int i = 0; i < localsToVarMapper.slotsToInit(); i++) {
-            LocalsToVarMapper.Variable v = localsToVarMapper.initSlotVar(i);
-            if (v != null) {
-                var type = JavaType.type(v.type());
-                if (v.hasSingleAssignment()) {
-                    varToValueMap.put(v, initLocalValues.get(i)); // Single value var initialized with entry block parameter
-                } else {
-                    varToValueMap.put(v, op(CoreOp.var("slot#" + i, // New var with slot# name
-                                                       type, // Type calculated by LocalsToVarMapper
-                                                       i < initLocalValues.size()
-                                                               ? initLocalValues.get(i) // Initialized with entry block parameter
-                                                               : liftDefaultValue(v.type())))); // Initialized with default
+        // store entry block
+        int slot = 0;
+        for (var ep : entryBlock.parameters()) {
+            op(SlotOp.store(slot, ep));
+            slot += ep.type().equals(JavaType.LONG) || ep.type().equals(JavaType.DOUBLE) ? 2 : 1;
+        }
+
+        // fill exceptionHandlers and exceptionHandlersMap
+        BitSet eStack = new BitSet();
+        var ecs = new ArrayList<ExceptionCatch>();
+        for (var e : elements) {
+            if (e instanceof ExceptionCatch ec) {
+                ecs.add(ec);
+                // ecs are squashed by handler
+                if (exceptionHandlers.indexOf(ec.handler()) < 0) {
+                    exceptionHandlers.add(ec.handler());
+                }
+            } else if (e instanceof LabelTarget lt) {
+                BitSet newEreStack = null;
+                for (var er : ecs) {
+                    if (lt.label() == er.tryStart() || lt.label() == er.tryEnd()) {
+                        if (newEreStack == null) newEreStack = (BitSet)eStack.clone();
+
+                        newEreStack.set(exceptionHandlers.indexOf(er.handler()), lt.label() == er.tryStart());
+                    }
+                }
+                if (newEreStack != null || blockMap.containsKey(lt.label()))  {
+                    if (newEreStack != null) eStack = newEreStack;
+                    exceptionHandlersMap.put(lt.label(), eStack);
                 }
             }
         }
@@ -339,76 +221,73 @@ public final class BytecodeLift {
                     // Exception blocks are inserted by label target (below)
                 }
                 case LabelTarget lt -> {
-                    // Insert relevant tryEnd blocks
-                    while (!exceptionRegionStack.isEmpty() && lt.label() == exceptionRegionStack.peek().region.endLabel) {
-                        // Create exit block with parameters constructed from the stack
-                        ExceptionRegionEntry er = exceptionRegionStack.pop();
+                    var newEreStack = exceptionHandlersMap.get(lt.label());
+                    if (newEreStack != null) {
                         if (currentBlock != null) {
-                            Block.Builder next = entryBlock.block();
-                            op(CoreOp.exceptionRegionExit(next.successor(), er.enter().catchBlocks().reversed()));
-                            currentBlock = next;
+                            var eresToLeave = (BitSet)ereStack.clone();
+                            eresToLeave.andNot(newEreStack);
+                            if (!eresToLeave.isEmpty()) {
+                                Block.Builder next = entryBlock.block();
+                                op(CoreOp.exceptionRegionExit(next.successor(), eresToLeave.stream().mapToObj(ei ->
+                                        blockMap.get(exceptionHandlers.get(ei)).successor()).toList()));
+                                currentBlock = next;
+                            }
                         }
                     }
                     Block.Builder next = blockMap.get(lt.label());
-
-                    // Start of a new block if defined by stack maps
                     if (next != null) {
                         if (currentBlock != null) {
-                            // Implicit goto next block, add explicitly
-                            // Use stack content as next block arguments
-                            op(CoreOp.branch(successor(next)));
+                            op(CoreOp.branch(successorWithStack(next)));
                         }
-                        constantCache.clear();
                         // Stack is reconstructed from block parameters
                         stack.clear();
                         stack.addAll(next.parameters());
                         currentBlock = next;
                     }
-
-                    // Insert relevant tryStart and construct handler blocks, all in reversed order
-                    for (ExceptionRegion reg : exceptionRegions.reversed()) {
-                        if (lt.label() == reg.startLabel()) {
-                            // Create start block
+                    if (newEreStack != null) {
+                        var eresToEnter = (BitSet)newEreStack.clone();
+                        eresToEnter.andNot(ereStack);
+                        if (!eresToEnter.isEmpty()) {
                             next = entryBlock.block();
-                            var ere = CoreOp.exceptionRegionEnter(next.successor(), findTargetBlock(reg.handlerLabel()).successor());
-                            op(ere);
-                            // Push ExceptionRegionEntry on stack
-                            exceptionRegionStack.push(new ExceptionRegionEntry(ere, next, reg));
+                            op(CoreOp.exceptionRegionEnter(next.successor(), eresToEnter.stream().mapToObj(ei ->
+                                    blockMap.get(exceptionHandlers.get(ei)).successor()).toList().reversed()));
                             currentBlock = next;
                         }
+                        ereStack.clear();
+                        ereStack.or(newEreStack);
                     }
                 }
                 case BranchInstruction inst when BytecodeHelpers.isUnconditionalBranch(inst.opcode()) -> {
-                    op(CoreOp.branch(successor(findTargetBlock(inst.target()))));
+                    op(CoreOp.branch(successorWithStack(targetBlockForBranch(inst.target()))));
                     endOfFlow();
                 }
                 case BranchInstruction inst -> {
                     // Conditional branch
                     Value operand = stack.pop();
                     Op cop = switch (inst.opcode()) {
-                        case IFNE -> CoreOp.eq(operand, zero(operand));
-                        case IFEQ -> CoreOp.neq(operand, zero(operand));
-                        case IFGE -> CoreOp.lt(operand, zero(operand));
-                        case IFLE -> CoreOp.gt(operand, zero(operand));
-                        case IFGT -> CoreOp.le(operand, zero(operand));
-                        case IFLT -> CoreOp.ge(operand, zero(operand));
+                        case IFNE -> CoreOp.eq(operand, zero());
+                        case IFEQ -> CoreOp.neq(operand, zero());
+                        case IFGE -> CoreOp.lt(operand, zero());
+                        case IFLE -> CoreOp.gt(operand, zero());
+                        case IFGT -> CoreOp.le(operand, zero());
+                        case IFLT -> CoreOp.ge(operand, zero());
                         case IFNULL -> CoreOp.neq(operand, liftConstant(null));
                         case IFNONNULL -> CoreOp.eq(operand, liftConstant(null));
-                        case IF_ICMPNE -> unifyOperands(CoreOp::eq, stack.pop(), operand, TypeKind.INT);
-                        case IF_ICMPEQ -> unifyOperands(CoreOp::neq, stack.pop(), operand, TypeKind.INT);
-                        case IF_ICMPGE -> unifyOperands(CoreOp::lt, stack.pop(), operand, TypeKind.INT);
-                        case IF_ICMPLE -> unifyOperands(CoreOp::gt, stack.pop(), operand, TypeKind.INT);
-                        case IF_ICMPGT -> unifyOperands(CoreOp::le, stack.pop(), operand, TypeKind.INT);
-                        case IF_ICMPLT -> unifyOperands(CoreOp::ge, stack.pop(), operand, TypeKind.INT);
+                        case IF_ICMPNE -> CoreOp.eq(stack.pop(), operand);
+                        case IF_ICMPEQ -> CoreOp.neq(stack.pop(), operand);
+                        case IF_ICMPGE -> CoreOp.lt(stack.pop(), operand);
+                        case IF_ICMPLE -> CoreOp.gt(stack.pop(), operand);
+                        case IF_ICMPGT -> CoreOp.le(stack.pop(), operand);
+                        case IF_ICMPLT -> CoreOp.ge(stack.pop(), operand);
                         case IF_ACMPEQ -> CoreOp.neq(stack.pop(), operand);
                         case IF_ACMPNE -> CoreOp.eq(stack.pop(), operand);
                         default -> throw new UnsupportedOperationException("Unsupported branch instruction: " + inst);
                     };
-                    Block.Builder branch = findTargetBlock(inst.target());
+                    Block.Builder branch = targetBlockForBranch(inst.target());
                     Block.Builder next = entryBlock.block();
                     op(CoreOp.conditionalBranch(op(cop),
                             next.successor(),
-                            successor(branch)));
+                            successorWithStack(branch)));
                     currentBlock = next;
                 }
                 case LookupSwitchInstruction si -> {
@@ -430,13 +309,13 @@ public final class BytecodeLift {
                     endOfFlow();
                 }
                 case LoadInstruction inst -> {
-                    stack.push(load(i));
+                    stack.push(op(SlotOp.load(inst.slot(), inst.typeKind())));
                 }
                 case StoreInstruction inst -> {
-                    store(i, inst.slot(), stack.pop());
+                    op(SlotOp.store(inst.slot(), stack.pop()));
                 }
                 case IncrementInstruction inst -> {
-                    store(i, inst.slot(), op(CoreOp.add(load(-i - 1), liftConstant(inst.constant()))));
+                    op(SlotOp.store(inst.slot(), op(CoreOp.add(op(SlotOp.load(i, TypeKind.INT)), liftConstant(inst.constant())))));
                 }
                 case ConstantInstruction inst -> {
                     stack.push(liftConstant(inst.constantValue()));
@@ -460,31 +339,31 @@ public final class BytecodeLift {
                     Value operand = stack.pop();
                     stack.push(op(switch (inst.opcode()) {
                         case IADD, LADD, FADD, DADD ->
-                                unifyOperands(CoreOp::add, stack.pop(), operand, tk);
+                                CoreOp.add(stack.pop(), operand);
                         case ISUB, LSUB, FSUB, DSUB ->
-                                unifyOperands(CoreOp::sub, stack.pop(), operand, tk);
+                                CoreOp.sub(stack.pop(), operand);
                         case IMUL, LMUL, FMUL, DMUL ->
-                                unifyOperands(CoreOp::mul, stack.pop(), operand, tk);
+                                CoreOp.mul(stack.pop(), operand);
                         case IDIV, LDIV, FDIV, DDIV ->
-                                unifyOperands(CoreOp::div, stack.pop(), operand, tk);
+                                CoreOp.div(stack.pop(), operand);
                         case IREM, LREM, FREM, DREM ->
-                                unifyOperands(CoreOp::mod, stack.pop(), operand, tk);
+                                CoreOp.mod(stack.pop(), operand);
                         case INEG, LNEG, FNEG, DNEG ->
                                 CoreOp.neg(operand);
                         case ARRAYLENGTH ->
                                 CoreOp.arrayLength(operand);
                         case IAND, LAND ->
-                                unifyOperands(CoreOp::and, stack.pop(), operand, tk);
+                                CoreOp.and(stack.pop(), operand);
                         case IOR, LOR ->
-                                unifyOperands(CoreOp::or, stack.pop(), operand, tk);
+                                CoreOp.or(stack.pop(), operand);
                         case IXOR, LXOR ->
-                                unifyOperands(CoreOp::xor, stack.pop(), operand, tk);
+                                CoreOp.xor(stack.pop(), operand);
                         case ISHL, LSHL ->
-                                CoreOp.lshl(stack.pop(), toInt(operand));
+                                CoreOp.lshl(stack.pop(), operand);
                         case ISHR, LSHR ->
-                                CoreOp.ashr(stack.pop(), toInt(operand));
+                                CoreOp.ashr(stack.pop(), operand);
                         case IUSHR, LUSHR ->
-                                CoreOp.lshr(stack.pop(), toInt(operand));
+                                CoreOp.lshr(stack.pop(), operand);
                         case LCMP ->
                                 CoreOp.invoke(LCMP, stack.pop(), operand);
                         case FCMPL, FCMPG ->
@@ -590,8 +469,7 @@ public final class BytecodeLift {
                         if (dmhd.methodName().startsWith("lambda$") && dmhd.owner().equals(classModel.thisClass().asSymbol())) {
                             // inline lambda impl method
                             MethodModel implMethod = classModel.methods().stream().filter(m -> m.methodName().equalsString(dmhd.methodName())).findFirst().orElseThrow();
-                            stack.push(op(lambda.body(
-                                    eb -> new BytecodeLift(eb,
+                            stack.push(op(lambda.body(eb -> new BytecodeLift(eb,
                                                            classModel,
                                                            implMethod.code().orElseThrow(),
                                                            capturedValues).liftBody())));
@@ -826,43 +704,6 @@ public final class BytecodeLift {
         assert newStack.isEmpty();
     }
 
-    private Value load(int i) {
-        LocalsToVarMapper.Variable var = localsToVarMapper.instructionVar(i);
-        if (var.hasSingleAssignment()) {
-            Value value = varToValueMap.get(var);
-            assert value != null: "Uninitialized single-value variable";
-            return value;
-        } else {
-            Value value = varToValueMap.get(var);
-            assert value instanceof Op.Result r && r.op() instanceof CoreOp.VarOp: "Invalid variable reference";
-            return op(CoreOp.varLoad(value));
-        }
-    }
-
-    private void store(int i, int slot, Value value) {
-        LocalsToVarMapper.Variable var = localsToVarMapper.instructionVar(i);
-        if (var.hasSingleAssignment()) {
-            Value expectedNull = varToValueMap.put(var, value);
-            assert expectedNull == null: "Multiple assignements to a single-value variable";
-        } else {
-            varToValueMap.compute(var, (_, varOpResult) -> {
-                if (varOpResult == null) {
-                    return op(CoreOp.var("slot#" + slot,  // Initial variable declaration with slot# name
-                                         JavaType.type(var.type()), // Type calculated by LocalsToVarMapper
-                                         value));
-                } else {
-                    assert varOpResult instanceof Op.Result r && r.op() instanceof CoreOp.VarOp: "Invalid variable reference";
-                    op(CoreOp.varStore(varOpResult, value)); // Store into an existig variable
-                    return varOpResult;
-                }
-            });
-        }
-    }
-
-    private Op.Result lookup() {
-        return constantCache.computeIfAbsent(LOOKUP, _ -> op(CoreOp.invoke(LOOKUP)));
-    }
-
     private Op.Result liftConstantsIntoArray(TypeElement arrayType, Object... constants) {
         Op.Result array = op(CoreOp.newArray(arrayType, liftConstant(constants.length)));
         for (int i = 0; i < constants.length; i++) {
@@ -887,76 +728,71 @@ public final class BytecodeLift {
     }
 
     private Op.Result liftConstant(Object c) {
-        Op.Result res = constantCache.get(c);
-        if (res == null) {
-            res = switch (c) {
-                case null -> op(CoreOp.constant(JavaType.J_L_OBJECT, null));
-                case ClassDesc cd -> op(CoreOp.constant(JavaType.J_L_CLASS, JavaType.type(cd)));
-                case Double d -> op(CoreOp.constant(JavaType.DOUBLE, d));
-                case Float f -> op(CoreOp.constant(JavaType.FLOAT, f));
-                case Integer ii -> op(CoreOp.constant(JavaType.INT, ii));
-                case Long l -> op(CoreOp.constant(JavaType.LONG, l));
-                case String s -> op(CoreOp.constant(JavaType.J_L_STRING, s));
-                case DirectMethodHandleDesc dmh -> {
-                    Op.Result lookup = lookup();
-                    Op.Result owner = liftConstant(dmh.owner());
-                    Op.Result name = liftConstant(dmh.methodName());
-                    MethodTypeDesc invDesc = dmh.invocationType();
-                    yield op(switch (dmh.kind()) {
-                        case STATIC, INTERFACE_STATIC  ->
-                            CoreOp.invoke(FIND_STATIC, lookup, owner, name, liftConstant(invDesc));
-                        case VIRTUAL, INTERFACE_VIRTUAL ->
-                            CoreOp.invoke(FIND_VIRTUAL, lookup, owner, name, liftConstant(invDesc.dropParameterTypes(0, 1)));
-                        case SPECIAL, INTERFACE_SPECIAL ->
-                            //CoreOp.invoke(MethodRef.method(e), "findSpecial", owner, name, liftConstant(invDesc.dropParameterTypes(0, 1)), lookup.lookupClass());
-                            throw new UnsupportedOperationException(dmh.toString());
-                        case CONSTRUCTOR       ->
-                            CoreOp.invoke(FIND_CONSTRUCTOR, lookup, owner, liftConstant(invDesc.changeReturnType(ConstantDescs.CD_Void)));
-                        case GETTER            ->
-                            CoreOp.invoke(FIND_GETTER, lookup, owner, name, liftConstant(invDesc.returnType()));
-                        case STATIC_GETTER     ->
-                            CoreOp.invoke(FIND_STATIC_GETTER, lookup, owner, name, liftConstant(invDesc.returnType()));
-                        case SETTER            ->
-                            CoreOp.invoke(FIND_SETTER, lookup, owner, name, liftConstant(invDesc.parameterType(1)));
-                        case STATIC_SETTER     ->
-                            CoreOp.invoke(FIND_STATIC_SETTER, lookup, owner, name, liftConstant(invDesc.parameterType(0)));
-                    });
-                }
-                case MethodTypeDesc mt -> op(switch (mt.parameterCount()) {
-                    case 0 -> CoreOp.invoke(METHOD_TYPE_0, liftConstant(mt.returnType()));
-                    case 1 -> CoreOp.invoke(METHOD_TYPE_1, liftConstant(mt.returnType()), liftConstant(mt.parameterType(0)));
-                    default -> CoreOp.invoke(METHOD_TYPE_L, liftConstant(mt.returnType()), liftConstantsIntoArray(CLASS_ARRAY, (Object[])mt.parameterArray()));
+        return switch (c) {
+            case null -> op(CoreOp.constant(UnresolvedType.unresolvedRef(), null));
+            case ClassDesc cd -> op(CoreOp.constant(JavaType.J_L_CLASS, JavaType.type(cd)));
+            case Double d -> op(CoreOp.constant(JavaType.DOUBLE, d));
+            case Float f -> op(CoreOp.constant(JavaType.FLOAT, f));
+            case Integer ii -> op(CoreOp.constant(UnresolvedType.unresolvedInt(), ii));
+            case Long l -> op(CoreOp.constant(JavaType.LONG, l));
+            case String s -> op(CoreOp.constant(JavaType.J_L_STRING, s));
+            case DirectMethodHandleDesc dmh -> {
+                Op.Result lookup = op(CoreOp.invoke(LOOKUP));
+                Op.Result owner = liftConstant(dmh.owner());
+                Op.Result name = liftConstant(dmh.methodName());
+                MethodTypeDesc invDesc = dmh.invocationType();
+                yield op(switch (dmh.kind()) {
+                    case STATIC, INTERFACE_STATIC  ->
+                        CoreOp.invoke(FIND_STATIC, lookup, owner, name, liftConstant(invDesc));
+                    case VIRTUAL, INTERFACE_VIRTUAL ->
+                        CoreOp.invoke(FIND_VIRTUAL, lookup, owner, name, liftConstant(invDesc.dropParameterTypes(0, 1)));
+                    case SPECIAL, INTERFACE_SPECIAL ->
+                        //CoreOp.invoke(MethodRef.method(e), "findSpecial", owner, name, liftConstant(invDesc.dropParameterTypes(0, 1)), lookup.lookupClass());
+                        throw new UnsupportedOperationException(dmh.toString());
+                    case CONSTRUCTOR       ->
+                        CoreOp.invoke(FIND_CONSTRUCTOR, lookup, owner, liftConstant(invDesc.changeReturnType(ConstantDescs.CD_Void)));
+                    case GETTER            ->
+                        CoreOp.invoke(FIND_GETTER, lookup, owner, name, liftConstant(invDesc.returnType()));
+                    case STATIC_GETTER     ->
+                        CoreOp.invoke(FIND_STATIC_GETTER, lookup, owner, name, liftConstant(invDesc.returnType()));
+                    case SETTER            ->
+                        CoreOp.invoke(FIND_SETTER, lookup, owner, name, liftConstant(invDesc.parameterType(1)));
+                    case STATIC_SETTER     ->
+                        CoreOp.invoke(FIND_STATIC_SETTER, lookup, owner, name, liftConstant(invDesc.parameterType(0)));
                 });
-                case DynamicConstantDesc<?> v when v.bootstrapMethod().owner().equals(ConstantDescs.CD_ConstantBootstraps)
-                                             && v.bootstrapMethod().methodName().equals("nullConstant")
-                        -> {
-                    c = null;
-                    yield liftConstant(null);
-                }
-                case DynamicConstantDesc<?> dcd -> {
-                    DirectMethodHandleDesc bsm = dcd.bootstrapMethod();
-                    MethodTypeDesc bsmDesc = bsm.invocationType();
-                    Value[] bootstrapArgs = liftBootstrapArgs(bsmDesc, dcd.constantName(), dcd.constantType(), dcd.bootstrapArgsList());
-                    MethodRef bsmRef = MethodRef.method(JavaType.type(bsm.owner()),
-                                                        bsm.methodName(),
-                                                        JavaType.type(bsmDesc.returnType()),
-                                                        bsmDesc.parameterList().stream().map(JavaType::type).toArray(TypeElement[]::new));
-                    yield op(CoreOp.invoke(bsmRef, bootstrapArgs));
-                }
-                case Boolean b -> op(CoreOp.constant(JavaType.BOOLEAN, b));
-                case Byte b -> op(CoreOp.constant(JavaType.BYTE, b));
-                case Short s -> op(CoreOp.constant(JavaType.SHORT, s));
-                case Character ch -> op(CoreOp.constant(JavaType.CHAR, ch));
-                default -> throw new UnsupportedOperationException(c.getClass().toString());
-            };
-            if (c != null) constantCache.put(c, res); // Do not cache null constants, they may differ in types
-        }
-        return res;
+            }
+            case MethodTypeDesc mt -> op(switch (mt.parameterCount()) {
+                case 0 -> CoreOp.invoke(METHOD_TYPE_0, liftConstant(mt.returnType()));
+                case 1 -> CoreOp.invoke(METHOD_TYPE_1, liftConstant(mt.returnType()), liftConstant(mt.parameterType(0)));
+                default -> CoreOp.invoke(METHOD_TYPE_L, liftConstant(mt.returnType()), liftConstantsIntoArray(CLASS_ARRAY, (Object[])mt.parameterArray()));
+            });
+            case DynamicConstantDesc<?> v when v.bootstrapMethod().owner().equals(ConstantDescs.CD_ConstantBootstraps)
+                                         && v.bootstrapMethod().methodName().equals("nullConstant")
+                    -> {
+                c = null;
+                yield liftConstant(null);
+            }
+            case DynamicConstantDesc<?> dcd -> {
+                DirectMethodHandleDesc bsm = dcd.bootstrapMethod();
+                MethodTypeDesc bsmDesc = bsm.invocationType();
+                Value[] bootstrapArgs = liftBootstrapArgs(bsmDesc, dcd.constantName(), dcd.constantType(), dcd.bootstrapArgsList());
+                MethodRef bsmRef = MethodRef.method(JavaType.type(bsm.owner()),
+                                                    bsm.methodName(),
+                                                    JavaType.type(bsmDesc.returnType()),
+                                                    bsmDesc.parameterList().stream().map(JavaType::type).toArray(TypeElement[]::new));
+                yield op(CoreOp.invoke(bsmRef, bootstrapArgs));
+            }
+            case Boolean b -> op(CoreOp.constant(JavaType.BOOLEAN, b));
+            case Byte b -> op(CoreOp.constant(JavaType.BYTE, b));
+            case Short s -> op(CoreOp.constant(JavaType.SHORT, s));
+            case Character ch -> op(CoreOp.constant(JavaType.CHAR, ch));
+            default -> throw new UnsupportedOperationException(c.getClass().toString());
+        };
     }
 
     private Value[] liftBootstrapArgs(MethodTypeDesc bsmDesc, String name, ConstantDesc desc, List<ConstantDesc> bsmArgs) {
         Value[] bootstrapArgs = new Value[bsmDesc.parameterCount()];
-        bootstrapArgs[0] = lookup();
+        bootstrapArgs[0] = op(CoreOp.invoke(LOOKUP));
         bootstrapArgs[1] = liftConstant(name);
         bootstrapArgs[2] = liftConstant(desc);
         ClassDesc lastArgType = bsmDesc.parameterType(bsmDesc.parameterCount() - 1);
@@ -977,20 +813,23 @@ public final class BytecodeLift {
     }
 
     private void liftSwitch(Label defaultTarget, List<SwitchCase> cases) {
-        Value v = toInt(stack.pop());
+        Value v = stack.pop();
+        if (!valueType(v).equals(PrimitiveType.INT)) {
+            v = op(CoreOp.conv(PrimitiveType.INT, v));
+        }
         SwitchCase last = cases.getLast();
-        Block.Builder def = findTargetBlock(defaultTarget);
+        Block.Builder def = targetBlockForBranch(defaultTarget);
         for (SwitchCase sc : cases) {
             if (sc == last) {
                 op(CoreOp.conditionalBranch(
                         op(CoreOp.eq(v, liftConstant(sc.caseValue()))),
-                        successor(findTargetBlock(sc.target())),
-                        successor(def)));
+                        successorWithStack(targetBlockForBranch(sc.target())),
+                        successorWithStack(def)));
             } else {
                 Block.Builder next = entryBlock.block();
                 op(CoreOp.conditionalBranch(
                         op(CoreOp.eq(v, liftConstant(sc.caseValue()))),
-                        successor(findTargetBlock(sc.target())),
+                        successorWithStack(targetBlockForBranch(sc.target())),
                         next.successor()));
                 currentBlock = next;
             }
@@ -998,7 +837,41 @@ public final class BytecodeLift {
         endOfFlow();
     }
 
-    Block.Reference successor(Block.Builder next) {
+    private Block.Builder newBlock(List<Block.Parameter> otherBlockParams) {
+        return entryBlock.block(otherBlockParams.stream().map(Block.Parameter::type).toList());
+    }
+
+    private void endOfFlow() {
+        currentBlock = null;
+        // Flow discontinued, stack cleared to be ready for the next label target
+        stack.clear();
+    }
+
+    private Block.Builder targetBlockForBranch(Label targetLabel) {
+        Block.Builder targetBlock = blockMap.get(targetLabel);
+        var targetEreStack = exceptionHandlersMap.get(targetLabel);
+        var eresToEnter = (BitSet)targetEreStack.clone();
+        eresToEnter.andNot(ereStack);
+        if (!eresToEnter.isEmpty()) {
+            // prepend exception region exits
+            Block.Builder prev = newBlock(targetBlock.parameters());
+            prev.op(CoreOp.exceptionRegionEnter(successorWithStack(targetBlock), eresToEnter.stream().mapToObj(ei ->
+                    blockMap.get(exceptionHandlers.get(ei)).successor()).toList().reversed()));
+            targetBlock = prev;
+        }
+        var eresToLeave = (BitSet)ereStack.clone();
+        eresToLeave.andNot(targetEreStack);
+        if (!eresToLeave.isEmpty()) {
+            // prepend exception region enters
+            Block.Builder prev = newBlock(targetBlock.parameters());
+            prev.op(CoreOp.exceptionRegionExit(successorWithStack(targetBlock), eresToLeave.stream().mapToObj(ei ->
+                    blockMap.get(exceptionHandlers.get(ei)).successor()).toList()));
+            targetBlock = prev;
+        }
+        return targetBlock;
+    }
+
+    Block.Reference successorWithStack(Block.Builder next) {
         return next.successor(stack.stream().limit(next.parameters().size()).toList());
     }
 
@@ -1008,17 +881,8 @@ public final class BytecodeLift {
         return t;
     }
 
-    private Op unifyOperands(BiFunction<Value, Value, Op> operator, Value v1, Value v2, TypeKind tk) {
-        if (tk != TypeKind.INT || valueType(v1).equals(valueType(v2))) return operator.apply(v1, v2);
-        return operator.apply(toInt(v1), toInt(v2));
-    }
-
-    private Value toInt(Value v) {
-        return valueType(v).equals(PrimitiveType.INT) ? v : op(CoreOp.conv(PrimitiveType.INT, v));
-    }
-
-    private Value zero(Value otherOperand) {
-        return liftDefaultValue(BytecodeGenerator.toClassDesc(otherOperand.type()));
+    private Value zero() {
+        return op(CoreOp.constant(UnresolvedType.unresolvedInt(), 0));
     }
 
     private static boolean isCategory1(Value v) {
