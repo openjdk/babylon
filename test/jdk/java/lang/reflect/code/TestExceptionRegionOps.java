@@ -79,16 +79,17 @@ public class TestExceptionRegionOps {
 
                     //
                     var c = fblock.parameters().get(0);
-                    var er1 = fblock.op(exceptionRegionEnter(
+                    fblock.op(exceptionRegionEnter(
                             enterER1.successor(),
-                            catchER1ISE.successor(), catchER1IAE.successor()));
+                            catchER1IAE.successor(), catchER1ISE.successor()));
 
                     // Start of exception region
                     enterER1.ops(b -> {
                         b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 0))));
                         b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         // End of exception region
-                        b.op(exceptionRegionExit(er1, end.successor()));
+                        b.op(exceptionRegionExit(end.successor(),
+                            catchER1ISE.successor(), catchER1IAE.successor()));
                     });
 
                     // First catch block for exception region
@@ -170,16 +171,18 @@ public class TestExceptionRegionOps {
 
                     //
                     var c = fblock.parameters().get(0);
-                    var er1 = fblock.op(exceptionRegionEnter(
+                    fblock.op(exceptionRegionEnter(
                             enterER1.successor(),
-                            catchER1ISE.successor(), catchER1T.successor()));
+                            catchER1T.successor(), catchER1ISE.successor()));
 
                     // Start of exception region
                     enterER1.ops(b -> {
                         b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 0))));
                         b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         // End of exception region
-                        b.op(exceptionRegionExit(er1, end.successor()));
+                        b.op(exceptionRegionExit(end.successor(),
+                            catchER1ISE.successor(), catchER1T.successor()));
+
                     });
 
                     // First catch block for exception region
@@ -266,7 +269,7 @@ public class TestExceptionRegionOps {
 
                     //
                     var c = fblock.parameters().get(0);
-                    var er1 = fblock.op(exceptionRegionEnter(
+                    fblock.op(exceptionRegionEnter(
                             enterER1.successor(),
                             catchER1.successor()));
 
@@ -275,7 +278,7 @@ public class TestExceptionRegionOps {
                         b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 0))));
                         b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                     });
-                    var er2 = enterER1.op(exceptionRegionEnter(
+                    enterER1.op(exceptionRegionEnter(
                             enterER2.successor(),
                             catchER2.successor()));
 
@@ -284,7 +287,8 @@ public class TestExceptionRegionOps {
                         b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 1))));
                         b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         // End of second exception region
-                        b.op(exceptionRegionExit(er2, b3.successor()));
+                        b.op(exceptionRegionExit(b3.successor(),
+                            catchER2.successor()));
                     });
 
                     // Catch block for second exception region
@@ -298,7 +302,8 @@ public class TestExceptionRegionOps {
                         b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 3))));
                         b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         // End of first exception region
-                        b.op(exceptionRegionExit(er1, end.successor()));
+                        b.op(exceptionRegionExit(end.successor(),
+                            catchER1.successor()));
                     });
 
                     // Catch block for first exception region
@@ -388,16 +393,17 @@ public class TestExceptionRegionOps {
 
                     //
                     var c = fblock.parameters().get(0);
-                    var er1 = fblock.op(exceptionRegionEnter(
+                    fblock.op(exceptionRegionEnter(
                             enterER1.successor(),
-                            catchRE.successor(), catchAll.successor()));
+                            catchAll.successor(), catchRE.successor()));
 
                     // Start of exception region
                     enterER1.ops(b -> {
                         b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 0))));
                         b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         // End of exception region
-                        b.op(exceptionRegionExit(er1, exitER1.successor()));
+                        b.op(exceptionRegionExit(exitER1.successor(),
+                            catchRE.successor(), catchAll.successor()));
                     });
                     // Inline finally
                     exitER1.ops(b -> {
@@ -407,7 +413,7 @@ public class TestExceptionRegionOps {
                     });
 
                     // Catch block for RuntimeException
-                    var er2 = catchRE.op(exceptionRegionEnter(
+                    catchRE.op(exceptionRegionEnter(
                             enterER2.successor(),
                             catchAll.successor()));
                     // Start of exception region
@@ -415,7 +421,8 @@ public class TestExceptionRegionOps {
                         b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 1))));
                         b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         // End of exception region
-                        b.op(exceptionRegionExit(er2, exitER2.successor()));
+                        b.op(exceptionRegionExit(exitER2.successor(),
+                            catchAll.successor()));
                     });
                     // Inline finally
                     exitER2.ops(b -> {
