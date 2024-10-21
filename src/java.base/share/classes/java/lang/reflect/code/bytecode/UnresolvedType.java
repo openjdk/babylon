@@ -47,12 +47,6 @@ sealed abstract class UnresolvedType implements TypeElement {
             return UNRESOLVED_REF;
         }
 
-
-        @Override
-        public JavaType fallback() {
-            return JavaType.J_L_OBJECT;
-        }
-
         @Override
         Object convertValue(Object value) {
             return value;
@@ -68,13 +62,10 @@ sealed abstract class UnresolvedType implements TypeElement {
         }
 
         @Override
-        public JavaType fallback() {
-            return JavaType.INT;
-        }
-
-        @Override
         Object convertValue(Object value) {
-            if (resolved == null || resolved.equals(JavaType.INT)) {
+            if (resolved == null) {
+                return null;
+            } else if(resolved.equals(JavaType.INT)) {
                 return toNumber(value).intValue();
             } else if (resolved.equals(JavaType.BOOLEAN)) {
                 return value instanceof Number n ? n.intValue() != 0 : (Boolean)value;
@@ -97,12 +88,5 @@ sealed abstract class UnresolvedType implements TypeElement {
     // Support for UnresolvedTypesTransformer
 
     JavaType resolved;
-
-    JavaType resolved() {
-        return resolved == null ? fallback() : resolved;
-    }
-
-    abstract JavaType fallback();
-
     abstract Object convertValue(Object value);
 }

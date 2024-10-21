@@ -63,6 +63,8 @@ final class UnresolvedTypesTransformer {
                     TypeElement type = switch (useRes.op()) {
                         case CoreOp.BinaryTestOp bto ->
                             bto.operands().get(1 - i).type();
+                        case CoreOp.BinaryOp bo ->
+                            bo.resultType();
                         case CoreOp.InvokeOp io -> {
                             MethodRef id = io.invokeDescriptor();
                             if (io.hasReceiver()) {
@@ -105,6 +107,7 @@ final class UnresolvedTypesTransformer {
                     }
                 }
             }
+            System.out.println("wat?");
         }
     }
 
@@ -125,7 +128,7 @@ final class UnresolvedTypesTransformer {
                         List<TypeElement> paramTypes = sourceBlock.parameterTypes();
                         if (paramTypes.stream().anyMatch(UnresolvedType.class::isInstance)) {
                             Block.Builder newBlock = block.block(paramTypes.stream()
-                                    .map(pt -> pt instanceof UnresolvedType ut ? ut.resolved() : pt)
+                                    .map(pt -> pt instanceof UnresolvedType ut && ut.resolved != null ? ut.resolved : pt)
                                     .toList());
                             cc.mapBlock(sourceBlock, newBlock);
                             cc.mapValues(sourceBlock.parameters(), newBlock.parameters());
@@ -148,10 +151,10 @@ final class UnresolvedTypesTransformer {
         return (block, op) -> {
             CopyContext cc = block.context();
             switch (op) {
-                case CoreOp.ConstantOp cop when op.resultType() instanceof UnresolvedType ut ->
-                    cc.mapValue(op.result(), block.op(CoreOp.constant(ut.resolved(), ut.convertValue(cop.value()))));
-                case CoreOp.VarOp vop when vop.varValueType() instanceof UnresolvedType ut ->
-                    cc.mapValue(op.result(), block.op(CoreOp.var(vop.varName(), ut.resolved(), cc.getValueOrDefault(vop.initOperand(), vop.initOperand()))));
+                case CoreOp.ConstantOp cop when op.resultType() instanceof UnresolvedType ut && ut.resolved != null ->
+                    cc.mapValue(op.result(), block.op(CoreOp.constant(ut.resolved, ut.convertValue(cop.value()))));
+                case CoreOp.VarOp vop when vop.varValueType() instanceof UnresolvedType ut && ut.resolved != null ->
+                    cc.mapValue(op.result(), block.op(CoreOp.var(vop.varName(), ut.resolved, cc.getValueOrDefault(vop.initOperand(), vop.initOperand()))));
                 default ->
                     block.op(op);
             }
