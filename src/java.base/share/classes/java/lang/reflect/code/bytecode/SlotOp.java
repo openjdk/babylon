@@ -25,7 +25,6 @@
 package java.lang.reflect.code.bytecode;
 
 import java.lang.classfile.TypeKind;
-import java.lang.reflect.code.CodeElement;
 import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.TypeElement;
@@ -38,7 +37,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Predicate;
 
 sealed abstract class SlotOp extends ExternalizableOp {
     public static final String ATTRIBUTE_SLOT = "slot";

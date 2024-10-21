@@ -174,11 +174,14 @@ public final class BytecodeLift {
         if (!methodModel.flags().has(AccessFlag.STATIC)) {
             mDesc = mDesc.insertParameterTypes(0, classModel.thisClass().asSymbol());
         }
-        return NormalizeBlocksTransformer.transform(SlotToVarTransformer.transform(CoreOp.func(methodModel.methodName().stringValue(),
-                            MethodRef.ofNominalDescriptor(mDesc)).body(entryBlock ->
-                                    new BytecodeLift(entryBlock,
-                                                     classModel,
-                                                     methodModel.code().orElseThrow()).liftBody())));
+        return NormalizeBlocksTransformer.transform(
+                UnresolvedTypesTransformer.transform(
+                    SlotToVarTransformer.transform(
+                        CoreOp.func(methodModel.methodName().stringValue(),
+                                    MethodRef.ofNominalDescriptor(mDesc)).body(entryBlock ->
+                                            new BytecodeLift(entryBlock,
+                                                             classModel,
+                                                             methodModel.code().orElseThrow()).liftBody()))));
     }
 
     private void liftBody() {
