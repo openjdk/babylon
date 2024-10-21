@@ -29,7 +29,10 @@ import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.Value;
 import java.lang.reflect.code.op.CoreOp;
+import java.lang.reflect.code.type.JavaType;
+import java.lang.reflect.code.type.MethodRef;
 import java.util.List;
 
 /**
@@ -39,9 +42,70 @@ final class UnresolvedTypesTransformer {
 
     static CoreOp.FuncOp transform(CoreOp.FuncOp func) {
 
-        // @@@ analyze and resolve unresolved types
+        func.traverse(null, (_, e) -> {
+            switch (e) {
+               case Block b -> b.parameters().forEach(UnresolvedTypesTransformer::resolve);
+               case Op op -> resolve(op.result());
+               default -> {}
+           }
+           return null;
+        });
 
         return func.transform(blockParamTypesTransformer()).transform(opTypesTransformer());
+    }
+
+    private static void resolve(Value v) {
+        if (v != null && v.type() instanceof UnresolvedType ut && ut.resolved == null) {
+            for (Op.Result useRes : v.uses()) {
+                // Pull type from operands
+                int i = useRes.op().operands().indexOf(v);
+                if (i >= 0) {
+                    TypeElement type = switch (useRes.op()) {
+                        case CoreOp.BinaryTestOp bto ->
+                            bto.operands().get(1 - i).type();
+                        case CoreOp.InvokeOp io -> {
+                            MethodRef id = io.invokeDescriptor();
+                            if (io.hasReceiver()) {
+                                if (i == 0) yield id.refType();
+                                i--;
+                            }
+                            yield id.type().parameterTypes().get(i);
+                        }
+                        case CoreOp.FieldAccessOp fao ->
+                            fao.fieldDescriptor().refType();
+                        case CoreOp.ReturnOp ro ->
+                            ro.ancestorBody().bodyType().returnType();
+                        case CoreOp.VarOp vo ->
+                            vo.varValueType();
+                        case CoreOp.VarAccessOp.VarStoreOp vso ->
+                            vso.varType().valueType();
+                        default -> null;
+                    };
+                    if (type instanceof UnresolvedType utt) {
+                        type = utt.resolved;
+                    }
+                    if (type != null) {
+                        ut.resolved = (JavaType)type;
+                        return;
+                    }
+                } else {
+                    // Pull block parameter type when used as block argument
+                    for (Block.Reference sucRef : useRes.op().successors()) {
+                        i = sucRef.arguments().indexOf(v);
+                        if (i >= 0) {
+                            TypeElement type = sucRef.targetBlock().parameters().get(i).type();
+                            if (type instanceof UnresolvedType utt) {
+                                type = utt.resolved;
+                            }
+                            if (type != null) {
+                                ut.resolved = (JavaType)type;
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private UnresolvedTypesTransformer() {
@@ -87,7 +151,7 @@ final class UnresolvedTypesTransformer {
                 case CoreOp.ConstantOp cop when op.resultType() instanceof UnresolvedType ut ->
                     cc.mapValue(op.result(), block.op(CoreOp.constant(ut.resolved(), ut.convertValue(cop.value()))));
                 case CoreOp.VarOp vop when vop.varValueType() instanceof UnresolvedType ut ->
-                    cc.mapValue(op.result(), block.op(CoreOp.var(vop.varName(), ut.resolved(), vop.initOperand())));
+                    cc.mapValue(op.result(), block.op(CoreOp.var(vop.varName(), ut.resolved(), cc.getValueOrDefault(vop.initOperand(), vop.initOperand()))));
                 default ->
                     block.op(op);
             }
@@ -144,50 +208,6 @@ final class UnresolvedTypesTransformer {
 //                return false;
 //            }
 //
-//    private static TypeElement inferTypeFromDirectUse(TypeElement fallback, Value v) {
-//        for (Op.Result useRes : v.uses()) {
-//            // Pull type from operands
-//            int i = useRes.op().operands().indexOf(v);
-//            if (i >= 0) {
-//                TypeElement type = switch (useRes.op()) {
-//                    case CoreOp.BinaryTestOp bto ->
-//                        bto.operands().get(1 - i).type();
-//                    case CoreOp.InvokeOp io -> {
-//                        MethodRef id = io.invokeDescriptor();
-//                        if (io.hasReceiver()) {
-//                            if (i == 0) yield id.refType();
-//                            i--;
-//                        }
-//                        yield id.type().parameterTypes().get(i);
-//                    }
-//                    case CoreOp.FieldAccessOp fao ->
-//                        fao.fieldDescriptor().refType();
-//                    case CoreOp.ReturnOp ro ->
-//                        ro.ancestorBody().bodyType().returnType();
-//                    case CoreOp.VarOp vo ->
-//                        vo.varValueType();
-//                    case CoreOp.VarAccessOp.VarStoreOp vso ->
-//                        vso.varType().valueType();
-//                    default -> null;
-//                };
-//                if (type != null && !fallback.equals(type)) {
-//                    return type;
-//                }
-//            } else {
-//                // Pull block parameter type when used as block argument
-//                for (Block.Reference sucRef : useRes.op().successors()) {
-//                    i = sucRef.arguments().indexOf(v);
-//                    if (i >= 0) {
-//                        TypeElement type = sucRef.targetBlock().parameters().get(i).type();
-//                        if (!fallback.equals(type)) {
-//                            return type;
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//        return fallback;
-//    }
 //
 //    private static Block.Reference convert(Block.Builder block, Block.Reference ref) {
 //        CopyContext cc = block.context();
