@@ -40,7 +40,7 @@ import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
-import java.lang.reflect.code.bytecode.BytecodeLift2;
+import java.lang.reflect.code.bytecode.BytecodeLift;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.runtime.CodeReflection;
 import java.nio.file.Files;
@@ -636,7 +636,7 @@ public class TestBytecode {
     public void testLift(TestData d) throws Throwable {
         CoreOp.FuncOp flift;
         try {
-            flift = BytecodeLift2.lift(CLASS_DATA, d.testMethod.getName(), toMethodTypeDesc(d.testMethod));
+            flift = BytecodeLift.lift(CLASS_DATA, d.testMethod.getName(), toMethodTypeDesc(d.testMethod));
         } catch (Throwable e) {
             ClassPrinter.toYaml(ClassFile.of().parse(TestBytecode.class.getResourceAsStream("TestBytecode.class").readAllBytes())
                     .methods().stream().filter(m -> m.methodName().equalsString(d.testMethod().getName())).findAny().get(),
