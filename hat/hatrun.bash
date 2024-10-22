@@ -31,14 +31,11 @@ function example(){
    backend=$2
    example=$3
    shift 3
-   if test -d maven-build; then
-      echo using trad maven-build
-      build_dir=maven-build
-   elif test -d build; then
-      echo using new build dir
+   if test -d build; then
+      echo using build dir
       build_dir=build
    else
-      echo No maven-build or build dir!
+      echo no build dir!
       exit 1
    fi
    if test "${backend}" =  "java"; then

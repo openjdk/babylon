@@ -61,7 +61,7 @@ properties should look like this, and should not need changing
         <beehive.spirv.toolkit.dir>${github.dir}/beehive-spirv-toolkit/</beehive.spirv.toolkit.dir>
         <babylon.dir>${github.dir}/${babylon.repo.name}</babylon.dir>
         <hat.dir>${babylon.dir}/hat</hat.dir>
-        <hat.target>${hat.dir}/maven-build</hat.target>
+        <hat.target>${hat.dir}/build</hat.target>
     </properties>
     <!-- yada -->
 </project>
@@ -92,13 +92,13 @@ the properties are pointing to `sane` values.
 
 ## Building with maven
 
-Now we should be able to use maven to build, if successful maven will place all jars and libs in a newly created `maven-build` dir in your top level hat dir.
+Now we should be able to use maven to build, if successful maven will place all jars and libs in a newly created `build` dir in your top level hat dir.
 
 ```bash
 cd hat
 . ./env.bash
 mvn clean  compile jar:jar install
-ls maven-build
+ls build
 hat-1.0.jar                     hat-example-heal-1.0.jar        libptx_backend.dylib
 hat-backend-cuda-1.0.jar        hat-example-mandel-1.0.jar      libspirv_backend.dylib
 hat-backend-mock-1.0.jar        hat-example-squares-1.0.jar     mock_info
@@ -116,14 +116,14 @@ bash build.sh
 
 ## Running an example
 
-To run an example we should be able to use the maven artifacts in `maven-build`
+To run an example we should be able to use the maven artifacts in `build`
 
 ```bash
 ${JAVA_HOME}/bin/java \
    --enable-preview --enable-native-access=ALL-UNNAMED \
-   --class-path maven-build/hat-1.0.jar:maven-build/hat-example-mandel-1.0.jar:maven-build/hat-backend-opencl-1.0.jar \
+   --class-path build/hat-1.0.jar:build/hat-example-mandel-1.0.jar:build/hat-backend-opencl-1.0.jar \
    --add-exports=java.base/jdk.internal=ALL-UNNAMED \
-   -Djava.library.path=maven-build\
+   -Djava.library.path=build\
    mandel.Main
 ```
 

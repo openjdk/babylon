@@ -37,7 +37,7 @@ maven uses to build the backends.
 ```
 ${BABYLON_JDK}
    └── hat
-        ├── maven-build (created by the build)
+        ├── build (created by the build)
         │
         ├── intellij
         │    ├── .idea
