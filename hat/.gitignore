@@ -1,5 +1,4 @@
 thirdparty/
 build/
-target/
-maven-build/
+repo/
 hattricks/
