@@ -26,7 +26,6 @@
 package java.lang.reflect.code.bytecode;
 
 import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.Value;
 import java.lang.reflect.code.type.JavaType;
 import java.util.List;
 

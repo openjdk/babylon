@@ -36,16 +36,74 @@ import java.lang.reflect.code.type.JavaType;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  *
  */
 final class SlotToVarTransformer {
 
+    record ExcStackMap(List<Block> catchBlocks, Map<Block, BitSet> map) implements Function<Block, ExcStackMap> {
+        @Override
+        public ExcStackMap apply(Block b) {
+            BitSet excStack = map.computeIfAbsent(b, _ -> new BitSet());
+            switch (b.terminatingOp()) {
+                case CoreOp.ExceptionRegionEnter ere -> {
+                    BitSet entries = new BitSet();
+                    for (Block.Reference cbr : ere.catchBlocks()) {
+                        Block cb = cbr.targetBlock();
+                        int i = catchBlocks.indexOf(cb);
+                        if (i < 0) {
+                            i = catchBlocks.size();
+                            catchBlocks.add(cb);
+                            map.put(cb, excStack);
+                        }
+                        entries.set(i);
+                    }
+                    entries.or(excStack);
+                    map.put(ere.start().targetBlock(), entries);
+                }
+                case CoreOp.ExceptionRegionExit ere -> {
+                    excStack = (BitSet) excStack.clone();
+                    for (Block.Reference cbr : ere.catchBlocks()) {
+                        excStack.clear(catchBlocks.indexOf(cbr.targetBlock()));
+                    }
+                    map.put(ere.end().targetBlock(), excStack);
+                }
+                case Op op -> {
+                    for (Block.Reference tbr : op.successors()) {
+                        map.put(tbr.targetBlock(), excStack);
+                    }
+                }
+            }
+            return this;
+        }
+
+        void forEachHandler(Block b, Consumer<Block> hbc) {
+            map.get(b).stream().mapToObj(catchBlocks::get).forEach(hbc);
+        }
+
+        void forEachTryBlock(Block hb, Consumer<Block> bc) {
+            int i = catchBlocks.indexOf(hb);
+            if (i >= 0) {
+                for (var me : map.entrySet()) {
+                    if (me.getValue().get(i)) bc.accept(me.getKey());
+                }
+            }
+        }
+    }
+
     static CoreOp.FuncOp transform(CoreOp.FuncOp func) {
+
+        // Composing exception stack map to be able to follow slot ops from try to the handler
+        ExcStackMap excMap = func.traverse(new ExcStackMap(new ArrayList<>(), new HashMap<>()),
+                CodeElement.blockVisitor((map, b) -> map.apply(b)));
 
         List<SlotOp.Var> toInitialize = func.body().traverse(new ArrayList<>(), CodeElement.opVisitor((toInit, op) -> {
             if (op instanceof SlotOp slotOp && slotOp.var == null) {
@@ -60,7 +118,7 @@ final class SlotToVarTransformer {
                     if (se.var == null) {
                         se.var = var; // Assign variable to the segment
                         var.typeKind = se.typeKind(); // TypeKind is identical for all SlotOps of the same variable
-                        for (SlotOp to : slotImmediateSuccessors(se)) {
+                        for (SlotOp to : slotImmediateSuccessors(se, excMap)) {
                             // All following SlotLoadOp belong to the same variable
                             if (to instanceof SlotOp.SlotLoadOp) {
                                 if (to.var == null) {
@@ -70,7 +128,7 @@ final class SlotToVarTransformer {
                         };
                         if (se instanceof SlotOp.SlotLoadOp) {
                             // Segments preceeding SlotLoadOp also belong to the same variable
-                            for (SlotOp from : slotImmediatePredecessors(se)) {
+                            for (SlotOp from : slotImmediatePredecessors(se, excMap)) {
                                 if (from.var == null) {
                                     q.add(from);
                                 }
@@ -88,7 +146,7 @@ final class SlotToVarTransformer {
                 // Identification of initial SlotStoreOp
                 for (var it = stores.iterator(); it.hasNext();) {
                     SlotOp s = it.next();
-                    if (isDominatedByTheSameVar(s)) {
+                    if (isDominatedByTheSameVar(s, excMap)) {
                         // A store preceeding dominantly with segments of the same variable is not initial
                         it.remove();
                     }
@@ -154,18 +212,18 @@ final class SlotToVarTransformer {
     }
 
     // Traverse immediate same-slot successors of a SlotOp
-    private static Iterable<SlotOp> slotImmediateSuccessors(SlotOp slotOp) {
-        return () -> new SlotOpIterator(slotOp, true);
+    private static Iterable<SlotOp> slotImmediateSuccessors(SlotOp slotOp, ExcStackMap excMap) {
+        return () -> new SlotOpIterator(slotOp, excMap, true);
     }
 
     // Traverse immediate same-slot predecessors of a SlotOp
-    private static Iterable<SlotOp> slotImmediatePredecessors(SlotOp slotOp) {
-        return () -> new SlotOpIterator(slotOp, false);
+    private static Iterable<SlotOp> slotImmediatePredecessors(SlotOp slotOp, ExcStackMap excMap) {
+        return () -> new SlotOpIterator(slotOp, excMap, false);
     }
 
-    private static boolean isDominatedByTheSameVar(SlotOp slotOp) {
+    private static boolean isDominatedByTheSameVar(SlotOp slotOp, ExcStackMap excMap) {
         boolean any = false;
-        for (SlotOp pred : slotImmediatePredecessors(slotOp)) {
+        for (SlotOp pred : slotImmediatePredecessors(slotOp, excMap)) {
             if (pred.var != slotOp.var) {
                 return false;
             }
@@ -179,6 +237,7 @@ final class SlotToVarTransformer {
 
         SlotOp op;
         final int slot;
+        final ExcStackMap map;
         final TypeKind tk;
         final boolean fwd;
         Block b;
@@ -188,9 +247,10 @@ final class SlotToVarTransformer {
         ArrayDeque<Block> toVisit;
 
 
-        public SlotOpIterator(SlotOp slotOp, boolean forward) {
+        public SlotOpIterator(SlotOp slotOp, ExcStackMap excMap, boolean forward) {
             slot = slotOp.slot;
             tk = slotOp.typeKind();
+            map = excMap;
             fwd = forward;
             b = slotOp.parentBlock();
             ops = fwd ? b.ops() : b.ops().reversed();
@@ -232,6 +292,13 @@ final class SlotToVarTransformer {
                                 visited.set(sb.index());
                             }
                         }
+                        // Visit also relevant exception handlers
+                        map.forEachHandler(b, sb -> {
+                            if (!visited.get(sb.index())) {
+                                toVisit.add(sb);
+                                visited.set(sb.index());
+                            }
+                        });
                     } else {
                         for (Block pb : b.predecessors()) {
                             if (!visited.get(pb.index())) {
@@ -239,6 +306,13 @@ final class SlotToVarTransformer {
                                 visited.set(pb.index());
                             }
                         }
+                        // Visit also relevant try blocks from handler
+                        map.forEachTryBlock(b, sb -> {
+                            if (!visited.get(sb.index())) {
+                                toVisit.add(sb);
+                                visited.set(sb.index());
+                            }
+                        });
                     }
                     b = toVisit.poll();
                     if (b != null) {
