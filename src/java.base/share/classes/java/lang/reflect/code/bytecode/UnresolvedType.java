@@ -52,6 +52,20 @@ sealed abstract class UnresolvedType implements TypeElement {
         Object convertValue(Object value) {
             return value;
         }
+
+        @Override
+        boolean resolveTo(TypeElement type) {
+            if (resolved == null) {
+                if (type instanceof UnresolvedType utt) {
+                    type = utt.resolved;
+                }
+                if (type != null) {
+                    resolved = (JavaType)type;
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
     static final class Int extends UnresolvedType {
@@ -82,23 +96,39 @@ sealed abstract class UnresolvedType implements TypeElement {
         }
 
         static Number toNumber(Object value) {
-            return value instanceof Boolean b ? b ? 1 : 0 : (Number)value;
+            return switch (value) {
+                case Boolean b -> b ? 1 : 0;
+                case Character c -> (int)c;
+                case Number n -> n;
+                default -> throw new IllegalStateException("Unexpected " + value);
+            };
         }
+
+        @Override
+        boolean resolveTo(TypeElement type) {
+            if (type instanceof UnresolvedType utt) {
+                type = utt.resolved;
+            }
+            if (type != null) {
+                int p = PRIORITY_LIST.indexOf(type);
+                if (p > priority) {
+                    priority = p;
+                    resolved = (JavaType)type;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private int priority = -1;
+
+        private static final List<JavaType> PRIORITY_LIST = List.of(JavaType.INT, JavaType.CHAR, JavaType.SHORT, JavaType.BYTE, JavaType.BOOLEAN);
+
     }
 
     // Support for UnresolvedTypesTransformer
 
     JavaType resolved;
     abstract Object convertValue(Object value);
-
-    boolean resolveWith(TypeElement type) {
-        if (type instanceof UnresolvedType utt) {
-            type = utt.resolved;
-        }
-        if (type != null) {
-            resolved = (JavaType)type;
-            return true;
-        }
-        return false;
-    }
+    abstract boolean resolveTo(TypeElement type);
 }
