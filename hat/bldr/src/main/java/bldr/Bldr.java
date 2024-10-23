@@ -219,13 +219,8 @@ public class Bldr {
 
         public Stream<String> versions(String groupId, String artifactId) {
             var xmlNode = queryByGroupAndArtifact(groupId, artifactId);
-            //  var numFound = xmlNode.xpathQueryString("/response/result/@numFound");
-            // if (numFound.isEmpty() || numFound.equals("0")){
-            //   return Stream.empty();
-            // }else {
             return xmlNode.xmlNodes(xmlNode.xpath("/response/result/doc"))
                     .map(xmln -> xmln.xpathQueryString("str[@name='v']/text()"));
-            //}
         }
 
         public boolean forEachVersion(String groupId, String artifactId, Consumer<String> idConsumer) {
@@ -272,7 +267,7 @@ public class Bldr {
 
     public record OS(String arch, String name, String version) {
         static final String MacName = "Mac OS X";
-
+        static final String LinuxName = "Linux";
         public String nameArchTuple() {
             return switch (name()) {
                 case MacName -> "macos";
@@ -282,6 +277,10 @@ public class Bldr {
 
         public boolean isMac() {
             return name().equals(MacName);
+        }
+
+        public boolean isLinux() {
+            return name().equals(LinuxName);
         }
 
         public Path macAppLibFrameworks() {
