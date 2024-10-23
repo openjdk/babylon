@@ -1,4 +1,4 @@
-#!/usr/bin/env java --enable-preview --source 24 --class-path bldr/classes
+//usr/bin/env java --enable-preview --source 24 --class-path bldr/bldr.jar "$0" "$@"; exit $?
 /*
  * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -29,6 +29,7 @@ import static java.nio.file.Files.*; // so we can use isDirectory(path);
 
 void main(String[] args) throws IOException, InterruptedException, URISyntaxException {
    var hatDir = new Root();
+   List.of(args).forEach(arg->println(arg));
 
    withExpectedDirectory(hatDir.path(), "hat", hatProjectDir -> {
       var hatJavacOpts = new JavacBuilder().opts(

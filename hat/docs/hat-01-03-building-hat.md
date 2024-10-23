@@ -30,11 +30,12 @@ We might even have `Bldr` create the maven artifacts....
 To build HAT we need to ensure that `JAVA_HOME` is set
 to point to our babylon jdk (the one we built [here](hat-01-02-building-babylon.md))
 
-It will simplify our tasks going forward if we
+It simplifes our tasks going forward if we
 add `${JAVA_HOME}/bin` to our PATH (before any other JAVA installs).
 
-The top level `env.bash` shell script can be sourced (dot included)
-into your shell to both set `JAVA_HOME` and update your `PATH`
+We also need to prebuild the `bldr/bldr.jar`
+
+Thankfully just sourcing the top level `env.bash` script will perform these tasks
 
 It should detect the arch type (AARCH64 or X86_46) and
 select the correct relative parent dir and inject that dir in your PATH.
@@ -46,12 +47,13 @@ echo ${JAVA_HOME}
 /Users/ME/github/babylon/hat/../build/macosx-aarch64-server-release/jdk
 echo ${PATH}
 /Users/ME/github/babylon/hat/../build/macosx-aarch64-server-release/jdk/bin:/usr/local/bin:......
+ls bldr/bldr.jar
+bldr/bldr.jar
 ```
 
 # Introducing Bldr
-`Bldr` is a minimal java build system which has all the capabilities needed so far
-to build existing HAT as well as it's examples and backends. It is just a set of
-static methods and helper classes wrapping javac/jar tooling.
+`Bldr` is an evolving set of static methods and types needed (so far.. ;) )
+to build HAT as well as the HAT examples and backends.
 
 `Bldr` itself is a java class in
 ```
@@ -63,46 +65,24 @@ bldr
                   └── Bldr.java
 ```
 
-We do need to compile this one class using javac one time, then we can use this in `bld` scripts to actually bld.
+The first run of  `env.bash` will compile and create build `bldr/bldr.jar`
 
 Assuming we have our babylon JDK build in our path (via `. env.bash`) we should do this every time we 'pull' HAT.
 
 ```shell
 mkdir bldr/classes
 javac --enable-preview -source 24 -d bldr/classes bldr/src/main/java/bldr/Bldr.java
+jar -cf bldr/bldr.jar -C bldr/classes bldr
 ```
-
-Now the `bldr/classes` dir contains all we need to create build scripts
-
-In HAT's root dir is a `#!` (Hash Bang) java launcher style script called `bld`
+In HAT's root dir is a `#!` (Hash Bang) java launcher style script called `bld` (and one called `sanity`)
 which uses tools exposed by the precompiled `Bldr` to compile, create jars, run jextract, download dependencies, tar/untar etc.
 
 As git does not allow us to check in scripts with execute permission, we need to `chmod +x` this `bld` file.
 
 ```bash
-chmod +x bld
+chmod +x bld sanity
 ```
 
-A simple example of `bld` script which just compiles core HAT source to `build/hat-1.0.jar` is shown.
-
-```java
-#!/usr/bin/env java --enable-preview --source 24 --class-path bldr/classes
-import module java.compiler;
-import static bldr.Bldr.*;
-void main(String[] args) throws IOException, InterruptedException {
-    var hatDir = Path.of(System.getProperty("user.dir"));
-    var target = path(hatDir, "build");// mkdir(rmdir(path(hatDir, "build")));
-
-    var hatJarResult = javacjar($ -> $
-            .opts(  "--source", "24",
-                    "--enable-preview",
-                    "--add-exports=java.base/jdk.internal=ALL-UNNAMED",
-                    "--add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED")
-            .jar(path(target, "hat-1.0.jar"))
-            .source_path(path(hatDir, "hat/src/main/java"))
-    );
-}
-```
 Note that the first line has the `#!` magic to allow this java code to be executed as if it
 were a script.  Whilst `bld` is indeed real java code,  we do not need to compile it. Instead we just execute using
 
@@ -110,13 +90,14 @@ were a script.  Whilst `bld` is indeed real java code,  we do not need to compil
 ./bld
 ```
 
-The real `bld` is more complicated, but not much more. It will will build hat-1.0.jar, along with all the backend jars hat-backend-?-1.0.jar,
+`bld` will build hat-1.0.jar, along with all the backend jars hat-backend-?-1.0.jar,
 all the example jars hat-example-?-1.0.jar and will try to build all native artifacts (.so/.dylib) it can.
+
 So if cmake finds OpenCL libs/headers, you will see libopencl_backend (.so or .dylib)
 
 On a CUDA machine you will see libcuda_backend(.so or .dylib)
 
-`bld` will also sanity check .java/.cpp/.h files to make sure we don't have any tabs, lines that with whitespace
+`sanity` will sanity check all  .md/.java/.cpp/.h files to make sure we don't have any tabs, lines that with whitespace
 or files without appropriate licence headers
 
 ```bash
@@ -152,4 +133,5 @@ name `opencl` and the package name `mandel`
 
 ```bash
 bash hatrun.bash opencl mandel
+bash hatrun.bash opencl heal
 ```

@@ -14,10 +14,6 @@ The HAT project is in the 'hat' subdir of the babylon project.
 
 ## Building HAT
 
-HAT uses both maven and cmake.
-
-Maven controls the build but delegates to cmake for native artifacts (such as various backends).
-
 [See](docs/hat-01-03-building-hat.md)
 
 
