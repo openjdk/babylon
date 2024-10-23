@@ -887,6 +887,7 @@ public final class BytecodeLift {
     }
 
     private static boolean isCategory1(Value v) {
-        return BytecodeGenerator.toTypeKind(v.type()).slotSize() == 1;
+        TypeElement t = v.type();
+        return !t.equals(JavaType.LONG) && !t.equals(JavaType.DOUBLE);
     }
 }
