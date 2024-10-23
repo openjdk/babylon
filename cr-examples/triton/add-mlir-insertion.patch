@@ -1,0 +1,50 @@
+diff --git a/python/triton/compiler/compiler.py b/python/triton/compiler/compiler.py
+index 3ec8ff32..bd59e1b6 100644
+--- a/python/triton/compiler/compiler.py
++++ b/python/triton/compiler/compiler.py
+@@ -223,7 +223,7 @@ def filter_traceback(e: BaseException):
+         e.__traceback__ = frames[0]
+ 
+ 
+-def compile(src, target_mlir=None, target=None, options=None):
++def compile(src, target=None, options=None):
+     if target is None:
+         target = driver.active.get_current_target()
+     assert isinstance(target, GPUTarget), "target must be of GPUTarget type"
+@@ -268,7 +268,7 @@ def compile(src, target_mlir=None, target=None, options=None):
+     }
+     # run compilation pipeline  and populate metadata
+     stages = dict()
+-    backend.add_stages(stages, options, target_mlir)
++    backend.add_stages(stages, options)
+     first_stage = list(stages.keys()).index(src.ext)
+     # when the source is an IR file, don't apply the passes related to this stage. This makes it easier to write IR level tests.
+     if ir_source:
+diff --git a/third_party/intel/backend/compiler.py b/third_party/intel/backend/compiler.py
+index 9b4261c7..8dad5654 100644
+--- a/third_party/intel/backend/compiler.py
++++ b/third_party/intel/backend/compiler.py
+@@ -138,11 +138,7 @@ class XPUBackend(BaseBackend):
+         intel.load_dialects(ctx)
+ 
+     @staticmethod
+-    def make_ttir(mod, metadata, opt, target_mlir):
+-        if (target_mlir):
+-            context = mod.context
+-            mod = ir.parse_mlir_module(f"{target_mlir}", mod.context)
+-            mod.context = context
++    def make_ttir(mod, metadata, opt):
+         pm = ir.pass_manager(mod.context)
+         pm.enable_debug()
+         passes.common.add_inliner(pm)
+@@ -254,8 +250,8 @@ class XPUBackend(BaseBackend):
+         metadata["name"] = name
+         return ret
+ 
+-    def add_stages(self, stages, options, target_mlir):
+-        stages["ttir"] = lambda src, metadata: self.make_ttir(src, metadata, options, target_mlir)
++    def add_stages(self, stages, options):
++        stages["ttir"] = lambda src, metadata: self.make_ttir(src, metadata, options)
+         stages["ttgir"] = lambda src, metadata: self.make_ttgir(src, metadata, options, self.properties)
+         stages["llir"] = lambda src, metadata: self.make_llir(src, metadata, options)
+         stages["spv"] = lambda src, metadata: self.make_spv(src, metadata)

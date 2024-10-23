@@ -45,7 +45,7 @@ public class TestAddKernel {
                     %8 : tensor<x64, int> = tt.splat %6;
                     %9 : tensor<x64, int> = arith.addi %8 %7;
                     %10 : tensor<x64, int> = tt.splat %3;
-                    %11 : tensor<x64, int> = arith.cmpi %9 %10 @"slt";
+                    %11 : tensor<x64, boolean> = arith.cmpi %9 %10 @"slt";
                     %12 : tensor<x64, ptr<float>> = tt.splat %0;
                     %13 : tensor<x64, ptr<float>> = tt.addptr %12 %9;
                     %14 : tensor<x64, float> = tt.load %13 %11;
@@ -114,7 +114,7 @@ public class TestAddKernel {
                     %8 : tensor<x64, int> = tt.splat %6;
                     %9 : tensor<x64, int> = arith.addi %8 %7;
                     %10 : tensor<x64, int> = tt.splat %3;
-                    %11 : tensor<x64, int> = arith.cmpi %9 %10 @"slt";
+                    %11 : tensor<x64, boolean> = arith.cmpi %9 %10 @"slt";
                     %12 : tensor<x64, ptr<float>> = tt.splat %0;
                     %13 : tensor<x64, ptr<float>> = tt.addptr %12 %9;
                     %14 : tensor<x64, float> = tt.load %13 %11;

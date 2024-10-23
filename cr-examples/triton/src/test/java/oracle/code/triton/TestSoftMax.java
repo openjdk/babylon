@@ -60,10 +60,7 @@ public class TestSoftMax {
                     };
                     tt.return %12;
                 };
-                tt.func @"softmax_kernel_ptr<float>_ptr<float>_1_1_10_64_void" (%16 : ptr<float>, %17 : ptr<float>)void -> {
-                    %18 : int = arith.constant @"1";
-                    %19 : int = arith.constant @"1";
-                    %20 : int = arith.constant @"10";
+                tt.func @"softmax_kernel_ptr<float>_ptr<float>_int_int_int_64_void" (%16 : ptr<float>, %17 : ptr<float>, %18 : int, %19 : int, %20 : int)void -> {
                     %21 : int = tt.get_program_id @"0";
                     %22 : int = arith.muli %21 %18;
                     %23 : ptr<float> = tt.addptr %17 %22;
@@ -71,7 +68,7 @@ public class TestSoftMax {
                     %25 : tensor<x64, ptr<float>> = tt.splat %23;
                     %26 : tensor<x64, ptr<float>> = tt.addptr %25 %24;
                     %27 : tensor<x64, int> = tt.splat %20;
-                    %28 : tensor<x64, int> = arith.cmpi %24 %27 @"slt";
+                    %28 : tensor<x64, boolean> = arith.cmpi %24 %27 @"slt";
                     %29 : tensor<x64, float> = tt.load %26 %28;
                     %30 : float = tt.call %29 @"reduce_max_float_float_float_0";
                     %31 : tensor<x64, float> = tt.splat %30;
@@ -127,9 +124,9 @@ public class TestSoftMax {
         List<TypeElement> argTypes = List.of(
                 new PtrType(JavaType.FLOAT),
                 new PtrType(JavaType.FLOAT),
-                new ConstantType(JavaType.INT, 1),
-                new ConstantType(JavaType.INT, 1),
-                new ConstantType(JavaType.INT, 10),
+                JavaType.INT,
+                JavaType.INT,
+                JavaType.INT,
                 new ConstantType(JavaType.INT, 64));
 
         t.test(argTypes);
@@ -170,7 +167,7 @@ public class TestSoftMax {
                     %25 : tensor<x64, ptr<float>> = tt.splat %23;
                     %26 : tensor<x64, ptr<float>> = tt.addptr %25 %24;
                     %27 : tensor<x64, int> = tt.splat %20;
-                    %28 : tensor<x64, int> = arith.cmpi %24 %27 @"slt";
+                    %28 : tensor<x64, boolean> = arith.cmpi %24 %27 @"slt";
                     %29 : tensor<x64, float> = tt.load %26 %28;
                     %30 : float = tt.call %29 @"reduce_max_float_float_float_0";
                     %31 : tensor<x64, float> = tt.splat %30;
