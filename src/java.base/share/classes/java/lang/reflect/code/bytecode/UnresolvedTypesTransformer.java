@@ -43,7 +43,6 @@ import java.util.List;
 final class UnresolvedTypesTransformer {
 
     static CoreOp.FuncOp transform(CoreOp.FuncOp func) {
-
         var unresolved = func.traverse(new ArrayList<Value>(), (q, e) -> {
             switch (e) {
                 case Block b -> b.parameters().forEach(v -> {
@@ -93,7 +92,7 @@ final class UnresolvedTypesTransformer {
             Op op = useRes.op();
             int i = op.operands().indexOf(v);
             if (i >= 0) {
-                changed |= (boolean)switch (op) {
+                changed |= switch (op) {
                     case CoreOp.BinaryTestOp bto ->
                         ut.resolveTo(bto.operands().get(1 - i).type());
                     case CoreOp.LshlOp _, CoreOp.LshrOp _, CoreOp.AshrOp _ -> // Second operands are asymetric
@@ -104,7 +103,7 @@ final class UnresolvedTypesTransformer {
                     case CoreOp.InvokeOp io -> {
                         MethodRef id = io.invokeDescriptor();
                         if (io.hasReceiver()) {
-                            if (i == 0) yield id.refType();
+                            if (i == 0) yield ut.resolveTo(id.refType());
                             i--;
                         }
                         yield ut.resolveTo(id.type().parameterTypes().get(i));
