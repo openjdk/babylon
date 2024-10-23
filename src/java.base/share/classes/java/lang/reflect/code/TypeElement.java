@@ -111,6 +111,10 @@ public non-sealed interface TypeElement extends CodeItem {
      */
     ExternalizedTypeElement externalize();
 
+    default TypeElement componentType() {
+        throw new UnsupportedOperationException(getClass().getName() + " does not have a component");
+    }
+
     /**
      * Return a string representation of this Java type.
      */
