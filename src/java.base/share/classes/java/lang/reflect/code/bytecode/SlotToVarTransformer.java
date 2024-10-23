@@ -102,7 +102,7 @@ final class SlotToVarTransformer {
     }
 
     static CoreOp.FuncOp transform(CoreOp.FuncOp func) {
-
+try {
         // Composing exception stack map to be able to follow slot ops from try to the handler
         ExcStackMap excMap = func.traverse(new ExcStackMap(new ArrayList<>(), new HashMap<>()),
                 CodeElement.blockVisitor((map, b) -> map.apply(b)));
@@ -119,7 +119,7 @@ final class SlotToVarTransformer {
                     SlotOp se = q.pop();
                     if (se.var == null) {
                         se.var = var; // Assign variable to the segment
-                        var.typeKind = se.typeKind(); // TypeKind is identical for all SlotOps of the same variable
+                        if (var.typeKind == null) var.typeKind = se.typeKind(); // TypeKind is identical for all SlotOps of the same variable
                         for (SlotOp to : slotImmediateSuccessors(se, excMap)) {
                             // All following SlotLoadOp belong to the same variable
                             if (to instanceof SlotOp.SlotLoadOp) {
@@ -148,11 +148,9 @@ final class SlotToVarTransformer {
                 // Identification of initial SlotStoreOp
                 for (var it = stores.iterator(); it.hasNext();) {
                     SlotOp s = it.next();
-                    System.out.println(s);
                     if (isDominatedByTheSameVar(s, excMap)) {
                         // A store preceeding dominantly with segments of the same variable is not initial
                         it.remove();
-                        System.out.println("removed");
                     }
                 }
 
@@ -178,7 +176,10 @@ final class SlotToVarTransformer {
             CopyContext cc = block.context();
             switch (op) {
                 case SlotOp.SlotLoadOp slo -> {
-                    assert slo.var.value != null;
+                    if (slo.var.value == null) {
+                        System.out.println(slo);
+                        throw new AssertionError();
+                    }
                     cc.mapValue(op.result(), slo.var.single ? slo.var.value : block.op(CoreOp.varLoad(slo.var.value)));
                 }
                 case SlotOp.SlotStoreOp sso -> {
@@ -197,6 +198,10 @@ final class SlotToVarTransformer {
             }
             return block;
         });
+} catch (Throwable t) {
+    System.out.println(func.toText());
+    throw t;
+}
     }
 
     // @@@ can be replaced with unitialized VarOp
@@ -263,8 +268,8 @@ final class SlotToVarTransformer {
         @Override
         public boolean hasNext() {
             while (hasNextSlot()) {
-                // filter loads and stores of the same TypeKind
-                if (op.typeKind() == tk) {
+                // filter loads and stores of the same TypeKind (if known)
+                if (op.typeKind() == tk || op.typeKind() == null || tk == null) {
                     return true;
                 }
                 op = null;

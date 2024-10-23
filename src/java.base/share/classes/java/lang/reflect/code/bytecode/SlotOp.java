@@ -132,6 +132,11 @@ sealed abstract class SlotOp extends ExternalizableOp {
         public TypeKind typeKind() {
             return toTypeKind(resultType);
         }
+
+        @Override
+        public String toString() {
+            return "block_" + parentBlock().index() + " " + parentBlock().ops().indexOf(this) + ": #" + slot + " LOAD " + typeKind();
+        }
     }
 
     @OpFactory.OpDeclaration(SlotStoreOp.NAME)
@@ -168,6 +173,11 @@ sealed abstract class SlotOp extends ExternalizableOp {
         public TypeKind typeKind() {
             return toTypeKind(operands().getFirst().type());
         }
+
+        @Override
+        public String toString() {
+            return "block_" + parentBlock().index() + " " + parentBlock().ops().indexOf(this) + ": #" + slot + " STORE " + typeKind();
+        }
     }
 
     private static TypeKind toTypeKind(TypeElement type) {
@@ -176,6 +186,8 @@ sealed abstract class SlotOp extends ExternalizableOp {
                 TypeKind.INT;
             case PrimitiveType pt ->
                 TypeKind.from(pt.toNominalDescriptor()).asLoadable();
+            case UnresolvedType.Comp _ ->
+                null;
             default ->
                 TypeKind.REFERENCE;
         };
