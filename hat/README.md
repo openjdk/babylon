@@ -57,7 +57,7 @@ ${BABYLON_JDK}
         ├── backends
         │    ├── pom.xml
         │    ├── CMakeLists.txt
-        │    └── (opencl|cuda|ptx|mock|shared)
+        │    └── (opencl|cuda|ptx|hip|mock|shared)
         │          ├── pom.xml
         │          ├── CMakeLists.txt
         │          ├── cpp
