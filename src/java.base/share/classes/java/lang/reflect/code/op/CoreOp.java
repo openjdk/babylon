@@ -2133,6 +2133,44 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         }
     }
 
+    /**
+     * The undefined value operation, whose result can model the value of an uninitialized variable.
+     */
+    @OpFactory.OpDeclaration(UndefinedValueOp.NAME)
+    public static final class UndefinedValueOp extends CoreOp
+            implements Op.Pure {
+        public static final String NAME = "undefined.value";
+
+        final TypeElement type;
+
+        public UndefinedValueOp(ExternalizedOp def) {
+            super(def);
+
+            this.type = def.resultType();
+        }
+
+        UndefinedValueOp(UndefinedValueOp that, CopyContext cc) {
+            super(that, cc);
+
+            this.type = that.type;
+        }
+
+        @Override
+        public UndefinedValueOp transform(CopyContext cc, OpTransformer ot) {
+            return new UndefinedValueOp(this, cc);
+        }
+
+        UndefinedValueOp(TypeElement type) {
+            super(NAME, List.of());
+
+            this.type = UndefinedType.undefinedType(type);
+        }
+
+        @Override
+        public TypeElement resultType() {
+            return type;
+        }
+    }
 
     /**
      * A runtime representation of a variable.
@@ -2251,6 +2289,10 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
         public boolean isUnnamedVariable() {
             return varName.isEmpty();
+        }
+
+        public boolean isUnitialized() {
+            return initOperand().type() instanceof UndefinedType;
         }
     }
 
@@ -4015,6 +4057,16 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      */
     public static CastOp cast(TypeElement resultType, JavaType t, Value v) {
         return new CastOp(resultType, t, v);
+    }
+
+    /**
+     * Creates an undefined value operation, whose result models the value of an uninitialized variable
+     *
+     * @param valueType the undefined type's value type
+     * @return the undefined operation.
+     */
+    public static UndefinedValueOp undefinedValue(TypeElement valueType) {
+        return new UndefinedValueOp(valueType);
     }
 
     /**

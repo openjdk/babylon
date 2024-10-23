@@ -838,10 +838,13 @@ public class ReflectMethods extends TreeTranslator {
             Value initOp;
             if (tree.init != null) {
                 initOp = toValue(tree.init, tree.type);
+                result = append(CoreOp.var(tree.name.toString(), typeToTypeElement(tree.type), initOp));
             } else {
-                initOp = append(defaultValue(tree.type));
+                // If uninitialized, then the var's operand is the result of the undefined value operation
+                JavaType javaType = typeToTypeElement(tree.type);
+                initOp = append(CoreOp.undefinedValue(javaType));
+                result = append(CoreOp.var(tree.name.toString(), javaType, initOp));
             }
-            result = append(CoreOp.var(tree.name.toString(), typeToTypeElement(tree.type), initOp));
             stack.localToOp.put(tree.sym, result);
         }
 
@@ -1367,6 +1370,7 @@ public class ReflectMethods extends TreeTranslator {
             // Create pattern var ops for pattern variables using the
             // builder associated with the nearest statement tree
             for (JCVariableDecl jcVar : variables) {
+                // @@@ use undefined value?
                 Value init = variablesStack.block.op(defaultValue(jcVar.type));
                 Op.Result op = variablesStack.block.op(CoreOp.var(jcVar.name.toString(), typeToTypeElement(jcVar.type), init));
                 variablesStack.localToOp.put(jcVar.sym, op);

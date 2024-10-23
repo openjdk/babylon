@@ -170,12 +170,15 @@ public final class Interpreter {
         Object value;
 
         public Object value() {
+            // @@@ throw exception if holding UINITIALIZED?
             return value;
         }
 
         VarBox(Object value) {
             this.value = value;
         }
+
+        static final Object UINITIALIZED = new Object();
     }
 
     record ClosureRecord(CoreOp.ClosureOp op,
@@ -478,12 +481,15 @@ public final class Interpreter {
             ClosureRecord cr = (ClosureRecord) values.get(0);
 
             return Interpreter.invoke(l, cr.op(), cr.capturedValues, values.subList(1, values.size()));
+        } else if (o instanceof CoreOp.UndefinedValueOp uo) {
+            return VarBox.UINITIALIZED;
         } else if (o instanceof CoreOp.VarOp vo) {
             return new VarBox(oc.getValue(o.operands().get(0)));
         } else if (o instanceof CoreOp.VarAccessOp.VarLoadOp vlo) {
             // Cast to CoreOp.Var, since the instance may have originated as an external instance
             // via a captured value map
             CoreOp.Var<?> vb = (CoreOp.Var<?>) oc.getValue(o.operands().get(0));
+            // @@@ throw exception if var holds VarBox.UINITIALIZED?
             return vb.value();
         } else if (o instanceof CoreOp.VarAccessOp.VarStoreOp vso) {
             VarBox vb = (VarBox) oc.getValue(o.operands().get(0));

@@ -70,9 +70,9 @@ public class LocalVarTest {
     @CodeReflection
     @IR("""
             func @"test3" (%0 : LocalVarTest)int -> {
-                %1 : int = constant @"0";
+                %1 : Undefined<int> = undefined.value;
                 %2 : Var<int> = var %1 @"x";
-                %3 : int = constant @"0";
+                %3 : Undefined<int> = undefined.value;
                 %4 : Var<int> = var %3 @"y";
                 %5 : int = constant @"1";
                 var.store %2 %5;
