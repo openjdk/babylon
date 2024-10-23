@@ -26,10 +26,11 @@
 package java.lang.reflect.code.bytecode;
 
 import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.type.ArrayType;
 import java.lang.reflect.code.type.JavaType;
 import java.util.List;
 
-sealed abstract class UnresolvedType implements TypeElement {
+sealed interface UnresolvedType extends TypeElement {
 
     static Ref unresolvedRef() {
         return new Ref();
@@ -39,95 +40,140 @@ sealed abstract class UnresolvedType implements TypeElement {
         return new Int();
     }
 
-    static final class Ref extends UnresolvedType {
+    JavaType resolved();
+
+    boolean resolveTo(TypeElement type);
+
+    static final class Ref implements UnresolvedType {
         private static final TypeElement.ExternalizedTypeElement UNRESOLVED_REF = new TypeElement.ExternalizedTypeElement("?REF", List.of());
 
+        private JavaType resolved;
+
         @Override
         public TypeElement.ExternalizedTypeElement externalize() {
-            return UNRESOLVED_REF;
+            return resolved == null ? UNRESOLVED_REF : resolved.externalize();
         }
 
         @Override
-        Object convertValue(Object value) {
-            return value;
-        }
-
-        @Override
-        boolean resolveTo(TypeElement type) {
-            if (resolved == null) {
+        public boolean resolveTo(TypeElement type) {
+            if (resolved == null || resolved.equals(JavaType.J_L_OBJECT)) {
                 if (type instanceof UnresolvedType utt) {
-                    type = utt.resolved;
+                    type = utt.resolved();
                 }
-                if (type != null) {
+                if (type != null && !type.equals(resolved)) {
                     resolved = (JavaType)type;
                     return true;
                 }
             }
             return false;
         }
+
+        @Override
+        public JavaType resolved() {
+            return resolved;
+        }
+
+        @Override
+        public TypeElement componentType() {
+            return new Comp(this);
+        }
     }
 
-    static final class Int extends UnresolvedType {
+    static final class Comp implements  UnresolvedType {
+
+        private final UnresolvedType array;
+
+        Comp(UnresolvedType array) {
+            this.array = array;
+        }
+
+        @Override
+        public TypeElement.ExternalizedTypeElement externalize() {
+            var res = resolved();
+            return res == null ? new TypeElement.ExternalizedTypeElement("?COMP", List.of(array.externalize())) : res.externalize();
+        }
+
+        @Override
+        public boolean resolveTo(TypeElement type) {
+            return false;
+        }
+
+        @Override
+        public JavaType resolved() {
+            return array.resolved() instanceof ArrayType at ? at.componentType() : null;
+        }
+
+        @Override
+        public TypeElement componentType() {
+            return new Comp(this);
+        }
+    }
+
+    static final class Int implements  UnresolvedType {
         private static final TypeElement.ExternalizedTypeElement UNRESOLVED_INT = new TypeElement.ExternalizedTypeElement("?INT", List.of());
 
+        private int resolved = -1;
+
         @Override
         public TypeElement.ExternalizedTypeElement externalize() {
-            return UNRESOLVED_INT;
+            return resolved < 0 ? UNRESOLVED_INT : resolved().externalize();
         }
 
-        @Override
-        Object convertValue(Object value) {
-            if (resolved == null) {
-                return null;
-            } else if(resolved.equals(JavaType.INT)) {
-                return toNumber(value).intValue();
-            } else if (resolved.equals(JavaType.BOOLEAN)) {
-                return value instanceof Number n ? n.intValue() != 0 : (Boolean)value;
-            } else if (resolved.equals(JavaType.BYTE)) {
-                return toNumber(value).byteValue();
-            } else if (resolved.equals(JavaType.CHAR)) {
-                return (char)toNumber(value).intValue();
-            } else if (resolved.equals(JavaType.SHORT)) {
-                return toNumber(value).shortValue();
-            } else {
-                throw new IllegalStateException("Unexpected " + resolved);
-            }
-        }
-
-        static Number toNumber(Object value) {
-            return switch (value) {
-                case Boolean b -> b ? 1 : 0;
-                case Character c -> (int)c;
-                case Number n -> n;
-                default -> throw new IllegalStateException("Unexpected " + value);
-            };
-        }
-
-        @Override
-        boolean resolveTo(TypeElement type) {
-            if (type instanceof UnresolvedType utt) {
-                type = utt.resolved;
-            }
-            if (type != null) {
-                int p = PRIORITY_LIST.indexOf(type);
-                if (p > priority) {
-                    priority = p;
-                    resolved = (JavaType)type;
+        public boolean resolveBooleanFrom(TypeElement type) {
+            if (resolved < 4) {
+                if (type instanceof UnresolvedType utt) {
+                    type = utt.resolved();
+                }
+                if (JavaType.BOOLEAN.equals(type)) {
+                    resolved = 4;
                     return true;
                 }
             }
             return false;
         }
 
-        private int priority = -1;
+        @Override
+        public boolean resolveTo(TypeElement type) {
+            if (resolved < 4) {
+                if (type instanceof UnresolvedType utt) {
+                    type = utt.resolved();
+                }
+                if (type != null) {
+                    int p = TYPES.indexOf(type);
+                    if (p > resolved) {
+                        resolved = p;
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
 
-        private static final List<JavaType> PRIORITY_LIST = List.of(JavaType.INT, JavaType.CHAR, JavaType.SHORT, JavaType.BYTE, JavaType.BOOLEAN);
-
+        @Override
+        public JavaType resolved() {
+            return resolved >=0 ? TYPES.get(resolved) : null;
+        }
     }
 
-    // Support for UnresolvedTypesTransformer
+    static Object convertValue(UnresolvedType ut, Object value) {
+        return switch (TYPES.indexOf(ut.resolved())) {
+            case 0 -> toNumber(value).intValue();
+            case 1 -> (char)toNumber(value).intValue();
+            case 2 -> toNumber(value).shortValue();
+            case 3 -> toNumber(value).byteValue();
+            case 4 -> value instanceof Number n ? n.intValue() != 0 : (Boolean)value;
+            default -> value;
+        };
+    }
 
-    JavaType resolved;
-    abstract Object convertValue(Object value);
-    abstract boolean resolveTo(TypeElement type);
+    static final List<JavaType> TYPES = List.of(JavaType.INT, JavaType.CHAR, JavaType.SHORT, JavaType.BYTE, JavaType.BOOLEAN);
+
+    private static Number toNumber(Object value) {
+        return switch (value) {
+            case Boolean b -> b ? 1 : 0;
+            case Character c -> (int)c;
+            case Number n -> n;
+            default -> throw new IllegalStateException("Unexpected " + value);
+        };
+    }
 }

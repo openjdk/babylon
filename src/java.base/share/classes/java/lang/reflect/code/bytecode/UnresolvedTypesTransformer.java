@@ -66,10 +66,10 @@ final class UnresolvedTypesTransformer {
         // Remaining types are resolved to defaults
         for (Value v : unresolved) {
             switch (v.type()) {
-                case UnresolvedType.Int ui when ui.resolved == null ->
-                    ui.resolved = JavaType.INT;
-                case UnresolvedType.Ref ur when ur.resolved == null ->
-                    ur.resolved = JavaType.J_L_OBJECT;
+                case UnresolvedType.Int ui when ui.resolved() == null ->
+                    ui.resolveTo(JavaType.INT);
+                case UnresolvedType.Ref ur when ur.resolved() == null ->
+                    ur.resolveTo(JavaType.J_L_OBJECT);
                 default -> {}
             }
         }
@@ -129,6 +129,31 @@ final class UnresolvedTypesTransformer {
                 }
             }
         }
+        if (ut instanceof UnresolvedType.Int ui) { // Need to look for booleans
+            if (v instanceof Block.Parameter bp) {
+                int bi = bp.index();
+                Block b = bp.declaringBlock();
+                for (Block pb : b.predecessors()) {
+                    for (Block.Reference r : pb.successors()) {
+                        if (r.targetBlock() == b) {
+                            var args = r.arguments();
+                            if (args.size() > bi && ui.resolveBooleanFrom(args.get(bi).type())) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            } else if (v instanceof Op.Result or) {
+                changed |= switch (or.op()) {
+                    case CoreOp.UnaryOp uo ->
+                        ui.resolveBooleanFrom(uo.operands().getFirst().type());
+                    case CoreOp.BinaryOp bo ->
+                        ui.resolveBooleanFrom(bo.operands().getFirst().type())
+                        || ui.resolveBooleanFrom(bo.operands().get(1).type());
+                    default -> false;
+                };
+            }
+        }
         return changed;
     }
 
@@ -149,7 +174,7 @@ final class UnresolvedTypesTransformer {
                         List<TypeElement> paramTypes = sourceBlock.parameterTypes();
                         if (paramTypes.stream().anyMatch(UnresolvedType.class::isInstance)) {
                             Block.Builder newBlock = block.block(paramTypes.stream()
-                                    .map(pt -> pt instanceof UnresolvedType ut && ut.resolved != null ? ut.resolved : pt)
+                                    .map(pt -> pt instanceof UnresolvedType ut && ut.resolved() != null ? ut.resolved() : pt)
                                     .toList());
                             cc.mapBlock(sourceBlock, newBlock);
                             cc.mapValues(sourceBlock.parameters(), newBlock.parameters());
@@ -172,10 +197,10 @@ final class UnresolvedTypesTransformer {
         return (block, op) -> {
             CopyContext cc = block.context();
             switch (op) {
-                case CoreOp.ConstantOp cop when op.resultType() instanceof UnresolvedType ut && ut.resolved != null ->
-                    cc.mapValue(op.result(), block.op(CoreOp.constant(ut.resolved, ut.convertValue(cop.value()))));
-                case CoreOp.VarOp vop when vop.varValueType() instanceof UnresolvedType ut && ut.resolved != null ->
-                    cc.mapValue(op.result(), block.op(CoreOp.var(vop.varName(), ut.resolved, cc.getValueOrDefault(vop.initOperand(), vop.initOperand()))));
+                case CoreOp.ConstantOp cop when op.resultType() instanceof UnresolvedType ut && ut.resolved() != null ->
+                    cc.mapValue(op.result(), block.op(CoreOp.constant(ut.resolved(), UnresolvedType.convertValue(ut, cop.value()))));
+                case CoreOp.VarOp vop when vop.varValueType() instanceof UnresolvedType ut && ut.resolved() != null ->
+                    cc.mapValue(op.result(), block.op(CoreOp.var(vop.varName(), ut.resolved(), cc.getValueOrDefault(vop.initOperand(), vop.initOperand()))));
                 default ->
                     block.op(op);
             }
