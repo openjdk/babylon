@@ -37,10 +37,12 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -146,9 +148,11 @@ final class SlotToVarTransformer {
                 // Identification of initial SlotStoreOp
                 for (var it = stores.iterator(); it.hasNext();) {
                     SlotOp s = it.next();
+                    System.out.println(s);
                     if (isDominatedByTheSameVar(s, excMap)) {
                         // A store preceeding dominantly with segments of the same variable is not initial
                         it.remove();
+                        System.out.println("removed");
                     }
                 }
 
@@ -222,16 +226,15 @@ final class SlotToVarTransformer {
     }
 
     private static boolean isDominatedByTheSameVar(SlotOp slotOp, ExcStackMap excMap) {
-        boolean any = false;
+        Set<Value> predecessors = new HashSet<>();
         for (SlotOp pred : slotImmediatePredecessors(slotOp, excMap)) {
             if (pred.var != slotOp.var) {
                 return false;
             }
-            any = true;
+            predecessors.add(pred.result());
         }
-        return any;
+        return slotOp.result().isDominatedBy(predecessors);
     }
-
 
     static final class SlotOpIterator implements Iterator<SlotOp> {
 
