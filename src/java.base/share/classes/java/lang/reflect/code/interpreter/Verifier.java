@@ -44,7 +44,7 @@ public final class Verifier {
             this.message = message;
         }
 
-        public String getMeessage() {
+        public String getMessage() {
             return message;
         }
 
@@ -54,7 +54,7 @@ public final class Verifier {
 
         @Override
         public String toString() {
-            return getMeessage() + " in " + getPrintedContext();
+            return getMessage() + " in " + getPrintedContext();
         }
     }
 

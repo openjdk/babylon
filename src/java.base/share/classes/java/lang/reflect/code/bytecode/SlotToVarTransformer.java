@@ -273,10 +273,16 @@ final class SlotToVarTransformer {
             if (op != null) {
                 return true;
             } else {
-                while (b != null) {
+                while (b != null || toVisit != null && !toVisit.isEmpty()) {
+                    if (b == null) {
+                        b = toVisit.pop();
+                        ops = fwd ? b.ops() : b.ops().reversed();
+                        i = 0;
+                    }
                     while (i < ops.size()) {
                         if (ops.get(i++) instanceof SlotOp sop && sop.slot == slot) {
                             op = sop;
+                            b = null;
                             return true;
                         }
                     }
@@ -314,11 +320,7 @@ final class SlotToVarTransformer {
                             }
                         });
                     }
-                    b = toVisit.poll();
-                    if (b != null) {
-                        ops = fwd ? b.ops() : b.ops().reversed();
-                        i = 0;
-                    }
+                    b = null;
                 }
                 return false;
             }
