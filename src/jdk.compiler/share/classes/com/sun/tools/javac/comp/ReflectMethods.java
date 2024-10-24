@@ -835,13 +835,12 @@ public class ReflectMethods extends TreeTranslator {
 
         @Override
         public void visitVarDef(JCVariableDecl tree) {
-            Value initOp;
+            JavaType javaType = typeToTypeElement(tree.type);
             if (tree.init != null) {
-                initOp = toValue(tree.init, tree.type);
-                result = append(CoreOp.var(tree.name.toString(), typeToTypeElement(tree.type), initOp));
+                Value initOp = toValue(tree.init, tree.type);
+                result = append(CoreOp.var(tree.name.toString(), javaType, initOp));
             } else {
-                // If uninitialized, then the var's operand is the result of the unknown value operation
-                JavaType javaType = typeToTypeElement(tree.type);
+                // Uninitialized
                 result = append(CoreOp.var(tree.name.toString(), javaType));
             }
             stack.localToOp.put(tree.sym, result);
