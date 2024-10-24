@@ -835,13 +835,14 @@ public class ReflectMethods extends TreeTranslator {
 
         @Override
         public void visitVarDef(JCVariableDecl tree) {
-            Value initOp;
+            JavaType javaType = typeToTypeElement(tree.type);
             if (tree.init != null) {
-                initOp = toValue(tree.init, tree.type);
+                Value initOp = toValue(tree.init, tree.type);
+                result = append(CoreOp.var(tree.name.toString(), javaType, initOp));
             } else {
-                initOp = append(defaultValue(tree.type));
+                // Uninitialized
+                result = append(CoreOp.var(tree.name.toString(), javaType));
             }
-            result = append(CoreOp.var(tree.name.toString(), typeToTypeElement(tree.type), initOp));
             stack.localToOp.put(tree.sym, result);
         }
 
@@ -1367,6 +1368,7 @@ public class ReflectMethods extends TreeTranslator {
             // Create pattern var ops for pattern variables using the
             // builder associated with the nearest statement tree
             for (JCVariableDecl jcVar : variables) {
+                // @@@ use uninitialized variable
                 Value init = variablesStack.block.op(defaultValue(jcVar.type));
                 Op.Result op = variablesStack.block.op(CoreOp.var(jcVar.name.toString(), typeToTypeElement(jcVar.type), init));
                 variablesStack.localToOp.put(jcVar.sym, op);
