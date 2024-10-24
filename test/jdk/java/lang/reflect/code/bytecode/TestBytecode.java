@@ -117,27 +117,27 @@ public class TestBytecode {
 
     @CodeReflection
     static int intBitOps(int i, int j, int k) {
-        return i & j | k ^ j;
+        return ~(i & j | k ^ j);
     }
 
     @CodeReflection
     static byte byteBitOps(byte i, byte j, byte k) {
-        return (byte) (i & j | k ^ j);
+        return (byte) ~(i & j | k ^ j);
     }
 
     @CodeReflection
     static short shortBitOps(short i, short j, short k) {
-        return (short) (i & j | k ^ j);
+        return (short) ~(i & j | k ^ j);
     }
 
     @CodeReflection
     static char charBitOps(char i, char j, char k) {
-        return (char) (i & j | k ^ j);
+        return (char) ~(i & j | k ^ j);
     }
 
     @CodeReflection
     static long longBitOps(long i, long j, long k) {
-        return i & j | k ^ j;
+        return ~(i & j | k ^ j);
     }
 
     @CodeReflection
@@ -519,6 +519,19 @@ public class TestBytecode {
             else throw new Exception();
         } catch (Exception ex) {}
         return 2;
+    }
+
+    @CodeReflection
+    static int varModifiedInTryBlock(boolean b) {
+        int i = 0;
+        try {
+            i++;
+            if (b) throw new Exception();
+            i++;
+            throw new Exception();
+        } catch (Exception ex) {
+            return i;
+        }
     }
 
     @CodeReflection

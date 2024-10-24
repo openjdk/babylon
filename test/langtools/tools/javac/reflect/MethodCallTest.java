@@ -66,6 +66,17 @@ public class MethodCallTest {
 
     @CodeReflection
     @IR("""
+            func @"test2_1" (%0 : MethodCallTest)void -> {
+                invoke %0 @"MethodCallTest::m()void";
+                return;
+            };
+            """)
+    void test2_1() {
+        MethodCallTest.this.m();
+    }
+
+    @CodeReflection
+    @IR("""
             func @"test3" (%0 : MethodCallTest)int -> {
                 %1 : int = invoke %0 @"MethodCallTest::m_int()int";
                 return %1;

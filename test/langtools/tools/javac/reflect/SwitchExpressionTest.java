@@ -69,8 +69,9 @@ public class SwitchExpressionTest {
                         %15 : java.lang.String = constant @"FOO";
                         yield %15;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %17 : boolean = constant @"true";
+                        yield %17;
                     }
                     ()java.lang.Object -> {
                         %16 : java.lang.String = constant @"";
@@ -117,8 +118,9 @@ public class SwitchExpressionTest {
                         %12 : java.lang.String = constant @"FOO";
                         yield %12;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %14 : boolean = constant @"true";
+                        yield %14;
                     }
                     ()java.lang.Object -> {
                         %13 : java.lang.String = constant @"";
@@ -169,8 +171,9 @@ public class SwitchExpressionTest {
                         %15 : java.lang.String = constant @"FOO";
                         java.yield %15;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %17 : boolean = constant @"true";
+                        yield %17;
                     }
                     ()java.lang.Object -> {
                         %16 : java.lang.String = constant @"";
@@ -217,8 +220,9 @@ public class SwitchExpressionTest {
                         %12 : java.lang.String = constant @"FOO";
                         java.yield %12;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %17 : boolean = constant @"true";
+                        yield %17;
                     }
                     ()java.lang.Object -> {
                         java.block ()void -> {
@@ -261,8 +265,9 @@ public class SwitchExpressionTest {
                         };
                         unreachable;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %11 : boolean = constant @"true";
+                        yield %11;
                     }
                     ()java.lang.Object -> {
                         %10 : java.lang.String = constant @"";
@@ -303,8 +308,9 @@ public class SwitchExpressionTest {
                         };
                         java.switch.fallthrough;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %10 : boolean = constant @"true";
+                        yield %10;
                     }
                     ()java.lang.Object -> {
                         %9 : java.lang.String = constant @"";
@@ -338,7 +344,7 @@ public class SwitchExpressionTest {
                     ^patternCaseLabel(%8 : java.lang.Object)boolean -> {
                         %9 : boolean = pattern.match %8
                             ^pattern()java.lang.reflect.code.ExtendedOp$Pattern$Record<SwitchExpressionTest$A> -> {
-                                %10 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Number> = pattern.binding @"n";
+                                %10 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.Number> = pattern.type @"n";
                                 %11 : java.lang.reflect.code.ExtendedOp$Pattern$Record<SwitchExpressionTest$A> = pattern.record %10 @"(java.lang.Number n)SwitchExpressionTest$A";
                                 yield %11;
                             }
@@ -354,8 +360,8 @@ public class SwitchExpressionTest {
                     }
                     ^patternCaseLabel(%14 : java.lang.Object)boolean -> {
                         %15 : boolean = pattern.match %14
-                            ^pattern()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
-                                %16 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.binding @"s";
+                            ^pattern()java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.String> -> {
+                                %16 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.String> = pattern.type @"s";
                                 yield %16;
                             }
                             ^match(%17 : java.lang.String)void -> {
@@ -368,8 +374,9 @@ public class SwitchExpressionTest {
                         %18 : java.lang.String = var.load %6;
                         java.yield %18;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %10 : boolean = constant @"true";
+                        yield %10;
                     }
                     ()java.lang.Object -> {
                         %19 : java.lang.String = constant @"";
@@ -407,7 +414,7 @@ public class SwitchExpressionTest {
                     ^patternCaseLabel(%10 : java.lang.Object)boolean -> {
                         %11 : boolean = pattern.match %10
                             ^pattern()java.lang.reflect.code.ExtendedOp$Pattern$Record<SwitchExpressionTest$A> -> {
-                                %12 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.Number> = pattern.binding @"n";
+                                %12 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.Number> = pattern.type @"n";
                                 %13 : java.lang.reflect.code.ExtendedOp$Pattern$Record<SwitchExpressionTest$A> = pattern.record %12 @"(java.lang.Number n)SwitchExpressionTest$A";
                                 yield %13;
                             }
@@ -425,8 +432,8 @@ public class SwitchExpressionTest {
                         %17 : boolean = java.cand
                             ()boolean -> {
                                 %18 : boolean = pattern.match %16
-                                    ^pattern()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
-                                        %19 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.binding @"s";
+                                    ^pattern()java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.String> -> {
+                                        %19 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.String> = pattern.type @"s";
                                         yield %19;
                                     }
                                     ^match(%20 : java.lang.String)void -> {
@@ -452,8 +459,8 @@ public class SwitchExpressionTest {
                         %27 : boolean = java.cand
                             ()boolean -> {
                                 %28 : boolean = pattern.match %26
-                                    ^pattern()java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> -> {
-                                        %29 : java.lang.reflect.code.ExtendedOp$Pattern$Binding<java.lang.String> = pattern.binding @"s";
+                                    ^pattern()java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.String> -> {
+                                        %29 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.String> = pattern.type @"s";
                                         yield %29;
                                     }
                                     ^match(%30 : java.lang.String)void -> {
@@ -475,8 +482,9 @@ public class SwitchExpressionTest {
                         %35 : java.lang.String = var.load %8;
                         java.yield %35;
                     }
-                    ^defaultCaseLabel()void -> {
-                        yield;
+                    ^defaultCaseLabel()boolean -> {
+                        %37 : boolean = constant @"true";
+                        yield %37;
                     }
                     ()java.lang.Object -> {
                         %36 : java.lang.String = constant @"";

@@ -26,7 +26,7 @@
 package hat.backend;
 
 import intel.code.spirv.SpirvModuleGenerator;
-import intel.code.spirv.SpirvOps;
+import intel.code.spirv.SpirvOp;
 import intel.code.spirv.TranslateToSpirvModel;
 
 import java.lang.foreign.MemorySegment;
@@ -57,7 +57,7 @@ public class TestIt {
             //  Method method = Mand.class.getDeclaredMethod(methodName, float[].class, float[].class, float[].class, int.class);
 
             CoreOp.FuncOp javaFunc = method.getCodeModel().get();
-            SpirvOps.FuncOp spirvFunc = TranslateToSpirvModel.translateFunction(javaFunc);
+            SpirvOp.FuncOp spirvFunc = TranslateToSpirvModel.translateFunction(javaFunc);
             MemorySegment spirvBinary = SpirvModuleGenerator.generateModule(methodName, spirvFunc);
 
             System.out.println("\n------- Java Model -------");

@@ -38,6 +38,8 @@ import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.type.VarType;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -61,7 +63,10 @@ public final class Interpreter {
     record BlockContext(Block b, Map<Value, Object> values) {
     }
 
+    static final ConcurrentHashMap<Object, ReentrantLock> locks = new ConcurrentHashMap<>();
+
     static final class OpContext {
+        final Map<Object, ReentrantLock> locks = new HashMap<>();
         final Deque<BlockContext> stack = new ArrayDeque<>();
         final Deque<ExceptionRegionRecord> erStack = new ArrayDeque<>();
 
@@ -128,12 +133,14 @@ public final class Interpreter {
             erStack.push(erb);
         }
 
-        void popExceptionRegion(CoreOp.ExceptionRegionEnter ers) {
-            if (erStack.peek().ers != ers) {
-                // @@@ Use internal exception type
-                throw interpreterException(new IllegalStateException("Mismatched exception regions"));
-            }
-            erStack.pop();
+        void popExceptionRegion(CoreOp.ExceptionRegionExit ere) {
+            ere.catchBlocks().forEach(catchBlock -> {
+                if (erStack.peek().catchBlock != catchBlock.targetBlock()) {
+                    // @@@ Use internal exception type
+                    throw interpreterException(new IllegalStateException("Mismatched exception regions"));
+                }
+                erStack.pop();
+            });
         }
 
         Block exception(MethodHandles.Lookup l, Throwable e) {
@@ -151,6 +158,9 @@ public final class Interpreter {
 
             // Pop the block context to the block defining the start of the exception region
             popTo(er.mark);
+            while (erStack.size() > er.erStackDepth()) {
+                erStack.pop();
+            }
             return cb;
         }
     }
@@ -184,22 +194,18 @@ public final class Interpreter {
         }
     }
 
-    record ExceptionRegionRecord(BlockContext mark, CoreOp.ExceptionRegionEnter ers)
-            implements CoreOp.ExceptionRegion {
+    record ExceptionRegionRecord(BlockContext mark, int erStackDepth, Block catchBlock) {
         Block match(MethodHandles.Lookup l, Throwable e) {
-            for (Block.Reference catchBlock : ers.catchBlocks()) {
-                Block target = catchBlock.targetBlock();
-                List<Block.Parameter> args = target.parameters();
-                if (args.size() != 1) {
-                    throw interpreterException(new IllegalStateException("Catch block must have one argument"));
-                }
-                TypeElement et = args.get(0).type();
-                if (et instanceof VarType vt) {
-                    et = vt.valueType();
-                }
-                if (resolveToClass(l, et).isInstance(e)) {
-                    return target;
-                }
+            List<Block.Parameter> args = catchBlock.parameters();
+            if (args.size() != 1) {
+                throw interpreterException(new IllegalStateException("Catch block must have one argument"));
+            }
+            TypeElement et = args.get(0).type();
+            if (et instanceof VarType vt) {
+                et = vt.valueType();
+            }
+            if (resolveToClass(l, et).isInstance(e)) {
+                return catchBlock;
             }
             return null;
         }
@@ -324,14 +330,15 @@ public final class Interpreter {
                 Value yv = yop.yieldValue();
                 return yv == null ? null : oc.getValue(yv);
             } else if (to instanceof CoreOp.ExceptionRegionEnter ers) {
-                var er = new ExceptionRegionRecord(oc.stack.peek(), ers);
-                oc.setValue(ers.result(), er);
-
-                oc.pushExceptionRegion(er);
+                int erStackDepth = oc.erStack.size();
+                ers.catchBlocks().forEach(catchBlock -> {
+                    var er = new ExceptionRegionRecord(oc.stack.peek(), erStackDepth, catchBlock.targetBlock());
+                    oc.pushExceptionRegion(er);
+                });
 
                 oc.successor(ers.start());
             } else if (to instanceof CoreOp.ExceptionRegionExit ere) {
-                oc.popExceptionRegion(ere.regionStart());
+                oc.popExceptionRegion(ere);
 
                 oc.successor(ere.end());
             } else {
@@ -408,13 +415,13 @@ public final class Interpreter {
                                 "Function " + name + " cannot be resolved: top level op is not a module"));
             }
         } else if (o instanceof CoreOp.InvokeOp co) {
-            MethodHandle mh;
-            if (co.hasReceiver()) {
-                mh = methodHandle(l, co.invokeDescriptor());
-            } else {
-                mh = methodStaticHandle(l, co.invokeDescriptor());
-            }
             MethodType target = resolveToMethodType(l, o.opType());
+            MethodHandles.Lookup il = switch (co.invokeKind()) {
+                case STATIC, INSTANCE -> l;
+                case SUPER -> l.in(target.parameterType(0));
+            };
+            MethodHandle mh = resolveToMethodHandle(il, co.invokeDescriptor(), co.invokeKind());
+
             mh = mh.asType(target).asFixedArity();
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
@@ -559,6 +566,25 @@ public final class Interpreter {
                     .map(oc::getValue)
                     .map(String::valueOf)
                     .collect(Collectors.joining());
+        } else if (o instanceof CoreOp.MonitorOp.MonitorEnterOp) {
+            Object monitorTarget = oc.getValue(o.operands().get(0));
+            if (monitorTarget == null) {
+                throw new NullPointerException();
+            }
+            ReentrantLock lock = oc.locks.computeIfAbsent(monitorTarget, _ -> new ReentrantLock());
+            lock.lock();
+            return null;
+        } else if (o instanceof CoreOp.MonitorOp.MonitorExitOp) {
+            Object monitorTarget = oc.getValue(o.operands().get(0));
+            if (monitorTarget == null) {
+                throw new NullPointerException();
+            }
+            ReentrantLock lock = oc.locks.get(monitorTarget);
+            if (lock == null) {
+                throw new IllegalMonitorStateException();
+            }
+            lock.unlock();
+            return null;
         } else {
             throw interpreterException(
                     new UnsupportedOperationException("Unsupported operation: " + o.opName()));
@@ -587,14 +613,6 @@ public final class Interpreter {
         } catch (NoSuchMethodException | IllegalAccessException e) {
             throw interpreterException(e);
         }
-    }
-
-    static MethodHandle methodStaticHandle(MethodHandles.Lookup l, MethodRef d) {
-        return resolveToMethodHandle(l, d);
-    }
-
-    static MethodHandle methodHandle(MethodHandles.Lookup l, MethodRef d) {
-        return resolveToMethodHandle(l, d);
     }
 
     static MethodHandle constructorHandle(MethodHandles.Lookup l, FunctionType ft) {
@@ -632,9 +650,9 @@ public final class Interpreter {
         return c.cast(v);
     }
 
-    static MethodHandle resolveToMethodHandle(MethodHandles.Lookup l, MethodRef d) {
+    static MethodHandle resolveToMethodHandle(MethodHandles.Lookup l, MethodRef d, CoreOp.InvokeOp.InvokeKind kind) {
         try {
-            return d.resolveToHandle(l);
+            return d.resolveToHandle(l, kind);
         } catch (ReflectiveOperationException e) {
             throw interpreterException(e);
         }

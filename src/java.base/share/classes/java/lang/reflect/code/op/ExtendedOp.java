@@ -112,7 +112,6 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
 
             // No label
             // Get innermost enclosing loop operation
-            // @@@ expand to support innermost enclosing switch operation
             Op op = this;
             Body b;
             do {
@@ -121,11 +120,13 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 if (op == null) {
                     throw new IllegalStateException("No enclosing loop");
                 }
-            } while (!(op instanceof Op.Loop));
-            // } while (!(op instanceof Op.Loop lop));
-            // error: variable lop might not have been initialized
-            Op.Loop lop = (Op.Loop) op;
-            return lop.loopBody() == b ? op : null;
+            } while (!(op instanceof Op.Loop || op instanceof JavaSwitchStatementOp));
+
+            return switch (op) {
+                case Op.Loop lop -> lop.loopBody() == b ? op : null;
+                case JavaSwitchStatementOp swStat -> swStat.bodies().contains(b) ? op : null;
+                default -> throw new IllegalStateException();
+            };
         }
 
         boolean isUnlabeled() {
@@ -328,7 +329,6 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
      * The block operation, that can model Java language blocks.
      */
     @OpFactory.OpDeclaration(JavaBlockOp.NAME)
-    // @@@ Support synchronized attribute
     public static final class JavaBlockOp extends ExtendedOp
             implements Op.Nested, Op.Lowerable, JavaStatement {
         public static final String NAME = "java.block";
@@ -357,7 +357,6 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             return new JavaBlockOp(this, cc, ot);
         }
 
-        // @@@ Support non-void result type
         JavaBlockOp(Body.Builder bodyC) {
             super(NAME, List.of());
 
@@ -399,6 +398,177 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             }));
 
             return exit;
+        }
+
+        @Override
+        public TypeElement resultType() {
+            return VOID;
+        }
+    }
+
+    /**
+     * The synchronized operation, that can model Java synchronized statements.
+     */
+    @OpFactory.OpDeclaration(JavaSynchronizedOp.NAME)
+    public static final class JavaSynchronizedOp extends ExtendedOp
+            implements Op.Nested, Op.Lowerable, JavaStatement {
+        public static final String NAME = "java.synchronized";
+
+        final Body expr;
+        final Body blockBody;
+
+        public JavaSynchronizedOp(ExternalizedOp def) {
+            super(def);
+
+            this.expr = def.bodyDefinitions().get(0).build(this);
+            this.blockBody = def.bodyDefinitions().get(1).build(this);
+        }
+
+        JavaSynchronizedOp(JavaSynchronizedOp that, CopyContext cc, OpTransformer ot) {
+            super(that, cc);
+
+            // Copy bodies
+            this.expr = that.expr.transform(cc, ot).build(this);
+            this.blockBody = that.blockBody.transform(cc, ot).build(this);
+        }
+
+        @Override
+        public JavaSynchronizedOp transform(CopyContext cc, OpTransformer ot) {
+            return new JavaSynchronizedOp(this, cc, ot);
+        }
+
+        JavaSynchronizedOp(Body.Builder exprC, Body.Builder bodyC) {
+            super(NAME, List.of());
+
+            this.expr = exprC.build(this);
+            if (expr.bodyType().returnType().equals(VOID)) {
+                throw new IllegalArgumentException("Expression body should return non-void value: " + expr.bodyType());
+            }
+            if (!expr.bodyType().parameterTypes().isEmpty()) {
+                throw new IllegalArgumentException("Expression body should have zero parameters: " + expr.bodyType());
+            }
+
+            this.blockBody = bodyC.build(this);
+            if (!blockBody.bodyType().returnType().equals(VOID)) {
+                throw new IllegalArgumentException("Block body should return void: " + blockBody.bodyType());
+            }
+            if (!blockBody.bodyType().parameterTypes().isEmpty()) {
+                throw new IllegalArgumentException("Block body should have zero parameters: " + blockBody.bodyType());
+            }
+        }
+
+        @Override
+        public List<Body> bodies() {
+            return List.of(expr, blockBody);
+        }
+
+        public Body expr() {
+            return expr;
+        }
+
+        public Body blockBody() {
+            return blockBody;
+        }
+
+        @Override
+        public Block.Builder lower(Block.Builder b, OpTransformer opT) {
+            // Lower the expression body, yielding a monitor target
+            b = lowerExpr(b, opT);
+            Value monitorTarget = b.parameters().get(0);
+
+            // Monitor enter
+            b.op(CoreOp.monitorEnter(monitorTarget));
+
+            Block.Builder exit = b.block();
+            setBranchTarget(b.context(), this, new BranchTarget(exit, null));
+
+            // Exception region for the body
+            Block.Builder syncRegionEnter = b.block();
+            Block.Builder catcherFinally = b.block();
+            b.op(exceptionRegionEnter(
+                    syncRegionEnter.successor(), catcherFinally.successor()));
+
+            OpTransformer syncExitTransformer = opT.compose((block, op) -> {
+                if (op instanceof CoreOp.ReturnOp ||
+                    (op instanceof ExtendedOp.JavaLabelOp lop && ifExitFromSynchronized(lop))) {
+                    // Monitor exit
+                    block.op(CoreOp.monitorExit(monitorTarget));
+                    // Exit the exception region
+                    Block.Builder exitRegion = block.block();
+                    block.op(exceptionRegionExit(exitRegion.successor(), catcherFinally.successor()));
+                    return exitRegion;
+                } else {
+                    return block;
+                }
+            });
+
+            syncRegionEnter.transformBody(blockBody, List.of(), syncExitTransformer.andThen((block, op) -> {
+                if (op instanceof YieldOp) {
+                    // Monitor exit
+                    block.op(CoreOp.monitorExit(monitorTarget));
+                    // Exit the exception region
+                    block.op(exceptionRegionExit(exit.successor(), catcherFinally.successor()));
+                } else {
+                    // @@@ Composition of lowerable ops
+                    if (op instanceof Lowerable lop) {
+                        block = lop.lower(block, syncExitTransformer);
+                    } else {
+                        block.op(op);
+                    }
+                }
+                return block;
+            }));
+
+            // The catcher, with an exception region back branching to itself
+            Block.Builder catcherFinallyRegionEnter = b.block();
+            catcherFinally.op(exceptionRegionEnter(
+                    catcherFinallyRegionEnter.successor(), catcherFinally.successor()));
+
+            // Monitor exit
+            catcherFinallyRegionEnter.op(CoreOp.monitorExit(monitorTarget));
+            Block.Builder catcherFinallyRegionExit = b.block();
+            // Exit the exception region
+            catcherFinallyRegionEnter.op(exceptionRegionExit(
+                    catcherFinallyRegionExit.successor(), catcherFinally.successor()));
+            // Rethrow outside of region
+            Block.Parameter t = catcherFinally.parameter(type(Throwable.class));
+            catcherFinallyRegionExit.op(_throw(t));
+
+            return exit;
+        }
+
+        Block.Builder lowerExpr(Block.Builder b, OpTransformer opT) {
+            Block.Builder exprExit = b.block(expr.bodyType().returnType());
+            b.transformBody(expr, List.of(), opT.andThen((block, op) -> {
+                if (op instanceof YieldOp yop) {
+                    Value monitorTarget = block.context().getValue(yop.yieldValue());
+                    block.op(branch(exprExit.successor(monitorTarget)));
+                } else {
+                    // @@@ Composition of lowerable ops
+                    if (op instanceof Lowerable lop) {
+                        block = lop.lower(block, opT);
+                    } else {
+                        block.op(op);
+                    }
+                }
+                return block;
+            }));
+            return exprExit;
+        }
+
+        boolean ifExitFromSynchronized(JavaLabelOp lop) {
+            Op target = lop.target();
+            return target == this || ifAncestorOp(target, this);
+        }
+
+        static boolean ifAncestorOp(Op ancestor, Op op) {
+            while (op.ancestorBody() != null) {
+                op = op.ancestorBody().parentOp();
+                if (op == ancestor) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         @Override
@@ -725,18 +895,12 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
         }
     }
 
-    /**
-     * The switch expression operation, that can model Java language switch expressions.
-     */
-    @OpFactory.OpDeclaration(JavaSwitchExpressionOp.NAME)
-    public static final class JavaSwitchExpressionOp extends ExtendedOp
-            implements Op.Nested, Op.Lowerable, JavaExpression {
-        public static final String NAME = "java.switch.expression";
+    public abstract static sealed class JavaSwitchOp extends ExtendedOp implements Op.Nested, Op.Lowerable
+            permits JavaSwitchStatementOp, JavaSwitchExpressionOp {
 
-        final TypeElement resultType;
         final List<Body> bodies;
 
-        public JavaSwitchExpressionOp(ExternalizedOp def) {
+        public JavaSwitchOp(ExternalizedOp def) {
             super(def);
 
             if (def.operands().size() != 1) {
@@ -744,36 +908,25 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             }
 
             // @@@ Validate
-
             this.bodies = def.bodyDefinitions().stream().map(bd -> bd.build(this)).toList();
-            this.resultType = def.resultType();
         }
 
-        JavaSwitchExpressionOp(JavaSwitchExpressionOp that, CopyContext cc, OpTransformer ot) {
+        JavaSwitchOp(JavaSwitchOp that, CopyContext cc, OpTransformer ot) {
             super(that, cc);
 
             // Copy body
             this.bodies = that.bodies.stream()
                     .map(b -> b.transform(cc, ot).build(this)).toList();
-            this.resultType = that.resultType;
         }
 
-        @Override
-        public JavaSwitchExpressionOp transform(CopyContext cc, OpTransformer ot) {
-            return new JavaSwitchExpressionOp(this, cc, ot);
-        }
-
-        JavaSwitchExpressionOp(TypeElement resultType, Value target, List<Body.Builder> bodyCs) {
-            super(NAME, List.of(target));
+        JavaSwitchOp(String name, Value target, List<Body.Builder> bodyCs) {
+            super(name, List.of(target));
 
             // Each case is modelled as a contiguous pair of bodies
-            // The first body models the case labels, and the second models the case expression or statements
+            // The first body models the case labels, and the second models the case statements
             // The labels body has a parameter whose type is target operand's type and returns a boolean value
-            // The statements/expression body has no parameters and returns the result whose type is the result of
-            // the switch expression
+            // The statements body has no parameters and returns void
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
-            // @@@ when resultType is null, we assume statements/expressions bodies have the same yieldType
-            this.resultType = resultType == null ? bodies.get(1).yieldType() : resultType;
         }
 
         @Override
@@ -782,42 +935,12 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
         }
 
         @Override
-        public TypeElement resultType() {
-            return resultType;
-        }
-
-        private boolean haveNullCase() {
-            /*
-            case null is modeled like this:
-            (%4 : T)boolean -> {
-                %5 : java.lang.Object = constant @null;
-                %6 : boolean = invoke %4 %5 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
-                yield %6;
-            }
-            * */
-            for (int i = 0; i < bodies().size() - 2; i+=2) {
-                Body labelBody = bodies().get(i);
-                if (labelBody.blocks().size() != 1) {
-                    continue; // we skip, for now
-                }
-                Op terminatingOp = bodies().get(i).entryBlock().terminatingOp();
-                //@@@ when op pattern matching is ready, we can use it
-                if (terminatingOp instanceof YieldOp yieldOp &&
-                        yieldOp.yieldValue() instanceof Op.Result opr &&
-                        opr.op() instanceof InvokeOp invokeOp &&
-                        invokeOp.invokeDescriptor().equals(MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class)) &&
-                        invokeOp.operands().stream().anyMatch(o -> o instanceof Op.Result r && r.op() instanceof ConstantOp cop && cop.value() == null)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        @Override
         public Block.Builder lower(Block.Builder b, OpTransformer opT) {
 
             Value selectorExpression = b.context().getValue(operands().get(0));
 
+            // @@@ we can add this during model generation
+            // if no case null, add one that throws NPE
             if (!(selectorExpression.type() instanceof PrimitiveType) && !haveNullCase()) {
                 Block.Builder throwBlock = b.block();
                 throwBlock.op(_throw(
@@ -847,11 +970,13 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 exit = b;
             } else {
                 exit = b.block(resultType());
-                exit.context().mapValue(result(), exit.parameters().get(0));
+                if (this instanceof JavaSwitchExpressionOp) {
+                    exit.context().mapValue(result(), exit.parameters().get(0));
+                }
             }
 
             setBranchTarget(b.context(), this, new BranchTarget(exit, null));
-            // map expr body to nextExprBlock
+            // map statement body to nextExprBlock
             // this mapping will be used for lowering SwitchFallThroughOp
             for (int i = 1; i < bodies().size() - 2; i+=2) {
                 setBranchTarget(b.context(), bodies().get(i), new BranchTarget(null, blocks.get(i + 2)));
@@ -861,31 +986,29 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 boolean isLabelBody = i % 2 == 0;
                 Block.Builder curr = blocks.get(i);
                 if (isLabelBody) {
-                    Block.Builder expression = blocks.get(i + 1);
-                    boolean isDefaultLabel = i == blocks.size() - 2;
-                    Block.Builder nextLabel = isDefaultLabel ? null : blocks.get(i + 2);
+                    Block.Builder statement = blocks.get(i + 1);
+                    boolean isLastLabel = i == blocks.size() - 2;
+                    Block.Builder nextLabel = isLastLabel ? null : blocks.get(i + 2);
                     curr.transformBody(bodies().get(i), List.of(selectorExpression), opT.andThen((block, op) -> {
                         switch (op) {
-                            case YieldOp yop -> {
-                                if (isDefaultLabel) {
-                                    block.op(branch(expression.successor()));
-                                } else {
-                                    block.op(conditionalBranch(
-                                            block.context().getValue(yop.yieldValue()),
-                                            expression.successor(),
-                                            nextLabel.successor()
-                                    ));
-                                }
+                            case YieldOp yop when isLastLabel && this instanceof JavaSwitchExpressionOp -> {
+                                block.op(branch(statement.successor()));
                             }
+                            case YieldOp yop -> block.op(conditionalBranch(
+                                    block.context().getValue(yop.yieldValue()),
+                                    statement.successor(),
+                                    isLastLabel ? exit.successor() : nextLabel.successor()
+                            ));
                             case Lowerable lop -> block = lop.lower(block);
                             default -> block.op(op);
                         }
                         return block;
                     }));
-                } else { // expression body
+                } else { // statement body
                     curr.transformBody(bodies().get(i), blocks.get(i).parameters(), opT.andThen((block, op) -> {
                         switch (op) {
-                            case YieldOp yop -> block.op(branch(exit.successor(block.context().getValue(yop.yieldValue()))));
+                            case YieldOp yop when this instanceof JavaSwitchStatementOp -> block.op(branch(exit.successor()));
+                            case YieldOp yop when this instanceof JavaSwitchExpressionOp -> block.op(branch(exit.successor(block.context().getValue(yop.yieldValue()))));
                             case Lowerable lop -> block = lop.lower(block);
                             default -> block.op(op);
                         }
@@ -895,6 +1018,103 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             }
 
             return exit;
+        }
+
+        boolean haveNullCase() {
+            /*
+            case null is modeled like this:
+            (%4 : T)boolean -> {
+                %5 : java.lang.Object = constant @null;
+                %6 : boolean = invoke %4 %5 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                yield %6;
+            }
+            * */
+            for (int i = 0; i < bodies().size() - 2; i+=2) {
+                Body labelBody = bodies().get(i);
+                if (labelBody.blocks().size() != 1) {
+                    continue; // we skip, for now
+                }
+                Op terminatingOp = bodies().get(i).entryBlock().terminatingOp();
+                //@@@ when op pattern matching is ready, we can use it
+                if (terminatingOp instanceof YieldOp yieldOp &&
+                        yieldOp.yieldValue() instanceof Op.Result opr &&
+                        opr.op() instanceof InvokeOp invokeOp &&
+                        invokeOp.invokeDescriptor().equals(MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class)) &&
+                        invokeOp.operands().stream().anyMatch(o -> o instanceof Op.Result r && r.op() instanceof ConstantOp cop && cop.value() == null)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    /**
+     * The switch expression operation, that can model Java language switch expressions.
+     */
+    @OpFactory.OpDeclaration(JavaSwitchExpressionOp.NAME)
+    public static final class JavaSwitchExpressionOp extends JavaSwitchOp
+            implements JavaExpression {
+        public static final String NAME = "java.switch.expression";
+
+        final TypeElement resultType;
+
+        public JavaSwitchExpressionOp(ExternalizedOp def) {
+            super(def);
+
+            this.resultType = def.resultType();
+        }
+
+        JavaSwitchExpressionOp(JavaSwitchExpressionOp that, CopyContext cc, OpTransformer ot) {
+            super(that, cc, ot);
+
+            this.resultType = that.resultType;
+        }
+
+        @Override
+        public JavaSwitchExpressionOp transform(CopyContext cc, OpTransformer ot) {
+            return new JavaSwitchExpressionOp(this, cc, ot);
+        }
+
+        JavaSwitchExpressionOp(TypeElement resultType, Value target, List<Body.Builder> bodyCs) {
+            super(NAME, target, bodyCs);
+
+            this.resultType = resultType == null ? bodies.get(1).yieldType() : resultType;
+        }
+
+        @Override
+        public TypeElement resultType() {
+            return resultType;
+        }
+    }
+
+    /**
+     * The switch statement operation, that can model Java language switch statement.
+     */
+    @OpFactory.OpDeclaration(JavaSwitchStatementOp.NAME)
+    public static final class JavaSwitchStatementOp extends JavaSwitchOp
+            implements JavaStatement {
+        public static final String NAME = "java.switch.statement";
+
+        public JavaSwitchStatementOp(ExternalizedOp def) {
+            super(def);
+        }
+
+        JavaSwitchStatementOp(JavaSwitchStatementOp that, CopyContext cc, OpTransformer ot) {
+            super(that, cc, ot);
+        }
+
+        @Override
+        public JavaSwitchStatementOp transform(CopyContext cc, OpTransformer ot) {
+            return new JavaSwitchStatementOp(this, cc, ot);
+        }
+
+        JavaSwitchStatementOp(Value target, List<Body.Builder> bodyCs) {
+            super(NAME, target, bodyCs);
+        }
+
+        @Override
+        public TypeElement resultType() {
+            return VOID;
         }
     }
 
@@ -2316,36 +2536,37 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             List<Block.Builder> catchers = catchers().stream()
                     .map(catcher -> b.block())
                     .toList();
-            Block.Builder catcherFinally = null;
-            if (finalizer != null) {
+            Block.Builder catcherFinally;
+            if (finalizer == null) {
+                catcherFinally = null;
+            } else {
                 catcherFinally = b.block();
                 catchers = new ArrayList<>(catchers);
                 catchers.add(catcherFinally);
             }
 
             // Enter the try exception region
-            Result tryExceptionRegion = b.op(exceptionRegionEnter(tryRegionEnter.successor(), catchers.stream()
+            List<Block.Reference> exitHandlers = catchers.stream()
                     .map(Block.Builder::successor)
-                    .toList()));
+                    .toList();
+            b.op(exceptionRegionEnter(tryRegionEnter.successor(), exitHandlers.reversed()));
 
             OpTransformer tryExitTransformer;
             if (finalizer != null) {
                 tryExitTransformer = opT.compose((block, op) -> {
-                    if (op instanceof CoreOp.ReturnOp) {
-                        return inlineFinalizer(block, tryExceptionRegion, opT);
-                    } else if (op instanceof ExtendedOp.JavaLabelOp lop && ifExitFromTry(lop)) {
-                        return inlineFinalizer(block, tryExceptionRegion, opT);
+                    if (op instanceof CoreOp.ReturnOp ||
+                            (op instanceof ExtendedOp.JavaLabelOp lop && ifExitFromTry(lop))) {
+                        return inlineFinalizer(block, exitHandlers, opT);
                     } else {
                         return block;
                     }
                 });
             } else {
                 tryExitTransformer = opT.compose((block, op) -> {
-                    // @@@ break and continue
-                    // when target break/continue is enclosing the try
-                    if (op instanceof CoreOp.ReturnOp) {
+                    if (op instanceof CoreOp.ReturnOp ||
+                            (op instanceof ExtendedOp.JavaLabelOp lop && ifExitFromTry(lop))) {
                         Block.Builder tryRegionReturnExit = block.block();
-                        block.op(exceptionRegionExit(tryExceptionRegion, tryRegionReturnExit.successor()));
+                        block.op(exceptionRegionExit(tryRegionReturnExit.successor(), exitHandlers));
                         return tryRegionReturnExit;
                     } else {
                         return block;
@@ -2374,11 +2595,11 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 finallyEnter = b.block();
                 if (hasTryRegionExit.get()) {
                     // Exit the try exception region
-                    tryRegionExit.op(exceptionRegionExit(tryExceptionRegion, finallyEnter.successor()));
+                    tryRegionExit.op(exceptionRegionExit(finallyEnter.successor(), exitHandlers));
                 }
             } else if (hasTryRegionExit.get()) {
                 // Exit the try exception region
-                tryRegionExit.op(exceptionRegionExit(tryExceptionRegion, exit.successor()));
+                tryRegionExit.op(exceptionRegionExit(exit.successor(), exitHandlers));
             }
 
             // Inline the catch bodies
@@ -2398,9 +2619,9 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
 
                     OpTransformer catchExitTransformer = opT.compose((block, op) -> {
                         if (op instanceof CoreOp.ReturnOp) {
-                            return inlineFinalizer(block, catchExceptionRegion, opT);
+                            return inlineFinalizer(block, List.of(catcherFinally.successor()), opT);
                         } else if (op instanceof ExtendedOp.JavaLabelOp lop && ifExitFromTry(lop)) {
-                            return inlineFinalizer(block, catchExceptionRegion, opT);
+                            return inlineFinalizer(block, List.of(catcherFinally.successor()), opT);
                         } else {
                             return block;
                         }
@@ -2425,7 +2646,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                     // Exit the catch exception region
                     if (hasCatchRegionExit.get()) {
                         hasTryRegionExit.set(true);
-                        catchRegionExit.op(exceptionRegionExit(catchExceptionRegion, finallyEnter.successor()));
+                        catchRegionExit.op(exceptionRegionExit(finallyEnter.successor(), catcherFinally.successor()));
                     }
                 } else {
                     // Inline the catch body
@@ -2499,11 +2720,11 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             return false;
         }
 
-        Block.Builder inlineFinalizer(Block.Builder block1, Value exceptionRegion, OpTransformer opT) {
+        Block.Builder inlineFinalizer(Block.Builder block1, List<Block.Reference> tryHandlers, OpTransformer opT) {
             Block.Builder finallyEnter = block1.block();
             Block.Builder finallyExit = block1.block();
 
-            block1.op(exceptionRegionExit(exceptionRegion, finallyEnter.successor()));
+            block1.op(exceptionRegionExit(finallyEnter.successor(), tryHandlers));
 
             // Inline the finally body
             finallyEnter.transformBody(finalizer, List.of(), opT.andThen((block2, op2) -> {
@@ -2543,12 +2764,12 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
     public sealed interface Pattern {
 
         /**
-         * Synthetic binding pattern type.
+         * Synthetic type pattern type.
          *
          * @param <T> the type of values that are bound
          */
-        final class Binding<T> implements Pattern {
-            Binding() {
+        final class Type<T> implements Pattern {
+            Type() {
             }
         }
 
@@ -2562,12 +2783,20 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             }
         }
 
+        final class MatchAll implements Pattern {
+            MatchAll() {
+            }
+        }
+
         // @@@ Pattern types
 
         JavaType PATTERN_BINDING_TYPE = JavaType.type(ClassDesc.of(Pattern_CLASS_NAME +
-                "$" + Binding.class.getSimpleName()));
+                "$" + Type.class.getSimpleName()));
         JavaType PATTERN_RECORD_TYPE = JavaType.type(ClassDesc.of(Pattern_CLASS_NAME +
                 "$" + Pattern.Record.class.getSimpleName()));
+
+        JavaType PATTERN_MATCH_ALL_TYPE = JavaType.type(ClassDesc.of(Pattern_CLASS_NAME +
+                "$" + Pattern.MatchAll.class.getSimpleName()));
 
         static JavaType bindingType(TypeElement t) {
             return parameterized(PATTERN_BINDING_TYPE, (JavaType) t);
@@ -2575,6 +2804,10 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
 
         static JavaType recordType(TypeElement t) {
             return parameterized(PATTERN_RECORD_TYPE, (JavaType) t);
+        }
+
+        static JavaType matchAllType() {
+            return PATTERN_MATCH_ALL_TYPE;
         }
 
         static TypeElement targetType(TypeElement t) {
@@ -2609,33 +2842,33 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
         /**
          * The binding pattern operation, that can model Java language type patterns.
          */
-        @OpFactory.OpDeclaration(BindingPatternOp.NAME)
-        public static final class BindingPatternOp extends PatternOp {
-            public static final String NAME = "pattern.binding";
+        @OpFactory.OpDeclaration(TypePatternOp.NAME)
+        public static final class TypePatternOp extends PatternOp {
+            public static final String NAME = "pattern.type";
 
             public static final String ATTRIBUTE_BINDING_NAME = NAME + ".binding.name";
 
             final TypeElement resultType;
             final String bindingName;
 
-            public static BindingPatternOp create(ExternalizedOp def) {
+            public static TypePatternOp create(ExternalizedOp def) {
                 String name = def.extractAttributeValue(ATTRIBUTE_BINDING_NAME, true,
                         v -> switch (v) {
                             case String s -> s;
-                            case null, default ->
-                                    throw new UnsupportedOperationException("Unsupported pattern binding name value:" + v);
+                            case null -> null;
+                            default -> throw new UnsupportedOperationException("Unsupported pattern binding name value:" + v);
                         });
-                return new BindingPatternOp(def, name);
+                return new TypePatternOp(def, name);
             }
 
-            BindingPatternOp(ExternalizedOp def, String bindingName) {
+            TypePatternOp(ExternalizedOp def, String bindingName) {
                 super(def);
 
                 this.bindingName = bindingName;
                 this.resultType = def.resultType();
             }
 
-            BindingPatternOp(BindingPatternOp that, CopyContext cc) {
+            TypePatternOp(TypePatternOp that, CopyContext cc) {
                 super(that, cc);
 
                 this.bindingName = that.bindingName;
@@ -2643,11 +2876,11 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             }
 
             @Override
-            public BindingPatternOp transform(CopyContext cc, OpTransformer ot) {
-                return new BindingPatternOp(this, cc);
+            public TypePatternOp transform(CopyContext cc, OpTransformer ot) {
+                return new TypePatternOp(this, cc);
             }
 
-            BindingPatternOp(TypeElement targetType, String bindingName) {
+            TypePatternOp(TypeElement targetType, String bindingName) {
                 super(NAME, List.of());
 
                 this.bindingName = bindingName;
@@ -2657,7 +2890,9 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             @Override
             public Map<String, Object> attributes() {
                 HashMap<String, Object> attrs = new HashMap<>(super.attributes());
-                attrs.put("", bindingName);
+                if (bindingName != null) {
+                    attrs.put("", bindingName);
+                }
                 return attrs;
             }
 
@@ -2741,6 +2976,37 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             @Override
             public TypeElement resultType() {
                 return Pattern.recordType(recordDescriptor.recordType());
+            }
+        }
+
+        @OpFactory.OpDeclaration(MatchAllPatternOp.NAME)
+        public static final class MatchAllPatternOp extends PatternOp {
+
+            // @@@ we may need to add info about the type of the record component
+            // this info can be used when lowering
+
+            public static final String NAME = "pattern.match.all";
+
+            public MatchAllPatternOp(ExternalizedOp def) {
+                super(def);
+            }
+
+            MatchAllPatternOp(MatchAllPatternOp that, CopyContext cc) {
+                super(that, cc);
+            }
+
+            MatchAllPatternOp() {
+                super(NAME, List.of());
+            }
+
+            @Override
+            public Op transform(CopyContext cc, OpTransformer ot) {
+                return new MatchAllPatternOp(this, cc);
+            }
+
+            @Override
+            public TypeElement resultType() {
+                return Pattern.matchAllType();
             }
         }
 
@@ -2845,13 +3111,12 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             static Block.Builder lower(Block.Builder endNoMatchBlock, Block.Builder currentBlock,
                                        List<Value> bindings,
                                        Op pattern, Value target) {
-                if (pattern instanceof ExtendedOp.PatternOps.RecordPatternOp rp) {
-                    return lowerRecordPattern(endNoMatchBlock, currentBlock, bindings, rp, target);
-                } else if (pattern instanceof ExtendedOp.PatternOps.BindingPatternOp bp) {
-                    return lowerBindingPattern(endNoMatchBlock, currentBlock, bindings, bp, target);
-                } else {
-                    throw new UnsupportedOperationException("Unknown pattern op: " + pattern);
-                }
+                return switch (pattern) {
+                    case RecordPatternOp rp -> lowerRecordPattern(endNoMatchBlock, currentBlock, bindings, rp, target);
+                    case TypePatternOp tp -> lowerTypePattern(endNoMatchBlock, currentBlock, bindings, tp, target);
+                    case MatchAllPatternOp map -> lowerMatchAllPattern(currentBlock);
+                    case null, default -> throw new UnsupportedOperationException("Unknown pattern op: " + pattern);
+                };
             }
 
             static Block.Builder lowerRecordPattern(Block.Builder endNoMatchBlock, Block.Builder currentBlock,
@@ -2882,22 +3147,50 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 return currentBlock;
             }
 
-            static Block.Builder lowerBindingPattern(Block.Builder endNoMatchBlock, Block.Builder currentBlock,
-                                                     List<Value> bindings,
-                                                     ExtendedOp.PatternOps.BindingPatternOp bpOp, Value target) {
-                TypeElement targetType = bpOp.targetType();
+            static Block.Builder lowerTypePattern(Block.Builder endNoMatchBlock, Block.Builder currentBlock,
+                                                  List<Value> bindings,
+                                                  TypePatternOp tpOp, Value target) {
+                TypeElement targetType = tpOp.targetType();
 
                 Block.Builder nextBlock = currentBlock.block();
 
                 // Check if instance of target type
-                currentBlock.op(conditionalBranch(currentBlock.op(CoreOp.instanceOf(targetType, target)),
-                        nextBlock.successor(), endNoMatchBlock.successor()));
+                Result p;
+                boolean patternWithPrimitive = false;
+                if (targetType instanceof PrimitiveType tt && target.type() instanceof PrimitiveType st) {
+                    patternWithPrimitive = true;
+                    if (SHORT.equals(st) || CHAR.equals(st)) {
+                        st = INT;
+                    }
+                    String s = capitalize(st.toString());
+                    String t = capitalize(tt.toString());
+                    String mn = "is%sTo%sExact".formatted(s, t);
+                    JavaType exactConversionSupport = JavaType.type(ClassDesc.of("java.lang.runtime.ExactConversionsSupport"));
+                    MethodRef mref = MethodRef.method(exactConversionSupport, mn, BOOLEAN, st);
+                    p = currentBlock.op(invoke(mref, target));
+                } else {
+                    p = currentBlock.op(CoreOp.instanceOf(targetType, target));
+                }
+
+                currentBlock.op(conditionalBranch(p, nextBlock.successor(), endNoMatchBlock.successor()));
 
                 currentBlock = nextBlock;
 
-                target = currentBlock.op(CoreOp.cast(targetType, target));
+                if (patternWithPrimitive) {
+                    target = currentBlock.op(CoreOp.conv(targetType, target));
+                } else {
+                    target = currentBlock.op(CoreOp.cast(targetType, target));
+                }
                 bindings.add(target);
 
+                return currentBlock;
+            }
+
+            private static String capitalize(String s) {
+                return s.substring(0, 1).toUpperCase() + s.substring(1);
+            }
+
+            static Block.Builder lowerMatchAllPattern(Block.Builder currentBlock) {
                 return currentBlock;
             }
 
@@ -2984,6 +3277,17 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
     }
 
     /**
+     * Creates a synchronized operation.
+     *
+     * @param expr the expression body builder of the operation to be built and become its child
+     * @param blockBody the block body builder of the operation to be built and become its child
+     * @return the synchronized operation
+     */
+    public static JavaSynchronizedOp synchronized_(Body.Builder expr, Body.Builder blockBody) {
+        return new JavaSynchronizedOp(expr, blockBody);
+    }
+
+    /**
      * Creates a labeled operation.
      *
      * @param body the body builder of the operation to be built and become its child
@@ -3043,6 +3347,16 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                                                           List<Body.Builder> bodies) {
         Objects.requireNonNull(resultType);
         return new JavaSwitchExpressionOp(resultType, target, bodies);
+    }
+
+    /**
+     * Creates a switch statement operation.
+     * @param target the switch target value
+     * @param bodies the body builders of the operation to be built and become its children
+     * @return the switch statement operation
+     */
+    public static JavaSwitchStatementOp switchStatement(Value target, List<Body.Builder> bodies) {
+        return new JavaSwitchStatementOp(target, bodies);
     }
 
     /**
@@ -3329,8 +3643,8 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
      * @param bindingName the binding name
      * @return the pattern binding operation
      */
-    public static PatternOps.BindingPatternOp bindingPattern(TypeElement type, String bindingName) {
-        return new PatternOps.BindingPatternOp(type, bindingName);
+    public static PatternOps.TypePatternOp typePattern(TypeElement type, String bindingName) {
+        return new PatternOps.TypePatternOp(type, bindingName);
     }
 
     /**
@@ -3353,6 +3667,10 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
      */
     public static PatternOps.RecordPatternOp recordPattern(RecordTypeRef recordDescriptor, List<Value> nestedPatterns) {
         return new PatternOps.RecordPatternOp(recordDescriptor, nestedPatterns);
+    }
+
+    public static PatternOps.MatchAllPatternOp matchAllPattern() {
+        return new PatternOps.MatchAllPatternOp();
     }
 
 }

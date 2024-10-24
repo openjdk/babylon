@@ -60,18 +60,21 @@ public class OpBuilder {
     static final MethodRef BODY_BUILDER_ENTRY_BLOCK = MethodRef.method(Body.Builder.class, "entryBlock",
             Block.Builder.class);
 
+    // instance varargs
     static final MethodRef BLOCK_BUILDER_SUCCESSOR = MethodRef.method(Block.Builder.class, "successor",
             Block.Reference.class, Value[].class);
 
     static final MethodRef BLOCK_BUILDER_OP = MethodRef.method(Block.Builder.class, "op",
             Op.Result.class, Op.class);
 
+    // instance varargs
     static final MethodRef BLOCK_BUILDER_BLOCK = MethodRef.method(Block.Builder.class, "block",
             Block.Builder.class, TypeElement[].class);
 
     static final MethodRef BLOCK_BUILDER_PARAMETER = MethodRef.method(Block.Builder.class, "parameter",
             Block.Parameter.class, TypeElement.class);
 
+    // static varargs
     static final MethodRef FUNCTION_TYPE_FUNCTION_TYPE = MethodRef.method(FunctionType.class, "functionType",
             FunctionType.class, TypeElement.class, TypeElement[].class);
 
@@ -188,7 +191,10 @@ public class OpBuilder {
             List<Value> args = new ArrayList<>();
             args.add(referencedBlock);
             args.addAll(successorArgs);
-            Value successor = builder.op(invoke(BLOCK_BUILDER_SUCCESSOR, args));
+            Value successor = builder.op(invoke(
+                    InvokeOp.InvokeKind.INSTANCE, true,
+                    BLOCK_BUILDER_SUCCESSOR.type().returnType(),
+                    BLOCK_BUILDER_SUCCESSOR, args));
             successors.add(successor);
         }
 
@@ -221,7 +227,10 @@ public class OpBuilder {
 
     Value buildBody(Value ancestorBodyValue, Body inputBody) {
         Value yieldType = buildType(inputBody.yieldType());
-        Value bodyType = builder.op(invoke(FUNCTION_TYPE_FUNCTION_TYPE, yieldType));
+        Value bodyType = builder.op(invoke(
+                InvokeOp.InvokeKind.STATIC, true,
+                FUNCTION_TYPE_FUNCTION_TYPE.type().returnType(),
+                FUNCTION_TYPE_FUNCTION_TYPE, List.of(yieldType)));
         Value body = builder.op(invoke(BODY_BUILDER_OF, ancestorBodyValue, bodyType));
 
         Value entryBlock = null;
@@ -231,7 +240,9 @@ public class OpBuilder {
                 block = entryBlock = builder.op(invoke(BODY_BUILDER_ENTRY_BLOCK, body));
             } else {
                 assert entryBlock != null;
-                block = builder.op(invoke(BLOCK_BUILDER_BLOCK, entryBlock));
+                block = builder.op(invoke(InvokeOp.InvokeKind.INSTANCE, true,
+                        BLOCK_BUILDER_BLOCK.type().returnType(),
+                        BLOCK_BUILDER_BLOCK, List.of(entryBlock)));
             }
             blockMap.put(inputBlock, block);
 
@@ -321,6 +332,10 @@ public class OpBuilder {
             case Location l -> {
                 // @@@ Construct location explicitly
                 yield builder.op(constant(J_L_STRING, l.toString()));
+            }
+            case InvokeOp.InvokeKind ik -> {
+                FieldRef enumValueRef = FieldRef.field(InvokeOp.InvokeKind.class, ik.name(), InvokeOp.InvokeKind.class);
+                yield builder.op(fieldLoad(enumValueRef));
             }
             case Object o when value == ExternalizableOp.NULL_ATTRIBUTE_VALUE -> {
                 yield builder.op(fieldLoad(FieldRef.field(ExternalizableOp.class,

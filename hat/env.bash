@@ -1,5 +1,4 @@
-#!/bin.bash
-cat >/dev/null<<LICENSE
+cat >/dev/null<<END_OF_LICENSE
 /*
  * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -24,34 +23,98 @@ cat >/dev/null<<LICENSE
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-LICENSE
+END_OF_LICENSE
 
-OS=$(uname -s )
-if [[ "$OS" == Linux ]]; then
-  export ostype=linux
-elif  [[ "$OS" == Darwin ]]; then
-  export ostype=macosx
+# First lets check if this script was sourced into a bash compatible shell
+
+if [ "${BASH_SOURCE[0]}" = "${0}" ]; then 
+   # We just bail if it was not sourced.. We want to set PATH and JAVA_HOME...
+   echo "You must source this file ..."
+   echo "Using either "
+   echo "    . ${0}"
+   echo "or"
+   echo "    source ${0}"
+   exit 1;  # this is ok because we were sourced 
 else
-  echo "could not determine ostype uname -s returned ${OS}"
-  exit 1
+  # Don't exit below here or you will trash the users shell ;)
+
+  OS=$(uname -s )
+  if [[ "$OS" == Linux ]]; then
+    export ostype=linux
+  elif  [[ "$OS" == Darwin ]]; then
+    export ostype=macosx
+  else
+    echo "Could not determine ostype uname -s returned ${OS}"
+  fi
+
+  ARCH=$(uname -m)
+  if [[ "$ARCH" == x86_64 ]]; then
+    export archtype=${ARCH}
+  elif  [[ "$ARCH" ==  aarch64 ]]; then
+    export archtype=aarch64
+  elif  [[ "$ARCH" == arm64 ]]; then
+    export archtype=aarch64
+  else
+    echo "Could not determine aarchtype uname -m returned ${ARCH}"
+  fi
+
+  if [[ -z "${archtype}" || -z "${ostype}" ]]; then 
+     echo "Can't determine archtype and/or ostype"
+  else
+    # We expect the user to provide a value for BABYLON_JDK_HOME or we can locate one using ${PWD}/..
+
+    # below is a verbose version of 
+    # export BABYLON_JDK_HOME=${BABYLON_JDK_HOME:-$(realpath ${PWD}/..)}
+
+    if [[ -z "${BABYLON_JDK_HOME}" ]]; then 
+       echo "No user supplied BABYLON_JDK_HOME var, we will try \${PWD}/.. = $(realpath ${PWD}/..)"
+       export BABYLON_JDK_HOME=$(realpath ${PWD}/..)
+    else
+       echo "Using user supplied BABYLON_JDK_HOME ${BABYLON_JDK_HOME}"
+    fi
+
+
+    if [[ -d "${BABYLON_JDK_HOME}/build" ]]; then
+      echo "\${BABYLON_JDK_HOME}/build seems ok!"
+      export JAVA_HOME=${BABYLON_JDK_HOME}/build/${ostype}-${archtype}-server-release/jdk
+      echo "exporting JAVA_HOME=${JAVA_HOME}"
+      if echo ${PATH} | grep ${JAVA_HOME} >/dev/null ;then
+         echo "PATH already contains \${JAVA_HOME}/bin"
+      else
+         export SAFE_PATH=${PATH}
+         echo "Adding \${JAVA_HOME}/bin prefix to PATH, SAFE_PATH contains previous value"
+         export PATH=${JAVA_HOME}/bin:${PATH}
+      fi
+
+      # Our java source launcher based build system needs bldr.bldr.jar so we create it here if needed. 
+      if [[ -f bldr/bldr.jar ]]; then 
+         echo "Found prebuilt bldr.jar"
+      else
+         mkdir -p bldr/classes
+         echo "Bootrapping bldr.jar"
+         javac \
+           --enable-preview \
+           --source 24 \
+           -d bldr/classes \
+           --source-path bldr/src/main/java \
+           bldr/src/main/java/bldr/Bldr.java
+  
+         jar -cf bldr/bldr.jar -C bldr/classes bldr 
+      fi
+      echo "SUCCESS!"
+    else
+      echo "We expected either:-"
+      echo "    \${PWD} to be in a hat subdir of a compiled babylon jdk build" 
+      echo "or" 
+      echo "    BABYLON_JDK_HOME to be set, to a compiled babylon jdk build"
+      echo ""
+      echo "If you are in a hat subdir make sure babylon jdk is built ;)"
+      echo ""
+      echo "If you are in another dir try  "
+      echo "    BABYLON_JDK_HOME=<<YOUR_PREBULT_BABYLON>> . ${0}"
+      echo "or"
+      echo "    BABYLON_JDK_HOME=<<YOUR_PREBULT_BABYLON>> source ${0}"
+    fi
+  fi
 fi
 
-ARCH=$(uname -m)
-if [[ "$ARCH" == x86_64 ]]; then
-  export archtype=${ARCH}
-elif  [[ "$ARCH" == arm64 ]]; then
-  export archtype=aarch64
-else
-  echo "could not determine aarchtype uname -m returned ${ARCH}"
-  exit 1
-fi
-
-export JAVA_HOME=${PWD}/../build/${ostype}-${archtype}-server-release/jdk
-echo "exporting JAVA_HOME=${JAVA_HOME}"
-if echo ${PATH} | grep ${JAVA_HOME} >/dev/null ;then
-   echo 'path already contains ${JAVA_HOME}/bin'
-else
-   export SAFE_PATH=${PATH}
-   echo 'adding ${JAVA_HOME}/bin prefix to PATH,  SAFE_PATH contains previous value'
-   export PATH=${JAVA_HOME}/bin:${PATH}
-fi

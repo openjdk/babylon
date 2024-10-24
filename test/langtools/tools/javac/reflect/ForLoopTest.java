@@ -413,7 +413,7 @@ public class ForLoopTest {
                         invoke %10 %11 @"java.io.PrintStream::println(int)void";
                         java.continue;
                     };
-                return;
+                unreachable;
             };
             """)
     void test8() {
@@ -444,7 +444,7 @@ public class ForLoopTest {
                         invoke %7 %8 @"java.io.PrintStream::println(int)void";
                         java.continue;
                     };
-                return;
+                unreachable;
             };
             """)
     void test9() {
@@ -470,7 +470,7 @@ public class ForLoopTest {
                     ^body()void -> {
                         java.continue;
                     };
-                return;
+                unreachable;
             };
             """)
     void test10() {
