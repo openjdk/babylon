@@ -254,10 +254,10 @@ public final class SSA {
 
     static Object peekAtCurrentVariable(Map<CoreOp.VarOp, Deque<Object>> variableStack, CoreOp.VarOp vop) {
         Object to = variableStack.get(vop).peek();
-        return throwIfUnitialized(vop, to);
+        return throwIfUninitialized(vop, to);
     }
 
-    static Object throwIfUnitialized(CoreOp.VarOp vop, Object to) {
+    static Object throwIfUninitialized(CoreOp.VarOp vop, Object to) {
         if (to instanceof Value v && v.type() instanceof UnknownValueType) {
             throw new IllegalStateException("Loading from uninitialized variable: " + vop);
         }
