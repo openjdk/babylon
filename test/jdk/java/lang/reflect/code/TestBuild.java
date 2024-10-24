@@ -37,6 +37,7 @@ import static java.lang.reflect.code.type.JavaType.type;
 /*
  * @test
  * @run testng TestBuild
+ * @run testng/othervm -Dbabylon.ssa=cytron TestBuild
  */
 
 public class TestBuild {

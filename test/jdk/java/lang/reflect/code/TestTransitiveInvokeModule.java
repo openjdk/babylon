@@ -24,6 +24,7 @@
 /*
  * @test
  * @run testng TestTransitiveInvokeModule
+ * @run testng/othervm -Dbabylon.ssa=cytron TestTransitiveInvokeModule
  */
 
 import org.testng.Assert;

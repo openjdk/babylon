@@ -62,6 +62,10 @@ public final class SSA {
      * @param <T> the operation type
      */
     public static <T extends Op & Op.Nested> T transform(T nestedOp) {
+        // @@@ property is used to test both impls
+        if (!"cytron".equalsIgnoreCase(System.getProperty("babylon.ssa"))) {
+            return SSAConstruction.transform(nestedOp);
+        }
         Map<Block, Set<CoreOp.VarOp>> joinPoints = new HashMap<>();
         Map<CoreOp.VarAccessOp.VarLoadOp, Object> loadValues = new HashMap<>();
         Map<Block.Reference, List<Object>> joinSuccessorValues = new HashMap<>();

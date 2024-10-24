@@ -24,6 +24,7 @@
 /*
  * @test
  * @run junit CoreBinaryOpsTest
+ * @run junit/othervm -Dbabylon.ssa=cytron CoreBinaryOpsTest
  */
 
 import org.junit.jupiter.api.Named;
@@ -44,8 +45,6 @@ import java.lang.invoke.MethodType;
 import java.lang.reflect.AccessFlag;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.lang.reflect.code.CopyContext;
-import java.lang.reflect.code.Op;
 import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.analysis.SSA;

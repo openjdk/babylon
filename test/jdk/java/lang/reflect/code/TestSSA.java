@@ -38,6 +38,7 @@ import java.util.stream.Stream;
 /*
  * @test
  * @run testng TestSSA
+ * @run testng/othervm -Dbabylon.ssa=cytron TestSSA
  */
 
 public class TestSSA {

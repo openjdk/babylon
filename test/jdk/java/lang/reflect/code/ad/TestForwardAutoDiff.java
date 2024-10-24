@@ -42,6 +42,7 @@ import java.util.stream.Stream;
  * @test
  * @enablePreview
  * @run testng TestForwardAutoDiff
+ * @run testng/othervm -Dbabylon.ssa=cytron TestForwardAutoDiff
  */
 
 public class TestForwardAutoDiff {
