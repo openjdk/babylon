@@ -62,12 +62,9 @@ import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.type.PrimitiveType;
 import java.lang.reflect.code.type.VarType;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -391,37 +388,8 @@ public final class BytecodeGenerator {
         Set<Op.Result> stores = allUses.stream().filter(r -> r.op() instanceof VarAccessOp.VarStoreOp).collect(Collectors.toSet());
         // All VarLoadOps must be dominated by a VarStoreOp
         for (Op.Result load : allUses) {
-            if (load.op() instanceof VarAccessOp.VarLoadOp && !isDominatedBy(load, stores)) {
+            if (load.op() instanceof VarAccessOp.VarLoadOp && !load.isDominatedBy(stores)) {
                 return false;
-            }
-        }
-        return true;
-    }
-
-    // @@@ Test for dominant set
-    private static boolean isDominatedBy(Op.Result n, Set<Op.Result> doms) {
-        for (Op.Result dom : doms) {
-            if (n.isDominatedBy(dom)) {
-                return true;
-            }
-        }
-
-        Set<Block> stopBlocks = new HashSet<>();
-        for (Op.Result dom : doms) {
-            stopBlocks.add(dom.declaringBlock());
-        }
-
-        Deque<Block> toProcess = new ArrayDeque<>();
-        toProcess.add(n.declaringBlock());
-        stopBlocks.add(n.declaringBlock());
-        while (!toProcess.isEmpty()) {
-            for (Block b : toProcess.pop().predecessors()) {
-                if (b.isEntryBlock()) {
-                    return false;
-                }
-                if (stopBlocks.add(b)) {
-                    toProcess.add(b);
-                }
             }
         }
         return true;
