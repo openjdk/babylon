@@ -170,7 +170,6 @@ public final class Interpreter {
         Object value;
 
         public Object value() {
-            // @@@ throw exception if holding UINITIALIZED?
             return value;
         }
 
@@ -489,8 +488,11 @@ public final class Interpreter {
             // Cast to CoreOp.Var, since the instance may have originated as an external instance
             // via a captured value map
             CoreOp.Var<?> vb = (CoreOp.Var<?>) oc.getValue(o.operands().get(0));
-            // @@@ throw exception if var holds VarBox.UINITIALIZED?
-            return vb.value();
+            Object value = vb.value();
+            if (value == VarBox.UINITIALIZED) {
+                throw interpreterException(new IllegalStateException("Loading from uninitialized variable"));
+            }
+            return value;
         } else if (o instanceof CoreOp.VarAccessOp.VarStoreOp vso) {
             VarBox vb = (VarBox) oc.getValue(o.operands().get(0));
             vb.value = oc.getValue(o.operands().get(1));

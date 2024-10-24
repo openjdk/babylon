@@ -27,6 +27,7 @@ package java.lang.reflect.code.analysis;
 
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.op.CoreOp;
+import java.lang.reflect.code.type.UnknownValueType;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -195,7 +196,7 @@ public final class SSA {
                     variableStack.get(storeOp.varOp()).push(current);
                 } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp loadOp &&
                            loadOp.varOp().ancestorBody() == op.ancestorBody()) {
-                    Object to = variableStack.get(loadOp.varOp()).peek();
+                    Object to = peekAtCurrentVariable(variableStack, loadOp.varOp());
                     loadValues.put(loadOp, to);
                 } else if (op instanceof Op.Nested) {
                     // Traverse descendant variable loads for variables
@@ -203,7 +204,7 @@ public final class SSA {
                     op.traverse(null, (_, ce) -> {
                         if (ce instanceof CoreOp.VarAccessOp.VarLoadOp loadOp &&
                                 loadOp.varOp().ancestorBody() == op.ancestorBody()) {
-                            Object to = variableStack.get(loadOp.varOp()).peek();
+                            Object to = peekAtCurrentVariable(variableStack, loadOp.varOp());
                             loadValues.put(loadOp, to);
                         }
                         return null;
@@ -216,7 +217,7 @@ public final class SSA {
                 Set<CoreOp.VarOp> varOps = joinPoints.get(succ.targetBlock());
                 if (varOps != null) {
                     List<Object> joinValues = varOps.stream()
-                            .map(vop -> variableStack.get(vop).peek()).toList();
+                            .map(vop -> peekAtCurrentVariable(variableStack, vop)).toList();
                     joinSuccessorValues.put(succ, joinValues);
                 }
             }
@@ -251,6 +252,17 @@ public final class SSA {
         }
     }
 
+    static Object peekAtCurrentVariable(Map<CoreOp.VarOp, Deque<Object>> variableStack, CoreOp.VarOp vop) {
+        Object to = variableStack.get(vop).peek();
+        return throwIfUnitialized(vop, to);
+    }
+
+    static Object throwIfUnitialized(CoreOp.VarOp vop, Object to) {
+        if (to instanceof Value v && v.type() instanceof UnknownValueType) {
+            throw new IllegalStateException("Loading from uninitialized variable: " + vop);
+        }
+        return to;
+    }
     /**
      * Finds the join points of a body.
      * <p>
