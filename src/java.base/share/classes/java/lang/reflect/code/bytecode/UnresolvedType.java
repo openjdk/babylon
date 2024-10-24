@@ -43,6 +43,7 @@ sealed interface UnresolvedType extends TypeElement {
     JavaType resolved();
 
     boolean resolveTo(TypeElement type);
+    boolean resolveFrom(TypeElement type);
 
     static final class Ref implements UnresolvedType {
         private static final TypeElement.ExternalizedTypeElement UNRESOLVED_REF = new TypeElement.ExternalizedTypeElement("?REF", List.of());
@@ -62,6 +63,21 @@ sealed interface UnresolvedType extends TypeElement {
                 }
                 if (type != null && !type.equals(resolved)) {
                     resolved = (JavaType)type;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        public boolean resolveFrom(TypeElement type) {
+            if (resolved == null || resolved.equals(JavaType.J_L_OBJECT)) {
+                if (type instanceof UnresolvedType utt) {
+                    type = utt.resolved();
+                }
+                // Only care about arrays
+                if (type instanceof ArrayType at) {
+                    resolved = at;
                     return true;
                 }
             }
@@ -99,6 +115,11 @@ sealed interface UnresolvedType extends TypeElement {
         }
 
         @Override
+        public boolean resolveFrom(TypeElement type) {
+            return false;
+        }
+
+        @Override
         public JavaType resolved() {
             return array.resolved() instanceof ArrayType at ? at.componentType() : null;
         }
@@ -119,7 +140,9 @@ sealed interface UnresolvedType extends TypeElement {
             return resolved < 0 ? UNRESOLVED_INT : resolved().externalize();
         }
 
-        public boolean resolveBooleanFrom(TypeElement type) {
+        @Override
+        public boolean resolveFrom(TypeElement type) {
+            // Only care about booleans
             if (resolved < 4) {
                 if (type instanceof UnresolvedType utt) {
                     type = utt.resolved();

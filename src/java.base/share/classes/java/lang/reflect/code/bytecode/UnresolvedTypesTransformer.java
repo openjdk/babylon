@@ -34,6 +34,7 @@ import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.type.PrimitiveType;
+import java.lang.reflect.code.type.VarType;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,12 +44,13 @@ import java.util.List;
 final class UnresolvedTypesTransformer {
 
     static CoreOp.FuncOp transform(CoreOp.FuncOp func) {
-        var unresolved = func.traverse(new ArrayList<Value>(), (q, e) -> {
+try {
+        ArrayList<Value> unresolved = func.traverse(new ArrayList<>(), (q, e) -> {
             switch (e) {
                 case Block b -> b.parameters().forEach(v -> {
-                   if (toResolve(v)) q.add(v);
+                   if (toResolve(v) != null) q.add(v);
                 });
-                case Op op when toResolve(op.result()) ->
+                case Op op when toResolve(op.result()) != null ->
                    q.add(op.result());
                 default -> {}
            }
@@ -77,16 +79,23 @@ final class UnresolvedTypesTransformer {
         return func.transform(blockParamTypesTransformer())
                    .transform(opTypesTransformer())
                    .transform(unifyOperandsTransformer());
+} catch (Throwable t) {
+    System.out.println(func.toText());
+    throw t;
+}
     }
 
-    private static boolean toResolve(Value v) {
-        return v != null && v.type() instanceof UnresolvedType;
+    private static UnresolvedType toResolve(Value v) {
+        return v == null ? null : switch (v.type()) {
+            case UnresolvedType ut -> ut;
+            case VarType vt when vt.valueType() instanceof UnresolvedType ut  -> ut;
+            default -> null;
+        };
     }
 
     private static boolean resolve(Value v) {
-        if (v == null || !(v.type() instanceof UnresolvedType ut)) {
-            return false;
-        }
+        UnresolvedType ut = toResolve(v);
+        if (ut == null) return false;
         boolean changed = false;
         for (Op.Result useRes : v.uses()) {
             Op op = useRes.op();
@@ -129,30 +138,46 @@ final class UnresolvedTypesTransformer {
                 }
             }
         }
-        if (ut instanceof UnresolvedType.Int ui) { // Need to look for booleans
-            if (v instanceof Block.Parameter bp) {
-                int bi = bp.index();
-                Block b = bp.declaringBlock();
-                for (Block pb : b.predecessors()) {
-                    for (Block.Reference r : pb.successors()) {
-                        if (r.targetBlock() == b) {
-                            var args = r.arguments();
-                            if (args.size() > bi && ui.resolveBooleanFrom(args.get(bi).type())) {
-                                return true;
-                            }
+        if (v instanceof Block.Parameter bp) {
+            int bi = bp.index();
+            Block b = bp.declaringBlock();
+            for (Block pb : b.predecessors()) {
+                for (Block.Reference r : pb.successors()) {
+                    if (r.targetBlock() == b) {
+                        var args = r.arguments();
+                        if (args.size() > bi && ut.resolveFrom(args.get(bi).type())) {
+                            return true;
                         }
                     }
                 }
-            } else if (v instanceof Op.Result or) {
-                changed |= switch (or.op()) {
-                    case CoreOp.UnaryOp uo ->
-                        ui.resolveBooleanFrom(uo.operands().getFirst().type());
-                    case CoreOp.BinaryOp bo ->
-                        ui.resolveBooleanFrom(bo.operands().getFirst().type())
-                        || ui.resolveBooleanFrom(bo.operands().get(1).type());
-                    default -> false;
-                };
             }
+        } else if (v instanceof Op.Result or) {
+            changed |= switch (or.op()) {
+                case CoreOp.UnaryOp uo ->
+                    ut.resolveFrom(uo.operands().getFirst().type());
+                case CoreOp.BinaryOp bo ->
+                    ut.resolveFrom(bo.operands().getFirst().type())
+                    || ut.resolveFrom(bo.operands().get(1).type());
+                case CoreOp.VarAccessOp.VarLoadOp vlo ->
+                    ut.resolveFrom(vlo.varType().valueType());
+                case CoreOp.VarOp vo ->
+                    resolveVarOpType(ut, vo);
+                default -> false;
+            };
+        }
+        return changed;
+    }
+
+    private static boolean resolveVarOpType(UnresolvedType ut, CoreOp.VarOp vo) {
+        boolean changed = ut.resolveFrom(vo.initOperand().type());
+        for (Op.Result varUses : vo.result().uses()) {
+            changed |= switch (varUses.op()) {
+                case CoreOp.VarAccessOp.VarLoadOp vlo ->
+                    ut.resolveTo(vlo.resultType());
+                case CoreOp.VarAccessOp.VarStoreOp vso ->
+                    ut.resolveFrom(vso.storeOperand().type());
+                default -> false;
+            };
         }
         return changed;
     }
