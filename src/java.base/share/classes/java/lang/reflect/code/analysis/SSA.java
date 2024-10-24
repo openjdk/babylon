@@ -27,7 +27,6 @@ package java.lang.reflect.code.analysis;
 
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.type.UnknownValueType;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;

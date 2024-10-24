@@ -480,8 +480,6 @@ public final class Interpreter {
             ClosureRecord cr = (ClosureRecord) values.get(0);
 
             return Interpreter.invoke(l, cr.op(), cr.capturedValues, values.subList(1, values.size()));
-        } else if (o instanceof CoreOp.UnknownValueOp uo) {
-            return VarBox.UINITIALIZED;
         } else if (o instanceof CoreOp.VarOp vo) {
             Object v = vo.isUninitialized()
                     ? VarBox.UINITIALIZED

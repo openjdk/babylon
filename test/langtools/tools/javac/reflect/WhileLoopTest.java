@@ -128,7 +128,7 @@ public class WhileLoopTest {
 
 
     @IR("""
-            func @"tes4" ()void -> {
+            func @"test4" ()void -> {
                   %0 : boolean = constant @"true";
                   %1 : java.lang.Boolean = invoke %0 @"java.lang.Boolean::valueOf(boolean)java.lang.Boolean";
                   %2 : Var<java.lang.Boolean> = var %1 @"b";

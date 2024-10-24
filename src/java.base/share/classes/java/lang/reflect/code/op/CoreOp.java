@@ -2134,45 +2134,6 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     }
 
     /**
-     * The unknown value operation, whose result can model the value of an uninitialized variable.
-     */
-    @OpFactory.OpDeclaration(UnknownValueOp.NAME)
-    public static final class UnknownValueOp extends CoreOp
-            implements Op.Pure {
-        public static final String NAME = "unknown.value";
-
-        final TypeElement type;
-
-        public UnknownValueOp(ExternalizedOp def) {
-            super(def);
-
-            this.type = def.resultType();
-        }
-
-        UnknownValueOp(UnknownValueOp that, CopyContext cc) {
-            super(that, cc);
-
-            this.type = that.type;
-        }
-
-        @Override
-        public UnknownValueOp transform(CopyContext cc, OpTransformer ot) {
-            return new UnknownValueOp(this, cc);
-        }
-
-        UnknownValueOp(TypeElement type) {
-            super(NAME, List.of());
-
-            this.type = UnknownValueType.unknownValueType(type);
-        }
-
-        @Override
-        public TypeElement resultType() {
-            return type;
-        }
-    }
-
-    /**
      * A runtime representation of a variable.
      *
      * @param <T> the type of the var's value.
@@ -4069,16 +4030,6 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      */
     public static CastOp cast(TypeElement resultType, JavaType t, Value v) {
         return new CastOp(resultType, t, v);
-    }
-
-    /**
-     * Creates an unknown value operation, whose result models the value of an uninitialized variable
-     *
-     * @param valueType the unknown value type's value type
-     * @return the unknown value operation.
-     */
-    public static UnknownValueOp unknownValue(TypeElement valueType) {
-        return new UnknownValueOp(valueType);
     }
 
     /**
