@@ -2163,7 +2163,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         UnknownValueOp(TypeElement type) {
             super(NAME, List.of());
 
-            this.type = UnknownValueType.undefinedType(type);
+            this.type = UnknownValueType.unknownValueType(type);
         }
 
         @Override

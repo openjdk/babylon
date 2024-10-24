@@ -52,7 +52,7 @@ public class UnknownValueType implements TypeElement {
      * @param valueType the unknown value type's value type.
      * @return an unknown value type.
      */
-    public static UnknownValueType undefinedType(TypeElement valueType) {
+    public static UnknownValueType unknownValueType(TypeElement valueType) {
         Objects.requireNonNull(valueType);
         return new UnknownValueType(valueType);
     }

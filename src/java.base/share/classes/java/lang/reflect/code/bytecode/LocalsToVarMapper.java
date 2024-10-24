@@ -240,7 +240,7 @@ final class LocalsToVarMapper {
     private final Map<Label, Frame> stackMap;
 
     /**
-     * Map of new object types (to resolve unitialized verification types in the stack map).
+     * Map of new object types (to resolve uninitialized verification types in the stack map).
      */
     private final Map<Label, ClassDesc> newMap;
 
@@ -483,7 +483,7 @@ final class LocalsToVarMapper {
 
     /**
      * {@return map of labels immediately preceding {@link NewObjectInstruction} to the object types}
-     * The map is important to resolve unitialized verification types in the stack map.
+     * The map is important to resolve uninitialized verification types in the stack map.
      * @param codeElements List of code elements to scan
      */
     private static Map<Label, ClassDesc> computeNewMap(List<CodeElement> codeElements) {

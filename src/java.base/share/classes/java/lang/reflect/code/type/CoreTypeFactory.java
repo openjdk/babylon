@@ -38,7 +38,7 @@ public final class CoreTypeFactory {
                         if (v == null) {
                             throw new IllegalArgumentException("Bad type: " + tree);
                         }
-                        yield UnknownValueType.undefinedType(v);
+                        yield UnknownValueType.unknownValueType(v);
                     }
                     case VarType.NAME -> {
                         if (tree.arguments().size() != 1) {

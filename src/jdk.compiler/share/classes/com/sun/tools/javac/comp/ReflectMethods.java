@@ -157,7 +157,8 @@ public class ReflectMethods extends TreeTranslator {
     // Cannot compute within constructor due to circular dependencies on bootstrap compilation
     // syms.objectType == null
     private Map<JavaType, Type> primitiveAndBoxTypeMap;
-    Map<JavaType, Type> primitiveAndBoxTypeMap() {
+    Map<
+            JavaType, Type> primitiveAndBoxTypeMap() {
         Map<JavaType, Type> m = primitiveAndBoxTypeMap;
         if (m == null) {
             m = primitiveAndBoxTypeMap = Map.ofEntries(
@@ -840,7 +841,7 @@ public class ReflectMethods extends TreeTranslator {
                 initOp = toValue(tree.init, tree.type);
                 result = append(CoreOp.var(tree.name.toString(), typeToTypeElement(tree.type), initOp));
             } else {
-                // If uninitialized, then the var's operand is the result of the undefined value operation
+                // If uninitialized, then the var's operand is the result of the unknown value operation
                 JavaType javaType = typeToTypeElement(tree.type);
                 initOp = append(CoreOp.unknownValue(javaType));
                 result = append(CoreOp.var(tree.name.toString(), javaType, initOp));
@@ -1370,7 +1371,7 @@ public class ReflectMethods extends TreeTranslator {
             // Create pattern var ops for pattern variables using the
             // builder associated with the nearest statement tree
             for (JCVariableDecl jcVar : variables) {
-                // @@@ use undefined value?
+                // @@@ use unknown value?
                 Value init = variablesStack.block.op(defaultValue(jcVar.type));
                 Op.Result op = variablesStack.block.op(CoreOp.var(jcVar.name.toString(), typeToTypeElement(jcVar.type), init));
                 variablesStack.localToOp.put(jcVar.sym, op);
