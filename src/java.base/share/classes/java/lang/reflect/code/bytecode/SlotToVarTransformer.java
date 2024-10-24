@@ -30,6 +30,7 @@ import java.lang.reflect.code.Block;
 import java.lang.reflect.code.CodeElement;
 import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.Op;
+import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.type.JavaType;
@@ -188,7 +189,12 @@ try {
                     if (sso.var.single) {
                         sso.var.value = val;
                     } else if (sso.var.value == null) {
-                        sso.var.value = block.op(CoreOp.var(val));
+                        TypeElement varType = switch (val.type()) {
+                            case UnresolvedType.Ref _ -> UnresolvedType.unresolvedRef();
+                            case UnresolvedType.Int _ -> UnresolvedType.unresolvedInt();
+                            default -> val.type();
+                        };
+                        sso.var.value = block.op(CoreOp.var(null, varType, val));
                     } else {
                         block.op(CoreOp.varStore(sso.var.value, val));
                     }
