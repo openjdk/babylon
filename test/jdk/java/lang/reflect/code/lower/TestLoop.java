@@ -83,25 +83,25 @@ public class TestLoop {
             func @"testForSSA" (%0 : int[])int -> {
                 %1 : int = constant @"0";
                 %2 : int = constant @"0";
-                branch ^block_0(%1, %2);
+                branch ^block_1(%2, %1);
 
-              ^block_0(%3 : int, %4 : int):
+              ^block_1(%3 : int, %4 : int):
                 %5 : int = array.length %0;
-                %6 : boolean = lt %4 %5;
-                cbranch %6 ^block_1 ^block_2;
+                %6 : boolean = lt %3 %5;
+                cbranch %6 ^block_2 ^block_4;
 
-              ^block_1:
-                %7 : int = array.load %0 %4;
-                %8 : int = add %3 %7;
+              ^block_2:
+                %7 : int = array.load %0 %3;
+                %8 : int = add %4 %7;
                 branch ^block_3;
 
               ^block_3:
                 %9 : int = constant @"1";
-                %10 : int = add %4 %9;
-                branch ^block_0(%8, %10);
+                %10 : int = add %3 %9;
+                branch ^block_1(%10, %8);
 
-              ^block_2:
-                return %3;
+              ^block_4:
+                return %4;
             };
             """, ssa = true)
     static int testForSSA(int[] a) {
