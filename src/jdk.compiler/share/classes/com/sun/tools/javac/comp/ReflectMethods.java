@@ -842,7 +842,7 @@ public class ReflectMethods extends TreeTranslator {
             } else {
                 // If uninitialized, then the var's operand is the result of the undefined value operation
                 JavaType javaType = typeToTypeElement(tree.type);
-                initOp = append(CoreOp.undefinedValue(javaType));
+                initOp = append(CoreOp.unknownValue(javaType));
                 result = append(CoreOp.var(tree.name.toString(), javaType, initOp));
             }
             stack.localToOp.put(tree.sym, result);

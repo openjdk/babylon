@@ -2134,36 +2134,36 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     }
 
     /**
-     * The undefined value operation, whose result can model the value of an uninitialized variable.
+     * The unknown value operation, whose result can model the value of an uninitialized variable.
      */
-    @OpFactory.OpDeclaration(UndefinedValueOp.NAME)
-    public static final class UndefinedValueOp extends CoreOp
+    @OpFactory.OpDeclaration(UnknownValueOp.NAME)
+    public static final class UnknownValueOp extends CoreOp
             implements Op.Pure {
-        public static final String NAME = "undefined.value";
+        public static final String NAME = "unknown.value";
 
         final TypeElement type;
 
-        public UndefinedValueOp(ExternalizedOp def) {
+        public UnknownValueOp(ExternalizedOp def) {
             super(def);
 
             this.type = def.resultType();
         }
 
-        UndefinedValueOp(UndefinedValueOp that, CopyContext cc) {
+        UnknownValueOp(UnknownValueOp that, CopyContext cc) {
             super(that, cc);
 
             this.type = that.type;
         }
 
         @Override
-        public UndefinedValueOp transform(CopyContext cc, OpTransformer ot) {
-            return new UndefinedValueOp(this, cc);
+        public UnknownValueOp transform(CopyContext cc, OpTransformer ot) {
+            return new UnknownValueOp(this, cc);
         }
 
-        UndefinedValueOp(TypeElement type) {
+        UnknownValueOp(TypeElement type) {
             super(NAME, List.of());
 
-            this.type = UndefinedType.undefinedType(type);
+            this.type = UnknownValueType.undefinedType(type);
         }
 
         @Override
@@ -2292,7 +2292,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         }
 
         public boolean isUnitialized() {
-            return initOperand().type() instanceof UndefinedType;
+            return initOperand().type() instanceof UnknownValueType;
         }
     }
 
@@ -4060,13 +4060,13 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     }
 
     /**
-     * Creates an undefined value operation, whose result models the value of an uninitialized variable
+     * Creates an unknown value operation, whose result models the value of an uninitialized variable
      *
-     * @param valueType the undefined type's value type
-     * @return the undefined operation.
+     * @param valueType the unknown value type's value type
+     * @return the unknown value operation.
      */
-    public static UndefinedValueOp undefinedValue(TypeElement valueType) {
-        return new UndefinedValueOp(valueType);
+    public static UnknownValueOp unknownValue(TypeElement valueType) {
+        return new UnknownValueOp(valueType);
     }
 
     /**

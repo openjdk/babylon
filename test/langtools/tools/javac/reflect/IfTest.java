@@ -325,7 +325,7 @@ public class IfTest {
     @IR("""
             func @"test9" (%0 : java.lang.Boolean)void -> {
                 %1 : Var<java.lang.Boolean> = var %0 @"b";
-                %2 : Undefined<int> = undefined.value;
+                %2 : UnknownValue<int> = unknown.value;
                 %3 : Var<int> = var %2 @"i";
                 java.if
                     ()boolean -> {

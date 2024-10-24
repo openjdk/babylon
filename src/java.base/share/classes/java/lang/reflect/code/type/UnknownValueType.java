@@ -5,22 +5,20 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * An undefined type.
- * <p>
- * A value whose type is the undefined type holds an unknown value whose type
- * is the undefined type's value type.
+ * An unknown value type. A value whose type is of the unknown value type has a value
+ * of some other type but that value is unknown.
  */
-public class UndefinedType implements TypeElement {
-    static final String NAME = "Undefined";
+public class UnknownValueType implements TypeElement {
+    static final String NAME = "UnknownValue";
 
     final TypeElement valueType;
 
-    UndefinedType(TypeElement valueType) {
+    UnknownValueType(TypeElement valueType) {
         this.valueType = valueType;
     }
 
     /**
-     * {@return the undefined type's value type}
+     * {@return the unknown value type's value type}
      */
     public TypeElement valueType() {
         return valueType;
@@ -39,7 +37,7 @@ public class UndefinedType implements TypeElement {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        return o instanceof UndefinedType that &&
+        return o instanceof UnknownValueType that &&
                 valueType.equals(that.valueType);
     }
 
@@ -49,13 +47,13 @@ public class UndefinedType implements TypeElement {
     }
 
     /**
-     * Constructs an undefined type.
+     * Constructs an unknown value type.
      *
-     * @param valueType the undefined type's value type.
-     * @return an undefined type.
+     * @param valueType the unknown value type's value type.
+     * @return an unknown value type.
      */
-    public static UndefinedType undefinedType(TypeElement valueType) {
+    public static UnknownValueType undefinedType(TypeElement valueType) {
         Objects.requireNonNull(valueType);
-        return new UndefinedType(valueType);
+        return new UnknownValueType(valueType);
     }
 }

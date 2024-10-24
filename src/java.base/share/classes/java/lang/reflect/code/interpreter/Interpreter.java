@@ -481,7 +481,7 @@ public final class Interpreter {
             ClosureRecord cr = (ClosureRecord) values.get(0);
 
             return Interpreter.invoke(l, cr.op(), cr.capturedValues, values.subList(1, values.size()));
-        } else if (o instanceof CoreOp.UndefinedValueOp uo) {
+        } else if (o instanceof CoreOp.UnknownValueOp uo) {
             return VarBox.UINITIALIZED;
         } else if (o instanceof CoreOp.VarOp vo) {
             return new VarBox(oc.getValue(o.operands().get(0)));

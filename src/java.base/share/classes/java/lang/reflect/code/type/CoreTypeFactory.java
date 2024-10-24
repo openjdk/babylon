@@ -29,7 +29,7 @@ public final class CoreTypeFactory {
             @Override
             public TypeElement constructType(TypeElement.ExternalizedTypeElement tree) {
                 return switch (tree.identifier()) {
-                    case UndefinedType.NAME -> {
+                    case UnknownValueType.NAME -> {
                         if (tree.arguments().size() != 1) {
                             throw new IllegalArgumentException();
                         }
@@ -38,7 +38,7 @@ public final class CoreTypeFactory {
                         if (v == null) {
                             throw new IllegalArgumentException("Bad type: " + tree);
                         }
-                        yield UndefinedType.undefinedType(v);
+                        yield UnknownValueType.undefinedType(v);
                     }
                     case VarType.NAME -> {
                         if (tree.arguments().size() != 1) {

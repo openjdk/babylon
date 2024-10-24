@@ -168,7 +168,7 @@ public class WhileLoopTest {
     @IR("""
             func @"test5" (%0 : int)void -> {
                 %1 : Var<int> = var %0 @"i";
-                %2 : Undefined<java.lang.Boolean> = undefined.value;
+                %2 : UnknownValue<java.lang.Boolean> = unknown.value;
                 %3 : Var<java.lang.Boolean> = var %2 @"b";
                 java.do.while
                     ()void -> {
