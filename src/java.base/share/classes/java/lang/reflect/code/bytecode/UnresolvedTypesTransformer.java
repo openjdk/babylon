@@ -102,13 +102,10 @@ try {
             int i = op.operands().indexOf(v);
             if (i >= 0) {
                 changed |= switch (op) {
-                    case CoreOp.BinaryTestOp bto ->
-                        ut.resolveTo(bto.operands().get(1 - i).type());
                     case CoreOp.LshlOp _, CoreOp.LshrOp _, CoreOp.AshrOp _ -> // Second operands are asymetric
                         i == 0 && ut.resolveTo(op.resultType());
                     case CoreOp.BinaryOp bo ->
-                        ut.resolveTo(bo.resultType())
-                        || ut.resolveTo(bo.operands().get(1 - i).type());
+                        ut.resolveTo(bo.resultType());
                     case CoreOp.InvokeOp io -> {
                         MethodRef id = io.invokeDescriptor();
                         if (io.hasReceiver()) {
