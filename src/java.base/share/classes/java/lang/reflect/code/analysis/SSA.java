@@ -134,6 +134,10 @@ public final class SSA {
     record VarOpBlockArgument(Block b, CoreOp.VarOp vop) {
     }
 
+    enum Uninitialized {
+        UNINITIALIZED;
+    }
+
     // @@@ Check for var uses in exception regions
     //     A variable cannot be converted to SAA form if the variable is stored
     //     to in an exception region and accessed from an associated catch region
@@ -186,7 +190,9 @@ public final class SSA {
 
                 if (op instanceof CoreOp.VarOp varOp) {
                     // Initial value assigned to variable
-                    Value current = op.operands().get(0);
+                    Object current = varOp.isUninitialized()
+                            ? Uninitialized.UNINITIALIZED
+                            : op.operands().get(0);
                     assert !variableStack.containsKey(varOp);
                     variableStack.computeIfAbsent(varOp, _ -> new ArrayDeque<>())
                             .push(current);
@@ -258,7 +264,7 @@ public final class SSA {
     }
 
     static Object throwIfUninitialized(CoreOp.VarOp vop, Object to) {
-        if (to instanceof Value v && v.type() instanceof UnknownValueType) {
+        if (to instanceof Uninitialized) {
             throw new IllegalStateException("Loading from uninitialized variable: " + vop);
         }
         return to;

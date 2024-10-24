@@ -51,8 +51,7 @@ public class ImplicitConversionTest {
     @CodeReflection
     @IR("""
             func @"test2" (%0: ImplicitConversionTest)void -> {
-                %1 : UnknownValue<long> = unknown.value;
-                %2 : Var<long> = var %1 @"x";
+                %2 : Var<long> = var @"x";
                 %3 : int = constant @"1";
                 %4 : long = conv %3;
                 var.store %2 %4;
@@ -86,8 +85,7 @@ public class ImplicitConversionTest {
     @IR("""
             func @"test4" (%0: ImplicitConversionTest, %1 : boolean)void -> {
                 %2 : Var<boolean> = var %1 @"cond";
-                %3 : UnknownValue<long> = unknown.value;
-                %4 : Var<long> = var %3 @"x";
+                %4 : Var<long> = var @"x";
                 %5 : long = java.cexpression
                     ^cond()boolean -> {
                         %6 : boolean = var.load %2;
@@ -115,8 +113,7 @@ public class ImplicitConversionTest {
     @IR("""
            func @"test5" (%0: ImplicitConversionTest, %1 : boolean)void -> {
                %2 : Var<boolean> = var %1 @"cond";
-               %3 : UnknownValue<long> = unknown.value;
-               %4 : Var<long> = var %3 @"x";
+               %4 : Var<long> = var @"x";
                %5 : long = java.cexpression
                    ^cond()boolean -> {
                        %6 : boolean = var.load %2;
@@ -144,8 +141,7 @@ public class ImplicitConversionTest {
     @IR("""
            func @"test6" (%0: ImplicitConversionTest, %1 : boolean)void -> {
                %2 : Var<boolean> = var %1 @"cond";
-               %3 : UnknownValue<long> = unknown.value;
-               %4 : Var<long> = var %3 @"x";
+               %4 : Var<long> = var @"x";
                %5 : int = java.cexpression
                    ^cond()boolean -> {
                        %6 : boolean = var.load %2;

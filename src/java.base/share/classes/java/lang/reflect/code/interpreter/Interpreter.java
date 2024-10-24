@@ -483,7 +483,10 @@ public final class Interpreter {
         } else if (o instanceof CoreOp.UnknownValueOp uo) {
             return VarBox.UINITIALIZED;
         } else if (o instanceof CoreOp.VarOp vo) {
-            return new VarBox(oc.getValue(o.operands().get(0)));
+            Object v = vo.isUninitialized()
+                    ? VarBox.UINITIALIZED
+                    : oc.getValue(o.operands().get(0));
+            return new VarBox(v);
         } else if (o instanceof CoreOp.VarAccessOp.VarLoadOp vlo) {
             // Cast to CoreOp.Var, since the instance may have originated as an external instance
             // via a captured value map

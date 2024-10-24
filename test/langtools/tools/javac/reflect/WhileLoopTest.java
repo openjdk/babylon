@@ -156,7 +156,7 @@ public class WhileLoopTest {
               };
             """)
     @CodeReflection
-    static void tes4() {
+    static void test4() {
         Boolean b = true;
         int i = 0;
         while (b) {
@@ -168,8 +168,7 @@ public class WhileLoopTest {
     @IR("""
             func @"test5" (%0 : int)void -> {
                 %1 : Var<int> = var %0 @"i";
-                %2 : UnknownValue<java.lang.Boolean> = unknown.value;
-                %3 : Var<java.lang.Boolean> = var %2 @"b";
+                %3 : Var<java.lang.Boolean> = var @"b";
                 java.do.while
                     ()void -> {
                         %4 : int = var.load %1;
