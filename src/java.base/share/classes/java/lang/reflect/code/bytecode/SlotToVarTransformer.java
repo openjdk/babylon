@@ -231,12 +231,12 @@ try {
     }
 
     private static boolean isDominatedByTheSameVar(SlotOp slotOp, ExcStackMap excMap) {
-        Set<Value> predecessors = new HashSet<>();
+        Set<Op.Result> predecessors = new HashSet<>();
         for (SlotOp pred : slotImmediatePredecessors(slotOp, excMap)) {
             if (pred.var != slotOp.var) {
                 return false;
             }
-            predecessors.add(pred.result());
+            if (pred != slotOp) predecessors.add(pred.result());
         }
         return slotOp.result().isDominatedBy(predecessors);
     }
