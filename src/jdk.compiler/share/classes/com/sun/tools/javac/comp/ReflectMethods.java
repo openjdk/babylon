@@ -157,8 +157,7 @@ public class ReflectMethods extends TreeTranslator {
     // Cannot compute within constructor due to circular dependencies on bootstrap compilation
     // syms.objectType == null
     private Map<JavaType, Type> primitiveAndBoxTypeMap;
-    Map<
-            JavaType, Type> primitiveAndBoxTypeMap() {
+    Map<JavaType, Type> primitiveAndBoxTypeMap() {
         Map<JavaType, Type> m = primitiveAndBoxTypeMap;
         if (m == null) {
             m = primitiveAndBoxTypeMap = Map.ofEntries(
