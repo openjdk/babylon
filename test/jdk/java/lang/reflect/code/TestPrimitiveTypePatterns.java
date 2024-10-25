@@ -232,6 +232,112 @@ public class TestPrimitiveTypePatterns {
         Assert.assertEquals(Interpreter.invoke(lf, Integer.MIN_VALUE), true);
     }
 
+    @CodeReflection
+    static boolean nr_unboxing(Number n) {
+        return n instanceof int _;
+    }
+
+    @Test
+    void test_nr_unboxing() {
+        FuncOp f = getFuncOp("nr_unboxing");
+        f.writeTo(System.out);
+
+        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        lf.writeTo(System.out);
+
+        Assert.assertEquals(Interpreter.invoke(lf, 1), true);
+        Assert.assertEquals(Interpreter.invoke(lf, (short) 1), false);
+    }
+
+    @CodeReflection
+    static boolean unboxing(Integer n) {
+        return n instanceof int _;
+    }
+
+    @Test
+    void test_unboxing() {
+        FuncOp f = getFuncOp("unboxing");
+        f.writeTo(System.out);
+
+        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        lf.writeTo(System.out);
+
+        Assert.assertEquals(Interpreter.invoke(lf, Integer.MAX_VALUE), true);
+        Assert.assertEquals(Interpreter.invoke(lf, Integer.MIN_VALUE), true);
+    }
+
+    @CodeReflection
+    static boolean unboxing_wp(Integer n) {
+        return n instanceof long _;
+    }
+
+    @Test
+    void test_unboxing_wp() {
+        FuncOp f = getFuncOp("unboxing_wp");
+        f.writeTo(System.out);
+
+        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        lf.writeTo(System.out);
+
+        Assert.assertEquals(Interpreter.invoke(lf, Integer.MAX_VALUE), true);
+        Assert.assertEquals(Interpreter.invoke(lf, Integer.MIN_VALUE), true);
+    }
+
+    @CodeReflection
+    static boolean wr(String s) {
+        return s instanceof Object _;
+    }
+
+    @Test
+    void test_wr() {
+        FuncOp f = getFuncOp("wr");
+        f.writeTo(System.out);
+
+        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        lf.writeTo(System.out);
+
+        Assert.assertEquals(Interpreter.invoke(lf, (Object) null), false);
+        Assert.assertEquals(Interpreter.invoke(lf, "str"), true);
+    }
+
+    @CodeReflection
+    static boolean ir(Float f) {
+        return f instanceof Float _;
+    }
+
+    @Test
+    void test_ir() {
+        FuncOp f = getFuncOp("ir");
+        f.writeTo(System.out);
+
+        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        lf.writeTo(System.out);
+
+        Assert.assertEquals(Interpreter.invoke(lf, Float.MAX_VALUE), true);
+        Assert.assertEquals(Interpreter.invoke(lf, Float.MIN_VALUE), true);
+        Assert.assertEquals(Interpreter.invoke(lf, Float.POSITIVE_INFINITY), true);
+        Assert.assertEquals(Interpreter.invoke(lf, Float.NEGATIVE_INFINITY), true);
+    }
+
+    @CodeReflection
+    static boolean nr(Number n) {
+        return n instanceof Double _;
+    }
+
+    @Test
+    void test_nr() {
+        FuncOp f = getFuncOp("nr");
+        f.writeTo(System.out);
+
+        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        lf.writeTo(System.out);
+
+        Assert.assertEquals(Interpreter.invoke(lf, Float.MAX_VALUE), false);
+        Assert.assertEquals(Interpreter.invoke(lf, Integer.MIN_VALUE), false);
+        Assert.assertEquals(Interpreter.invoke(lf, Double.POSITIVE_INFINITY), true);
+        Assert.assertEquals(Interpreter.invoke(lf, Double.NEGATIVE_INFINITY), true);
+    }
+
      private CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(this.getClass().getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
@@ -244,7 +350,7 @@ public class TestPrimitiveTypePatterns {
     static FuncOp buildTypePatternModel(JavaType sourceType, JavaType targetType) {
         // builds the model of:
         // static boolean f(sourceType a) { return a instanceof targetType _; }
-        return func("f", functionType(JavaType.BOOLEAN, sourceType)).body(fblock -> {
+        return func(sourceType + "_" + targetType, functionType(JavaType.BOOLEAN, sourceType)).body(fblock -> {
 
             var paramVal = fblock.parameters().get(0);
 

@@ -3174,7 +3174,17 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                     MethodRef mref = convMethodRef(s, t);
                     p = currentBlock.op(invoke(mref, target));
                     c = CoreOp.conv(targetType, target);
-                } else { // boxing,
+                } else if (isNarrowingRefConvFollowedByUnboxing(s, t)) {
+                    ClassType box = ((PrimitiveType) t).box().orElseThrow();
+                    p = currentBlock.op(CoreOp.instanceOf(box, target));
+                    c = invoke(MethodRef.method(box, t + "Value", t), target);
+                } else if (isUnboxing(s, t)) {
+                    p = currentBlock.op(CoreOp.constant(BOOLEAN, true));
+                    c = invoke(MethodRef.method(s, t + "Value", t), target);
+                } else if (isUnboxingFollowedByPrimitiveWidening(s, t)) {
+                    p = currentBlock.op(CoreOp.constant(BOOLEAN, true));
+                    c = invoke(MethodRef.method(s, t + "Value", t), target);
+                } else {
                     p = currentBlock.op(CoreOp.instanceOf(targetType, target));
                     c = CoreOp.cast(targetType, target);
                 }
@@ -3188,6 +3198,19 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 bindings.add(target);
 
                 return currentBlock;
+            }
+
+            private static boolean isUnboxingFollowedByPrimitiveWidening(TypeElement s, TypeElement t) {
+                return s instanceof ClassType ct && ct.unbox().isPresent() && t instanceof PrimitiveType pt &&
+                        !pt.box().orElseThrow().equals(s);
+            }
+
+            private static boolean isNarrowingRefConvFollowedByUnboxing(TypeElement s, TypeElement t) {
+                return s instanceof ClassType ct && ct.unbox().isEmpty() && t instanceof PrimitiveType;
+            }
+
+            private static boolean isUnboxing(TypeElement s, TypeElement t) {
+                return s instanceof ClassType && t instanceof PrimitiveType pt && pt.box().orElseThrow().equals(s);
             }
 
             private static boolean isIdentityPrimitiveConv(TypeElement s, TypeElement t) {
