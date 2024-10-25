@@ -174,8 +174,13 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
 
     @Override
     public T varDeclaration(C99HatBuildContext buildContext, VarDeclarationOpWrapper varDeclarationOpWrapper) {
-        type(varDeclarationOpWrapper.javaType()).space().identifier(varDeclarationOpWrapper.varName()).space().equals().space();
-        parencedence(buildContext, varDeclarationOpWrapper, varDeclarationOpWrapper.operandNAsResult(0).op());
+        if (varDeclarationOpWrapper.op().isUninitialized()) {
+            // Variable is uninitialized
+            type(varDeclarationOpWrapper.javaType()).space().identifier(varDeclarationOpWrapper.varName());
+        } else {
+            type(varDeclarationOpWrapper.javaType()).space().identifier(varDeclarationOpWrapper.varName()).space().equals().space();
+            parencedence(buildContext, varDeclarationOpWrapper, varDeclarationOpWrapper.operandNAsResult(0).op());
+        }
         return self();
     }
 
