@@ -3155,35 +3155,92 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 Block.Builder nextBlock = currentBlock.block();
 
                 // Check if instance of target type
-                Result p;
-                boolean patternWithPrimitive = false;
-                if (targetType instanceof PrimitiveType tt && target.type() instanceof PrimitiveType st) {
-                    patternWithPrimitive = true;
-                    if (SHORT.equals(st) || CHAR.equals(st)) {
-                        st = INT;
-                    }
-                    String s = capitalize(st.toString());
-                    String t = capitalize(tt.toString());
-                    String mn = "is%sTo%sExact".formatted(s, t);
-                    JavaType exactConversionSupport = JavaType.type(ClassDesc.of("java.lang.runtime.ExactConversionsSupport"));
-                    MethodRef mref = MethodRef.method(exactConversionSupport, mn, BOOLEAN, st);
+                Result p; // result of the type check
+                Op c; // op that perform conversion
+                TypeElement s = target.type();
+                TypeElement t = targetType;
+                if (isNarrowingPrimitiveConv(s, t)) {
+                    MethodRef mref = convMethodRef(s, t);
                     p = currentBlock.op(invoke(mref, target));
-                } else {
+                    c = CoreOp.conv(targetType, target);
+                } else if (isWideningPrimitiveConvAndNeedsCheck(s, t)) {
+                    MethodRef mref = convMethodRef(s, t);
+                    p = currentBlock.op(invoke(mref, target));
+                    c = CoreOp.conv(targetType, target);
+                } else if (isIdentityPrimitiveConv(s, t)) {
+                    p = currentBlock.op(constant(BOOLEAN, true));
+                    c = CoreOp.conv(targetType, target);
+                } else if (BYTE.equals(s) && CHAR.equals(t)) {
+                    MethodRef mref = convMethodRef(s, t);
+                    p = currentBlock.op(invoke(mref, target));
+                    c = CoreOp.conv(targetType, target);
+                } else { // boxing,
                     p = currentBlock.op(CoreOp.instanceOf(targetType, target));
+                    c = CoreOp.cast(targetType, target);
                 }
 
                 currentBlock.op(conditionalBranch(p, nextBlock.successor(), endNoMatchBlock.successor()));
 
                 currentBlock = nextBlock;
 
-                if (patternWithPrimitive) {
-                    target = currentBlock.op(CoreOp.conv(targetType, target));
-                } else {
-                    target = currentBlock.op(CoreOp.cast(targetType, target));
-                }
+                target = currentBlock.op(c);
+
                 bindings.add(target);
 
                 return currentBlock;
+            }
+
+            private static boolean isIdentityPrimitiveConv(TypeElement s, TypeElement t) {
+                return s instanceof PrimitiveType && t instanceof PrimitiveType && Objects.equals(s, t);
+            }
+
+            private static boolean isWideningPrimitiveConvAndNeedsCheck(TypeElement s, TypeElement t) {
+                return (INT.equals(s) && FLOAT.equals(t)) ||
+                        (LONG.equals(s) && FLOAT.equals(t)) ||
+                        (LONG.equals(s) && DOUBLE.equals(t));
+            }
+            private static MethodRef convMethodRef(TypeElement s, TypeElement t) {
+                if (BYTE.equals(s) || SHORT.equals(s) || CHAR.equals(s)) {
+                    s = INT;
+                }
+                String sn = capitalize(s.toString());
+                String tn = capitalize(t.toString());
+                String mn = "is%sTo%sExact".formatted(sn, tn);
+                JavaType exactConversionSupport = JavaType.type(ClassDesc.of("java.lang.runtime.ExactConversionsSupport"));
+                return MethodRef.method(exactConversionSupport, mn, BOOLEAN, s);
+            }
+
+            private static boolean isWideningPrimitiveConv(TypeElement s, TypeElement t) {
+                if (!(s instanceof PrimitiveType sp) || !(t instanceof PrimitiveType tp)) {
+                    return false;
+                }
+                List<PrimitiveType> l = List.of(BYTE, SHORT, CHAR, INT, LONG, FLOAT, DOUBLE);
+                if (BYTE.equals(s) && CHAR.equals(t)) {
+                    return false;
+                } else if (SHORT.equals(s) && CHAR.equals(t)) {
+                    return false;
+                }
+                int si = l.indexOf(s);
+                int ti = l.indexOf(t);
+                return si < ti;
+            }
+
+            private static boolean isNarrowingPrimitiveConv(TypeElement s, TypeElement t) { // s -> t
+                if (!(s instanceof PrimitiveType sp) || !(t instanceof PrimitiveType tp)) {
+                    return false;
+                }
+                List<PrimitiveType> l = List.of(BYTE, SHORT, CHAR, INT, LONG, FLOAT, DOUBLE);
+                int si = l.indexOf(s);
+                int ti = l.indexOf(t);
+                return ti < si || (SHORT.equals(s) && CHAR.equals(t));
+            }
+
+            private static boolean isNarrower(PrimitiveType s, PrimitiveType t) {
+                // byte and char ?
+                List<PrimitiveType> l = List.of(BOOLEAN, BYTE, SHORT, CHAR, INT, LONG, FLOAT, DOUBLE);
+                int si = l.indexOf(s);
+                int ti = l.indexOf(t);
+                return si != -1 && ti != -1 && si < ti;
             }
 
             private static String capitalize(String s) {

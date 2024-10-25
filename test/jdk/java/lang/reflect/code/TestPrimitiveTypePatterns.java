@@ -3,15 +3,20 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Method;
 import java.lang.reflect.code.Body;
 import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.reflect.code.interpreter.Interpreter;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.op.ExtendedOp;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.type.MethodRef;
+import java.lang.runtime.CodeReflection;
 import java.lang.runtime.ExactConversionsSupport;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 import static java.lang.reflect.code.op.CoreOp.*;
 import static java.lang.reflect.code.op.ExtendedOp.match;
@@ -158,6 +163,82 @@ public class TestPrimitiveTypePatterns {
         for (Object v : values) {
             Assert.assertEquals(Interpreter.invoke(lmodel, v), mh.invoke(v));
         }
+    }
+
+    @CodeReflection
+    static boolean ip(short s) {
+        return s instanceof short _;
+    }
+
+    @Test
+    void test_ip() {
+        FuncOp f = getFuncOp("ip");
+        f.writeTo(System.out);
+
+        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        lf.writeTo(System.out);
+
+        Assert.assertEquals(Interpreter.invoke(lf, Short.MAX_VALUE), true);
+    }
+
+    @CodeReflection
+    static boolean wnp(byte s) {
+        return s instanceof char _;
+    }
+
+    @Test
+    void test_wnp() {
+        FuncOp f = getFuncOp("wnp");
+        f.writeTo(System.out);
+
+        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        lf.writeTo(System.out);
+
+        Assert.assertEquals(Interpreter.invoke(lf, Byte.MAX_VALUE), true);
+        Assert.assertEquals(Interpreter.invoke(lf, Byte.MIN_VALUE), false);
+    }
+
+    @CodeReflection
+    static boolean b(int s) {
+        return s instanceof Integer _;
+    }
+
+    @Test
+    void test_b() {
+        FuncOp f = getFuncOp("b");
+        f.writeTo(System.out);
+
+        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        lf.writeTo(System.out);
+
+        Assert.assertEquals(Interpreter.invoke(lf, Integer.MAX_VALUE), true);
+        Assert.assertEquals(Interpreter.invoke(lf, Integer.MIN_VALUE), true);
+    }
+
+    @CodeReflection
+    static boolean bw(int s) {
+        return s instanceof Number _;
+    }
+
+    @Test
+    void test_bw() {
+        FuncOp f = getFuncOp("bw");
+        f.writeTo(System.out);
+
+        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        lf.writeTo(System.out);
+
+        Assert.assertEquals(Interpreter.invoke(lf, Integer.MAX_VALUE), true);
+        Assert.assertEquals(Interpreter.invoke(lf, Integer.MIN_VALUE), true);
+    }
+
+     private CoreOp.FuncOp getFuncOp(String name) {
+        Optional<Method> om = Stream.of(this.getClass().getDeclaredMethods())
+                .filter(m -> m.getName().equals(name))
+                .findFirst();
+
+        Method m = om.get();
+        return m.getCodeModel().get();
     }
 
     static FuncOp buildTypePatternModel(JavaType sourceType, JavaType targetType) {
