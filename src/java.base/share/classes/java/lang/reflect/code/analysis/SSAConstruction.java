@@ -70,8 +70,12 @@ public class SSAConstruction implements OpTransformer {
                 }
                 case CoreOp.VarAccessOp.VarStoreOp store ->
                         writeVariable(store.varOp(), store.parentBlock(), new Holder(store.storeOperand()));
-                case CoreOp.VarOp initialStore ->
-                        writeVariable(initialStore, initialStore.parentBlock(), new Holder(initialStore.initOperand()));
+                case CoreOp.VarOp initialStore -> {
+                    Val val = initialStore.isUninitialized()
+                            ? Uninitialized.VALUE
+                            : new Holder(initialStore.initOperand());
+                    writeVariable(initialStore, initialStore.parentBlock(), val);
+                }
                 case Op.Terminating _ -> {
                     Block block = op.parentBlock();
                     // handle the sealing, i.e. only now make this block a predecessor of its successors
@@ -183,6 +187,7 @@ public class SSAConstruction implements OpTransformer {
 
     private Value resolveValue(CopyContext context, Val val) {
         return switch (val) {
+            case Uninitialized _ -> throw new IllegalStateException("Uninitialized variable");
             case Holder holder -> context.getValueOrDefault(holder.value(), holder.value());
             case Phi phi -> {
                 List<Phi> phis = this.additionalParameters.get(phi.block());
@@ -251,6 +256,10 @@ public class SSAConstruction implements OpTransformer {
     }
 
     record Holder(Value value) implements Val {
+    }
+
+    enum Uninitialized implements Val {
+        VALUE;
     }
 
     record Phi(CoreOp.VarOp variable, Block block, List<Val> operands, Set<Object> users) implements Val {
