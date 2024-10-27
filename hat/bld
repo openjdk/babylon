@@ -31,7 +31,7 @@ void main(String[] args) throws IOException, InterruptedException, URISyntaxExce
    var hatDir = new Root();
    List.of(args).forEach(arg->println(arg));
 
-   withExpectedDirectory(hatDir.path(), "hat", hatProjectDir -> {
+   withExpectedDirectory(hatDir.subDir("hat"), hatProjectDir -> {
       var hatJavacOpts = new JavacBuilder().opts(
          "--source", "24",
          "--enable-preview",
@@ -43,7 +43,7 @@ void main(String[] args) throws IOException, InterruptedException, URISyntaxExce
 
       var hatExampleJavacConfig = new JavacBuilder().basedOn(hatJavacOpts).class_path(hatJarResult.jar);
 
-      withExpectedDirectory(hatDir.path(), "backends", backendsDir -> {
+      withExpectedDirectory(hatDir.subDir("backends"), backendsDir -> {
          subDirStream(backendsDir, "opencl", "ptx", "cuda", "mock")
              .map(backendDir -> new Project(hatDir.buildDir(), backendDir, "1.0"))
              .parallel()
@@ -60,62 +60,78 @@ void main(String[] args) throws IOException, InterruptedException, URISyntaxExce
       });
 
 
-      withExpectedDirectory(hatDir.path(), "examples", examplesDir ->
+      withExpectedDirectory(hatDir.subDir("examples"), examplesDir ->
          subDirStream(examplesDir, "blackscholes", "mandel", "squares", "heal", "violajones", "life")
              .map(exampleDir -> new Project(hatDir.buildDir(), exampleDir, "1.0"))
              .parallel()
              .forEach(project -> project.build("hat-example", hatExampleJavacConfig))
       );
 
-      withOptionalDirectory(hatDir.path(), "hattricks", hattricksDir -> {
+      withOptionalDirectory(hatDir.subDir("hattricks"), hattricksDir -> {
          subDirStream(hattricksDir, "chess", "view")
              .map(hattrickDir -> new Project(hatDir.buildDir(), hattrickDir, "1.0"))
              .parallel()
              .forEach(project -> project.build("hat-example", hatExampleJavacConfig));
 
 
-             withOptionalDirectory(hattricksDir, "nbody", nbody -> {
+             withOptionalDirectory(hattricksDir.resolve("nbody-extracted-cl"),nbodyExtractedCl -> {
                 var jextractedJava = mkdir(hatDir.buildDir().resolve("jextracted-java"));
                 var extractedOpenCLCode = jextractedJava.resolve("opencl");
                 if (!isDirectory(extractedOpenCLCode)) {
                    mkdir(extractedOpenCLCode);
+                   println("Extracting OpenCL API");
                    jextract($$ -> $$
                       .home(hatDir.requireJExtract())
-                      .cwd(nbody)
+                      .cwd(nbodyExtractedCl)
                       .output(jextractedJava)
                       .target_package("opencl")
-                      .when(os.isMac(), $$$ -> $$$
-                         .compile_flag("-F" + os.macAppLibFrameworks())
-                         .library(os.macFramework("OpenCL.framework/OpenCL"))
-                         .header(os.macFrameworkHeaderFile("OpenCL.framework/Headers/opencl.h"))
+                      .when(os instanceof OS.Mac,  $$$ -> $$$
+                         .compile_flag("-F" + ((OS.Mac)os).appLibFrameworks())
+                         .library(((OS.Mac)os).frameworkLibrary("OpenCL"))
+                         .header(((OS.Mac)os).frameworkHeader("OpenCL", "opencl.h"))
                       )
                    );
                 }
                 var extractedOpenGLCode = jextractedJava.resolve("opengl");
                 if (!isDirectory(extractedOpenGLCode)) {
                    mkdir(extractedOpenGLCode);
+                   println("Extracting OpenGL API");
                    jextract($$ -> $$
                       .home(hatDir.requireJExtract())
-                      .cwd(nbody)
+                      .cwd(nbodyExtractedCl)
                       .output(jextractedJava)
                       .target_package("opengl")
-                      .when(os.isMac(), $$$ -> $$$
-                         .compile_flag("-F" + os.macAppLibFrameworks())
-                         .library(
-                             os.macFramework("GLUT.framework/GLUT"),
-                             os.macFramework("OpenGL.framework/OpenGL")
-                         )
-                         .header(os.macFrameworkHeaderFile("GLUT.framework/Headers/glut.h"))
+                      .when(os instanceof OS.Mac, $$$ -> $$$
+                          .compile_flag("-F" + ((OS.Mac)os).libFrameworks())
+                          .library(
+                              ((OS.Mac)os).frameworkLibrary("GLUT"),
+                              ((OS.Mac)os).frameworkLibrary("OpenGL")
+                              )
+                          .header(((OS.Mac)os).frameworkHeader("GLUT","glut.h"))
                       )
+                      .when(os instanceof OS.Linux, $$$ -> {
+                      })
                    );
                 }
 
-                jar($ -> $
-                   .jar(hatDir.buildDir().resolve("hat-example-nbody-1.0.jar"))
-                   .path_list(nbody.resolve("src/main/resources"))
+                println("Building nbody-extracted-cl");
+                var nbodyJar =jar($ -> $
+                   .jar(hatDir.buildDir().resolve("hat-example-nbody-extracted-cl-1.0.jar"))
+                   .path_list(nbodyExtractedCl.resolve("src/main/resources"))
                    .javac($$ -> $$.basedOn(hatExampleJavacConfig)
-                       .source_path(nbody.resolve("src/main/java"), extractedOpenCLCode, extractedOpenGLCode)
+                       .source_path(nbodyExtractedCl.resolve("src/main/java"), extractedOpenCLCode, extractedOpenGLCode)
                    )
+                );
+
+                java($ -> $
+                   .vmopts(
+                       "--enable-preview",
+                       "--enable-native-access=ALL-UNNAMED",
+                       "--add-exports=java.base/jdk.internal=ALL-UNNAMED",
+                       "-XstartOnFirstThread"
+                    )
+                    .class_path(nbodyJar.jar)
+                    .main_class("nbody.Main")
                 );
              });
           });

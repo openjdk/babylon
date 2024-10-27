@@ -28,15 +28,17 @@ END_OF_LICENSE
 # First lets check if this script was sourced into a bash compatible shell
 
 if [ "${BASH_SOURCE[0]}" = "${0}" ]; then 
-   # We just bail if it was not sourced.. We want to set PATH and JAVA_HOME...
+   # We just bail if it was not sourced.. We want to set AND export PATH and JAVA_HOME...
    echo "You must source this file ..."
    echo "Using either "
    echo "    . ${0}"
    echo "or"
    echo "    source ${0}"
-   exit 1;  # this is ok because we were sourced 
+   exit 1;  # this is ok because we were not sourced 
 else
-  # Don't exit below here or you will trash the users shell ;)
+
+  # We were indeed sourced so don't exit below here or we will trash the users shell ;)
+  #    possibly loging them out 
 
   OS=$(uname -s )
   if [[ "$OS" == Linux ]]; then
@@ -61,13 +63,15 @@ else
   if [[ -z "${archtype}" || -z "${ostype}" ]]; then 
      echo "Can't determine archtype and/or ostype"
   else
-    # We expect the user to provide a value for BABYLON_JDK_HOME or we can locate one using ${PWD}/..
+    # We expect either 
+    #   The user provided a value for BABYLON_JDK_HOME
+    # or
+    #   We can locate one because we are a subdir of BABYLON using ${PWD}/..
 
-    # below is a verbose version of 
     # export BABYLON_JDK_HOME=${BABYLON_JDK_HOME:-$(realpath ${PWD}/..)}
 
     if [[ -z "${BABYLON_JDK_HOME}" ]]; then 
-       echo "No user supplied BABYLON_JDK_HOME var, we will try \${PWD}/.. = $(realpath ${PWD}/..)"
+       echo "No user provided BABYLON_JDK_HOME var, we will try \${PWD}/.. = $(realpath ${PWD}/..)"
        export BABYLON_JDK_HOME=$(realpath ${PWD}/..)
     else
        echo "Using user supplied BABYLON_JDK_HOME ${BABYLON_JDK_HOME}"
@@ -75,23 +79,27 @@ else
 
 
     if [[ -d "${BABYLON_JDK_HOME}/build" ]]; then
-      echo "\${BABYLON_JDK_HOME}/build seems ok!"
+      #echo "\${BABYLON_JDK_HOME}/build seems ok!"
       export JAVA_HOME=${BABYLON_JDK_HOME}/build/${ostype}-${archtype}-server-release/jdk
-      echo "exporting JAVA_HOME=${JAVA_HOME}"
+      #echo "exporting JAVA_HOME=${JAVA_HOME}"
       if echo ${PATH} | grep ${JAVA_HOME} >/dev/null ;then
-         echo "PATH already contains \${JAVA_HOME}/bin"
+         #echo "PATH already contains \${JAVA_HOME}/bin"
       else
          export SAFE_PATH=${PATH}
          echo "Adding \${JAVA_HOME}/bin prefix to PATH, SAFE_PATH contains previous value"
          export PATH=${JAVA_HOME}/bin:${PATH}
       fi
 
-      # Our java source launcher based build system needs bldr.bldr.jar so we create it here if needed. 
-      if [[ -f bldr/bldr.jar ]]; then 
+      if [[ ${1} = "clean" ]]; then 
+         rm -rf bldr/bldr.classes bldr/bldr.jar build maven-build thirdparty repoDir
+      fi 
+
+      # Our java source launcher based build system needs bldr/bldr.jar so we create it here if needed. 
+      if [[ ${1} != "clean" && -f bldr/bldr.jar ]]; then 
          echo "Found prebuilt bldr.jar"
       else
          mkdir -p bldr/classes
-         echo "Bootrapping bldr.jar"
+         echo "Bootrapping a build of bldr.jar"
          javac \
            --enable-preview \
            --source 24 \
