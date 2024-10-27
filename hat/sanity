@@ -31,7 +31,7 @@ import static bldr.Bldr.*;           // all the helpers are here
 void main(String[] args) throws IOException, InterruptedException, URISyntaxException {
      var hatDir = new Root();
      var rleParserDir = hatDir.path().resolve("examples/life/src/main/java/io");
-     subDirStream(hatDir.path(), "hat", "examples", "backends", "docs")
+     subDirStream(hatDir.path(), "hat", "examples", "backends", "docs", "bldr")
         .forEach(dir ->
            findTextFiles(dir, "java", "cpp", "h", "hpp", "md")
               .forEach(textFile -> {

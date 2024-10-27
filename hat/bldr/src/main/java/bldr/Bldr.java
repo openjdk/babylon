@@ -1058,10 +1058,10 @@ public class Bldr {
                                 cmake_minimum_required(VERSION 3.21)
                                 project(cmakeprobe)
                                 set(CMAKE_CXX_STANDARD 14)
-                                                        
+
                                 get_cmake_property(VarNames VARIABLES)
                                 #set(VARS_FILE ${CMAKE_SOURCE_DIR}/vars.txt)
-                                                       
+
                                 #file(WRITE ${VARS_FILE} "")
                                 foreach(VarName ${VarNames})
                                     message("${VarName}={<{${${VarName}}}>}\n")
