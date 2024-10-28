@@ -93,6 +93,10 @@ else
       if [[ ${1} = "clean" ]]; then 
          rm -rf build maven-build thirdparty repoDir
       fi 
+      if [[ ! -e bldr/Bldr.java ]]; then 
+         ln -s src/main/java/bldr/Bldr.java bldr/Bldr.java
+         echo "Created a symlink bldr/Bldr.java "
+      fi 
       echo "SUCCESS!"
     else
       echo "We expected either:-"
