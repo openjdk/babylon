@@ -91,24 +91,8 @@ else
       fi
 
       if [[ ${1} = "clean" ]]; then 
-         rm -rf bldr/bldr.classes bldr/bldr.jar build maven-build thirdparty repoDir
+         rm -rf build maven-build thirdparty repoDir
       fi 
-
-      # Our java source launcher based build system needs bldr/bldr.jar so we create it here if needed. 
-      if [[ ${1} != "clean" && -f bldr/bldr.jar ]]; then 
-         echo "Found prebuilt bldr.jar"
-      else
-         mkdir -p bldr/classes
-         echo "Bootrapping a build of bldr.jar"
-         javac \
-           --enable-preview \
-           --source 24 \
-           -d bldr/classes \
-           --source-path bldr/src/main/java \
-           bldr/src/main/java/bldr/Bldr.java
-  
-         jar -cf bldr/bldr.jar -C bldr/classes bldr 
-      fi
       echo "SUCCESS!"
     else
       echo "We expected either:-"

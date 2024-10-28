@@ -595,7 +595,7 @@ public class Bldr {
     }
 
     public static class Builder<T extends Builder<T>> {
-        T self() {
+        @SuppressWarnings("unchecked") T self() {
             return (T) this;
         }
 
@@ -1868,7 +1868,7 @@ public class Bldr {
     }
 
     //  https://stackoverflow.com/questions/23272861/how-to-call-testng-xml-from-java-main-method
-    public static void main(String[] args) throws Throwable {
+    public static void lomain(String[] args) throws Throwable {
         var hatDir = new Root(Path.of("/Users/grfrost/github/babylon-grfrost-fork/hat"));
 
         // varMap.entrySet().forEach(value->println("+"+value) );
