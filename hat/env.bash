@@ -83,7 +83,7 @@ else
       export JAVA_HOME=${BABYLON_JDK_HOME}/build/${ostype}-${archtype}-server-release/jdk
       #echo "exporting JAVA_HOME=${JAVA_HOME}"
       if echo ${PATH} | grep ${JAVA_HOME} >/dev/null ;then
-         #echo "PATH already contains \${JAVA_HOME}/bin"
+         echo "PATH already contains \${JAVA_HOME}/bin"
       else
          export SAFE_PATH=${PATH}
          echo "Adding \${JAVA_HOME}/bin prefix to PATH, SAFE_PATH contains previous value"
