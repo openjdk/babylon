@@ -3159,39 +3159,29 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 Op c; // op that perform conversion
                 TypeElement s = target.type();
                 TypeElement t = targetType;
-                if (isNarrowingPrimitiveConv(s, t)) {
-                    MethodRef mref = convMethodRef(s, t);
-                    p = currentBlock.op(invoke(mref, target));
-                    c = CoreOp.conv(targetType, target);
-                } else if (isWideningPrimitiveConv(s, t)) {
-                    boolean needsCheck;
-                    needsCheck = INT.equals(s) && FLOAT.equals(t);
-                    needsCheck = needsCheck || (LONG.equals(s) && FLOAT.equals(t));
-                    needsCheck = needsCheck || (LONG.equals(s) && DOUBLE.equals(t));
-                    if (needsCheck) {
-                        MethodRef mref = convMethodRef(s, t);
-                        p = currentBlock.op(invoke(mref, target));
+                if (t instanceof PrimitiveType pt) {
+                    if (s instanceof ClassType cs) {
+                        // unboxing conversions
+                        ClassType box;
+                        if (cs.unbox().isEmpty()) { // s not a boxed type
+                            box = pt.box().orElseThrow();
+                            p = currentBlock.op(CoreOp.instanceOf(box, target));
+                        } else {
+                            box = cs;
+                            p = currentBlock.op(constant(BOOLEAN, true));
+                        }
+                        c = invoke(MethodRef.method(box, t + "Value", t), target);
                     } else {
-                        p = currentBlock.op(constant(BOOLEAN, true));
+                        // primitive to primitive conversion
+                        if (isNarrowingPrimitiveConv(s, t) || isWideningPrimitiveConvThatNeedCheck(s, t)
+                                || (BYTE.equals(s) && CHAR.equals(t))) {
+                            MethodRef mref = convMethodRef(s, t);
+                            p = currentBlock.op(invoke(mref, target));
+                        } else {
+                            p = currentBlock.op(constant(BOOLEAN, true));
+                        }
+                        c = CoreOp.conv(targetType, target);
                     }
-                    c = CoreOp.conv(targetType, target);
-                } else if (isIdentityPrimitiveConv(s, t)) {
-                    p = currentBlock.op(constant(BOOLEAN, true));
-                    c = CoreOp.conv(targetType, target);
-                } else if (BYTE.equals(s) && CHAR.equals(t)) {
-                    MethodRef mref = convMethodRef(s, t);
-                    p = currentBlock.op(invoke(mref, target));
-                    c = CoreOp.conv(targetType, target);
-                } else if (isNarrowingRefConvFollowedByUnboxing(s, t)) {
-                    ClassType box = ((PrimitiveType) t).box().orElseThrow();
-                    p = currentBlock.op(CoreOp.instanceOf(box, target));
-                    c = invoke(MethodRef.method(box, t + "Value", t), target);
-                } else if (isUnboxing(s, t)) {
-                    p = currentBlock.op(CoreOp.constant(BOOLEAN, true));
-                    c = invoke(MethodRef.method(s, t + "Value", t), target);
-                } else if (isUnboxingFollowedByPrimitiveWidening(s, t)) {
-                    p = currentBlock.op(CoreOp.constant(BOOLEAN, true));
-                    c = invoke(MethodRef.method(s, t + "Value", t), target);
                 } else {
                     p = currentBlock.op(CoreOp.instanceOf(targetType, target));
                     c = CoreOp.cast(targetType, target);
@@ -3208,37 +3198,20 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 return currentBlock;
             }
 
-            private static boolean isUnboxingFollowedByPrimitiveWidening(TypeElement s, TypeElement t) {
-                return s instanceof ClassType ct && ct.unbox().isPresent() && t instanceof PrimitiveType pt &&
-                        !pt.box().orElseThrow().equals(s);
+            private static boolean isWideningPrimitiveConvThatNeedCheck(TypeElement s, TypeElement t) {
+                return (INT.equals(s) && FLOAT.equals(t))
+                        || (LONG.equals(s) && FLOAT.equals(t))
+                        || (LONG.equals(s) && DOUBLE.equals(t));
             }
 
-            private static boolean isNarrowingRefConvFollowedByUnboxing(TypeElement s, TypeElement t) {
-                return s instanceof ClassType ct && ct.unbox().isEmpty() && t instanceof PrimitiveType;
-            }
-
-            private static boolean isUnboxing(TypeElement s, TypeElement t) {
-                return s instanceof ClassType && t instanceof PrimitiveType pt && pt.box().orElseThrow().equals(s);
-            }
-
-            private static boolean isIdentityPrimitiveConv(TypeElement s, TypeElement t) {
-                return s instanceof PrimitiveType && t instanceof PrimitiveType && Objects.equals(s, t);
-            }
-
-            private static boolean isWideningPrimitiveConv(TypeElement s, TypeElement t) {
-                if (!(s instanceof PrimitiveType) || !(t instanceof PrimitiveType)) {
-                    return false;
-                }
-                if (BYTE.equals(s) && CHAR.equals(t)) {
-                    return false;
-                }
-                if (SHORT.equals(s) && CHAR.equals(t)) {
+            private static boolean isNarrowingPrimitiveConv(TypeElement s, TypeElement t) { // s -> t
+                if (!(s instanceof PrimitiveType sp) || !(t instanceof PrimitiveType tp)) {
                     return false;
                 }
                 List<PrimitiveType> l = List.of(BYTE, SHORT, CHAR, INT, LONG, FLOAT, DOUBLE);
                 int si = l.indexOf(s);
                 int ti = l.indexOf(t);
-                return si < ti;
+                return ti < si || (SHORT.equals(s) && CHAR.equals(t));
             }
 
             private static MethodRef convMethodRef(TypeElement s, TypeElement t) {
@@ -3250,16 +3223,6 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 String mn = "is%sTo%sExact".formatted(sn, tn);
                 JavaType exactConversionSupport = JavaType.type(ClassDesc.of("java.lang.runtime.ExactConversionsSupport"));
                 return MethodRef.method(exactConversionSupport, mn, BOOLEAN, s);
-            }
-
-            private static boolean isNarrowingPrimitiveConv(TypeElement s, TypeElement t) { // s -> t
-                if (!(s instanceof PrimitiveType sp) || !(t instanceof PrimitiveType tp)) {
-                    return false;
-                }
-                List<PrimitiveType> l = List.of(BYTE, SHORT, CHAR, INT, LONG, FLOAT, DOUBLE);
-                int si = l.indexOf(s);
-                int ti = l.indexOf(t);
-                return ti < si || (SHORT.equals(s) && CHAR.equals(t));
             }
 
             private static String capitalize(String s) {
