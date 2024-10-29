@@ -3163,9 +3163,17 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                     MethodRef mref = convMethodRef(s, t);
                     p = currentBlock.op(invoke(mref, target));
                     c = CoreOp.conv(targetType, target);
-                } else if (isWideningPrimitiveConvAndNeedsCheck(s, t)) {
-                    MethodRef mref = convMethodRef(s, t);
-                    p = currentBlock.op(invoke(mref, target));
+                } else if (isWideningPrimitiveConv(s, t)) {
+                    boolean needsCheck;
+                    needsCheck = INT.equals(s) && FLOAT.equals(t);
+                    needsCheck = needsCheck || (LONG.equals(s) && FLOAT.equals(t));
+                    needsCheck = needsCheck || (LONG.equals(s) && DOUBLE.equals(t));
+                    if (needsCheck) {
+                        MethodRef mref = convMethodRef(s, t);
+                        p = currentBlock.op(invoke(mref, target));
+                    } else {
+                        p = currentBlock.op(constant(BOOLEAN, true));
+                    }
                     c = CoreOp.conv(targetType, target);
                 } else if (isIdentityPrimitiveConv(s, t)) {
                     p = currentBlock.op(constant(BOOLEAN, true));
@@ -3217,11 +3225,22 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 return s instanceof PrimitiveType && t instanceof PrimitiveType && Objects.equals(s, t);
             }
 
-            private static boolean isWideningPrimitiveConvAndNeedsCheck(TypeElement s, TypeElement t) {
-                return (INT.equals(s) && FLOAT.equals(t)) ||
-                        (LONG.equals(s) && FLOAT.equals(t)) ||
-                        (LONG.equals(s) && DOUBLE.equals(t));
+            private static boolean isWideningPrimitiveConv(TypeElement s, TypeElement t) {
+                if (!(s instanceof PrimitiveType) || !(t instanceof PrimitiveType)) {
+                    return false;
+                }
+                if (BYTE.equals(s) && CHAR.equals(t)) {
+                    return false;
+                }
+                if (SHORT.equals(s) && CHAR.equals(t)) {
+                    return false;
+                }
+                List<PrimitiveType> l = List.of(BYTE, SHORT, CHAR, INT, LONG, FLOAT, DOUBLE);
+                int si = l.indexOf(s);
+                int ti = l.indexOf(t);
+                return si < ti;
             }
+
             private static MethodRef convMethodRef(TypeElement s, TypeElement t) {
                 if (BYTE.equals(s) || SHORT.equals(s) || CHAR.equals(s)) {
                     s = INT;

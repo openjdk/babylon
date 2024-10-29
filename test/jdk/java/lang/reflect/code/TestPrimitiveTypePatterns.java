@@ -338,6 +338,23 @@ public class TestPrimitiveTypePatterns {
         Assert.assertEquals(Interpreter.invoke(lf, Double.NEGATIVE_INFINITY), true);
     }
 
+    @CodeReflection
+    static boolean wp(int i) {
+        return i instanceof long _;
+    }
+
+    @Test
+    void test_wp() {
+        FuncOp f = getFuncOp("wp");
+        f.writeTo(System.out);
+
+        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        lf.writeTo(System.out);
+
+        Assert.assertEquals(Interpreter.invoke(lf, Integer.MAX_VALUE), true);
+        Assert.assertEquals(Interpreter.invoke(lf, Integer.MIN_VALUE), true);
+    }
+
      private CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(this.getClass().getDeclaredMethods())
                 .filter(m -> m.getName().equals(name))
