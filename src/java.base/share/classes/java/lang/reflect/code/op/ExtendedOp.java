@@ -3152,10 +3152,8 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                                                   TypePatternOp tpOp, Value target) {
                 TypeElement targetType = tpOp.targetType();
 
-                Block.Builder nextBlock = currentBlock.block();
-
                 // Check if instance of target type
-                Result p; // result of the type check
+                Op p = null; // op that perform type check
                 Op c; // op that perform conversion
                 TypeElement s = target.type();
                 TypeElement t = targetType;
@@ -3165,10 +3163,9 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                         ClassType box;
                         if (cs.unbox().isEmpty()) { // s not a boxed type
                             box = pt.box().orElseThrow();
-                            p = currentBlock.op(CoreOp.instanceOf(box, target));
+                            p = CoreOp.instanceOf(box, target);
                         } else {
                             box = cs;
-                            p = currentBlock.op(constant(BOOLEAN, true));
                         }
                         c = invoke(MethodRef.method(box, t + "Value", t), target);
                     } else {
@@ -3176,20 +3173,20 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                         if (isNarrowingPrimitiveConv(s, t) || isWideningPrimitiveConvThatNeedCheck(s, t)
                                 || (BYTE.equals(s) && CHAR.equals(t))) {
                             MethodRef mref = convMethodRef(s, t);
-                            p = currentBlock.op(invoke(mref, target));
-                        } else {
-                            p = currentBlock.op(constant(BOOLEAN, true));
+                            p = invoke(mref, target);
                         }
                         c = CoreOp.conv(targetType, target);
                     }
                 } else {
-                    p = currentBlock.op(CoreOp.instanceOf(targetType, target));
+                    p = CoreOp.instanceOf(targetType, target);
                     c = CoreOp.cast(targetType, target);
                 }
 
-                currentBlock.op(conditionalBranch(p, nextBlock.successor(), endNoMatchBlock.successor()));
-
-                currentBlock = nextBlock;
+                if (p != null) {
+                    Block.Builder nextBlock = currentBlock.block();
+                    currentBlock.op(conditionalBranch(currentBlock.op(p), nextBlock.successor(), endNoMatchBlock.successor()));
+                    currentBlock = nextBlock;
+                }
 
                 target = currentBlock.op(c);
 
