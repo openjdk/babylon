@@ -3233,21 +3233,6 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 return MethodRef.method(exactConversionSupport, mn, BOOLEAN, s);
             }
 
-            private static boolean isWideningPrimitiveConv(TypeElement s, TypeElement t) {
-                if (!(s instanceof PrimitiveType sp) || !(t instanceof PrimitiveType tp)) {
-                    return false;
-                }
-                List<PrimitiveType> l = List.of(BYTE, SHORT, CHAR, INT, LONG, FLOAT, DOUBLE);
-                if (BYTE.equals(s) && CHAR.equals(t)) {
-                    return false;
-                } else if (SHORT.equals(s) && CHAR.equals(t)) {
-                    return false;
-                }
-                int si = l.indexOf(s);
-                int ti = l.indexOf(t);
-                return si < ti;
-            }
-
             private static boolean isNarrowingPrimitiveConv(TypeElement s, TypeElement t) { // s -> t
                 if (!(s instanceof PrimitiveType sp) || !(t instanceof PrimitiveType tp)) {
                     return false;
@@ -3256,14 +3241,6 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 int si = l.indexOf(s);
                 int ti = l.indexOf(t);
                 return ti < si || (SHORT.equals(s) && CHAR.equals(t));
-            }
-
-            private static boolean isNarrower(PrimitiveType s, PrimitiveType t) {
-                // byte and char ?
-                List<PrimitiveType> l = List.of(BOOLEAN, BYTE, SHORT, CHAR, INT, LONG, FLOAT, DOUBLE);
-                int si = l.indexOf(s);
-                int ti = l.indexOf(t);
-                return si != -1 && ti != -1 && si < ti;
             }
 
             private static String capitalize(String s) {
