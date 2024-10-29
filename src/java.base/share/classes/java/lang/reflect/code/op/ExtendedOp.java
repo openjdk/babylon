@@ -3172,6 +3172,8 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                         // primitive to primitive conversion
                         if (isNarrowingPrimitiveConv(s, t) || isWideningPrimitiveConvThatNeedCheck(s, t)
                                 || (BYTE.equals(s) && CHAR.equals(t))) {
+                        PrimitiveType ps = ((PrimitiveType) s);
+                        if (isNarrowingPrimitiveConv(ps, pt) || isWideningPrimitiveConvThatNeedCheck(s, t)
                             MethodRef mref = convMethodRef(s, t);
                             p = invoke(mref, target);
                         }
@@ -3201,14 +3203,18 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                         || (LONG.equals(s) && DOUBLE.equals(t));
             }
 
-            private static boolean isNarrowingPrimitiveConv(TypeElement s, TypeElement t) { // s -> t
-                if (!(s instanceof PrimitiveType sp) || !(t instanceof PrimitiveType tp)) {
-                    return false;
-                }
-                List<PrimitiveType> l = List.of(BYTE, SHORT, CHAR, INT, LONG, FLOAT, DOUBLE);
-                int si = l.indexOf(s);
-                int ti = l.indexOf(t);
-                return ti < si || (SHORT.equals(s) && CHAR.equals(t));
+            // s -> t is narrowing if order(t) <= order(s)
+            private final static Map<PrimitiveType, Integer> narrowingOrder = Map.of(
+                    BYTE, 1,
+                    SHORT, 2,
+                    CHAR, 2,
+                    INT, 3,
+                    LONG, 4,
+                    FLOAT, 5,
+                    DOUBLE, 6
+            );
+            private static boolean isNarrowingPrimitiveConv(PrimitiveType s, PrimitiveType t) {
+                return narrowingOrder.get(t) <= narrowingOrder.get(s);
             }
 
             private static MethodRef convMethodRef(TypeElement s, TypeElement t) {
