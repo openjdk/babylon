@@ -1399,83 +1399,26 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     @OpFactory.OpDeclaration(InvokeOp.NAME)
     public static final class InvokeOp extends CoreOp
             implements ReflectiveOp, JavaExpression, JavaStatement {
-
-        /**
-         * The kind of invocation.
-         */
-        public enum InvokeKind {
-            /**
-             * An invocation on a class (static) method.
-             */
-            STATIC,
-            /**
-             * An invocation on an instance method.
-             */
-            INSTANCE,
-            /**
-             * A super invocation on an instance method.
-             */
-            SUPER
-        }
-
         public static final String NAME = "invoke";
         public static final String ATTRIBUTE_INVOKE_DESCRIPTOR = NAME + ".descriptor";
-        public static final String ATTRIBUTE_INVOKE_KIND = NAME + ".kind";
-        public static final String ATTRIBUTE_INVOKE_VARARGS = NAME + ".varargs";
 
-        final InvokeKind invokeKind;
-        final boolean isVarArgs;
         final MethodRef invokeDescriptor;
         final TypeElement resultType;
 
         public static InvokeOp create(ExternalizedOp def) {
-            // Required attribute
             MethodRef invokeDescriptor = def.extractAttributeValue(ATTRIBUTE_INVOKE_DESCRIPTOR,
                     true, v -> switch (v) {
                         case String s -> MethodRef.ofString(s);
                         case MethodRef md -> md;
-                        case null, default ->
-                                throw new UnsupportedOperationException("Unsupported invoke descriptor value:" + v);
+                        case null, default -> throw new UnsupportedOperationException("Unsupported invoke descriptor value:" + v);
                     });
 
-            // If not present defaults to false
-            boolean isVarArgs = def.extractAttributeValue(ATTRIBUTE_INVOKE_VARARGS,
-                    false, v -> switch (v) {
-                        case String s -> Boolean.valueOf(s);
-                        case Boolean b -> b;
-                        case null, default -> false;
-                    });
-
-            // If not present and is not varargs defaults to class or instance invocation
-            // based on number of operands and parameters
-            InvokeKind ik = def.extractAttributeValue(ATTRIBUTE_INVOKE_KIND,
-                    false, v -> switch (v) {
-                        case String s -> InvokeKind.valueOf(s);
-                        case InvokeKind k -> k;
-                        case null, default -> {
-                            if (isVarArgs) {
-                                // If varargs then we cannot infer invoke kind
-                                throw new UnsupportedOperationException("Unsupported invoke kind value:" + v);
-                            }
-                            int paramCount = invokeDescriptor.type().parameterTypes().size();
-                            int argCount = def.operands().size();
-                            yield (argCount == paramCount + 1)
-                                    ? InvokeKind.INSTANCE
-                                    : InvokeKind.STATIC;
-                        }
-                    });
-
-
-            return new InvokeOp(def, ik, isVarArgs, invokeDescriptor);
+            return new InvokeOp(def, invokeDescriptor);
         }
 
-        InvokeOp(ExternalizedOp def, InvokeKind invokeKind, boolean isVarArgs, MethodRef invokeDescriptor) {
+        InvokeOp(ExternalizedOp def, MethodRef invokeDescriptor) {
             super(def);
 
-            validateArgCount(invokeKind, isVarArgs, invokeDescriptor, def.operands());
-
-            this.invokeKind = invokeKind;
-            this.isVarArgs = isVarArgs;
             this.invokeDescriptor = invokeDescriptor;
             this.resultType = def.resultType();
         }
@@ -1483,8 +1426,6 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         InvokeOp(InvokeOp that, CopyContext cc) {
             super(that, cc);
 
-            this.invokeKind = that.invokeKind;
-            this.isVarArgs = that.isVarArgs;
             this.invokeDescriptor = that.invokeDescriptor;
             this.resultType = that.resultType;
         }
@@ -1494,70 +1435,30 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             return new InvokeOp(this, cc);
         }
 
-        InvokeOp(InvokeKind invokeKind, boolean isVarArgs, TypeElement resultType, MethodRef invokeDescriptor, List<Value> args) {
-            super(NAME, args);
-
-            validateArgCount(invokeKind, isVarArgs, invokeDescriptor, args);
-
-            this.invokeKind = invokeKind;
-            this.isVarArgs = isVarArgs;
-            this.invokeDescriptor = invokeDescriptor;
-            this.resultType = resultType;
+        InvokeOp(MethodRef invokeDescriptor, List<Value> args) {
+            this(invokeDescriptor.type().returnType(), invokeDescriptor, args);
         }
 
-        static void validateArgCount(InvokeKind invokeKind, boolean isVarArgs, MethodRef invokeDescriptor, List<Value> operands) {
-            int paramCount = invokeDescriptor.type().parameterTypes().size();
-            int argCount = operands.size() - (invokeKind == InvokeKind.STATIC ? 0 : 1);
-            if ((!isVarArgs && argCount != paramCount)
-                    || argCount < paramCount - 1) {
-                throw new IllegalArgumentException(invokeKind + " " + isVarArgs + " " + invokeDescriptor);
-            }
+        InvokeOp(TypeElement resultType, MethodRef invokeDescriptor, List<Value> args) {
+            super(NAME, args);
+
+            this.invokeDescriptor = invokeDescriptor;
+            this.resultType = resultType;
         }
 
         @Override
         public Map<String, Object> attributes() {
             HashMap<String, Object> m = new HashMap<>(super.attributes());
             m.put("", invokeDescriptor);
-            if (isVarArgs) {
-                // If varargs then we need to declare the invoke.kind attribute
-                // Given a method `A::m(A... more)` and an invocation with one
-                // operand, we don't know if that operand corresponds to the
-                // receiver or a method argument
-                m.put(ATTRIBUTE_INVOKE_KIND, invokeKind);
-                m.put(ATTRIBUTE_INVOKE_VARARGS, isVarArgs);
-            } else if (invokeKind == InvokeKind.SUPER) {
-                m.put(ATTRIBUTE_INVOKE_KIND, invokeKind);
-            }
             return Collections.unmodifiableMap(m);
-        }
-
-        public InvokeKind invokeKind() {
-            return invokeKind;
-        }
-
-        public boolean isVarArgs() {
-            return isVarArgs;
         }
 
         public MethodRef invokeDescriptor() {
             return invokeDescriptor;
         }
 
-        // @@@ remove?
         public boolean hasReceiver() {
-            return invokeKind != InvokeKind.STATIC;
-        }
-
-        public List<Value> varArgOperands() {
-            if (!isVarArgs) {
-                return null;
-            }
-
-            int operandCount = operands().size();
-            int argCount = operandCount - (invokeKind == InvokeKind.STATIC ? 0 : 1);
-            int paramCount = invokeDescriptor.type().parameterTypes().size();
-            int varArgCount = argCount - (paramCount - 1);
-            return operands().subList(operandCount - varArgCount, operandCount);
+            return operands().size() != invokeDescriptor().type().parameterTypes().size();
         }
 
         @Override
@@ -2133,6 +2034,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         }
     }
 
+
     /**
      * A runtime representation of a variable.
      *
@@ -2172,14 +2074,14 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         final VarType resultType;
 
         public static VarOp create(ExternalizedOp def) {
-            if (def.operands().size() > 1) {
-                throw new IllegalStateException("Operation must have zero or one operand");
+            if (def.operands().size() != 1) {
+                throw new IllegalStateException("Operation must have one operand");
             }
 
             String name = def.extractAttributeValue(ATTRIBUTE_NAME, true,
                     v -> switch (v) {
                         case String s -> s;
-                        case null -> "";
+                        case null -> null;
                         default -> throw new UnsupportedOperationException("Unsupported var name value:" + v);
                     });
             return new VarOp(def, name);
@@ -2201,7 +2103,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         }
 
         boolean isResultTypeOverridable() {
-            return !isUninitialized() && resultType().valueType().equals(initOperand().type());
+            return resultType().valueType().equals(initOperand().type());
         }
 
         @Override
@@ -2216,22 +2118,13 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         VarOp(String varName, TypeElement type, Value init) {
             super(NAME, List.of(init));
 
-            this.varName =  varName == null ? "" : varName;
-            this.resultType = VarType.varType(type);
-        }
-
-        // @@@ This and the above constructor can be merged when
-        // statements before super can be used in the jdk.compiler module
-        VarOp(String varName, TypeElement type) {
-            super(NAME, List.of());
-
-            this.varName =  varName == null ? "" : varName;
+            this.varName = varName;
             this.resultType = VarType.varType(type);
         }
 
         @Override
         public Map<String, Object> attributes() {
-            if (isUnnamedVariable()) {
+            if (varName == null) {
                 return super.attributes();
             }
 
@@ -2241,9 +2134,6 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         }
 
         public Value initOperand() {
-            if (operands().isEmpty()) {
-                throw new IllegalStateException("Uninitialized variable");
-            }
             return operands().getFirst();
         }
 
@@ -2258,14 +2148,6 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         @Override
         public VarType resultType() {
             return resultType;
-        }
-
-        public boolean isUnnamedVariable() {
-            return varName.isEmpty();
-        }
-
-        public boolean isUninitialized() {
-            return operands().isEmpty();
         }
     }
 
@@ -2580,6 +2462,19 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         }
     }
 
+    // @@@ Sealed
+    // Synthetic/hidden type that is the result type of an ExceptionRegionStart operation
+    // and is an operand of an ExceptionRegionEnd operation
+
+    /**
+     * A synthetic exception region type, that is the operation result-type of an exception region
+     * start operation.
+     */
+    // @@@: Create as new type element
+    public interface ExceptionRegion {
+        TypeElement EXCEPTION_REGION_TYPE = JavaType.type(ExceptionRegion.class);
+    }
+
     /**
      * The exception region start operation.
      */
@@ -2640,7 +2535,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
         @Override
         public TypeElement resultType() {
-            return JavaType.VOID;
+            return ExceptionRegion.EXCEPTION_REGION_TYPE;
         }
     }
 
@@ -2652,24 +2547,26 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             implements Op.BlockTerminating {
         public static final String NAME = "exception.region.exit";
 
-        // First successor is the non-exceptional successor whose target indicates
-        // the first block following the exception region.
-        final List<Block.Reference> s;
+        final Block.Reference end;
 
         public ExceptionRegionExit(ExternalizedOp def) {
             super(def);
 
-            if (def.successors().size() < 2) {
-                throw new IllegalArgumentException("Operation must have two or more successors" + def.name());
+            if (def.operands().size() != 1) {
+                throw new IllegalArgumentException("Operation must have one operand" + def.name());
             }
 
-            this.s = List.copyOf(def.successors());
+            if (def.successors().size() != 1) {
+                throw new IllegalArgumentException("Operation must have one successor" + def.name());
+            }
+
+            this.end = def.successors().get(0);
         }
 
         ExceptionRegionExit(ExceptionRegionExit that, CopyContext cc) {
             super(that, cc);
 
-            this.s = that.s.stream().map(cc::getSuccessorOrCreate).toList();
+            this.end = cc.getSuccessorOrCreate(that.end);
         }
 
         @Override
@@ -2677,27 +2574,36 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             return new ExceptionRegionExit(this, cc);
         }
 
-        ExceptionRegionExit(List<Block.Reference> s) {
-            super(NAME, List.of());
+        ExceptionRegionExit(Value exceptionRegion, Block.Reference end) {
+            super(NAME, checkValue(exceptionRegion));
 
-            if (s.size() < 2) {
-                throw new IllegalArgumentException("Operation must have two or more successors" + opName());
+            this.end = end;
+        }
+
+        static List<Value> checkValue(Value er) {
+            if (!(er instanceof Result or && or.op() instanceof ExceptionRegionEnter)) {
+                throw new IllegalArgumentException(
+                        "Operand not the result of an exception.region.start operation: " + er);
             }
 
-            this.s = List.copyOf(s);
+            return List.of(er);
         }
 
         @Override
         public List<Block.Reference> successors() {
-            return s;
+            return List.of(end);
         }
 
         public Block.Reference end() {
-            return s.get(0);
+            return end;
         }
 
-        public List<Block.Reference> catchBlocks() {
-            return s.subList(1, s.size());
+        public ExceptionRegionEnter regionStart() {
+            if (operands().get(0) instanceof Result or &&
+                    or.op() instanceof ExceptionRegionEnter ers) {
+                return ers;
+            }
+            throw new InternalError("Should not reach here");
         }
 
         @Override
@@ -3591,26 +3497,12 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     /**
      * Creates an exception region exit operation
      *
+     * @param exceptionRegion the exception region to be exited
      * @param end             the block to which control is transferred after the exception region is exited
-     * @param catchers the blocks handling exceptions thrown by the region block
      * @return the exception region exit operation
      */
-    public static ExceptionRegionExit exceptionRegionExit(Block.Reference end, Block.Reference... catchers) {
-        return exceptionRegionExit(end, List.of(catchers));
-    }
-
-    /**
-     * Creates an exception region exit operation
-     *
-     * @param end             the block to which control is transferred after the exception region is exited
-     * @param catchers the blocks handling exceptions thrown by the region block
-     * @return the exception region exit operation
-     */
-    public static ExceptionRegionExit exceptionRegionExit(Block.Reference end, List<Block.Reference> catchers) {
-        List<Block.Reference> s = new ArrayList<>();
-        s.add(end);
-        s.addAll(catchers);
-        return new ExceptionRegionExit(s);
+    public static ExceptionRegionExit exceptionRegionExit(Value exceptionRegion, Block.Reference end) {
+        return new ExceptionRegionExit(exceptionRegion, end);
     }
 
     /**
@@ -3723,107 +3615,49 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     }
 
     /**
-     * Creates an invoke operation modeling an invocation to an
-     * instance or static (class) method with no variable arguments.
-     * <p>
-     * The invoke kind of the invoke operation is determined by
-     * comparing the argument count with the invoke descriptor's
-     * parameter count. If they are equal then the invoke kind is
-     * {@link InvokeOp.InvokeKind#STATIC static}. If the parameter count
-     * plus one is equal to the argument count then the invoke kind
-     * is {@link InvokeOp.InvokeKind#STATIC instance}.
-     * <p>
-     * The invoke return type is the invoke descriptors return type.
+     * Creates an invoke operation.
      *
-     * @param invokeDescriptor the invoke descriptor
+     * @param invokeDescriptor the invocation descriptor
      * @param args             the invoke parameters
      * @return the invoke operation
      */
     public static InvokeOp invoke(MethodRef invokeDescriptor, Value... args) {
-        return invoke(invokeDescriptor, List.of(args));
+        return new InvokeOp(invokeDescriptor, List.of(args));
     }
 
     /**
-     * Creates an invoke operation modeling an invocation to an
-     * instance or static (class) method with no variable arguments.
-     * <p>
-     * The invoke kind of the invoke operation is determined by
-     * comparing the argument count with the invoke descriptor's
-     * parameter count. If they are equal then the invoke kind is
-     * {@link InvokeOp.InvokeKind#STATIC static}. If the parameter count
-     * plus one is equal to the argument count then the invoke kind
-     * is {@link InvokeOp.InvokeKind#STATIC instance}.
-     * <p>
-     * The invoke return type is the invoke descriptors return type.
+     * Creates an invoke operation.
      *
-     * @param invokeDescriptor the invoke descriptor
-     * @param args             the invoke arguments
+     * @param invokeDescriptor the invocation descriptor
+     * @param args             the invoke parameters
      * @return the invoke operation
      */
     public static InvokeOp invoke(MethodRef invokeDescriptor, List<Value> args) {
-        return invoke(invokeDescriptor.type().returnType(), invokeDescriptor, args);
+        return new InvokeOp(invokeDescriptor, args);
     }
 
     /**
-     * Creates an invoke operation modeling an invocation to an
-     * instance or static (class) method with no variable arguments.
-     * <p>
-     * The invoke kind of the invoke operation is determined by
-     * comparing the argument count with the invoke descriptor's
-     * parameter count. If they are equal then the invoke kind is
-     * {@link InvokeOp.InvokeKind#STATIC static}. If the parameter count
-     * plus one is equal to the argument count then the invoke kind
-     * is {@link InvokeOp.InvokeKind#STATIC instance}.
+     * Creates an invoke operation.
      *
-     * @param returnType       the invoke return type
-     * @param invokeDescriptor the invoke descriptor
-     * @param args             the invoke arguments
+     * @param returnType       the invocation return type
+     * @param invokeDescriptor the invocation descriptor
+     * @param args             the invoke parameters
      * @return the invoke operation
      */
     public static InvokeOp invoke(TypeElement returnType, MethodRef invokeDescriptor, Value... args) {
-        return invoke(returnType, invokeDescriptor, List.of(args));
+        return new InvokeOp(returnType, invokeDescriptor, List.of(args));
     }
 
     /**
-     * Creates an invoke operation modeling an invocation to an
-     * instance or static (class) method with no variable arguments.
-     * <p>
-     * The invoke kind of the invoke operation is determined by
-     * comparing the argument count with the invoke descriptor's
-     * parameter count. If they are equal then the invoke kind is
-     * {@link InvokeOp.InvokeKind#STATIC static}. If the parameter count
-     * plus one is equal to the argument count then the invoke kind
-     * is {@link InvokeOp.InvokeKind#STATIC instance}.
+     * Creates an invoke operation.
      *
-     * @param returnType       the invoke return type
-     * @param invokeDescriptor the invoke descriptor
-     * @param args             the invoke arguments
-     * @return the invoke super operation
+     * @param returnType       the invocation return type
+     * @param invokeDescriptor the invocation descriptor
+     * @param args             the invoke parameters
+     * @return the invoke operation
      */
     public static InvokeOp invoke(TypeElement returnType, MethodRef invokeDescriptor, List<Value> args) {
-        int paramCount = invokeDescriptor.type().parameterTypes().size();
-        int argCount = args.size();
-        InvokeOp.InvokeKind ik = (argCount == paramCount + 1)
-                ? InvokeOp.InvokeKind.INSTANCE
-                : InvokeOp.InvokeKind.STATIC;
-        return new InvokeOp(ik, false, returnType, invokeDescriptor, args);
-    }
-
-    /**
-     * Creates an invoke operation modelling an invocation to a method.
-     *
-     * @param invokeKind       the invoke kind
-     * @param isVarArgs        true if an invocation to a variable argument method
-     * @param returnType       the return type
-     * @param invokeDescriptor the invoke descriptor
-     * @param args             the invoke arguments
-     * @return the invoke operation
-     * @throws IllegalArgumentException if there is a mismatch between the argument count
-     *                                  and the invoke descriptors parameter count.
-     */
-    public static InvokeOp invoke(InvokeOp.InvokeKind invokeKind, boolean isVarArgs,
-                                  TypeElement returnType, MethodRef invokeDescriptor, List<Value> args) {
-        return new InvokeOp(invokeKind, isVarArgs, returnType, invokeDescriptor, args);
+        return new InvokeOp(returnType, invokeDescriptor, args);
     }
 
     /**
@@ -4033,29 +3867,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     }
 
     /**
-     * Creates a var operation modeling an unnamed and uninitialized variable,
-     * either an unnamed local variable or an unnamed parameter.
-     *
-     * @param type the type of the var's value
-     * @return the var operation
-     */
-    public static VarOp var(TypeElement type) {
-        return var(null, type, null);
-    }
-
-    /**
-     * Creates a var operation modeling an uninitialized variable, either a local variable or a parameter.
-     *
-     * @param name the name of the var
-     * @param type the type of the var's value
-     * @return the var operation
-     */
-    public static VarOp var(String name, TypeElement type) {
-        return new VarOp(name, type);
-    }
-
-    /**
-     * Creates a var operation modeling an unnamed variable, either an unnamed local variable or an unnamed parameter.
+     * Creates a var operation.
      *
      * @param init the initial value of the var
      * @return the var operation
@@ -4065,9 +3877,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     }
 
     /**
-     * Creates a var operation modeling a variable, either a local variable or a parameter.
-     * <p>
-     * If the given name is {@code null} or an empty string then the variable is an unnamed variable.
+     * Creates a var operation.
      *
      * @param name the name of the var
      * @param init the initial value of the var
@@ -4078,9 +3888,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     }
 
     /**
-     * Creates a var operation modeling a variable, either a local variable or a parameter.
-     * <p>
-     * If the given name is {@code null} or an empty string then the variable is an unnamed variable.
+     * Creates a var operation.
      *
      * @param name the name of the var
      * @param type the type of the var's value
