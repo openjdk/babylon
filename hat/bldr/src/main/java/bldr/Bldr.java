@@ -43,13 +43,17 @@ import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -62,6 +66,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -70,14 +75,276 @@ import java.util.jar.JarOutputStream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import java.util.zip.ZipFile;
 
 import static java.io.IO.println;
+import static java.nio.file.Files.isDirectory;
+import static java.nio.file.Files.isRegularFile;
 
 public class Bldr {
-    public record OS(String arch, String name, String version) {
+    public interface PathHolder {
+        Path path();
     }
 
-    public static OS os = new OS(System.getProperty("os.arch"), System.getProperty("os.name"), System.getProperty("os.version"));
+    public interface TargetDirProvider extends PathHolder {
+        Path targetDir();
+    }
+
+    public interface JavaSourceDirProvider {
+        Path javaSourceDir();
+    }
+
+    public interface ResourceDirProvider {
+        Path resourcesDir();
+    }
+
+    public interface DirPathHolder extends PathHolder {
+        public default Path subDir(String subdir){
+            return path().resolve(subdir);
+        }
+    }
+
+    public interface FilePathHolder extends PathHolder {
+    }
+
+    public interface ClassPathEntry extends PathHolder {
+    }
+
+    public record ClassDir(Path path) implements ClassPathEntry, DirPathHolder {
+    }
+
+    public record BuildDir(Path path) implements ClassPathEntry, DirPathHolder {
+    }
+
+    public record JarFile(Path path) implements ClassPathEntry, FilePathHolder {
+    }
+
+    public record SourcePathEntry(Path path) implements DirPathHolder {
+    }
+
+    public interface TextFile extends FilePathHolder{
+
+    }
+
+    public interface SourceFile extends TextFile {
+    }
+
+    public static class JavaSourceFile extends SimpleJavaFileObject implements SourceFile {
+         Path path;
+
+            public CharSequence getCharContent(boolean ignoreEncodingErrors) {
+                try {
+                    return Files.readString(Path.of(toUri()));
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+        JavaSourceFile(Path path) {
+         super(path.toUri(), JavaFileObject.Kind.SOURCE);
+
+        }
+
+        @Override
+        public Path path() {
+            return null;
+        }
+    }
+
+    public record CppSourceFile(Path path) implements SourceFile {
+    }
+
+    public record CppHeaderSourceFile(Path path) implements SourceFile {
+    }
+
+
+    public record ClassPath(List<ClassPathEntry> entries) {
+    }
+
+    public record SourcePath(List<SourcePathEntry> entries) {
+    }
+
+    public record XMLFile(Path path) implements TextFile {
+    }
+
+    public static class Repo {
+
+        private final String repoBase = "https://repo1.maven.org/maven2/";
+        private final String searchBase = "https://search.maven.org/solrsearch/";
+        private Path path;
+
+        public record Id(Repo repo, String groupId, String artifactId, String versionId) {
+            static String groupId(XMLNode xmlNode) {
+                return xmlNode.xpathQueryString("groupId/text()");
+            }
+
+            static String artifactId(XMLNode xmlNode) {
+                return xmlNode.xpathQueryString("artifactId/text()");
+            }
+
+            static String versionId(XMLNode xmlNode) {
+                return xmlNode.xpathQueryString("versionId/text()");
+            }
+
+            public Id(Repo repo, XMLNode xmlNode) {
+                this(repo, groupId(xmlNode), artifactId(xmlNode), versionId(xmlNode));
+            }
+
+            private String artifactAndVersion() {
+                return artifactId() + '-' + versionId();
+            }
+
+            private String pathName() {
+                return groupId() + '.' + artifactAndVersion();
+            }
+
+            private String name(String suffix) {
+                return artifactAndVersion() + "." + suffix;
+            }
+        }
+
+
+        public Repo(Path path) {
+            this.path = path;
+        }
+
+        public XMLNode select(String query) {
+            try {
+                URL url = new URI(searchBase + "select?q=" +
+                        URLEncoder.encode(query, StandardCharsets.UTF_8)
+                        + "&core=gav&wt=xml").toURL();
+                try {
+                    return new XMLNode(url);
+                } catch (Throwable e) {
+                    throw new RuntimeException(e);
+                }
+            } catch (MalformedURLException | URISyntaxException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public XMLNode queryXMLByGroup(String groupId) {
+            return select("g:" + groupId);
+        }
+
+        public XMLNode queryXMLByArtifact(String artifactId) {
+            return select("a:" + artifactId);
+        }
+
+        public XMLNode queryByGroupAndArtifact(String groupId, String artifactId) {
+            return select("g:" + groupId + " AND a:" + artifactId);
+        }
+
+        public XMLNode queryByGroupArtifactAndVersion(String groupId, String artifactId, String versionId) {
+            return select("g:" + groupId + " AND a:" + artifactId + " AND v:" + versionId);
+        }
+
+        public Optional<Id> id(String groupId, String artifactId, String versionId) {
+            var xmlNode = queryByGroupArtifactAndVersion(groupId, artifactId, versionId);
+            var numFound = xmlNode.xpathQueryString("/response/result/@numFound");
+            if (numFound.isEmpty() || numFound.equals("0")) {
+                return Optional.empty();
+            } else {
+                return Optional.of(new Id(this, groupId, artifactId, versionId));
+            }
+        }
+
+        public Stream<String> versions(String groupId, String artifactId) {
+            var xmlNode = queryByGroupAndArtifact(groupId, artifactId);
+            return xmlNode.xmlNodes(xmlNode.xpath("/response/result/doc"))
+                    .map(xmln -> xmln.xpathQueryString("str[@name='v']/text()"));
+        }
+
+        public boolean forEachVersion(String groupId, String artifactId, Consumer<String> idConsumer) {
+            boolean[] found = new boolean[]{false};
+            versions(groupId, artifactId).forEach(id -> {
+                idConsumer.accept(id);
+                found[0] = true;
+            });
+            return found[0];
+        }
+
+        public Stream<Id> ids(String groupId, String artifactId) {
+            var xmlNode = queryByGroupAndArtifact(groupId, artifactId);
+            var numFound = xmlNode.xpathQueryString("/response/result/@numFound");
+            if (numFound.isEmpty() || numFound.equals("0")) {
+                return Stream.empty();
+            } else {
+                return xmlNode.xmlNodes(xmlNode.xpath("/response/result/doc"))
+                        .map(xmln -> {
+                            var a = xmln.xpathQueryString("str[@name='a']/text()");
+                            var g = xmln.xpathQueryString("str[@name='g']/text()");
+                            var v = xmln.xpathQueryString("str[@name='v']/text()");
+                            return new Id(this, g, a, v);
+                        });
+            }
+        }
+
+        public boolean forEachId(String groupId, String artifactId, Consumer<Id> idConsumer) {
+            boolean[] found = new boolean[]{false};
+            ids(groupId, artifactId).forEach(id -> {
+                idConsumer.accept(id);
+                found[0] = true;
+            });
+            return found[0];
+        }
+
+    }
+
+    public interface OS {
+        String arch();
+
+        String name();
+
+        String version();
+
+        static final String MacName = "Mac OS X";
+        static final String LinuxName = "Linux";
+
+        default String nameArchTuple() {
+            return switch (name()) {
+                case MacName -> "macos";
+                default -> name().toLowerCase();
+            } + '-' + arch();
+        }
+
+        record Linux(String arch, String name, String version) implements OS {
+        }
+
+        record Mac(String arch, String name, String version) implements OS {
+            public Path appLibFrameworks() {
+                return Path.of("/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/"
+                        + "MacOSX.sdk/System/Library/Frameworks");
+            }
+
+            public Path frameworkHeader(String frameworkName, String headerFileName) {
+                return appLibFrameworks().resolve(frameworkName + ".framework/Headers/" + headerFileName);
+            }
+
+            public Path libFrameworks() {
+                return Path.of("/System/Library/Frameworks");
+            }
+
+            public Path frameworkLibrary(String frameworkName) {
+                return libFrameworks().resolve(frameworkName + ".framework/" + frameworkName);
+            }
+        }
+
+        static OS get() {
+            String arch = System.getProperty("os.arch");
+            String name = System.getProperty("os.name");
+            String version = System.getProperty("os.version");
+            return switch (name) {
+
+                case "Mac OS X" -> new Mac(arch, name, version);
+                case "Linux" -> new Linux(arch, name, version);
+                default -> throw new IllegalStateException("No os mapping for " + name);
+            };
+        }
+    }
+
+
+    public static OS os = OS.get();
 
     public record Java(String version, File home) {
     }
@@ -98,8 +365,9 @@ public class Bldr {
         XMLNode(org.w3c.dom.Element element) {
             this.element = element;
             this.element.normalize();
-            for (int i = 0; i < this.element.getChildNodes().getLength(); i++) {
-                if (this.element.getChildNodes().item(i) instanceof org.w3c.dom.Element e) {
+            NodeList nodeList = element.getChildNodes();
+            for (int i = 0; i < nodeList.getLength(); i++) {
+                if (nodeList.item(i) instanceof org.w3c.dom.Element e) {
                     this.children.add(new XMLNode(e));
                 }
             }
@@ -118,6 +386,10 @@ public class Bldr {
             return attrMap.get(name);
         }
 
+        XMLNode(Path path) throws Throwable {
+            this(javax.xml.parsers.DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(path.toFile()).getDocumentElement());
+        }
+
         XMLNode(File file) throws Throwable {
             this(javax.xml.parsers.DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(file).getDocumentElement());
         }
@@ -126,84 +398,144 @@ public class Bldr {
             this(javax.xml.parsers.DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(url.openStream()).getDocumentElement());
         }
 
-        void write(File file) throws Throwable {
+        void write(StreamResult streamResult) throws Throwable {
             var transformer = TransformerFactory.newInstance().newTransformer();
             transformer.setOutputProperty(OutputKeys.INDENT, "yes");
             transformer.setOutputProperty(OutputKeys.METHOD, "xml");
             transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
-            transformer.transform(new DOMSource(element.getOwnerDocument()), new StreamResult(file));
+            transformer.transform(new DOMSource(element.getOwnerDocument()), streamResult);
         }
 
-        XPathExpression xpath(String expression) throws XPathExpressionException {
+        void write(File file) throws Throwable {
+            write(new StreamResult(file));
+        }
+
+        @Override
+        public String toString() {
+            var stringWriter = new StringWriter();
+            try {
+                var transformer = TransformerFactory.newInstance().newTransformer();
+                transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+                transformer.setOutputProperty(OutputKeys.METHOD, "xml");
+                transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
+                transformer.transform(new DOMSource(element), new StreamResult(stringWriter));
+                return stringWriter.toString();
+            } catch (Throwable e) {
+                throw new RuntimeException(e);
+            }
+
+        }
+
+        XPathExpression xpath(String expression) {
             XPath xpath = XPathFactory.newInstance().newXPath();
-            return xpath.compile(expression);
+            try {
+                return xpath.compile(expression);
+            } catch (XPathExpressionException e) {
+                throw new RuntimeException(e);
+            }
         }
 
-        Node node(XPathExpression xPathExpression) throws XPathExpressionException {
-            return (Node) xPathExpression.evaluate(this.element, XPathConstants.NODE);
+        Node node(XPathExpression xPathExpression) {
+            try {
+                return (Node) xPathExpression.evaluate(this.element, XPathConstants.NODE);
+            } catch (XPathExpressionException e) {
+                throw new RuntimeException(e);
+            }
         }
 
-        String string(XPathExpression xPathExpression) throws XPathExpressionException {
-            return (String) xPathExpression.evaluate(this.element, XPathConstants.STRING);
+        String str(XPathExpression xPathExpression) {
+            try {
+                return (String) xPathExpression.evaluate(this.element, XPathConstants.STRING);
+            } catch (XPathExpressionException e) {
+                throw new RuntimeException(e);
+            }
         }
 
-        NodeList nodeList(XPathExpression xPathExpression) throws XPathExpressionException {
-            return (NodeList) xPathExpression.evaluate(this.element, XPathConstants.NODESET);
+        String xpathQueryString(String xpathString) {
+            try {
+                return (String) xpath(xpathString).evaluate(this.element, XPathConstants.STRING);
+            } catch (XPathExpressionException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        NodeList nodeList(XPathExpression xPathExpression) {
+            try {
+                return (NodeList) xPathExpression.evaluate(this.element, XPathConstants.NODESET);
+            } catch (XPathExpressionException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        Stream<org.w3c.dom.Node> nodes(XPathExpression xPathExpression) {
+            var nodeList = nodeList(xPathExpression);
+            List<org.w3c.dom.Node> nodes = new ArrayList<>();
+            for (int i = 0; i < nodeList.getLength(); i++) {
+                nodes.add(nodeList.item(i));
+            }
+            return nodes.stream();
+        }
+
+        Stream<org.w3c.dom.Element> elements(XPathExpression xPathExpression) {
+            return nodes(xPathExpression).filter(n -> n instanceof org.w3c.dom.Element).map(n -> (Element) n);
+        }
+
+        Stream<XMLNode> xmlNodes(XPathExpression xPathExpression) {
+            return elements(xPathExpression).map(e -> new XMLNode(e));
         }
     }
 
-    static class POM {
-
-        static Pattern varPattern = Pattern.compile("\\$\\{([^}]*)\\}");
-
-        static public String varExpand(Map<String, String> props, String value) { // recurse
-            String result = value;
-            if (varPattern.matcher(value) instanceof Matcher matcher && matcher.find()) {
-                var v = matcher.group(1);
-                result = varExpand(props, value.substring(0, matcher.start())
-                        + (v.startsWith("env")
-                        ? System.getenv(v.substring(4))
-                        : props.get(v))
-                        + value.substring(matcher.end()));
-                //out.println("incomming ='"+value+"'  v= '"+v+"' value='"+value+"'->'"+result+"'");
+    /*
+        static class POM {
+            static Pattern varPattern = Pattern.compile("\\$\\{([^}]*)\\}");
+            static public String varExpand(Map<String, String> props, String value) { // recurse
+                String result = value;
+                if (varPattern.matcher(value) instanceof Matcher matcher && matcher.find()) {
+                    var v = matcher.groupId(1);
+                    result = varExpand(props, value.substring(0, matcher.start())
+                            + (v.startsWith("env")
+                            ? System.getenv(v.substring(4))
+                            : props.get(v))
+                            + value.substring(matcher.end()));
+                    //out.println("incomming ='"+value+"'  v= '"+v+"' value='"+value+"'->'"+result+"'");
+                }
+                return result;
             }
-            return result;
-        }
 
-        POM(Path dir) throws Throwable {
-            var topPom = new XMLNode(new File(dir.toFile(), "pom.xml"));
-            var babylonDirKey = "babylon.dir";
-            var spirvDirKey = "beehive.spirv.toolkit.dir";
-            var hatDirKey = "hat.dir";
-            var interestingKeys = Set.of(spirvDirKey, babylonDirKey, hatDirKey);
-            var requiredDirKeys = Set.of(babylonDirKey, hatDirKey);
-            var dirKeyToDirMap = new HashMap<String, File>();
-            var props = new HashMap<String, String>();
+            POM(Path dir) throws Throwable {
+                var topPom = new XMLNode(new File(dir.toFile(), "pom.xml"));
+                var babylonDirKey = "babylon.dir";
+                var spirvDirKey = "beehive.spirv.toolkit.dir";
+                var hatDirKey = "hat.dir";
+                var interestingKeys = Set.of(spirvDirKey, babylonDirKey, hatDirKey);
+                var requiredDirKeys = Set.of(babylonDirKey, hatDirKey);
+                var dirKeyToDirMap = new HashMap<String, File>();
+                var props = new HashMap<String, String>();
 
-            topPom.children.stream().filter(e -> e.element.getNodeName().equals("properties")).forEach(properties ->
-                    properties.children.stream().forEach(property -> {
-                        var key = property.element.getNodeName();
-                        var value = varExpand(props, property.element.getTextContent());
-                        props.put(key, value);
-                        if (interestingKeys.contains(key)) {
-                            var file = new File(value);
-                            if (requiredDirKeys.contains(key) && !file.exists()) {
-                                System.err.println("ERR pom.xml has property '" + key + "' with value '" + value + "' but that dir does not exists!");
-                                System.exit(1);
+                topPom.children.stream().filter(e -> e.element.getNodeName().equals("properties")).forEach(properties ->
+                        properties.children.stream().forEach(property -> {
+                            var key = property.element.getNodeName();
+                            var value = varExpand(props, property.element.getTextContent());
+                            props.put(key, value);
+                            if (interestingKeys.contains(key)) {
+                                var file = new File(value);
+                                if (requiredDirKeys.contains(key) && !file.exists()) {
+                                    System.err.println("ERR pom.xml has property '" + key + "' with value '" + value + "' but that dir does not exists!");
+                                    System.exit(1);
+                                }
+                                dirKeyToDirMap.put(key, file);
                             }
-                            dirKeyToDirMap.put(key, file);
-                        }
-                    })
-            );
-            for (var key : requiredDirKeys) {
-                if (!props.containsKey(key)) {
-                    System.err.println("ERR pom.xml expected to have property '" + key + "' ");
-                    System.exit(1);
+                        })
+                );
+                for (var key : requiredDirKeys) {
+                    if (!props.containsKey(key)) {
+                        System.err.println("ERR pom.xml expected to have property '" + key + "' ");
+                        System.exit(1);
+                    }
                 }
             }
         }
-    }
-
+    */
     public static String pathCharSeparated(List<Path> paths) {
         StringBuilder sb = new StringBuilder();
         paths.forEach(path -> {
@@ -226,23 +558,120 @@ public class Bldr {
         return path;
     }
 
+    public static Stream<Path> subDirStream(Path path, String... dirNames) {
+        return Stream.of(dirNames).map(path::resolve).filter(Files::isDirectory);
+    }
 
-    public static class JavacJarConfig {
-        public Path jar;
+    public static void forEachSubDir(Path path, Stream<String> dirNames, Consumer<Path> pathConsumer) {
+        dirNames.map(path::resolve).filter(Files::isDirectory).forEach(pathConsumer);
+    }
+
+    public static void forEachSubDir(Path path, Consumer<Path> pathConsumer) {
+        try {
+            Files.walk(path, 1).filter(file -> !file.equals(path)).filter(Files::isDirectory).forEach(pathConsumer);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static Stream<Path> findFiles(Path dir) {
+        return find(dir, Files::isRegularFile);
+    }
+
+    public static Stream<Path> findDirs(Path dir) {
+        return find(dir, Files::isDirectory);
+    }
+
+    public static Stream<Path> findFiles(Path dir, Predicate<Path> predicate) {
+        return findFiles(dir).filter(predicate);
+    }
+
+    public static Stream<SearchableTextFile> findTextFiles(Path dir, String... suffixes) {
+        return findFiles(dir).map(SearchableTextFile::new).filter(searchableTextFile -> searchableTextFile.hasSuffix(suffixes));
+    }
+
+    public static Stream<Path> findDirs(Path dir, Predicate<Path> predicate) {
+        return find(dir, Files::isDirectory).filter(predicate);
+    }
+
+    public static class Builder<T extends Builder<T>> {
+        @SuppressWarnings("unchecked") T self() {
+            return (T) this;
+        }
+
         public List<String> opts = new ArrayList<>();
-        public Path classesDir;
-        public List<Path> sourcePath;
-        public List<Path> classPath;
-        public List<Path> resourcePath;
 
-        public JavacJarConfig seed(JavacJarConfig stem) {
+        public T opts(List<String> opts) {
+            this.opts.addAll(opts);
+            return self();
+        }
+
+        public T opts(String... opts) {
+            opts(Arrays.asList(opts));
+            return self();
+        }
+
+        public T basedOn(T stem) {
             if (stem != null) {
-                if (stem.jar != null) {
-                    this.jar = stem.jar;
+                opts.addAll(stem.opts);
+            }
+            return self();
+        }
+
+        public T when(boolean condition, Consumer<T> consumer) {
+            if (condition) {
+                consumer.accept(self());
+            }
+            return self();
+        }
+
+        public T either(boolean condition, Consumer<T> trueConsumer, Consumer<T> falseConsumer) {
+            if (condition) {
+                trueConsumer.accept(self());
+            } else {
+                falseConsumer.accept(self());
+            }
+            return self();
+        }
+
+    }
+
+    public static abstract class ExecBuilder<T extends ExecBuilder<T>> extends Builder<T> {
+        abstract public List<String> execOpts();
+
+        public void execInheritIO(Path path) {
+            try {
+                var processBuilder = new ProcessBuilder();
+
+                if (path != null) {
+                    processBuilder.directory(path.toFile());
                 }
-                if (stem.opts != null) {
-                    this.opts = new ArrayList<>(stem.opts);
-                }
+                processBuilder
+                        .inheritIO()
+                        .command(execOpts());
+                var process = processBuilder
+                        .start();
+                process.waitFor();
+            } catch (InterruptedException ie) {
+                System.out.println(ie);
+            } catch (IOException ioe) {
+                System.out.println(ioe);
+            }
+        }
+
+        public void execInheritIO() {
+            execInheritIO(null);
+        }
+    }
+
+    public static class JavacBuilder extends Builder<JavacBuilder> {
+        public Path classesDir;
+        public List<Path> sourcePath ;
+        public List<Path> classPath;
+
+        public JavacBuilder basedOn(JavacBuilder stem) {
+            super.basedOn(stem);
+            if (stem != null) {
                 if (stem.classesDir != null) {
                     this.classesDir = stem.classesDir;
                 }
@@ -252,257 +681,612 @@ public class Bldr {
                 if (stem.classPath != null) {
                     this.classPath = new ArrayList<>(stem.classPath);
                 }
-                if (stem.resourcePath != null) {
-                    this.resourcePath = new ArrayList<>(stem.resourcePath);
+            }
+            return this;
+        }
+
+        public JavacBuilder classes_dir(Path classesDir) {
+            this.classesDir = classesDir;
+            return this;
+        }
+
+        public JavacBuilder source_path(Path... sourcePaths) {
+            this.sourcePath = this.sourcePath == null ? new ArrayList<>() : this.sourcePath;
+            this.sourcePath.addAll(Arrays.asList(sourcePaths));
+            return this;
+        }
+
+        public JavacBuilder class_path(Path... classPaths) {
+            this.classPath = this.classPath == null ? new ArrayList<>() : this.classPath;
+            this.classPath.addAll(Arrays.asList(classPaths));
+            return this;
+        }
+    }
+
+    public static Stream<Path> find(Path dir) {
+        try {
+            return Files.walk(dir);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static Stream<Path> find(Path dir, Predicate<Path> predicate) {
+        return find(dir).filter(predicate);
+    }
+
+    record RootAndPath(Path root, Path path) {
+        Path relativize() {
+            return root().relativize(path());
+        }
+    }
+
+    public static JavacBuilder javac(JavacBuilder javacBuilder) {
+        try {
+            if (javacBuilder.classesDir == null) {
+                javacBuilder.classesDir = Files.createTempDirectory("javacClasses");
+                //   javacBuilder.classesDir = javacBuilder.jar.resolveSibling(javacBuilder.jar.getFileName().toString() + ".classes");
+            }
+            javacBuilder.opts.addAll(List.of("-d", javacBuilder.classesDir.toString()));
+            mkdir(rmdir(javacBuilder.classesDir));
+
+            if (javacBuilder.classPath != null) {
+                javacBuilder.opts.addAll(List.of("--class-path", pathCharSeparated(javacBuilder.classPath)));
+            }
+
+            javacBuilder.opts.addAll(List.of("--source-path", pathCharSeparated(javacBuilder.sourcePath)));
+            var compilationUnits = new ArrayList<JavaSourceFile>();
+            javacBuilder.sourcePath.forEach(entry ->
+                    findFiles(entry, file -> file.toString().endsWith(".java"))
+                            .map(JavaSourceFile::new)
+                            .forEach(compilationUnits::add));
+
+            DiagnosticListener<JavaFileObject> dl = (diagnostic) -> {
+                if (!diagnostic.getKind().equals(Diagnostic.Kind.NOTE)) {
+                    System.out.println(diagnostic.getKind()
+                            + " " + diagnostic.getLineNumber() + ":" + diagnostic.getColumnNumber() + " " + diagnostic.getMessage(null));
+                }
+            };
+
+            //   List<RootAndPath> pathsToJar = new ArrayList<>();
+            JavaCompiler javac = javax.tools.ToolProvider.getSystemJavaCompiler();
+            JavaCompiler.CompilationTask compilationTask = (javac.getTask(
+                    new PrintWriter(System.err),
+                    javac.getStandardFileManager(dl, null, null),
+                    dl,
+                    javacBuilder.opts,
+                    null,
+                    compilationUnits
+
+            ));
+            ((com.sun.source.util.JavacTask) compilationTask)
+                    .generate();
+            //.forEach(fileObject -> pathsToJar.add(new RootAndPath(javacBuilder.classesDir, Path.of(fileObject.toUri()))));
+
+
+            return javacBuilder;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static JavacBuilder javac(Consumer<JavacBuilder> javacBuilderConsumer) {
+        JavacBuilder javacBuilder = new JavacBuilder();
+        javacBuilderConsumer.accept(javacBuilder);
+        return javac(javacBuilder);
+    }
+
+    public static class JarBuilder extends Builder<JarBuilder> {
+        public Path jar;
+        public List<Path> pathList;
+
+        public JarBuilder basedOn(JarBuilder stem) {
+            super.basedOn(stem);
+            if (stem != null) {
+                if (stem.jar != null) {
+                    this.jar = stem.jar;
+                }
+                if (stem.pathList != null) {
+                    this.pathList = new ArrayList<>(stem.pathList);
                 }
             }
             return this;
         }
 
-        public JavacJarConfig jar(Path jar) {
+        public JarBuilder jar(Path jar) {
             this.jar = jar;
             return this;
         }
 
-        public JavacJarConfig opts(List<String> opts) {
-            this.opts.addAll(opts);
+        public JarBuilder javac(Consumer<JavacBuilder> javacBuilderConsumer) {
+            JavacBuilder javacBuilder = new JavacBuilder();
+            javacBuilderConsumer.accept(javacBuilder);
+            var result = Bldr.javac(javacBuilder);
+            pathList = (pathList == null) ? new ArrayList<>() : pathList;
+            pathList.add(result.classesDir);
             return this;
         }
 
-        public JavacJarConfig opts(String... opts) {
-            opts(Arrays.asList(opts));
-            return this;
-        }
-
-        public JavacJarConfig source_path(Path... sourcePaths) {
-            this.sourcePath = new ArrayList<>(Arrays.asList(sourcePaths));
-            return this;
-        }
-
-        public JavacJarConfig class_path(Path... classPaths) {
-            this.classPath = new ArrayList<>(Arrays.asList(classPaths));
-            return this;
-        }
-
-        public JavacJarConfig resource_path(Path... resourcePaths) {
-            this.resourcePath = new ArrayList<>(Arrays.asList(resourcePaths));
+        public JarBuilder path_list(Path... paths) {
+            this.pathList = new ArrayList<>(Arrays.asList(paths));
             return this;
         }
     }
 
-    public static JavacJarConfig javacjarconfig(Consumer<JavacJarConfig> javacJarConfigConsumer) {
-        JavacJarConfig javacJarConfig = new JavacJarConfig();
-        javacJarConfigConsumer.accept(javacJarConfig);
-        return javacJarConfig;
+    public static JarBuilder jar(Consumer<JarBuilder> jarBuilderConsumer) {
+        try {
+            JarBuilder jarBuilder = new JarBuilder();
+            jarBuilderConsumer.accept(jarBuilder);
+
+            List<RootAndPath> pathsToJar = new ArrayList<>();
+            var jarStream = new JarOutputStream(Files.newOutputStream(jarBuilder.jar));
+            var setOfDirs = new HashSet<Path>();
+            jarBuilder.pathList.stream().sorted().filter(Files::isDirectory).forEach(root ->
+                    pathsToJar.addAll(findFiles(root).map(path -> new RootAndPath(root, path)).toList()));
+
+            pathsToJar.stream().sorted(Comparator.comparing(RootAndPath::path)).forEach(rootAndPath -> {
+                var parentDir = rootAndPath.path().getParent();
+                try {
+                    if (!setOfDirs.contains(parentDir)) {
+                        setOfDirs.add(parentDir);
+                        PosixFileAttributes attributes = Files.readAttributes(rootAndPath.path(), PosixFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+                        var entry = new JarEntry(rootAndPath.relativize() + "/");
+                        entry.setTime(attributes.lastModifiedTime().toMillis());
+                        jarStream.putNextEntry(entry);
+                        jarStream.closeEntry();
+                    }
+                    PosixFileAttributes attributes = Files.readAttributes(rootAndPath.path(), PosixFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+                    var entry = new JarEntry(rootAndPath.relativize().toString());
+                    entry.setTime(Files.getLastModifiedTime(rootAndPath.path()).toMillis());
+                    jarStream.putNextEntry(entry);
+                    if (attributes.isRegularFile()) {
+                        Files.newInputStream(rootAndPath.path()).transferTo(jarStream);
+                    }
+                    jarStream.closeEntry();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+            jarStream.finish();
+            jarStream.close();
+            return jarBuilder;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    public static JavacJarConfig javacjar(Consumer<JavacJarConfig> javacJarConfigConsumer) throws IOException {
-        JavacJarConfig javacJarConfig = javacjarconfig(javacJarConfigConsumer);
+    public static class JavaBuilder extends ExecBuilder<JavaBuilder> {
+        public Path jdk = Path.of(System.getProperty("java.home"));
+        public String mainClass;
+        public List<Path> classPath;
+        public List<String> vmopts = new ArrayList<>();
+        public List<String> args = new ArrayList<>();
 
-        if (javacJarConfig.classesDir == null) {
-            javacJarConfig.classesDir = javacJarConfig.jar.resolveSibling(javacJarConfig.jar.getFileName().toString() + ".classes");
-        }
-        javacJarConfig.opts.addAll(List.of("-d", javacJarConfig.classesDir.toString()));
-        mkdir(rmdir(javacJarConfig.classesDir));
-
-        if (javacJarConfig.classPath != null) {
-            javacJarConfig.opts.addAll(List.of("--class-path", pathCharSeparated(javacJarConfig.classPath)));
+        public JavaBuilder vmopts(List<String> opts) {
+            this.vmopts.addAll(opts);
+            return self();
         }
 
-        javacJarConfig.opts.addAll(List.of("--source-path", pathCharSeparated(javacJarConfig.sourcePath)));
-        var src = new ArrayList<Path>();
-        javacJarConfig.sourcePath.forEach(entry ->
-                src.addAll(paths(entry, path -> path.toString().endsWith(".java")))
-        );
-        if (javacJarConfig.resourcePath == null) {
-            javacJarConfig.resourcePath = new ArrayList<>();
+        public JavaBuilder vmopts(String... opts) {
+            vmopts(Arrays.asList(opts));
+            return self();
         }
-        DiagnosticListener<JavaFileObject> dl = (diagnostic) -> {
-            if (!diagnostic.getKind().equals(Diagnostic.Kind.NOTE)) {
-                System.out.println(diagnostic.getKind()
-                        + " " + diagnostic.getLineNumber() + ":" + diagnostic.getColumnNumber() + " " + diagnostic.getMessage(null));
+
+
+        public JavaBuilder args(List<String> opts) {
+            this.args.addAll(opts);
+            return self();
+        }
+
+        public JavaBuilder args(String... opts) {
+            args(Arrays.asList(opts));
+            return self();
+        }
+
+
+        public JavaBuilder basedOn(JavaBuilder stem) {
+            super.basedOn(stem);
+            if (stem != null) {
+                vmopts.addAll(stem.vmopts);
+                args.addAll(stem.args);
+                if (stem.mainClass != null) {
+                    this.mainClass = stem.mainClass;
+                }
+                if (stem.jdk != null) {
+                    this.jdk = stem.jdk;
+                }
+                if (stem.classPath != null) {
+                    this.classPath = new ArrayList<>(stem.classPath);
+                }
+
+                opts.addAll(stem.opts);
+
             }
-        };
+            return this;
+        }
 
-        // System.out.println(builder.opts);
-        record RootAndPath(Path root, Path path) {
-            Path relativize() {
-                return root().relativize(path());
+        public JavaBuilder main_class(String mainClass) {
+            this.mainClass = mainClass;
+            return this;
+        }
+
+        public JavaBuilder jdk(Path jdk) {
+            this.jdk = jdk;
+            return this;
+        }
+
+        public JavaBuilder javac(Consumer<JavacBuilder> javacBuilderConsumer) {
+            JavacBuilder javacBuilder = new JavacBuilder();
+            javacBuilderConsumer.accept(javacBuilder);
+            var result = Bldr.javac(javacBuilder);
+            classPath = (classPath == null) ? new ArrayList<>() : classPath;
+            classPath.add(result.classesDir);
+            return this;
+        }
+        public JavaBuilder class_path(List<Path> classPathEntries) {
+            this.classPath = (this.classPath == null) ? new ArrayList<>() : this.classPath;
+            this.classPath.addAll(classPathEntries);
+            return this;
+        }
+
+        public JavaBuilder class_path(Path... classPathEntries) {
+            return this.class_path(List.of(classPathEntries));
+        }
+
+        @Override
+        public List<String> execOpts() {
+            List<String> execOpts = new ArrayList<>();
+            execOpts.add(jdk.resolve("bin/java").toString());
+            execOpts.addAll(vmopts);
+            if (classPath != null) {
+                execOpts.addAll(List.of("--class-path", pathCharSeparated(classPath)));
+            }
+            execOpts.add(mainClass);
+            execOpts.addAll(args);
+            return execOpts;
+        }
+    }
+    public static JavaBuilder java(JavaBuilder javaBuilder) {
+        javaBuilder.execInheritIO();
+        return javaBuilder;
+    }
+
+    public static JavaBuilder java(Consumer<JavaBuilder> javaBuilderConsumer) {
+        JavaBuilder javaBuilder = new JavaBuilder();
+        javaBuilderConsumer.accept(javaBuilder);
+        return java(javaBuilder);
+    }
+
+
+    public static class CMake {
+        record Regex(Pattern pattern) {
+            Regex(String regex) {
+                this(Pattern.compile(regex));
+            }
+
+            boolean matches(String text, Consumer<Matcher> matcherConsumer) {
+                if (pattern().matcher(text) instanceof Matcher matcher && matcher.matches()) {
+                    matcherConsumer.accept(matcher);
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+
+        }
+
+        public interface CMakeVar {
+            String name();
+
+            String value();
+        }
+
+        public record CMakeTypedVar(String name, String type, String value, String comment) implements CMakeVar {
+            static final Regex regex = new Regex("^_*(?:CMAKE_)?([A-Za-z0-9_]+):([^=]*)=(.*)$");
+
+            CMakeTypedVar(Matcher matcher, String comment) {
+                this("CMAKE_" + matcher.group(1).trim(), matcher.group(2).trim(), matcher.group(3).trim(), comment.substring(2).trim());
+            }
+
+            static boolean onMatch(String line, String comment, Consumer<CMakeTypedVar> consumer) {
+                return regex.matches(line, matcher -> consumer.accept(new CMakeTypedVar(matcher, comment)));
             }
         }
-        List<RootAndPath> pathsToJar = new ArrayList<>();
-        JavaCompiler javac = javax.tools.ToolProvider.getSystemJavaCompiler();
-        ((com.sun.source.util.JavacTask) javac.getTask(new PrintWriter(System.err), javac.getStandardFileManager(dl, null, null), dl, javacJarConfig.opts, null,
-                src.stream().map(path ->
-                        new SimpleJavaFileObject(path.toUri(), JavaFileObject.Kind.SOURCE) {
-                            public CharSequence getCharContent(boolean ignoreEncodingErrors) {
-                                try {
-                                    return Files.readString(Path.of(toUri()));
-                                } catch (IOException e) {
-                                    throw new RuntimeException(e);
-                                }
-                            }
-                        }).toList()
-        )).generate().forEach(fileObject -> pathsToJar.add(new RootAndPath(javacJarConfig.classesDir, Path.of(fileObject.toUri()))));
 
-        var jarStream = new JarOutputStream(Files.newOutputStream(javacJarConfig.jar));
-        var setOfDirs = new HashSet<Path>();
-        javacJarConfig.resourcePath.stream().sorted().forEach(resourceDir -> {
-                    if (Files.isDirectory(resourceDir)) {
-                        paths(resourceDir, Files::isRegularFile).forEach(path -> pathsToJar.add(new RootAndPath(resourceDir, path)));
+        public record CMakeSimpleVar(String name, String value) implements CMakeVar {
+            static final Regex regex = new Regex("^_*(?:CMAKE_)?([A-Za-z0-9_]+)=\\{<\\{(.*)\\}>\\}$");
+
+            CMakeSimpleVar(Matcher matcher) {
+                this("CMAKE_" + matcher.group(1).trim(), (matcher.group(2).isEmpty()) ? "" : matcher.group(2).trim());
+            }
+
+            static boolean onMatch(String line, String comment, Consumer<CMakeSimpleVar> consumer) {
+                return regex.matches(line, matcher -> consumer.accept(new CMakeSimpleVar(matcher)));
+            }
+        }
+
+        public record CMakeContentVar(String name, String value) implements CMakeVar {
+            static final Regex startRegex = new Regex("^_*(?:CMAKE_)?([A-Za-z0-9_]+)=\\{<\\{(.*)$");
+            static final Regex endRegex = new Regex("^(.*)\\}>\\}$");
+
+        }
+
+        public record CMakeRecipeVar(String name, String value) implements CMakeVar {
+            static final Regex varPattern = new Regex("<([^>]*)>");
+            static final Regex regex = new Regex("^_*(?:CMAKE_)?([A-Za-z0-9_]+)=\\{<\\{<(.*)>\\}>\\}$");
+
+            CMakeRecipeVar(Matcher matcher) {
+                this("CMAKE_" + matcher.group(1).trim(), "<" + ((matcher.group(2).isEmpty()) ? "" : matcher.group(2).trim()) + ">");
+            }
+
+            public String expandRecursively(Map<String, CMakeVar> varMap, String value) { // recurse
+                String result = value;
+                if (varPattern.pattern.matcher(value) instanceof Matcher matcher && matcher.find()) {
+                    var v = matcher.group(1);
+                    if (varMap.containsKey(v)) {
+                        String replacement = varMap.get(v).value();
+                        result = expandRecursively(varMap,
+                                value.substring(0, matcher.start()) + replacement + value.substring(matcher.end()));
                     }
                 }
-        );
+                return result;
+            }
 
-        pathsToJar.stream().sorted((l, r) -> l.path().compareTo(r.path)).forEach(rootAndPath -> {
-            var parentDir = rootAndPath.path().getParent();
+
+            public String expand(Map<String, CMakeVar> vars) {
+                return expandRecursively(vars, value());
+            }
+
+            static boolean onMatch(String line, String comment, Consumer<CMakeRecipeVar> consumer) {
+                return regex.matches(line, matcher -> consumer.accept(new CMakeRecipeVar(matcher)));
+            }
+        }
+
+        Path dir;
+        String[] packages;
+        Map<String, CMakeVar> varMap = new HashMap<>();
+
+        CMake(Path _dir, String... packages) {
+            this.dir = _dir.resolve("cmakeprobe");
+            mkdir(rmdir(this.dir));
+            this.packages = packages;
+
             try {
-                if (!setOfDirs.contains(parentDir)) {
-                    setOfDirs.add(parentDir);
-                    PosixFileAttributes attributes = Files.readAttributes(rootAndPath.path(), PosixFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
-                    var entry = new JarEntry(rootAndPath.relativize() + "/");
-                    entry.setTime(attributes.lastModifiedTime().toMillis());
-                    jarStream.putNextEntry(entry);
-                    jarStream.closeEntry();
+                Files.createDirectories(this.dir);
+                var CMakeListsTxt = new StringBuilder(
+                        """
+                                cmake_minimum_required(VERSION 3.21)
+                                project(cmakeprobe)
+                                set(CMAKE_CXX_STANDARD 14)
+
+                                get_cmake_property(VarNames VARIABLES)
+                                #set(VARS_FILE ${CMAKE_SOURCE_DIR}/vars.txt)
+
+                                #file(WRITE ${VARS_FILE} "")
+                                foreach(VarName ${VarNames})
+                                    message("${VarName}={<{${${VarName}}}>}\n")
+                                endforeach()
+                                """);
+
+                Stream.of(packages).forEach(p ->
+                        CMakeListsTxt.append("find_package(").append(p).append(")\n"));
+                Files.writeString(this.dir.resolve("CMakeLists.txt"), CMakeListsTxt.toString());
+                var cmakeProcessBuilder = new ProcessBuilder()
+                        .directory(this.dir.toFile())
+                        .redirectErrorStream(true)
+                        .command("cmake", "-LAH")
+                        .start();
+                List<String> lines = new BufferedReader(new InputStreamReader(cmakeProcessBuilder.getInputStream())).lines().toList();
+
+                String comment = null;
+                String contentName = null;
+                StringBuilder content = null;
+
+                for (String line : lines) {
+                    if (line.startsWith("//")) {
+                        comment = line;
+                        content = null;
+
+                    } else if (comment != null) {
+                        if (CMakeTypedVar.onMatch(line, comment, v -> {
+                            if (varMap.containsKey(v.name())) {
+                                var theVar = varMap.get(v.name());
+                                if (theVar.value().equals(v.value())) {
+                                    println("replacing duplicate variable with typed variant with the name same value" + v + theVar);
+                                } else {
+                                    throw new IllegalStateException("Duplicate variable name different value: " + v + theVar);
+                                }
+                                varMap.put(v.name(), v);
+                            } else {
+                                varMap.put(v.name(), v);
+                            }
+                        })) {
+                        } else {
+                            println("failed to parse " + line);
+                        }
+                        comment = null;
+                        content = null;
+                        contentName = null;
+                    } else if (!line.isEmpty()) {
+                        if (content != null) {
+                            if (CMakeContentVar.endRegex.pattern().matcher(line) instanceof Matcher matcher && matcher.matches()) {
+                                content.append("\n").append(matcher.group(1));
+                                var v = new CMakeContentVar(contentName, content.toString());
+                                contentName = null;
+                                content = null;
+                                varMap.put(v.name(), v);
+                            } else {
+                                content.append("\n").append(line);
+                            }
+                        } else if (!line.endsWith("}>}") && CMakeContentVar.startRegex.pattern().matcher(line) instanceof Matcher matcher && matcher.matches()) {
+                            contentName = "CMAKE_" + matcher.group(1);
+                            content = new StringBuilder(matcher.group(2));
+                        } else if (CMakeRecipeVar.regex.pattern().matcher(line) instanceof Matcher matcher && matcher.matches()) {
+                            CMakeVar v = new CMakeRecipeVar(matcher);
+                            if (varMap.containsKey(v.name())) {
+                                var theVar = varMap.get(v.name());
+                                if (theVar.value().equals(v.value())) {
+                                    println("Skipping duplicate variable name different value: " + v + theVar);
+                                } else {
+                                    throw new IllegalStateException("Duplicate variable name different value: " + v + theVar);
+                                }
+                                varMap.put(v.name(), v);
+                            } else {
+                                varMap.put(v.name(), v);
+                            }
+                        } else if (CMakeSimpleVar.regex.pattern().matcher(line) instanceof Matcher matcher && matcher.matches()) {
+                            CMakeVar v = new CMakeSimpleVar(matcher);
+                            if (varMap.containsKey(v.name())) {
+                                var theVar = varMap.get(v.name());
+                                if (theVar.value().equals(v.value())) {
+                                    println("Skipping duplicate variable name different value: " + v + theVar);
+                                } else {
+                                    throw new IllegalStateException("Duplicate variable name vifferent vars: " + v + theVar);
+                                }
+                                // note we don't replace a Typed with a Simple
+                            } else {
+                                varMap.put(v.name(), v);
+                            }
+                        } else {
+                            println("Skipping " + line);
+                        }
+                    }
                 }
-                PosixFileAttributes attributes = Files.readAttributes(rootAndPath.path(), PosixFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
-                var entry = new JarEntry(rootAndPath.relativize().toString());
-                entry.setTime(attributes.lastModifiedTime().toMillis());
-                jarStream.putNextEntry(entry);
-                if (attributes.isRegularFile()) {
-                    Files.newInputStream(rootAndPath.path()).transferTo(jarStream);
+
+            } catch (IOException ioe) {
+                throw new RuntimeException(ioe);
+            }
+        }
+
+        Path cxxCompileObject(Path target, Path source, List<String> frameworks) {
+            CMakeRecipeVar compileObject = (CMakeRecipeVar) varMap.get("CMAKE_CXX_COMPILE_OBJECT");
+            Map<String, CMakeVar> localVars = new HashMap<>(varMap);
+            localVars.put("DEFINES", new CMakeSimpleVar("DEFINES", ""));
+            localVars.put("INCLUDES", new CMakeSimpleVar("INCLUDES", ""));
+            localVars.put("FLAGS", new CMakeSimpleVar("FLAGS", ""));
+            localVars.put("OBJECT", new CMakeSimpleVar("OBJECT", target.toString()));
+            localVars.put("SOURCE", new CMakeSimpleVar("SOURCE", source.toString()));
+            String executable = compileObject.expand(localVars);
+            println(executable);
+            return target;
+        }
+
+        Path cxxLinkExecutable(Path target, List<Path> objFiles, List<String> frameworks) {
+            CMakeRecipeVar linkExecutable = (CMakeRecipeVar) varMap.get("CMAKE_CXX_LINK_EXECUTABLE");
+            Map<String, CMakeVar> localVars = new HashMap<>(varMap);
+            String executable = linkExecutable.expand(localVars);
+            println(executable);
+            return target;
+        }
+
+        Path cxxcreateSharedLibrary(Path target, List<Path> objFiles, List<String> frameworks) {
+            CMakeRecipeVar createSharedLibrary = (CMakeRecipeVar) varMap.get("CMAKE_CXX_CREATE_SHARED_LIBRARY");
+            Map<String, CMakeVar> localVars = new HashMap<>(varMap);
+            String executable = createSharedLibrary.expand(localVars);
+            println(executable);
+            return target;
+        }
+
+    }
+
+    public static class CMakeBuilder extends ExecBuilder<CMakeBuilder> {
+        public List<String> libraries = new ArrayList<>();
+        public Path buildDir;
+        public Path sourceDir;
+        private Path output;
+
+        public CMakeBuilder() {
+            opts.add("cmake");
+        }
+
+        public CMakeBuilder basedOn(CMakeBuilder stem) {
+            // super.basedOn(stem); you will get two cmakes ;)
+            if (stem != null) {
+                if (stem.output != null) {
+                    this.output = stem.output;
                 }
-                jarStream.closeEntry();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+                if (stem.libraries != null) {
+                    this.libraries = new ArrayList<>(stem.libraries);
+                }
+                if (stem.buildDir != null) {
+                    this.buildDir = stem.buildDir;
+                }
+                if (stem.sourceDir != null) {
+                    this.sourceDir = stem.sourceDir;
+                }
             }
-        });
+            return this;
+        }
 
-        jarStream.finish();
-        jarStream.close();
-        return javacJarConfig;
+        public CMakeBuilder B(Path buildDir) {
+            this.buildDir = buildDir;
+            opts("-B", buildDir.toString());
+            return this;
+        }
+
+        public CMakeBuilder S(Path sourceDir) {
+            this.sourceDir = sourceDir;
+            opts("-S", sourceDir.toString());
+            return this;
+        }
+
+        public CMakeBuilder build(Path buildDir) {
+            this.buildDir = buildDir;
+            opts("--build", buildDir.toString());
+            return this;
+        }
+
+        @Override
+        public List<String> execOpts() {
+            return opts;
+        }
     }
 
-    public static Path path(String name) {
-        return Path.of(name);
-    }
+    public static void cmake(Consumer<CMakeBuilder> cmakeBuilderConsumer) {
 
-    public static Path path(Path parent, String name) {
-        return parent.resolve(name);
-    }
+        CMakeBuilder cmakeBuilder = new CMakeBuilder();
+        cmakeBuilderConsumer.accept(cmakeBuilder);
 
-    public static List<Path> paths(Path... paths) {
-        List<Path> selectedPaths = new ArrayList<>();
-        Arrays.asList(paths).forEach(path -> {
-            if (Files.isDirectory(path)) {
-                selectedPaths.add(path);
-            }
-        });
-        return selectedPaths;
-    }
-
-    public static List<Path> paths(Path parent, String... names) {
-        List<Path> selectedPaths = new ArrayList<>();
-        Arrays.asList(names).forEach(name -> {
-            Path path = path(parent, name);
-            if (Files.isDirectory(path)) {
-                selectedPaths.add(path);
-            }
-        });
-        return selectedPaths;
-    }
-
-    public static List<Path> paths(Path path, Predicate<Path> predicate) {
         try {
-            return Files.walk(path).filter(predicate).toList();
+            Files.createDirectories(cmakeBuilder.buildDir);
+            cmakeBuilder.execInheritIO();
         } catch (IOException ioe) {
             throw new IllegalStateException(ioe);
         }
     }
 
-    public static class CMakeConfig {
-        public List<String> opts = new ArrayList<>(List.of("cmake"));
-        public List<String> libraries = new ArrayList<>();
-        public Path cmakeBldDebugDir;
-        public Path cwd;
-        private String targetPackage;
-        private Path output;
 
-        public CMakeConfig seed(CMakeConfig stem) {
-
-            if (stem != null) {
-                if (stem.output != null) {
-                    this.output = stem.output;
-                }
-                if (stem.opts != null) {
-                    this.opts = new ArrayList<>(stem.opts);
-                }
-                if (stem.libraries != null) {
-                    this.libraries = new ArrayList<>(stem.libraries);
-                }
-                if (stem.cwd != null) {
-                    this.cwd = stem.cwd;
-                }
-                if (stem.cmakeBldDebugDir != null) {
-                    this.cmakeBldDebugDir = stem.cmakeBldDebugDir;
-                }
-                if (stem.targetPackage != null) {
-                    this.targetPackage = targetPackage;
-                }
-            }
-            return this;
-        }
-
-        public CMakeConfig _B(Path cmakeBldDebugDir) {
-            this.cmakeBldDebugDir = cmakeBldDebugDir;
-            opts.addAll(List.of("-B", cmakeBldDebugDir.getFileName().toString()));
-            return this;
-        }
-
-        public CMakeConfig __build(Path cmakeBldDebugDir) {
-            this.cmakeBldDebugDir = cmakeBldDebugDir;
-            opts.addAll(List.of("--build", cmakeBldDebugDir.getFileName().toString()));
-            return this;
-        }
-
-        public CMakeConfig cwd(Path cwd) {
-            this.cwd = cwd;
-            return this;
-        }
-
-        public CMakeConfig opts(String... opts) {
-            this.opts.addAll(Arrays.asList(opts));
-            return this;
-        }
-
-    }
-
-    public static CMakeConfig cmakeconfig(Consumer<CMakeConfig> cMakeConfigConsumer) {
-        CMakeConfig cmakeConfig = new CMakeConfig();
-        cMakeConfigConsumer.accept(cmakeConfig);
-        return cmakeConfig;
-    }
-
-    public static void cmake(Consumer<CMakeConfig> cMakeConfigConsumer) {
-        CMakeConfig cmakeConfig = cmakeconfig(cMakeConfigConsumer);
+    static Path unzip(Path in, Path dir) {
         try {
-            Files.createDirectories(cmakeConfig.cmakeBldDebugDir);
-            //System.out.println(cmakeConfig.opts);
-            var cmakeProcessBuilder = new ProcessBuilder()
-                    .directory(cmakeConfig.cwd.toFile())
-                    .inheritIO()
-                    .command(cmakeConfig.opts)
-                    .start();
-            cmakeProcessBuilder.waitFor();
-        } catch (InterruptedException ie) {
-            System.out.println(ie);
-        } catch (IOException ioe) {
-            System.out.println(ioe);
+            Files.createDirectories(dir);
+            ZipFile zip = new ZipFile(in.toFile());
+            zip.entries().asIterator().forEachRemaining(entry -> {
+                try {
+                    String currentEntry = entry.getName();
+
+                    Path destFile = dir.resolve(currentEntry);
+                    //destFile = new File(newPath, destFile.getName());
+                    Path destinationParent = destFile.getParent();
+                    Files.createDirectories(destinationParent);
+                    // create the parent directory structure if needed
+
+
+                    if (!entry.isDirectory()) {
+                        zip.getInputStream(entry).transferTo(Files.newOutputStream(destFile));
+                    }
+                } catch (IOException ioe) {
+                    throw new RuntimeException(ioe);
+                }
+            });
+            zip.close();
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
+        return dir;
     }
 
-    public static class JExtractConfig {
-        public List<String> opts = new ArrayList<>(List.of("jextract"));
+    public static class JExtractBuilder extends ExecBuilder<JExtractBuilder> {
         public List<String> compileFlags = new ArrayList<>();
         public List<Path> libraries = new ArrayList<>();
         public List<Path> headers = new ArrayList<>();
@@ -512,13 +1296,15 @@ public class Bldr {
         private String targetPackage;
         private Path output;
 
-        public JExtractConfig seed(JExtractConfig stem) {
+        public JExtractBuilder() {
+            opts.add("jextract");
+        }
+
+        public JExtractBuilder basedOn(JExtractBuilder stem) {
+            super.basedOn(stem);
             if (stem != null) {
                 if (stem.output != null) {
                     this.output = stem.output;
-                }
-                if (stem.opts != null) {
-                    this.opts = new ArrayList<>(stem.opts);
                 }
                 if (stem.compileFlags != null) {
                     this.compileFlags = new ArrayList<>(stem.compileFlags);
@@ -540,97 +1326,74 @@ public class Bldr {
         }
 
 
-        public JExtractConfig cwd(Path cwd) {
+        public JExtractBuilder cwd(Path cwd) {
             this.cwd = cwd;
             return this;
         }
 
-        public JExtractConfig home(Path home) {
+        public JExtractBuilder home(Path home) {
             this.home = home;
-            opts.remove(0);
-            opts.add(0, path(home, "bin/jextract").toString());
+            opts.set(0, home.resolve("bin/jextract").toString());
             return this;
         }
 
-        public JExtractConfig opts(String... opts) {
+        public JExtractBuilder opts(String... opts) {
             this.opts.addAll(Arrays.asList(opts));
             return this;
         }
 
-        public JExtractConfig target_package(String targetPackage) {
+        public JExtractBuilder target_package(String targetPackage) {
             this.targetPackage = targetPackage;
-            this.opts.addAll(List.of(
-                    "--target-package",
-                    targetPackage
-            ));
+            opts("--target-package", targetPackage);
             return this;
         }
 
-        public JExtractConfig output(Path output) {
+        public JExtractBuilder output(Path output) {
             this.output = output;
-            this.opts.addAll(List.of(
-                    "--output",
-                    output.toString()
-            ));
+            opts("--output", output.toString());
             return this;
         }
 
-        public JExtractConfig library(Path... libraries) {
+        public JExtractBuilder library(Path... libraries) {
             this.libraries.addAll(Arrays.asList(libraries));
             for (Path library : libraries) {
-                this.opts.addAll(List.of("--library", ":" + library));
+                opts("--library", ":" + library);
             }
             return this;
         }
 
-        public JExtractConfig l(Path... libraries) {
-            return library(libraries);
-        }
-
-        public JExtractConfig compile_flag(String... compileFlags) {
+        public JExtractBuilder compile_flag(String... compileFlags) {
             this.compileFlags.addAll(Arrays.asList(compileFlags));
             return this;
         }
 
-        public JExtractConfig header(Path header) {
+        public JExtractBuilder header(Path header) {
             this.headers.add(header);
             this.opts.add(header.toString());
             return this;
         }
+
+        @Override
+        public List<String> execOpts() {
+            return opts;
+        }
     }
 
-    public static JExtractConfig jextractconfig(Consumer<JExtractConfig> jextractConfigConsumer) {
-        JExtractConfig extractConfig = new JExtractConfig();
-        jextractConfigConsumer.accept(extractConfig);
-        return extractConfig;
-    }
-
-    public static void jextract(Consumer<JExtractConfig> jextractConfigConsumer) {
-        JExtractConfig extractConfig = jextractconfig(jextractConfigConsumer);
+    public static void jextract(Consumer<JExtractBuilder> jextractBuilderConsumer) {
+        JExtractBuilder extractConfig = new JExtractBuilder();
+        jextractBuilderConsumer.accept(extractConfig);
         System.out.println(extractConfig.opts);
-        var compilerFlags = path(extractConfig.cwd, "compiler_flags.txt");
+        var compilerFlags = extractConfig.cwd.resolve("compiler_flags.txt");
         try {
             PrintWriter compilerFlagsWriter = new PrintWriter(Files.newOutputStream(compilerFlags));
             compilerFlagsWriter.println(extractConfig.compileFlags);
             compilerFlagsWriter.close();
-
             Files.createDirectories(extractConfig.output);
-            var jextractProcessBuilder = new ProcessBuilder()
-                    .directory(extractConfig.cwd.toFile())
-                    .inheritIO()
-                    .command(extractConfig.opts)
-                    .start();
-            jextractProcessBuilder.waitFor();
+            extractConfig.execInheritIO(extractConfig.cwd);
             Files.deleteIfExists(compilerFlags);
         } catch (IOException e) {
             throw new RuntimeException(e);
-        } catch (InterruptedException ie) {
-            System.out.println(ie);
         }
-    }
-
-    public static boolean existingDir(Path dir) {
-        return Files.exists(dir);
     }
 
     public static Path mkdir(Path path) {
@@ -641,8 +1404,7 @@ public class Bldr {
         }
     }
 
-
-    public record TextFile(Path path) {
+    public record SearchableTextFile(Path path) implements TextFile {
         public Stream<Line> lines() {
             try {
                 int num[] = new int[]{1};
@@ -656,6 +1418,12 @@ public class Bldr {
         public boolean grep(Pattern pattern) {
             return lines().anyMatch(line -> pattern.matcher(line.line).matches());
         }
+
+        public boolean hasSuffix(String... suffixes) {
+            var suffixSet = Set.of(suffixes);
+            int dotIndex = path().toString().lastIndexOf('.');
+            return dotIndex == -1 || suffixSet.contains(path().toString().substring(dotIndex + 1));
+        }
     }
 
     public record Line(String line, int num) {
@@ -664,38 +1432,152 @@ public class Bldr {
         }
     }
 
-    record GroupArtifactVersion(String group, String artifact, String version) {
+    public enum Scope {
+        TEST, COMPILE, PROVIDED, RUNTIME, SYSTEM;
 
+        static Scope of(String name) {
+            return switch (name.toLowerCase()) {
+                case "test" -> TEST;
+                case "compile" -> COMPILE;
+                case "provided" -> PROVIDED;
+                case "runtime" -> RUNTIME;
+                case "system" -> SYSTEM;
+                default -> COMPILE;
+            };
+        }
     }
 
-    interface RepoNode {
-        XMLNode xmlNode();
-
-        default GroupArtifactVersion groupArtifactVersion() {
-            try {
-                var groupIdXPath = xmlNode().xpath("groupId/text()");
-                var group = xmlNode().string(groupIdXPath);
-                var artifactIdXPath = xmlNode().xpath("artifactId/text()");
-                var artifact = xmlNode().string(artifactIdXPath);
-                var versionXPath = xmlNode().xpath("version/text()");
-                var version = xmlNode().string(versionXPath);
-                return new GroupArtifactVersion(group, artifact, version);
-            } catch (XPathExpressionException xPathExpressionException) {
-                throw new RuntimeException(xPathExpressionException);
+    public record Version(int maj, int min, int point, String modifier) {
+        public String spec() {
+            StringBuilder stringBuilder = new StringBuilder();
+            if (maj >= 0) {
+                stringBuilder.append(maj);
+                if (min >= 0) {
+                    stringBuilder.append(".").append(min);
+                    if (point >= 0) {
+                        stringBuilder.append(".").append(point);
+                        if (modifier != null && !modifier.isEmpty()) {
+                            stringBuilder.append("-").append(modifier);
+                        }
+                    }
+                }
+            } else {
+                stringBuilder.append(1);
             }
+            return stringBuilder.toString();
         }
 
-        default String location() {
-            GroupArtifactVersion groupArtifactVersion = groupArtifactVersion();
-            return "https://repo1.maven.org/maven2/" + groupArtifactVersion.group().replace('.', '/') + "/" + groupArtifactVersion().artifact() + "/" + groupArtifactVersion.version();
+        record Spec(int maj, int min, int point, String modifier) {
         }
 
-        default String name(String suffix) {
-            GroupArtifactVersion groupArtifactVersion = groupArtifactVersion();
-            return groupArtifactVersion.artifact() + "-" + groupArtifactVersion.version + "." + suffix;
+        static Pattern IntPrefixPattern = Pattern.compile("^\\.?([0-9]+)(.*)$");
+
+        static Spec parse(String spec) {
+
+            if (spec.isEmpty()) {
+                return new Spec(-1, -1, -1, null);
+            } else {
+                var majMatch = IntPrefixPattern.matcher(spec);
+                if (majMatch.matches()) {
+                    int maj = Integer.parseInt(majMatch.group(1));
+                    var minMatch = IntPrefixPattern.matcher(majMatch.group(2));
+                    if (minMatch.matches()) {
+                        int min = Integer.parseInt(minMatch.group(1));
+                        var pointMatch = IntPrefixPattern.matcher(minMatch.group(2));
+                        if (pointMatch.matches()) {
+                            int point = Integer.parseInt(pointMatch.group(1));
+                            return new Spec(maj, min, point, pointMatch.group(2));
+                        } else {
+                            return new Spec(maj, min, -1, null);
+                        }
+                    } else {
+                        return new Spec(maj, -1, -1, null);
+                    }
+                } else {
+                    throw new IllegalArgumentException("Invalid spec: " + spec);
+                }
+            }
+
+            //var matcher = Pattern.compile("^([0-9]*)\\.([0-9]*)\\.([0-9]*)(.*)$").matcher(spec);
+            // return new Spec(1,-1,-1,"");
         }
 
-        default URL url(String suffix) {
+        Version() {
+            this(-1, -1, -1, null);
+        }
+
+        Version(int maj) {
+            this(maj, -1, -1, null);
+        }
+
+        Version(int maj, int min) {
+            this(maj, min, -1, null);
+        }
+
+        Version(int maj, int min, int point) {
+            this(maj, min, point, null);
+        }
+
+
+        Version(String spec) {
+            this(parse(spec));
+        }
+
+        Version(Spec spec) {
+            this(spec.maj, spec.min, spec.point, spec.modifier);
+        }
+    }
+
+    public record Artifact(Path dir, String groupId, String artifactId, Version version, Scope scope,
+                           boolean optional) {
+        static final String MAVEN_REPO = "https://repo.maven.apache.org/maven2/";
+
+        static String groupId(XMLNode xmlNode) {
+            return xmlNode.xpathQueryString("groupId/text()");
+        }
+
+        static String artifactId(XMLNode xmlNode) {
+            return xmlNode.xpathQueryString("artifactId/text()");
+        }
+
+        static String versionId(XMLNode xmlNode) {
+            return xmlNode.xpathQueryString("versionId/text()");
+        }
+
+        Artifact(Path dir, XMLNode xmlNode) {
+            this(dir,
+                    groupId(xmlNode), artifactId(xmlNode),
+                    new Version(versionId(xmlNode)),
+                    Scope.of(xmlNode.xpathQueryString("scope/text()")),
+                    Boolean.parseBoolean(xmlNode.xpathQueryString("optional/text()"))
+            );
+        }
+
+        public Artifact(Path dir, String group, String artifact, Version version) {
+            this(dir, group, artifact, version, Scope.COMPILE, false);
+        }
+
+        public String artifactAndVersion() {
+            return artifactId() + '-' + version().spec();
+        }
+
+        public String pathName() {
+            return groupId() + '.' + artifactAndVersion();
+        }
+
+        private String location() {
+            return MAVEN_REPO + groupId().replace('.', '/') + "/" + artifactId() + "/" + version().spec();
+        }
+
+        private String name(String suffix) {
+            return artifactAndVersion() + "." + suffix;
+        }
+
+        public Path pomPath() {
+            return dir.resolve(name("pom"));
+        }
+
+        public URL url(String suffix) {
             try {
                 return new URI(location() + "/" + name(suffix)).toURL();
             } catch (MalformedURLException e) {
@@ -705,67 +1587,71 @@ public class Bldr {
             }
         }
 
-        default void downloadTo(Path thirdPartyDir, String suffix) {
-            var thirdPartyFile = thirdPartyDir.resolve(name(suffix));
-            try {
-                println("Downloading " + name(suffix) + "->" + thirdPartyDir);
-                url(suffix).openStream().transferTo(Files.newOutputStream(thirdPartyFile));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
-
-    record Dependency(XMLNode xmlNode) implements RepoNode {
         public URL pomURL() {
-            try {
-                GroupArtifactVersion groupArtifactVersion = groupArtifactVersion();
-                return new URI("https://repo1.maven.org/maven2/" + groupArtifactVersion.group().replace('.', '/') + "/" + groupArtifactVersion.artifact() + "/" + groupArtifactVersion.version() + "/"
-                        + groupArtifactVersion.artifact() + "-" + groupArtifactVersion.version() + ".pom").toURL();
-            } catch (MalformedURLException e) {
-                throw new RuntimeException(e);
-            } catch (URISyntaxException e) {
-                throw new RuntimeException(e);
-            }
+            return url("pom");
         }
-    }
 
-    record RepoPom(XMLNode xmlNode) implements RepoNode {
-        List<Dependency> dependencies() {
-            List<Dependency> dependencies = new ArrayList<>();
-            try {
-                var dependenciesXPath = xmlNode().xpath("/project/dependencies/dependency");
-                var nodeList = xmlNode().nodeList(dependenciesXPath);
-                for (int i = 0; i < nodeList.getLength(); i++) {
-                    var node = nodeList.item(i);
-                    dependencies.add(new Dependency(new XMLNode((Element) node)));
+        public URL jarURL() {
+            return url("jar");
+        }
+
+
+        public Path jarPath() {
+            return dir.resolve(name("jar"));
+        }
+
+        public Artifact download() {
+            if (isRegularFile(pomPath())) {
+                println("We already have " + pomPath());
+            } else {
+                println("Downloading " + pomPath() + " and " + jarPath());
+                try {
+                    pomURL().openStream().transferTo(Files.newOutputStream(pomPath()));
+                    jarURL().openStream().transferTo(Files.newOutputStream(jarPath()));
+                    dependencies();
+                } catch (IOException e) {
+                    if (version.maj() == -1) {
+                        Artifact artifact = new Artifact(this.dir, this.groupId, this.artifactId, new Version(1));
+                        artifact.download();
+                    } else if (version.min() == -1) {
+                        Artifact artifact = new Artifact(this.dir, this.groupId, this.artifactId, new Version(version.maj, 0));
+                        artifact.download();
+                    } else {
+                        throw new RuntimeException(e);
+                    }
                 }
-                return dependencies;
-            } catch (XPathExpressionException xPathExpressionException) {
-                throw new RuntimeException(xPathExpressionException);
             }
-        }
-    }
-
-    public static class Repo {
-        Path dir;
-
-        Repo(Path dir) {
-            this.dir = dir;
+            return this;
         }
 
-        Map<GroupArtifactVersion, Path> map = new HashMap<>();
-
-        RepoPom get(String groupId, String artifactId, String version) {
+        public XMLNode pomXML() {
             try {
-                var pom = new RepoPom(new XMLNode(new URI("https://repo1.maven.org/maven2/" + groupId.replace('.', '/') + "/"
-                        + artifactId + "/" + version + "/"
-                        + artifactId + "-" + version + ".pom").toURL()));
-                return pom;
-            } catch (Throwable exception) {
-                throw new RuntimeException(exception);
+                return new XMLNode(dir.resolve(name("pom")));
+            } catch (Throwable e) {
+                throw new RuntimeException(e);
             }
+        }
 
+        public List<Artifact> dependencies() {
+            List<Artifact> artifacts = new ArrayList<>();
+            var xmlNode = pomXML();
+            var nodeList = xmlNode.nodeList(xmlNode.xpath("/project/dependencies/dependency"));
+            for (int i = 0; i < nodeList.getLength(); i++) {
+                var node = nodeList.item(i);
+                var dependency = new Artifact(dir, new XMLNode((Element) node));
+                // if (!Files.exists(dependency.pomPath())){
+                dependency.download();
+                /// }
+                if (dependency.optional()) {
+                    println(dependency + " is optional");
+                } else if (dependency.scope.equals(Scope.COMPILE)) {
+                    artifacts.add(dependency);
+                    artifacts.addAll(dependency.dependencies());
+                } else {
+                    println("skipping " + dependency);
+                }
+            }
+            return artifacts;
         }
 
     }
@@ -780,191 +1666,364 @@ public class Bldr {
         return file;
     }
 
-    public static Path curlIfNeeded(URL url, Path file) {
-        if (!Files.isRegularFile(file)) {
-            curl(url, file);
-        }
-        return file;
+    public static Optional<Path> which(String execName) {
+        // which and whereis had issues.
+        return Arrays.asList(System.getenv("PATH").split(File.pathSeparator)).stream()
+                .map(dirName -> Path.of(dirName).resolve(execName).normalize())
+                .filter(Files::isExecutable).findFirst();
     }
 
-    public static Path untarIfNeeded(Path tarFile, Path expectedDir) {
-        if (!existingDir(expectedDir)) {
-            untar(tarFile, tarFile.getParent());
-        }
-        return expectedDir;
+    public static boolean canExecute(String execName) {
+        // which and whereis had issues.
+        return which(execName).isPresent();
     }
 
-    public static boolean available(String execName) {
-        // We could just look up the env.PATH?  or we could just try to execute assuming it will need some args ;)
+    public static Path untar(Path tarFile, Path dir) {
         try {
-            new ProcessBuilder().command(execName).start().waitFor();
-            return true;
+            new ProcessBuilder().inheritIO().command("tar", "xvf", tarFile.toString(), "--directory", tarFile.getParent().toString()).start().waitFor();
+            return dir;
         } catch (
                 InterruptedException e) { // We get IOException if the executable not found, at least on Mac so interuppted means it exists
-            return true;
+            return null;
         } catch (IOException e) { // We get IOException if the executable not found, at least on Mac
             //throw new RuntimeException(e);
+            return null;
+        }
+    }
+
+
+    public static Matcher pathMatcher(Path path, Pattern pattern) {
+        return pattern.matcher(path.toString());
+    }
+
+    public static boolean matches(Path path, Pattern pattern) {
+        return pathMatcher(path, pattern).matches();
+    }
+
+    public static boolean matches(Path path, String pattern) {
+        return pathMatcher(path, Pattern.compile(pattern)).matches();
+    }
+
+    public static boolean failsAndMatches(Path path, String failMe, String passMe) {
+        return !matches(path, failMe) && matches(path, Pattern.compile(passMe));
+    }
+
+    public static Artifact artifact(Path path, String group, String artifact, Version version) {
+        return new Artifact(path, group, artifact, version);
+    }
+
+
+    public record Project(Path targetDir, Path path,
+                          String variant) implements TargetDirProvider, JavaSourceDirProvider, ResourceDirProvider {
+
+
+        public Path javaSourceDir() {
+            return path().resolve("src/main/java");
+        }
+
+        public Path resourcesDir() {
+            return path().resolve("src/main/resources");
+        }
+
+        public String prefixNameVariantSuffix(String prefix, String suffix) {
+            return (prefix.isEmpty() ? "" : prefix + "-") + path().getFileName() + "-" + variant() + suffix;
+        }
+
+        public Path target(String prefix, String suffix) {
+            return targetDir.resolve(prefixNameVariantSuffix(prefix, suffix));
+        }
+
+        public JarBuilder build(String prefix, JavacBuilder javacBuilder) {
+            println("Building  " + path().getFileName() + "-" + variant());
+            return jar($ -> $
+                    .jar(target(prefix, ".jar"))
+                    .when(isDirectory(resourcesDir()), $$ -> $$.path_list(resourcesDir()))
+                    .javac($$ -> $$.basedOn(javacBuilder)
+                            .classes_dir(target(prefix, ".jar.classes"))
+                            .source_path(javaSourceDir())
+                    )
+            );
+        }
+
+        public JarBuilder build(JavacBuilder javacBuilder) {
+            return build("", javacBuilder);
+        }
+    }
+
+    public static boolean withOptionalDirectory(Path dir, Consumer<Path> pathConsumer) {
+        if (isDirectory(dir)) {
+            pathConsumer.accept(dir);
+            return true;
+        } else {
             return false;
         }
     }
 
-    public static boolean untar(Path tarFile, Path dir) {
-        // We could just look up the env.PATH?  or we could just try to execute assuming it will need some args ;)
-        try {
-            // tar xvf thirdparty/jextract.tar --directory thirdparty
-            new ProcessBuilder().inheritIO().command("tar", "xvf", tarFile.toString(), "--directory", dir.toString()).start().waitFor();
-            return true;
-        } catch (
-                InterruptedException e) { // We get IOException if the executable not found, at least on Mac so interuppted means it exists
-            return false;
-        } catch (IOException e) { // We get IOException if the executable not found, at least on Mac
-            //throw new RuntimeException(e);
-            return false;
+    public static void withExpectedDirectory(Path dir, Consumer<Path> pathConsumer) {
+        if (isDirectory(dir)) {
+            pathConsumer.accept(dir);
+        } else {
+            throw new IllegalStateException("Failed to find directory " + dir);
+        }
+    }
+
+    public record Root(Path path) implements DirPathHolder {
+
+
+        public Path buildDir() {
+            return mkdir(subDir("build"));
+        }
+
+        public Path thirdPartyDir() {
+            return mkdir(subDir("thirdparty"));
+        }
+
+        public Path repoDir() {
+            return mkdir(subDir("repoDir"));
+        }
+
+        public Root() {
+            this(Path.of(System.getProperty("user.dir")));
+        }
+
+        public Repo repo() {
+            return new Repo(repoDir());
+        }
+
+
+        public Path requireJExtract() {
+            var optional = executablesInPath("jextract").findFirst();
+            if (optional.isPresent()) {
+                println("Found jextract in PATH");
+                return optional.get().getParent().getParent(); // we want the 'HOME' dir
+            }
+            println("No jextract in PATH");
+            URL downloadURL = null;
+            var extractVersionMaj = "22";
+            var extractVersionMin = "5";
+            var extractVersionPoint = "33";
+            try {
+                downloadURL = new URI("https://download.java.net/java/early_access"
+                        + "/jextract/" + extractVersionMaj + "/" + extractVersionMin
+                        + "/openjdk-" + extractVersionMaj + "-jextract+" + extractVersionMin + "-" + extractVersionPoint + "_"
+                        + os.nameArchTuple() + "_bin.tar.gz").toURL();
+            } catch (MalformedURLException e) {
+                throw new RuntimeException(e);
+            } catch (URISyntaxException e) {
+                throw new RuntimeException(e);
+            }
+            URL finalDownloadURL = downloadURL;
+
+            println("... attempting download from" + downloadURL);
+            var jextractTar = thirdPartyDir().resolve("jextract.tar");
+
+            if (!isRegularFile(jextractTar)) { // Have we downloaded already?
+                jextractTar = curl(finalDownloadURL, jextractTar); // if not
+            }
+
+            var jextractHome = thirdPartyDir().resolve("jextract-22");
+            if (!isDirectory(jextractHome)) {
+                untar(jextractTar, jextractHome);
+            }
+            return jextractHome;
+
+        }
+    }
+
+    public static Stream<Path> executablesInPath(String name) {
+        return Arrays.asList(System.getenv("PATH").split(File.pathSeparator)).stream()
+                .map(dirName -> Path.of(dirName).resolve(name).normalize())
+                .filter(Files::isExecutable);
+
+    }
+
+    public static void sanity(Root hatDir) {
+        var rleParserDir = hatDir.path().resolve("examples/life/src/main/java/io");
+        subDirStream(hatDir.path(), "hat", "examples", "backends", "docs").forEach(dir ->
+                findTextFiles(dir, "java", "cpp", "h", "hpp", "md")
+                        .forEach(searchableTextFile -> {
+                            if (!searchableTextFile.path().getFileName().toString().equals("Makefile") && !searchableTextFile.hasSuffix("md")
+                                    && !searchableTextFile.path().startsWith(rleParserDir)
+                                    && !searchableTextFile.grep(Pattern.compile("^.*Copyright.*202[4-9].*(Intel|Oracle).*$"))) {
+                                System.err.println("ERR MISSING LICENSE " + searchableTextFile.path());
+                            }
+                            searchableTextFile.lines().forEach(line -> {
+                                if (!searchableTextFile.path().getFileName().toString().startsWith("Makefile") && line.grep(Pattern.compile("^.*\\t.*"))) {
+                                    System.err.println("ERR TAB " + searchableTextFile.path() + ":" + line.line() + "#" + line.num());
+                                }
+                                if (line.grep(Pattern.compile("^.* $"))) {
+                                    System.err.println("ERR TRAILING WHITESPACE " + searchableTextFile.path() + ":" + line.line() + "#" + line.num());
+                                }
+                            });
+                        })
+        );
+    }
+
+    public static <T> T assertOrThrow(T testme, Predicate<T> predicate, String message){
+        if (predicate.test(testme)) {
+            return testme;
+        }else{
+            throw new IllegalStateException("FAILED: "+message+" "+testme);
         }
     }
 
     //  https://stackoverflow.com/questions/23272861/how-to-call-testng-xml-from-java-main-method
-    public static void main(String[] args) throws Throwable {
-        var hatDir = path("/Users/grfrost/github/babylon-grfrost-fork/hat");
-        var thirdPartyDir = path(hatDir, "thirdparty");// maybe clean?
-        var repo = new Repo(thirdPartyDir);
+    public static void lomain(String[] args) throws Throwable {
+        var hatDir = new Root(Path.of("/Users/grfrost/github/babylon-grfrost-fork/hat"));
 
-        var jextractDir = untarIfNeeded(
-                curlIfNeeded(
-                        new URI("https://download.java.net/java/early_access/jextract/22/5/openjdk-22-jextract+5-33_macos-aarch64_bin.tar.gz").toURL(),
-                        path(thirdPartyDir, "jextract.tar")),
-                path(thirdPartyDir, "jextract-22"));
+        // varMap.entrySet().forEach(value->println("+"+value) );
+        var cmake = new CMake(hatDir.buildDir(), "OpenCL", "CUDAToolkit", "OpenGL", "GLUT");
+        var clinfoObj = cmake.cxxCompileObject(
+                hatDir.buildDir().resolve("clinfo.cpp.o"),
+                hatDir.path().resolve("backends/opencl/cpp/clinfo.cpp"),
+                List.of("OpenCL")
+        );
+        var clinfo = cmake.cxxLinkExecutable(
+                hatDir.buildDir().resolve("clinfo"),
+                List.of(clinfoObj),
+                List.of("OpenCL")
+        );
+        // System.exit(1);
+        // println(which("java")+"?");
+        //  System.exit(1);
 
+        //repo.versions("org.testng", "testng").forEach(s->println(s));
 
-        GroupArtifactVersion g = new GroupArtifactVersion("org.testng", "testng", "7.1.0");
-        GroupArtifactVersion aparapi = new GroupArtifactVersion("com.aparapi", "aparapi", "3.0.2");
-        GroupArtifactVersion aparapi_jni = new GroupArtifactVersion("com.aparapi", "aparapi-jni", "1.4.3");
-        GroupArtifactVersion aparapi_examples = new GroupArtifactVersion("com.aparapi", "aparapi-examples", "3.0.0");
-        RepoPom testng = repo.get("org.testng", "testng", "7.1.0");
+        println(hatDir.repo().forEachVersion("org.testng", "testng", version -> println(version)));
+
+        println(hatDir.repo().forEachId("org.testng", "testng", id -> println(id)));
+        //   var testng = artifact(thirdPartyDir,"org.testng", "testng", new Version(7,1,0));
+        //   testng.download().dependencies();
+        // g.dependencies().stream().forEach(artifactId->println(artifactId.artifactAndVersion()));
+        // println(g.pathName());
+
+        //  Artifact aparapi = Artifact.of("com.aparapi", "aparapi", "3.0.2").download(thirdPartyDir);
+        //  Artifact aparapi_jni = Artifact.of("com.aparapi", "aparapi-jni", "1.4.3").download(thirdPartyDir);
+        //  Artifact aparapi_examples = Artifact.of("com.aparapi", "aparapi-examples", "3.0.0").download(thirdPartyDir);
+        //  RepoPom testng = repo.get("org.testng", "testng", "7.1.0");
 
         //  var url = new URI("https://repo1.maven.org/maven2/org/testng/testng/7.1.0/testng-7.1.0.pom").toURL();
         //  var node = new XMLNode(url);
         //  RepoPom testng = new RepoPom(new XMLNode(new URI("https://repo1.maven.org/maven2/org/testng/testng/7.1.0/testng-7.1.0.pom").toURL()));
-        testng.downloadTo(repo.dir, "jar");
-        // testng.dependencies().stream().forEach(dependency->println(dependency.group()));
+        //  testng.downloadTo(repo.dir, "jar");
+        // testng.dependencies().stream().forEach(dependency->println(dependency.groupId()));
         // testng.dependencies().stream().forEach(dependency->println(dependency.pomURL()));
 
         // https://repo1.maven.org/maven2/org/testng/testng/7.1.0/testng-7.1.0.jar
         // var hatDir = path("/Users/grfrost/github/babylon-grfrost-fork/hat");
-        var licensePattern = Pattern.compile("^.*Copyright.*202[4-9].*(Intel|Oracle).*$");
-        var eolws = Pattern.compile("^.* $");
-        var tab = Pattern.compile("^.*\\t.*");
 
-        paths(hatDir, "hat", "examples", "backends").forEach(dir -> {
-            paths(dir, path -> !Pattern.matches("^.*(-debug|rleparser).*$", path.toString())
-                    && Pattern.matches("^.*\\.(java|cpp|h|hpp)$", path.toString())
-            ).stream().map(path -> new TextFile(path)).forEach(textFile -> {
-                if (!textFile.grep(licensePattern)) {
-                    System.err.println("ERR MISSING LICENSE " + textFile.path());
+        sanity(hatDir);
+
+        withExpectedDirectory(hatDir.subDir("hat"), hatProjectDir -> {
+            var hatJavacOpts = new JavacBuilder().opts(
+                    "--source", "24",
+                    "--enable-preview",
+                    "--add-exports=java.base/jdk.internal=ALL-UNNAMED",
+                    "--add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED"
+            );
+
+            var hatJarResult = new Project(hatDir.buildDir(), hatProjectDir, "1.0").build(hatJavacOpts);
+
+            var hatExampleJavacConfig = new JavacBuilder().basedOn(hatJavacOpts).class_path(hatJarResult.jar);
+
+            withExpectedDirectory(hatDir.subDir("backends"), backendsDir -> {
+                subDirStream(backendsDir, "opencl", "ptx")
+                        .map(backendDir -> new Project(hatDir.buildDir(), backendDir, "1.0"))
+                        .parallel()
+                        .forEach(project -> project.build("hat-backend", hatExampleJavacConfig));
+
+                var cmakeBuildDir = hatDir.buildDir().resolve("cmake-build-debug");
+
+                if (!isDirectory(cmakeBuildDir)) { // We need to rerun build -B defaultCMakeBuilder.buildDir
+                    mkdir(cmakeBuildDir);
+                    cmake($ -> $
+                            .S(backendsDir)
+                            .B(cmakeBuildDir)
+                            .opts("-DHAT_TARGET=" + hatDir.buildDir())
+                    );
                 }
-                textFile.lines().forEach(line -> {
-                    if (line.grep(tab)) {
-                        System.err.println("ERR TAB " + textFile.path() + ":" + line.line() + "#" + line.num());
+
+                cmake($ -> $
+                        // .S(backendsDir)
+                        .build(cmakeBuildDir)
+                );
+            });
+            assertOrThrow(hatDir.path.resolve("examples"), Files::isDirectory, "Examples Dir" );
+
+            withExpectedDirectory(hatDir.subDir("examples"), examplesDir ->
+                    subDirStream(examplesDir, "blackscholes", "mandel", "squares", "heal", "violajones", "life")
+                            .map(exampleDir -> new Project(hatDir.buildDir(), exampleDir, "1.0"))
+                            .parallel()
+                            .forEach(project -> project.build("hat-example", hatExampleJavacConfig))
+            );
+
+            withOptionalDirectory(hatDir.subDir("hattricks"), hattricksDir -> {
+                subDirStream(hattricksDir, "chess", "view")
+                        .map(hattrickDir -> new Project(hatDir.buildDir(), hattrickDir, "1.0"))
+                        .parallel()
+                        .forEach(project -> project.build("hat-example", hatExampleJavacConfig));
+
+
+                withOptionalDirectory(hattricksDir.resolve("nbody"), nbody -> {
+                    var jextractedJava = mkdir(hatDir.buildDir().resolve("jextracted-java"));
+                    var extractedOpenCLCode = jextractedJava.resolve("opencl");
+                    if (!isDirectory(extractedOpenCLCode)) {
+                        mkdir(extractedOpenCLCode);
+                        jextract($$ -> $$
+                                .home(hatDir.requireJExtract())
+                                .cwd(nbody)
+                                .output(jextractedJava)
+                                .target_package("opencl")
+                                .when(os instanceof OS.Mac, $$$ -> $$$
+                                        .compile_flag("-F" + ((OS.Mac) os).appLibFrameworks())
+                                        .library(((OS.Mac) os).frameworkLibrary("OpenCL"))
+                                        .header(((OS.Mac) os).frameworkHeader("OpenCL", "opencl.h"))
+                                )
+                        );
                     }
-                    if (line.grep(eolws)) {
-                        System.err.println("ERR TRAILING WHITESPACE " + textFile.path() + ":" + line.line() + "#" + line.num());
+                    var extractedOpenGLCode = jextractedJava.resolve("opengl");
+                    if (!isDirectory(extractedOpenGLCode)) {
+                        mkdir(extractedOpenGLCode);
+                        jextract($$ -> $$
+                                .home(hatDir.requireJExtract())
+                                .cwd(nbody)
+                                .output(jextractedJava)
+                                .target_package("opengl")
+                                .when(os instanceof OS.Mac, $$$ -> $$$
+                                        .compile_flag("-F" + ((OS.Mac) os).libFrameworks())
+                                        .library(
+                                                ((OS.Mac) os).frameworkLibrary("GLUT"),
+                                                ((OS.Mac) os).frameworkLibrary("OpenGL")
+                                        )
+                                        .header(((OS.Mac) os).frameworkHeader("GLUT", "glut.h"))
+                                )
+                                .when(os instanceof OS.Linux, $$$ -> {
+
+                                })
+                        );
                     }
+
+                    var nbodyJar = jar($ -> $
+                            .jar(hatDir.buildDir().resolve("hat-example-nbody-1.0.jar"))
+                            .path_list(nbody.resolve("src/main/resources"))
+                            .javac($$ -> $$.basedOn(hatExampleJavacConfig)
+                                    .source_path(nbody.resolve("src/main/java"), extractedOpenCLCode, extractedOpenGLCode)
+                            )
+                    );
+
+                    java($ -> $
+                            .jdk(Path.of("/Users/grfrost/github/babylon-grfrost-fork/build/macosx-aarch64-server-release/jdk"))
+                            .vmopts(
+                                    "--enable-preview",
+                                    "--enable-native-access=ALL-UNNAMED",
+                                    "--add-exports=java.base/jdk.internal=ALL-UNNAMED",
+                                    "-XstartOnFirstThread"
+                            )
+                            .class_path(nbodyJar.jar)
+                            .main_class("nbody.Main")
+                    );
                 });
             });
         });
-
-        var target = path(hatDir, "build");// mkdir(rmdir(path(hatDir, "build")));
-
-        var hatJavacOpts = javacjarconfig($ -> $.opts(
-                "--source", "24",
-                "--enable-preview",
-                "--add-exports=java.base/jdk.internal=ALL-UNNAMED",
-                "--add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED"
-        ));
-
-
-        var hatJarResult = javacjar($ -> $
-                .seed(hatJavacOpts)
-                .jar(path(target, "hat-1.0.jar"))
-                .source_path(path(hatDir, "hat/src/main/java"))
-        );
-        var hatExampleJavaConfig = javacjarconfig($ -> $.seed(hatJavacOpts).class_path(hatJarResult.jar));
-        println(hatJarResult.jar);
-        for (var exampleDir : paths(path(hatDir, "examples"), "mandel", "squares", "heal", "violajones", "life")) {
-            javacjar($ -> $
-                    .seed(hatExampleJavaConfig)
-                    .jar(path(target, "hat-example-" + exampleDir.getFileName() + "-1.0.jar"))
-                    .source_path(path(exampleDir, "src/main/java"))
-                    .resource_path(path(exampleDir, "src/main/resources"))
-            );
-        }
-        var backendsDir = path(hatDir, "backends");
-        for (var backendDir : paths(backendsDir, "opencl", "ptx")) {
-            javacjar($ -> $
-                    .seed(hatExampleJavaConfig)
-                    .jar(path(target, "hat-backend-" + backendDir.getFileName() + "-1.0.jar"))
-                    .source_path(path(backendDir, "src/main/java"))
-                    .resource_path(path(backendDir, "src/main/resources"))
-            );
-        }
-        var hattricksDir = path(hatDir, "hattricks");
-
-        if (Files.exists(hattricksDir)) {
-            for (var hattrickDir : paths(hattricksDir, "chess", "view")) {
-                javacjar($ -> $
-                        .seed(hatExampleJavaConfig)
-                        .jar(path(target, "hat-example-" + hattrickDir.getFileName() + "-1.0.jar"))
-                        .source_path(path(hattrickDir, "src/main/java"))
-                        .resource_path(path(hattrickDir, "src/main/resources"))
-                );
-            }
-
-            for (var hattrickDir : paths(hattricksDir, "nbody")) {
-                var appFrameworks = "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks";
-                var MAC_APP_FRAMEWORKS = Path.of(appFrameworks);
-                var MAC_LIB_FRAMEWORKS = Path.of("/System/Library/Frameworks");
-                var jextractedJava = path(target, "jextracted-java");
-                mkdir(jextractedJava);
-                var jextractedOpenCL = path(jextractedJava, "opencl");
-                var jextractedOpenGL = path(jextractedJava, "opengl");
-                var jextractconfig = jextractconfig($ -> $
-                        .home(jextractDir)
-                        .cwd(hattrickDir)
-                        .output(jextractedJava)
-                        .compile_flag("-F" + MAC_APP_FRAMEWORKS)
-                );
-                if (!existingDir(jextractedOpenCL)) {
-                    jextract($ -> $
-                            .seed(jextractconfig)
-                            .target_package("opencl")
-                            .library(path(MAC_LIB_FRAMEWORKS, "OpenCL.framework/OpenCL"))
-                            .header(path(MAC_APP_FRAMEWORKS, "OpenCL.framework/Headers/opencl.h"))
-                    );
-                }
-                if (!existingDir(jextractedOpenGL)) {
-                    jextract($ -> $
-                            .seed(jextractconfig)
-                            .target_package("opengl")
-                            .library(path(MAC_LIB_FRAMEWORKS, "GLUT.framework/GLUT"), path(MAC_LIB_FRAMEWORKS, "OpenGL.framework/OpenGL"))
-                            .header(path(MAC_APP_FRAMEWORKS, "GLUT.framework/Headers/glut.h"))
-                    );
-                }
-
-                javacjar($ -> $
-                        .seed(hatExampleJavaConfig)
-                        .jar(path(target, "hat-example-" + hattrickDir.getFileName() + "-1.0.jar"))
-                        .source_path(path(hattrickDir, "src/main/java"), jextractedOpenCL, jextractedOpenGL)
-                        .resource_path(path(hattrickDir, "src/main/resources"))
-                );
-            }
-        }
-
-        var cmakeBldDebugDir = backendsDir.resolve("bld-debug");
-        if (!existingDir(cmakeBldDebugDir)) {
-            mkdir(cmakeBldDebugDir);
-            cmake($ -> $.cwd(backendsDir)._B(cmakeBldDebugDir).opts("-DHAT_TARGET=" + target));
-        }
-        cmake($ -> $.cwd(backendsDir).__build(cmakeBldDebugDir));
-
     }
 }

@@ -134,12 +134,14 @@ public final class Interpreter {
             erStack.push(erb);
         }
 
-        void popExceptionRegion(CoreOp.ExceptionRegionEnter ers) {
-            if (erStack.peek().ers != ers) {
-                // @@@ Use internal exception type
-                throw interpreterException(new IllegalStateException("Mismatched exception regions"));
-            }
-            erStack.pop();
+        void popExceptionRegion(CoreOp.ExceptionRegionExit ere) {
+            ere.catchBlocks().forEach(catchBlock -> {
+                if (erStack.peek().catchBlock != catchBlock.targetBlock()) {
+                    // @@@ Use internal exception type
+                    throw interpreterException(new IllegalStateException("Mismatched exception regions"));
+                }
+                erStack.pop();
+            });
         }
 
         Block exception(MethodHandles.Lookup l, Throwable e) {
@@ -157,6 +159,9 @@ public final class Interpreter {
 
             // Pop the block context to the block defining the start of the exception region
             popTo(er.mark);
+            while (erStack.size() > er.erStackDepth()) {
+                erStack.pop();
+            }
             return cb;
         }
     }
@@ -172,6 +177,8 @@ public final class Interpreter {
         VarBox(Object value) {
             this.value = value;
         }
+
+        static final Object UINITIALIZED = new Object();
     }
 
     record ClosureRecord(CoreOp.ClosureOp op,
@@ -190,22 +197,18 @@ public final class Interpreter {
         }
     }
 
-    record ExceptionRegionRecord(BlockContext mark, CoreOp.ExceptionRegionEnter ers)
-            implements CoreOp.ExceptionRegion {
+    record ExceptionRegionRecord(BlockContext mark, int erStackDepth, Block catchBlock) {
         Block match(MethodHandles.Lookup l, Throwable e) {
-            for (Block.Reference catchBlock : ers.catchBlocks()) {
-                Block target = catchBlock.targetBlock();
-                List<Block.Parameter> args = target.parameters();
-                if (args.size() != 1) {
-                    throw interpreterException(new IllegalStateException("Catch block must have one argument"));
-                }
-                TypeElement et = args.get(0).type();
-                if (et instanceof VarType vt) {
-                    et = vt.valueType();
-                }
-                if (resolveToClass(l, et).isInstance(e)) {
-                    return target;
-                }
+            List<Block.Parameter> args = catchBlock.parameters();
+            if (args.size() != 1) {
+                throw interpreterException(new IllegalStateException("Catch block must have one argument"));
+            }
+            TypeElement et = args.get(0).type();
+            if (et instanceof VarType vt) {
+                et = vt.valueType();
+            }
+            if (resolveToClass(l, et).isInstance(e)) {
+                return catchBlock;
             }
             return null;
         }
@@ -330,14 +333,15 @@ public final class Interpreter {
                 Value yv = yop.yieldValue();
                 return yv == null ? null : oc.getValue(yv);
             } else if (to instanceof CoreOp.ExceptionRegionEnter ers) {
-                var er = new ExceptionRegionRecord(oc.stack.peek(), ers);
-                oc.setValue(ers.result(), er);
-
-                oc.pushExceptionRegion(er);
+                int erStackDepth = oc.erStack.size();
+                ers.catchBlocks().forEach(catchBlock -> {
+                    var er = new ExceptionRegionRecord(oc.stack.peek(), erStackDepth, catchBlock.targetBlock());
+                    oc.pushExceptionRegion(er);
+                });
 
                 oc.successor(ers.start());
             } else if (to instanceof CoreOp.ExceptionRegionExit ere) {
-                oc.popExceptionRegion(ere.regionStart());
+                oc.popExceptionRegion(ere);
 
                 oc.successor(ere.end());
             } else {
@@ -478,12 +482,19 @@ public final class Interpreter {
 
             return Interpreter.invoke(l, cr.op(), cr.capturedValues, values.subList(1, values.size()));
         } else if (o instanceof CoreOp.VarOp vo) {
-            return new VarBox(oc.getValue(o.operands().get(0)));
+            Object v = vo.isUninitialized()
+                    ? VarBox.UINITIALIZED
+                    : oc.getValue(o.operands().get(0));
+            return new VarBox(v);
         } else if (o instanceof CoreOp.VarAccessOp.VarLoadOp vlo) {
             // Cast to CoreOp.Var, since the instance may have originated as an external instance
             // via a captured value map
             CoreOp.Var<?> vb = (CoreOp.Var<?>) oc.getValue(o.operands().get(0));
-            return vb.value();
+            Object value = vb.value();
+            if (value == VarBox.UINITIALIZED) {
+                throw interpreterException(new IllegalStateException("Loading from uninitialized variable"));
+            }
+            return value;
         } else if (o instanceof CoreOp.VarAccessOp.VarStoreOp vso) {
             VarBox vb = (VarBox) oc.getValue(o.operands().get(0));
             vb.value = oc.getValue(o.operands().get(1));

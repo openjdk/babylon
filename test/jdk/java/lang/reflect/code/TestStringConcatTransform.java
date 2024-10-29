@@ -24,6 +24,7 @@
 /*
  * @test
  * @run testng TestStringConcatTransform
+ * @run testng/othervm -Dbabylon.ssa=cytron TestStringConcatTransform
  */
 
 import org.testng.Assert;

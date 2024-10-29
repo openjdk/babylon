@@ -30,11 +30,10 @@ We might even have `Bldr` create the maven artifacts....
 To build HAT we need to ensure that `JAVA_HOME` is set
 to point to our babylon jdk (the one we built [here](hat-01-02-building-babylon.md))
 
-It will simplify our tasks going forward if we
+It simplifes our tasks going forward if we
 add `${JAVA_HOME}/bin` to our PATH (before any other JAVA installs).
 
-The top level `env.bash` shell script can be sourced (dot included)
-into your shell to both set `JAVA_HOME` and update your `PATH`
+Thankfully just sourcing the top level `env.bash` script will perform these tasks
 
 It should detect the arch type (AARCH64 or X86_46) and
 select the correct relative parent dir and inject that dir in your PATH.
@@ -49,80 +48,45 @@ echo ${PATH}
 ```
 
 # Introducing Bldr
-`Bldr` is a minimal java build system which has all the capabilities needed so far
-to build existing HAT as well as it's examples and backends. It is just a set of
-static methods and helper classes wrapping javac/jar tooling.
+`Bldr` is an evolving set of static methods and types required (so far.. ;) )
+to be able to build HAT, hat backends and examples.
 
-`Bldr` itself is a java class in
+We rely on the ability to launch java source directly (without needing to javac first)
+
+* [JEP 458: Launch Multi-File Source-Code Program](https://openjdk.org/jeps/458)
+* [JEP 330: Launch Single-File Source-Code Programs](https://openjdk.org/jeps/330)
+
+The `bld` script (really java source) can be run like this
+
+```bash
+java --enable-preview --source 24 bld
+```
+
+In our case the  magic is under the `hat/bldr`subdir
+
 ```
 bldr
-  └── src
-      └── main
-          └── java
-              └── bldr
-                  └── Bldr.java
+├── Bldr.java (symlink) -> src/main/java/bldr/Bldr.java
+├── args      (text)       "--enable-preview --source 24"
+└── src
+    └── main
+        └── java
+            └── bldr
+                └── Bldr.java
 ```
 
-We do need to compile this one class using javac one time, then we can use this in `bld` scripts to actually bld.
-
-Assuming we have our babylon JDK build in our path (via `. env.bash`) we should do this every time we 'pull' HAT.
-
-```shell
-mkdir bldr/classes
-javac --enable-preview -source 24 -d bldr/classes bldr/src/main/java/bldr/Bldr.java
-```
-
-Now the `bldr/classes` dir contains all we need to create build scripts
-
-In HAT's root dir is a `#!` (Hash Bang) java launcher style script called `bld`
-which uses tools exposed by the precompiled `Bldr` to compile, create jars, run jextract, download dependencies, tar/untar etc.
-
-As git does not allow us to check in scripts with execute permission, we need to `chmod +x` this `bld` file.
+We also have a handy `bldr/args` which allows us to avoid specifying commmon args `--enable-preview --source 24` which are always needed
 
 ```bash
-chmod +x bld
+java @bldr/args bld
 ```
 
-A simple example of `bld` script which just compiles core HAT source to `build/hat-1.0.jar` is shown.
-
-```java
-#!/usr/bin/env java --enable-preview --source 24 --class-path bldr/classes
-import module java.compiler;
-import static bldr.Bldr.*;
-void main(String[] args) throws IOException, InterruptedException {
-    var hatDir = Path.of(System.getProperty("user.dir"));
-    var target = path(hatDir, "build");// mkdir(rmdir(path(hatDir, "build")));
-
-    var hatJarResult = javacjar($ -> $
-            .opts(  "--source", "24",
-                    "--enable-preview",
-                    "--add-exports=java.base/jdk.internal=ALL-UNNAMED",
-                    "--add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED")
-            .jar(path(target, "hat-1.0.jar"))
-            .source_path(path(hatDir, "hat/src/main/java"))
-    );
-}
-```
-Note that the first line has the `#!` magic to allow this java code to be executed as if it
-were a script.  Whilst `bld` is indeed real java code,  we do not need to compile it. Instead we just execute using
-
-```bash
-./bld
-```
-
-The real `bld` is more complicated, but not much more. It will will build hat-1.0.jar, along with all the backend jars hat-backend-?-1.0.jar,
-all the example jars hat-example-?-1.0.jar and will try to build all native artifacts (.so/.dylib) it can.
-So if cmake finds OpenCL libs/headers, you will see libopencl_backend (.so or .dylib)
-
-On a CUDA machine you will see libcuda_backend(.so or .dylib)
-
-`bld` will also sanity check .java/.cpp/.h files to make sure we don't have any tabs, lines that with whitespace
-or files without appropriate licence headers
+This `bld` script builds HAT, all the backends and examples and places buildable artifacts in `build` dir
 
 ```bash
 cd hat
 . ./env.bash
-./bld
+java @bld/args bld
 ls build
 hat-1.0.jar                     hat-example-heal-1.0.jar        libptx_backend.dylib
 hat-backend-cuda-1.0.jar        hat-example-mandel-1.0.jar      libspirv_backend.dylib
@@ -132,6 +96,18 @@ hat-backend-ptx-1.0.jar         hat-example-violajones-1.0.jar  ptx_info
 hat-backend-spirv-1.0.jar       libmock_backend.dylib           spirv_info
 hat-example-experiments-1.0.jar libopencl_backend.dylib
 ```
+
+`bld` relies on cmake to build native code for backends, so if cmake finds OpenCL libs/headers, you will see libopencl_backend (.so or .dylib) in the build dir, if cmake finds CUDA you will see libcuda_backend(.so or .dylib)
+
+We have another script called `sanity` which will check all  .md/.java/.cpp/.h for tabs, lines that end with whitespace
+or files without appropriate licence headers
+
+This is run using
+
+```
+java @bldr/args sanity
+```
+
 
 ## Running an example
 
@@ -146,10 +122,18 @@ ${JAVA_HOME}/bin/java \
    mandel.Main
 ```
 
-The provided `hatrun.bash` script simplifies this somewhat, we just need to pass the backend
-name `opencl` and the package name `mandel`
-(all examples are assumed to be in `packagename/Main.java`
+The `hatrun` script can also be used which simply needs the backend
+name `opencl|java|cuda|ptx|mock` and the package name `mandel`
 
 ```bash
-bash hatrun.bash opencl mandel
+java @bldr/args hatrun opencl mandel
 ```
+
+If you pass `headless` as the first arg
+
+```bash
+java @bldr/args hatrun headless opencl mandel
+```
+
+This sets `-Dheadless=true` and passes '--headless' to the example.  Some examples can use this to avoid launching UI.
+
