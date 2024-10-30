@@ -3162,9 +3162,11 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                         // unboxing conversions
                         ClassType box;
                         if (cs.unbox().isEmpty()) { // s not a boxed type
+                            // e.g. Number -> int
                             box = pt.box().orElseThrow();
                             p = CoreOp.instanceOf(box, target);
                         } else {
+                            // e.g. Float -> float
                             box = cs;
                         }
                         c = invoke(MethodRef.method(box, t + "Value", t), target);
@@ -3173,17 +3175,22 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                         PrimitiveType ps = ((PrimitiveType) s);
                         if (isNarrowingPrimitiveConv(ps, pt) || isWideningPrimitiveConvThatNeedCheck(ps, pt)
                                 || isWideningAndNarrowingPrimitiveConv(ps, pt)) {
+                            // e.g. int -> byte, narrowing
+                            // e,g. int -> float, widening that need check
+                            // e.g. byte -> char, widening and narrowing
                             MethodRef mref = convMethodRef(s, t);
                             p = invoke(mref, target);
                         }
                         c = CoreOp.conv(targetType, target);
                     }
                 } else {
+                    // e.g. byte -> Byte, Number -> Double, ...
                     p = CoreOp.instanceOf(targetType, target);
                     c = CoreOp.cast(targetType, target);
                 }
 
                 if (p != null) {
+                    // p != null, we need to perform type check at runtime
                     Block.Builder nextBlock = currentBlock.block();
                     currentBlock.op(conditionalBranch(currentBlock.op(p), nextBlock.successor(), endNoMatchBlock.successor()));
                     currentBlock = nextBlock;
