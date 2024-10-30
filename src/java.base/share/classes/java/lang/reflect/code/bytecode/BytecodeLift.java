@@ -103,6 +103,7 @@ public final class BytecodeLift {
     private final List<Value> initialValues;
     private final ClassModel classModel;
     private final List<Label> exceptionHandlers;
+    private final Map<Integer, Block.Builder> exceptionHandlerBlocks;
     private final BitSet ereStack;
     private final Map<Label, BitSet> exceptionHandlersMap;
     private final Map<Label, Block.Builder> blockMap;
@@ -117,6 +118,7 @@ public final class BytecodeLift {
         this.currentBlock = entryBlock;
         this.classModel = classModel;
         this.exceptionHandlers = new ArrayList<>();
+        this.exceptionHandlerBlocks = new HashMap<>();
         this.ereStack = new BitSet();
         this.newStack = new ArrayDeque<>();
         this.elements = codeModel.elementList();
@@ -234,10 +236,20 @@ public final class BytecodeLift {
                             if (!eresToLeave.isEmpty()) {
                                 Block.Builder next = entryBlock.block();
                                 op(CoreOp.exceptionRegionExit(next.successor(), eresToLeave.stream().mapToObj(ei ->
-                                        blockMap.get(exceptionHandlers.get(ei)).successor()).toList()));
+                                        targetBlockForExceptionHandler(ei).successor()).toList()));
+                                currentBlock = next;
+                            }
+                            var eresToEnter = (BitSet)newEreStack.clone();
+                            eresToEnter.andNot(ereStack);
+                            if (!eresToEnter.isEmpty()) {
+                                Block.Builder next = entryBlock.block();
+                                op(CoreOp.exceptionRegionEnter(next.successor(), eresToEnter.stream().mapToObj(ei ->
+                                        targetBlockForExceptionHandler(ei).successor()).toList().reversed()));
                                 currentBlock = next;
                             }
                         }
+                        ereStack.clear();
+                        ereStack.or(newEreStack);
                     }
                     Block.Builder next = blockMap.get(lt.label());
                     if (next != null) {
@@ -248,18 +260,6 @@ public final class BytecodeLift {
                         stack.clear();
                         stack.addAll(next.parameters());
                         currentBlock = next;
-                    }
-                    if (newEreStack != null) {
-                        var eresToEnter = (BitSet)newEreStack.clone();
-                        eresToEnter.andNot(ereStack);
-                        if (!eresToEnter.isEmpty()) {
-                            next = entryBlock.block();
-                            op(CoreOp.exceptionRegionEnter(next.successor(), eresToEnter.stream().mapToObj(ei ->
-                                    blockMap.get(exceptionHandlers.get(ei)).successor()).toList().reversed()));
-                            currentBlock = next;
-                        }
-                        ereStack.clear();
-                        ereStack.or(newEreStack);
                     }
                 }
                 case BranchInstruction inst when BytecodeHelpers.isUnconditionalBranch(inst.opcode()) -> {
@@ -852,6 +852,21 @@ public final class BytecodeLift {
         stack.clear();
     }
 
+    private Block.Builder targetBlockForExceptionHandler(int ei) {
+        return exceptionHandlerBlocks.computeIfAbsent(ei, _ -> {
+            Label handlerLabel = exceptionHandlers.get(ei);
+            BitSet handlerEreStack = exceptionHandlersMap.get(handlerLabel);
+            Block.Builder handlerBlock = blockMap.get(handlerLabel);
+            if (handlerEreStack.get(ei)) {
+                // Inner exception region re-enter in the looped catch handler
+                Block.Builder newHandler = newBlock(handlerBlock.parameters());
+                newHandler.op(CoreOp.exceptionRegionEnter(handlerBlock.successor(newHandler.parameters()), newHandler.successor()));
+                return newHandler;
+            }
+            return handlerBlock;
+        });
+    }
+
     private Block.Builder targetBlockForBranch(Label targetLabel) {
         Block.Builder targetBlock = blockMap.get(targetLabel);
         var targetEreStack = exceptionHandlersMap.get(targetLabel);
@@ -861,7 +876,7 @@ public final class BytecodeLift {
             // prepend exception region exits
             Block.Builder prev = newBlock(targetBlock.parameters());
             prev.op(CoreOp.exceptionRegionEnter(successorWithStack(targetBlock), eresToEnter.stream().mapToObj(ei ->
-                    blockMap.get(exceptionHandlers.get(ei)).successor()).toList().reversed()));
+                    targetBlockForExceptionHandler(ei).successor()).toList().reversed()));
             targetBlock = prev;
         }
         var eresToLeave = (BitSet)ereStack.clone();
@@ -870,7 +885,7 @@ public final class BytecodeLift {
             // prepend exception region enters
             Block.Builder prev = newBlock(targetBlock.parameters());
             prev.op(CoreOp.exceptionRegionExit(successorWithStack(targetBlock), eresToLeave.stream().mapToObj(ei ->
-                    blockMap.get(exceptionHandlers.get(ei)).successor()).toList()));
+                    targetBlockForExceptionHandler(ei).successor()).toList()));
             targetBlock = prev;
         }
         return targetBlock;
