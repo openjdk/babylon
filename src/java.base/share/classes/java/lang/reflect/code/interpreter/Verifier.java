@@ -201,10 +201,7 @@ public final class Verifier {
 
     private void verifyExceptionRegions() {
         rootOp.traverse(new HashMap<Block, List<Block>>(), CodeElement.blockVisitor((map, b) -> {
-            List<Block> catchBlocks = b.isEntryBlock() ? List.of() : map.computeIfAbsent(b, _ -> {
-                error("%s has no entry", b);
-                return List.of();
-            });
+            List<Block> catchBlocks = map.computeIfAbsent(b, _ -> List.of());
             switch (b.terminatingOp()) {
                 case CoreOp.BranchOp br ->
                     verifyCatchStack(b, br, br.branch(), catchBlocks, map);
