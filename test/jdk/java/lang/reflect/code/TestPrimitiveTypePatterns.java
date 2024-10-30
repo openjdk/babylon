@@ -46,7 +46,7 @@ public class TestPrimitiveTypePatterns {
     }
 
     @DataProvider
-    public static Object[][] dp() {
+    public static Object[][] narrowingPrimitiveAndWideningPrimitiveThatNeedCheck() {
         return new Object[][]{
                 {JavaType.INT, JavaType.BYTE, new Object[] {
                         Byte.MIN_VALUE - 1, Byte.MIN_VALUE, Byte.MAX_VALUE, Byte.MAX_VALUE + 1
@@ -138,8 +138,8 @@ public class TestPrimitiveTypePatterns {
         };
     }
 
-    @Test(dataProvider = "dp")
-    void test(JavaType sourceType, JavaType targetType, Object[] values) throws Throwable {
+    @Test(dataProvider = "narrowingPrimitiveAndWideningPrimitiveThatNeedCheck")
+    void testNarrowingPrimitiveAndWideningPrimitiveThatNeedCheck(JavaType sourceType, JavaType targetType, Object[] values) throws Throwable {
 
         var model = buildTypePatternModel(sourceType, targetType);
         model.writeTo(System.out);
@@ -166,13 +166,13 @@ public class TestPrimitiveTypePatterns {
     }
 
     @CodeReflection
-    static boolean ip(short s) {
+    static boolean identityPrimitive(short s) {
         return s instanceof short _;
     }
 
     @Test
-    void test_ip() {
-        FuncOp f = getFuncOp("ip");
+    void testIdentityPrimitive() {
+        FuncOp f = getFuncOp("identityPrimitive");
         f.writeTo(System.out);
 
         FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
@@ -182,13 +182,13 @@ public class TestPrimitiveTypePatterns {
     }
 
     @CodeReflection
-    static boolean wnp(byte s) {
+    static boolean wideningNarrowingPrimitive(byte s) {
         return s instanceof char _;
     }
 
     @Test
-    void test_wnp() {
-        FuncOp f = getFuncOp("wnp");
+    void testWideningNarrowingPrimitive() {
+        FuncOp f = getFuncOp("wideningNarrowingPrimitive");
         f.writeTo(System.out);
 
         FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
@@ -199,13 +199,13 @@ public class TestPrimitiveTypePatterns {
     }
 
     @CodeReflection
-    static boolean b(int s) {
+    static boolean boxing(int s) {
         return s instanceof Integer _;
     }
 
     @Test
-    void test_b() {
-        FuncOp f = getFuncOp("b");
+    void testBoxing() {
+        FuncOp f = getFuncOp("boxing");
         f.writeTo(System.out);
 
         FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
@@ -216,13 +216,13 @@ public class TestPrimitiveTypePatterns {
     }
 
     @CodeReflection
-    static boolean bw(int s) {
+    static boolean boxingWideningReference(int s) {
         return s instanceof Number _;
     }
 
     @Test
-    void test_bw() {
-        FuncOp f = getFuncOp("bw");
+    void testBoxingWideningReference() {
+        FuncOp f = getFuncOp("boxingWideningReference");
         f.writeTo(System.out);
 
         FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
@@ -233,13 +233,13 @@ public class TestPrimitiveTypePatterns {
     }
 
     @CodeReflection
-    static boolean nr_unboxing(Number n) {
+    static boolean narrowingReferenceUnboxing(Number n) {
         return n instanceof int _;
     }
 
     @Test
-    void test_nr_unboxing() {
-        FuncOp f = getFuncOp("nr_unboxing");
+    void testNarrowingReferenceUnboxing() {
+        FuncOp f = getFuncOp("narrowingReferenceUnboxing");
         f.writeTo(System.out);
 
         FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
@@ -255,7 +255,7 @@ public class TestPrimitiveTypePatterns {
     }
 
     @Test
-    void test_unboxing() {
+    void testUnboxing() {
         FuncOp f = getFuncOp("unboxing");
         f.writeTo(System.out);
 
@@ -267,13 +267,13 @@ public class TestPrimitiveTypePatterns {
     }
 
     @CodeReflection
-    static boolean unboxing_wp(Integer n) {
+    static boolean unboxingWideningPrimitive(Integer n) {
         return n instanceof long _;
     }
 
     @Test
-    void test_unboxing_wp() {
-        FuncOp f = getFuncOp("unboxing_wp");
+    void testUnboxingWideningPrimitive() {
+        FuncOp f = getFuncOp("unboxingWideningPrimitive");
         f.writeTo(System.out);
 
         FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
@@ -284,13 +284,13 @@ public class TestPrimitiveTypePatterns {
     }
 
     @CodeReflection
-    static boolean wr(String s) {
+    static boolean wideningReference(String s) {
         return s instanceof Object _;
     }
 
     @Test
-    void test_wr() {
-        FuncOp f = getFuncOp("wr");
+    void testWideningReference() {
+        FuncOp f = getFuncOp("wideningReference");
         f.writeTo(System.out);
 
         FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
@@ -301,13 +301,13 @@ public class TestPrimitiveTypePatterns {
     }
 
     @CodeReflection
-    static boolean ir(Float f) {
+    static boolean identityReference(Float f) {
         return f instanceof Float _;
     }
 
     @Test
-    void test_ir() {
-        FuncOp f = getFuncOp("ir");
+    void testIdentityReference() {
+        FuncOp f = getFuncOp("identityReference");
         f.writeTo(System.out);
 
         FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
@@ -320,13 +320,13 @@ public class TestPrimitiveTypePatterns {
     }
 
     @CodeReflection
-    static boolean nr(Number n) {
+    static boolean narrowingReference(Number n) {
         return n instanceof Double _;
     }
 
     @Test
-    void test_nr() {
-        FuncOp f = getFuncOp("nr");
+    void testNarrowingReference() {
+        FuncOp f = getFuncOp("narrowingReference");
         f.writeTo(System.out);
 
         FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
@@ -339,13 +339,13 @@ public class TestPrimitiveTypePatterns {
     }
 
     @CodeReflection
-    static boolean wp(int i) {
+    static boolean wideningPrimitive(int i) {
         return i instanceof long _;
     }
 
     @Test
-    void test_wp() {
-        FuncOp f = getFuncOp("wp");
+    void testWideningPrimitive() {
+        FuncOp f = getFuncOp("wideningPrimitive");
         f.writeTo(System.out);
 
         FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
