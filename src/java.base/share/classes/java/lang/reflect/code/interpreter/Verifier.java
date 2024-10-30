@@ -32,7 +32,9 @@ import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.writer.OpWriter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public final class Verifier {
 
@@ -65,6 +67,7 @@ public final class Verifier {
     public static List<Verifier.VerifyError> verify(MethodHandles.Lookup l, Op op) {
         var verifier = new Verifier(l, op);
         verifier.verifyOps();
+        verifier.verifyExceptionRegions();
         return verifier.errors == null ? List.of() : Collections.unmodifiableList(verifier.errors);
     }
 
@@ -99,20 +102,23 @@ public final class Verifier {
             errors = new ArrayList<>();
         }
         for (int i = 0; i < args.length; i++) {
-            var arg = args[i];
-            if (arg instanceof Op op) {
-                args[i] = toText(op);
-            } else if (arg instanceof Block b) {
-                args[i] = getName(b);
-            } else if (arg instanceof Value v) {
-                args[i] = getName(v);
-            }
+            args[i] = toText(args[i]);
         }
         errors.add(new VerifyError(message.formatted(args)));
     }
 
+    private String toText(Object arg) {
+        return switch (arg) {
+            case Op op -> toText(op);
+            case Block b -> getName(b);
+            case Value v -> getName(v);
+            case List<?> l -> l.stream().map(this::toText).toList().toString();
+            default -> arg.toString();
+        };
+    }
+
     private void verifyOps() {
-        rootOp.traverse(null, CodeElement.opVisitor((n, op) -> {
+        rootOp.traverse(null, CodeElement.opVisitor((_, op) -> {
             // Verify operands declaration dominannce
             for (var v : op.operands()) {
                 if (!op.result().isDominatedBy(v)) {
@@ -124,6 +130,8 @@ public final class Verifier {
             switch (op) {
                 case CoreOp.BranchOp br ->
                     verifyBlockReferences(op, br.successors());
+                case CoreOp.ConditionalBranchOp cbr ->
+                    verifyBlockReferences(op, cbr.successors());
                 case CoreOp.ArithmeticOperation _, CoreOp.TestOperation _ ->
                     verifyOpHandleExists(op, op.opName());
                 case CoreOp.ConvOp _ -> {
@@ -189,5 +197,50 @@ public final class Verifier {
         } catch (IllegalAccessException iae) {
             error("%s %s %s",  op.parentBlock(), op, iae.getMessage());
         }
+    }
+
+    private void verifyExceptionRegions() {
+        rootOp.traverse(new HashMap<Block, List<Block>>(), CodeElement.blockVisitor((map, b) -> {
+            List<Block> catchBlocks = b.isEntryBlock() ? List.of() : map.computeIfAbsent(b, _ -> {
+                error("%s has no entry", b);
+                return List.of();
+            });
+            switch (b.terminatingOp()) {
+                case CoreOp.BranchOp br ->
+                    verifyCatchStack(b, br, br.branch(), catchBlocks, map);
+                case CoreOp.ConditionalBranchOp cbr -> {
+                    verifyCatchStack(b, cbr, cbr.trueBranch(), catchBlocks, map);
+                    verifyCatchStack(b, cbr, cbr.falseBranch(), catchBlocks, map);
+                }
+                case CoreOp.ExceptionRegionEnter ere -> {
+                    List<Block> newCatchBlocks = new ArrayList<>();
+                    newCatchBlocks.addAll(catchBlocks);
+                    for (Block.Reference cb : ere.catchBlocks()) {
+                        newCatchBlocks.add(cb.targetBlock());
+                        verifyCatchStack(b, ere, cb, catchBlocks, map);
+                    }
+                    verifyCatchStack(b, ere, ere.start(), newCatchBlocks, map);
+                }
+                case CoreOp.ExceptionRegionExit ere -> {
+                    List<Block> exitedCatchBlocks = ere.catchBlocks().stream().map(Block.Reference::targetBlock).toList();
+                    if (exitedCatchBlocks.size() > catchBlocks.size() || !catchBlocks.reversed().subList(0, exitedCatchBlocks.size()).equals(exitedCatchBlocks)) {
+                        error("%s %s exited catch blocks %s does not match actual stack %s", b, ere, exitedCatchBlocks, catchBlocks);
+                    } else {
+                        verifyCatchStack(b, ere, ere.end(), catchBlocks.subList(0, catchBlocks.size() - exitedCatchBlocks.size()), map);
+                    }
+                }
+                default -> {}
+            }
+            return map;
+        }));
+    }
+
+    private void verifyCatchStack(Block b, Op op, Block.Reference target, List<Block> catchBlocks, Map<Block, List<Block>> blockMap) {
+        blockMap.compute(target.targetBlock(), (tb, stored) -> {
+            if (stored != null && !stored.equals(catchBlocks)) {
+                error("%s %s catch stack mismatch at target block %s %s vs %s", b, op, tb, stored, catchBlocks);
+            }
+            return catchBlocks;
+        });
     }
 }
