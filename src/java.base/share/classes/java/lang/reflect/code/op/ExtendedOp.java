@@ -3173,10 +3173,10 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                     } else {
                         // primitive to primitive conversion
                         PrimitiveType ps = ((PrimitiveType) s);
-                        if (isNarrowingPrimitiveConv(ps, pt) || isWideningPrimitiveConvThatNeedCheck(ps, pt)
+                        if (isNarrowingPrimitiveConv(ps, pt) || isWideningPrimitiveConvWithCheck(ps, pt)
                                 || isWideningAndNarrowingPrimitiveConv(ps, pt)) {
                             // e.g. int -> byte, narrowing
-                            // e,g. int -> float, widening that need check
+                            // e,g. int -> float, widening with check
                             // e.g. byte -> char, widening and narrowing
                             MethodRef mref = convMethodRef(s, t);
                             p = invoke(mref, target);
@@ -3207,7 +3207,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 return BYTE.equals(s) && CHAR.equals(t);
             }
 
-            private static boolean isWideningPrimitiveConvThatNeedCheck(PrimitiveType s, PrimitiveType t) {
+            private static boolean isWideningPrimitiveConvWithCheck(PrimitiveType s, PrimitiveType t) {
                 return (INT.equals(s) && FLOAT.equals(t))
                         || (LONG.equals(s) && FLOAT.equals(t))
                         || (LONG.equals(s) && DOUBLE.equals(t));
