@@ -113,6 +113,7 @@ try {
 
                 // Assign variable to segments, calculate var slotType
                 SlotOp.Var var = new SlotOp.Var(); // New variable
+                var.parentBody = slotOp.ancestorBody();
                 var q = new ArrayDeque<SlotOp>();
                 var stores = new ArrayList<SlotOp.SlotStoreOp>();
                 q.add(slotOp);
@@ -169,10 +170,13 @@ try {
 
         return func.transform((block, op) -> {
             if (!toInitialize.isEmpty()) {
-                for (SlotOp.Var var : toInitialize) {
-                    var.value = block.op(CoreOp.var(block.op(liftDefaultValue(var.typeKind))));
+                for (var it = toInitialize.iterator(); it.hasNext();) {
+                    SlotOp.Var var = it.next();
+                    if (var.parentBody == op.ancestorBody()) {
+                        var.value = block.op(CoreOp.var(toTypeElement(var.typeKind)));
+                        it.remove();
+                    }
                 }
-                toInitialize.clear();
             }
             CopyContext cc = block.context();
             switch (op) {
@@ -210,18 +214,17 @@ try {
 }
     }
 
-    // @@@ can be replaced with unitialized VarOp
-    private static CoreOp.ConstantOp liftDefaultValue(TypeKind tk) {
+    private static TypeElement toTypeElement(TypeKind tk) {
         return switch (tk) {
-            case INT -> CoreOp.constant(UnresolvedType.unresolvedInt(), 0);
-            case REFERENCE -> CoreOp.constant(UnresolvedType.unresolvedRef(), null);
-            case LONG -> CoreOp.constant(JavaType.LONG, 0l);
-            case DOUBLE -> CoreOp.constant(JavaType.DOUBLE, 0d);
-            case FLOAT -> CoreOp.constant(JavaType.FLOAT, 0f);
-            case BOOLEAN -> CoreOp.constant(JavaType.BOOLEAN, false);
-            case BYTE -> CoreOp.constant(JavaType.BYTE, (byte)0);
-            case SHORT -> CoreOp.constant(JavaType.SHORT, (short)0);
-            case CHAR -> CoreOp.constant(JavaType.CHAR, (char)0);
+            case INT -> UnresolvedType.unresolvedInt();
+            case REFERENCE -> UnresolvedType.unresolvedRef();
+            case LONG -> JavaType.LONG;
+            case DOUBLE -> JavaType.DOUBLE;
+            case FLOAT -> JavaType.FLOAT;
+            case BOOLEAN -> JavaType.BOOLEAN;
+            case BYTE -> JavaType.BYTE;
+            case SHORT -> JavaType.SHORT;
+            case CHAR -> JavaType.CHAR;
             case VOID -> throw new IllegalStateException("Unexpected void type.");
         };
     }

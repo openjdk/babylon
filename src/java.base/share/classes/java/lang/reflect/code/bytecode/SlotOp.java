@@ -25,6 +25,7 @@
 package java.lang.reflect.code.bytecode;
 
 import java.lang.classfile.TypeKind;
+import java.lang.reflect.code.Body;
 import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.TypeElement;
@@ -198,6 +199,7 @@ sealed abstract class SlotOp extends ExternalizableOp {
         boolean single;
         TypeKind typeKind;
         Value value;
+        Body parentBody;
     }
     Var var;
 }

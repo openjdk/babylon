@@ -166,7 +166,7 @@ try {
     }
 
     private static boolean resolveVarOpType(UnresolvedType ut, CoreOp.VarOp vo) {
-        boolean changed = ut.resolveFrom(vo.initOperand().type());
+        boolean changed = vo.isUninitialized() ? false : ut.resolveFrom(vo.initOperand().type());
         for (Op.Result varUses : vo.result().uses()) {
             changed |= switch (varUses.op()) {
                 case CoreOp.VarAccessOp.VarLoadOp vlo ->
@@ -222,7 +222,9 @@ try {
                 case CoreOp.ConstantOp cop when op.resultType() instanceof UnresolvedType ut && ut.resolved() != null ->
                     cc.mapValue(op.result(), block.op(CoreOp.constant(ut.resolved(), UnresolvedType.convertValue(ut, cop.value()))));
                 case CoreOp.VarOp vop when vop.varValueType() instanceof UnresolvedType ut && ut.resolved() != null ->
-                    cc.mapValue(op.result(), block.op(CoreOp.var(vop.varName(), ut.resolved(), cc.getValueOrDefault(vop.initOperand(), vop.initOperand()))));
+                    cc.mapValue(op.result(), block.op(vop.isUninitialized()
+                            ? CoreOp.var(vop.varName(), ut.resolved())
+                            : CoreOp.var(vop.varName(), ut.resolved(), cc.getValueOrDefault(vop.initOperand(), vop.initOperand()))));
                 default ->
                     block.op(op);
             }

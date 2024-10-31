@@ -374,10 +374,9 @@ public final class BytecodeGenerator {
 
     // Single-use var or var with a single-use entry block parameter operand can be deferred
     private static boolean canDefer(VarOp op) {
-        return !moreThanOneUse(op.result())
-            || op.operands().getFirst() instanceof Block.Parameter bp && bp.declaringBlock().isEntryBlock() && !moreThanOneUse(bp)
-            || op.initOperand() instanceof Op.Result or && or.op() instanceof ConstantOp cop && canDefer(cop) && isDefinitelyAssigned(op);
-
+        return !op.isUninitialized() && (!moreThanOneUse(op.result())
+            || op.initOperand() instanceof Block.Parameter bp && bp.declaringBlock().isEntryBlock() && !moreThanOneUse(bp)
+            || op.initOperand() instanceof Op.Result or && or.op() instanceof ConstantOp cop && canDefer(cop) && isDefinitelyAssigned(op));
     }
 
     // Detection if VarOp is definitelly assigned (all its VarLoadOps are dominated by VarStoreOp)
@@ -555,7 +554,7 @@ public final class BytecodeGenerator {
                                 // Var with a single-use entry block parameter can reuse its slot
                                 slots.put(op.result(), s);
                             }
-                        } else {
+                        } else if (!op.isUninitialized()) {
                             processFirstOperand(op);
                             storeIfUsed(op.result());
                         }

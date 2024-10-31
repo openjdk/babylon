@@ -4040,7 +4040,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      * @return the var operation
      */
     public static VarOp var(TypeElement type) {
-        return var(null, type, null);
+        return var(null, type);
     }
 
     /**
