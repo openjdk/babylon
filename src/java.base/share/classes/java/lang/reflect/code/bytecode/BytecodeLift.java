@@ -104,7 +104,7 @@ public final class BytecodeLift {
     private final ClassModel classModel;
     private final List<Label> exceptionHandlers;
     private final Map<Integer, Block.Builder> exceptionHandlerBlocks;
-    private final BitSet ereStack;
+    private final BitSet actualEreStack;
     private final Map<Label, BitSet> exceptionHandlersMap;
     private final Map<Label, Block.Builder> blockMap;
     private final List<CodeElement> elements;
@@ -119,7 +119,7 @@ public final class BytecodeLift {
         this.classModel = classModel;
         this.exceptionHandlers = new ArrayList<>();
         this.exceptionHandlerBlocks = new HashMap<>();
-        this.ereStack = new BitSet();
+        this.actualEreStack = new BitSet();
         this.newStack = new ArrayDeque<>();
         this.elements = codeModel.elementList();
         this.stack = new ArrayDeque<>();
@@ -228,42 +228,30 @@ public final class BytecodeLift {
                     // Exception blocks are inserted by label target (below)
                 }
                 case LabelTarget lt -> {
-                    var newEreStack = exceptionHandlersMap.get(lt.label());
+                    BitSet newEreStack = exceptionHandlersMap.get(lt.label());
                     if (newEreStack != null) {
-                        if (currentBlock != null) {
-                            var eresToLeave = (BitSet)ereStack.clone();
-                            eresToLeave.andNot(newEreStack);
-                            if (!eresToLeave.isEmpty()) {
-                                Block.Builder next = entryBlock.block();
-                                op(CoreOp.exceptionRegionExit(next.successor(), eresToLeave.stream().mapToObj(ei ->
-                                        targetBlockForExceptionHandler(ei).successor()).toList()));
-                                currentBlock = next;
+                        Block.Builder target = blockMap.get(lt.label());
+                        if (target != null) {
+                            if (currentBlock != null) {
+                                // Transition to a branch target or a handler
+                                ereTransit(actualEreStack, newEreStack, currentBlock, target, stackValues(target), exceptionHandlers.indexOf(lt.label()));
                             }
-                            var eresToEnter = (BitSet)newEreStack.clone();
-                            eresToEnter.andNot(ereStack);
-                            if (!eresToEnter.isEmpty()) {
-                                Block.Builder next = entryBlock.block();
-                                op(CoreOp.exceptionRegionEnter(next.successor(), eresToEnter.stream().mapToObj(ei ->
-                                        targetBlockForExceptionHandler(ei).successor()).toList().reversed()));
-                                currentBlock = next;
-                            }
+                            currentBlock = target;
+                            stack.clear();
+                            stack.addAll(target.parameters());
+                        } else if (currentBlock != null && !actualEreStack.equals(newEreStack)) {
+                            // Transition to a block with a different ERE stack
+                            Block.Builder next = entryBlock.block();
+                            ereTransit(actualEreStack, newEreStack, currentBlock, next, List.of(), -1);
+                            currentBlock = next;
                         }
-                        ereStack.clear();
-                        ereStack.or(newEreStack);
-                    }
-                    Block.Builder next = blockMap.get(lt.label());
-                    if (next != null) {
-                        if (currentBlock != null) {
-                            op(CoreOp.branch(successorWithStack(next)));
-                        }
-                        // Stack is reconstructed from block parameters
-                        stack.clear();
-                        stack.addAll(next.parameters());
-                        currentBlock = next;
+                        actualEreStack.clear();
+                        actualEreStack.or(newEreStack);
                     }
                 }
                 case BranchInstruction inst when BytecodeHelpers.isUnconditionalBranch(inst.opcode()) -> {
-                    op(CoreOp.branch(successorWithStack(targetBlockForBranch(inst.target()))));
+                    Block.Builder target = blockMap.get(inst.target());
+                    ereTransit(actualEreStack, exceptionHandlersMap.get(inst.target()), currentBlock, target, stackValues(target), exceptionHandlers.indexOf(inst.target()));
                     endOfFlow();
                 }
                 case BranchInstruction inst -> {
@@ -852,47 +840,73 @@ public final class BytecodeLift {
         stack.clear();
     }
 
-    private Block.Builder targetBlockForExceptionHandler(int ei) {
-        return exceptionHandlerBlocks.computeIfAbsent(ei, _ -> {
-            Label handlerLabel = exceptionHandlers.get(ei);
-            BitSet handlerEreStack = exceptionHandlersMap.get(handlerLabel);
-            Block.Builder handlerBlock = blockMap.get(handlerLabel);
-            if (handlerEreStack.get(ei)) {
-                // Inner exception region re-enter in the looped catch handler
-                Block.Builder newHandler = newBlock(handlerBlock.parameters());
-                newHandler.op(CoreOp.exceptionRegionEnter(handlerBlock.successor(newHandler.parameters()), newHandler.successor()));
-                return newHandler;
-            }
-            return handlerBlock;
-        });
+    private Block.Builder targetBlockForExceptionHandler(BitSet initialEreStack, int exceptionHandlerIndex) {
+        Block.Builder target = exceptionHandlerBlocks.get(exceptionHandlerIndex);
+        if (target == null) { // Avoid ConcurrentModificationException
+            Label ehLabel = exceptionHandlers.get(exceptionHandlerIndex);
+            target = transitionBlockForTarget(initialEreStack, exceptionHandlersMap.get(ehLabel), blockMap.get(ehLabel), exceptionHandlerIndex);
+            exceptionHandlerBlocks.put(exceptionHandlerIndex, target);
+        }
+        return target;
     }
 
     private Block.Builder targetBlockForBranch(Label targetLabel) {
-        Block.Builder targetBlock = blockMap.get(targetLabel);
-        var targetEreStack = exceptionHandlersMap.get(targetLabel);
+        return transitionBlockForTarget(actualEreStack, exceptionHandlersMap.get(targetLabel), blockMap.get(targetLabel), -1);
+    }
+
+    private Block.Builder transitionBlockForTarget(BitSet initialEreStack, BitSet targetEreStack, Block.Builder targetBlock, int targetExceptionHandlerIndex) {
+        if (targetBlock == null) return null;
+        Block.Builder transitionBlock = newBlock(targetBlock.parameters());
+        ereTransit(initialEreStack, targetEreStack, transitionBlock, targetBlock, transitionBlock.parameters(), targetExceptionHandlerIndex);
+        return transitionBlock;
+    }
+
+    private void ereTransit(BitSet initialEreStack, BitSet targetEreStack, Block.Builder initialBlock, Block.Builder targetBlock, List<? extends Value> values, int targetExceptionHandlerIndex) {
         var eresToEnter = (BitSet)targetEreStack.clone();
-        eresToEnter.andNot(ereStack);
-        if (!eresToEnter.isEmpty()) {
-            // prepend exception region exits
-            Block.Builder prev = newBlock(targetBlock.parameters());
-            prev.op(CoreOp.exceptionRegionEnter(successorWithStack(targetBlock), eresToEnter.stream().mapToObj(ei ->
-                    targetBlockForExceptionHandler(ei).successor()).toList().reversed()));
-            targetBlock = prev;
+        eresToEnter.andNot(initialEreStack);
+        var eresToExit = (BitSet)initialEreStack.clone();
+        eresToExit.andNot(targetEreStack);
+        if (eresToExit.isEmpty()) {
+            if (eresToEnter.isEmpty()) {
+                // Join with branch
+                initialBlock.op(CoreOp.branch(targetBlock.successor(values)));
+            } else {
+                // Join with ERE enter
+                initialBlock.op(CoreOp.exceptionRegionEnter(targetBlock.successor(values), eresToEnter.stream().mapToObj(ehi ->
+                        (ehi == targetExceptionHandlerIndex
+                                ? initialBlock
+                                : targetBlockForExceptionHandler(initialEreStack, ehi)).successor()).toList().reversed()));
+            }
+        } else {
+            if (eresToEnter.isEmpty()) {
+                // Join with ERE exit
+                initialBlock.op(CoreOp.exceptionRegionExit(targetBlock.successor(values), eresToExit.stream().mapToObj(ehi ->
+                        (ehi == targetExceptionHandlerIndex
+                                ? initialBlock
+                                : targetBlockForExceptionHandler(initialEreStack, ehi)).successor()).toList()));
+            } else {
+                // Join with ERE exit and insert ERE enter block
+                Block.Builder ereEnter = entryBlock.block();
+                initialBlock.op(CoreOp.exceptionRegionExit(ereEnter.successor(), eresToExit.stream().mapToObj(ehi ->
+                        (ehi == targetExceptionHandlerIndex
+                                ? initialBlock
+                                : targetBlockForExceptionHandler(initialEreStack, ehi)).successor()).toList()));
+                BitSet afterExitEreStack = (BitSet)initialEreStack.clone();
+                afterExitEreStack.andNot(eresToExit);
+                ereEnter.op(CoreOp.exceptionRegionEnter(targetBlock.successor(values), eresToEnter.stream().mapToObj(ehi ->
+                        (ehi == targetExceptionHandlerIndex
+                                ? initialBlock
+                                : targetBlockForExceptionHandler(afterExitEreStack, ehi)).successor()).toList().reversed()));
+            }
         }
-        var eresToLeave = (BitSet)ereStack.clone();
-        eresToLeave.andNot(targetEreStack);
-        if (!eresToLeave.isEmpty()) {
-            // prepend exception region enters
-            Block.Builder prev = newBlock(targetBlock.parameters());
-            prev.op(CoreOp.exceptionRegionExit(successorWithStack(targetBlock), eresToLeave.stream().mapToObj(ei ->
-                    targetBlockForExceptionHandler(ei).successor()).toList()));
-            targetBlock = prev;
-        }
-        return targetBlock;
     }
 
     Block.Reference successorWithStack(Block.Builder next) {
-        return next.successor(stack.stream().limit(next.parameters().size()).toList());
+        return next.successor(stackValues(next));
+    }
+
+    private List<Value> stackValues(Block.Builder limit) {
+        return stack.stream().limit(limit.parameters().size()).toList();
     }
 
     private static TypeElement valueType(Value v) {
