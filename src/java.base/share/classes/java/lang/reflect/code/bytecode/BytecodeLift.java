@@ -861,44 +861,48 @@ public final class BytecodeLift {
         return transitionBlock;
     }
 
+    record EreT(boolean enter, int ehi) {}
+
     private void ereTransit(BitSet initialEreStack, BitSet targetEreStack, Block.Builder initialBlock, Block.Builder targetBlock, List<? extends Value> values, int targetExceptionHandlerIndex) {
-        var eresToEnter = (BitSet)targetEreStack.clone();
-        eresToEnter.andNot(initialEreStack);
-        var eresToExit = (BitSet)initialEreStack.clone();
-        eresToExit.andNot(targetEreStack);
-        if (eresToExit.isEmpty()) {
-            if (eresToEnter.isEmpty()) {
-                // Join with branch
-                initialBlock.op(CoreOp.branch(targetBlock.successor(values)));
-            } else {
-                // Join with ERE enter
-                initialBlock.op(CoreOp.exceptionRegionEnter(targetBlock.successor(values), eresToEnter.stream().mapToObj(ehi ->
-                        (ehi == targetExceptionHandlerIndex
-                                ? initialBlock
-                                : targetBlockForExceptionHandler(initialEreStack, ehi)).successor()).toList().reversed()));
-            }
-        } else {
-            if (eresToEnter.isEmpty()) {
-                // Join with ERE exit
-                initialBlock.op(CoreOp.exceptionRegionExit(targetBlock.successor(values), eresToExit.stream().mapToObj(ehi ->
-                        (ehi == targetExceptionHandlerIndex
-                                ? initialBlock
-                                : targetBlockForExceptionHandler(initialEreStack, ehi)).successor()).toList()));
-            } else {
-                // Join with ERE exit and insert ERE enter block
-                Block.Builder ereEnter = entryBlock.block();
-                initialBlock.op(CoreOp.exceptionRegionExit(ereEnter.successor(), eresToExit.stream().mapToObj(ehi ->
-                        (ehi == targetExceptionHandlerIndex
-                                ? initialBlock
-                                : targetBlockForExceptionHandler(initialEreStack, ehi)).successor()).toList()));
-                BitSet afterExitEreStack = (BitSet)initialEreStack.clone();
-                afterExitEreStack.andNot(eresToExit);
-                ereEnter.op(CoreOp.exceptionRegionEnter(targetBlock.successor(values), eresToEnter.stream().mapToObj(ehi ->
-                        (ehi == targetExceptionHandlerIndex
-                                ? initialBlock
-                                : targetBlockForExceptionHandler(afterExitEreStack, ehi)).successor()).toList().reversed()));
-            }
+        List<EreT> transits = new ArrayList<>();
+        BitSet ereStack = (BitSet)initialEreStack.clone();
+        ereStack.andNot(targetEreStack);
+        // Split region exits by handler stack
+        for (int ehi = ereStack.nextSetBit(0); ehi >= 0; ehi = ereStack.nextSetBit(ehi + 1)) {
+            transits.add(new EreT(false, ehi));
         }
+        ereStack = (BitSet)targetEreStack.clone();
+        ereStack.andNot(initialEreStack);
+        // Split region enters by handler stack
+        for (int ehi = ereStack.previousSetBit(Integer.MAX_VALUE); ehi >= 0; ehi = ereStack.previousSetBit(ehi - 1)) {
+            transits.add(new EreT(true, ehi));
+        }
+
+        if (transits.isEmpty()) {
+            // Join with branch
+            initialBlock.op(CoreOp.branch(targetBlock.successor(values)));
+        } else {
+            // Insert ERE transitions
+            Block.Builder currentBlock = initialBlock;
+            ereStack = (BitSet)initialEreStack.clone();
+            for (int i = 0; i < transits.size() - 1; i++) {
+                EreT t = transits.get(i);
+                Block.Builder next = entryBlock.block();
+                ereTransit(initialBlock, currentBlock, t.enter(), next, List.of(), t.ehi(), targetExceptionHandlerIndex, ereStack);
+                currentBlock = next;
+                ereStack.set(t.ehi(), t.enter());
+            }
+            EreT t = transits.getLast();
+            ereTransit(initialBlock, currentBlock, t.enter(), targetBlock, values, t.ehi(), targetExceptionHandlerIndex, ereStack);
+        }
+    }
+
+    private void ereTransit(Block.Builder initialBlock, Block.Builder currentBlock, boolean enter, Block.Builder targetBlock, List<? extends Value> values, int ehi, int targetExceptionHandlerIndex, BitSet handlerEreStack) {
+        Block.Reference ref = targetBlock.successor(values);
+        Block.Reference catcher = (ehi == targetExceptionHandlerIndex
+                ? initialBlock
+                : targetBlockForExceptionHandler(handlerEreStack, ehi)).successor();
+        currentBlock.op(enter ? CoreOp.exceptionRegionEnter(ref, catcher) : CoreOp.exceptionRegionExit(ref, catcher));
     }
 
     Block.Reference successorWithStack(Block.Builder next) {

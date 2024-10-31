@@ -235,7 +235,7 @@ public final class Verifier {
     private void verifyCatchStack(Block b, Op op, Block.Reference target, List<Block> catchBlocks, Map<Block, List<Block>> blockMap) {
         blockMap.compute(target.targetBlock(), (tb, stored) -> {
             if (stored != null && !stored.equals(catchBlocks)) {
-                error("%s %s catch stack mismatch at target block %s %s vs %s", b, op, tb, stored, catchBlocks);
+                error("%s %s catch stack mismatch at target %s %s vs %s", b, op, tb, stored, catchBlocks);
             }
             return catchBlocks;
         });
