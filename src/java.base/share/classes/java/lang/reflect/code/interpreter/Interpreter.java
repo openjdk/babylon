@@ -38,7 +38,6 @@ import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.type.VarType;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -48,6 +47,53 @@ import static java.util.stream.Collectors.toMap;
 public final class Interpreter {
     private Interpreter() {
     }
+
+    // @@@ Temporary
+    public static <T extends Op & Op.Invokable>
+    Object invoke(T op,
+                  Object... args) {
+        // Arguments can contain null values so we cannot use List.of
+        return invoke(MethodHandles.publicLookup(), op, Arrays.asList(args));
+    }
+
+    // @@@ Temporary
+    public static <T extends Op & Op.Invokable>
+    Object invoke(T op,
+                  List<Object> args) {
+        return invoke(MethodHandles.publicLookup(), op, args);
+    }
+
+    public static <T extends Op & Op.Invokable>
+    Object invoke(MethodHandles.Lookup l, T op,
+                  Object... args) {
+        // Arguments can contain null values so we cannot use List.of
+        return invoke(l, op, Arrays.asList(args));
+    }
+
+    public static <T extends Op & Op.Invokable>
+    Object invoke(MethodHandles.Lookup l, T op,
+                  List<Object> args) {
+        List<Block.Parameter> parameters = op.parameters();
+        List<Value> capturedValues = op.capturedValues();
+        if (parameters.size() + capturedValues.size() != args.size()) {
+            throw interpreterException(new IllegalArgumentException(
+                    String.format("Actual #arguments (%d) differs from #parameters (%d) plus #captured arguments (%d)",
+                            args.size(), parameters.size(), capturedValues.size())));
+        }
+
+        // Map symbolic parameters to runtime arguments
+        Map<Value, Object> valuesAndArguments = new HashMap<>();
+        for (int i = 0; i < parameters.size(); i++) {
+            valuesAndArguments.put(parameters.get(i), args.get(i));
+        }
+        // Map symbolic captured values to the additional runtime arguments
+        for (int i = 0; i < capturedValues.size(); i++) {
+            valuesAndArguments.put(capturedValues.get(i), args.get(parameters.size() + i));
+        }
+
+        return interpretEntryBlock(l, op.body().entryBlock(), new OpContext(), valuesAndArguments);
+    }
+
 
     @SuppressWarnings("serial")
     public static class InterpreterException extends RuntimeException {
@@ -60,10 +106,8 @@ public final class Interpreter {
         return new InterpreterException(cause);
     }
 
-    record BlockContext(Block b, Map<Value, Object> values) {
+    record BlockContext(Block b, Map<Value, Object> valuesAndArguments) {
     }
-
-    static final ConcurrentHashMap<Object, ReentrantLock> locks = new ConcurrentHashMap<>();
 
     static final class OpContext {
         final Map<Object, ReentrantLock> locks = new HashMap<>();
@@ -74,7 +118,7 @@ public final class Interpreter {
             // @@@ Only dominating values are accessible
             BlockContext bc = findContext(v);
             if (bc != null) {
-                return bc.values.get(v);
+                return bc.valuesAndArguments.get(v);
             } else {
                 throw interpreterException(new IllegalArgumentException("Undefined value: " + v));
             }
@@ -85,12 +129,12 @@ public final class Interpreter {
             if (bc != null) {
                 throw interpreterException(new IllegalArgumentException("Value already defined: " + v));
             }
-            stack.peek().values.put(v, o);
+            stack.peek().valuesAndArguments.put(v, o);
             return o;
         }
 
         BlockContext findContext(Value v) {
-            Optional<BlockContext> ob = stack.stream().filter(b -> b.values.containsKey(v)).findFirst();
+            Optional<BlockContext> ob = stack.stream().filter(b -> b.valuesAndArguments.containsKey(v)).findFirst();
             return ob.orElse(null);
         }
 
@@ -181,7 +225,7 @@ public final class Interpreter {
     }
 
     record ClosureRecord(CoreOp.ClosureOp op,
-                         Map<Value, Object> capturedValues) {
+                         List<Object> capturedArguments) {
     }
 
     record TupleRecord(List<Object> components) {
@@ -213,73 +257,34 @@ public final class Interpreter {
         }
     }
 
-    public static <T extends Op & Op.Invokable>
-    Object invoke(T op,
-                  Object... args) {
-        return invoke(MethodHandles.publicLookup(), op, args);
-    }
-
-    public static <T extends Op & Op.Invokable>
-    Object invoke(MethodHandles.Lookup l, T op,
-                  Object... args) {
-        return invoke(l, op, new ArrayList<>(Arrays.asList(args)));
-    }
-
-    public static <T extends Op & Op.Invokable>
-    Object invoke(MethodHandles.Lookup l, T op,
-                  Map<Value, Object> capturedValues,
-                  Object... args) {
-        return invoke(l, op, capturedValues, new ArrayList<>(Arrays.asList(args)));
-    }
-
-    public static <T extends Op & Op.Invokable>
-    Object invoke(T op,
-                  List<Object> args) {
-        return invoke(MethodHandles.publicLookup(), op, args);
-    }
-
-    public static <T extends Op & Op.Invokable>
-    Object invoke(T op,
-                  Map<Value, Object> capturedValues,
-                  List<Object> args) {
-        return invoke(MethodHandles.publicLookup(), op, capturedValues, args);
-    }
-
-    public static <T extends Op & Op.Invokable>
-    Object invoke(MethodHandles.Lookup l, T op,
-                  List<Object> args) {
-        return invoke(l, op, Map.of(), args);
-    }
-
-    public static <T extends Op & Op.Invokable>
-    Object invoke(MethodHandles.Lookup l, T invokableOp,
-                  Map<Value, Object> capturedValues,
-                  List<Object> args) {
-        Body r = invokableOp.bodies().get(0);
-        return invoke(l, r, capturedValues, new OpContext(), args);
-
-    }
-    static Object invoke(MethodHandles.Lookup l, Body r,
-                                 Map<Value, Object> capturedValues, OpContext oc,
-                                 List<Object> args) {
-        return invoke(l,r.entryBlock(), capturedValues, oc, args);
-    }
-
-    private static Object invoke(MethodHandles.Lookup l, Block first,
-                  Map<Value, Object> capturedValues, OpContext oc,
-                  List<Object> args) {
-
-        if (args.size() != first.parameters().size()) {
-            throw interpreterException(new IllegalArgumentException("Incorrect number of arguments"));
+    static Object interpretBody(MethodHandles.Lookup l, Body body,
+                                OpContext oc,
+                                List<Object> args) {
+        List<Block.Parameter> parameters = body.entryBlock().parameters();
+        if (parameters.size() != args.size()) {
+            throw interpreterException(new IllegalArgumentException(
+                    "Incorrect number of arguments arguments"));
         }
-        Map<Value, Object> values = new HashMap<>();
-        for (int i = 0; i < first.parameters().size(); i++) {
-            values.put(first.parameters().get(i), args.get(i));
+
+        // Map symbolic parameters to runtime arguments
+        Map<Value, Object> arguments = new HashMap<>();
+        for (int i = 0; i < parameters.size(); i++) {
+            arguments.put(parameters.get(i), args.get(i));
         }
+
+        return interpretEntryBlock(l, body.entryBlock(), oc, arguments);
+    }
+
+    static Object interpretEntryBlock(MethodHandles.Lookup l, Block entry,
+                                      OpContext oc,
+                                      Map<Value, Object> valuesAndArguments) {
+        assert entry.isEntryBlock();
+
+        BlockContext yieldContext = oc.stack.peek();
+        assert yieldContext == null || yieldContext.b().parentBody() == entry.parentBody().parentOp().ancestorBody();
 
         // Note that first block cannot have any successors so the queue will have at least one entry
-        oc.stack.push(new BlockContext(first, values));
-        capturedValues.forEach(oc::setValue);
+        oc.stack.push(new BlockContext(entry, valuesAndArguments));
         while (true) {
             BlockContext bc = oc.stack.peek();
 
@@ -290,7 +295,7 @@ public final class Interpreter {
                     Op op = bc.b.ops().get(i);
                     assert !(op instanceof Op.Terminating) : op.opName();
 
-                    Object result = exec(l, oc, op);
+                    Object result = interpretOp(l, oc, op);
                     oc.setValue(op.result(), result);
                 }
             } catch (InterpreterException e) {
@@ -329,8 +334,14 @@ public final class Interpreter {
                 Value rv = ret.returnValue();
                 return rv == null ? null : oc.getValue(rv);
             } else if (to instanceof CoreOp.YieldOp yop) {
+                if (yieldContext == null) {
+                    throw interpreterException(
+                            new IllegalStateException("Yielding to no parent body"));
+                }
                 Value yv = yop.yieldValue();
-                return yv == null ? null : oc.getValue(yv);
+                Object yr = yv == null ? null : oc.getValue(yv);
+                oc.popTo(yieldContext);
+                return yr;
             } else if (to instanceof CoreOp.ExceptionRegionEnter ers) {
                 int erStackDepth = oc.erStack.size();
                 ers.catchBlocks().forEach(catchBlock -> {
@@ -348,12 +359,6 @@ public final class Interpreter {
                         new UnsupportedOperationException("Unsupported terminating operation: " + to.opName()));
             }
         }
-    }
-
-    static <T extends Op & Op.Invokable>
-    Object interpretBody(MethodHandles.Lookup l, Body r,
-                         OpContext oc) {
-        return invoke(l, r, Map.of(), oc, List.of());
     }
 
     static void processThrowable(OpContext oc, MethodHandles.Lookup l, Throwable t) {
@@ -383,7 +388,7 @@ public final class Interpreter {
         throw (E) e;
     }
 
-    static Object exec(MethodHandles.Lookup l, OpContext oc, Op o) {
+    static Object interpretOp(MethodHandles.Lookup l, OpContext oc, Op o) {
         if (o instanceof CoreOp.ConstantOp co) {
             if (co.resultType().equals(JavaType.J_L_CLASS)) {
                 return resolveToClass(l, (JavaType) co.value());
@@ -409,8 +414,8 @@ public final class Interpreter {
                                     ("Function " + name + " cannot be resolved: not in module's function table"));
                 }
 
-                Object[] values = o.operands().stream().map(oc::getValue).toArray();
-                return Interpreter.invoke(funcOp, values);
+                List<Object> values = o.operands().stream().map(oc::getValue).toList();
+                return Interpreter.invoke(l, funcOp, values);
             } else {
                 throw interpreterException(
                         new IllegalStateException(
@@ -444,16 +449,17 @@ public final class Interpreter {
                 return invoke(mh, values);
             }
         } else if (o instanceof CoreOp.QuotedOp qo) {
-            Map<Value, Object> capturedValues = qo.capturedValues().stream()
+            SequencedMap<Value, Object> capturedValues = qo.capturedValues().stream()
                     .collect(toMap(v -> v, oc::getValue, (v, _) -> v, LinkedHashMap::new));
             return new Quoted(qo.quotedOp(), capturedValues);
         } else if (o instanceof CoreOp.LambdaOp lo) {
-            Map<Value, Object> capturedValues = lo.capturedValues().stream()
+            SequencedMap<Value, Object> capturedValuesAndArguments = lo.capturedValues().stream()
                     .collect(toMap(v -> v, oc::getValue, (v, _) -> v, LinkedHashMap::new));
             Class<?> fi = resolveToClass(l, lo.functionalInterface());
 
-            MethodHandle fProxy = INVOKE_LAMBDA_MH.bindTo(l).bindTo(lo).bindTo(capturedValues)
-                    .asCollector(Object[].class, lo.body().entryBlock().parameters().size());
+            Object[] capturedArguments = capturedValuesAndArguments.sequencedValues().toArray(Object[]::new);
+            MethodHandle fProxy = INVOKE_LAMBDA_MH.bindTo(l).bindTo(lo).bindTo(capturedArguments)
+                    .asCollector(Object[].class, lo.parameters().size());
             Object fiInstance = MethodHandleProxies.asInterfaceInstance(fi, fProxy);
 
             // If a quotable lambda proxy again to implement Quotable
@@ -462,7 +468,7 @@ public final class Interpreter {
                         (_, method, args) -> {
                             if (method.getDeclaringClass() == Quotable.class) {
                                 // Implement Quotable::quoted
-                                return new Quoted(lo, capturedValues);
+                                return new Quoted(lo, capturedValuesAndArguments);
                             } else {
                                 // Delegate to FI instance
                                 return method.invoke(fiInstance, args);
@@ -472,14 +478,16 @@ public final class Interpreter {
                 return fiInstance;
             }
         } else if (o instanceof CoreOp.ClosureOp co) {
-            Map<Value, Object> capturedValues = co.capturedValues().stream()
-                    .collect(toMap(v -> v, oc::getValue));
-            return new ClosureRecord(co, capturedValues);
+            List<Object> capturedArguments = co.capturedValues().stream()
+                    .map(oc::getValue).toList();
+            return new ClosureRecord(co, capturedArguments);
         } else if (o instanceof CoreOp.ClosureCallOp cco) {
             List<Object> values = o.operands().stream().map(oc::getValue).toList();
             ClosureRecord cr = (ClosureRecord) values.get(0);
 
-            return Interpreter.invoke(l, cr.op(), cr.capturedValues, values.subList(1, values.size()));
+            List<Object> arguments = new ArrayList<>(values.subList(1, values.size()));
+            arguments.addAll(cr.capturedArguments);
+            return Interpreter.invoke(l, cr.op(), arguments);
         } else if (o instanceof CoreOp.VarOp vo) {
             Object v = vo.isUninitialized()
                     ? VarBox.UINITIALIZED
@@ -559,11 +567,11 @@ public final class Interpreter {
             //Note: The nature of asserts and munged bodies may require a re-visiting.
             //This code seems to work without poisoning contexts. See TestAssert.java in tests for relevant test coverage.
             Body testBody = _assert.bodies.get(0);
-            boolean testResult = (boolean) interpretBody(l, testBody, oc);
+            boolean testResult = (boolean) interpretBody(l, testBody, oc, List.of());
             if (!testResult) {
                 if (_assert.bodies.size() > 1) {
                     Body messageBody = _assert.bodies.get(1);
-                    String message = String.valueOf(interpretBody(l, messageBody, oc));
+                    String message = String.valueOf(interpretBody(l, messageBody, oc, List.of()));
                     throw new AssertionError(message);
                 } else {
                     throw new AssertionError();
@@ -605,14 +613,16 @@ public final class Interpreter {
         try {
             INVOKE_LAMBDA_MH = MethodHandles.lookup().findStatic(Interpreter.class, "invokeLambda",
                     MethodType.methodType(Object.class, MethodHandles.Lookup.class,
-                            CoreOp.LambdaOp.class, Map.class, Object[].class));
+                            CoreOp.LambdaOp.class, Object[].class, Object[].class));
         } catch (Throwable t) {
             throw new InternalError(t);
         }
     }
 
-    static Object invokeLambda(MethodHandles.Lookup l, CoreOp.LambdaOp op, Map<Value, Object> capturedValues, Object[] args) {
-        return invoke(l, op, capturedValues, args);
+    static Object invokeLambda(MethodHandles.Lookup l, CoreOp.LambdaOp op, Object[] capturedArgs, Object[] args) {
+        List<Object> arguments = new ArrayList<>(Arrays.asList(args));
+        arguments.addAll(Arrays.asList(capturedArgs));
+        return invoke(l, op, arguments);
     }
 
     static MethodHandle opHandle(String opName, FunctionType ft) {

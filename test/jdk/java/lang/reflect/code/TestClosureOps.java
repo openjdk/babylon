@@ -37,6 +37,8 @@ import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.code.type.JavaType;
+import java.util.ArrayList;
+import java.util.List;
 
 import static java.lang.reflect.code.op.CoreOp._return;
 import static java.lang.reflect.code.op.CoreOp.add;
@@ -59,8 +61,11 @@ public class TestClosureOps {
             Assert.assertEquals(1, c.capturedValues().size());
             Assert.assertEquals(1, c.capturedValues().values().iterator().next());
 
+            List<Object> arguments = new ArrayList<>();
+            arguments.add(42);
+            arguments.addAll(c.capturedValues().values());
             int r = (int) Interpreter.invoke(MethodHandles.lookup(), (Op & Op.Invokable) c.op(),
-                    c.capturedValues(), 42);
+                    arguments);
             return r;
         }
     }
