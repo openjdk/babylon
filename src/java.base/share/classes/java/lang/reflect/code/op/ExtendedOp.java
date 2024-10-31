@@ -3154,7 +3154,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
 
                 // Check if instance of target type
                 Op p = null; // op that perform type check
-                Op c; // op that perform conversion
+                Op c = null; // op that perform conversion
                 TypeElement s = target.type();
                 TypeElement t = targetType;
                 if (t instanceof PrimitiveType pt) {
@@ -3196,8 +3196,10 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                         box = ct;
                     }
                     c = invoke(MethodRef.method(box, "valueOf", box, ps), target);
-                } else {
-                    // e.g. Number -> Double, ...
+                } else if (!Objects.equals(s, t)) {
+                    // reference to reference, but not identity
+                    // e.g. Number -> Double, narrowing
+                    // e.g. Short -> Object, widening
                     p = CoreOp.instanceOf(targetType, target);
                     c = CoreOp.cast(targetType, target);
                 }
@@ -3209,7 +3211,9 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                     currentBlock = nextBlock;
                 }
 
-                target = currentBlock.op(c);
+                if (c != null) {
+                    target = currentBlock.op(c);
+                }
 
                 bindings.add(target);
 
