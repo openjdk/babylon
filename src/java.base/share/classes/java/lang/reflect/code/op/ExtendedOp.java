@@ -3162,11 +3162,12 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                         // unboxing conversions
                         ClassType box;
                         if (cs.unbox().isEmpty()) { // s not a boxed type
-                            // e.g. Number -> int
+                            // e.g. Number -> int, narrowing + unboxing
                             box = pt.box().orElseThrow();
                             p = CoreOp.instanceOf(box, target);
                         } else {
-                            // e.g. Float -> float
+                            // e.g. Float -> float, unboxing
+                            // e.g. Integer -> long, unboxing + widening
                             box = cs;
                         }
                         c = invoke(MethodRef.method(box, t + "Value", t), target);
@@ -3196,7 +3197,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                     }
                     c = invoke(MethodRef.method(box, "valueOf", box, ps), target);
                 } else {
-                    // e.g. byte -> Byte, Number -> Double, ...
+                    // e.g. Number -> Double, ...
                     p = CoreOp.instanceOf(targetType, target);
                     c = CoreOp.cast(targetType, target);
                 }
