@@ -176,6 +176,8 @@ public final class Interpreter {
         VarBox(Object value) {
             this.value = value;
         }
+
+        static final Object UINITIALIZED = new Object();
     }
 
     record ClosureRecord(CoreOp.ClosureOp op,
@@ -479,12 +481,19 @@ public final class Interpreter {
 
             return Interpreter.invoke(l, cr.op(), cr.capturedValues, values.subList(1, values.size()));
         } else if (o instanceof CoreOp.VarOp vo) {
-            return new VarBox(oc.getValue(o.operands().get(0)));
+            Object v = vo.isUninitialized()
+                    ? VarBox.UINITIALIZED
+                    : oc.getValue(o.operands().get(0));
+            return new VarBox(v);
         } else if (o instanceof CoreOp.VarAccessOp.VarLoadOp vlo) {
             // Cast to CoreOp.Var, since the instance may have originated as an external instance
             // via a captured value map
             CoreOp.Var<?> vb = (CoreOp.Var<?>) oc.getValue(o.operands().get(0));
-            return vb.value();
+            Object value = vb.value();
+            if (value == VarBox.UINITIALIZED) {
+                throw interpreterException(new IllegalStateException("Loading from uninitialized variable"));
+            }
+            return value;
         } else if (o instanceof CoreOp.VarAccessOp.VarStoreOp vso) {
             VarBox vb = (VarBox) oc.getValue(o.operands().get(0));
             vb.value = oc.getValue(o.operands().get(1));

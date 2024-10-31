@@ -835,13 +835,14 @@ public class ReflectMethods extends TreeTranslator {
 
         @Override
         public void visitVarDef(JCVariableDecl tree) {
-            Value initOp;
+            JavaType javaType = typeToTypeElement(tree.type);
             if (tree.init != null) {
-                initOp = toValue(tree.init, tree.type);
+                Value initOp = toValue(tree.init, tree.type);
+                result = append(CoreOp.var(tree.name.toString(), javaType, initOp));
             } else {
-                initOp = append(defaultValue(tree.type));
+                // Uninitialized
+                result = append(CoreOp.var(tree.name.toString(), javaType));
             }
-            result = append(CoreOp.var(tree.name.toString(), typeToTypeElement(tree.type), initOp));
             stack.localToOp.put(tree.sym, result);
         }
 
@@ -1367,6 +1368,7 @@ public class ReflectMethods extends TreeTranslator {
             // Create pattern var ops for pattern variables using the
             // builder associated with the nearest statement tree
             for (JCVariableDecl jcVar : variables) {
+                // @@@ use uninitialized variable
                 Value init = variablesStack.block.op(defaultValue(jcVar.type));
                 Op.Result op = variablesStack.block.op(CoreOp.var(jcVar.name.toString(), typeToTypeElement(jcVar.type), init));
                 variablesStack.localToOp.put(jcVar.sym, op);
@@ -1605,7 +1607,6 @@ public class ReflectMethods extends TreeTranslator {
 
         @Override
         public void visitSwitchExpression(JCTree.JCSwitchExpression tree) {
-
             Value target = toValue(tree.selector);
 
             Type switchType = adaptBottom(tree.type);
@@ -1619,7 +1620,6 @@ public class ReflectMethods extends TreeTranslator {
 
         @Override
         public void visitSwitch(JCTree.JCSwitch tree) {
-
             Value target = toValue(tree.selector);
 
             FunctionType actionType = FunctionType.VOID;
@@ -1633,13 +1633,11 @@ public class ReflectMethods extends TreeTranslator {
         private List<Body.Builder> visitSwitchStatAndExpr(JCTree tree, JCExpression selector, Value target,
                                                           List<JCTree.JCCase> cases, FunctionType caseBodyType,
                                                           boolean isDefaultCaseNeeded) {
-
             List<Body.Builder> bodies = new ArrayList<>();
             Body.Builder defaultLabel = null;
             Body.Builder defaultBody = null;
 
             for (JCTree.JCCase c : cases) {
-
                 Body.Builder caseLabel = visitCaseLabel(tree, selector, target, c);
                 Body.Builder caseBody = visitCaseBody(tree, c, caseBodyType);
 
@@ -1675,7 +1673,6 @@ public class ReflectMethods extends TreeTranslator {
         }
 
         private Body.Builder visitCaseLabel(JCTree tree, JCExpression selector, Value target, JCTree.JCCase c) {
-
             Body.Builder body;
             FunctionType caseLabelType = FunctionType.functionType(JavaType.BOOLEAN, target.type());
 
@@ -1779,7 +1776,6 @@ public class ReflectMethods extends TreeTranslator {
         }
 
         private Body.Builder visitCaseBody(JCTree tree, JCTree.JCCase c, FunctionType caseBodyType) {
-
             Body.Builder body = null;
             Type yieldType = tree.type != null ? adaptBottom(tree.type) : null;
 
@@ -1796,11 +1792,11 @@ public class ReflectMethods extends TreeTranslator {
                         Type prevBodyTarget = bodyTarget;
                         try {
                             bodyTarget = yieldType;
-                            Value bodyVal = toValue(s);
-                            appendTerminating(CoreOp::_yield);
+                            toValue(s);
                         } finally {
                             bodyTarget = prevBodyTarget;
                         }
+                        appendTerminating(c.completesNormally ? CoreOp::_yield : CoreOp::unreachable);
                     }
                     body = stack.body;
 

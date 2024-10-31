@@ -132,6 +132,47 @@ public class UnreachableTest {
         };
     }
 
+    @CodeReflection
+    @IR("""
+            func @"test5" (%0 : int)void -> {
+                %1 : Var<int> = var %0 @"n";
+                %2 : int = var.load %1;
+                %3 : java.lang.String = java.switch.expression %2
+                    (%4 : int)boolean -> {
+                        %5 : int = constant @"42";
+                        %6 : boolean = eq %4 %5;
+                        yield %6;
+                    }
+                    ()java.lang.String -> {
+                        java.while
+                            ()boolean -> {
+                                %7 : boolean = constant @"true";
+                                yield %7;
+                            }
+                            ()void -> {
+                                java.continue;
+                            };
+                        unreachable;
+                    }
+                    ()boolean -> {
+                        %8 : boolean = constant @"true";
+                        yield %8;
+                    }
+                    ()java.lang.String -> {
+                        %9 : java.lang.String = constant @"";
+                        yield %9;
+                    };
+                %10 : Var<java.lang.String> = var %3 @"s";
+                return;
+            };
+            """)
+    static void test5(int n) {
+        String s = switch (n) {
+            case 42 -> { while (true); }
+            default -> "";
+        };
+    }
+
     @IR("""
             func @"f" ()void -> {
                 %1 : java.util.function.IntUnaryOperator = lambda (%2 : int)int -> {

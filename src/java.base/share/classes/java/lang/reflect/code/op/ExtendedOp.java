@@ -3113,7 +3113,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                                        Op pattern, Value target) {
                 return switch (pattern) {
                     case RecordPatternOp rp -> lowerRecordPattern(endNoMatchBlock, currentBlock, bindings, rp, target);
-                    case TypePatternOp tp -> lowerBindingPattern(endNoMatchBlock, currentBlock, bindings, tp, target);
+                    case TypePatternOp tp -> lowerTypePattern(endNoMatchBlock, currentBlock, bindings, tp, target);
                     case MatchAllPatternOp map -> lowerMatchAllPattern(currentBlock);
                     case null, default -> throw new UnsupportedOperationException("Unknown pattern op: " + pattern);
                 };
@@ -3147,23 +3147,47 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 return currentBlock;
             }
 
-            static Block.Builder lowerBindingPattern(Block.Builder endNoMatchBlock, Block.Builder currentBlock,
-                                                     List<Value> bindings,
-                                                     TypePatternOp tpOp, Value target) {
+            static Block.Builder lowerTypePattern(Block.Builder endNoMatchBlock, Block.Builder currentBlock,
+                                                  List<Value> bindings,
+                                                  TypePatternOp tpOp, Value target) {
                 TypeElement targetType = tpOp.targetType();
 
                 Block.Builder nextBlock = currentBlock.block();
 
                 // Check if instance of target type
-                currentBlock.op(conditionalBranch(currentBlock.op(CoreOp.instanceOf(targetType, target)),
-                        nextBlock.successor(), endNoMatchBlock.successor()));
+                Result p;
+                boolean patternWithPrimitive = false;
+                if (targetType instanceof PrimitiveType tt && target.type() instanceof PrimitiveType st) {
+                    patternWithPrimitive = true;
+                    if (SHORT.equals(st) || CHAR.equals(st)) {
+                        st = INT;
+                    }
+                    String s = capitalize(st.toString());
+                    String t = capitalize(tt.toString());
+                    String mn = "is%sTo%sExact".formatted(s, t);
+                    JavaType exactConversionSupport = JavaType.type(ClassDesc.of("java.lang.runtime.ExactConversionsSupport"));
+                    MethodRef mref = MethodRef.method(exactConversionSupport, mn, BOOLEAN, st);
+                    p = currentBlock.op(invoke(mref, target));
+                } else {
+                    p = currentBlock.op(CoreOp.instanceOf(targetType, target));
+                }
+
+                currentBlock.op(conditionalBranch(p, nextBlock.successor(), endNoMatchBlock.successor()));
 
                 currentBlock = nextBlock;
 
-                target = currentBlock.op(CoreOp.cast(targetType, target));
+                if (patternWithPrimitive) {
+                    target = currentBlock.op(CoreOp.conv(targetType, target));
+                } else {
+                    target = currentBlock.op(CoreOp.cast(targetType, target));
+                }
                 bindings.add(target);
 
                 return currentBlock;
+            }
+
+            private static String capitalize(String s) {
+                return s.substring(0, 1).toUpperCase() + s.substring(1);
             }
 
             static Block.Builder lowerMatchAllPattern(Block.Builder currentBlock) {

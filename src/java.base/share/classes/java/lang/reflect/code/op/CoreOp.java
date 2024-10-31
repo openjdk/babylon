@@ -2133,7 +2133,6 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         }
     }
 
-
     /**
      * A runtime representation of a variable.
      *
@@ -2173,8 +2172,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         final VarType resultType;
 
         public static VarOp create(ExternalizedOp def) {
-            if (def.operands().size() != 1) {
-                throw new IllegalStateException("Operation must have one operand");
+            if (def.operands().size() > 1) {
+                throw new IllegalStateException("Operation must have zero or one operand");
             }
 
             String name = def.extractAttributeValue(ATTRIBUTE_NAME, true,
@@ -2202,7 +2201,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         }
 
         boolean isResultTypeOverridable() {
-            return resultType().valueType().equals(initOperand().type());
+            return !isUninitialized() && resultType().valueType().equals(initOperand().type());
         }
 
         @Override
@@ -2221,6 +2220,15 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             this.resultType = VarType.varType(type);
         }
 
+        // @@@ This and the above constructor can be merged when
+        // statements before super can be used in the jdk.compiler module
+        VarOp(String varName, TypeElement type) {
+            super(NAME, List.of());
+
+            this.varName =  varName == null ? "" : varName;
+            this.resultType = VarType.varType(type);
+        }
+
         @Override
         public Map<String, Object> attributes() {
             if (isUnnamedVariable()) {
@@ -2233,6 +2241,9 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         }
 
         public Value initOperand() {
+            if (operands().isEmpty()) {
+                throw new IllegalStateException("Uninitialized variable");
+            }
             return operands().getFirst();
         }
 
@@ -2251,6 +2262,10 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
         public boolean isUnnamedVariable() {
             return varName.isEmpty();
+        }
+
+        public boolean isUninitialized() {
+            return operands().isEmpty();
         }
     }
 
@@ -4015,6 +4030,28 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      */
     public static CastOp cast(TypeElement resultType, JavaType t, Value v) {
         return new CastOp(resultType, t, v);
+    }
+
+    /**
+     * Creates a var operation modeling an unnamed and uninitialized variable,
+     * either an unnamed local variable or an unnamed parameter.
+     *
+     * @param type the type of the var's value
+     * @return the var operation
+     */
+    public static VarOp var(TypeElement type) {
+        return var(null, type, null);
+    }
+
+    /**
+     * Creates a var operation modeling an uninitialized variable, either a local variable or a parameter.
+     *
+     * @param name the name of the var
+     * @param type the type of the var's value
+     * @return the var operation
+     */
+    public static VarOp var(String name, TypeElement type) {
+        return new VarOp(name, type);
     }
 
     /**
