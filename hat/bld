@@ -1,4 +1,5 @@
-/*
+/* vim: set ft=java: 
+ *
  * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
@@ -23,116 +24,72 @@
  * questions.
  */
 
-import static bldr.Bldr.*;           // all the helpers are here 
-import static java.nio.file.Files.*; // so we can use isDirectory(path);
+import static bldr.Bldr.*;
 
-void main(String[] args) throws IOException, InterruptedException, URISyntaxException {
-   var hatDir = new Root();
-   List.of(args).forEach(arg->println(arg));
+void main(String[] args) {
 
-   withExpectedDirectory(hatDir.subDir("hat"), hatProjectDir -> {
-      var hatJavacOpts = new JavacBuilder().opts(
+ var hatDir = Dir.current();
+ var hatLibDir = assertExists(hatDir.dir("hat"));
+ var backends = assertExists(hatDir.dir("backends"));
+ var examples = assertExists(hatDir.dir("examples"));
+ var buildDir =BuildDir.of(hatDir.path("build")).create();
+
+
+ var hatJar = jar($->$
+   .jar(buildDir.jarFile("hat-1.0.jar"))
+   .javac($$->$$
+      .opts(
          "--source", "24",
          "--enable-preview",
          "--add-exports=java.base/jdk.internal=ALL-UNNAMED",
          "--add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED"
-      );
+      )
+      .class_dir(buildDir.classDir("hat-1.0.jar.classes"))
+      .source_path(hatLibDir.dir("src/main/java"))
+   )
+ );
 
-      var hatJarResult = new Project(hatDir.buildDir(), hatProjectDir, "1.0").build(hatJavacOpts);
+ backends.forEachSubDirectory("opencl", "ptx").forEach(backend -> 
+   jar($->$
+     .jar(buildDir.jarFile("hat-backend-" + backend.name() + "-1.0.jar"))
+     .javac($$ -> $$
+        .opts(
+           "--source", "24",
+           "--enable-preview",
+           "--add-exports=java.base/jdk.internal=ALL-UNNAMED",
+           "--add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED"
+        )
+        .class_dir(buildDir.classDir("hat-backend-" + backend.name() + "-1.0.jar.classes"))
+        .class_path(hatJar)
+        .source_path(backend.dir("src/main/java"))
+     )
+     .dir_list(dir->dir.exists(),backend.dir("src/main/resources"))
+   )
+ );
 
-      var hatExampleJavacConfig = new JavacBuilder().basedOn(hatJavacOpts).class_path(hatJarResult.jar);
+ var cmakeBuildDir = buildDir.cMakeBuildDir("cmake-build-debug");
 
-      withExpectedDirectory(hatDir.subDir("backends"), backendsDir -> {
-         subDirStream(backendsDir, "opencl", "ptx", "cuda", "mock")
-             .map(backendDir -> new Project(hatDir.buildDir(), backendDir, "1.0"))
-             .parallel()
-             .forEach(project -> project.build("hat-backend", hatExampleJavacConfig));
+ if (!cmakeBuildDir.exists()) {
+    cmake($ -> $.source_dir(backends).build_dir(cmakeBuildDir).copy_to(buildDir));
+ }
 
-         var cmakeBuildDir = hatDir.buildDir().resolve("cmake-build-debug");
+ cmake($->$.build(cmakeBuildDir));
 
-         if (!isDirectory(cmakeBuildDir)) { // We need to rerun build -B defaultCMakeBuilder.buildDir
-            mkdir(cmakeBuildDir);
-            cmake($ -> $ .S(backendsDir) .B(cmakeBuildDir) .opts("-DHAT_TARGET=" + hatDir.buildDir()));
-         }
-
-         cmake($->$ .build(cmakeBuildDir));
-      });
-
-
-      withExpectedDirectory(hatDir.subDir("examples"), examplesDir ->
-         subDirStream(examplesDir, "blackscholes", "mandel", "squares", "heal", "violajones", "life")
-             .map(exampleDir -> new Project(hatDir.buildDir(), exampleDir, "1.0"))
-             .parallel()
-             .forEach(project -> project.build("hat-example", hatExampleJavacConfig))
-      );
-
-      withOptionalDirectory(hatDir.subDir("hattricks"), hattricksDir -> {
-         subDirStream(hattricksDir, "chess", "view")
-             .map(hattrickDir -> new Project(hatDir.buildDir(), hattrickDir, "1.0"))
-             .parallel()
-             .forEach(project -> project.build("hat-example", hatExampleJavacConfig));
-
-
-             withOptionalDirectory(hattricksDir.resolve("nbody-extracted-cl"),nbodyExtractedCl -> {
-                var jextractedJava = mkdir(hatDir.buildDir().resolve("jextracted-java"));
-                var extractedOpenCLCode = jextractedJava.resolve("opencl");
-                if (!isDirectory(extractedOpenCLCode)) {
-                   mkdir(extractedOpenCLCode);
-                   println("Extracting OpenCL API");
-                   jextract($$ -> $$
-                      .home(hatDir.requireJExtract())
-                      .cwd(nbodyExtractedCl)
-                      .output(jextractedJava)
-                      .target_package("opencl")
-                      .when(os instanceof OS.Mac,  $$$ -> $$$
-                         .compile_flag("-F" + ((OS.Mac)os).appLibFrameworks())
-                         .library(((OS.Mac)os).frameworkLibrary("OpenCL"))
-                         .header(((OS.Mac)os).frameworkHeader("OpenCL", "opencl.h"))
-                      )
-                   );
-                }
-                var extractedOpenGLCode = jextractedJava.resolve("opengl");
-                if (!isDirectory(extractedOpenGLCode)) {
-                   mkdir(extractedOpenGLCode);
-                   println("Extracting OpenGL API");
-                   jextract($$ -> $$
-                      .home(hatDir.requireJExtract())
-                      .cwd(nbodyExtractedCl)
-                      .output(jextractedJava)
-                      .target_package("opengl")
-                      .when(os instanceof OS.Mac, $$$ -> $$$
-                          .compile_flag("-F" + ((OS.Mac)os).libFrameworks())
-                          .library(
-                              ((OS.Mac)os).frameworkLibrary("GLUT"),
-                              ((OS.Mac)os).frameworkLibrary("OpenGL")
-                              )
-                          .header(((OS.Mac)os).frameworkHeader("GLUT","glut.h"))
-                      )
-                      .when(os instanceof OS.Linux, $$$ -> {
-                      })
-                   );
-                }
-
-                println("Building nbody-extracted-cl");
-                var nbodyJar =jar($ -> $
-                   .jar(hatDir.buildDir().resolve("hat-example-nbody-extracted-cl-1.0.jar"))
-                   .path_list(nbodyExtractedCl.resolve("src/main/resources"))
-                   .javac($$ -> $$.basedOn(hatExampleJavacConfig)
-                       .source_path(nbodyExtractedCl.resolve("src/main/java"), extractedOpenCLCode, extractedOpenGLCode)
-                   )
-                );
-
-                /*java($ -> $
-                   .vmopts(
-                       "--enable-preview",
-                       "--enable-native-access=ALL-UNNAMED",
-                       "--add-exports=java.base/jdk.internal=ALL-UNNAMED",
-                       "-XstartOnFirstThread"
-                    )
-                    .class_path(nbodyJar.jar)
-                    .main_class("nbody.Main")
-                ); */
-             });
-          });
-      });
+ examples.forEachSubDirectory("blackscholes", "mandel", "squares", "heal", "violajones", "life").forEach(example -> 
+   jar($->$
+     .jar(buildDir.jarFile("hat-example-" + example.name() + "-1.0.jar"))
+     .javac($$->$$
+        .opts(
+           "--source", "24",
+           "--enable-preview",
+           "--add-exports=java.base/jdk.internal=ALL-UNNAMED",
+           "--add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED"
+        )
+        .class_dir(buildDir.classDir("hat-example-" + example.name() + "-1.0.jar.classes"))
+        .class_path(hatJar)
+        .source_path(example.dir("src/main/java"))
+     )
+     .dir_list(dir->dir.exists(),example.dir("src/main/resources"))
+   )
+ );
 }

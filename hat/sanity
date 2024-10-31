@@ -1,4 +1,5 @@
-/*
+/* vim: set ft=java: 
+ *
  * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
@@ -24,28 +25,27 @@
  */
 
 import static bldr.Bldr.*;           // all the helpers are here 
-//import static java.nio.file.Files.*; // so we can use isDirectory(path);
 
 void main(String[] args) throws IOException, InterruptedException, URISyntaxException {
-     var hatDir = new Root();
-     var rleParserDir = hatDir.path().resolve("examples/life/src/main/java/io");
-     subDirStream(hatDir.path(), "hat", "examples", "backends", "docs", "bldr")
-        .forEach(dir ->
-           findTextFiles(dir, "java", "cpp", "h", "hpp", "md")
-              .forEach(textFile -> {
-                 if (!textFile.hasSuffix("md")
-                    && !textFile.path().startsWith(rleParserDir)
-                    && !textFile.grep(Pattern.compile("^.*Copyright.*202[4-9].*(Intel|Oracle).*$"))) {
-                      System.err.println("ERR MISSING LICENSE " + textFile.path());
-                 }
-                 textFile.lines().forEach(line -> {
-                    if (line.grep(Pattern.compile("^.*\\t.*"))) {
-                       System.err.println("ERR TAB " + textFile.path() + ":" + line.line() + "#" + line.num());
-                    }
-                    if (line.grep(Pattern.compile("^.* $"))) {
-                       System.err.println("ERR TRAILING WHITESPACE " + textFile.path() + ":" + line.line() + "#" + line.num());
-                    }
-                 });
-              })
-        );
+  Dir.current().forEachSubDirectory("hat", "examples", "backends", "docs", "bldr")
+    .forEach(dir->dir
+       .findFiles()
+          .filter((path)->Pattern.matches("^.*\\.(java|cpp|h|hpp|md)$", path.toString()))
+          .filter((path)->!Pattern.matches("^.*examples/life/src/main/java/io.*$", path.toString()))
+          .map(path->new SearchableTextFile(path))
+          .forEach(textFile ->{
+             if (!textFile.hasSuffix("md")
+               && !textFile.grep(Pattern.compile("^.*Copyright.*202[4-9].*(Intel|Oracle).*$"))) {
+                  println("ERR NO LICENCE " + textFile.path());
+             }
+             textFile.lines().forEach(line -> {
+               if (line.grep(Pattern.compile("^.*\\t.*"))) {
+                  println("ERR        TAB " + textFile.path() + ":" + line.line() + "#" + line.num());
+               }
+               if (line.grep(Pattern.compile("^.* $"))) {
+                  println("ERR EOL WSPACE " + textFile.path() + ":" + line.line() + "#" + line.num());
+               }
+            });
+          })
+   );
 }
