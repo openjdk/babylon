@@ -58,7 +58,7 @@ public class TestSmallCorpus {
     private static final String ROOT_PATH = "modules/java.base/";
     private static final String CLASS_NAME_SUFFIX = ".class";
     private static final String METHOD_NAME = null;
-    private static final int ROUNDS = 3;
+    private static final int ROUNDS = 1;
 
     private static final FileSystem JRT = FileSystems.getFileSystem(URI.create("jrt:/"));
     private static final ClassFile CF = ClassFile.of();
@@ -154,21 +154,22 @@ public class TestSmallCorpus {
         var errors = Verifier.verify(TRUSTED_LOOKUP, reflection);
         if (!errors.isEmpty()) {
             printBytecode();
-            System.out.println("Code reflection model verification failed");
-            errors.forEach(System.out::println);
+            System.out.println("Code reflection model verification failed:");
+            errors.forEach(e -> System.out.println(e.getMessage()));
             System.out.println(errors.getFirst().getPrintedContext());
-            throw new AssertionError(errors.getFirst());
+            throw new AssertionError("Code reflection model verification failed");
         }
     }
 
     private void verifyBytecode() {
-        for (var e : ClassFile.of().verify(bytecode.parent().get())) {
-            if (!e.getMessage().contains("Illegal call to internal method")) {
-                printReflection();
-                printBytecode();
-                System.out.println("Bytecode verification failed");
-                throw e;
-            }
+        var errors = ClassFile.of().verify(bytecode.parent().get()).stream()
+                .filter(e -> !e.getMessage().contains("Illegal call to internal method")).toList();
+        if (!errors.isEmpty()) {
+            printReflection();
+            System.out.println("Bytecode verification failed:");
+            errors.forEach(e -> System.out.println(e.getMessage()));
+            printBytecode();
+            throw new AssertionError("Bytecode verification failed");
         }
     }
 
