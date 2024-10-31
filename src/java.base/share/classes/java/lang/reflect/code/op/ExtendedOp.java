@@ -3153,8 +3153,8 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 TypeElement targetType = tpOp.targetType();
 
                 // Check if instance of target type
-                Op p = null; // op that perform type check
-                Op c = null; // op that perform conversion
+                Op p; // op that perform type check
+                Op c; // op that perform conversion
                 TypeElement s = target.type();
                 TypeElement t = targetType;
                 if (t instanceof PrimitiveType pt) {
@@ -3169,6 +3169,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                             // e.g. Float -> float, unboxing
                             // e.g. Integer -> long, unboxing + widening
                             box = cs;
+                            p = null;
                         }
                         c = invoke(MethodRef.method(box, t + "Value", t), target);
                     } else {
@@ -3181,6 +3182,8 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                             // e.g. byte -> char, widening and narrowing
                             MethodRef mref = convMethodRef(s, t);
                             p = invoke(mref, target);
+                        } else {
+                            p = null;
                         }
                         c = CoreOp.conv(targetType, target);
                     }
@@ -3188,6 +3191,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                     // boxing conversions
                     // e.g. int -> Number, boxing + widening
                     // e.g. byte -> Byte, boxing
+                    p = null;
                     ClassType box = ps.box().orElseThrow();
                     c = invoke(MethodRef.method(box, "valueOf", box, ps), target);
                 } else if (!s.equals(t)) {
@@ -3196,6 +3200,11 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                     // e.g. Short -> Object, widening
                     p = CoreOp.instanceOf(targetType, target);
                     c = CoreOp.cast(targetType, target);
+                } else {
+                    // identity reference
+                    // e.g. Character -> Character
+                    p = null;
+                    c = null;
                 }
 
                 if (c != null) {
