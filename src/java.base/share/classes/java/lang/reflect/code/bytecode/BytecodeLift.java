@@ -110,6 +110,7 @@ public final class BytecodeLift {
     private final List<CodeElement> elements;
     private final Deque<Value> stack;
     private final Deque<ClassDesc> newStack;
+    private final List<ExceptionCatch> ecs;
     private Block.Builder currentBlock;
 
     private BytecodeLift(Block.Builder entryBlock, ClassModel classModel, CodeModel codeModel, Value... capturedValues) {
@@ -128,6 +129,12 @@ public final class BytecodeLift {
                 sma.entries().stream().collect(Collectors.toUnmodifiableMap(
                         StackMapFrameInfo::target,
                         smfi -> entryBlock.block(toBlockParams(smfi.stack()))))).orElseGet(Map::of);
+        this.ecs = codeModel.exceptionHandlers();
+        for (var ec : ecs.reversed()) {
+            if (exceptionHandlers.indexOf(ec.handler()) < 0) {
+                exceptionHandlers.add(ec.handler());
+            }
+        }
     }
 
     private List<TypeElement> toBlockParams(List<StackMapFrameInfo.VerificationTypeInfo> vtis) {
@@ -196,17 +203,10 @@ public final class BytecodeLift {
             slot += ep.type().equals(JavaType.LONG) || ep.type().equals(JavaType.DOUBLE) ? 2 : 1;
         }
 
-        // fill exceptionHandlers and exceptionHandlersMap
+        // fill exceptionHandlersMap
         BitSet eStack = new BitSet();
-        var ecs = new ArrayList<ExceptionCatch>();
         for (var e : elements) {
-            if (e instanceof ExceptionCatch ec) {
-                ecs.add(ec);
-                // ecs are squashed by handler
-                if (exceptionHandlers.indexOf(ec.handler()) < 0) {
-                    exceptionHandlers.add(ec.handler());
-                }
-            } else if (e instanceof LabelTarget lt) {
+            if (e instanceof LabelTarget lt) {
                 BitSet newEreStack = null;
                 for (var er : ecs) {
                     if (lt.label() == er.tryStart() || lt.label() == er.tryEnd()) {
@@ -868,13 +868,13 @@ public final class BytecodeLift {
         BitSet ereStack = (BitSet)initialEreStack.clone();
         ereStack.andNot(targetEreStack);
         // Split region exits by handler stack
-        for (int ehi = ereStack.nextSetBit(0); ehi >= 0; ehi = ereStack.nextSetBit(ehi + 1)) {
+        for (int ehi = ereStack.previousSetBit(Integer.MAX_VALUE); ehi >= 0; ehi = ereStack.previousSetBit(ehi - 1)) {
             transits.add(new EreT(false, ehi));
         }
         ereStack = (BitSet)targetEreStack.clone();
         ereStack.andNot(initialEreStack);
         // Split region enters by handler stack
-        for (int ehi = ereStack.previousSetBit(Integer.MAX_VALUE); ehi >= 0; ehi = ereStack.previousSetBit(ehi - 1)) {
+        for (int ehi = ereStack.nextSetBit(0); ehi >= 0; ehi = ereStack.nextSetBit(ehi + 1)) {
             transits.add(new EreT(true, ehi));
         }
 
