@@ -48,21 +48,24 @@ public final class Interpreter {
     private Interpreter() {
     }
 
-    // @@@ Temporary
-    public static <T extends Op & Op.Invokable>
-    Object invoke(T op,
-                  Object... args) {
-        // Arguments can contain null values so we cannot use List.of
-        return invoke(MethodHandles.publicLookup(), op, Arrays.asList(args));
-    }
-
-    // @@@ Temporary
-    public static <T extends Op & Op.Invokable>
-    Object invoke(T op,
-                  List<Object> args) {
-        return invoke(MethodHandles.publicLookup(), op, args);
-    }
-
+    /**
+     * Invokes an invokable operation by interpreting the code elements within
+     * the operations body.
+     * <p>
+     * The sequence of arguments must consists of objects corresponding, in order,
+     * to the invokable operation's {@link Op.Invokable#parameters() parameters}.
+     * If the invokable operation {@link Op.Invokable#capturedValues() captures values}
+     * then the sequence of arguments must be appended with objects corresponding,
+     * in order, to the captured values.
+     *
+     * @param l the lookup to use for interpreting reflective operations.
+     * @param op the invokeable operation to interpret.
+     * @param args the invokeable's arguments appended with captured arguments, if any.
+     * @return the interpreter result of invokable operation.
+     * @param <T> the type of Invokable.
+     * @throws InterpreterException if there is a failure to interpret
+     * @throws Throwable if interpretation results in the throwing of an uncaught exception
+     */
     public static <T extends Op & Op.Invokable>
     Object invoke(MethodHandles.Lookup l, T op,
                   Object... args) {
@@ -70,6 +73,24 @@ public final class Interpreter {
         return invoke(l, op, Arrays.asList(args));
     }
 
+    /**
+     * Invokes an invokable operation by interpreting the code elements within
+     * the operations body.
+     * <p>
+     * The list of arguments must consists of objects corresponding, in order,
+     * to the invokable operation's {@link Op.Invokable#parameters() parameters}.
+     * If the invokable operation {@link Op.Invokable#capturedValues() captures values}
+     * then the list of arguments must be appended with objects corresponding,
+     * in order, to the captured values.
+     *
+     * @param l the lookup to use for interpreting reflective operations.
+     * @param op the invokeable operation to interpret.
+     * @param args the invokeable's arguments appended with captured arguments, if any.
+     * @return the interpreter result of invokable operation.
+     * @param <T> the type of Invokable.
+     * @throws InterpreterException if there is a failure to interpret
+     * @throws Throwable if interpretation results in the throwing of an uncaught exception
+     */
     public static <T extends Op & Op.Invokable>
     Object invoke(MethodHandles.Lookup l, T op,
                   List<Object> args) {
@@ -96,8 +117,8 @@ public final class Interpreter {
 
 
     @SuppressWarnings("serial")
-    public static class InterpreterException extends RuntimeException {
-        public InterpreterException(Throwable cause) {
+    public static final class InterpreterException extends RuntimeException {
+        private InterpreterException(Throwable cause) {
             super(cause);
         }
     }
@@ -280,8 +301,12 @@ public final class Interpreter {
                                       Map<Value, Object> valuesAndArguments) {
         assert entry.isEntryBlock();
 
+        // If the stack is not empty it means we are interpreting
+        // an entry block with a parent body whose nearest ancestor body
+        // is the current context block's parent body
         BlockContext yieldContext = oc.stack.peek();
-        assert yieldContext == null || yieldContext.b().parentBody() == entry.parentBody().parentOp().ancestorBody();
+        assert yieldContext == null ||
+                yieldContext.b().parentBody() == entry.parentBody().parentOp().ancestorBody();
 
         // Note that first block cannot have any successors so the queue will have at least one entry
         oc.stack.push(new BlockContext(entry, valuesAndArguments));
@@ -564,8 +589,6 @@ public final class Interpreter {
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
         } else if (o instanceof CoreOp.AssertOp _assert) {
-            //Note: The nature of asserts and munged bodies may require a re-visiting.
-            //This code seems to work without poisoning contexts. See TestAssert.java in tests for relevant test coverage.
             Body testBody = _assert.bodies.get(0);
             boolean testResult = (boolean) interpretBody(l, testBody, oc, List.of());
             if (!testResult) {

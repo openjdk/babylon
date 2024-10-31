@@ -29,9 +29,9 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.Op;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.Method;
 import java.lang.runtime.CodeReflection;
@@ -73,7 +73,7 @@ public class TestBreakContinue {
             if (i <= 5) return 0;
             return 1;
         };
-        Assert.assertEquals(Interpreter.invoke(lf, o), forLoopBreakContinue(o));
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, o), forLoopBreakContinue(o));
     }
 
     @CodeReflection
@@ -115,7 +115,7 @@ public class TestBreakContinue {
         for (int r = -1; r < 4; r++) {
             int fr = r;
             IntUnaryOperator o = i -> fr;
-            Assert.assertEquals(Interpreter.invoke(lf, o), nestedForLoopBreakContinue(o));
+            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, o), nestedForLoopBreakContinue(o));
         }
     }
 
@@ -163,7 +163,7 @@ public class TestBreakContinue {
         for (int r = -1; r < 6; r++) {
             int fr = r;
             IntUnaryOperator o = i -> fr;
-            Assert.assertEquals(Interpreter.invoke(lf, o), forLoopLabeledBreakContinue(o));
+            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, o), forLoopLabeledBreakContinue(o));
         }
     }
 
@@ -213,7 +213,7 @@ public class TestBreakContinue {
         for (int i = 0; i < 7; i++) {
             int fi = i;
             IntUnaryOperator o = v -> v == fi ? 1 : 0;
-            Assert.assertEquals(Interpreter.invoke(lf, o), blockBreak(o));
+            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, o), blockBreak(o));
         }
     }
 

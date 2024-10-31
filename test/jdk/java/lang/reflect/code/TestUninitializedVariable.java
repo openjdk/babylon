@@ -30,6 +30,7 @@ import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.analysis.SSA;
@@ -73,7 +74,7 @@ public class TestUninitializedVariable {
         CoreOp.FuncOp f = removeFirstStore(getFuncOp(method).transform(OpTransformer.LOWERING_TRANSFORMER));
         f.writeTo(System.out);
 
-        Assert.assertThrows(Interpreter.InterpreterException.class, () -> Interpreter.invoke(f, 1));
+        Assert.assertThrows(Interpreter.InterpreterException.class, () -> Interpreter.invoke(MethodHandles.lookup(), f, 1));
     }
 
     @Test(dataProvider = "methods")

@@ -26,6 +26,7 @@
 package experiments;
 
 
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.Op;
@@ -59,9 +60,9 @@ public class PrePostInc {
             CoreOp.FuncOp preFunc = pre.getCodeModel().get();
             CoreOp.FuncOp postFunc = post.getCodeModel().get();
 
-            Object preResult = Interpreter.invoke(preFunc,5);
+            Object preResult = Interpreter.invoke(MethodHandles.lookup(),preFunc,5);
             System.out.println("Pre "+ preResult);
-            Object postResult = Interpreter.invoke(postFunc,5);
+            Object postResult = Interpreter.invoke(MethodHandles.lookup(),postFunc,5);
             System.out.println("Pre "+ postResult);
           //  javaFunc.writeTo(System.out);
 

@@ -161,7 +161,7 @@ public class TestPrimitiveTypePatterns {
         var mh = BytecodeGenerator.generate(MethodHandles.lookup(), lmodel);
 
         for (Object v : values) {
-            Assert.assertEquals(Interpreter.invoke(lmodel, v), mh.invoke(v));
+            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lmodel, v), mh.invoke(v));
         }
     }
 
@@ -178,7 +178,7 @@ public class TestPrimitiveTypePatterns {
         FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
         lf.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(lf, Short.MAX_VALUE), true);
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Short.MAX_VALUE), true);
     }
 
     @CodeReflection
@@ -194,8 +194,8 @@ public class TestPrimitiveTypePatterns {
         FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
         lf.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(lf, Byte.MAX_VALUE), true);
-        Assert.assertEquals(Interpreter.invoke(lf, Byte.MIN_VALUE), false);
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Byte.MAX_VALUE), true);
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Byte.MIN_VALUE), false);
     }
 
     @CodeReflection
@@ -211,8 +211,8 @@ public class TestPrimitiveTypePatterns {
         FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
         lf.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(lf, Integer.MAX_VALUE), true);
-        Assert.assertEquals(Interpreter.invoke(lf, Integer.MIN_VALUE), true);
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MAX_VALUE), true);
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MIN_VALUE), true);
     }
 
     @CodeReflection
@@ -228,8 +228,8 @@ public class TestPrimitiveTypePatterns {
         FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
         lf.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(lf, Integer.MAX_VALUE), true);
-        Assert.assertEquals(Interpreter.invoke(lf, Integer.MIN_VALUE), true);
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MAX_VALUE), true);
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MIN_VALUE), true);
     }
 
     @CodeReflection
@@ -245,8 +245,8 @@ public class TestPrimitiveTypePatterns {
         FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
         lf.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(lf, 1), true);
-        Assert.assertEquals(Interpreter.invoke(lf, (short) 1), false);
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, 1), true);
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, (short) 1), false);
     }
 
     @CodeReflection
@@ -262,8 +262,8 @@ public class TestPrimitiveTypePatterns {
         FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
         lf.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(lf, Integer.MAX_VALUE), true);
-        Assert.assertEquals(Interpreter.invoke(lf, Integer.MIN_VALUE), true);
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MAX_VALUE), true);
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MIN_VALUE), true);
     }
 
     @CodeReflection
@@ -279,8 +279,8 @@ public class TestPrimitiveTypePatterns {
         FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
         lf.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(lf, Integer.MAX_VALUE), true);
-        Assert.assertEquals(Interpreter.invoke(lf, Integer.MIN_VALUE), true);
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MAX_VALUE), true);
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MIN_VALUE), true);
     }
 
     @CodeReflection
@@ -296,8 +296,8 @@ public class TestPrimitiveTypePatterns {
         FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
         lf.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(lf, (Object) null), false);
-        Assert.assertEquals(Interpreter.invoke(lf, "str"), true);
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, (Object) null), false);
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, "str"), true);
     }
 
     @CodeReflection
@@ -313,10 +313,10 @@ public class TestPrimitiveTypePatterns {
         FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
         lf.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(lf, Float.MAX_VALUE), true);
-        Assert.assertEquals(Interpreter.invoke(lf, Float.MIN_VALUE), true);
-        Assert.assertEquals(Interpreter.invoke(lf, Float.POSITIVE_INFINITY), true);
-        Assert.assertEquals(Interpreter.invoke(lf, Float.NEGATIVE_INFINITY), true);
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Float.MAX_VALUE), true);
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Float.MIN_VALUE), true);
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Float.POSITIVE_INFINITY), true);
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Float.NEGATIVE_INFINITY), true);
     }
 
     @CodeReflection
@@ -332,10 +332,10 @@ public class TestPrimitiveTypePatterns {
         FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
         lf.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(lf, Float.MAX_VALUE), false);
-        Assert.assertEquals(Interpreter.invoke(lf, Integer.MIN_VALUE), false);
-        Assert.assertEquals(Interpreter.invoke(lf, Double.POSITIVE_INFINITY), true);
-        Assert.assertEquals(Interpreter.invoke(lf, Double.NEGATIVE_INFINITY), true);
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Float.MAX_VALUE), false);
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MIN_VALUE), false);
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Double.POSITIVE_INFINITY), true);
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Double.NEGATIVE_INFINITY), true);
     }
 
     @CodeReflection
@@ -351,8 +351,8 @@ public class TestPrimitiveTypePatterns {
         FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
         lf.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(lf, Integer.MAX_VALUE), true);
-        Assert.assertEquals(Interpreter.invoke(lf, Integer.MIN_VALUE), true);
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MAX_VALUE), true);
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MIN_VALUE), true);
     }
 
      private CoreOp.FuncOp getFuncOp(String name) {
