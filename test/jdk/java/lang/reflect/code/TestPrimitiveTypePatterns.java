@@ -3,15 +3,20 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Method;
 import java.lang.reflect.code.Body;
 import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.reflect.code.interpreter.Interpreter;
+import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.op.ExtendedOp;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.type.MethodRef;
+import java.lang.runtime.CodeReflection;
 import java.lang.runtime.ExactConversionsSupport;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 import static java.lang.reflect.code.op.CoreOp.*;
 import static java.lang.reflect.code.op.ExtendedOp.match;
@@ -41,7 +46,7 @@ public class TestPrimitiveTypePatterns {
     }
 
     @DataProvider
-    public static Object[][] dp() {
+    public static Object[][] narrowingPrimitiveAndWideningPrimitiveThatNeedCheck() {
         return new Object[][]{
                 {JavaType.INT, JavaType.BYTE, new Object[] {
                         Byte.MIN_VALUE - 1, Byte.MIN_VALUE, Byte.MAX_VALUE, Byte.MAX_VALUE + 1
@@ -133,8 +138,8 @@ public class TestPrimitiveTypePatterns {
         };
     }
 
-    @Test(dataProvider = "dp")
-    void test(JavaType sourceType, JavaType targetType, Object[] values) throws Throwable {
+    @Test(dataProvider = "narrowingPrimitiveAndWideningPrimitiveThatNeedCheck")
+    void testNarrowingPrimitiveAndWideningPrimitiveThatNeedCheck(JavaType sourceType, JavaType targetType, Object[] values) throws Throwable {
 
         var model = buildTypePatternModel(sourceType, targetType);
         model.writeTo(System.out);
@@ -160,10 +165,209 @@ public class TestPrimitiveTypePatterns {
         }
     }
 
+    @CodeReflection
+    static boolean identityPrimitive(short s) {
+        return s instanceof short _;
+    }
+
+    @Test
+    void testIdentityPrimitive() {
+        FuncOp f = getFuncOp("identityPrimitive");
+        f.writeTo(System.out);
+
+        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        lf.writeTo(System.out);
+
+        Assert.assertEquals(Interpreter.invoke(lf, Short.MAX_VALUE), true);
+    }
+
+    @CodeReflection
+    static boolean wideningNarrowingPrimitive(byte s) {
+        return s instanceof char _;
+    }
+
+    @Test
+    void testWideningNarrowingPrimitive() {
+        FuncOp f = getFuncOp("wideningNarrowingPrimitive");
+        f.writeTo(System.out);
+
+        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        lf.writeTo(System.out);
+
+        Assert.assertEquals(Interpreter.invoke(lf, Byte.MAX_VALUE), true);
+        Assert.assertEquals(Interpreter.invoke(lf, Byte.MIN_VALUE), false);
+    }
+
+    @CodeReflection
+    static boolean boxing(int s) {
+        return s instanceof Integer _;
+    }
+
+    @Test
+    void testBoxing() {
+        FuncOp f = getFuncOp("boxing");
+        f.writeTo(System.out);
+
+        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        lf.writeTo(System.out);
+
+        Assert.assertEquals(Interpreter.invoke(lf, Integer.MAX_VALUE), true);
+        Assert.assertEquals(Interpreter.invoke(lf, Integer.MIN_VALUE), true);
+    }
+
+    @CodeReflection
+    static boolean boxingWideningReference(int s) {
+        return s instanceof Number _;
+    }
+
+    @Test
+    void testBoxingWideningReference() {
+        FuncOp f = getFuncOp("boxingWideningReference");
+        f.writeTo(System.out);
+
+        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        lf.writeTo(System.out);
+
+        Assert.assertEquals(Interpreter.invoke(lf, Integer.MAX_VALUE), true);
+        Assert.assertEquals(Interpreter.invoke(lf, Integer.MIN_VALUE), true);
+    }
+
+    @CodeReflection
+    static boolean narrowingReferenceUnboxing(Number n) {
+        return n instanceof int _;
+    }
+
+    @Test
+    void testNarrowingReferenceUnboxing() {
+        FuncOp f = getFuncOp("narrowingReferenceUnboxing");
+        f.writeTo(System.out);
+
+        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        lf.writeTo(System.out);
+
+        Assert.assertEquals(Interpreter.invoke(lf, 1), true);
+        Assert.assertEquals(Interpreter.invoke(lf, (short) 1), false);
+    }
+
+    @CodeReflection
+    static boolean unboxing(Integer n) {
+        return n instanceof int _;
+    }
+
+    @Test
+    void testUnboxing() {
+        FuncOp f = getFuncOp("unboxing");
+        f.writeTo(System.out);
+
+        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        lf.writeTo(System.out);
+
+        Assert.assertEquals(Interpreter.invoke(lf, Integer.MAX_VALUE), true);
+        Assert.assertEquals(Interpreter.invoke(lf, Integer.MIN_VALUE), true);
+    }
+
+    @CodeReflection
+    static boolean unboxingWideningPrimitive(Integer n) {
+        return n instanceof long _;
+    }
+
+    @Test
+    void testUnboxingWideningPrimitive() {
+        FuncOp f = getFuncOp("unboxingWideningPrimitive");
+        f.writeTo(System.out);
+
+        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        lf.writeTo(System.out);
+
+        Assert.assertEquals(Interpreter.invoke(lf, Integer.MAX_VALUE), true);
+        Assert.assertEquals(Interpreter.invoke(lf, Integer.MIN_VALUE), true);
+    }
+
+    @CodeReflection
+    static boolean wideningReference(String s) {
+        return s instanceof Object _;
+    }
+
+    @Test
+    void testWideningReference() {
+        FuncOp f = getFuncOp("wideningReference");
+        f.writeTo(System.out);
+
+        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        lf.writeTo(System.out);
+
+        Assert.assertEquals(Interpreter.invoke(lf, (Object) null), false);
+        Assert.assertEquals(Interpreter.invoke(lf, "str"), true);
+    }
+
+    @CodeReflection
+    static boolean identityReference(Float f) {
+        return f instanceof Float _;
+    }
+
+    @Test
+    void testIdentityReference() {
+        FuncOp f = getFuncOp("identityReference");
+        f.writeTo(System.out);
+
+        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        lf.writeTo(System.out);
+
+        Assert.assertEquals(Interpreter.invoke(lf, Float.MAX_VALUE), true);
+        Assert.assertEquals(Interpreter.invoke(lf, Float.MIN_VALUE), true);
+        Assert.assertEquals(Interpreter.invoke(lf, Float.POSITIVE_INFINITY), true);
+        Assert.assertEquals(Interpreter.invoke(lf, Float.NEGATIVE_INFINITY), true);
+    }
+
+    @CodeReflection
+    static boolean narrowingReference(Number n) {
+        return n instanceof Double _;
+    }
+
+    @Test
+    void testNarrowingReference() {
+        FuncOp f = getFuncOp("narrowingReference");
+        f.writeTo(System.out);
+
+        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        lf.writeTo(System.out);
+
+        Assert.assertEquals(Interpreter.invoke(lf, Float.MAX_VALUE), false);
+        Assert.assertEquals(Interpreter.invoke(lf, Integer.MIN_VALUE), false);
+        Assert.assertEquals(Interpreter.invoke(lf, Double.POSITIVE_INFINITY), true);
+        Assert.assertEquals(Interpreter.invoke(lf, Double.NEGATIVE_INFINITY), true);
+    }
+
+    @CodeReflection
+    static boolean wideningPrimitive(int i) {
+        return i instanceof long _;
+    }
+
+    @Test
+    void testWideningPrimitive() {
+        FuncOp f = getFuncOp("wideningPrimitive");
+        f.writeTo(System.out);
+
+        FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+        lf.writeTo(System.out);
+
+        Assert.assertEquals(Interpreter.invoke(lf, Integer.MAX_VALUE), true);
+        Assert.assertEquals(Interpreter.invoke(lf, Integer.MIN_VALUE), true);
+    }
+
+     private CoreOp.FuncOp getFuncOp(String name) {
+        Optional<Method> om = Stream.of(this.getClass().getDeclaredMethods())
+                .filter(m -> m.getName().equals(name))
+                .findFirst();
+
+        Method m = om.get();
+        return m.getCodeModel().get();
+    }
+
     static FuncOp buildTypePatternModel(JavaType sourceType, JavaType targetType) {
         // builds the model of:
         // static boolean f(sourceType a) { return a instanceof targetType _; }
-        return func("f", functionType(JavaType.BOOLEAN, sourceType)).body(fblock -> {
+        return func(sourceType + "_" + targetType, functionType(JavaType.BOOLEAN, sourceType)).body(fblock -> {
 
             var paramVal = fblock.parameters().get(0);
 
