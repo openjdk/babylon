@@ -3183,6 +3183,18 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                         }
                         c = CoreOp.conv(targetType, target);
                     }
+                } else if (s instanceof PrimitiveType ps) {
+                    // boxing conversions
+                    ClassType ct = (ClassType) t;
+                    ClassType box;
+                    if (ct.unbox().isEmpty()) {
+                        // e.g. int -> Number, boxing + widening
+                        box = ps.box().orElseThrow();
+                    } else {
+                        // e.g. byte -> Byte, boxing
+                        box = ct;
+                    }
+                    c = invoke(MethodRef.method(box, "valueOf", box, ps), target);
                 } else {
                     // e.g. byte -> Byte, Number -> Double, ...
                     p = CoreOp.instanceOf(targetType, target);
