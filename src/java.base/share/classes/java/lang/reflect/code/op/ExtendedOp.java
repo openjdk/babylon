@@ -3198,14 +3198,13 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                     c = CoreOp.cast(targetType, target);
                 }
 
-                if (p != null) {
-                    // p != null, we need to perform type check at runtime
-                    Block.Builder nextBlock = currentBlock.block();
-                    currentBlock.op(conditionalBranch(currentBlock.op(p), nextBlock.successor(), endNoMatchBlock.successor()));
-                    currentBlock = nextBlock;
-                }
-
                 if (c != null) {
+                    if (p != null) {
+                        // p != null, we need to perform type check at runtime
+                        Block.Builder nextBlock = currentBlock.block();
+                        currentBlock.op(conditionalBranch(currentBlock.op(p), nextBlock.successor(), endNoMatchBlock.successor()));
+                        currentBlock = nextBlock;
+                    }
                     target = currentBlock.op(c);
                 }
 
