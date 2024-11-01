@@ -58,7 +58,7 @@ public class TestSmallCorpus {
     private static final String ROOT_PATH = "modules/java.base/";
     private static final String CLASS_NAME_SUFFIX = ".class";
     private static final String METHOD_NAME = null;
-    private static final int ROUNDS = 1;
+    private static final int ROUNDS = 3;
 
     private static final FileSystem JRT = FileSystems.getFileSystem(URI.create("jrt:/"));
     private static final ClassFile CF = ClassFile.of();
@@ -98,8 +98,8 @@ public class TestSmallCorpus {
         max stack:   %3$,10d %6$,10d
         """.formatted((Object[])stats));
 
-        // Roundtrip is >99% stable, no exceptions, no verification errors
-        Assert.assertTrue(stable > 54000 && unstable < 100, String.format("stable: %d unstable: %d", stable, unstable));
+        // Roundtrip is 100% stable after 3 rounds, no exceptions, no verification errors
+        Assert.assertTrue(stable > 54500 && unstable == 0, String.format("stable: %d unstable: %d", stable, unstable));
     }
 
     private void testRoundTripStability(Path path) throws Exception {
