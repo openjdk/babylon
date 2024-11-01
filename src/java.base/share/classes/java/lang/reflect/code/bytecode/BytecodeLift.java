@@ -392,9 +392,22 @@ public final class BytecodeLift {
                     Value index = stack.pop();
                     op(CoreOp.arrayStoreOp(stack.pop(), index, value));
                 }
-                case ArrayLoadInstruction _ -> {
+                case ArrayLoadInstruction ali -> {
                     Value index = stack.pop();
-                    stack.push(op(CoreOp.arrayLoadOp(stack.pop(), index)));
+                    Value array = stack.pop();
+                    if (array.type() instanceof UnresolvedType ut) {
+                        ut.resolveTo(switch (ali.typeKind()) {
+                            case BYTE -> JavaType.BYTE_ARRAY;
+                            case CHAR -> JavaType.CHAR_ARRAY;
+                            case DOUBLE -> JavaType.DOUBLE_ARRAY;
+                            case FLOAT -> JavaType.FLOAT_ARRAY;
+                            case INT -> JavaType.INT_ARRAY;
+                            case LONG -> JavaType.LONG_ARRAY;
+                            case SHORT -> JavaType.SHORT_ARRAY;
+                            default -> null;
+                        });
+                    }
+                    stack.push(op(CoreOp.arrayLoadOp(array, index)));
                 }
                 case InvokeInstruction inst -> {
                     FunctionType mType = MethodRef.ofNominalDescriptor(inst.typeSymbol());

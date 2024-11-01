@@ -91,7 +91,7 @@ sealed interface UnresolvedType extends TypeElement {
 
         @Override
         public TypeElement componentType() {
-            return new Comp(this);
+            return resolved == null ? new Comp(this) : resolved.componentType();
         }
     }
 
