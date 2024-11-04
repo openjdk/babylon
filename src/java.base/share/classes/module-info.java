@@ -168,7 +168,10 @@ module java.base {
         jdk.jdeps, // participates in preview features
         jdk.jfr, // participates in preview features
         jdk.jlink,   // participates in preview features
-        jdk.jshell; // participates in preview features
+        jdk.jshell, // participates in preview features
+        jdk.incubator.code; // participates in preview features
+    exports jdk.internal.classfile.impl to
+        jdk.incubator.code;
     exports jdk.internal.access to
         java.desktop,
         java.logging,
@@ -319,7 +322,8 @@ module java.base {
     exports sun.reflect.annotation to
         jdk.compiler;
     exports sun.reflect.generics.reflectiveObjects to
-        java.desktop;
+        java.desktop,
+        jdk.incubator.code;
     exports sun.reflect.misc to
         java.desktop,
         java.datatransfer,

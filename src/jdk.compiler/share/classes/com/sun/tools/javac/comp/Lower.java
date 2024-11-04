@@ -269,13 +269,13 @@ public class Lower extends TreeTranslator {
     /** A navigator class for collecting the free variables accessed
      *  from a local class.
      */
-    class FreeVarCollector extends CaptureScanner {
+    public class FreeVarCollector extends CaptureScanner {
 
-        FreeVarCollector(JCTree ownerTree) {
+        protected FreeVarCollector(JCTree ownerTree) {
             super(ownerTree);
         }
 
-        void addFreeVars(ClassSymbol c) {
+        protected void addFreeVars(ClassSymbol c) {
             List<VarSymbol> fvs = freevarCache.get(c);
             if (fvs != null) {
                 for (List<VarSymbol> l = fvs; l.nonEmpty(); l = l.tail) {

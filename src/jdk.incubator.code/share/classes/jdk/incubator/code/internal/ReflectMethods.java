@@ -23,7 +23,7 @@
  * questions.
  */
 
-package com.sun.tools.javac.comp;
+package jdk.incubator.code.internal;
 
 import com.sun.source.tree.LambdaExpressionTree;
 import com.sun.source.tree.MemberReferenceTree.ReferenceMode;
@@ -42,10 +42,13 @@ import com.sun.tools.javac.code.Type.TypeVar;
 import com.sun.tools.javac.code.Type.WildcardType;
 import com.sun.tools.javac.code.TypeTag;
 import com.sun.tools.javac.code.Types;
+import com.sun.tools.javac.comp.CaptureScanner;
 import com.sun.tools.javac.comp.DeferredAttr.FilterScanner;
+import com.sun.tools.javac.comp.Flow;
+import com.sun.tools.javac.comp.Lower;
+import com.sun.tools.javac.comp.TypeEnvs;
 import com.sun.tools.javac.jvm.ByteCodes;
 import com.sun.tools.javac.jvm.Gen;
-import com.sun.tools.javac.resources.CompilerProperties.Notes;
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.JCTree.JCAnnotation;
 import com.sun.tools.javac.tree.JCTree.JCArrayAccess;
@@ -75,18 +78,20 @@ import com.sun.tools.javac.tree.TreeTranslator;
 import com.sun.tools.javac.util.Assert;
 import com.sun.tools.javac.util.Context;
 import com.sun.tools.javac.util.JCDiagnostic.DiagnosticPosition;
+import com.sun.tools.javac.util.JCDiagnostic.Note;
 import com.sun.tools.javac.util.ListBuffer;
 import com.sun.tools.javac.util.Log;
 import com.sun.tools.javac.util.Name;
 import com.sun.tools.javac.util.Names;
 import com.sun.tools.javac.util.Options;
-import jdk.internal.java.lang.reflect.code.*;
-import jdk.internal.java.lang.reflect.code.op.CoreOp;
-import jdk.internal.java.lang.reflect.code.op.ExtendedOp;
-import jdk.internal.java.lang.reflect.code.type.*;
-import jdk.internal.java.lang.reflect.code.type.WildcardType.BoundKind;
+import jdk.incubator.code.java.lang.reflect.code.*;
+import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
+import jdk.incubator.code.java.lang.reflect.code.op.ExtendedOp;
+import jdk.incubator.code.java.lang.reflect.code.type.*;
+import jdk.incubator.code.java.lang.reflect.code.type.WildcardType.BoundKind;
 
 import javax.lang.model.element.Modifier;
+import javax.tools.JavaFileObject;
 import java.lang.constant.ClassDesc;
 import java.util.*;
 import java.util.function.Function;
@@ -192,14 +197,14 @@ public class ReflectMethods extends TreeTranslator {
                 CoreOp.FuncOp funcOp = bodyScanner.scanMethod();
                 if (dumpIR) {
                     // dump the method IR if requested
-                    log.note(Notes.MethodIrDump(tree.sym.enclClass(), tree.sym, funcOp.toText()));
+                    log.note(MethodIrDump(tree.sym.enclClass(), tree.sym, funcOp.toText()));
                 }
                 // create a static final field holding the op' string text.
                 // The name of the field is foo$op, where 'foo' is the name of the corresponding method.
                 classOps.add(opFieldDecl(methodName(bodyScanner.symbolToErasedMethodRef(tree.sym)), tree.getModifiers().flags, funcOp));
             } catch (UnsupportedASTException ex) {
                 // whoops, some AST node inside the method body were not supported. Log it and move on.
-                log.note(ex.tree, Notes.MethodIrSkip(tree.sym.enclClass(), tree.sym, ex.tree.getTag().toString()));
+                log.note(ex.tree, MethodIrSkip(tree.sym.enclClass(), tree.sym, ex.tree.getTag().toString()));
             }
         }
         super.visitMethodDef(tree);
@@ -210,6 +215,7 @@ public class ReflectMethods extends TreeTranslator {
         ListBuffer<JCTree> prevClassOps = classOps;
         Symbol.ClassSymbol prevClassSym = currentClassSym;
         int prevLambdaCount = lambdaCount;
+        JavaFileObject prev = log.useSource(tree.sym.sourcefile);
         try {
             lambdaCount = 0;
             currentClassSym = tree.sym;
@@ -221,6 +227,7 @@ public class ReflectMethods extends TreeTranslator {
             classOps = prevClassOps;
             currentClassSym = prevClassSym;
             result = tree;
+            log.useSource(prev);
         }
     }
 
@@ -234,7 +241,7 @@ public class ReflectMethods extends TreeTranslator {
                 CoreOp.FuncOp funcOp = bodyScanner.scanLambda();
                 if (dumpIR) {
                     // dump the method IR if requested
-                    log.note(Notes.QuotedIrDump(funcOp.toText()));
+                    log.note(QuotedIrDump(funcOp.toText()));
                 }
                 // create a static final field holding the op' string text.
                 // The name of the field is foo$op, where 'foo' is the name of the corresponding method.
@@ -264,7 +271,7 @@ public class ReflectMethods extends TreeTranslator {
                 }
             } catch (UnsupportedASTException ex) {
                 // whoops, some AST node inside the quoted lambda body were not supported. Log it and move on.
-                log.note(ex.tree, Notes.QuotedIrSkip(ex.tree.getTag().toString()));
+                log.note(ex.tree, QuotedIrSkip(ex.tree.getTag().toString()));
                 result = tree;
             }
         } else {
@@ -288,7 +295,7 @@ public class ReflectMethods extends TreeTranslator {
                 CoreOp.FuncOp funcOp = bodyScanner.scanLambda();
                 if (dumpIR) {
                     // dump the method IR if requested
-                    log.note(Notes.QuotedIrDump(funcOp.toText()));
+                    log.note(QuotedIrDump(funcOp.toText()));
                 }
                 // create a static final field holding the op' string text.
                 // The name of the field is foo$op, where 'foo' is the name of the corresponding method.
@@ -301,7 +308,7 @@ public class ReflectMethods extends TreeTranslator {
                 }
             } catch (UnsupportedASTException ex) {
                 // whoops, some AST node inside the quoted lambda body were not supported. Log it and move on.
-                log.note(ex.tree, Notes.QuotedIrSkip(ex.tree.getTag().toString()));
+                log.note(ex.tree, QuotedIrSkip(ex.tree.getTag().toString()));
                 result = tree;
             }
         } else {
@@ -616,7 +623,7 @@ public class ReflectMethods extends TreeTranslator {
             @Override
             public void visitNewClass(JCNewClass tree) {
                 if (tree.type.tsym.owner.kind == MTH &&
-                    !seenClasses.contains(tree.type.tsym)) {
+                        !seenClasses.contains(tree.type.tsym)) {
                     throw unsupported(tree);
                 }
             }
@@ -1050,7 +1057,7 @@ public class ReflectMethods extends TreeTranslator {
             Symbol sym = tree.sym;
             switch (sym.getKind()) {
                 case LOCAL_VARIABLE, RESOURCE_VARIABLE, BINDING_VARIABLE, PARAMETER, EXCEPTION_PARAMETER ->
-                    result = loadVar(sym);
+                        result = loadVar(sym);
                 case FIELD, ENUM_CONSTANT -> {
                     if (sym.name.equals(names._this) || sym.name.equals(names._super)) {
                         result = thisValue();
@@ -2127,7 +2134,7 @@ public class ReflectMethods extends TreeTranslator {
                 JCTree.JCExpression detail = TreeInfo.skipParens(tree.detail);
 
                 pushBody(detail,
-                         FunctionType.functionType(typeToTypeElement(tree.detail.type)));
+                        FunctionType.functionType(typeToTypeElement(tree.detail.type)));
                 Value detailVal = toValue(detail);
 
                 append(CoreOp._yield(detailVal));
@@ -2538,7 +2545,7 @@ public class ReflectMethods extends TreeTranslator {
                         JavaType.typeVarRef(t.tsym.name.toString(), symbolToErasedMethodRef(t.tsym.owner),
                                 typeToTypeElement(t.getUpperBound())) :
                         JavaType.typeVarRef(t.tsym.name.toString(),
-                                (jdk.internal.java.lang.reflect.code.type.ClassType)symbolToErasedDesc(t.tsym.owner),
+                                (jdk.incubator.code.java.lang.reflect.code.type.ClassType)symbolToErasedDesc(t.tsym.owner),
                                 typeToTypeElement(t.getUpperBound()));
                 case CLASS -> {
                     Assert.check(!t.isIntersection() && !t.isUnion());
@@ -2913,5 +2920,39 @@ public class ReflectMethods extends TreeTranslator {
         boolean isThisOrSuper(JCExpression expression) {
             return TreeInfo.isThisQualifier(expression) || TreeInfo.isSuperQualifier(tree);
         }
+    }
+
+    /**
+     * compiler.note.quoted.ir.dump=\
+     *    code reflection enabled for method quoted lambda\n\
+     *    {0}
+     */
+    public static Note QuotedIrDump(String arg0) {
+        return new Note("compiler", "quoted.ir.dump", arg0);
+    }
+
+    /**
+     * compiler.note.quoted.ir.skip=\
+     *    unsupported code reflection node {0} found in quoted lambda
+     */
+    public static Note QuotedIrSkip(String arg0) {
+        return new Note("compiler", "quoted.ir.skip", arg0);
+    }
+
+    /**
+     * compiler.note.method.ir.dump=\
+     *    code reflection enabled for method {0}.{1}\n\
+     *    {2}
+     */
+    public static Note MethodIrDump(Symbol arg0, Symbol arg1, String arg2) {
+        return new Note("compiler", "method.ir.dump", arg0, arg1, arg2);
+    }
+
+    /**
+     * compiler.note.method.ir.skip=\
+     *    unsupported code reflection node {2} found in method {0}.{1}
+     */
+    public static Note MethodIrSkip(Symbol arg0, Symbol arg1, String arg2) {
+        return new Note("compiler", "method.ir.skip", arg0, arg1, arg2);
     }
 }
