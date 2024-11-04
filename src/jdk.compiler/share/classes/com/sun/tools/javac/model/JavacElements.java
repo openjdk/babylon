@@ -25,7 +25,6 @@
 
 package com.sun.tools.javac.model;
 
-import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -33,6 +32,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
@@ -45,7 +45,6 @@ import javax.lang.model.util.Elements;
 import javax.tools.JavaFileObject;
 import static javax.lang.model.util.ElementFilter.methodsIn;
 
-import com.sun.source.tree.Tree;
 import com.sun.source.util.JavacTask;
 import com.sun.tools.javac.api.JavacScope;
 import com.sun.tools.javac.api.JavacTaskImpl;
@@ -65,7 +64,6 @@ import com.sun.tools.javac.comp.Attr;
 import com.sun.tools.javac.comp.AttrContext;
 import com.sun.tools.javac.comp.Enter;
 import com.sun.tools.javac.comp.Env;
-import com.sun.tools.javac.comp.ReflectMethods;
 import com.sun.tools.javac.main.JavaCompiler;
 import com.sun.tools.javac.processing.PrintingProcessor;
 import com.sun.tools.javac.tree.DocCommentTable;
@@ -82,9 +80,7 @@ import static com.sun.tools.javac.code.Scope.LookupKind.NON_RECURSIVE;
 import static com.sun.tools.javac.code.TypeTag.CLASS;
 
 import com.sun.tools.javac.comp.Modules;
-import com.sun.tools.javac.comp.Resolve;
 import com.sun.tools.javac.resources.CompilerProperties.Notes;
-import jdk.internal.java.lang.reflect.code.op.CoreOp;
 
 import static com.sun.tools.javac.tree.JCTree.Tag.*;
 
@@ -106,8 +102,6 @@ public class JavacElements implements Elements {
     private final Enter enter;
     private final JavacTrees javacTrees;
     private final Attr attr;
-    private final Resolve resolve;
-    private final ReflectMethods reflectMethods;
     private final JavacTaskImpl javacTaskImpl;
     private final Log log;
     private final TreeMaker make;
@@ -130,9 +124,7 @@ public class JavacElements implements Elements {
         types = Types.instance(context);
         enter = Enter.instance(context);
         attr = Attr.instance(context);
-        resolve = Resolve.instance(context);
         javacTrees = JavacTrees.instance(context);
-        reflectMethods = ReflectMethods.instance(context);
         JavacTask t = context.get(JavacTask.class);
         javacTaskImpl = t instanceof JavacTaskImpl taskImpl ? taskImpl : null;
         log = Log.instance(context);
@@ -820,33 +812,27 @@ public class JavacElements implements Elements {
 
     @Override @DefinedBy(Api.LANGUAGE_MODEL)
     public Optional<Object> getBody(ExecutableElement e) {
-        if (e.getModifiers().contains(Modifier.ABSTRACT) ||
+        SourceCodeReflection sourceCodeReflection =
+                ServiceLoader.load(SourceCodeReflection.class).findFirst().orElse(null);
+
+        if (sourceCodeReflection == null ||
+                e.getModifiers().contains(Modifier.ABSTRACT) ||
                 e.getModifiers().contains(Modifier.NATIVE)) {
             return Optional.empty();
         }
 
-        CoreOp.FuncOp funcOp;
         try {
             JCMethodDecl methodTree = (JCMethodDecl)getTree(e);
             JavacScope scope = javacTrees.getScope(javacTrees.getPath(e));
             ClassSymbol enclosingClass = (ClassSymbol) scope.getEnclosingClass();
-            funcOp = attr.runWithAttributedMethod(scope.getEnv(), methodTree,
-                    attribBlock -> reflectMethods.getMethodBody(enclosingClass, methodTree, attribBlock, make));
+            Object op = attr.runWithAttributedMethod(scope.getEnv(), methodTree,
+                    attribBlock -> sourceCodeReflection.getMethodBody(enclosingClass, methodTree, attribBlock, make));
+            return Optional.of(op);
         } catch (RuntimeException ex) {  // ReflectMethods.UnsupportedASTException
             // some other error occurred when attempting to attribute the method
             // @@@ better report of error
             ex.printStackTrace();
             return Optional.empty();
-        }
-
-        // Reparse using API in java.base
-        try {
-            String opString = funcOp.toText();
-            Class<?> opParserClass = Class.forName("java.lang.reflect.code.parser.OpParser");
-            Method fromStringMethod = opParserClass.getDeclaredMethod("fromStringOfFuncOp", String.class);
-            return Optional.of(fromStringMethod.invoke(null, opString));
-        } catch (ReflectiveOperationException ex) {
-            throw new RuntimeException(ex);
         }
     }
 

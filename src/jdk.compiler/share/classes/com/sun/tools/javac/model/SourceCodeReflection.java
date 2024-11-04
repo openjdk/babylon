@@ -23,33 +23,13 @@
  * questions.
  */
 
-/**
- * A module which provides classes and interfaces for obtaining reflective information about
- * classes and objects.
- * {@incubating}
- *
- * @moduleGraph
- */
+package com.sun.tools.javac.model;
 
-import jdk.incubator.code.compiler.CodeReflectionPlugin;
-import jdk.internal.javac.ParticipatesInPreview;
+import com.sun.tools.javac.code.Symbol;
+import com.sun.tools.javac.tree.JCTree.JCBlock;
+import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
+import com.sun.tools.javac.tree.TreeMaker;
 
-@ParticipatesInPreview
-module jdk.incubator.code {
-    requires transitive jdk.compiler;
-
-    exports jdk.incubator.code.java.lang.reflect.code;
-    exports jdk.incubator.code.java.lang.reflect.code.parser;
-    exports jdk.incubator.code.java.lang.reflect.code.op;
-    exports jdk.incubator.code.java.lang.reflect.code.type;
-    exports jdk.incubator.code.java.lang.reflect.code.analysis;
-    exports jdk.incubator.code.java.lang.reflect.code.bytecode;
-    exports jdk.incubator.code.java.lang.reflect.code.interpreter;
-    exports jdk.incubator.code.java.lang.reflect.code.writer;
-
-    provides com.sun.source.util.Plugin with
-            CodeReflectionPlugin;
-
-    provides com.sun.tools.javac.model.SourceCodeReflection with
-            CodeReflectionPlugin;
+public interface SourceCodeReflection {
+    Object getMethodBody(Symbol.ClassSymbol classSym, JCMethodDecl methodDecl, JCBlock attributedBody, TreeMaker make);
 }

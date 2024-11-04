@@ -23,15 +23,19 @@
  * questions.
  */
 
-package jdk.incubator.code;
+package jdk.incubator.code.compiler;
 
 import com.sun.source.util.JavacTask;
 import com.sun.source.util.Plugin;
 import com.sun.source.util.TaskEvent;
 import com.sun.source.util.TaskEvent.Kind;
 import com.sun.tools.javac.api.BasicJavacTask;
-import com.sun.tools.javac.api.JavacTaskImpl;
+import com.sun.tools.javac.code.Source;
+import com.sun.tools.javac.code.Symbol.ClassSymbol;
+import com.sun.tools.javac.model.SourceCodeReflection;
+import com.sun.tools.javac.tree.JCTree.JCBlock;
 import com.sun.tools.javac.tree.JCTree.JCCompilationUnit;
+import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
 import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.util.Context;
 import jdk.incubator.code.internal.ReflectMethods;
@@ -39,9 +43,10 @@ import jdk.incubator.code.internal.ReflectMethods;
 /**
  * A vector test plugin
  */
-public class CodeReflectionPlugin implements Plugin {
+public class CodeReflectionPlugin implements Plugin, SourceCodeReflection {
 
-    Context context;
+    ReflectMethods reflectMethods;
+    TreeMaker treeMaker;
 
     /**
      * Plugin constructor
@@ -57,9 +62,13 @@ public class CodeReflectionPlugin implements Plugin {
 
     @Override
     public void init(JavacTask task, String... args) {
-        System.out.println("Hello from " + getName());
-        context = ((BasicJavacTask)task).getContext();
-        task.addTaskListener(new TaskListener());
+        Context context = ((BasicJavacTask)task).getContext();
+        Source source = Source.instance(context);
+        if (Source.Feature.REFLECT_METHODS.allowedInSource(source)) {
+            reflectMethods = ReflectMethods.instance(context);
+            treeMaker = TreeMaker.instance(context);
+            task.addTaskListener(new TaskListener());
+        }
     }
 
     @Override
@@ -77,10 +86,17 @@ public class CodeReflectionPlugin implements Plugin {
         public void finished(TaskEvent e) {
             if (e.getKind() == Kind.ANALYZE) {
                 // end of attribution/flow analysis
-                JCCompilationUnit jcCompilationUnit = (JCCompilationUnit)e.getCompilationUnit();
-                TreeMaker localMake = TreeMaker.instance(context).forToplevel(jcCompilationUnit);
-                ReflectMethods.instance(context).translateTopLevelClass(jcCompilationUnit, localMake);
+                if (reflectMethods != null) {
+                    JCCompilationUnit jcCompilationUnit = (JCCompilationUnit)e.getCompilationUnit();
+                    TreeMaker localMake = treeMaker.forToplevel(jcCompilationUnit);
+                    reflectMethods.translateTopLevelClass(jcCompilationUnit, localMake);
+                }
             }
         }
+    }
+
+    @Override
+    public Object getMethodBody(ClassSymbol classSym, JCMethodDecl methodDecl, JCBlock attributedBody, TreeMaker make) {
+        return reflectMethods.getMethodBody(classSym, methodDecl, attributedBody, make);
     }
 }

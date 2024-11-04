@@ -1606,10 +1606,6 @@ public class JavaCompiler {
             if (shouldStop(CompileState.TRANSTYPES))
                 return;
 
-//            if (Feature.REFLECT_METHODS.allowedInSource(source)) {
-//                env.tree = ReflectMethods.instance(context).translateTopLevelClass(env.tree, localMake);
-//            }
-
             env.tree = transTypes.translateTopLevelClass(env.tree, localMake);
             compileStates.put(env, CompileState.TRANSTYPES);
 

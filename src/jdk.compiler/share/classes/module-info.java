@@ -257,7 +257,8 @@ module jdk.compiler {
         jdk.jshell,
         jdk.incubator.code;
     exports com.sun.tools.javac.model to
-        jdk.javadoc;
+        jdk.javadoc,
+        jdk.incubator.code;
     exports com.sun.tools.javac.parser to
         jdk.jshell,
         jdk.internal.md;
@@ -281,6 +282,7 @@ module jdk.compiler {
     uses com.sun.tools.doclint.DocLint;
     uses com.sun.tools.javac.platform.PlatformProvider;
     uses com.sun.tools.javac.api.JavacTrees.DocCommentTreeTransformer;
+    uses com.sun.tools.javac.model.SourceCodeReflection;
 
     provides java.util.spi.ToolProvider with
         com.sun.tools.javac.main.JavacToolProvider;
