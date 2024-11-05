@@ -485,8 +485,8 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             // Exception region for the body
             Block.Builder syncRegionEnter = b.block();
             Block.Builder catcherFinally = b.block();
-            Result syncExceptionRegion = b.op(exceptionRegionEnter(
-                    syncRegionEnter.successor(), List.of(catcherFinally.successor())));
+            b.op(exceptionRegionEnter(
+                    syncRegionEnter.successor(), catcherFinally.successor()));
 
             OpTransformer syncExitTransformer = opT.compose((block, op) -> {
                 if (op instanceof CoreOp.ReturnOp ||
@@ -495,7 +495,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                     block.op(CoreOp.monitorExit(monitorTarget));
                     // Exit the exception region
                     Block.Builder exitRegion = block.block();
-                    block.op(exceptionRegionExit(syncExceptionRegion, exitRegion.successor()));
+                    block.op(exceptionRegionExit(exitRegion.successor(), catcherFinally.successor()));
                     return exitRegion;
                 } else {
                     return block;
@@ -507,7 +507,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                     // Monitor exit
                     block.op(CoreOp.monitorExit(monitorTarget));
                     // Exit the exception region
-                    block.op(exceptionRegionExit(syncExceptionRegion, exit.successor()));
+                    block.op(exceptionRegionExit(exit.successor(), catcherFinally.successor()));
                 } else {
                     // @@@ Composition of lowerable ops
                     if (op instanceof Lowerable lop) {
@@ -521,15 +521,15 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
 
             // The catcher, with an exception region back branching to itself
             Block.Builder catcherFinallyRegionEnter = b.block();
-            Result catcherExceptionRegion = catcherFinally.op(exceptionRegionEnter(
-                    catcherFinallyRegionEnter.successor(), List.of(catcherFinally.successor())));
+            catcherFinally.op(exceptionRegionEnter(
+                    catcherFinallyRegionEnter.successor(), catcherFinally.successor()));
 
             // Monitor exit
             catcherFinallyRegionEnter.op(CoreOp.monitorExit(monitorTarget));
             Block.Builder catcherFinallyRegionExit = b.block();
             // Exit the exception region
             catcherFinallyRegionEnter.op(exceptionRegionExit(
-                    catcherExceptionRegion, catcherFinallyRegionExit.successor()));
+                    catcherFinallyRegionExit.successor(), catcherFinally.successor()));
             // Rethrow outside of region
             Block.Parameter t = catcherFinally.parameter(type(Throwable.class));
             catcherFinallyRegionExit.op(_throw(t));
@@ -2536,24 +2536,27 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             List<Block.Builder> catchers = catchers().stream()
                     .map(catcher -> b.block())
                     .toList();
-            Block.Builder catcherFinally = null;
-            if (finalizer != null) {
+            Block.Builder catcherFinally;
+            if (finalizer == null) {
+                catcherFinally = null;
+            } else {
                 catcherFinally = b.block();
                 catchers = new ArrayList<>(catchers);
                 catchers.add(catcherFinally);
             }
 
             // Enter the try exception region
-            Result tryExceptionRegion = b.op(exceptionRegionEnter(tryRegionEnter.successor(), catchers.stream()
+            List<Block.Reference> exitHandlers = catchers.stream()
                     .map(Block.Builder::successor)
-                    .toList()));
+                    .toList();
+            b.op(exceptionRegionEnter(tryRegionEnter.successor(), exitHandlers.reversed()));
 
             OpTransformer tryExitTransformer;
             if (finalizer != null) {
                 tryExitTransformer = opT.compose((block, op) -> {
                     if (op instanceof CoreOp.ReturnOp ||
                             (op instanceof ExtendedOp.JavaLabelOp lop && ifExitFromTry(lop))) {
-                        return inlineFinalizer(block, tryExceptionRegion, opT);
+                        return inlineFinalizer(block, exitHandlers, opT);
                     } else {
                         return block;
                     }
@@ -2563,7 +2566,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                     if (op instanceof CoreOp.ReturnOp ||
                             (op instanceof ExtendedOp.JavaLabelOp lop && ifExitFromTry(lop))) {
                         Block.Builder tryRegionReturnExit = block.block();
-                        block.op(exceptionRegionExit(tryExceptionRegion, tryRegionReturnExit.successor()));
+                        block.op(exceptionRegionExit(tryRegionReturnExit.successor(), exitHandlers));
                         return tryRegionReturnExit;
                     } else {
                         return block;
@@ -2592,11 +2595,11 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 finallyEnter = b.block();
                 if (hasTryRegionExit.get()) {
                     // Exit the try exception region
-                    tryRegionExit.op(exceptionRegionExit(tryExceptionRegion, finallyEnter.successor()));
+                    tryRegionExit.op(exceptionRegionExit(finallyEnter.successor(), exitHandlers));
                 }
             } else if (hasTryRegionExit.get()) {
                 // Exit the try exception region
-                tryRegionExit.op(exceptionRegionExit(tryExceptionRegion, exit.successor()));
+                tryRegionExit.op(exceptionRegionExit(exit.successor(), exitHandlers));
             }
 
             // Inline the catch bodies
@@ -2616,9 +2619,9 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
 
                     OpTransformer catchExitTransformer = opT.compose((block, op) -> {
                         if (op instanceof CoreOp.ReturnOp) {
-                            return inlineFinalizer(block, catchExceptionRegion, opT);
+                            return inlineFinalizer(block, List.of(catcherFinally.successor()), opT);
                         } else if (op instanceof ExtendedOp.JavaLabelOp lop && ifExitFromTry(lop)) {
-                            return inlineFinalizer(block, catchExceptionRegion, opT);
+                            return inlineFinalizer(block, List.of(catcherFinally.successor()), opT);
                         } else {
                             return block;
                         }
@@ -2643,7 +2646,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                     // Exit the catch exception region
                     if (hasCatchRegionExit.get()) {
                         hasTryRegionExit.set(true);
-                        catchRegionExit.op(exceptionRegionExit(catchExceptionRegion, finallyEnter.successor()));
+                        catchRegionExit.op(exceptionRegionExit(finallyEnter.successor(), catcherFinally.successor()));
                     }
                 } else {
                     // Inline the catch body
@@ -2717,11 +2720,11 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             return false;
         }
 
-        Block.Builder inlineFinalizer(Block.Builder block1, Value exceptionRegion, OpTransformer opT) {
+        Block.Builder inlineFinalizer(Block.Builder block1, List<Block.Reference> tryHandlers, OpTransformer opT) {
             Block.Builder finallyEnter = block1.block();
             Block.Builder finallyExit = block1.block();
 
-            block1.op(exceptionRegionExit(exceptionRegion, finallyEnter.successor()));
+            block1.op(exceptionRegionExit(finallyEnter.successor(), tryHandlers));
 
             // Inline the finally body
             finallyEnter.transformBody(finalizer, List.of(), opT.andThen((block2, op2) -> {
@@ -3110,7 +3113,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                                        Op pattern, Value target) {
                 return switch (pattern) {
                     case RecordPatternOp rp -> lowerRecordPattern(endNoMatchBlock, currentBlock, bindings, rp, target);
-                    case TypePatternOp tp -> lowerBindingPattern(endNoMatchBlock, currentBlock, bindings, tp, target);
+                    case TypePatternOp tp -> lowerTypePattern(endNoMatchBlock, currentBlock, bindings, tp, target);
                     case MatchAllPatternOp map -> lowerMatchAllPattern(currentBlock);
                     case null, default -> throw new UnsupportedOperationException("Unknown pattern op: " + pattern);
                 };
@@ -3144,23 +3147,118 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
                 return currentBlock;
             }
 
-            static Block.Builder lowerBindingPattern(Block.Builder endNoMatchBlock, Block.Builder currentBlock,
-                                                     List<Value> bindings,
-                                                     TypePatternOp tpOp, Value target) {
+            static Block.Builder lowerTypePattern(Block.Builder endNoMatchBlock, Block.Builder currentBlock,
+                                                  List<Value> bindings,
+                                                  TypePatternOp tpOp, Value target) {
                 TypeElement targetType = tpOp.targetType();
 
-                Block.Builder nextBlock = currentBlock.block();
-
                 // Check if instance of target type
-                currentBlock.op(conditionalBranch(currentBlock.op(CoreOp.instanceOf(targetType, target)),
-                        nextBlock.successor(), endNoMatchBlock.successor()));
+                Op p; // op that perform type check
+                Op c; // op that perform conversion
+                TypeElement s = target.type();
+                TypeElement t = targetType;
+                if (t instanceof PrimitiveType pt) {
+                    if (s instanceof ClassType cs) {
+                        // unboxing conversions
+                        ClassType box;
+                        if (cs.unbox().isEmpty()) { // s not a boxed type
+                            // e.g. Number -> int, narrowing + unboxing
+                            box = pt.box().orElseThrow();
+                            p = CoreOp.instanceOf(box, target);
+                        } else {
+                            // e.g. Float -> float, unboxing
+                            // e.g. Integer -> long, unboxing + widening
+                            box = cs;
+                            p = null;
+                        }
+                        c = invoke(MethodRef.method(box, t + "Value", t), target);
+                    } else {
+                        // primitive to primitive conversion
+                        PrimitiveType ps = ((PrimitiveType) s);
+                        if (isNarrowingPrimitiveConv(ps, pt) || isWideningPrimitiveConvWithCheck(ps, pt)
+                                || isWideningAndNarrowingPrimitiveConv(ps, pt)) {
+                            // e.g. int -> byte, narrowing
+                            // e,g. int -> float, widening with check
+                            // e.g. byte -> char, widening and narrowing
+                            MethodRef mref = convMethodRef(s, t);
+                            p = invoke(mref, target);
+                        } else {
+                            p = null;
+                        }
+                        c = CoreOp.conv(targetType, target);
+                    }
+                } else if (s instanceof PrimitiveType ps) {
+                    // boxing conversions
+                    // e.g. int -> Number, boxing + widening
+                    // e.g. byte -> Byte, boxing
+                    p = null;
+                    ClassType box = ps.box().orElseThrow();
+                    c = invoke(MethodRef.method(box, "valueOf", box, ps), target);
+                } else if (!s.equals(t)) {
+                    // reference to reference, but not identity
+                    // e.g. Number -> Double, narrowing
+                    // e.g. Short -> Object, widening
+                    p = CoreOp.instanceOf(targetType, target);
+                    c = CoreOp.cast(targetType, target);
+                } else {
+                    // identity reference
+                    // e.g. Character -> Character
+                    p = null;
+                    c = null;
+                }
 
-                currentBlock = nextBlock;
+                if (c != null) {
+                    if (p != null) {
+                        // p != null, we need to perform type check at runtime
+                        Block.Builder nextBlock = currentBlock.block();
+                        currentBlock.op(conditionalBranch(currentBlock.op(p), nextBlock.successor(), endNoMatchBlock.successor()));
+                        currentBlock = nextBlock;
+                    }
+                    target = currentBlock.op(c);
+                }
 
-                target = currentBlock.op(CoreOp.cast(targetType, target));
                 bindings.add(target);
 
                 return currentBlock;
+            }
+
+            private static boolean isWideningAndNarrowingPrimitiveConv(PrimitiveType s, PrimitiveType t) {
+                return BYTE.equals(s) && CHAR.equals(t);
+            }
+
+            private static boolean isWideningPrimitiveConvWithCheck(PrimitiveType s, PrimitiveType t) {
+                return (INT.equals(s) && FLOAT.equals(t))
+                        || (LONG.equals(s) && FLOAT.equals(t))
+                        || (LONG.equals(s) && DOUBLE.equals(t));
+            }
+
+            // s -> t is narrowing if order(t) <= order(s)
+            private final static Map<PrimitiveType, Integer> narrowingOrder = Map.of(
+                    BYTE, 1,
+                    SHORT, 2,
+                    CHAR, 2,
+                    INT, 3,
+                    LONG, 4,
+                    FLOAT, 5,
+                    DOUBLE, 6
+            );
+            private static boolean isNarrowingPrimitiveConv(PrimitiveType s, PrimitiveType t) {
+                return narrowingOrder.get(t) <= narrowingOrder.get(s);
+            }
+
+            private static MethodRef convMethodRef(TypeElement s, TypeElement t) {
+                if (BYTE.equals(s) || SHORT.equals(s) || CHAR.equals(s)) {
+                    s = INT;
+                }
+                String sn = capitalize(s.toString());
+                String tn = capitalize(t.toString());
+                String mn = "is%sTo%sExact".formatted(sn, tn);
+                JavaType exactConversionSupport = JavaType.type(ClassDesc.of("java.lang.runtime.ExactConversionsSupport"));
+                return MethodRef.method(exactConversionSupport, mn, BOOLEAN, s);
+            }
+
+            private static String capitalize(String s) {
+                return s.substring(0, 1).toUpperCase() + s.substring(1);
             }
 
             static Block.Builder lowerMatchAllPattern(Block.Builder currentBlock) {

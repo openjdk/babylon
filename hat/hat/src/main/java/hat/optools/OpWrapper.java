@@ -45,7 +45,7 @@ public class OpWrapper<T extends Op> {
     public static <O extends Op, OW extends OpWrapper<O>> OW wrap(O op) {
         // We have one special case
         // This is possibly a premature optimization. But it allows us to treat vardeclarations differently from params.
-        if (op instanceof CoreOp.VarOp varOp) {
+        if (op instanceof CoreOp.VarOp varOp && !varOp.isUninitialized()) {
             // this gets called a lot and we can't wrap yet or we recurse so we
             // use the raw model. Basically we want a different wrapper for VarDeclations
             // which  relate to func parameters.
@@ -61,7 +61,8 @@ public class OpWrapper<T extends Op> {
             case ExtendedOp.JavaForOp $ -> (OW) new ForOpWrapper($);
             case ExtendedOp.JavaWhileOp $ -> (OW) new WhileOpWrapper($);
             case ExtendedOp.JavaIfOp $ -> (OW) new IfOpWrapper($);
-            case CoreOp.NotOp $ -> (OW) new UnaryArithmeticOrLogicOperation($);
+            case CoreOp.NotOp $ -> (OW) new UnaryArithmeticOrLogicOpWrapper($);
+            case CoreOp.NegOp $ -> (OW) new UnaryArithmeticOrLogicOpWrapper($);
             case CoreOp.BinaryOp $ -> (OW) new BinaryArithmeticOrLogicOperation($);
             case CoreOp.BinaryTestOp $ -> (OW) new BinaryTestOpWrapper($);
             case CoreOp.FuncOp $ -> (OW) new FuncOpWrapper($);

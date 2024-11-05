@@ -24,13 +24,13 @@
 /*
  * @test
  * @run testng TestTransitiveInvokeModule
+ * @run testng/othervm -Dbabylon.ssa=cytron TestTransitiveInvokeModule
  */
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Executable;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.analysis.SSA;
@@ -76,7 +76,7 @@ public class TestTransitiveInvokeModule {
         });
 
         List<Integer> r = new ArrayList<>();
-        Interpreter.invoke(module.functionTable().firstEntry().getValue(), 10, r);
+        Interpreter.invoke(MethodHandles.lookup(), module.functionTable().firstEntry().getValue(), 10, r);
         Assert.assertEquals(r, List.of(9, 7, 5, 3, 1, -1));
     }
 

@@ -33,7 +33,9 @@ import java.lang.reflect.code.Op;
 import java.lang.reflect.code.Quoted;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.function.ToIntFunction;
 import java.util.stream.IntStream;
 
@@ -47,8 +49,11 @@ public class TestCaptureQuoted {
         Quoted quoted = (int y) -> x + y;
         assertEquals(quoted.capturedValues().size(), 1);
         assertEquals(((Var)quoted.capturedValues().values().iterator().next()).value(), x);
+        List<Object> arguments = new ArrayList<>();
+        arguments.add(1);
+        arguments.addAll(quoted.capturedValues().values());
         int res = (int)Interpreter.invoke(MethodHandles.lookup(), (Op & Op.Invokable) quoted.op(),
-                quoted.capturedValues(), 1);
+                arguments);
         assertEquals(res, x + 1);
     }
 
@@ -69,8 +74,11 @@ public class TestCaptureQuoted {
         Quoted quoted = context.quoted();
         assertEquals(quoted.capturedValues().size(), 1);
         assertEquals(quoted.capturedValues().values().iterator().next(), context);
+        List<Object> arguments = new ArrayList<>();
+        arguments.add(1);
+        arguments.addAll(quoted.capturedValues().values());
         int res = (int)Interpreter.invoke(MethodHandles.lookup(), (Op & Op.Invokable) quoted.op(),
-                quoted.capturedValues(), 1);
+                arguments);
         assertEquals(res, x + 1);
     }
 
@@ -84,8 +92,11 @@ public class TestCaptureQuoted {
         assertEquals(it.next(), this);
         assertEquals(((Var)it.next()).value(), hello);
         assertEquals(((Var)it.next()).value(), x);
+        List<Object> arguments = new ArrayList<>();
+        arguments.add(1);
+        arguments.addAll(quoted.capturedValues().values());
         int res = (int)Interpreter.invoke(MethodHandles.lookup(), (Op & Op.Invokable) quoted.op(),
-                quoted.capturedValues(), 1);
+                arguments);
         assertEquals(res, x + 1 + hashCode() + hello.length());
     }
 

@@ -17,23 +17,26 @@
 
 ---
 
-# Building HAT
+# Building HAT with Bldr
 
-HAT uses both maven and cmake.
+We initially used maven and cmake to build hat.  If you feel more comfortable
+with maven consider [building with maven and cmake](hat-01-03-building-hat-with-maven.md)
+but it is possible that maven support will be removed if the `Bldr` approach takes off.
 
-Maven controls the build but delegates to cmake for native artifacts (such as various backends).
-
+We might even have `Bldr` create the maven artifacts....
 
 ## Setting environment variables JAVA_HOME and PATH
 
 To build HAT we need to ensure that `JAVA_HOME` is set
 to point to our babylon jdk (the one we built [here](hat-01-02-building-babylon.md))
 
-It will simplify our tasks going forward if we add `${JAVA_HOME}/bin` to our PATH (before any other JAVA installs).
+It simplifes our tasks going forward if we
+add `${JAVA_HOME}/bin` to our PATH (before any other JAVA installs).
 
-The `env.bash` shell script can be sourced (dot included) in your shell to set JAVA_HOME and PATH
+Thankfully just sourcing the top level `env.bash` script will perform these tasks
 
-It should detect the arch type (AARCH64 or X86_46) and select the correct relative parent dir and inject that dir in your PATH.
+It should detect the arch type (AARCH64 or X86_46) and
+select the correct relative parent dir and inject that dir in your PATH.
 
 ```bash
 cd hat
@@ -44,61 +47,47 @@ echo ${PATH}
 /Users/ME/github/babylon/hat/../build/macosx-aarch64-server-release/jdk/bin:/usr/local/bin:......
 ```
 
-## Root level maven pom.xml properties
+# Introducing Bldr
+`Bldr` is an evolving set of static methods and types required (so far.. ;) )
+to be able to build HAT, hat backends and examples.
 
-If you followed the instructions for building babylon your `pom.xml`
-properties should look like this, and should not need changing
+We rely on the ability to launch java source directly (without needing to javac first)
 
-```xml
-<project>
-    <!-- yada -->
-    <properties>
-        <babylon.repo.name>babylon</babylon.repo.name>  <!--replace with your fork name -->
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>24</maven.compiler.source>
-        <maven.compiler.target>24</maven.compiler.target>
-        <github.dir>${env.HOME}/github</github.dir>
-        <beehive.spirv.toolkit.dir>${github.dir}/beehive-spirv-toolkit/</beehive.spirv.toolkit.dir>
-        <babylon.dir>${github.dir}/${babylon.repo.name}</babylon.dir>
-        <hat.dir>${babylon.dir}/hat</hat.dir>
-        <hat.target>${hat.dir}/maven-build</hat.target>
-    </properties>
-    <!-- yada -->
-</project>
-```
-If say your github dir (the one containing babylon) is somewhere other than `${HOME}/github` then make sure that `github.dir` is
-set accordingly.
+* [JEP 458: Launch Multi-File Source-Code Program](https://openjdk.org/jeps/458)
+* [JEP 330: Launch Single-File Source-Code Programs](https://openjdk.org/jeps/330)
 
-```xml
-    <properties>
-        <!-- ... -->
-        <github.dir>/full/path/to/github</github.dir>
-        <!-- ... -->
-    </properties>
-```
-
-## Sanity checking your env and root pom.xml
-
-After sourcing `env.bash` or making changes to `pom.xml` we can
-sanity check our setup by running
+The `bld` script (really java source) can be run like this
 
 ```bash
-cd hat
-java sanity.java
+java --enable-preview --source 24 bld
 ```
 
-This will check that your `PATH` includes your babylon JDK's bin dir, and will parse the top level `pom.xml` to ensure that that
-the properties are pointing to `sane` values.
+In our case the  magic is under the `hat/bldr`subdir
 
-## Building with maven
+```
+bldr
+├── Bldr.java (symlink) -> src/main/java/bldr/Bldr.java
+├── args      (text)       "--enable-preview --source 24"
+└── src
+    └── main
+        └── java
+            └── bldr
+                └── Bldr.java
+```
 
-Now we should be able to use maven to build, if successful maven will place all jars and libs in a newly created `maven-build` dir in your top level hat dir.
+We also have a handy `bldr/args` which allows us to avoid specifying commmon args `--enable-preview --source 24` which are always needed
+
+```bash
+java @bldr/args bld
+```
+
+This `bld` script builds HAT, all the backends and examples and places buildable artifacts in `build` dir
 
 ```bash
 cd hat
 . ./env.bash
-mvn clean  compile jar:jar install
-ls maven-build
+java @bld/args bld
+ls build
 hat-1.0.jar                     hat-example-heal-1.0.jar        libptx_backend.dylib
 hat-backend-cuda-1.0.jar        hat-example-mandel-1.0.jar      libspirv_backend.dylib
 hat-backend-mock-1.0.jar        hat-example-squares-1.0.jar     mock_info
@@ -108,28 +97,43 @@ hat-backend-spirv-1.0.jar       libmock_backend.dylib           spirv_info
 hat-example-experiments-1.0.jar libopencl_backend.dylib
 ```
 
-The provided `build.sh` script contains the minimal maven commandline
+`bld` relies on cmake to build native code for backends, so if cmake finds OpenCL libs/headers, you will see libopencl_backend (.so or .dylib) in the build dir, if cmake finds CUDA you will see libcuda_backend(.so or .dylib)
 
-```bash
-bash build.sh
+We have another script called `sanity` which will check all  .md/.java/.cpp/.h for tabs, lines that end with whitespace
+or files without appropriate licence headers
+
+This is run using
+
 ```
+java @bldr/args sanity
+```
+
 
 ## Running an example
 
-To run an example we should be able to use the maven artifacts in `maven-build`
+To run a HAT example we can run from the artifacts in `build` dir
 
 ```bash
 ${JAVA_HOME}/bin/java \
    --enable-preview --enable-native-access=ALL-UNNAMED \
-   --class-path maven-build/hat-1.0.jar:maven-build/hat-example-mandel-1.0.jar:maven-build/hat-backend-opencl-1.0.jar \
+   --class-path build/hat-1.0.jar:build/hat-example-mandel-1.0.jar:build/hat-backend-opencl-1.0.jar \
    --add-exports=java.base/jdk.internal=ALL-UNNAMED \
-   -Djava.library.path=maven-build\
+   -Djava.library.path=build\
    mandel.Main
 ```
 
-The provided `hatrun.bash` script simplifies this somewhat, we just need to pass the backend name `opencl` and the package name `mandel`
-(all examples are assumed to be in `packagename/Main.java`
+The `hatrun` script can also be used which simply needs the backend
+name `opencl|java|cuda|ptx|mock` and the package name `mandel`
 
 ```bash
-bash hatrun.bash opencl mandel
+java @bldr/args hatrun opencl mandel
 ```
+
+If you pass `headless` as the first arg
+
+```bash
+java @bldr/args hatrun headless opencl mandel
+```
+
+This sets `-Dheadless=true` and passes '--headless' to the example.  Some examples can use this to avoid launching UI.
+

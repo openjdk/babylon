@@ -1,3 +1,4 @@
+#!/bin/bash 
 cat >/dev/null<<LICENSE
 /*
  * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
@@ -25,79 +26,73 @@ cat >/dev/null<<LICENSE
  */
 LICENSE
 
-function example(){
-   echo $*
-   headless=$1
-   backend=$2
-   example=$3
-   shift 3
-   if test -d maven-build; then
-      echo using trad maven-build
-      build_dir=maven-build
-   elif test -d build; then
-      echo using new build dir
-      build_dir=build
-   else
-      echo No maven-build or build dir!
-      exit 1
-   fi
-   if test "${backend}" =  "java"; then
-       backend_jar=backends/shared/src/main/resources
-   else
-       backend_jar=${build_dir}/hat-backend-${backend}-1.0.jar
-   fi
-   echo checking backend_jar = ${backend_jar}
-   if test -f ${backend_jar} -o -d ${backend_jar} ;then
-      example_jar=${build_dir}/hat-example-${example}-1.0.jar
-      case ${example} in
-        nbody)
-           extraVmOpts=-XstartOnFirstThread;;
-      esac
-      case ${backend} in
-        spirv)
-           extraJars=:${build_dir}/levelzero.jar:${build_dir}/beehive-spirv-lib-0.0.4.jar;;
-      esac
 
-      echo checking example_jar = ${example_jar}
-      if test -f ${example_jar} ; then
-         echo ${JAVA_HOME}/bin/java \
-            --enable-preview --enable-native-access=ALL-UNNAMED \
-            ${extraVmOpts} \
-            --class-path ${build_dir}/hat-1.0.jar:${example_jar}:${backend_jar}${extraJars} \
-            --add-exports=java.base/jdk.internal=ALL-UNNAMED \
-            -Djava.library.path=${build_dir}:/usr/local/lib \
-            -Dheadless=${headless} \
-            ${example}.Main $*
-         ${JAVA_HOME}/bin/java \
-            --enable-preview --enable-native-access=ALL-UNNAMED \
-            ${extraVmOpts} \
-            --class-path ${build_dir}/hat-1.0.jar:${example_jar}:${backend_jar}${extraJars} \
-            --add-exports=java.base/jdk.internal=ALL-UNNAMED \
-            -Djava.library.path=${build_dir}:/usr/local/lib \
-            -Dheadless=${headless} \
-            ${example}.Main $*
-      else
-         echo no such example example_jar = ${example_jar}
-      fi
-   else
-      echo no such backend backend_jar = ${backend_jar}
-   fi
-}
 
 if [ $# -eq 0 ]; then
    echo 'usage:'
    echo '   bash hatrun.bash [headless] backend package args ...'
    echo '       headless : Optional passes -Dheadless=true to app'
-   echo '       package  : the examples package (and dirname under hat/examples)'
    echo '       backend  : opencl|cuda|hip|spirv|ptx|mock'
+   echo '       package  : the examples package (and dirname under hat/examples)'
    echo '       Class name is assumed to be package.Main '
-else
-   if [ $1 == headless ]; then
-      echo headless!
-      shift 1
-      example true $*
-   else
-      example false $*
-   fi
-fi
+elif [[ -d build ]] ; then
+   export OPTS="" 
+   export VMOPTS=""
+   export JARS="" 
 
+   export VMOPTS="${VMOPTS} --enable-preview"
+   export VMOPTS="${VMOPTS} --enable-native-access=ALL-UNNAMED"
+   export VMOPTS="${VMOPTS} --add-exports=java.base/jdk.internal=ALL-UNNAMED"
+
+   export HEADLESS="${1}"
+   if [[ "${HEADLESS}" = "headless" ]] ; then
+      echo HEADLESS=${HEADLESS}
+      shift 1  
+      export OPTS="${OPTS} -Dheadless=true"
+   else 
+      echo "Not headless"
+   fi
+
+   export BACKEND="${1}"
+   echo BACKEND=${BACKEND}
+   if [[ -d backends/$1 || "$1" = "java" ]] ; then
+      export JARS=build/hat-1.0.jar
+      if [[ "$1" = "java" ]] ; then 
+         export BACKEND_JAR_or_DIR=backends/shared/src/main/resources
+         echo BACKEND_JAR_or_DIR=${BACKEND_JAR_or_DIR}
+      else
+         export BACKEND_JAR_or_DIR=build/hat-backend-${BACKEND}-1.0.jar
+         echo BACKEND_JAR_or_DIR=${BACKEND_JAR_or_DIR}
+         if [[ ! -f ${BACKEND_JAR_or_DIR} ]] ;then
+            echo "no backend ${BACKEND_JAR_or_DIR}"
+            exit 1
+         fi
+      fi
+      export JARS=${JARS}:${BACKEND_JAR_or_DIR}
+      if [[ "$1" = "spirv" ]] ;then 
+         export JARS=${JARS}:build/levelzero.jar:build/beehive-spirv-lib-0.0.4.jar;
+      fi
+      export OPTS="${OPTS} -Djava.library.path=build:/usr/local/lib"
+      shift 1
+   fi
+
+   export EXAMPLE="${1}"
+   echo EXAMPLE=${EXAMPLE}
+   export EXAMPLE_JAR=build/hat-example-${EXAMPLE}-1.0.jar
+   if [[  -f ${EXAMPLE_JAR} ]] ;then
+      export JARS=${JARS}:${EXAMPLE_JAR}
+      shift 1
+   else
+      echo "no example build/${EXAMPLE_JAR}"
+      exit 1
+   fi  
+   echo JARS=${JARS}
+   echo VMOPTS=${VMOPTS}
+   echo OPTS=${OPTS}
+   echo java \${VMOPTS} \${OPTS} --class-path \${JARS} \${EXAMPLE}.Main $*
+   echo java ${VMOPTS} ${OPTS} --class-path ${JARS} ${EXAMPLE}.Main $*
+   java ${VMOPTS} ${OPTS} --class-path ${JARS} ${EXAMPLE}.Main $*
+else
+   echo No build dir
+   exit 1
+fi

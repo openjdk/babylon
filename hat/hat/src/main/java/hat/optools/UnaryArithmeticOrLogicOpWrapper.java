@@ -1,5 +1,3 @@
-#!/bin/bash
-cat >/dev/null<<LICENSE
 /*
  * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -24,36 +22,12 @@ cat >/dev/null<<LICENSE
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-LICENSE
+package hat.optools;
 
-echo spaces at end of lines
-find . \
-   -name "*.iml" \
-   -o -name "*.bash" \
-   -o -name "*.xml" \
-   -o -name "*.java" \
-   -o -name "*.h" \
-   -o -name "*.md" \
-   -o -name "*.cpp" \
-   -o -name "mkbld" \
-   -o -name "bld" \
-   -o -name CMakeFiles.list \
-   | xargs grep "  *$" \
-   | cut -d: -f1 \
-   | sort -u
+import java.lang.reflect.code.op.CoreOp;
 
-echo tabs
-find . \
-   -name "*.iml" \
-   -o -name "*.bash" \
-   -o -name "*.xml" \
-   -o -name "*.java" \
-   -o -name "*.h" \
-   -o -name "*.md" \
-   -o -name "*.cpp" \
-   -o -name "mkbld" \
-   -o -name "bld" \
-   -o -name CMakeFiles.list \
-   | xargs grep "\t" \
-   | cut -d: -f1 \
-   | sort -u
+public class UnaryArithmeticOrLogicOpWrapper extends UnaryOpWrapper<CoreOp.UnaryOp> {
+    UnaryArithmeticOrLogicOpWrapper(CoreOp.UnaryOp op) {
+        super(op);
+    }
+}

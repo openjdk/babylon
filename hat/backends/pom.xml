@@ -65,7 +65,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
                    <arguments>
                       <argument>-DHAT_TARGET=${hat.target}</argument>
                       <argument>-B</argument>
-                      <argument>cmake-build-debug</argument>
+                      <argument>${hat.target}/cmake-build-debug</argument>
                    </arguments>
                 </configuration>
              </execution>
@@ -79,7 +79,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
                    <executable>cmake</executable>
                    <arguments>
                       <argument>--build</argument>
-                      <argument>cmake-build-debug</argument>
+                      <argument>${hat.target}/cmake-build-debug</argument>
                    </arguments>
                 </configuration>
              </execution>

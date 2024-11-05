@@ -29,9 +29,9 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.Op;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.Method;
 import java.lang.runtime.CodeReflection;
@@ -54,8 +54,8 @@ public class TestConditionalExpression {
 
         lf.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(lf, true, 1, 2), simpleExpression(true, 1, 2));
-        Assert.assertEquals(Interpreter.invoke(lf, false, 1, 2), simpleExpression(false, 1, 2));
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, true, 1, 2), simpleExpression(true, 1, 2));
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, false, 1, 2), simpleExpression(false, 1, 2));
     }
 
 

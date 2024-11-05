@@ -23,49 +23,58 @@
  * questions.
  */
 
-package experiments;
+/*
+ * @test
+ * @run main TestAnfBasicFuns
+ */
 
-
-import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.CopyContext;
-import java.lang.reflect.code.Op;
 import java.lang.reflect.code.OpTransformer;
-import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.Value;
-import java.lang.reflect.code.interpreter.Interpreter;
+import java.lang.reflect.code.analysis.AnfTransformer;
+import java.lang.reflect.code.analysis.NormalizeBlocksTransformer;
+import java.lang.reflect.code.analysis.SSA;
 import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.type.JavaType;
-import java.lang.reflect.code.type.MethodRef;
 import java.lang.runtime.CodeReflection;
 import java.util.List;
-import java.util.Map;
 
-public class PrePostInc {
-        @CodeReflection
-        public static int  preInc(int value) {
-            int pre = 25 + ++value;
-            return pre;
+
+
+public class TestAnfBasicFuns {
+
+    @CodeReflection
+    public static int test2(int arg1, int arg2) {
+        if (arg1 > arg2) {
+            return arg1 + 21;
+        } else {
+            return arg2 + 42;
         }
+    }
 
-        @CodeReflection
-        public static int  postInc(int value) {
-           int post = 25 + value++;
-           return post;
+    public static void main(String[] args) {
+
+        testRun("test2", List.of(int.class, int.class), 20, 1);
+
+    }
+
+    private static void testRun(String methodName, List<Class<?>> params, Object...args) {
+        try {
+            Class<TestAnfBasicFuns> clazz = TestAnfBasicFuns.class;
+            Method method = clazz.getDeclaredMethod(methodName,params.toArray(new Class[params.size()]));
+            CoreOp.FuncOp f = method.getCodeModel().orElseThrow();
+
+            //Ensure we're fully lowered before testing.
+            var fz = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+            fz = SSA.transform(fz);
+            fz = NormalizeBlocksTransformer.transform(fz);
+
+            System.out.println(fz.toText());
+
+            var res = new AnfTransformer(fz).transform();
+            System.out.println("---------------------");
+            System.out.println(res.toText());
+
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
         }
-
-        static public void main(String[] args) throws Exception {
-            Method pre = PrePostInc.class.getDeclaredMethod("preInc",  int.class);
-            Method post = PrePostInc.class.getDeclaredMethod("postInc",  int.class);
-            CoreOp.FuncOp preFunc = pre.getCodeModel().get();
-            CoreOp.FuncOp postFunc = post.getCodeModel().get();
-
-            Object preResult = Interpreter.invoke(MethodHandles.lookup(),preFunc,5);
-            System.out.println("Pre "+ preResult);
-            Object postResult = Interpreter.invoke(MethodHandles.lookup(),postFunc,5);
-            System.out.println("Pre "+ postResult);
-          //  javaFunc.writeTo(System.out);
-
-        }
+    }
 }
-

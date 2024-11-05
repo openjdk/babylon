@@ -78,6 +78,9 @@ public final class NormalizeBlocksTransformer implements OpTransformer {
         } else if (op instanceof CoreOp.ExceptionRegionEnter ere) {
             // Cannot remove block parameters from exception handlers
             removeUnusedBlockParameters(b, ere.start());
+        } else if (op instanceof CoreOp.ExceptionRegionExit ere) {
+            // Cannot remove block parameters from exception handlers
+            removeUnusedBlockParameters(b, ere.end());
         } else if (op instanceof Op.BlockTerminating) {
             for (Block.Reference successor : op.successors()) {
                 removeUnusedBlockParameters(b, successor);
