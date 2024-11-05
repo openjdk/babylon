@@ -29,6 +29,7 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.interpreter.Interpreter;
@@ -55,7 +56,8 @@ public class TestStreamUsingQuotable {
 
         lf.writeTo(System.out);
 
-        Interpreter.invoke(lf, List.of(List.of(1, 2, 3, 4, 5, 100_000_000, 10_000, 100_000, 20)));
+        Interpreter.invoke(MethodHandles.lookup(), lf,
+                List.of(List.of(1, 2, 3, 4, 5, 100_000_000, 10_000, 100_000, 20)));
     }
 
     @Test
@@ -85,7 +87,8 @@ public class TestStreamUsingQuotable {
                 .toList();
 
         @SuppressWarnings("unchecked")
-        List<String> actual = (List<String>) Interpreter.invoke(lf, List.of(source));
+        List<String> actual = (List<String>) Interpreter.invoke(MethodHandles.lookup(), lf,
+                List.of(source));
 
         Assert.assertEquals(expected, actual);
     }

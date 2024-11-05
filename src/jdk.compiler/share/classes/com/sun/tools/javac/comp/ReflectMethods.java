@@ -243,14 +243,22 @@ public class ReflectMethods extends TreeTranslator {
 
                 switch (kind) {
                     case QUOTED_STRUCTURAL -> {
+                        // @@@ Consider replacing with invokedynamic to quoted bootstrap method
+                        // Thereby we avoid certain dependencies and hide specific details
                         JCIdent opFieldId = make.Ident(opField.sym);
                         ListBuffer<JCExpression> interpreterArgs = new ListBuffer<>();
+                        // Obtain MethodHandles.lookup()
+                        // @@@ Could probably use MethodHandles.publicLookup()
+                        JCMethodInvocation lookup = make.App(make.Ident(syms.methodHandlesLookup), com.sun.tools.javac.util.List.nil());
+                        interpreterArgs.append(lookup);
+                        // Deserialize the func operation
                         JCMethodInvocation parsedOp = make.App(make.Ident(syms.opParserFromString), com.sun.tools.javac.util.List.of(opFieldId));
                         interpreterArgs.append(parsedOp);
-                        // append captured vars
+                        // Append captured vars
                         ListBuffer<JCExpression> capturedArgs = quotedCapturedArgs(tree, bodyScanner);
                         interpreterArgs.appendList(capturedArgs.toList());
 
+                        // Interpret the func operation to produce the quoted instance
                         JCMethodInvocation interpreterInvoke = make.App(make.Ident(syms.opInterpreterInvoke), interpreterArgs.toList());
                         interpreterInvoke.varargsElement = syms.objectType;
                         super.visitLambda(tree);

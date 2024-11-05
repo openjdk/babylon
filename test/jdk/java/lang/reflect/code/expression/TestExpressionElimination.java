@@ -24,6 +24,7 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.op.CoreOp;
@@ -43,14 +44,14 @@ public class TestExpressionElimination {
     public void testAddZero() {
         CoreOp.ClosureOp lf = generate((double a) -> a + 0.0);
 
-        Assert.assertEquals((double) Interpreter.invoke(lf, 1.0d), 1.0d);
+        Assert.assertEquals((double) Interpreter.invoke(MethodHandles.lookup(), lf, 1.0d), 1.0d);
     }
 
     @Test
     public void testF() {
         CoreOp.ClosureOp lf = generate((double a, double b) -> -a + b);
 
-        Assert.assertEquals((double) Interpreter.invoke(lf, 1.0d, 1.0d), 0.0d);
+        Assert.assertEquals((double) Interpreter.invoke(MethodHandles.lookup(), lf, 1.0d, 1.0d), 0.0d);
     }
 
     static CoreOp.ClosureOp generate(Quoted q) {

@@ -24,9 +24,9 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.Op;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.Method;
 import java.lang.runtime.CodeReflection;
@@ -77,7 +77,7 @@ public class TestIfOp {
         lf.writeTo(System.out);
 
         for (int i = 0; i < 6; i++) {
-            Assert.assertEquals(Interpreter.invoke(lf, i), f(i));
+            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, i), f(i));
         }
     }
 }

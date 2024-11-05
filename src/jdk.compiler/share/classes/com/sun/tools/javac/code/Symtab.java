@@ -254,6 +254,7 @@ public class Symtab {
     public final Type opInterpreterType;
     public final Type opParserType;
     public final Type opType;
+    public final MethodSymbol methodHandlesLookup;
     public final MethodSymbol opInterpreterInvoke;
     public final MethodSymbol opParserFromString;
 
@@ -650,9 +651,14 @@ public class Symtab {
         lambdaOpType = enterClass("java.lang.reflect.code.op.CoreOp$LambdaOp");
         opInterpreterType = enterClass("java.lang.reflect.code.interpreter.Interpreter");
         opType = enterClass("java.lang.reflect.code.Op");
+        methodHandlesLookup = new MethodSymbol(PUBLIC | STATIC,
+                names.fromString("lookup"),
+                new MethodType(List.nil(), methodHandleLookupType,
+                        List.nil(), methodClass),
+                methodHandlesType.tsym);
         opInterpreterInvoke = new MethodSymbol(PUBLIC | STATIC | VARARGS,
                 names.fromString("invoke"),
-                new MethodType(List.of(opType, new ArrayType(objectType, arrayClass)), objectType,
+                new MethodType(List.of(methodHandleLookupType, opType, new ArrayType(objectType, arrayClass)), objectType,
                         List.nil(), methodClass),
                 opInterpreterType.tsym);
         opParserType = enterClass("java.lang.reflect.code.parser.OpParser");
