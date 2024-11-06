@@ -395,8 +395,11 @@ public class ArithMathOps {
     @OpFactory.OpDeclaration(CompareOp.NAME)
     public static class CompareOp extends ArithMathOp implements Op.Pure {
         public static final String NAME = "arith.cmp";
-        public static final String ATTRIBUTE_CONSTANT_VALUE = "predicate";
+        public static final String ATTRIBUTE_PREDICATE = "predicate";
 
+        // https://mlir.llvm.org/docs/Dialects/ArithOps/#cmpipredicate
+        // The ordinal values correspond to the MLIR symbol's values
+        // Need to refine when considering comparisons of floating point numbers which is in a different namespace
         public enum CompareKind {
             eq,
             ne,

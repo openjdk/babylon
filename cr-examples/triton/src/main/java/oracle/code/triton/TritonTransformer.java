@@ -1051,6 +1051,7 @@ public final class TritonTransformer {
                          TypeElement bType, Value b) {
             a = block.context().getValue(a);
             b = block.context().getValue(b);
+            // Computed result is tensor of floats, regardless of inputs
             Object zero;
             try {
                 JavaType zeroType = JavaType.DOUBLE;
