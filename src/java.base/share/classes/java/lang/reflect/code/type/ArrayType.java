@@ -31,13 +31,12 @@ import java.lang.reflect.Array;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.Type;
 import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.TypeWithComponent;
 import java.util.List;
 
 /**
  * An array type.
  */
-public final class ArrayType implements JavaType, TypeWithComponent {
+public final class ArrayType implements JavaType {
 
     final JavaType componentType;
 
@@ -63,7 +62,6 @@ public final class ArrayType implements JavaType, TypeWithComponent {
     /**
      * {@return the array type's component type}
      */
-    @Override
     public JavaType componentType() {
         return componentType;
     }

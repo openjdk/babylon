@@ -187,14 +187,12 @@ sealed abstract class SlotOp extends ExternalizableOp {
                 TypeKind.INT;
             case PrimitiveType pt ->
                 TypeKind.from(pt.toNominalDescriptor()).asLoadable();
-            case UnresolvedType.Comp _ ->
-                null;
             default ->
                 TypeKind.REFERENCE;
         };
     }
 
-    // Support for SlotToVarTransformer
+    // @@@ move to SlotToVarTransformer
     static final class Var {
         boolean single;
         TypeKind typeKind;

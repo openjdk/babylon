@@ -395,19 +395,21 @@ public final class BytecodeLift {
                 case ArrayLoadInstruction ali -> {
                     Value index = stack.pop();
                     Value array = stack.pop();
-                    if (array.type() instanceof UnresolvedType ut) {
-                        ut.resolveTo(switch (ali.typeKind()) {
-                            case BYTE -> JavaType.BYTE_ARRAY;
-                            case CHAR -> JavaType.CHAR_ARRAY;
-                            case DOUBLE -> JavaType.DOUBLE_ARRAY;
-                            case FLOAT -> JavaType.FLOAT_ARRAY;
-                            case INT -> JavaType.INT_ARRAY;
-                            case LONG -> JavaType.LONG_ARRAY;
-                            case SHORT -> JavaType.SHORT_ARRAY;
-                            default -> null;
-                        });
+                    if (array.type() instanceof UnresolvedType) {
+                        stack.push(op(CoreOp.arrayLoadOp(array, index, switch (ali.typeKind()) {
+                            case BYTE -> UnresolvedType.unresolvedInt(); // @@@ Create UnresolvedType.unresolvedByteOrBoolean();
+                            case CHAR -> JavaType.CHAR;
+                            case DOUBLE -> JavaType.DOUBLE;
+                            case FLOAT -> JavaType.FLOAT;
+                            case INT -> JavaType.INT;
+                            case LONG -> JavaType.LONG;
+                            case SHORT -> JavaType.SHORT;
+                            case REFERENCE ->  UnresolvedType.unresolvedRef();
+                            case BOOLEAN, VOID -> throw new IllegalArgumentException("Unexpected array load instruction type");
+                        })));
+                    } else {
+                        stack.push(op(CoreOp.arrayLoadOp(array, index)));
                     }
-                    stack.push(op(CoreOp.arrayLoadOp(array, index)));
                 }
                 case InvokeInstruction inst -> {
                     FunctionType mType = MethodRef.ofNominalDescriptor(inst.typeSymbol());

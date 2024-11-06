@@ -31,6 +31,7 @@ import java.lang.reflect.code.OpTransformer;
 import java.lang.reflect.code.TypeElement;
 import java.lang.reflect.code.Value;
 import java.lang.reflect.code.op.CoreOp;
+import java.lang.reflect.code.type.ArrayType;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.type.PrimitiveType;
@@ -93,6 +94,20 @@ try {
         };
     }
 
+    private static TypeElement toComponent(TypeElement te) {
+        if (te instanceof UnresolvedType ut) {
+            te = ut.resolved();
+        }
+        return te instanceof ArrayType at ? at.componentType() : null;
+    }
+
+    private static TypeElement toArray(TypeElement te) {
+        if (te instanceof UnresolvedType ut) {
+            te = ut.resolved();
+        }
+        return te instanceof JavaType jt ? JavaType.array(jt) : null;
+    }
+
     private static boolean resolve(Value v) {
         UnresolvedType ut = toResolve(v);
         if (ut == null) return false;
@@ -102,7 +117,7 @@ try {
             int i = op.operands().indexOf(v);
             if (i >= 0) {
                 changed |= switch (op) {
-                    case CoreOp.LshlOp _, CoreOp.LshrOp _, CoreOp.AshrOp _ -> // Second operands are asymetric
+                    case CoreOp.LshlOp _, CoreOp.LshrOp _, CoreOp.AshrOp _ ->
                         i == 0 && ut.resolveTo(op.resultType());
                     case CoreOp.BinaryOp bo ->
                         ut.resolveTo(bo.resultType());
@@ -124,6 +139,14 @@ try {
                         ut.resolveTo(vso.varType().valueType());
                     case CoreOp.NewOp no ->
                         ut.resolveTo(no.constructorType().parameterTypes().get(i));
+                    case CoreOp.ArrayAccessOp.ArrayLoadOp alo ->
+                        ut.resolveTo(toArray(alo.resultType()));
+                    case CoreOp.ArrayAccessOp.ArrayStoreOp aso ->
+                        switch (i) {
+                            case 0 -> ut.resolveFrom(toArray(aso.operands().get(2).type()));
+                            case 2 -> ut.resolveTo(toComponent(aso.operands().get(0).type()));
+                            default -> false;
+                        };
                     default -> false;
                 };
             }
@@ -159,6 +182,8 @@ try {
                     ut.resolveFrom(vlo.varType().valueType());
                 case CoreOp.VarOp vo ->
                     resolveVarOpType(ut, vo);
+                case CoreOp.ArrayAccessOp.ArrayLoadOp alo ->
+                    ut.resolveFrom(toComponent(alo.operands().getFirst().type()));
                 default -> false;
             };
         }
@@ -225,6 +250,12 @@ try {
                     cc.mapValue(op.result(), block.op(vop.isUninitialized()
                             ? CoreOp.var(vop.varName(), ut.resolved())
                             : CoreOp.var(vop.varName(), ut.resolved(), cc.getValueOrDefault(vop.initOperand(), vop.initOperand()))));
+                case CoreOp.ArrayAccessOp.ArrayLoadOp alop when op.resultType() instanceof UnresolvedType -> {
+                    List<Value> opers = alop.operands();
+                    Value array = opers.getFirst();
+                    Value index = opers.getLast();
+                    cc.mapValue(op.result(), block.op(CoreOp.arrayLoadOp(cc.getValueOrDefault(array, array), cc.getValueOrDefault(index, index))));
+                }
                 default ->
                     block.op(op);
             }
