@@ -64,7 +64,7 @@ import java.lang.reflect.code.type.VarType;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
-import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -230,11 +230,11 @@ public final class BytecodeGenerator {
         this.blocksCatchMap = new Block[blocks.size()][];
         this.allCatchBlocks = new BitSet();
         this.tryStartLabels = new Label[blocks.size()];
-        this.slots = new HashMap<>();
-        this.singlePredecessorsValues = new HashMap<>();
+        this.slots = new IdentityHashMap<>();
+        this.singlePredecessorsValues = new IdentityHashMap<>();
         this.lambdaSink = lambdaSink;
         this.quotable = quotable;
-        this.deferCache = new HashMap<>();
+        this.deferCache = new IdentityHashMap<>();
     }
 
     private void setCatchStack(Block.Reference target, Block[] activeCatchBlocks) {

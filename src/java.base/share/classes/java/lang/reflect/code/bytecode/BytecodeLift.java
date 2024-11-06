@@ -68,6 +68,7 @@ import java.util.BitSet;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -124,7 +125,7 @@ public final class BytecodeLift {
         this.newStack = new ArrayDeque<>();
         this.elements = codeModel.elementList();
         this.stack = new ArrayDeque<>();
-        this.exceptionHandlersMap = new HashMap<>();
+        this.exceptionHandlersMap = new IdentityHashMap<>();
         this.blockMap = codeModel.findAttribute(Attributes.stackMapTable()).map(sma ->
                 sma.entries().stream().collect(Collectors.toUnmodifiableMap(
                         StackMapFrameInfo::target,

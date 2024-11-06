@@ -37,7 +37,7 @@ import java.lang.reflect.code.type.MethodRef;
 import java.lang.reflect.code.type.PrimitiveType;
 import java.lang.reflect.code.type.VarType;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -58,7 +58,7 @@ final class UnresolvedTypesTransformer {
     private final Map<UnresolvedType, JavaType> resolvedMap;
 
     private UnresolvedTypesTransformer() {
-        resolvedMap = new HashMap<>();
+        resolvedMap = new IdentityHashMap<>();
     }
 
     private CoreOp.FuncOp resolve(CoreOp.FuncOp func) {
