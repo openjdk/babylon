@@ -1959,7 +1959,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             @Override
             public TypeElement resultType() {
                 Value array = operands().get(0);
-                TypeElement t = array.type();
+                TypeWithComponent t = (TypeWithComponent) array.type();
                 return t.componentType();
             }
         }

@@ -26,6 +26,7 @@
 package java.lang.reflect.code.bytecode;
 
 import java.lang.reflect.code.TypeElement;
+import java.lang.reflect.code.TypeWithComponent;
 import java.lang.reflect.code.type.ArrayType;
 import java.lang.reflect.code.type.JavaType;
 import java.util.List;
@@ -45,7 +46,7 @@ sealed interface UnresolvedType extends TypeElement {
     boolean resolveTo(TypeElement type);
     boolean resolveFrom(TypeElement type);
 
-    static final class Ref implements UnresolvedType {
+    static final class Ref implements UnresolvedType, TypeWithComponent {
         private static final TypeElement.ExternalizedTypeElement UNRESOLVED_REF = new TypeElement.ExternalizedTypeElement("?REF", List.of());
 
         private JavaType resolved;
@@ -91,11 +92,11 @@ sealed interface UnresolvedType extends TypeElement {
 
         @Override
         public TypeElement componentType() {
-            return resolved == null ? new Comp(this) : resolved.componentType();
+            return resolved == null ? new Comp(this) : ((TypeWithComponent)resolved).componentType();
         }
     }
 
-    static final class Comp implements  UnresolvedType {
+    static final class Comp implements  UnresolvedType, TypeWithComponent {
 
         private final UnresolvedType array;
 
