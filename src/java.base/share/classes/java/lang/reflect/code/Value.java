@@ -143,10 +143,22 @@ public sealed abstract class Value implements Comparable<Value>, CodeItem
 
 
     /**
-     * Returns {@code true} if this value is dominated by the given values {@code doms}.
+     * Returns {@code true} if this value is dominated by the given set of values {@code doms}.
+     * <p>
+     * The set dominates if every path from the entry node go through any member of the set.
+     * <p>
+     * First part checks individual dominance of every member of the set.
+     * <p>
+     * If no member of the set is individually dominant, the second part tries to find path
+     * to the entry block bypassing all blocks from the tested set.
+     * <p>
+     * Implementation searches for the paths by traversing the value declaring block predecessors,
+     * stopping at blocks where values from the tested set are declared or at blocks already processed.
+     * Negative test result is returned when the entry block is reached.
+     * Positive test result is returned when no path to the entry block is found.
      *
      * @param doms the dominating value
-     * @return {@code true} if this value is dominated by the given value {@code dom}.
+     * @return {@code true} if this value is dominated by the given set of values {@code dom}.
      * @throws IllegalStateException if the declaring block is partially built
      */
     public boolean isDominatedBy(Set<? extends Value> doms) {
