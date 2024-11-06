@@ -386,7 +386,7 @@ public final class BytecodeGenerator {
         Set<Op.Result> stores = allUses.stream().filter(r -> r.op() instanceof VarAccessOp.VarStoreOp).collect(Collectors.toSet());
         // All VarLoadOps must be dominated by a VarStoreOp
         for (Op.Result load : allUses) {
-            if (load.op() instanceof VarAccessOp.VarLoadOp && !load.isDominatedBy(stores)) {
+            if (load.op() instanceof VarAccessOp.VarLoadOp && !BytecodeUtil.isDominatedBy(load, stores)) {
                 return false;
             }
         }

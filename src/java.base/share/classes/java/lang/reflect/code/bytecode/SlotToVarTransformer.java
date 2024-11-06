@@ -267,7 +267,7 @@ final class SlotToVarTransformer {
             }
             if (pred != slotOp) predecessors.add(pred.result());
         }
-        return slotOp.result().isDominatedBy(predecessors);
+        return BytecodeUtil.isDominatedBy(slotOp.result(), predecessors);
     }
 
     static final class SlotOpIterator implements Iterator<SlotOp> {
