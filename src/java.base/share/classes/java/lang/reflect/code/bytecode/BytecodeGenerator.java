@@ -341,7 +341,28 @@ public final class BytecodeGenerator {
     }
 
     private void processOperands(Op op) {
-        processOperands(op.operands());
+        if (op instanceof InvokeOp invokeOp && invokeOp.isVarArgs()) {
+            processOperands(invokeOp.operands().subList(0, invokeOp.operands().size() - invokeOp.varArgOperands().size()));
+
+            var varArgOperands = invokeOp.varArgOperands();
+            cob.loadConstant(varArgOperands.size());
+            var compType = ((ArrayType) invokeOp.invokeDescriptor().type().parameterTypes().getLast()).componentType();
+            var typeKind = TypeKind.fromDescriptor(compType.toNominalDescriptor().descriptorString());
+            if (TypeKind.REFERENCE.equals(typeKind)) {
+                var cd = ClassDesc.ofDescriptor(compType.toNominalDescriptor().descriptorString());
+                cob.anewarray(cd);
+            } else {
+                cob.newarray(typeKind);
+            }
+            for (int i = 0; i < varArgOperands.size(); i++) {
+                cob.dup();
+                cob.loadConstant(i);
+                load(varArgOperands.get(i));
+                cob.arrayStore(typeKind);
+            }
+        } else {
+            processOperands(op.operands());
+        }
     }
 
     private void processOperands(List<Value> operands) {
@@ -873,9 +894,6 @@ public final class BytecodeGenerator {
                         }
                         // Determine invoke opcode
                         final boolean isInterface = refClass.isInterface();
-                        if (op.isVarArgs()) {
-                            throw new UnsupportedOperationException("invoke varargs unsupported: " + op.invokeDescriptor());
-                        }
                         Opcode invokeOpcode = switch (op.invokeKind()) {
                             case STATIC ->
                                     Opcode.INVOKESTATIC;
