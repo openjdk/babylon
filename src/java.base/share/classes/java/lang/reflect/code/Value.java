@@ -138,6 +138,7 @@ public sealed abstract class Value implements Comparable<Value>, CodeItem
         }
     }
 
+
     @Override
     public int compareTo(Value o) {
         return compare(this, o);
