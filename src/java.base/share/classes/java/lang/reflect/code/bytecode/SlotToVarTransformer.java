@@ -27,6 +27,7 @@ package java.lang.reflect.code.bytecode;
 
 import java.lang.classfile.TypeKind;
 import java.lang.reflect.code.Block;
+import java.lang.reflect.code.Body;
 import java.lang.reflect.code.CodeElement;
 import java.lang.reflect.code.CopyContext;
 import java.lang.reflect.code.Op;
@@ -37,8 +38,8 @@ import java.lang.reflect.code.type.JavaType;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +52,13 @@ import java.util.function.Function;
  *
  */
 final class SlotToVarTransformer {
+
+    static final class Var {
+        boolean single;
+        TypeKind typeKind;
+        Value value;
+        Body parentBody;
+    }
 
     record ExcStackMap(List<Block> catchBlocks, Map<Block, BitSet> map) implements Function<Block, ExcStackMap> {
         @Override
@@ -103,44 +111,57 @@ final class SlotToVarTransformer {
     }
 
     static CoreOp.FuncOp transform(CoreOp.FuncOp func) {
-try {
+        try {
+            return new SlotToVarTransformer().convert(func);
+        } catch (Throwable t) {
+            System.out.println(func.toText());
+            throw t;
+        }
+    }
+
+    private final Map<SlotOp, Var> varMap;
+
+    private SlotToVarTransformer() {
+        varMap = new IdentityHashMap<>();
+    }
+
+    private CoreOp.FuncOp convert(CoreOp.FuncOp func) {
         // Composing exception stack map to be able to follow slot ops from try to the handler
-        ExcStackMap excMap = func.traverse(new ExcStackMap(new ArrayList<>(), new HashMap<>()),
+        ExcStackMap excMap = func.traverse(new ExcStackMap(new ArrayList<>(), new IdentityHashMap<>()),
                 CodeElement.blockVisitor((map, b) -> map.apply(b)));
 
-        List<SlotOp.Var> toInitialize = func.body().traverse(new ArrayList<>(), CodeElement.opVisitor((toInit, op) -> {
-            if (op instanceof SlotOp slotOp && slotOp.var == null) {
+        List<Var> toInitialize = func.body().traverse(new ArrayList<>(), CodeElement.opVisitor((toInit, op) -> {
+            if (op instanceof SlotOp slotOp && !varMap.containsKey(slotOp)) {
 
                 // Assign variable to segments, calculate var slotType
-                SlotOp.Var var = new SlotOp.Var(); // New variable
+                Var var = new Var(); // New variable
                 var.parentBody = slotOp.ancestorBody();
                 var q = new ArrayDeque<SlotOp>();
                 var stores = new ArrayList<SlotOp.SlotStoreOp>();
                 q.add(slotOp);
                 while (!q.isEmpty()) {
                     SlotOp se = q.pop();
-                    if (se.var == null) {
-                        se.var = var; // Assign variable to the segment
+                    if (!varMap.containsKey(se)) {
+                        varMap.put(se, var); // Assign variable to the segment
                         if (var.typeKind == null) var.typeKind = se.typeKind(); // TypeKind is identical for all SlotOps of the same variable
                         for (SlotOp to : slotImmediateSuccessors(se, excMap)) {
                             // All following SlotLoadOp belong to the same variable
                             if (to instanceof SlotOp.SlotLoadOp) {
-                                if (to.var == null) {
+                                if (!varMap.containsKey(to)) {
                                     q.add(to);
                                 }
                             }
-                        };
+                        }
                         if (se instanceof SlotOp.SlotLoadOp) {
                             // Segments preceeding SlotLoadOp also belong to the same variable
                             for (SlotOp from : slotImmediatePredecessors(se, excMap)) {
-                                if (from.var == null) {
+                                if (!varMap.containsKey(from)) {
                                     q.add(from);
                                 }
-                            };
+                            }
+                        } else if (se instanceof SlotOp.SlotStoreOp store) {
+                            stores.add(store); // Collection of all SlotStoreOps of the variable
                         }
-                    }
-                    if (se.var == var && se instanceof SlotOp.SlotStoreOp store) {
-                        stores.add(store); // Collection of all SlotStoreOps of the variable
                     }
                 }
 
@@ -160,7 +181,7 @@ try {
                 if (stores.size() > 1) {
                     // A synthetic default-initialized dominant segment must be inserted to the variable, if there is more than one initial store segment.
                     // It is not necessary to link it with other variable segments, the analysys ends here.
-                    toInit.add(stores.getFirst().var);
+                    toInit.add(varMap.get(stores.getFirst()));
                 }
 
 
@@ -171,7 +192,7 @@ try {
         return func.transform((block, op) -> {
             if (!toInitialize.isEmpty()) {
                 for (var it = toInitialize.iterator(); it.hasNext();) {
-                    SlotOp.Var var = it.next();
+                    Var var = it.next();
                     if (var.parentBody == op.ancestorBody()) {
                         var.value = block.op(CoreOp.var(toTypeElement(var.typeKind)));
                         it.remove();
@@ -181,26 +202,28 @@ try {
             CopyContext cc = block.context();
             switch (op) {
                 case SlotOp.SlotLoadOp slo -> {
-                    if (slo.var.value == null) {
+                    Var var = varMap.get(slo);
+                    if (var.value == null) {
                         System.out.println(slo);
                         throw new AssertionError();
                     }
-                    cc.mapValue(op.result(), slo.var.single ? slo.var.value : block.op(CoreOp.varLoad(slo.var.value)));
+                    cc.mapValue(op.result(), var.single ? var.value : block.op(CoreOp.varLoad(var.value)));
                 }
                 case SlotOp.SlotStoreOp sso -> {
+                    Var var = varMap.get(sso);
                     Value val = sso.operands().getFirst();
                     val = cc.getValueOrDefault(val, val);
-                    if (sso.var.single) {
-                        sso.var.value = val;
-                    } else if (sso.var.value == null) {
+                    if (var.single) {
+                        var.value = val;
+                    } else if (var.value == null) {
                         TypeElement varType = switch (val.type()) {
                             case UnresolvedType.Ref _ -> UnresolvedType.unresolvedRef();
                             case UnresolvedType.Int _ -> UnresolvedType.unresolvedInt();
                             default -> val.type();
                         };
-                        sso.var.value = block.op(CoreOp.var(null, varType, val));
+                        var.value = block.op(CoreOp.var(null, varType, val));
                     } else {
-                        block.op(CoreOp.varStore(sso.var.value, val));
+                        block.op(CoreOp.varStore(var.value, val));
                     }
                 }
                 default ->
@@ -208,10 +231,6 @@ try {
             }
             return block;
         });
-} catch (Throwable t) {
-    System.out.println(func.toText());
-    throw t;
-}
     }
 
     private static TypeElement toTypeElement(TypeKind tk) {
@@ -239,10 +258,11 @@ try {
         return () -> new SlotOpIterator(slotOp, excMap, false);
     }
 
-    private static boolean isDominatedByTheSameVar(SlotOp slotOp, ExcStackMap excMap) {
+    private boolean isDominatedByTheSameVar(SlotOp slotOp, ExcStackMap excMap) {
+        Var var = varMap.get(slotOp);
         Set<Op.Result> predecessors = new HashSet<>();
         for (SlotOp pred : slotImmediatePredecessors(slotOp, excMap)) {
-            if (pred.var != slotOp.var) {
+            if (varMap.get(pred) != var) {
                 return false;
             }
             if (pred != slotOp) predecessors.add(pred.result());
