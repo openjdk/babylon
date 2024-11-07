@@ -29,8 +29,8 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.*;
-import java.lang.reflect.code.parser.OpParser;
+import jdk.incubator.code.java.lang.reflect.code.*;
+import jdk.incubator.code.java.lang.reflect.code.parser.OpParser;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

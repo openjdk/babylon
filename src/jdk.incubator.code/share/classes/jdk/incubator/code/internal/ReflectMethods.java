@@ -66,6 +66,7 @@ import com.sun.tools.javac.tree.JCTree.JCMemberReference;
 import com.sun.tools.javac.tree.JCTree.JCMemberReference.ReferenceKind;
 import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
 import com.sun.tools.javac.tree.JCTree.JCMethodInvocation;
+import com.sun.tools.javac.tree.JCTree.JCModuleDecl;
 import com.sun.tools.javac.tree.JCTree.JCNewArray;
 import com.sun.tools.javac.tree.JCTree.JCNewClass;
 import com.sun.tools.javac.tree.JCTree.JCReturn;
@@ -99,7 +100,10 @@ import java.util.function.Supplier;
 
 import static com.sun.tools.javac.code.Flags.NOOUTERTHIS;
 import static com.sun.tools.javac.code.Flags.PARAMETER;
+import static com.sun.tools.javac.code.Flags.PUBLIC;
+import static com.sun.tools.javac.code.Flags.STATIC;
 import static com.sun.tools.javac.code.Flags.SYNTHETIC;
+import static com.sun.tools.javac.code.Flags.VARARGS;
 import static com.sun.tools.javac.code.Kinds.Kind.MTH;
 import static com.sun.tools.javac.code.Kinds.Kind.TYP;
 import static com.sun.tools.javac.code.Kinds.Kind.VAR;
@@ -131,6 +135,7 @@ public class ReflectMethods extends TreeTranslator {
     private final Lower lower;
     private final TypeEnvs typeEnvs;
     private final Flow flow;
+    private final CodeReflectionSymbols crSyms;
     private final boolean dumpIR;
     private final boolean lineDebugInfo;
 
@@ -157,6 +162,7 @@ public class ReflectMethods extends TreeTranslator {
         lower = Lower.instance(context);
         typeEnvs = TypeEnvs.instance(context);
         flow = Flow.instance(context);
+        crSyms = new CodeReflectionSymbols(context);
     }
 
     // Cannot compute within constructor due to circular dependencies on bootstrap compilation
@@ -190,7 +196,7 @@ public class ReflectMethods extends TreeTranslator {
 
     @Override
     public void visitMethodDef(JCMethodDecl tree) {
-        if (tree.sym.attribute(syms.codeReflectionType.tsym) != null) {
+        if (tree.sym.attribute(crSyms.codeReflectionType.tsym) != null) {
             // if the method is annotated, scan it
             BodyScanner bodyScanner = new BodyScanner(tree);
             try {
@@ -208,6 +214,11 @@ public class ReflectMethods extends TreeTranslator {
             }
         }
         super.visitMethodDef(tree);
+    }
+
+    @Override
+    public void visitModuleDef(JCModuleDecl that) {
+        // do nothing
     }
 
     @Override
@@ -252,13 +263,13 @@ public class ReflectMethods extends TreeTranslator {
                     case QUOTED_STRUCTURAL -> {
                         JCIdent opFieldId = make.Ident(opField.sym);
                         ListBuffer<JCExpression> interpreterArgs = new ListBuffer<>();
-                        JCMethodInvocation parsedOp = make.App(make.Ident(syms.opParserFromString), com.sun.tools.javac.util.List.of(opFieldId));
+                        JCMethodInvocation parsedOp = make.App(make.Ident(crSyms.opParserFromString), com.sun.tools.javac.util.List.of(opFieldId));
                         interpreterArgs.append(parsedOp);
                         // append captured vars
                         ListBuffer<JCExpression> capturedArgs = quotedCapturedArgs(tree, bodyScanner);
                         interpreterArgs.appendList(capturedArgs.toList());
 
-                        JCMethodInvocation interpreterInvoke = make.App(make.Ident(syms.opInterpreterInvoke), interpreterArgs.toList());
+                        JCMethodInvocation interpreterInvoke = make.App(make.Ident(crSyms.opInterpreterInvoke), interpreterArgs.toList());
                         interpreterInvoke.varargsElement = syms.objectType;
                         super.visitLambda(tree);
                         result = interpreterInvoke;
@@ -546,7 +557,7 @@ public class ReflectMethods extends TreeTranslator {
                 capturedTypes.add(s.type);
             }
 
-            MethodType mtype = new MethodType(capturedTypes.toList(), syms.quotedType,
+            MethodType mtype = new MethodType(capturedTypes.toList(), crSyms.quotedType,
                     com.sun.tools.javac.util.List.nil(), syms.methodClass);
             FunctionType mtDesc = FunctionType.functionType(typeToTypeElement(mtype.restype),
                     mtype.getParameterTypes().map(this::typeToTypeElement));
@@ -2749,7 +2760,7 @@ public class ReflectMethods extends TreeTranslator {
     FunctionalExpressionKind functionalKind(JCFunctionalExpression functionalExpression) {
         if (functionalExpression.target.hasTag(TypeTag.METHOD)) {
             return FunctionalExpressionKind.QUOTED_STRUCTURAL;
-        } else if (types.asSuper(functionalExpression.target, syms.quotableType.tsym) != null) {
+        } else if (types.asSuper(functionalExpression.target, crSyms.quotableType.tsym) != null) {
             return FunctionalExpressionKind.QUOTABLE;
         } else {
             return FunctionalExpressionKind.NOT_QUOTED;

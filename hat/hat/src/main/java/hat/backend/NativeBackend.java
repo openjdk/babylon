@@ -34,13 +34,13 @@ import hat.optools.FuncOpWrapper;
 import hat.optools.InvokeOpWrapper;
 
 import java.lang.foreign.Arena;
-import java.lang.reflect.code.Block;
-import java.lang.reflect.code.CopyContext;
-import java.lang.reflect.code.Value;
-import java.lang.reflect.code.bytecode.BytecodeGenerator;
-import java.lang.reflect.code.interpreter.Interpreter;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.java.lang.reflect.code.Block;
+import jdk.incubator.code.java.lang.reflect.code.CopyContext;
+import jdk.incubator.code.java.lang.reflect.code.Value;
+import jdk.incubator.code.java.lang.reflect.code.bytecode.BytecodeGenerator;
+import jdk.incubator.code.java.lang.reflect.code.interpreter.Interpreter;
+import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
+import jdk.incubator.code.java.lang.reflect.code.type.JavaType;
 
 import static hat.ComputeContext.WRAPPER.ACCESS;
 import static hat.ComputeContext.WRAPPER.ESCAPE;

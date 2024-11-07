@@ -1,15 +1,17 @@
-TestMethodCall.java:43:15: compiler.err.quoted.lambda.must.be.explicit
+- compiler.warn.incubating.modules: jdk.incubator.code
 TestMethodCall.java:44:15: compiler.err.quoted.lambda.must.be.explicit
 TestMethodCall.java:45:15: compiler.err.quoted.lambda.must.be.explicit
 TestMethodCall.java:46:15: compiler.err.quoted.lambda.must.be.explicit
 TestMethodCall.java:47:15: compiler.err.quoted.lambda.must.be.explicit
 TestMethodCall.java:48:15: compiler.err.quoted.lambda.must.be.explicit
-TestMethodCall.java:52:15: compiler.err.quoted.lambda.must.be.explicit
+TestMethodCall.java:49:15: compiler.err.quoted.lambda.must.be.explicit
 TestMethodCall.java:53:15: compiler.err.quoted.lambda.must.be.explicit
 TestMethodCall.java:54:15: compiler.err.quoted.lambda.must.be.explicit
 TestMethodCall.java:55:15: compiler.err.quoted.lambda.must.be.explicit
 TestMethodCall.java:56:15: compiler.err.quoted.lambda.must.be.explicit
 TestMethodCall.java:57:15: compiler.err.quoted.lambda.must.be.explicit
-TestMethodCall.java:61:26: compiler.err.cant.infer.quoted.lambda.return.type: void,java.lang.String
-TestMethodCall.java:62:26: compiler.err.cant.infer.quoted.lambda.return.type: java.lang.String,void
+TestMethodCall.java:58:15: compiler.err.quoted.lambda.must.be.explicit
+TestMethodCall.java:62:26: compiler.err.cant.infer.quoted.lambda.return.type: void,java.lang.String
+TestMethodCall.java:63:26: compiler.err.cant.infer.quoted.lambda.return.type: java.lang.String,void
 14 errors
+1 warning

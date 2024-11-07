@@ -5402,6 +5402,20 @@ public class Types {
     // code reflection
 
     public boolean isQuoted(Type type) {
-        return type.tsym == syms.quotedType.tsym;
+        Symbol s = type.tsym;
+        return s != null &&
+                s.kind == TYP &&
+                s.name.equals(names.quoted) &&
+                s.packge().fullname.equals(names.jdk_incubator_code_java_lang_reflect_code) &&
+                s.packge().modle.name.equals(names.jdk_incubator_code);
+    }
+
+    public boolean isQuotable(Type type) {
+        Symbol s = type.tsym;
+        return s != null &&
+                s.kind == TYP &&
+                s.name.equals(names.quotable) &&
+                s.packge().fullname.equals(names.jdk_incubator_code_java_lang_reflect_code) &&
+                s.packge().modle.name.equals(names.jdk_incubator_code);
     }
 }

@@ -23,10 +23,11 @@
 
 /*
  * @test /nodynamiccopyright/
+ * @modules jdk.incubator.code
  * @compile/fail/ref=TestRecovery.out -XDrawDiagnostics TestRecovery.java
  */
 
-import java.lang.reflect.code.Quoted;
+import jdk.incubator.code.java.lang.reflect.code.Quoted;
 
 public class TestRecovery {
     void testRecoveryInAssignment() {

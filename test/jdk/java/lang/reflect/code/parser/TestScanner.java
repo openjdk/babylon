@@ -25,8 +25,8 @@ import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.parser.impl.Scanner;
-import java.lang.reflect.code.parser.impl.Tokens;
+import jdk.incubator.code.java.lang.reflect.code.parser.impl.Scanner;
+import jdk.incubator.code.java.lang.reflect.code.parser.impl.Tokens;
 import java.util.ArrayList;
 import java.util.List;
 

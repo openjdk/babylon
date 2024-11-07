@@ -34,9 +34,9 @@ import hat.optools.OpWrapper;
 import hat.util.Result;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.type.JavaType;
-import java.lang.reflect.code.type.MethodRef;
+import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
+import jdk.incubator.code.java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.java.lang.reflect.code.type.MethodRef;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;

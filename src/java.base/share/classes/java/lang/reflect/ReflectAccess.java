@@ -28,6 +28,9 @@ package java.lang.reflect;
 import jdk.internal.access.JavaLangReflectAccess;
 import jdk.internal.reflect.ConstructorAccessor;
 
+import java.util.Optional;
+import java.util.function.Function;
+
 /** Package-private class implementing the
     jdk.internal.access.JavaLangReflectAccess interface, allowing the java.lang
     package to instantiate objects in this package. */
@@ -77,5 +80,10 @@ final class ReflectAccess implements JavaLangReflectAccess {
         throws IllegalAccessException, InstantiationException, InvocationTargetException
     {
         return ctor.newInstanceWithCaller(args, true, caller);
+    }
+
+    @Override
+    public Optional<?> setCodeModelIfNeeded(Method method, Function<Method, Optional<?>> modelFactory) {
+        return method.setCodeModelIfNeeded(modelFactory);
     }
 }

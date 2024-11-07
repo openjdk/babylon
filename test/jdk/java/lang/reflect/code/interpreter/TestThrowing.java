@@ -23,7 +23,7 @@
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.interpreter.Interpreter;
+import jdk.incubator.code.java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.runtime.CodeReflection;
 
 import org.testng.Assert;

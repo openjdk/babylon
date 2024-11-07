@@ -1,13 +1,14 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.Quotable;
+import jdk.incubator.code.java.lang.reflect.code.Quotable;
 import java.util.function.IntUnaryOperator;
 import java.util.stream.IntStream;
 
 /*
  * @test
  * @summary test that invoking Quotable#quoted returns the same instance
+ * @modules jdk.incubator.code
  * @run testng QuotedSameInstanceTest
  */
 

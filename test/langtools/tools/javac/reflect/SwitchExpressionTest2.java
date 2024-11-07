@@ -1,7 +1,8 @@
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @enablePreview
  * @build SwitchExpressionTest2
  * @build CodeReflectionTester
@@ -824,8 +825,8 @@ public class SwitchExpressionTest2 {
                     }
                     (%10 : java.lang.String)boolean -> {
                         %11 : boolean = pattern.match %10
-                            ()java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.Object> -> {
-                                %12 : java.lang.reflect.code.ExtendedOp$Pattern$Type<java.lang.Object> = pattern.type @"o";
+                            ()jdk.incubator.code.java.lang.reflect.code.op.ExtendedOp$Pattern$Type<java.lang.Object> -> {
+                                %12 : jdk.incubator.code.java.lang.reflect.code.op.ExtendedOp$Pattern$Type<java.lang.Object> = pattern.type @"o";
                                 yield %12;
                             }
                             (%13 : java.lang.Object)void -> {
@@ -863,8 +864,8 @@ public class SwitchExpressionTest2 {
                 %7 : java.lang.String = java.switch.expression %2
                     (%8 : SwitchExpressionTest2$A)boolean -> {
                         %9 : boolean = pattern.match %8
-                            ()java.lang.reflect.code.ExtendedOp$Pattern$Type<SwitchExpressionTest2$B> -> {
-                                %10 : java.lang.reflect.code.ExtendedOp$Pattern$Type<SwitchExpressionTest2$B> = pattern.type @"b";
+                            ()jdk.incubator.code.java.lang.reflect.code.op.ExtendedOp$Pattern$Type<SwitchExpressionTest2$B> -> {
+                                %10 : jdk.incubator.code.java.lang.reflect.code.op.ExtendedOp$Pattern$Type<SwitchExpressionTest2$B> = pattern.type @"b";
                                 yield %10;
                             }
                             (%11 : SwitchExpressionTest2$B)void -> {
@@ -879,8 +880,8 @@ public class SwitchExpressionTest2 {
                     }
                     (%13 : SwitchExpressionTest2$A)boolean -> {
                         %14 : boolean = pattern.match %13
-                            ()java.lang.reflect.code.ExtendedOp$Pattern$Type<.<SwitchExpressionTest2, SwitchExpressionTest2$C>> -> {
-                                %15 : java.lang.reflect.code.ExtendedOp$Pattern$Type<.<SwitchExpressionTest2, SwitchExpressionTest2$C>> = pattern.type @"c";
+                            ()jdk.incubator.code.java.lang.reflect.code.op.ExtendedOp$Pattern$Type<.<SwitchExpressionTest2, SwitchExpressionTest2$C>> -> {
+                                %15 : jdk.incubator.code.java.lang.reflect.code.op.ExtendedOp$Pattern$Type<.<SwitchExpressionTest2, SwitchExpressionTest2$C>> = pattern.type @"c";
                                 yield %15;
                             }
                             (%16 : .<SwitchExpressionTest2, SwitchExpressionTest2$C>)void -> {

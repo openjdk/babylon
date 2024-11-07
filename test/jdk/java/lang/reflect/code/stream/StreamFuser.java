@@ -21,12 +21,12 @@
  * questions.
  */
 
-import java.lang.reflect.code.*;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.op.ExtendedOp.JavaEnhancedForOp;
-import java.lang.reflect.code.type.ClassType;
-import java.lang.reflect.code.type.FunctionType;
-import java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.java.lang.reflect.code.*;
+import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
+import jdk.incubator.code.java.lang.reflect.code.op.ExtendedOp.JavaEnhancedForOp;
+import jdk.incubator.code.java.lang.reflect.code.type.ClassType;
+import jdk.incubator.code.java.lang.reflect.code.type.FunctionType;
+import jdk.incubator.code.java.lang.reflect.code.type.JavaType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;

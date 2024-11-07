@@ -30,10 +30,10 @@ import org.testng.annotations.Test;
 
 import java.io.Writer;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.*;
-import java.lang.reflect.code.analysis.SSA;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.writer.OpWriter;
+import jdk.incubator.code.java.lang.reflect.code.*;
+import jdk.incubator.code.java.lang.reflect.code.analysis.SSA;
+import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
+import jdk.incubator.code.java.lang.reflect.code.writer.OpWriter;
 import java.lang.runtime.CodeReflection;
 import java.util.*;
 import java.util.function.Function;

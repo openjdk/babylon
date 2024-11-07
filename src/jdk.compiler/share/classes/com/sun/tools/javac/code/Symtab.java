@@ -245,18 +245,6 @@ public class Symtab {
     public final Type objectInputType;
     public final Type objectOutputType;
 
-    // For code reflection
-    public final Type codeReflectionType;
-    public final Type quotedType;
-    public final Type quotableType;
-    public final Type closureOpType;
-    public final Type lambdaOpType;
-    public final Type opInterpreterType;
-    public final Type opParserType;
-    public final Type opType;
-    public final MethodSymbol opInterpreterInvoke;
-    public final MethodSymbol opParserFromString;
-
     /** The symbol representing the length field of an array.
      */
     public final VarSymbol lengthVar;
@@ -338,6 +326,18 @@ public class Symtab {
      */
     private Type enterClass(String s) {
         return enterClass(java_base, names.fromString(s)).type;
+    }
+
+    /** Enter a class into symbol table.
+     *  @param s The name of the class.
+     */
+    public Type enterClass(ModuleSymbol moduleSymbol, String s) {
+        try {
+            return enterClass(moduleSymbol, names.fromString(s)).type;
+        } catch (Throwable ex) {
+            ex.printStackTrace();
+            return Type.noType;
+        }
     }
 
     public void synthesizeEmptyInterfaceIfMissing(final Type type) {
@@ -642,33 +642,13 @@ public class Symtab {
         externalizableType = enterClass("java.io.Externalizable");
         objectInputType  = enterClass("java.io.ObjectInput");
         objectOutputType = enterClass("java.io.ObjectOutput");
-        // For code reflection
-        codeReflectionType = enterClass("java.lang.runtime.CodeReflection");
-        quotedType = enterClass("java.lang.reflect.code.Quoted");
-        quotableType = enterClass("java.lang.reflect.code.Quotable");
-        closureOpType = enterClass("java.lang.reflect.code.op.CoreOp$ClosureOp");
-        lambdaOpType = enterClass("java.lang.reflect.code.op.CoreOp$LambdaOp");
-        opInterpreterType = enterClass("java.lang.reflect.code.interpreter.Interpreter");
-        opType = enterClass("java.lang.reflect.code.Op");
-        opInterpreterInvoke = new MethodSymbol(PUBLIC | STATIC | VARARGS,
-                names.fromString("invoke"),
-                new MethodType(List.of(opType, new ArrayType(objectType, arrayClass)), objectType,
-                        List.nil(), methodClass),
-                opInterpreterType.tsym);
-        opParserType = enterClass("java.lang.reflect.code.parser.OpParser");
-        opParserFromString = new MethodSymbol(PUBLIC | STATIC,
-                names.fromString("fromStringOfFuncOp"),
-                new MethodType(List.of(stringType), opType,
-                        List.nil(), methodClass),
-                opParserType.tsym);
+
         synthesizeEmptyInterfaceIfMissing(autoCloseableType);
         synthesizeEmptyInterfaceIfMissing(cloneableType);
         synthesizeEmptyInterfaceIfMissing(serializableType);
         synthesizeEmptyInterfaceIfMissing(lambdaMetafactory);
         synthesizeEmptyInterfaceIfMissing(serializedLambdaType);
         synthesizeEmptyInterfaceIfMissing(stringConcatFactory);
-        synthesizeEmptyInterfaceIfMissing(quotedType);
-        synthesizeEmptyInterfaceIfMissing(quotableType);
         synthesizeBoxTypeIfMissing(doubleType);
         synthesizeBoxTypeIfMissing(floatType);
         synthesizeBoxTypeIfMissing(voidType);

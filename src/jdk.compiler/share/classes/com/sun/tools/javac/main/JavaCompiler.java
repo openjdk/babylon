@@ -378,6 +378,8 @@ public class JavaCompiler {
 
     protected CompileStates compileStates;
 
+    private boolean hasCodeReflectionModule;
+
     /** Construct a new compiler using a shared context.
      */
     @SuppressWarnings("this-escape")
@@ -1054,6 +1056,15 @@ public class JavaCompiler {
 
     public List<JCCompilationUnit> initModules(List<JCCompilationUnit> roots) {
         modules.initModules(roots);
+
+        if (modules.modulesInitialized()) {
+            // This has to happen precisely here. At this point, we have all we need to
+            // determine whether jdk.incubator.module is part of the module graph
+            // but we have yet to trigger an ENTER event. This gives the code reflection plugin
+            // a window to check whether code reflection should be enabled for this compilation unit.
+            hasCodeReflectionModule = modules.getObservableModule(names.jdk_incubator_code) != null;
+        }
+
         if (roots.isEmpty()) {
             enterDone();
         }
@@ -1814,6 +1825,10 @@ public class JavaCompiler {
 
     public boolean isEnterDone() {
         return enterDone;
+    }
+
+    public boolean hasCodeReflectionModule() {
+        return hasCodeReflectionModule;
     }
 
     private Name readModuleName(JavaFileObject fo) {

@@ -23,6 +23,7 @@
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @enablePreview
  * @library ../lib
  * @modules jdk.compiler/com.sun.tools.javac.api
@@ -35,11 +36,11 @@ import com.sun.source.util.JavacTask;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.op.CoreOp.FuncOp;
-import java.lang.reflect.code.op.ExtendedOp;
-import java.lang.reflect.code.parser.OpParser;
-import java.lang.reflect.code.writer.OpWriter;
+import jdk.incubator.code.java.lang.reflect.code.Op;
+import jdk.incubator.code.java.lang.reflect.code.op.CoreOp.FuncOp;
+import jdk.incubator.code.java.lang.reflect.code.op.ExtendedOp;
+import jdk.incubator.code.java.lang.reflect.code.parser.OpParser;
+import jdk.incubator.code.java.lang.reflect.code.writer.OpWriter;
 import java.nio.charset.Charset;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -97,6 +98,7 @@ public class TestIRFromAnnotation {
             JavacTask task = (JavacTask)compiler.getTask(null, fileManager, null,
                     List.of("-proc:only",
                             "--enable-preview",
+                            "--add-modules=jdk.incubator.code",
                             "--source", Integer.toString(SourceVersion.latest().runtimeVersion().feature())),
                     null, List.of(new SourceFile(source)));
             task.setProcessors(List.of(new Processor()));
@@ -148,7 +150,7 @@ public class TestIRFromAnnotation {
                     if (ir == null) {
                         return null; // skip
                     }
-                    Optional<Object> body = elements.getBody(e);
+                    Optional<FuncOp> body = Op.ofElement(processingEnv, e);
                     if (!body.isPresent()) {
                         throw new AssertionError(String.format("No body found in method %s annotated with @IR",
                                 toMethodString(e)));

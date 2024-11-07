@@ -21,11 +21,12 @@
  * questions.
  */
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 
 /*
  * @test
  * @summary Smoke test for code reflection with while loops.
+ * @modules jdk.incubator.code
  * @build WhileLoopTest
  * @build CodeReflectionTester
  * @run main CodeReflectionTester WhileLoopTest

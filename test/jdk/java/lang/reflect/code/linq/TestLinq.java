@@ -25,7 +25,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.code.interpreter.Interpreter;
+import jdk.incubator.code.java.lang.reflect.code.interpreter.Interpreter;
 import java.util.stream.Stream;
 
 /*

@@ -29,14 +29,14 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.Block;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.Quoted;
-import java.lang.reflect.code.type.MethodRef;
-import java.lang.reflect.code.interpreter.Interpreter;
+import jdk.incubator.code.java.lang.reflect.code.Block;
+import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
+import jdk.incubator.code.java.lang.reflect.code.Op;
+import jdk.incubator.code.java.lang.reflect.code.Quoted;
+import jdk.incubator.code.java.lang.reflect.code.type.MethodRef;
+import jdk.incubator.code.java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.java.lang.reflect.code.type.JavaType;
 
 import static java.lang.reflect.code.op.CoreOp._return;
 import static java.lang.reflect.code.op.CoreOp.add;

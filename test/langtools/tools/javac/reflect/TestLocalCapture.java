@@ -24,16 +24,18 @@
 /*
  * @test
  * @summary Smoke test for captured values in local classes.
+ * @modules jdk.incubator.code
  * @run testng TestLocalCapture
  */
 
+import jdk.incubator.code.java.lang.reflect.code.Op;
 import org.testng.annotations.*;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.interpreter.Interpreter;
-import java.lang.reflect.code.op.CoreOp.FuncOp;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.java.lang.reflect.code.interpreter.Interpreter;
+import jdk.incubator.code.java.lang.reflect.code.op.CoreOp.FuncOp;
+import jdk.incubator.code.CodeReflection;
 import java.util.stream.IntStream;
 
 import static org.testng.Assert.*;
@@ -55,7 +57,7 @@ public class TestLocalCapture {
     @Test(dataProvider = "ints")
     public void testLocalCapture(int y) throws ReflectiveOperationException {
         Method sum = TestLocalCapture.class.getDeclaredMethod("sum", int.class, int.class);
-        FuncOp model = sum.getCodeModel().get();
+        FuncOp model = Op.ofMethod(sum).get();
         int found = (int)Interpreter.invoke(MethodHandles.lookup(), model, this, y, 17);
         int expected = sum(y, 17);
         assertEquals(found, expected);

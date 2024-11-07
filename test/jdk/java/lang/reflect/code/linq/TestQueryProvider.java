@@ -21,8 +21,8 @@
  * questions.
  */
 
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
+import jdk.incubator.code.java.lang.reflect.code.type.JavaType;
 
 import static java.lang.reflect.code.op.CoreOp._return;
 import static java.lang.reflect.code.op.CoreOp.func;

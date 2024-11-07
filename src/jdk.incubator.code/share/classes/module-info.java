@@ -38,6 +38,7 @@ import jdk.internal.javac.ParticipatesInPreview;
 module jdk.incubator.code {
     requires transitive jdk.compiler;
 
+    exports jdk.incubator.code;
     exports jdk.incubator.code.java.lang.reflect.code;
     exports jdk.incubator.code.java.lang.reflect.code.parser;
     exports jdk.incubator.code.java.lang.reflect.code.op;
@@ -46,10 +47,11 @@ module jdk.incubator.code {
     exports jdk.incubator.code.java.lang.reflect.code.bytecode;
     exports jdk.incubator.code.java.lang.reflect.code.interpreter;
     exports jdk.incubator.code.java.lang.reflect.code.writer;
+    exports jdk.incubator.code.tools.dot;
+    exports jdk.incubator.code.tools.renderer;
+
+    opens jdk.incubator.code.internal to java.base;
 
     provides com.sun.source.util.Plugin with
-            CodeReflectionPlugin;
-
-    provides com.sun.tools.javac.model.SourceCodeReflection with
             CodeReflectionPlugin;
 }

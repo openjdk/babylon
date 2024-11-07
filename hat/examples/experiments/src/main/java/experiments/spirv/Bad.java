@@ -24,9 +24,9 @@
  */
 package experiments.spirv;
 
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.Quotable;
-import java.lang.reflect.code.Quoted;
+import jdk.incubator.code.java.lang.reflect.code.Op;
+import jdk.incubator.code.java.lang.reflect.code.Quotable;
+import jdk.incubator.code.java.lang.reflect.code.Quoted;
 import java.util.function.Consumer;
 
 public class Bad {

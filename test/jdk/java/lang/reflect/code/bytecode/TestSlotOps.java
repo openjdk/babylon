@@ -22,14 +22,14 @@
  */
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.Block;
-import java.lang.reflect.code.Value;
-import java.lang.reflect.code.bytecode.SlotOp;
-import java.lang.reflect.code.bytecode.SlotSSA;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.type.FunctionType;
-import java.lang.reflect.code.type.JavaType;
-import java.lang.reflect.code.type.MethodRef;
+import jdk.incubator.code.java.lang.reflect.code.Block;
+import jdk.incubator.code.java.lang.reflect.code.Value;
+import jdk.incubator.code.java.lang.reflect.code.bytecode.SlotOp;
+import jdk.incubator.code.java.lang.reflect.code.bytecode.SlotSSA;
+import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
+import jdk.incubator.code.java.lang.reflect.code.type.FunctionType;
+import jdk.incubator.code.java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.java.lang.reflect.code.type.MethodRef;
 
 /*
  * @test

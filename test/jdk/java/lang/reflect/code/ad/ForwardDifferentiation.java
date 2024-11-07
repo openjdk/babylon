@@ -21,14 +21,14 @@
  * questions.
  */
 
-import java.lang.reflect.code.Block;
-import java.lang.reflect.code.CopyContext;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.Value;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.type.MethodRef;
-import java.lang.reflect.code.type.FunctionType;
-import java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.java.lang.reflect.code.Block;
+import jdk.incubator.code.java.lang.reflect.code.CopyContext;
+import jdk.incubator.code.java.lang.reflect.code.Op;
+import jdk.incubator.code.java.lang.reflect.code.Value;
+import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
+import jdk.incubator.code.java.lang.reflect.code.type.MethodRef;
+import jdk.incubator.code.java.lang.reflect.code.type.FunctionType;
+import jdk.incubator.code.java.lang.reflect.code.type.JavaType;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

@@ -26,10 +26,10 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.type.FieldRef;
-import java.lang.reflect.code.type.MethodRef;
-import java.lang.reflect.code.type.RecordTypeRef;
+import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
+import jdk.incubator.code.java.lang.reflect.code.type.FieldRef;
+import jdk.incubator.code.java.lang.reflect.code.type.MethodRef;
+import jdk.incubator.code.java.lang.reflect.code.type.RecordTypeRef;
 import java.lang.runtime.CodeReflection;
 import java.util.Optional;
 

@@ -28,7 +28,7 @@ import java.lang.classfile.components.ClassPrinter;
 import static java.lang.classfile.Opcode.*;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
-import java.lang.reflect.code.bytecode.BranchCompactor;
+import jdk.incubator.code.java.lang.reflect.code.bytecode.BranchCompactor;
 import java.util.List;
 import org.testng.Assert;
 import org.testng.annotations.Test;

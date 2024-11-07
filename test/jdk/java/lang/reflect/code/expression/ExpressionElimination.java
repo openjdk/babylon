@@ -21,8 +21,8 @@
  * questions.
  */
 
-import java.lang.reflect.code.*;
-import java.lang.reflect.code.op.CoreOp;
+import jdk.incubator.code.java.lang.reflect.code.*;
+import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
 import java.util.HashMap;
 import java.util.function.BiConsumer;
 

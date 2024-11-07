@@ -30,10 +30,10 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.code.CopyContext;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.op.ExternalizableOp;
+import jdk.incubator.code.java.lang.reflect.code.CopyContext;
+import jdk.incubator.code.java.lang.reflect.code.Op;
+import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
+import jdk.incubator.code.java.lang.reflect.code.op.ExternalizableOp;
 import java.lang.runtime.CodeReflection;
 import java.util.Optional;
 import java.util.function.IntUnaryOperator;

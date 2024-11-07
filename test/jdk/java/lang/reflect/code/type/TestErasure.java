@@ -32,12 +32,12 @@ import static org.testng.Assert.*;
 
 import org.testng.annotations.*;
 
-import java.lang.reflect.code.type.ArrayType;
-import java.lang.reflect.code.type.ClassType;
-import java.lang.reflect.code.type.JavaType;
-import java.lang.reflect.code.type.PrimitiveType;
-import java.lang.reflect.code.type.TypeVarRef;
-import java.lang.reflect.code.type.WildcardType.BoundKind;
+import jdk.incubator.code.java.lang.reflect.code.type.ArrayType;
+import jdk.incubator.code.java.lang.reflect.code.type.ClassType;
+import jdk.incubator.code.java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.java.lang.reflect.code.type.PrimitiveType;
+import jdk.incubator.code.java.lang.reflect.code.type.TypeVarRef;
+import jdk.incubator.code.java.lang.reflect.code.type.WildcardType.BoundKind;
 import java.util.ArrayList;
 import java.util.List;
 

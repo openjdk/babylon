@@ -24,8 +24,8 @@
  */
 package hat.optools;
 
-import java.lang.reflect.code.Block;
-import java.lang.reflect.code.Op;
+import jdk.incubator.code.java.lang.reflect.code.Block;
+import jdk.incubator.code.java.lang.reflect.code.Op;
 
 public class BlockWrapper extends CodeElementWrapper<Block> {
     public Block block() {

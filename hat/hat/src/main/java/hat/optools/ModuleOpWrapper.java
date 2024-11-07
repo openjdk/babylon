@@ -26,11 +26,11 @@ package hat.optools;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.CopyContext;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.Value;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.type.MethodRef;
+import jdk.incubator.code.java.lang.reflect.code.CopyContext;
+import jdk.incubator.code.java.lang.reflect.code.Op;
+import jdk.incubator.code.java.lang.reflect.code.Value;
+import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
+import jdk.incubator.code.java.lang.reflect.code.type.MethodRef;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;

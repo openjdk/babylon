@@ -2,9 +2,9 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.code.*;
-import java.lang.reflect.code.analysis.SSA;
-import java.lang.reflect.code.interpreter.Interpreter;
+import jdk.incubator.code.java.lang.reflect.code.*;
+import jdk.incubator.code.java.lang.reflect.code.analysis.SSA;
+import jdk.incubator.code.java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.runtime.CodeReflection;
 import java.util.Optional;
 import java.util.function.Predicate;

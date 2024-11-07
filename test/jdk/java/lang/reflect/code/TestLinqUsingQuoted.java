@@ -24,14 +24,14 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.Quoted;
-import java.lang.reflect.code.Value;
-import java.lang.reflect.code.type.MethodRef;
-import java.lang.reflect.code.interpreter.Interpreter;
+import jdk.incubator.code.java.lang.reflect.code.Op;
+import jdk.incubator.code.java.lang.reflect.code.Quoted;
+import jdk.incubator.code.java.lang.reflect.code.Value;
+import jdk.incubator.code.java.lang.reflect.code.type.MethodRef;
+import jdk.incubator.code.java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.code.type.JavaType;
-import java.lang.reflect.code.TypeElement;
+import jdk.incubator.code.java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.java.lang.reflect.code.TypeElement;
 import java.util.stream.Stream;
 
 import static java.lang.reflect.code.type.MethodRef.method;

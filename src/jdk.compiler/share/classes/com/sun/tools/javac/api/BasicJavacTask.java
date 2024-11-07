@@ -25,13 +25,14 @@
 
 package com.sun.tools.javac.api;
 
+import java.lang.module.Configuration;
+import java.lang.module.ModuleFinder;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.ServiceLoader;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import javax.annotation.processing.Processor;
 import javax.lang.model.element.Element;
@@ -216,8 +217,21 @@ public class BasicJavacTask extends JavacTask {
 
         Set<List<String>> pluginsToCall = new LinkedHashSet<>(pluginOpts);
         JavacProcessingEnvironment pEnv = JavacProcessingEnvironment.instance(context);
-        ServiceLoader<Plugin> sl = pEnv.getServiceLoader(Plugin.class);
+
         Set<Plugin> autoStart = new LinkedHashSet<>();
+
+        if (CodeReflectionSupport.CODE_LAYER != null) {
+            // first check for "implicit" plugins in the code reflection module (if present)
+            var crp = ServiceLoader.load(CodeReflectionSupport.CODE_LAYER, Plugin.class);
+            for (Plugin plugin : crp) {
+                if (plugin.autoStart()) {
+                    autoStart.add(plugin);
+                }
+            }
+        }
+
+        // then check other plugins, as usual
+        ServiceLoader<Plugin> sl = pEnv.getServiceLoader(Plugin.class);
         for (Plugin plugin : sl) {
             if (plugin.autoStart()) {
                 autoStart.add(plugin);
@@ -246,6 +260,29 @@ public class BasicJavacTask extends JavacTask {
             }
 
         }
+    }
+
+    static class CodeReflectionSupport {
+        static final ModuleLayer CODE_LAYER;
+
+        static {
+            if (ModuleFinder.ofSystem().find("jdk.incubator.code").isPresent()) {
+                ModuleLayer parent = ModuleLayer.boot();
+                Configuration cf = parent.configuration()
+                        .resolve(ModuleFinder.of(), ModuleFinder.ofSystem(), Set.of("jdk.incubator.code"));
+                ClassLoader scl = ClassLoader.getSystemClassLoader();
+                CODE_LAYER = parent.defineModulesWithOneLoader(cf, scl);
+                Module codeReflectionModule = CODE_LAYER.findModule("jdk.incubator.code").get();
+                Module jdkCompilerModule = BasicJavacTask.class.getModule();
+                // We need to add exports all jdk.compiler packages so that the plugin can use them
+                for (String packageName : jdkCompilerModule.getPackages()) {
+                    jdkCompilerModule.addExports(packageName, codeReflectionModule);
+                }
+            } else {
+                // if we run javac in bootstrap mode, there might be no jdk.incubator.code
+                CODE_LAYER = null;
+            }
+        }co
     }
 
     private void initPlugin(Plugin p, String... args) {

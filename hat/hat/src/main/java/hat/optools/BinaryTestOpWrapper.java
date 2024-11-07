@@ -24,7 +24,7 @@
  */
 package hat.optools;
 
-import java.lang.reflect.code.op.CoreOp;
+import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
 
 public class BinaryTestOpWrapper extends BinaryOpWrapper<CoreOp.BinaryTestOp> {
     BinaryTestOpWrapper(CoreOp.BinaryTestOp op) {

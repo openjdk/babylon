@@ -24,7 +24,7 @@
  */
 package hat.optools;
 
-import java.lang.reflect.code.op.ExtendedOp;
+import jdk.incubator.code.java.lang.reflect.code.op.ExtendedOp;
 import java.util.stream.Stream;
 
 public class LogicalOpWrapper extends BinaryOpWrapper<ExtendedOp.JavaConditionalOp> {

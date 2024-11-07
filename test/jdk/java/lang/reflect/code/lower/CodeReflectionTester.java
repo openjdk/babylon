@@ -24,13 +24,13 @@
 import java.io.StringWriter;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.OpTransformer;
-import java.lang.reflect.code.analysis.SSA;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.op.ExtendedOp;
-import java.lang.reflect.code.parser.OpParser;
-import java.lang.reflect.code.writer.OpWriter;
+import jdk.incubator.code.java.lang.reflect.code.Op;
+import jdk.incubator.code.java.lang.reflect.code.OpTransformer;
+import jdk.incubator.code.java.lang.reflect.code.analysis.SSA;
+import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
+import jdk.incubator.code.java.lang.reflect.code.op.ExtendedOp;
+import jdk.incubator.code.java.lang.reflect.code.parser.OpParser;
+import jdk.incubator.code.java.lang.reflect.code.writer.OpWriter;
 import java.lang.runtime.CodeReflection;
 
 public class CodeReflectionTester {

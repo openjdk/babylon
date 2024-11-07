@@ -29,11 +29,11 @@
  */
 
 import java.lang.reflect.Method;
-import java.lang.reflect.code.OpTransformer;
-import java.lang.reflect.code.analysis.AnfTransformer;
-import java.lang.reflect.code.analysis.SSA;
-import java.lang.reflect.code.analysis.NormalizeBlocksTransformer;
-import java.lang.reflect.code.op.CoreOp;
+import jdk.incubator.code.java.lang.reflect.code.OpTransformer;
+import jdk.incubator.code.java.lang.reflect.code.analysis.AnfTransformer;
+import jdk.incubator.code.java.lang.reflect.code.analysis.SSA;
+import jdk.incubator.code.java.lang.reflect.code.analysis.NormalizeBlocksTransformer;
+import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
 import java.lang.runtime.CodeReflection;
 import java.util.List;
 

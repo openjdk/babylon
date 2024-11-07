@@ -26,6 +26,9 @@
 package jdk.internal.access;
 
 import java.lang.reflect.*;
+import java.util.Optional;
+import java.util.function.Function;
+
 import jdk.internal.reflect.*;
 
 /** An interface which gives privileged packages Java-level access to
@@ -67,4 +70,7 @@ public interface JavaLangReflectAccess {
     /** Returns a new instance created by the given constructor with access check */
     public <T> T newInstance(Constructor<T> ctor, Object[] args, Class<?> caller)
         throws IllegalAccessException, InstantiationException, InvocationTargetException;
+
+    /** Cache code model on the reflective method instance (if none is set already). */
+    Optional<?> setCodeModelIfNeeded(Method method, Function<Method, Optional<?>> modelFactory);
 }

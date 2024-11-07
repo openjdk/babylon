@@ -32,7 +32,6 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
-import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
@@ -46,7 +45,6 @@ import javax.tools.JavaFileObject;
 import static javax.lang.model.util.ElementFilter.methodsIn;
 
 import com.sun.source.util.JavacTask;
-import com.sun.tools.javac.api.JavacScope;
 import com.sun.tools.javac.api.JavacTaskImpl;
 import com.sun.tools.javac.api.JavacTrees;
 import com.sun.tools.javac.code.*;
@@ -808,32 +806,6 @@ public class JavacElements implements Elements {
             case TYP -> ((ClassSymbol) sym).classfile;
             default -> sym.enclClass().classfile;
         };
-    }
-
-    @Override @DefinedBy(Api.LANGUAGE_MODEL)
-    public Optional<Object> getBody(ExecutableElement e) {
-        SourceCodeReflection sourceCodeReflection =
-                ServiceLoader.load(SourceCodeReflection.class).findFirst().orElse(null);
-
-        if (sourceCodeReflection == null ||
-                e.getModifiers().contains(Modifier.ABSTRACT) ||
-                e.getModifiers().contains(Modifier.NATIVE)) {
-            return Optional.empty();
-        }
-
-        try {
-            JCMethodDecl methodTree = (JCMethodDecl)getTree(e);
-            JavacScope scope = javacTrees.getScope(javacTrees.getPath(e));
-            ClassSymbol enclosingClass = (ClassSymbol) scope.getEnclosingClass();
-            Object op = attr.runWithAttributedMethod(scope.getEnv(), methodTree,
-                    attribBlock -> sourceCodeReflection.getMethodBody(enclosingClass, methodTree, attribBlock, make));
-            return Optional.of(op);
-        } catch (RuntimeException ex) {  // ReflectMethods.UnsupportedASTException
-            // some other error occurred when attempting to attribute the method
-            // @@@ better report of error
-            ex.printStackTrace();
-            return Optional.empty();
-        }
     }
 
     /**

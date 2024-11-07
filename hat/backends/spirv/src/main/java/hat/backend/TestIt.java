@@ -31,7 +31,7 @@ import intel.code.spirv.TranslateToSpirvModel;
 
 import java.lang.foreign.MemorySegment;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.op.CoreOp;
+import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
 import java.lang.runtime.CodeReflection;
 
 

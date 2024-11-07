@@ -31,29 +31,31 @@ import com.sun.source.util.TaskEvent;
 import com.sun.source.util.TaskEvent.Kind;
 import com.sun.tools.javac.api.BasicJavacTask;
 import com.sun.tools.javac.code.Source;
-import com.sun.tools.javac.code.Symbol.ClassSymbol;
-import com.sun.tools.javac.model.SourceCodeReflection;
-import com.sun.tools.javac.tree.JCTree.JCBlock;
+import com.sun.tools.javac.main.JavaCompiler;
+import com.sun.tools.javac.tree.JCTree.JCClassDecl;
 import com.sun.tools.javac.tree.JCTree.JCCompilationUnit;
-import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
 import com.sun.tools.javac.tree.TreeMaker;
+import com.sun.tools.javac.tree.TreeScanner;
 import com.sun.tools.javac.util.Context;
+import com.sun.tools.javac.util.Log;
 import jdk.incubator.code.internal.ReflectMethods;
 
-/**
- * A vector test plugin
- */
-public class CodeReflectionPlugin implements Plugin, SourceCodeReflection {
+import javax.lang.model.element.TypeElement;
 
-    ReflectMethods reflectMethods;
+/**
+ * A compiler plugin that processes methods annotated with the {@link jdk.incubator.code.CodeReflection}
+ * annotation, and saves their code model in the resulting AST.
+ */
+public class CodeReflectionPlugin implements Plugin {
+
+    Context context;
     TreeMaker treeMaker;
+    Runnable dropListener;
 
     /**
      * Plugin constructor
      */
-    public CodeReflectionPlugin() {
-
-    }
+    public CodeReflectionPlugin() { }
 
     @Override
     public String getName() {
@@ -62,13 +64,10 @@ public class CodeReflectionPlugin implements Plugin, SourceCodeReflection {
 
     @Override
     public void init(JavacTask task, String... args) {
-        Context context = ((BasicJavacTask)task).getContext();
-        Source source = Source.instance(context);
-        if (Source.Feature.REFLECT_METHODS.allowedInSource(source)) {
-            reflectMethods = ReflectMethods.instance(context);
-            treeMaker = TreeMaker.instance(context);
-            task.addTaskListener(new TaskListener());
-        }
+        this.context = ((BasicJavacTask)task).getContext();
+        TaskListener taskListener = new TaskListener();
+        task.addTaskListener(taskListener);
+        dropListener = () -> task.removeTaskListener(taskListener);
     }
 
     @Override
@@ -79,24 +78,59 @@ public class CodeReflectionPlugin implements Plugin, SourceCodeReflection {
     class TaskListener implements com.sun.source.util.TaskListener {
         @Override
         public void started(TaskEvent e) {
-            // do nothing
+            if (e.getKind() == Kind.ENTER) {
+                if (dropListener != null && !isCodeReflectionAvailable(context)) {
+                    // do not process further events if code reflection module is not enabled
+                    dropListener.run();
+                    dropListener = null;
+                }
+            }
         }
 
         @Override
         public void finished(TaskEvent e) {
             if (e.getKind() == Kind.ANALYZE) {
-                // end of attribution/flow analysis
-                if (reflectMethods != null) {
-                    JCCompilationUnit jcCompilationUnit = (JCCompilationUnit)e.getCompilationUnit();
+                JCCompilationUnit jcCompilationUnit = (JCCompilationUnit)e.getCompilationUnit();
+                if (Log.instance(context).nerrors == 0) {
+                    treeMaker = TreeMaker.instance(context);
                     TreeMaker localMake = treeMaker.forToplevel(jcCompilationUnit);
-                    reflectMethods.translateTopLevelClass(jcCompilationUnit, localMake);
+                    ClassDeclFinder classDeclFinder = new ClassDeclFinder(e.getTypeElement());
+                    classDeclFinder.scan(jcCompilationUnit);
+                    ReflectMethods.instance(context)
+                                  .translateTopLevelClass(classDeclFinder.classDecl, localMake);
                 }
             }
         }
     }
 
-    @Override
-    public Object getMethodBody(ClassSymbol classSym, JCMethodDecl methodDecl, JCBlock attributedBody, TreeMaker make) {
-        return reflectMethods.getMethodBody(classSym, methodDecl, attributedBody, make);
+    public static boolean isCodeReflectionAvailable(Context context) {
+        Source source = Source.instance(context);
+        if (!Source.Feature.REFLECT_METHODS.allowedInSource(source)) {
+            // if source level is not latest, return false
+            return false;
+        }
+
+        // if jdk.incubator.code is not in the module graph, skip
+        return JavaCompiler.instance(context).hasCodeReflectionModule();
+    }
+
+    // A simple tree scanner that finds a class declaration tree given its type element.
+    static class ClassDeclFinder extends TreeScanner {
+
+        JCClassDecl classDecl;
+        final TypeElement element;
+
+        public ClassDeclFinder(TypeElement element) {
+            this.element = element;
+        }
+
+        @Override
+        public void visitClassDef(JCClassDecl tree) {
+            if (tree.sym == element) {
+                classDecl = tree;
+            } else {
+                super.visitClassDef(tree);
+            }
+        }
     }
 }

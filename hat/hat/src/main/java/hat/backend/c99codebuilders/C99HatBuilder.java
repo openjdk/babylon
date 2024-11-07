@@ -58,12 +58,12 @@ import hat.util.StreamCounter;
 
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.StructLayout;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.op.ExtendedOp;
-import java.lang.reflect.code.type.ClassType;
-import java.lang.reflect.code.type.JavaType;
-import java.lang.reflect.code.type.PrimitiveType;
+import jdk.incubator.code.java.lang.reflect.code.Op;
+import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
+import jdk.incubator.code.java.lang.reflect.code.op.ExtendedOp;
+import jdk.incubator.code.java.lang.reflect.code.type.ClassType;
+import jdk.incubator.code.java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.java.lang.reflect.code.type.PrimitiveType;
 
 public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeBuilder<T> implements C99HatBuilderInterface<T> {
     /*

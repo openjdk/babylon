@@ -1,15 +1,17 @@
-TestAssignment.java:43:28: compiler.err.quoted.lambda.must.be.explicit
-TestAssignment.java:44:26: compiler.err.quoted.lambda.must.be.explicit
-TestAssignment.java:45:28: compiler.err.quoted.lambda.must.be.explicit
-TestAssignment.java:46:26: compiler.err.quoted.lambda.must.be.explicit
-TestAssignment.java:47:29: compiler.err.quoted.lambda.must.be.explicit
+- compiler.warn.incubating.modules: jdk.incubator.code
+TestAssignment.java:44:28: compiler.err.quoted.lambda.must.be.explicit
+TestAssignment.java:45:26: compiler.err.quoted.lambda.must.be.explicit
+TestAssignment.java:46:28: compiler.err.quoted.lambda.must.be.explicit
+TestAssignment.java:47:26: compiler.err.quoted.lambda.must.be.explicit
 TestAssignment.java:48:29: compiler.err.quoted.lambda.must.be.explicit
-TestAssignment.java:52:28: compiler.err.quoted.lambda.must.be.explicit
-TestAssignment.java:53:26: compiler.err.quoted.lambda.must.be.explicit
-TestAssignment.java:54:28: compiler.err.quoted.lambda.must.be.explicit
-TestAssignment.java:55:26: compiler.err.quoted.lambda.must.be.explicit
-TestAssignment.java:56:29: compiler.err.quoted.lambda.must.be.explicit
+TestAssignment.java:49:29: compiler.err.quoted.lambda.must.be.explicit
+TestAssignment.java:53:28: compiler.err.quoted.lambda.must.be.explicit
+TestAssignment.java:54:26: compiler.err.quoted.lambda.must.be.explicit
+TestAssignment.java:55:28: compiler.err.quoted.lambda.must.be.explicit
+TestAssignment.java:56:26: compiler.err.quoted.lambda.must.be.explicit
 TestAssignment.java:57:29: compiler.err.quoted.lambda.must.be.explicit
-TestAssignment.java:61:41: compiler.err.cant.infer.quoted.lambda.return.type: void,java.lang.String
-TestAssignment.java:62:37: compiler.err.cant.infer.quoted.lambda.return.type: java.lang.String,void
+TestAssignment.java:58:29: compiler.err.quoted.lambda.must.be.explicit
+TestAssignment.java:62:41: compiler.err.cant.infer.quoted.lambda.return.type: void,java.lang.String
+TestAssignment.java:63:37: compiler.err.cant.infer.quoted.lambda.return.type: java.lang.String,void
 14 errors
+1 warning

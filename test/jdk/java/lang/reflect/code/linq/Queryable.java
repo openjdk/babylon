@@ -21,10 +21,10 @@
  * questions.
  */
 
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.type.ClassType;
-import java.lang.reflect.code.type.MethodRef;
-import java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.java.lang.reflect.code.Op;
+import jdk.incubator.code.java.lang.reflect.code.type.ClassType;
+import jdk.incubator.code.java.lang.reflect.code.type.MethodRef;
+import jdk.incubator.code.java.lang.reflect.code.type.JavaType;
 import java.util.stream.Stream;
 
 import static java.lang.reflect.code.type.JavaType.parameterized;

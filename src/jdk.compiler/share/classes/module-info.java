@@ -276,13 +276,14 @@ module jdk.compiler {
         jdk.jshell,
         jdk.internal.md,
         jdk.incubator.code;
+    exports com.sun.tools.javac.processing to
+        jdk.incubator.code;
 
     uses javax.annotation.processing.Processor;
     uses com.sun.source.util.Plugin;
     uses com.sun.tools.doclint.DocLint;
     uses com.sun.tools.javac.platform.PlatformProvider;
     uses com.sun.tools.javac.api.JavacTrees.DocCommentTreeTransformer;
-    uses com.sun.tools.javac.model.SourceCodeReflection;
 
     provides java.util.spi.ToolProvider with
         com.sun.tools.javac.main.JavacToolProvider;

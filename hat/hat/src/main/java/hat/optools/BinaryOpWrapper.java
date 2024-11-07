@@ -24,7 +24,7 @@
  */
 package hat.optools;
 
-import java.lang.reflect.code.Op;
+import jdk.incubator.code.java.lang.reflect.code.Op;
 
 public abstract class BinaryOpWrapper<T extends Op> extends OpWrapper<T> {
     BinaryOpWrapper(T op) {

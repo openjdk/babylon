@@ -24,8 +24,8 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.*;
-import java.lang.reflect.code.analysis.SSA;
+import jdk.incubator.code.java.lang.reflect.code.*;
+import jdk.incubator.code.java.lang.reflect.code.analysis.SSA;
 import java.util.function.IntBinaryOperator;
 
 import static java.lang.reflect.code.op.CoreOp.*;

@@ -28,10 +28,10 @@ import hat.backend.c99codebuilders.HatComputeBuilder;
 import hat.optools.FuncOpWrapper;
 import hat.optools.OpWrapper;
 
-import java.lang.reflect.code.Block;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.Quoted;
-import java.lang.reflect.code.op.CoreOp;
+import jdk.incubator.code.java.lang.reflect.code.Block;
+import jdk.incubator.code.java.lang.reflect.code.Op;
+import jdk.incubator.code.java.lang.reflect.code.Quoted;
+import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
 
 import static java.lang.reflect.code.op.CoreOp._return;
 import static java.lang.reflect.code.op.CoreOp.add;

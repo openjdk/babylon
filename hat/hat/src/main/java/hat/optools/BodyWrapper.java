@@ -24,7 +24,7 @@
  */
 package hat.optools;
 
-import java.lang.reflect.code.Body;
+import jdk.incubator.code.java.lang.reflect.code.Body;
 import java.util.function.Consumer;
 
 public class BodyWrapper extends CodeElementWrapper<Body> {

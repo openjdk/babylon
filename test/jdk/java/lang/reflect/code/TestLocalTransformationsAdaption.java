@@ -25,11 +25,11 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.io.PrintStream;
-import java.lang.reflect.code.*;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.type.FieldRef;
-import java.lang.reflect.code.type.MethodRef;
-import java.lang.reflect.code.interpreter.Interpreter;
+import jdk.incubator.code.java.lang.reflect.code.*;
+import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
+import jdk.incubator.code.java.lang.reflect.code.type.FieldRef;
+import jdk.incubator.code.java.lang.reflect.code.type.MethodRef;
+import jdk.incubator.code.java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.lang.runtime.CodeReflection;

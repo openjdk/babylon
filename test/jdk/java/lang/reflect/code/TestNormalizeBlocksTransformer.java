@@ -30,10 +30,10 @@ import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.analysis.NormalizeBlocksTransformer;
-import java.lang.reflect.code.op.ExtendedOp;
-import java.lang.reflect.code.parser.OpParser;
+import jdk.incubator.code.java.lang.reflect.code.Op;
+import jdk.incubator.code.java.lang.reflect.code.analysis.NormalizeBlocksTransformer;
+import jdk.incubator.code.java.lang.reflect.code.op.ExtendedOp;
+import jdk.incubator.code.java.lang.reflect.code.parser.OpParser;
 import java.util.stream.Stream;
 
 public class TestNormalizeBlocksTransformer {

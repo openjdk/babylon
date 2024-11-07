@@ -24,13 +24,14 @@
 /*
  * @test
  * @summary Smoke test for code reflection with quotable lambdas.
+ * @modules jdk.incubator.code
  * @build QuotableSubtypeTest
  * @build CodeReflectionTester
  * @run main CodeReflectionTester QuotableSubtypeTest
  */
 
-import java.lang.reflect.code.Quotable;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.java.lang.reflect.code.Quotable;
+import jdk.incubator.code.CodeReflection;
 import java.util.function.IntBinaryOperator;
 import java.util.function.IntFunction;
 import java.util.function.IntSupplier;
