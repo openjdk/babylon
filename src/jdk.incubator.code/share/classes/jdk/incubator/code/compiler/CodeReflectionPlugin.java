@@ -25,6 +25,7 @@
 
 package jdk.incubator.code.compiler;
 
+import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.util.JavacTask;
 import com.sun.source.util.Plugin;
 import com.sun.source.util.TaskEvent;
@@ -41,6 +42,8 @@ import com.sun.tools.javac.util.Log;
 import jdk.incubator.code.internal.ReflectMethods;
 
 import javax.lang.model.element.TypeElement;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * A compiler plugin that processes methods annotated with the {@link jdk.incubator.code.CodeReflection}
