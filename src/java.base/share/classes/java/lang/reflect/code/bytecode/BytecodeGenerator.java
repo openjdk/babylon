@@ -341,28 +341,7 @@ public final class BytecodeGenerator {
     }
 
     private void processOperands(Op op) {
-        if (op instanceof InvokeOp invokeOp && invokeOp.isVarArgs()) {
-            processOperands(invokeOp.operands().subList(0, invokeOp.operands().size() - invokeOp.varArgOperands().size()));
-
-            var varArgOperands = invokeOp.varArgOperands();
-            cob.loadConstant(varArgOperands.size());
-            var compType = ((ArrayType) invokeOp.invokeDescriptor().type().parameterTypes().getLast()).componentType();
-            var typeKind = TypeKind.fromDescriptor(compType.toNominalDescriptor().descriptorString());
-            if (TypeKind.REFERENCE.equals(typeKind)) {
-                var cd = ClassDesc.ofDescriptor(compType.toNominalDescriptor().descriptorString());
-                cob.anewarray(cd);
-            } else {
-                cob.newarray(typeKind);
-            }
-            for (int i = 0; i < varArgOperands.size(); i++) {
-                cob.dup();
-                cob.loadConstant(i);
-                load(varArgOperands.get(i));
-                cob.arrayStore(typeKind);
-            }
-        } else {
-            processOperands(op.operands());
-        }
+        processOperands(op.operands());
     }
 
     private void processOperands(List<Value> operands) {
@@ -881,8 +860,27 @@ public final class BytecodeGenerator {
                         push(op.result());
                     }
                     case InvokeOp op -> {
-                        // @@@ var args
-                        processOperands(op);
+                        if (op.isVarArgs()) {
+                            processOperands(op.operands().subList(0, op.operands().size() - op.varArgOperands().size()));
+                            var varArgOperands = op.varArgOperands();
+                            cob.loadConstant(varArgOperands.size());
+                            var compType = ((ArrayType) op.invokeDescriptor().type().parameterTypes().getLast()).componentType();
+                            var typeKind = TypeKind.fromDescriptor(compType.toNominalDescriptor().descriptorString());
+                            if (TypeKind.REFERENCE.equals(typeKind)) {
+                                var cd = ClassDesc.ofDescriptor(compType.toNominalDescriptor().descriptorString());
+                                cob.anewarray(cd);
+                            } else {
+                                cob.newarray(typeKind);
+                            }
+                            for (int j = 0; j < varArgOperands.size(); j++) {
+                                cob.dup();
+                                cob.loadConstant(j);
+                                load(varArgOperands.get(j));
+                                cob.arrayStore(typeKind);
+                            }
+                        } else {
+                            processOperands(op);
+                        }
                         // Resolve referenced class to determine if interface
                         MethodRef md = op.invokeDescriptor();
                         JavaType refType = (JavaType)md.refType();
