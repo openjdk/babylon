@@ -25,16 +25,16 @@ import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import jdk.incubator.code.java.lang.reflect.code.parser.impl.Scanner;
-import jdk.incubator.code.java.lang.reflect.code.parser.impl.Tokens;
+import jdk.incubator.code.parser.impl.Scanner;
+import jdk.incubator.code.parser.impl.Tokens;
 import java.util.ArrayList;
 import java.util.List;
 
-import static java.lang.reflect.code.parser.impl.Tokens.TokenKind.*;
+import static jdk.incubator.code.parser.impl.Tokens.TokenKind.*;
 
 /*
  * @test
- * @modules java.base/java.lang.reflect.code.parser.impl
+ * @modules jdk.incubator.code/jdk.incubator.code.parser.impl
  * @run testng TestScanner
  */
 

@@ -23,6 +23,7 @@
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @run testng TestLambdaOps
  */
 
@@ -30,15 +31,15 @@ import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import jdk.incubator.code.java.lang.reflect.code.*;
-import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
-import jdk.incubator.code.java.lang.reflect.code.op.CoreOp.FuncOp;
-import jdk.incubator.code.java.lang.reflect.code.op.CoreOp.LambdaOp;
-import jdk.incubator.code.java.lang.reflect.code.type.MethodRef;
-import jdk.incubator.code.java.lang.reflect.code.interpreter.Interpreter;
+import jdk.incubator.code.*;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.op.CoreOp.FuncOp;
+import jdk.incubator.code.op.CoreOp.LambdaOp;
+import jdk.incubator.code.type.MethodRef;
+import jdk.incubator.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -46,11 +47,11 @@ import java.util.function.IntSupplier;
 import java.util.function.IntUnaryOperator;
 import java.util.stream.Stream;
 
-import static java.lang.reflect.code.op.CoreOp.*;
-import static java.lang.reflect.code.op.CoreOp.constant;
-import static java.lang.reflect.code.type.FunctionType.functionType;
-import static java.lang.reflect.code.type.JavaType.INT;
-import static java.lang.reflect.code.type.JavaType.type;
+import static jdk.incubator.code.op.CoreOp.*;
+import static jdk.incubator.code.op.CoreOp.constant;
+import static jdk.incubator.code.type.FunctionType.functionType;
+import static jdk.incubator.code.type.JavaType.INT;
+import static jdk.incubator.code.type.JavaType.type;
 
 @Test
 public class TestLambdaOps {
@@ -263,6 +264,6 @@ public class TestLambdaOps {
                 .findFirst();
 
         Method m = om.get();
-        return m.getCodeModel().get();
+        return Op.ofMethod(m).get();
     }
 }

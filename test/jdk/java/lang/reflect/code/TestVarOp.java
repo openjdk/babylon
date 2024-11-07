@@ -23,6 +23,7 @@
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @run testng TestVarOp
  */
 
@@ -30,15 +31,15 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.Method;
-import jdk.incubator.code.java.lang.reflect.code.Op;
-import jdk.incubator.code.java.lang.reflect.code.OpTransformer;
-import jdk.incubator.code.java.lang.reflect.code.Value;
-import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
-import jdk.incubator.code.java.lang.reflect.code.parser.OpParser;
-import jdk.incubator.code.java.lang.reflect.code.type.CoreTypeFactory;
-import jdk.incubator.code.java.lang.reflect.code.type.FunctionType;
-import jdk.incubator.code.java.lang.reflect.code.type.JavaType;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.parser.OpParser;
+import jdk.incubator.code.type.CoreTypeFactory;
+import jdk.incubator.code.type.FunctionType;
+import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.CodeReflection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -95,6 +96,6 @@ public class TestVarOp {
                 .findFirst();
 
         Method m = om.get();
-        return m.getCodeModel().get();
+        return Op.ofMethod(m).get();
     }
 }

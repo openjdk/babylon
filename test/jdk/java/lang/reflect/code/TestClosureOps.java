@@ -23,31 +23,32 @@
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @run testng TestClosureOps
  */
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import jdk.incubator.code.java.lang.reflect.code.Block;
-import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
-import jdk.incubator.code.java.lang.reflect.code.Op;
-import jdk.incubator.code.java.lang.reflect.code.Quoted;
-import jdk.incubator.code.java.lang.reflect.code.type.MethodRef;
-import jdk.incubator.code.java.lang.reflect.code.interpreter.Interpreter;
+import jdk.incubator.code.Block;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Quoted;
+import jdk.incubator.code.type.MethodRef;
+import jdk.incubator.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
-import jdk.incubator.code.java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.type.JavaType;
 
-import static java.lang.reflect.code.op.CoreOp._return;
-import static java.lang.reflect.code.op.CoreOp.add;
-import static java.lang.reflect.code.op.CoreOp.closure;
-import static java.lang.reflect.code.op.CoreOp.closureCall;
-import static java.lang.reflect.code.op.CoreOp.constant;
-import static java.lang.reflect.code.op.CoreOp.func;
-import static java.lang.reflect.code.op.CoreOp.quoted;
-import static java.lang.reflect.code.type.FunctionType.functionType;
-import static java.lang.reflect.code.type.JavaType.INT;
-import static java.lang.reflect.code.type.JavaType.type;
+import static jdk.incubator.code.op.CoreOp._return;
+import static jdk.incubator.code.op.CoreOp.add;
+import static jdk.incubator.code.op.CoreOp.closure;
+import static jdk.incubator.code.op.CoreOp.closureCall;
+import static jdk.incubator.code.op.CoreOp.constant;
+import static jdk.incubator.code.op.CoreOp.func;
+import static jdk.incubator.code.op.CoreOp.quoted;
+import static jdk.incubator.code.type.FunctionType.functionType;
+import static jdk.incubator.code.type.JavaType.INT;
+import static jdk.incubator.code.type.JavaType.type;
 
 public class TestClosureOps {
 

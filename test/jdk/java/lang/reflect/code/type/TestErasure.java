@@ -25,6 +25,7 @@
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @run testng TestErasure
  */
 
@@ -32,12 +33,12 @@ import static org.testng.Assert.*;
 
 import org.testng.annotations.*;
 
-import jdk.incubator.code.java.lang.reflect.code.type.ArrayType;
-import jdk.incubator.code.java.lang.reflect.code.type.ClassType;
-import jdk.incubator.code.java.lang.reflect.code.type.JavaType;
-import jdk.incubator.code.java.lang.reflect.code.type.PrimitiveType;
-import jdk.incubator.code.java.lang.reflect.code.type.TypeVarRef;
-import jdk.incubator.code.java.lang.reflect.code.type.WildcardType.BoundKind;
+import jdk.incubator.code.type.ArrayType;
+import jdk.incubator.code.type.ClassType;
+import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.type.PrimitiveType;
+import jdk.incubator.code.type.TypeVarRef;
+import jdk.incubator.code.type.WildcardType.BoundKind;
 import java.util.ArrayList;
 import java.util.List;
 

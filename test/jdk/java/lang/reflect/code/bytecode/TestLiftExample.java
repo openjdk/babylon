@@ -24,9 +24,9 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
-import jdk.incubator.code.java.lang.reflect.code.bytecode.BytecodeLift;
-import jdk.incubator.code.java.lang.reflect.code.interpreter.Interpreter;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.bytecode.BytecodeLift;
+import jdk.incubator.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
@@ -35,6 +35,7 @@ import java.util.function.Function;
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @run testng TestLiftExample
  */
 

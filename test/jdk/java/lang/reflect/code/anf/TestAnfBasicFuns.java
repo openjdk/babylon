@@ -25,16 +25,19 @@
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @run main TestAnfBasicFuns
  */
 
 import java.lang.reflect.Method;
-import jdk.incubator.code.java.lang.reflect.code.OpTransformer;
-import jdk.incubator.code.java.lang.reflect.code.analysis.AnfTransformer;
-import jdk.incubator.code.java.lang.reflect.code.analysis.NormalizeBlocksTransformer;
-import jdk.incubator.code.java.lang.reflect.code.analysis.SSA;
-import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
-import java.lang.runtime.CodeReflection;
+
+import jdk.incubator.code.Op;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.analysis.AnfTransformer;
+import jdk.incubator.code.analysis.NormalizeBlocksTransformer;
+import jdk.incubator.code.analysis.SSA;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.CodeReflection;
 import java.util.List;
 
 
@@ -60,7 +63,7 @@ public class TestAnfBasicFuns {
         try {
             Class<TestAnfBasicFuns> clazz = TestAnfBasicFuns.class;
             Method method = clazz.getDeclaredMethod(methodName,params.toArray(new Class[params.size()]));
-            CoreOp.FuncOp f = method.getCodeModel().orElseThrow();
+            CoreOp.FuncOp f = Op.ofMethod(method).orElseThrow();
 
             //Ensure we're fully lowered before testing.
             var fz = f.transform(OpTransformer.LOWERING_TRANSFORMER);

@@ -23,22 +23,24 @@
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @run testng TestTransitiveInvokeModule
  * @run testng/othervm -Dbabylon.ssa=cytron TestTransitiveInvokeModule
  */
 
+import jdk.incubator.code.Op;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Executable;
 import java.lang.reflect.Method;
-import jdk.incubator.code.java.lang.reflect.code.OpTransformer;
-import jdk.incubator.code.java.lang.reflect.code.analysis.SSA;
-import jdk.incubator.code.java.lang.reflect.code.interpreter.Interpreter;
-import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
-import jdk.incubator.code.java.lang.reflect.code.type.MethodRef;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.analysis.SSA;
+import jdk.incubator.code.interpreter.Interpreter;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.MethodRef;
+import jdk.incubator.code.CodeReflection;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -83,7 +85,7 @@ public class TestTransitiveInvokeModule {
 
     static CoreOp.ModuleOp createTransitiveInvokeModule(MethodHandles.Lookup l,
                                                         Method m) {
-        Optional<CoreOp.FuncOp> codeModel = m.getCodeModel();
+        Optional<CoreOp.FuncOp> codeModel = Op.ofMethod(m);
         if (codeModel.isPresent()) {
             return createTransitiveInvokeModule(l, MethodRef.method(m), codeModel.get());
         } else {
@@ -115,7 +117,7 @@ public class TestTransitiveInvokeModule {
                     } catch (ReflectiveOperationException _) {
                     }
                     if (em instanceof Method m) {
-                        Optional<CoreOp.FuncOp> f = m.getCodeModel();
+                        Optional<CoreOp.FuncOp> f = Op.ofMethod(m);
                         if (f.isPresent()) {
                             RefAndFunc call = new RefAndFunc(r, f.get());
                             // Place model on work queue

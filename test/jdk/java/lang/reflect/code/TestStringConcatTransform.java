@@ -23,24 +23,26 @@
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @run testng TestStringConcatTransform
  * @run testng/othervm -Dbabylon.ssa=cytron TestStringConcatTransform
  */
 
+import jdk.incubator.code.Op;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.NoInjection;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.InvocationTargetException;
-import jdk.incubator.code.java.lang.reflect.code.OpTransformer;
-import jdk.incubator.code.java.lang.reflect.code.analysis.StringConcatTransformer;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.analysis.StringConcatTransformer;
 
 import java.lang.reflect.Method;
-import jdk.incubator.code.java.lang.reflect.code.analysis.SSA;
-import jdk.incubator.code.java.lang.reflect.code.interpreter.Interpreter;
-import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.analysis.SSA;
+import jdk.incubator.code.interpreter.Interpreter;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.CodeReflection;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -94,7 +96,7 @@ public class TestStringConcatTransform {
 
     @Test(dataProvider = "getClassMethods")
     public void testModelTransform(@NoInjection Method method) {
-        CoreOp.FuncOp model = method.getCodeModel().orElseThrow();
+        CoreOp.FuncOp model = Op.ofMethod(method).orElseThrow();
         CoreOp.FuncOp f_transformed = model.transform(new StringConcatTransformer());
         Object[] args = prepArgs(method);
 
@@ -131,7 +133,7 @@ public class TestStringConcatTransform {
     }
 
     private void testStringConcat(Method method, Object[] args) {
-        CoreOp.FuncOp model = method.getCodeModel().orElseThrow();
+        CoreOp.FuncOp model = Op.ofMethod(method).orElseThrow();
         CoreOp.FuncOp transformed_model = model.transform(new StringConcatTransformer());
         CoreOp.FuncOp ssa_model = generateSSA(model);
         CoreOp.FuncOp ssa_transformed_model = ssa_model.transform(new StringConcatTransformer());

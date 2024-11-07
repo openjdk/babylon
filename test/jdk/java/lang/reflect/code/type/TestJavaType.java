@@ -30,10 +30,10 @@ import java.lang.constant.ConstantDescs;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
-import jdk.incubator.code.java.lang.reflect.code.type.ArrayType;
-import jdk.incubator.code.java.lang.reflect.code.type.ClassType;
-import jdk.incubator.code.java.lang.reflect.code.type.CoreTypeFactory;
-import jdk.incubator.code.java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.type.ArrayType;
+import jdk.incubator.code.type.ClassType;
+import jdk.incubator.code.type.CoreTypeFactory;
+import jdk.incubator.code.type.JavaType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +42,7 @@ import java.util.stream.Stream;
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @run testng TestJavaType
  */
 

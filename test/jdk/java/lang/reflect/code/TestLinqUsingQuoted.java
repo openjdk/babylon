@@ -24,22 +24,23 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import jdk.incubator.code.java.lang.reflect.code.Op;
-import jdk.incubator.code.java.lang.reflect.code.Quoted;
-import jdk.incubator.code.java.lang.reflect.code.Value;
-import jdk.incubator.code.java.lang.reflect.code.type.MethodRef;
-import jdk.incubator.code.java.lang.reflect.code.interpreter.Interpreter;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Quoted;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.type.MethodRef;
+import jdk.incubator.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
-import jdk.incubator.code.java.lang.reflect.code.type.JavaType;
-import jdk.incubator.code.java.lang.reflect.code.TypeElement;
+import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.TypeElement;
 import java.util.stream.Stream;
 
-import static java.lang.reflect.code.type.MethodRef.method;
-import static java.lang.reflect.code.op.CoreOp.*;
-import static java.lang.reflect.code.type.FunctionType.functionType;
+import static jdk.incubator.code.type.MethodRef.method;
+import static jdk.incubator.code.op.CoreOp.*;
+import static jdk.incubator.code.type.FunctionType.functionType;
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @run testng TestLinqUsingQuoted
  */
 

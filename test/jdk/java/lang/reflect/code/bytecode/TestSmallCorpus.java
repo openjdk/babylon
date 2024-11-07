@@ -31,12 +31,12 @@ import java.lang.classfile.attribute.CodeAttribute;
 import java.lang.classfile.components.ClassPrinter;
 import java.lang.classfile.instruction.*;
 import java.lang.invoke.MethodHandles;
-import jdk.incubator.code.java.lang.reflect.code.CodeElement;
-import jdk.incubator.code.java.lang.reflect.code.Value;
-import jdk.incubator.code.java.lang.reflect.code.bytecode.BytecodeGenerator;
-import jdk.incubator.code.java.lang.reflect.code.bytecode.BytecodeLift;
-import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
-import jdk.incubator.code.java.lang.reflect.code.writer.OpWriter;
+import jdk.incubator.code.CodeElement;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
+import jdk.incubator.code.bytecode.BytecodeLift;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.writer.OpWriter;
 import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -51,6 +51,7 @@ import org.testng.annotations.Test;
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @enablePreview
  * @modules java.base/java.lang.invoke:open
  * @run testng TestSmallCorpus

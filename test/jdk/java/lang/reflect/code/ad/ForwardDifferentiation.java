@@ -21,22 +21,22 @@
  * questions.
  */
 
-import jdk.incubator.code.java.lang.reflect.code.Block;
-import jdk.incubator.code.java.lang.reflect.code.CopyContext;
-import jdk.incubator.code.java.lang.reflect.code.Op;
-import jdk.incubator.code.java.lang.reflect.code.Value;
-import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
-import jdk.incubator.code.java.lang.reflect.code.type.MethodRef;
-import jdk.incubator.code.java.lang.reflect.code.type.FunctionType;
-import jdk.incubator.code.java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.Block;
+import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.MethodRef;
+import jdk.incubator.code.type.FunctionType;
+import jdk.incubator.code.type.JavaType;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static java.lang.reflect.code.op.CoreOp.*;
-import static java.lang.reflect.code.type.JavaType.DOUBLE;
+import static jdk.incubator.code.op.CoreOp.*;
+import static jdk.incubator.code.type.JavaType.DOUBLE;
 
 public final class ForwardDifferentiation {
     // The function to differentiate

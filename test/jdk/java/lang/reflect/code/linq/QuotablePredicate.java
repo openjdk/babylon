@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.java.lang.reflect.code.Quotable;
+import jdk.incubator.code.Quotable;
 import java.util.function.Predicate;
 
 @FunctionalInterface

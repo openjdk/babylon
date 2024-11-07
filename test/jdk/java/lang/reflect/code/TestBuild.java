@@ -24,18 +24,19 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import jdk.incubator.code.java.lang.reflect.code.*;
-import jdk.incubator.code.java.lang.reflect.code.analysis.SSA;
+import jdk.incubator.code.*;
+import jdk.incubator.code.analysis.SSA;
 import java.util.function.IntBinaryOperator;
 
-import static java.lang.reflect.code.op.CoreOp.*;
-import static java.lang.reflect.code.type.FunctionType.functionType;
-import static java.lang.reflect.code.type.FunctionType.VOID;
-import static java.lang.reflect.code.type.JavaType.INT;
-import static java.lang.reflect.code.type.JavaType.type;
+import static jdk.incubator.code.op.CoreOp.*;
+import static jdk.incubator.code.type.FunctionType.functionType;
+import static jdk.incubator.code.type.FunctionType.VOID;
+import static jdk.incubator.code.type.JavaType.INT;
+import static jdk.incubator.code.type.JavaType.type;
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @run testng TestBuild
  * @run testng/othervm -Dbabylon.ssa=cytron TestBuild
  */

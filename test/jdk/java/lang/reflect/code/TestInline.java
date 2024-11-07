@@ -24,19 +24,20 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import jdk.incubator.code.java.lang.reflect.code.*;
-import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
-import jdk.incubator.code.java.lang.reflect.code.interpreter.Interpreter;
+import jdk.incubator.code.*;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
-import jdk.incubator.code.java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.type.JavaType;
 import java.util.List;
 
-import static java.lang.reflect.code.op.CoreOp.*;
-import static java.lang.reflect.code.type.FunctionType.functionType;
-import static java.lang.reflect.code.type.JavaType.INT;
+import static jdk.incubator.code.op.CoreOp.*;
+import static jdk.incubator.code.type.FunctionType.functionType;
+import static jdk.incubator.code.type.JavaType.INT;
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @run testng TestInline
  */
 
