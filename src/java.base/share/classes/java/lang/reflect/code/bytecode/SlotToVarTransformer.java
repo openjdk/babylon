@@ -38,6 +38,7 @@ import java.lang.reflect.code.type.JavaType;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
@@ -267,7 +268,59 @@ final class SlotToVarTransformer {
             }
             if (pred != slotOp) predecessors.add(pred.result());
         }
-        return BytecodeUtil.isDominatedBy(slotOp.result(), predecessors);
+        return isDominatedBy(slotOp.result(), predecessors);
+    }
+
+    /**
+     * Returns {@code true} if this value is dominated by the given set of values {@code doms}.
+     * <p>
+     * The set dominates if every path from the entry node go through any member of the set.
+     * <p>
+     * First part checks individual dominance of every member of the set.
+     * <p>
+     * If no member of the set is individually dominant, the second part tries to find path
+     * to the entry block bypassing all blocks from the tested set.
+     * <p>
+     * Implementation searches for the paths by traversing the value declaring block predecessors,
+     * stopping at blocks where values from the tested set are declared or at blocks already processed.
+     * Negative test result is returned when the entry block is reached.
+     * Positive test result is returned when no path to the entry block is found.
+     *
+     * @param value the value
+     * @param doms the dominating set of values
+     * @return {@code true} if this value is dominated by the given set of values {@code dom}.
+     * @throws IllegalStateException if the declaring block is partially built
+     */
+    public static boolean isDominatedBy(Value value, Set<? extends Value> doms) {
+        if (doms.isEmpty()) {
+            return false;
+        }
+
+        for (Value dom : doms) {
+            if (value.isDominatedBy(dom)) {
+                return true;
+            }
+        }
+
+        Set<Block> stopBlocks = new HashSet<>();
+        for (Value dom : doms) {
+            stopBlocks.add(dom.declaringBlock());
+        }
+
+        Deque<Block> toProcess = new ArrayDeque<>();
+        toProcess.add(value.declaringBlock());
+        stopBlocks.add(value.declaringBlock());
+        while (!toProcess.isEmpty()) {
+            for (Block b : toProcess.pop().predecessors()) {
+                if (b.isEntryBlock()) {
+                    return false;
+                }
+                if (stopBlocks.add(b)) {
+                    toProcess.add(b);
+                }
+            }
+        }
+        return true;
     }
 
     static final class SlotOpIterator implements Iterator<SlotOp> {

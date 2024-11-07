@@ -68,7 +68,6 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.lang.constant.ConstantDescs.*;
@@ -374,23 +373,9 @@ public final class BytecodeGenerator {
 
     // Single-use var or var with a single-use entry block parameter operand can be deferred
     private static boolean canDefer(VarOp op) {
-        return !op.isUninitialized() && (!moreThanOneUse(op.result())
-            || op.initOperand() instanceof Block.Parameter bp && bp.declaringBlock().isEntryBlock() && !moreThanOneUse(bp)
-            || op.initOperand() instanceof Op.Result or && or.op() instanceof ConstantOp cop && canDefer(cop) && isDefinitelyAssigned(op));
-    }
-
-    // Detection if VarOp is definitelly assigned (all its VarLoadOps are dominated by VarStoreOp)
-    // VarOp can be deferred in such case
-    private static boolean isDefinitelyAssigned(VarOp op) {
-        Set<Op.Result> allUses = op.result().uses();
-        Set<Op.Result> stores = allUses.stream().filter(r -> r.op() instanceof VarAccessOp.VarStoreOp).collect(Collectors.toSet());
-        // All VarLoadOps must be dominated by a VarStoreOp
-        for (Op.Result load : allUses) {
-            if (load.op() instanceof VarAccessOp.VarLoadOp && !BytecodeUtil.isDominatedBy(load, stores)) {
-                return false;
-            }
-        }
-        return true;
+        return op.isUninitialized()
+            || !moreThanOneUse(op.result())
+            || op.initOperand() instanceof Block.Parameter bp && bp.declaringBlock().isEntryBlock() && !moreThanOneUse(bp);
     }
 
     // Var load can be deferred when not used as immediate operand
@@ -546,6 +531,9 @@ public final class BytecodeGenerator {
                             push(op.result());
                         }
                     }
+                    case VarOp op when op.isUninitialized() -> {
+                        // Do nothing
+                    }
                     case VarOp op -> {
                         //     %1 : Var<int> = var %0 @"i";
                         if (canDefer(op)) {
@@ -554,7 +542,7 @@ public final class BytecodeGenerator {
                                 // Var with a single-use entry block parameter can reuse its slot
                                 slots.put(op.result(), s);
                             }
-                        } else if (!op.isUninitialized()) {
+                        } else {
                             processFirstOperand(op);
                             storeIfUsed(op.result());
                         }
