@@ -282,7 +282,7 @@ public class BasicJavacTask extends JavacTask {
                 // if we run javac in bootstrap mode, there might be no jdk.incubator.code
                 CODE_LAYER = null;
             }
-        }co
+        }
     }
 
     private void initPlugin(Plugin p, String... args) {
