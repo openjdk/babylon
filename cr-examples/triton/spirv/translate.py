@@ -21,9 +21,9 @@ def matmul_kernel():
 def softmax_kernel():
    pass
 
-ADD_KERNEL_MLIR = f"{BABYLON_PATH}/cr-examples/triton/result/add_kernel"
-MATMUL_MLIR = f"{BABYLON_PATH}/cr-examples/triton/result/matmul_kernel"
-SOFTMAX_MLIR = f"{BABYLON_PATH}/cr-examples/triton/result/softmax_kernel"
+ADD_KERNEL_MLIR = f"{BABYLON_PATH}/cr-examples/triton/target/mlir/add_kernel.mlir"
+MATMUL_MLIR = f"{BABYLON_PATH}/cr-examples/triton/target/mlir/matmul_kernel.mlir"
+SOFTMAX_MLIR = f"{BABYLON_PATH}/cr-examples/triton/target/mlir/softmax_kernel.mlir"
 
 if os.path.isdir(f'{HOME}/.triton/cache'):
    shutil.rmtree(f'{HOME}/.triton/cache')

@@ -42,6 +42,9 @@ import java.lang.reflect.code.op.CoreOp;
 import java.lang.reflect.code.parser.OpParser;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.runtime.CodeReflection;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -112,12 +115,11 @@ public class TritonTestExtension implements ParameterResolver {
             });
 
             String mlirText = MLIRGenerator.transform(actualTritonKernel);
-            File directory = new File("result");
-            if (!directory.exists()) {
-                directory.mkdirs();
-            }
-            try (BufferedWriter writer = new BufferedWriter(new FileWriter("result/" + javaKernelName + ".mlir"))) {
-                writer.write(mlirText);
+            Path buildDir = Path.of(System.getProperty("project.build.directory", ""));
+            Path mlirDir = buildDir.resolve("mlir");
+            try {
+                Files.createDirectories(mlirDir);
+                Files.writeString(mlirDir.resolve(javaKernelName + ".mlir"), mlirText, StandardOpenOption.CREATE);
             } catch (IOException e) {
                 e.printStackTrace();
             }
