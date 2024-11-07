@@ -53,6 +53,12 @@ public class TestVarArg {
 
         r += ls + w(8, 9);
 
+        r += k();
+
+        r += w(11L, 12L);
+
+        r += w(21.0, 22.0);
+
         return r;
     }
 
