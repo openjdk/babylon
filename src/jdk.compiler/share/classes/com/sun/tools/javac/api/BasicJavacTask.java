@@ -266,7 +266,8 @@ public class BasicJavacTask extends JavacTask {
         static final ModuleLayer CODE_LAYER;
 
         static {
-            if (ModuleFinder.ofSystem().find("jdk.incubator.code").isPresent()) {
+            if (ModuleFinder.ofSystem().find("jdk.incubator.code").isPresent() &&
+                    !ModuleLayer.boot().findModule("jdk.incubator.code").isPresent()) {
                 ModuleLayer parent = ModuleLayer.boot();
                 Configuration cf = parent.configuration()
                         .resolve(ModuleFinder.of(), ModuleFinder.ofSystem(), Set.of("jdk.incubator.code"));
