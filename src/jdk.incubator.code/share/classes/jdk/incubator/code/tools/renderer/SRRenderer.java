@@ -25,15 +25,15 @@
 
 package jdk.incubator.code.tools.renderer;
 
-import jdk.incubator.code.java.lang.reflect.code.Block;
-import jdk.incubator.code.java.lang.reflect.code.Body;
-import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
-import jdk.incubator.code.java.lang.reflect.code.Op;
-import jdk.incubator.code.java.lang.reflect.code.Value;
+import jdk.incubator.code.Block;
+import jdk.incubator.code.Body;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
 
 import java.io.*;
-import jdk.incubator.code.java.lang.reflect.code.op.ExternalizableOp;
-import jdk.incubator.code.java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.op.ExternalizableOp;
+import jdk.incubator.code.type.JavaType;
 import java.nio.charset.StandardCharsets;
 
 /**

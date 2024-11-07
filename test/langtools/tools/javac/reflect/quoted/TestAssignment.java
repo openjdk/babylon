@@ -27,7 +27,7 @@
  * @compile/fail/ref=TestAssignment.out -XDrawDiagnostics TestAssignment.java
  */
 
-import jdk.incubator.code.java.lang.reflect.code.Quoted;
+import jdk.incubator.code.Quoted;
 
 class TestAssignment {
     void test(boolean cond) {

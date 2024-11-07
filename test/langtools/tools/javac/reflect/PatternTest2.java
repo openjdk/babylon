@@ -17,9 +17,9 @@ public class PatternTest2 {
                 %3 : java.lang.Integer = constant @null;
                 %4 : Var<java.lang.Integer> = var %3 @"i";
                 %5 : boolean = pattern.match %2
-                    ()jdk.incubator.code.java.lang.reflect.code.op.ExtendedOp$Pattern$Record<PatternTest2$R<#PatternTest2$R::T<java.lang.Number>>> -> {
-                        %6 : jdk.incubator.code.java.lang.reflect.code.op.ExtendedOp$Pattern$Type<java.lang.Integer> = pattern.type @"i";
-                        %7 : jdk.incubator.code.java.lang.reflect.code.op.ExtendedOp$Pattern$Record<PatternTest2$R<#PatternTest2$R::T<java.lang.Number>>> = pattern.record %6 @"(#PatternTest2$R::T<java.lang.Number> n)PatternTest2$R<#PatternTest2$R::T<java.lang.Number>>";
+                    ()jdk.incubator.code.op.ExtendedOp$Pattern$Record<PatternTest2$R<#PatternTest2$R::T<java.lang.Number>>> -> {
+                        %6 : jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Integer> = pattern.type @"i";
+                        %7 : jdk.incubator.code.op.ExtendedOp$Pattern$Record<PatternTest2$R<#PatternTest2$R::T<java.lang.Number>>> = pattern.record %6 @"(#PatternTest2$R::T<java.lang.Number> n)PatternTest2$R<#PatternTest2$R::T<java.lang.Number>>";
                         yield %7;
                     }
                     (%8 : java.lang.Integer)void -> {

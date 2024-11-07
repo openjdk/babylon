@@ -21,8 +21,8 @@
  * questions.
  */
 
-import jdk.incubator.code.java.lang.reflect.code.Quotable;
-import jdk.incubator.code.java.lang.reflect.code.Quoted;
+import jdk.incubator.code.Quotable;
+import jdk.incubator.code.Quoted;
 import jdk.incubator.code.CodeReflection;
 import java.util.function.IntUnaryOperator;
 

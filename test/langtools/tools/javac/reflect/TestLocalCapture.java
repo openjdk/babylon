@@ -28,13 +28,13 @@
  * @run testng TestLocalCapture
  */
 
-import jdk.incubator.code.java.lang.reflect.code.Op;
+import jdk.incubator.code.Op;
 import org.testng.annotations.*;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import jdk.incubator.code.java.lang.reflect.code.interpreter.Interpreter;
-import jdk.incubator.code.java.lang.reflect.code.op.CoreOp.FuncOp;
+import jdk.incubator.code.interpreter.Interpreter;
+import jdk.incubator.code.op.CoreOp.FuncOp;
 import jdk.incubator.code.CodeReflection;
 import java.util.stream.IntStream;
 

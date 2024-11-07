@@ -30,7 +30,7 @@
  * @run main CodeReflectionTester QuotableIntersectionTest
  */
 
-import jdk.incubator.code.java.lang.reflect.code.Quotable;
+import jdk.incubator.code.Quotable;
 import jdk.incubator.code.CodeReflection;
 import java.util.function.IntBinaryOperator;
 import java.util.function.IntFunction;
@@ -40,7 +40,7 @@ import java.util.function.IntUnaryOperator;
 public class QuotableIntersectionTest {
     @IR("""
             func @"f" ()void -> {
-                  %0 : jdk.incubator.code.java.lang.reflect.code.Quotable = lambda ()void -> {
+                  %0 : jdk.incubator.code.Quotable = lambda ()void -> {
                       return;
                   };
                   return;
@@ -51,7 +51,7 @@ public class QuotableIntersectionTest {
 
     @IR("""
             func @"f" ()void -> {
-                %0 : jdk.incubator.code.java.lang.reflect.code.Quotable = lambda ()int -> {
+                %0 : jdk.incubator.code.Quotable = lambda ()int -> {
                     %2 : int = constant @"1";
                     return %2;
                 };
@@ -62,7 +62,7 @@ public class QuotableIntersectionTest {
 
     @IR("""
             func @"f" ()void -> {
-                  %0 : jdk.incubator.code.java.lang.reflect.code.Quotable = lambda (%1 : int)int -> {
+                  %0 : jdk.incubator.code.Quotable = lambda (%1 : int)int -> {
                       %2 : Var<int> = var %1 @"x";
                       %3 : int = var.load %2;
                       return %3;
@@ -74,7 +74,7 @@ public class QuotableIntersectionTest {
 
     @IR("""
             func @"f" ()void -> {
-                %0 : jdk.incubator.code.java.lang.reflect.code.Quotable = lambda (%1 : int, %2 : int)int -> {
+                %0 : jdk.incubator.code.Quotable = lambda (%1 : int, %2 : int)int -> {
                     %3 : Var<int> = var %1 @"x";
                     %4 : Var<int> = var %2 @"y";
                     %5 : int = var.load %3;
@@ -89,7 +89,7 @@ public class QuotableIntersectionTest {
 
     @IR("""
             func @"f" ()void -> {
-                %0 : jdk.incubator.code.java.lang.reflect.code.Quotable = lambda ()void -> {
+                %0 : jdk.incubator.code.Quotable = lambda ()void -> {
                     %1 : java.lang.AssertionError = new @"func<java.lang.AssertionError>";
                     throw %1;
                 };
@@ -102,7 +102,7 @@ public class QuotableIntersectionTest {
 
     @IR("""
             func @"f" (%1 : Var<int>)void -> {
-                %2 : jdk.incubator.code.java.lang.reflect.code.Quotable = lambda (%4 : int)int -> {
+                %2 : jdk.incubator.code.Quotable = lambda (%4 : int)int -> {
                     %5 : Var<int> = var %4 @"y";
                     %6 : int = var.load %1;
                     %7 : int = var.load %5;
@@ -128,7 +128,7 @@ public class QuotableIntersectionTest {
 
     @IR("""
             func @"f" (%0 : QuotableIntersectionTest$Context)void -> {
-                %1 : jdk.incubator.code.java.lang.reflect.code.Quotable = lambda (%3 : int)int -> {
+                %1 : jdk.incubator.code.Quotable = lambda (%3 : int)int -> {
                     %4 : Var<int> = var %3 @"z";
                     %5 : int = field.load %0 @"QuotableIntersectionTest$Context::x()int";
                     %6 : int = field.load %0 @"QuotableIntersectionTest$Context::y()int";
@@ -188,7 +188,7 @@ public class QuotableIntersectionTest {
 
     @IR("""
             func @"f" ()void -> {
-                  %0 : jdk.incubator.code.java.lang.reflect.code.Quotable = lambda ()void -> {
+                  %0 : jdk.incubator.code.Quotable = lambda ()void -> {
                       invoke @"QuotableIntersectionTest::m()void";
                       return;
                   };
@@ -203,7 +203,7 @@ public class QuotableIntersectionTest {
 
     @IR("""
             func @"f" ()void -> {
-                  %0 : jdk.incubator.code.java.lang.reflect.code.Quotable = lambda (%1 : int)int -> {
+                  %0 : jdk.incubator.code.Quotable = lambda (%1 : int)int -> {
                       %2 : Var<int> = var %1 @"x$0";
                       %3 : int = var.load %2;
                       %4 : int = invoke %3 @"QuotableIntersectionTest::g(int)int";
@@ -216,7 +216,7 @@ public class QuotableIntersectionTest {
 
     @IR("""
             func @"f" ()void -> {
-                %0 : jdk.incubator.code.java.lang.reflect.code.Quotable = lambda (%1 : int)int[] -> {
+                %0 : jdk.incubator.code.Quotable = lambda (%1 : int)int[] -> {
                     %2 : Var<int> = var %1 @"x$0";
                     %3 : int = var.load %2;
                     %4 : int[] = new %3 @"func<int[], int>";
@@ -239,7 +239,7 @@ public class QuotableIntersectionTest {
 
     @IR("""
             func @"f" (%0 : QuotableIntersectionTest$ContextRef)void -> {
-                %1 : jdk.incubator.code.java.lang.reflect.code.Quotable = lambda (%3 : int)int -> {
+                %1 : jdk.incubator.code.Quotable = lambda (%3 : int)int -> {
                     %4 : Var<int> = var %3 @"x$0";
                     %5 : int = var.load %4;
                     %6 : int = invoke %0 %5 @"QuotableIntersectionTest$ContextRef::g(int)int";

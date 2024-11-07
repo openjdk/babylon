@@ -85,11 +85,11 @@ import com.sun.tools.javac.util.Log;
 import com.sun.tools.javac.util.Name;
 import com.sun.tools.javac.util.Names;
 import com.sun.tools.javac.util.Options;
-import jdk.incubator.code.java.lang.reflect.code.*;
-import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
-import jdk.incubator.code.java.lang.reflect.code.op.ExtendedOp;
-import jdk.incubator.code.java.lang.reflect.code.type.*;
-import jdk.incubator.code.java.lang.reflect.code.type.WildcardType.BoundKind;
+import jdk.incubator.code.*;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.op.ExtendedOp;
+import jdk.incubator.code.type.*;
+import jdk.incubator.code.type.WildcardType.BoundKind;
 
 import javax.lang.model.element.Modifier;
 import javax.tools.JavaFileObject;
@@ -2556,7 +2556,7 @@ public class ReflectMethods extends TreeTranslator {
                         JavaType.typeVarRef(t.tsym.name.toString(), symbolToErasedMethodRef(t.tsym.owner),
                                 typeToTypeElement(t.getUpperBound())) :
                         JavaType.typeVarRef(t.tsym.name.toString(),
-                                (jdk.incubator.code.java.lang.reflect.code.type.ClassType)symbolToErasedDesc(t.tsym.owner),
+                                (jdk.incubator.code.type.ClassType)symbolToErasedDesc(t.tsym.owner),
                                 typeToTypeElement(t.getUpperBound()));
                 case CLASS -> {
                     Assert.check(!t.isIntersection() && !t.isUnion());

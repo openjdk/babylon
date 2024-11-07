@@ -25,10 +25,10 @@
 
 package jdk.incubator.code.tools.dot;
 
-import jdk.incubator.code.java.lang.reflect.code.Block;
-import jdk.incubator.code.java.lang.reflect.code.Op;
-import jdk.incubator.code.java.lang.reflect.code.Body;
-import jdk.incubator.code.java.lang.reflect.code.Value;
+import jdk.incubator.code.Block;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Body;
+import jdk.incubator.code.Value;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;

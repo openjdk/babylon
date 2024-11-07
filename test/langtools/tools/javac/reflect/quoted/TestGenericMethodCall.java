@@ -27,7 +27,7 @@
  * @compile/fail/ref=TestGenericMethodCall.out -XDrawDiagnostics TestGenericMethodCall.java
  */
 
-import jdk.incubator.code.java.lang.reflect.code.Quoted;
+import jdk.incubator.code.Quoted;
 
 public class TestGenericMethodCall {
     void test(boolean cond) {

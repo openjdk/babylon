@@ -229,7 +229,6 @@ public class Names {
 
     // code reflection
     public final Name jdk_incubator_code;
-    public final Name jdk_incubator_code_java_lang_reflect_code;
     public final Name quoted;
     public final Name quotable;
 
@@ -419,7 +418,6 @@ public class Names {
 
         // code reflection
         jdk_incubator_code = fromString("jdk.incubator.code");
-        jdk_incubator_code_java_lang_reflect_code = fromString("jdk.incubator.code.java.lang.reflect.code");
         quoted = fromString("Quoted");
         quotable = fromString("Quotable");
     }

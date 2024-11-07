@@ -30,7 +30,7 @@
  * @run main CodeReflectionTester QuotableSubtypeTest
  */
 
-import jdk.incubator.code.java.lang.reflect.code.Quotable;
+import jdk.incubator.code.Quotable;
 import jdk.incubator.code.CodeReflection;
 import java.util.function.IntBinaryOperator;
 import java.util.function.IntFunction;

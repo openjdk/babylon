@@ -27,7 +27,7 @@
  * @compile/fail/ref=TestRecovery.out -XDrawDiagnostics TestRecovery.java
  */
 
-import jdk.incubator.code.java.lang.reflect.code.Quoted;
+import jdk.incubator.code.Quoted;
 
 public class TestRecovery {
     void testRecoveryInAssignment() {

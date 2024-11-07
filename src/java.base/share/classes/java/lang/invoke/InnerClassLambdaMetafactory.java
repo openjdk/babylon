@@ -492,9 +492,9 @@ import sun.invoke.util.Wrapper;
                 ClassLoader scl = ClassLoader.getSystemClassLoader();
                 ModuleLayer layer = parent.defineModulesWithOneLoader(cf, scl);
                 QUOTED_CLASS = layer.findLoader("jdk.incubator.code")
-                        .loadClass("jdk.incubator.code.java.lang.reflect.code.Quoted");
+                        .loadClass("jdk.incubator.code.Quoted");
                 QUOTABLE_CLASS = layer.findLoader("jdk.incubator.code")
-                        .loadClass("jdk.incubator.code.java.lang.reflect.code.Quotable");
+                        .loadClass("jdk.incubator.code.Quotable");
                 Class<?> quotedHelper = layer.findLoader("jdk.incubator.code")
                         .loadClass("jdk.incubator.code.internal.QuotedHelper");
                 MethodHandle makeQuoted = Lookup.IMPL_LOOKUP.findStatic(quotedHelper, "makeQuoted",

@@ -39,14 +39,13 @@ module jdk.incubator.code {
     requires transitive jdk.compiler;
 
     exports jdk.incubator.code;
-    exports jdk.incubator.code.java.lang.reflect.code;
-    exports jdk.incubator.code.java.lang.reflect.code.parser;
-    exports jdk.incubator.code.java.lang.reflect.code.op;
-    exports jdk.incubator.code.java.lang.reflect.code.type;
-    exports jdk.incubator.code.java.lang.reflect.code.analysis;
-    exports jdk.incubator.code.java.lang.reflect.code.bytecode;
-    exports jdk.incubator.code.java.lang.reflect.code.interpreter;
-    exports jdk.incubator.code.java.lang.reflect.code.writer;
+    exports jdk.incubator.code.parser;
+    exports jdk.incubator.code.op;
+    exports jdk.incubator.code.type;
+    exports jdk.incubator.code.analysis;
+    exports jdk.incubator.code.bytecode;
+    exports jdk.incubator.code.interpreter;
+    exports jdk.incubator.code.writer;
     exports jdk.incubator.code.tools.dot;
     exports jdk.incubator.code.tools.renderer;
 

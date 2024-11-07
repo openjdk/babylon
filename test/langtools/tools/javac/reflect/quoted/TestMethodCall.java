@@ -27,7 +27,7 @@
  * @compile/fail/ref=TestMethodCall.out -XDrawDiagnostics TestMethodCall.java
  */
 
-import jdk.incubator.code.java.lang.reflect.code.Quoted;
+import jdk.incubator.code.Quoted;
 
 public class TestMethodCall {
     void test(boolean cond) {

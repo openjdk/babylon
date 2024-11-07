@@ -25,8 +25,8 @@
 
 package jdk.incubator.code.tools.renderer;
 
-import jdk.incubator.code.java.lang.reflect.code.Block;
-import jdk.incubator.code.java.lang.reflect.code.Value;
+import jdk.incubator.code.Block;
+import jdk.incubator.code.Value;
 import java.util.HashMap;
 import java.util.Map;
 

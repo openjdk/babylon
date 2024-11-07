@@ -51,16 +51,16 @@ public class CodeReflectionSymbols {
         Names names = Names.instance(context);
         ModuleSymbol jdk_incubator_code = syms.enterModule(names.jdk_incubator_code);
         codeReflectionType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.CodeReflection");
-        quotedType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.java.lang.reflect.code.Quoted");
-        quotableType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.java.lang.reflect.code.Quotable");
-        Type opInterpreterType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.java.lang.reflect.code.interpreter.Interpreter");
-        Type opType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.java.lang.reflect.code.Op");
+        quotedType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.Quoted");
+        quotableType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.Quotable");
+        Type opInterpreterType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.interpreter.Interpreter");
+        Type opType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.Op");
         opInterpreterInvoke = new MethodSymbol(PUBLIC | STATIC | VARARGS,
                 names.fromString("invoke"),
                 new MethodType(List.of(opType, new ArrayType(syms.objectType, syms.arrayClass)), syms.objectType,
                         List.nil(), syms.methodClass),
                 opInterpreterType.tsym);
-        Type opParserType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.java.lang.reflect.code.parser.OpParser");
+        Type opParserType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.parser.OpParser");
         opParserFromString = new MethodSymbol(PUBLIC | STATIC,
                 names.fromString("fromStringOfFuncOp"),
                 new MethodType(List.of(syms.stringType), opType,

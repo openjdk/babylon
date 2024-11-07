@@ -46,7 +46,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * A compiler plugin that processes methods annotated with the {@link jdk.incubator.code.CodeReflection}
+ * A compiler plugin that processes methods annotated with the {@link jdk.incubator.codeReflection}
  * annotation, and saves their code model in the resulting AST.
  */
 public class CodeReflectionPlugin implements Plugin {

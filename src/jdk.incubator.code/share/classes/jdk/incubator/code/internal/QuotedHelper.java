@@ -25,10 +25,10 @@
 
 package jdk.incubator.code.internal;
 
-import jdk.incubator.code.java.lang.reflect.code.Quoted;
-import jdk.incubator.code.java.lang.reflect.code.interpreter.Interpreter;
-import jdk.incubator.code.java.lang.reflect.code.op.CoreOp.FuncOp;
-import jdk.incubator.code.java.lang.reflect.code.parser.OpParser;
+import jdk.incubator.code.Quoted;
+import jdk.incubator.code.interpreter.Interpreter;
+import jdk.incubator.code.op.CoreOp.FuncOp;
+import jdk.incubator.code.parser.OpParser;
 
 import java.lang.invoke.MethodHandles;
 
