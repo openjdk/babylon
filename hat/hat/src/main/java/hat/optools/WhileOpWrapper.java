@@ -24,7 +24,7 @@
  */
 package hat.optools;
 
-import jdk.incubator.code.java.lang.reflect.code.op.ExtendedOp;
+import jdk.incubator.code.op.ExtendedOp;
 import java.util.stream.Stream;
 
 public class WhileOpWrapper extends LoopOpWrapper<ExtendedOp.JavaWhileOp> {

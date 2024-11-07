@@ -35,9 +35,9 @@ import hat.optools.OpWrapper;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import jdk.incubator.code.java.lang.reflect.code.Quotable;
-import jdk.incubator.code.java.lang.reflect.code.Quoted;
-import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
+import jdk.incubator.code.Quotable;
+import jdk.incubator.code.Quoted;
+import jdk.incubator.code.op.CoreOp;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ServiceLoader;

@@ -31,12 +31,12 @@ import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
-import jdk.incubator.code.java.lang.reflect.code.OpTransformer;
-import jdk.incubator.code.java.lang.reflect.code.analysis.SSA;
-import jdk.incubator.code.java.lang.reflect.code.bytecode.BytecodeGenerator;
-import jdk.incubator.code.java.lang.reflect.code.interpreter.Interpreter;
-import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
-import jdk.incubator.code.java.lang.reflect.code.type.FunctionType;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.analysis.SSA;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
+import jdk.incubator.code.interpreter.Interpreter;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.FunctionType;
 
 public class DebugBackend extends BackendAdaptor {
     public enum HowToRunCompute{REFLECT, BABYLON_INTERPRETER, BABYLON_CLASSFILE}

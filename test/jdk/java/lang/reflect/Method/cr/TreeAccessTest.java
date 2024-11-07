@@ -26,11 +26,11 @@ import org.testng.annotations.Test;
 
 import java.io.StringWriter;
 import java.lang.reflect.Method;
-import jdk.incubator.code.java.lang.reflect.code.Op;
-import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
-import jdk.incubator.code.java.lang.reflect.code.op.ExtendedOp;
-import jdk.incubator.code.java.lang.reflect.code.parser.OpParser;
-import jdk.incubator.code.java.lang.reflect.code.writer.OpWriter;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.op.ExtendedOp;
+import jdk.incubator.code.parser.OpParser;
+import jdk.incubator.code.writer.OpWriter;
 import java.lang.runtime.CodeReflection;
 import java.util.Optional;
 

@@ -27,14 +27,14 @@ package experiments;
 
 
 import java.lang.reflect.Method;
-import jdk.incubator.code.java.lang.reflect.code.CopyContext;
-import jdk.incubator.code.java.lang.reflect.code.Op;
-import jdk.incubator.code.java.lang.reflect.code.OpTransformer;
-import jdk.incubator.code.java.lang.reflect.code.TypeElement;
-import jdk.incubator.code.java.lang.reflect.code.Value;
-import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
-import jdk.incubator.code.java.lang.reflect.code.type.JavaType;
-import jdk.incubator.code.java.lang.reflect.code.type.MethodRef;
+import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.type.MethodRef;
 import java.lang.runtime.CodeReflection;
 import java.util.List;
 import java.util.Map;

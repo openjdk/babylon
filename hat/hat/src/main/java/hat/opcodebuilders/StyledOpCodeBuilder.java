@@ -25,8 +25,8 @@
 package hat.opcodebuilders;
 
 
-import jdk.incubator.code.java.lang.reflect.code.TypeElement;
-import jdk.incubator.code.java.lang.reflect.code.Value;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.Value;
 
 public abstract class StyledOpCodeBuilder<T extends StyledOpCodeBuilder<T>> extends OpCodeBuilder<T> {
 

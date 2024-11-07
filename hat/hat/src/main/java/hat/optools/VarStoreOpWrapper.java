@@ -24,7 +24,7 @@
  */
 package hat.optools;
 
-import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
+import jdk.incubator.code.op.CoreOp;
 
 public class VarStoreOpWrapper extends VarAccessOpWrapper<CoreOp.VarAccessOp.VarStoreOp> implements StoreOpWrapper {
 

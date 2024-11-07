@@ -28,8 +28,8 @@ package hat.backend.c99codebuilders;
 import hat.optools.FuncOpWrapper;
 import hat.optools.StructuralOpWrapper;
 
-import jdk.incubator.code.java.lang.reflect.code.TypeElement;
-import jdk.incubator.code.java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.type.JavaType;
 
 
 public abstract class C99HatComputeBuilder<T extends C99HatComputeBuilder<T>> extends C99HatBuilder<T> {

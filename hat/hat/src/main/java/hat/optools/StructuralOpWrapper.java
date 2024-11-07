@@ -24,7 +24,7 @@
  */
 package hat.optools;
 
-import jdk.incubator.code.java.lang.reflect.code.Op;
+import jdk.incubator.code.Op;
 
 public abstract class StructuralOpWrapper<T extends Op> extends OpWrapper<T> {
     StructuralOpWrapper(T op) {

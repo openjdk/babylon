@@ -24,8 +24,8 @@
  */
 package hat.optools;
 
-import jdk.incubator.code.java.lang.reflect.code.Block;
-import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
+import jdk.incubator.code.Block;
+import jdk.incubator.code.op.CoreOp;
 
 public class VarFuncDeclarationOpWrapper extends VarOpWrapper {
     final CoreOp.FuncOp funcOp;

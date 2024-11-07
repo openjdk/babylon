@@ -29,8 +29,8 @@ import hat.optools.FuncOpWrapper;
 import hat.optools.OpWrapper;
 
 import java.lang.reflect.Method;
-import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
-import jdk.incubator.code.java.lang.reflect.code.type.MethodRef;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.MethodRef;
 import java.util.Optional;
 import java.util.stream.Stream;
 

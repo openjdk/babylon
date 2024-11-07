@@ -25,8 +25,8 @@
 package hat.optools;
 
 import java.lang.reflect.Field;
-import jdk.incubator.code.java.lang.reflect.code.TypeElement;
-import jdk.incubator.code.java.lang.reflect.code.op.CoreOp;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.op.CoreOp;
 
 public class FieldLoadOpWrapper extends FieldAccessOpWrapper<CoreOp.FieldAccessOp.FieldLoadOp> implements LoadOpWrapper {
 

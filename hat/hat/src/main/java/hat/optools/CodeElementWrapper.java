@@ -24,7 +24,7 @@
  */
 package hat.optools;
 
-import jdk.incubator.code.java.lang.reflect.code.CodeElement;
+import jdk.incubator.code.CodeElement;
 
 public abstract class CodeElementWrapper<T extends CodeElement> {
     protected T codeElement;

@@ -24,7 +24,7 @@
  */
 package hat.optools;
 
-import jdk.incubator.code.java.lang.reflect.code.Op;
+import jdk.incubator.code.Op;
 import java.util.stream.Stream;
 
 public abstract class LoopOpWrapper<T extends Op> extends StructuralOpWrapper<T> {
