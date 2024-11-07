@@ -416,7 +416,7 @@ public class ArithMathOps {
         final CompareKind ck;
 
         public static CompareOp create(ExternalizedOp def) {
-            CompareKind ck = def.extractAttributeValue(ATTRIBUTE_CONSTANT_VALUE, true,
+            CompareKind ck = def.extractAttributeValue(ATTRIBUTE_PREDICATE, true,
                     v -> switch (v) {
                         case String s -> CompareKind.valueOf(s);
                         case CompareKind k -> k;
@@ -458,7 +458,7 @@ public class ArithMathOps {
         @Override
         public Map<String, Object> attributes() {
             HashMap<String, Object> attrs = new HashMap<>(super.attributes());
-            attrs.put(ATTRIBUTE_CONSTANT_VALUE, Long.valueOf(ck.ordinal()));
+            attrs.put(ATTRIBUTE_PREDICATE, Long.valueOf(ck.ordinal()));
             return attrs;
         }
 
