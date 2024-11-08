@@ -121,6 +121,13 @@ public class ArithMathOps {
                 } else if (value instanceof Number n) {
                     return n.floatValue();
                 }
+            } else if (t.equals(Float16.FLOAT_16_TYPE)) {
+                // represent as a float for now
+                if (value instanceof String s) {
+                    return Float.valueOf(s);
+                } else if (value instanceof Number n) {
+                    return n.floatValue();
+                }
             } else if (t.equals(JavaType.DOUBLE)) {
                 if (value instanceof String s) {
                     return Double.valueOf(s);
