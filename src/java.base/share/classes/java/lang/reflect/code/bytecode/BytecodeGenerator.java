@@ -861,7 +861,7 @@ public final class BytecodeGenerator {
                                     .dup();
                                 processOperands(op);
                                 cob.invokespecial(
-                                        ((JavaType) op.resultType()).toNominalDescriptor(),
+                                        jt.toNominalDescriptor(),
                                         ConstantDescs.INIT_NAME,
                                         MethodRef.toNominalDescriptor(op.constructorType())
                                                  .changeReturnType(ConstantDescs.CD_void));
