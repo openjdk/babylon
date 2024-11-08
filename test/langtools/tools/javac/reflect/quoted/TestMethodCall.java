@@ -24,7 +24,7 @@
 /*
  * @test /nodynamiccopyright/
  * @modules jdk.incubator.code
- * @compile/fail/ref=TestMethodCall.out -XDrawDiagnostics TestMethodCall.java
+ * @compile/fail/ref=TestMethodCall.out -Xlint:-incubating -XDrawDiagnostics TestMethodCall.java
  */
 
 import jdk.incubator.code.Quoted;

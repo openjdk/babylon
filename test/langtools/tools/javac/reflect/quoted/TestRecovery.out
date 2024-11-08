@@ -1,4 +1,3 @@
-- compiler.warn.incubating.modules: jdk.incubator.code
 TestRecovery.java:34:22: compiler.err.quoted.lambda.must.be.explicit
 TestRecovery.java:34:50: compiler.err.cant.resolve.location: kindname.variable, nonExistent, , , (compiler.misc.location: kindname.class, TestRecovery, null)
 TestRecovery.java:38:15: compiler.err.quoted.lambda.must.be.explicit
@@ -6,4 +5,3 @@ TestRecovery.java:38:43: compiler.err.cant.resolve.location: kindname.variable, 
 TestRecovery.java:42:29: compiler.err.quoted.lambda.must.be.explicit
 TestRecovery.java:42:57: compiler.err.cant.resolve.location: kindname.variable, nonExistent, , , (compiler.misc.location: kindname.class, TestRecovery, null)
 6 errors
-1 warning

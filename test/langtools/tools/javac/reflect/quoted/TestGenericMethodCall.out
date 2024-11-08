@@ -1,4 +1,3 @@
-- compiler.warn.incubating.modules: jdk.incubator.code
 TestGenericMethodCall.java:44:29: compiler.err.quoted.lambda.must.be.explicit
 TestGenericMethodCall.java:45:29: compiler.err.quoted.lambda.must.be.explicit
 TestGenericMethodCall.java:46:29: compiler.err.quoted.lambda.must.be.explicit
@@ -14,4 +13,3 @@ TestGenericMethodCall.java:58:29: compiler.err.quoted.lambda.must.be.explicit
 TestGenericMethodCall.java:62:40: compiler.err.cant.infer.quoted.lambda.return.type: void,java.lang.String
 TestGenericMethodCall.java:63:40: compiler.err.cant.infer.quoted.lambda.return.type: java.lang.String,void
 14 errors
-1 warning

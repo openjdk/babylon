@@ -24,7 +24,7 @@
 /*
  * @test /nodynamiccopyright/
  * @modules jdk.incubator.code
- * @compile/fail/ref=TestGenericMethodCall.out -XDrawDiagnostics TestGenericMethodCall.java
+ * @compile/fail/ref=TestGenericMethodCall.out -Xlint:-incubating -XDrawDiagnostics TestGenericMethodCall.java
  */
 
 import jdk.incubator.code.Quoted;
