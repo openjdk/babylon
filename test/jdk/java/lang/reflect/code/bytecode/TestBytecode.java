@@ -37,10 +37,10 @@ import org.testng.annotations.Test;
 
 import java.lang.reflect.code.*;
 import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.bytecode.BytecodeLift;
 import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.Method;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
+import java.lang.reflect.code.bytecode.BytecodeLift;
 import java.lang.reflect.code.type.JavaType;
 import java.lang.runtime.CodeReflection;
 import java.nio.file.Files;

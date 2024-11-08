@@ -1916,20 +1916,6 @@ public sealed abstract class CoreOp extends ExternalizableOp {
                     : List.of(array, index, v);
         }
 
-        static TypeElement resultType(Value array, Value v) {
-            if (!(array.type() instanceof ArrayType arrayType)) {
-                throw new IllegalArgumentException("Type is not an array type: " + array.type());
-            }
-
-            // @@@ restrict to indexes of int?
-            TypeElement componentType = arrayType.componentType();
-            if (v == null) {
-                return componentType;
-            } else {
-                return JavaType.VOID;
-            }
-        }
-
         /**
          * The array load operation, that can model Java language array expressions combined with load access to the
          * components of an array.
@@ -1938,13 +1924,16 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         public static final class ArrayLoadOp extends ArrayAccessOp
                 implements Op.Pure, JavaExpression {
             public static final String NAME = "array.load";
+            final TypeElement componentType;
 
             public ArrayLoadOp(ExternalizedOp def) {
                 super(def);
+                this.componentType = def.resultType();
             }
 
             ArrayLoadOp(ArrayLoadOp that, CopyContext cc) {
                 super(that, cc);
+                this.componentType = that.componentType;
             }
 
             @Override
@@ -1953,14 +1942,18 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             }
 
             ArrayLoadOp(Value array, Value index) {
+                // @@@ revisit this when the component type is not explicitly given (see VarOp.resultType as an example)
+                this(array, index, ((ArrayType)array.type()).componentType());
+            }
+
+            ArrayLoadOp(Value array, Value index, TypeElement componentType) {
                 super(NAME, array, index, null);
+                this.componentType = componentType;
             }
 
             @Override
             public TypeElement resultType() {
-                Value array = operands().get(0);
-                ArrayType t = (ArrayType) array.type();
-                return t.componentType();
+                return componentType;
             }
         }
 
@@ -3987,6 +3980,18 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     }
 
     /**
+     * Creates an array load operation.
+     *
+     * @param array the array value
+     * @param index the index value
+     * @param componentType type of the array component
+     * @return the array load operation
+     */
+    public static ArrayAccessOp.ArrayLoadOp arrayLoadOp(Value array, Value index, TypeElement componentType) {
+        return new ArrayAccessOp.ArrayLoadOp(array, index, componentType);
+    }
+
+    /**
      * Creates an array store operation.
      *
      * @param array the array value
@@ -4040,7 +4045,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      * @return the var operation
      */
     public static VarOp var(TypeElement type) {
-        return var(null, type, null);
+        return var(null, type);
     }
 
     /**

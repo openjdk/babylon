@@ -31,12 +31,10 @@ import java.lang.classfile.attribute.CodeAttribute;
 import java.lang.classfile.components.ClassPrinter;
 import java.lang.classfile.instruction.*;
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.code.CodeElement;
-import java.lang.reflect.code.Value;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
 import java.lang.reflect.code.bytecode.BytecodeLift;
+import java.lang.reflect.code.interpreter.Verifier;
 import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.writer.OpWriter;
 import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -100,8 +98,8 @@ public class TestSmallCorpus {
         max stack:   %3$,10d %6$,10d
         """.formatted((Object[])stats));
 
-        // Roundtrip is >99% stable, no exceptions, no verification errors
-        Assert.assertTrue(stable > 54140 && unstable < 100, String.format("stable: %d unstable: %d", stable, unstable));
+        // Roundtrip is 100% stable after 3 rounds, no exceptions, no verification errors
+        Assert.assertTrue(stable > 54500 && unstable == 0, String.format("stable: %d unstable: %d", stable, unstable));
     }
 
     private void testRoundTripStability(Path path) throws Exception {
@@ -133,8 +131,8 @@ public class TestSmallCorpus {
                     } else {
                         unstable++;
                         System.out.println("Unstable code " + path + " " + originalModel.methodName() + originalModel.methodType() + " after " + ROUNDS +" round(s)");
+                        if (prevReflection != null) printInColumns(prevReflection, reflection);
                         printInColumns(normPrevBytecode, normBytecode);
-                        printInColumns(prevReflection, reflection);
                         System.out.println();
                     }
                     var ca = (CodeAttribute)originalModel.code().get();
@@ -153,30 +151,25 @@ public class TestSmallCorpus {
     }
 
     private void verifyReflection() {
-        reflection.traverse(null, CodeElement.opVisitor((n, op) -> {
-            for (Value v : op.operands()) {
-                // Verify operands dominance
-                if (!op.result().isDominatedBy(v)) {
-                    printBytecode();
-                    var naming = OpWriter.CodeItemNamerOption.of(OpWriter.computeGlobalNames(reflection));
-                    System.out.println(OpWriter.toText(reflection, naming));
-                    System.out.println("Reflection verification failed");
-                    throw new AssertionError("block_%d %s is not dominated by its operand declaration in block_%d".formatted(
-                            op.parentBlock().index(), OpWriter.toText(op, naming), v.declaringBlock().index()));
-                }
-            }
-            return null;
-        }));
+        var errors = Verifier.verify(TRUSTED_LOOKUP, reflection);
+        if (!errors.isEmpty()) {
+            printBytecode();
+            System.out.println("Code reflection model verification failed:");
+            errors.forEach(e -> System.out.println(e.getMessage()));
+            System.out.println(errors.getFirst().getPrintedContext());
+            throw new AssertionError("Code reflection model verification failed");
+        }
     }
 
     private void verifyBytecode() {
-        for (var e : ClassFile.of().verify(bytecode.parent().get())) {
-            if (!e.getMessage().contains("Illegal call to internal method")) {
-                printReflection();
-                printBytecode();
-                System.out.println("Bytecode verification failed");
-                throw new AssertionError(e.getMessage());
-            }
+        var errors = ClassFile.of().verify(bytecode.parent().get()).stream()
+                .filter(e -> !e.getMessage().contains("Illegal call to internal method")).toList();
+        if (!errors.isEmpty()) {
+            printReflection();
+            System.out.println("Bytecode verification failed:");
+            errors.forEach(e -> System.out.println(e.getMessage()));
+            printBytecode();
+            throw new AssertionError("Bytecode verification failed");
         }
     }
 
@@ -213,6 +206,8 @@ public class TestSmallCorpus {
             bytecode = CF.parse(BytecodeGenerator.generateClassData(
                 TRUSTED_LOOKUP,
                 reflection)).methods().getFirst();
+        } catch (UnsupportedOperationException uoe) {
+            throw uoe;
         } catch (Throwable t) {
             printBytecode();
             printReflection();
