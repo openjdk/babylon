@@ -29,18 +29,18 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.*;
-import java.lang.reflect.code.analysis.SSA;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.op.ExtendedOp;
-import java.lang.reflect.code.type.JavaType;
-import java.lang.reflect.code.type.VarType;
+import jdk.incubator.code.*;
+import jdk.incubator.code.analysis.SSA;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.op.ExtendedOp;
+import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.type.VarType;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
-import static java.lang.reflect.code.op.CoreOp.*;
-import static java.lang.reflect.code.type.FunctionType.functionType;
+import static jdk.incubator.code.op.CoreOp.*;
+import static jdk.incubator.code.type.FunctionType.functionType;
 
 public final class TritonTransformer {
     private TritonTransformer() {}

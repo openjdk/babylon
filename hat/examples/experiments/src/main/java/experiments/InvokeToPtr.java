@@ -31,11 +31,12 @@ import hat.OpsAndTypes;
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.type.FunctionType;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -75,7 +76,7 @@ public class InvokeToPtr {
                 .findFirst();
 
         Method m = om.orElseThrow();
-        CoreOp.FuncOp highLevelForm = m.getCodeModel().orElseThrow();
+        CoreOp.FuncOp highLevelForm = Op.ofMethod(m).orElseThrow();
 
         System.out.println("Initial code model");
         System.out.println(highLevelForm.toText());

@@ -25,13 +25,13 @@
 
 package oracle.code.triton;
 
-import java.lang.reflect.code.CopyContext;
-import java.lang.reflect.code.OpTransformer;
-import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.Value;
-import java.lang.reflect.code.op.OpFactory;
-import java.lang.reflect.code.op.ExternalizableOp;
-import java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.op.OpFactory;
+import jdk.incubator.code.op.ExternalizableOp;
+import jdk.incubator.code.type.JavaType;
 import java.util.List;
 
 public class TritonTestOps {

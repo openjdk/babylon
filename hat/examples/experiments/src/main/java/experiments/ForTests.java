@@ -30,7 +30,7 @@ import hat.KernelContext;
 import hat.buffer.F32Array;
 
 import java.lang.invoke.MethodHandles;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 
 public class ForTests {
 

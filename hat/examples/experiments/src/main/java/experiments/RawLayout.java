@@ -41,7 +41,7 @@ import jdk.incubator.code.op.OpFactory;
 import jdk.incubator.code.type.FunctionType;
 import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.type.PrimitiveType;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -131,7 +131,7 @@ public class RawLayout {
                 .findFirst();
 
         Method m = om.get();
-        return m.getCodeModel().get();
+        return Op.ofMethod(m).get();
     }
 
     //

@@ -35,7 +35,7 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.type.MethodRef;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 import java.util.List;
 import java.util.Map;
 
@@ -123,7 +123,7 @@ public class Transform {
             String methodName = "matrixMultiply";
             Method method = Transform.class.getDeclaredMethod(methodName, float[].class, float[].class, float[].class, int.class);
 
-            CoreOp.FuncOp javaFunc = method.getCodeModel().get();
+            CoreOp.FuncOp javaFunc = Op.ofMethod(method).get();
 
             CoreOp.FuncOp transformed = javaFunc.transform((builder, op) -> {
                 if (op instanceof CoreOp.InvokeOp invokeOp) {

@@ -15,14 +15,10 @@ tracking.
 
 The Babylon JDK builds like any other JDK, see the build instructions above.
 
-### Code shared between `java.base` and `jdk.compiler` modules
-
-A subset of code in `java.base` is copied with package renaming into
-the `jdk.compiler` module. This is the set of code required to build
-and serialize code models. Due to bootstrapping constraints, compiling
-the compiler it cannot depend on all code in `java.base`. In the future
-we may come up with a better solution. For now the build has been modified
-to copy the code, which leverages the script `cr-util/copy-to-compiler.sh`.
+The Babylon API and implementation resides in the incubating model 
+`jdk.incubator.code`. Compilation and execution of dependent code requires
+that this module be made visible by explicitly adding to the list of modules
+e.g., such as with the command line option `--add-modules jdk.incubator.code`.
 
 ### Testing
 
