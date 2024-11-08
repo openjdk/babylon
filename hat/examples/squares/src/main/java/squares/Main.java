@@ -30,7 +30,7 @@ import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 
 public class Main {
     @CodeReflection

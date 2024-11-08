@@ -33,11 +33,12 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.parser.OpParser;
-import java.lang.reflect.code.type.JavaType;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.parser.OpParser;
+import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.CodeReflection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -82,7 +83,7 @@ public class TritonTestExtension implements ParameterResolver {
             Method m = om.get();
             TritonCodeModel tcm = m.getAnnotation(TritonCodeModel.class);
             boolean doSSA = tcm != null ? tcm.SSA() : true;
-            test(m.getCodeModel().get(), argTypes, expectedTritonKernel(tcm), doSSA);
+            test(Op.ofMethod(m).get(), argTypes, expectedTritonKernel(tcm), doSSA);
         }
 
         public TritonOps.ModuleOp expectedTritonKernel(TritonCodeModel tcm) {

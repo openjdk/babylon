@@ -42,7 +42,7 @@ import jdk.incubator.code.op.OpFactory;
 import jdk.incubator.code.type.FunctionType;
 import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.type.PrimitiveType;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -106,7 +106,7 @@ public class LayoutExample {
                 .findFirst();
 
         Method m = om.orElseThrow();
-        CoreOp.FuncOp f= m.getCodeModel().orElseThrow();
+        CoreOp.FuncOp f= Op.ofMethod(m).orElseThrow();
         f = SSA.transform(f);
         System.out.println(f.toText());
         FunctionType functionType = transformStructClassToPtr(MethodHandles.lookup(), f);

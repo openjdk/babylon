@@ -25,8 +25,9 @@
 package hat.backend;
 
 import java.lang.reflect.Method;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.op.CoreOp;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 
 
 public class TestIt {
@@ -49,7 +50,7 @@ public class TestIt {
             String methodName = "matrixMultiply";
             Method method = TestIt.class.getDeclaredMethod(methodName, float[].class, float[].class, float[].class, int.class);
 
-            CoreOp.FuncOp javaFunc = method.getCodeModel().get();
+            CoreOp.FuncOp javaFunc = Op.ofMethod(method).get();
 
             // convert the kernel javaFunc to a mock backend compatible
         }

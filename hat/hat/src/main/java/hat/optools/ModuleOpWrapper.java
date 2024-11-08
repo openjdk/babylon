@@ -52,7 +52,7 @@ public class ModuleOpWrapper extends OpWrapper<CoreOp.ModuleOp> {
 
     public static ModuleOpWrapper createTransitiveInvokeModule(MethodHandles.Lookup lookup,
                                                                Method entryPoint) {
-        Optional<CoreOp.FuncOp> codeModel = entryPoint.getCodeModel();
+        Optional<CoreOp.FuncOp> codeModel = Op.ofMethod(entryPoint);
         if (codeModel.isPresent()) {
             return OpWrapper.wrap(createTransitiveInvokeModule(lookup, MethodRef.method(entryPoint), codeModel.get()));
         } else {
@@ -80,7 +80,7 @@ public class ModuleOpWrapper extends OpWrapper<CoreOp.ModuleOp> {
                         methodRefToEntryFuncOpCall.methodRef.toString(), (blockBuilder, op) -> {
                             if (op instanceof CoreOp.InvokeOp invokeOp && OpWrapper.wrap(invokeOp) instanceof InvokeOpWrapper invokeOpWrapper) {
                                 Method invokedMethod = invokeOpWrapper.method(lookup);
-                                Optional<CoreOp.FuncOp> optionalInvokedFuncOp = invokedMethod.getCodeModel();
+                                Optional<CoreOp.FuncOp> optionalInvokedFuncOp = Op.ofMethod(invokedMethod);
                                 if (optionalInvokedFuncOp.isPresent() && OpWrapper.wrap(optionalInvokedFuncOp.get()) instanceof FuncOpWrapper funcOpWrapper) {
                                     MethodRefToEntryFuncOpCall call =
                                             new MethodRefToEntryFuncOpCall(invokeOpWrapper.methodRef(), funcOpWrapper.op());

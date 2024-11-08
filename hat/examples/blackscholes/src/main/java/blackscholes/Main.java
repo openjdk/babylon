@@ -32,7 +32,7 @@ import hat.backend.Backend;
 import hat.buffer.F32Array;
 import java.util.Random;
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 
 public class Main {
     static Random rand;

@@ -36,7 +36,7 @@ import jdk.incubator.code.interpreter.Interpreter;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.type.MethodRef;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 import java.util.List;
 import java.util.Map;
 
@@ -56,8 +56,8 @@ public class PrePostInc {
         static public void main(String[] args) throws Exception {
             Method pre = PrePostInc.class.getDeclaredMethod("preInc",  int.class);
             Method post = PrePostInc.class.getDeclaredMethod("postInc",  int.class);
-            CoreOp.FuncOp preFunc = pre.getCodeModel().get();
-            CoreOp.FuncOp postFunc = post.getCodeModel().get();
+            CoreOp.FuncOp preFunc = Op.ofMethod(pre).get();
+            CoreOp.FuncOp postFunc = Op.ofMethod(post).get();
 
             Object preResult = Interpreter.invoke(preFunc,5);
             System.out.println("Pre "+ preResult);

@@ -26,8 +26,9 @@
 package hat.backend;
 
 import java.lang.reflect.Method;
+import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.op.CoreOp;
-import java.lang.runtime.CodeReflection;
 
 
 public class TestIt {
@@ -50,7 +51,7 @@ public class TestIt {
             String methodName = "matrixMultiply";
             Method method = TestIt.class.getDeclaredMethod(methodName, float[].class, float[].class, float[].class, int.class);
 
-            CoreOp.FuncOp javaFunc = method.getCodeModel().get();
+            CoreOp.FuncOp javaFunc = Op.ofMethod(method).get();
 
             // Add code to convert model javaFunc to PTX
         }

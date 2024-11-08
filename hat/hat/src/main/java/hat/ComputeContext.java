@@ -124,7 +124,7 @@ public class ComputeContext implements BufferAllocator {
 
        // System.out.println(module.op().toText());
 
-        FuncOpWrapper funcOpWrapper = OpWrapper.wrap(computeMethod.getCodeModel().orElseThrow());
+        FuncOpWrapper funcOpWrapper = OpWrapper.wrap(Op.ofMethod(computeMethod).orElseThrow());
 
         this.computeCallGraph = new ComputeCallGraph(this, computeMethod, funcOpWrapper);
 

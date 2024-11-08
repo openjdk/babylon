@@ -25,7 +25,7 @@
 
 package oracle.code.triton;
 
-import java.lang.reflect.code.TypeElement;
+import jdk.incubator.code.TypeElement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;

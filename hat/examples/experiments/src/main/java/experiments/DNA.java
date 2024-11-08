@@ -33,7 +33,7 @@ import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.type.JavaType;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -72,7 +72,7 @@ public class DNA {
 
     static public void main(String[] args) throws Exception {
         Method method = DNA.class.getDeclaredMethod("addMul", int.class, int.class);
-        var funcOp = method.getCodeModel().get();
+        var funcOp = Op.ofMethod(method).get();
         var transformed = funcOp.transform((builder, op) -> {
             CopyContext cc = builder.context();
             if (op instanceof CoreOp.InvokeOp invokeOp) {
