@@ -195,6 +195,19 @@ public final class BytecodeGenerator {
                                           iop.body().blocks(), cob, lambdaSink, quotable).generate()));
     }
 
+    public static ClassModel addOpByteCodeToClassFile(MethodHandles.Lookup lookup, ClassModel cm, String methodName, FuncOp builderOp) {
+        var bytes = generateClassData(lookup, methodName, builderOp);
+        var builderMethod = ClassFile.of().parse(bytes).methods().stream()
+                .filter(mm -> mm.methodName().equalsString(methodName)).findFirst().get();
+        var newBytes = ClassFile.of().build(cm.thisClass().asSymbol(), cb -> {
+            for (var ce : cm) {
+                cb.with(ce);
+            }
+            cb.with(builderMethod);
+        });
+        return ClassFile.of().parse(newBytes);
+    }
+
     private record Slot(int slot, TypeKind typeKind) {}
     private record ExceptionRegionWithBlocks(ExceptionRegionEnter ere, BitSet blocks) {}
 
