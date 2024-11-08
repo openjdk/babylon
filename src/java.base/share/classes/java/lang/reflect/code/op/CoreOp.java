@@ -1942,6 +1942,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             }
 
             ArrayLoadOp(Value array, Value index) {
+                // @@@ revisit this when the component type is not explicitly given (see VarOp.resultType as an example)
                 this(array, index, ((ArrayType)array.type()).componentType());
             }
 
