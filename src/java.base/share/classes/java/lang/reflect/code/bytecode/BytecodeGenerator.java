@@ -195,7 +195,7 @@ public final class BytecodeGenerator {
                                           iop.body().blocks(), cob, lambdaSink, quotable).generate()));
     }
 
-    public static ClassModel addOpByteCodeToClassFile(MethodHandles.Lookup lookup, ClassModel cm, String methodName, FuncOp builderOp) {
+    public static byte[] addOpByteCodeToClassFile(MethodHandles.Lookup lookup, ClassModel cm, String methodName, FuncOp builderOp) {
         var bytes = generateClassData(lookup, methodName, builderOp);
         var builderMethod = ClassFile.of().parse(bytes).methods().stream()
                 .filter(mm -> mm.methodName().equalsString(methodName)).findFirst().get();
@@ -205,7 +205,7 @@ public final class BytecodeGenerator {
             }
             cb.with(builderMethod);
         });
-        return ClassFile.of().parse(newBytes);
+        return newBytes;
     }
 
     private record Slot(int slot, TypeKind typeKind) {}
