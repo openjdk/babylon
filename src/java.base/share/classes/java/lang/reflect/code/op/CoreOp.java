@@ -1560,6 +1560,15 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             return operands().subList(operandCount - varArgCount, operandCount);
         }
 
+        public List<Value> argOperands() {
+            if (!isVarArgs()){
+                return operands();
+            }
+            int paramCount = invokeDescriptor().type().parameterTypes().size();
+            int argOperandsCount = paramCount - (invokeKind() == InvokeKind.STATIC ? 1 : 0);
+            return operands().subList(0, argOperandsCount);
+        }
+
         @Override
         public TypeElement resultType() {
             return resultType;
