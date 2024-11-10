@@ -55,9 +55,9 @@ public class TestVarArg {
 
         r += k();
 
-        r += w(11L, 12L);
+        r += l(11L, 12L);
 
-        r += w(21.0, 22.0);
+        r += d(21.0, 22.0);
 
         return r;
     }
@@ -76,6 +76,14 @@ public class TestVarArg {
 
     static <T extends Number> String w(T... ts) {
         return Arrays.toString(ts);
+    }
+
+    static String l(long... a) {
+        return Arrays.toString(a);
+    }
+
+    static String d(double... a) {
+        return Arrays.toString(a);
     }
 
     private CoreOp.FuncOp getFuncOp(String name) {
