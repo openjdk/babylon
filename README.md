@@ -15,7 +15,7 @@ tracking.
 
 The Babylon JDK builds like any other JDK, see the build instructions above.
 
-The Babylon API and implementation resides in the incubating model 
+The Babylon API and implementation resides in the incubating model
 `jdk.incubator.code`. Compilation and execution of dependent code requires
 that this module be made visible by explicitly adding to the list of modules
 e.g., such as with the command line option `--add-modules jdk.incubator.code`.
