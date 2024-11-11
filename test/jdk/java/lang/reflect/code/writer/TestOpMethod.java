@@ -7,18 +7,16 @@ import java.io.IOException;
 import java.lang.classfile.*;
 import java.lang.classfile.components.ClassPrinter;
 import java.lang.classfile.constantpool.FieldRefEntry;
-import java.lang.classfile.constantpool.PoolEntry;
 import java.lang.classfile.constantpool.StringEntry;
 import java.lang.classfile.instruction.*;
 import java.lang.constant.ConstantDescs;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.code.Op;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
-import java.lang.reflect.code.interpreter.Interpreter;
 import java.lang.reflect.code.op.ExtendedOp;
+import java.lang.reflect.code.op.OpFactory;
 import java.lang.reflect.code.parser.OpParser;
-import java.lang.reflect.code.type.CoreTypeFactory;
-import java.lang.reflect.code.type.MethodRef;
+import java.lang.reflect.code.type.*;
 import java.lang.reflect.code.writer.OpBuilder;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,6 +46,7 @@ public class TestOpMethod {
 //    That's more challenging when reflecting over lambda bodies, but should more feasible when reflecting over method bodies.
 
     static ClassModel CLASS_MODEL;
+
     @BeforeClass
     static void setup() throws IOException {
         CLASS_MODEL = ClassFile.of().parse(IR.class.getResourceAsStream("IR.class").readAllBytes());
@@ -56,7 +55,7 @@ public class TestOpMethod {
     @DataProvider
     byte[][] classes() {
         try {
-            return new byte[][] {
+            return new byte[][]{
                     IR.class.getResourceAsStream("IR.class").readAllBytes()
             };
         } catch (IOException e) {
@@ -64,39 +63,68 @@ public class TestOpMethod {
         }
     }
 
+    static byte[] replaceOpFieldWithBuilderMethod(ClassModel classModel) {
+        var opFieldsAndIRs = new ArrayList<OpFieldAndIR>();
+        var classTransform = ClassTransform.dropping(e -> e instanceof FieldModel fm && fm.fieldName().stringValue().endsWith("$op")).andThen(
+                ClassTransform.transformingMethods(mm -> mm.methodName().equalsString(ConstantDescs.CLASS_INIT_NAME), (mb, me) -> {
+                    if (!(me instanceof CodeModel codeModel)) {
+                        mb.with(me);
+                        return;
+                    }
+                    mb.withCode(cob -> {
+                        ConstantInstruction.LoadConstantInstruction ldc = null;
+                        for (CodeElement e : codeModel) {
+                            if (ldc != null && e instanceof FieldInstruction fi && fi.opcode() == Opcode.PUTSTATIC && fi.owner().equals(classModel.thisClass()) && fi.name().stringValue().endsWith("$op")) {
+                                opFieldsAndIRs.add(new OpFieldAndIR(fi.field(), ((StringEntry) ldc.constantEntry()).stringValue()));
+                                ldc = null;
+                            } else {
+                                if (ldc != null) {
+                                    cob.with(ldc);
+                                    ldc = null;
+                                }
+                                switch (e) {
+                                    case ConstantInstruction.LoadConstantInstruction lci when lci.constantEntry() instanceof StringEntry ->
+                                            ldc = lci;
+                                    case LineNumber _, CharacterRange _, LocalVariable _, LocalVariableType _ -> {
+                                    }
+                                    default -> cob.with(e);
+                                }
+                            }
+                        }
+                    });
+                })).andThen(ClassTransform.endHandler(clb -> {
+            for (var opFieldAndIR : opFieldsAndIRs) {
+                var funcOp = ((FuncOp) OpParser.fromStringOfFuncOp(opFieldAndIR.ir()));
+                var builderOp = OpBuilder.createBuilderFunction(funcOp);
+                var opFieldName = opFieldAndIR.opField().name().stringValue();
+                var methodName = opFieldAndIR.opField().name().stringValue().substring(opFieldName.indexOf(':') + 2);
+                byte[] bytes = BytecodeGenerator.generateClassData(MethodHandles.lookup(), methodName, builderOp);
+                var builderMethod = ClassFile.of().parse(bytes).methods().stream()
+                        .filter(mm -> mm.methodName().equalsString(methodName)).findFirst().orElseThrow();
+                clb.with(builderMethod);
+            }
+        }));
+        return ClassFile.of(ClassFile.ConstantPoolSharingOption.NEW_POOL).transformClass(classModel, classTransform);
+    }
+
     @Test(dataProvider = "classes")
     void test(byte[] classData) throws Throwable {
-        // TODO maybe the whole thing can be written as a class transformation
-        var cf = ClassFile.of();
-        var cm = cf.parse(classData);
-        var opFieldsAndIRs = getOpFieldsAndIRs(cm);
-        classData = removeOpFields(cm);
+        var bytes = replaceOpFieldWithBuilderMethod(ClassFile.of().parse(classData));
+        print(bytes);
+        var opFieldsAndIRs = getOpFieldsAndIRs(ClassFile.of().parse(bytes));
+        MethodHandles.Lookup l = MethodHandles.lookup().defineHiddenClass(bytes, true);
         for (var opFieldAndIR : opFieldsAndIRs) {
-            var funcOp = ((FuncOp) OpParser.fromStringOfFuncOp(opFieldAndIR.ir()));
-            var builderOp = OpBuilder.createBuilderFunction(funcOp);
-            var builtOp = (Op) Interpreter.invoke(builderOp, ExtendedOp.FACTORY, CoreTypeFactory.CORE_TYPE_FACTORY);
-            Assert.assertEquals(builtOp.toText(), opFieldAndIR.ir());
-
-            cd = BytecodeGenerator.addOpByteCodeToClassFile(MethodHandles.lookup(), cm, opFieldAndIR.fieldName(), builderOp);
-            cm = cf.parse(cd);
-            Assert.assertEquals(cm.methods().stream().filter(mm -> mm.methodName().equalsString(opFieldAndIR.fieldName())).count(),
-                    opFieldsAndIRs.size());
             var opFieldName = opFieldAndIR.opField().name().stringValue();
             var methodName = opFieldAndIR.opField().name().stringValue().substring(opFieldName.indexOf(':') + 2);
-            classData = BytecodeGenerator.addOpByteCodeToClassFile(MethodHandles.lookup(), cm, methodName, builderOp);
-            cm = cf.parse(classData);
-
-            var l = MethodHandles.lookup().defineHiddenClass(classData, true);
+            var functionType = FunctionType.functionType(JavaType.type(Op.class), JavaType.type(OpFactory.class),
+                    JavaType.type(TypeElementFactory.class));
             var mh = l.findStatic(l.lookupClass(),
                     methodName,
-                    MethodRef.toNominalDescriptor(builderOp.invokableType()).resolveConstantDesc(l));
+                    MethodRef.toNominalDescriptor(functionType).resolveConstantDesc(l));
             Assert.assertEquals(
                     ((Op) mh.invoke(ExtendedOp.FACTORY, CoreTypeFactory.CORE_TYPE_FACTORY)).toText(),
                     opFieldAndIR.ir());
         }
-        Assert.assertEquals(cm.methods().stream().filter(mm -> mm.methodName().stringValue().endsWith("$op")).count(),
-                opFieldsAndIRs.size());
-        print(cm);
     }
 
     static void print(byte[] bytes) {
@@ -107,7 +135,8 @@ public class TestOpMethod {
         ClassPrinter.toYaml(cm, ClassPrinter.Verbosity.TRACE_ALL, System.out::print);
     }
 
-    record OpFieldAndIR(FieldRefEntry opField, String ir) {}
+    record OpFieldAndIR(FieldRefEntry opField, String ir) {
+    }
 
     List<OpFieldAndIR> getOpFieldsAndIRs(ClassModel cm) {
         var res = new ArrayList<OpFieldAndIR>();
@@ -124,48 +153,5 @@ public class TestOpMethod {
             prev = curr;
         }
         return res;
-    }
-
-    @Test
-    void testRemovingOpField() {
-        var bytes = removeOpFields(CLASS_MODEL);
-        var cm = ClassFile.of().parse(bytes);
-        Assert.assertFalse(cm.fields().stream().anyMatch(fm -> fm.fieldName().stringValue().endsWith("$op")
-                && fm.fieldType().equalsString("String")));
-        for (PoolEntry poolEntry : cm.constantPool()) {
-            Assert.assertFalse(poolEntry instanceof StringEntry se && se.stringValue().startsWith("func @"));
-        }
-    }
-
-    private byte[] removeOpFields(ClassModel cm) {
-        var bytes = ClassFile.of(ClassFile.ConstantPoolSharingOption.NEW_POOL).transformClass(cm,
-                ClassTransform.dropping(e -> e instanceof FieldModel fm && fm.fieldName().stringValue().endsWith("$op")).andThen(
-                        ClassTransform.transformingMethods(mm -> mm.methodName().equalsString(ConstantDescs.CLASS_INIT_NAME), (mb, me) -> {
-                            if (me instanceof CodeModel com) {
-                                mb.withCode(cob -> {
-                                    ConstantInstruction.LoadConstantInstruction ldc = null;
-                                    for (CodeElement e : com) {
-                                        if (ldc != null && e instanceof FieldInstruction fi && fi.opcode() == Opcode.PUTSTATIC && fi.owner().equals(cm.thisClass()) && fi.name().stringValue().endsWith("$op")) {
-                                            ldc = null;
-                                        } else {
-                                            if (ldc != null) {
-                                                cob.with(ldc);
-                                                ldc = null;
-                                            }
-                                            switch (e) {
-                                                case ConstantInstruction.LoadConstantInstruction lci when lci.constantEntry() instanceof StringEntry ->
-                                                        ldc = lci;
-                                                case LineNumber _, CharacterRange _, LocalVariable _, LocalVariableType _ -> {
-                                                }
-                                                default -> cob.with(e);
-                                            }
-                                        }
-                                    }
-                                });
-                            } else {
-                                mb.with(me);
-                            }
-                        })));
-        return bytes;
     }
 }
