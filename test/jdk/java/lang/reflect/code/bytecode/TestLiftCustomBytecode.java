@@ -68,7 +68,7 @@ public class TestLiftCustomBytecode {
                        .goto_(l4);
                 })), "backJumps");
 
-        Assert.assertEquals((int) Interpreter.invoke(f, 42), 42);
+        Assert.assertEquals((int) Interpreter.invoke(MethodHandles.lookup(), f, 42), 42);
     }
 
     @Test
@@ -83,7 +83,7 @@ public class TestLiftCustomBytecode {
                        .lreturn();
                 })), "deepStackJump");
 
-        Assert.assertEquals((long) Interpreter.invoke(f), 4);
+        Assert.assertEquals((long) Interpreter.invoke(MethodHandles.lookup(), f), 4);
     }
 
     public record TestRecord(int i, String s) {

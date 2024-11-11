@@ -30,6 +30,7 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.lang.invoke.MethodHandles;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.Op;
@@ -55,8 +56,8 @@ public class TestConditionalExpression {
 
         lf.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(lf, true, 1, 2), simpleExpression(true, 1, 2));
-        Assert.assertEquals(Interpreter.invoke(lf, false, 1, 2), simpleExpression(false, 1, 2));
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, true, 1, 2), simpleExpression(true, 1, 2));
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, false, 1, 2), simpleExpression(false, 1, 2));
     }
 
 

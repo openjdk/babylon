@@ -24,6 +24,7 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.lang.invoke.MethodHandles;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.Op;
@@ -70,7 +71,7 @@ public class TestEnhancedForOp {
 
         lf.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(lf), f());
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf), f());
     }
 
 
@@ -94,6 +95,6 @@ public class TestEnhancedForOp {
         lf.writeTo(System.out);
 
         int[] ia = new int[] {1, 2, 3, 4};
-        Assert.assertEquals(Interpreter.invoke(lf, ia), array(ia));
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, ia), array(ia));
     }
 }

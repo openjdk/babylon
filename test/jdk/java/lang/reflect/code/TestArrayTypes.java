@@ -52,7 +52,7 @@ public class TestArrayTypes {
 
         f.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(f), f());
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f), f());
     }
 
     @CodeReflection
@@ -66,7 +66,7 @@ public class TestArrayTypes {
 
         f.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(f), f2());
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f), f2());
     }
 
     @CodeReflection
@@ -80,7 +80,7 @@ public class TestArrayTypes {
 
         f.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(f), f3());
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f), f3());
     }
 
     static CoreOp.FuncOp getFuncOp(String name) {

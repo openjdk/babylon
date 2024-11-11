@@ -1,6 +1,7 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import jdk.incubator.code.*;
 import jdk.incubator.code.analysis.SSA;
@@ -44,7 +45,7 @@ public class TestRemoveFinalVars {
         FuncOp lf2 = lower(f2);
         lf2.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(lf), Interpreter.invoke(lf2));
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf), Interpreter.invoke(MethodHandles.lookup(), lf2));
 
         SSA.transform(lower(f)).writeTo(System.out);
     }

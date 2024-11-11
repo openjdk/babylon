@@ -24,6 +24,7 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.lang.invoke.MethodHandles;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.Op;
@@ -60,8 +61,8 @@ public class TestSSA {
 
         CoreOp.FuncOp lf = generate(f);
 
-        Assert.assertEquals((int) Interpreter.invoke(lf, 0, 0, 1), ifelse(0, 0, 1));
-        Assert.assertEquals((int) Interpreter.invoke(lf, 0, 0, 11), ifelse(0, 0, 11));
+        Assert.assertEquals((int) Interpreter.invoke(MethodHandles.lookup(), lf, 0, 0, 1), ifelse(0, 0, 1));
+        Assert.assertEquals((int) Interpreter.invoke(MethodHandles.lookup(), lf, 0, 0, 11), ifelse(0, 0, 11));
     }
 
     @CodeReflection
@@ -91,7 +92,7 @@ public class TestSSA {
         CoreOp.FuncOp lf = generate(f);
 
         for (int i : new int[]{1, 11, 20, 21}) {
-            Assert.assertEquals((int) Interpreter.invoke(lf, 0, 0, 0, 0, i), ifelseNested(0, 0, 0, 0, i));
+            Assert.assertEquals((int) Interpreter.invoke(MethodHandles.lookup(), lf, 0, 0, 0, 0, i), ifelseNested(0, 0, 0, 0, i));
         }
     }
 
@@ -110,7 +111,7 @@ public class TestSSA {
 
         CoreOp.FuncOp lf = generate(f);
 
-        Assert.assertEquals((int) Interpreter.invoke(lf, 10), loop(10));
+        Assert.assertEquals((int) Interpreter.invoke(MethodHandles.lookup(), lf, 10), loop(10));
     }
 
     @CodeReflection
@@ -130,7 +131,7 @@ public class TestSSA {
 
         CoreOp.FuncOp lf = generate(f);
 
-        Assert.assertEquals((int) Interpreter.invoke(lf, 10), nestedLoop(10));
+        Assert.assertEquals((int) Interpreter.invoke(MethodHandles.lookup(), lf, 10), nestedLoop(10));
     }
 
     @CodeReflection
@@ -149,7 +150,7 @@ public class TestSSA {
 
         CoreOp.FuncOp lf = generate(f);
 
-        Assert.assertEquals((int) Interpreter.invoke(lf, 10), nestedLambdaCapture(10));
+        Assert.assertEquals((int) Interpreter.invoke(MethodHandles.lookup(), lf, 10), nestedLambdaCapture(10));
     }
 
     static CoreOp.FuncOp generate(CoreOp.FuncOp f) {

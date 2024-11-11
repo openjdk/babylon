@@ -24,6 +24,7 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.lang.invoke.MethodHandles;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.Op;
@@ -60,7 +61,7 @@ public class TestWhileOp {
 
         lf.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(lf), whileLoop());
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf), whileLoop());
     }
 
     @CodeReflection
@@ -82,7 +83,7 @@ public class TestWhileOp {
 
         lf.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(lf), doWhileLoop());
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf), doWhileLoop());
     }
 
     static CoreOp.FuncOp getFuncOp(String name) {

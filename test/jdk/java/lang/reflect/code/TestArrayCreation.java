@@ -25,6 +25,7 @@ import jdk.incubator.code.Op;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.lang.invoke.MethodHandles;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
 import java.lang.reflect.Method;
@@ -50,7 +51,7 @@ public class TestArrayCreation {
 
         f.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(f), f());
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f), f());
     }
 
     @CodeReflection
@@ -64,7 +65,7 @@ public class TestArrayCreation {
 
         f.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(f), f2());
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f), f2());
     }
 
     @CodeReflection
@@ -78,7 +79,7 @@ public class TestArrayCreation {
 
         f.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(f), f3());
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f), f3());
     }
 
     static CoreOp.FuncOp getFuncOp(String name) {

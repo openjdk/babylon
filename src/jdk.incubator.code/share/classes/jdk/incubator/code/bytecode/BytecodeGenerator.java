@@ -52,7 +52,6 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.Quotable;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.analysis.Liveness;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.op.CoreOp.*;
 import jdk.incubator.code.type.ArrayType;
@@ -62,16 +61,13 @@ import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.type.MethodRef;
 import jdk.incubator.code.type.PrimitiveType;
 import jdk.incubator.code.type.VarType;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.lang.constant.ConstantDescs.*;
@@ -191,12 +187,11 @@ public final class BytecodeGenerator {
                         .map(Value::type).map(BytecodeGenerator::toClassDesc).toArray(ClassDesc[]::new));
         clb.withMethodBody(methodName, mtd, ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC,
                 cb -> cb.transforming(new BranchCompactor(), cob ->
-                    new BytecodeGenerator(lookup, className, capturedValues, TypeKind.from(mtd.returnType()), new Liveness(iop),
+                    new BytecodeGenerator(lookup, className, capturedValues, TypeKind.from(mtd.returnType()),
                                           iop.body().blocks(), cob, lambdaSink, quotable).generate()));
     }
 
     private record Slot(int slot, TypeKind typeKind) {}
-    private record ExceptionRegionWithBlocks(ExceptionRegionEnter ere, BitSet blocks) {}
 
     private final MethodHandles.Lookup lookup;
     private final ClassDesc className;
@@ -205,21 +200,21 @@ public final class BytecodeGenerator {
     private final List<Block> blocks;
     private final CodeBuilder cob;
     private final Label[] blockLabels;
-    private final List<ExceptionRegionWithBlocks> allExceptionRegions;
-    private final BitSet[] blocksRegionStack;
-    private final BitSet blocksToVisit, catchingBlocks;
+    private final Block[][] blocksCatchMap;
+    private final BitSet allCatchBlocks;
+    private final Label[] tryStartLabels;
     private final Map<Value, Slot> slots;
     private final Map<Block.Parameter, Value> singlePredecessorsValues;
     private final List<LambdaOp> lambdaSink;
     private final BitSet quotable;
     private final Map<Op, Boolean> deferCache;
     private Value oprOnStack;
+    private Block[] recentCatchBlocks;
 
     private BytecodeGenerator(MethodHandles.Lookup lookup,
                               ClassDesc className,
                               List<Value> capturedValues,
                               TypeKind returnType,
-                              Liveness liveness,
                               List<Block> blocks,
                               CodeBuilder cob,
                               List<LambdaOp> lambdaSink,
@@ -231,26 +226,26 @@ public final class BytecodeGenerator {
         this.blocks = blocks;
         this.cob = cob;
         this.blockLabels = new Label[blocks.size()];
-        this.allExceptionRegions = new ArrayList<>();
-        this.blocksRegionStack = new BitSet[blocks.size()];
-        this.blocksToVisit = new BitSet(blocks.size());
-        this.catchingBlocks = new BitSet();
-        this.slots = new HashMap<>();
-        this.singlePredecessorsValues = new HashMap<>();
+        this.blocksCatchMap = new Block[blocks.size()][];
+        this.allCatchBlocks = new BitSet();
+        this.tryStartLabels = new Label[blocks.size()];
+        this.slots = new IdentityHashMap<>();
+        this.singlePredecessorsValues = new IdentityHashMap<>();
         this.lambdaSink = lambdaSink;
         this.quotable = quotable;
-        this.deferCache = new HashMap<>();
+        this.deferCache = new IdentityHashMap<>();
     }
 
-    private void setExceptionRegionStack(Block.Reference target, BitSet activeRegionStack) {
-        setExceptionRegionStack(target.targetBlock().index(), activeRegionStack);
+    private void setCatchStack(Block.Reference target, Block[] activeCatchBlocks) {
+        setCatchStack(target.targetBlock().index(), activeCatchBlocks);
     }
 
-    private void setExceptionRegionStack(int blockIndex, BitSet activeRegionStack) {
-        if (blocksRegionStack[blockIndex] == null) {
-            blocksToVisit.set(blockIndex);
-            blocksRegionStack[blockIndex] = activeRegionStack;
-            activeRegionStack.stream().forEach(r -> allExceptionRegions.get(r).blocks.set(blockIndex));
+    private void setCatchStack(int blockIndex, Block[] activeCatchBlocks) {
+        Block[] prevStack = blocksCatchMap[blockIndex];
+        if (prevStack == null) {
+            blocksCatchMap[blockIndex] = activeCatchBlocks;
+        } else {
+            assert Arrays.equals(prevStack, activeCatchBlocks);
         }
     }
 
@@ -378,53 +373,9 @@ public final class BytecodeGenerator {
 
     // Single-use var or var with a single-use entry block parameter operand can be deferred
     private static boolean canDefer(VarOp op) {
-        return !moreThanOneUse(op.result())
-            || op.operands().getFirst() instanceof Block.Parameter bp && bp.declaringBlock().isEntryBlock() && !moreThanOneUse(bp)
-            || op.initOperand() instanceof Op.Result or && or.op() instanceof ConstantOp cop && canDefer(cop) && isDefinitelyAssigned(op);
-
-    }
-
-    // Detection if VarOp is definitelly assigned (all its VarLoadOps are dominated by VarStoreOp)
-    // VarOp can be deferred in such case
-    private static boolean isDefinitelyAssigned(VarOp op) {
-        Set<Op.Result> allUses = op.result().uses();
-        Set<Op.Result> stores = allUses.stream().filter(r -> r.op() instanceof VarAccessOp.VarStoreOp).collect(Collectors.toSet());
-        // All VarLoadOps must be dominated by a VarStoreOp
-        for (Op.Result load : allUses) {
-            if (load.op() instanceof VarAccessOp.VarLoadOp && !isDominatedBy(load, stores)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    // @@@ Test for dominant set
-    private static boolean isDominatedBy(Op.Result n, Set<Op.Result> doms) {
-        for (Op.Result dom : doms) {
-            if (n.isDominatedBy(dom)) {
-                return true;
-            }
-        }
-
-        Set<Block> stopBlocks = new HashSet<>();
-        for (Op.Result dom : doms) {
-            stopBlocks.add(dom.declaringBlock());
-        }
-
-        Deque<Block> toProcess = new ArrayDeque<>();
-        toProcess.add(n.declaringBlock());
-        stopBlocks.add(n.declaringBlock());
-        while (!toProcess.isEmpty()) {
-            for (Block b : toProcess.pop().predecessors()) {
-                if (b.isEntryBlock()) {
-                    return false;
-                }
-                if (stopBlocks.add(b)) {
-                    toProcess.add(b);
-                }
-            }
-        }
-        return true;
+        return op.isUninitialized()
+            || !moreThanOneUse(op.result())
+            || op.initOperand() instanceof Block.Parameter bp && bp.declaringBlock().isEntryBlock() && !moreThanOneUse(bp);
     }
 
     // Var load can be deferred when not used as immediate operand
@@ -516,64 +467,24 @@ public final class BytecodeGenerator {
     }
 
     private void generate() {
-        // Compute exception region membership
-        setExceptionRegionStack(0, new BitSet());
-        int blockIndex;
-        while ((blockIndex = blocksToVisit.nextSetBit(0)) >= 0) {
-            blocksToVisit.clear(blockIndex);
-            BitSet activeRegionStack = blocksRegionStack[blockIndex];
-            Block b = blocks.get(blockIndex);
-            Op top = b.terminatingOp();
-            switch (top) {
-                case BranchOp bop ->
-                    setExceptionRegionStack(bop.branch(), activeRegionStack);
-                case ConditionalBranchOp cop -> {
-                    setExceptionRegionStack(cop.falseBranch(), activeRegionStack);
-                    setExceptionRegionStack(cop.trueBranch(), activeRegionStack);
-                }
-                case ExceptionRegionEnter er -> {
-                    for (Block.Reference catchBlock : er.catchBlocks()) {
-                        catchingBlocks.set(catchBlock.targetBlock().index());
-                        setExceptionRegionStack(catchBlock, activeRegionStack);
-                    }
-                    activeRegionStack = (BitSet)activeRegionStack.clone();
-                    activeRegionStack.set(allExceptionRegions.size());
-                    ExceptionRegionWithBlocks newNode = new ExceptionRegionWithBlocks(er, new BitSet());
-                    allExceptionRegions.add(newNode);
-                    setExceptionRegionStack(er.start(), activeRegionStack);
-                }
-                case ExceptionRegionExit er -> {
-                    activeRegionStack = (BitSet)activeRegionStack.clone();
-                    activeRegionStack.clear(activeRegionStack.length() - 1);
-                    setExceptionRegionStack(er.end(), activeRegionStack);
-                }
-                default -> {
-                }
-            }
+        recentCatchBlocks = new Block[0];
+
+        Block entryBlock = blocks.getFirst();
+        assert entryBlock.isEntryBlock();
+
+        // Entry block parameters conservatively require slots
+        // Some unused parameters might be declared before others that are used
+        List<Block.Parameter> parameters = entryBlock.parameters();
+        int paramSlot = 0;
+        // Captured values prepend parameters in lambda impl methods
+        for (Value cv : capturedValues) {
+            slots.put(cv, new Slot(cob.parameterSlot(paramSlot++), toTypeKind(cv.type())));
+        }
+        for (Block.Parameter bp : parameters) {
+            slots.put(bp, new Slot(cob.parameterSlot(paramSlot++), toTypeKind(bp.type())));
         }
 
-        // Declare the exception regions
-        for (ExceptionRegionWithBlocks erNode : allExceptionRegions.reversed()) {
-            int start  = erNode.blocks.nextSetBit(0);
-            while (start >= 0) {
-                int end = erNode.blocks.nextClearBit(start);
-                // Avoid declaration of empty exception regions
-                if (!(blocks.get(start).firstOp() instanceof ExceptionRegionExit erEx) || erEx.end().targetBlock().index() != end) {
-                    Label startLabel = getLabel(start);
-                    Label endLabel = getLabel(end);
-                    for (Block.Reference cbr : erNode.ere.catchBlocks().reversed()) {
-                        List<Block.Parameter> params = cbr.targetBlock().parameters();
-                        if (!params.isEmpty()) {
-                            JavaType jt = (JavaType) params.get(0).type();
-                            cob.exceptionCatch(startLabel, endLabel, getLabel(cbr), jt.toNominalDescriptor());
-                        } else {
-                            cob.exceptionCatchAll(startLabel, endLabel, getLabel(cbr));
-                        }
-                    }
-                }
-                start = erNode.blocks.nextSetBit(end);
-            }
-        }
+        blocksCatchMap[entryBlock.index()] = new Block[0];
 
         // Process blocks in topological order
         // A jump instruction assumes the false successor block is
@@ -581,35 +492,26 @@ public final class BytecodeGenerator {
         // since the jump instructions branch on a true condition
         // Conditions are inverted when lowered to bytecode
         for (Block b : blocks) {
-            // Ignore any non-entry blocks that have no predecessors
-            if (!b.isEntryBlock() && b.predecessors().isEmpty()) {
+
+            Block[] catchBlocks = blocksCatchMap[b.index()];
+
+            // Ignore inaccessible blocks
+            if (catchBlocks == null) {
                 continue;
             }
 
             Label blockLabel = getLabel(b.index());
             cob.labelBinding(blockLabel);
 
-            // If b is the entry block then all its parameters conservatively require slots
-            // Some unused parameters might be declared before others that are used
-            if (b.isEntryBlock()) {
-                List<Block.Parameter> parameters = b.parameters();
-                int i = 0;
-                // Captured values prepend parameters in lambda impl methods
-                for (Value cv : capturedValues) {
-                    slots.put(cv, new Slot(cob.parameterSlot(i++), toTypeKind(cv.type())));
-                }
-                for (Block.Parameter bp : parameters) {
-                    slots.put(bp, new Slot(cob.parameterSlot(i++), toTypeKind(bp.type())));
-                }
-            }
-
             oprOnStack = null;
 
             // If b is a catch block then the exception argument will be represented on the stack
-            if (catchingBlocks.get(b.index())) {
+            if (allCatchBlocks.get(b.index())) {
                 // Retain block argument for exception table generation
                 push(b.parameters().getFirst());
             }
+
+            exceptionRegionsChange(catchBlocks);
 
             List<Op> ops = b.ops();
             for (int i = 0; i < ops.size() - 1; i++) {
@@ -628,6 +530,9 @@ public final class BytecodeGenerator {
                             }
                             push(op.result());
                         }
+                    }
+                    case VarOp op when op.isUninitialized() -> {
+                        // Do nothing
                     }
                     case VarOp op -> {
                         //     %1 : Var<int> = var %0 @"i";
@@ -1024,10 +929,15 @@ public final class BytecodeGenerator {
                     cob.athrow();
                 }
                 case BranchOp op -> {
+                    setCatchStack(op.branch(), recentCatchBlocks);
+
                     assignBlockArguments(op.branch());
                     cob.goto_(getLabel(op.branch()));
                 }
                 case ConditionalBranchOp op -> {
+                    setCatchStack(op.trueBranch(), recentCatchBlocks);
+                    setCatchStack(op.falseBranch(), recentCatchBlocks);
+
                     if (getConditionForCondBrOp(op) instanceof BinaryTestOp btop) {
                         // Processing of the BinaryTestOp was deferred, so it can be merged with CondBrOp
                         conditionalBranch(prepareConditionalBranch(btop), op.trueBranch(), op.falseBranch());
@@ -1037,15 +947,61 @@ public final class BytecodeGenerator {
                     }
                 }
                 case ExceptionRegionEnter op -> {
+                    List<Block.Reference> enteringCatchBlocks = op.catchBlocks();
+                    Block[] activeCatchBlocks = Arrays.copyOf(recentCatchBlocks, recentCatchBlocks.length + enteringCatchBlocks.size());
+                    int i = recentCatchBlocks.length;
+                    for (Block.Reference catchRef : enteringCatchBlocks) {
+                        allCatchBlocks.set(catchRef.targetBlock().index());
+                        activeCatchBlocks[i++] = catchRef.targetBlock();
+                        setCatchStack(catchRef, recentCatchBlocks);
+                    }
+                    setCatchStack(op.start(), activeCatchBlocks);
+
                     assignBlockArguments(op.start());
+                    cob.goto_(getLabel(op.start()));
                 }
                 case ExceptionRegionExit op -> {
+                    List<Block.Reference> exitingCatchBlocks = op.catchBlocks();
+                    Block[] activeCatchBlocks = Arrays.copyOf(recentCatchBlocks, recentCatchBlocks.length - exitingCatchBlocks.size());
+                    setCatchStack(op.end(), activeCatchBlocks);
+
+                    // Assert block exits in reverse order
+                    int i = recentCatchBlocks.length;
+                    for (Block.Reference catchRef : exitingCatchBlocks) {
+                        assert catchRef.targetBlock() == recentCatchBlocks[--i];
+                    }
+
                     assignBlockArguments(op.end());
                     cob.goto_(getLabel(op.end()));
                 }
                 default ->
                     throw new UnsupportedOperationException("Terminating operation not supported: " + top);
             }
+        }
+        exceptionRegionsChange(new Block[0]);
+    }
+
+    private void exceptionRegionsChange(Block[] newCatchBlocks) {
+        if (!Arrays.equals(recentCatchBlocks, newCatchBlocks)) {
+            int i = recentCatchBlocks.length - 1;
+            Label currentLabel = cob.newBoundLabel();
+            // Exit catch blocks missing in the newCatchBlocks
+            while (i >=0 && (i >= newCatchBlocks.length || recentCatchBlocks[i] != newCatchBlocks[i])) {
+                Block catchBlock = recentCatchBlocks[i--];
+                List<Block.Parameter> params = catchBlock.parameters();
+                if (!params.isEmpty()) {
+                    JavaType jt = (JavaType) params.get(0).type();
+                    cob.exceptionCatch(tryStartLabels[catchBlock.index()], currentLabel, getLabel(catchBlock.index()), jt.toNominalDescriptor());
+                } else {
+                    cob.exceptionCatchAll(tryStartLabels[catchBlock.index()], currentLabel, getLabel(catchBlock.index()));
+                }
+                tryStartLabels[catchBlock.index()] = null;
+            }
+            // Fill tryStartLabels for new entries
+            while (++i < newCatchBlocks.length) {
+                tryStartLabels[newCatchBlocks[i].index()] = currentLabel;
+            }
+            recentCatchBlocks = newCatchBlocks;
         }
     }
 
@@ -1263,7 +1219,7 @@ public final class BytecodeGenerator {
     private void assignBlockArguments(Block.Reference ref) {
         Block target = ref.targetBlock();
         List<Value> sargs = ref.arguments();
-        if (catchingBlocks.get(target.index())) {
+        if (allCatchBlocks.get(target.index())) {
             // Jumping to an exception handler, exception parameter is expected on stack
             Value value = sargs.getFirst();
             if (oprOnStack == value) {

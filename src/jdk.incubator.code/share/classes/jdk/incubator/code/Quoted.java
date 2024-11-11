@@ -25,10 +25,7 @@
 
 package jdk.incubator.code;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * The quoted form of an operation.
@@ -39,7 +36,9 @@ import java.util.Map;
  */
 public final class Quoted {
     private final Op op;
-    private final Map<Value, Object> capturedValues;
+    private final SequencedMap<Value, Object> capturedValues;
+
+    static final SequencedMap<Value, Object> EMPTY_SEQUENCED_MAP = new LinkedHashMap<>();
 
     /**
      * Constructs the quoted form of a given operation.
@@ -47,7 +46,7 @@ public final class Quoted {
      * @param op the invokable operation.
      */
     public Quoted(Op op) {
-        this(op, Map.of());
+        this(op, EMPTY_SEQUENCED_MAP);
     }
 
     /**
@@ -63,12 +62,12 @@ public final class Quoted {
      * @param capturedValues the captured values referred to by the operation
      * @see Op#capturedValues()
      */
-    public Quoted(Op op, Map<Value, Object> capturedValues) {
+    public Quoted(Op op, SequencedMap<Value, Object> capturedValues) {
         // @@@ This check is potentially expensive, remove or keep as assert?
         // @@@ Or make Quoted an interface, with a module private implementation?
         assert op.capturedValues().equals(new ArrayList<>(capturedValues.keySet()));
         this.op = op;
-        this.capturedValues = Collections.unmodifiableMap(new LinkedHashMap<>(capturedValues));
+        this.capturedValues = Collections.unmodifiableSequencedMap(new LinkedHashMap<>(capturedValues));
     }
 
     /**
@@ -91,7 +90,7 @@ public final class Quoted {
      *
      * @return the captured values, as an unmodifiable map.
      */
-    public Map<Value, Object> capturedValues() {
+    public SequencedMap<Value, Object> capturedValues() {
         return capturedValues;
     }
 }

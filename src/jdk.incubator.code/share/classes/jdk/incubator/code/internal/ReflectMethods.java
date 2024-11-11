@@ -100,10 +100,7 @@ import java.util.function.Supplier;
 
 import static com.sun.tools.javac.code.Flags.NOOUTERTHIS;
 import static com.sun.tools.javac.code.Flags.PARAMETER;
-import static com.sun.tools.javac.code.Flags.PUBLIC;
-import static com.sun.tools.javac.code.Flags.STATIC;
 import static com.sun.tools.javac.code.Flags.SYNTHETIC;
-import static com.sun.tools.javac.code.Flags.VARARGS;
 import static com.sun.tools.javac.code.Kinds.Kind.MTH;
 import static com.sun.tools.javac.code.Kinds.Kind.TYP;
 import static com.sun.tools.javac.code.Kinds.Kind.VAR;
@@ -261,14 +258,22 @@ public class ReflectMethods extends TreeTranslator {
 
                 switch (kind) {
                     case QUOTED_STRUCTURAL -> {
+                        // @@@ Consider replacing with invokedynamic to quoted bootstrap method
+                        // Thereby we avoid certain dependencies and hide specific details
                         JCIdent opFieldId = make.Ident(opField.sym);
                         ListBuffer<JCExpression> interpreterArgs = new ListBuffer<>();
+                        // Obtain MethodHandles.lookup()
+                        // @@@ Could probably use MethodHandles.publicLookup()
+                        JCMethodInvocation lookup = make.App(make.Ident(crSyms.methodHandlesLookup), com.sun.tools.javac.util.List.nil());
+                        interpreterArgs.append(lookup);
+                        // Deserialize the func operation
                         JCMethodInvocation parsedOp = make.App(make.Ident(crSyms.opParserFromString), com.sun.tools.javac.util.List.of(opFieldId));
                         interpreterArgs.append(parsedOp);
-                        // append captured vars
+                        // Append captured vars
                         ListBuffer<JCExpression> capturedArgs = quotedCapturedArgs(tree, bodyScanner);
                         interpreterArgs.appendList(capturedArgs.toList());
 
+                        // Interpret the func operation to produce the quoted instance
                         JCMethodInvocation interpreterInvoke = make.App(make.Ident(crSyms.opInterpreterInvoke), interpreterArgs.toList());
                         interpreterInvoke.varargsElement = syms.objectType;
                         super.visitLambda(tree);

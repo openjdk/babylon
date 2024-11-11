@@ -24,6 +24,7 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.lang.invoke.MethodHandles;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.Op;
@@ -60,7 +61,7 @@ public class TestForOp {
 
         lf.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(lf), f());
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf), f());
     }
 
     @CodeReflection
@@ -83,7 +84,7 @@ public class TestForOp {
 
         lf.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(lf), f2());
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf), f2());
     }
 
     @CodeReflection
@@ -108,7 +109,7 @@ public class TestForOp {
 
         lf.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(lf), f3());
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf), f3());
     }
 
     static CoreOp.FuncOp getFuncOp(String name) {

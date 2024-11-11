@@ -24,6 +24,7 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.lang.invoke.MethodHandles;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.Op;
@@ -75,6 +76,6 @@ public class TestBlockOp {
 
         lf.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(lf), f());
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf), f());
     }
 }

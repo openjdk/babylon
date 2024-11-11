@@ -34,6 +34,7 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.NoInjection;
 import org.testng.annotations.Test;
 
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.analysis.StringConcatTransformer;
@@ -103,8 +104,8 @@ public class TestStringConcatTransform {
         model.writeTo(System.out);
         f_transformed.writeTo(System.out);
 
-        var interpreted = Interpreter.invoke(model, args);
-        var transformed_interpreted = Interpreter.invoke(f_transformed, args);
+        var interpreted = Interpreter.invoke(MethodHandles.lookup(), model, args);
+        var transformed_interpreted = Interpreter.invoke(MethodHandles.lookup(), f_transformed, args);
 
         Assert.assertEquals(interpreted, transformed_interpreted);
 
@@ -138,10 +139,10 @@ public class TestStringConcatTransform {
         CoreOp.FuncOp ssa_model = generateSSA(model);
         CoreOp.FuncOp ssa_transformed_model = ssa_model.transform(new StringConcatTransformer());
 
-        var model_interpreted = Interpreter.invoke(model, args);
-        var transformed_model_interpreted = Interpreter.invoke(transformed_model, args);
-        var ssa_interpreted = Interpreter.invoke(ssa_model, args);
-        var ssa_transformed_interpreted = Interpreter.invoke(ssa_transformed_model, args);
+        var model_interpreted = Interpreter.invoke(MethodHandles.lookup(), model, args);
+        var transformed_model_interpreted = Interpreter.invoke(MethodHandles.lookup(), transformed_model, args);
+        var ssa_interpreted = Interpreter.invoke(MethodHandles.lookup(), ssa_model, args);
+        var ssa_transformed_interpreted = Interpreter.invoke(MethodHandles.lookup(), ssa_transformed_model, args);
         Object jvm_interpreted;
         try {
             jvm_interpreted = method.invoke(null, args);

@@ -63,8 +63,11 @@ public class TestLambdaOps {
             Assert.assertEquals(1, l.capturedValues().size());
             Assert.assertEquals(1, l.capturedValues().values().iterator().next());
 
+            List<Object> arguments = new ArrayList<>();
+            arguments.add(42);
+            arguments.addAll(l.capturedValues().values());
             int r = (int) Interpreter.invoke(MethodHandles.lookup(), (Op & Op.Invokable) l.op(),
-                    l.capturedValues(), 42);
+                    arguments);
             return r;
         }
     }
@@ -182,14 +185,12 @@ public class TestLambdaOps {
             Assert.assertEquals(q.capturedValues().size(), 1);
             Assert.assertEquals(((Var<?>)q.capturedValues().values().iterator().next()).value(), 42);
 
-            int r = (int) Interpreter.invoke(MethodHandles.lookup(), (LambdaOp) q.op(), q.capturedValues(), List.of());
+            int r = (int) Interpreter.invoke(MethodHandles.lookup(), (LambdaOp) q.op(),
+                    new ArrayList<>(q.capturedValues().sequencedValues()));
             Assert.assertEquals(r, 42);
 
-            Map<Value, Object> cvs = Map.of(
-                    q.capturedValues().keySet().iterator().next(),
-                    CoreOp.Var.of(0)
-            );
-            r = (int) Interpreter.invoke(MethodHandles.lookup(), (LambdaOp) q.op(), cvs, List.of());
+            r = (int) Interpreter.invoke(MethodHandles.lookup(), (LambdaOp) q.op(),
+                    List.of(CoreOp.Var.of(0)));
             Assert.assertEquals(r, 0);
         }
 
@@ -203,14 +204,12 @@ public class TestLambdaOps {
             Assert.assertEquals(q.capturedValues().size(), 1);
             Assert.assertEquals(((Var<?>)q.capturedValues().values().iterator().next()).value(), 42);
 
-            int r = (int) Interpreter.invoke(MethodHandles.lookup(), (LambdaOp) q.op(), q.capturedValues(), List.of());
+            int r = (int) Interpreter.invoke(MethodHandles.lookup(), (LambdaOp) q.op(),
+                    new ArrayList<>(q.capturedValues().sequencedValues()));
             Assert.assertEquals(r, 42);
 
-            Map<Value, Object> cvs = Map.of(
-                    q.capturedValues().keySet().iterator().next(),
-                    CoreOp.Var.of(0)
-            );
-            r = (int) Interpreter.invoke(MethodHandles.lookup(), (LambdaOp) q.op(), cvs, List.of());
+            r = (int) Interpreter.invoke(MethodHandles.lookup(), (LambdaOp) q.op(),
+                    List.of(CoreOp.Var.of(0)));
             Assert.assertEquals(r, 0);
         }
     }

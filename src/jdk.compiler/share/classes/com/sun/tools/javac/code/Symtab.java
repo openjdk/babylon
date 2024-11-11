@@ -642,7 +642,6 @@ public class Symtab {
         externalizableType = enterClass("java.io.Externalizable");
         objectInputType  = enterClass("java.io.ObjectInput");
         objectOutputType = enterClass("java.io.ObjectOutput");
-
         synthesizeEmptyInterfaceIfMissing(autoCloseableType);
         synthesizeEmptyInterfaceIfMissing(cloneableType);
         synthesizeEmptyInterfaceIfMissing(serializableType);

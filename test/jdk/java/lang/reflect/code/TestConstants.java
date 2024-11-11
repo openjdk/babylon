@@ -31,6 +31,7 @@ import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import java.lang.invoke.MethodHandles;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.Op;
@@ -163,7 +164,7 @@ public class TestConstants {
 
             f.writeTo(System.out);
 
-            Assert.assertEquals(Interpreter.invoke(f), m.invoke(null));
+            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f), m.invoke(null));
         }
     }
 
@@ -186,7 +187,7 @@ public class TestConstants {
 
         lf.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(lf, (Object) null), compareNull(null));
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, (Object) null), compareNull(null));
     }
 
     static CoreOp.FuncOp getFuncOp(String name) {
