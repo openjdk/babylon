@@ -146,9 +146,9 @@ public class TestOpMethod {
         for (CodeElement curr : cinit.code().get().elementList()) {
             if (curr instanceof FieldInstruction fi && fi.opcode() == Opcode.PUTSTATIC
                     && fi.owner().equals(cm.thisClass()) && fi.name().stringValue().endsWith("$op")) {
-                var lci = (ConstantInstruction.LoadConstantInstruction) prev;
-                var pe = (StringEntry) lci.constantEntry();
-                res.add(new OpFieldAndIR(fi.field(), pe.stringValue()));
+                if (prev instanceof ConstantInstruction.LoadConstantInstruction lci && lci.constantEntry() instanceof StringEntry se) {
+                    res.add(new OpFieldAndIR(fi.field(), se.stringValue()));
+                }
             }
             prev = curr;
         }
