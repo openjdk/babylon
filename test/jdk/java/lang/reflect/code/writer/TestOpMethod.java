@@ -6,6 +6,7 @@ import org.testng.annotations.Test;
 import java.io.IOException;
 import java.lang.classfile.*;
 import java.lang.classfile.components.ClassPrinter;
+import java.lang.classfile.constantpool.FieldRefEntry;
 import java.lang.classfile.constantpool.PoolEntry;
 import java.lang.classfile.constantpool.StringEntry;
 import java.lang.classfile.instruction.*;
@@ -64,11 +65,12 @@ public class TestOpMethod {
     }
 
     @Test(dataProvider = "classes")
-    void test(byte[] cd) throws Throwable {
+    void test(byte[] classData) throws Throwable {
+        // TODO maybe the whole thing can be written as a class transformation
         var cf = ClassFile.of();
-        var cm = cf.parse(cd);
+        var cm = cf.parse(classData);
         var opFieldsAndIRs = getOpFieldsAndIRs(cm);
-        cd = removeOpFields(cm);
+        classData = removeOpFields(cm);
         for (var opFieldAndIR : opFieldsAndIRs) {
             var funcOp = ((FuncOp) OpParser.fromStringOfFuncOp(opFieldAndIR.ir()));
             var builderOp = OpBuilder.createBuilderFunction(funcOp);
@@ -79,15 +81,21 @@ public class TestOpMethod {
             cm = cf.parse(cd);
             Assert.assertEquals(cm.methods().stream().filter(mm -> mm.methodName().equalsString(opFieldAndIR.fieldName())).count(),
                     opFieldsAndIRs.size());
+            var opFieldName = opFieldAndIR.opField().name().stringValue();
+            var methodName = opFieldAndIR.opField().name().stringValue().substring(opFieldName.indexOf(':') + 2);
+            classData = BytecodeGenerator.addOpByteCodeToClassFile(MethodHandles.lookup(), cm, methodName, builderOp);
+            cm = cf.parse(classData);
 
-            var l = MethodHandles.lookup().defineHiddenClass(cd, true);
+            var l = MethodHandles.lookup().defineHiddenClass(classData, true);
             var mh = l.findStatic(l.lookupClass(),
-                    opFieldAndIR.fieldName(),
+                    methodName,
                     MethodRef.toNominalDescriptor(builderOp.invokableType()).resolveConstantDesc(l));
             Assert.assertEquals(
                     ((Op) mh.invoke(ExtendedOp.FACTORY, CoreTypeFactory.CORE_TYPE_FACTORY)).toText(),
                     opFieldAndIR.ir());
         }
+        Assert.assertEquals(cm.methods().stream().filter(mm -> mm.methodName().stringValue().endsWith("$op")).count(),
+                opFieldsAndIRs.size());
         print(cm);
     }
 
@@ -99,10 +107,10 @@ public class TestOpMethod {
         ClassPrinter.toYaml(cm, ClassPrinter.Verbosity.TRACE_ALL, System.out::print);
     }
 
-    record OpFieldAndIR(String fieldName, String ir) {}
+    record OpFieldAndIR(FieldRefEntry opField, String ir) {}
 
     List<OpFieldAndIR> getOpFieldsAndIRs(ClassModel cm) {
-        List<OpFieldAndIR> res = new ArrayList<>();
+        var res = new ArrayList<OpFieldAndIR>();
         var cinit = cm.methods().stream().filter(mm -> mm.methodName().equalsString(ConstantDescs.CLASS_INIT_NAME))
                 .findFirst().orElseThrow();
         CodeElement prev = null;
@@ -111,7 +119,7 @@ public class TestOpMethod {
                     && fi.owner().equals(cm.thisClass()) && fi.name().stringValue().endsWith("$op")) {
                 var lci = (ConstantInstruction.LoadConstantInstruction) prev;
                 var pe = (StringEntry) lci.constantEntry();
-                res.add(new OpFieldAndIR(fi.name().stringValue().substring(fi.name().stringValue().indexOf(':') + 2), pe.stringValue()));
+                res.add(new OpFieldAndIR(fi.field(), pe.stringValue()));
             }
             prev = curr;
         }
