@@ -111,7 +111,7 @@ public class TestOpMethod {
     void test(byte[] classData) throws Throwable {
         var bytes = replaceOpFieldWithBuilderMethod(ClassFile.of().parse(classData));
         print(bytes);
-        var opFieldsAndIRs = getOpFieldsAndIRs(ClassFile.of().parse(bytes));
+        var opFieldsAndIRs = getOpFieldsAndIRs(ClassFile.of().parse(classData));
         MethodHandles.Lookup l = MethodHandles.lookup().defineHiddenClass(bytes, true);
         for (var opFieldAndIR : opFieldsAndIRs) {
             var opFieldName = opFieldAndIR.opField().name().stringValue();
