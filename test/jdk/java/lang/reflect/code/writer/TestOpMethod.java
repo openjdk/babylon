@@ -39,6 +39,9 @@ public class TestOpMethod {
         return replaceOpFieldWithBuilderMethod(ClassFile.of().parse(classData));
     }
 
+    record OpFieldAndIR(FieldRefEntry opField, String ir) {
+    }
+
     static byte[] replaceOpFieldWithBuilderMethod(ClassModel classModel) {
         var opFieldsAndIRs = new ArrayList<OpFieldAndIR>();
         var classTransform = ClassTransform.dropping(e -> e instanceof FieldModel fm && fm.fieldName().stringValue().endsWith("$op")).andThen(
@@ -132,8 +135,5 @@ public class TestOpMethod {
 
     static void print(ClassModel cm) {
         ClassPrinter.toYaml(cm, ClassPrinter.Verbosity.TRACE_ALL, System.out::print);
-    }
-
-    record OpFieldAndIR(FieldRefEntry opField, String ir) {
     }
 }
