@@ -24,31 +24,12 @@ import static java.lang.reflect.code.op.CoreOp.FuncOp;
 
 public class TestOpMethod {
 
-//    We discussed replacing the mechanism to store models in class files.
-//    Currently, we serialize to the textual form.
-//    We want to explore replacing that with methods in class files that build and return models.
-//    See the test TestCodeBuilder and familiarize yourself with that.
-//    It's likely that transformation code is buggy because it has not been tested on a wide range of source.
-//    It would also be interesting to get some size comparison between the two approaches.
-//    To properly do this we will need to avoid the copying of code from java.base into jdk.compiler,
-//    otherwise we need to copy more code and there are certain restrictions on what features the code can use.
-//    Maurizio is looking into that.
-//    There may be an interim solution before moving the code to an incubating model. We should discuss more in our meetings.
-//    One way to explore sooner for experimentation purposes to write a class file transformer using the Classfile API
-//    and rewrite the class file replacing code models in textual form with the corresponding methods.
-//    That's more challenging when reflecting over lambda bodies, but should more feasible when reflecting over method bodies.
-
     public static void main(String[] args) throws IOException, ClassNotFoundException {
         for (var arg : args) {
             var path = Path.of(arg);
             var originalBytes = Files.readAllBytes(path);
             var newBytes = TestOpMethod.replaceOpFieldWithBuilderMethod(originalBytes);
-
             System.out.printf("%s %d %d%n", arg, originalBytes.length, newBytes.length);
-            // TODO add assertion
-            // TODO pass path to classfile, no load
-            // TODO name, before, after
-
             // TODO a script that runs the tool for many classes
             // TODO reduce size if possible
         }
