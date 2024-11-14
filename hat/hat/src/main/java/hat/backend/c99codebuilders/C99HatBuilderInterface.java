@@ -52,7 +52,7 @@ import hat.optools.VarStoreOpWrapper;
 import hat.optools.WhileOpWrapper;
 import hat.optools.YieldOpWrapper;
 
-import java.lang.reflect.code.Op;
+import jdk.incubator.code.Op;
 
 public interface C99HatBuilderInterface<T extends C99HatBuilder<?>> {
 

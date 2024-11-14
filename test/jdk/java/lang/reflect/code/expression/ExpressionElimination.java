@@ -21,13 +21,13 @@
  * questions.
  */
 
-import java.lang.reflect.code.*;
-import java.lang.reflect.code.op.CoreOp;
+import jdk.incubator.code.*;
+import jdk.incubator.code.op.CoreOp;
 import java.util.HashMap;
 import java.util.function.BiConsumer;
 
-import static java.lang.reflect.code.op.CoreOp.sub;
-import static java.lang.reflect.code.analysis.Patterns.*;
+import static jdk.incubator.code.op.CoreOp.sub;
+import static jdk.incubator.code.analysis.Patterns.*;
 
 public final class ExpressionElimination {
     private ExpressionElimination() {

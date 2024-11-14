@@ -35,8 +35,8 @@ import hat.optools.StructuralOpWrapper;
 import hat.util.StreamCounter;
 
 import java.lang.foreign.GroupLayout;
-import java.lang.reflect.code.type.ClassType;
-import java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.type.ClassType;
+import jdk.incubator.code.type.JavaType;
 import java.util.function.Consumer;
 
 public abstract class C99HatKernelBuilder<T extends C99HatKernelBuilder<T>> extends C99HatBuilder<T> {

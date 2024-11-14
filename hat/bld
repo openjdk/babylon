@@ -40,6 +40,7 @@ void main(String[] args) {
    .javac($$->$$
       .opts(
          "--source", "24",
+         "--add-modules", "jdk.incubator.code",
          "--enable-preview",
          "--add-exports=java.base/jdk.internal=ALL-UNNAMED",
          "--add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED"

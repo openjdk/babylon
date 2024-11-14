@@ -37,13 +37,13 @@ import hat.optools.OpWrapper;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.CopyContext;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.Quotable;
-import java.lang.reflect.code.Quoted;
-import java.lang.reflect.code.Value;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.type.MethodRef;
+import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Quotable;
+import jdk.incubator.code.Quoted;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.MethodRef;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -124,7 +124,7 @@ public class ComputeContext implements BufferAllocator {
 
        // System.out.println(module.op().toText());
 
-        FuncOpWrapper funcOpWrapper = OpWrapper.wrap(computeMethod.getCodeModel().orElseThrow());
+        FuncOpWrapper funcOpWrapper = OpWrapper.wrap(Op.ofMethod(computeMethod).orElseThrow());
 
         this.computeCallGraph = new ComputeCallGraph(this, computeMethod, funcOpWrapper);
 

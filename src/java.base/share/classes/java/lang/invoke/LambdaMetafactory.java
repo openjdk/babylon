@@ -25,8 +25,6 @@
 
 package java.lang.invoke;
 
-import java.lang.reflect.code.Quotable;
-
 import java.io.Serializable;
 import java.util.Arrays;
 import java.lang.reflect.Array;
@@ -526,7 +524,7 @@ public final class LambdaMetafactory {
         if ((flags & FLAG_QUOTABLE) != 0) {
             quotableField = extractArg(args, argIndex++, MethodHandle.class);
             altInterfaces = Arrays.copyOf(altInterfaces, altInterfaces.length + 1);
-            altInterfaces[altInterfaces.length-1] = Quotable.class;
+            altInterfaces[altInterfaces.length-1] = InnerClassLambdaMetafactory.CodeReflectionSupport.QUOTABLE_CLASS;
         }
         if (argIndex < args.length) {
             throw new IllegalArgumentException("too many arguments");

@@ -3,21 +3,22 @@ import org.testng.annotations.Test;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.*;
-import java.lang.reflect.code.analysis.SSA;
-import java.lang.reflect.code.interpreter.Interpreter;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.*;
+import jdk.incubator.code.analysis.SSA;
+import jdk.incubator.code.interpreter.Interpreter;
+import jdk.incubator.code.CodeReflection;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import static java.lang.reflect.code.op.CoreOp.FuncOp;
-import static java.lang.reflect.code.op.CoreOp.VarAccessOp.VarLoadOp;
-import static java.lang.reflect.code.op.CoreOp.VarAccessOp.VarStoreOp;
-import static java.lang.reflect.code.op.CoreOp.VarOp;
+import static jdk.incubator.code.op.CoreOp.FuncOp;
+import static jdk.incubator.code.op.CoreOp.VarAccessOp.VarLoadOp;
+import static jdk.incubator.code.op.CoreOp.VarAccessOp.VarStoreOp;
+import static jdk.incubator.code.op.CoreOp.VarOp;
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @run testng TestRemoveFinalVars
  */
 
@@ -92,6 +93,6 @@ public class TestRemoveFinalVars {
                 .findFirst();
 
         Method m = om.get();
-        return m.getCodeModel().get();
+        return Op.ofMethod(m).get();
     }
 }

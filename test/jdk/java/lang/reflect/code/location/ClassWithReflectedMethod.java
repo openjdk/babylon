@@ -21,7 +21,7 @@
  * questions.
  */
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 
 public class ClassWithReflectedMethod {
     @CodeReflection       // 27

@@ -36,7 +36,7 @@ import io.github.robertograham.rleparser.domain.PatternData;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 import static java.lang.foreign.ValueLayout.JAVA_INT;

@@ -26,12 +26,12 @@ package hat.optools;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Type;
-import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.type.ClassType;
-import java.lang.reflect.code.type.FieldRef;
-import java.lang.reflect.code.type.JavaType;
-import java.lang.reflect.code.type.PrimitiveType;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.ClassType;
+import jdk.incubator.code.type.FieldRef;
+import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.type.PrimitiveType;
 
 public abstract class FieldAccessOpWrapper<T extends CoreOp.FieldAccessOp> extends OpWrapper<T> {
     FieldAccessOpWrapper(T op) {

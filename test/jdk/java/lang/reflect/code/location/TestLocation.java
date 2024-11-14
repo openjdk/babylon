@@ -23,6 +23,7 @@
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @run testng TestLocation
  */
 
@@ -31,14 +32,14 @@ import org.testng.annotations.Test;
 
 import java.io.StringWriter;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.Location;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.OpTransformer;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.op.ExtendedOp;
-import java.lang.reflect.code.parser.OpParser;
-import java.lang.reflect.code.writer.OpWriter;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.Location;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.op.ExtendedOp;
+import jdk.incubator.code.parser.OpParser;
+import jdk.incubator.code.writer.OpWriter;
+import jdk.incubator.code.CodeReflection;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -111,6 +112,6 @@ public class TestLocation {
                 .findFirst();
 
         Method m = om.get();
-        return m.getCodeModel().get();
+        return Op.ofMethod(m).get();
     }
 }

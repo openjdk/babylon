@@ -24,12 +24,13 @@
 /*
  * @test
  * @summary Smoke test for code reflection with unary operations.
+ * @modules jdk.incubator.code
  * @build UnaryopTest
  * @build CodeReflectionTester
  * @run main CodeReflectionTester UnaryopTest
  */
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 
 public class UnaryopTest {
     @CodeReflection

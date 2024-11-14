@@ -32,7 +32,7 @@ import hat.backend.Backend;
 import hat.buffer.ChessState;
 
 import java.util.Scanner;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 import java.util.*;
 
 public class Chess {

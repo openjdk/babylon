@@ -21,20 +21,20 @@
  * questions.
  */
 
-import java.lang.reflect.code.*;
-import java.lang.reflect.code.op.ExtendedOp.JavaEnhancedForOp;
-import java.lang.reflect.code.type.ClassType;
-import java.lang.reflect.code.type.FunctionType;
-import java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.*;
+import jdk.incubator.code.op.ExtendedOp.JavaEnhancedForOp;
+import jdk.incubator.code.type.ClassType;
+import jdk.incubator.code.type.FunctionType;
+import jdk.incubator.code.type.JavaType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.*;
 
-import static java.lang.reflect.code.op.CoreOp.*;
-import static java.lang.reflect.code.op.ExtendedOp._continue;
-import static java.lang.reflect.code.op.ExtendedOp.enhancedFor;
-import static java.lang.reflect.code.type.JavaType.parameterized;
-import static java.lang.reflect.code.type.JavaType.type;
+import static jdk.incubator.code.op.CoreOp.*;
+import static jdk.incubator.code.op.ExtendedOp._continue;
+import static jdk.incubator.code.op.ExtendedOp.enhancedFor;
+import static jdk.incubator.code.type.JavaType.parameterized;
+import static jdk.incubator.code.type.JavaType.type;
 
 public final class StreamFuserUsingQuotable {
 

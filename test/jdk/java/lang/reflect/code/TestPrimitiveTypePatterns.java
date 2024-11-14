@@ -1,31 +1,33 @@
+import jdk.incubator.code.Op;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.Body;
-import java.lang.reflect.code.OpTransformer;
-import java.lang.reflect.code.bytecode.BytecodeGenerator;
-import java.lang.reflect.code.interpreter.Interpreter;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.op.ExtendedOp;
-import java.lang.reflect.code.type.JavaType;
-import java.lang.reflect.code.type.MethodRef;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.Body;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
+import jdk.incubator.code.interpreter.Interpreter;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.op.ExtendedOp;
+import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.type.MethodRef;
+import jdk.incubator.code.CodeReflection;
 import java.lang.runtime.ExactConversionsSupport;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import static java.lang.reflect.code.op.CoreOp.*;
-import static java.lang.reflect.code.op.ExtendedOp.match;
-import static java.lang.reflect.code.op.ExtendedOp.typePattern;
-import static java.lang.reflect.code.type.FunctionType.functionType;
-import static java.lang.reflect.code.type.PrimitiveType.*;
+import static jdk.incubator.code.op.CoreOp.*;
+import static jdk.incubator.code.op.ExtendedOp.match;
+import static jdk.incubator.code.op.ExtendedOp.typePattern;
+import static jdk.incubator.code.type.FunctionType.functionType;
+import static jdk.incubator.code.type.PrimitiveType.*;
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @run testng TestPrimitiveTypePatterns
  * @enablePreview
  */
@@ -361,7 +363,7 @@ public class TestPrimitiveTypePatterns {
                 .findFirst();
 
         Method m = om.get();
-        return m.getCodeModel().get();
+        return Op.ofMethod(m).get();
     }
 
     static FuncOp buildTypePatternModel(JavaType sourceType, JavaType targetType) {

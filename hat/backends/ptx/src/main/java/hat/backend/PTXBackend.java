@@ -32,8 +32,8 @@ import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.BoundSchema;
 import hat.optools.*;
 
-import java.lang.reflect.code.*;
-import java.lang.reflect.code.op.CoreOp;
+import jdk.incubator.code.*;
+import jdk.incubator.code.op.CoreOp;
 import java.util.*;
 
 public class PTXBackend extends C99NativeBackend {
