@@ -358,6 +358,10 @@ public class OpBuilder {
             for (int i = 0; i < keysAndValues.size(); i += 2) {
                 Value key = keysAndValues.get(i);
                 Value value = keysAndValues.get(i + 1);
+                if (value.type() instanceof PrimitiveType pt) {
+                    var boxedType = pt.box().orElseThrow();
+                    value = builder.op(invoke(MethodRef.method(boxedType, "valueOf", boxedType, pt), value));
+                }
                 builder.op(invoke(MAP_PUT, map, key, value));
             }
             return map;
