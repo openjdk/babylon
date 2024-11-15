@@ -2,3 +2,17 @@ thirdparty/
 build/
 repo/
 hattricks/
+backends/cuda/target/
+backends/mock/target/
+backends/opencl/target/
+backends/ptx/target/
+examples/blackscholes/target/
+examples/experiments/target/
+examples/heal/target/
+examples/life/target/
+examples/mandel/target/
+examples/squares/target/
+examples/violajones/target/
+target/
+
+

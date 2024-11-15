@@ -23,31 +23,50 @@ Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
 or visit www.oracle.com if you need additional information or have any
 questions.
 -->
-
-
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>oracle.code</groupId>
+    <artifactId>hat-example-matrixmult</artifactId>
     <version>1.0</version>
-    <artifactId>hat.examples</artifactId>
-    <packaging>pom</packaging>
-
+    <packaging>jar</packaging>
     <!-- this required to inherit parent properties -->
     <parent>
         <groupId>oracle.code</groupId>
         <version>1.0</version>
-        <artifactId>hat.root</artifactId>
+        <artifactId>hat.examples</artifactId>
     </parent>
 
-    <modules>
-        <module>mandel</module>
-        <module>experiments</module>
-        <module>squares</module>
-        <module>matrixmult</module>
-        <module>violajones</module>
-        <module>heal</module>
-        <module>life</module>
-        <module>blackscholes</module>
-    </modules>
+    <dependencies>
+        <dependency>
+            <groupId>oracle.code</groupId>
+            <version>1.0</version>
+            <artifactId>hat</artifactId>
+        </dependency>
+    </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>1.8</version>
+                <executions>
+                    <execution>
+                        <phase>install</phase>
+                        <configuration>
+                            <target>
+                                <copy file="target/hat-example-matrixmult-1.0.jar" todir="${hat.target}"/>
+                            </target>
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+
 </project>
