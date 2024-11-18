@@ -42,9 +42,7 @@ public class Main {
             for (int j = 0; j < size; j++) {
                 float acc = 0;
                 for (int k = 0; k < size; k++) {
-                    float a = matrixA.array(kc.x * size + k);
-                    float b = matrixB.array(k * size + j);
-                    acc += (a * b);
+                    acc += (matrixA.array(kc.x * size + k) * matrixB.array(k * size + j));
                 }
                 matrixC.array(kc.x * size + j, acc);
             }
@@ -77,48 +75,56 @@ public class Main {
 
         var lookup = java.lang.invoke.MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
+        System.out.println(accelerator);
 
         final int size = 1024;
         var matrixA = F32Array.create(accelerator, size * size);
         var matrixB = F32Array.create(accelerator, size * size);
 
-        // Matrix for the result
+        // Matrix for the results
         var matrixC = F32Array.create(accelerator, size * size);
-
         var resultSeq = F32Array.create(accelerator, size * size);
 
         // Initialize matrices (A and B have the same size)
         Random r = new Random(19);
-        for (int i = 0; i < matrixA.length(); i++) {
-            matrixA.array(i, r.nextFloat());
-            matrixB.array(i, r.nextFloat());
-        }
 
-        for (int i = 0; i < 10; i++) {
+        for (int it = 0; it < 10; it++) {
+
+            for (int j = 0; j < matrixA.length(); j++) {
+                matrixA.array(j, r.nextFloat());
+                matrixB.array(j, r.nextFloat());
+            }
+
             long start = System.nanoTime();
             accelerator.compute(cc ->
                     Main.matrixMultiply(cc, matrixA, matrixB, matrixC, size)
             );
             long end = System.nanoTime();
             System.out.println("Elapsed Time: " + (end - start) + " ns");
-        }
 
-        // Check result
-        runSequential(matrixA, matrixB, resultSeq, size);
-        boolean isCorrect = true;
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                if (Math.abs(matrixC.array(i * size + j) - matrixC.array(i * size + j)) > 0.1) {
-                    isCorrect = false;
+            // Check result
+            runSequential(matrixA, matrixB, resultSeq, size);
+            boolean isCorrect = true;
+            for (int i = 0; i < size; i++) {
+                for (int j = 0; j < size; j++) {
+                    if (Math.abs(matrixC.array(i * size + j) - matrixC.array(i * size + j)) > 0.1) {
+                        isCorrect = false;
+                        break;
+                    }
                 }
+                if (!isCorrect) {
+                    break;
+                }
+            }
+
+            if (isCorrect) {
+                System.out.println("Result is correct!");
+            } else {
+                System.out.println("Result is wrong!");
             }
         }
 
-        if (isCorrect) {
-            System.out.println("Result is correct!");
-        } else {
-            System.out.println("Result is wrong!");
-        }
+
 
     }
 }

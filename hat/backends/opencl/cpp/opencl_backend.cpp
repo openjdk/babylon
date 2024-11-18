@@ -115,7 +115,7 @@ OpenCLBackend::OpenCLProgram::OpenCLKernel::~OpenCLKernel() {
 }
 
 long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
-   // std::cout << "ndrange(" << range << ") " << std::endl;
+    // std::cout << "ndrange(" << argArray << ") " << std::endl;
     ArgSled argSled(static_cast<ArgArray_s *>(argArray));
     if (INFO){
        Sled::show(std::cout, argArray);
