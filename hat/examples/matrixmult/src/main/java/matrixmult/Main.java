@@ -107,7 +107,7 @@ public class Main {
             boolean isCorrect = true;
             for (int i = 0; i < size; i++) {
                 for (int j = 0; j < size; j++) {
-                    if (Math.abs(matrixC.array(i * size + j) - matrixC.array(i * size + j)) > 0.1) {
+                    if (Math.abs(matrixC.array(i * size + j) - matrixC.array(i * size + j)) > 0.01f) {
                         isCorrect = false;
                         break;
                     }
