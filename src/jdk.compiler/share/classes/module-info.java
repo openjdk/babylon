@@ -284,6 +284,7 @@ module jdk.compiler {
     uses com.sun.tools.doclint.DocLint;
     uses com.sun.tools.javac.platform.PlatformProvider;
     uses com.sun.tools.javac.api.JavacTrees.DocCommentTreeTransformer;
+    uses com.sun.tools.javac.comp.ReflectMethodsProxy;
 
     provides java.util.spi.ToolProvider with
         com.sun.tools.javac.main.JavacToolProvider;

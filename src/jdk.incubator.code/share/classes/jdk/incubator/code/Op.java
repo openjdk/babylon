@@ -31,14 +31,17 @@ import java.io.Writer;
 
 import com.sun.tools.javac.api.JavacScope;
 import com.sun.tools.javac.api.JavacTrees;
+import com.sun.tools.javac.code.Source;
 import com.sun.tools.javac.code.Symbol.ClassSymbol;
 import com.sun.tools.javac.comp.Attr;
+import com.sun.tools.javac.comp.Modules;
+import com.sun.tools.javac.main.JavaCompiler;
 import com.sun.tools.javac.model.JavacElements;
 import com.sun.tools.javac.processing.JavacProcessingEnvironment;
 import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
 import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.util.Context;
-import jdk.incubator.code.compiler.CodeReflectionPlugin;
+import com.sun.tools.javac.util.Names;
 import jdk.incubator.code.internal.ReflectMethods;
 import jdk.incubator.code.op.CoreOp.FuncOp;
 import jdk.incubator.code.op.ExtendedOp;
@@ -546,10 +549,6 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         }
 
         Context context = ((JavacProcessingEnvironment)processingEnvironment).getContext();
-        if (!CodeReflectionPlugin.isCodeReflectionAvailable(context)) {
-            return Optional.empty();
-        }
-
         ReflectMethods reflectMethods = ReflectMethods.instance(context);
         Attr attr = Attr.instance(context);
         JavacElements elements = JavacElements.instance(context);

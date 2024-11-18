@@ -26,6 +26,7 @@
 package com.sun.tools.javac.main;
 
 import java.io.*;
+import java.lang.module.Configuration;
 import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.InvalidPathException;
 import java.nio.file.ReadOnlyFileSystemException;
@@ -37,8 +38,10 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.MissingResourceException;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.ResourceBundle;
+import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.ToIntFunction;
@@ -1617,6 +1620,13 @@ public class JavaCompiler {
             if (shouldStop(CompileState.TRANSTYPES))
                 return;
 
+            if (Feature.REFLECT_METHODS.allowedInSource(source)) {
+                Optional<ReflectMethodsProxy> reflectMethods = reflectMethods();
+                if (reflectMethods.isPresent()) {
+                    env.tree = reflectMethods.get().translateTopLevelClass(context, env.tree, localMake);
+                }
+            }
+
             env.tree = transTypes.translateTopLevelClass(env.tree, localMake);
             compileStates.put(env, CompileState.TRANSTYPES);
 
@@ -1624,7 +1634,8 @@ public class JavaCompiler {
                 return;
 
             if (scanner.hasPatterns) {
-                env.tree = TransPatterns.instance(context).translateTopLevelClass(env, env.tree, localMake);
+                env.tree = TransPatterns.instance(context)
+                        .translateTopLevelClass(env, env.tree, localMake);
             }
 
             compileStates.put(env, CompileState.TRANSPATTERNS);
@@ -1670,6 +1681,39 @@ public class JavaCompiler {
             log.useSource(prev);
         }
 
+    }
+
+    Optional<ReflectMethodsProxy> reflectMethods() {
+        if (CodeReflectionSupport.CODE_LAYER != null) {
+            return ServiceLoader.load(CodeReflectionSupport.CODE_LAYER, ReflectMethodsProxy.class)
+                            .findFirst();
+        } else {
+            return Optional.empty();
+        }
+    }
+
+    static class CodeReflectionSupport {
+        static final ModuleLayer CODE_LAYER;
+
+        static {
+            if (java.lang.module.ModuleFinder.ofSystem().find("jdk.incubator.code").isPresent() &&
+                    !ModuleLayer.boot().findModule("jdk.incubator.code").isPresent()) {
+                ModuleLayer parent = ModuleLayer.boot();
+                Configuration cf = parent.configuration()
+                        .resolve(java.lang.module.ModuleFinder.of(), java.lang.module.ModuleFinder.ofSystem(), Set.of("jdk.incubator.code"));
+                ClassLoader scl = ClassLoader.getSystemClassLoader();
+                CODE_LAYER = parent.defineModulesWithOneLoader(cf, scl);
+                Module codeReflectionModule = CODE_LAYER.findModule("jdk.incubator.code").get();
+                Module jdkCompilerModule = JavaCompiler.class.getModule();
+                // We need to add exports all jdk.compiler packages so that the plugin can use them
+                for (String packageName : jdkCompilerModule.getPackages()) {
+                    jdkCompilerModule.addExports(packageName, codeReflectionModule);
+                }
+            } else {
+                // if we run javac in bootstrap mode, there might be no jdk.incubator.code
+                CODE_LAYER = null;
+            }
+        }
     }
 
     /** Generates the source or class file for a list of classes.
