@@ -88,8 +88,6 @@ import com.sun.tools.javac.util.Log.WriterKind;
 
 import static com.sun.tools.javac.code.Kinds.Kind.*;
 
-import com.sun.tools.javac.code.Lint;
-import com.sun.tools.javac.code.Lint.LintCategory;
 import com.sun.tools.javac.code.Symbol.ModuleSymbol;
 
 import com.sun.tools.javac.resources.CompilerProperties.Errors;
@@ -1621,7 +1619,7 @@ public class JavaCompiler {
                 return;
 
             if (Feature.REFLECT_METHODS.allowedInSource(source)) {
-                Optional<ReflectMethodsProxy> reflectMethods = reflectMethods();
+                Optional<CodeReflectionTransformer> reflectMethods = reflectMethods();
                 if (reflectMethods.isPresent()) {
                     env.tree = reflectMethods.get().translateTopLevelClass(context, env.tree, localMake);
                 }
@@ -1683,9 +1681,9 @@ public class JavaCompiler {
 
     }
 
-    Optional<ReflectMethodsProxy> reflectMethods() {
+    Optional<CodeReflectionTransformer> reflectMethods() {
         if (CodeReflectionSupport.CODE_LAYER != null) {
-            return ServiceLoader.load(CodeReflectionSupport.CODE_LAYER, ReflectMethodsProxy.class)
+            return ServiceLoader.load(CodeReflectionSupport.CODE_LAYER, CodeReflectionTransformer.class)
                             .findFirst();
         } else {
             return Optional.empty();

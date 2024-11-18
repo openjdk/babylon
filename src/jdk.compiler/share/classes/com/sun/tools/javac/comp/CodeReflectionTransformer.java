@@ -34,9 +34,12 @@ import com.sun.tools.javac.util.Context;
  * This compiler step is optionally enabled depending on whether
  * the incubating module jdk.incubator.code is part of the module graph.
  */
-public interface ReflectMethodsProxy {
+public interface CodeReflectionTransformer {
     /**
-     * Analyze the {@code CodeReflection} annotations in the method of the provided class.
+     * Analyze the code in the provided class, generating code models for the following program elements:
+     * <li>methods annotated with {@code CodeReflection};
+     * <li>lambdas or method references whose target type is {@code Quoted}; and
+     * <li>lambdas or method references whose target is an intersection type that contains {@code Quotable}.
      * @param context the compiler context
      * @param tree the tree to analyze
      * @param make the tree maker

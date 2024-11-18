@@ -51,6 +51,6 @@ module jdk.incubator.code {
 
     opens jdk.incubator.code.internal to java.base;
 
-    provides com.sun.tools.javac.comp.ReflectMethodsProxy with
+    provides com.sun.tools.javac.comp.CodeReflectionTransformer with
             ReflectMethods.Provider;
 }
