@@ -23,34 +23,27 @@
  * questions.
  */
 
+package com.sun.tools.javac.comp;
+
+import com.sun.tools.javac.tree.JCTree;
+import com.sun.tools.javac.tree.TreeMaker;
+import com.sun.tools.javac.util.Context;
+
 /**
- * A module which provides classes and interfaces for obtaining reflective information about
- * classes and objects.
- * {@incubating}
- *
- * @moduleGraph
+ * This is a proxy interface for the code reflection tree translator.
+ * This compiler step is optionally enabled depending on whether
+ * the incubating module jdk.incubator.code is part of the module graph.
  */
-
-import jdk.incubator.code.internal.ReflectMethods;
-import jdk.internal.javac.ParticipatesInPreview;
-
-@ParticipatesInPreview
-module jdk.incubator.code {
-    requires transitive jdk.compiler;
-
-    exports jdk.incubator.code;
-    exports jdk.incubator.code.parser;
-    exports jdk.incubator.code.op;
-    exports jdk.incubator.code.type;
-    exports jdk.incubator.code.analysis;
-    exports jdk.incubator.code.bytecode;
-    exports jdk.incubator.code.interpreter;
-    exports jdk.incubator.code.writer;
-    exports jdk.incubator.code.tools.dot;
-    exports jdk.incubator.code.tools.renderer;
-
-    opens jdk.incubator.code.internal to java.base;
-
-    provides com.sun.tools.javac.comp.CodeReflectionTransformer with
-            ReflectMethods.Provider;
+public interface CodeReflectionTransformer {
+    /**
+     * Analyze the code in the provided class, generating code models for the following program elements:
+     * <li>methods annotated with {@code CodeReflection};
+     * <li>lambdas or method references whose target type is {@code Quoted}; and
+     * <li>lambdas or method references whose target is an intersection type that contains {@code Quotable}.
+     * @param context the compiler context
+     * @param tree the tree to analyze
+     * @param make the tree maker
+     * @return the translated class tree
+     */
+    JCTree translateTopLevelClass(Context context, JCTree tree, TreeMaker make);
 }

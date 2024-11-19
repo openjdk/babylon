@@ -46,6 +46,7 @@ import com.sun.tools.javac.comp.CaptureScanner;
 import com.sun.tools.javac.comp.DeferredAttr.FilterScanner;
 import com.sun.tools.javac.comp.Flow;
 import com.sun.tools.javac.comp.Lower;
+import com.sun.tools.javac.comp.CodeReflectionTransformer;
 import com.sun.tools.javac.comp.TypeEnvs;
 import com.sun.tools.javac.jvm.ByteCodes;
 import com.sun.tools.javac.jvm.Gen;
@@ -2970,5 +2971,12 @@ public class ReflectMethods extends TreeTranslator {
      */
     public static Note MethodIrSkip(Symbol arg0, Symbol arg1, String arg2) {
         return new Note("compiler", "method.ir.skip", arg0, arg1, arg2);
+    }
+
+    public static class Provider implements CodeReflectionTransformer {
+        @Override
+        public JCTree translateTopLevelClass(Context context, JCTree tree, TreeMaker make) {
+            return ReflectMethods.instance(context).translateTopLevelClass(tree, make);
+        }
     }
 }
