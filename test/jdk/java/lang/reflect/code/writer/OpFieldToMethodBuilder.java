@@ -1,4 +1,3 @@
-import java.io.IOException;
 import java.lang.classfile.*;
 import java.lang.classfile.components.ClassPrinter;
 import java.lang.classfile.constantpool.FieldRefEntry;
@@ -22,16 +21,24 @@ import java.util.List;
 
 import static java.lang.reflect.code.op.CoreOp.FuncOp;
 
-public class TestOpMethod {
+public class OpFieldToMethodBuilder {
 
-    public static void main(String[] args) throws IOException, ClassNotFoundException {
+    public static void main(String[] args) {
         for (var arg : args) {
             var path = Path.of(arg);
-            var originalBytes = Files.readAllBytes(path);
-            var newBytes = TestOpMethod.replaceOpFieldWithBuilderMethod(originalBytes);
+            byte[] originalBytes;
+            byte[] newBytes;
+            try {
+                originalBytes = Files.readAllBytes(path);
+                newBytes = OpFieldToMethodBuilder.replaceOpFieldWithBuilderMethod(originalBytes);
+            } catch (Throwable e) {
+                continue; // ignore errors for now
+            }
             System.out.printf("%s %d %d%n", arg, originalBytes.length, newBytes.length);
-            // TODO a script that runs the tool for many classes
-            // TODO reduce size if possible
+            System.out.println();
+            // TODO output useful info like avg size increase
+            // TODO remove duplicate
+            // TODO reduce size if possible (by reducing the code of the builder method)
         }
     }
 
@@ -84,7 +91,8 @@ public class TestOpMethod {
                 clb.with(builderMethod);
             }
         }));
-        var newBytes = ClassFile.of(ClassFile.ConstantPoolSharingOption.NEW_POOL).transformClass(classModel, classTransform);
+        var cf = ClassFile.of(ClassFile.ConstantPoolSharingOption.NEW_POOL);
+        var newBytes = cf.transformClass(classModel, classTransform);
         testBuilderMethods(newBytes, opFieldsAndIRs);
         return newBytes;
     }
