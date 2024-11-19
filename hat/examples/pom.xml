@@ -44,7 +44,7 @@ questions.
         <module>mandel</module>
         <module>experiments</module>
         <module>squares</module>
-        <module>matrixmult</module>
+        <module>matmul</module>
         <module>violajones</module>
         <module>heal</module>
         <module>life</module>

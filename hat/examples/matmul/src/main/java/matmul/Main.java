@@ -22,7 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package matrixmult;
+package matmul;
 
 import hat.Accelerator;
 import hat.ComputeContext;

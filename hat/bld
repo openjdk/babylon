@@ -76,7 +76,7 @@ void main(String[] args) {
 
  cmake($->$.build(cmakeBuildDir));
 
- examples.forEachSubDirectory("blackscholes", "mandel", "squares", "heal", "violajones", "life", "matrixmult").forEach(example ->
+ examples.forEachSubDirectory("blackscholes", "mandel", "squares", "heal", "violajones", "life", "matmul").forEach(example ->
    jar($->$
      .jar(buildDir.jarFile("hat-example-" + example.name() + "-1.0.jar"))
      .javac($$->$$
