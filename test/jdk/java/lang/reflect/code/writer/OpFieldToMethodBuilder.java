@@ -35,7 +35,6 @@ public class OpFieldToMethodBuilder {
                 continue; // ignore errors for now
             }
             System.out.printf("%s %d %d%n", arg, originalBytes.length, newBytes.length);
-            System.out.println();
             // TODO output useful info like avg size increase
             // TODO remove duplicate
             // TODO reduce size if possible (by reducing the code of the builder method)
