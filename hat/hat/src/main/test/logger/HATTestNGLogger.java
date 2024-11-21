@@ -1,5 +1,4 @@
-/* vim: set ft=java: 
- *
+/*
  * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
@@ -23,31 +22,33 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+package logger;
+import org.testng.ITestResult;
+import org.testng.TestListenerAdapter;
 
-import static bldr.Bldr.*;           // all the helpers are here 
+public class HATTestNGLogger  extends TestListenerAdapter{
+        private int m_count = 0;
+        @Override
+        public void onTestFailure(ITestResult tr) {
+            log(tr.getName()+ "--Test method failed\n");
+        }
 
-void main(String[] args){
-  Dir.current()
-    .forEachSubDir(
-      regex->regex.matches("^.*(hat|examples|backends|docs)$"),
-      dir->dir
-       .findFiles()
-          .filter((path)->Pattern.matches("^.*\\.(java|cpp|h|hpp|md)$", path.toString()))
-          .filter((path)->!Pattern.matches("^.*examples/life/src/main/java/io.*$", path.toString()))
-          .map(path->new SearchableTextFile(path))
-          .forEach(textFile ->{
-             if (!textFile.hasSuffix("md")
-               && !textFile.grep(Pattern.compile("^.*Copyright.*202[4-9].*(Intel|Oracle).*$"))) {
-                  println("ERR NO LICENCE " + textFile.path());
-             }
-             textFile.lines().forEach(line -> {
-               if (line.grep(Pattern.compile("^.*\\t.*"))) {
-                  println("ERR        TAB " + textFile.path() + ":" + line.line() + "#" + line.num());
-               }
-               if (line.grep(Pattern.compile("^.* $"))) {
-                  println("ERR EOL WSPACE " + textFile.path() + ":" + line.line() + "#" + line.num());
-               }
-            });
-          })
-   );
+        @Override
+        public void onTestSkipped(ITestResult tr) {
+            log(tr.getName()+ "--Test method skipped\n");
+        }
+
+        @Override
+        public void onTestSuccess(ITestResult tr) {
+            log(tr.getName()+ "--Test method success\n");
+        }
+
+        private void log(String string) {
+            System.out.print(string);
+           // if (++m_count % 40 == 0) {
+                System.out.println("");
+           // }
+        }
+
+
 }
