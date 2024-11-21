@@ -23,6 +23,7 @@
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @run testng TestCopy
  */
 
@@ -30,11 +31,11 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.code.CopyContext;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.op.ExternalizableOp;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.op.ExternalizableOp;
+import jdk.incubator.code.CodeReflection;
 import java.util.Optional;
 import java.util.function.IntUnaryOperator;
 import java.util.stream.Stream;
@@ -72,6 +73,6 @@ public class TestCopy {
                 .findFirst();
 
         Method m = om.get();
-        return m.getCodeModel().get();
+        return Op.ofMethod(m).get();
     }
 }

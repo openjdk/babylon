@@ -23,21 +23,23 @@
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @run testng TestStream
  */
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.OpTransformer;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.interpreter.Interpreter;
+import java.lang.invoke.MethodHandles;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.interpreter.Interpreter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static java.lang.reflect.code.type.JavaType.type;
+import static jdk.incubator.code.type.JavaType.type;
 
 public class TestStream {
 
@@ -56,7 +58,8 @@ public class TestStream {
 
         lf.writeTo(System.out);
 
-        Interpreter.invoke(lf, List.of(List.of(1, 2, 3, 4, 5, 100_000_000, 10_000, 100_000, 20)));
+        Interpreter.invoke(MethodHandles.lookup(), lf,
+                List.of(List.of(1, 2, 3, 4, 5, 100_000_000, 10_000, 100_000, 20)));
     }
 
     @Test
@@ -86,7 +89,8 @@ public class TestStream {
                 .toList();
 
         @SuppressWarnings("unchecked")
-        List<String> actual = (List<String>) Interpreter.invoke(lf, List.of(source));
+        List<String> actual = (List<String>) Interpreter.invoke(MethodHandles.lookup(), lf,
+                List.of(source));
 
         Assert.assertEquals(expected, actual);
     }

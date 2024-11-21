@@ -24,9 +24,9 @@
  */
 package hat.optools;
 
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.Value;
-import java.lang.reflect.code.op.CoreOp;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.op.CoreOp;
 
 public abstract class VarAccessOpWrapper<T extends CoreOp.VarAccessOp> extends OpWrapper<T> {
     VarAccessOpWrapper(T op) {

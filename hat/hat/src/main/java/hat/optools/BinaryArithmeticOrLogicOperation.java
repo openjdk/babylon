@@ -24,7 +24,7 @@
  */
 package hat.optools;
 
-import java.lang.reflect.code.op.CoreOp;
+import jdk.incubator.code.op.CoreOp;
 
 public class BinaryArithmeticOrLogicOperation extends BinaryOpWrapper<CoreOp.BinaryOp> {
     BinaryArithmeticOrLogicOperation(CoreOp.BinaryOp op) {

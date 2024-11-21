@@ -26,17 +26,17 @@
 package intel.code.spirv;
 
 import java.util.List;
-import java.lang.reflect.code.Block;
-import java.lang.reflect.code.Body;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.Value;
-import java.lang.reflect.code.CopyContext;
-import java.lang.reflect.code.OpTransformer;
-import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.type.MethodRef;
-import java.lang.reflect.code.type.FieldRef;
-import java.lang.reflect.code.type.FunctionType;
-import java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.Block;
+import jdk.incubator.code.Body;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.type.MethodRef;
+import jdk.incubator.code.type.FieldRef;
+import jdk.incubator.code.type.FunctionType;
+import jdk.incubator.code.type.JavaType;
 
 public class SpirvOps {
     private static final String NAME_PREFIX = "spirv.";

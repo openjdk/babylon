@@ -21,13 +21,14 @@
  * questions.
  */
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 import java.math.BigDecimal;
 import java.util.List;
 
 /*
  * @test
  * @summary Smoke test for code reflection with new expressions.
+ * @modules jdk.incubator.code
  * @build NewTest
  * @build CodeReflectionTester
  * @run main CodeReflectionTester NewTest

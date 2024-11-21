@@ -37,11 +37,12 @@ import hat.ifacemapper.Schema;
 import hat.buffer.BufferAllocator;
 
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.code.OpTransformer;
-import java.lang.reflect.code.analysis.SSA;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.type.FunctionType;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.analysis.SSA;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.FunctionType;
+import jdk.incubator.code.CodeReflection;
 
 public class PointyHat {
     public interface ColoredWeightedPoint extends Buffer {
@@ -114,7 +115,7 @@ public class PointyHat {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), new BackendAdaptor() {
             @Override
             public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
-                var highLevelForm = kernelCallGraph.entrypoint.method.getCodeModel().orElseThrow();
+                var highLevelForm = Op.ofMethod(kernelCallGraph.entrypoint.method).orElseThrow();
                 System.out.println("Initial code model");
                 System.out.println(highLevelForm.toText());
                 System.out.println("------------------");

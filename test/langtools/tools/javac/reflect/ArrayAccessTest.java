@@ -21,11 +21,12 @@
  * questions.
  */
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 
 /*
  * @test
  * @summary Smoke test for code reflection with array access.
+ * @modules jdk.incubator.code
  * @build ArrayAccessTest
  * @build CodeReflectionTester
  * @run main CodeReflectionTester ArrayAccessTest

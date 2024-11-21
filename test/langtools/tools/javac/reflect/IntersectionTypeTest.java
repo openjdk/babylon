@@ -21,11 +21,12 @@
  * questions.
  */
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 
 /*
  * @test
  * @summary Smoke test for code reflection with intersection type conversions.
+ * @modules jdk.incubator.code
  * @build IntersectionTypeTest
  * @build CodeReflectionTester
  * @run main CodeReflectionTester IntersectionTypeTest

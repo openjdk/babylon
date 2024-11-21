@@ -23,16 +23,18 @@
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @run testng TestOptions
  */
 
+import jdk.incubator.code.Op;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.writer.OpWriter;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.writer.OpWriter;
+import jdk.incubator.code.CodeReflection;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -68,6 +70,6 @@ public class TestOptions {
                 .findFirst();
 
         Method m = om.get();
-        return m.getCodeModel().get();
+        return Op.ofMethod(m).get();
     }
 }

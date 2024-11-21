@@ -35,14 +35,14 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.*;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.bytecode.BytecodeLift;
-import java.lang.reflect.code.interpreter.Interpreter;
+import jdk.incubator.code.*;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.bytecode.BytecodeLift;
+import jdk.incubator.code.interpreter.Interpreter;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.bytecode.BytecodeGenerator;
-import java.lang.reflect.code.type.JavaType;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
+import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.CodeReflection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -53,6 +53,7 @@ import java.util.stream.Stream;
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @enablePreview
  * @run testng/othervm -Djdk.invoke.MethodHandle.dumpClassFiles=true TestBytecode
  */
@@ -642,7 +643,7 @@ public class TestBytecode {
                     .methods().stream().filter(m -> m.methodName().equalsString(d.testMethod().getName())).findAny().get(),
                     ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES, System.out::print);
             System.out.println("Lift failed, compiled model:");
-            d.testMethod.getCodeModel().ifPresent(f -> f.writeTo(System.out));
+            Op.ofMethod(d.testMethod).ifPresent(f -> f.writeTo(System.out));
             throw e;
         }
         try {
@@ -658,7 +659,7 @@ public class TestBytecode {
                 Assert.assertEquals(invokeAndConvert(flift, receiver1, args), d.testMethod.invoke(receiver2, args)));
         } catch (Throwable e) {
             System.out.println("Compiled model:");
-            d.testMethod.getCodeModel().ifPresent(f -> f.writeTo(System.out));
+            Op.ofMethod(d.testMethod).ifPresent(f -> f.writeTo(System.out));
             System.out.println("Lifted model:");
             flift.writeTo(System.out);
             throw e;
@@ -687,7 +688,7 @@ public class TestBytecode {
 
     @Test(dataProvider = "testMethods")
     public void testGenerate(TestData d) throws Throwable {
-        CoreOp.FuncOp func = d.testMethod.getCodeModel().get();
+        CoreOp.FuncOp func = Op.ofMethod(d.testMethod).get();
 
         CoreOp.FuncOp lfunc;
         try {

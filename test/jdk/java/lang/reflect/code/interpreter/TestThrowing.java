@@ -23,8 +23,10 @@
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.interpreter.Interpreter;
-import java.lang.runtime.CodeReflection;
+
+import jdk.incubator.code.Op;
+import jdk.incubator.code.interpreter.Interpreter;
+import jdk.incubator.code.CodeReflection;
 
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
@@ -32,6 +34,7 @@ import org.testng.annotations.Test;
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @run testng TestThrowing
  */
 
@@ -40,7 +43,7 @@ public class TestThrowing {
     @Test(dataProvider = "methods-exceptions")
     public void testThrowsCorrectException(String methodName, Class<? extends Throwable> expectedExceptionType) throws NoSuchMethodException {
         Method method = TestThrowing.class.getDeclaredMethod(methodName);
-        Assert.assertThrows(expectedExceptionType, () -> Interpreter.invoke(MethodHandles.lookup(), method.getCodeModel().orElseThrow()));
+        Assert.assertThrows(expectedExceptionType, () -> Interpreter.invoke(MethodHandles.lookup(), Op.ofMethod(method).orElseThrow()));
     }
 
     @DataProvider(name = "methods-exceptions")

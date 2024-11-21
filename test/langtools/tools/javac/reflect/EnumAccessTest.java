@@ -22,7 +22,7 @@
  */
 
 import java.lang.constant.DirectMethodHandleDesc;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 
 import static java.lang.constant.DirectMethodHandleDesc.Kind;
 import static java.lang.constant.DirectMethodHandleDesc.Kind.VIRTUAL;
@@ -30,6 +30,7 @@ import static java.lang.constant.DirectMethodHandleDesc.Kind.VIRTUAL;
 /*
  * @test
  * @summary Smoke test for code reflection with enum access.
+ * @modules jdk.incubator.code
  * @build EnumAccessTest
  * @build CodeReflectionTester
  * @run main CodeReflectionTester EnumAccessTest

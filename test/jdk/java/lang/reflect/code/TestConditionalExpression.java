@@ -23,18 +23,20 @@
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @run testng TestConditionalExpression
  */
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.OpTransformer;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.interpreter.Interpreter;
+import java.lang.invoke.MethodHandles;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.interpreter.Interpreter;
 import java.lang.reflect.Method;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -54,8 +56,8 @@ public class TestConditionalExpression {
 
         lf.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(lf, true, 1, 2), simpleExpression(true, 1, 2));
-        Assert.assertEquals(Interpreter.invoke(lf, false, 1, 2), simpleExpression(false, 1, 2));
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, true, 1, 2), simpleExpression(true, 1, 2));
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, false, 1, 2), simpleExpression(false, 1, 2));
     }
 
 
@@ -65,6 +67,6 @@ public class TestConditionalExpression {
                 .findFirst();
 
         Method m = om.get();
-        return m.getCodeModel().get();
+        return Op.ofMethod(m).get();
     }
 }

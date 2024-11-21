@@ -25,14 +25,14 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.io.PrintStream;
-import java.lang.reflect.code.*;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.type.FieldRef;
-import java.lang.reflect.code.type.MethodRef;
-import java.lang.reflect.code.interpreter.Interpreter;
+import jdk.incubator.code.*;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.FieldRef;
+import jdk.incubator.code.type.MethodRef;
+import jdk.incubator.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -42,15 +42,16 @@ import java.util.function.IntUnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static java.lang.reflect.code.op.CoreOp.arrayStoreOp;
-import static java.lang.reflect.code.op.CoreOp.constant;
-import static java.lang.reflect.code.op.CoreOp.fieldLoad;
-import static java.lang.reflect.code.op.CoreOp.newArray;
-import static java.lang.reflect.code.type.MethodRef.method;
-import static java.lang.reflect.code.type.JavaType.*;
+import static jdk.incubator.code.op.CoreOp.arrayStoreOp;
+import static jdk.incubator.code.op.CoreOp.constant;
+import static jdk.incubator.code.op.CoreOp.fieldLoad;
+import static jdk.incubator.code.op.CoreOp.newArray;
+import static jdk.incubator.code.type.MethodRef.method;
+import static jdk.incubator.code.type.JavaType.*;
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @enablePreview
  * @run testng TestLocalTransformationsAdaption
  */
@@ -320,6 +321,6 @@ public class TestLocalTransformationsAdaption {
                 .findFirst();
 
         Method m = om.get();
-        return m.getCodeModel().get();
+        return Op.ofMethod(m).get();
     }
 }

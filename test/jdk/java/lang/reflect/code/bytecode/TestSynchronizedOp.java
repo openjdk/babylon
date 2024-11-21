@@ -23,10 +23,12 @@
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @enablePreview
  * @run testng TestSynchronizedOp
  */
 
+import jdk.incubator.code.Op;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -38,10 +40,10 @@ import java.lang.classfile.instruction.MonitorInstruction;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.OpTransformer;
-import java.lang.reflect.code.bytecode.BytecodeGenerator;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.CodeReflection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -102,6 +104,6 @@ public class TestSynchronizedOp {
                 .findFirst();
 
         Method m = om.get();
-        return m.getCodeModel().get();
+        return Op.ofMethod(m).get();
     }
 }

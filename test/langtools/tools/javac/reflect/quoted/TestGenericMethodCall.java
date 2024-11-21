@@ -23,10 +23,11 @@
 
 /*
  * @test /nodynamiccopyright/
- * @compile/fail/ref=TestGenericMethodCall.out -XDrawDiagnostics TestGenericMethodCall.java
+ * @modules jdk.incubator.code
+ * @compile/fail/ref=TestGenericMethodCall.out -Xlint:-incubating -XDrawDiagnostics TestGenericMethodCall.java
  */
 
-import java.lang.reflect.code.Quoted;
+import jdk.incubator.code.Quoted;
 
 public class TestGenericMethodCall {
     void test(boolean cond) {

@@ -24,13 +24,14 @@
 /*
  * @test
  * @summary Smoke test for code reflection with quoted lambdas.
+ * @modules jdk.incubator.code
  * @build QuotedTest
  * @build CodeReflectionTester
  * @run main CodeReflectionTester QuotedTest
  */
 
-import java.lang.reflect.code.Quoted;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.Quoted;
+import jdk.incubator.code.CodeReflection;
 
 public class QuotedTest {
     @IR("""
@@ -143,7 +144,7 @@ public class QuotedTest {
     @IR("""
             func @"captureParam" (%0 : int)void -> {
                 %1 : Var<int> = var %0 @"x";
-                %2 : java.lang.reflect.code.Quoted = quoted ()void -> {
+                %2 : jdk.incubator.code.Quoted = quoted ()void -> {
                     %3 : func<int, int> = closure (%4 : int)int -> {
                         %5 : Var<int> = var %4 @"y";
                         %6 : int = var.load %1;
@@ -153,7 +154,7 @@ public class QuotedTest {
                     };
                     yield %3;
                 };
-                %9 : Var<java.lang.reflect.code.Quoted> = var %2 @"op";
+                %9 : Var<jdk.incubator.code.Quoted> = var %2 @"op";
                 return;
             };
             """)
@@ -166,7 +167,7 @@ public class QuotedTest {
     @CodeReflection
     @IR("""
             func @"captureField" (%0 : QuotedTest)void -> {
-                %1 : java.lang.reflect.code.Quoted = quoted ()void -> {
+                %1 : jdk.incubator.code.Quoted = quoted ()void -> {
                     %2 : func<int, int> = closure (%3 : int)int -> {
                         %4 : Var<int> = var %3 @"z";
                         %5 : int = field.load %0 @"QuotedTest::x()int";
@@ -178,7 +179,7 @@ public class QuotedTest {
                     };
                     yield %2;
                 };
-                %10 : Var<java.lang.reflect.code.Quoted> = var %1 @"op";
+                %10 : Var<jdk.incubator.code.Quoted> = var %1 @"op";
                 return;
             };
             """)

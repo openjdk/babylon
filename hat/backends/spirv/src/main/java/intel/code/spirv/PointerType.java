@@ -25,7 +25,7 @@
 
 package intel.code.spirv;
 
-import java.lang.reflect.code.TypeElement;
+import jdk.incubator.code.TypeElement;
 import java.util.Objects;
 import java.util.List;
 

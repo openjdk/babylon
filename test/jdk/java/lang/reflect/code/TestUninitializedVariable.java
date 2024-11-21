@@ -23,19 +23,22 @@
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @run testng TestUninitializedVariable
  */
 
+import jdk.incubator.code.Op;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.OpTransformer;
-import java.lang.reflect.code.analysis.SSA;
-import java.lang.reflect.code.interpreter.Interpreter;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.analysis.SSA;
+import jdk.incubator.code.interpreter.Interpreter;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.CodeReflection;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
@@ -73,7 +76,7 @@ public class TestUninitializedVariable {
         CoreOp.FuncOp f = removeFirstStore(getFuncOp(method).transform(OpTransformer.LOWERING_TRANSFORMER));
         f.writeTo(System.out);
 
-        Assert.assertThrows(Interpreter.InterpreterException.class, () -> Interpreter.invoke(f, 1));
+        Assert.assertThrows(Interpreter.InterpreterException.class, () -> Interpreter.invoke(MethodHandles.lookup(), f, 1));
     }
 
     @Test(dataProvider = "methods")
@@ -102,6 +105,6 @@ public class TestUninitializedVariable {
                 .findFirst();
 
         Method m = om.get();
-        return m.getCodeModel().get();
+        return Op.ofMethod(m).get();
     }
 }
