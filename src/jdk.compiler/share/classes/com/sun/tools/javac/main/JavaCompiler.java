@@ -1682,12 +1682,8 @@ public class JavaCompiler {
     }
 
     Optional<CodeReflectionTransformer> reflectMethods() {
-        if (CodeReflectionSupport.CODE_LAYER != null) {
-            return ServiceLoader.load(CodeReflectionSupport.CODE_LAYER, CodeReflectionTransformer.class)
-                            .findFirst();
-        } else {
-            return Optional.empty();
-        }
+        return ServiceLoader.load(CodeReflectionSupport.CODE_LAYER, CodeReflectionTransformer.class)
+                        .findFirst();
     }
 
     static class CodeReflectionSupport {
@@ -1709,7 +1705,7 @@ public class JavaCompiler {
                 }
             } else {
                 // if we run javac in bootstrap mode, there might be no jdk.incubator.code
-                CODE_LAYER = null;
+                CODE_LAYER = ModuleLayer.boot();
             }
         }
     }
