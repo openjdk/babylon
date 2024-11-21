@@ -21,13 +21,14 @@
  * questions.
  */
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 import java.util.Collection;
 import java.util.List;
 
 /*
  * @test
  * @summary Smoke test for code reflection with cast expressions.
+ * @modules jdk.incubator.code
  * @build CastInstanceOfTest
  * @build CodeReflectionTester
  * @run main CodeReflectionTester CastInstanceOfTest

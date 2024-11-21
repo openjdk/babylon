@@ -21,11 +21,12 @@
  * questions.
  */
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 
 /*
  * @test
  * @summary Smoke test for code reflection with local variables.
+ * @modules jdk.incubator.code
  * @build LocalVarTest
  * @build CodeReflectionTester
  * @run main CodeReflectionTester LocalVarTest

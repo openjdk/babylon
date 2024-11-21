@@ -23,10 +23,12 @@
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @run junit CoreBinaryOpsTest
  * @run junit/othervm -Dbabylon.ssa=cytron CoreBinaryOpsTest
  */
 
+import jdk.incubator.code.Op;
 import org.junit.jupiter.api.Named;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.function.ThrowingSupplier;
@@ -45,15 +47,15 @@ import java.lang.invoke.MethodType;
 import java.lang.reflect.AccessFlag;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.lang.reflect.code.OpTransformer;
-import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.analysis.SSA;
-import java.lang.reflect.code.bytecode.BytecodeGenerator;
-import java.lang.reflect.code.interpreter.Interpreter;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.type.FunctionType;
-import java.lang.reflect.code.type.JavaType;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.analysis.SSA;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
+import jdk.incubator.code.interpreter.Interpreter;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.FunctionType;
+import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.CodeReflection;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -223,7 +225,7 @@ public class CoreBinaryOpsTest {
             Method testMethod = extensionContext.getRequiredTestMethod();
             return codeReflectionMethods(extensionContext.getRequiredTestClass())
                     .flatMap(method -> {
-                        CoreOp.FuncOp funcOp = method.getCodeModel().orElseThrow(
+                        CoreOp.FuncOp funcOp = Op.ofMethod(method).orElseThrow(
                                 () -> new IllegalStateException("Expected code model to be present for method " + method)
                         );
                         SupportedTypes supportedTypes = method.getAnnotation(SupportedTypes.class);

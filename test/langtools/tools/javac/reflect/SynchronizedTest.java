@@ -24,12 +24,13 @@
 /*
  * @test
  * @summary Smoke test for code reflection with synchronized blocks.
+ * @modules jdk.incubator.code
  * @build SynchronizedTest
  * @build CodeReflectionTester
  * @run main CodeReflectionTester SynchronizedTest
  */
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 
 public class SynchronizedTest {
     @CodeReflection

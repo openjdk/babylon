@@ -22,7 +22,7 @@
  */
 
 import java.io.PrintStream;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 import java.util.Spliterator;
 import java.util.Spliterator.OfInt;
 
@@ -32,6 +32,7 @@ import static java.util.Spliterator.OfInt.*;
 /*
  * @test
  * @summary Smoke test for code reflection with field access.
+ * @modules jdk.incubator.code
  * @build FieldAccessTest
  * @build CodeReflectionTester
  * @run main CodeReflectionTester FieldAccessTest

@@ -45,16 +45,10 @@ import sun.reflect.annotation.AnnotationType;
 import sun.reflect.annotation.AnnotationParser;
 import java.lang.annotation.Annotation;
 import java.lang.annotation.AnnotationFormatError;
-import java.lang.reflect.code.op.ExtendedOp;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.parser.OpParser;
 import java.nio.ByteBuffer;
-import java.util.List;
 import java.util.Optional;
 import java.util.StringJoiner;
-
-import static java.lang.reflect.code.op.CoreOp.*;
-import java.lang.reflect.code.type.MethodRef;
+import java.util.function.Function;
 
 /**
  * A {@code Method} provides information about, and access to, a single method
@@ -105,7 +99,7 @@ public final class Method extends Executable {
     private Method              root;
     // Hash code of this object
     private int                 hash;
-    private volatile Optional<FuncOp>     codeModel;
+    private volatile Optional<?>     codeModel;
 
     // Generics infrastructure
     private String getGenericSignature() {return signature;}
@@ -241,62 +235,19 @@ public final class Method extends Executable {
         return modifiers;
     }
 
-    /**
-     * Returns the code model of the method body, if present.
-     * @return the code model of the method body.
-     * @since 99
-     */
-    // @@@ Make caller sensitive with the same access control as invoke
-    // and throwing IllegalAccessException
-//    @CallerSensitive
-    public Optional<FuncOp> getCodeModel() {
-        Optional<FuncOp> localRef = codeModel;
+    /* package */
+    Optional<?> setCodeModelIfNeeded(Function<Method, Optional<?>> modelFactory) {
+        Optional<?> localRef = codeModel;
         if (localRef == null) {
             synchronized (this) {
                 localRef = codeModel;
                 if (localRef == null) {
-                    Optional<FuncOp> op = createCodeModel();
+                    Optional<?> op = modelFactory.apply(this);
                     codeModel = localRef = op;
                 }
             }
         }
         return localRef;
-    }
-
-    private Optional<FuncOp> createCodeModel() {
-        Class<?> dc = getDeclaringClass();
-        char[] sig = MethodRef.method(this).toString().toCharArray();
-        for (int i = 0; i < sig.length; i++) {
-            switch (sig[i]) {
-                case '.', ';', '[', '/': sig[i] = '$';
-            }
-        }
-        String fieldName = new String(sig) + "$" + "op";
-        Field f;
-        try {
-            f = dc.getDeclaredField(fieldName);
-        } catch (NoSuchFieldException e) {
-            return Optional.empty();
-        }
-
-        String modelText;
-        try {
-            // @@@ Use method handle with full power mode
-            f.setAccessible(true);
-            modelText = (String) f.get(null);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
-
-        FuncOp op;
-        try {
-            List<Op> ops = OpParser.fromString(ExtendedOp.FACTORY, modelText);
-            op = (FuncOp) ops.get(0);
-        } catch (RuntimeException e) {
-            // @@@ Error or Exception?
-            throw e;
-        }
-        return Optional.of(op);
     }
 
     /**

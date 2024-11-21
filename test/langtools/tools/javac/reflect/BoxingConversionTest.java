@@ -21,12 +21,13 @@
  * questions.
  */
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 import java.util.function.Supplier;
 
 /*
  * @test
  * @summary Smoke test for code reflection with boxing conversions.
+ * @modules jdk.incubator.code
  * @build BoxingConversionTest
  * @build CodeReflectionTester
  * @run main CodeReflectionTester BoxingConversionTest

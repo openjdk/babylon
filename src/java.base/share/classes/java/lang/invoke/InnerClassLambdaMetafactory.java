@@ -44,13 +44,13 @@ import java.lang.constant.ClassDesc;
 import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.MethodHandles.Lookup;
+import java.lang.module.Configuration;
+import java.lang.module.ModuleFinder;
 import java.lang.reflect.Modifier;
-import java.lang.reflect.code.Quoted;
-import java.lang.reflect.code.interpreter.Interpreter;
-import java.lang.reflect.code.op.CoreOp.FuncOp;
-import java.lang.reflect.code.parser.OpParser;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
+import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -94,10 +94,7 @@ import sun.invoke.util.Wrapper;
 
     private static final boolean disableEagerInitialization;
 
-    private static final ClassDesc CD_Quoted = Quoted.class.describeConstable().get();
-    private static final MethodTypeDesc MTD_Quoted = MethodTypeDescImpl.ofValidated(CD_Quoted);
     private static final String NAME_METHOD_QUOTED = "quoted";
-    private static final MethodHandle HANDLE_MAKE_QUOTED;
     private static final String quotedInstanceFieldName = "quoted";
 
     static {
@@ -109,14 +106,6 @@ import sun.invoke.util.Wrapper;
 
         final String disableEagerInitializationKey = "jdk.internal.lambda.disableEagerInitialization";
         disableEagerInitialization = GetBooleanAction.privilegedGetProperty(disableEagerInitializationKey);
-
-        try {
-            HANDLE_MAKE_QUOTED = MethodHandles.lookup().findStatic(
-                    InnerClassLambdaMetafactory.class, "makeQuoted",
-                    MethodType.methodType(Quoted.class, String.class, Object[].class));
-        } catch (Throwable ex) {
-            throw new AssertionError(ex);
-        }
     }
 
     // See context values in AbstractValidatingLambdaMetafactory
@@ -348,7 +337,7 @@ import sun.invoke.util.Wrapper;
 
                 // if quotable, generate the field that will hold the value of quoted
                 if (quotableOpField != null) {
-                    clb.withField(quotedInstanceFieldName, CD_Quoted, ACC_PRIVATE + ACC_FINAL);
+                    clb.withField(quotedInstanceFieldName, CodeReflectionSupport.CD_Quoted, ACC_PRIVATE + ACC_FINAL);
                 }
 
                 generateConstructor(clb);
@@ -392,7 +381,7 @@ import sun.invoke.util.Wrapper;
             if (useImplMethodHandle || quotableOpField != null) {
                 classdata = quotableOpField == null ?
                         List.of(implementation) :
-                        List.of(implementation, quotableOpField, HANDLE_MAKE_QUOTED);
+                        List.of(implementation, quotableOpField, CodeReflectionSupport.HANDLE_MAKE_QUOTED);
             } else {
                 classdata = null;
             }
@@ -485,8 +474,39 @@ import sun.invoke.util.Wrapper;
 
         // now create a Quoted from String and captured args Object[]
 
-        cob.invokevirtual(CD_MethodHandle, "invokeExact", methodDesc(HANDLE_MAKE_QUOTED.type()))
-           .putfield(lambdaClassEntry.asSymbol(), quotedInstanceFieldName, CD_Quoted);
+        cob.invokevirtual(CD_MethodHandle, "invokeExact", methodDesc(CodeReflectionSupport.HANDLE_MAKE_QUOTED.type()))
+           .putfield(lambdaClassEntry.asSymbol(), quotedInstanceFieldName, CodeReflectionSupport.CD_Quoted);
+    }
+
+    static class CodeReflectionSupport {
+        static final Class<?> QUOTED_CLASS;
+        static final Class<?> QUOTABLE_CLASS;
+        static final MethodHandle HANDLE_MAKE_QUOTED;
+
+        static {
+            try {
+                // we know jdk.incubator code is there, no need to check
+                ModuleLayer parent = ModuleLayer.boot();
+                Configuration cf = parent.configuration()
+                        .resolve(ModuleFinder.of(), ModuleFinder.ofSystem(), Set.of("jdk.incubator.code"));
+                ClassLoader scl = ClassLoader.getSystemClassLoader();
+                ModuleLayer layer = parent.defineModulesWithOneLoader(cf, scl);
+                QUOTED_CLASS = layer.findLoader("jdk.incubator.code")
+                        .loadClass("jdk.incubator.code.Quoted");
+                QUOTABLE_CLASS = layer.findLoader("jdk.incubator.code")
+                        .loadClass("jdk.incubator.code.Quotable");
+                Class<?> quotedHelper = layer.findLoader("jdk.incubator.code")
+                        .loadClass("jdk.incubator.code.internal.QuotedHelper");
+                MethodHandle makeQuoted = Lookup.IMPL_LOOKUP.findStatic(quotedHelper, "makeQuoted",
+                        MethodType.methodType(QUOTED_CLASS, MethodHandles.Lookup.class, String.class, Object[].class));
+                HANDLE_MAKE_QUOTED = makeQuoted.bindTo(Lookup.IMPL_LOOKUP);
+            } catch (Throwable ex) {
+                throw new ExceptionInInitializerError(ex);
+            }
+        }
+
+        static final ClassDesc CD_Quoted = QUOTED_CLASS.describeConstable().get();
+        static final MethodTypeDesc MTD_Quoted = MethodTypeDescImpl.ofValidated(CD_Quoted);
     }
 
     private static class SerializationSupport {
@@ -549,11 +569,11 @@ import sun.invoke.util.Wrapper;
      * Generate a writeReplace method that supports serialization
      */
     private void generateQuotableMethod(ClassBuilder clb) {
-        clb.withMethod(NAME_METHOD_QUOTED, MTD_Quoted, ACC_PUBLIC + ACC_FINAL, new MethodBody(new Consumer<CodeBuilder>() {
+        clb.withMethod(NAME_METHOD_QUOTED, CodeReflectionSupport.MTD_Quoted, ACC_PUBLIC + ACC_FINAL, new MethodBody(new Consumer<CodeBuilder>() {
             @Override
             public void accept(CodeBuilder cob) {
                 cob.aload(0)
-                   .getfield(lambdaClassEntry.asSymbol(), quotedInstanceFieldName, CD_Quoted)
+                   .getfield(lambdaClassEntry.asSymbol(), quotedInstanceFieldName, CodeReflectionSupport.CD_Quoted)
                    .areturn();
             }
         }));
@@ -641,11 +661,6 @@ import sun.invoke.util.Wrapper;
             cob.loadLocal(TypeKind.from(argType), cob.parameterSlot(i));
             TypeConvertingMethodAdapter.convertType(cob, argType, implMethodType.parameterType(captureArity + i), dynamicMethodType.parameterType(i));
         }
-    }
-
-    private static Quoted makeQuoted(String opText, Object[] args) {
-        FuncOp op = (FuncOp)OpParser.fromStringOfFuncOp(opText);
-        return (Quoted)Interpreter.invoke(Lookup.IMPL_LOOKUP, op, args);
     }
 
     private Opcode invocationOpcode() throws InternalError {

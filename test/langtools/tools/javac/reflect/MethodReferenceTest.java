@@ -21,7 +21,7 @@
  * questions.
  */
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -31,6 +31,7 @@ import java.util.function.Supplier;
 /*
  * @test
  * @summary Smoke test for code reflection with method reference expressions.
+ * @modules jdk.incubator.code
  * @build MethodReferenceTest
  * @build CodeReflectionTester
  * @run main CodeReflectionTester MethodReferenceTest

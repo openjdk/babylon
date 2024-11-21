@@ -21,12 +21,13 @@
  * questions.
  */
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 import java.util.List;
 
 /*
  * @test
  * @summary Smoke test for code reflection with for loops.
+ * @modules jdk.incubator.code
  * @build ForLoopTest
  * @build CodeReflectionTester
  * @run main CodeReflectionTester ForLoopTest

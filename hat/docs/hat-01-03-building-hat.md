@@ -59,7 +59,7 @@ We rely on the ability to launch java source directly (without needing to javac 
 The `bld` script (really java source) can be run like this
 
 ```bash
-java --enable-preview --source 24 bld
+java --add-modules jdk.incubator.code --enable-preview --source 24 bld
 ```
 
 In our case the  magic is under the `hat/bldr`subdir
@@ -115,7 +115,7 @@ To run a HAT example we can run from the artifacts in `build` dir
 
 ```bash
 ${JAVA_HOME}/bin/java \
-   --enable-preview --enable-native-access=ALL-UNNAMED \
+   --add-modules jdk.incubator.code --enable-preview --enable-native-access=ALL-UNNAMED \
    --class-path build/hat-1.0.jar:build/hat-example-mandel-1.0.jar:build/hat-backend-opencl-1.0.jar \
    --add-exports=java.base/jdk.internal=ALL-UNNAMED \
    -Djava.library.path=build\

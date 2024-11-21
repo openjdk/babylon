@@ -39,6 +39,7 @@ void main(String[] args) {
      .enable_preview()
      .add_exports("java.base", List.of("jdk.internal", "jdk.internal.vm.annotation"), "ALL-UNNAMED")
      .source_path(hatCoreDir.sourceDir("src/main/java"))
+
    )
  );
 

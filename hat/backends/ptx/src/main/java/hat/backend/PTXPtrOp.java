@@ -27,8 +27,8 @@ package hat.backend;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.Schema;
 
-import java.lang.reflect.code.*;
-import java.lang.reflect.code.op.ExternalizableOp;
+import jdk.incubator.code.*;
+import jdk.incubator.code.op.ExternalizableOp;
 import java.util.List;
 
 public class PTXPtrOp extends ExternalizableOp {

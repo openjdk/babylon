@@ -28,7 +28,6 @@ package javax.lang.model.util;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.LinkedHashSet;
 import java.util.Objects;
@@ -1041,21 +1040,5 @@ public interface Elements {
      */
     default javax.tools.JavaFileObject getFileObjectOf(Element e) {
         throw new UnsupportedOperationException();
-    }
-
-    /**
-     * Returns the code model of provided executable element (if any).
-     * <p>
-     * If the executable element has a code model then it will be an instance of
-     * {@code java.lang.reflect.code.op.CoreOps.FuncOp}.
-     * Note: due to circular dependencies we cannot refer to the type explicitly.
-     *
-     * @implSpec The default implementation unconditionally returns an empty optional.
-     * @param e the executable element.
-     * @return the code model of the provided executable element (if any).
-     * @since 99
-     */
-    default Optional<Object> getBody(ExecutableElement e) {
-        return Optional.empty();
     }
 }

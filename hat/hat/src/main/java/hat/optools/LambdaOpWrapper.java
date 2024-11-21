@@ -28,11 +28,11 @@ import hat.util.Result;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.Quoted;
-import java.lang.reflect.code.Value;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.type.MethodRef;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Quoted;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.MethodRef;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

@@ -29,8 +29,9 @@ import hat.optools.FuncOpWrapper;
 import hat.optools.OpWrapper;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.type.MethodRef;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.MethodRef;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -99,7 +100,7 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
                         new KernelReachableUnresolvedIfaceMappedMethodCall(this, methodRef, invokeOpCalledMethod)
                 ));
             } else if (entrypoint.method.getDeclaringClass().equals(javaRefTypeClass)) {
-                Optional<CoreOp.FuncOp> optionalFuncOp = invokeOpCalledMethod.getCodeModel();
+                Optional<CoreOp.FuncOp> optionalFuncOp = Op.ofMethod(invokeOpCalledMethod);
                 if (optionalFuncOp.isPresent()) {
                     //System.out.println("A call to a method on the kernel class which we have code model for " + methodRef);
                     kernelReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->

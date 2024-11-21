@@ -24,12 +24,13 @@
 /*
  * @test
  * @summary Smoke test for code reflection with constant values.
+ * @modules jdk.incubator.code
  * @build NewArrayTest
  * @build CodeReflectionTester
  * @run main CodeReflectionTester NewArrayTest
  */
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 import java.util.function.Function;
 
 public class NewArrayTest {

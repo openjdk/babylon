@@ -34,15 +34,15 @@ import java.lang.foreign.*;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.*;
-import java.lang.reflect.code.analysis.SSA;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.op.ExternalizableOp;
-import java.lang.reflect.code.op.OpFactory;
-import java.lang.reflect.code.type.FunctionType;
-import java.lang.reflect.code.type.JavaType;
-import java.lang.reflect.code.type.PrimitiveType;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.*;
+import jdk.incubator.code.analysis.SSA;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.op.ExternalizableOp;
+import jdk.incubator.code.op.OpFactory;
+import jdk.incubator.code.type.FunctionType;
+import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.type.PrimitiveType;
+import jdk.incubator.code.CodeReflection;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -106,7 +106,7 @@ public class LayoutExample {
                 .findFirst();
 
         Method m = om.orElseThrow();
-        CoreOp.FuncOp f= m.getCodeModel().orElseThrow();
+        CoreOp.FuncOp f= Op.ofMethod(m).orElseThrow();
         f = SSA.transform(f);
         System.out.println(f.toText());
         FunctionType functionType = transformStructClassToPtr(MethodHandles.lookup(), f);

@@ -21,13 +21,14 @@
  * questions.
  */
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 import java.util.List;
 import java.util.function.Consumer;
 
 /*
  * @test
  * @summary Smoke test for code reflection with blocks.
+ * @modules jdk.incubator.code
  * @build BlockTest
  * @build CodeReflectionTester
  * @run main CodeReflectionTester BlockTest

@@ -23,6 +23,7 @@
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @run testng TestExpressionGraphs
  */
 
@@ -30,11 +31,11 @@ import org.testng.annotations.Test;
 
 import java.io.Writer;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.*;
-import java.lang.reflect.code.analysis.SSA;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.writer.OpWriter;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.*;
+import jdk.incubator.code.analysis.SSA;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.writer.OpWriter;
+import jdk.incubator.code.CodeReflection;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.IntStream;
@@ -90,7 +91,7 @@ public class TestExpressionGraphs {
         Method m = TestExpressionGraphs.class.getDeclaredMethod(
                 "sub", double.class, double.class);
         // Get the code model for method sub
-        Optional<CoreOp.FuncOp> oModel = m.getCodeModel();
+        Optional<CoreOp.FuncOp> oModel = Op.ofMethod(m);
         CoreOp.FuncOp model = oModel.orElseThrow();
 
         // Depth-first search, reporting elements in pre-order
@@ -122,7 +123,7 @@ public class TestExpressionGraphs {
         Method m = TestExpressionGraphs.class.getDeclaredMethod(
                 "distance1", double.class, double.class);
         // Get the code model for method distance1
-        Optional<CoreOp.FuncOp> oModel = m.getCodeModel();
+        Optional<CoreOp.FuncOp> oModel = Op.ofMethod(m);
         CoreOp.FuncOp model = oModel.orElseThrow();
 
         // Depth-first search, reporting elements in pre-order
@@ -671,7 +672,7 @@ public class TestExpressionGraphs {
                 .findFirst();
 
         Method m = om.get();
-        return m.getCodeModel().get();
+        return Op.ofMethod(m).get();
     }
 
 }

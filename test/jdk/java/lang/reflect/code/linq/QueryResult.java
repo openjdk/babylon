@@ -21,8 +21,8 @@
  * questions.
  */
 
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.JavaType;
 
 public interface QueryResult<T> {
     JavaType TYPE = JavaType.type(QueryResult.class);

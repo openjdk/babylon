@@ -33,13 +33,14 @@ import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.StringConcatFactory;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.bytecode.BytecodeLift;
-import java.lang.reflect.code.interpreter.Interpreter;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.bytecode.BytecodeLift;
+import jdk.incubator.code.interpreter.Interpreter;
+import jdk.incubator.code.CodeReflection;
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @enablePreview
  * @run testng TestLiftCustomBytecode
  */
@@ -67,7 +68,7 @@ public class TestLiftCustomBytecode {
                        .goto_(l4);
                 })), "backJumps");
 
-        Assert.assertEquals((int) Interpreter.invoke(f, 42), 42);
+        Assert.assertEquals((int) Interpreter.invoke(MethodHandles.lookup(), f, 42), 42);
     }
 
     @Test
@@ -82,7 +83,7 @@ public class TestLiftCustomBytecode {
                        .lreturn();
                 })), "deepStackJump");
 
-        Assert.assertEquals((long) Interpreter.invoke(f), 4);
+        Assert.assertEquals((long) Interpreter.invoke(MethodHandles.lookup(), f), 4);
     }
 
     public record TestRecord(int i, String s) {
