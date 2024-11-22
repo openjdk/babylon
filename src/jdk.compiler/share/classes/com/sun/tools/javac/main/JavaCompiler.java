@@ -1682,16 +1682,20 @@ public class JavaCompiler {
     }
 
     Optional<CodeReflectionTransformer> reflectMethods() {
-        return ServiceLoader.load(CodeReflectionSupport.CODE_LAYER, CodeReflectionTransformer.class)
-                        .findFirst();
+        return CodeReflectionSupport.CODE_LAYER != null ?
+                ServiceLoader.load(CodeReflectionSupport.CODE_LAYER, CodeReflectionTransformer.class).findFirst() :
+                Optional.empty();
     }
 
     static class CodeReflectionSupport {
         static final ModuleLayer CODE_LAYER;
 
         static {
-            if (java.lang.module.ModuleFinder.ofSystem().find("jdk.incubator.code").isPresent() &&
-                    !ModuleLayer.boot().findModule("jdk.incubator.code").isPresent()) {
+            if (ModuleLayer.boot().findModule("jdk.incubator.code").isPresent()) {
+                // we are in an exploded build, so just use the boot layer
+                CODE_LAYER = ModuleLayer.boot();
+            } else if (java.lang.module.ModuleFinder.ofSystem().find("jdk.incubator.code").isPresent()) {
+                // the code module is installed, but not in the boot layer, create a new layer which contains it
                 ModuleLayer parent = ModuleLayer.boot();
                 Configuration cf = parent.configuration()
                         .resolve(java.lang.module.ModuleFinder.of(), java.lang.module.ModuleFinder.ofSystem(), Set.of("jdk.incubator.code"));
@@ -1704,8 +1708,8 @@ public class JavaCompiler {
                     jdkCompilerModule.addExports(packageName, codeReflectionModule);
                 }
             } else {
-                // if we run javac in bootstrap mode, there might be no jdk.incubator.code
-                CODE_LAYER = ModuleLayer.boot();
+                // if we run in bootstrap mode, there might be no jdk.incubator.code
+                CODE_LAYER = null;
             }
         }
     }
