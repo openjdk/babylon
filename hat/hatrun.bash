@@ -40,6 +40,7 @@ elif [[ -d build ]] ; then
    export VMOPTS=""
    export JARS="" 
 
+   export VMOPTS="${VMOPTS} --add-modules jdk.incubator.code"
    export VMOPTS="${VMOPTS} --enable-preview"
    export VMOPTS="${VMOPTS} --enable-native-access=ALL-UNNAMED"
    export VMOPTS="${VMOPTS} --add-exports=java.base/jdk.internal=ALL-UNNAMED"

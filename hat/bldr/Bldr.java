@@ -786,6 +786,10 @@ public class Bldr {
         public T add_exports(String fromModule, String pack, String toModule) {
             return opts("--add-exports=" + fromModule + "/" + pack + "=" + toModule);
         }
+        public T add_modules(String ... modules) {
+            List.of(modules).forEach(module->  opts("--add-modules=" + module));
+            return self();
+        }
 
         public T add_exports(String fromModule, List<String> packages, String toModule) {
             packages.forEach(p -> add_exports(fromModule, p, toModule));

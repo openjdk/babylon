@@ -33,7 +33,7 @@ import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.Op;
 import java.lang.reflect.Method;
 import jdk.incubator.code.type.JavaType;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 import java.util.List;
 
 
@@ -79,7 +79,7 @@ public class CustomOpTest {
     @Test
     public void testDNAOp() throws NoSuchMethodException {
         Method method = CustomOpTest.class.getDeclaredMethod("addMul", int.class, int.class);
-        var funcOp = method.getCodeModel().get();
+        var funcOp = Op.of(method);//.getCodeModel().get();
         var transformed = funcOp.transform((builder, op) -> {
             CopyContext cc = builder.context();
             if (op instanceof CoreOp.InvokeOp invokeOp) {
