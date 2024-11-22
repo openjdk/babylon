@@ -42,7 +42,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
 
    <modules>
      <module>mandel</module>
-     <module>experiments</module>
+     <!--<module>experiments</module>-->
      <module>squares</module>
      <module>violajones</module>
      <module>heal</module>

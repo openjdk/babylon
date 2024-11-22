@@ -49,6 +49,7 @@ void main(String[] args) {
 
   var javaBuilder = javaBuilder()
     .enable_preview()
+    .add_modules("jdk.incubator.code")
     .add_exports("java.base", "jdk.internal", "ALL-UNNAMED")
     .enable_native_access("ALL-UNNAMED")
     .library_path(buildDir)
