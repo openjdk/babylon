@@ -24,6 +24,8 @@
 import java.io.IOException;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.ClassModel;
+import java.lang.classfile.ClassTransform;
+import java.lang.classfile.MethodTransform;
 import java.lang.classfile.components.ClassPrinter;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.MethodHandle;
@@ -50,10 +52,11 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import jdk.incubator.code.internal.CodeModelAttribute;
 
 /*
  * @test
- * @modules jdk.incubator.code
+ * @modules jdk.incubator.code/jdk.incubator.code.internal
  * @enablePreview
  * @run testng/othervm -Djdk.invoke.MethodHandle.dumpClassFiles=true TestBytecode
  */
@@ -733,6 +736,25 @@ public class TestBytecode {
                 } catch (IOException ignore) {}
             });
             throw e;
+        }
+    }
+
+    @Test(dataProvider = "testMethods")
+    public void testAttribute(TestData d) throws Throwable {
+        CoreOp.FuncOp func = Op.ofMethod(d.testMethod).get();
+//        CoreOp.FuncOp lfunc;
+//        try {
+//            lfunc = func.transform(CopyContext.create(), OpTransformer.LOWERING_TRANSFORMER);
+//        } catch (UnsupportedOperationException uoe) {
+//            throw new SkipException("lowering caused:", uoe);
+//        }
+        var cf = ClassFile.of(ClassFile.AttributeMapperOption.of(e -> e.equalsString(CodeModelAttribute.NAME) ? CodeModelAttribute.MAPPER : null));
+        var newbytes = cf.transformClass(CLASS_MODEL, ClassTransform.transformingMethods(
+                mm -> mm.methodName().equalsString(d.testMethod.getName()),
+                MethodTransform.endHandler(mb -> mb.with(CodeModelAttribute.of(func)))));
+        System.out.println(func.toText());
+        for (var mm : cf.parse(newbytes).methods()) {
+            mm.findAttribute(CodeModelAttribute.MAPPER).ifPresent(cma -> System.out.println(cma.op().toText()));
         }
     }
 }

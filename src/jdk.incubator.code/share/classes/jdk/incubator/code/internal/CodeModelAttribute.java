@@ -77,14 +77,20 @@ public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
         }
     };
 
-    final Op op;
+    public static CodeModelAttribute of(Op op) {
+        return new CodeModelAttribute(op);
+    }
 
-    CodeModelAttribute(Op op) {
+    private final Op op;
+
+    private CodeModelAttribute(Op op) {
         super(MAPPER);
         this.op = op;
     }
 
-
+    public Op op() {
+        return op;
+    }
 
     private static Op readOp(BufReader buf, boolean terminal, Body.Builder ancestorBody, Block.Builder[] ancestorBodyBlocks, List<Value> allValues) {
         return ExtendedOp.FACTORY.constructOpOrFail(readExOp(buf, terminal, ancestorBody, ancestorBodyBlocks, allValues));
@@ -167,6 +173,7 @@ public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
         // number of blocks
         var blocks = new Block.Builder[buf.readU2()];
         blocks[0] = bob.entryBlock();
+        allValues.addAll(bob.entryBlock().parameters());
         for (int bi = 1; bi < blocks.length; bi++) {
             blocks[bi] = bob.entryBlock().block();
             readBlockParameters(buf, blocks[bi], allValues);
@@ -181,7 +188,13 @@ public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
         buf.writeU2(blocks.size());
         for (Block block : blocks) {
             // parameters
-            if (!block.isEntryBlock()) writeBlockParameters(buf, block.parameters(), valueMap);
+            if (block.isEntryBlock()) {
+                for (var bp : block.parameters()) {
+                    valueMap.put(bp, valueMap.size());
+                }
+            } else {
+                writeBlockParameters(buf, block.parameters(), valueMap);
+            }
             // ops
             writeOps(buf, block.ops(), valueMap);
             // successors
