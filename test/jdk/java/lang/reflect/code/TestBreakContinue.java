@@ -23,6 +23,7 @@
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @run testng TestBreakContinue
  */
 
@@ -30,11 +31,12 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.code.OpTransformer;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.interpreter.Interpreter;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.interpreter.Interpreter;
 import java.lang.reflect.Method;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 import java.util.BitSet;
 import java.util.Optional;
 import java.util.function.IntUnaryOperator;
@@ -224,6 +226,6 @@ public class TestBreakContinue {
                 .findFirst();
 
         Method m = om.get();
-        return m.getCodeModel().get();
+        return Op.ofMethod(m).get();
     }
 }

@@ -21,6 +21,7 @@
  * questions.
  */
 
+import jdk.incubator.code.Op;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import org.testng.annotations.DataProvider;
@@ -28,14 +29,15 @@ import org.testng.annotations.DataProvider;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.interpreter.Interpreter;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.interpreter.Interpreter;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.CodeReflection;
 import java.util.*;
 import java.util.stream.Stream;
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @run testng TestConcat
  */
 
@@ -212,7 +214,7 @@ public class TestConcat {
             Object[] args = new Object[] {valMap.get(t.first), valMap.get(t.second)};
             Class<TestConcat> clazz = TestConcat.class;
             Method method = clazz.getDeclaredMethod(t.third, t.first, t.second);
-            CoreOp.FuncOp f = method.getCodeModel().orElseThrow();
+            CoreOp.FuncOp f = Op.ofMethod(method).orElseThrow();
             var res1 = Interpreter.invoke(MethodHandles.lookup(), f, args);
             var res2 = method.invoke(null, args);
 

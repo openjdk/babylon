@@ -1311,7 +1311,7 @@ public class Resolve {
                 }
 
                 @Override
-                void skip(JCTree tree) {
+                protected void skip(JCTree tree) {
                     result = false;
                 }
 

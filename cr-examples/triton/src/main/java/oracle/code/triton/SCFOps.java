@@ -25,11 +25,11 @@
 
 package oracle.code.triton;
 
-import java.lang.reflect.code.*;
-import java.lang.reflect.code.op.*;
-import java.lang.reflect.code.type.FunctionType;
-import java.lang.reflect.code.type.JavaType;
-import java.lang.reflect.code.type.TupleType;
+import jdk.incubator.code.*;
+import jdk.incubator.code.op.*;
+import jdk.incubator.code.type.FunctionType;
+import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.type.TupleType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;

@@ -90,14 +90,6 @@ module java.base {
     exports java.lang.module;
     exports java.lang.ref;
     exports java.lang.reflect;
-    exports java.lang.reflect.code;
-    exports java.lang.reflect.code.analysis;
-    exports java.lang.reflect.code.bytecode;
-    exports java.lang.reflect.code.interpreter;
-    exports java.lang.reflect.code.op;
-    exports java.lang.reflect.code.parser;
-    exports java.lang.reflect.code.type;
-    exports java.lang.reflect.code.writer;
     exports java.lang.runtime;
     exports java.math;
     exports java.net;
@@ -168,7 +160,10 @@ module java.base {
         jdk.jdeps, // participates in preview features
         jdk.jfr, // participates in preview features
         jdk.jlink,   // participates in preview features
-        jdk.jshell; // participates in preview features
+        jdk.jshell, // participates in preview features
+        jdk.incubator.code; // participates in preview features
+    exports jdk.internal.classfile.impl to
+        jdk.incubator.code;
     exports jdk.internal.access to
         java.desktop,
         java.logging,
@@ -183,7 +178,8 @@ module java.base {
         jdk.management,
         jdk.net,
         jdk.sctp,
-        jdk.crypto.cryptoki;
+        jdk.crypto.cryptoki,
+        jdk.incubator.code;
     exports jdk.internal.foreign to
         jdk.incubator.vector;
     exports jdk.internal.event to
@@ -319,7 +315,8 @@ module java.base {
     exports sun.reflect.annotation to
         jdk.compiler;
     exports sun.reflect.generics.reflectiveObjects to
-        java.desktop;
+        java.desktop,
+        jdk.incubator.code;
     exports sun.reflect.misc to
         java.desktop,
         java.datatransfer,
@@ -383,7 +380,6 @@ module java.base {
         java.prefs;
     exports sun.util.resources to
         jdk.localedata;
-    exports java.lang.reflect.code.type.impl;
 
     // the service types defined by the APIs in this module
 

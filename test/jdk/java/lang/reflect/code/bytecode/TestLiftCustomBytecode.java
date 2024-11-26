@@ -33,12 +33,14 @@ import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.StringConcatFactory;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.bytecode.BytecodeLift;
-import java.lang.reflect.code.interpreter.Interpreter;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.bytecode.BytecodeLift;
+import jdk.incubator.code.interpreter.Interpreter;
+import jdk.incubator.code.CodeReflection;
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @enablePreview
  * @run testng TestLiftCustomBytecode
  */

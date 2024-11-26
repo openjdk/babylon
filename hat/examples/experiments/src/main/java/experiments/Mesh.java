@@ -36,7 +36,7 @@ import hat.buffer.BufferAllocator;
 import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
 import java.lang.invoke.MethodHandles;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 import java.util.Random;
 
 import static java.lang.foreign.ValueLayout.JAVA_INT;

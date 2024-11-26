@@ -21,17 +21,17 @@
  * questions.
  */
 
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.type.ClassType;
-import java.lang.reflect.code.type.MethodRef;
-import java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.type.ClassType;
+import jdk.incubator.code.type.MethodRef;
+import jdk.incubator.code.type.JavaType;
 import java.util.stream.Stream;
 
-import static java.lang.reflect.code.type.JavaType.parameterized;
-import static java.lang.reflect.code.type.MethodRef.method;
-import static java.lang.reflect.code.op.CoreOp.*;
-import static java.lang.reflect.code.type.FunctionType.functionType;
-import static java.lang.reflect.code.type.JavaType.type;
+import static jdk.incubator.code.type.JavaType.parameterized;
+import static jdk.incubator.code.type.MethodRef.method;
+import static jdk.incubator.code.op.CoreOp.*;
+import static jdk.incubator.code.type.FunctionType.functionType;
+import static jdk.incubator.code.type.JavaType.type;
 
 public interface Queryable<T> {
     JavaType TYPE = type(Queryable.class);

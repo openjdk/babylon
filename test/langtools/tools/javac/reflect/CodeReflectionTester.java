@@ -25,15 +25,15 @@ import java.io.StringWriter;
 import java.lang.reflect.Field;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.*;
-import java.lang.reflect.code.op.ExtendedOp;
-import java.lang.reflect.code.parser.OpParser;
-import java.lang.reflect.code.writer.OpWriter;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.*;
+import jdk.incubator.code.op.ExtendedOp;
+import jdk.incubator.code.parser.OpParser;
+import jdk.incubator.code.writer.OpWriter;
+import jdk.incubator.code.CodeReflection;
 
-import static java.lang.reflect.code.op.CoreOp._return;
-import static java.lang.reflect.code.op.CoreOp.func;
-import static java.lang.reflect.code.type.FunctionType.VOID;
+import static jdk.incubator.code.op.CoreOp._return;
+import static jdk.incubator.code.op.CoreOp.func;
+import static jdk.incubator.code.type.FunctionType.VOID;
 
 public class CodeReflectionTester {
 
@@ -63,7 +63,7 @@ public class CodeReflectionTester {
 
     static void check(Method method) throws ReflectiveOperationException {
         if (!method.isAnnotationPresent(CodeReflection.class)) return;
-        String found = canonicalizeModel(method, method.getCodeModel().orElseThrow());
+        String found = canonicalizeModel(method, Op.ofMethod(method).orElseThrow());
         IR ir = method.getAnnotation(IR.class);
         if (ir == null) {
             error("No @IR annotation found on reflective method");

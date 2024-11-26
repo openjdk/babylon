@@ -27,11 +27,11 @@ package intel.code.spirv;
 
 import java.util.List;
 import java.util.Map;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.Value;
-import java.lang.reflect.code.CopyContext;
-import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.type.JavaType;
 
 public abstract class SpirvOp extends Op {
     private final TypeElement type;

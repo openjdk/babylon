@@ -24,8 +24,8 @@
  */
 package hat.optools;
 
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.JavaType;
 
 public abstract class VarOpWrapper extends OpWrapper<CoreOp.VarOp> {
     public VarOpWrapper(CoreOp.VarOp op) {

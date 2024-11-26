@@ -53,7 +53,7 @@ import hat.buffer.S32Array2D;
 
 import javax.swing.JTextField;
 import java.awt.Point;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 import java.util.stream.IntStream;
 
 public class Compute {

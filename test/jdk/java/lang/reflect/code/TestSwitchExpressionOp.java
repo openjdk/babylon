@@ -6,16 +6,17 @@ import java.io.OutputStream;
 import java.io.StringWriter;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.OpTransformer;
-import java.lang.reflect.code.interpreter.Interpreter;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.writer.OpWriter;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.interpreter.Interpreter;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.writer.OpWriter;
+import jdk.incubator.code.CodeReflection;
 import java.util.*;
 import java.util.stream.Stream;
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @run testng TestSwitchExpressionOp
  */
 public class TestSwitchExpressionOp {
@@ -484,6 +485,6 @@ public class TestSwitchExpressionOp {
                 .filter(m -> m.getName().equals(methodName))
                 .findFirst();
 
-        return om.get().getCodeModel().get();
+        return CoreOp.ofMethod(om.get()).get();
     }
 }

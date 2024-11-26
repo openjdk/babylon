@@ -25,7 +25,7 @@
 
 package intel.code.spirv;
 
-import java.lang.reflect.code.TypeElement;
+import jdk.incubator.code.TypeElement;
 
 public abstract sealed class SpirvType implements TypeElement permits PointerType, StorageType {
 }

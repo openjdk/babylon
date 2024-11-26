@@ -24,16 +24,17 @@
 /*
  * @test
  * @summary Smoke test for captured values in quotable lambdas.
+ * @modules jdk.incubator.code
  * @run testng TestCaptureQuotable
  */
 
 import org.testng.annotations.*;
 
-import java.lang.reflect.code.op.CoreOp.Var;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.Quotable;
-import java.lang.reflect.code.Quoted;
-import java.lang.reflect.code.interpreter.Interpreter;
+import jdk.incubator.code.op.CoreOp.Var;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Quotable;
+import jdk.incubator.code.Quoted;
+import jdk.incubator.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.Iterator;

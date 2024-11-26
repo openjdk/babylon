@@ -21,11 +21,12 @@
  * questions.
  */
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 
 /*
  * @test
  * @summary Smoke test for code reflection with super qualified expressions.
+ * @modules jdk.incubator.code
  * @build SuperTest
  * @build CodeReflectionTester
  * @run main CodeReflectionTester SuperTest

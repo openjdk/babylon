@@ -25,13 +25,14 @@
 
 package com.sun.tools.javac.api;
 
+import java.lang.module.Configuration;
+import java.lang.module.ModuleFinder;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.ServiceLoader;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import javax.annotation.processing.Processor;
 import javax.lang.model.element.Element;
