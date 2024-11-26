@@ -43,14 +43,17 @@ import java.util.List;
 import java.util.Map;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
+import jdk.incubator.code.Location;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
+import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.op.ExtendedOp;
 import jdk.incubator.code.op.ExternalizableOp;
 import jdk.incubator.code.type.CoreTypeFactory;
 import jdk.incubator.code.type.FunctionType;
 import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.type.VarType;
 
 public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
 
@@ -108,6 +111,7 @@ public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
         String name = buf.readUtf8();
         List<Value> operands = readValues(buf, allValues);
         TypeElement rType = toType(buf.readEntryOrNull());
+        if (name.equals(CoreOp.VarOp.NAME)) rType = VarType.varType(rType);
         Map<String, Object> attributes = readAttributes(buf);
         List<Body.Builder> bodies = readNestedBodies(buf, ancestorBody, allValues);
         return new ExternalizableOp.ExternalizedOp(
@@ -124,8 +128,8 @@ public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
         buf.writeIndex(buf.constantPool().utf8Entry(op.opName()));
         // operands
         writeValues(buf, op.operands(), valueMap);
-        // result type
-        buf.writeIndexOrZero(toEntry(buf.constantPool(), op.resultType()));
+        // result type, saving CP space by unwrapping VarType
+        buf.writeIndexOrZero(toEntry(buf.constantPool(), op.resultType() instanceof VarType vt ? vt.valueType() : op.resultType()));
         // attributes
         writeAttributes(buf, op instanceof ExternalizableOp extOp ? extOp.attributes() : Map.of());
         // nested bodies
@@ -141,8 +145,14 @@ public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
         int size = buf.readU2();
         var attrs = new LinkedHashMap<String, Object>(size);
         for (int i = 0; i < size; i++) {
-            // attribute name + value
-            attrs.put(buf.readUtf8OrNull(), buf.readUtf8OrNull());
+            // attribute name
+            String name = buf.readUtf8OrNull();
+            // attribute value
+            if (ExternalizableOp.ATTRIBUTE_LOCATION.equals(name)) {
+                attrs.put(name, new Location(buf.readUtf8OrNull(), buf.readU2(), buf.readU2()));
+            } else {
+                attrs.put(name, buf.readUtf8OrNull());
+            }
         }
         return attrs;
     }
@@ -154,7 +164,18 @@ public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
             // attribute name
             buf.writeIndexOrZero(attre.getKey() == null ? null : buf.constantPool().utf8Entry(attre.getKey()));
             // attribute value
-            buf.writeIndexOrZero(attre.getValue() == null ? null : buf.constantPool().utf8Entry(attre.getValue().toString()));
+            if (ExternalizableOp.ATTRIBUTE_LOCATION.equals(attre.getKey())) {
+                Location loc = switch (attre.getValue()) {
+                    case Location l -> l;
+                    case String s -> Location.fromString(s);
+                    default -> throw new IllegalArgumentException(attre.toString());
+                };
+                buf.writeIndexOrZero(loc.sourceRef() == null ? null : buf.constantPool().utf8Entry(loc.sourceRef()));
+                buf.writeU2(loc.line());
+                buf.writeU2(loc.column());
+            } else {
+                buf.writeIndexOrZero(attre.getValue() == null ? null : buf.constantPool().utf8Entry(attre.getValue().toString()));
+            }
         }
     }
 
