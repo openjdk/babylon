@@ -740,21 +740,35 @@ public class TestBytecode {
     }
 
     @Test(dataProvider = "testMethods")
-    public void testAttribute(TestData d) throws Throwable {
+    public void testModelAttribute(TestData d) throws Throwable {
+        testModelAttribute(Op.ofMethod(d.testMethod).get());
+    }
+
+    @Test(dataProvider = "testMethods")
+    public void testLowModelAttribute(TestData d) throws Throwable {
         CoreOp.FuncOp func = Op.ofMethod(d.testMethod).get();
-//        CoreOp.FuncOp lfunc;
-//        try {
-//            lfunc = func.transform(CopyContext.create(), OpTransformer.LOWERING_TRANSFORMER);
-//        } catch (UnsupportedOperationException uoe) {
-//            throw new SkipException("lowering caused:", uoe);
-//        }
+        try {
+            testModelAttribute(func.transform(CopyContext.create(), OpTransformer.LOWERING_TRANSFORMER));
+        } catch (UnsupportedOperationException uoe) {
+            throw new SkipException("lowering caused:", uoe);
+        }
+    }
+
+    private void testModelAttribute(CoreOp.FuncOp func) {
         var cf = ClassFile.of(ClassFile.AttributeMapperOption.of(e -> e.equalsString(CodeModelAttribute.NAME) ? CodeModelAttribute.MAPPER : null));
         var newbytes = cf.transformClass(CLASS_MODEL, ClassTransform.transformingMethods(
-                mm -> mm.methodName().equalsString(d.testMethod.getName()),
+                mm -> mm.methodName().equalsString(func.funcName()),
                 MethodTransform.endHandler(mb -> mb.with(CodeModelAttribute.of(func)))));
-        System.out.println(func.toText());
+        String oldModel = func.toText();
         for (var mm : cf.parse(newbytes).methods()) {
-            mm.findAttribute(CodeModelAttribute.MAPPER).ifPresent(cma -> System.out.println(cma.op().toText()));
+            mm.findAttribute(CodeModelAttribute.MAPPER).ifPresent(cma -> {
+                String newModel = cma.op().toText();
+                if (!oldModel.equals(newModel)) {
+                    System.out.println(oldModel);
+                    System.out.println(newModel);
+                    throw new AssertionError("Models mismatch");
+                }
+            });
         }
     }
 }

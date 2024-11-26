@@ -30,27 +30,28 @@ import java.lang.classfile.AttributedElement;
 import java.lang.classfile.BufWriter;
 import java.lang.classfile.ClassReader;
 import java.lang.classfile.CustomAttribute;
+import java.lang.classfile.constantpool.ConstantPoolBuilder;
+import java.lang.classfile.constantpool.PoolEntry;
+import java.lang.classfile.constantpool.StringEntry;
 import java.lang.classfile.constantpool.Utf8Entry;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
-import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.op.ExtendedOp;
 import jdk.incubator.code.op.ExternalizableOp;
+import jdk.incubator.code.type.CoreTypeFactory;
 import jdk.incubator.code.type.FunctionType;
 import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.type.VarType;
-
-import static java.lang.constant.ConstantDescs.CD_void;
 
 public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
 
@@ -101,20 +102,14 @@ public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
 
     private static Op readOp(BufReader buf, boolean terminal, Body.Builder ancestorBody, Block.Builder[] ancestorBodyBlocks, List<Value> allValues) {
         var extOp = readExOp(buf, terminal, ancestorBody, ancestorBodyBlocks, allValues);
-        System.out.println(extOp);
         return ExtendedOp.FACTORY.constructOpOrFail(extOp);
     }
 
     private static ExternalizableOp.ExternalizedOp readExOp(BufReader buf, boolean terminal, Body.Builder ancestorBody, Block.Builder[] ancestorBodyBlocks, List<Value> allValues) {
         String name = buf.readUtf8();
         List<Value> operands = readValues(buf, allValues);
-        String rTypeStr = buf.readUtf8OrNull();
-        TypeElement rType = rTypeStr == null ? JavaType.VOID : JavaType.type(ClassDesc.ofDescriptor(rTypeStr));
-        if (name.equals("var")) {
-            // wrap in var type
-            rType = VarType.varType(rType);
-        }
-        Map<String, Object> attributes = Map.of(); // @@@ attributes
+        TypeElement rType = toType(buf.readEntryOrNull());
+        Map<String, Object> attributes = readAttributes(buf);
         List<Body.Builder> bodies = readNestedBodies(buf, ancestorBody, allValues);
         return new ExternalizableOp.ExternalizedOp(
                 name,
@@ -126,21 +121,41 @@ public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
     }
 
     private static void writeOp(BufWriter buf, Op op, Map<Value, Integer> valueMap) {
-        System.out.println(new ExternalizableOp.ExternalizedOp(op.opName(), op.operands(), op.successors(), op.resultType(), op instanceof ExternalizableOp exop ? new HashMap<>(exop.attributes()) : new HashMap<>(), null));
         // name
         buf.writeIndex(buf.constantPool().utf8Entry(op.opName()));
         // operands
         writeValues(buf, op.operands(), valueMap);
         // result type
-        ClassDesc rt = toCD(op.resultType());
-        buf.writeIndexOrZero(rt == CD_void ? null : buf.constantPool().utf8Entry(rt));
-        // @@@ attributes
-
+        buf.writeIndexOrZero(toEntry(buf.constantPool(), op.resultType()));
+        // attributes
+        writeAttributes(buf, op instanceof ExternalizableOp extOp ? extOp.attributes() : Map.of());
         // nested bodies
         writeNestedBodies(buf, op.bodies(), valueMap);
 
         if (op.result() != null) {
             valueMap.put(op.result(), valueMap.size());
+        }
+    }
+
+    private static Map<String, Object> readAttributes(BufReader buf) {
+        // number of attributes
+        int size = buf.readU2();
+        var attrs = new LinkedHashMap<String, Object>(size);
+        for (int i = 0; i < size; i++) {
+            // attribute name + value
+            attrs.put(buf.readUtf8OrNull(), buf.readUtf8OrNull());
+        }
+        return attrs;
+    }
+
+    private static void writeAttributes(BufWriter buf, Map<String, Object> attributes) {
+        // number of attributes
+        buf.writeU2(attributes.size());
+        for (var attre : attributes.entrySet()) {
+            // attribute name
+            buf.writeIndexOrZero(attre.getKey() == null ? null : buf.constantPool().utf8Entry(attre.getKey()));
+            // attribute value
+            buf.writeIndexOrZero(attre.getValue() == null ? null : buf.constantPool().utf8Entry(attre.getValue().toString()));
         }
     }
 
@@ -168,7 +183,7 @@ public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
         var bodies = new Body.Builder[buf.readU2()];
         for (int i = 0; i < bodies.length; i++) {
             // body type
-            bodies[i] = Body.Builder.of(ancestorBody, toFuncType(MethodTypeDesc.ofDescriptor(buf.readUtf8())));
+            bodies[i] = Body.Builder.of(ancestorBody, toFuncType(buf.readEntryOrNull()));
             // blocks
             readBlocks(buf, bodies[i], allValues);
         }
@@ -180,7 +195,7 @@ public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
         buf.writeU2(bodies.size());
         for (Body body : bodies) {
             // body type
-            buf.writeIndex(buf.constantPool().utf8Entry(toMTD(body.bodyType())));
+            buf.writeIndex(toEntry(buf.constantPool(), body.bodyType()));
             // blocks
             writeBlocks(buf, body.blocks(), valueMap);
         }
@@ -227,7 +242,7 @@ public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
         int bpnum = buf.readU2();
         for (int i = 0; i < bpnum; i++) {
             // block parameter type
-            allValues.add(bb.parameter(JavaType.type(ClassDesc.ofDescriptor(buf.readUtf8()))));
+            allValues.add(bb.parameter(toType(buf.readEntryOrNull())));
         }
     }
 
@@ -236,7 +251,7 @@ public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
         buf.writeU2(parameters.size());
         for (Block.Parameter bp : parameters) {
             // block parameter type
-            buf.writeIndex(buf.constantPool().utf8Entry(toCD(bp.type())));
+            buf.writeIndexOrZero(toEntry(buf.constantPool(), bp.type()));
             valueMap.put(bp, valueMap.size());
         }
     }
@@ -284,19 +299,51 @@ public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
         }
     }
 
-    private static FunctionType toFuncType(MethodTypeDesc mtd) {
-        return FunctionType.functionType(JavaType.type(mtd.returnType()), mtd.parameterList().stream().map(JavaType::type).toList());
+    private static FunctionType toFuncType(PoolEntry entry) {
+        return switch (entry) {
+            case Utf8Entry ue -> {
+                var mtd = MethodTypeDesc.ofDescriptor(ue.stringValue());
+                yield FunctionType.functionType(JavaType.type(mtd.returnType()), mtd.parameterList().stream().map(JavaType::type).toList());
+            }
+            case StringEntry se ->
+                (FunctionType)CoreTypeFactory.CORE_TYPE_FACTORY.constructType(TypeElement.ExternalizedTypeElement.ofString(se.stringValue()));
+            default ->
+                throw new IllegalArgumentException(entry.toString());
+        };
     }
 
-    private static MethodTypeDesc toMTD(FunctionType ftype) {
-        return MethodTypeDesc.of(toCD(ftype.returnType()), ftype.parameterTypes().stream().map(CodeModelAttribute::toCD).toList());
+    private static PoolEntry toEntry(ConstantPoolBuilder cp, FunctionType ftype) {
+        if (ftype.returnType() instanceof JavaType jret && ftype.parameterTypes().stream().allMatch(JavaType.class::isInstance)) {
+            // prefer to store as method type descriptor
+            return cp.utf8Entry(MethodTypeDesc.of(jret.toNominalDescriptor(), ftype.parameterTypes().stream().map(te -> ((JavaType)te).toNominalDescriptor()).toList()));
+        } else {
+            // fallback
+            return cp.stringEntry(ftype.externalize().toString());
+        }
     }
 
-    private static ClassDesc toCD(TypeElement type) {
+    private static TypeElement toType(PoolEntry entry) {
+        return switch (entry) {
+            case Utf8Entry ue ->
+                JavaType.type(ClassDesc.ofDescriptor(ue.stringValue()));
+            case StringEntry se ->
+                VarType.varType(JavaType.type(ClassDesc.ofDescriptor(se.stringValue())));
+            case null ->
+                JavaType.VOID;
+            default ->
+                throw new IllegalArgumentException(entry.toString());
+        };
+    }
+
+    private static PoolEntry toEntry(ConstantPoolBuilder cp, TypeElement type) {
+        if (type.equals(JavaType.VOID)) return null;
         return switch (type) {
-            case JavaType jt -> jt.toNominalDescriptor();
-            case VarType vt -> toCD(vt.valueType());
-            default -> throw new IllegalArgumentException(type.toString());
+            case JavaType jt ->
+                cp.utf8Entry(jt.toNominalDescriptor());
+            case VarType vt when vt.valueType() instanceof JavaType jt ->
+                cp.stringEntry(cp.utf8Entry(jt.toNominalDescriptor()));
+            default ->
+                throw new IllegalArgumentException(type.toString());
         };
     }
 
@@ -324,6 +371,12 @@ public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
             Utf8Entry u = cr.readEntryOrNull(offset, Utf8Entry.class);
             offset += 2;
             return u == null ? null : u.stringValue();
+        }
+
+        PoolEntry readEntryOrNull() {
+            PoolEntry e = cr.readEntryOrNull(offset);
+            offset += 2;
+            return e;
         }
     }
 }
