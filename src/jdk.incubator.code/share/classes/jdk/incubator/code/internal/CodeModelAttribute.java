@@ -37,8 +37,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
+import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
@@ -68,7 +70,12 @@ public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
 
         @Override
         public void writeAttribute(BufWriter buf, CodeModelAttribute attr) {
+            buf.writeIndex(buf.constantPool().utf8Entry(NAME));
+            int lengthIndex = buf.size();
+            buf.writeInt(0);
             writeOp(buf, attr.op, new HashMap<>());
+            int written = buf.size() - lengthIndex - 4;
+            buf.patchInt(lengthIndex, 4, written);
         }
 
         @Override
@@ -93,25 +100,33 @@ public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
     }
 
     private static Op readOp(BufReader buf, boolean terminal, Body.Builder ancestorBody, Block.Builder[] ancestorBodyBlocks, List<Value> allValues) {
-        return ExtendedOp.FACTORY.constructOpOrFail(readExOp(buf, terminal, ancestorBody, ancestorBodyBlocks, allValues));
+        var extOp = readExOp(buf, terminal, ancestorBody, ancestorBodyBlocks, allValues);
+        System.out.println(extOp);
+        return ExtendedOp.FACTORY.constructOpOrFail(extOp);
     }
 
     private static ExternalizableOp.ExternalizedOp readExOp(BufReader buf, boolean terminal, Body.Builder ancestorBody, Block.Builder[] ancestorBodyBlocks, List<Value> allValues) {
         String name = buf.readUtf8();
         List<Value> operands = readValues(buf, allValues);
-        String rType = buf.readUtf8OrNull();
+        String rTypeStr = buf.readUtf8OrNull();
+        TypeElement rType = rTypeStr == null ? JavaType.VOID : JavaType.type(ClassDesc.ofDescriptor(rTypeStr));
+        if (name.equals("var")) {
+            // wrap in var type
+            rType = VarType.varType(rType);
+        }
         Map<String, Object> attributes = Map.of(); // @@@ attributes
         List<Body.Builder> bodies = readNestedBodies(buf, ancestorBody, allValues);
         return new ExternalizableOp.ExternalizedOp(
                 name,
                 operands,
                 terminal ? readSuccessors(buf, ancestorBodyBlocks, allValues) : List.of(), // successors follow terminal ops
-                rType == null ? JavaType.VOID : JavaType.type(ClassDesc.ofDescriptor(rType)),
+                rType,
                 attributes,
                 bodies);
     }
 
     private static void writeOp(BufWriter buf, Op op, Map<Value, Integer> valueMap) {
+        System.out.println(new ExternalizableOp.ExternalizedOp(op.opName(), op.operands(), op.successors(), op.resultType(), op instanceof ExternalizableOp exop ? new HashMap<>(exop.attributes()) : new HashMap<>(), null));
         // name
         buf.writeIndex(buf.constantPool().utf8Entry(op.opName()));
         // operands
@@ -124,7 +139,9 @@ public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
         // nested bodies
         writeNestedBodies(buf, op.bodies(), valueMap);
 
-        valueMap.put(op.result(), valueMap.size());
+        if (op.result() != null) {
+            valueMap.put(op.result(), valueMap.size());
+        }
     }
 
     private static List<Value> readValues(BufReader buf, List<Value> allValues) {
@@ -173,12 +190,15 @@ public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
         // number of blocks
         var blocks = new Block.Builder[buf.readU2()];
         blocks[0] = bob.entryBlock();
-        allValues.addAll(bob.entryBlock().parameters());
         for (int bi = 1; bi < blocks.length; bi++) {
             blocks[bi] = bob.entryBlock().block();
-            readBlockParameters(buf, blocks[bi], allValues);
         }
         for (Block.Builder bb : blocks) {
+            if (bb.isEntryBlock()) {
+                allValues.addAll(bob.entryBlock().parameters());
+            } else {
+                readBlockParameters(buf, bb, allValues);
+            }
             readOps(buf, bb, blocks, allValues);
         }
     }
@@ -226,7 +246,11 @@ public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
         int opnum = buf.readU2();
         for (int i = 0; i < opnum; i++) {
             // op
-            bb.op(readOp(buf, i == opnum - 1, bb.parentBody(), allBlocks, allValues));
+            Op op = readOp(buf, i == opnum - 1, bb.parentBody(), allBlocks, allValues);
+            bb.op(op);
+            if (op.result() != null) {
+                allValues.add(op.result());
+            }
         }
     }
 
@@ -285,7 +309,7 @@ public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
         }
 
         int readU2() {
-            int i = cr.readInt(offset);
+            int i = cr.readU2(offset);
             offset += 2;
             return i;
         }
@@ -297,7 +321,7 @@ public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
         }
 
         String readUtf8OrNull() {
-            Utf8Entry u = cr.readEntry(offset, Utf8Entry.class);
+            Utf8Entry u = cr.readEntryOrNull(offset, Utf8Entry.class);
             offset += 2;
             return u == null ? null : u.stringValue();
         }
