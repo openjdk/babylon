@@ -51,7 +51,6 @@ import jdk.incubator.code.op.ExternalizableOp;
 import jdk.incubator.code.type.CoreTypeFactory;
 import jdk.incubator.code.type.FunctionType;
 import jdk.incubator.code.type.JavaType;
-import jdk.incubator.code.type.VarType;
 
 public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
 
@@ -313,7 +312,10 @@ public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
     }
 
     private static PoolEntry toEntry(ConstantPoolBuilder cp, FunctionType ftype) {
-        if (ftype.returnType() instanceof JavaType jret && ftype.parameterTypes().stream().allMatch(JavaType.class::isInstance)) {
+        if (ftype.returnType() instanceof JavaType jret
+                && jret.erasure().equals(jret)
+                && ftype.parameterTypes().stream().allMatch(te ->
+                        te instanceof JavaType jt && jt.erasure().equals(jt))) {
             // prefer to store as method type descriptor
             return cp.utf8Entry(MethodTypeDesc.of(jret.toNominalDescriptor(), ftype.parameterTypes().stream().map(te -> ((JavaType)te).toNominalDescriptor()).toList()));
         } else {
@@ -327,7 +329,7 @@ public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
             case Utf8Entry ue ->
                 JavaType.type(ClassDesc.ofDescriptor(ue.stringValue()));
             case StringEntry se ->
-                VarType.varType(JavaType.type(ClassDesc.ofDescriptor(se.stringValue())));
+                CoreTypeFactory.CORE_TYPE_FACTORY.constructType(TypeElement.ExternalizedTypeElement.ofString(se.stringValue()));
             case null ->
                 JavaType.VOID;
             default ->
@@ -337,14 +339,9 @@ public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
 
     private static PoolEntry toEntry(ConstantPoolBuilder cp, TypeElement type) {
         if (type.equals(JavaType.VOID)) return null;
-        return switch (type) {
-            case JavaType jt ->
-                cp.utf8Entry(jt.toNominalDescriptor());
-            case VarType vt when vt.valueType() instanceof JavaType jt ->
-                cp.stringEntry(cp.utf8Entry(jt.toNominalDescriptor()));
-            default ->
-                throw new IllegalArgumentException(type.toString());
-        };
+        return type instanceof JavaType jt && jt.erasure().equals(jt)
+                ? cp.utf8Entry(jt.toNominalDescriptor())
+                : cp.stringEntry(type.externalize().toString());
     }
 
     private static final class BufReader {
