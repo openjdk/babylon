@@ -55,6 +55,39 @@ import jdk.incubator.code.type.FunctionType;
 import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.type.VarType;
 
+/**
+ * <pre>
+ * CodeModel_attribute {
+ *    u2 attribute_name_index;
+ *    u4 attribute_length;
+ *    u2 op_name_index;
+ *    u2 op_operands_length;
+ *    u2 op_operands[op_operands_length];
+ *    u2 op_result_type_index;
+ *    u2 op_attributes_length;
+ *    {   u2 attribute_name_index;
+ *        u2 attribute_value_index;
+ *        u2 line number; // only for location attribute
+ *        u2 column number; // only for location attribute
+ *    } op_attributes_table[op_attributes_length];
+ *    u2 nested_bodies_length;
+ *    {   u2 body_func_type_index;
+ *        u2 blocks_length;
+ *        {   u2 block_parameters_length; // except for entry block
+ *            u2 block_parameter_type_index[block_parameters_length]; // except for entry block
+ *            u2 ops_length;
+ *            {   u2 op_name_index;
+ *                //  recurent declaration of op / nested bodies / blocks / ops
+ *            } ops_table[ops_length];
+ *            u2 successors_length; // declared at block level however applied to the block terminal op
+ *            {   u2 successor_block_index;
+ *                u2 block_arguments_length;
+ *                u2 block_arguments[block_arguments_length];
+ *            } successor_table[successors_length]
+ *        } blocks_table[blocks_length];
+ *    } nested_bodies_table[nested_bodies_length];
+ *}
+ */
 public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
 
     public static final String NAME = "CodeModel";
