@@ -32,7 +32,6 @@ questions.
         <artifactId>hat-root</artifactId>
         <version>1.0</version>
     </parent>
-
     <dependencies>
         <dependency>
             <groupId>oracle.code</groupId>
@@ -42,8 +41,9 @@ questions.
     </dependencies>
     <modules>
         <module>ptx</module>
+        <module>cuda</module>
+        <module>mock</module>
         <module>opencl</module>
-        <module>hip</module>
     </modules>
     <build>
         <plugins>
