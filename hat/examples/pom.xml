@@ -22,32 +22,31 @@ Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
 or visit www.oracle.com if you need additional information or have any
 questions.
--->
-
-
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+--><project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>oracle.code</groupId>
-    <version>1.0</version>
-    <artifactId>hat.examples</artifactId>
     <packaging>pom</packaging>
-
-    <!-- this required to inherit parent properties -->
+    <groupId>oracle.code</groupId>
+    <artifactId>hat-examples</artifactId>
+    <version>1.0</version>
     <parent>
         <groupId>oracle.code</groupId>
+        <artifactId>hat-root</artifactId>
         <version>1.0</version>
-        <artifactId>hat.root</artifactId>
     </parent>
-
+    <dependencies>
+        <dependency>
+            <groupId>oracle.code</groupId>
+            <artifactId>hat</artifactId>
+            <version>1.0</version>
+        </dependency>
+    </dependencies>
     <modules>
-        <module>mandel</module>
-        <module>experiments</module>
-        <module>squares</module>
-        <module>matmul</module>
-        <module>violajones</module>
-        <module>heal</module>
         <module>life</module>
         <module>blackscholes</module>
+        <module>mandel</module>
+        <module>heal</module>
+        <module>violajones</module>
+        <module>squares</module>
+        <module>matmul</module>
     </modules>
 </project>

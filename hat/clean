@@ -24,30 +24,13 @@
  * questions.
  */
 
-import static bldr.Bldr.*;           // all the helpers are here 
+import static bldr.Bldr.*;
 
-void main(String[] args){
-  Dir.current()
-    .forEachSubDir(
-      regex->regex.matches("^.*(hat|examples|backends|docs)$"),
-      dir->dir
-       .findFiles()
-          .filter((path)->Pattern.matches("^.*\\.(java|cpp|h|hpp|md)$", path.toString()))
-          .filter((path)->!Pattern.matches("^.*examples/life/src/main/java/io.*$", path.toString()))
-          .map(path->new SearchableTextFile(path))
-          .forEach(textFile ->{
-             if (!textFile.hasSuffix("md")
-               && !textFile.grep(Pattern.compile("^.*Copyright.*202[4-9].*(Intel|Oracle).*$"))) {
-                  println("ERR NO LICENCE " + textFile.path());
-             }
-             textFile.lines().forEach(line -> {
-               if (line.grep(Pattern.compile("^.*\\t.*"))) {
-                  println("ERR        TAB " + textFile.path() + ":" + line.line() + "#" + line.num());
-               }
-               if (line.grep(Pattern.compile("^.* $"))) {
-                  println("ERR EOL WSPACE " + textFile.path() + ":" + line.line() + "#" + line.num());
-               }
-            });
-          })
-   );
+void main(String[] args) {
+ var hatDir = Dir.current();
+ var buildDir = hatDir.buildDir("build").remove();
+ hatDir.findDirs(path->path.getFileName().endsWith("target"))
+       .map(path->BuildDir.of(path))
+       .peek(dir->println("removing " +dir.path()))
+       .forEach(dir->dir.remove());
 }

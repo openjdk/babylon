@@ -24,12 +24,11 @@
  */
 
 import static bldr.Bldr.*;           // all the helpers are here 
-import static java.nio.file.Files.*; // so we can use isDirectory(path);
+//import static java.nio.file.Files.*; // so we can use isDirectory(path);
  
 
 void main(String[] args) {
- var usage =
-    """
+  var usage ="""
     usage:
       java @bldr/args hatrun [headless] backend package args ...
          [headless] : Optional passes -Dheadless=true to app
@@ -41,52 +40,52 @@ void main(String[] args) {
       examples:
          java @bldr/args opencl mandel
          java @bldr/args headless opencl mandel
-    """;
+  """;
 
   var hatDir =  Dir.current();
-  var backends = assertExists(hatDir.dir("backends"));
-  var examples = assertExists(hatDir.dir("examples"));
+  var backends = hatDir.existingDir("backends");
+  var examples = hatDir.existingDir("examples");
   var buildDir = assertExists(BuildDir.of(hatDir.path("build")));
 
-  var javaBuilder = javaBuilder().vmopts(
-                  "--enable-preview",
-                  "--enable-native-access=ALL-UNNAMED",
-                  "--add-exports=java.base/jdk.internal=ALL-UNNAMED"
-          )
-          .library_path(buildDir)
-          .class_path(buildDir.jarFile("hat-1.0.jar"));
+  var javaBuilder = javaBuilder()
+    .enable_preview()
+    .add_modules("jdk.incubator.code")
+    .add_exports("java.base", "jdk.internal", "ALL-UNNAMED")
+    .enable_native_access("ALL-UNNAMED")
+    .library_path(buildDir)
+    .class_path(buildDir.jarFile("hat-1.0.jar"));
 
   int argn = 0;
   if (args.length > 0 && args[argn].equals("headless")) {
-      javaBuilder.vmopts("-Dheadless=true");
-      argn++;
+    javaBuilder.opts("-Dheadless=true");
+    argn++;
   }
   if ((argn + 2) > args.length) {
-      print("args[" + args.length + "] = [ ");
-      List.of(args).forEach(a -> print(" " + a));
-      println(" ]");
-      println(usage);
+    print("args[" + args.length + "] = [ ");
+    List.of(args).forEach(a -> print(" " + a));
+    println(" ]");
+    println(usage);
   } else {
-      var backendName = args[argn++];
-      var exampleName = args[argn++];
+    var backendName = args[argn++];
+    var exampleName = args[argn++];
 
-      if (backendName.equals("java")) {
-          javaBuilder.class_path(ClassDir.of(backends.path("shared/src/main/resources")));
-      } else if (backends.dir(backendName) instanceof Dir backend && backend.exists()) {
-          javaBuilder.class_path(buildDir.jarFile("hat-backend-" + backendName + "-1.0.jar"));
-      } else {
-          println("No backend " + backendName);
-      }
+    if (backendName.equals("java")) {
+      javaBuilder.class_path(ClassDir.of(backends.path("shared/src/main/resources")));
+    } else if (backends.dir(backendName) instanceof Dir backend && backend.exists()) {
+      javaBuilder.class_path(buildDir.jarFile("hat-backend-" + backendName + "-1.0.jar"));
+    } else {
+      println("No backend " + backendName);
+    }
 
-      if (examples.dir(exampleName) instanceof Dir example && example.exists()) {
-          java(javaBuilder
-                  .verbose()
-                  .class_path(buildDir.jarFile("hat-example-" + exampleName + "-1.0.jar"))
-                  .main_class(exampleName + ".Main")
-                  .args(Arrays.copyOfRange(args, argn, args.length))
-          );
-      } else {
-          println("no example " + exampleName);
-      }
+    if (buildDir.jarFile("hat-example-" + exampleName + "-1.0.jar") instanceof bldr.Bldr.JarFile exampleJar && exampleJar.exists()){
+      java(javaBuilder
+        .verbose()
+        .class_path(exampleJar)
+        .main_class(exampleName + ".Main")
+        .args(Arrays.copyOfRange(args, argn, args.length))
+      );
+    } else {
+      println("no example " + exampleName);
+    }
   }
 }

@@ -26,7 +26,6 @@ package hat.backend.c99codebuilders;
 
 
 import hat.buffer.Buffer;
-import hat.buffer.KernelContext;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
 import hat.optools.FuncOpWrapper;
@@ -72,9 +71,13 @@ public abstract class C99HatKernelBuilder<T extends C99HatKernelBuilder<T>> exte
 
 
     public final T scope() {
-        return
-                identifier("kc").rarrow().identifier("x").equals().globalId().semicolon().nl();
-                //.identifier("kc").rarrow().identifier("maxX").equals().globalSize().semicolon().nl();
+
+        identifier("KernelContext_t").space().identifier("mine").semicolon().nl();
+        identifier("KernelContext_t").asterisk().space().identifier("kc").equals().ampersand().identifier("mine").semicolon().nl();
+        identifier("kc").rarrow().identifier("x").equals().globalId().semicolon().nl();
+        identifier("kc").rarrow().identifier("maxX").equals().identifier("global_kc").rarrow().identifier("maxX").semicolon().nl();
+        return self();
+
     }
 
     public abstract T globalPtrPrefix();
@@ -137,7 +140,7 @@ public abstract class C99HatKernelBuilder<T extends C99HatKernelBuilder<T>> exte
                 }
             }
             parenNlIndented(_ -> {
-                        globalPtrPrefix().space().suffix_t("KernelContext").space().asterisk().identifier("kc");
+                        globalPtrPrefix().space().suffix_t("KernelContext").space().asterisk().identifier("global_kc");
                         list.stream().skip(1).forEach(info ->
                                 comma().space().type(info.javaType).space().varName(info.varOp)
                         );

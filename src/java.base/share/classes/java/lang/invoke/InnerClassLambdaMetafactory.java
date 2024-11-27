@@ -485,12 +485,7 @@ import sun.invoke.util.Wrapper;
 
         static {
             try {
-                // we know jdk.incubator code is there, no need to check
-                ModuleLayer parent = ModuleLayer.boot();
-                Configuration cf = parent.configuration()
-                        .resolve(ModuleFinder.of(), ModuleFinder.ofSystem(), Set.of("jdk.incubator.code"));
-                ClassLoader scl = ClassLoader.getSystemClassLoader();
-                ModuleLayer layer = parent.defineModulesWithOneLoader(cf, scl);
+                ModuleLayer layer = codeLayer();
                 QUOTED_CLASS = layer.findLoader("jdk.incubator.code")
                         .loadClass("jdk.incubator.code.Quoted");
                 QUOTABLE_CLASS = layer.findLoader("jdk.incubator.code")
@@ -502,6 +497,23 @@ import sun.invoke.util.Wrapper;
                 HANDLE_MAKE_QUOTED = makeQuoted.bindTo(Lookup.IMPL_LOOKUP);
             } catch (Throwable ex) {
                 throw new ExceptionInInitializerError(ex);
+            }
+        }
+
+        static ModuleLayer codeLayer() {
+            final ModuleLayer codeLayer;
+            if (ModuleLayer.boot().findModule("jdk.incubator.code").isPresent()) {
+                // we are in an exploded build, so just use the boot layer
+                return ModuleLayer.boot();
+            } else if (java.lang.module.ModuleFinder.ofSystem().find("jdk.incubator.code").isPresent()) {
+                // the code module is installed, but not in the boot layer, create a new layer which contains it
+                ModuleLayer parent = ModuleLayer.boot();
+                Configuration cf = parent.configuration()
+                        .resolve(ModuleFinder.of(), ModuleFinder.ofSystem(), Set.of("jdk.incubator.code"));
+                ClassLoader scl = ClassLoader.getSystemClassLoader();
+                return parent.defineModulesWithOneLoader(cf, scl);
+            } else {
+                throw new IllegalStateException("jdk.incubator.code module not found");
             }
         }
 
