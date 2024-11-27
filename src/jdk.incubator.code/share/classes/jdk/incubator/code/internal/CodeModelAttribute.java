@@ -104,14 +104,13 @@ import jdk.incubator.code.type.VarType;
  *     terminal_op_info;
  * } blocks_table[blocks_length];
  *
- *
  * terminal_op_info {
  *     op_info;
  *     u2 successors_length;
  *     {   u2 successor_block_index;
  *         u2 block_arguments_length;
  *         u2 block_arguments[block_arguments_length];
- *     } successor_table[successors_length]
+ *     } successors_table[successors_length]
  * }
  */
 public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
