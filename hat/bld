@@ -45,8 +45,10 @@ void main(String[] args) {
 
  record TypedDir(String type, Dir dir) {@Override public String toString(){return "hat-"+type()+"-" + dir().fileName() + "-1.0.jar";}}
 
+//We need to exclude hip and spirv until we have staged beehive spirv. Once we have spirv staged remove hip and spirv from the regex below
+
  var stream =  Stream.concat(
-     backends.subDirs().filter(dir-> dir.matches("^.*(opencl|ptx)$")).map(dir->new TypedDir("backend",dir)),
+     backends.subDirs().filter(dir-> !dir.matches("^.*(hip|spirv|hared|.idea)$")).map(dir->new TypedDir("backend",dir)),
      examples.subDirs().filter( dir-> !dir.matches("^.*(experiments|target)$")).map(dir->new TypedDir("example",dir))
  );
 
