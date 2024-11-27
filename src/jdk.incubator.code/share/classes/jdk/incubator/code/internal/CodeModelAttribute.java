@@ -58,35 +58,61 @@ import jdk.incubator.code.type.VarType;
 /**
  * <pre>
  * CodeModel_attribute {
- *    u2 attribute_name_index;
- *    u4 attribute_length;
- *    u2 op_name_index;
- *    u2 op_operands_length;
- *    u2 op_operands[op_operands_length];
- *    u2 op_result_type_index;
- *    u2 op_attributes_length;
- *    {   u2 attribute_name_index;
- *        u2 attribute_value_index;
- *        u2 line number; // only for location attribute
- *        u2 column number; // only for location attribute
- *    } op_attributes_table[op_attributes_length];
- *    u2 nested_bodies_length;
- *    {   u2 body_func_type_index;
- *        u2 blocks_length;
- *        {   u2 block_parameters_length; // except for entry block
- *            u2 block_parameter_type_index[block_parameters_length]; // except for entry block
- *            u2 ops_length;
- *            {   u2 op_name_index;
- *                //  recurent declaration of op / nested bodies / blocks / ops
- *            } ops_table[ops_length];
- *            u2 successors_length; // declared at block level however applied to the block terminal op
- *            {   u2 successor_block_index;
- *                u2 block_arguments_length;
- *                u2 block_arguments[block_arguments_length];
- *            } successor_table[successors_length]
- *        } blocks_table[blocks_length];
- *    } nested_bodies_table[nested_bodies_length];
- *}
+ *     u2 attribute_name_index;
+ *     u4 attribute_length;
+ *     op_info;
+ * }
+ *
+ * op_info {
+ *     u2 op_name_index;
+ *     u2 op_operands_length;
+ *     u2 op_operands[op_operands_length];
+ *     u2 op_result_type_index;
+ *     u2 op_attributes_length;
+ *     op_attribute_info op_attributes_table[op_attributes_length];
+ *     u2 nested_bodies_length;
+ *     {   u2 body_func_type_index;
+ *         block_content_info; // entry block
+ *         u2 blocks_length;
+ *         {   u2 block_parameters_length;
+ *             u2 block_parameter_type_index[block_parameters_length];
+ *             block_content_info;
+ *         } blocks_table[blocks_length];
+ *     } nested_bodies_table[nested_bodies_length];
+ * }
+ *
+ * union op_attribute_info {
+ *     value_attribute_info;
+ *     location_attribute_info;
+ * }
+ *
+ * value_attribute_info {
+ *     u2 attribute_name_index;
+ *     u2 attribute_value_index;
+ * }
+ *
+ * location_attribute_info {
+ *     u2 location_attribute_name_index;
+ *     u2 source_index;
+ *     u2 line_number;
+ *     u2 column_number;
+ * }
+ *
+ * block_content_info {
+ *     u2 ops_length;
+ *     op_info ops_table[ops_length];
+ *     terminal_op_info;
+ * } blocks_table[blocks_length];
+ *
+ *
+ * terminal_op_info {
+ *     op_info;
+ *     u2 successors_length;
+ *     {   u2 successor_block_index;
+ *         u2 block_arguments_length;
+ *         u2 block_arguments[block_arguments_length];
+ *     } successor_table[successors_length]
+ * }
  */
 public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
 
@@ -170,6 +196,11 @@ public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
 
         if (op.result() != null) {
             valueMap.put(op.result(), valueMap.size());
+        }
+
+        // @@@ assumption terminating op is only the last one in each block
+        if (op instanceof Op.Terminating) {
+            writeSuccessors(buf, op.successors(), valueMap);
         }
     }
 
@@ -256,7 +287,7 @@ public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
 
     private static void readBlocks(BufReader buf, Body.Builder bob, List<Value> allValues) {
         // number of blocks
-        var blocks = new Block.Builder[buf.readU2()];
+        var blocks = new Block.Builder[buf.readU2() + 1]; // entry block is mandatory
         blocks[0] = bob.entryBlock();
         for (int bi = 1; bi < blocks.length; bi++) {
             blocks[bi] = bob.entryBlock().block();
@@ -272,11 +303,11 @@ public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
     }
 
     private static void writeBlocks(BufWriter buf, List<Block> blocks, Map<Value, Integer> valueMap) {
-        // number of blocks
-        buf.writeU2(blocks.size());
+        // number of blocks - entry block
+        buf.writeU2(blocks.size() - 1);
         for (Block block : blocks) {
             // parameters
-            if (block.isEntryBlock()) {
+            if (block.isEntryBlock()) { // @@@ assumption entry block is the first one
                 for (var bp : block.parameters()) {
                     valueMap.put(bp, valueMap.size());
                 }
@@ -285,8 +316,6 @@ public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
             }
             // ops
             writeOps(buf, block.ops(), valueMap);
-            // successors
-            writeSuccessors(buf, block.successors(), valueMap);
         }
     }
 
@@ -312,9 +341,9 @@ public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
     private static void readOps(BufReader buf, Block.Builder bb, Block.Builder[] allBlocks, List<Value> allValues) {
         // number of ops
         int opnum = buf.readU2();
-        for (int i = 0; i < opnum; i++) {
+        for (int i = 0; i <= opnum; i++) { // +1 terminal op
             // op
-            Op op = readOp(buf, i == opnum - 1, bb.parentBody(), allBlocks, allValues);
+            Op op = readOp(buf, i == opnum, bb.parentBody(), allBlocks, allValues);
             bb.op(op);
             if (op.result() != null) {
                 allValues.add(op.result());
@@ -323,8 +352,8 @@ public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
     }
 
     private static void writeOps(BufWriter buf, List<Op> ops, Map<Value, Integer> valueMap) {
-        // number of ops
-        buf.writeU2(ops.size());
+        // number of ops - mandatory terminal op
+        buf.writeU2(ops.size() - 1);
         for (Op op : ops) {
             // op
             writeOp(buf, op, valueMap);
