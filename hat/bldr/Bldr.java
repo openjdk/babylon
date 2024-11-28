@@ -25,6 +25,8 @@
 
 package bldr;
 
+//import dot.JSONDotModel;
+
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticListener;
 import javax.tools.JavaCompiler;
@@ -415,6 +417,12 @@ public class Bldr {
 
         public SourcePathEntry sourceDir(String s) {
             return SourcePathEntry.of(path().resolve(s));
+        }
+
+        public XMLFile createPom(String comment, Consumer<XMLNode.PomXmlBuilder> pomXmlBuilderConsumer) {
+            XMLFile xmlFile = xmlFile("pom.xml");
+            XMLNode.createPom(comment, pomXmlBuilderConsumer).write(xmlFile);
+            return xmlFile;
         }
     }
 
