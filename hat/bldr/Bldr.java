@@ -25,8 +25,6 @@
 
 package bldr;
 
-//import dot.JSONDotModel;
-
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticListener;
 import javax.tools.JavaCompiler;
