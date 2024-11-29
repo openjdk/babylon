@@ -1788,6 +1788,10 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             public TypeElement resultType() {
                 return resultType;
             }
+
+            public Value receiver() {
+                return operands().isEmpty() ? null : operands().getFirst();
+            }
         }
 
         /**
@@ -1842,6 +1846,14 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             @Override
             public TypeElement resultType() {
                 return JavaType.VOID;
+            }
+
+            public Value receiver() {
+                return operands().size() < 2 ? null : operands().getFirst();
+            }
+
+            public Value value() {
+                return operands().getLast();
             }
         }
     }
@@ -3402,6 +3414,18 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      */
     public static FuncCallOp funcCall(String funcName, FunctionType funcType, Value... args) {
         return funcCall(funcName, funcType, List.of(args));
+    }
+
+    /**
+     * Creates a function call operation
+     *
+     * @param funcName the name of the function operation
+     * @param returnType the function return type
+     * @param args     the function arguments
+     * @return the function call operation
+     */
+    public static FuncCallOp funcCall(String funcName, TypeElement returnType, Value... args) {
+        return new FuncCallOp(funcName, returnType, List.of(args));
     }
 
     /**

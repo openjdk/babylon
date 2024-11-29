@@ -44,6 +44,7 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.op.ExternalizableOp;
 import jdk.incubator.code.type.CoreTypeFactory;
+import jdk.incubator.code.type.FieldRef;
 import jdk.incubator.code.type.FunctionType;
 import jdk.incubator.code.type.JavaType;
 
@@ -56,6 +57,7 @@ final class OpReader {
     OpReader(ClassReader cr, int offset) {
         this.cr = cr;
         this.allValues = new ArrayList<>();
+        allValues.add(null); // 0-index null value
         this.offset = offset;
     }
 
@@ -100,19 +102,31 @@ final class OpReader {
             case ExceptionRegionExit ->
                 CoreOp.exceptionRegionExit(readBlockReference(ancestorBodyBlocks), readCatchers(ancestorBodyBlocks));
             case FieldLoadOp -> {
+                Value receiver = readValue();
+                if (receiver == null) {
+                    CoreOp.fieldLoad(readType(), FieldRef.field(readType(), readUtf8(), readType()));
+                } else {
+                    CoreOp.fieldLoad(readType(), FieldRef.field(readType(), readUtf8(), readType()), receiver);
+                }
             }
             case FieldStoreOp -> {
+                Value receiver = readValue();
+                if (receiver == null) {
+                    CoreOp.fieldStore(FieldRef.field(readType(), readUtf8(), readType()), readValue());
+                } else {
+                    CoreOp.fieldStore(FieldRef.field(readType(), readUtf8(), readType()), receiver, readValue());
+                }
             }
-            case FuncCallOp -> {
-            }
-            case FuncOp -> {
-            }
-            case GeOp -> {
-            }
-            case GtOp -> {
-            }
-            case InstanceOfOp -> {
-            }
+            case FuncCallOp ->
+                CoreOp.funcCall(readUtf8(), readType(), readValues());
+            case FuncOp ->
+                CoreOp.func(readUtf8(), readNestedBody(ancestorBody));
+            case GeOp ->
+                CoreOp.ge(readValue(), readValue());
+            case GtOp ->
+                CoreOp.gt(readValue(), readValue());
+            case InstanceOfOp ->
+                CoreOp.instanceOf(readType(), readValue());
             case InvokeOp -> {
             }
             case LambdaOp -> {
@@ -226,16 +240,6 @@ final class OpReader {
             }
         }
         return attrs;
-    }
-
-    private List<Value> readValues() {
-        // number of values
-        var values = new Value[readU2()];
-        for (int i = 0; i < values.length; i++) {
-            // value by index
-            values[i] = allValues.get(readU2());
-        }
-        return List.of(values);
     }
 
     private List<Body.Builder> readNestedBodies(Body.Builder ancestorBody) {
@@ -356,6 +360,14 @@ final class OpReader {
         PoolEntry e = cr.readEntryOrNull(offset);
         offset += 2;
         return e;
+    }
+
+    private Value[] readValues() {
+        var values = new Value[readU2()];
+        for (int i = 0; i < values.length; i++) {
+            values[i] = allValues.get(readU2());
+        }
+        return values;
     }
 
     private Value readValue() {

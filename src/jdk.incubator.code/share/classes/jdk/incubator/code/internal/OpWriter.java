@@ -41,9 +41,9 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.op.ExtendedOp;
 import jdk.incubator.code.op.ExternalizableOp;
+import jdk.incubator.code.type.FieldRef;
 import jdk.incubator.code.type.FunctionType;
 import jdk.incubator.code.type.JavaType;
-import jdk.incubator.code.type.VarType;
 
 import static jdk.incubator.code.internal.CodeModelAttribute.OpTag.*;
 
@@ -57,6 +57,7 @@ final class OpWriter {
         this.buf = buf;
         this.cp = buf.constantPool();
         this.valueMap = new HashMap<>();
+        valueMap.put(null, 0); // 0-index null value
     }
 
     void writeOp(Op op) {
@@ -127,26 +128,44 @@ final class OpWriter {
                writeTarget(ere.end());
                writeCatchers(ere.catchBlocks());
            }
-           case CoreOp.FieldAccessOp.FieldLoadOp _ -> {
+           case CoreOp.FieldAccessOp.FieldLoadOp flo -> {
                writeTag(FieldLoadOp);
+               writeValue(flo.receiver());
+               writeType(flo.resultType());
+               FieldRef fd = flo.fieldDescriptor();
+               writeType(fd.refType());
+               writeUtf8EntryOrZero(fd.name());
+               writeType(fd.type());
            }
-           case CoreOp.FieldAccessOp.FieldStoreOp _ -> {
+           case CoreOp.FieldAccessOp.FieldStoreOp fso -> {
                writeTag(FieldStoreOp);
+               writeValue(fso.receiver());
+               writeType(fso.resultType());
+               FieldRef fd = fso.fieldDescriptor();
+               writeType(fd.refType());
+               writeUtf8EntryOrZero(fd.name());
+               writeType(fd.type());
+               writeValue(fso.value());
            }
-           case CoreOp.FuncCallOp _ -> {
+           case CoreOp.FuncCallOp fco -> {
                writeTag(FuncCallOp);
+               writeUtf8EntryOrZero(fco.funcName());
+               writeType(fco.resultType());
+               writeValuesList(fco.operands());
            }
-           case CoreOp.FuncOp _ -> {
+           case CoreOp.FuncOp fo -> {
                writeTag(FuncOp);
+               writeUtf8EntryOrZero(fo.funcName());
+               writeNestedBody(fo.body());
            }
-           case CoreOp.GeOp _ -> {
-               writeTag(GeOp);
-           }
-           case CoreOp.GtOp _ -> {
-               writeTag(GtOp);
-           }
-           case CoreOp.InstanceOfOp _ -> {
+           case CoreOp.GeOp _ ->
+               writeOpWithFixedOperandValues(GeOp, op);
+           case CoreOp.GtOp _ ->
+               writeOpWithFixedOperandValues(GtOp, op);
+           case CoreOp.InstanceOfOp ioo -> {
                writeTag(InstanceOfOp);
+               writeType(ioo.type());
+               writeValue(ioo.operands().getFirst());
            }
            case CoreOp.InvokeOp _ -> {
                writeTag(InvokeOp);
