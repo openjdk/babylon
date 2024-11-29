@@ -254,8 +254,32 @@ public class XMLNode {
               .arguments(pomXmlBuilderConsumer)
       );
     }
-    public PomXmlBuilder ant(String phase, String goal, Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+    public PomXmlBuilder cmake(String id, String phase,  Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+      return execIdPhaseConf(id,phase,conf->conf
+              .executable("cmake")
+              .arguments(pomXmlBuilderConsumer)
+      );
+    }
+    public PomXmlBuilder cmake(String id, String phase,  String ...args) {
+      return execIdPhaseConf(id,phase,conf->conf
+              .executable("cmake")
+              .arguments(arguments->arguments
+                  .forEach(Stream.of(args), arguments::argument)
+              )
+      );
+    }
+    public PomXmlBuilder jextract(String id, String phase,  String ...args) {
+      return execIdPhaseConf(id,phase,conf->conf
+              .executable("jextract")
+              .arguments(arguments->arguments
+                      .forEach(Stream.of(args), arguments::argument)
+              )
+      );
+    }
+
+    public PomXmlBuilder ant(String id, String phase, String goal, Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
       return execution(execution -> execution
+              .id(id)
               .phase(phase)
               .goals(gs -> gs.goal(goal))
               .configuration(configuration -> configuration
@@ -277,11 +301,18 @@ public class XMLNode {
     public PomXmlBuilder compilerArgs(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
       return element("compilerArgs", pomXmlBuilderConsumer);
     }
+
+    public PomXmlBuilder compilerArgs(String ...args) {
+      return element("compilerArgs", $->$.forEach(Stream.of(args), $::arg));
+    }
     public PomXmlBuilder properties(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
       return element("properties", pomXmlBuilderConsumer);
     }
     public PomXmlBuilder dependencies(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
       return element("dependencies", pomXmlBuilderConsumer);
+    }
+    public PomXmlBuilder dependsOn(String groupId, String artifactId, String version) {
+      return element("dependencies", $->$.dependency(groupId, artifactId, version));
     }
     public    PomXmlBuilder dependency(String groupId, String artifactId, String version) {
       return dependency($->$.ref(groupId, artifactId, version));
@@ -295,6 +326,10 @@ public class XMLNode {
 
     public PomXmlBuilder modules(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
       return element("modules", pomXmlBuilderConsumer);
+    }
+
+    public PomXmlBuilder modules(String ...modules) {
+       return element("modules", $->$.forEach(Stream.of(modules), $::module));
     }
     public PomXmlBuilder module(String name) {
       return element("module", $->$.text(name));
@@ -320,6 +355,12 @@ public class XMLNode {
 
     public PomXmlBuilder copy(String file, String toDir) {
       return element("copy", $->$.attr("file", file).attr("toDir", toDir));
+    }
+    public PomXmlBuilder echo(String message) {
+      return element("echo", $->$.attr("message", message));
+    }
+    public PomXmlBuilder echo(String filename, String message) {
+      return element("echo", $->$.attr("message", message).attr("file", filename));
     }
 
     public PomXmlBuilder groupIdArtifactId(String groupId, String artifactId) {
