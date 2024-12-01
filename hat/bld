@@ -1,4 +1,4 @@
-/* vim: set ft=java: 
+/* vim: set ft=java:
  *
  * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -28,54 +28,160 @@ import static bldr.Bldr.*;
 
 void main(String[] args) {
  var hatDir = Dir.current();
- var buildDir = BuildDir.of(hatDir.path("build")).create();
- var hatCoreDir = hatDir.existingDir("hat");
- var backends = hatDir.existingDir("backends");
- var examples = hatDir.existingDir("examples");
+
+
+
+    /*
+     *  ./
+     *    +--build/                     All jars, native libs and executables
+     *    |    +--cmake-build-debug/    All intermediate cmake artifacts
+     *    |
+     *    +--stage/
+     *    |    +--repo/                 All downloaded maven assets
+     *    |    |
+     *    |    +--jextract/             All jextracted files
+     *    |    |    +--opencl
+     *    |    |    +--opengl
+     *    |    |    +--cuda
+     *    |
+     *    +--hat                        * Note maven style layout
+     *    |    +--src/main/java
+     *    |    |    +--hat/
+     *    |    |
+     *    |    +--src/main/test
+     *    |         +--hat/
+     *    |
+     *    +--backends
+     *    |    +--opencl                (*)
+     *    |    +--ptx                   (*)
+     *    |    +--mock                  (*)
+     *    |    +--spirv                 (*)
+     *    |    +--cuda                  (*)
+     *    |    +--hip                   (*)
+     *    |
+     *    +--examples
+     *    |    +--mandel                (*)
+     *    |    +--squares               (*)
+     *    |    +--heal                  (*)
+     *    |    +--life                  (*)
+     *    |    +--violajones            (*)
+     *
+     */
+
+    var hatCoreDir = hatDir.existingDir("hat");
+    var backendsDir = hatDir.existingDir("backends");
+    var examplesDir = hatDir.existingDir("examples");
+    var stageDir = hatDir.buildDir("stage").create();
+    var repoDir = stageDir.repoDir("repo").create();
+    var jextractDir = stageDir.buildDir("jextract").create();
+
+    var buildDir = BuildDir.of(hatDir.path("build")).create();
+    var cmakeBuildDir = buildDir.cMakeBuildDir("cmake-build-debug");
+
+    var extractOpenCL= false;
+    var extractOpenGL= false;
+    if (extractOpenCL || extractOpenGL){
+       var optionalJextract =fromPATH("jextract");
+       if (optionalJextract.isPresent()){
+          var jextract = Jextract.of(optionalJextract.get());
+          if (extractOpenCL){
+             var extractedOpenCLJar = buildDir.jarFile("jextracted-opencl.jar");
+             if (extractedOpenCLJar.exists()) {
+                println("We have " + extractedOpenCLJar.path());
+             } else {
+                var openclSource = jextractDir.sourceDir("opencl");
+                if (openclSource.exists()) {
+                   println("We have already extracted " + openclSource.path() + " to the staging area");
+                }else{
+                   jextract.extract($ -> {
+                      $.output(jextractDir).target_package(openclSource.fileName());
+                      switch (os) {
+                        case OS.Mac mac -> $
+                           .compile_flag("-F" + mac.appLibFrameworks())
+                           .library(mac.frameworkLibrary("OpenCL"))
+                           .header(mac.frameworkHeader("OpenCL", "opencl.h"));
+                        case OS.Linux linux -> {}
+                           default -> throw new RuntimeException("Unsupported OS: " + os);
+                      }
+                   });
+                } 
+                extractedOpenCLJar.create($ -> $.javac($$ -> $$.source(24).source_path(openclSource)));
+             }
+          }
+          if (extractOpenGL){
+             var extractedOpenGLJar = buildDir.jarFile("jextracted-opengl.jar");
+             if (extractedOpenGLJar.exists()) {
+                println("We have " + extractedOpenGLJar.path());
+             } else {
+               var openglSource = jextractDir.sourceDir("opengl");
+               if (openglSource.exists()) {
+                   println("We have already extracted " + openglSource.path() + " to the staging area");
+               }else{
+                  jextract.extract($ -> {
+                     $.output(jextractDir).target_package(openglSource.fileName());
+                     switch (os) {
+                        case OS.Mac mac -> $
+                           .compile_flag("-F" + mac.appLibFrameworks())
+                           .library(mac.frameworkLibrary("GLUT"), mac.frameworkLibrary("OpenGL")) .header(mac.frameworkHeader("GLUT", "glut.h"));
+                        case OS.Linux linux -> {}
+                        default -> throw new RuntimeException("Unsupported OS: " + os);
+                     }
+                  });
+               }
+               extractedOpenGLJar.create($ -> $.javac($$ -> $$.source(24).source_path(openglSource)));
+             }
+         }
+      }else{
+         println("Failed to locate jextract in the path.  Some examples and some backends will be skipped!");
+      }
+   }
+
+
+ var hatOpts = JavaOpts.of()
+   .enable_preview().add_modules("jdk.incubator.code")
+   .add_exports("java.base", List.of("jdk.internal", "jdk.internal.vm.annotation"), "ALL-UNNAMED");
 
  var hatJar = buildDir.jarFile("hat-1.0.jar", $->$
-   .javac($$->$$
-     .add_modules("jdk.incubator.code")
-     .source(24)
-     .enable_preview()
-     .add_exports("java.base", List.of("jdk.internal", "jdk.internal.vm.annotation"), "ALL-UNNAMED")
-     .source_path(hatCoreDir.sourceDir("src/main/java"))
+   .javac($$->$$.opts(hatOpts)
+      .source(24)
+      .source_path(hatCoreDir.sourceDir("src/main/java"))
    )
  );
 
- record TypedDir(String type, Dir dir) {@Override public String toString(){return "hat-"+type()+"-" + dir().fileName() + "-1.0.jar";}}
+// This allows us to essentially concat the backends and examples into a single stream
+record TypedDir(String type, Dir dir) {
+  public String jarName(){
+    return "hat-"+type()+"-" + dir().fileName() + "-1.0.jar";
+  }
+}
 
-//We need to exclude hip and spirv until we have staged beehive spirv. Once we have spirv staged remove hip and spirv from the regex below
-
- var stream =  Stream.concat(
-     backends.subDirs().filter(dir-> !dir.matches("^.*(hip|spirv|hared|.idea)$")).map(dir->new TypedDir("backend",dir)),
-     examples.subDirs().filter( dir-> !dir.matches("^.*(experiments|target)$")).map(dir->new TypedDir("example",dir))
- );
-
- if (hatDir.dir("hattricks") instanceof Dir hattricks && hattricks.exists()) {
-    stream = Stream.concat(stream,hattricks.subDirs().filter(dir -> dir.matches("^.*chess$")).map(dir -> new TypedDir("example", dir)));
- }
-
- stream.parallel().peek(IO::println).forEach(typeDir->
-    buildDir.jarFile(
-       typeDir.toString(), $->$
-        .javac($$->$$
-           .add_modules("jdk.incubator.code")
-           .source(24)
-           .enable_preview()
-           .add_exports("java.base", List.of("jdk.internal", "jdk.internal.vm.annotation"), "ALL-UNNAMED")
-           .class_path(hatJar)
-           .source_path(typeDir.dir().sourceDir("src/main/java"))
-        )
-        .whenExists(typeDir.dir().dir("src/main/resources"), (dir, $$$)->$$$.dir_list(dir))
-    )
- );
+//We exclude hip and spirv until we have staged beehive spirv. Once we have spirv staged remove hip and spirv from the regex below
+Predicate<Dir>  examplePredicate = example -> !example.matches("^.*(experiments|target|.idea)$");
+Predicate<Dir>  backendPredicate = backend -> !backend.matches("^.*(hip|spirv|shared|target|.idea)$");
 
 
- var cmakeBuildDir = buildDir.cMakeBuildDir("cmake-build-debug");
+Stream.concat(
+  backendsDir.subDirs().filter(backendPredicate).map(backend->new TypedDir("backend",backend)),
+  examplesDir.subDirs().filter(examplePredicate).map(example->new TypedDir("example",example))
+  ) .parallel()
+    .peek(typeDir->println(typeDir.jarName()))
+    .forEach(typeDir->
+       buildDir.jarFile(typeDir.jarName(), $->$
+          .javac($$->$$.opts(hatOpts)
+              .source(24)
+              .class_path(hatJar)
+              .source_path(typeDir.dir().sourceDir("src/main/java"))
+          )
+          .whenExists(typeDir.dir().dir("src/main/resources"), (resources,_)->$
+              .dir_list(resources)
+          )
+       )
+    );
+
+
  if (!cmakeBuildDir.exists()) {
    cmake($->$
-     .source_dir(backends)
+     .source_dir(backendsDir)
      .build_dir(cmakeBuildDir)
      .copy_to(buildDir)
    );
