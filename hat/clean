@@ -28,9 +28,6 @@ import static bldr.Bldr.*;
 
 void main(String[] args) {
  var hatDir = Dir.current();
- var buildDir = hatDir.buildDir("build").remove();
- hatDir.findDirs(path->path.getFileName().endsWith("target"))
-       .map(path->BuildDir.of(path))
-       .peek(dir->println("removing " +dir.path()))
-       .forEach(dir->dir.remove());
+ hatDir.buildDir("build").remove();
+ hatDir.buildDir("stage").remove();
 }
