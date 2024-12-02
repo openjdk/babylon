@@ -47,6 +47,10 @@ void main(String[] args) {
   var examples = hatDir.existingDir("examples");
   var buildDir = assertExists(BuildDir.of(hatDir.path("build")));
 
+  var extractedOpenCLJar = buildDir.jarFile("jextracted-opencl.jar");
+  var extractedOpenGLJar = buildDir.jarFile("jextracted-opengl.jar");
+
+
   var javaBuilder = javaBuilder()
     .enable_preview()
     .add_modules("jdk.incubator.code")
@@ -68,6 +72,10 @@ void main(String[] args) {
   } else {
     var backendName = args[argn++];
     var exampleName = args[argn++];
+    javaBuilder.when( exampleName.equals("nbody"), $->$
+       .start_on_first_thread()
+       .class_path(buildDir.jarFile("hat-1.0.jar"), extractedOpenGLJar, extractedOpenCLJar)
+    );
 
     if (backendName.equals("java")) {
       javaBuilder.class_path(ClassDir.of(backends.path("shared/src/main/resources")));

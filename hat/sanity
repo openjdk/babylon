@@ -37,7 +37,7 @@ void main(String[] args){
           .map(path->new SearchableTextFile(path))
           .forEach(textFile ->{
              if (!textFile.hasSuffix("md")
-               && !textFile.grep(Pattern.compile("^.*Copyright.*202[4-9].*(Intel|Oracle).*$"))) {
+               && !textFile.grep(Pattern.compile("^.*Copyright.*202[0-9].*(Intel|Oracle).*$"))) {
                   println("ERR NO LICENCE " + textFile.path());
              }
              textFile.lines().forEach(line -> {
