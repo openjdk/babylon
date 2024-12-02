@@ -118,7 +118,7 @@ void main(String[] argv) {
      .pom("oracle.code", "hat-examples", "1.0")
      .parent("oracle.code", "hat-root", "1.0")
      .dependsOn("oracle.code", "hat", "1.0")
-     .modules(modules -> examples.subDirs().filter(dir -> !dir.matches("^.*(experiments|target|.idea)$")).forEach(example -> {
+     .modules(modules -> examples.subDirs().filter(dir -> !dir.matches("^.*(experiments|nbody|target|.idea)$")).forEach(example -> {
         modules.module(example.fileName());
         // here is the 'nested example/*/pom.xml
         example.createPom(pomComment, examplePom -> examplePom

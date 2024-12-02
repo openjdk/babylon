@@ -18,6 +18,7 @@
       <module fileurl="file://$PROJECT_DIR$/life.iml" filepath="$PROJECT_DIR$/life.iml" />
       <module fileurl="file://$PROJECT_DIR$/squares.iml" filepath="$PROJECT_DIR$/squares.iml" />
       <module fileurl="file://$PROJECT_DIR$/experiments.iml" filepath="$PROJECT_DIR$/experiments.iml" />
+      <module fileurl="file://$PROJECT_DIR$/nbody.iml" filepath="$PROJECT_DIR$/nbody.iml" />
       <module fileurl="file://$PROJECT_DIR$/violajones.iml" filepath="$PROJECT_DIR$/violajones.iml" />
     </modules>
   </component>

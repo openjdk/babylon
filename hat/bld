@@ -78,14 +78,17 @@ void main(String[] args) {
     var buildDir = BuildDir.of(hatDir.path("build")).create();
     var cmakeBuildDir = buildDir.cMakeBuildDir("cmake-build-debug");
 
-    var extractOpenCL= false;
-    var extractOpenGL= false;
+    // You will need to set these to true for nbody, but if course you must have opencl and opengl ;)
+    var extractOpenCL= true;   // needed for nbody
+    var extractOpenGL= true;   // needed for nbody
+    var extractedOpenCLJar = buildDir.jarFile("jextracted-opencl.jar");
+    var extractedOpenGLJar = buildDir.jarFile("jextracted-opengl.jar");
+
     if (extractOpenCL || extractOpenGL){
        var optionalJextract =fromPATH("jextract");
        if (optionalJextract.isPresent()){
           var jextract = Jextract.of(optionalJextract.get());
           if (extractOpenCL){
-             var extractedOpenCLJar = buildDir.jarFile("jextracted-opencl.jar");
              if (extractedOpenCLJar.exists()) {
                 println("We have prebuilt " + extractedOpenCLJar.path());
              } else {
@@ -109,7 +112,6 @@ void main(String[] args) {
              }
           }
           if (extractOpenGL){
-             var extractedOpenGLJar = buildDir.jarFile("jextracted-opengl.jar");
              if (extractedOpenGLJar.exists()) {
                 println("We have prebuilt " + extractedOpenGLJar.path());
              } else {
@@ -167,27 +169,19 @@ Stream.concat(
     .peek(typeDir->println(typeDir.jarName()))
     .forEach(typeDir->
        buildDir.jarFile(typeDir.jarName(), $->$
-          .javac($$->$$.opts(hatOpts)
+          .javac($$->$$
+              .opts(hatOpts)
               .source(24)
               .class_path(hatJar)
               .source_path(typeDir.dir().sourceDir("src/main/java"))
+              .when(extractedOpenCLJar.exists(), _->$$.class_path(extractedOpenCLJar))
+              .when(extractedOpenGLJar.exists(), _->$$.class_path(extractedOpenGLJar))
           )
           .whenExists(typeDir.dir().dir("src/main/resources"), (resources,_)->$
               .dir_list(resources)
           )
        )
     );
-
-  var hatlessNBodyDir = hatDir.dir("hatless-examples/nbody");
-
-  buildDir.jarFile("hatless-example-nbody.jar", $->$
-     .javac($$->$$.opts(hatOpts)
-         .source(24)
-         .class_path(buildDir.jarFile("jextracted-opencl.jar"),buildDir.jarFile("jextracted-opengl.jar"))
-         .source_path(hatlessNBodyDir.sourceDir("src/main/java"))
-     )
-     .dir_list(hatlessNBodyDir.dir("src/main/resources"))
- );
 
  if (!cmakeBuildDir.exists()) {
    cmake($->$
