@@ -47,6 +47,7 @@ import jdk.incubator.code.type.CoreTypeFactory;
 import jdk.incubator.code.type.FieldRef;
 import jdk.incubator.code.type.FunctionType;
 import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.type.MethodRef;
 
 final class OpReader {
 
@@ -111,10 +112,11 @@ final class OpReader {
             }
             case FieldStoreOp -> {
                 Value receiver = readValue();
+                FieldRef field = FieldRef.field(readType(), readUtf8(), readType());
                 if (receiver == null) {
-                    CoreOp.fieldStore(FieldRef.field(readType(), readUtf8(), readType()), readValue());
+                    CoreOp.fieldStore(field, readValue());
                 } else {
-                    CoreOp.fieldStore(FieldRef.field(readType(), readUtf8(), readType()), receiver, readValue());
+                    CoreOp.fieldStore(field, receiver, readValue());
                 }
             }
             case FuncCallOp ->
@@ -127,20 +129,26 @@ final class OpReader {
                 CoreOp.gt(readValue(), readValue());
             case InstanceOfOp ->
                 CoreOp.instanceOf(readType(), readValue());
-            case InvokeOp -> {
-            }
-            case LambdaOp -> {
-            }
-            case LeOp -> {
-            }
-            case LshlOp -> {
-            }
-            case LshrOp -> {
-            }
-            case LtOp -> {
-            }
-            case ModOp -> {
-            }
+            case InvokeOp ->
+                CoreOp.invoke(CoreOp.InvokeOp.InvokeKind.values()[readU1()],
+                              readU1() != 0,
+                              readType(),
+                              MethodRef.method(readType(), readUtf8(), readFunctionType()),
+                              List.of(readValues()));
+            case LambdaOp ->
+                CoreOp.lambda(readNestedBody(ancestorBody),
+                              readFunctionType(),
+                              readType());
+            case LeOp ->
+                CoreOp.le(readValue(), readValue());
+            case LshlOp ->
+                CoreOp.lshl(readValue(), readValue());
+            case LshrOp ->
+                CoreOp.lshr(readValue(), readValue());
+            case LtOp ->
+                CoreOp.lt(readValue(), readValue());
+            case ModOp ->
+                CoreOp.mod(readValue(), readValue());
             case ModuleOp -> {
             }
             case MonitorEnterOp -> {
@@ -374,8 +382,20 @@ final class OpReader {
         return allValues.get(readU2());
     }
 
+    private TypeElement[] readTypes() {
+        var types = new TypeElement[readU2()];
+        for (int i = 0; i < types.length; i++) {
+            types[i] = readType();
+        }
+        return types;
+    }
+
     private TypeElement readType() {
         return toType(readEntryOrNull());
+    }
+
+    private FunctionType readFunctionType() {
+        return toFuncType(readEntryOrNull());
     }
 
     private Block.Reference readBlockReference(Block.Builder[] ancestorBodyBlocks) {

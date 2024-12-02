@@ -44,6 +44,7 @@ import jdk.incubator.code.op.ExternalizableOp;
 import jdk.incubator.code.type.FieldRef;
 import jdk.incubator.code.type.FunctionType;
 import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.type.MethodRef;
 
 import static jdk.incubator.code.internal.CodeModelAttribute.OpTag.*;
 
@@ -64,19 +65,19 @@ final class OpWriter {
        var operands = op.operands();
        switch (op) {
            case CoreOp.AddOp _ ->
-               writeOpWithFixedOperandValues(AddOp, op);
+               writeOpWithFixedOperandValues(AddOp, operands);
            case CoreOp.AndOp _ ->
-               writeOpWithFixedOperandValues(AndOp, op);
+               writeOpWithFixedOperandValues(AndOp, operands);
            case CoreOp.ArrayAccessOp.ArrayLoadOp _ -> {
-               writeOpWithFixedOperandValues(ArrayLoadOp, op);
+               writeOpWithFixedOperandValues(ArrayLoadOp, operands);
                writeType(op.resultType());
            }
            case CoreOp.ArrayAccessOp.ArrayStoreOp _ ->
-               writeOpWithFixedOperandValues(ArrayStoreOp, op);
+               writeOpWithFixedOperandValues(ArrayStoreOp, operands);
            case CoreOp.ArrayLengthOp _ ->
-               writeOpWithFixedOperandValues(ArrayLengthOp, op);
+               writeOpWithFixedOperandValues(ArrayLengthOp, operands);
            case CoreOp.AshrOp _ ->
-               writeOpWithFixedOperandValues(AshrOp, op);
+               writeOpWithFixedOperandValues(AshrOp, operands);
            case CoreOp.BranchOp bo -> {
                 writeTag(BranchOp);
                 writeTarget(bo.branch());
@@ -85,20 +86,20 @@ final class OpWriter {
                writeTag(CastOp);
                writeType(co.resultType());
                writeType(co.type());
-               writeValue(co.operands().getFirst());
+               writeValue(operands.getFirst());
            }
-           case CoreOp.ClosureCallOp cco -> {
+           case CoreOp.ClosureCallOp _ -> {
                writeTag(ClosureCallOp);
-               writeValuesList(cco.operands());
+               writeValuesList(operands);
            }
            case CoreOp.ClosureOp co -> {
                writeTag(ClosureOp);
                writeNestedBody(co.body());
            }
            case CoreOp.ComplOp _ ->
-               writeOpWithFixedOperandValues(ComplOp, op);
+               writeOpWithFixedOperandValues(ComplOp, operands);
            case CoreOp.ConcatOp _ ->
-               writeOpWithFixedOperandValues(ConcatOp, op);
+               writeOpWithFixedOperandValues(ConcatOp, operands);
            case CoreOp.ConditionalBranchOp cbo -> {
                writeTag(ConditionalBranchOp);
                writeTarget(cbo.trueBranch());
@@ -112,12 +113,12 @@ final class OpWriter {
            case CoreOp.ConvOp _ -> {
                writeTag(ConvOp);
                writeType(op.resultType());
-               writeValue(op.operands().getFirst());
+               writeValue(operands.getFirst());
            }
            case CoreOp.DivOp _ ->
-               writeOpWithFixedOperandValues(DivOp, op);
+               writeOpWithFixedOperandValues(DivOp, operands);
            case CoreOp.EqOp _ ->
-               writeOpWithFixedOperandValues(EqOp, op);
+               writeOpWithFixedOperandValues(EqOp, operands);
            case CoreOp.ExceptionRegionEnter ere -> {
                writeTag(ExceptionRegionEnter);
                writeTarget(ere.start());
@@ -151,7 +152,7 @@ final class OpWriter {
                writeTag(FuncCallOp);
                writeUtf8EntryOrZero(fco.funcName());
                writeType(fco.resultType());
-               writeValuesList(fco.operands());
+               writeValuesList(operands);
            }
            case CoreOp.FuncOp fo -> {
                writeTag(FuncOp);
@@ -159,35 +160,41 @@ final class OpWriter {
                writeNestedBody(fo.body());
            }
            case CoreOp.GeOp _ ->
-               writeOpWithFixedOperandValues(GeOp, op);
+               writeOpWithFixedOperandValues(GeOp, operands);
            case CoreOp.GtOp _ ->
-               writeOpWithFixedOperandValues(GtOp, op);
+               writeOpWithFixedOperandValues(GtOp, operands);
            case CoreOp.InstanceOfOp ioo -> {
                writeTag(InstanceOfOp);
                writeType(ioo.type());
-               writeValue(ioo.operands().getFirst());
+               writeValue(operands.getFirst());
            }
-           case CoreOp.InvokeOp _ -> {
+           case CoreOp.InvokeOp io -> {
                writeTag(InvokeOp);
+               buf.writeU1(io.invokeKind().ordinal());
+               buf.writeU1(io.isVarArgs() ? 1 : 0);
+               writeType(io.resultType());
+               MethodRef mr = io.invokeDescriptor();
+               writeType(mr.refType());
+               writeUtf8EntryOrZero(mr.name());
+               writeFunctionType(mr.type());
+               writeValuesList(operands);
            }
-           case CoreOp.LambdaOp _ -> {
+           case CoreOp.LambdaOp lo -> {
                writeTag(LambdaOp);
+               writeNestedBody(lo.body());
+               writeFunctionType(lo.invokableType());
+               writeType(lo.functionalInterface());
            }
-           case CoreOp.LeOp _ -> {
-               writeTag(LeOp);
-           }
-           case CoreOp.LshlOp _ -> {
-               writeTag(LshlOp);
-           }
-           case CoreOp.LshrOp _ -> {
-               writeTag(LshrOp);
-           }
-           case CoreOp.LtOp _ -> {
-               writeTag(LtOp);
-           }
-           case CoreOp.ModOp _ -> {
-               writeTag(ModOp);
-           }
+           case CoreOp.LeOp _ ->
+               writeOpWithFixedOperandValues(LeOp, operands);
+           case CoreOp.LshlOp _ ->
+               writeOpWithFixedOperandValues(LshlOp, operands);
+           case CoreOp.LshrOp _ ->
+               writeOpWithFixedOperandValues(LshrOp, operands);
+           case CoreOp.LtOp _ ->
+               writeOpWithFixedOperandValues(LtOp, operands);
+           case CoreOp.ModOp _ ->
+               writeOpWithFixedOperandValues(ModOp, operands);
            case CoreOp.ModuleOp _ -> {
                writeTag(ModuleOp);
            }
@@ -428,9 +435,9 @@ final class OpWriter {
                 : cp.stringEntry(type.externalize().toString());
     }
 
-    private void writeOpWithFixedOperandValues(CodeModelAttribute.OpTag tag, Op op) {
+    private void writeOpWithFixedOperandValues(CodeModelAttribute.OpTag tag, List<Value> operands) {
         writeTag(tag);
-        for (Value v : op.operands()) {
+        for (Value v : operands) {
             buf.writeU2(valueMap.get(v));
         }
     }
@@ -445,6 +452,17 @@ final class OpWriter {
 
     private void writeType(TypeElement type) {
         buf.writeIndexOrZero(toEntry(type));
+    }
+
+    private void writeFunctionType(FunctionType ftype) {
+        buf.writeIndex(toEntry(ftype));
+    }
+
+    private void writeTypesList(List<TypeElement> types) {
+        buf.writeU2(types.size());
+        for (TypeElement type : types) {
+            writeType(type);
+        }
     }
 
     private void writeTarget(Block.Reference target) {
