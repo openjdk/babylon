@@ -447,6 +447,10 @@ public class Bldr {
             XMLNode.createPom(comment, pomXmlBuilderConsumer).write(xmlFile);
             return xmlFile;
         }
+
+        public BuildDir existingBuildDir(String subdir) {
+            return assertExists(BuildDir.of(path(subdir)));
+        }
     }
 
     public record SourcePathEntry(Path path) implements DirPathHolder<SourcePathEntry> {
@@ -473,6 +477,15 @@ public class Bldr {
         public JarFile jarFile(String name) {
             return JarFile.of(path().resolve(name));
         }
+        public ClassPathEntryProvider jarFiles(String ...names) {
+            var classPath = ClassPath.of();
+            Stream.of(names).forEach(name->
+                classPath.add(JarFile.of(path().resolve(name))
+                )
+            );
+            return classPath;
+        }
+
 
         public JarFile jarFile(String name, BiConsumer<JarBuilder, JarFile> biConsumer) {
             var result = JarFile.of(path().resolve(name));
@@ -919,6 +932,7 @@ public class Bldr {
     public static class JavaBuilder extends JavaToolBuilder<JavaBuilder> {
         public String mainClass;
         public DirPath libraryPath;
+        public boolean startOnFirstThread;
         public List<String> args = new ArrayList<>();
 
         public JavaBuilder enable_native_access(String module) {
@@ -953,11 +967,19 @@ public class Bldr {
         public JavaBuilder library_path(DirPathHolder<?>... libraryPathEntries) {
             return this.library_path(List.of(libraryPathEntries));
         }
+
+        public JavaBuilder start_on_first_thread() {
+            this.startOnFirstThread =   true;
+            return this;
+        }
     }
 
     public static JavaBuilder java(JavaBuilder javaBuilder) {
         List<String> execOpts = new ArrayList<>();
         execOpts.add(javaBuilder.jdk.path().resolve("bin/java").toString());
+        if (javaBuilder.startOnFirstThread){
+            execOpts.add("-XstartOnFirstThread");
+        }
         execOpts.addAll(javaBuilder.opts);
         if (javaBuilder.classPath != null) {
             execOpts.addAll(List.of("--class-path", javaBuilder.classPath.charSeparated()));
