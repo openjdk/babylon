@@ -87,7 +87,7 @@ void main(String[] args) {
           if (extractOpenCL){
              var extractedOpenCLJar = buildDir.jarFile("jextracted-opencl.jar");
              if (extractedOpenCLJar.exists()) {
-                println("We have " + extractedOpenCLJar.path());
+                println("We have prebuilt " + extractedOpenCLJar.path());
              } else {
                 var openclSource = jextractDir.sourceDir("opencl");
                 if (openclSource.exists()) {
@@ -104,14 +104,14 @@ void main(String[] args) {
                            default -> throw new RuntimeException("Unsupported OS: " + os);
                       }
                    });
-                } 
+                }
                 extractedOpenCLJar.create($ -> $.javac($$ -> $$.source(24).source_path(openclSource)));
              }
           }
           if (extractOpenGL){
              var extractedOpenGLJar = buildDir.jarFile("jextracted-opengl.jar");
              if (extractedOpenGLJar.exists()) {
-                println("We have " + extractedOpenGLJar.path());
+                println("We have prebuilt " + extractedOpenGLJar.path());
              } else {
                var openglSource = jextractDir.sourceDir("opengl");
                if (openglSource.exists()) {
@@ -178,6 +178,16 @@ Stream.concat(
        )
     );
 
+  var hatlessNBodyDir = hatDir.dir("hatless-examples/nbody");
+
+  buildDir.jarFile("hatless-example-nbody.jar", $->$
+     .javac($$->$$.opts(hatOpts)
+         .source(24)
+         .class_path(buildDir.jarFile("jextracted-opencl.jar"),buildDir.jarFile("jextracted-opengl.jar"))
+         .source_path(hatlessNBodyDir.sourceDir("src/main/java"))
+     )
+     .dir_list(hatlessNBodyDir.dir("src/main/resources"))
+ );
 
  if (!cmakeBuildDir.exists()) {
    cmake($->$
