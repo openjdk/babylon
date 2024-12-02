@@ -95,6 +95,8 @@ import jdk.incubator.code.op.ExtendedOp;
 public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
 
     public enum OpTag {
+        LocationAttr(null),
+
         AddOp(CoreOp.AddOp.NAME),
         AndOp(CoreOp.AndOp.NAME),
         ArrayLoadOp(CoreOp.ArrayAccessOp.ArrayLoadOp.NAME),

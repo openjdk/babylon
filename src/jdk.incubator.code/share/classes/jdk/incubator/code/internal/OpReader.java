@@ -42,6 +42,7 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.op.CoreOp.FuncOp;
 import jdk.incubator.code.op.ExternalizableOp;
 import jdk.incubator.code.type.CoreTypeFactory;
 import jdk.incubator.code.type.FieldRef;
@@ -63,7 +64,13 @@ final class OpReader {
     }
 
     Op readOp(Body.Builder ancestorBody, Block.Builder[] ancestorBodyBlocks) {
-        switch (CodeModelAttribute.OpTag.values()[readU1()]) {
+        int tag = readU1();
+        Location location = Location.NO_LOCATION;
+        if (tag == CodeModelAttribute.OpTag.LocationAttr.ordinal()) { // tag for location
+            location = new Location(readUtf8OrNull(), readU2(), readU2());
+            tag = readU1();
+        }
+        Op op = switch (CodeModelAttribute.OpTag.values()[tag]) {
             case AddOp ->
                 CoreOp.add(readValue(), readValue());
             case AndOp ->
@@ -105,18 +112,18 @@ final class OpReader {
             case FieldLoadOp -> {
                 Value receiver = readValue();
                 if (receiver == null) {
-                    CoreOp.fieldLoad(readType(), FieldRef.field(readType(), readUtf8(), readType()));
+                    yield CoreOp.fieldLoad(readType(), FieldRef.field(readType(), readUtf8(), readType()));
                 } else {
-                    CoreOp.fieldLoad(readType(), FieldRef.field(readType(), readUtf8(), readType()), receiver);
+                    yield CoreOp.fieldLoad(readType(), FieldRef.field(readType(), readUtf8(), readType()), receiver);
                 }
             }
             case FieldStoreOp -> {
                 Value receiver = readValue();
                 FieldRef field = FieldRef.field(readType(), readUtf8(), readType());
                 if (receiver == null) {
-                    CoreOp.fieldStore(field, readValue());
+                    yield CoreOp.fieldStore(field, readValue());
                 } else {
-                    CoreOp.fieldStore(field, receiver, readValue());
+                    yield CoreOp.fieldStore(field, receiver, readValue());
                 }
             }
             case FuncCallOp ->
@@ -136,9 +143,7 @@ final class OpReader {
                               MethodRef.method(readType(), readUtf8(), readFunctionType()),
                               List.of(readValues()));
             case LambdaOp ->
-                CoreOp.lambda(readNestedBody(ancestorBody),
-                              readFunctionType(),
-                              readType());
+                CoreOp.lambda(readType(), readNestedBody(ancestorBody));
             case LeOp ->
                 CoreOp.le(readValue(), readValue());
             case LshlOp ->
@@ -150,87 +155,117 @@ final class OpReader {
             case ModOp ->
                 CoreOp.mod(readValue(), readValue());
             case ModuleOp -> {
+                var functions = new FuncOp[readU2()];
+                for (int i = 0; i < functions.length; i++) {
+                    functions[i] = CoreOp.func(readUtf8(), readNestedBody(ancestorBody));
+                }
+                yield CoreOp.module(functions);
             }
-            case MonitorEnterOp -> {
-            }
-            case MonitorExitOp -> {
-            }
-            case MulOp -> {
-            }
-            case NegOp -> {
-            }
-            case NeqOp -> {
-            }
-            case NewOp -> {
-            }
-            case NotOp -> {
-            }
-            case OrOp -> {
-            }
-            case QuotedOp -> {
-            }
+            case MonitorEnterOp ->
+                CoreOp.monitorEnter(readValue());
+            case MonitorExitOp ->
+                CoreOp.monitorExit(readValue());
+            case MulOp ->
+                CoreOp.mul(readValue(), readValue());
+            case NegOp ->
+                CoreOp.neg(readValue());
+            case NeqOp ->
+                CoreOp.neq(readValue(), readValue());
+            case NewOp ->
+                CoreOp._new(readType(), readFunctionType(), readValues());
+            case NotOp ->
+                CoreOp.not(readValue());
+            case OrOp ->
+                CoreOp.or(readValue(), readValue());
+            case QuotedOp ->
+                CoreOp.quoted(readNestedBody(ancestorBody));
             case ReturnOp -> {
+                Value v = readValue();
+                if (v == null) {
+                    yield CoreOp._return();
+                } else {
+                    yield CoreOp._return(v);
+                }
             }
-            case SubOp -> {
-            }
-            case ThrowOp -> {
-            }
-            case TupleLoadOp -> {
-            }
-            case TupleOp -> {
-            }
+            case SubOp ->
+                CoreOp.sub(readValue(), readValue());
+            case ThrowOp ->
+                CoreOp._throw(readValue());
+            case TupleLoadOp ->
+                CoreOp.tupleLoad(readValue(), readU2());
+            case TupleOp ->
+                CoreOp.tuple(readValues());
             case TupleWithOp -> {
+                Value t = readValue();
+                Value v = readValue();
+                yield CoreOp.tupleWith(t, readU2(), v);
             }
-            case UnreachableOp -> {
-            }
-            case VarLoadOp -> {
-            }
-            case VarStoreOp -> {
-            }
+            case UnreachableOp ->
+                CoreOp.unreachable();
+            case VarLoadOp ->
+                CoreOp.varLoad(readValue());
+            case VarStoreOp ->
+                CoreOp.varStore(readValue(), readValue());
             case VarOp -> {
+                Value init = readValue();
+                if (init == null) {
+                    yield CoreOp.var(readUtf8OrNull(), readType());
+                } else {
+                    yield CoreOp.var(readUtf8OrNull(), readType(), init);
+                }
             }
-            case XorOp -> {
-            }
+            case XorOp ->
+                CoreOp.xor(readValue(), readValue());
             case YieldOp -> {
+                Value v = readValue();
+                if (v == null) {
+                    yield CoreOp._yield();
+                } else {
+                    yield CoreOp._yield(v);
+                }
             }
-            case JavaBlockOp -> {
-            }
-            case JavaBreakOp -> {
-            }
-            case JavaConditionalAndOp -> {
-            }
-            case JavaConditionalExpressionOp -> {
-            }
-            case JavaConditionalOrOp -> {
-            }
-            case JavaContinueOp -> {
-            }
-            case JavaDoWhileOp -> {
-            }
-            case JavaEnhancedForOp -> {
-            }
-            case JavaForOp -> {
-            }
-            case JavaIfOp -> {
-            }
-            case JavaLabeledOp -> {
-            }
-            case JavaSwitchExpressionOp -> {
-            }
-            case JavaSwitchFallthroughOp -> {
-            }
-            case JavaSwitchStatementOp -> {
-            }
-            case MatchAllPatternOp -> {
-            }
-            case MatchOp -> {
-            }
-            case RecordPatternOp -> {
-            }
-            case TypePatternOp -> {
-            }
+//            case JavaBlockOp -> {
+//            }
+//            case JavaBreakOp -> {
+//            }
+//            case JavaConditionalAndOp -> {
+//            }
+//            case JavaConditionalExpressionOp -> {
+//            }
+//            case JavaConditionalOrOp -> {
+//            }
+//            case JavaContinueOp -> {
+//            }
+//            case JavaDoWhileOp -> {
+//            }
+//            case JavaEnhancedForOp -> {
+//            }
+//            case JavaForOp -> {
+//            }
+//            case JavaIfOp -> {
+//            }
+//            case JavaLabeledOp -> {
+//            }
+//            case JavaSwitchExpressionOp -> {
+//            }
+//            case JavaSwitchFallthroughOp -> {
+//            }
+//            case JavaSwitchStatementOp -> {
+//            }
+//            case MatchAllPatternOp -> {
+//            }
+//            case MatchOp -> {
+//            }
+//            case RecordPatternOp -> {
+//            }
+//            case TypePatternOp -> {
+//            }
+            default -> null;
+        };
+        if (location != Location.NO_LOCATION) {
+            op.setLocation(location);
         }
-        return null;
+        return op;
     }
 
     private Map<String, Object> readAttributes()  {

@@ -39,6 +39,7 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.op.CoreOp.FuncOp;
 import jdk.incubator.code.op.ExtendedOp;
 import jdk.incubator.code.op.ExternalizableOp;
 import jdk.incubator.code.type.FieldRef;
@@ -62,261 +63,279 @@ final class OpWriter {
     }
 
     void writeOp(Op op) {
-       var operands = op.operands();
-       switch (op) {
-           case CoreOp.AddOp _ ->
-               writeOpWithFixedOperandValues(AddOp, operands);
-           case CoreOp.AndOp _ ->
-               writeOpWithFixedOperandValues(AndOp, operands);
-           case CoreOp.ArrayAccessOp.ArrayLoadOp _ -> {
-               writeOpWithFixedOperandValues(ArrayLoadOp, operands);
-               writeType(op.resultType());
-           }
-           case CoreOp.ArrayAccessOp.ArrayStoreOp _ ->
-               writeOpWithFixedOperandValues(ArrayStoreOp, operands);
-           case CoreOp.ArrayLengthOp _ ->
-               writeOpWithFixedOperandValues(ArrayLengthOp, operands);
-           case CoreOp.AshrOp _ ->
-               writeOpWithFixedOperandValues(AshrOp, operands);
-           case CoreOp.BranchOp bo -> {
-                writeTag(BranchOp);
-                writeTarget(bo.branch());
-           }
-           case CoreOp.CastOp co -> {
-               writeTag(CastOp);
-               writeType(co.resultType());
-               writeType(co.type());
-               writeValue(operands.getFirst());
-           }
-           case CoreOp.ClosureCallOp _ -> {
-               writeTag(ClosureCallOp);
-               writeValuesList(operands);
-           }
-           case CoreOp.ClosureOp co -> {
-               writeTag(ClosureOp);
-               writeNestedBody(co.body());
-           }
-           case CoreOp.ComplOp _ ->
-               writeOpWithFixedOperandValues(ComplOp, operands);
-           case CoreOp.ConcatOp _ ->
-               writeOpWithFixedOperandValues(ConcatOp, operands);
-           case CoreOp.ConditionalBranchOp cbo -> {
-               writeTag(ConditionalBranchOp);
-               writeTarget(cbo.trueBranch());
-               writeTarget(cbo.falseBranch());
-           }
-           case CoreOp.ConstantOp co -> {
-               writeTag(ConstantOp);
-               writeType(co.resultType());
-               writeUtf8EntryOrZero(co.value()); // @@@ constant value serialized as Utf8Entry
-           }
-           case CoreOp.ConvOp _ -> {
-               writeTag(ConvOp);
-               writeType(op.resultType());
-               writeValue(operands.getFirst());
-           }
-           case CoreOp.DivOp _ ->
-               writeOpWithFixedOperandValues(DivOp, operands);
-           case CoreOp.EqOp _ ->
-               writeOpWithFixedOperandValues(EqOp, operands);
-           case CoreOp.ExceptionRegionEnter ere -> {
-               writeTag(ExceptionRegionEnter);
-               writeTarget(ere.start());
-               writeCatchers(ere.catchBlocks());
-           }
-           case CoreOp.ExceptionRegionExit ere -> {
-               writeTag(ExceptionRegionExit);
-               writeTarget(ere.end());
-               writeCatchers(ere.catchBlocks());
-           }
-           case CoreOp.FieldAccessOp.FieldLoadOp flo -> {
-               writeTag(FieldLoadOp);
-               writeValue(flo.receiver());
-               writeType(flo.resultType());
-               FieldRef fd = flo.fieldDescriptor();
-               writeType(fd.refType());
-               writeUtf8EntryOrZero(fd.name());
-               writeType(fd.type());
-           }
-           case CoreOp.FieldAccessOp.FieldStoreOp fso -> {
-               writeTag(FieldStoreOp);
-               writeValue(fso.receiver());
-               writeType(fso.resultType());
-               FieldRef fd = fso.fieldDescriptor();
-               writeType(fd.refType());
-               writeUtf8EntryOrZero(fd.name());
-               writeType(fd.type());
-               writeValue(fso.value());
-           }
-           case CoreOp.FuncCallOp fco -> {
-               writeTag(FuncCallOp);
-               writeUtf8EntryOrZero(fco.funcName());
-               writeType(fco.resultType());
-               writeValuesList(operands);
-           }
-           case CoreOp.FuncOp fo -> {
-               writeTag(FuncOp);
-               writeUtf8EntryOrZero(fo.funcName());
-               writeNestedBody(fo.body());
-           }
-           case CoreOp.GeOp _ ->
-               writeOpWithFixedOperandValues(GeOp, operands);
-           case CoreOp.GtOp _ ->
-               writeOpWithFixedOperandValues(GtOp, operands);
-           case CoreOp.InstanceOfOp ioo -> {
-               writeTag(InstanceOfOp);
-               writeType(ioo.type());
-               writeValue(operands.getFirst());
-           }
-           case CoreOp.InvokeOp io -> {
-               writeTag(InvokeOp);
-               buf.writeU1(io.invokeKind().ordinal());
-               buf.writeU1(io.isVarArgs() ? 1 : 0);
-               writeType(io.resultType());
-               MethodRef mr = io.invokeDescriptor();
-               writeType(mr.refType());
-               writeUtf8EntryOrZero(mr.name());
-               writeFunctionType(mr.type());
-               writeValuesList(operands);
-           }
-           case CoreOp.LambdaOp lo -> {
-               writeTag(LambdaOp);
-               writeNestedBody(lo.body());
-               writeFunctionType(lo.invokableType());
-               writeType(lo.functionalInterface());
-           }
-           case CoreOp.LeOp _ ->
-               writeOpWithFixedOperandValues(LeOp, operands);
-           case CoreOp.LshlOp _ ->
-               writeOpWithFixedOperandValues(LshlOp, operands);
-           case CoreOp.LshrOp _ ->
-               writeOpWithFixedOperandValues(LshrOp, operands);
-           case CoreOp.LtOp _ ->
-               writeOpWithFixedOperandValues(LtOp, operands);
-           case CoreOp.ModOp _ ->
-               writeOpWithFixedOperandValues(ModOp, operands);
-           case CoreOp.ModuleOp _ -> {
-               writeTag(ModuleOp);
-           }
-           case CoreOp.MonitorOp.MonitorEnterOp _ -> {
-               writeTag(MonitorEnterOp);
-           }
-           case CoreOp.MonitorOp.MonitorExitOp _ -> {
-               writeTag(MonitorExitOp);
-           }
-           case CoreOp.MulOp _ -> {
-               writeTag(MulOp);
-           }
-           case CoreOp.NegOp _ -> {
-               writeTag(NegOp);
-           }
-           case CoreOp.NeqOp _ -> {
-               writeTag(NeqOp);
-           }
-           case CoreOp.NewOp _ -> {
-               writeTag(NewOp);
-           }
-           case CoreOp.NotOp _ -> {
-               writeTag(NotOp);
-           }
-           case CoreOp.OrOp _ -> {
-               writeTag(OrOp);
-           }
-           case CoreOp.QuotedOp _ -> {
-               writeTag(QuotedOp);
-           }
-           case CoreOp.ReturnOp _ -> {
-               writeTag(ReturnOp);
-           }
-           case CoreOp.SubOp _ -> {
-               writeTag(SubOp);
-           }
-           case CoreOp.ThrowOp _ -> {
-               writeTag(ThrowOp);
-           }
-           case CoreOp.TupleLoadOp _ -> {
-               writeTag(TupleLoadOp);
-           }
-           case CoreOp.TupleOp _ -> {
-               writeTag(TupleOp);
-           }
-           case CoreOp.TupleWithOp _ -> {
-               writeTag(TupleWithOp);
-           }
-           case CoreOp.UnreachableOp _ -> {
-               writeTag(UnreachableOp);
-           }
-           case CoreOp.VarAccessOp.VarLoadOp _ -> {
-               writeTag(VarLoadOp);
-           }
-           case CoreOp.VarAccessOp.VarStoreOp _ -> {
-               writeTag(VarStoreOp);
-           }
-           case CoreOp.VarOp _ -> {
-               writeTag(VarOp);
-           }
-           case CoreOp.XorOp _ -> {
-               writeTag(XorOp);
-           }
-           case CoreOp.YieldOp _ -> {
-               writeTag(YieldOp);
-           }
-           case ExtendedOp.JavaBlockOp _ -> {
-               writeTag(JavaBlockOp);
-           }
-           case ExtendedOp.JavaBreakOp _ -> {
-               writeTag(JavaBreakOp);
-           }
-           case ExtendedOp.JavaConditionalAndOp _ -> {
-               writeTag(JavaConditionalAndOp);
-           }
-           case ExtendedOp.JavaConditionalExpressionOp _ -> {
-               writeTag(JavaConditionalExpressionOp);
-           }
-           case ExtendedOp.JavaConditionalOrOp _ -> {
-               writeTag(JavaConditionalOrOp);
-           }
-           case ExtendedOp.JavaContinueOp _ -> {
-               writeTag(JavaContinueOp);
-           }
-           case ExtendedOp.JavaDoWhileOp _ -> {
-               writeTag(JavaDoWhileOp);
-           }
-           case ExtendedOp.JavaEnhancedForOp _ -> {
-               writeTag(JavaEnhancedForOp);
-           }
-           case ExtendedOp.JavaForOp _ -> {
-               writeTag(JavaForOp);
-           }
-           case ExtendedOp.JavaIfOp _ -> {
-               writeTag(JavaIfOp);
-           }
-           case ExtendedOp.JavaLabeledOp _ -> {
-               writeTag(JavaLabeledOp);
-           }
-           case ExtendedOp.JavaSwitchExpressionOp _ -> {
-               writeTag(JavaSwitchExpressionOp);
-           }
-           case ExtendedOp.JavaSwitchFallthroughOp _ -> {
-               writeTag(JavaSwitchFallthroughOp);
-           }
-           case ExtendedOp.JavaSwitchStatementOp _ -> {
-               writeTag(JavaSwitchStatementOp);
-           }
-           case ExtendedOp.PatternOps.MatchAllPatternOp _ -> {
-               writeTag(MatchAllPatternOp);
-           }
-           case ExtendedOp.PatternOps.MatchOp _ -> {
-               writeTag(MatchOp);
-           }
-           case ExtendedOp.PatternOps.RecordPatternOp _ -> {
-               writeTag(RecordPatternOp);
-           }
-           case ExtendedOp.PatternOps.TypePatternOp _ -> {
-               writeTag(TypePatternOp);
-           }
-           default -> {}
-       }
+        Location location = op.location();
+        if (location != Location.NO_LOCATION) {
+            writeTag(LocationAttr);
+            writeUtf8EntryOrZero(location.sourceRef());
+            buf.writeU2(location.line());
+            buf.writeU2(location.column());
+        }
+        var operands = op.operands();
+        switch (op) {
+            case CoreOp.AddOp _ ->
+                writeOpWithFixedOperandValues(AddOp, operands);
+            case CoreOp.AndOp _ ->
+                writeOpWithFixedOperandValues(AndOp, operands);
+            case CoreOp.ArrayAccessOp.ArrayLoadOp _ -> {
+                writeOpWithFixedOperandValues(ArrayLoadOp, operands);
+                writeType(op.resultType());
+            }
+            case CoreOp.ArrayAccessOp.ArrayStoreOp _ ->
+                writeOpWithFixedOperandValues(ArrayStoreOp, operands);
+            case CoreOp.ArrayLengthOp _ ->
+                writeOpWithFixedOperandValues(ArrayLengthOp, operands);
+            case CoreOp.AshrOp _ ->
+                writeOpWithFixedOperandValues(AshrOp, operands);
+            case CoreOp.BranchOp bo -> {
+                 writeTag(BranchOp);
+                 writeTarget(bo.branch());
+            }
+            case CoreOp.CastOp co -> {
+                writeTag(CastOp);
+                writeType(co.resultType());
+                writeType(co.type());
+                writeValue(operands.getFirst());
+            }
+            case CoreOp.ClosureCallOp _ -> {
+                writeTag(ClosureCallOp);
+                writeValuesList(operands);
+            }
+            case CoreOp.ClosureOp co -> {
+                writeTag(ClosureOp);
+                writeNestedBody(co.body());
+            }
+            case CoreOp.ComplOp _ ->
+                writeOpWithFixedOperandValues(ComplOp, operands);
+            case CoreOp.ConcatOp _ ->
+                writeOpWithFixedOperandValues(ConcatOp, operands);
+            case CoreOp.ConditionalBranchOp cbo -> {
+                writeOpWithFixedOperandValues(ConditionalBranchOp, operands);
+                writeTarget(cbo.trueBranch());
+                writeTarget(cbo.falseBranch());
+            }
+            case CoreOp.ConstantOp co -> {
+                writeTag(ConstantOp);
+                writeType(co.resultType());
+                writeUtf8EntryOrZero(co.value()); // @@@ constant value serialized as Utf8Entry
+            }
+            case CoreOp.ConvOp _ -> {
+                writeTag(ConvOp);
+                writeType(op.resultType());
+                writeValue(operands.getFirst());
+            }
+            case CoreOp.DivOp _ ->
+                writeOpWithFixedOperandValues(DivOp, operands);
+            case CoreOp.EqOp _ ->
+                writeOpWithFixedOperandValues(EqOp, operands);
+            case CoreOp.ExceptionRegionEnter ere -> {
+                writeTag(ExceptionRegionEnter);
+                writeTarget(ere.start());
+                writeCatchers(ere.catchBlocks());
+            }
+            case CoreOp.ExceptionRegionExit ere -> {
+                writeTag(ExceptionRegionExit);
+                writeTarget(ere.end());
+                writeCatchers(ere.catchBlocks());
+            }
+            case CoreOp.FieldAccessOp.FieldLoadOp flo -> {
+                writeTag(FieldLoadOp);
+                writeValue(flo.receiver());
+                writeType(flo.resultType());
+                FieldRef fd = flo.fieldDescriptor();
+                writeType(fd.refType());
+                writeUtf8EntryOrZero(fd.name());
+                writeType(fd.type());
+            }
+            case CoreOp.FieldAccessOp.FieldStoreOp fso -> {
+                writeTag(FieldStoreOp);
+                writeValue(fso.receiver());
+                FieldRef fd = fso.fieldDescriptor();
+                writeType(fd.refType());
+                writeUtf8EntryOrZero(fd.name());
+                writeType(fd.type());
+                writeValue(fso.value());
+            }
+            case CoreOp.FuncCallOp fco -> {
+                writeTag(FuncCallOp);
+                writeUtf8EntryOrZero(fco.funcName());
+                writeType(fco.resultType());
+                writeValuesList(operands);
+            }
+            case CoreOp.FuncOp fo -> {
+                writeTag(FuncOp);
+                writeUtf8EntryOrZero(fo.funcName());
+                writeNestedBody(fo.body());
+            }
+            case CoreOp.GeOp _ ->
+                writeOpWithFixedOperandValues(GeOp, operands);
+            case CoreOp.GtOp _ ->
+                writeOpWithFixedOperandValues(GtOp, operands);
+            case CoreOp.InstanceOfOp ioo -> {
+                writeTag(InstanceOfOp);
+                writeType(ioo.type());
+                writeValue(operands.getFirst());
+            }
+            case CoreOp.InvokeOp io -> {
+                writeTag(InvokeOp);
+                buf.writeU1(io.invokeKind().ordinal());
+                buf.writeU1(io.isVarArgs() ? 1 : 0);
+                writeType(io.resultType());
+                MethodRef mr = io.invokeDescriptor();
+                writeType(mr.refType());
+                writeUtf8EntryOrZero(mr.name());
+                writeFunctionType(mr.type());
+                writeValuesList(operands);
+            }
+            case CoreOp.LambdaOp lo -> {
+                writeTag(LambdaOp);
+                writeType(lo.functionalInterface());
+                writeNestedBody(lo.body());
+            }
+            case CoreOp.LeOp _ ->
+                writeOpWithFixedOperandValues(LeOp, operands);
+            case CoreOp.LshlOp _ ->
+                writeOpWithFixedOperandValues(LshlOp, operands);
+            case CoreOp.LshrOp _ ->
+                writeOpWithFixedOperandValues(LshrOp, operands);
+            case CoreOp.LtOp _ ->
+                writeOpWithFixedOperandValues(LtOp, operands);
+            case CoreOp.ModOp _ ->
+                writeOpWithFixedOperandValues(ModOp, operands);
+            case CoreOp.ModuleOp mo -> {
+                writeTag(ModuleOp);
+                buf.writeU2(mo.functionTable().size());
+                for (FuncOp fo : mo.functionTable().values()) {
+                     writeUtf8EntryOrZero(fo.funcName());
+                     writeNestedBody(fo.body());
+                }
+            }
+            case CoreOp.MonitorOp.MonitorEnterOp _ ->
+                writeOpWithFixedOperandValues(MonitorEnterOp, operands);
+            case CoreOp.MonitorOp.MonitorExitOp _ ->
+                writeOpWithFixedOperandValues(MonitorExitOp, operands);
+            case CoreOp.MulOp _ ->
+                writeOpWithFixedOperandValues(MulOp, operands);
+            case CoreOp.NegOp _ ->
+                writeOpWithFixedOperandValues(NegOp, operands);
+            case CoreOp.NeqOp _ ->
+                writeOpWithFixedOperandValues(NeqOp, operands);
+            case CoreOp.NewOp no -> {
+                writeTag(NewOp);
+                writeType(no.resultType());
+                writeFunctionType(no.constructorType());
+                writeValuesList(no.operands());
+            }
+            case CoreOp.NotOp _ ->
+                writeOpWithFixedOperandValues(NotOp, operands);
+            case CoreOp.OrOp _ ->
+                writeOpWithFixedOperandValues(OrOp, operands);
+            case CoreOp.QuotedOp qo -> {
+                writeTag(QuotedOp);
+                writeNestedBody(qo.bodies().getFirst());
+            }
+            case CoreOp.ReturnOp _ -> {
+                writeTag(ReturnOp);
+                if (operands.isEmpty()) {
+                    writeValue(null);
+                } else {
+                    writeValue(operands.getFirst());
+                }
+            }
+            case CoreOp.SubOp _ ->
+                writeOpWithFixedOperandValues(SubOp, operands);
+            case CoreOp.ThrowOp _ ->
+                writeOpWithFixedOperandValues(ThrowOp, operands);
+            case CoreOp.TupleLoadOp tlo -> {
+                writeOpWithFixedOperandValues(TupleLoadOp, operands);
+                buf.writeU2(tlo.index());
+            }
+            case CoreOp.TupleOp _ ->
+                writeOpWithFixedOperandValues(TupleOp, operands);
+            case CoreOp.TupleWithOp two -> {
+                writeOpWithFixedOperandValues(TupleWithOp, operands);
+                buf.writeU2(two.index());
+            }
+            case CoreOp.UnreachableOp _ ->
+                writeTag(UnreachableOp);
+            case CoreOp.VarAccessOp.VarLoadOp _ ->
+                writeOpWithFixedOperandValues(VarLoadOp, operands);
+            case CoreOp.VarAccessOp.VarStoreOp _ ->
+                writeOpWithFixedOperandValues(VarStoreOp, operands);
+            case CoreOp.VarOp vo -> {
+                writeTag(VarOp);
+                if (vo.isUninitialized()) {
+                    writeValue(null);
+                } else {
+                    writeValue(vo.initOperand());
+                }
+                writeUtf8EntryOrZero(vo.varName());
+                writeType(vo.varValueType());
+            }
+            case CoreOp.XorOp _ ->
+                writeOpWithFixedOperandValues(XorOp, operands);
+            case CoreOp.YieldOp yo -> {
+                writeTag(YieldOp);
+                writeValue(yo.yieldValue());
+            }
+            case ExtendedOp.JavaBlockOp _ -> {
+                writeTag(JavaBlockOp);
+            }
+            case ExtendedOp.JavaBreakOp _ -> {
+                writeTag(JavaBreakOp);
+            }
+            case ExtendedOp.JavaConditionalAndOp _ -> {
+                writeTag(JavaConditionalAndOp);
+            }
+            case ExtendedOp.JavaConditionalExpressionOp _ -> {
+                writeTag(JavaConditionalExpressionOp);
+            }
+            case ExtendedOp.JavaConditionalOrOp _ -> {
+                writeTag(JavaConditionalOrOp);
+            }
+            case ExtendedOp.JavaContinueOp _ -> {
+                writeTag(JavaContinueOp);
+            }
+            case ExtendedOp.JavaDoWhileOp _ -> {
+                writeTag(JavaDoWhileOp);
+            }
+            case ExtendedOp.JavaEnhancedForOp _ -> {
+                writeTag(JavaEnhancedForOp);
+            }
+            case ExtendedOp.JavaForOp _ -> {
+                writeTag(JavaForOp);
+            }
+            case ExtendedOp.JavaIfOp _ -> {
+                writeTag(JavaIfOp);
+            }
+            case ExtendedOp.JavaLabeledOp _ -> {
+                writeTag(JavaLabeledOp);
+            }
+            case ExtendedOp.JavaSwitchExpressionOp _ -> {
+                writeTag(JavaSwitchExpressionOp);
+            }
+            case ExtendedOp.JavaSwitchFallthroughOp _ -> {
+                writeTag(JavaSwitchFallthroughOp);
+            }
+            case ExtendedOp.JavaSwitchStatementOp _ -> {
+                writeTag(JavaSwitchStatementOp);
+            }
+            case ExtendedOp.PatternOps.MatchAllPatternOp _ -> {
+                writeTag(MatchAllPatternOp);
+            }
+            case ExtendedOp.PatternOps.MatchOp _ -> {
+                writeTag(MatchOp);
+            }
+            case ExtendedOp.PatternOps.RecordPatternOp _ -> {
+                writeTag(RecordPatternOp);
+            }
+            case ExtendedOp.PatternOps.TypePatternOp _ -> {
+                writeTag(TypePatternOp);
+            }
+            default -> {}
+        }
+        if (op.result() != null) {
+            valueMap.put(op.result(), valueMap.size());
+        }
    }
 
     private void writeAttributes(Map<String, Object> attributes) {
