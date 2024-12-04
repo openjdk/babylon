@@ -363,6 +363,9 @@ public class XMLNode {
         public PomXmlBuilder property(String name, String value) {
             return element(name, $ -> $.text(value));
         }
+        public PomXmlBuilder antproperty(String name, String value) {
+            return element("property", $ -> $.attr("name", name).attr("value", value));
+        }
 
         public PomXmlBuilder scope(String s) {
             return element("scope", $ -> $.text(s));
@@ -390,6 +393,10 @@ public class XMLNode {
 
         public PomXmlBuilder echo(String filename, String message) {
             return element("echo", $ -> $.attr("message", message).attr("file", filename));
+        }
+
+        public PomXmlBuilder mkdir(String dirName) {
+            return element("mkdir", $ -> $.attr("dir", dirName));
         }
 
         public PomXmlBuilder groupIdArtifactId(String groupId, String artifactId) {
@@ -446,6 +453,10 @@ public class XMLNode {
 
         public PomXmlBuilder executable(String s) {
             return element("executable", $ -> $.text(s));
+        }
+
+        public PomXmlBuilder workingDirectory(String s) {
+            return element("workingDirectory", $ -> $.text(s));
         }
     }
 
