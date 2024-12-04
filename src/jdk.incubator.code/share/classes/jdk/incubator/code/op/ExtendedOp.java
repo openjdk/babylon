@@ -1263,7 +1263,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             }
         }
 
-        public static final String NAME = "java.for";
+        static final String NAME = "java.for";
 
         final Body init;
         final Body cond;
@@ -1500,7 +1500,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             }
         }
 
-        public static final String NAME = "java.enhancedFor";
+        static final String NAME = "java.enhancedFor";
 
         final Body expression;
         final Body init;
@@ -1724,7 +1724,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             }
         }
 
-        public static final String NAME = "java.while";
+        private static final String NAME = "java.while";
 
         private final List<Body> bodies;
 
@@ -1870,7 +1870,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             }
         }
 
-        public static final String NAME = "java.do.while";
+        private static final String NAME = "java.do.while";
 
         private final List<Body> bodies;
 
@@ -2366,7 +2366,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             }
         }
 
-        public static final String NAME = "java.try";
+        static final String NAME = "java.try";
 
         final Body resources;
         final Body body;
