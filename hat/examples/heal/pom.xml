@@ -55,7 +55,7 @@ You should have received a copy of the GNU General Public License version
                         </goals>
                         <configuration>
                             <target>
-                                <copy file="target/hat-example-heal-1.0.jar" toDir="${hat.target}"/>
+                                <copy file="target/hat-example-heal-1.0.jar" toDir="${hat.build}"/>
                             </target>
                         </configuration>
                     </execution>

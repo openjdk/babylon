@@ -62,9 +62,9 @@ You should have received a copy of the GNU General Public License version
                         <configuration>
                             <executable>cmake</executable>
                             <arguments>
-                                <argument>-DHAT_TARGET=${hat.target}</argument>
+                                <argument>-DHAT_TARGET=${hat.build}</argument>
                                 <argument>-B</argument>
-                                <argument>${hat.target}/cmake-build-debug</argument>
+                                <argument>${hat.build}/cmake-build-debug</argument>
                             </arguments>
                         </configuration>
                     </execution>
@@ -78,7 +78,7 @@ You should have received a copy of the GNU General Public License version
                             <executable>cmake</executable>
                             <arguments>
                                 <argument>--build</argument>
-                                <argument>${hat.target}/cmake-build-debug</argument>
+                                <argument>${hat.build}/cmake-build-debug</argument>
                             </arguments>
                         </configuration>
                     </execution>

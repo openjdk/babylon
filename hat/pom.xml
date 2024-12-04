@@ -30,8 +30,8 @@ You should have received a copy of the GNU General Public License version
     <version>1.0</version>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <hat.root>${env.PWD}/build</hat.root>
-        <hat.target>${hat.root}/build</hat.target>
+        <hat.root>${env.PWD}</hat.root>
+        <hat.build>${hat.root}/build</hat.build>
         <hat.stage>${hat.root}/stage</hat.stage>
         <hat.stage.repo>${hat.stage}/repo</hat.stage.repo>
         <hat.stage.jextract>${hat.stage}/jextract</hat.stage.jextract>

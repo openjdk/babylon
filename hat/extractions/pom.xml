@@ -37,4 +37,28 @@ You should have received a copy of the GNU General Public License version
         <module>opencl</module>
         <module>opengl</module>
     </modules>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>1.8</version>
+                <executions>
+                    <execution>
+                        <id>createDir</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <mkdir dir="${hat.stage.jextract}"/>
+                                <echo file="${hat.stage.jextract}/compile_flags.txt" message="-F${mac.app.frameworks}"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>
