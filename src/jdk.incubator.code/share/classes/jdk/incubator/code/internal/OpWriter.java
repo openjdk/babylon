@@ -41,14 +41,13 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.op.CoreOp.FuncOp;
 import jdk.incubator.code.op.ExtendedOp;
-import jdk.incubator.code.op.ExternalizableOp;
 import jdk.incubator.code.type.FieldRef;
 import jdk.incubator.code.type.FunctionType;
 import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.type.MethodRef;
 import jdk.incubator.code.type.RecordTypeRef;
 
-import static jdk.incubator.code.internal.CodeModelAttribute.OpTag.*;
+import static jdk.incubator.code.internal.CodeModelAttribute.Tag.*;
 
 final class OpWriter {
 
@@ -373,28 +372,6 @@ final class OpWriter {
         }
    }
 
-    private void writeAttributes(Map<String, Object> attributes) {
-        // number of attributes
-        buf.writeU2(attributes.size());
-        for (var attre : attributes.entrySet()) {
-            // attribute name
-            buf.writeIndexOrZero(attre.getKey() == null ? null : buf.constantPool().utf8Entry(attre.getKey()));
-            // attribute value
-            if (ExternalizableOp.ATTRIBUTE_LOCATION.equals(attre.getKey())) {
-                Location loc = switch (attre.getValue()) {
-                    case Location l -> l;
-                    case String s -> Location.fromString(s);
-                    default -> throw new IllegalArgumentException(attre.toString());
-                };
-                writeUtf8EntryOrZero(loc.sourceRef());
-                buf.writeU2(loc.line());
-                buf.writeU2(loc.column());
-            } else {
-                writeUtf8EntryOrZero(attre.getValue());
-            }
-        }
-    }
-
     private void writeUtf8EntryOrZero(Object o) {
         buf.writeIndexOrZero(o == null ? null : cp.utf8Entry(o.toString()));
     }
@@ -458,17 +435,6 @@ final class OpWriter {
         }
     }
 
-    private void writeSuccessors(List<Block.Reference> successors) {
-        // number of successors
-        buf.writeU2(successors.size());
-        for (Block.Reference succ : successors) {
-            // block index
-            buf.writeU2(succ.targetBlock().index());
-            // arguments
-            writeValuesList(succ.arguments());
-        }
-    }
-
     private PoolEntry toEntry(FunctionType ftype) {
         if (ftype.returnType() instanceof JavaType jret
                 && jret.erasure().equals(jret)
@@ -489,21 +455,21 @@ final class OpWriter {
                 : cp.stringEntry(type.externalize().toString());
     }
 
-    private void writeOpWithFixedOperandValues(CodeModelAttribute.OpTag tag, List<Value> operands) {
+    private void writeOpWithFixedOperandValues(CodeModelAttribute.Tag tag, List<Value> operands) {
         writeTag(tag);
         for (Value v : operands) {
             buf.writeU2(valueMap.get(v));
         }
     }
 
-    private void writeOpWithFixedNestedBodies(CodeModelAttribute.OpTag tag, Op op) {
+    private void writeOpWithFixedNestedBodies(CodeModelAttribute.Tag tag, Op op) {
         writeTag(tag);
         for (var body : op.bodies()) {
             writeNestedBody(body);
         }
     }
 
-    private void writeTag(CodeModelAttribute.OpTag tag) {
+    private void writeTag(CodeModelAttribute.Tag tag) {
         buf.writeU1(tag.ordinal());
     }
 
@@ -517,13 +483,6 @@ final class OpWriter {
 
     private void writeFunctionType(FunctionType ftype) {
         buf.writeIndex(toEntry(ftype));
-    }
-
-    private void writeTypesList(List<TypeElement> types) {
-        buf.writeU2(types.size());
-        for (TypeElement type : types) {
-            writeType(type);
-        }
     }
 
     private void writeTarget(Block.Reference target) {

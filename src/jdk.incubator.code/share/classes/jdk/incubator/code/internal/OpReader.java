@@ -65,11 +65,11 @@ final class OpReader {
     Op readOp(Body.Builder ancestorBody, Block.Builder[] ancestorBodyBlocks) {
         int tag = readU1();
         Location location = Location.NO_LOCATION;
-        if (tag == CodeModelAttribute.OpTag.LocationAttr.ordinal()) { // tag for location
+        if (tag == CodeModelAttribute.Tag.LocationAttr.ordinal()) { // tag for location
             location = new Location(readUtf8OrNull(), readU2(), readU2());
             tag = readU1();
         }
-        Op op = switch (CodeModelAttribute.OpTag.values()[tag]) {
+        Op op = switch (CodeModelAttribute.Tag.values()[tag]) {
             case AddOp ->
                 CoreOp.add(readValue(), readValue());
             case AndOp ->

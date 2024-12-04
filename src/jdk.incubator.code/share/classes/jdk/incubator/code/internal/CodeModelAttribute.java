@@ -31,155 +31,25 @@ import java.lang.classfile.BufWriter;
 import java.lang.classfile.ClassReader;
 import java.lang.classfile.CustomAttribute;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.op.ExtendedOp;
 
-/**
- * <pre>
- * CodeModel_attribute {
- *     u2 attribute_name_index;
- *     u4 attribute_length;
- *     op_info;
- * }
- *
- * op_info {
- *     u2 op_name_index;
- *     u2 op_operands_length;
- *     u2 op_operands[op_operands_length];
- *     u2 op_result_type_index;
- *     u2 op_attributes_length;
- *     op_attribute_info op_attributes_table[op_attributes_length];
- *     u2 nested_bodies_length;
- *     {   u2 body_func_type_index;
- *         block_content_info; // entry block
- *         u2 blocks_length;
- *         {   u2 block_parameters_length;
- *             u2 block_parameter_type_index[block_parameters_length];
- *             block_content_info;
- *         } blocks_table[blocks_length];
- *     } nested_bodies_table[nested_bodies_length];
- * }
- *
- * union op_attribute_info {
- *     value_attribute_info;
- *     location_attribute_info;
- * }
- *
- * value_attribute_info {
- *     u2 attribute_name_index;
- *     u2 attribute_value_index;
- * }
- *
- * location_attribute_info {
- *     u2 location_attribute_name_index;
- *     u2 source_index;
- *     u2 line_number;
- *     u2 column_number;
- * }
- *
- * block_content_info {
- *     u2 ops_length;
- *     op_info ops_table[ops_length];
- *     terminal_op_info;
- * } blocks_table[blocks_length];
- *
- * terminal_op_info {
- *     op_info;
- *     u2 successors_length;
- *     {   u2 successor_block_index;
- *         u2 block_arguments_length;
- *         u2 block_arguments[block_arguments_length];
- *     } successors_table[successors_length]
- * }
- */
 public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
 
-    public enum OpTag {
-        LocationAttr(null),
+    public enum Tag {
+        LocationAttr,
 
-        AddOp(CoreOp.AddOp.NAME),
-        AndOp(CoreOp.AndOp.NAME),
-        ArrayLoadOp(CoreOp.ArrayAccessOp.ArrayLoadOp.NAME),
-        ArrayStoreOp(CoreOp.ArrayAccessOp.ArrayStoreOp.NAME),
-        ArrayLengthOp(CoreOp.ArrayLengthOp.NAME),
-        AshrOp(CoreOp.AshrOp.NAME),
-        AssertOp(CoreOp.AssertOp.NAME),
-        BranchOp(CoreOp.BranchOp.NAME),
-        CastOp(CoreOp.CastOp.NAME),
-        ClosureCallOp(CoreOp.ClosureCallOp.NAME),
-        ClosureOp(CoreOp.ClosureOp.NAME),
-        ComplOp(CoreOp.ComplOp.NAME),
-        ConcatOp(CoreOp.ConcatOp.NAME),
-        ConditionalBranchOp(CoreOp.ConditionalBranchOp.NAME),
-        ConstantOp(CoreOp.ConstantOp.NAME),
-        ConvOp(CoreOp.ConvOp.NAME),
-        DivOp(CoreOp.DivOp.NAME),
-        EqOp(CoreOp.EqOp.NAME),
-        ExceptionRegionEnter(CoreOp.ExceptionRegionEnter.NAME),
-        ExceptionRegionExit(CoreOp.ExceptionRegionExit.NAME),
-        FieldLoadOp(CoreOp.FieldAccessOp.FieldLoadOp.NAME),
-        FieldStoreOp(CoreOp.FieldAccessOp.FieldStoreOp.NAME),
-        FuncCallOp(CoreOp.FuncCallOp.NAME),
-        FuncOp(CoreOp.FuncOp.NAME),
-        GeOp(CoreOp.GeOp.NAME),
-        GtOp(CoreOp.GtOp.NAME),
-        InstanceOfOp(CoreOp.InstanceOfOp.NAME),
-        InvokeOp(CoreOp.InvokeOp.NAME),
-        LambdaOp(CoreOp.LambdaOp.NAME),
-        LeOp(CoreOp.LeOp.NAME),
-        LshlOp(CoreOp.LshlOp.NAME),
-        LshrOp(CoreOp.LshrOp.NAME),
-        LtOp(CoreOp.LtOp.NAME),
-        ModOp(CoreOp.ModOp.NAME),
-        ModuleOp(CoreOp.ModuleOp.NAME),
-        MonitorEnterOp(CoreOp.MonitorOp.MonitorEnterOp.NAME),
-        MonitorExitOp(CoreOp.MonitorOp.MonitorExitOp.NAME),
-        MulOp(CoreOp.MulOp.NAME),
-        NegOp(CoreOp.NegOp.NAME),
-        NeqOp(CoreOp.NeqOp.NAME),
-        NewOp(CoreOp.NewOp.NAME),
-        NotOp(CoreOp.NotOp.NAME),
-        OrOp(CoreOp.OrOp.NAME),
-        QuotedOp(CoreOp.QuotedOp.NAME),
-        ReturnOp(CoreOp.ReturnOp.NAME),
-        SubOp(CoreOp.SubOp.NAME),
-        ThrowOp(CoreOp.ThrowOp.NAME),
-        TupleLoadOp(CoreOp.TupleLoadOp.NAME),
-        TupleOp(CoreOp.TupleOp.NAME),
-        TupleWithOp(CoreOp.TupleWithOp.NAME),
-        UnreachableOp(CoreOp.UnreachableOp.NAME),
-        VarLoadOp(CoreOp.VarAccessOp.VarLoadOp.NAME),
-        VarStoreOp(CoreOp.VarAccessOp.VarStoreOp.NAME),
-        VarOp(CoreOp.VarOp.NAME),
-        XorOp(CoreOp.XorOp.NAME),
-        YieldOp(CoreOp.YieldOp.NAME),
-        JavaBlockOp(ExtendedOp.JavaBlockOp.NAME),
-        JavaBreakOp(ExtendedOp.JavaBreakOp.NAME),
-        JavaConditionalAndOp(ExtendedOp.JavaConditionalAndOp.NAME),
-        JavaConditionalExpressionOp(ExtendedOp.JavaConditionalExpressionOp.NAME),
-        JavaConditionalOrOp(ExtendedOp.JavaConditionalOrOp.NAME),
-        JavaContinueOp(ExtendedOp.JavaContinueOp.NAME),
-        JavaDoWhileOp(ExtendedOp.JavaDoWhileOp.NAME),
-        JavaEnhancedForOp(ExtendedOp.JavaEnhancedForOp.NAME),
-        JavaForOp(ExtendedOp.JavaForOp.NAME),
-        JavaIfOp(ExtendedOp.JavaIfOp.NAME),
-        JavaLabeledOp(ExtendedOp.JavaLabeledOp.NAME),
-        JavaSwitchExpressionOp(ExtendedOp.JavaSwitchExpressionOp.NAME),
-        JavaSwitchFallthroughOp(ExtendedOp.JavaSwitchFallthroughOp.NAME),
-        JavaSwitchStatementOp(ExtendedOp.JavaSwitchStatementOp.NAME),
-        JavaSynchronizedOp(ExtendedOp.JavaSynchronizedOp.NAME),
-        JavaTryOp(ExtendedOp.JavaTryOp.NAME),
-        JavaYieldOp(ExtendedOp.JavaYieldOp.NAME),
-        JavaWhileOp(ExtendedOp.JavaWhileOp.NAME),
-        MatchAllPatternOp(ExtendedOp.PatternOps.MatchAllPatternOp.NAME),
-        MatchOp(ExtendedOp.PatternOps.MatchOp.NAME),
-        RecordPatternOp(ExtendedOp.PatternOps.RecordPatternOp.NAME),
-        TypePatternOp(ExtendedOp.PatternOps.TypePatternOp.NAME);
+        // CoreOp
+        AddOp, AndOp, ArrayLoadOp, ArrayStoreOp, ArrayLengthOp, AshrOp, AssertOp, BranchOp, CastOp, ClosureCallOp,
+        ClosureOp, ComplOp, ConcatOp, ConditionalBranchOp, ConstantOp, ConvOp, DivOp, EqOp, ExceptionRegionEnter,
+        ExceptionRegionExit, FieldLoadOp, FieldStoreOp, FuncCallOp, FuncOp, GeOp, GtOp, InstanceOfOp, InvokeOp,
+        LambdaOp, LeOp, LshlOp, LshrOp, LtOp, ModOp, ModuleOp, MonitorEnterOp, MonitorExitOp, MulOp, NegOp, NeqOp,
+        NewOp, NotOp, OrOp, QuotedOp, ReturnOp, SubOp, ThrowOp, TupleLoadOp, TupleOp, TupleWithOp, UnreachableOp,
+        VarLoadOp, VarStoreOp, VarOp, XorOp, YieldOp,
 
-        final String opName;
-        OpTag(String opName) {
-            this.opName = opName;
-        }
+        // ExtendedOp
+        JavaBlockOp, JavaBreakOp, JavaConditionalAndOp, JavaConditionalExpressionOp, JavaConditionalOrOp,
+        JavaContinueOp, JavaDoWhileOp, JavaEnhancedForOp, JavaForOp, JavaIfOp, JavaLabeledOp, JavaSwitchExpressionOp,
+        JavaSwitchFallthroughOp, JavaSwitchStatementOp, JavaSynchronizedOp, JavaTryOp, JavaYieldOp, JavaWhileOp,
+        MatchAllPatternOp, MatchOp, RecordPatternOp, TypePatternOp;
     }
 
     public static final String NAME = "CodeModel";
