@@ -34,7 +34,7 @@ import jdk.incubator.code.Op;
 
 public class CodeModelAttribute extends CustomAttribute<CodeModelAttribute>{
 
-    public enum Tag {
+    enum Tag {
         LocationAttr,
 
         // CoreOp
