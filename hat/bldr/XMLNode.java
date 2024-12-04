@@ -40,8 +40,7 @@ public class XMLNode {
     Map<String, String> attrMap = new HashMap<>();
 
     public static class AbstractXMLBuilder<T extends AbstractXMLBuilder<T>> {
-        public org.w3c.dom.Element element;
-
+        final public org.w3c.dom.Element element;
         @SuppressWarnings("unchecked")
         public T self() {
             return (T) this;
@@ -175,35 +174,31 @@ public class XMLNode {
                     "plugin", $ -> $.ref(groupId, artifactId, version).then(pomXmlBuilderConsumer));
         }
 
-        public PomXmlBuilder antPluginExecutions(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+        public PomXmlBuilder antPlugin(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
             return plugin(
                     "org.apache.maven.plugins",
                     "maven-antrun-plugin",
                     "1.8",
-                    plugin -> plugin.executions(pomXmlBuilderConsumer));
+                    pomXmlBuilderConsumer);
         }
 
-        public PomXmlBuilder compilerPluginConfiguration(
+        public PomXmlBuilder compilerPlugin(
                 Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
             return plugin(
                     "org.apache.maven.plugins",
                     "maven-compiler-plugin",
-                    "3.11.0",
-                    plugin -> plugin.configuration(pomXmlBuilderConsumer));
+                    "3.11.0",pomXmlBuilderConsumer
+                  );
         }
 
         public PomXmlBuilder execPlugin(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
             return plugin("org.codehaus.mojo", "exec-maven-plugin", "3.1.0", pomXmlBuilderConsumer);
         }
 
-        public PomXmlBuilder execPluginExecutions(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
-            return execPlugin(plugin -> plugin.executions(pomXmlBuilderConsumer));
-        }
 
         public PomXmlBuilder plugin(
                 String groupId, String artifactId, Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
-            return element(
-                    "plugin", $ -> $.groupIdArtifactId(groupId, artifactId).then(pomXmlBuilderConsumer));
+            return element("plugin", $ -> $.groupIdArtifactId(groupId, artifactId).then(pomXmlBuilderConsumer));
         }
 
         public PomXmlBuilder plugin(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
@@ -252,12 +247,7 @@ public class XMLNode {
 
         public PomXmlBuilder execIdPhaseConf(
                 String id, String phase, Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
-            return execution(
-                    ex ->
-                            ex.id(id)
-                                    .phase(phase)
-                                    .goals(gs -> gs.goal("exec"))
-                                    .configuration(pomXmlBuilderConsumer));
+            return execution(execution -> execution.id(id).phase(phase).goals(gs -> gs.goal("exec")).configuration(pomXmlBuilderConsumer));
         }
 
         public PomXmlBuilder exec(
@@ -294,9 +284,7 @@ public class XMLNode {
 
         public PomXmlBuilder ant(
                 String id, String phase, String goal, Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
-            return execution(
-                    execution ->
-                            execution
+            return execution(execution -> execution
                                     .id(id)
                                     .phase(phase)
                                     .goals(gs -> gs.goal(goal))
@@ -363,6 +351,9 @@ public class XMLNode {
         public PomXmlBuilder property(String name, String value) {
             return element(name, $ -> $.text(value));
         }
+        public PomXmlBuilder antproperty(String name, String value) {
+            return element("property", $ -> $.attr("name", name).attr("value", value));
+        }
 
         public PomXmlBuilder scope(String s) {
             return element("scope", $ -> $.text(s));
@@ -390,6 +381,10 @@ public class XMLNode {
 
         public PomXmlBuilder echo(String filename, String message) {
             return element("echo", $ -> $.attr("message", message).attr("file", filename));
+        }
+
+        public PomXmlBuilder mkdir(String dirName) {
+            return element("mkdir", $ -> $.attr("dir", dirName));
         }
 
         public PomXmlBuilder groupIdArtifactId(String groupId, String artifactId) {
@@ -447,9 +442,14 @@ public class XMLNode {
         public PomXmlBuilder executable(String s) {
             return element("executable", $ -> $.text(s));
         }
+
+        public PomXmlBuilder workingDirectory(String s) {
+            return element("workingDirectory", $ -> $.text(s));
+        }
     }
 
     public static class ImlBuilder extends AbstractXMLBuilder<ImlBuilder> {
+
         ImlBuilder(Element element) {
             super(element);
         }
@@ -677,7 +677,7 @@ public class XMLNode {
     }
 
     public static class XMLBuilder extends AbstractXMLBuilder<XMLBuilder> {
-        XMLBuilder(Element element) {
+       XMLBuilder(Element element) {
             super(element);
         }
 

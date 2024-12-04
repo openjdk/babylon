@@ -57,7 +57,7 @@ questions.
                         <phase>install</phase>
                         <configuration>
                             <target>
-                                <copy file="target/hat-example-experiments-1.0.jar" todir="${hat.target}"/>
+                                <copy file="target/hat-example-experiments-1.0.jar" todir="${hat.build}"/>
                             </target>
                         </configuration>
                         <goals>

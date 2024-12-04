@@ -61,7 +61,7 @@ questions.
                         </goals>
                         <configuration>
                             <target>
-                                <copy file="target/hat-backend-hip-1.0.jar" toDir="${hat.target}"/>
+                                <copy file="target/hat-backend-hip-1.0.jar" toDir="${hat.build}"/>
                             </target>
                         </configuration>
                     </execution>

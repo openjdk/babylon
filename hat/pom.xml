@@ -30,10 +30,17 @@ You should have received a copy of the GNU General Public License version
     <version>1.0</version>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <hat.target>${env.PWD}/build</hat.target>
+        <hat.root>${env.PWD}</hat.root>
+        <hat.build>${hat.root}/build</hat.build>
+        <hat.stage>${hat.root}/stage</hat.stage>
+        <hat.stage.repo>${hat.stage}/repo</hat.stage.repo>
+        <hat.stage.jextract>${hat.stage}/jextract</hat.stage.jextract>
+        <mac.app.frameworks>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks</mac.app.frameworks>
+        <mac.lib.frameworks>/System/Library/Frameworks</mac.lib.frameworks>
     </properties>
     <modules>
         <module>hat</module>
+        <module>extractions</module>
         <module>backends</module>
         <module>examples</module>
     </modules>

@@ -441,7 +441,7 @@ public class Bldr {
 
 
 
-        public XMLFile createPom(
+        public XMLFile pom(
                 String comment, Consumer<XMLNode.PomXmlBuilder> pomXmlBuilderConsumer) {
             XMLFile xmlFile = xmlFile("pom.xml");
             XMLNode.createPom(comment, pomXmlBuilderConsumer).write(xmlFile);
