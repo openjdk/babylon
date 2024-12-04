@@ -1724,7 +1724,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             }
         }
 
-        private static final String NAME = "java.while";
+        public static final String NAME = "java.while";
 
         private final List<Body> bodies;
 
@@ -2366,7 +2366,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             }
         }
 
-        static final String NAME = "java.try";
+        public static final String NAME = "java.try";
 
         final Body resources;
         final Body body;

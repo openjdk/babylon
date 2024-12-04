@@ -32,9 +32,7 @@ import java.lang.classfile.constantpool.Utf8Entry;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
 import jdk.incubator.code.Location;
@@ -43,12 +41,13 @@ import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.op.CoreOp.FuncOp;
-import jdk.incubator.code.op.ExternalizableOp;
+import jdk.incubator.code.op.ExtendedOp;
 import jdk.incubator.code.type.CoreTypeFactory;
 import jdk.incubator.code.type.FieldRef;
 import jdk.incubator.code.type.FunctionType;
 import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.type.MethodRef;
+import jdk.incubator.code.type.RecordTypeRef;
 
 final class OpReader {
 
@@ -224,65 +223,62 @@ final class OpReader {
                     yield CoreOp._yield(v);
                 }
             }
-//            case JavaBlockOp -> {
-//            }
-//            case JavaBreakOp -> {
-//            }
-//            case JavaConditionalAndOp -> {
-//            }
-//            case JavaConditionalExpressionOp -> {
-//            }
-//            case JavaConditionalOrOp -> {
-//            }
-//            case JavaContinueOp -> {
-//            }
-//            case JavaDoWhileOp -> {
-//            }
-//            case JavaEnhancedForOp -> {
-//            }
-//            case JavaForOp -> {
-//            }
-//            case JavaIfOp -> {
-//            }
-//            case JavaLabeledOp -> {
-//            }
-//            case JavaSwitchExpressionOp -> {
-//            }
-//            case JavaSwitchFallthroughOp -> {
-//            }
-//            case JavaSwitchStatementOp -> {
-//            }
-//            case MatchAllPatternOp -> {
-//            }
-//            case MatchOp -> {
-//            }
-//            case RecordPatternOp -> {
-//            }
-//            case TypePatternOp -> {
-//            }
-            default -> null;
+            case JavaBlockOp ->
+                ExtendedOp.block(readNestedBody(ancestorBody));
+            case JavaBreakOp ->
+                ExtendedOp._break(readValue());
+            case JavaConditionalAndOp ->
+                ExtendedOp.conditionalAnd(readNestedBodies(ancestorBody));
+            case JavaConditionalExpressionOp ->
+                ExtendedOp.conditionalExpression(readType(), readNestedBodies(ancestorBody));
+            case JavaConditionalOrOp ->
+                ExtendedOp.conditionalOr(readNestedBodies(ancestorBody));
+            case JavaContinueOp ->
+                ExtendedOp._continue(readValue());
+            case JavaDoWhileOp ->
+                ExtendedOp.doWhile(readNestedBody(ancestorBody), readNestedBody(ancestorBody));
+            case JavaEnhancedForOp ->
+                ExtendedOp.enhancedFor(readNestedBody(ancestorBody), readNestedBody(ancestorBody), readNestedBody(ancestorBody));
+            case JavaForOp ->
+                ExtendedOp._for(readNestedBody(ancestorBody), readNestedBody(ancestorBody), readNestedBody(ancestorBody), readNestedBody(ancestorBody));
+            case JavaIfOp ->
+                ExtendedOp._if(readNestedBodies(ancestorBody));
+            case JavaLabeledOp ->
+                ExtendedOp.labeled(readNestedBody(ancestorBody));
+            case JavaSwitchExpressionOp ->
+                ExtendedOp.switchExpression(readType(), readValue(), readNestedBodies(ancestorBody));
+            case JavaSwitchFallthroughOp ->
+                ExtendedOp.switchFallthroughOp();
+            case JavaSwitchStatementOp ->
+                ExtendedOp.switchStatement(readValue(), readNestedBodies(ancestorBody));
+            case JavaSynchronizedOp ->
+                ExtendedOp.synchronized_(readNestedBody(ancestorBody), readNestedBody(ancestorBody));
+            case JavaTryOp ->
+                ExtendedOp._try(readNestedBody(ancestorBody), readNestedBody(ancestorBody), readNestedBodies(ancestorBody), readNestedBody(ancestorBody));
+            case JavaYieldOp -> {
+                Value v = readValue();
+                if (v == null) {
+                    yield ExtendedOp.java_yield();
+                } else {
+                    yield ExtendedOp.java_yield(v);
+                }
+            }
+            case JavaWhileOp ->
+                ExtendedOp._while(readNestedBody(ancestorBody), readNestedBody(ancestorBody));
+            case MatchAllPatternOp ->
+                ExtendedOp.matchAllPattern();
+            case MatchOp ->
+                ExtendedOp.match(readValue(), readNestedBody(ancestorBody), readNestedBody(ancestorBody));
+            case RecordPatternOp ->
+                ExtendedOp.recordPattern(RecordTypeRef.recordType(readType(), readRecordComponents()), readValues());
+            case TypePatternOp ->
+                ExtendedOp.typePattern(readType(), readUtf8());
+            default -> throw new UnsupportedOperationException("tag: " + tag);
         };
         if (location != Location.NO_LOCATION) {
             op.setLocation(location);
         }
         return op;
-    }
-
-    private Map<String, Object> readAttributes()  {
-        // number of attributes
-        int size = readU2();
-        var attrs = new LinkedHashMap<String, Object>(size);
-        for (int i = 0; i < size; i++) {
-            // attribute name
-            String name = readUtf8OrNull();
-            // attribute value
-            if (ExternalizableOp.ATTRIBUTE_LOCATION.equals(name)) {
-                attrs.put(name, new Location(readUtf8OrNull(), readU2(), readU2()));
-            } else {
-                attrs.put(name, readUtf8OrNull());
-            }
-        }
-        return attrs;
     }
 
     private List<Body.Builder> readNestedBodies(Body.Builder ancestorBody) {
@@ -295,7 +291,9 @@ final class OpReader {
     }
 
     private Body.Builder readNestedBody(Body.Builder ancestorBody) {
-        var bb = Body.Builder.of(ancestorBody, toFuncType(readEntryOrNull()));
+        var type = readEntryOrNull();
+        if (type == null) return null;
+        var bb = Body.Builder.of(ancestorBody, toFuncType(type));
         readBlocks(bb);
         return bb;
     }
@@ -337,16 +335,6 @@ final class OpReader {
                 allValues.add(op.result());
             }
         }
-    }
-
-    private List<Block.Reference> readSuccessors(Block.Builder[] ancestorBodyBlocks) {
-        // number of successors
-        var refs = new Block.Reference[readU2()];
-        for (int i = 0; i < refs.length; i++) {
-            // block from index + arguments
-            refs[i] = ancestorBodyBlocks[readU2()].successor(readValues());
-        }
-        return List.of(refs);
     }
 
     private static FunctionType toFuncType(PoolEntry entry) {
@@ -417,10 +405,10 @@ final class OpReader {
         return allValues.get(readU2());
     }
 
-    private TypeElement[] readTypes() {
-        var types = new TypeElement[readU2()];
+    private RecordTypeRef.ComponentRef[] readRecordComponents() {
+        var types = new RecordTypeRef.ComponentRef[readU2()];
         for (int i = 0; i < types.length; i++) {
-            types[i] = readType();
+            types[i] = new RecordTypeRef.ComponentRef(readType(), readUtf8());
         }
         return types;
     }

@@ -46,6 +46,7 @@ import jdk.incubator.code.type.FieldRef;
 import jdk.incubator.code.type.FunctionType;
 import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.type.MethodRef;
+import jdk.incubator.code.type.RecordTypeRef;
 
 import static jdk.incubator.code.internal.CodeModelAttribute.OpTag.*;
 
@@ -277,61 +278,95 @@ final class OpWriter {
                 writeTag(YieldOp);
                 writeValue(yo.yieldValue());
             }
-            case ExtendedOp.JavaBlockOp _ -> {
+            case ExtendedOp.JavaBlockOp jbo -> {
                 writeTag(JavaBlockOp);
+                writeNestedBody(jbo.body());
             }
             case ExtendedOp.JavaBreakOp _ -> {
                 writeTag(JavaBreakOp);
+                writeValue(operands.isEmpty() ? null : operands.getFirst());
             }
             case ExtendedOp.JavaConditionalAndOp _ -> {
                 writeTag(JavaConditionalAndOp);
+                writeNestedBodies(op.bodies());
             }
             case ExtendedOp.JavaConditionalExpressionOp _ -> {
                 writeTag(JavaConditionalExpressionOp);
+                writeType(op.resultType());
+                writeNestedBodies(op.bodies());
             }
             case ExtendedOp.JavaConditionalOrOp _ -> {
                 writeTag(JavaConditionalOrOp);
+                writeNestedBodies(op.bodies());
             }
             case ExtendedOp.JavaContinueOp _ -> {
                 writeTag(JavaContinueOp);
+                writeValue(operands.isEmpty() ? null : operands.getFirst());
             }
-            case ExtendedOp.JavaDoWhileOp _ -> {
-                writeTag(JavaDoWhileOp);
-            }
-            case ExtendedOp.JavaEnhancedForOp _ -> {
-                writeTag(JavaEnhancedForOp);
-            }
-            case ExtendedOp.JavaForOp _ -> {
-                writeTag(JavaForOp);
-            }
+            case ExtendedOp.JavaDoWhileOp _ ->
+                writeOpWithFixedNestedBodies(JavaDoWhileOp, op);
+            case ExtendedOp.JavaEnhancedForOp _ ->
+                writeOpWithFixedNestedBodies(JavaEnhancedForOp, op);
+            case ExtendedOp.JavaForOp _ ->
+                writeOpWithFixedNestedBodies(JavaForOp, op);
             case ExtendedOp.JavaIfOp _ -> {
                 writeTag(JavaIfOp);
+                writeNestedBodies(op.bodies());
             }
-            case ExtendedOp.JavaLabeledOp _ -> {
-                writeTag(JavaLabeledOp);
-            }
+            case ExtendedOp.JavaLabeledOp _ ->
+                writeOpWithFixedNestedBodies(JavaLabeledOp, op);
             case ExtendedOp.JavaSwitchExpressionOp _ -> {
                 writeTag(JavaSwitchExpressionOp);
+                writeType(op.resultType());
+                writeValue(operands.getFirst());
+                writeNestedBodies(op.bodies());
             }
-            case ExtendedOp.JavaSwitchFallthroughOp _ -> {
+            case ExtendedOp.JavaSwitchFallthroughOp _ ->
                 writeTag(JavaSwitchFallthroughOp);
-            }
             case ExtendedOp.JavaSwitchStatementOp _ -> {
-                writeTag(JavaSwitchStatementOp);
+                writeOpWithFixedOperandValues(JavaSwitchStatementOp, operands);
+                writeNestedBodies(op.bodies());
             }
-            case ExtendedOp.PatternOps.MatchAllPatternOp _ -> {
+            case ExtendedOp.JavaSynchronizedOp _ ->
+                writeOpWithFixedNestedBodies(JavaSynchronizedOp, op);
+            case ExtendedOp.JavaTryOp jto -> {
+                writeTag(JavaTryOp);
+                writeNestedBody(jto.resources());
+                writeNestedBody(jto.body());
+                writeNestedBodies(jto.catchers());
+                writeNestedBody(jto.finalizer());
+            }
+            case ExtendedOp.JavaYieldOp _ -> {
+                writeTag(JavaYieldOp);
+                writeValue(operands.isEmpty() ? null : operands.getFirst());
+            }
+            case ExtendedOp.JavaWhileOp _ ->
+                writeOpWithFixedNestedBodies(JavaWhileOp, op);
+            case ExtendedOp.PatternOps.MatchAllPatternOp _ ->
                 writeTag(MatchAllPatternOp);
+            case ExtendedOp.PatternOps.MatchOp mo -> {
+                writeOpWithFixedOperandValues(MatchOp, operands);
+                writeNestedBody(mo.pattern());
+                writeNestedBody(mo.match());
             }
-            case ExtendedOp.PatternOps.MatchOp _ -> {
-                writeTag(MatchOp);
-            }
-            case ExtendedOp.PatternOps.RecordPatternOp _ -> {
+            case ExtendedOp.PatternOps.RecordPatternOp rpo -> {
                 writeTag(RecordPatternOp);
+                RecordTypeRef rd = rpo.recordDescriptor();
+                writeType(rd.recordType());
+                buf.writeU2(rd.components().size());
+                for (RecordTypeRef.ComponentRef rc : rd.components()) {
+                    writeType(rc.type());
+                    writeUtf8EntryOrZero(rc.name());
+                }
+                 writeUtf8EntryOrZero(rpo.recordDescriptor().toString());
             }
-            case ExtendedOp.PatternOps.TypePatternOp _ -> {
+            case ExtendedOp.PatternOps.TypePatternOp tpo -> {
                 writeTag(TypePatternOp);
+                writeType(tpo.targetType());
+                writeUtf8EntryOrZero(tpo.bindingName());
             }
-            default -> {}
+            default ->
+                throw new IllegalArgumentException(op.toText());
         }
         if (op.result() != null) {
             valueMap.put(op.result(), valueMap.size());
@@ -382,9 +417,9 @@ final class OpWriter {
 
     private void writeNestedBody(Body body) {
         // body type
-        buf.writeIndex(toEntry(body.bodyType()));
+        buf.writeIndexOrZero(body == null ? null : toEntry(body.bodyType()));
         // blocks
-        writeBlocks(body.blocks());
+        if (body != null) writeBlocks(body.blocks());
     }
 
     private void writeBlocks(List<Block> blocks) {
@@ -458,6 +493,13 @@ final class OpWriter {
         writeTag(tag);
         for (Value v : operands) {
             buf.writeU2(valueMap.get(v));
+        }
+    }
+
+    private void writeOpWithFixedNestedBodies(CodeModelAttribute.OpTag tag, Op op) {
+        writeTag(tag);
+        for (var body : op.bodies()) {
+            writeNestedBody(body);
         }
     }
 
