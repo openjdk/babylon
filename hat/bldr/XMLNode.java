@@ -181,6 +181,13 @@ public class XMLNode {
                     "1.8",
                     pomXmlBuilderConsumer);
         }
+        public PomXmlBuilder surefirePlugin(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+            return plugin(
+                    "org.apache.maven.plugins",
+                    "maven-surefire-plugin",
+                    "3.1.2",
+                    pomXmlBuilderConsumer);
+        }
 
         public PomXmlBuilder compilerPlugin(
                 Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
@@ -322,6 +329,9 @@ public class XMLNode {
         public PomXmlBuilder dependsOn(String groupId, String artifactId, String version) {
             return element("dependencies", $ -> $.dependency(groupId, artifactId, version));
         }
+        public PomXmlBuilder dependsOn(String groupId, String artifactId, String version, String phase) {
+            return element("dependencies", $ -> $.dependency(groupId, artifactId, version, phase));
+        }
 
         public PomXmlBuilder dependency(String groupId, String artifactId, String version) {
             return dependency($ -> $.ref(groupId, artifactId, version));
@@ -339,9 +349,11 @@ public class XMLNode {
         public PomXmlBuilder modules(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
             return element("modules", pomXmlBuilderConsumer);
         }
-
+        public PomXmlBuilder modules(List<String> modules) {
+            return element("modules", $ -> $.forEach(modules.stream(), $::module));
+        }
         public PomXmlBuilder modules(String... modules) {
-            return element("modules", $ -> $.forEach(Stream.of(modules), $::module));
+            return modules(List.of(modules));
         }
 
         public PomXmlBuilder module(String name) {
