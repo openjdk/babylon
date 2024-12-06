@@ -33,9 +33,6 @@ import javax.tools.SimpleJavaFileObject;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -60,8 +57,6 @@ import java.util.zip.ZipFile;
 
 import static java.io.IO.print;
 import static java.io.IO.println;
-import static java.nio.file.Files.isDirectory;
-import static java.nio.file.Files.isRegularFile;
 
 public class Bldr {
     public sealed interface PathHolder permits ClassPathEntry, DirPathHolder, Executable, FilePathHolder {
@@ -551,6 +546,19 @@ public class Bldr {
                 throw new RuntimeException(e);
             }
         }
+
+
+        public CMakeLists cmakeLists(Consumer<StringBuilder> stringBuilderConsumer) {
+            var sb = new StringBuilder();
+            stringBuilderConsumer.accept(sb);
+            var ret = CMakeLists.of(path().resolve("CMakeLists.txt"));
+            try {
+                Files.writeString(ret.path, sb.toString());
+                return ret;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     public record JarFile(Path path) implements ClassPathEntry, FilePathHolder {
@@ -591,7 +599,27 @@ public class Bldr {
         }
     }
 
+
+
+
     public sealed interface SourceFile extends TextFile {
+    }
+
+    public static final class CMakeLists implements SourceFile {
+        Path path;
+
+        CMakeLists(Path path) {
+            this.path = path;
+        }
+
+        public static CMakeLists of(Path path) {
+            return new CMakeLists(path);
+        }
+
+        @Override
+        public Path path() {
+            return path;
+        }
     }
 
     public static final class JavaSourceFile extends SimpleJavaFileObject implements SourceFile {
@@ -607,6 +635,7 @@ public class Bldr {
 
         JavaSourceFile(Path path) {
             super(path.toUri(), JavaFileObject.Kind.SOURCE);
+            this.path=path;
         }
 
         @Override
@@ -879,26 +908,26 @@ public class Bldr {
     }
 
     public static JavacBuilder javac(JavacBuilder javacBuilder) {
+        List<String> opts = new ArrayList<>(javacBuilder.opts);
         try {
-            if (javacBuilder.classDir == null) {
-                javacBuilder.classDir = ClassDir.temp();
-            } else {
-                javacBuilder.classDir.clean();
-            }
-            javacBuilder.opts("-d", javacBuilder.classDir.path().toString());
+            ClassDir classDir = javacBuilder.classDir==null?ClassDir.temp():javacBuilder.classDir;
+            javacBuilder.classDir = classDir;
+            opts.addAll(List.of("-d", classDir.path().toString()));
 
             if (javacBuilder.classPath != null) {
-                javacBuilder.opts("--class-path", javacBuilder.classPath.charSeparated());
+                opts.addAll(List.of("--class-path", javacBuilder.classPath.charSeparated()));
             }
 
-            javacBuilder.opts("--source-path", javacBuilder.sourcePath.charSeparated());
+            opts.addAll(List.of("--source-path", javacBuilder.sourcePath.charSeparated()));
 
             DiagnosticListener<JavaFileObject> diagnosticListener =
                     (diagnostic) -> {
                         if (!diagnostic.getKind().equals(Diagnostic.Kind.NOTE)) {
-                            System.out.println(
-                                    diagnostic.getKind()
+                            System.out.println("javac "
+                                    + diagnostic.getKind()
                                             + " "
+                                            +((JavaSourceFile)(diagnostic.getSource())).path().toString()
+                                            +"  "
                                             + diagnostic.getLineNumber()
                                             + ":"
                                             + diagnostic.getColumnNumber()
@@ -908,12 +937,17 @@ public class Bldr {
                     };
 
             JavaCompiler javac = javax.tools.ToolProvider.getSystemJavaCompiler();
+            if (javacBuilder.verbose) {
+                StringBuilder stringBuilder = new StringBuilder();
+                opts.forEach(opt->stringBuilder.append(stringBuilder.isEmpty()?"":" ").append(opt));
+                println("javac "+stringBuilder);
+            }
             JavaCompiler.CompilationTask compilationTask =
                     (javac.getTask(
                             new PrintWriter(System.err),
                             javac.getStandardFileManager(diagnosticListener, null, null),
                             diagnosticListener,
-                            javacBuilder.opts,
+                            opts,
                             null,
                             javacBuilder.sourcePath.javaFiles().map(JavaSourceFile::new).toList()));
             ((com.sun.source.util.JavacTask) compilationTask).generate();
@@ -1231,12 +1265,18 @@ public class Bldr {
                                     jarStream.putNextEntry(entry);
                                     Files.newInputStream(rootAndPath.path()).transferTo(jarStream);
                                     jarStream.closeEntry();
+                                    if (jarBuilder.verbose){
+                                        println("INFO: adding "+rootAndPath.relativize().toString());
+                                    }
                                 } catch (IOException e) {
                                     throw new RuntimeException(e);
                                 }
                             });
             jarStream.finish();
             jarStream.close();
+            if (jarBuilder.verbose){
+                println("INFO: created "+jarBuilder.jar.path.toString());
+            }
             return jarBuilder.jar;
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -1495,65 +1535,6 @@ public class Bldr {
         }
     }
 
-    public static Path requireJExtract(Dir thirdParty) {
-        var optional = fromPATH("jextract");
-        if (optional.isPresent()) {
-            println("Found jextract in PATH");
-            return optional.get().getParent().getParent(); // we want the 'HOME' dir
-        }
-        println("No jextract in PATH");
-        URL downloadURL = null;
-        var extractVersionMaj = "22";
-        var extractVersionMin = "5";
-        var extractVersionPoint = "33";
-
-        var nameArchTuple =
-                switch (os.name()) {
-                    case OS.MacName -> "macos";
-                    default -> os.name().toLowerCase();
-                }
-                        + '-'
-                        + os.arch();
-
-        try {
-            downloadURL =
-                    new URI(
-                            "https://download.java.net/java/early_access"
-                                    + "/jextract/"
-                                    + extractVersionMaj
-                                    + "/"
-                                    + extractVersionMin
-                                    + "/openjdk-"
-                                    + extractVersionMaj
-                                    + "-jextract+"
-                                    + extractVersionMin
-                                    + "-"
-                                    + extractVersionPoint
-                                    + "_"
-                                    + nameArchTuple
-                                    + "_bin.tar.gz")
-                            .toURL();
-        } catch (MalformedURLException e) {
-            throw new RuntimeException(e);
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
-        URL finalDownloadURL = downloadURL;
-
-        println("... attempting download from" + downloadURL);
-        var jextractTar = thirdParty.path("jextract.tar");
-
-        if (!isRegularFile(jextractTar)) { // Have we downloaded already?
-            jextractTar = curl(finalDownloadURL, jextractTar); // if not
-        }
-
-        var jextractHome = thirdParty.path("jextract-22");
-        if (!isDirectory(jextractHome)) {
-            untar(jextractTar, jextractHome);
-        }
-        return jextractHome;
-    }
-
     public static Optional<Path> fromPATH(String name) {
         return Arrays.stream(System.getenv("PATH").split(File.pathSeparator))
                 .map(dirName -> Path.of(dirName).resolve(name).normalize())
@@ -1575,24 +1556,5 @@ public class Bldr {
         } else {
             throw new IllegalStateException("FAILED: " + path + " does not exist");
         }
-    }
-
-    void main(String[] args) {
-        var bldrDir = Dir.current().parent().parent().parent();
-        var buildDir = BuildDir.of(bldrDir.path("build")).create();
-
-        jar(
-                $ ->
-                        $.jar(buildDir.jarFile("bldr.jar"))
-                                .javac(
-                                        $$ ->
-                                                $$.source(24)
-                                                        .enable_preview()
-                                                        .add_exports(
-                                                                "java.base",
-                                                                List.of("jdk.internal", "jdk.internal.vm.annotation"),
-                                                                "ALL-UNNAMED")
-                                                        .class_dir(buildDir.classDir("bld.jar.classes"))
-                                                        .source_path(bldrDir.sourceDir("src/main/java"))));
     }
 }
