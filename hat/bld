@@ -67,28 +67,26 @@ void main(String[] args) {
      *
      */
 
-    var hatDir = Dir.current();//Dir.ofExisting("/Users/grfrost/github/babylon-grfrost-fork/hat");
-        final var hatCoreDir = hatDir.existingDir("hat");
-        final var backendsDir = hatDir.existingDir("backends");
-        final var examplesDir = hatDir.existingDir("examples");
-        final var stageDir = hatDir.buildDir("stage").create();
-        final var repoDir = stageDir.repoDir("repo").create();
-        final var jextractDir = stageDir.buildDir("jextract").create();
-        final var buildDir = BuildDir.of(hatDir.path("build")).create();
-        final var cmakeBuildDir = buildDir.cMakeBuildDir("cmake-build-debug");
-        // var jextract1 = Bldr.Jextract.of(fromPATH("jextract").orElseThrow(()-> new RuntimeException("Can't locate jextract")));
-        final var jextract = Jextract.of(Path.of("/Users/garyfrost/jextract-22/bin/jextract"));
-        final var extractedOpenCLJar = buildDir.jarFile("jextracted-opencl.jar");
-        final var extractedOpenGLJar = buildDir.jarFile("jextracted-opengl.jar");
-        final var verbose = false;
+    var hatDir = Dir.current();
+    var hatCoreDir = hatDir.existingDir("hat");
+    var backendsDir = hatDir.existingDir("backends");
+    var examplesDir = hatDir.existingDir("examples");
+    var stageDir = hatDir.buildDir("stage").create();
+    var repoDir = stageDir.repoDir("repo").create();
+    var jextractDir = stageDir.buildDir("jextract").create();
+    var buildDir = BuildDir.of(hatDir.path("build")).create();
+    var cmakeBuildDir = buildDir.cMakeBuildDir("cmake-build-debug");
+    var jextract = Jextract.of(fromPATH("jextract").orElseThrow(()-> new RuntimeException("Can't locate jextract")));
+    var extractedOpenCLJar = buildDir.jarFile("jextracted-opencl.jar");
+    var extractedOpenGLJar = buildDir.jarFile("jextracted-opengl.jar");
+    var verbose = false;
 
-
-    Capabilities.Capability opencl = Capabilities.OpenCL.of();
-    Capabilities.Capability opengl = Capabilities.OpenGL.of();
-    Capabilities.Capability cuda = Capabilities.CUDA.of();
-    Capabilities.Capability hip = Capabilities.HIP.of();
-    Capabilities capabilities = Capabilities.of(opencl, opengl, cuda, hip);
-    CMakeProbe cmakeProbe = new CMakeProbe(buildDir, capabilities);
+    var opencl = Capabilities.OpenCL.of();
+    var opengl = Capabilities.OpenGL.of();
+    var cuda = Capabilities.CUDA.of();
+    var hip = Capabilities.HIP.of();
+    var capabilities= Capabilities.of(opencl, opengl, cuda, hip);
+    var cmakeProbe = new CMakeProbe(buildDir, capabilities);
     if (opencl.available()) {
         if (extractedOpenCLJar.exists()) {
             println("We've already extracted and jarred" + extractedOpenCLJar.path());
@@ -165,10 +163,7 @@ void main(String[] args) {
 
     // Here we create all backend jars.
     backendsDir
-            .subDirs(backendDir ->
-                    !backendDir.matches("^.*(spirv|hip|shared|target|.idea)$") //&&
-                           // capabilities.capabilityIsAvailable(backendDir.fileName())
-            )
+            .subDirs(backendDir -> !backendDir.matches("^.*(spirv|hip|shared|target|.idea)$"))
             .peek(backendDir->println("Building backend " + backendDir.fileName()))
             .forEach(backendDir->
                  buildDir.jarFile("hat-backend-" + backendDir.fileName() + "-1.0.jar",$->$.verbose(verbose)
@@ -199,7 +194,8 @@ void main(String[] args) {
 
    // here we create the example jars which need opengl and opencl 
     if (opencl.available() && opengl.available()) {
-        examplesDir.subDirs(exampleDir -> exampleDir.matches("^.*(nbody)$"))
+        examplesDir
+            .subDirs(exampleDir -> exampleDir.matches("^.*(nbody)$"))
             .peek(exampleDir -> println("Building opengl+opengcl example " + exampleDir.fileName()))
             .forEach(exampleDir->
                 buildDir.jarFile("hat-example-" + exampleDir.fileName() + "-1.0.jar", $ -> $

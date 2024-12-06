@@ -484,12 +484,12 @@ public class Bldr {
 
         public JarFile jarFile(String name, BiConsumer<JarBuilder, JarFile> biConsumer) {
             var result = JarFile.of(path().resolve(name));
-            return result.create(biConsumer);
+            return result.create(biConsumer).jarFile;
         }
 
         public JarFile jarFile(String name, Consumer<JarBuilder> consumer) {
             var result = JarFile.of(path().resolve(name));
-            return result.create(consumer);
+            return result.create(consumer).jarFile;
         }
 
         public CMakeBuildDir cMakeBuildDir(String name) {
@@ -566,14 +566,14 @@ public class Bldr {
             return new JarFile(path);
         }
 
-        public JarFile create(BiConsumer<JarBuilder, JarFile> jarBuilderConsumer) {
+        public JarResult create(BiConsumer<JarBuilder, JarFile> jarBuilderConsumer) {
             JarBuilder jarBuilder = new JarBuilder();
             jarBuilder.jar(this);
             jarBuilderConsumer.accept(jarBuilder, this);
             return jar(jarBuilder);
         }
 
-        public JarFile create(Consumer<JarBuilder> jarBuilderConsumer) {
+        public JarResult create(Consumer<JarBuilder> jarBuilderConsumer) {
             JarBuilder jarBuilder = new JarBuilder();
             jarBuilder.jar(this);
             jarBuilderConsumer.accept(jarBuilder);
@@ -761,6 +761,9 @@ public class Bldr {
     public static User user =
             new User(Dir.of(System.getProperty("user.home")), Dir.of(System.getProperty("user.dir")));
 
+    public abstract static class Result{
+
+    }
     public abstract static class Builder<T extends Builder<T>> {
         @SuppressWarnings("unchecked")
         T self() {
@@ -810,27 +813,58 @@ public class Bldr {
         }
     }
 
+    public static class Strings {
+        public List<String> strings = new ArrayList<>();
+        Strings(){
+
+        }
+        Strings(Strings strings){
+            add(strings);
+        }
+        Strings(List<String> strings){
+            add(strings);
+        }
+
+        Strings(String ... strings){
+            add(strings);
+        }
+
+        public Strings add(List<String> strings) {
+            this.strings.addAll(strings);
+            return this;
+        }
+
+        public Strings add(String... strings) {
+            add(Arrays.asList(strings));
+            return this;
+        }
+
+        public Strings add(Strings strings) {
+            add(strings.strings);
+            return this;
+        }
+
+        public String spaceSeperated() {
+            StringBuilder stringBuilder = new StringBuilder();
+            strings.forEach(opt->stringBuilder.append(stringBuilder.isEmpty()?"":" ").append(opt));
+            return stringBuilder.toString();
+        }
+    }
+
     public abstract static class OptsBuilder<T extends OptsBuilder<T>> extends Builder<T> {
-
-        public List<String> opts = new ArrayList<>();
-
-        public T opts(List<String> opts) {
-            this.opts.addAll(opts);
+        public Strings opts = new Strings();
+        public T opts(OptsBuilder<?> optsBuilder) {
+            opts.add(optsBuilder.opts);
             return self();
         }
-
-        public T opts(String... opts) {
-            opts(Arrays.asList(opts));
-            return self();
-        }
-
     }
 
     public static class JavaOpts<T extends JavaOpts<T>> extends OptsBuilder<T> {
         public Dir jdk = java.home;
 
-        public T opts(JavaOpts<?> javaOpts) {
-            return opts(javaOpts.opts);
+        public T opts(String... opts) {
+            this.opts.add(opts);
+            return self();
         }
 
         static public JavaOpts<?> of() {
@@ -843,11 +877,12 @@ public class Bldr {
         }
 
         public T add_exports(String fromModule, String pack, String toModule) {
-            return opts("--add-exports=" + fromModule + "/" + pack + "=" + toModule);
+             opts.add("--add-exports=" + fromModule + "/" + pack + "=" + toModule);
+             return self();
         }
 
         public T add_modules(String... modules) {
-            List.of(modules).forEach(module -> opts("--add-modules=" + module));
+            List.of(modules).forEach(module -> opts.add("--add-modules=" + module));
             return self();
         }
 
@@ -857,7 +892,8 @@ public class Bldr {
         }
 
         public T enable_preview() {
-            return opts("--enable-preview");
+            opts.add("--enable-preview");
+            return self();
         }
 
     }
@@ -880,7 +916,8 @@ public class Bldr {
         public SourcePath sourcePath;
 
         public JavacBuilder source(int version) {
-            return opts("--source", Integer.toString(version));
+             opts.add("--source", Integer.toString(version));
+             return self();
         }
 
         public JavacBuilder class_dir(Path classDir) {
@@ -907,18 +944,29 @@ public class Bldr {
         }
     }
 
-    public static JavacBuilder javac(JavacBuilder javacBuilder) {
-        List<String> opts = new ArrayList<>(javacBuilder.opts);
+    public static class JavacResult{
+        JavacBuilder builder;
+        Strings opts = new Strings();
+        List<JavaFileObject> classes = new ArrayList<>();
+        ClassDir classDir;
+        JavacResult(JavacBuilder builder) {
+            this.builder = builder;
+            opts.add(builder.opts);
+        }
+    }
+
+    public static JavacResult javac(JavacBuilder javacBuilder) {
+        JavacResult result = new JavacResult(javacBuilder);
+
         try {
-            ClassDir classDir = javacBuilder.classDir==null?ClassDir.temp():javacBuilder.classDir;
-            javacBuilder.classDir = classDir;
-            opts.addAll(List.of("-d", classDir.path().toString()));
+            result.classDir = javacBuilder.classDir==null?ClassDir.temp():javacBuilder.classDir;
+            result.opts.add("-d", result.classDir.path().toString());
 
             if (javacBuilder.classPath != null) {
-                opts.addAll(List.of("--class-path", javacBuilder.classPath.charSeparated()));
+                result.opts.add("--class-path", javacBuilder.classPath.charSeparated());
             }
 
-            opts.addAll(List.of("--source-path", javacBuilder.sourcePath.charSeparated()));
+            result.opts.add("--source-path", javacBuilder.sourcePath.charSeparated());
 
             DiagnosticListener<JavaFileObject> diagnosticListener =
                     (diagnostic) -> {
@@ -938,26 +986,26 @@ public class Bldr {
 
             JavaCompiler javac = javax.tools.ToolProvider.getSystemJavaCompiler();
             if (javacBuilder.verbose) {
-                StringBuilder stringBuilder = new StringBuilder();
-                opts.forEach(opt->stringBuilder.append(stringBuilder.isEmpty()?"":" ").append(opt));
-                println("javac "+stringBuilder);
+                println("javac "+result.opts.spaceSeperated());
             }
-            JavaCompiler.CompilationTask compilationTask =
+             JavaCompiler.CompilationTask compilationTask =
                     (javac.getTask(
                             new PrintWriter(System.err),
                             javac.getStandardFileManager(diagnosticListener, null, null),
                             diagnosticListener,
-                            opts,
+                            result.opts.strings,
                             null,
                             javacBuilder.sourcePath.javaFiles().map(JavaSourceFile::new).toList()));
-            ((com.sun.source.util.JavacTask) compilationTask).generate();
-            return javacBuilder;
+            ((com.sun.source.util.JavacTask) compilationTask).generate().forEach(javaFileObject -> {
+                result.classes.add(javaFileObject);
+            });
+            return result;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static JavacBuilder javac(Consumer<JavacBuilder> javacBuilderConsumer) {
+    public static JavacResult javac(Consumer<JavacBuilder> javacBuilderConsumer) {
         JavacBuilder javacBuilder = new JavacBuilder();
         javacBuilderConsumer.accept(javacBuilder);
         return javac(javacBuilder);
@@ -967,14 +1015,15 @@ public class Bldr {
         public String mainClass;
         public DirPath libraryPath;
         public boolean startOnFirstThread;
-        public List<String> args = new ArrayList<>();
+        public Strings args = new Strings();
 
         public JavaBuilder enable_native_access(String module) {
-            return opts("--enable-native-access=" + module);
+             opts.add("--enable-native-access=" + module);
+             return self();
         }
 
         public JavaBuilder args(List<String> args) {
-            this.args.addAll(args);
+            this.args.add(args);
             return self();
         }
 
@@ -1009,23 +1058,23 @@ public class Bldr {
     }
 
     public static JavaBuilder java(JavaBuilder javaBuilder) {
-        List<String> execOpts = new ArrayList<>();
+        Strings execOpts = new Strings();
         execOpts.add(javaBuilder.jdk.path().resolve("bin/java").toString());
         if (javaBuilder.startOnFirstThread){
             execOpts.add("-XstartOnFirstThread");
         }
-        execOpts.addAll(javaBuilder.opts);
+        execOpts.add(javaBuilder.opts);
         if (javaBuilder.classPath != null) {
-            execOpts.addAll(List.of("--class-path", javaBuilder.classPath.charSeparated()));
+            execOpts.add("--class-path", javaBuilder.classPath.charSeparated());
         }
         if (javaBuilder.libraryPath != null) {
             execOpts.add("-Djava.library.path=" + javaBuilder.libraryPath.charSeparated());
         }
         execOpts.add(javaBuilder.mainClass);
-        execOpts.addAll(javaBuilder.args);
+        execOpts.add(javaBuilder.args);
 
         try {
-            var processBuilder = new ProcessBuilder().inheritIO().command(execOpts);
+            var processBuilder = new ProcessBuilder().inheritIO().command(execOpts.strings);
             var process = processBuilder.start();
             if (javaBuilder.verbose) {
                 print(execOpts);
@@ -1217,7 +1266,7 @@ public class Bldr {
 
     public static class JarBuilder extends Builder<JarBuilder> {
         public JarFile jar;
-        public JavacBuilder javacBuilder;
+        public JavacResult javacResult;
         public DirPath dirList;
 
         public JarBuilder jar(JarFile jar) {
@@ -1226,18 +1275,18 @@ public class Bldr {
         }
 
         public JarBuilder javac(JavacBuilder javacBuilder) {
-            this.javacBuilder = Bldr.javac(javacBuilder);
+            this.javacResult = Bldr.javac(javacBuilder);
             this.dirList =
                     (this.dirList == null)
-                            ? DirPath.of().add(this.javacBuilder.classDir)
-                            : this.dirList.add(this.javacBuilder.classDir);
+                            ? DirPath.of().add(this.javacResult.classDir)
+                            : this.dirList.add(this.javacResult.classDir);
             return self();
         }
 
         public JarBuilder javac(Consumer<JavacBuilder> javacBuilderConsumer) {
-            this.javacBuilder = new JavacBuilder();
-            javacBuilderConsumer.accept(this.javacBuilder);
-            return javac(this.javacBuilder);
+            JavacBuilder javacBuilder= new JavacBuilder();
+            javacBuilderConsumer.accept(javacBuilder);
+            return javac(javacBuilder);
         }
 
         public <P extends DirPathHolder<P>> JarBuilder dir_list(P holder) {
@@ -1246,20 +1295,39 @@ public class Bldr {
         }
     }
 
-    public static JarFile jar(JarBuilder jarBuilder) {
+    public static class JarResult extends Result implements ClassPathEntryProvider{
+        JarBuilder jarBuilder;
+        Strings opts = new Strings();
+        List<RootDirAndSubPath> pathsToJar = new ArrayList<>();
+        List<Path> paths = new ArrayList<>();
+        JarFile jarFile;
+        public JarResult(JarBuilder jarBuilder) {
+            this.jarBuilder = jarBuilder;
+            this.jarFile = jarBuilder.jar;
+        }
+
+        @Override
+        public List<ClassPathEntry> classPathEntries() {
+            return List.of(jarFile);
+        }
+    }
+
+    public static JarResult jar(JarBuilder jarBuilder) {
+        JarResult result = new JarResult(jarBuilder);
         try {
-            List<RootDirAndSubPath> pathsToJar = new ArrayList<>();
+
             var jarStream = new JarOutputStream(Files.newOutputStream(jarBuilder.jar.path()));
             jarBuilder.dirList.entries.forEach(
                     root ->
                             root.findFiles()
                                     .map(path -> new RootDirAndSubPath(root, path))
-                                    .forEach(pathsToJar::add));
-            pathsToJar.stream()
+                                    .forEach(result.pathsToJar::add));
+            result.pathsToJar.stream()
                     .sorted(Comparator.comparing(RootDirAndSubPath::path))
                     .forEach(
                             rootAndPath -> {
                                 try {
+                                    result.paths.add(rootAndPath.path);
                                     var entry = new JarEntry(rootAndPath.relativize().toString());
                                     entry.setTime(Files.getLastModifiedTime(rootAndPath.path()).toMillis());
                                     jarStream.putNextEntry(entry);
@@ -1277,13 +1345,13 @@ public class Bldr {
             if (jarBuilder.verbose){
                 println("INFO: created "+jarBuilder.jar.path.toString());
             }
-            return jarBuilder.jar;
+            return result;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static JarFile jar(Consumer<JarBuilder> jarBuilderConsumer) {
+    public static JarResult jar(Consumer<JarBuilder> jarBuilderConsumer) {
         JarBuilder jarBuilder = new JarBuilder();
         jarBuilderConsumer.accept(jarBuilder);
         return jar(jarBuilderConsumer);
