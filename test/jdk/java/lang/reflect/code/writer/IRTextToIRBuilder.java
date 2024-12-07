@@ -1,51 +1,43 @@
+import java.io.IOException;
+import java.io.PrintStream;
 import java.lang.classfile.*;
 import java.lang.classfile.components.ClassPrinter;
-import java.lang.classfile.constantpool.FieldRefEntry;
 import java.lang.classfile.constantpool.StringEntry;
 import java.lang.classfile.instruction.*;
 import java.lang.constant.ConstantDescs;
-import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.code.Op;
 import java.lang.reflect.code.bytecode.BytecodeGenerator;
-import java.lang.reflect.code.interpreter.Interpreter;
-import java.lang.reflect.code.op.ExtendedOp;
-import java.lang.reflect.code.op.OpFactory;
 import java.lang.reflect.code.parser.OpParser;
-import java.lang.reflect.code.type.*;
 import java.lang.reflect.code.writer.OpBuilder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.List;
 
 import static java.lang.reflect.code.op.CoreOp.FuncOp;
 
-public class OpFieldToMethodBuilder {
+/*
+* @test
+* */
 
-    public static void main(String[] args) {
-        for (var arg : args) {
-            var path = Path.of(arg);
-            byte[] originalBytes;
-            byte[] newBytes;
-            try {
-                originalBytes = Files.readAllBytes(path);
-                newBytes = OpFieldToMethodBuilder.replaceOpFieldWithBuilderMethod(originalBytes);
-            } catch (Throwable e) {
-                continue; // ignore errors for now
-            }
-            System.out.printf("%s %d %d%n", arg, originalBytes.length, newBytes.length);
-            // TODO output useful info like avg size increase
-            // TODO remove duplicate
-            // TODO reduce size if possible (by reducing the code of the builder method)
+public class IRTextToIRBuilder {
+    // TODO original cf size of text, new cf size of code builder
+    // TODO rename + doc (do it after separation)
+    // TODO zip cf
+    // TODO can we reduce code builder ?
+
+    public static void main(String[] args) throws IOException {
+        if (args.length != 1) {
+            System.err.println("Usage: <program> <path_to_cf>");
+            System.exit(-1);
         }
+        var cf_path = Path.of(args[0]);
+        var bytes = Files.readAllBytes(cf_path);
+        var new_bytes = replaceOpFieldWithBuilderMethod(bytes);
+        new PrintStream(System.out).write(new_bytes);
     }
 
     static byte[] replaceOpFieldWithBuilderMethod(byte[] classData) {
         return replaceOpFieldWithBuilderMethod(ClassFile.of().parse(classData));
-    }
-
-    record OpFieldAndIR(FieldRefEntry opField, String ir) {
     }
 
     static byte[] replaceOpFieldWithBuilderMethod(ClassModel classModel) {
@@ -81,9 +73,8 @@ public class OpFieldToMethodBuilder {
             for (var opFieldAndIR : opFieldsAndIRs) {
                 var funcOp = ((FuncOp) OpParser.fromStringOfFuncOp(opFieldAndIR.ir()));
                 var builderOp = OpBuilder.createBuilderFunction(funcOp);
-                testBuilderOp(builderOp, opFieldAndIR.ir());
                 var opFieldName = opFieldAndIR.opField().name().stringValue();
-                var methodName = builderMethodName(opFieldName);
+                var methodName = Utils.irBuilderName(opFieldName);
                 byte[] bytes = BytecodeGenerator.generateClassData(MethodHandles.lookup(), methodName, builderOp);
                 var builderMethod = ClassFile.of().parse(bytes).methods().stream()
                         .filter(mm -> mm.methodName().equalsString(methodName)).findFirst().orElseThrow();
@@ -92,48 +83,7 @@ public class OpFieldToMethodBuilder {
         }));
         var cf = ClassFile.of(ClassFile.ConstantPoolSharingOption.NEW_POOL);
         var newBytes = cf.transformClass(classModel, classTransform);
-        testBuilderMethods(newBytes, opFieldsAndIRs);
         return newBytes;
-    }
-
-    static void testBuilderOp(FuncOp builderOp, String expectedIR) {
-        var op = (Op) Interpreter.invoke(builderOp, ExtendedOp.FACTORY, CoreTypeFactory.CORE_TYPE_FACTORY);
-        assert expectedIR.equals(op.toText());
-    }
-
-    static void testBuilderMethods(byte[] classData, List<OpFieldAndIR> opFieldsAndIRs) {
-        MethodHandles.Lookup lookup = null;
-        try {
-            lookup = MethodHandles.lookup().defineHiddenClass(classData, true);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
-        for (var opFieldAndIR : opFieldsAndIRs) {
-            var opFieldName = opFieldAndIR.opField().name().stringValue();
-            var methodName = builderMethodName(opFieldName);
-            var functionType = FunctionType.functionType(JavaType.type(Op.class), JavaType.type(OpFactory.class),
-                    JavaType.type(TypeElementFactory.class));
-            MethodHandle mh = null;
-            try {
-                mh = lookup.findStatic(lookup.lookupClass(),
-                        methodName,
-                        MethodRef.toNominalDescriptor(functionType).resolveConstantDesc(lookup));
-            } catch (ReflectiveOperationException e) {
-                throw new RuntimeException(e);
-            }
-            Op builtOp = null;
-            try {
-                builtOp = ((Op) mh.invoke(ExtendedOp.FACTORY, CoreTypeFactory.CORE_TYPE_FACTORY));
-            } catch (Throwable e) {
-                throw new RuntimeException(e);
-            }
-            assert builtOp.toText().equals(opFieldAndIR.ir());
-        }
-    }
-
-    static String builderMethodName(String opFieldName) {
-        // e.g. A::add(int, int)int$op ---> add(int, int)int$op
-        return opFieldName.substring(opFieldName.indexOf(':') + 2);
     }
 
     static void print(byte[] bytes) {
