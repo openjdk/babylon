@@ -20,3 +20,5 @@ NashornProfile.txt
 /.settings/
 /compile_commands.json
 /.cache
+ir_text_to_ir_builder/build
+ir_text_to_ir_builder/hat
