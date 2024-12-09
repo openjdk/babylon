@@ -24,7 +24,6 @@
 import java.io.IOException;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.ClassModel;
-import java.lang.classfile.components.ClassPrinter;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -43,6 +42,7 @@ import java.lang.reflect.Method;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.CodeReflection;
+import jdk.internal.classfile.components.ClassPrinter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -53,7 +53,7 @@ import java.util.stream.Stream;
 
 /*
  * @test
- * @modules jdk.incubator.code
+ * @modules jdk.incubator.code java.base/jdk.internal.classfile.components
  * @enablePreview
  * @run testng/othervm -Djdk.invoke.MethodHandle.dumpClassFiles=true TestBytecode
  */

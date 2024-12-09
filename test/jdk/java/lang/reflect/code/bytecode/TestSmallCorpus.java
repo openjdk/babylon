@@ -28,13 +28,13 @@ import java.lang.classfile.Label;
 import java.lang.classfile.MethodModel;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.attribute.CodeAttribute;
-import java.lang.classfile.components.ClassPrinter;
 import java.lang.classfile.instruction.*;
 import java.lang.invoke.MethodHandles;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.bytecode.BytecodeLift;
 import jdk.incubator.code.interpreter.Verifier;
 import jdk.incubator.code.op.CoreOp;
+import jdk.internal.classfile.components.ClassPrinter;
 import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -49,7 +49,7 @@ import org.testng.annotations.Test;
 
 /*
  * @test
- * @modules jdk.incubator.code
+ * @modules jdk.incubator.code java.base/jdk.internal.classfile.components
  * @enablePreview
  * @modules java.base/java.lang.invoke:open
  * @run testng TestSmallCorpus

@@ -24,18 +24,18 @@
 import java.lang.classfile.Attributes;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.Instruction;
-import java.lang.classfile.components.ClassPrinter;
 import static java.lang.classfile.Opcode.*;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
 import jdk.incubator.code.bytecode.BranchCompactor;
+import jdk.internal.classfile.components.ClassPrinter;
 import java.util.List;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 /*
  * @test
- * @modules jdk.incubator.code
+ * @modules jdk.incubator.code java.base/jdk.internal.classfile.components
  * @enablePreview
  * @run testng TestBranchCompactor
  */
