@@ -54,9 +54,7 @@ properties should look like this, and should not need changing
     <!-- yada -->
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>24</maven.compiler.source>
-        <maven.compiler.target>24</maven.compiler.target>
-        <hat.target>${env.PWD}/maven-build</hat.target>
+        <hat.build>${env.PWD}/build</hat.build>
     </properties>
     <!-- yada -->
 </project>

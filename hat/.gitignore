@@ -13,6 +13,4 @@ examples/life/target/
 examples/mandel/target/
 examples/squares/target/
 examples/violajones/target/
-target/
-
-
+stage/

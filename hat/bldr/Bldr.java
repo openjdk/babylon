@@ -33,13 +33,11 @@ import javax.tools.SimpleJavaFileObject;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -59,11 +57,9 @@ import java.util.zip.ZipFile;
 
 import static java.io.IO.print;
 import static java.io.IO.println;
-import static java.nio.file.Files.isDirectory;
-import static java.nio.file.Files.isRegularFile;
 
 public class Bldr {
-    public sealed interface PathHolder permits ClassPathEntry, DirPathHolder, FilePathHolder {
+    public sealed interface PathHolder permits ClassPathEntry, DirPathHolder, Executable, FilePathHolder {
         Path path();
 
         default String fileName() {
@@ -88,13 +84,6 @@ public class Bldr {
 
         default XMLFile xmlFile(String s) {
             return XMLFile.of(path().resolve(s));
-        }
-
-        default XMLFile xmlFile(String s, String rootName, Consumer<XMLNode.XMLBuilder> xmlBuilderConsumer) {
-            var file =  XMLFile.of(path().resolve(s));
-            XMLNode.create(rootName,xmlBuilderConsumer);
-
-            return file;
         }
 
         default TestNGSuiteFile testNGSuiteFile(String s) {
@@ -153,6 +142,10 @@ public class Bldr {
         default BuildDir buildDir(String name) {
             return BuildDir.of(path().resolve(name));
         }
+
+        default SourcePathEntry sourceDir(String s) {
+            return SourcePathEntry.of(path().resolve(s));
+        }
     }
 
     public sealed interface FilePathHolder extends PathHolder {
@@ -161,9 +154,15 @@ public class Bldr {
         }
     }
 
+    public sealed interface Executable extends PathHolder {
+        default boolean exists() {
+            return Files.exists(path()) && Files.isRegularFile(path()) && Files.isExecutable(path());
+        }
+    }
+
+
     public interface ClassPathEntryProvider {
         List<Bldr.ClassPathEntry> classPathEntries();
-
     }
 
     public sealed interface ClassPathEntry extends PathHolder, ClassPathEntryProvider {
@@ -174,9 +173,7 @@ public class Bldr {
 
         default String charSeparated() {
             StringBuilder sb = new StringBuilder();
-            entries()
-                    .forEach(
-                            pathHolder -> {
+            entries().forEach(pathHolder -> {
                                 if (!sb.isEmpty()) {
                                     sb.append(File.pathSeparatorChar);
                                 }
@@ -186,8 +183,8 @@ public class Bldr {
         }
     }
 
-    public record ClassPath(
-            List<ClassPathEntry> classPathEntries) implements PathHolderList<ClassPathEntry>, ClassPathEntryProvider {
+    public record ClassPath(List<ClassPathEntry> classPathEntries)
+            implements PathHolderList<ClassPathEntry>, ClassPathEntryProvider {
         public static ClassPath of() {
             return new ClassPath(new ArrayList<>());
         }
@@ -197,9 +194,9 @@ public class Bldr {
         }
 
         public ClassPath add(List<ClassPathEntryProvider> classPathEntryProviders) {
-            classPathEntryProviders.forEach(classPathEntryProvider ->
-                    this.classPathEntries.addAll(classPathEntryProvider.classPathEntries())
-            );
+            classPathEntryProviders.forEach(
+                    classPathEntryProvider ->
+                            this.classPathEntries.addAll(classPathEntryProvider.classPathEntries()));
             return this;
         }
 
@@ -258,7 +255,6 @@ public class Bldr {
             entries.forEach(entry -> entry.javaFiles().forEach(javaFiles::add));
             return javaFiles.stream();
         }
-
     }
 
     public record DirPath(List<DirPathHolder<?>> entries)
@@ -370,6 +366,31 @@ public class Bldr {
         }
     }
 
+    public record RepoDir(Path path) implements BuildDirHolder<RepoDir> {
+        public static RepoDir of(Path path) {
+            return new RepoDir(path);
+        }
+
+        @Override
+        public RepoDir create() {
+            return RepoDir.of(mkdir(path()));
+        }
+
+        @Override
+        public RepoDir remove() {
+            return RepoDir.of(rmdir(path()));
+        }
+
+        public JarFile jarFile(String name) {
+            return JarFile.of(path().resolve(name));
+        }
+
+        public ClassPathEntryProvider classPathEntries(String... specs) {
+            var repo = new MavenStyleRepository(this);
+            return repo.classPathEntries(specs);
+        }
+    }
+
     public record Dir(Path path) implements DirPathHolder<Dir> {
         public static Dir of(Path path) {
             return new Dir(path);
@@ -413,8 +434,17 @@ public class Bldr {
             return this;
         }
 
-        public SourcePathEntry sourceDir(String s) {
-            return SourcePathEntry.of(path().resolve(s));
+
+
+        public XMLFile pom(
+                String comment, Consumer<XMLNode.PomXmlBuilder> pomXmlBuilderConsumer) {
+            XMLFile xmlFile = xmlFile("pom.xml");
+            XMLNode.createPom(comment, pomXmlBuilderConsumer).write(xmlFile);
+            return xmlFile;
+        }
+
+        public BuildDir existingBuildDir(String subdir) {
+            return assertExists(BuildDir.of(path(subdir)));
         }
     }
 
@@ -442,15 +472,24 @@ public class Bldr {
         public JarFile jarFile(String name) {
             return JarFile.of(path().resolve(name));
         }
+        public ClassPathEntryProvider jarFiles(String ...names) {
+            var classPath = ClassPath.of();
+            Stream.of(names).forEach(name->
+                classPath.add(JarFile.of(path().resolve(name))
+                )
+            );
+            return classPath;
+        }
+
 
         public JarFile jarFile(String name, BiConsumer<JarBuilder, JarFile> biConsumer) {
             var result = JarFile.of(path().resolve(name));
-            return result.create(biConsumer);
+            return result.create(biConsumer).jarFile;
         }
 
         public JarFile jarFile(String name, Consumer<JarBuilder> consumer) {
             var result = JarFile.of(path().resolve(name));
-            return result.create(consumer);
+            return result.create(consumer).jarFile;
         }
 
         public CMakeBuildDir cMakeBuildDir(String name) {
@@ -459,6 +498,10 @@ public class Bldr {
 
         public ClassDir classDir(String name) {
             return ClassDir.of(path().resolve(name));
+        }
+
+        public RepoDir repoDir(String name) {
+            return RepoDir.of(path().resolve(name));
         }
 
         @Override
@@ -491,6 +534,31 @@ public class Bldr {
         public List<ClassPathEntry> classPathEntries() {
             return List.of(this);
         }
+
+        public SearchableTextFile textFile(String file, List<String> strings) {
+            SearchableTextFile textFile = SearchableTextFile.of(path().resolve(file));
+            try {
+                PrintWriter pw = new PrintWriter(Files.newOutputStream(textFile.path(), StandardOpenOption.CREATE));
+                strings.forEach(pw::print);
+                pw.close();
+                return textFile;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+
+        public CMakeLists cmakeLists(Consumer<StringBuilder> stringBuilderConsumer) {
+            var sb = new StringBuilder();
+            stringBuilderConsumer.accept(sb);
+            var ret = CMakeLists.of(path().resolve("CMakeLists.txt"));
+            try {
+                Files.writeString(ret.path, sb.toString());
+                return ret;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     public record JarFile(Path path) implements ClassPathEntry, FilePathHolder {
@@ -498,14 +566,14 @@ public class Bldr {
             return new JarFile(path);
         }
 
-        public JarFile create(BiConsumer<JarBuilder, JarFile> jarBuilderConsumer) {
+        public JarResult create(BiConsumer<JarBuilder, JarFile> jarBuilderConsumer) {
             JarBuilder jarBuilder = new JarBuilder();
             jarBuilder.jar(this);
             jarBuilderConsumer.accept(jarBuilder, this);
             return jar(jarBuilder);
         }
 
-        public JarFile create(Consumer<JarBuilder> jarBuilderConsumer) {
+        public JarResult create(Consumer<JarBuilder> jarBuilderConsumer) {
             JarBuilder jarBuilder = new JarBuilder();
             jarBuilder.jar(this);
             jarBuilderConsumer.accept(jarBuilder);
@@ -519,7 +587,8 @@ public class Bldr {
     }
 
     public sealed interface TextFile extends FilePathHolder {
-        static Path containing(String suffix, String text) {
+
+        static Path tempContaining(String suffix, String text) {
             try {
                 var path = Files.createTempFile(Files.createTempDirectory("bldr"), "data", suffix);
                 Files.newOutputStream(path).write(text.getBytes());
@@ -530,7 +599,27 @@ public class Bldr {
         }
     }
 
+
+
+
     public sealed interface SourceFile extends TextFile {
+    }
+
+    public static final class CMakeLists implements SourceFile {
+        Path path;
+
+        CMakeLists(Path path) {
+            this.path = path;
+        }
+
+        public static CMakeLists of(Path path) {
+            return new CMakeLists(path);
+        }
+
+        @Override
+        public Path path() {
+            return path;
+        }
     }
 
     public static final class JavaSourceFile extends SimpleJavaFileObject implements SourceFile {
@@ -546,6 +635,7 @@ public class Bldr {
 
         JavaSourceFile(Path path) {
             super(path.toUri(), JavaFileObject.Kind.SOURCE);
+            this.path=path;
         }
 
         @Override
@@ -553,6 +643,17 @@ public class Bldr {
             return path;
         }
     }
+
+    public record Jextract(Path path) implements Executable {
+        public static Jextract of(Path path) {
+            return new Jextract(path);
+        }
+
+        public void extract(Consumer<JExtractBuilder> jextractBuilderConsumer) {
+            jextract(this, jextractBuilderConsumer);
+        }
+    }
+
 
     public record ObjectFile(Path path) implements FilePathHolder {
         public static ObjectFile of(Path path) {
@@ -587,11 +688,9 @@ public class Bldr {
         }
 
         public static XMLFile containing(String text) {
-            return XMLFile.of(TextFile.containing("xml", text));
+            return XMLFile.of(TextFile.tempContaining("xml", text));
         }
     }
-
-
 
     public record TestNGSuiteFile(Path path) implements TextFile {
         public static TestNGSuiteFile of(Path path) {
@@ -599,7 +698,7 @@ public class Bldr {
         }
 
         public static TestNGSuiteFile containing(String text) {
-            return TestNGSuiteFile.of(TextFile.containing("xml", text));
+            return TestNGSuiteFile.of(TextFile.tempContaining("xml", text));
         }
     }
 
@@ -650,70 +749,21 @@ public class Bldr {
 
     public static OS os = OS.get();
 
-    public record Java(String version, File home) {
+    public record Java(String version, Dir home) {
     }
 
     public static Java java =
-            new Java(System.getProperty("java.version"), new File(System.getProperty("java.home")));
+            new Java(System.getProperty("java.version"), Dir.of(System.getProperty("java.home")));
 
-    public record User(File home, File pwd) {
+    public record User(Dir home, Dir pwd) {
     }
 
     public static User user =
-            new User(new File(System.getProperty("user.home")), new File(System.getProperty("user.dir")));
+            new User(Dir.of(System.getProperty("user.home")), Dir.of(System.getProperty("user.dir")));
 
-  /*
-      static class POM {
-          static Pattern varPattern = Pattern.compile("\\$\\{([^}]*)\\}");
-          static public String varExpand(Map<String, String> props, String value) { // recurse
-              String result = value;
-              if (varPattern.matcher(value) instanceof Matcher matcher && matcher.find()) {
-                  var v = matcher.groupId(1);
-                  result = varExpand(props, value.substring(0, matcher.start())
-                          + (v.startsWith("env")
-                          ? System.getenv(v.substring(4))
-                          : props.get(v))
-                          + value.substring(matcher.end()));
-                  //out.println("incomming ='"+value+"'  v= '"+v+"' value='"+value+"'->'"+result+"'");
-              }
-              return result;
-          }
+    public abstract static class Result{
 
-          POM(Path dir) throws Throwable {
-              var topPom = new XMLNode(new File(dir.toFile(), "pom.xml"));
-              var babylonDirKey = "babylon.dir";
-              var spirvDirKey = "beehive.spirv.toolkit.dir";
-              var hatDirKey = "hat.dir";
-              var interestingKeys = Set.of(spirvDirKey, babylonDirKey, hatDirKey);
-              var requiredDirKeys = Set.of(babylonDirKey, hatDirKey);
-              var dirKeyToDirMap = new HashMap<String, File>();
-              var props = new HashMap<String, String>();
-
-              topPom.children.stream().filter(e -> e.element.getNodeName().equals("properties")).forEach(properties ->
-                      properties.children.stream().forEach(property -> {
-                          var key = property.element.getNodeName();
-                          var value = varExpand(props, property.element.getTextContent());
-                          props.put(key, value);
-                          if (interestingKeys.contains(key)) {
-                              var file = new File(value);
-                              if (requiredDirKeys.contains(key) && !file.exists()) {
-                                  System.err.println("ERR pom.xml has property '" + key + "' with value '" + value + "' but that dir does not exists!");
-                                  System.exit(1);
-                              }
-                              dirKeyToDirMap.put(key, file);
-                          }
-                      })
-              );
-              for (var key : requiredDirKeys) {
-                  if (!props.containsKey(key)) {
-                      System.err.println("ERR pom.xml expected to have property '" + key + "' ");
-                      System.exit(1);
-                  }
-              }
-          }
-      }
-  */
-
+    }
     public abstract static class Builder<T extends Builder<T>> {
         @SuppressWarnings("unchecked")
         T self() {
@@ -763,31 +813,76 @@ public class Bldr {
         }
     }
 
-    public abstract static class JavaToolBuilder<T extends JavaToolBuilder<T>> extends Builder<T> {
-        public ClassPath classPath;
-        public List<String> opts = new ArrayList<>();
-        public Path jdk = Path.of(System.getProperty("java.home"));
+    public static class Strings {
+        public List<String> strings = new ArrayList<>();
+        Strings(){
 
-        public T jdk(Path jdk) {
+        }
+        Strings(Strings strings){
+            add(strings);
+        }
+        Strings(List<String> strings){
+            add(strings);
+        }
+
+        Strings(String ... strings){
+            add(strings);
+        }
+
+        public Strings add(List<String> strings) {
+            this.strings.addAll(strings);
+            return this;
+        }
+
+        public Strings add(String... strings) {
+            add(Arrays.asList(strings));
+            return this;
+        }
+
+        public Strings add(Strings strings) {
+            add(strings.strings);
+            return this;
+        }
+
+        public String spaceSeperated() {
+            StringBuilder stringBuilder = new StringBuilder();
+            strings.forEach(opt->stringBuilder.append(stringBuilder.isEmpty()?"":" ").append(opt));
+            return stringBuilder.toString();
+        }
+    }
+
+    public abstract static class OptsBuilder<T extends OptsBuilder<T>> extends Builder<T> {
+        public Strings opts = new Strings();
+        public T opts(OptsBuilder<?> optsBuilder) {
+            opts.add(optsBuilder.opts);
+            return self();
+        }
+    }
+
+    public static class JavaOpts<T extends JavaOpts<T>> extends OptsBuilder<T> {
+        public Dir jdk = java.home;
+
+        public T opts(String... opts) {
+            this.opts.add(opts);
+            return self();
+        }
+
+        static public JavaOpts<?> of() {
+            return new JavaOpts<>();
+        }
+
+        public T jdk(Dir jdk) {
             this.jdk = jdk;
             return self();
         }
 
-        public T opts(List<String> opts) {
-            this.opts.addAll(opts);
-            return self();
-        }
-
-        public T opts(String... opts) {
-            opts(Arrays.asList(opts));
-            return self();
-        }
-
         public T add_exports(String fromModule, String pack, String toModule) {
-            return opts("--add-exports=" + fromModule + "/" + pack + "=" + toModule);
+             opts.add("--add-exports=" + fromModule + "/" + pack + "=" + toModule);
+             return self();
         }
-        public T add_modules(String ... modules) {
-            List.of(modules).forEach(module->  opts("--add-modules=" + module));
+
+        public T add_modules(String... modules) {
+            List.of(modules).forEach(module -> opts.add("--add-modules=" + module));
             return self();
         }
 
@@ -797,8 +892,14 @@ public class Bldr {
         }
 
         public T enable_preview() {
-            return opts("--enable-preview");
+            opts.add("--enable-preview");
+            return self();
         }
+
+    }
+
+    public abstract static class JavaToolBuilder<T extends JavaToolBuilder<T>> extends JavaOpts<T> {
+        public ClassPath classPath;
 
         public T class_path(List<ClassPathEntryProvider> classPathEntryProviders) {
             this.classPath = ClassPath.ofOrUse(this.classPath).add(classPathEntryProviders);
@@ -815,7 +916,8 @@ public class Bldr {
         public SourcePath sourcePath;
 
         public JavacBuilder source(int version) {
-            return opts("--source", Integer.toString(version));
+             opts.add("--source", Integer.toString(version));
+             return self();
         }
 
         public JavacBuilder class_dir(Path classDir) {
@@ -842,27 +944,38 @@ public class Bldr {
         }
     }
 
-    public static JavacBuilder javac(JavacBuilder javacBuilder) {
+    public static class JavacResult{
+        JavacBuilder builder;
+        Strings opts = new Strings();
+        List<JavaFileObject> classes = new ArrayList<>();
+        ClassDir classDir;
+        JavacResult(JavacBuilder builder) {
+            this.builder = builder;
+            opts.add(builder.opts);
+        }
+    }
+
+    public static JavacResult javac(JavacBuilder javacBuilder) {
+        JavacResult result = new JavacResult(javacBuilder);
+
         try {
-            if (javacBuilder.classDir == null) {
-                javacBuilder.classDir = ClassDir.temp();
-            } else {
-                javacBuilder.classDir.clean();
-            }
-            javacBuilder.opts("-d", javacBuilder.classDir.path().toString());
+            result.classDir = javacBuilder.classDir==null?ClassDir.temp():javacBuilder.classDir;
+            result.opts.add("-d", result.classDir.path().toString());
 
             if (javacBuilder.classPath != null) {
-                javacBuilder.opts("--class-path", javacBuilder.classPath.charSeparated());
+                result.opts.add("--class-path", javacBuilder.classPath.charSeparated());
             }
 
-            javacBuilder.opts("--source-path", javacBuilder.sourcePath.charSeparated());
+            result.opts.add("--source-path", javacBuilder.sourcePath.charSeparated());
 
             DiagnosticListener<JavaFileObject> diagnosticListener =
                     (diagnostic) -> {
                         if (!diagnostic.getKind().equals(Diagnostic.Kind.NOTE)) {
-                            System.out.println(
-                                    diagnostic.getKind()
+                            System.out.println("javac "
+                                    + diagnostic.getKind()
                                             + " "
+                                            +((JavaSourceFile)(diagnostic.getSource())).path().toString()
+                                            +"  "
                                             + diagnostic.getLineNumber()
                                             + ":"
                                             + diagnostic.getColumnNumber()
@@ -872,22 +985,27 @@ public class Bldr {
                     };
 
             JavaCompiler javac = javax.tools.ToolProvider.getSystemJavaCompiler();
-            JavaCompiler.CompilationTask compilationTask =
+            if (javacBuilder.verbose) {
+                println("javac "+result.opts.spaceSeperated());
+            }
+             JavaCompiler.CompilationTask compilationTask =
                     (javac.getTask(
                             new PrintWriter(System.err),
                             javac.getStandardFileManager(diagnosticListener, null, null),
                             diagnosticListener,
-                            javacBuilder.opts,
+                            result.opts.strings,
                             null,
                             javacBuilder.sourcePath.javaFiles().map(JavaSourceFile::new).toList()));
-            ((com.sun.source.util.JavacTask) compilationTask).generate();
-            return javacBuilder;
+            ((com.sun.source.util.JavacTask) compilationTask).generate().forEach(javaFileObject -> {
+                result.classes.add(javaFileObject);
+            });
+            return result;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static JavacBuilder javac(Consumer<JavacBuilder> javacBuilderConsumer) {
+    public static JavacResult javac(Consumer<JavacBuilder> javacBuilderConsumer) {
         JavacBuilder javacBuilder = new JavacBuilder();
         javacBuilderConsumer.accept(javacBuilder);
         return javac(javacBuilder);
@@ -896,14 +1014,16 @@ public class Bldr {
     public static class JavaBuilder extends JavaToolBuilder<JavaBuilder> {
         public String mainClass;
         public DirPath libraryPath;
-        public List<String> args = new ArrayList<>();
+        public boolean startOnFirstThread;
+        public Strings args = new Strings();
 
         public JavaBuilder enable_native_access(String module) {
-            return opts("--enable-native-access=" + module);
+             opts.add("--enable-native-access=" + module);
+             return self();
         }
 
         public JavaBuilder args(List<String> args) {
-            this.args.addAll(args);
+            this.args.add(args);
             return self();
         }
 
@@ -930,24 +1050,31 @@ public class Bldr {
         public JavaBuilder library_path(DirPathHolder<?>... libraryPathEntries) {
             return this.library_path(List.of(libraryPathEntries));
         }
+
+        public JavaBuilder start_on_first_thread() {
+            this.startOnFirstThread =   true;
+            return this;
+        }
     }
 
     public static JavaBuilder java(JavaBuilder javaBuilder) {
-
-        List<String> execOpts = new ArrayList<>();
-        execOpts.add(javaBuilder.jdk.resolve("bin/java").toString());
-        execOpts.addAll(javaBuilder.opts);
+        Strings execOpts = new Strings();
+        execOpts.add(javaBuilder.jdk.path().resolve("bin/java").toString());
+        if (javaBuilder.startOnFirstThread){
+            execOpts.add("-XstartOnFirstThread");
+        }
+        execOpts.add(javaBuilder.opts);
         if (javaBuilder.classPath != null) {
-            execOpts.addAll(List.of("--class-path", javaBuilder.classPath.charSeparated()));
+            execOpts.add("--class-path", javaBuilder.classPath.charSeparated());
         }
         if (javaBuilder.libraryPath != null) {
             execOpts.add("-Djava.library.path=" + javaBuilder.libraryPath.charSeparated());
         }
         execOpts.add(javaBuilder.mainClass);
-        execOpts.addAll(javaBuilder.args);
+        execOpts.add(javaBuilder.args);
 
         try {
-            var processBuilder = new ProcessBuilder().inheritIO().command(execOpts);
+            var processBuilder = new ProcessBuilder().inheritIO().command(execOpts.strings);
             var process = processBuilder.start();
             if (javaBuilder.verbose) {
                 print(execOpts);
@@ -970,16 +1097,8 @@ public class Bldr {
         return new JavaBuilder();
     }
 
-
     public static class FormatBuilder extends Bldr.Builder<FormatBuilder> {
         public Bldr.SourcePath sourcePath;
-
-        public MavenStyleRepository repo;
-
-        public FormatBuilder repo(MavenStyleRepository repo) {
-            this.repo = repo;
-            return this;
-        }
 
         public FormatBuilder source_path(List<Bldr.SourcePathEntry> sourcePaths) {
             this.sourcePath = Bldr.SourcePath.ofOrUse(this.sourcePath).add(sourcePaths);
@@ -991,48 +1110,38 @@ public class Bldr {
         }
     }
 
-    public static void format(Consumer<FormatBuilder> formatBuilderConsumer) {
+    public static void format(RepoDir repoDir, Consumer<FormatBuilder> formatBuilderConsumer) {
         var formatBuilder = new FormatBuilder();
         formatBuilderConsumer.accept(formatBuilder);
-        var dag = formatBuilder.repo.dag("com.google.googlejavaformat/google-java-format");
-        // var formatterJars = Bldr.ClassPath.of().add(dag.classPath());
+        var classPathEntries = repoDir.classPathEntries("com.google.googlejavaformat/google-java-format");
 
-        java(
-                $ ->
-                        $.verbose()
-                                .enable_preview()
-                                .enable_native_access("ALL-UNNAMED")
-                                .add_exports("java.base", "jdk.internal", "ALL-UNNAMED")
-                                .add_exports("jdk.compiler",
-                                        List.of(
-                                                "com.sun.tools.javac.api",
-                                                "com.sun.tools.javac.code",
-                                                "com.sun.tools.javac.file",
-                                                "com.sun.tools.javac.main",
-                                                "com.sun.tools.javac.parser",
-                                                "com.sun.tools.javac.tree",
-                                                "com.sun.tools.javac.util"),
-                                        "ALL-UNNAMED"
-                                )
-                                .class_path(dag.classPath())
-                                .main_class("com.google.googlejavaformat.java.Main")
-                                //  .args("--help")
-                                .args("-r")
-                                .args(formatBuilder.sourcePath.javaFiles().map(Path::toString).toList()));
+        java($ -> $
+                .verbose()
+                .enable_preview()
+                .enable_native_access("ALL-UNNAMED")
+                .add_exports("java.base", "jdk.internal", "ALL-UNNAMED")
+                .add_exports(
+                        "jdk.compiler",
+                        List.of(
+                                "com.sun.tools.javac.api",
+                                "com.sun.tools.javac.code",
+                                "com.sun.tools.javac.file",
+                                "com.sun.tools.javac.main",
+                                "com.sun.tools.javac.parser",
+                                "com.sun.tools.javac.tree",
+                                "com.sun.tools.javac.util"),
+                        "ALL-UNNAMED")
+                .class_path(classPathEntries)
+                .main_class("com.google.googlejavaformat.java.Main")
+                .args("-r")
+                .args(formatBuilder.sourcePath.javaFiles().map(Path::toString).toList()));
     }
 
     public static class TestNGBuilder extends Bldr.Builder<TestNGBuilder> {
         public Bldr.SourcePath sourcePath;
         public Bldr.ClassPath classPath;
-
-        public MavenStyleRepository repo;
         private SuiteBuilder suiteBuilder;
         private JarFile testJar;
-
-        public TestNGBuilder repo(MavenStyleRepository repo) {
-            this.repo = repo;
-            return this;
-        }
 
         public TestNGBuilder class_path(List<Bldr.ClassPathEntryProvider> classPathEntryProviders) {
             this.classPath = Bldr.ClassPath.ofOrUse(this.classPath).add(classPathEntryProviders);
@@ -1104,51 +1213,60 @@ public class Bldr {
         }
     }
 
-    public static void testng(
-            Consumer<TestNGBuilder> testNGBuilderConsumer) {
+    public static void testng(RepoDir repoDir, Consumer<TestNGBuilder> testNGBuilderConsumer) {
         var testNGBuilder = new TestNGBuilder();
         testNGBuilderConsumer.accept(testNGBuilder);
 
-        var text = XMLNode.create("suite", $ -> {
-            $.attr("name", testNGBuilder.suiteBuilder.name);
-            testNGBuilder.suiteBuilder.testBuilders.forEach(tb -> {
-                $.element("test", $$ -> $$
-                        .attr("name", tb.name)
-                        .element("classes", $$$ ->
-                                tb.classNames.forEach(className -> $$$
-                                        .element("class", $$$$->$$$$.attr("name", className))
-                                )
-                        )
-                );
-            });
-        }).toString();
+        var text =
+                XMLNode.create(
+                                "suite",
+                                $ -> {
+                                    $.attr("name", testNGBuilder.suiteBuilder.name);
+                                    testNGBuilder.suiteBuilder.testBuilders.forEach(
+                                            tb -> {
+                                                $.element(
+                                                        "test",
+                                                        $$ ->
+                                                                $$.attr("name", tb.name)
+                                                                        .element(
+                                                                                "classes",
+                                                                                $$$ ->
+                                                                                        tb.classNames.forEach(
+                                                                                                className ->
+                                                                                                        $$$.element(
+                                                                                                                "class",
+                                                                                                                $$$$ -> $$$$.attr("name", className)))));
+                                            });
+                                })
+                        .toString();
 
         TestNGSuiteFile testNGSuiteFile = Bldr.TestNGSuiteFile.containing(text);
+        var mavenJars = repoDir.classPathEntries("org.testng/testng", "org.slf4j/slf4j-api");
 
-        var dag = testNGBuilder.repo.dag("org.testng/testng", "org.slf4j/slf4j-api");
 
-        var testJar = testNGBuilder.testJar.create($ -> $.javac(
-                        $$ ->
-                                $$.source(24)
-                                        .enable_preview()
-                                        .class_path(testNGBuilder.classPath, dag)
-                                        .source_path(testNGBuilder.sourcePath)
-                )
-        );
+        var testJar =
+                testNGBuilder.testJar.create(
+                        $ ->
+                                $.javac(
+                                        $$ ->
+                                                $$.source(24)
+                                                        .enable_preview()
+                                                        .class_path(testNGBuilder.classPath, mavenJars)
+                                                        .source_path(testNGBuilder.sourcePath)));
 
         java(
                 $ ->
                         $.enable_preview()
-                                .add_exports("java.base", "jdk.internal", "ALL_UNNAMED")
+                                .add_exports("java.base", "jdk.internal", "ALL-UNNAMED")
                                 .enable_native_access("ALL-UNNAMED")
-                                .class_path(testNGBuilder.classPath, dag, testJar)
+                                .class_path(testNGBuilder.classPath, mavenJars, testJar)
                                 .main_class("org.testng.TestNG")
                                 .args(testNGSuiteFile.path().toString()));
     }
 
     public static class JarBuilder extends Builder<JarBuilder> {
         public JarFile jar;
-        public JavacBuilder javacBuilder;
+        public JavacResult javacResult;
         public DirPath dirList;
 
         public JarBuilder jar(JarFile jar) {
@@ -1157,32 +1275,19 @@ public class Bldr {
         }
 
         public JarBuilder javac(JavacBuilder javacBuilder) {
-            this.javacBuilder = Bldr.javac(javacBuilder);
+            this.javacResult = Bldr.javac(javacBuilder);
             this.dirList =
                     (this.dirList == null)
-                            ? DirPath.of().add(this.javacBuilder.classDir)
-                            : this.dirList.add(this.javacBuilder.classDir);
+                            ? DirPath.of().add(this.javacResult.classDir)
+                            : this.dirList.add(this.javacResult.classDir);
             return self();
         }
 
         public JarBuilder javac(Consumer<JavacBuilder> javacBuilderConsumer) {
-            this.javacBuilder = new JavacBuilder();
-            javacBuilderConsumer.accept(this.javacBuilder);
-            return javac(this.javacBuilder);
+            JavacBuilder javacBuilder= new JavacBuilder();
+            javacBuilderConsumer.accept(javacBuilder);
+            return javac(javacBuilder);
         }
-/*
-    public JarBuilder dir_list(Predicate<DirPathHolder<?>> predicate, DirPathHolder<?>... dirs) {
-      Stream.of(dirs)
-          .filter(predicate)
-          .forEach(
-              optionalDir -> {
-                this.dirList =
-                    (this.dirList == null)
-                        ? DirPath.of().add(optionalDir)
-                        : this.dirList.add(optionalDir);
-              });
-      return this;
-    } */
 
         public <P extends DirPathHolder<P>> JarBuilder dir_list(P holder) {
             DirPath.ofOrUse(this.dirList).add(holder);
@@ -1190,38 +1295,63 @@ public class Bldr {
         }
     }
 
-    public static JarFile jar(JarBuilder jarBuilder) {
+    public static class JarResult extends Result implements ClassPathEntryProvider{
+        JarBuilder jarBuilder;
+        Strings opts = new Strings();
+        List<RootDirAndSubPath> pathsToJar = new ArrayList<>();
+        List<Path> paths = new ArrayList<>();
+        JarFile jarFile;
+        public JarResult(JarBuilder jarBuilder) {
+            this.jarBuilder = jarBuilder;
+            this.jarFile = jarBuilder.jar;
+        }
+
+        @Override
+        public List<ClassPathEntry> classPathEntries() {
+            return List.of(jarFile);
+        }
+    }
+
+    public static JarResult jar(JarBuilder jarBuilder) {
+        JarResult result = new JarResult(jarBuilder);
         try {
-            List<RootDirAndSubPath> pathsToJar = new ArrayList<>();
+
             var jarStream = new JarOutputStream(Files.newOutputStream(jarBuilder.jar.path()));
             jarBuilder.dirList.entries.forEach(
                     root ->
                             root.findFiles()
                                     .map(path -> new RootDirAndSubPath(root, path))
-                                    .forEach(pathsToJar::add));
-            pathsToJar.stream()
+                                    .forEach(result.pathsToJar::add));
+            result.pathsToJar.stream()
                     .sorted(Comparator.comparing(RootDirAndSubPath::path))
                     .forEach(
                             rootAndPath -> {
                                 try {
+                                    result.paths.add(rootAndPath.path);
                                     var entry = new JarEntry(rootAndPath.relativize().toString());
                                     entry.setTime(Files.getLastModifiedTime(rootAndPath.path()).toMillis());
                                     jarStream.putNextEntry(entry);
                                     Files.newInputStream(rootAndPath.path()).transferTo(jarStream);
                                     jarStream.closeEntry();
+                                    if (jarBuilder.verbose){
+                                        println("INFO: adding "+rootAndPath.relativize().toString());
+                                    }
                                 } catch (IOException e) {
                                     throw new RuntimeException(e);
                                 }
                             });
             jarStream.finish();
             jarStream.close();
-            return jarBuilder.jar;
+            if (jarBuilder.verbose){
+                println("INFO: created "+jarBuilder.jar.path.toString());
+            }
+            return result;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static JarFile jar(Consumer<JarBuilder> jarBuilderConsumer) {
+    public static JarResult jar(Consumer<JarBuilder> jarBuilderConsumer) {
         JarBuilder jarBuilder = new JarBuilder();
         jarBuilderConsumer.accept(jarBuilder);
         return jar(jarBuilderConsumer);
@@ -1326,56 +1456,21 @@ public class Bldr {
         public List<String> compileFlags = new ArrayList<>();
         public List<Path> libraries = new ArrayList<>();
         public List<Path> headers = new ArrayList<>();
-        public Path cwd;
-
-        public Path home;
         private String targetPackage;
-        private Path output;
-
-        public List<String> opts = new ArrayList<>();
-
-        public JExtractBuilder opts(List<String> opts) {
-            this.opts.addAll(opts);
-            return self();
-        }
-
-        public JExtractBuilder opts(String... opts) {
-            opts(Arrays.asList(opts));
-            return self();
-        }
-
-        public JExtractBuilder() {
-            opts.add("jextract");
-        }
-
-        public JExtractBuilder cwd(Path cwd) {
-            this.cwd = cwd;
-            return this;
-        }
-
-        public JExtractBuilder home(Path home) {
-            this.home = home;
-            opts.set(0, home.resolve("bin/jextract").toString());
-            return this;
-        }
+        private BuildDir output;
 
         public JExtractBuilder target_package(String targetPackage) {
             this.targetPackage = targetPackage;
-            opts("--target-package", targetPackage);
             return this;
         }
 
-        public JExtractBuilder output(Path output) {
+        public JExtractBuilder output(BuildDir output) {
             this.output = output;
-            opts("--output", output.toString());
             return this;
         }
 
         public JExtractBuilder library(Path... libraries) {
             this.libraries.addAll(Arrays.asList(libraries));
-            for (Path library : libraries) {
-                opts("--library", ":" + library);
-            }
             return this;
         }
 
@@ -1386,45 +1481,59 @@ public class Bldr {
 
         public JExtractBuilder header(Path header) {
             this.headers.add(header);
-            this.opts.add(header.toString());
             return this;
         }
     }
 
-    public static void jextract(Consumer<JExtractBuilder> jextractBuilderConsumer) {
+    public static void jextract(Jextract executable, Consumer<JExtractBuilder> jextractBuilderConsumer) {
+        var exePath = executable.path;
+        var homePath = exePath.getParent().getParent();
+
         JExtractBuilder jExtractBuilder = new JExtractBuilder();
         jextractBuilderConsumer.accept(jExtractBuilder);
-        System.out.println(jExtractBuilder.opts);
-        var compilerFlags = jExtractBuilder.cwd.resolve("compiler_flags.txt");
+        List<String> opts = new ArrayList<>();
+        opts.add(executable.path().toString());
+
+        if (jExtractBuilder.targetPackage != null) {
+            opts.addAll(List.of("--target-package", jExtractBuilder.targetPackage));
+        }
+        if (jExtractBuilder.output != null) {
+            jExtractBuilder.output.create();
+            opts.addAll(List.of("--output", jExtractBuilder.output.path().toString()));
+        }
+        for (Path library : jExtractBuilder.libraries) {
+            opts.addAll(List.of("--library", ":" + library));
+        }
+
+        for (Path header : jExtractBuilder.headers) {
+            opts.add(header.toString());
+        }
+
+        if (jExtractBuilder.compileFlags != null && !jExtractBuilder.compileFlags.isEmpty()) {
+            jExtractBuilder.output.textFile("compile_flags.txt", jExtractBuilder.compileFlags);
+        }
+
+        if (jExtractBuilder.verbose) {
+            StringBuilder sb = new StringBuilder();
+            opts.forEach(opt -> (sb.isEmpty() ? sb : sb.append(" ")).append(opt));
+            println(sb);
+        }
+        var processBuilder = new ProcessBuilder();
+        if (jExtractBuilder.output != null) {
+            processBuilder.directory(jExtractBuilder.output.path().toFile());
+        }
+        processBuilder.inheritIO().command(opts);
         try {
-            PrintWriter compilerFlagsWriter = new PrintWriter(Files.newOutputStream(compilerFlags));
-            compilerFlagsWriter.println(jExtractBuilder.compileFlags);
-            compilerFlagsWriter.close();
-            Files.createDirectories(jExtractBuilder.output);
-            try {
-                var processBuilder = new ProcessBuilder();
-
-                if (jExtractBuilder.output != null) {
-                    processBuilder.directory(jExtractBuilder.output.toFile());
-                }
-                processBuilder.inheritIO().command(jExtractBuilder.opts);
-                var process = processBuilder.start();
-                if (jExtractBuilder.verbose) {
-                    print(jExtractBuilder.opts);
-                }
-                process.waitFor();
-
-            } catch (InterruptedException | IOException ie) {
-                System.out.println(ie);
-            }
-
-            Files.deleteIfExists(compilerFlags);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+            processBuilder.start().waitFor();
+        } catch (InterruptedException | IOException ie) {
+            throw new RuntimeException(ie);
         }
     }
 
     public record SearchableTextFile(Path path) implements TextFile {
+        static SearchableTextFile of(Path path) {
+            return new SearchableTextFile(path);
+        }
         public Stream<Line> lines() {
             try {
                 int num[] = new int[]{1};
@@ -1494,70 +1603,12 @@ public class Bldr {
         }
     }
 
-    public static Path requireJExtract(Dir thirdParty) {
-        var optional = executablesInPath("jextract").findFirst();
-        if (optional.isPresent()) {
-            println("Found jextract in PATH");
-            return optional.get().getParent().getParent(); // we want the 'HOME' dir
-        }
-        println("No jextract in PATH");
-        URL downloadURL = null;
-        var extractVersionMaj = "22";
-        var extractVersionMin = "5";
-        var extractVersionPoint = "33";
-
-        var nameArchTuple =
-                switch (os.name()) {
-                    case OS.MacName -> "macos";
-                    default -> os.name().toLowerCase();
-                }
-                        + '-'
-                        + os.arch();
-
-        try {
-            downloadURL =
-                    new URI(
-                            "https://download.java.net/java/early_access"
-                                    + "/jextract/"
-                                    + extractVersionMaj
-                                    + "/"
-                                    + extractVersionMin
-                                    + "/openjdk-"
-                                    + extractVersionMaj
-                                    + "-jextract+"
-                                    + extractVersionMin
-                                    + "-"
-                                    + extractVersionPoint
-                                    + "_"
-                                    + nameArchTuple
-                                    + "_bin.tar.gz")
-                            .toURL();
-        } catch (MalformedURLException e) {
-            throw new RuntimeException(e);
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
-        URL finalDownloadURL = downloadURL;
-
-        println("... attempting download from" + downloadURL);
-        var jextractTar = thirdParty.path("jextract.tar");
-
-        if (!isRegularFile(jextractTar)) { // Have we downloaded already?
-            jextractTar = curl(finalDownloadURL, jextractTar); // if not
-        }
-
-        var jextractHome = thirdParty.path("jextract-22");
-        if (!isDirectory(jextractHome)) {
-            untar(jextractTar, jextractHome);
-        }
-        return jextractHome;
-    }
-
-    public static Stream<Path> executablesInPath(String name) {
-        return Arrays.asList(System.getenv("PATH").split(File.pathSeparator)).stream()
+    public static Optional<Path> fromPATH(String name) {
+        return Arrays.stream(System.getenv("PATH").split(File.pathSeparator))
                 .map(dirName -> Path.of(dirName).resolve(name).normalize())
-                .filter(Files::isExecutable);
+                .filter(Files::isExecutable).findFirst();
     }
+
 
     public static <T extends PathHolder> T assertExists(T testme) {
         if (Files.exists(testme.path())) {
@@ -1573,22 +1624,5 @@ public class Bldr {
         } else {
             throw new IllegalStateException("FAILED: " + path + " does not exist");
         }
-    }
-
-    void main(String[] args) {
-        var bldrDir = Dir.current().parent().parent().parent();
-        var buildDir = BuildDir.of(bldrDir.path("build")).create();
-
-        jar(
-                $ ->
-                        $.jar(buildDir.jarFile("bldr.jar"))
-                                .javac(
-                                        $$ ->
-                                                $$.source(24)
-                                                        .enable_preview()
-                                                        .add_exports(
-                                                                "java.base", List.of("jdk.internal", "jdk.internal.vm.annotation"), "ALL-UNNAMED")
-                                                        .class_dir(buildDir.classDir("bld.jar.classes"))
-                                                        .source_path(bldrDir.sourceDir("src/main/java"))));
     }
 }
