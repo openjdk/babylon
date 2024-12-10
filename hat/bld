@@ -49,12 +49,18 @@ void main(String[] args) {
      *    |         +--hat/
      *    |
      *    +--backends
-     *    |    +--opencl                (*)
-     *    |    +--ptx                   (*)
-     *    |    +--mock                  (*)
-     *    |    +--spirv                 (*)
-     *    |    +--cuda                  (*)
-     *    |    +--hip                   (*)
+     *    |    +--java
+     *    |    |    +--mt                    (*)
+     *    |    |    +--seq                   (*)
+     *    |    +--jextracted
+     *    |    |    +--opencl                (*)
+     *    |    +--native
+     *    |    |    +--opencl                (*)
+     *    |    |    +--ptx                   (*)
+     *    |    |    +--mock                  (*)
+     *    |    |    +--spirv                 (*)
+     *    |    |    +--cuda                  (*)
+     *    |    |    +--hip                   (*)
      *    |
      *    +--examples
      *    |    +--mandel                (*)
@@ -181,11 +187,13 @@ void main(String[] args) {
             .javac(javac -> javac.copy(hatJavacOpts))
     );
 
-    // Here we create all backend jars.
-    backends
+    var nativeBackends = backends.existingDir("native");
+
+    // Here we create all native backend jars.
+    nativeBackends
        .subDirs(backend -> !backend.matches("^.*(spirv|hip|shared|target|.idea)$"))
        .forEach(backend -> {
-           var jarFile = buildDir.jarFile("hat-backend-" + backend.fileName() + "-1.0.jar");
+           var jarFile = buildDir.jarFile("hat-backend-native-" + backend.fileName() + "-1.0.jar");
            println(jarFile.fileName());
            jar(jar -> jar
               .copy(hatJarOptions)
@@ -194,6 +202,24 @@ void main(String[] args) {
               .javac(javac -> javac.copy(hatJavacOpts).class_path(hatJar))
            );
        });
+
+  // Here we create all native backend jars.
+    var javaBackends = backends.existingDir("java");
+    javaBackends
+       .subDirs(backend -> !backend.matches("^.*(target|.idea)$"))
+       .forEach(backend -> {
+           var jarFile = buildDir.jarFile("hat-backend-java-" + backend.fileName() + "-1.0.jar");
+           println(jarFile.fileName());
+           jar(jar -> jar
+              .copy(hatJarOptions)
+              .jar(jarFile)
+              .maven_style_root(backend)
+              .javac(javac -> javac.copy(hatJavacOpts).class_path(hatJar))
+           );
+       });
+
+    var jextractedBackends = backends.existingDir("jextracted");
+
           
    // here we create the example jars
     examples
@@ -229,7 +255,7 @@ void main(String[] args) {
 
     if (!cmakeBuildDir.exists()) {
         cmake($ -> $
-                .source_dir(backends)
+                .source_dir(nativeBackends)
                 .build_dir(cmakeBuildDir)
                 .copy_to(buildDir)
         );

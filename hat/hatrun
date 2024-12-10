@@ -61,9 +61,7 @@ void main(String[] argv) {
      })
      .either(!args.isEmpty(), haveBackend -> {
         var backendName = args.removeFirst();
-        if (backendName.equals("java")) {
-           haveBackend.class_path(ClassDir.of(backends.path("shared/src/main/resources")));
-        } else if (backends.dir(backendName) instanceof Dir backend && backend.exists()) {
+        if (backends.dir(backendName.replace('-','/')) instanceof Dir backend && backend.exists()) {
            haveBackend.class_path(buildDir.jarFile("hat-backend-" + backendName + "-1.0.jar"));
         } else {
            throw new RuntimeException("No such backend " + backendName);
