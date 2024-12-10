@@ -25,15 +25,39 @@
 
 package bldr;
 
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
+
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticListener;
 import javax.tools.JavaCompiler;
 import javax.tools.JavaFileObject;
 import javax.tools.SimpleJavaFileObject;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -41,12 +65,16 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
@@ -482,15 +510,15 @@ public class Bldr {
         }
 
 
-        public JarFile jarFile(String name, BiConsumer<JarBuilder, JarFile> biConsumer) {
-            var result = JarFile.of(path().resolve(name));
-            return result.create(biConsumer).jarFile;
-        }
+      //  public JarFile jarFile(String name, BiConsumer<JarBuilder, JarFile> biConsumer) {
+           // var result = JarFile.of(path().resolve(name));
+        //    return result.create(biConsumer).jarFile;
+     //   }
 
-        public JarFile jarFile(String name, Consumer<JarBuilder> consumer) {
-            var result = JarFile.of(path().resolve(name));
-            return result.create(consumer).jarFile;
-        }
+      //  public JarFile jarFile(String name, Consumer<JarBuilder> consumer) {
+           // var result = JarFile.of(path().resolve(name));
+          //  return result.create(consumer).jarFile;
+     //   }
 
         public CMakeBuildDir cMakeBuildDir(String name) {
             return CMakeBuildDir.of(path().resolve(name));
@@ -566,20 +594,6 @@ public class Bldr {
             return new JarFile(path);
         }
 
-        public JarResult create(BiConsumer<JarBuilder, JarFile> jarBuilderConsumer) {
-            JarBuilder jarBuilder = new JarBuilder();
-            jarBuilder.jar(this);
-            jarBuilderConsumer.accept(jarBuilder, this);
-            return jar(jarBuilder);
-        }
-
-        public JarResult create(Consumer<JarBuilder> jarBuilderConsumer) {
-            JarBuilder jarBuilder = new JarBuilder();
-            jarBuilder.jar(this);
-            jarBuilderConsumer.accept(jarBuilder);
-            return jar(jarBuilder);
-        }
-
         @Override
         public List<ClassPathEntry> classPathEntries() {
             return List.of(this);
@@ -649,9 +663,7 @@ public class Bldr {
             return new Jextract(path);
         }
 
-        public void extract(Consumer<JExtractBuilder> jextractBuilderConsumer) {
-            jextract(this, jextractBuilderConsumer);
-        }
+
     }
 
 
@@ -761,17 +773,30 @@ public class Bldr {
     public static User user =
             new User(Dir.of(System.getProperty("user.home")), Dir.of(System.getProperty("user.dir")));
 
-    public abstract static class Result{
 
-    }
-    public abstract static class Builder<T extends Builder<T>> {
+    public abstract sealed static class Builder<T extends Builder<T>> permits  CMakeBuilder, FormatBuilder, JExtractBuilder, JarBuilder, JavaOpts, TestNGBuilder {
+        public Builder<?> parent;
+        public boolean verbose;
+        public boolean quiet;
         @SuppressWarnings("unchecked")
         T self() {
             return (T) this;
         }
 
-        public boolean verbose;
+        public T copy(T other){
+            this.verbose = other.verbose;
+            this.quiet = other.quiet;
+            return self();
+        }
+        public T quiet(boolean quiet) {
+            this.quiet = quiet;
+            return self();
+        }
 
+        public T quiet() {
+            quiet(true);
+            return self();
+        }
         public T verbose(boolean verbose) {
             this.verbose = verbose;
             return self();
@@ -810,6 +835,21 @@ public class Bldr {
                 falseConsumer.accept(self());
             }
             return self();
+        }
+
+        Builder(Builder<?> parent){
+            this.parent = parent;
+        }
+        Builder(){
+            this(null);
+        }
+    }
+
+    public abstract static sealed class Result<T extends Builder<T>> permits JExtractResult, JarResult, JavaResult, JavacResult {
+        public boolean ok;
+        public T builder;
+        Result(T builder){
+            this.builder = builder;
         }
     }
 
@@ -851,20 +891,37 @@ public class Bldr {
         }
     }
 
-    public abstract static class OptsBuilder<T extends OptsBuilder<T>> extends Builder<T> {
-        public Strings opts = new Strings();
-        public T opts(OptsBuilder<?> optsBuilder) {
-            opts.add(optsBuilder.opts);
+
+    public static sealed  class JavaOpts<T extends JavaOpts<T>> extends Builder<T> {
+        public Dir jdk = java.home;
+        public Boolean enablePreview;
+        public Strings modules ;
+        record FromModulePackageToModule(String fromModule, String pkg, String toModule){}
+        List<FromModulePackageToModule> exports;
+
+        public T copy(T other){
+            super.copy(other);
+            if (other.jdk != null) {
+                this.jdk = other.jdk;
+            }
+            if (other.enablePreview != null) {
+                this.enablePreview=other.enablePreview;
+            }
+            if (other.modules != null) {
+               this.modules = new Strings(other.modules);
+            }
+            if (other.exports != null) {
+                this.exports = new ArrayList<>(other.exports);
+            }
+
             return self();
         }
-    }
 
-    public static class JavaOpts<T extends JavaOpts<T>> extends OptsBuilder<T> {
-        public Dir jdk = java.home;
-
-        public T opts(String... opts) {
-            this.opts.add(opts);
-            return self();
+        public JavaOpts(Builder<?> parent) {
+            super(parent);
+        }
+        public JavaOpts() {
+            super();
         }
 
         static public JavaOpts<?> of() {
@@ -876,30 +933,53 @@ public class Bldr {
             return self();
         }
 
-        public T add_exports(String fromModule, String pack, String toModule) {
-             opts.add("--add-exports=" + fromModule + "/" + pack + "=" + toModule);
+        public T add_exports(String fromModule, String pkg, String toModule) {
+             if (this.exports == null){
+                 this.exports = new ArrayList<>();
+             }
+             exports.add(new FromModulePackageToModule(fromModule, pkg, toModule));
              return self();
         }
 
         public T add_modules(String... modules) {
-            List.of(modules).forEach(module -> opts.add("--add-modules=" + module));
+            if (this.modules == null){
+                this.modules = new Strings();
+            }
+            this.modules.add(modules);
+
             return self();
         }
 
         public T add_exports(String fromModule, List<String> packages, String toModule) {
+
             packages.forEach(p -> add_exports(fromModule, p, toModule));
             return self();
         }
 
         public T enable_preview() {
-            opts.add("--enable-preview");
+            this.enablePreview = true;
             return self();
         }
 
+
+
     }
 
-    public abstract static class JavaToolBuilder<T extends JavaToolBuilder<T>> extends JavaOpts<T> {
+    public abstract sealed static class JavaToolBuilder<T extends JavaToolBuilder<T>> extends JavaOpts<T> permits JavacBuilder,JavaBuilder{
         public ClassPath classPath;
+        public T copy(T other){
+            super.copy(other);
+            if (other.classPath != null) {
+                this.classPath = ClassPath.of().add(other.classPath);
+            }
+            return self();
+        }
+        public JavaToolBuilder(Builder<?> parent) {
+            super(parent);
+        }
+        public JavaToolBuilder() {
+            super();
+        }
 
         public T class_path(List<ClassPathEntryProvider> classPathEntryProviders) {
             this.classPath = ClassPath.ofOrUse(this.classPath).add(classPathEntryProviders);
@@ -911,13 +991,42 @@ public class Bldr {
         }
     }
 
-    public static class JavacBuilder extends JavaToolBuilder<JavacBuilder> {
+    public static final class JavacBuilder extends JavaToolBuilder<JavacBuilder> {
+        public Dir mavenStyleRoot;
         public ClassDir classDir;
         public SourcePath sourcePath;
+        public ClassPath modulePath;
+        public SourcePath moduleSourcePath;
+        public Integer source;
+        public JavacBuilder copy(JavacBuilder other){
+            super.copy(other);
+            if (other.mavenStyleRoot != null){
+                throw new RuntimeException("You are copying a JavacBuilder which is already bound to maven style dir");
+            }
+            if (other.sourcePath != null){
+                throw new RuntimeException("You are copying a JavacBuilder which is already bound to a SourcePath");
+            }
+            if (other.moduleSourcePath != null){
+                throw new RuntimeException("You are copying a JavacBuilder which is already bound to a ModuleSourcePath");
+            }
 
+            if (other.source !=null){
+                this.source = other.source;
+            }
+
+            if (other.classPath != null){
+                ClassPath.ofOrUse(this.classPath).add(other.classPath);
+            }
+            return this;
+        }
         public JavacBuilder source(int version) {
-             opts.add("--source", Integer.toString(version));
+             this.source = version;
              return self();
+        }
+
+        public JavacBuilder maven_style_root(Dir mavenStyleRoot) {
+            this.mavenStyleRoot = mavenStyleRoot;
+            return this;
         }
 
         public JavacBuilder class_dir(Path classDir) {
@@ -942,16 +1051,35 @@ public class Bldr {
         public JavacBuilder source_path(SourcePath sourcePath) {
             return source_path(sourcePath.entries);
         }
+
+        public JavacBuilder module_source_path(List<SourcePathEntry> moduleSourcePathEntries) {
+            this.moduleSourcePath = SourcePath.ofOrUse(this.moduleSourcePath).add(moduleSourcePathEntries);
+            return this;
+        }
+
+        public JavacBuilder module_source_path(SourcePathEntry... moduleSourcePathEntries) {
+            return module_source_path(List.of(moduleSourcePathEntries));
+        }
+
+        public JavacBuilder module_source_path(SourcePath moduleSourcePath) {
+            return module_source_path(moduleSourcePath.entries());
+        }
+
+        public JavacBuilder(){
+            super();
+        }
+        public JavacBuilder(JarBuilder jarBuilder) {
+            super(jarBuilder);
+        }
     }
 
-    public static class JavacResult{
-        JavacBuilder builder;
+    public static final class JavacResult extends Result<JavacBuilder>{
         Strings opts = new Strings();
+        List<JavaSourceFile> sourceFiles = new ArrayList<>();
         List<JavaFileObject> classes = new ArrayList<>();
         ClassDir classDir;
         JavacResult(JavacBuilder builder) {
-            this.builder = builder;
-            opts.add(builder.opts);
+            super(builder);
         }
     }
 
@@ -959,14 +1087,61 @@ public class Bldr {
         JavacResult result = new JavacResult(javacBuilder);
 
         try {
-            result.classDir = javacBuilder.classDir==null?ClassDir.temp():javacBuilder.classDir;
-            result.opts.add("-d", result.classDir.path().toString());
-
-            if (javacBuilder.classPath != null) {
-                result.opts.add("--class-path", javacBuilder.classPath.charSeparated());
+            if (javacBuilder.source != null){
+                result.opts.add("--source", javacBuilder.source.toString());
             }
 
-            result.opts.add("--source-path", javacBuilder.sourcePath.charSeparated());
+            if (javacBuilder.enablePreview!=null && javacBuilder.enablePreview){
+                result.opts.add("--enable-preview");
+            }
+            if (javacBuilder.modules!=null){
+                javacBuilder.modules.strings.forEach(module->
+                    result.opts.add("--add-modules", module)
+                );
+            }
+
+            if (javacBuilder.exports!=null){
+                javacBuilder.exports.forEach(fpt->{
+                    result.opts.add("--add-exports=" + fpt.fromModule + "/" + fpt.pkg + "=" + fpt.toModule);
+                });
+            }
+
+            result.classDir = javacBuilder.classDir == null ? ClassDir.temp() : javacBuilder.classDir;
+            result.opts.add("-d", result.classDir.path().toString());
+            if (javacBuilder.classPath != null) {
+                result.opts.add("--class-path", javacBuilder.classPath.charSeparated());
+            }else if (javacBuilder.modulePath != null){
+            //https://dev.java/learn/modules/building/
+                result.opts.add("--module-path", javacBuilder.modulePath.charSeparated());
+            }else{
+                println("Warning no class path or module path ");
+                //throw new RuntimeException("No class path or module path provided");
+            }
+            var mavenStyleRoot =
+                    ((javacBuilder.parent instanceof JarBuilder jarBuilder) && jarBuilder.mavenStyleRoot instanceof Dir fromJarBuilder)
+                        ?fromJarBuilder
+                        :javacBuilder.mavenStyleRoot;
+
+
+            if (mavenStyleRoot == null) {
+                if (javacBuilder.sourcePath != null && !javacBuilder.sourcePath.entries.isEmpty()) {
+                    result.opts.add("--source-path", javacBuilder.sourcePath.charSeparated());
+                    result.sourceFiles.addAll(javacBuilder.sourcePath.javaFiles().map(JavaSourceFile::new).toList());
+                } else if (javacBuilder.moduleSourcePath != null && !javacBuilder.moduleSourcePath.entries.isEmpty()) {
+                    result.opts.add("--module-source-path", javacBuilder.moduleSourcePath.charSeparated());
+                    result.sourceFiles.addAll(javacBuilder.moduleSourcePath.javaFiles().map(JavaSourceFile::new).toList());
+                } else {
+                    throw new RuntimeException("No source path or module source path specified");
+                }
+            }else{
+                var sourcePath = SourcePath.of().add(SourcePathEntry.of(mavenStyleRoot.path.resolve("src/main/java")));
+                result.sourceFiles.addAll(sourcePath.javaFiles().map(JavaSourceFile::new).toList());
+                result.opts.add("--source-path", sourcePath.charSeparated());
+
+                if (javacBuilder.sourcePath != null && !javacBuilder.sourcePath.entries.isEmpty()){
+                   throw new RuntimeException("You have specified --source-path AND provided maven_style_root ");
+                }
+            }
 
             DiagnosticListener<JavaFileObject> diagnosticListener =
                     (diagnostic) -> {
@@ -985,7 +1160,7 @@ public class Bldr {
                     };
 
             JavaCompiler javac = javax.tools.ToolProvider.getSystemJavaCompiler();
-            if (javacBuilder.verbose) {
+             if (javacBuilder.verbose  || javacBuilder.parent instanceof JarBuilder jarBuilder && jarBuilder.verbose) {
                 println("javac "+result.opts.spaceSeperated());
             }
              JavaCompiler.CompilationTask compilationTask =
@@ -995,7 +1170,8 @@ public class Bldr {
                             diagnosticListener,
                             result.opts.strings,
                             null,
-                            javacBuilder.sourcePath.javaFiles().map(JavaSourceFile::new).toList()));
+                            result.sourceFiles
+                    ));
             ((com.sun.source.util.JavacTask) compilationTask).generate().forEach(javaFileObject -> {
                 result.classes.add(javaFileObject);
             });
@@ -1004,21 +1180,25 @@ public class Bldr {
             throw new RuntimeException(e);
         }
     }
-
-    public static JavacResult javac(Consumer<JavacBuilder> javacBuilderConsumer) {
-        JavacBuilder javacBuilder = new JavacBuilder();
+    public static JavacBuilder javacBuilder(Consumer<JavacBuilder> javacBuilderConsumer){
+        JavacBuilder javacBuilder= new JavacBuilder();
         javacBuilderConsumer.accept(javacBuilder);
-        return javac(javacBuilder);
+        return javacBuilder;
+    }
+    public static JavacResult javac(Consumer<JavacBuilder> javacBuilderConsumer) {
+        return javac(javacBuilder(javacBuilderConsumer));
     }
 
-    public static class JavaBuilder extends JavaToolBuilder<JavaBuilder> {
+    public static final class JavaBuilder extends JavaToolBuilder<JavaBuilder> {
         public String mainClass;
         public DirPath libraryPath;
         public boolean startOnFirstThread;
         public Strings args = new Strings();
+        public Strings nativeAccessModules = new Strings();
+        private boolean headless;
 
         public JavaBuilder enable_native_access(String module) {
-             opts.add("--enable-native-access=" + module);
+            nativeAccessModules.add(module);
              return self();
         }
 
@@ -1055,29 +1235,61 @@ public class Bldr {
             this.startOnFirstThread =   true;
             return this;
         }
+
+        public void headless() {
+            this.headless = true;
+        }
+    }
+
+    public static final class JavaResult extends Result<JavaBuilder>{
+        Strings opts = new Strings();
+        JavaResult(JavaBuilder javaBuilder) {
+            super(javaBuilder);
+        }
     }
 
     public static JavaBuilder java(JavaBuilder javaBuilder) {
-        Strings execOpts = new Strings();
-        execOpts.add(javaBuilder.jdk.path().resolve("bin/java").toString());
-        if (javaBuilder.startOnFirstThread){
-            execOpts.add("-XstartOnFirstThread");
+        JavaResult result = new JavaResult(javaBuilder);
+        result.opts.add(javaBuilder.jdk.path().resolve("bin/java").toString());
+        if (javaBuilder.enablePreview != null && javaBuilder.enablePreview){
+            result.opts.add("--enable-preview");
         }
-        execOpts.add(javaBuilder.opts);
+        if (javaBuilder.modules!=null){
+            javaBuilder.modules.strings.forEach(module->
+                    result.opts.add("--add-modules", module)
+            );
+        }
+
+        if (javaBuilder.exports!=null){
+            javaBuilder.exports.forEach(fpt->{
+                result.opts.add("--add-exports=" + fpt.fromModule + "/" + fpt.pkg + "=" + fpt.toModule);
+            });
+        }
+        if (javaBuilder.headless) {
+            result.opts.add("-Dheadless=true");
+        }
+        if (javaBuilder.startOnFirstThread){
+            result.opts.add("-XstartOnFirstThread");
+        }
+
+        javaBuilder.nativeAccessModules.strings.forEach(module->
+            result.opts.add("--enable-native-access=" + module)
+        );
+
         if (javaBuilder.classPath != null) {
-            execOpts.add("--class-path", javaBuilder.classPath.charSeparated());
+            result.opts.add("--class-path", javaBuilder.classPath.charSeparated());
         }
         if (javaBuilder.libraryPath != null) {
-            execOpts.add("-Djava.library.path=" + javaBuilder.libraryPath.charSeparated());
+            result.opts.add("-Djava.library.path=" + javaBuilder.libraryPath.charSeparated());
         }
-        execOpts.add(javaBuilder.mainClass);
-        execOpts.add(javaBuilder.args);
+        result.opts.add(javaBuilder.mainClass);
+        result.opts.add(javaBuilder.args.strings);
 
         try {
-            var processBuilder = new ProcessBuilder().inheritIO().command(execOpts.strings);
+            var processBuilder = new ProcessBuilder().inheritIO().command(result.opts.strings);
             var process = processBuilder.start();
             if (javaBuilder.verbose) {
-                print(execOpts);
+                println(result.opts.spaceSeperated());
             }
             process.waitFor();
         } catch (InterruptedException | IOException ie) {
@@ -1097,7 +1309,7 @@ public class Bldr {
         return new JavaBuilder();
     }
 
-    public static class FormatBuilder extends Bldr.Builder<FormatBuilder> {
+    public static final class FormatBuilder extends Builder<FormatBuilder> {
         public Bldr.SourcePath sourcePath;
 
         public FormatBuilder source_path(List<Bldr.SourcePathEntry> sourcePaths) {
@@ -1137,7 +1349,7 @@ public class Bldr {
                 .args(formatBuilder.sourcePath.javaFiles().map(Path::toString).toList()));
     }
 
-    public static class TestNGBuilder extends Bldr.Builder<TestNGBuilder> {
+    public static final class TestNGBuilder extends Builder<TestNGBuilder> {
         public Bldr.SourcePath sourcePath;
         public Bldr.ClassPath classPath;
         private SuiteBuilder suiteBuilder;
@@ -1244,27 +1456,29 @@ public class Bldr {
         var mavenJars = repoDir.classPathEntries("org.testng/testng", "org.slf4j/slf4j-api");
 
 
-        var testJar =
-                testNGBuilder.testJar.create(
-                        $ ->
-                                $.javac(
-                                        $$ ->
-                                                $$.source(24)
+        var testJarResult =
+                jar(jar->jar
+                        .jar(testNGBuilder.testJar)
+                        .javac(javac->javac
+                                .source(24)
                                                         .enable_preview()
                                                         .class_path(testNGBuilder.classPath, mavenJars)
-                                                        .source_path(testNGBuilder.sourcePath)));
+                                                        .source_path(testNGBuilder.sourcePath)
+                        )
+                );
 
         java(
                 $ ->
                         $.enable_preview()
                                 .add_exports("java.base", "jdk.internal", "ALL-UNNAMED")
                                 .enable_native_access("ALL-UNNAMED")
-                                .class_path(testNGBuilder.classPath, mavenJars, testJar)
+                                .class_path(testNGBuilder.classPath, mavenJars, testJarResult)
                                 .main_class("org.testng.TestNG")
                                 .args(testNGSuiteFile.path().toString()));
     }
 
-    public static class JarBuilder extends Builder<JarBuilder> {
+    public static final class JarBuilder extends Builder<JarBuilder> {
+        public Dir mavenStyleRoot;
         public JarFile jar;
         public JavacResult javacResult;
         public DirPath dirList;
@@ -1274,19 +1488,35 @@ public class Bldr {
             return self();
         }
 
-        public JarBuilder javac(JavacBuilder javacBuilder) {
+        public JarBuilder maven_style_root(Dir mavenStyleRoot) {
+            this.mavenStyleRoot = mavenStyleRoot;
+            return this;
+        }
+
+        private JarBuilder javac(JavacBuilder javacBuilder) {
             this.javacResult = Bldr.javac(javacBuilder);
+
             this.dirList =
                     (this.dirList == null)
                             ? DirPath.of().add(this.javacResult.classDir)
                             : this.dirList.add(this.javacResult.classDir);
+            if (mavenStyleRoot!=null){
+                var resources = mavenStyleRoot.dir("src/main/resources");
+                if (resources.exists()) {
+                    this.dirList.add(resources);
+                }
+            }
             return self();
         }
 
-        public JarBuilder javac(Consumer<JavacBuilder> javacBuilderConsumer) {
-            JavacBuilder javacBuilder= new JavacBuilder();
+        public JavacBuilder javacBuilder(Consumer<JavacBuilder> javacBuilderConsumer){
+            JavacBuilder javacBuilder= new JavacBuilder(this);
             javacBuilderConsumer.accept(javacBuilder);
-            return javac(javacBuilder);
+            return javacBuilder;
+        }
+
+        public JarBuilder javac(Consumer<JavacBuilder> javacBuilderConsumer) {
+            return javac(javacBuilder(javacBuilderConsumer));
         }
 
         public <P extends DirPathHolder<P>> JarBuilder dir_list(P holder) {
@@ -1295,20 +1525,23 @@ public class Bldr {
         }
     }
 
-    public static class JarResult extends Result implements ClassPathEntryProvider{
-        JarBuilder jarBuilder;
-        Strings opts = new Strings();
-        List<RootDirAndSubPath> pathsToJar = new ArrayList<>();
-        List<Path> paths = new ArrayList<>();
-        JarFile jarFile;
+    public static final class JarResult extends Result<JarBuilder> implements ClassPathEntryProvider{
+        public Strings opts = new Strings();
+        public List<RootDirAndSubPath> pathsToJar = new ArrayList<>();
+        public List<Path> paths = new ArrayList<>();
+        public JarFile jarFile;
         public JarResult(JarBuilder jarBuilder) {
-            this.jarBuilder = jarBuilder;
+            super(jarBuilder);
             this.jarFile = jarBuilder.jar;
         }
 
         @Override
         public List<ClassPathEntry> classPathEntries() {
             return List.of(jarFile);
+        }
+
+        @Override public String toString(){
+            return jarFile.path.toString();
         }
     }
 
@@ -1351,13 +1584,17 @@ public class Bldr {
         }
     }
 
-    public static JarResult jar(Consumer<JarBuilder> jarBuilderConsumer) {
-        JarBuilder jarBuilder = new JarBuilder();
+    public static JarBuilder jarBuilder(Consumer<JarBuilder> jarBuilderConsumer){
+        JarBuilder jarBuilder= new JarBuilder();
         jarBuilderConsumer.accept(jarBuilder);
-        return jar(jarBuilderConsumer);
+        return jarBuilder;
     }
 
-    public static class CMakeBuilder extends Builder<CMakeBuilder> {
+    public static JarResult jar(Consumer<JarBuilder> jarBuilderConsumer) {
+        return jar(jarBuilder(jarBuilderConsumer));
+    }
+
+    public static final class CMakeBuilder extends Builder<CMakeBuilder> {
         public List<String> libraries = new ArrayList<>();
         public CMakeBuildDir cmakeBuildDir;
         public Dir sourceDir;
@@ -1452,82 +1689,105 @@ public class Bldr {
         return dir;
     }
 
-    public static class JExtractBuilder extends Builder<JExtractBuilder> {
-        public List<String> compileFlags = new ArrayList<>();
+    public static final class JExtractBuilder extends Builder<JExtractBuilder> {
+        public Strings compileFlags = new Strings();
         public List<Path> libraries = new ArrayList<>();
         public List<Path> headers = new ArrayList<>();
         private String targetPackage;
         private BuildDir output;
 
+        public JExtractBuilder copy(JExtractBuilder other){
+            this.compileFlags = new Strings(other.compileFlags);
+            if (other.targetPackage != null){
+                throw new RuntimeException("You are copying jextract builder already bound to a target package");
+            }
+            if (other.output != null){
+                throw new RuntimeException("You are copying jextract builder already bound to output directory");
+            }
+            if (!other.libraries.isEmpty()){
+                throw new RuntimeException("You are copying jextract builder already bound to library(ies)");
+            }
+            if (!other.headers.isEmpty()){
+                throw new RuntimeException("You are copying jextract builder already bound to headers library(ies)");
+            }
+            return self();
+        }
         public JExtractBuilder target_package(String targetPackage) {
             this.targetPackage = targetPackage;
-            return this;
+            return  self();
         }
 
         public JExtractBuilder output(BuildDir output) {
             this.output = output;
-            return this;
+            return  self();
         }
 
         public JExtractBuilder library(Path... libraries) {
             this.libraries.addAll(Arrays.asList(libraries));
-            return this;
+            return  self();
         }
 
         public JExtractBuilder compile_flag(String... compileFlags) {
-            this.compileFlags.addAll(Arrays.asList(compileFlags));
-            return this;
+            this.compileFlags.add(compileFlags);
+            return  self();
         }
 
         public JExtractBuilder header(Path header) {
             this.headers.add(header);
-            return this;
+            return  self();
         }
     }
 
-    public static void jextract(Jextract executable, Consumer<JExtractBuilder> jextractBuilderConsumer) {
+    public static final class JExtractResult extends Result<JExtractBuilder>{
+public Strings opts = new Strings();
+        JExtractResult(JExtractBuilder builder) {
+            super(builder);
+        }
+    }
+
+    public static JExtractResult jextract(Jextract executable, Consumer<JExtractBuilder> jextractBuilderConsumer) {
+
         var exePath = executable.path;
         var homePath = exePath.getParent().getParent();
 
         JExtractBuilder jExtractBuilder = new JExtractBuilder();
+        JExtractResult result = new JExtractResult(jExtractBuilder);
         jextractBuilderConsumer.accept(jExtractBuilder);
-        List<String> opts = new ArrayList<>();
-        opts.add(executable.path().toString());
+        result.opts.add(executable.path().toString());
 
         if (jExtractBuilder.targetPackage != null) {
-            opts.addAll(List.of("--target-package", jExtractBuilder.targetPackage));
+            result.opts.add("--target-package", jExtractBuilder.targetPackage);
         }
         if (jExtractBuilder.output != null) {
             jExtractBuilder.output.create();
-            opts.addAll(List.of("--output", jExtractBuilder.output.path().toString()));
+            result.opts.add("--output", jExtractBuilder.output.path().toString());
         }
         for (Path library : jExtractBuilder.libraries) {
-            opts.addAll(List.of("--library", ":" + library));
+            result.opts.add("--library", ":" + library);
         }
 
         for (Path header : jExtractBuilder.headers) {
-            opts.add(header.toString());
+            result.opts.add(header.toString());
         }
 
-        if (jExtractBuilder.compileFlags != null && !jExtractBuilder.compileFlags.isEmpty()) {
-            jExtractBuilder.output.textFile("compile_flags.txt", jExtractBuilder.compileFlags);
+        if (jExtractBuilder.compileFlags != null && !jExtractBuilder.compileFlags.strings.isEmpty()) {
+            jExtractBuilder.output.textFile("compile_flags.txt", jExtractBuilder.compileFlags.strings);
         }
 
         if (jExtractBuilder.verbose) {
-            StringBuilder sb = new StringBuilder();
-            opts.forEach(opt -> (sb.isEmpty() ? sb : sb.append(" ")).append(opt));
-            println(sb);
+            println(result.opts.spaceSeperated());
         }
         var processBuilder = new ProcessBuilder();
         if (jExtractBuilder.output != null) {
             processBuilder.directory(jExtractBuilder.output.path().toFile());
         }
-        processBuilder.inheritIO().command(opts);
+        processBuilder.inheritIO().command(result.opts.strings);
         try {
             processBuilder.start().waitFor();
         } catch (InterruptedException | IOException ie) {
             throw new RuntimeException(ie);
         }
+        return result;
     }
 
     public record SearchableTextFile(Path path) implements TextFile {
@@ -1624,5 +1884,2027 @@ public class Bldr {
         } else {
             throw new IllegalStateException("FAILED: " + path + " does not exist");
         }
+    }
+
+    public static class CMakeProbe implements Capabilities.Probe {
+        public interface CMakeVar<T> {
+            String name();
+
+            T value();
+        }
+
+        public record CMakeTypedVar(String name, String type, String value, String comment)
+                implements CMakeVar<String> {
+            static final Regex regex = Regex.of("^_*(?:CMAKE_)?([A-Za-z0-9_]+):([^=]*)=(.*)$");
+
+            CMakeTypedVar(Matcher matcher, String comment) {
+                this(
+                        "CMAKE_" + matcher.group(1).trim(),
+                        matcher.group(2).trim(),
+                        matcher.group(3).trim(),
+                        comment.substring(2).trim());
+            }
+
+            static boolean onMatch(String line, String comment, Consumer<CMakeTypedVar> consumer) {
+                return regex.matches(line, matcher -> consumer.accept(new CMakeTypedVar(matcher, comment)));
+            }
+        }
+
+        public record CMakeSimpleVar(String name, String value) implements CMakeVar {
+            static final Regex regex = Regex.of("^_*(?:CMAKE_)?([A-Za-z0-9_]+)=\\{<\\{(.*)\\}>\\}$");
+
+            CMakeSimpleVar(Matcher matcher) {
+                this(
+                        "CMAKE_" + matcher.group(1).trim(),
+                        (matcher.group(2).isEmpty()) ? "" : matcher.group(2).trim());
+            }
+
+            static boolean onMatch(String line, String comment, Consumer<CMakeSimpleVar> consumer) {
+                return regex.matches(line, matcher -> consumer.accept(new CMakeSimpleVar(matcher)));
+            }
+        }
+
+        public record CMakeDirVar(String name, DirPathHolder value) implements CMakeVar {
+            static final Regex regex = Regex.of("^_*(?:CMAKE_)?([A-Za-z0-9_]+)=\\{<\\{(.*)\\}>\\}$");
+
+            static boolean onMatch(String line, String comment, Consumer<CMakeSimpleVar> consumer) {
+                return regex.matches(line, matcher -> consumer.accept(new CMakeSimpleVar(matcher)));
+            }
+        }
+
+        public record CMakeContentVar(String name, String value) implements CMakeVar {
+            static final Regex startRegex = Regex.of("^_*(?:CMAKE_)?([A-Za-z0-9_]+)=\\{<\\{(.*)$");
+            static final Regex endRegex = Regex.of("^(.*)\\}>\\}$");
+        }
+
+        public record CMakeRecipeVar(String name, String value) implements CMakeVar<String> {
+            static final Regex varPattern = Regex.of("<([^>]*)>");
+            static final Regex regex = Regex.of("^_*(?:CMAKE_)?([A-Za-z0-9_]+)=\\{<\\{<(.*)>\\}>\\}$");
+
+            CMakeRecipeVar(Matcher matcher) {
+                this(
+                        "CMAKE_" + matcher.group(1).trim(),
+                        "<" + ((matcher.group(2).isEmpty()) ? "" : matcher.group(2).trim()) + ">");
+            }
+
+            public String expandRecursively(Map<String, CMakeVar<?>> varMap, String value) { // recurse
+                String result = value;
+                if (varPattern.pattern().matcher(value) instanceof Matcher matcher && matcher.find()) {
+                    var v = matcher.group(1);
+                    if (varMap.containsKey(v)) {
+                        String replacement = varMap.get(v).value().toString();
+                        result =
+                                expandRecursively(
+                                        varMap,
+                                        value.substring(0, matcher.start())
+                                                + replacement
+                                                + value.substring(matcher.end()));
+                    }
+                }
+                return result;
+            }
+
+            public String expand(Map<String, CMakeVar<?>> vars) {
+                return expandRecursively(vars, value());
+            }
+
+            static boolean onMatch(String line, String comment, Consumer<CMakeRecipeVar> consumer) {
+                return regex.matches(line, matcher -> consumer.accept(new CMakeRecipeVar(matcher)));
+            }
+        }
+
+        BuildDir dir;
+
+        Map<String, CMakeVar<?>> varMap = new HashMap<>();
+
+        public CMakeProbe(BuildDir dir, Capabilities capabilities) {
+            this.dir = BuildDir.of(dir.path("cmakeprobe"));
+            this.dir.clean();
+
+            try {
+                this.dir.cmakeLists($-> {$
+                        .append(
+                             """
+                             cmake_minimum_required(VERSION 3.21)
+                             project(cmakeprobe)
+                             set(CMAKE_CXX_STANDARD 14)
+                             foreach(VarName ${VarNames})
+                                message("${VarName}={<{${${VarName}}}>}")
+                             endforeach()
+                             """);
+                            capabilities
+                                    .capabilities()
+                                    .filter(capability -> capability instanceof Capabilities.CMakeCapability)
+                                    .map(capability -> (Capabilities.CMakeCapability) capability)
+                                    .forEach(p -> $.append("find_package(").append(p.name).append(")\n")
+                            );
+
+                            //println("content = {"+$+"}");
+                        });
+
+                var cmakeProcessBuilder =
+                        new ProcessBuilder()
+                                .directory(this.dir.path().toFile())
+                                .redirectErrorStream(true)
+                                .command("cmake", "-LAH")
+                                .start();
+                List<String> lines =
+                        new BufferedReader(new InputStreamReader(cmakeProcessBuilder.getInputStream()))
+                                .lines()
+                                .toList();
+
+                String comment = null;
+                String contentName = null;
+                StringBuilder content = null;
+
+                for (String line : lines) {
+
+                 //   frameworkMap.values().forEach(framework ->
+                   //     framework.regex.matches(line,
+                    //            m->println(line)
+                     //   )
+                    //);
+                    if (line.startsWith("//")) {
+                        comment = line;
+                        content = null;
+
+                    } else if (comment != null) {
+                        if (CMakeTypedVar.onMatch(
+                                line,
+                                comment,
+                                v -> {
+                                    if (varMap.containsKey(v.name())) {
+                                        var theVar = varMap.get(v.name());
+                                        if (theVar.value().equals(v.value())) {
+                                          /*  println(
+                                                    "replacing duplicate variable with typed variant with the name same value"
+                                                            + v
+                                                            + theVar);*/
+                                        } else {
+                                            throw new IllegalStateException(
+                                                    "Duplicate variable name different value: " + v + theVar);
+                                        }
+                                        varMap.put(v.name(), v);
+                                    } else {
+                                        varMap.put(v.name(), v);
+                                    }
+                                })) {
+                        } else {
+                            println("failed to parse " + line);
+                        }
+                        comment = null;
+                        content = null;
+                        contentName = null;
+                    } else if (!line.isEmpty()) {
+                        if (content != null) {
+                            if (CMakeContentVar.endRegex.pattern().matcher(line) instanceof Matcher matcher
+                                    && matcher.matches()) {
+                                content.append("\n").append(matcher.group(1));
+                                var v = new CMakeContentVar(contentName, content.toString());
+                                contentName = null;
+                                content = null;
+                                varMap.put(v.name(), v);
+                            } else {
+                                content.append("\n").append(line);
+                            }
+                        } else if (!line.endsWith("}>}")
+                                && CMakeContentVar.startRegex.pattern().matcher(line) instanceof Matcher matcher
+                                && matcher.matches()) {
+                            contentName = "CMAKE_" + matcher.group(1);
+                            content = new StringBuilder(matcher.group(2));
+                        } else if (CMakeRecipeVar.regex.pattern().matcher(line) instanceof Matcher matcher
+                                && matcher.matches()) {
+                            CMakeVar<String> v = new CMakeRecipeVar(matcher);
+                            if (varMap.containsKey(v.name())) {
+                                var theVar = varMap.get(v.name());
+                                if (theVar.value().equals(v.value())) {
+                                  //  println("Skipping duplicate variable name different value: " + v + theVar);
+                                } else {
+                                    throw new IllegalStateException(
+                                            "Duplicate variable name different value: " + v + theVar);
+                                }
+                                varMap.put(v.name(), v);
+                            } else {
+                                varMap.put(v.name(), v);
+                            }
+                        } else if (CMakeSimpleVar.regex.pattern().matcher(line) instanceof Matcher matcher
+                                && matcher.matches()) {
+                            var v =  new CMakeSimpleVar(matcher);
+                            if (varMap.containsKey(v.name())) {
+                                var theVar = varMap.get(v.name());
+                                if (theVar.value().equals(v.value())) {
+                                   // println("Skipping duplicate variable name different value: " + v + theVar);
+                                } else {
+                                    //throw new IllegalStateException(
+                                      //      "Duplicate variable name different vars: " + v + theVar);
+                                }
+                                // note we don't replace a Typed with a Simple
+                            } else {
+                                varMap.put(v.name(), v);
+                            }
+                        } else {
+                           // println("Skipping " + line);
+                        }
+                    }
+                }
+
+            } catch (IOException ioe) {
+                throw new RuntimeException(ioe);
+            }
+
+            capabilities
+                    .capabilities()
+                    .filter(capability -> capability instanceof Capabilities.CMakeCapability)
+                    .map(capability->(Capabilities.CMakeCapability)capability)
+                    .forEach(capability -> capability.setCmakeProbe(this));
+
+        }
+
+        ObjectFile cxxCompileObject(
+                ObjectFile target, CppSourceFile source, List<String> frameworks) {
+            CMakeRecipeVar compileObject = (CMakeRecipeVar) varMap.get("CMAKE_CXX_COMPILE_OBJECT");
+            Map<String, CMakeVar<?>> localVars = new HashMap<>(varMap);
+            localVars.put("DEFINES", new CMakeSimpleVar("DEFINES", ""));
+            localVars.put("INCLUDES", new CMakeSimpleVar("INCLUDES", ""));
+            localVars.put("FLAGS", new CMakeSimpleVar("FLAGS", ""));
+            localVars.put("OBJECT", new CMakeSimpleVar("OBJECT", target.path().toString()));
+            localVars.put("SOURCE", new CMakeSimpleVar("SOURCE", source.path().toString()));
+            String executable = compileObject.expand(localVars);
+            println(executable);
+            return target;
+        }
+
+        ExecutableFile cxxLinkExecutable(
+                ExecutableFile target, List<ObjectFile> objFiles, List<String> frameworks) {
+            CMakeRecipeVar linkExecutable = (CMakeRecipeVar) varMap.get("CMAKE_CXX_LINK_EXECUTABLE");
+            Map<String, CMakeVar<?>> localVars = new HashMap<>(varMap);
+            String executable = linkExecutable.expand(localVars);
+            println(executable);
+            return target;
+        }
+
+        SharedLibraryFile cxxCreateSharedLibrary(
+                SharedLibraryFile target, List<ObjectFile> objFiles, List<String> frameworks) {
+            CMakeRecipeVar createSharedLibrary =
+                    (CMakeRecipeVar) varMap.get("CMAKE_CXX_CREATE_SHARED_LIBRARY");
+            Map<String, CMakeVar<?>> localVars = new HashMap<>(varMap);
+            String executable = createSharedLibrary.expand(localVars);
+            println(executable);
+            return target;
+        }
+
+
+        public String value(String key) {
+            var  v = varMap.get(key);
+            return v.value().toString();
+        }
+
+        public  boolean hasKey(String includeDirKey) {
+            return varMap.containsKey(includeDirKey);
+        }
+
+    }
+
+    public static class Capabilities {
+        interface Probe{
+
+        }
+        public static abstract class Capability {
+            final public String name;
+            Capability(String name) {
+                this.name=name;
+            }
+            public abstract boolean available();
+
+
+        }
+        public static abstract class CMakeCapability extends Capability {
+            CMakeProbe cmakeProbe;
+            CMakeCapability(String name) {
+                super(name);
+            }
+            public  void setCmakeProbe(CMakeProbe cmakeProbe){
+                this.cmakeProbe = cmakeProbe;
+            }
+        }
+
+        public Map<String, Capability> capabilityMap = new HashMap<>();
+
+        public static Capabilities of(Capability... capabilities) {
+            return new Capabilities(capabilities);
+        }
+
+        public Stream<Capability> capabilities() {
+            return capabilityMap.values().stream();
+        }
+        public Stream<Capability> capabilities(Predicate<Capability> filter) {
+            return capabilities().filter(filter);
+        }
+
+        public boolean capabilityIsAvailable(String name) {
+            return capabilities().anyMatch(c-> c.name.equalsIgnoreCase(name));
+        }
+
+        private Capabilities(Capability... capabilities){
+            List.of(capabilities).forEach(capability ->
+                    capabilityMap.put(capability.name, capability)
+            );
+        }
+
+        public static class OpenCL extends CMakeCapability {
+            public static String includeDirKey  = "CMAKE_OpenCL_INCLUDE_DIR";
+            public static String libKey  = "CMAKE_OpenCL_LIBRARY";
+            public static String osxSysroot = "CMAKE_OSX_SYSROOT";
+            public OpenCL() {
+                super("OpenCL");
+            }
+            public static OpenCL of(){
+                return new OpenCL();
+            }
+            public String appLibFrameworks() {
+                return cmakeProbe.value(osxSysroot);
+            }
+
+            @Override
+            public boolean available() {
+                return cmakeProbe.hasKey(includeDirKey);
+            }
+            public String lib(){
+                return cmakeProbe.value(libKey);
+            }
+
+            public String includeDir(){
+                return cmakeProbe.value(includeDirKey);
+            }
+        }
+
+        public static class OpenGL extends CMakeCapability {
+            public static String includeDirKey  = "CMAKE_OPENGL_INCLUDE_DIR";
+            public OpenGL() {
+                super("OpenGL");
+            }
+            public static OpenGL of(){
+                return new OpenGL();
+            }
+            @Override
+            public boolean available() {
+                return cmakeProbe.hasKey(includeDirKey);
+            }
+            Dir includeDir(){
+                return Dir.of(Path.of(cmakeProbe.value(includeDirKey)));
+            }
+        }
+
+        public static class HIP extends CMakeCapability {
+            public HIP() {
+                super("HIP");
+            }
+            public static HIP of(){
+                return new HIP();
+            }
+            @Override
+            public boolean available() {
+                return false;
+            }
+        }
+        public static class CUDA extends CMakeCapability {
+            public static String sdkRootDirKey  = "CMAKE_CUDA_SDK_ROOT_DIR";
+            public static String sdkRootDirNotFoundValue  = "CUDA_SDK_ROOT_DIR-NOTFOUND";
+            public CUDA() {
+                super("CUDA");
+            }
+            public static CUDA of(){
+                return new CUDA();
+            }
+            @Override
+            public boolean available() {
+                return cmakeProbe.hasKey(sdkRootDirKey) && !cmakeProbe.value(sdkRootDirKey).equals(sdkRootDirNotFoundValue);
+            }
+        }
+
+
+
+    }
+
+    static record Regex(Pattern pattern) {
+        Regex(String regex) {
+            this(Pattern.compile(regex));
+        }
+
+        public static Regex of(String regexString) {
+            return new Regex(regexString);
+        }
+
+        boolean matches(String text, Consumer<Matcher> matcherConsumer) {
+            if (pattern().matcher(text) instanceof Matcher matcher && matcher.matches()) {
+                matcherConsumer.accept(matcher);
+                return true;
+            } else {
+                return false;
+            }
+        }
+    }
+
+    public static class XMLNode {
+        org.w3c.dom.Element element;
+        List<XMLNode> children = new ArrayList<>();
+        Map<String, String> attrMap = new HashMap<>();
+
+        public static class AbstractXMLBuilder<T extends AbstractXMLBuilder<T>> {
+            final public org.w3c.dom.Element element;
+            @SuppressWarnings("unchecked")
+            public T self() {
+                return (T) this;
+            }
+
+            public T attr(String name, String value) {
+                // var att = element.getOwnerDocument().createAttribute(name);
+                // att.setValue(value);
+                element.setAttribute(name, value);
+                // element.appendChild(att);
+                return self();
+            }
+
+            public T attr(URI uri, String name, String value) {
+                // var att = element.getOwnerDocument().createAttribute(name);
+                // att.setValue(value);
+                element.setAttributeNS(uri.toString(), name, value);
+                // element.appendChild(att);
+                return self();
+            }
+
+            public T element(String name, Function<Element, T> factory, Consumer<T> xmlBuilderConsumer) {
+                var node = element.getOwnerDocument().createElement(name);
+                element.appendChild(node);
+                var builder = factory.apply(node);
+                xmlBuilderConsumer.accept(builder);
+                return self();
+            }
+
+            public T element(
+                    URI uri, String name, Function<Element, T> factory, Consumer<T> xmlBuilderConsumer) {
+                var node = element.getOwnerDocument().createElementNS(uri.toString(), name);
+                element.appendChild(node);
+                var builder = factory.apply(node);
+                xmlBuilderConsumer.accept(builder);
+                return self();
+            }
+
+            AbstractXMLBuilder(Element element) {
+                this.element = element;
+            }
+
+            public T text(String thisText) {
+                var node = element.getOwnerDocument().createTextNode(thisText);
+                element.appendChild(node);
+                return self();
+            }
+
+            public T comment(String thisComment) {
+                var node = element.getOwnerDocument().createComment(thisComment);
+                element.appendChild(node);
+                return self();
+            }
+
+            <L> T forEach(List<L> list, BiConsumer<T, L> biConsumer) {
+                list.forEach(l -> biConsumer.accept(self(), l));
+                return self();
+            }
+
+            <L> T forEach(Stream<L> stream, BiConsumer<T, L> biConsumer) {
+                stream.forEach(l -> biConsumer.accept(self(), l));
+                return self();
+            }
+
+            <L> T forEach(Stream<L> stream, Consumer<L> consumer) {
+                stream.forEach(consumer);
+                return self();
+            }
+
+            protected T then(Consumer<T> xmlBuilderConsumer) {
+                xmlBuilderConsumer.accept(self());
+                return self();
+            }
+        }
+
+        public static class PomXmlBuilder extends AbstractXMLBuilder<bldr.Bldr.XMLNode.PomXmlBuilder> {
+            PomXmlBuilder(Element element) {
+                super(element);
+            }
+
+            public PomXmlBuilder element(String name, Consumer<PomXmlBuilder> xmlBuilderConsumer) {
+                return element(name, PomXmlBuilder::new, xmlBuilderConsumer);
+            }
+
+            public PomXmlBuilder element(URI uri, String name, Consumer<PomXmlBuilder> xmlBuilderConsumer) {
+                return element(uri, name, PomXmlBuilder::new, xmlBuilderConsumer);
+            }
+
+            public PomXmlBuilder modelVersion(String s) {
+                return element("modelVersion", $ -> $.text(s));
+            }
+
+            public PomXmlBuilder pom(String groupId, String artifactId, String version) {
+                return modelVersion("4.0.0").packaging("pom").ref(groupId, artifactId, version);
+            }
+
+            public PomXmlBuilder jar(String groupId, String artifactId, String version) {
+                return modelVersion("4.0.0").packaging("jar").ref(groupId, artifactId, version);
+            }
+
+            public PomXmlBuilder groupId(String s) {
+                return element("groupId", $ -> $.text(s));
+            }
+
+            public PomXmlBuilder artifactId(String s) {
+                return element("artifactId", $ -> $.text(s));
+            }
+
+            public PomXmlBuilder packaging(String s) {
+                return element("packaging", $ -> $.text(s));
+            }
+
+            public PomXmlBuilder version(String s) {
+                return element("version", $ -> $.text(s));
+            }
+
+            public PomXmlBuilder build(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+                return element("build", pomXmlBuilderConsumer);
+            }
+
+            public PomXmlBuilder plugins(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+                return element("plugins", pomXmlBuilderConsumer);
+            }
+
+            public PomXmlBuilder plugin(
+                    String groupId,
+                    String artifactId,
+                    String version,
+                    Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+                return element(
+                        "plugin", $ -> $.ref(groupId, artifactId, version).then(pomXmlBuilderConsumer));
+            }
+
+            public PomXmlBuilder antPlugin(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+                return plugin(
+                        "org.apache.maven.plugins",
+                        "maven-antrun-plugin",
+                        "1.8",
+                        pomXmlBuilderConsumer);
+            }
+            public PomXmlBuilder surefirePlugin(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+                return plugin(
+                        "org.apache.maven.plugins",
+                        "maven-surefire-plugin",
+                        "3.1.2",
+                        pomXmlBuilderConsumer);
+            }
+
+            public PomXmlBuilder compilerPlugin(
+                    Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+                return plugin(
+                        "org.apache.maven.plugins",
+                        "maven-compiler-plugin",
+                        "3.11.0",pomXmlBuilderConsumer
+                      );
+            }
+
+            public PomXmlBuilder execPlugin(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+                return plugin("org.codehaus.mojo", "exec-maven-plugin", "3.1.0", pomXmlBuilderConsumer);
+            }
+
+
+            public PomXmlBuilder plugin(
+                    String groupId, String artifactId, Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+                return element("plugin", $ -> $.groupIdArtifactId(groupId, artifactId).then(pomXmlBuilderConsumer));
+            }
+
+            public PomXmlBuilder plugin(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+                return element("plugin", pomXmlBuilderConsumer);
+            }
+
+            public PomXmlBuilder parent(String groupId, String artifactId, String version) {
+                return parent(parent -> parent.ref(groupId, artifactId, version));
+            }
+
+            public PomXmlBuilder parent(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+                return element("parent", pomXmlBuilderConsumer);
+            }
+
+            public PomXmlBuilder pluginManagement(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+                return element("pluginManagement", pomXmlBuilderConsumer);
+            }
+
+            public PomXmlBuilder file(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+                return element("file", pomXmlBuilderConsumer);
+            }
+
+            public PomXmlBuilder activation(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+                return element("activation", pomXmlBuilderConsumer);
+            }
+
+            public PomXmlBuilder profiles(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+                return element("profiles", pomXmlBuilderConsumer);
+            }
+
+            public PomXmlBuilder profile(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+                return element("profile", pomXmlBuilderConsumer);
+            }
+
+            public PomXmlBuilder arguments(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+                return element("arguments", pomXmlBuilderConsumer);
+            }
+
+            public PomXmlBuilder executions(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+                return element("executions", pomXmlBuilderConsumer);
+            }
+
+            public PomXmlBuilder execution(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+                return element("execution", pomXmlBuilderConsumer);
+            }
+
+            public PomXmlBuilder execIdPhaseConf(
+                    String id, String phase, Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+                return execution(execution -> execution.id(id).phase(phase).goals(gs -> gs.goal("exec")).configuration(pomXmlBuilderConsumer));
+            }
+
+            public PomXmlBuilder exec(
+                    String phase, String executable, Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+                return execIdPhaseConf(
+                        executable + "-" + phase,
+                        phase,
+                        conf -> conf.executable(executable).arguments(pomXmlBuilderConsumer));
+            }
+
+            public PomXmlBuilder cmake(
+                    String id, String phase, Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+                return execIdPhaseConf(
+                        id, phase, conf -> conf.executable("cmake").arguments(pomXmlBuilderConsumer));
+            }
+
+            public PomXmlBuilder cmake(String id, String phase, String... args) {
+                return execIdPhaseConf(
+                        id,
+                        phase,
+                        conf ->
+                                conf.executable("cmake")
+                                        .arguments(arguments -> arguments.forEach(Stream.of(args), arguments::argument)));
+            }
+
+            public PomXmlBuilder jextract(String id, String phase, String... args) {
+                return execIdPhaseConf(
+                        id,
+                        phase,
+                        conf ->
+                                conf.executable("jextract")
+                                        .arguments(arguments -> arguments.forEach(Stream.of(args), arguments::argument)));
+            }
+
+            public PomXmlBuilder ant(
+                    String id, String phase, String goal, Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+                return execution(execution -> execution
+                                        .id(id)
+                                        .phase(phase)
+                                        .goals(gs -> gs.goal(goal))
+                                        .configuration(configuration -> configuration.target(pomXmlBuilderConsumer)));
+            }
+
+            public PomXmlBuilder goals(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+                return element("goals", pomXmlBuilderConsumer);
+            }
+
+            public PomXmlBuilder target(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+                return element("target", pomXmlBuilderConsumer);
+            }
+
+            public PomXmlBuilder configuration(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+                return element("configuration", pomXmlBuilderConsumer);
+            }
+
+            public PomXmlBuilder compilerArgs(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+                return element("compilerArgs", pomXmlBuilderConsumer);
+            }
+
+            public PomXmlBuilder compilerArgs(String... args) {
+                return element("compilerArgs", $ -> $.forEach(Stream.of(args), $::arg));
+            }
+
+            public PomXmlBuilder properties(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+                return element("properties", pomXmlBuilderConsumer);
+            }
+
+            public PomXmlBuilder dependencies(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+                return element("dependencies", pomXmlBuilderConsumer);
+            }
+
+            public PomXmlBuilder dependsOn(String groupId, String artifactId, String version) {
+                return element("dependencies", $ -> $.dependency(groupId, artifactId, version));
+            }
+            public PomXmlBuilder dependsOn(String groupId, String artifactId, String version, String phase) {
+                return element("dependencies", $ -> $.dependency(groupId, artifactId, version, phase));
+            }
+
+            public PomXmlBuilder dependency(String groupId, String artifactId, String version) {
+                return dependency($ -> $.ref(groupId, artifactId, version));
+            }
+
+            public PomXmlBuilder dependency(
+                    String groupId, String artifactId, String version, String scope) {
+                return dependency($ -> $.ref(groupId, artifactId, version).scope(scope));
+            }
+
+            public PomXmlBuilder dependency(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+                return element("dependency", pomXmlBuilderConsumer);
+            }
+
+            public PomXmlBuilder modules(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+                return element("modules", pomXmlBuilderConsumer);
+            }
+            public PomXmlBuilder modules(List<String> modules) {
+                return element("modules", $ -> $.forEach(modules.stream(), $::module));
+            }
+            public PomXmlBuilder modules(String... modules) {
+                return modules(List.of(modules));
+            }
+
+            public PomXmlBuilder module(String name) {
+                return element("module", $ -> $.text(name));
+            }
+
+            public PomXmlBuilder property(String name, String value) {
+                return element(name, $ -> $.text(value));
+            }
+            public PomXmlBuilder antproperty(String name, String value) {
+                return element("property", $ -> $.attr("name", name).attr("value", value));
+            }
+
+            public PomXmlBuilder scope(String s) {
+                return element("scope", $ -> $.text(s));
+            }
+
+            public PomXmlBuilder phase(String s) {
+                return element("phase", $ -> $.text(s));
+            }
+
+            public PomXmlBuilder argument(String s) {
+                return element("argument", $ -> $.text(s));
+            }
+
+            public PomXmlBuilder goal(String s) {
+                return element("goal", $ -> $.text(s));
+            }
+
+            public PomXmlBuilder copy(String file, String toDir) {
+                return element("copy", $ -> $.attr("file", file).attr("toDir", toDir));
+            }
+
+            public PomXmlBuilder echo(String message) {
+                return element("echo", $ -> $.attr("message", message));
+            }
+
+            public PomXmlBuilder echo(String filename, String message) {
+                return element("echo", $ -> $.attr("message", message).attr("file", filename));
+            }
+
+            public PomXmlBuilder mkdir(String dirName) {
+                return element("mkdir", $ -> $.attr("dir", dirName));
+            }
+
+            public PomXmlBuilder groupIdArtifactId(String groupId, String artifactId) {
+                return groupId(groupId).artifactId(artifactId);
+            }
+
+            public PomXmlBuilder ref(String groupId, String artifactId, String version) {
+                return groupIdArtifactId(groupId, artifactId).version(version);
+            }
+
+            public PomXmlBuilder skip(String string) {
+                return element("skip", $ -> $.text(string));
+            }
+
+            public PomXmlBuilder id(String s) {
+                return element("id", $ -> $.text(s));
+            }
+
+            public PomXmlBuilder arg(String s) {
+                return element("arg", $ -> $.text(s));
+            }
+
+            public PomXmlBuilder argLine(String s) {
+                return element("argLine", $ -> $.text(s));
+            }
+
+            public PomXmlBuilder source(String s) {
+                return element("source", $ -> $.text(s));
+            }
+
+            public PomXmlBuilder target(String s) {
+                return element("target", $ -> $.text(s));
+            }
+
+            public PomXmlBuilder showWarnings(String s) {
+                return element("showWarnings", $ -> $.text(s));
+            }
+
+            public PomXmlBuilder showDeprecation(String s) {
+                return element("showDeprecation", $ -> $.text(s));
+            }
+
+            public PomXmlBuilder failOnError(String s) {
+                return element("failOnError", $ -> $.text(s));
+            }
+
+            public PomXmlBuilder exists(String s) {
+                return element("exists", $ -> $.text(s));
+            }
+
+            public PomXmlBuilder activeByDefault(String s) {
+                return element("activeByDefault", $ -> $.text(s));
+            }
+
+            public PomXmlBuilder executable(String s) {
+                return element("executable", $ -> $.text(s));
+            }
+
+            public PomXmlBuilder workingDirectory(String s) {
+                return element("workingDirectory", $ -> $.text(s));
+            }
+        }
+
+        public static class ImlBuilder extends AbstractXMLBuilder<bldr.Bldr.XMLNode.ImlBuilder> {
+
+            ImlBuilder(Element element) {
+                super(element);
+            }
+
+            public ImlBuilder element(String name, Consumer<ImlBuilder> xmlBuilderConsumer) {
+                return element(name, ImlBuilder::new, xmlBuilderConsumer);
+            }
+
+            public ImlBuilder element(URI uri, String name, Consumer<ImlBuilder> xmlBuilderConsumer) {
+                return element(uri, name, ImlBuilder::new, xmlBuilderConsumer);
+            }
+
+            public ImlBuilder modelVersion(String s) {
+                return element("modelVersion", $ -> $.text(s));
+            }
+
+            public ImlBuilder groupId(String s) {
+                return element("groupId", $ -> $.text(s));
+            }
+
+            public ImlBuilder artifactId(String s) {
+                return element("artifactId", $ -> $.text(s));
+            }
+
+            public ImlBuilder packaging(String s) {
+                return element("packaging", $ -> $.text(s));
+            }
+
+            public ImlBuilder version(String s) {
+                return element("version", $ -> $.text(s));
+            }
+
+            public ImlBuilder build(Consumer<ImlBuilder> pomXmlBuilderConsumer) {
+                return element("build", pomXmlBuilderConsumer);
+            }
+
+            public ImlBuilder plugins(Consumer<ImlBuilder> pomXmlBuilderConsumer) {
+                return element("plugins", pomXmlBuilderConsumer);
+            }
+
+            public ImlBuilder plugin(
+                    String groupId,
+                    String artifactId,
+                    String version,
+                    Consumer<ImlBuilder> pomXmlBuilderConsumer) {
+                return element(
+                        "plugin",
+                        $ ->
+                                $.groupIdArtifactIdVersion(groupId, artifactId, version).then(pomXmlBuilderConsumer));
+            }
+
+            public ImlBuilder plugin(
+                    String groupId, String artifactId, Consumer<ImlBuilder> pomXmlBuilderConsumer) {
+                return element(
+                        "plugin", $ -> $.groupIdArtifactId(groupId, artifactId).then(pomXmlBuilderConsumer));
+            }
+
+            public ImlBuilder plugin(Consumer<ImlBuilder> pomXmlBuilderConsumer) {
+                return element("plugin", pomXmlBuilderConsumer);
+            }
+
+            public ImlBuilder parent(String groupId, String artifactId, String version) {
+                return parent(parent -> parent.groupIdArtifactIdVersion(groupId, artifactId, version));
+            }
+
+            public ImlBuilder parent(Consumer<ImlBuilder> pomXmlBuilderConsumer) {
+                return element("parent", pomXmlBuilderConsumer);
+            }
+
+            public ImlBuilder pluginManagement(Consumer<ImlBuilder> pomXmlBuilderConsumer) {
+                return element("pluginManagement", pomXmlBuilderConsumer);
+            }
+
+            public ImlBuilder file(Consumer<ImlBuilder> pomXmlBuilderConsumer) {
+                return element("file", pomXmlBuilderConsumer);
+            }
+
+            public ImlBuilder activation(Consumer<ImlBuilder> pomXmlBuilderConsumer) {
+                return element("activation", pomXmlBuilderConsumer);
+            }
+
+            public ImlBuilder profiles(Consumer<ImlBuilder> pomXmlBuilderConsumer) {
+                return element("profiles", pomXmlBuilderConsumer);
+            }
+
+            public ImlBuilder profile(Consumer<ImlBuilder> pomXmlBuilderConsumer) {
+                return element("profile", pomXmlBuilderConsumer);
+            }
+
+            public ImlBuilder arguments(Consumer<ImlBuilder> pomXmlBuilderConsumer) {
+                return element("arguments", pomXmlBuilderConsumer);
+            }
+
+            public ImlBuilder executions(Consumer<ImlBuilder> pomXmlBuilderConsumer) {
+                return element("executions", pomXmlBuilderConsumer);
+            }
+
+            public ImlBuilder execution(Consumer<ImlBuilder> pomXmlBuilderConsumer) {
+                return element("execution", pomXmlBuilderConsumer);
+            }
+
+            public ImlBuilder goals(Consumer<ImlBuilder> pomXmlBuilderConsumer) {
+                return element("goals", pomXmlBuilderConsumer);
+            }
+
+            public ImlBuilder target(Consumer<ImlBuilder> pomXmlBuilderConsumer) {
+                return element("target", pomXmlBuilderConsumer);
+            }
+
+            public ImlBuilder configuration(Consumer<ImlBuilder> pomXmlBuilderConsumer) {
+                return element("configuration", pomXmlBuilderConsumer);
+            }
+
+            public ImlBuilder compilerArgs(Consumer<ImlBuilder> pomXmlBuilderConsumer) {
+                return element("compilerArgs", pomXmlBuilderConsumer);
+            }
+
+            public ImlBuilder properties(Consumer<ImlBuilder> pomXmlBuilderConsumer) {
+                return element("properties", pomXmlBuilderConsumer);
+            }
+
+            public ImlBuilder dependencies(Consumer<ImlBuilder> pomXmlBuilderConsumer) {
+                return element("dependencies", pomXmlBuilderConsumer);
+            }
+
+            public ImlBuilder dependency(String groupId, String artifactId, String version) {
+                return dependency($ -> $.groupIdArtifactIdVersion(groupId, artifactId, version));
+            }
+
+            public ImlBuilder dependency(String groupId, String artifactId, String version, String scope) {
+                return dependency($ -> $.groupIdArtifactIdVersion(groupId, artifactId, version).scope(scope));
+            }
+
+            public ImlBuilder dependency(Consumer<ImlBuilder> pomXmlBuilderConsumer) {
+                return element("dependency", pomXmlBuilderConsumer);
+            }
+
+            public ImlBuilder modules(Consumer<ImlBuilder> pomXmlBuilderConsumer) {
+                return element("modules", pomXmlBuilderConsumer);
+            }
+
+            public ImlBuilder module(String name) {
+                return element("module", $ -> $.text(name));
+            }
+
+            public ImlBuilder property(String name, String value) {
+                return element(name, $ -> $.text(value));
+            }
+
+            public ImlBuilder scope(String s) {
+                return element("scope", $ -> $.text(s));
+            }
+
+            public ImlBuilder phase(String s) {
+                return element("phase", $ -> $.text(s));
+            }
+
+            public ImlBuilder argument(String s) {
+                return element("argument", $ -> $.text(s));
+            }
+
+            public ImlBuilder goal(String s) {
+                return element("goal", $ -> $.text(s));
+            }
+
+            public ImlBuilder copy(String file, String toDir) {
+                return element("copy", $ -> $.attr("file", file).attr("toDir", toDir));
+            }
+
+            public ImlBuilder groupIdArtifactId(String groupId, String artifactId) {
+                return groupId(groupId).artifactId(artifactId);
+            }
+
+            public ImlBuilder groupIdArtifactIdVersion(String groupId, String artifactId, String version) {
+                return groupIdArtifactId(groupId, artifactId).version(version);
+            }
+
+            public ImlBuilder skip(String string) {
+                return element("skip", $ -> $.text(string));
+            }
+
+            public ImlBuilder id(String s) {
+                return element("id", $ -> $.text(s));
+            }
+
+            public ImlBuilder arg(String s) {
+                return element("arg", $ -> $.text(s));
+            }
+
+            public ImlBuilder argLine(String s) {
+                return element("argLine", $ -> $.text(s));
+            }
+
+            public ImlBuilder source(String s) {
+                return element("source", $ -> $.text(s));
+            }
+
+            public ImlBuilder target(String s) {
+                return element("target", $ -> $.text(s));
+            }
+
+            public ImlBuilder showWarnings(String s) {
+                return element("showWarnings", $ -> $.text(s));
+            }
+
+            public ImlBuilder showDeprecation(String s) {
+                return element("showDeprecation", $ -> $.text(s));
+            }
+
+            public ImlBuilder failOnError(String s) {
+                return element("failOnError", $ -> $.text(s));
+            }
+
+            public ImlBuilder exists(String s) {
+                return element("exists", $ -> $.text(s));
+            }
+
+            public ImlBuilder activeByDefault(String s) {
+                return element("activeByDefault", $ -> $.text(s));
+            }
+
+            public ImlBuilder executable(String s) {
+                return element("executable", $ -> $.text(s));
+            }
+        }
+
+        public static class XMLBuilder extends AbstractXMLBuilder<bldr.Bldr.XMLNode.XMLBuilder> {
+           XMLBuilder(Element element) {
+                super(element);
+            }
+
+            public XMLBuilder element(String name, Consumer<XMLBuilder> xmlBuilderConsumer) {
+                return element(name, XMLBuilder::new, xmlBuilderConsumer);
+            }
+
+            public XMLBuilder element(URI uri, String name, Consumer<XMLBuilder> xmlBuilderConsumer) {
+                return element(uri, name, XMLBuilder::new, xmlBuilderConsumer);
+            }
+        }
+
+        static XMLNode create(String nodeName, Consumer<XMLBuilder> xmlBuilderConsumer) {
+
+            try {
+                var doc =
+                        javax.xml.parsers.DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
+                var element = doc.createElement(nodeName);
+                doc.appendChild(element);
+                XMLBuilder xmlBuilder = new XMLBuilder(element);
+                xmlBuilderConsumer.accept(xmlBuilder);
+                return new XMLNode(element);
+            } catch (ParserConfigurationException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        static XMLNode createIml(String commentText, Consumer<ImlBuilder> imlBuilderConsumer) {
+            try {
+                var doc =
+                        javax.xml.parsers.DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
+                var uri1 = URI.create("http://maven.apache.org/POM/4.0.0");
+                var uri2 = URI.create("http://www.w3.org/2001/XMLSchema-instance");
+                var uri3 = URI.create("http://maven.apache.org/xsd/maven-4.0.0.xsd");
+                var comment = doc.createComment(commentText);
+                doc.appendChild(comment);
+                var element = doc.createElementNS(uri1.toString(), "project");
+                doc.appendChild(element);
+                element.setAttributeNS(uri2.toString(), "xsi:schemaLocation", uri1 + " " + uri3);
+                ImlBuilder imlBuilder = new ImlBuilder(element);
+                imlBuilderConsumer.accept(imlBuilder);
+                return new XMLNode(element);
+            } catch (ParserConfigurationException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public static XMLNode createPom(
+                String commentText, Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
+            try {
+                var doc =
+                        javax.xml.parsers.DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
+
+                var uri1 = URI.create("http://maven.apache.org/POM/4.0.0");
+                var uri2 = URI.create("http://www.w3.org/2001/XMLSchema-instance");
+                var uri3 = URI.create("http://maven.apache.org/xsd/maven-4.0.0.xsd");
+                var comment = doc.createComment(commentText);
+                doc.appendChild(comment);
+                var element = doc.createElementNS(uri1.toString(), "project");
+                doc.appendChild(element);
+                element.setAttributeNS(uri2.toString(), "xsi:schemaLocation", uri1 + " " + uri3);
+                PomXmlBuilder pomXmlBuilder = new PomXmlBuilder(element);
+                pomXmlBuilderConsumer.accept(pomXmlBuilder);
+                return new XMLNode(element);
+            } catch (ParserConfigurationException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        static XMLNode create(URI uri, String nodeName, Consumer<XMLBuilder> xmlBuilderConsumer) {
+            try {
+                var doc =
+                        javax.xml.parsers.DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
+                var element = doc.createElementNS(uri.toString(), nodeName);
+                doc.appendChild(element);
+                XMLBuilder xmlBuilder = new XMLBuilder(element);
+                xmlBuilderConsumer.accept(xmlBuilder);
+                return new XMLNode(element);
+            } catch (ParserConfigurationException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        XMLNode(Element element) {
+            this.element = element;
+            this.element.normalize();
+            NodeList nodeList = element.getChildNodes();
+            for (int i = 0; i < nodeList.getLength(); i++) {
+                if (nodeList.item(i) instanceof Element e) {
+                    this.children.add(new XMLNode(e));
+                }
+            }
+            for (int i = 0; i < element.getAttributes().getLength(); i++) {
+                if (element.getAttributes().item(i) instanceof org.w3c.dom.Attr attr) {
+                    this.attrMap.put(attr.getName(), attr.getValue());
+                }
+            }
+        }
+
+        public boolean hasAttr(String name) {
+            return attrMap.containsKey(name);
+        }
+
+        public String attr(String name) {
+            return attrMap.get(name);
+        }
+
+        static Document parse(InputStream is) {
+            try {
+                return javax.xml.parsers.DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(is);
+            } catch (ParserConfigurationException | SAXException | IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        static Document parse(Path path) {
+            try {
+                return parse(Files.newInputStream(path));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        XMLNode(Path path) {
+            this(parse(path).getDocumentElement());
+        }
+
+        XMLNode(File file) {
+            this(parse(file.toPath()).getDocumentElement());
+        }
+
+        XMLNode(URL url) throws Throwable {
+            this(parse(url.openStream()).getDocumentElement());
+        }
+
+        void write(StreamResult streamResult) throws Throwable {
+            var transformer = TransformerFactory.newInstance().newTransformer();
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+            transformer.setOutputProperty(OutputKeys.METHOD, "xml");
+            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "no");
+            transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
+            transformer.transform(new DOMSource(element.getOwnerDocument()), streamResult);
+        }
+
+        void write(File file) {
+            try {
+                write(new StreamResult(file));
+            } catch (Throwable t) {
+                throw new RuntimeException(t);
+            }
+        }
+
+        public void write(XMLFile xmlFile) {
+            try {
+                write(new StreamResult(xmlFile.path().toFile()));
+            } catch (Throwable t) {
+                throw new RuntimeException(t);
+            }
+        }
+
+        @Override
+        public String toString() {
+            var stringWriter = new StringWriter();
+            try {
+                var transformer = TransformerFactory.newInstance().newTransformer();
+                transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+                transformer.setOutputProperty(OutputKeys.METHOD, "xml");
+                transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
+                transformer.transform(new DOMSource(element), new StreamResult(stringWriter));
+                return stringWriter.toString();
+            } catch (Throwable e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        XPathExpression xpath(String expression) {
+            XPath xpath = XPathFactory.newInstance().newXPath();
+            try {
+                return xpath.compile(expression);
+            } catch (XPathExpressionException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        Node node(XPathExpression xPathExpression) {
+            try {
+                return (Node) xPathExpression.evaluate(this.element, XPathConstants.NODE);
+            } catch (XPathExpressionException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        Optional<Node> optionalNode(XPathExpression xPathExpression) {
+            var nodes = nodes(xPathExpression).toList();
+            return switch (nodes.size()) {
+                case 0 -> Optional.empty();
+                case 1 -> Optional.of(nodes.getFirst());
+                default -> throw new IllegalStateException("Expected 0 or 1 but got more");
+            };
+        }
+
+        String str(XPathExpression xPathExpression) {
+            try {
+                return (String) xPathExpression.evaluate(this.element, XPathConstants.STRING);
+            } catch (XPathExpressionException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        String xpathQueryString(String xpathString) {
+            try {
+                return (String) xpath(xpathString).evaluate(this.element, XPathConstants.STRING);
+            } catch (XPathExpressionException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        NodeList nodeList(XPathExpression xPathExpression) {
+            try {
+                return (NodeList) xPathExpression.evaluate(this.element, XPathConstants.NODESET);
+            } catch (XPathExpressionException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        Stream<Node> nodes(XPathExpression xPathExpression) {
+            var nodeList = nodeList(xPathExpression);
+            List<Node> nodes = new ArrayList<>();
+            for (int i = 0; i < nodeList.getLength(); i++) {
+                nodes.add(nodeList.item(i));
+            }
+            return nodes.stream();
+        }
+
+        Stream<Element> elements(XPathExpression xPathExpression) {
+            return nodes(xPathExpression)
+                    .filter(n -> n instanceof Element)
+                    .map(n -> (Element) n);
+        }
+
+        Stream<XMLNode> xmlNodes(XPathExpression xPathExpression) {
+            return elements(xPathExpression).map(e -> new XMLNode(e));
+        }
+    }
+
+    public static class MavenStyleRepository {
+        private final String repoBase = "https://repo1.maven.org/maven2/";
+        private final String searchBase = "https://search.maven.org/solrsearch/";
+        public RepoDir dir;
+
+        JarFile jarFile(Id id) {
+            return dir.jarFile(id.artifactAndVersion() + ".jar");
+        }
+
+        XMLFile pomFile(Id id) {
+            return dir.xmlFile(id.artifactAndVersion() + ".pom");
+        }
+
+        public enum Scope {
+            TEST,
+            COMPILE,
+            PROVIDED,
+            RUNTIME,
+            SYSTEM;
+
+            static Scope of(String name) {
+                return switch (name.toLowerCase()) {
+                    case "test" -> TEST;
+                    case "compile" -> COMPILE;
+                    case "provided" -> PROVIDED;
+                    case "runtime" -> RUNTIME;
+                    case "system" -> SYSTEM;
+                    default -> COMPILE;
+                };
+            }
+        }
+
+        public record GroupAndArtifactId(GroupId groupId, ArtifactId artifactId) {
+
+            public static GroupAndArtifactId of(String groupAndArtifactId) {
+                int idx = groupAndArtifactId.indexOf('/');
+                return of(groupAndArtifactId.substring(0, idx), groupAndArtifactId.substring(idx + 1));
+            }
+
+            public static GroupAndArtifactId of(GroupId groupId, ArtifactId artifactId) {
+                return new GroupAndArtifactId(groupId, artifactId);
+            }
+
+            public static GroupAndArtifactId of(String groupId, String artifactId) {
+                return of(GroupId.of(groupId), ArtifactId.of(artifactId));
+            }
+
+            String location() {
+                return groupId().string().replace('.', '/') + "/" + artifactId().string();
+            }
+
+            @Override
+            public String toString() {
+                return groupId() + "/" + artifactId();
+            }
+        }
+
+        public sealed interface Id permits DependencyId, bldr.Bldr.MavenStyleRepository.MetaDataId {
+            MavenStyleRepository mavenStyleRepository();
+
+            GroupAndArtifactId groupAndArtifactId();
+
+            VersionId versionId();
+
+            default String artifactAndVersion() {
+                return groupAndArtifactId().artifactId().string() + '-' + versionId();
+            }
+
+            default String location() {
+                return mavenStyleRepository().repoBase + groupAndArtifactId().location() + "/" + versionId();
+            }
+
+            default URL url(String suffix) {
+                try {
+                    return new URI(location() + "/" + artifactAndVersion() + "." + suffix).toURL();
+                } catch (MalformedURLException | URISyntaxException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+
+        public record DependencyId(
+                MavenStyleRepository mavenStyleRepository,
+                GroupAndArtifactId groupAndArtifactId,
+                VersionId versionId,
+                Scope scope,
+                boolean required)
+                implements Id {
+            @Override
+            public String toString() {
+                return groupAndArtifactId().toString()
+                        + "/"
+                        + versionId()
+                        + ":"
+                        + scope.toString()
+                        + ":"
+                        + (required ? "Required" : "Optiona");
+            }
+        }
+
+        public record Pom(MetaDataId metaDataId, XMLNode xmlNode) {
+            JarFile getJar() {
+                var jarFile = metaDataId.mavenStyleRepository().jarFile(metaDataId); // ;
+                metaDataId.mavenStyleRepository.queryAndCache(metaDataId.jarURL(), jarFile);
+                return jarFile;
+            }
+
+            String description() {
+                return xmlNode().xpathQueryString("/project/description/text()");
+            }
+
+            Stream<DependencyId> dependencies() {
+                return xmlNode()
+                        .nodes(xmlNode.xpath("/project/dependencies/dependency"))
+                        .map(node -> new XMLNode((Element) node))
+                        .map(
+                                dependency ->
+                                        new DependencyId(
+                                                metaDataId().mavenStyleRepository(),
+                                                bldr.Bldr.MavenStyleRepository.GroupAndArtifactId.of(
+                                                        bldr.Bldr.MavenStyleRepository.GroupId.of(dependency.xpathQueryString("groupId/text()")),
+                                                        bldr.Bldr.MavenStyleRepository.ArtifactId.of(dependency.xpathQueryString("artifactId/text()"))),
+                                                bldr.Bldr.MavenStyleRepository.VersionId.of(dependency.xpathQueryString("version/text()")),
+                                                bldr.Bldr.MavenStyleRepository.Scope.of(dependency.xpathQueryString("scope/text()")),
+                                                !Boolean.parseBoolean(dependency.xpathQueryString("optional/text()"))));
+            }
+
+            Stream<DependencyId> requiredDependencies() {
+                return dependencies().filter(DependencyId::required);
+            }
+        }
+
+        public Optional<Pom> pom(Id id) {
+            return switch (id) {
+                case MetaDataId metaDataId -> {
+                    if (metaDataId.versionId() == VersionId.UNSPECIFIED) {
+                        // println("what to do when the version is unspecified");
+                        yield Optional.empty();
+                    }
+                    try {
+                        yield Optional.of(
+                                new Pom(
+                                        metaDataId,
+                                        queryAndCache(
+                                                metaDataId.pomURL(), metaDataId.mavenStyleRepository.pomFile(metaDataId))));
+                    } catch (Throwable e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                case DependencyId dependencyId -> {
+                    if (metaData(
+                            id.groupAndArtifactId().groupId().string(),
+                            id.groupAndArtifactId().artifactId().string())
+                            instanceof Optional<MetaData> optionalMetaData
+                            && optionalMetaData.isPresent()) {
+                        if (optionalMetaData
+                                .get()
+                                .metaDataIds()
+                                .filter(metaDataId -> metaDataId.versionId().equals(id.versionId()))
+                                .findFirst()
+                                instanceof Optional<MetaDataId> metaId
+                                && metaId.isPresent()) {
+                            yield pom(metaId.get());
+                        } else {
+                            yield Optional.empty();
+                        }
+                    } else {
+                        yield Optional.empty();
+                    }
+                }
+                default -> throw new IllegalStateException("Unexpected value: " + id);
+            };
+        }
+
+        public Optional<Pom> pom(GroupAndArtifactId groupAndArtifactId) {
+            var metaData = metaData(groupAndArtifactId).orElseThrow();
+            var metaDataId = metaData.latestMetaDataId().orElseThrow();
+            return pom(metaDataId);
+        }
+
+        record IdVersions(GroupAndArtifactId groupAndArtifactId, Set<Id> versions) {
+            static IdVersions of(GroupAndArtifactId groupAndArtifactId) {
+                return new IdVersions(groupAndArtifactId, new HashSet<>());
+            }
+        }
+
+        public static class Dag implements ClassPathEntryProvider {
+            private final MavenStyleRepository repo;
+            private final List<GroupAndArtifactId> rootGroupAndArtifactIds;
+            Map<GroupAndArtifactId, IdVersions> nodes = new HashMap<>();
+            Map<IdVersions, List<IdVersions>> edges = new HashMap<>();
+
+            Dag add(Id from, Id to) {
+                var fromNode =
+                        nodes.computeIfAbsent(
+                                from.groupAndArtifactId(), _ -> IdVersions.of(from.groupAndArtifactId()));
+                fromNode.versions().add(from);
+                var toNode =
+                        nodes.computeIfAbsent(
+                                to.groupAndArtifactId(), _ -> IdVersions.of(to.groupAndArtifactId()));
+                toNode.versions().add(to);
+                edges.computeIfAbsent(fromNode, k -> new ArrayList<>()).add(toNode);
+                return this;
+            }
+
+            void removeUNSPECIFIED() {
+                nodes
+                        .values()
+                        .forEach(
+                                idversions -> {
+                                    if (idversions.versions().size() > 1) {
+                                        List<Id> versions = new ArrayList<>(idversions.versions());
+                                        idversions.versions().clear();
+                                        idversions
+                                                .versions()
+                                                .addAll(
+                                                        versions.stream()
+                                                                .filter(v -> !v.versionId().equals(VersionId.UNSPECIFIED))
+                                                                .toList());
+                                        println(idversions);
+                                    }
+                                    if (idversions.versions().size() > 1) {
+                                        throw new IllegalStateException("more than one version");
+                                    }
+                                });
+            }
+
+            Dag(MavenStyleRepository repo, List<GroupAndArtifactId> rootGroupAndArtifactIds) {
+                this.repo = repo;
+                this.rootGroupAndArtifactIds = rootGroupAndArtifactIds;
+
+                Set<Id> unresolved = new HashSet<>();
+                rootGroupAndArtifactIds.forEach(
+                        rootGroupAndArtifactId -> {
+                            var metaData = repo.metaData(rootGroupAndArtifactId).orElseThrow();
+                            var metaDataId = metaData.latestMetaDataId().orElseThrow();
+                            var optionalPom = repo.pom(rootGroupAndArtifactId);
+
+                            if (optionalPom.isPresent() && optionalPom.get() instanceof Pom pom) {
+                                pom.requiredDependencies()
+                                        .filter(dependencyId -> !dependencyId.scope.equals(Scope.TEST))
+                                        .forEach(
+                                                dependencyId -> {
+                                                    add(metaDataId, dependencyId);
+                                                    unresolved.add(dependencyId);
+                                                });
+                            }
+                        });
+
+                while (!unresolved.isEmpty()) {
+                    var resolveSet = new HashSet<>(unresolved);
+                    unresolved.clear();
+                    resolveSet.forEach(id -> {
+                                if (repo.pom(id) instanceof Optional<Pom> p && p.isPresent()) {
+                                    p.get()
+                                            .requiredDependencies()
+                                            .filter(dependencyId -> !dependencyId.scope.equals(Scope.TEST))
+                                            .forEach(
+                                                    dependencyId -> {
+                                                        unresolved.add(dependencyId);
+                                                        add(id, dependencyId);
+                                                    });
+                                }
+                            });
+                }
+                removeUNSPECIFIED();
+            }
+
+            @Override
+            public List<ClassPathEntry> classPathEntries() {
+                return classPath().classPathEntries();
+            }
+
+            ClassPath classPath() {
+
+                ClassPath jars = ClassPath.of();
+                nodes
+                        .keySet()
+                        .forEach(
+                                id -> {
+                                    Optional<Pom> optionalPom = repo.pom(id);
+                                    if (optionalPom.isPresent() && optionalPom.get() instanceof Pom pom) {
+                                        jars.add(pom.getJar());
+                                    } else {
+                                        throw new RuntimeException("No pom for " + id + " needed by " + id);
+                                    }
+                                });
+                return jars;
+            }
+        }
+
+        public ClassPathEntryProvider classPathEntries(String... rootGroupAndArtifactIds) {
+            return classPathEntries(Stream.of(rootGroupAndArtifactIds).map(GroupAndArtifactId::of).toList());
+        }
+
+        public ClassPathEntryProvider classPathEntries(GroupAndArtifactId... rootGroupAndArtifactIds) {
+            return classPathEntries(List.of(rootGroupAndArtifactIds));
+        }
+
+        public ClassPathEntryProvider classPathEntries(List<GroupAndArtifactId> rootGroupAndArtifactIds) {
+          StringBuilder sb = new StringBuilder();
+          rootGroupAndArtifactIds.forEach(groupAndArtifactId->sb.append(sb.isEmpty() ?"":"-").append(groupAndArtifactId.groupId+"-"+groupAndArtifactId.artifactId));
+          System.out.println(sb);
+          ClassPathEntryProvider classPathEntries=null;
+          var pathFileName = sb+"-path.xml";
+          var pathFile = dir.xmlFile(pathFileName);
+          if (pathFile.exists()){
+              System.out.println(pathFileName + " exists " + pathFile.path().toString());
+              XMLNode path = new XMLNode(pathFile.path());
+              ClassPath classPath = ClassPath.of();
+              path.nodes(path.xpath("/path/jar/text()")).forEach(e->
+                      classPath.add(dir.jarFile(e.getNodeValue()))
+              );
+              classPathEntries = classPath;
+          }else {
+             var finalClassPathEntries =  new Dag(this, rootGroupAndArtifactIds);
+                  XMLNode.create("path", xml-> {
+                      finalClassPathEntries.classPathEntries().forEach(cpe ->
+                              xml.element("jar",jar->jar.text(dir.path().relativize(cpe.path()).toString()))
+                      );
+                  }).write(pathFile);
+             System.out.println("created "+pathFile.path());
+             classPathEntries = finalClassPathEntries;
+          }
+            return classPathEntries;
+        }
+
+        public record VersionId(Integer maj, Integer min, Integer point, String classifier)
+                implements Comparable<VersionId> {
+            static Integer integerOrNull(String s) {
+                return (s == null || s.isEmpty()) ? null : Integer.parseInt(s);
+            }
+
+            public static Pattern pattern = Pattern.compile("^(\\d+)(?:\\.(\\d+)(?:\\.(\\d+)(.*))?)?$");
+            static VersionId UNSPECIFIED = new VersionId(null, null, null, null);
+
+            static VersionId of(String version) {
+                Matcher matcher = pattern.matcher(version);
+                if (matcher.matches()) {
+                    return new VersionId(
+                            integerOrNull(matcher.group(1)),
+                            integerOrNull(matcher.group(2)),
+                            integerOrNull(matcher.group(3)),
+                            matcher.group(4));
+                } else {
+                    return UNSPECIFIED;
+                }
+            }
+
+            int cmp(Integer v1, Integer v2) {
+                if (v1 == null && v2 == null) {
+                    return 0;
+                }
+                if (v1 == null) {
+                    return -v2;
+                } else if (v2 == null) {
+                    return v1;
+                } else {
+                    return v1 - v2;
+                }
+            }
+
+            @Override
+            public int compareTo(VersionId o) {
+                if (cmp(maj(), o.maj()) == 0) {
+                    if (cmp(min(), o.min()) == 0) {
+                        if (cmp(point(), o.point()) == 0) {
+                            return classifier().compareTo(o.classifier());
+                        } else {
+                            return cmp(point(), o.point());
+                        }
+                    } else {
+                        return cmp(min(), o.min());
+                    }
+                } else {
+                    return cmp(maj(), o.maj());
+                }
+            }
+
+            @Override
+            public String toString() {
+                StringBuilder sb = new StringBuilder();
+                if (maj() != null) {
+                    sb.append(maj());
+                    if (min() != null) {
+                        sb.append(".").append(min());
+                        if (point() != null) {
+                            sb.append(".").append(point());
+                            if (classifier() != null) {
+                                sb.append(classifier());
+                            }
+                        }
+                    }
+                } else {
+                    sb.append("UNSPECIFIED");
+                }
+                return sb.toString();
+            }
+        }
+
+        public record GroupId(String string) {
+            public static GroupId of(String s) {
+                return new GroupId(s);
+            }
+
+            @Override
+            public String toString() {
+                return string;
+            }
+        }
+
+        public record ArtifactId(String string) {
+            static ArtifactId of(String string) {
+                return new ArtifactId(string);
+            }
+
+            @Override
+            public String toString() {
+                return string;
+            }
+        }
+
+        public record MetaDataId(
+                MavenStyleRepository mavenStyleRepository,
+                GroupAndArtifactId groupAndArtifactId,
+                VersionId versionId,
+                Set<String> downloadables,
+                Set<String> tags)
+                implements Id {
+
+            public URL pomURL() {
+                return url("pom");
+            }
+
+            public URL jarURL() {
+                return url("jar");
+            }
+
+            public XMLNode getPom() {
+                if (downloadables.contains(".pom")) {
+                    return mavenStyleRepository.queryAndCache(
+                            url("pom"), mavenStyleRepository.dir.xmlFile(artifactAndVersion() + ".pom"));
+                } else {
+                    throw new IllegalStateException("no pom");
+                }
+            }
+
+            @Override
+            public String toString() {
+                return groupAndArtifactId().toString() + "." + versionId();
+            }
+        }
+
+        public MavenStyleRepository(RepoDir dir) {
+            this.dir = dir.create();
+        }
+
+        JarFile queryAndCache(URL query, JarFile jarFile) {
+            try {
+                if (!jarFile.exists()) {
+                    print("Querying and caching " + jarFile.fileName());
+                    println(" downloading " + query);
+                    curl(query, jarFile.path());
+                } else {
+                    // println("Using cached " + jarFile.fileName());
+
+                }
+            } catch (Throwable e) {
+                throw new RuntimeException(e);
+            }
+            return jarFile;
+        }
+
+        XMLNode queryAndCache(URL query, XMLFile xmlFile) {
+            XMLNode xmlNode = null;
+            try {
+                if (!xmlFile.exists()) {
+                    print("Querying and caching " + xmlFile.fileName());
+                    println(" downloading " + query);
+                    xmlNode = new XMLNode(query);
+                    xmlNode.write(xmlFile.path().toFile());
+                } else {
+                    // println("Using cached " + xmlFile.fileName());
+                    xmlNode = new XMLNode(xmlFile.path());
+                }
+            } catch (Throwable e) {
+                throw new RuntimeException(e);
+            }
+            return xmlNode;
+        }
+
+        public record MetaData(
+                MavenStyleRepository mavenStyleRepository,
+                GroupAndArtifactId groupAndArtifactId,
+                XMLNode xmlNode) {
+
+            public Stream<MetaDataId> metaDataIds() {
+                return xmlNode
+                        .xmlNodes(xmlNode.xpath("/response/result/doc"))
+                        .map(
+                                xmln ->
+                                        new MetaDataId(
+                                                this.mavenStyleRepository,
+                                                bldr.Bldr.MavenStyleRepository.GroupAndArtifactId.of(
+                                                        bldr.Bldr.MavenStyleRepository.GroupId.of(xmln.xpathQueryString("str[@name='g']/text()")),
+                                                        bldr.Bldr.MavenStyleRepository.ArtifactId.of(xmln.xpathQueryString("str[@name='a']/text()"))),
+                                                bldr.Bldr.MavenStyleRepository.VersionId.of(xmln.xpathQueryString("str[@name='v']/text()")),
+                                                new HashSet<>(
+                                                        xmln.nodes(xmln.xpath("arr[@name='ec']/str/text()"))
+                                                                .map(Node::getNodeValue)
+                                                                .toList()),
+                                                new HashSet<>(
+                                                        xmln.nodes(xmln.xpath("arr[@name='tags']/str/text()"))
+                                                                .map(Node::getNodeValue)
+                                                                .toList())));
+            }
+
+            public Stream<MetaDataId> sortedMetaDataIds() {
+                return metaDataIds().sorted(Comparator.comparing(MetaDataId::versionId));
+            }
+
+            public Optional<MetaDataId> latestMetaDataId() {
+                return metaDataIds().max(Comparator.comparing(MetaDataId::versionId));
+            }
+
+            public Optional<MetaDataId> getMetaDataId(VersionId versionId) {
+                return metaDataIds().filter(id -> versionId.compareTo(id.versionId()) == 0).findFirst();
+            }
+        }
+
+        public Optional<MetaData> metaData(String groupId, String artifactId) {
+            return metaData(GroupAndArtifactId.of(groupId, artifactId));
+        }
+
+        public Optional<MetaData> metaData(GroupAndArtifactId groupAndArtifactId) {
+            try {
+                var query = "g:" + groupAndArtifactId.groupId() + " AND a:" + groupAndArtifactId.artifactId();
+                URL rowQueryUrl =
+                        new URI(
+                                searchBase
+                                        + "select?q="
+                                        + URLEncoder.encode(query, StandardCharsets.UTF_8)
+                                        + "&core=gav&wt=xml&rows=0")
+                                .toURL();
+                var rowQueryResponse = new XMLNode(rowQueryUrl);
+                var numFound = rowQueryResponse.xpathQueryString("/response/result/@numFound");
+
+                URL url =
+                        new URI(
+                                searchBase
+                                        + "select?q="
+                                        + URLEncoder.encode(query, StandardCharsets.UTF_8)
+                                        + "&core=gav&wt=xml&rows="
+                                        + numFound)
+                                .toURL();
+                try {
+                    // println(url);
+                    var xmlNode =
+                            queryAndCache(url, dir.xmlFile(groupAndArtifactId.artifactId() + ".meta.xml"));
+                    // var numFound2 = xmlNode.xpathQueryString("/response/result/@numFound");
+                    // var start = xmlNode.xpathQueryString("/response/result/@start");
+                    // var rows =
+                    // xmlNode.xpathQueryString("/response/lst[@name='responseHeader']/lst[@name='params']/str[@name='rows']/text()");
+                    // println("numFound = "+numFound+" rows ="+rows+ " start ="+start);
+                    if (numFound.isEmpty() || numFound.equals("0")) {
+                        return Optional.empty();
+                    } else {
+                        return Optional.of(new MetaData(this, groupAndArtifactId, xmlNode));
+                    }
+                } catch (Throwable e) {
+                    throw new RuntimeException(e);
+                }
+            } catch (Throwable e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    public static class IntelliJ {
+        public static class IntellijArtifact {
+            Dir projectDir;
+            XMLNode root;
+
+            Stream<XMLNode> query(String xpath) {
+                return root.nodes(root.xpath(xpath)).map(e -> new XMLNode((Element) e));
+            }
+
+            IntellijArtifact(Dir projectDir, XMLNode root) {
+                this.projectDir = projectDir;
+                this.root = root;
+            }
+        }
+
+        public static class Workspace extends IntellijArtifact {
+
+            record Application(XMLNode xmlNode) {
+            }
+
+            List<Application> applications;
+
+            Workspace(Dir projectDir, XMLNode root) {
+                super(projectDir, root);
+                this.applications =
+                        query("/project/component[@name='RunManager']/configuration")
+                                .map(Application::new)
+                                .toList();
+            }
+        }
+
+        public static class Compiler extends IntellijArtifact {
+            public record JavacSettings(XMLNode xmlNode) {
+                public String getAdditionalOptions() {
+                    return xmlNode.xpathQueryString("option[@name='ADDITIONAL_OPTIONS_STRING']/@value");
+                }
+            }
+
+            public JavacSettings javacSettings;
+
+            Compiler(Dir projectDir, XMLNode root) {
+                super(projectDir, root);
+                this.javacSettings =
+                        new JavacSettings(query("/project/component[@name='JavacSettings']").findFirst().get());
+            }
+        }
+
+        public static class ImlGraph extends IntellijArtifact {
+            public record Module(Path imlPath, XMLNode xmlNode) {
+                @Override
+                public String toString() {
+                    return name();
+                }
+
+                public String name() {
+                    return imlPath.getFileName().toString();
+                }
+
+                public SourcePath getSourcePath() {
+                    return null;
+                }
+
+                Stream<XMLNode> query(String xpath) {
+                    return xmlNode.nodes(xmlNode.xpath(xpath)).map(e -> new XMLNode((Element) e));
+                }
+            }
+
+            Stream<XMLNode> query(String xpath) {
+                return root.nodes(root.xpath(xpath)).map(e -> new XMLNode((Element) e));
+            }
+
+            Set<Module> modules = new HashSet<>();
+            public Map<Module, List<Module>> fromToDependencies = new HashMap<>();
+            Map<Module, List<Module>> toFromDependencies = new HashMap<>();
+
+            ImlGraph(Dir projectDir, XMLNode root) {
+                super(projectDir, root);
+                Map<String, Module> nameToModule = new HashMap<>();
+                query("/project/component[@name='ProjectModuleManager']/modules/module")
+                        .map(
+                                xmlNode ->
+                                        Path.of(
+                                                xmlNode
+                                                        .attrMap
+                                                        .get("filepath")
+                                                        .replace("$PROJECT_DIR$", projectDir.path().toString())))
+                        .map(path -> new Module(path, new XMLNode(path)))
+                        .forEach(
+                                module -> {
+                                    modules.add(module);
+                                    nameToModule.put(module.name(), module);
+                                });
+                modules.forEach(
+                        module ->
+                                module
+                                        .xmlNode
+                                        .nodes(root.xpath("/module/component/orderEntry[@type='module']"))
+                                        .map(e -> new XMLNode((Element) e))
+                                        .forEach(
+                                                e -> {
+                                                    var dep = nameToModule.get(e.attrMap.get("module-name") + ".iml");
+                                                    fromToDependencies.computeIfAbsent(module, _ -> new ArrayList<>()).add(dep);
+                                                    toFromDependencies.computeIfAbsent(dep, _ -> new ArrayList<>()).add(module);
+                                                }));
+            }
+        }
+
+        public static class Project {
+            public Dir intellijDir;
+            public ImlGraph imlGraph;
+            public Workspace workSpace;
+            public Compiler compiler;
+
+            public Project(Dir intellijDir) {
+                this.intellijDir = intellijDir;
+                var ideaDir = intellijDir.existingDir(".idea");
+                imlGraph = new ImlGraph(intellijDir, new XMLNode(ideaDir.xmlFile("modules.xml").path()));
+                workSpace = new Workspace(intellijDir, new XMLNode(ideaDir.xmlFile("workspace.xml").path()));
+                compiler = new Compiler(intellijDir, new XMLNode(ideaDir.xmlFile("compiler.xml").path()));
+            }
+        }
+
     }
 }

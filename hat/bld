@@ -25,8 +25,6 @@
  */
 
 import static bldr.Bldr.*;
-import bldr.CMakeProbe;
-import bldr.Capabilities;
 
 void main(String[] args) {
 
@@ -69,14 +67,14 @@ void main(String[] args) {
 
     var hatDir = Dir.current();
     var hatCoreDir = hatDir.existingDir("hat");
-    var backendsDir = hatDir.existingDir("backends");
-    var examplesDir = hatDir.existingDir("examples");
+    var backends = hatDir.existingDir("backends");
+    var examples = hatDir.existingDir("examples");
     var stageDir = hatDir.buildDir("stage").create();
     var repoDir = stageDir.repoDir("repo").create();
     var jextractDir = stageDir.buildDir("jextract").create();
     var buildDir = BuildDir.of(hatDir.path("build")).create();
     var cmakeBuildDir = buildDir.cMakeBuildDir("cmake-build-debug");
-    var jextract = Jextract.of(fromPATH("jextract").orElseThrow(()-> new RuntimeException("Can't locate jextract")));
+    var jextractExe = Jextract.of(fromPATH("jextract").orElseThrow(()-> new RuntimeException("Can't locate jextract")));
     var extractedOpenCLJar = buildDir.jarFile("jextracted-opencl.jar");
     var extractedOpenGLJar = buildDir.jarFile("jextracted-opengl.jar");
     var verbose = false;
@@ -93,7 +91,7 @@ void main(String[] args) {
         } else {
             var openclSource = jextractDir.sourceDir("opencl");
             if (!openclSource.exists()) {
-                jextract.extract($ -> {
+                jextract(jextractExe, $ -> {
                             $.output(jextractDir).target_package(openclSource.fileName());
                             switch (os) {
                                 case OS.Mac mac -> $
@@ -110,7 +108,10 @@ void main(String[] args) {
             } else{
                  println("We've already extracted " + extractedOpenCLJar.path());
             }
-            extractedOpenCLJar.create($ -> $.javac($$ -> $$.source(24).source_path(openclSource)));
+            jar(jar -> jar
+               .jar(extractedOpenCLJar)
+               .javac(javac -> javac.source(24).source_path(openclSource))
+            );
         }
     } else {
         println("According to cmake probe this platform does not have OpenCL");
@@ -122,7 +123,7 @@ void main(String[] args) {
         } else {
             var openglSource = jextractDir.sourceDir("opengl");
             if (!openglSource.exists()) {
-                jextract.extract($ -> {
+                jextract(jextractExe,$ -> {
                             $.output(jextractDir).target_package(openglSource.fileName());
                             switch (os) {
                                 case OS.Mac mac -> $
@@ -138,7 +139,10 @@ void main(String[] args) {
             }else{
                 println("We've already extracted " + extractedOpenGLJar.path());
             }
-            extractedOpenGLJar.create($ -> $.javac($$ -> $$.source(24).source_path(openglSource)));
+            jar(jar -> jar
+               .jar(extractedOpenGLJar)
+               .javac(javac -> javac.source(24).source_path(openglSource))
+            );
         }
     } else {
         println("According to cmake probe this platform does not have OpenGL");
@@ -150,67 +154,74 @@ void main(String[] args) {
         println("According to cmake probe this platform does not have CUDA");
     }
 
-    var hatOpts = JavaOpts.of()
-            .enable_preview()
-            .add_modules("jdk.incubator.code")
-            .add_exports("java.base", List.of("jdk.internal", "jdk.internal.vm.annotation"), "ALL-UNNAMED");
+    var hatJavacOpts = javacBuilder(
+            javacBuilder -> javacBuilder
+                    .enable_preview()
+                    .add_modules("jdk.incubator.code")
+                    .add_exports("java.base",
+                            List.of(
+                                    "jdk.internal",
+                                    "jdk.internal.vm.annotation"
+                            ),
+                            "ALL-UNNAMED"
+                    )
+                    .source(24)
+    );
 
-    var hatJar = buildDir.jarFile("hat-1.0.jar", $ -> $
-            .javac(javac -> javac.opts(hatOpts).source(24)
-                    .source_path(hatCoreDir.sourceDir("src/main/java"))
-            )
+    var hatJarOptions = jarBuilder(jarBuilder -> jarBuilder
+            .verbose(verbose)
+    );
+
+
+    var hatJar = buildDir.jarFile("hat-1.0.jar");
+    var hatJarResult = jar($ -> $
+            .copy(hatJarOptions)
+            .jar(hatJar)
+            .maven_style_root(hatCoreDir)
+            .javac(javac -> javac.copy(hatJavacOpts))
     );
 
     // Here we create all backend jars.
-    backendsDir
-            .subDirs(backendDir -> !backendDir.matches("^.*(spirv|hip|shared|target|.idea)$"))
-            .peek(backendDir->println("Building backend " + backendDir.fileName()))
-            .forEach(backendDir->
-                 buildDir.jarFile("hat-backend-" + backendDir.fileName() + "-1.0.jar",$->$.verbose(verbose)
-                    .javac($$ -> $$.opts(hatOpts).verbose(verbose)
-                        .source(24)
-                        .class_path(hatJar)
-                        .source_path(backendDir.sourceDir("src/main/java"))
-                    )
-                   .whenExists(backendDir.dir("src/main/resources"), (resources, _) -> $.dir_list(resources))
-                )
-            );
-
+    backends
+       .subDirs(backend -> !backend.matches("^.*(spirv|hip|shared|target|.idea)$"))
+       .forEach(backend -> {
+           var jarFile = buildDir.jarFile("hat-backend-" + backend.fileName() + "-1.0.jar");
+           println(jarFile.fileName());
+           jar(jar -> jar
+              .copy(hatJarOptions)
+              .jar(jarFile)
+              .maven_style_root(backend)
+              .javac(javac -> javac.copy(hatJavacOpts).class_path(hatJar))
+           );
+       });
+          
    // here we create the example jars
-    examplesDir
-            .subDirs(exampleDir -> !exampleDir.matches("^.*(experiments|nbody|target|.idea)$"))
-            .peek(exampleDir -> println("Building example " + exampleDir.fileName()))
-            .forEach(exampleDir ->
-                    buildDir.jarFile("hat-example-" + exampleDir.fileName() + "-1.0.jar", $ -> $.verbose(verbose)
-                            .javac($$ -> $$.opts(hatOpts).verbose(verbose)
-                            .source(24)
-                            .class_path(hatJar)
-                            .source_path(exampleDir.sourceDir("src/main/java"))
-
-                    )
-                    .whenExists(exampleDir.dir("src/main/resources"), (resources, _) -> $.dir_list(resources))
-            )
-    );
+    examples
+      .subDirs(example -> !example.matches("^.*(experiments|nbody|target|.idea)$"))
+      .forEach(example -> {
+          var jarFile = buildDir.jarFile("hat-example-" + example.fileName() + "-1.0.jar");
+          println(jarFile.fileName());
+          jar(jar -> jar.copy(hatJarOptions)
+             .jar(jarFile)
+             .maven_style_root(example)
+             .javac(javac -> javac.copy(hatJavacOpts).class_path(hatJar))
+          );
+      });
 
    // here we create the example jars which need opengl and opencl 
     if (opencl.available() && opengl.available()) {
-        examplesDir
-            .subDirs(exampleDir -> exampleDir.matches("^.*(nbody)$"))
-            .peek(exampleDir -> println("Building opengl+opengcl example " + exampleDir.fileName()))
-            .forEach(exampleDir->
-                buildDir.jarFile("hat-example-" + exampleDir.fileName() + "-1.0.jar", $ -> $
-                        .verbose(verbose)
-                        .javac($$ -> $$
-                                .verbose(verbose)
-                                .opts(hatOpts)
-                                .source(24)
-                                .class_path(hatJar,extractedOpenCLJar, extractedOpenGLJar)
-                                .source_path(exampleDir.sourceDir("src/main/java"))
-                        )
-                        .dir_list(exampleDir.dir("src/main/resources"))
-                )
-            );
-
+        var example = examples.dir("nbody");
+        var jarFile = buildDir.jarFile("hat-example-" + example.fileName() + "-1.0.jar");
+        println(jarFile.fileName());
+        jar(jar -> jar
+          .copy(hatJarOptions)
+          .jar(jarFile)
+          .maven_style_root(example)
+          .javac(javac -> javac
+             .copy(hatJavacOpts)
+             .class_path(hatJar, extractedOpenCLJar, extractedOpenGLJar)
+          )
+        );
     }else{
        println("Skipping nbody example because we need opencl and opengl");
     }
@@ -218,7 +229,7 @@ void main(String[] args) {
 
     if (!cmakeBuildDir.exists()) {
         cmake($ -> $
-                .source_dir(backendsDir)
+                .source_dir(backends)
                 .build_dir(cmakeBuildDir)
                 .copy_to(buildDir)
         );

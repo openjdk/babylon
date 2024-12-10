@@ -27,7 +27,7 @@ import static bldr.Bldr.*;           // all the helpers are here
 //import static java.nio.file.Files.*; // so we can use isDirectory(path);
  
 
-void main(String[] args) {
+void main(String[] argv) {
   var usage ="""
     usage:
       java @bldr/args hatrun [headless] backend package args ...
@@ -44,56 +44,45 @@ void main(String[] args) {
 
   var hatDir =  Dir.current();
   var backends = hatDir.existingDir("backends");
-  var examples = hatDir.existingDir("examples");
-  var buildDir = assertExists(BuildDir.of(hatDir.path("build")));
-
-  var extractedOpenCLJar = buildDir.jarFile("jextracted-opencl.jar");
-  var extractedOpenGLJar = buildDir.jarFile("jextracted-opengl.jar");
-
-
-  var javaBuilder = javaBuilder()
-    .enable_preview()
-    .add_modules("jdk.incubator.code")
-    .add_exports("java.base", "jdk.internal", "ALL-UNNAMED")
-    .enable_native_access("ALL-UNNAMED")
-    .library_path(buildDir)
-    .class_path(buildDir.jarFile("hat-1.0.jar"));
-
-  int argn = 0;
-  if (args.length > 0 && args[argn].equals("headless")) {
-    javaBuilder.opts("-Dheadless=true");
-    argn++;
-  }
-  if ((argn + 2) > args.length) {
-    print("args[" + args.length + "] = [ ");
-    List.of(args).forEach(a -> print(" " + a));
-    println(" ]");
-    println(usage);
-  } else {
-    var backendName = args[argn++];
-    var exampleName = args[argn++];
-    javaBuilder.when( exampleName.equals("nbody"), $->$
-       .start_on_first_thread()
-       .class_path(buildDir.jarFile("hat-1.0.jar"), extractedOpenGLJar, extractedOpenCLJar)
-    );
-
-    if (backendName.equals("java")) {
-      javaBuilder.class_path(ClassDir.of(backends.path("shared/src/main/resources")));
-    } else if (backends.dir(backendName) instanceof Dir backend && backend.exists()) {
-      javaBuilder.class_path(buildDir.jarFile("hat-backend-" + backendName + "-1.0.jar"));
-    } else {
-      println("No backend " + backendName);
-    }
-
-    if (buildDir.jarFile("hat-example-" + exampleName + "-1.0.jar") instanceof bldr.Bldr.JarFile exampleJar && exampleJar.exists()){
-      java(javaBuilder
-        .verbose()
-        .class_path(exampleJar)
-        .main_class(exampleName + ".Main")
-        .args(Arrays.copyOfRange(args, argn, args.length))
-      );
-    } else {
-      println("no example " + exampleName);
-    }
-  }
+  var examples = hatDir.dir("examples");
+  var buildDir = hatDir.existingBuildDir("build");
+  var jextractedOpenCLJar = buildDir.jarFile("jextracted-opencl.jar");
+  var jextractedOpenGLJar = buildDir.jarFile("jextracted-opengl.jar");
+  var args = new ArrayList<>(List.of(argv));
+  java(java -> java
+     .enable_preview()
+     .add_exports("java.base", "jdk.internal", "ALL-UNNAMED")
+     .enable_native_access("ALL-UNNAMED")
+     .library_path(buildDir)
+     .class_path(buildDir.jarFile("hat-1.0.jar"))
+     .when((!args.isEmpty() && args.getFirst().equals("headless")), ifHeadless -> {
+        ifHeadless.headless();
+        args.removeFirst();
+     })
+     .either(!args.isEmpty(), haveBackend -> {
+        var backendName = args.removeFirst();
+        if (backendName.equals("java")) {
+           haveBackend.class_path(ClassDir.of(backends.path("shared/src/main/resources")));
+        } else if (backends.dir(backendName) instanceof Dir backend && backend.exists()) {
+           haveBackend.class_path(buildDir.jarFile("hat-backend-" + backendName + "-1.0.jar"));
+        } else {
+           throw new RuntimeException("No such backend " + backendName);
+        }
+        if (!args.isEmpty() && args.removeFirst() instanceof String exampleName) {
+           if (examples.dir(exampleName) instanceof Dir example && example.exists()) { haveBackend
+              .class_path(buildDir.jarFile("hat-example-" + exampleName + "-1.0.jar"))
+              .when(jextractedOpenCLJar.exists() && jextractedOpenGLJar.exists() && exampleName.equals("nbody"), _->{ haveBackend
+                  .class_path(jextractedOpenCLJar,jextractedOpenGLJar)
+                  .start_on_first_thread();
+              })
+              .main_class(exampleName + ".Main")
+              .args(args);
+           } else {
+              throw new RuntimeException("no such example " + exampleName);
+           }
+        }
+     }, _ -> {
+        throw new RuntimeException("No backend provided...\n" + usage);
+     })
+  );
 }
