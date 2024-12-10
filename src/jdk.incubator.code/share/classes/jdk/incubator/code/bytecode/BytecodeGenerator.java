@@ -766,18 +766,43 @@ public final class BytecodeGenerator {
                     }
                     case InvokeOp op -> {
                         if (op.isVarArgs()) {
-                            processOperands(op.operands().subList(0, op.operands().size() - op.varArgOperands().size()));
+                            processOperands(op.argOperands());
                             var varArgOperands = op.varArgOperands();
                             cob.loadConstant(varArgOperands.size());
                             var compType = ((ArrayType) op.invokeDescriptor().type().parameterTypes().getLast()).componentType();
-                            var typeKind = TypeKind.fromDescriptor(compType.toNominalDescriptor().descriptorString());
-                            if (TypeKind.REFERENCE.equals(typeKind)) {
-                                var cd = ClassDesc.ofDescriptor(compType.toNominalDescriptor().descriptorString());
-                                cob.anewarray(cd);
-                            } else {
+                            var compTypeDesc = compType.toNominalDescriptor();
+                            var typeKind = TypeKind.from(compTypeDesc);
+                            if (compTypeDesc.isPrimitive()) {
                                 cob.newarray(typeKind);
+                            } else {
+                                cob.anewarray(compTypeDesc);
                             }
                             for (int j = 0; j < varArgOperands.size(); j++) {
+                                // we duplicate array value on the stack to be consumed by arrayStore
+                                // after completion of this loop the array value will be on top of the stack
+                                cob.dup();
+                                cob.loadConstant(j);
+                                load(varArgOperands.get(j));
+                                cob.arrayStore(typeKind);
+                            }
+                        } else {
+                            processOperands(op);
+                        }
+                        if (op.isVarArgs()) {
+                            processOperands(op.argOperands());
+                            var varArgOperands = op.varArgOperands();
+                            cob.loadConstant(varArgOperands.size());
+                            var compType = ((ArrayType) op.invokeDescriptor().type().parameterTypes().getLast()).componentType();
+                            var compTypeDesc = compType.toNominalDescriptor();
+                            var typeKind = TypeKind.from(compTypeDesc);
+                            if (compTypeDesc.isPrimitive()) {
+                                cob.newarray(typeKind);
+                            } else {
+                                cob.anewarray(compTypeDesc);
+                            }
+                            for (int j = 0; j < varArgOperands.size(); j++) {
+                                // we duplicate array value on the stack to be consumed by arrayStore
+                                // after completion of this loop the array value will be on top of the stack
                                 cob.dup();
                                 cob.loadConstant(j);
                                 load(varArgOperands.get(j));
