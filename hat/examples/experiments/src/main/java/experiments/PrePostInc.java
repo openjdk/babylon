@@ -26,17 +26,18 @@
 package experiments;
 
 
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.CopyContext;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.OpTransformer;
-import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.Value;
-import java.lang.reflect.code.interpreter.Interpreter;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.type.JavaType;
-import java.lang.reflect.code.type.MethodRef;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.interpreter.Interpreter;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.type.MethodRef;
+import jdk.incubator.code.CodeReflection;
 import java.util.List;
 import java.util.Map;
 
@@ -56,12 +57,12 @@ public class PrePostInc {
         static public void main(String[] args) throws Exception {
             Method pre = PrePostInc.class.getDeclaredMethod("preInc",  int.class);
             Method post = PrePostInc.class.getDeclaredMethod("postInc",  int.class);
-            CoreOp.FuncOp preFunc = pre.getCodeModel().get();
-            CoreOp.FuncOp postFunc = post.getCodeModel().get();
+            CoreOp.FuncOp preFunc = Op.ofMethod(pre).get();
+            CoreOp.FuncOp postFunc = Op.ofMethod(post).get();
 
-            Object preResult = Interpreter.invoke(preFunc,5);
+            Object preResult = Interpreter.invoke(MethodHandles.lookup(),preFunc,5);
             System.out.println("Pre "+ preResult);
-            Object postResult = Interpreter.invoke(postFunc,5);
+            Object postResult = Interpreter.invoke(MethodHandles.lookup(),postFunc,5);
             System.out.println("Pre "+ postResult);
           //  javaFunc.writeTo(System.out);
 

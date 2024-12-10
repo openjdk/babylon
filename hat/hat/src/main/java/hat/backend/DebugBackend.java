@@ -31,12 +31,13 @@ import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.code.OpTransformer;
-import java.lang.reflect.code.analysis.SSA;
-import java.lang.reflect.code.bytecode.BytecodeGenerator;
-import java.lang.reflect.code.interpreter.Interpreter;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.type.FunctionType;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.analysis.SSA;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
+import jdk.incubator.code.interpreter.Interpreter;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.FunctionType;
 
 public class DebugBackend extends BackendAdaptor {
     public enum HowToRunCompute{REFLECT, BABYLON_INTERPRETER, BABYLON_CLASSFILE}
@@ -124,7 +125,7 @@ public class DebugBackend extends BackendAdaptor {
             }
 
             case LOWER_TO_SSA:{
-                var highLevelForm = kernelCallGraph.entrypoint.method.getCodeModel().orElseThrow();
+                var highLevelForm = Op.ofMethod(kernelCallGraph.entrypoint.method).orElseThrow();
 
 
                 System.out.println("Initial code model");
@@ -144,7 +145,7 @@ public class DebugBackend extends BackendAdaptor {
             }
 
             case LOWER_TO_SSA_AND_MAP_PTRS:{
-                var highLevelForm = kernelCallGraph.entrypoint.method.getCodeModel().orElseThrow();
+                var highLevelForm = Op.ofMethod(kernelCallGraph.entrypoint.method).orElseThrow();
                 System.out.println("Initial code model");
                 System.out.println(highLevelForm.toText());
                 System.out.println("------------------");

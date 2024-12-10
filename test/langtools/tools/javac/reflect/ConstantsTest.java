@@ -24,12 +24,13 @@
 /*
  * @test
  * @summary Smoke test for code reflection with constant values.
+ * @modules jdk.incubator.code
  * @build ConstantsTest
  * @build CodeReflectionTester
  * @run main CodeReflectionTester ConstantsTest
  */
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 import java.util.function.Function;
 
 public class ConstantsTest {

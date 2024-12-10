@@ -21,8 +21,8 @@
  * questions.
  */
 
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.JavaType;
 
 public abstract class QueryProvider {
     public abstract <T> Queryable<T> query(Class<T> elementType);

@@ -33,7 +33,7 @@ import hat.buffer.S32Array2D;
 
 import java.awt.Color;
 import java.lang.invoke.MethodHandles;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 
 public class Main {
     @CodeReflection

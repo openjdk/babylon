@@ -21,12 +21,13 @@
  * questions.
  */
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 import java.util.List;
 
 /*
  * @test
  * @summary Smoke test for non-denotable types in IR type descriptors
+ * @modules jdk.incubator.code
  * @build DenotableTypesTest
  * @build CodeReflectionTester
  * @run main CodeReflectionTester DenotableTypesTest

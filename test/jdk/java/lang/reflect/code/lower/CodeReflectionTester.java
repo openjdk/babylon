@@ -24,14 +24,14 @@
 import java.io.StringWriter;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.OpTransformer;
-import java.lang.reflect.code.analysis.SSA;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.op.ExtendedOp;
-import java.lang.reflect.code.parser.OpParser;
-import java.lang.reflect.code.writer.OpWriter;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.analysis.SSA;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.op.ExtendedOp;
+import jdk.incubator.code.parser.OpParser;
+import jdk.incubator.code.writer.OpWriter;
+import jdk.incubator.code.CodeReflection;
 
 public class CodeReflectionTester {
 
@@ -56,7 +56,7 @@ public class CodeReflectionTester {
             throw new AssertionError("No @IR annotation found on reflective method");
         }
 
-        CoreOp.FuncOp f = method.getCodeModel().orElseThrow(() ->
+        CoreOp.FuncOp f = Op.ofMethod(method).orElseThrow(() ->
                 new AssertionError("No code model for reflective method"));
         f = lower(f, lma.ssa());
 

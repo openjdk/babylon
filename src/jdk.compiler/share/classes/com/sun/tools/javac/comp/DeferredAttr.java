@@ -1118,11 +1118,11 @@ public class DeferredAttr extends JCTree.Visitor {
      * A special tree scanner that would only visit portions of a given tree.
      * The set of nodes visited by the scanner can be customized at construction-time.
      */
-    abstract static class FilterScanner extends com.sun.tools.javac.tree.TreeScanner {
+    public abstract static class FilterScanner extends com.sun.tools.javac.tree.TreeScanner {
 
         final Predicate<JCTree> treeFilter;
 
-        FilterScanner(final Set<JCTree.Tag> validTags) {
+        protected FilterScanner(final Set<JCTree.Tag> validTags) {
             this.treeFilter = t -> validTags.contains(t.getTag());
         }
 
@@ -1140,7 +1140,7 @@ public class DeferredAttr extends JCTree.Visitor {
         /**
          * handler that is executed when a node has been discarded
          */
-        void skip(JCTree tree) {}
+        protected void skip(JCTree tree) {}
     }
 
     /**

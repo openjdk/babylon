@@ -29,13 +29,13 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
-import java.lang.reflect.code.Block;
-import java.lang.reflect.code.Body;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.Value;
-import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.Block;
+import jdk.incubator.code.Body;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.type.JavaType;
 
 public class TranslateToSpirvModel  {
     private Map<Block, Block.Builder> blockMap;    // Java block to spirv block builder

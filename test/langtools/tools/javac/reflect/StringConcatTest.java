@@ -1,7 +1,8 @@
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @build StringConcatTest
  * @build CodeReflectionTester
  * @run main CodeReflectionTester StringConcatTest

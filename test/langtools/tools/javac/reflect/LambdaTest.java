@@ -21,13 +21,14 @@
  * questions.
  */
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /*
  * @test
  * @summary Smoke test for code reflection with lambda expressions.
+ * @modules jdk.incubator.code
  * @build LambdaTest
  * @build CodeReflectionTester
  * @run main CodeReflectionTester LambdaTest

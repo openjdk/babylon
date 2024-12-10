@@ -24,12 +24,13 @@
 /*
  * @test
  * @summary Smoke test for code reflection with binary operations.
+ * @modules jdk.incubator.code
  * @build BinopTest
  * @build CodeReflectionTester
  * @run main CodeReflectionTester BinopTest
  */
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 
 public class BinopTest {
 

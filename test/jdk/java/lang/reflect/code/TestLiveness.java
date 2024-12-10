@@ -23,20 +23,21 @@
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @run testng TestLiveness
  */
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.Block;
-import java.lang.reflect.code.CodeElement;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.Value;
-import java.lang.reflect.code.analysis.Liveness;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.type.JavaType;
-import java.lang.reflect.code.parser.OpParser;
+import jdk.incubator.code.Block;
+import jdk.incubator.code.CodeElement;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.analysis.Liveness;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.parser.OpParser;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

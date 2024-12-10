@@ -28,7 +28,7 @@ import hat.ComputeContext;
 import hat.optools.FuncOpWrapper;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.code.type.MethodRef;
+import jdk.incubator.code.type.MethodRef;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;

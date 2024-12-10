@@ -25,18 +25,18 @@
 
 package oracle.code.triton;
 
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.Value;
-import java.lang.reflect.code.analysis.Patterns;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.op.CoreOp.VarAccessOp.VarLoadOp;
-import java.lang.reflect.code.op.CoreOp.VarAccessOp.VarStoreOp;
-import java.lang.reflect.code.op.ExtendedOp;
-import java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.analysis.Patterns;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.op.CoreOp.VarAccessOp.VarLoadOp;
+import jdk.incubator.code.op.CoreOp.VarAccessOp.VarStoreOp;
+import jdk.incubator.code.op.ExtendedOp;
+import jdk.incubator.code.type.JavaType;
 import java.util.ArrayList;
 import java.util.List;
 
-import static java.lang.reflect.code.analysis.Patterns.*;
+import static jdk.incubator.code.analysis.Patterns.*;
 
 // @@@ Very basic, limited, and partially correct
 public class SimpleCountedForLoopInfo {

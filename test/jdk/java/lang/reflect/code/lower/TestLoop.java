@@ -21,10 +21,11 @@
  * questions.
  */
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @summary test lowering of loops
  * @build TestLoop
  * @build CodeReflectionTester
