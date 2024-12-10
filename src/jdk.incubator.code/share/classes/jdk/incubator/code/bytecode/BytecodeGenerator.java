@@ -765,8 +765,29 @@ public final class BytecodeGenerator {
                         push(op.result());
                     }
                     case InvokeOp op -> {
-                        // @@@ var args
-                        processOperands(op);
+                        if (op.isVarArgs()) {
+                            processOperands(op.argOperands());
+                            var varArgOperands = op.varArgOperands();
+                            cob.loadConstant(varArgOperands.size());
+                            var compType = ((ArrayType) op.invokeDescriptor().type().parameterTypes().getLast()).componentType();
+                            var compTypeDesc = compType.toNominalDescriptor();
+                            var typeKind = TypeKind.from(compTypeDesc);
+                            if (compTypeDesc.isPrimitive()) {
+                                cob.newarray(typeKind);
+                            } else {
+                                cob.anewarray(compTypeDesc);
+                            }
+                            for (int j = 0; j < varArgOperands.size(); j++) {
+                                // we duplicate array value on the stack to be consumed by arrayStore
+                                // after completion of this loop the array value will be on top of the stack
+                                cob.dup();
+                                cob.loadConstant(j);
+                                load(varArgOperands.get(j));
+                                cob.arrayStore(typeKind);
+                            }
+                        } else {
+                            processOperands(op);
+                        }
                         // Resolve referenced class to determine if interface
                         MethodRef md = op.invokeDescriptor();
                         JavaType refType = (JavaType)md.refType();
@@ -778,9 +799,6 @@ public final class BytecodeGenerator {
                         }
                         // Determine invoke opcode
                         final boolean isInterface = refClass.isInterface();
-                        if (op.isVarArgs()) {
-                            throw new UnsupportedOperationException("invoke varargs unsupported: " + op.invokeDescriptor());
-                        }
                         Opcode invokeOpcode = switch (op.invokeKind()) {
                             case STATIC ->
                                     Opcode.INVOKESTATIC;
