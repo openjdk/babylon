@@ -25,8 +25,8 @@
 
 package oracle.code.triton;
 
-import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.type.JavaType;
 
 // Fake float 16 type
 public final class Float16 extends TritonNumber {

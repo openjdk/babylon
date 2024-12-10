@@ -23,10 +23,11 @@
 
 /*
  * @test /nodynamiccopyright/
- * @compile/fail/ref=TestMethodCall.out -XDrawDiagnostics TestMethodCall.java
+ * @modules jdk.incubator.code
+ * @compile/fail/ref=TestMethodCall.out -Xlint:-incubating -XDrawDiagnostics TestMethodCall.java
  */
 
-import java.lang.reflect.code.Quoted;
+import jdk.incubator.code.Quoted;
 
 public class TestMethodCall {
     void test(boolean cond) {

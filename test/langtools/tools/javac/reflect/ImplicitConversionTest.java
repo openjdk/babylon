@@ -21,13 +21,14 @@
  * questions.
  */
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 import java.util.function.LongSupplier;
 
 
 /*
  * @test
  * @summary Smoke test for code reflection with implicit conversions.
+ * @modules jdk.incubator.code
  * @enablePreview
  * @build ImplicitConversionTest
  * @build CodeReflectionTester

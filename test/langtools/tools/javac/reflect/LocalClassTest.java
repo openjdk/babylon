@@ -26,12 +26,13 @@
 /*
  * @test
  * @summary Smoke test for code reflection with local class creation expressions.
+ * @modules jdk.incubator.code
  * @build LocalClassTest
  * @build CodeReflectionTester
  * @run main CodeReflectionTester LocalClassTest
  */
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 
 public class LocalClassTest {
 

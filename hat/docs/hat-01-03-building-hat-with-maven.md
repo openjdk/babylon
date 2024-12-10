@@ -53,30 +53,12 @@ properties should look like this, and should not need changing
 <project>
     <!-- yada -->
     <properties>
-        <babylon.repo.name>babylon</babylon.repo.name>  <!--replace with your fork name -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>24</maven.compiler.source>
-        <maven.compiler.target>24</maven.compiler.target>
-        <github.dir>${env.HOME}/github</github.dir>
-        <beehive.spirv.toolkit.dir>${github.dir}/beehive-spirv-toolkit/</beehive.spirv.toolkit.dir>
-        <babylon.dir>${github.dir}/${babylon.repo.name}</babylon.dir>
-        <hat.dir>${babylon.dir}/hat</hat.dir>
-        <hat.target>${hat.dir}/build</hat.target>
+        <hat.build>${env.PWD}/build</hat.build>
     </properties>
     <!-- yada -->
 </project>
 ```
-If say your github dir (the one containing babylon) is somewhere other than `${HOME}/github` then make sure that `github.dir` is
-set accordingly.
-
-```xml
-    <properties>
-        <!-- ... -->
-        <github.dir>/full/path/to/github</github.dir>
-        <!-- ... -->
-    </properties>
-```
-
 ## Sanity checking your env and root pom.xml
 
 After sourcing `env.bash` or making changes to `pom.xml` we can

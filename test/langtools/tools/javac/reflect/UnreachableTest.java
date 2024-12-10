@@ -21,14 +21,15 @@
  * questions.
  */
 
-import java.lang.reflect.code.Quotable;
-import java.lang.reflect.code.Quoted;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.Quotable;
+import jdk.incubator.code.Quoted;
+import jdk.incubator.code.CodeReflection;
 import java.util.function.IntUnaryOperator;
 
 /*
  * @test
  * @summary Smoke test for code reflection with unreachable areas.
+ * @modules jdk.incubator.code
  * @enablePreview
  * @build UnreachableTest
  * @build CodeReflectionTester

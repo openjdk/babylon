@@ -23,8 +23,7 @@
  * questions.
  */
 
-import javax.tools.JavaCompiler;
-import javax.tools.StandardLocation;
+import com.sun.tools.javac.comp.CodeReflectionTransformer;
 
 /**
  * Defines the implementation of the
@@ -234,25 +233,31 @@ module jdk.compiler {
     exports com.sun.tools.javac.api to
         jdk.javadoc,
         jdk.jshell,
-        jdk.internal.md;
+        jdk.internal.md,
+        jdk.incubator.code;
     exports com.sun.tools.javac.resources to
         jdk.jshell;
     exports com.sun.tools.javac.code to
         jdk.javadoc,
-        jdk.jshell;
+        jdk.jshell,
+        jdk.incubator.code;
     exports com.sun.tools.javac.comp to
         jdk.javadoc,
-        jdk.jshell;
+        jdk.jshell,
+        jdk.incubator.code;
     exports com.sun.tools.javac.file to
         jdk.jdeps,
         jdk.javadoc;
     exports com.sun.tools.javac.jvm to
-        jdk.javadoc;
+        jdk.javadoc,
+        jdk.incubator.code;
     exports com.sun.tools.javac.main to
         jdk.javadoc,
-        jdk.jshell;
+        jdk.jshell,
+        jdk.incubator.code;
     exports com.sun.tools.javac.model to
-        jdk.javadoc;
+        jdk.javadoc,
+        jdk.incubator.code;
     exports com.sun.tools.javac.parser to
         jdk.jshell,
         jdk.internal.md;
@@ -262,18 +267,23 @@ module jdk.compiler {
     exports com.sun.tools.javac.tree to
         jdk.javadoc,
         jdk.jshell,
-        jdk.internal.md;
+        jdk.internal.md,
+        jdk.incubator.code;
     exports com.sun.tools.javac.util to
         jdk.jdeps,
         jdk.javadoc,
         jdk.jshell,
-        jdk.internal.md;
+        jdk.internal.md,
+        jdk.incubator.code;
+    exports com.sun.tools.javac.processing to
+        jdk.incubator.code;
 
     uses javax.annotation.processing.Processor;
     uses com.sun.source.util.Plugin;
     uses com.sun.tools.doclint.DocLint;
     uses com.sun.tools.javac.platform.PlatformProvider;
     uses com.sun.tools.javac.api.JavacTrees.DocCommentTreeTransformer;
+    uses CodeReflectionTransformer;
 
     provides java.util.spi.ToolProvider with
         com.sun.tools.javac.main.JavacToolProvider;

@@ -26,8 +26,9 @@
 package oracle.code.triton;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.CodeReflection;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -57,6 +58,6 @@ class Functions {
                 .findFirst();
 
         Method m = om.get();
-        return m.getCodeModel().get();
+        return Op.ofMethod(m).get();
     }
 }

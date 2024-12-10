@@ -92,7 +92,7 @@ public class CaptureScanner extends TreeScanner {
     /**
      * Obtains the list of captured local variables in the tree under analysis.
      */
-    List<Symbol.VarSymbol> analyzeCaptures() {
+    public List<Symbol.VarSymbol> analyzeCaptures() {
         scan(tree);
         return List.from(fvs);
     }

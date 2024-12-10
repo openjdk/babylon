@@ -88,7 +88,6 @@ I also tend to hand hack run configurations so will leave this here for referenc
       <module name="mandel" />
       <option name="VM_PARAMETERS" value="
           --enable-preview
-          --add-exports=java.base/java.lang.reflect.code.descriptor.impl=ALL-UNNAMED
           --add-exports=java.base/java.lang.foreign.mapper=ALL-UNNAMED
           --patch-module=java.base=$PROJECT_DIR$/out/production/java_base_patch
           -Djava.lang.foreign.mapper.debug=true" />

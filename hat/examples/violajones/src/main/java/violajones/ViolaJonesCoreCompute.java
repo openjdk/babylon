@@ -34,7 +34,7 @@ import violajones.ifaces.ResultTable;
 import violajones.ifaces.ScaleTable;
 
 import java.awt.image.BufferedImage;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 
 public class ViolaJonesCoreCompute {
 

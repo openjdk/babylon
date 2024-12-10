@@ -23,13 +23,14 @@
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @summary test lowering of synchronized blocks
  * @build TestSynchronized
  * @build CodeReflectionTester
  * @run main CodeReflectionTester TestSynchronized
  */
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 
 public class TestSynchronized {
 

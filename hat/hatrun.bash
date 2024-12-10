@@ -32,7 +32,7 @@ if [ $# -eq 0 ]; then
    echo 'usage:'
    echo '   bash hatrun.bash [headless] backend package args ...'
    echo '       headless : Optional passes -Dheadless=true to app'
-   echo '       backend  : opencl|cuda|spirv|ptx|mock'
+   echo '       backend  : opencl|cuda|hip|spirv|ptx|mock'
    echo '       package  : the examples package (and dirname under hat/examples)'
    echo '       Class name is assumed to be package.Main '
 elif [[ -d build ]] ; then
@@ -40,6 +40,7 @@ elif [[ -d build ]] ; then
    export VMOPTS=""
    export JARS="" 
 
+   export VMOPTS="${VMOPTS} --add-modules jdk.incubator.code"
    export VMOPTS="${VMOPTS} --enable-preview"
    export VMOPTS="${VMOPTS} --enable-native-access=ALL-UNNAMED"
    export VMOPTS="${VMOPTS} --add-exports=java.base/jdk.internal=ALL-UNNAMED"

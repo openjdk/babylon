@@ -25,15 +25,16 @@ package hat;
 
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.CopyContext;
-import java.lang.reflect.code.OpTransformer;
-import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.Value;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.Op;
+import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.Op;
+
 import java.lang.reflect.Method;
-import java.lang.reflect.code.type.JavaType;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.CodeReflection;
 import java.util.List;
 
 
@@ -79,7 +80,7 @@ public class CustomOpTest {
     @Test
     public void testDNAOp() throws NoSuchMethodException {
         Method method = CustomOpTest.class.getDeclaredMethod("addMul", int.class, int.class);
-        var funcOp = method.getCodeModel().get();
+        CoreOp.FuncOp funcOp = Op.ofMethod(method).get();
         var transformed = funcOp.transform((builder, op) -> {
             CopyContext cc = builder.context();
             if (op instanceof CoreOp.InvokeOp invokeOp) {

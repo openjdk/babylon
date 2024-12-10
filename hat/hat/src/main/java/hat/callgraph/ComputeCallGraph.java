@@ -34,9 +34,10 @@ import hat.optools.OpWrapper;
 import hat.util.Result;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.type.JavaType;
-import java.lang.reflect.code.type.MethodRef;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.type.MethodRef;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -165,7 +166,7 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
                         new ComputeContextMethodCall(this, methodRef, invokeWrapperCalledMethod)
                 ));
             } else if (entrypoint.method.getDeclaringClass().equals(javaRefClass)) {
-                Optional<CoreOp.FuncOp> optionalFuncOp = invokeWrapperCalledMethod.getCodeModel();
+                Optional<CoreOp.FuncOp> optionalFuncOp = Op.ofMethod(invokeWrapperCalledMethod);
                 if (optionalFuncOp.isPresent()) {
                     FuncOpWrapper fow = OpWrapper.wrap(optionalFuncOp.get());
                     if (isKernelDispatch(invokeWrapperCalledMethod, fow)) {
