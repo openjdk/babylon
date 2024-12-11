@@ -12,7 +12,7 @@ This code is distributed in the hope that it will be useful, but WITHOUT
 ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 version 2 for more details (a copy is included in the LICENSE file that
-      accompanied this code).
+accompanied this code).
 
 You should have received a copy of the GNU General Public License version
 2 along with this work; if not, write to the Free Software Foundation,
@@ -26,11 +26,11 @@ questions.
     <modelVersion>4.0.0</modelVersion>
     <packaging>jar</packaging>
     <groupId>oracle.code</groupId>
-    <artifactId>hat-backend-mock</artifactId>
+    <artifactId>hat-backend-native-mock</artifactId>
     <version>1.0</version>
     <parent>
         <groupId>oracle.code</groupId>
-        <artifactId>hat-backends</artifactId>
+        <artifactId>hat-backends-native</artifactId>
         <version>1.0</version>
     </parent>
     <dependencies>
@@ -63,7 +63,7 @@ questions.
                         </goals>
                         <configuration>
                             <target>
-                                <copy file="target/hat-backend-mock-1.0.jar" toDir="${hat.build}"/>
+                                <copy file="target/hat-backend-native-mock-1.0.jar" toDir="${hat.build}"/>
                             </target>
                         </configuration>
                     </execution>

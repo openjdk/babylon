@@ -12,7 +12,7 @@ This code is distributed in the hope that it will be useful, but WITHOUT
 ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 version 2 for more details (a copy is included in the LICENSE file that
-      accompanied this code).
+accompanied this code).
 
 You should have received a copy of the GNU General Public License version
 2 along with this work; if not, write to the Free Software Foundation,
@@ -58,6 +58,25 @@ questions.
                                 <argument>${mac.lib.frameworks}/OpenCL.framework/OpenCL</argument>
                                 <argument>${mac.app.frameworks}/OpenCL.framework/Headers/opencl.h</argument>
                             </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>1.8</version>
+                <executions>
+                    <execution>
+                        <id>1</id>
+                        <phase>install</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <jar basedir="${hat.stage.jextract}" destfile="${hat.build}/jextracted-opencl-1.0.jar" includes="opencl/**"/>
+                            </target>
                         </configuration>
                     </execution>
                 </executions>
