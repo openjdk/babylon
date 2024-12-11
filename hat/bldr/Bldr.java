@@ -658,12 +658,10 @@ public class Bldr {
         }
     }
 
-    public record Jextract(Path path) implements Executable {
-        public static Jextract of(Path path) {
-            return new Jextract(path);
+    public record JExtractExecutable(Path path) implements Executable {
+        public static JExtractExecutable of(Path path) {
+            return new JExtractExecutable(path);
         }
-
-
     }
 
 
@@ -1114,7 +1112,7 @@ public class Bldr {
             //https://dev.java/learn/modules/building/
                 result.opts.add("--module-path", javacBuilder.modulePath.charSeparated());
             }else{
-                println("Warning no class path or module path ");
+               // println("Warning no class path or module path ");
                 //throw new RuntimeException("No class path or module path provided");
             }
             var mavenStyleRoot =
@@ -1520,7 +1518,7 @@ public class Bldr {
         }
 
         public <P extends DirPathHolder<P>> JarBuilder dir_list(P holder) {
-            DirPath.ofOrUse(this.dirList).add(holder);
+            this.dirList = DirPath.ofOrUse(this.dirList).add(holder);
             return self();
         }
     }
@@ -1550,6 +1548,9 @@ public class Bldr {
         try {
 
             var jarStream = new JarOutputStream(Files.newOutputStream(jarBuilder.jar.path()));
+            if (jarBuilder.dirList ==null){
+                throw new RuntimeException("Nothing to jar ");
+            }
             jarBuilder.dirList.entries.forEach(
                     root ->
                             root.findFiles()
@@ -1745,7 +1746,7 @@ public Strings opts = new Strings();
         }
     }
 
-    public static JExtractResult jextract(Jextract executable, Consumer<JExtractBuilder> jextractBuilderConsumer) {
+    public static JExtractResult jextract(JExtractExecutable executable, Consumer<JExtractBuilder> jextractBuilderConsumer) {
 
         var exePath = executable.path;
         var homePath = exePath.getParent().getParent();
@@ -2171,7 +2172,7 @@ public Strings opts = new Strings();
         }
         public static abstract class Capability {
             final public String name;
-            Capability(String name) {
+            protected Capability(String name) {
                 this.name=name;
             }
             public abstract boolean available();
@@ -2209,6 +2210,7 @@ public Strings opts = new Strings();
             List.of(capabilities).forEach(capability ->
                     capabilityMap.put(capability.name, capability)
             );
+
         }
 
         public static class OpenCL extends CMakeCapability {
@@ -2282,7 +2284,55 @@ public Strings opts = new Strings();
             }
         }
 
+        public static class JExtract extends Bldr.Capabilities.Capability{
+            public Bldr.JExtractExecutable executable;
+            JExtract(){
+                super("JExtract");
+                var  optionalExe = fromPATH("jextract");
+                if (optionalExe.isEmpty()){
+                    println("jextract not in path");
+                }else{
+                    executable = Bldr.JExtractExecutable.of(optionalExe.get());
+                }
 
+            }
+            @Override
+            public boolean available() {
+                return executable != null && executable.exists();
+            }
+
+            public static JExtract of(){
+                return new JExtract();
+            }
+
+        }
+
+        public static class CMake extends Bldr.Capabilities.Capability{
+            public Bldr.JExtractExecutable executable;
+            public Bldr.CMakeProbe cmakeProbe;
+            CMake(){
+                super("CMake");
+                var  optionalExe = fromPATH("cmake");
+                if (optionalExe.isEmpty()){
+                    println("cmake not in path");
+                }else{
+                    executable = Bldr.JExtractExecutable.of(optionalExe.get());
+                }
+
+            }
+            @Override
+            public boolean available() {
+                return executable != null && executable.exists();
+            }
+
+            public static CMake of(){
+                return new CMake();
+            }
+
+            public void probe(BuildDir buildDir, Capabilities capabilities) {
+                this.cmakeProbe = new Bldr.CMakeProbe(buildDir, capabilities);
+            }
+        }
 
     }
 

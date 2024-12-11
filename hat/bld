@@ -80,7 +80,7 @@ void main(String[] args) {
     var jextractDir = stageDir.buildDir("jextract").create();
     var buildDir = BuildDir.of(hatDir.path("build")).create();
     var cmakeBuildDir = buildDir.cMakeBuildDir("cmake-build-debug");
-    var jextractExe = Jextract.of(fromPATH("jextract").orElseThrow(()-> new RuntimeException("Can't locate jextract")));
+    //var jextractExe = Jextract.of(fromPATH("jextract").orElseThrow(()-> new RuntimeException("Can't locate jextract")));
     var extractedOpenCLJar = buildDir.jarFile("jextracted-opencl.jar");
     var extractedOpenGLJar = buildDir.jarFile("jextracted-opengl.jar");
     var verbose = false;
@@ -89,15 +89,23 @@ void main(String[] args) {
     var opengl = Capabilities.OpenGL.of();
     var cuda = Capabilities.CUDA.of();
     var hip = Capabilities.HIP.of();
-    var capabilities= Capabilities.of(opencl, opengl, cuda, hip);
-    var cmakeProbe = new CMakeProbe(buildDir, capabilities);
+    var jextract = Capabilities.JExtract.of();
+    var cmake = Capabilities.CMake.of();
+
+    Capabilities capabilities = Capabilities.of(opencl, opengl, cuda, hip, jextract, cmake);
+
+    if (cmake.available()){
+        cmake.probe(buildDir, capabilities);
+    }
+    capabilities.capabilities().forEach(fw->println((fw.available()?"we have ":"no ")+fw.name));
+
     if (opencl.available()) {
         if (extractedOpenCLJar.exists()) {
             println("We've already extracted and jarred" + extractedOpenCLJar.path());
         } else {
             var openclSource = jextractDir.sourceDir("opencl");
             if (!openclSource.exists()) {
-                jextract(jextractExe, $ -> {
+                jextract(jextract.executable, $ -> {
                             $.output(jextractDir).target_package(openclSource.fileName());
                             switch (os) {
                                 case OS.Mac mac -> $
@@ -129,7 +137,7 @@ void main(String[] args) {
         } else {
             var openglSource = jextractDir.sourceDir("opengl");
             if (!openglSource.exists()) {
-                jextract(jextractExe,$ -> {
+                jextract(jextract.executable,$ -> {
                             $.output(jextractDir).target_package(openglSource.fileName());
                             switch (os) {
                                 case OS.Mac mac -> $
@@ -203,7 +211,7 @@ void main(String[] args) {
            );
        });
 
-  // Here we create all native backend jars.
+  // Here we create all java backend jars.
     var javaBackends = backends.existingDir("java");
     javaBackends
        .subDirs(backend -> !backend.matches("^.*(target|.idea)$"))
@@ -213,8 +221,7 @@ void main(String[] args) {
            jar(jar -> jar
               .copy(hatJarOptions)
               .jar(jarFile)
-              .maven_style_root(backend)
-              .javac(javac -> javac.copy(hatJavacOpts).class_path(hatJar))
+              .dir_list(backend.dir("src/main/resources"))
            );
        });
 
