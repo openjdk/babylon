@@ -26,9 +26,9 @@ package oracle.code.triton;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.type.JavaType;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.CodeReflection;
 import java.util.List;
 
 import static oracle.code.triton.Triton.*;
