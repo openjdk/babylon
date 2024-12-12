@@ -57,6 +57,9 @@ questions.
                     <configuration>
                         <argLine>--enable-preview
                         </argLine>
+                        <systemPropertyVariables>
+                            <project.build.directory>${project.build.directory}</project.build.directory>
+                        </systemPropertyVariables>
                     </configuration>
                 </plugin>
             </plugins>

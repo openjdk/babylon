@@ -33,11 +33,9 @@ import java.util.List;
 
 import static oracle.code.triton.Triton.*;
 import static oracle.code.triton.Triton.CompareKind.*;
-import static oracle.code.triton.Triton.compare;
-import static oracle.code.triton.Triton.load;
 
 @ExtendWith(TritonTestExtension.class)
-public class TestMatrix {
+public class TestMatrixFp16 {
 
     @TritonCodeModel("""
             module ()void -> {
@@ -57,14 +55,17 @@ public class TestMatrix {
                     %11 : int = arith.divsi %10 %7;
                     tt.return %11;
                 };
-                tt.func @"matmul_kernel_broadcast_ptr<float>_ptr<float>_ptr<float>_int_int_int_int_int_int_int_int_int_32_64_32_8_false_void" (%12 : ptr<float>, %13 : ptr<float>, %14 : ptr<float>, %15 : int, %16 : int, %17 : int, %18 : int, %19 : int, %20 : int, %21 : int, %22 : int, %23 : int)void -> {
-                    %24 : int = arith.constant @"32";
-                    %25 : int = arith.constant @"64";
-                    %26 : int = arith.constant @"32";
-                    %27 : int = arith.constant @"8";
-                    %28 : int = tt.get_program_id @"0";
-                    %29 : int = tt.call %15 @"cdiv_int_32_int";
-                    %30 : int = tt.call %16 @"cdiv_int_64_int";
+                tt.func @sym_name="matmul_kernel_fp16_ptr<oracle.code.triton.Float16>_ptr<oracle.code.triton.Float16>_ptr<oracle.code.triton.Float16>_int_int_int_int_1_int_1_int_1_32_64_32_8_false_void" (%12 : ptr<oracle.code.triton.Float16>, %13 : ptr<oracle.code.triton.Float16>, %14 : ptr<oracle.code.triton.Float16>, %15 : int, %16 : int, %17 : int, %18 : int, %19 : int, %20 : int)void -> {
+                    %21 : int = arith.constant @value="1";
+                    %22 : int = arith.constant @value="1";
+                    %23 : int = arith.constant @value="1";
+                    %24 : int = arith.constant @value="32";
+                    %25 : int = arith.constant @value="64";
+                    %26 : int = arith.constant @value="32";
+                    %27 : int = arith.constant @value="8";
+                    %28 : int = tt.get_program_id @axis="0";
+                    %29 : int = tt.call %15 @callee="cdiv_int_32_int";
+                    %30 : int = tt.call %16 @callee="cdiv_int_64_int";
                     %31 : int = arith.muli %27 %30;
                     %32 : int = arith.divsi %28 %31;
                     %33 : int = arith.muli %32 %27;
@@ -87,378 +88,98 @@ public class TestMatrix {
                     %50 : tensor<x64, int> = tt.splat %16;
                     %51 : tensor<x64, int> = arith.remsi %49 %50;
                     %52 : tensor<x32, int> = tt.make_range @start="0" @end="32";
-                    %53 : tensor<x32, x1, int> = tt.expand_dims %45 @"1";
+                    %53 : tensor<x32, x1, int> = tt.expand_dims %45 @axis="1";
                     %54 : tensor<x32, x1, int> = tt.splat %18;
                     %55 : tensor<x32, x1, int> = arith.muli %53 %54;
-                    %56 : tensor<x1, x32, int> = tt.expand_dims %52 @"0";
-                    %57 : tensor<x1, x32, int> = tt.splat %19;
-                    %58 : tensor<x1, x32, int> = arith.muli %56 %57;
-                    %59 : tensor<x32, x32, ptr<float>> = tt.splat %12;
-                    %60 : tensor<x32, x32, int> = tt.broadcast %55;
-                    %61 : tensor<x32, x32, int> = tt.broadcast %58;
-                    %62 : tensor<x32, x32, int> = arith.addi %60 %61;
-                    %63 : tensor<x32, x32, ptr<float>> = tt.addptr %59 %62;
-                    %64 : tensor<x32, x1, int> = tt.expand_dims %52 @"1";
-                    %65 : tensor<x32, x1, int> = tt.splat %20;
-                    %66 : tensor<x32, x1, int> = arith.muli %64 %65;
-                    %67 : tensor<x1, x64, int> = tt.expand_dims %51 @"0";
-                    %68 : tensor<x1, x64, int> = tt.splat %21;
-                    %69 : tensor<x1, x64, int> = arith.muli %67 %68;
-                    %70 : tensor<x32, x64, ptr<float>> = tt.splat %13;
-                    %71 : tensor<x32, x64, int> = tt.broadcast %66;
-                    %72 : tensor<x32, x64, int> = tt.broadcast %69;
-                    %73 : tensor<x32, x64, int> = arith.addi %71 %72;
-                    %74 : tensor<x32, x64, ptr<float>> = tt.addptr %70 %73;
-                    %75 : tensor<x32, x64, float> = arith.constant @"0.0";
-                    %76 : int = arith.constant @"0";
-                    %77 : int = tt.call %17 @"cdiv_int_32_int";
-                    %78 : int = arith.constant @"1";
-                    %79 : Tuple<tensor<x32, x64, float>, tensor<x32, x32, ptr<float>>, tensor<x32, x64, ptr<float>>> = scf.for %76 %77 %78 %75 %63 %74 (%80 : int, %81 : tensor<x32, x64, float>, %82 : tensor<x32, x32, ptr<float>>, %83 : tensor<x32, x64, ptr<float>>)Tuple<tensor<x32, x64, float>, tensor<x32, x32, ptr<float>>, tensor<x32, x64, ptr<float>>> -> {
-                        %84 : tensor<x1, x32, int> = tt.expand_dims %52 @"0";
-                        %85 : int = arith.muli %80 %26;
-                        %86 : int = arith.subi %17 %85;
-                        %87 : tensor<x1, x32, int> = tt.splat %86;
-                        %88 : tensor<x1, x32, boolean> = arith.cmpi %84 %87 @"slt";
-                        %89 : tensor<x32, x32, boolean> = tt.broadcast %88;
-                        %90 : tensor<x32, x32, float> = tt.load %82 %89;
-                        %91 : tensor<x32, x1, int> = tt.expand_dims %52 @"1";
-                        %92 : int = arith.muli %80 %26;
-                        %93 : int = arith.subi %17 %92;
-                        %94 : tensor<x32, x1, int> = tt.splat %93;
-                        %95 : tensor<x32, x1, boolean> = arith.cmpi %91 %94 @"slt";
-                        %96 : tensor<x32, x64, boolean> = tt.broadcast %95;
-                        %97 : tensor<x32, x64, float> = tt.load %83 %96;
-                        %98 : tensor<x32, x64, float> = arith.constant @"0.0";
-                        %99 : tensor<x32, x64, float> = tt.dot %90 %97 %98;
-                        %100 : tensor<x32, x64, float> = arith.addf %81 %99;
-                        %101 : int = arith.muli %26 %19;
-                        %102 : tensor<x32, x32, int> = tt.splat %101;
-                        %103 : tensor<x32, x32, ptr<float>> = tt.addptr %82 %102;
-                        %104 : int = arith.muli %26 %20;
-                        %105 : tensor<x32, x64, int> = tt.splat %104;
-                        %106 : tensor<x32, x64, ptr<float>> = tt.addptr %83 %105;
-                        scf.yield %100 %103 %106;
-                    };
-                    %107 : tensor<x32, x64, float> = tuple.load %79 @"0";
-                    %108 : tensor<x32, x32, ptr<float>> = tuple.load %79 @"1";
-                    %109 : tensor<x32, x64, ptr<float>> = tuple.load %79 @"2";
-                    %110 : int = arith.muli %37 %24;
-                    %111 : tensor<x32, int> = tt.splat %110;
-                    %112 : tensor<x32, int> = arith.addi %111 %40;
-                    %113 : int = arith.muli %39 %25;
-                    %114 : tensor<x64, int> = tt.splat %113;
-                    %115 : tensor<x64, int> = arith.addi %114 %46;
-                    %116 : tensor<x32, x1, int> = tt.expand_dims %112 @"1";
-                    %117 : tensor<x32, x1, int> = tt.splat %22;
-                    %118 : tensor<x32, x1, int> = arith.muli %116 %117;
-                    %119 : tensor<x1, x64, int> = tt.expand_dims %115 @"0";
-                    %120 : tensor<x1, x64, int> = tt.splat %23;
-                    %121 : tensor<x1, x64, int> = arith.muli %119 %120;
-                    %122 : tensor<x32, x64, ptr<float>> = tt.splat %14;
-                    %123 : tensor<x32, x64, int> = tt.broadcast %118;
-                    %124 : tensor<x32, x64, int> = tt.broadcast %121;
-                    %125 : tensor<x32, x64, int> = arith.addi %123 %124;
-                    %126 : tensor<x32, x64, ptr<float>> = tt.addptr %122 %125;
-                    %127 : tensor<x32, x1, int> = tt.expand_dims %112 @"1";
-                    %128 : tensor<x32, x1, int> = tt.splat %15;
-                    %129 : tensor<x32, x1, boolean> = arith.cmpi %127 %128 @"slt";
-                    %130 : tensor<x1, x64, int> = tt.expand_dims %115 @"0";
-                    %131 : tensor<x1, x64, int> = tt.splat %16;
-                    %132 : tensor<x1, x64, boolean> = arith.cmpi %130 %131 @"slt";
-                    %133 : tensor<x32, x64, boolean> = tt.broadcast %129;
-                    %134 : tensor<x32, x64, boolean> = tt.broadcast %132;
-                    %135 : tensor<x32, x64, boolean> = arith.andi %133 %134;
-                    tt.store %126 %107 %135;
-                    tt.return;
-                };
-                unreachable;
-            };
-            """)
-    @CodeReflection
-    static void matmul_kernel_broadcast(
-            // Pointers to matrices
-            Ptr a_ptr, Ptr b_ptr, Ptr c_ptr,
-            // Matrix dimensions
-            int M, int N, int K,
-            // The stride variables represent how much to increase the ptr by when moving by 1
-            // element in a particular dimension. E.g. `stride_am` is how much to increase `a_ptr`
-            // by to get the element one row down (A has M rows).
-            int stride_am, int stride_ak,
-            int stride_bk, int stride_bn,
-            int stride_cm, int stride_cn,
-            // Meta-parameters
-            @Constant int BLOCK_SIZE_M, @Constant int BLOCK_SIZE_N, @Constant int BLOCK_SIZE_K,
-            @Constant int GROUP_SIZE_M,
-            @Constant boolean ACTIVATION) {
-
-        // """Kernel for computing the matmul C = A x B.
-        // A has shape (M, K), B has shape (K, N) and C has shape (M, N)
-        // """
-        // -----------------------------------------------------------
-        // Map program ids `pid` to the block of C it should compute.
-        // This is done in a grouped ordering to promote L2 data reuse.
-        // See above `L2 Cache Optimizations` section for details.
-        var pid = programId(0);
-
-        var num_pid_m = cdiv(M, BLOCK_SIZE_M);
-        var num_pid_n = cdiv(N, BLOCK_SIZE_N);
-        var num_pid_in_group = GROUP_SIZE_M * num_pid_n;
-        var group_id = pid / num_pid_in_group;
-        var first_pid_m = group_id * GROUP_SIZE_M;
-        var group_size_m = Math.min(num_pid_m - first_pid_m, GROUP_SIZE_M);
-        var pid_m = first_pid_m + (pid % group_size_m);
-        var pid_n = (pid % num_pid_in_group) / group_size_m;
-
-        // ----------------------------------------------------------
-        // Create pointers for the first blocks of A and B.
-        // We will advance this pointer as we move in the K direction
-        // and accumulate
-        // `a_ptrs` is a block of [BLOCK_SIZE_M, BLOCK_SIZE_K] pointers
-        // `b_ptrs` is a block of [BLOCK_SIZE_K, BLOCK_SIZE_N] pointers
-        // See above `Pointer Arithmetics` section for details
-        var offs_m = arange(0, BLOCK_SIZE_M);
-        var offs_am = mod(
-                add(broadcast(pid_m * BLOCK_SIZE_M, offs_m.type()), offs_m),
-                broadcast(M, offs_m.type()));
-        var offs_n = arange(0, BLOCK_SIZE_N);
-        var offs_bn = mod(
-                add(broadcast(pid_n * BLOCK_SIZE_N, offs_n.type()), offs_n),
-                broadcast(N, offs_n.type()));
-        var offs_k = arange(0, BLOCK_SIZE_K);
-
-        var offs_am_e = expand(offs_am, 1);
-        offs_am_e = mul(offs_am_e, broadcast(stride_am, offs_am_e.type()));
-        var offs_k_e_0 = expand(offs_k, 0);
-        offs_k_e_0 = mul(offs_k_e_0, broadcast(stride_ak, offs_k_e_0.type()));
-        TensorType a_ptrs_t = joinShape(offs_am_e.type(), offs_k_e_0.type());
-        var a_ptrs = add(broadcast(a_ptr, a_ptrs_t),
-                add(broadcast(offs_am_e, a_ptrs_t), broadcast(offs_k_e_0, a_ptrs_t)));
-
-        var offs_k_e_1 = expand(offs_k, 1);
-        offs_k_e_1 = mul(offs_k_e_1, broadcast(stride_bk, offs_k_e_1.type()));
-        var offs_bn_e = expand(offs_bn, 0);
-        offs_bn_e = mul(offs_bn_e, broadcast(stride_bn, offs_bn_e.type()));
-        TensorType b_ptrs_t = joinShape(offs_k_e_1.type(), offs_bn_e.type());
-        var b_ptrs = add(broadcast(b_ptr, b_ptrs_t),
-                add(broadcast(offs_k_e_1, b_ptrs_t), broadcast(offs_bn_e, b_ptrs_t)));
-
-        // -----------------------------------------------------------
-        // Iterate to compute a block of the C matrix.
-        // We accumulate into a `[BLOCK_SIZE_M, BLOCK_SIZE_N]` block
-        // of fp32 values for higher accuracy.
-        // `accumulator` will be converted back to fp16 after the loop.
-        var accumulator = zeros(float.class, BLOCK_SIZE_M, BLOCK_SIZE_N);
-        for (int k = 0; k < cdiv(K, BLOCK_SIZE_K); k++) {
-            // Load the next block of A and B, generate a mask by checking the K dimension.
-            // If it is out of bounds, set it to 0.
-            var offs_k_m_0 = expand(offs_k, 0);
-            var offs_k_m_1 = compare(offs_k_m_0,
-                    broadcast(K - k * BLOCK_SIZE_K, offs_k_m_0.type()),
-                    LessThan);
-            var a = load(a_ptrs, broadcast(offs_k_m_1, a_ptrs.type()));
-            var offs_k_m_2 = expand(offs_k, 1);
-            var offs_k_m_3 = compare(offs_k_m_2,
-                    broadcast(K - k * BLOCK_SIZE_K, offs_k_m_2.type()),
-                    LessThan);
-            var b = load(b_ptrs, broadcast(offs_k_m_3, b_ptrs.type()));
-            // We accumulate along the K dimension.
-            accumulator = add(accumulator, dot(a, b));
-            // Advance the ptrs to the next K block.
-            a_ptrs = add(a_ptrs, broadcast(BLOCK_SIZE_K * stride_ak, a_ptrs.type()));
-            b_ptrs = add(b_ptrs, broadcast(BLOCK_SIZE_K * stride_bk, b_ptrs.type()));
-        }
-
-        // You can fuse arbitrary activation functions here
-        // while the accumulator is still in FP32!
-//        if (ACTIVATION) {
-//            // ...
-//        }
-        // c = Triton.to(activation, tl.float16)
-        var c = accumulator;
-
-        // -----------------------------------------------------------
-        // Write back the block of the output matrix C with masks.
-        var offs_cm = add(broadcast(pid_m * BLOCK_SIZE_M, offs_m.type()), offs_m);
-        var offs_cn = add(broadcast(pid_n * BLOCK_SIZE_N, offs_n.type()), offs_n);
-
-        var offs_cm_e = expand(offs_cm, 1);
-        offs_cm_e = mul(offs_cm_e, broadcast(stride_cm, offs_cm_e.type()));
-        var offs_cn_e = expand(offs_cn, 0);
-        offs_cn_e = mul(offs_cn_e, broadcast(stride_cn, offs_cn_e.type()));
-        TensorType c_ptrs_t = joinShape(offs_cm_e.type(), offs_cn_e.type());
-        var c_ptrs = add(broadcast(c_ptr, c_ptrs_t),
-                add(broadcast(offs_cm_e, c_ptrs_t), broadcast(offs_cn_e, c_ptrs_t)));
-
-        offs_cm_e = expand(offs_cm, 1);
-        var c_mask_l = compare(offs_cm_e, broadcast(M, offs_cm_e.type()), LessThan);
-        offs_cn_e = expand(offs_cn, 0);
-        var c_mask_r = compare(offs_cn_e, broadcast(N, offs_cn_e.type()), LessThan);
-        var c_mask = and(broadcast(c_mask_l, c_ptrs_t), broadcast(c_mask_r, c_ptrs_t));
-
-        store(c_ptrs, c, c_mask);
-    }
-
-    @TritonTestExtension.Kernel("matmul_kernel_broadcast")
-    @Test
-    public void testWithBroadcast(TritonTestExtension.TritonTestData t) {
-        List<TypeElement> argTypes = List.of(
-                new PtrType(JavaType.FLOAT),
-                new PtrType(JavaType.FLOAT),
-                new PtrType(JavaType.FLOAT),
-                JavaType.INT, JavaType.INT, JavaType.INT,
-                JavaType.INT, JavaType.INT,
-                JavaType.INT, JavaType.INT,
-                JavaType.INT, JavaType.INT,
-                new ConstantType(JavaType.INT, 32), new ConstantType(JavaType.INT, 64), new ConstantType(JavaType.INT, 32),
-                new ConstantType(JavaType.INT, 8),
-                new ConstantType(JavaType.INT, false));
-
-        t.test(argTypes);
-    }
-
-
-    @TritonCodeModel("""
-            module ()void -> {
-                tt.func @"cdiv_int_32_int" (%0 : int)int -> {
-                    %1 : int = arith.constant @"32";
-                    %2 : int = arith.addi %0 %1;
-                    %3 : int = arith.constant @"1";
-                    %4 : int = arith.subi %2 %3;
-                    %5 : int = arith.divsi %4 %1;
-                    tt.return %5;
-                };
-                tt.func @"cdiv_int_64_int" (%6 : int)int -> {
-                    %7 : int = arith.constant @"64";
-                    %8 : int = arith.addi %6 %7;
-                    %9 : int = arith.constant @"1";
-                    %10 : int = arith.subi %8 %9;
-                    %11 : int = arith.divsi %10 %7;
-                    tt.return %11;
-                };
-                tt.func @"matmul_kernel_ptr<float>_ptr<float>_ptr<float>_int_int_int_int_1_int_1_int_1_32_64_32_8_false_void" (%12 : ptr<float>, %13 : ptr<float>, %14 : ptr<float>, %15 : int, %16 : int, %17 : int, %18 : int, %19 : int, %20 : int)void -> {
-                    %21 : int = arith.constant @"1";
-                    %22 : int = arith.constant @"1";
-                    %23 : int = arith.constant @"1";
-                    %24 : int = arith.constant @"32";
-                    %25 : int = arith.constant @"64";
-                    %26 : int = arith.constant @"32";
-                    %27 : int = arith.constant @"8";
-                    %28 : int = tt.get_program_id @"0";
-                    %29 : int = tt.call %15 @"cdiv_int_32_int";
-                    %30 : int = tt.call %16 @"cdiv_int_64_int";
-                    %31 : int = arith.muli %27 %30;
-                    %32 : int = arith.divsi %28 %31;
-                    %33 : int = arith.muli %32 %27;
-                    %34 : int = arith.subi %29 %33;
-                    %35 : int = arith.minsi %34 %27;
-                    %36 : int = arith.remsi %28 %35;
-                    %37 : int = arith.addi %33 %36;
-                    %38 : int = arith.remsi %28 %31;
-                    %39 : int = arith.divsi %38 %35;
-                    %40 : tensor<x32, int> = tt.make_range @start="0" @end="32";
-                    %41 : int = arith.muli %37 %24;
-                    %42 : tensor<x32, int> = tt.splat %41;
-                    %43 : tensor<x32, int> = arith.addi %42 %40;
-                    %44 : tensor<x32, int> = tt.splat %15;
-                    %45 : tensor<x32, int> = arith.remsi %43 %44;
-                    %46 : tensor<x64, int> = tt.make_range @start="0" @end="64";
-                    %47 : int = arith.muli %39 %25;
-                    %48 : tensor<x64, int> = tt.splat %47;
-                    %49 : tensor<x64, int> = arith.addi %48 %46;
-                    %50 : tensor<x64, int> = tt.splat %16;
-                    %51 : tensor<x64, int> = arith.remsi %49 %50;
-                    %52 : tensor<x32, int> = tt.make_range @start="0" @end="32";
-                    %53 : tensor<x32, x1, int> = tt.expand_dims %45 @"1";
-                    %54 : tensor<x32, x1, int> = tt.splat %18;
-                    %55 : tensor<x32, x1, int> = arith.muli %53 %54;
-                    %56 : tensor<x1, x32, int> = tt.expand_dims %52 @"0";
+                    %56 : tensor<x1, x32, int> = tt.expand_dims %52 @axis="0";
                     %57 : tensor<x1, x32, int> = tt.splat %21;
                     %58 : tensor<x1, x32, int> = arith.muli %56 %57;
                     %59 : tensor<x32, x32, int> = tt.broadcast %55;
                     %60 : tensor<x32, x32, int> = tt.broadcast %58;
                     %61 : tensor<x32, x32, int> = arith.addi %59 %60;
-                    %62 : tensor<x32, x32, ptr<float>> = tt.splat %12;
-                    %63 : tensor<x32, x32, ptr<float>> = tt.addptr %62 %61;
-                    %64 : tensor<x32, x1, int> = tt.expand_dims %52 @"1";
+                    %62 : tensor<x32, x32, ptr<oracle.code.triton.Float16>> = tt.splat %12;
+                    %63 : tensor<x32, x32, ptr<oracle.code.triton.Float16>> = tt.addptr %62 %61;
+                    %64 : tensor<x32, x1, int> = tt.expand_dims %52 @axis="1";
                     %65 : tensor<x32, x1, int> = tt.splat %19;
                     %66 : tensor<x32, x1, int> = arith.muli %64 %65;
-                    %67 : tensor<x1, x64, int> = tt.expand_dims %51 @"0";
+                    %67 : tensor<x1, x64, int> = tt.expand_dims %51 @axis="0";
                     %68 : tensor<x1, x64, int> = tt.splat %22;
                     %69 : tensor<x1, x64, int> = arith.muli %67 %68;
                     %70 : tensor<x32, x64, int> = tt.broadcast %66;
                     %71 : tensor<x32, x64, int> = tt.broadcast %69;
                     %72 : tensor<x32, x64, int> = arith.addi %70 %71;
-                    %73 : tensor<x32, x64, ptr<float>> = tt.splat %13;
-                    %74 : tensor<x32, x64, ptr<float>> = tt.addptr %73 %72;
-                    %75 : tensor<x32, x64, float> = arith.constant @"0.0";
-                    %76 : int = arith.constant @"0";
-                    %77 : int = tt.call %17 @"cdiv_int_32_int";
-                    %78 : int = arith.constant @"1";
-                    %79 : Tuple<tensor<x32, x64, float>, tensor<x32, x32, ptr<float>>, tensor<x32, x64, ptr<float>>> = scf.for %76 %77 %78 %75 %63 %74 (%80 : int, %81 : tensor<x32, x64, float>, %82 : tensor<x32, x32, ptr<float>>, %83 : tensor<x32, x64, ptr<float>>)Tuple<tensor<x32, x64, float>, tensor<x32, x32, ptr<float>>, tensor<x32, x64, ptr<float>>> -> {
-                        %84 : tensor<x1, x32, int> = tt.expand_dims %52 @"0";
+                    %73 : tensor<x32, x64, ptr<oracle.code.triton.Float16>> = tt.splat %13;
+                    %74 : tensor<x32, x64, ptr<oracle.code.triton.Float16>> = tt.addptr %73 %72;
+                    %75 : tensor<x32, x64, float> = arith.constant @value="0.0";
+                    %76 : int = arith.constant @value="0";
+                    %77 : int = tt.call %17 @callee="cdiv_int_32_int";
+                    %78 : int = arith.constant @value="1";
+                    %79 : Tuple<tensor<x32, x64, float>, tensor<x32, x32, ptr<oracle.code.triton.Float16>>, tensor<x32, x64, ptr<oracle.code.triton.Float16>>> = scf.for %76 %77 %78 %75 %63 %74 (%80 : int, %81 : tensor<x32, x64, float>, %82 : tensor<x32, x32, ptr<oracle.code.triton.Float16>>, %83 : tensor<x32, x64, ptr<oracle.code.triton.Float16>>)Tuple<tensor<x32, x64, float>, tensor<x32, x32, ptr<oracle.code.triton.Float16>>, tensor<x32, x64, ptr<oracle.code.triton.Float16>>> -> {
+                        %84 : tensor<x1, x32, int> = tt.expand_dims %52 @axis="0";
                         %85 : int = arith.muli %80 %26;
                         %86 : int = arith.subi %17 %85;
                         %87 : tensor<x1, x32, int> = tt.splat %86;
-                        %88 : tensor<x1, x32, boolean> = arith.cmpi %84 %87 @"slt";
+                        %88 : tensor<x1, x32, boolean> = arith.cmpi %84 %87 @predicate="slt";
                         %89 : tensor<x32, x32, boolean> = tt.broadcast %88;
-                        %90 : tensor<x32, x32, float> = arith.constant @"0.0";
-                        %91 : tensor<x32, x32, float> = tt.load %82 %89 %90;
-                        %92 : tensor<x32, x1, int> = tt.expand_dims %52 @"1";
+                        %90 : tensor<x32, x32, oracle.code.triton.Float16> = arith.constant @value="0.0";
+                        %91 : tensor<x32, x32, oracle.code.triton.Float16> = tt.load %82 %89 %90;
+                        %92 : tensor<x32, x1, int> = tt.expand_dims %52 @axis="1";
                         %93 : int = arith.muli %80 %26;
                         %94 : int = arith.subi %17 %93;
                         %95 : tensor<x32, x1, int> = tt.splat %94;
-                        %96 : tensor<x32, x1, boolean> = arith.cmpi %92 %95 @"slt";
+                        %96 : tensor<x32, x1, boolean> = arith.cmpi %92 %95 @predicate="slt";
                         %97 : tensor<x32, x64, boolean> = tt.broadcast %96;
-                        %98 : tensor<x32, x64, float> = arith.constant @"0.0";
-                        %99 : tensor<x32, x64, float> = tt.load %83 %97 %98;
-                        %100 : tensor<x32, x64, float> = arith.constant @"0.0";
+                        %98 : tensor<x32, x64, oracle.code.triton.Float16> = arith.constant @value="0.0";
+                        %99 : tensor<x32, x64, oracle.code.triton.Float16> = tt.load %83 %97 %98;
+                        %100 : tensor<x32, x64, float> = arith.constant @value="0.0";
                         %101 : tensor<x32, x64, float> = tt.dot %91 %99 %100;
                         %102 : tensor<x32, x64, float> = arith.addf %81 %101;
                         %103 : int = arith.muli %26 %21;
                         %104 : tensor<x32, x32, int> = tt.splat %103;
-                        %105 : tensor<x32, x32, ptr<float>> = tt.addptr %82 %104;
+                        %105 : tensor<x32, x32, ptr<oracle.code.triton.Float16>> = tt.addptr %82 %104;
                         %106 : int = arith.muli %26 %19;
                         %107 : tensor<x32, x64, int> = tt.splat %106;
-                        %108 : tensor<x32, x64, ptr<float>> = tt.addptr %83 %107;
+                        %108 : tensor<x32, x64, ptr<oracle.code.triton.Float16>> = tt.addptr %83 %107;
                         scf.yield %102 %105 %108;
                     };
                     %109 : tensor<x32, x64, float> = tuple.load %79 @"0";
-                    %110 : tensor<x32, x32, ptr<float>> = tuple.load %79 @"1";
-                    %111 : tensor<x32, x64, ptr<float>> = tuple.load %79 @"2";
-                    %112 : int = arith.muli %37 %24;
-                    %113 : tensor<x32, int> = tt.splat %112;
-                    %114 : tensor<x32, int> = arith.addi %113 %40;
-                    %115 : int = arith.muli %39 %25;
-                    %116 : tensor<x64, int> = tt.splat %115;
-                    %117 : tensor<x64, int> = arith.addi %116 %46;
-                    %118 : tensor<x32, x1, int> = tt.expand_dims %114 @"1";
-                    %119 : tensor<x32, x1, int> = tt.splat %20;
-                    %120 : tensor<x32, x1, int> = arith.muli %119 %118;
-                    %121 : tensor<x1, x64, int> = tt.expand_dims %117 @"0";
-                    %122 : tensor<x1, x64, int> = tt.splat %23;
-                    %123 : tensor<x1, x64, int> = arith.muli %122 %121;
-                    %124 : tensor<x32, x64, int> = tt.broadcast %120;
-                    %125 : tensor<x32, x64, int> = tt.broadcast %123;
-                    %126 : tensor<x32, x64, int> = arith.addi %124 %125;
-                    %127 : tensor<x32, x64, ptr<float>> = tt.splat %14;
-                    %128 : tensor<x32, x64, ptr<float>> = tt.addptr %127 %126;
-                    %129 : tensor<x32, x1, int> = tt.expand_dims %114 @"1";
-                    %130 : tensor<x32, x1, int> = tt.splat %15;
-                    %131 : tensor<x32, x1, boolean> = arith.cmpi %129 %130 @"slt";
-                    %132 : tensor<x1, x64, int> = tt.expand_dims %117 @"0";
-                    %133 : tensor<x1, x64, int> = tt.splat %16;
-                    %134 : tensor<x1, x64, boolean> = arith.cmpi %132 %133 @"slt";
-                    %135 : tensor<x32, x64, boolean> = tt.broadcast %131;
-                    %136 : tensor<x32, x64, boolean> = tt.broadcast %134;
-                    %137 : tensor<x32, x64, boolean> = arith.andi %135 %136;
-                    tt.store %128 %109 %137;
+                    %110 : tensor<x32, x32, ptr<oracle.code.triton.Float16>> = tuple.load %79 @"1";
+                    %111 : tensor<x32, x64, ptr<oracle.code.triton.Float16>> = tuple.load %79 @"2";
+                    %112 : tensor<x32, x64, oracle.code.triton.Float16> = arith.truncf %109;
+                    %113 : int = arith.muli %37 %24;
+                    %114 : tensor<x32, int> = tt.splat %113;
+                    %115 : tensor<x32, int> = arith.addi %114 %40;
+                    %116 : int = arith.muli %39 %25;
+                    %117 : tensor<x64, int> = tt.splat %116;
+                    %118 : tensor<x64, int> = arith.addi %117 %46;
+                    %119 : tensor<x32, x1, int> = tt.expand_dims %115 @axis="1";
+                    %120 : tensor<x32, x1, int> = tt.splat %20;
+                    %121 : tensor<x32, x1, int> = arith.muli %120 %119;
+                    %122 : tensor<x1, x64, int> = tt.expand_dims %118 @axis="0";
+                    %123 : tensor<x1, x64, int> = tt.splat %23;
+                    %124 : tensor<x1, x64, int> = arith.muli %123 %122;
+                    %125 : tensor<x32, x64, int> = tt.broadcast %121;
+                    %126 : tensor<x32, x64, int> = tt.broadcast %124;
+                    %127 : tensor<x32, x64, int> = arith.addi %125 %126;
+                    %128 : tensor<x32, x64, ptr<oracle.code.triton.Float16>> = tt.splat %14;
+                    %129 : tensor<x32, x64, ptr<oracle.code.triton.Float16>> = tt.addptr %128 %127;
+                    %130 : tensor<x32, x1, int> = tt.expand_dims %115 @axis="1";
+                    %131 : tensor<x32, x1, int> = tt.splat %15;
+                    %132 : tensor<x32, x1, boolean> = arith.cmpi %130 %131 @predicate="slt";
+                    %133 : tensor<x1, x64, int> = tt.expand_dims %118 @axis="0";
+                    %134 : tensor<x1, x64, int> = tt.splat %16;
+                    %135 : tensor<x1, x64, boolean> = arith.cmpi %133 %134 @predicate="slt";
+                    %136 : tensor<x32, x64, boolean> = tt.broadcast %132;
+                    %137 : tensor<x32, x64, boolean> = tt.broadcast %135;
+                    %138 : tensor<x32, x64, boolean> = arith.andi %136 %137;
+                    tt.store %129 %112 %138;
                     tt.return;
                 };
                 unreachable;
             };
             """)
     @CodeReflection
-    static void matmul_kernel(
+    static void matmul_kernel_fp16(
             // Pointers to matrices
             Ptr a_ptr, Ptr b_ptr, Ptr c_ptr,
             // Matrix dimensions
@@ -535,7 +256,7 @@ public class TestMatrix {
 //        if (ACTIVATION) {
 //            // ...
 //        }
-        var c = Triton.conv(float.class, accumulator);
+        var c = Triton.conv(Float16.class, accumulator);
 
         // -----------------------------------------------------------
         // Write back the block of the output matrix C with masks.
@@ -550,13 +271,13 @@ public class TestMatrix {
         store(c_ptrs, c, c_mask);
     }
 
-    @TritonTestExtension.Kernel("matmul_kernel")
+    @TritonTestExtension.Kernel("matmul_kernel_fp16")
     @Test
     public void test(TritonTestExtension.TritonTestData t) {
         List<TypeElement> argTypes = List.of(
-                new PtrType(JavaType.FLOAT),
-                new PtrType(JavaType.FLOAT),
-                new PtrType(JavaType.FLOAT),
+                new PtrType(Float16.FLOAT_16_TYPE),
+                new PtrType(Float16.FLOAT_16_TYPE),
+                new PtrType(Float16.FLOAT_16_TYPE),
                 JavaType.INT, JavaType.INT, JavaType.INT,
                 JavaType.INT, new ConstantType(JavaType.INT, 1),
                 JavaType.INT, new ConstantType(JavaType.INT, 1),
