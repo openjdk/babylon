@@ -45,6 +45,7 @@ You should have received a copy of the GNU General Public License version
         <module>cuda</module>
         <module>mock</module>
         <module>opencl</module>
+        <module>hip</module>
     </modules>
     <build>
         <plugins>

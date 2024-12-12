@@ -4,8 +4,8 @@ import hat.backend.c99codebuilders.C99HatBuildContext;
 import hat.backend.c99codebuilders.C99HatKernelBuilder;
 import hat.optools.OpWrapper;
 
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.type.JavaType;
 
 public class HIPHatKernelBuilder extends C99HatKernelBuilder<HIPHatKernelBuilder> {
 

@@ -88,6 +88,8 @@ public class Capabilities {
     }
 
     public static class HIP extends CMakeCapability {
+        public static String hipDirKey = "CMAKE_HIP_DIR";
+        public static String hipDirNotFoundValue = "CMAKE_HIP_DIR-NOTFOUND";
         public HIP() {
             super("HIP");
         }
@@ -96,7 +98,7 @@ public class Capabilities {
         }
         @Override
         public boolean available() {
-            return false;
+            return cmakeProbe.hasKey(hipDirKey) && !cmakeProbe.value(hipDirKey).equals(hipDirNotFoundValue);
         }
     }
     public static class CUDA extends CMakeCapability {

@@ -123,7 +123,7 @@ ${JAVA_HOME}/bin/java \
 ```
 
 The `hatrun` script can also be used which simply needs the backend
-name `opencl|java|cuda|ptx|mock` and the package name `mandel`
+name `opencl|java|cuda|ptx|hip|mock` and the package name `mandel`
 
 ```bash
 java @bldr/args hatrun opencl mandel

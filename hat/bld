@@ -87,7 +87,9 @@ void main(String[] args) {
     var hip = Capabilities.HIP.of();
     var capabilities= Capabilities.of(opencl, opengl, cuda, hip);
     var cmakeProbe = new CMakeProbe(buildDir, capabilities);
-    if (opencl.available()) {
+
+    if (opencl.available() && !hip.available()) {
+        System.out.println("OPENCL FOUND");
         if (extractedOpenCLJar.exists()) {
             println("We've already extracted and jarred" + extractedOpenCLJar.path());
         } else {
@@ -116,7 +118,7 @@ void main(String[] args) {
         println("According to cmake probe this platform does not have OpenCL");
     }
 
-    if (opengl.available()) {
+    if (opengl.available() && !hip.available()) {
         if (extractedOpenGLJar.exists()) {
             println("We've already extracted and jarred" + extractedOpenGLJar.path());
         } else {
@@ -150,6 +152,11 @@ void main(String[] args) {
         println("According to cmake probe this platform does not have CUDA");
     }
 
+    if (hip.available()) {
+    } else {
+        println("According to cmake probe this platform does not have HIP");
+    }
+
     var hatOpts = JavaOpts.of()
             .enable_preview()
             .add_modules("jdk.incubator.code")
@@ -163,7 +170,7 @@ void main(String[] args) {
 
     // Here we create all backend jars.
     backendsDir
-            .subDirs(backendDir -> !backendDir.matches("^.*(spirv|hip|shared|target|.idea)$"))
+            .subDirs(backendDir -> !backendDir.matches("^.*(spirv|shared|target|.idea)$"))
             .peek(backendDir->println("Building backend " + backendDir.fileName()))
             .forEach(backendDir->
                  buildDir.jarFile("hat-backend-" + backendDir.fileName() + "-1.0.jar",$->$.verbose(verbose)
