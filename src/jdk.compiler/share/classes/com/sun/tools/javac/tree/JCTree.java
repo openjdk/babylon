@@ -38,7 +38,6 @@ import com.sun.tools.javac.code.*;
 import com.sun.tools.javac.code.Directive.RequiresDirective;
 import com.sun.tools.javac.code.Scope.*;
 import com.sun.tools.javac.code.Symbol.*;
-import com.sun.tools.javac.code.Type.MethodType;
 import com.sun.tools.javac.util.*;
 import com.sun.tools.javac.util.DefinedBy.Api;
 import com.sun.tools.javac.util.JCDiagnostic.DiagnosticPosition;
@@ -809,8 +808,10 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
 
         /** list of target types inferred for this functional expression. */
         public Type target;
+        /** The owner of this functional expression. */
+        public Symbol owner;
         /** code reflection specific metadata. */
-        public CodeReflectionInfo codeReflectionInfo;
+        public Symbol codeModel;
 
         public Type getDescriptorType(Types types) {
             if (target == null) {
@@ -822,8 +823,6 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
                 return types.findDescriptorType(target);
             }
         }
-
-        public record CodeReflectionInfo(Symbol quotedField, List<JCExpression> capturedArgs) { }
     }
 
     /**
@@ -2026,6 +2025,7 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
         public JCTree body;
         public boolean canCompleteNormally = true;
         public ParameterKind paramKind;
+        public boolean wasMethodReference;
 
         public JCLambda(List<JCVariableDecl> params,
                         JCTree body) {

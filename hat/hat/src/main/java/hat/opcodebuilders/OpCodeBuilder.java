@@ -27,13 +27,13 @@ package hat.opcodebuilders;
 
 import hat.text.CodeBuilder;
 
-import java.lang.reflect.code.Block;
-import java.lang.reflect.code.Body;
-import java.lang.reflect.code.CodeItem;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.Value;
-import java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.Block;
+import jdk.incubator.code.Body;
+import jdk.incubator.code.CodeItem;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.type.JavaType;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;

@@ -25,11 +25,12 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.code.interpreter.Interpreter;
+import jdk.incubator.code.interpreter.Interpreter;
 import java.util.stream.Stream;
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @enablePreview
  * @run testng TestLinq
  */

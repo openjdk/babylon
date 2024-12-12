@@ -24,17 +24,18 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.CopyContext;
-import java.lang.reflect.code.OpTransformer;
-import java.lang.reflect.code.Quoted;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.bytecode.BytecodeGenerator;
+import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.Quoted;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @run testng TestQuoted
  */
 

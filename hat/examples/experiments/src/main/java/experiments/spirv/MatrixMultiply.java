@@ -32,7 +32,7 @@ import hat.buffer.F32Array;
 import hat.buffer.SchemaBuilder;
 
 import java.lang.invoke.MethodHandles;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 
 public class MatrixMultiply {
 

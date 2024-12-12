@@ -21,16 +21,16 @@
  * questions.
  */
 
-import java.lang.reflect.code.*;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.*;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.JavaType;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 
-import static java.lang.reflect.code.op.CoreOp.sub;
-import static java.lang.reflect.code.analysis.Patterns.*;
+import static jdk.incubator.code.op.CoreOp.sub;
+import static jdk.incubator.code.analysis.Patterns.*;
 
 public final class ExpressionElimination {
     private ExpressionElimination() {

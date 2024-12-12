@@ -21,12 +21,13 @@
  * questions.
  */
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 import java.util.List;
 
 /*
  * @test
  * @summary Smoke test for code reflection with for loops.
+ * @modules jdk.incubator.code
  * @build ForLoopTest
  * @build CodeReflectionTester
  * @run main CodeReflectionTester ForLoopTest
@@ -413,7 +414,7 @@ public class ForLoopTest {
                         invoke %10 %11 @"java.io.PrintStream::println(int)void";
                         java.continue;
                     };
-                return;
+                unreachable;
             };
             """)
     void test8() {
@@ -444,7 +445,7 @@ public class ForLoopTest {
                         invoke %7 %8 @"java.io.PrintStream::println(int)void";
                         java.continue;
                     };
-                return;
+                unreachable;
             };
             """)
     void test9() {
@@ -470,7 +471,7 @@ public class ForLoopTest {
                     ^body()void -> {
                         java.continue;
                     };
-                return;
+                unreachable;
             };
             """)
     void test10() {

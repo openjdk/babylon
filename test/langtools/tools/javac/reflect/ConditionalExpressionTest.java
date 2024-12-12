@@ -21,13 +21,14 @@
  * questions.
  */
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 import java.util.List;
 import java.util.function.Supplier;
 
 /*
  * @test
  * @summary Smoke test for code reflection with conditional expressions.
+ * @modules jdk.incubator.code
  * @build ConditionalExpressionTest
  * @build CodeReflectionTester
  * @run main CodeReflectionTester ConditionalExpressionTest

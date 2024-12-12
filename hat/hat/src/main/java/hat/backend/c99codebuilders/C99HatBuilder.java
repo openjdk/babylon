@@ -35,7 +35,6 @@ import hat.optools.FieldLoadOpWrapper;
 import hat.optools.FieldStoreOpWrapper;
 import hat.optools.ForOpWrapper;
 import hat.optools.FuncCallOpWrapper;
-import hat.optools.FuncOpWrapper;
 import hat.optools.IfOpWrapper;
 import hat.optools.InvokeOpWrapper;
 import hat.optools.JavaBreakOpWrapper;
@@ -48,7 +47,7 @@ import hat.optools.ReturnOpWrapper;
 import hat.optools.StructuralOpWrapper;
 import hat.optools.TernaryOpWrapper;
 import hat.optools.TupleOpWrapper;
-import hat.optools.UnaryArithmeticOrLogicOperation;
+import hat.optools.UnaryArithmeticOrLogicOpWrapper;
 import hat.optools.VarDeclarationOpWrapper;
 import hat.optools.VarFuncDeclarationOpWrapper;
 import hat.optools.VarLoadOpWrapper;
@@ -59,14 +58,12 @@ import hat.util.StreamCounter;
 
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.StructLayout;
-import java.lang.reflect.Field;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.op.ExtendedOp;
-import java.lang.reflect.code.type.ClassType;
-import java.lang.reflect.code.type.JavaType;
-import java.lang.reflect.code.type.PrimitiveType;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.op.ExtendedOp;
+import jdk.incubator.code.type.ClassType;
+import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.type.PrimitiveType;
 
 public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeBuilder<T> implements C99HatBuilderInterface<T> {
     /*
@@ -100,10 +97,11 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
             case CoreOp.TupleOp o -> 0;
             case ExtendedOp.JavaWhileOp o -> 0;
             case CoreOp.ConvOp o -> 1;
+            case CoreOp.NegOp  o-> 1;
             case CoreOp.ModOp o -> 2;
             case CoreOp.MulOp o -> 2;
             case CoreOp.DivOp o -> 2;
-            case CoreOp.NotOp   o -> 2;
+            case CoreOp.NotOp o -> 2;
             case CoreOp.AddOp o -> 3;
             case CoreOp.SubOp o -> 3;
             case CoreOp.AshrOp o -> 4;
@@ -176,8 +174,13 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
 
     @Override
     public T varDeclaration(C99HatBuildContext buildContext, VarDeclarationOpWrapper varDeclarationOpWrapper) {
-        type(varDeclarationOpWrapper.javaType()).space().identifier(varDeclarationOpWrapper.varName()).space().equals().space();
-        parencedence(buildContext, varDeclarationOpWrapper, varDeclarationOpWrapper.operandNAsResult(0).op());
+        if (varDeclarationOpWrapper.op().isUninitialized()) {
+            // Variable is uninitialized
+            type(varDeclarationOpWrapper.javaType()).space().identifier(varDeclarationOpWrapper.varName());
+        } else {
+            type(varDeclarationOpWrapper.javaType()).space().identifier(varDeclarationOpWrapper.varName()).space().equals().space();
+            parencedence(buildContext, varDeclarationOpWrapper, varDeclarationOpWrapper.operandNAsResult(0).op());
+        }
         return self();
     }
 
@@ -223,6 +226,7 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
             case CoreOp.LshlOp o -> ochevron().ochevron();
             case CoreOp.LshrOp o -> cchevron().cchevron();
             case CoreOp.NeqOp o -> pling().equals();
+            case CoreOp.NegOp o -> minus();
             case CoreOp.EqOp o -> equals().equals();
             case CoreOp.NotOp o -> pling();
             case CoreOp.AndOp o -> ampersand();
@@ -235,7 +239,7 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
     }
 
     @Override
-    public T unaryOperation(C99HatBuildContext buildContext, UnaryArithmeticOrLogicOperation unaryOperatorOpWrapper) {
+    public T unaryOperation(C99HatBuildContext buildContext, UnaryArithmeticOrLogicOpWrapper unaryOperatorOpWrapper) {
       //  parencedence(buildContext, binaryOperatorOpWrapper.op(), binaryOperatorOpWrapper.lhsAsOp());
         symbol(unaryOperatorOpWrapper.op());
         parencedence(buildContext, unaryOperatorOpWrapper.op(), unaryOperatorOpWrapper.operandNAsResult(0).op());

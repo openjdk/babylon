@@ -26,6 +26,7 @@
 package com.sun.tools.javac.main;
 
 import java.io.*;
+import java.lang.module.Configuration;
 import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.InvalidPathException;
 import java.nio.file.ReadOnlyFileSystemException;
@@ -37,8 +38,10 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.MissingResourceException;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.ResourceBundle;
+import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.ToIntFunction;
@@ -85,8 +88,6 @@ import com.sun.tools.javac.util.Log.WriterKind;
 
 import static com.sun.tools.javac.code.Kinds.Kind.*;
 
-import com.sun.tools.javac.code.Lint;
-import com.sun.tools.javac.code.Lint.LintCategory;
 import com.sun.tools.javac.code.Symbol.ModuleSymbol;
 
 import com.sun.tools.javac.resources.CompilerProperties.Errors;
@@ -377,6 +378,8 @@ public class JavaCompiler {
     private boolean enterDone;
 
     protected CompileStates compileStates;
+
+    private boolean hasCodeReflectionModule;
 
     /** Construct a new compiler using a shared context.
      */
@@ -1054,6 +1057,15 @@ public class JavaCompiler {
 
     public List<JCCompilationUnit> initModules(List<JCCompilationUnit> roots) {
         modules.initModules(roots);
+
+        if (modules.modulesInitialized()) {
+            // This has to happen precisely here. At this point, we have all we need to
+            // determine whether jdk.incubator.module is part of the module graph
+            // but we have yet to trigger an ENTER event. This gives the code reflection plugin
+            // a window to check whether code reflection should be enabled for this compilation unit.
+            hasCodeReflectionModule = modules.getObservableModule(names.jdk_incubator_code) != null;
+        }
+
         if (roots.isEmpty()) {
             enterDone();
         }
@@ -1607,7 +1619,10 @@ public class JavaCompiler {
                 return;
 
             if (Feature.REFLECT_METHODS.allowedInSource(source)) {
-                env.tree = ReflectMethods.instance(context).translateTopLevelClass(env.tree, localMake);
+                Optional<CodeReflectionTransformer> reflectMethods = reflectMethods();
+                if (reflectMethods.isPresent()) {
+                    env.tree = reflectMethods.get().translateTopLevelClass(context, env.tree, localMake);
+                }
             }
 
             env.tree = transTypes.translateTopLevelClass(env.tree, localMake);
@@ -1617,18 +1632,11 @@ public class JavaCompiler {
                 return;
 
             if (scanner.hasPatterns) {
-                env.tree = TransPatterns.instance(context).translateTopLevelClass(env, env.tree, localMake);
+                env.tree = TransPatterns.instance(context)
+                        .translateTopLevelClass(env, env.tree, localMake);
             }
 
             compileStates.put(env, CompileState.TRANSPATTERNS);
-
-            if (scanner.hasLambdas) {
-                if (shouldStop(CompileState.UNLAMBDA))
-                    return;
-
-                env.tree = LambdaToMethod.instance(context).translateTopLevelClass(env, env.tree, localMake);
-                compileStates.put(env, CompileState.UNLAMBDA);
-            }
 
             if (shouldStop(CompileState.LOWER))
                 return;
@@ -1651,6 +1659,16 @@ public class JavaCompiler {
             if (shouldStop(CompileState.LOWER))
                 return;
 
+            if (scanner.hasLambdas) {
+                if (shouldStop(CompileState.UNLAMBDA))
+                    return;
+
+                for (JCTree def : cdefs) {
+                    LambdaToMethod.instance(context).translateTopLevelClass(env, def, localMake);
+                }
+                compileStates.put(env, CompileState.UNLAMBDA);
+            }
+
             //generate code for each class
             for (List<JCTree> l = cdefs; l.nonEmpty(); l = l.tail) {
                 JCClassDecl cdef = (JCClassDecl)l.head;
@@ -1661,6 +1679,39 @@ public class JavaCompiler {
             log.useSource(prev);
         }
 
+    }
+
+    Optional<CodeReflectionTransformer> reflectMethods() {
+        return CodeReflectionSupport.CODE_LAYER != null ?
+                ServiceLoader.load(CodeReflectionSupport.CODE_LAYER, CodeReflectionTransformer.class).findFirst() :
+                Optional.empty();
+    }
+
+    static class CodeReflectionSupport {
+        static final ModuleLayer CODE_LAYER;
+
+        static {
+            if (ModuleLayer.boot().findModule("jdk.incubator.code").isPresent()) {
+                // we are in an exploded build, so just use the boot layer
+                CODE_LAYER = ModuleLayer.boot();
+            } else if (java.lang.module.ModuleFinder.ofSystem().find("jdk.incubator.code").isPresent()) {
+                // the code module is installed, but not in the boot layer, create a new layer which contains it
+                ModuleLayer parent = ModuleLayer.boot();
+                Configuration cf = parent.configuration()
+                        .resolve(java.lang.module.ModuleFinder.of(), java.lang.module.ModuleFinder.ofSystem(), Set.of("jdk.incubator.code"));
+                ClassLoader scl = ClassLoader.getSystemClassLoader();
+                CODE_LAYER = parent.defineModulesWithOneLoader(cf, scl);
+                Module codeReflectionModule = CODE_LAYER.findModule("jdk.incubator.code").get();
+                Module jdkCompilerModule = JavaCompiler.class.getModule();
+                // We need to add exports all jdk.compiler packages so that the plugin can use them
+                for (String packageName : jdkCompilerModule.getPackages()) {
+                    jdkCompilerModule.addExports(packageName, codeReflectionModule);
+                }
+            } else {
+                // if we run in bootstrap mode, there might be no jdk.incubator.code
+                CODE_LAYER = null;
+            }
+        }
     }
 
     /** Generates the source or class file for a list of classes.
@@ -1816,6 +1867,10 @@ public class JavaCompiler {
 
     public boolean isEnterDone() {
         return enterDone;
+    }
+
+    public boolean hasCodeReflectionModule() {
+        return hasCodeReflectionModule;
     }
 
     private Name readModuleName(JavaFileObject fo) {

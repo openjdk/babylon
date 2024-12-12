@@ -26,15 +26,15 @@ package hat.optools;
 
 import hat.buffer.Buffer;
 
-import java.lang.reflect.code.Block;
-import java.lang.reflect.code.Body;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.Value;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.op.ExtendedOp;
-import java.lang.reflect.code.type.ClassType;
-import java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.Block;
+import jdk.incubator.code.Body;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.op.ExtendedOp;
+import jdk.incubator.code.type.ClassType;
+import jdk.incubator.code.type.JavaType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -45,7 +45,7 @@ public class OpWrapper<T extends Op> {
     public static <O extends Op, OW extends OpWrapper<O>> OW wrap(O op) {
         // We have one special case
         // This is possibly a premature optimization. But it allows us to treat vardeclarations differently from params.
-        if (op instanceof CoreOp.VarOp varOp) {
+        if (op instanceof CoreOp.VarOp varOp && !varOp.isUninitialized()) {
             // this gets called a lot and we can't wrap yet or we recurse so we
             // use the raw model. Basically we want a different wrapper for VarDeclations
             // which  relate to func parameters.
@@ -61,7 +61,8 @@ public class OpWrapper<T extends Op> {
             case ExtendedOp.JavaForOp $ -> (OW) new ForOpWrapper($);
             case ExtendedOp.JavaWhileOp $ -> (OW) new WhileOpWrapper($);
             case ExtendedOp.JavaIfOp $ -> (OW) new IfOpWrapper($);
-            case CoreOp.NotOp $ -> (OW) new UnaryArithmeticOrLogicOperation($);
+            case CoreOp.NotOp $ -> (OW) new UnaryArithmeticOrLogicOpWrapper($);
+            case CoreOp.NegOp $ -> (OW) new UnaryArithmeticOrLogicOpWrapper($);
             case CoreOp.BinaryOp $ -> (OW) new BinaryArithmeticOrLogicOperation($);
             case CoreOp.BinaryTestOp $ -> (OW) new BinaryTestOpWrapper($);
             case CoreOp.FuncOp $ -> (OW) new FuncOpWrapper($);

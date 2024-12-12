@@ -23,13 +23,14 @@
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @summary test lowering of synchronized blocks
  * @build TestSynchronized
  * @build CodeReflectionTester
  * @run main CodeReflectionTester TestSynchronized
  */
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 
 public class TestSynchronized {
 
@@ -43,7 +44,7 @@ public class TestSynchronized {
 
               ^block_1(%5 : java.lang.Object):
                 monitor.enter %5;
-                %6 : java.lang.reflect.code.op.CoreOp$ExceptionRegion = exception.region.enter ^block_2 ^block_4;
+                exception.region.enter ^block_2 ^block_4;
 
               ^block_2:
                 %7 : int = var.load %3;
@@ -51,18 +52,18 @@ public class TestSynchronized {
                 %9 : int = add %7 %8;
                 var.store %3 %9;
                 monitor.exit %5;
-                exception.region.exit %6 ^block_3;
+                exception.region.exit ^block_3 ^block_4;
 
               ^block_3:
                 %10 : int = var.load %3;
                 return %10;
 
               ^block_4(%11 : java.lang.Throwable):
-                %12 : java.lang.reflect.code.op.CoreOp$ExceptionRegion = exception.region.enter ^block_5 ^block_4;
+                exception.region.enter ^block_5 ^block_4;
 
               ^block_5:
                 monitor.exit %5;
-                exception.region.exit %12 ^block_6;
+                exception.region.exit ^block_6 ^block_4;
 
               ^block_6:
                 throw %11;
@@ -86,7 +87,7 @@ public class TestSynchronized {
 
               ^block_1(%5 : java.lang.Object):
                 monitor.enter %5;
-                %6 : java.lang.reflect.code.op.CoreOp$ExceptionRegion = exception.region.enter ^block_2 ^block_8;
+                exception.region.enter ^block_2 ^block_8;
 
               ^block_2:
                 %7 : int = var.load %3;
@@ -97,7 +98,7 @@ public class TestSynchronized {
               ^block_3:
                 %10 : int = constant @"-1";
                 monitor.exit %5;
-                exception.region.exit %6 ^block_4;
+                exception.region.exit ^block_4 ^block_8;
 
               ^block_4:
                 return %10;
@@ -111,18 +112,18 @@ public class TestSynchronized {
                 %13 : int = add %11 %12;
                 var.store %3 %13;
                 monitor.exit %5;
-                exception.region.exit %6 ^block_7;
+                exception.region.exit ^block_7 ^block_8;
 
               ^block_7:
                 %14 : int = var.load %3;
                 return %14;
 
               ^block_8(%15 : java.lang.Throwable):
-                %16 : java.lang.reflect.code.op.CoreOp$ExceptionRegion = exception.region.enter ^block_9 ^block_8;
+                exception.region.enter ^block_9 ^block_8;
 
               ^block_9:
                 monitor.exit %5;
-                exception.region.exit %16 ^block_10;
+                exception.region.exit ^block_10 ^block_8;
 
               ^block_10:
                 throw %15;

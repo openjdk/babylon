@@ -25,9 +25,9 @@
 
 package oracle.code.triton;
 
-import java.lang.reflect.code.*;
-import java.lang.reflect.code.op.*;
-import java.lang.reflect.code.type.*;
+import jdk.incubator.code.*;
+import jdk.incubator.code.op.*;
+import jdk.incubator.code.type.*;
 import java.util.*;
 import java.util.function.Consumer;
 

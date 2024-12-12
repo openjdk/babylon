@@ -31,10 +31,10 @@ import hat.optools.IfOpWrapper;
 import hat.optools.OpWrapper;
 import hat.optools.WhileOpWrapper;
 
-import java.lang.reflect.code.Block;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.Value;
-import java.lang.reflect.code.op.CoreOp;
+import jdk.incubator.code.Block;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.op.CoreOp;
 import java.util.HashMap;
 import java.util.Map;
 

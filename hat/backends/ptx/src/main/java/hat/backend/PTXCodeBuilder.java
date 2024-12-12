@@ -29,12 +29,12 @@ import hat.text.CodeBuilder;
 import hat.util.StreamCounter;
 
 import java.lang.foreign.MemoryLayout;
-import java.lang.reflect.code.Block;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.TypeElement;
-import java.lang.reflect.code.Value;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.Block;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.JavaType;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Stream;

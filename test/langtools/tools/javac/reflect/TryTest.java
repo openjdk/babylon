@@ -21,11 +21,12 @@
  * questions.
  */
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 
 /*
  * @test
  * @summary Smoke test for code reflection with try statements.
+ * @modules jdk.incubator.code
  * @build TryTest
  * @build CodeReflectionTester
  * @run main CodeReflectionTester TryTest
@@ -263,7 +264,7 @@ public class TryTest {
                     ^finally()void -> {
                         return;
                     };
-                return;
+                unreachable;
             };
             """)
     void test6() {

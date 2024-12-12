@@ -21,11 +21,12 @@
  * questions.
  */
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 
 /*
  * @test
  * @summary Smoke test for code reflection with while loops.
+ * @modules jdk.incubator.code
  * @build WhileLoopTest
  * @build CodeReflectionTester
  * @run main CodeReflectionTester WhileLoopTest
@@ -128,7 +129,7 @@ public class WhileLoopTest {
 
 
     @IR("""
-            func @"tes4" ()void -> {
+            func @"test4" ()void -> {
                   %0 : boolean = constant @"true";
                   %1 : java.lang.Boolean = invoke %0 @"java.lang.Boolean::valueOf(boolean)java.lang.Boolean";
                   %2 : Var<java.lang.Boolean> = var %1 @"b";
@@ -156,7 +157,7 @@ public class WhileLoopTest {
               };
             """)
     @CodeReflection
-    static void tes4() {
+    static void test4() {
         Boolean b = true;
         int i = 0;
         while (b) {
@@ -168,8 +169,7 @@ public class WhileLoopTest {
     @IR("""
             func @"test5" (%0 : int)void -> {
                 %1 : Var<int> = var %0 @"i";
-                %2 : java.lang.Boolean = constant @null;
-                %3 : Var<java.lang.Boolean> = var %2 @"b";
+                %3 : Var<java.lang.Boolean> = var @"b";
                 java.do.while
                     ()void -> {
                         %4 : int = var.load %1;

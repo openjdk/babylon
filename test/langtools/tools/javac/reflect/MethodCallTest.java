@@ -21,13 +21,14 @@
  * questions.
  */
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 import java.util.ArrayList;
 import java.util.List;
 
 /*
  * @test
  * @summary Smoke test for code reflection with method calls.
+ * @modules jdk.incubator.code
  * @build MethodCallTest
  * @build CodeReflectionTester
  * @run main CodeReflectionTester MethodCallTest

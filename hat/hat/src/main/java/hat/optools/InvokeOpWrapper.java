@@ -30,11 +30,11 @@ import hat.buffer.KernelContext;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.Block;
-import java.lang.reflect.code.Value;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.type.JavaType;
-import java.lang.reflect.code.type.MethodRef;
+import jdk.incubator.code.Block;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.type.MethodRef;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -111,7 +111,8 @@ public class InvokeOpWrapper extends OpWrapper<CoreOp.InvokeOp> {
     public Method method(MethodHandles.Lookup lookup) {
         Method invokedMethod = null;
         try {
-            invokedMethod = methodRef().resolveToMethod(lookup);
+            invokedMethod = methodRef().resolveToMethod(lookup, op().invokeKind());
+            MethodRef methodRef = methodRef();
             return invokedMethod;
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);

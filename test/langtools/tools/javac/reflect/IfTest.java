@@ -21,11 +21,12 @@
  * questions.
  */
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 
 /*
  * @test
  * @summary Smoke test for code reflection with if statements.
+ * @modules jdk.incubator.code
  * @build IfTest
  * @build CodeReflectionTester
  * @run main CodeReflectionTester IfTest
@@ -206,7 +207,7 @@ public class IfTest {
                       %11 : int = constant @"3";
                       return %11;
                   };
-              return;
+              unreachable;
             };
             """)
     @CodeReflection
@@ -325,8 +326,7 @@ public class IfTest {
     @IR("""
             func @"test9" (%0 : java.lang.Boolean)void -> {
                 %1 : Var<java.lang.Boolean> = var %0 @"b";
-                %2 : int = constant @"0";
-                %3 : Var<int> = var %2 @"i";
+                %3 : Var<int> = var @"i";
                 java.if
                     ()boolean -> {
                         %4 : java.lang.Boolean = var.load %1;

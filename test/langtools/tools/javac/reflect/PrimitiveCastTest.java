@@ -24,12 +24,13 @@
 /*
  * @test
  * @summary Smoke test for code reflection with primitive casts.
+ * @modules jdk.incubator.code
  * @build PrimitiveCastTest
  * @build CodeReflectionTester
  * @run main CodeReflectionTester PrimitiveCastTest
  */
 
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 
 public class PrimitiveCastTest {
 

@@ -28,7 +28,6 @@ package javax.lang.model.util;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.LinkedHashSet;
 import java.util.Objects;
@@ -57,11 +56,11 @@ public interface Elements {
      * <ul>
      *     <li>find non-empty packages with the given name returned by
      *         {@link #getPackageElement(ModuleElement, CharSequence)},
-     *         where the provided ModuleSymbol is any
+     *         where the provided ModuleElement is any
      *         {@linkplain java.lang.module##root-modules root module},
      *     </li>
      *     <li>if the above yields an empty list, search
-     *         {@link #getAllModuleElements() all modules} for observable
+     *         {@linkplain #getAllModuleElements() all modules} for observable
      *         packages with the given name
      *     </li>
      * </ul>
@@ -144,11 +143,11 @@ public interface Elements {
      * <ul>
      *     <li>find type elements with the given name returned by
      *         {@link #getTypeElement(ModuleElement, CharSequence)},
-     *         where the provided ModuleSymbol is any
+     *         where the provided ModuleElement is any
      *         {@linkplain java.lang.module##root-modules root module},
      *     </li>
      *     <li>if the above yields an empty list, search
-     *         {@link #getAllModuleElements() all modules} for observable
+     *         {@linkplain #getAllModuleElements() all modules} for observable
      *         type elements with the given name
      *     </li>
      * </ul>
@@ -618,7 +617,7 @@ public interface Elements {
 
     /**
      * Returns all members of a type element, whether inherited or
-     * declared directly.  For a class the result also includes its
+     * declared directly.  For a class, the result also includes its
      * constructors, but not local or anonymous classes.
      *
      * @apiNote Elements of certain kinds can be isolated using
@@ -879,10 +878,10 @@ public interface Elements {
      * accessor.
      *
      * @implSpec The default implementation of this method checks if the element
-     * enclosing the accessor has kind {@link ElementKind#RECORD RECORD} if that is
-     * the case, then all the record components on the accessor's enclosing element
-     * are retrieved by invoking {@link ElementFilter#recordComponentsIn(Iterable)}.
-     * If the accessor of at least one of the record components retrieved happen to
+     * enclosing the accessor has kind {@link ElementKind#RECORD RECORD}, if that is
+     * the case, then all the record components of the accessor's enclosing element
+     * are isolated by invoking {@link ElementFilter#recordComponentsIn(Iterable)}.
+     * If the accessor of at least one of the record components retrieved happens to
      * be equal to the accessor passed as a parameter to this method, then that
      * record component is returned, in any other case {@code null} is returned.
      *
@@ -1041,21 +1040,5 @@ public interface Elements {
      */
     default javax.tools.JavaFileObject getFileObjectOf(Element e) {
         throw new UnsupportedOperationException();
-    }
-
-    /**
-     * Returns the code model of provided executable element (if any).
-     * <p>
-     * If the executable element has a code model then it will be an instance of
-     * {@code java.lang.reflect.code.op.CoreOps.FuncOp}.
-     * Note: due to circular dependencies we cannot refer to the type explicitly.
-     *
-     * @implSpec The default implementation unconditionally returns an empty optional.
-     * @param e the executable element.
-     * @return the code model of the provided executable element (if any).
-     * @since 99
-     */
-    default Optional<Object> getBody(ExecutableElement e) {
-        return Optional.empty();
     }
 }

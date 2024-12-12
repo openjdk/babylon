@@ -28,18 +28,18 @@ import hat.backend.c99codebuilders.HatComputeBuilder;
 import hat.optools.FuncOpWrapper;
 import hat.optools.OpWrapper;
 
-import java.lang.reflect.code.Block;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.Quoted;
-import java.lang.reflect.code.op.CoreOp;
+import jdk.incubator.code.Block;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Quoted;
+import jdk.incubator.code.op.CoreOp;
 
-import static java.lang.reflect.code.op.CoreOp._return;
-import static java.lang.reflect.code.op.CoreOp.add;
-import static java.lang.reflect.code.op.CoreOp.closureCall;
-import static java.lang.reflect.code.op.CoreOp.constant;
-import static java.lang.reflect.code.op.CoreOp.func;
-import static java.lang.reflect.code.type.FunctionType.functionType;
-import static java.lang.reflect.code.type.JavaType.INT;
+import static jdk.incubator.code.op.CoreOp._return;
+import static jdk.incubator.code.op.CoreOp.add;
+import static jdk.incubator.code.op.CoreOp.closureCall;
+import static jdk.incubator.code.op.CoreOp.constant;
+import static jdk.incubator.code.op.CoreOp.func;
+import static jdk.incubator.code.type.FunctionType.functionType;
+import static jdk.incubator.code.type.JavaType.INT;
 /*
 https://github.com/openjdk/babylon/tree/code-reflection/test/jdk/java/lang/reflect/code
 */

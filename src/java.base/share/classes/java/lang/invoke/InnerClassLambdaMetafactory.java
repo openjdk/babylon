@@ -25,6 +25,10 @@
 
 package java.lang.invoke;
 
+import jdk.internal.misc.CDS;
+import jdk.internal.util.ClassFileDumper;
+import sun.invoke.util.VerifyAccess;
+import sun.security.action.GetBooleanAction;
 
 import java.io.Serializable;
 import java.lang.classfile.ClassBuilder;
@@ -34,38 +38,37 @@ import java.lang.classfile.FieldBuilder;
 import java.lang.classfile.MethodBuilder;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
-import java.lang.classfile.attribute.ExceptionsAttribute;
-import java.lang.classfile.constantpool.ClassEntry;
-import java.lang.classfile.constantpool.ConstantPoolBuilder;
+import java.lang.classfile.constantpool.MethodHandleEntry;
+import java.lang.classfile.constantpool.NameAndTypeEntry;
 import java.lang.constant.ClassDesc;
+import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.MethodHandles.Lookup;
+import java.lang.module.Configuration;
+import java.lang.module.ModuleFinder;
 import java.lang.reflect.Modifier;
-import java.lang.reflect.code.Quoted;
-import java.lang.reflect.code.interpreter.Interpreter;
-import java.lang.reflect.code.op.CoreOp.FuncOp;
-import java.lang.reflect.code.parser.OpParser;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
+import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import jdk.internal.constant.ConstantUtils;
-import jdk.internal.constant.MethodTypeDescImpl;
-import jdk.internal.constant.ReferenceClassDescImpl;
-import jdk.internal.misc.CDS;
-import jdk.internal.util.ClassFileDumper;
-import sun.invoke.util.VerifyAccess;
-import sun.invoke.util.Wrapper;
-import sun.security.action.GetBooleanAction;
-
 import static java.lang.classfile.ClassFile.*;
-import java.lang.classfile.constantpool.MethodHandleEntry;
-import java.lang.classfile.constantpool.NameAndTypeEntry;
+import java.lang.classfile.attribute.ExceptionsAttribute;
+import java.lang.classfile.constantpool.ClassEntry;
+import java.lang.classfile.constantpool.ConstantPoolBuilder;
+import java.lang.classfile.constantpool.MethodRefEntry;
 import static java.lang.constant.ConstantDescs.*;
+import static java.lang.invoke.MethodHandleNatives.Constants.NESTMATE_CLASS;
+import static java.lang.invoke.MethodHandleNatives.Constants.STRONG_LOADER_LINK;
 import static java.lang.invoke.MethodHandles.Lookup.ClassOption.NESTMATE;
 import static java.lang.invoke.MethodHandles.Lookup.ClassOption.STRONG;
 import static java.lang.invoke.MethodType.methodType;
+import jdk.internal.constant.ConstantUtils;
+import jdk.internal.constant.MethodTypeDescImpl;
+import jdk.internal.constant.ReferenceClassDescImpl;
+import sun.invoke.util.Wrapper;
 
 /**
  * Lambda metafactory implementation which dynamically creates an
@@ -79,12 +82,6 @@ import static java.lang.invoke.MethodType.methodType;
     private static final ClassDesc[] EMPTY_CLASSDESC_ARRAY = ConstantUtils.EMPTY_CLASSDESC;
 
     // Static builders to avoid lambdas
-    record FieldFlags(int flags) implements Consumer<FieldBuilder> {
-        @Override
-        public void accept(FieldBuilder fb) {
-            fb.withFlags(flags);
-        }
-    };
     record MethodBody(Consumer<CodeBuilder> code) implements Consumer<MethodBuilder> {
         @Override
         public void accept(MethodBuilder mb) {
@@ -97,10 +94,7 @@ import static java.lang.invoke.MethodType.methodType;
 
     private static final boolean disableEagerInitialization;
 
-    private static final ClassDesc CD_Quoted = Quoted.class.describeConstable().get();
-    private static final MethodTypeDesc MTD_Quoted = MethodTypeDescImpl.ofValidated(CD_Quoted);
     private static final String NAME_METHOD_QUOTED = "quoted";
-    private static final MethodHandle HANDLE_MAKE_QUOTED;
     private static final String quotedInstanceFieldName = "quoted";
 
     static {
@@ -112,14 +106,6 @@ import static java.lang.invoke.MethodType.methodType;
 
         final String disableEagerInitializationKey = "jdk.internal.lambda.disableEagerInitialization";
         disableEagerInitialization = GetBooleanAction.privilegedGetProperty(disableEagerInitializationKey);
-
-        try {
-            HANDLE_MAKE_QUOTED = MethodHandles.lookup().findStatic(
-                    InnerClassLambdaMetafactory.class, "makeQuoted",
-                    MethodType.methodType(Quoted.class, String.class, Object[].class));
-        } catch (Throwable ex) {
-            throw new AssertionError(ex);
-        }
     }
 
     // See context values in AbstractValidatingLambdaMetafactory
@@ -131,7 +117,8 @@ import static java.lang.invoke.MethodType.methodType;
     private final String[] argNames;                 // Generated names for the constructor arguments
     private final ClassDesc[] argDescs;              // Type descriptors for the constructor arguments
     private final String lambdaClassName;            // Generated name for the generated class "X$$Lambda$1"
-    private final ClassDesc lambdaClassDesc;         // Type descriptor for the generated class "X$$Lambda$1"
+    private final ConstantPoolBuilder pool = ConstantPoolBuilder.of();
+    private final ClassEntry lambdaClassEntry;       // Class entry for the generated class "X$$Lambda$1"
     private final boolean useImplMethodHandle;       // use MethodHandle invocation instead of symbolic bytecode invocation
 
     /**
@@ -168,9 +155,6 @@ import static java.lang.invoke.MethodType.methodType;
      *                      should implement.
      * @param altMethods Method types for additional signatures to be
      *                   implemented by invoking the implementation method
-     * @param reflectiveField a {@linkplain MethodHandles.Lookup#findGetter(Class, String, Class) getter}
-     *                   method handle that is used to retrieve the string representation of the
-     *                   quotable lambda's associated intermediate representation.
      * @throws LambdaConversionException If any of the meta-factory protocol
      *         invariants are violated
      * @throws SecurityException If a security manager is present, and it
@@ -195,9 +179,8 @@ import static java.lang.invoke.MethodType.methodType;
         implMethodName = implInfo.getName();
         implMethodDesc = methodDesc(implInfo.getMethodType());
         constructorType = factoryType.changeReturnType(Void.TYPE);
-        constructorTypeDesc = methodDesc(constructorType);
         lambdaClassName = lambdaClassName(targetClass);
-        lambdaClassDesc = ClassDesc.ofInternalName(lambdaClassName);
+        lambdaClassEntry = pool.classEntry(ReferenceClassDescImpl.ofValidated(ConstantUtils.concat("L", lambdaClassName, ";")));
         // If the target class invokes a protected method inherited from a
         // superclass in a different package, or does 'invokespecial', the
         // lambda class has no access to the resolved method, or does
@@ -221,6 +204,7 @@ import static java.lang.invoke.MethodType.methodType;
             argNames = EMPTY_STRING_ARRAY;
             argDescs = EMPTY_CLASSDESC_ARRAY;
         }
+        constructorTypeDesc = MethodTypeDescImpl.ofValidated(CD_void, argDescs);
     }
 
     private static String lambdaClassName(Class<?> targetClass) {
@@ -229,7 +213,7 @@ import static java.lang.invoke.MethodType.methodType;
             // use the original class name
             name = name.replace('/', '_');
         }
-        return name.replace('.', '/') + "$$Lambda";
+        return name.replace('.', '/').concat("$$Lambda");
     }
 
     /**
@@ -259,7 +243,7 @@ import static java.lang.invoke.MethodType.methodType;
                 MethodHandle mh = caller.findConstructor(innerClass, constructorType);
                 if (factoryType.parameterCount() == 0) {
                     // In the case of a non-capturing lambda, we optimize linkage by pre-computing a single instance
-                    Object inst = mh.asType(methodType(Object.class)).invokeExact();
+                    Object inst = mh.invokeBasic();
                     return new ConstantCallSite(MethodHandles.constant(interfaceClass, inst));
                 } else {
                     return new ConstantCallSite(mh.asType(factoryType));
@@ -341,19 +325,19 @@ import static java.lang.invoke.MethodType.methodType;
             interfaces = List.copyOf(itfs);
         }
         final boolean finalAccidentallySerializable = accidentallySerializable;
-        final byte[] classBytes = ClassFile.of().build(lambdaClassDesc, new Consumer<ClassBuilder>() {
+        final byte[] classBytes = ClassFile.of().build(lambdaClassEntry, pool, new Consumer<ClassBuilder>() {
             @Override
             public void accept(ClassBuilder clb) {
                 clb.withFlags(ACC_SUPER | ACC_FINAL | ACC_SYNTHETIC)
                    .withInterfaceSymbols(interfaces);
                 // Generate final fields to be filled in by constructor
                 for (int i = 0; i < argDescs.length; i++) {
-                    clb.withField(argNames[i], argDescs[i], new FieldFlags(ACC_PRIVATE | ACC_FINAL));
+                    clb.withField(argNames[i], argDescs[i], ACC_PRIVATE | ACC_FINAL);
                 }
 
                 // if quotable, generate the field that will hold the value of quoted
                 if (quotableOpField != null) {
-                    clb.withField(quotedInstanceFieldName, CD_Quoted, ACC_PRIVATE + ACC_FINAL);
+                    clb.withField(quotedInstanceFieldName, CodeReflectionSupport.CD_Quoted, ACC_PRIVATE + ACC_FINAL);
                 }
 
                 generateConstructor(clb);
@@ -363,7 +347,7 @@ import static java.lang.invoke.MethodType.methodType;
                 }
 
                 // Forward the SAM method
-                clb.withMethod(interfaceMethodName,
+                clb.withMethodBody(interfaceMethodName,
                         methodDesc(interfaceMethodType),
                         ACC_PUBLIC,
                         forwardingMethod(interfaceMethodType));
@@ -371,7 +355,7 @@ import static java.lang.invoke.MethodType.methodType;
                 // Forward the bridges
                 if (altMethods != null) {
                     for (MethodType mt : altMethods) {
-                        clb.withMethod(interfaceMethodName,
+                        clb.withMethodBody(interfaceMethodName,
                                 methodDesc(mt),
                                 ACC_PUBLIC | ACC_BRIDGE,
                                 forwardingMethod(mt));
@@ -397,11 +381,11 @@ import static java.lang.invoke.MethodType.methodType;
             if (useImplMethodHandle || quotableOpField != null) {
                 classdata = quotableOpField == null ?
                         List.of(implementation) :
-                        List.of(implementation, quotableOpField, HANDLE_MAKE_QUOTED);
+                        List.of(implementation, quotableOpField, CodeReflectionSupport.HANDLE_MAKE_QUOTED);
             } else {
                 classdata = null;
             }
-            return caller.makeHiddenClassDefiner(lambdaClassName, classBytes, Set.of(NESTMATE, STRONG), lambdaProxyClassFileDumper)
+            return caller.makeHiddenClassDefiner(lambdaClassName, classBytes, lambdaProxyClassFileDumper, NESTMATE_CLASS | STRONG_LOADER_LINK)
                          .defineClass(!disableEagerInitialization, classdata);
 
         } catch (Throwable t) {
@@ -416,20 +400,20 @@ import static java.lang.invoke.MethodType.methodType;
         ClassDesc lambdaTypeDescriptor = classDesc(factoryType.returnType());
 
         // Generate the static final field that holds the lambda singleton
-        clb.withField(LAMBDA_INSTANCE_FIELD, lambdaTypeDescriptor, new FieldFlags(ACC_PRIVATE | ACC_STATIC | ACC_FINAL));
+        clb.withField(LAMBDA_INSTANCE_FIELD, lambdaTypeDescriptor, ACC_PRIVATE | ACC_STATIC | ACC_FINAL);
 
         // Instantiate the lambda and store it to the static final field
-        clb.withMethod(CLASS_INIT_NAME, MTD_void, ACC_STATIC, new MethodBody(new Consumer<CodeBuilder>() {
+        clb.withMethodBody(CLASS_INIT_NAME, MTD_void, ACC_STATIC, new Consumer<>() {
             @Override
             public void accept(CodeBuilder cob) {
                 assert factoryType.parameterCount() == 0;
-                cob.new_(lambdaClassDesc)
+                cob.new_(lambdaClassEntry)
                    .dup()
-                   .invokespecial(lambdaClassDesc, INIT_NAME, constructorTypeDesc)
-                   .putstatic(lambdaClassDesc, LAMBDA_INSTANCE_FIELD, lambdaTypeDescriptor)
+                   .invokespecial(pool.methodRefEntry(lambdaClassEntry, pool.nameAndTypeEntry(INIT_NAME, constructorTypeDesc)))
+                   .putstatic(pool.fieldRefEntry(lambdaClassEntry, pool.nameAndTypeEntry(LAMBDA_INSTANCE_FIELD, lambdaTypeDescriptor)))
                    .return_();
             }
-        }));
+        });
     }
 
     /**
@@ -437,8 +421,8 @@ import static java.lang.invoke.MethodType.methodType;
      */
     private void generateConstructor(ClassBuilder clb) {
         // Generate constructor
-        clb.withMethod(INIT_NAME, constructorTypeDesc, ACC_PRIVATE,
-                new MethodBody(new Consumer<CodeBuilder>() {
+        clb.withMethodBody(INIT_NAME, constructorTypeDesc, ACC_PRIVATE,
+                new Consumer<>() {
                     @Override
                     public void accept(CodeBuilder cob) {
                         cob.aload(0)
@@ -448,14 +432,14 @@ import static java.lang.invoke.MethodType.methodType;
                             cob.aload(0);
                             Class<?> argType = factoryType.parameterType(i);
                             cob.loadLocal(TypeKind.from(argType), cob.parameterSlot(i));
-                            cob.putfield(lambdaClassDesc, argNames[i], argDescs[i]);
+                            cob.putfield(pool.fieldRefEntry(lambdaClassEntry, pool.nameAndTypeEntry(argNames[i], argDescs[i])));
                         }
                         if (quotableOpField != null) {
                             generateQuotedFieldInitializer(cob);
                         }
                         cob.return_();
                     }
-                }));
+                });
     }
 
     private void generateQuotedFieldInitializer(CodeBuilder cob) {
@@ -475,23 +459,66 @@ import static java.lang.invoke.MethodType.methodType;
 
         // load captured args in array
 
-        cob.loadConstant(quotableOpType.parameterCount())
+        int capturedArity = factoryType.parameterCount();
+        cob.loadConstant(capturedArity)
            .anewarray(CD_Object);
-        int capturedArity = factoryType.parameterCount() - reflectiveCaptureCount();
         // initialize quoted captures
-        for (int i = 0; i < reflectiveCaptureCount(); i++) {
+        for (int i = 0; i < capturedArity; i++) {
             cob.dup()
                .loadConstant(i)
                .aload(0)
-               .getfield(lambdaClassDesc, argNames[capturedArity + i], argDescs[capturedArity + i]);
-            TypeConvertingMethodAdapter.boxIfTypePrimitive(cob, TypeKind.from(argDescs[capturedArity + i]));
+               .getfield(lambdaClassEntry.asSymbol(), argNames[i], argDescs[i]);
+            TypeConvertingMethodAdapter.boxIfTypePrimitive(cob, TypeKind.from(argDescs[i]));
             cob.aastore();
         }
 
         // now create a Quoted from String and captured args Object[]
 
-        cob.invokevirtual(CD_MethodHandle, "invokeExact", methodDesc(HANDLE_MAKE_QUOTED.type()))
-           .putfield(lambdaClassDesc, quotedInstanceFieldName, CD_Quoted);
+        cob.invokevirtual(CD_MethodHandle, "invokeExact", methodDesc(CodeReflectionSupport.HANDLE_MAKE_QUOTED.type()))
+           .putfield(lambdaClassEntry.asSymbol(), quotedInstanceFieldName, CodeReflectionSupport.CD_Quoted);
+    }
+
+    static class CodeReflectionSupport {
+        static final Class<?> QUOTED_CLASS;
+        static final Class<?> QUOTABLE_CLASS;
+        static final MethodHandle HANDLE_MAKE_QUOTED;
+
+        static {
+            try {
+                ModuleLayer layer = codeLayer();
+                QUOTED_CLASS = layer.findLoader("jdk.incubator.code")
+                        .loadClass("jdk.incubator.code.Quoted");
+                QUOTABLE_CLASS = layer.findLoader("jdk.incubator.code")
+                        .loadClass("jdk.incubator.code.Quotable");
+                Class<?> quotedHelper = layer.findLoader("jdk.incubator.code")
+                        .loadClass("jdk.incubator.code.internal.QuotedHelper");
+                MethodHandle makeQuoted = Lookup.IMPL_LOOKUP.findStatic(quotedHelper, "makeQuoted",
+                        MethodType.methodType(QUOTED_CLASS, MethodHandles.Lookup.class, String.class, Object[].class));
+                HANDLE_MAKE_QUOTED = makeQuoted.bindTo(Lookup.IMPL_LOOKUP);
+            } catch (Throwable ex) {
+                throw new ExceptionInInitializerError(ex);
+            }
+        }
+
+        static ModuleLayer codeLayer() {
+            final ModuleLayer codeLayer;
+            if (ModuleLayer.boot().findModule("jdk.incubator.code").isPresent()) {
+                // we are in an exploded build, so just use the boot layer
+                return ModuleLayer.boot();
+            } else if (java.lang.module.ModuleFinder.ofSystem().find("jdk.incubator.code").isPresent()) {
+                // the code module is installed, but not in the boot layer, create a new layer which contains it
+                ModuleLayer parent = ModuleLayer.boot();
+                Configuration cf = parent.configuration()
+                        .resolve(ModuleFinder.of(), ModuleFinder.ofSystem(), Set.of("jdk.incubator.code"));
+                ClassLoader scl = ClassLoader.getSystemClassLoader();
+                return parent.defineModulesWithOneLoader(cf, scl);
+            } else {
+                throw new IllegalStateException("jdk.incubator.code module not found");
+            }
+        }
+
+        static final ClassDesc CD_Quoted = QUOTED_CLASS.describeConstable().get();
+        static final MethodTypeDesc MTD_Quoted = MethodTypeDescImpl.ofValidated(CD_Quoted);
     }
 
     private static class SerializationSupport {
@@ -518,8 +545,8 @@ import static java.lang.invoke.MethodType.methodType;
      * Generate a writeReplace method that supports serialization
      */
     private void generateSerializationFriendlyMethods(ClassBuilder clb) {
-        clb.withMethod(SerializationSupport.NAME_METHOD_WRITE_REPLACE, SerializationSupport.MTD_Object, ACC_PRIVATE | ACC_FINAL,
-                new MethodBody(new Consumer<CodeBuilder>() {
+        clb.withMethodBody(SerializationSupport.NAME_METHOD_WRITE_REPLACE, SerializationSupport.MTD_Object, ACC_PRIVATE | ACC_FINAL,
+                new Consumer<>() {
                     @Override
                     public void accept(CodeBuilder cob) {
                         cob.new_(SerializationSupport.CD_SerializedLambda)
@@ -539,7 +566,7 @@ import static java.lang.invoke.MethodType.methodType;
                             cob.dup()
                                .loadConstant(i)
                                .aload(0)
-                               .getfield(lambdaClassDesc, argNames[i], argDescs[i]);
+                               .getfield(pool.fieldRefEntry(lambdaClassEntry, pool.nameAndTypeEntry(argNames[i], argDescs[i])));
                             TypeConvertingMethodAdapter.boxIfTypePrimitive(cob, TypeKind.from(argDescs[i]));
                             cob.aastore();
                         }
@@ -547,18 +574,18 @@ import static java.lang.invoke.MethodType.methodType;
                                           SerializationSupport.MTD_CTOR_SERIALIZED_LAMBDA)
                            .areturn();
                     }
-                }));
+                });
     }
 
     /**
      * Generate a writeReplace method that supports serialization
      */
     private void generateQuotableMethod(ClassBuilder clb) {
-        clb.withMethod(NAME_METHOD_QUOTED, MTD_Quoted, ACC_PUBLIC + ACC_FINAL, new MethodBody(new Consumer<CodeBuilder>() {
+        clb.withMethod(NAME_METHOD_QUOTED, CodeReflectionSupport.MTD_Quoted, ACC_PUBLIC + ACC_FINAL, new MethodBody(new Consumer<CodeBuilder>() {
             @Override
             public void accept(CodeBuilder cob) {
                 cob.aload(0)
-                   .getfield(lambdaClassDesc, quotedInstanceFieldName, CD_Quoted)
+                   .getfield(lambdaClassEntry.asSymbol(), quotedInstanceFieldName, CodeReflectionSupport.CD_Quoted)
                    .areturn();
             }
         }));
@@ -597,8 +624,8 @@ import static java.lang.invoke.MethodType.methodType;
      * This method generates a method body which calls the lambda implementation
      * method, converting arguments, as needed.
      */
-    Consumer<MethodBuilder> forwardingMethod(MethodType methodType) {
-        return new MethodBody(new Consumer<CodeBuilder>() {
+    Consumer<CodeBuilder> forwardingMethod(MethodType methodType) {
+        return new Consumer<>() {
             @Override
             public void accept(CodeBuilder cob) {
                 if (implKind == MethodHandleInfo.REF_newInvokeSpecial) {
@@ -610,9 +637,9 @@ import static java.lang.invoke.MethodType.methodType;
                     cob.ldc(cp.constantDynamicEntry(cp.bsmEntry(cp.methodHandleEntry(BSM_CLASS_DATA_AT), List.of(cp.intEntry(0))),
                                                     cp.nameAndTypeEntry(DEFAULT_NAME, CD_MethodHandle)));
                 }
-                for (int i = 0; i < argNames.length - reflectiveCaptureCount(); i++) {
+                for (int i = 0; i < argNames.length ; i++) {
                     cob.aload(0)
-                       .getfield(lambdaClassDesc, argNames[i], argDescs[i]);
+                       .getfield(pool.fieldRefEntry(lambdaClassEntry, pool.nameAndTypeEntry(argNames[i], argDescs[i])));
                 }
 
                 convertArgumentTypes(cob, methodType);
@@ -635,22 +662,17 @@ import static java.lang.invoke.MethodType.methodType;
                 TypeConvertingMethodAdapter.convertType(cob, implReturnClass, samReturnClass, samReturnClass);
                 cob.return_(TypeKind.from(samReturnClass));
             }
-        });
+        };
     }
 
     private void convertArgumentTypes(CodeBuilder cob, MethodType samType) {
         int samParametersLength = samType.parameterCount();
-        int captureArity = factoryType.parameterCount() - reflectiveCaptureCount();
+        int captureArity = factoryType.parameterCount();
         for (int i = 0; i < samParametersLength; i++) {
             Class<?> argType = samType.parameterType(i);
             cob.loadLocal(TypeKind.from(argType), cob.parameterSlot(i));
             TypeConvertingMethodAdapter.convertType(cob, argType, implMethodType.parameterType(captureArity + i), dynamicMethodType.parameterType(i));
         }
-    }
-
-    private static Quoted makeQuoted(String opText, Object[] args) {
-        FuncOp op = (FuncOp)OpParser.fromStringOfFuncOp(opText);
-        return (Quoted)Interpreter.invoke(Lookup.IMPL_LOOKUP, op, args);
     }
 
     private Opcode invocationOpcode() throws InternalError {

@@ -14,10 +14,6 @@ The HAT project is in the 'hat' subdir of the babylon project.
 
 ## Building HAT
 
-HAT uses both maven and cmake.
-
-Maven controls the build but delegates to cmake for native artifacts (such as various backends).
-
 [See](docs/hat-01-03-building-hat.md)
 
 
@@ -37,7 +33,7 @@ maven uses to build the backends.
 ```
 ${BABYLON_JDK}
    └── hat
-        ├── maven-build (created by the build)
+        ├── build (created by the build)
         │
         ├── intellij
         │    ├── .idea
@@ -61,7 +57,7 @@ ${BABYLON_JDK}
         ├── backends
         │    ├── pom.xml
         │    ├── CMakeLists.txt
-        │    └── (opencl|cuda|ptx|mock|shared)
+        │    └── (opencl|cuda|ptx|hip|mock|shared)
         │          ├── pom.xml
         │          ├── CMakeLists.txt
         │          ├── cpp

@@ -26,11 +26,11 @@ package hat.optools;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.CopyContext;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.Value;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.type.MethodRef;
+import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.MethodRef;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -52,7 +52,7 @@ public class ModuleOpWrapper extends OpWrapper<CoreOp.ModuleOp> {
 
     public static ModuleOpWrapper createTransitiveInvokeModule(MethodHandles.Lookup lookup,
                                                                Method entryPoint) {
-        Optional<CoreOp.FuncOp> codeModel = entryPoint.getCodeModel();
+        Optional<CoreOp.FuncOp> codeModel = Op.ofMethod(entryPoint);
         if (codeModel.isPresent()) {
             return OpWrapper.wrap(createTransitiveInvokeModule(lookup, MethodRef.method(entryPoint), codeModel.get()));
         } else {
@@ -80,7 +80,7 @@ public class ModuleOpWrapper extends OpWrapper<CoreOp.ModuleOp> {
                         methodRefToEntryFuncOpCall.methodRef.toString(), (blockBuilder, op) -> {
                             if (op instanceof CoreOp.InvokeOp invokeOp && OpWrapper.wrap(invokeOp) instanceof InvokeOpWrapper invokeOpWrapper) {
                                 Method invokedMethod = invokeOpWrapper.method(lookup);
-                                Optional<CoreOp.FuncOp> optionalInvokedFuncOp = invokedMethod.getCodeModel();
+                                Optional<CoreOp.FuncOp> optionalInvokedFuncOp = Op.ofMethod(invokedMethod);
                                 if (optionalInvokedFuncOp.isPresent() && OpWrapper.wrap(optionalInvokedFuncOp.get()) instanceof FuncOpWrapper funcOpWrapper) {
                                     MethodRefToEntryFuncOpCall call =
                                             new MethodRefToEntryFuncOpCall(invokeOpWrapper.methodRef(), funcOpWrapper.op());

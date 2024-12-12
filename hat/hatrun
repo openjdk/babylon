@@ -1,0 +1,99 @@
+/* vim: set ft=java:
+ * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
+
+import static bldr.Bldr.*;           // all the helpers are here 
+//import static java.nio.file.Files.*; // so we can use isDirectory(path);
+ 
+
+void main(String[] args) {
+  var usage ="""
+    usage:
+      java @bldr/args hatrun [headless] backend package args ...
+         [headless] : Optional passes -Dheadless=true to app
+          backend   : opencl|cuda|spirv|ptx|mock
+          package   : the examples package (and dirname under hat/examples)
+
+      class name is assumed to be package.Main  (i.e. mandel.main) 
+
+      examples:
+         java @bldr/args opencl mandel
+         java @bldr/args headless opencl mandel
+  """;
+
+  var hatDir =  Dir.current();
+  var backends = hatDir.existingDir("backends");
+  var examples = hatDir.existingDir("examples");
+  var buildDir = assertExists(BuildDir.of(hatDir.path("build")));
+
+  var extractedOpenCLJar = buildDir.jarFile("jextracted-opencl.jar");
+  var extractedOpenGLJar = buildDir.jarFile("jextracted-opengl.jar");
+
+
+  var javaBuilder = javaBuilder()
+    .enable_preview()
+    .add_modules("jdk.incubator.code")
+    .add_exports("java.base", "jdk.internal", "ALL-UNNAMED")
+    .enable_native_access("ALL-UNNAMED")
+    .library_path(buildDir)
+    .class_path(buildDir.jarFile("hat-1.0.jar"));
+
+  int argn = 0;
+  if (args.length > 0 && args[argn].equals("headless")) {
+    javaBuilder.opts("-Dheadless=true");
+    argn++;
+  }
+  if ((argn + 2) > args.length) {
+    print("args[" + args.length + "] = [ ");
+    List.of(args).forEach(a -> print(" " + a));
+    println(" ]");
+    println(usage);
+  } else {
+    var backendName = args[argn++];
+    var exampleName = args[argn++];
+    javaBuilder.when( exampleName.equals("nbody"), $->$
+       .start_on_first_thread()
+       .class_path(buildDir.jarFile("hat-1.0.jar"), extractedOpenGLJar, extractedOpenCLJar)
+    );
+
+    if (backendName.equals("java")) {
+      javaBuilder.class_path(ClassDir.of(backends.path("shared/src/main/resources")));
+    } else if (backends.dir(backendName) instanceof Dir backend && backend.exists()) {
+      javaBuilder.class_path(buildDir.jarFile("hat-backend-" + backendName + "-1.0.jar"));
+    } else {
+      println("No backend " + backendName);
+    }
+
+    if (buildDir.jarFile("hat-example-" + exampleName + "-1.0.jar") instanceof bldr.Bldr.JarFile exampleJar && exampleJar.exists()){
+      java(javaBuilder
+        .verbose()
+        .class_path(exampleJar)
+        .main_class(exampleName + ".Main")
+        .args(Arrays.copyOfRange(args, argn, args.length))
+      );
+    } else {
+      println("no example " + exampleName);
+    }
+  }
+}

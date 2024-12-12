@@ -23,23 +23,27 @@
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @run testng TestStringConcatTransform
+ * @run testng/othervm -Dbabylon.ssa=cytron TestStringConcatTransform
  */
 
+import jdk.incubator.code.Op;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.NoInjection;
 import org.testng.annotations.Test;
 
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.code.OpTransformer;
-import java.lang.reflect.code.analysis.StringConcatTransformer;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.analysis.StringConcatTransformer;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.code.analysis.SSA;
-import java.lang.reflect.code.interpreter.Interpreter;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.analysis.SSA;
+import jdk.incubator.code.interpreter.Interpreter;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.CodeReflection;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -93,15 +97,15 @@ public class TestStringConcatTransform {
 
     @Test(dataProvider = "getClassMethods")
     public void testModelTransform(@NoInjection Method method) {
-        CoreOp.FuncOp model = method.getCodeModel().orElseThrow();
+        CoreOp.FuncOp model = Op.ofMethod(method).orElseThrow();
         CoreOp.FuncOp f_transformed = model.transform(new StringConcatTransformer());
         Object[] args = prepArgs(method);
 
         model.writeTo(System.out);
         f_transformed.writeTo(System.out);
 
-        var interpreted = Interpreter.invoke(model, args);
-        var transformed_interpreted = Interpreter.invoke(f_transformed, args);
+        var interpreted = Interpreter.invoke(MethodHandles.lookup(), model, args);
+        var transformed_interpreted = Interpreter.invoke(MethodHandles.lookup(), f_transformed, args);
 
         Assert.assertEquals(interpreted, transformed_interpreted);
 
@@ -130,15 +134,15 @@ public class TestStringConcatTransform {
     }
 
     private void testStringConcat(Method method, Object[] args) {
-        CoreOp.FuncOp model = method.getCodeModel().orElseThrow();
+        CoreOp.FuncOp model = Op.ofMethod(method).orElseThrow();
         CoreOp.FuncOp transformed_model = model.transform(new StringConcatTransformer());
         CoreOp.FuncOp ssa_model = generateSSA(model);
         CoreOp.FuncOp ssa_transformed_model = ssa_model.transform(new StringConcatTransformer());
 
-        var model_interpreted = Interpreter.invoke(model, args);
-        var transformed_model_interpreted = Interpreter.invoke(transformed_model, args);
-        var ssa_interpreted = Interpreter.invoke(ssa_model, args);
-        var ssa_transformed_interpreted = Interpreter.invoke(ssa_transformed_model, args);
+        var model_interpreted = Interpreter.invoke(MethodHandles.lookup(), model, args);
+        var transformed_model_interpreted = Interpreter.invoke(MethodHandles.lookup(), transformed_model, args);
+        var ssa_interpreted = Interpreter.invoke(MethodHandles.lookup(), ssa_model, args);
+        var ssa_transformed_interpreted = Interpreter.invoke(MethodHandles.lookup(), ssa_transformed_model, args);
         Object jvm_interpreted;
         try {
             jvm_interpreted = method.invoke(null, args);

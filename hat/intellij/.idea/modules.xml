@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/hat.iml" filepath="$PROJECT_DIR$/hat.iml" />
+      <module fileurl="file://$PROJECT_DIR$/bldr.iml" filepath="$PROJECT_DIR$/bldr.iml" />
       <module fileurl="file://$PROJECT_DIR$/backend_cuda.iml" filepath="$PROJECT_DIR$/backend_cuda.iml" />
       <module fileurl="file://$PROJECT_DIR$/backend_mock.iml" filepath="$PROJECT_DIR$/backend_mock.iml" />
       <module fileurl="file://$PROJECT_DIR$/backend_ptx.iml" filepath="$PROJECT_DIR$/backend_ptx.iml" />
@@ -17,6 +18,7 @@
       <module fileurl="file://$PROJECT_DIR$/life.iml" filepath="$PROJECT_DIR$/life.iml" />
       <module fileurl="file://$PROJECT_DIR$/squares.iml" filepath="$PROJECT_DIR$/squares.iml" />
       <module fileurl="file://$PROJECT_DIR$/experiments.iml" filepath="$PROJECT_DIR$/experiments.iml" />
+      <module fileurl="file://$PROJECT_DIR$/nbody.iml" filepath="$PROJECT_DIR$/nbody.iml" />
       <module fileurl="file://$PROJECT_DIR$/violajones.iml" filepath="$PROJECT_DIR$/violajones.iml" />
     </modules>
   </component>

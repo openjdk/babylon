@@ -24,11 +24,11 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.Block;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.type.FunctionType;
-import java.lang.reflect.code.type.JavaType;
+import jdk.incubator.code.Block;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.type.FunctionType;
+import jdk.incubator.code.type.JavaType;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -36,14 +36,15 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static java.lang.reflect.code.op.CoreOp._return;
-import static java.lang.reflect.code.op.CoreOp.branch;
-import static java.lang.reflect.code.op.CoreOp.conditionalBranch;
-import static java.lang.reflect.code.op.CoreOp.constant;
-import static java.lang.reflect.code.op.CoreOp.func;
+import static jdk.incubator.code.op.CoreOp._return;
+import static jdk.incubator.code.op.CoreOp.branch;
+import static jdk.incubator.code.op.CoreOp.conditionalBranch;
+import static jdk.incubator.code.op.CoreOp.constant;
+import static jdk.incubator.code.op.CoreOp.func;
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @run testng TestDominate
  */
 

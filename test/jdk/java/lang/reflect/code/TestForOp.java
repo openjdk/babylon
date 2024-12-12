@@ -24,17 +24,19 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.code.OpTransformer;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.reflect.code.Op;
-import java.lang.reflect.code.interpreter.Interpreter;
+import java.lang.invoke.MethodHandles;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.interpreter.Interpreter;
 import java.lang.reflect.Method;
-import java.lang.runtime.CodeReflection;
+import jdk.incubator.code.CodeReflection;
 import java.util.Optional;
 import java.util.stream.Stream;
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @run testng TestForOp
  */
 
@@ -59,7 +61,7 @@ public class TestForOp {
 
         lf.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(lf), f());
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf), f());
     }
 
     @CodeReflection
@@ -82,7 +84,7 @@ public class TestForOp {
 
         lf.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(lf), f2());
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf), f2());
     }
 
     @CodeReflection
@@ -107,7 +109,7 @@ public class TestForOp {
 
         lf.writeTo(System.out);
 
-        Assert.assertEquals(Interpreter.invoke(lf), f3());
+        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf), f3());
     }
 
     static CoreOp.FuncOp getFuncOp(String name) {
@@ -116,6 +118,6 @@ public class TestForOp {
                 .findFirst();
 
         Method m = om.get();
-        return m.getCodeModel().get();
+        return Op.ofMethod(m).get();
     }
 }
