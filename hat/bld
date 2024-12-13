@@ -54,7 +54,7 @@ void main(String[] args) {
      *    |    |    +--seq                   (*)
      *    |    +--jextracted
      *    |    |    +--opencl                (*)
-     *    |    +--native
+     *    |    +--ffi
      *    |    |    +--opencl                (*)
      *    |    |    +--ptx                   (*)
      *    |    |    +--mock                  (*)
@@ -71,7 +71,7 @@ void main(String[] args) {
      *
      */
 
-    var hatDir = Dir.current();
+    var hatDir = DirEntry.current();
     var hatCoreDir = hatDir.existingDir("hat");
     var backends = hatDir.existingDir("backends");
     var examples = hatDir.existingDir("examples");
@@ -195,13 +195,13 @@ void main(String[] args) {
             .javac(javac -> javac.copy(hatJavacOpts))
     );
 
-    var nativeBackends = backends.existingDir("native");
+    var ffiBackends = backends.existingDir("ffi");
 
-    // Here we create all native backend jars.
-    nativeBackends
+    // Here we create all ffi backend jars.
+    ffiBackends
        .subDirs(backend -> !backend.matches("^.*(spirv|hip|shared|target|.idea)$"))
        .forEach(backend -> {
-           var jarFile = buildDir.jarFile("hat-backend-native-" + backend.fileName() + "-1.0.jar");
+           var jarFile = buildDir.jarFile("hat-backend-ffi-" + backend.fileName() + "-1.0.jar");
            println(jarFile.fileName());
            jar(jar -> jar
               .copy(hatJarOptions)
@@ -262,7 +262,7 @@ void main(String[] args) {
 
     if (!cmakeBuildDir.exists()) {
         cmake($ -> $
-                .source_dir(nativeBackends)
+                .source_dir(ffiBackends)
                 .build_dir(cmakeBuildDir)
                 .copy_to(buildDir)
         );

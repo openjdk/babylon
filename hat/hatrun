@@ -42,7 +42,7 @@ void main(String[] argv) {
          java @bldr/args headless opencl mandel
   """;
 
-  var hatDir =  Dir.current();
+  var hatDir =  DirEntry.current();
   var backends = hatDir.existingDir("backends");
   var examples = hatDir.dir("examples");
   var buildDir = hatDir.existingBuildDir("build");
@@ -61,13 +61,13 @@ void main(String[] argv) {
      })
      .either(!args.isEmpty(), haveBackend -> {
         var backendName = args.removeFirst();
-        if (backends.dir(backendName.replace('-','/')) instanceof Dir backend && backend.exists()) {
+        if (backends.dir(backendName.replace('-','/')) instanceof DirEntry backend && backend.exists()) {
            haveBackend.class_path(buildDir.jarFile("hat-backend-" + backendName + "-1.0.jar"));
         } else {
            throw new RuntimeException("No such backend " + backendName);
         }
         if (!args.isEmpty() && args.removeFirst() instanceof String exampleName) {
-           if (examples.dir(exampleName) instanceof Dir example && example.exists()) { haveBackend
+           if (examples.dir(exampleName) instanceof DirEntry example && example.exists()) { haveBackend
               .class_path(buildDir.jarFile("hat-example-" + exampleName + "-1.0.jar"))
               .when(jextractedOpenCLJar.exists() && jextractedOpenGLJar.exists() && exampleName.equals("nbody"), _->{ haveBackend
                   .class_path(jextractedOpenCLJar,jextractedOpenGLJar)

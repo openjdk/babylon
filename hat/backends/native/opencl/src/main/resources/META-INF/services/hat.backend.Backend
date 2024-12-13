@@ -1,3 +1,0 @@
-hat.backend.OpenCLBackend
-hat.backend.JavaSequentialBackend
-hat.backend.JavaMultiThreadedBackend

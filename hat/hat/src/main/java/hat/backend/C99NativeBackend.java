@@ -46,7 +46,7 @@ public abstract class C99NativeBackend extends NativeBackend {
         super(libName);
     }
 
-    static class CompiledKernel {
+    public static class CompiledKernel {
         public final C99NativeBackend c99NativeBackend;
         public final KernelCallGraph kernelCallGraph;
         public final String text;
@@ -54,7 +54,7 @@ public abstract class C99NativeBackend extends NativeBackend {
         public final ArgArray argArray;
         public final KernelContext kernelContext;
 
-        CompiledKernel(C99NativeBackend c99NativeBackend, KernelCallGraph kernelCallGraph, String text, long kernelHandle, Object[] ndRangeAndArgs) {
+        public CompiledKernel(C99NativeBackend c99NativeBackend, KernelCallGraph kernelCallGraph, String text, long kernelHandle, Object[] ndRangeAndArgs) {
             this.c99NativeBackend = c99NativeBackend;
             this.kernelCallGraph = kernelCallGraph;
             this.text = text;
@@ -72,7 +72,7 @@ public abstract class C99NativeBackend extends NativeBackend {
         }
     }
 
-    Map<KernelCallGraph, CompiledKernel> kernelCallGraphCompiledCodeMap = new HashMap<>();
+    public Map<KernelCallGraph, CompiledKernel> kernelCallGraphCompiledCodeMap = new HashMap<>();
 
     public <T extends C99HatKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object[] args) {
         builder.defines().pragmas().types();

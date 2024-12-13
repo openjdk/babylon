@@ -1,0 +1,3 @@
+hat.backend.ffi.PTXBackend
+hat.backend.JavaSequentialBackend
+hat.backend.JavaMultiThreadedBackend

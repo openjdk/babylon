@@ -88,7 +88,7 @@ public abstract class NativeBackend extends NativeBackendDriver {
         bldr.op(CoreOp.invoke(wrapper.post, cc, iface));
     }
 
-    static FuncOpWrapper injectBufferTracking(CallGraph.ResolvedMethodCall computeMethod) {
+    protected static FuncOpWrapper injectBufferTracking(CallGraph.ResolvedMethodCall computeMethod) {
         FuncOpWrapper prevFOW = computeMethod.funcOpWrapper();
         FuncOpWrapper returnFOW = prevFOW;
         boolean transform = true;
