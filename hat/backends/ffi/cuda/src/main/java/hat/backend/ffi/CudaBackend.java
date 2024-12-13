@@ -27,10 +27,9 @@ package hat.backend.ffi;
 
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.backend.C99NativeBackend;
 import hat.callgraph.KernelCallGraph;
 
-public class CudaBackend extends C99NativeBackend {
+public class CudaBackend extends C99FFIBackend {
     public CudaBackend() {
         super("cuda_backend");
         getBackend(null);

@@ -1,2 +1,2 @@
-hat.backend.JavaSequentialBackend
-hat.backend.JavaMultiThreadedBackend
+hat.backend.java.JavaSequentialBackend
+hat.backend.java.JavaMultiThreadedBackend

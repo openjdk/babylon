@@ -28,12 +28,11 @@ package hat.backend.ffi;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.backend.C99NativeBackend;
 import hat.buffer.BackendConfig;
 import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.Schema;
 
-public class OpenCLBackend extends C99NativeBackend {
+public class OpenCLBackend extends C99FFIBackend {
 
     interface OpenCLConfig extends BackendConfig {
         // See backends/opencl/include/opencl_backend.h

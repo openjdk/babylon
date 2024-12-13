@@ -27,7 +27,6 @@ package hat.backend.ffi;
 
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.backend.C99NativeBackend;
 import hat.buffer.Buffer;
 import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.BoundSchema;
@@ -37,7 +36,7 @@ import jdk.incubator.code.*;
 import jdk.incubator.code.op.CoreOp;
 import java.util.*;
 
-public class PTXBackend extends C99NativeBackend {
+public class PTXBackend extends C99FFIBackend {
     int major;
     int minor;
     String target;

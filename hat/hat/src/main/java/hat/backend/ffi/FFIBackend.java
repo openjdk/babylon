@@ -23,7 +23,7 @@
  * questions.
  */
 
-package hat.backend;
+package hat.backend.ffi;
 
 import hat.ComputeContext;
 import hat.buffer.Buffer;
@@ -46,7 +46,7 @@ import static hat.ComputeContext.WRAPPER.ACCESS;
 import static hat.ComputeContext.WRAPPER.ESCAPE;
 import static hat.ComputeContext.WRAPPER.MUTATE;
 
-public abstract class NativeBackend extends NativeBackendDriver {
+public abstract class FFIBackend extends FFIBackendDriver {
 
     public final Arena arena = Arena.global();
 
@@ -56,7 +56,7 @@ public abstract class NativeBackend extends NativeBackendDriver {
         return segmentMapper.allocate(arena, boundSchema);
     }
 
-    public NativeBackend(String libName) {
+    public FFIBackend(String libName) {
         super(libName);
     }
 

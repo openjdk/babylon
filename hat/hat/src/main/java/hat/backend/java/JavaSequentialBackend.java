@@ -23,36 +23,30 @@
  * questions.
  */
 
-package hat.backend;
+package hat.backend.java;
 
-import hat.ComputeContext;
-import hat.buffer.Buffer;
-import hat.ifacemapper.BoundSchema;
-import hat.ifacemapper.SegmentMapper;
 
-import java.lang.foreign.Arena;
+import hat.NDRange;
+import hat.callgraph.KernelCallGraph;
+import hat.callgraph.KernelEntrypoint;
+
 import java.lang.reflect.InvocationTargetException;
 
 
-public abstract class JavaBackend implements Backend {
-
-    public final Arena arena = Arena.global();
-
+public class JavaSequentialBackend extends JavaBackend {
     @Override
-    public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema){
-        return segmentMapper.allocate(arena, boundSchema);
-    }
-    @Override
-    public void computeContextHandoff(ComputeContext computeContext) {
-        System.out.println("Java backend received computeContext ");
-    }
+    public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
+        KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
+        for (ndRange.kid.x = 0; ndRange.kid.x < ndRange.kid.maxX; ndRange.kid.x++) {
+            try {
+                args[0] = ndRange.kid;
+                kernelEntrypoint.method.invoke(null, args);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            } catch (InvocationTargetException e) {
+                throw new RuntimeException(e);
+            }
 
-    @Override
-    public void dispatchCompute(ComputeContext computeContext, Object... args) {
-        try {
-            computeContext.computeCallGraph.entrypoint.method.invoke(null, args);
-        } catch (IllegalAccessException | InvocationTargetException e) {
-            throw new RuntimeException(e);
         }
     }
 

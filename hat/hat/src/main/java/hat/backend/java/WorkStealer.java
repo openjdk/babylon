@@ -23,7 +23,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.backend;
+package hat.backend.java;
 
 import hat.Accelerator;
 import hat.KernelContext;

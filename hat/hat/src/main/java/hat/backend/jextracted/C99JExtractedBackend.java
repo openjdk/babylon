@@ -23,10 +23,10 @@
  * questions.
  */
 
-package hat.backend;
+package hat.backend.jextracted;
 
-import hat.ComputeContext;
 import hat.NDRange;
+import hat.backend.ffi.FFIBackend;
 import hat.backend.c99codebuilders.C99HatKernelBuilder;
 import hat.buffer.ArgArray;
 import hat.buffer.Buffer;
@@ -41,20 +41,20 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
-public abstract class C99NativeBackend extends NativeBackend {
-    public C99NativeBackend(String libName) {
+public abstract class C99JExtractedBackend extends FFIBackend {
+    public C99JExtractedBackend(String libName) {
         super(libName);
     }
 
     public static class CompiledKernel {
-        public final C99NativeBackend c99NativeBackend;
+        public final C99JExtractedBackend c99NativeBackend;
         public final KernelCallGraph kernelCallGraph;
         public final String text;
         public final long kernelHandle;
         public final ArgArray argArray;
         public final KernelContext kernelContext;
 
-        public CompiledKernel(C99NativeBackend c99NativeBackend, KernelCallGraph kernelCallGraph, String text, long kernelHandle, Object[] ndRangeAndArgs) {
+        public CompiledKernel(C99JExtractedBackend c99NativeBackend, KernelCallGraph kernelCallGraph, String text, long kernelHandle, Object[] ndRangeAndArgs) {
             this.c99NativeBackend = c99NativeBackend;
             this.kernelCallGraph = kernelCallGraph;
             this.text = text;

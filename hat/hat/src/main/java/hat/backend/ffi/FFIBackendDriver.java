@@ -22,9 +22,10 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.backend;
+package hat.backend.ffi;
 
 
+import hat.backend.Backend;
 import hat.buffer.ArgArray;
 import hat.buffer.BackendConfig;
 import hat.buffer.Buffer;
@@ -38,7 +39,7 @@ import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_LONG;
 
-public abstract class NativeBackendDriver implements Backend {
+public abstract class FFIBackendDriver implements Backend {
 
     public boolean isAvailable() {
         return nativeLibrary.available;
@@ -65,10 +66,10 @@ public abstract class NativeBackendDriver implements Backend {
     public long backendHandle = 0;
 
 
-    public final NativeLib nativeLibrary;
+    public final FFILib nativeLibrary;
 
-    public NativeBackendDriver(String libName) {
-        this.nativeLibrary = new NativeLib(libName);
+    public FFIBackendDriver(String libName) {
+        this.nativeLibrary = new FFILib(libName);
         this.dumpArgArray_MH = nativeLibrary.voidFunc("dumpArgArray", ADDRESS);
         this.getDevice_MH = nativeLibrary.longFunc("getDeviceHandle");
         this.releaseDevice_MH = nativeLibrary.voidFunc("releaseDeviceHandle", JAVA_LONG);

@@ -12,6 +12,8 @@
       <module fileurl="file://$PROJECT_DIR$/backend_ffi_shared.iml" filepath="$PROJECT_DIR$/backend_ffi_shared.iml" />
       <module fileurl="file://$PROJECT_DIR$/backend_java_mt.iml" filepath="$PROJECT_DIR$/backend_java_mt.iml" />
       <module fileurl="file://$PROJECT_DIR$/backend_java_seq.iml" filepath="$PROJECT_DIR$/backend_java_seq.iml" />
+      <module fileurl="file://$PROJECT_DIR$/backend_jextracted_opencl.iml" filepath="$PROJECT_DIR$/backend_jextracted_opencl.iml" />
+      <module fileurl="file://$PROJECT_DIR$/backend_jextracted_shared.iml" filepath="$PROJECT_DIR$/backend_jextracted_shared.iml" />
       <module fileurl="file://$PROJECT_DIR$/mandel.iml" filepath="$PROJECT_DIR$/mandel.iml" />
       <module fileurl="file://$PROJECT_DIR$/heal.iml" filepath="$PROJECT_DIR$/heal.iml" />
       <module fileurl="file://$PROJECT_DIR$/chess.iml" filepath="$PROJECT_DIR$/chess.iml" />

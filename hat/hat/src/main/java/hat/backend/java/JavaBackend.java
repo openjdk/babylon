@@ -23,46 +23,38 @@
  * questions.
  */
 
-package hat.backend;
+package hat.backend.java;
 
-import hat.Accelerator;
-import hat.KernelContext;
-import hat.NDRange;
-import hat.callgraph.KernelCallGraph;
-import hat.callgraph.KernelEntrypoint;
+import hat.ComputeContext;
+import hat.backend.Backend;
+import hat.buffer.Buffer;
+import hat.ifacemapper.BoundSchema;
+import hat.ifacemapper.SegmentMapper;
 
+import java.lang.foreign.Arena;
 import java.lang.reflect.InvocationTargetException;
-import java.util.Arrays;
 
-public class JavaMultiThreadedBackend extends JavaBackend {
 
+public abstract class JavaBackend implements Backend {
+
+    public final Arena arena = Arena.global();
 
     @Override
-    public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
-        KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
-        instance(ndRange.accelerator).forEachInRange(ndRange, (range) -> {
-            Object[] a = Arrays.copyOf(args, args.length); // Annoying.  we need to replace the args[0] but don't want to race other threads.
-            try {
-                KernelContext c = range.kid;
-                a[0] = c;
-                kernelEntrypoint.method.invoke(null, a);
-            } catch (IllegalAccessException e) {
-                throw new RuntimeException(e);
-            } catch (InvocationTargetException e) {
-                throw new RuntimeException(e);
-            }
-
-        });
+    public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema){
+        return segmentMapper.allocate(arena, boundSchema);
+    }
+    @Override
+    public void computeContextHandoff(ComputeContext computeContext) {
+        System.out.println("Java backend received computeContext ");
     }
 
-    WorkStealer workStealer = null;
-
-    synchronized WorkStealer instance(Accelerator accelerator) {
-        if (workStealer == null) {
-            workStealer = WorkStealer.usingAllProcessors(accelerator);
+    @Override
+    public void dispatchCompute(ComputeContext computeContext, Object... args) {
+        try {
+            computeContext.computeCallGraph.entrypoint.method.invoke(null, args);
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            throw new RuntimeException(e);
         }
-        return workStealer;
     }
-
 
 }

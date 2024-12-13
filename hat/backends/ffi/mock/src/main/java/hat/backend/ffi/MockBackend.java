@@ -28,12 +28,11 @@ package hat.backend.ffi;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.backend.NativeBackend;
 import hat.buffer.BackendConfig;
 import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.Schema;
 
-public class MockBackend extends NativeBackend {
+public class MockBackend extends FFIBackend {
 
     interface MockConfig extends BackendConfig {
         // See backends/mock/include/mock_backend.h

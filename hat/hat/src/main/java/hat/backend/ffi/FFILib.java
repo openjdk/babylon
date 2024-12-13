@@ -22,7 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.backend;
+package hat.backend.ffi;
 
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
@@ -34,7 +34,7 @@ import static java.lang.foreign.ValueLayout.JAVA_BOOLEAN;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_LONG;
 
-public class NativeLib {
+public class FFILib {
     final public String name;
     public final boolean available;
 
@@ -43,7 +43,7 @@ public class NativeLib {
 
     final public SymbolLookup loaderLookup;
 
-    NativeLib(String name) {
+    public FFILib(String name) {
         this.name = name;
 
         boolean nonFinalAvailable = true;
@@ -60,7 +60,7 @@ public class NativeLib {
     }
 
 
-    MethodHandle voidFunc(String name, MemoryLayout... args) {
+    public MethodHandle voidFunc(String name, MemoryLayout... args) {
         return loaderLookup.find(name)
                 .map(symbolSegment -> nativeLinker.downcallHandle(symbolSegment,
                         FunctionDescriptor.ofVoid(args)))
@@ -74,15 +74,15 @@ public class NativeLib {
                 .orElse(null);
     }
 
-    MethodHandle longFunc(String name, MemoryLayout... args) {
+    public MethodHandle longFunc(String name, MemoryLayout... args) {
         return typedFunc(name, JAVA_LONG, args);
     }
 
-    MethodHandle booleanFunc(String name, MemoryLayout... args) {
+    public MethodHandle booleanFunc(String name, MemoryLayout... args) {
         return typedFunc(name, JAVA_BOOLEAN, args);
     }
 
-    MethodHandle intFunc(String name, MemoryLayout... args) {
+    public MethodHandle intFunc(String name, MemoryLayout... args) {
         return typedFunc(name, JAVA_INT, args);
     }
 }
