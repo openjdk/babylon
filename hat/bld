@@ -113,7 +113,8 @@ void main(String[] args) {
               case OS.Mac mac -> {
                 $
                   .compile_flag("-F" + opencl.appLibFrameworks() + "/System/library/Frameworks")
-                  .library(Path.of(opencl.lib()))
+                  .library(mac.frameworkLibrary("OpenCL"))
+                  //.library(Path.of(opencl.lib()))
                   .header(Path.of(opencl.includeDir()).resolve("Headers/opencl.h"));
               }
               case OS.Linux linux -> {
