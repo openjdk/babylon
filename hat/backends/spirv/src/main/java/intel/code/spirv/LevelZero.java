@@ -360,8 +360,22 @@ public class LevelZero {
             ze_module_desc_t.pInputModule(moduleDesc, spirvCode);
             ze_module_desc_t.inputSize(moduleDesc, spirvCode.byteSize());
             ze_module_desc_t.pBuildFlags(moduleDesc, lzArena.allocateFrom(""));
-            MemorySegment buildLogHandle = lzArena.allocate(ze_module_build_log_handle_t);
-            check(zeModuleCreate(contextHandle, deviceHandle, moduleDesc, pModuleHandle, buildLogHandle));
+            MemorySegment pbuildLogHandle = lzArena.allocate(ze_module_build_log_handle_t);
+            int status = zeModuleCreate(contextHandle, deviceHandle, moduleDesc, pModuleHandle, pbuildLogHandle);
+            if (status != ZE_RESULT_SUCCESS()) {
+                MemorySegment pSize = lzArena.allocate(JAVA_INT);
+                MemorySegment buildLogHandle = pbuildLogHandle.get(ADDRESS, 0);
+                zeModuleBuildLogGetString(buildLogHandle, pSize, MemorySegment.NULL);
+                MemorySegment buildLog = lzArena.allocate(pSize.get(JAVA_INT, 0));
+                zeModuleBuildLogGetString(buildLogHandle, pSize, buildLog);
+                System.out.println("Module build log:");
+                for (int i = 0; i < pSize.get(JAVA_INT, 0); i += 1) {
+                    byte c = buildLog.get(JAVA_BYTE, i);
+                    char c1 = (char) (c & 0xFF);
+                    System.out.print(c1);
+                }
+                throw new RuntimeException("failed to create module");
+            }
             MemorySegment moduleHandle = pModuleHandle.get(ADDRESS, 0);
             return moduleHandle;
         }
