@@ -2382,7 +2382,7 @@ public class Bldr {
                         """
                         find_package(HIP)
                         if(HIP_FOUND)
-                        
+
                         else()
                             message("NO HIP FOUND")
                         endif()

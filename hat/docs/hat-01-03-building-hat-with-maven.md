@@ -37,7 +37,7 @@ The `env.bash` shell script can be sourced (dot included) in your shell to set J
 
 It should detect the arch type (AARCH64 or X86_46) and select the correct relative parent dir and inject that dir in your PATH.
 
-You will need jextract for your platform, and the jextract/bin dir should also be in your path.  
+You will need jextract for your platform, and the jextract/bin dir should also be in your path.
 
 
 ```bash
