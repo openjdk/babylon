@@ -23,22 +23,12 @@ package hat;
  * questions.
  */
 
-import hat.backend.Backend;
-import hat.backend.JavaMultiThreadedBackend;
+import hat.backend.java.JavaMultiThreadedBackend;
 import hat.buffer.S32Array;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.Method;
-import jdk.incubator.code.CopyContext;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.Value;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.CodeReflection;
-import java.util.List;
 
 
 /*

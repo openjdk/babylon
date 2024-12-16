@@ -27,7 +27,7 @@
 import static bldr.Bldr.*;
 
 void main(String[] args) {
- var hatDir = Dir.current();
+ var hatDir = DirEntry.current();
  hatDir.buildDir("build").remove();
  hatDir.buildDir("stage").remove();
 }
