@@ -289,7 +289,7 @@ public class SpirvModuleGenerator {
                         } else if (field instanceof Schema.FieldNode.AbstractIfaceField ifaceField) {
                             if (ifaceField instanceof Schema.FieldNode.IfaceArray array) {
                                 int arrayLen;
-                                if (array instanceof Schema.FieldNode.IfaceFieldControlledArray fieldControlledArray) {          
+                                if (array instanceof Schema.FieldNode.IfaceFieldControlledArray fieldControlledArray) {
                                     int[] len = new int[]{0};
                                     if (isLast && t.parent == null) {
                                         len[0] = 1;
@@ -803,7 +803,7 @@ public class SpirvModuleGenerator {
                                     accessReturnType = spirvVariableType(spirvType(returnTypeName));
                                 } else {
                                     accessReturnType = spirvType(returnTypeName);
-                                }    
+                                }
                                 String typeName = call.operands().get(0).type().toString().replaceAll("\\$", ".");
                                 SPIRVId returnType = spirvType(fnType.returnType().toString());
                                 SPIRVId accessResult = nextId();
@@ -838,7 +838,7 @@ public class SpirvModuleGenerator {
                                     // only support atomic increment for now
                                     spirvBlock.add(new SPIRVOpAtomicIIncrement(returnType, result, accessResult, getConst("int", 0), getConst("int", 0x8)));
                                     addResult(call.result(), new SpirvResult(returnType, null, result));
-                                } else if (isPrimitiveType(fnType.returnType().toString())) {    
+                                } else if (isPrimitiveType(fnType.returnType().toString())) {
                                     spirvBlock.add(new SPIRVOpLoad(returnType, result, accessResult, align(returnType.getName())));
                                     addResult(call.result(), new SpirvResult(returnType, null, result));
                                 } else if (setter) {
