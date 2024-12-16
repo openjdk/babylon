@@ -166,7 +166,7 @@ public class LevelZero {
         CoreOp.FuncOp funcOp = kernelEntrypoint.funcOpWrapper().op();
         String kernelName = funcOp.funcName();
         // System.out.println(funcOp.toText());
-        MemorySegment spirvBinary = SpirvModuleGenerator.generateModule(kernelName, kernelCallGraph);
+        MemorySegment spirvBinary = SpirvModuleGenerator.generateModule(kernelName, kernelCallGraph, args);
         String path = "/tmp/" + kernelName + ".spv";
         SpirvModuleGenerator.writeModuleToFile(spirvBinary, path);
         // System.out.println("generated module \n" + SpirvModuleGenerator.disassembleModule(spirvBinary));

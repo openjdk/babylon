@@ -184,6 +184,7 @@ public class ViolaJonesCoreCompute {
             int x,
             int y,
             float vnorm,
+            float threshold,
             F32Array2D integral,
             Cascade.Stage stage,
             Cascade cascade
@@ -227,7 +228,7 @@ public class ViolaJonesCoreCompute {
                 }
             }
         }
-        return sumOfThisStage > stage.threshold(); // true if this looks like a face
+        return sumOfThisStage > threshold; // true if this looks like a face
     }
 
     @CodeReflection
@@ -286,7 +287,7 @@ public class ViolaJonesCoreCompute {
                 Cascade.Stage stage = cascade.stage(stagec);
               //  Class stageClass = stage.getClass();
                // long stageOffset = stage.offset();
-                stillLooksLikeAFace = isAFaceStage(kc.x, scale.scaleValue(), scale.invArea(), x, y, vnorm, integral, stage, cascade);
+                stillLooksLikeAFace = isAFaceStage(kc.x, scale.scaleValue(), scale.invArea(), x, y, vnorm, stage.threshold(), integral, stage, cascade);
             }
 
             if (stillLooksLikeAFace) {

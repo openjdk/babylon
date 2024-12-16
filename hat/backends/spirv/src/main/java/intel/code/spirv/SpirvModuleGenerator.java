@@ -45,6 +45,7 @@ import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 import java.math.BigInteger;
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Field;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import jdk.incubator.code.Block;
@@ -57,9 +58,14 @@ import jdk.incubator.code.type.MethodRef;
 import jdk.incubator.code.type.ClassType;
 import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.type.FunctionType;
+import hat.util.StreamCounter;
+import hat.buffer.Buffer;
 import hat.callgraph.CallGraph;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
+import hat.ifacemapper.BoundSchema;
+import hat.ifacemapper.Schema;
+import hat.optools.FuncOpWrapper;
 import uk.ac.manchester.beehivespirvtoolkit.lib.SPIRVHeader;
 import uk.ac.manchester.beehivespirvtoolkit.lib.SPIRVModule;
 import uk.ac.manchester.beehivespirvtoolkit.lib.SPIRVFunction;
@@ -75,26 +81,20 @@ public class SpirvModuleGenerator {
     private final String moduleName;
     private final SPIRVModule module;
     private final Symbols symbols;
+    // map of class name to map of field name to field index
+    private final HashMap<String, HashMap<String, Integer>> classMap = new HashMap<>();
+    // map of class name to size of the class
+    private final HashMap<String, Integer> sizeMap = new HashMap<>();
 
     public static SpirvModuleGenerator create(String moduleName) {
         return new SpirvModuleGenerator(moduleName);
     }
 
-    public static MemorySegment generateModule(String moduleName, KernelCallGraph callGraph) {
+    public static MemorySegment generateModule(String moduleName, KernelCallGraph callGraph, Object... args) {
         SpirvModuleGenerator generator = SpirvModuleGenerator.create(moduleName);
-        for (CallGraph.MethodCall call : callGraph.calls) {
-            if (call.targetMethodRef != null) {
-                try {
-                    Optional<CoreOp.FuncOp> ofo = call.targetMethodRef.codeModel(MethodHandles.lookup());
-                    if (ofo.isPresent()) {
-                        CoreOp.FuncOp fo = ofo.get();
-                        SpirvOp.FuncOp spirvFunc = TranslateToSpirvModel.translateFunction(fo);
-                    }
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        }
+
+        generator.generateTypeDeclaration(args);
+        generator.generateDependentFunctions(callGraph);
         KernelEntrypoint kernelEntrypoint = callGraph.entrypoint;
         CoreOp.FuncOp funcOp = kernelEntrypoint.funcOpWrapper().op();
         String kernelName = funcOp.funcName();
@@ -180,6 +180,214 @@ public class SpirvModuleGenerator {
         return finalizeModule();
     }
 
+    private int getTypeSize(String typeName) {
+        if (sizeMap.containsKey(typeName)) {
+            return sizeMap.get(typeName);
+        }
+        switch (typeName) {
+            case "byte" -> {
+                return 1;
+            }
+            case "boolean" -> {
+                return 1;
+            }
+            case "short" -> {
+                return 2;
+            }
+            case "int" -> {
+                return 4;
+            }
+            case "long" -> {
+                return 8;
+            }
+            case "float" -> {
+                return 4;
+            }
+            case "double" -> {
+                return 8;
+            }
+            default -> {
+                throw new IllegalStateException("unknown type " + typeName);
+            }
+        }
+    }
+
+    private void addTypeToModule(String name, SPIRVId typeIdsArray[]) {
+        String upperName = name.substring(0, 1).toUpperCase() + name.substring(1);
+        String ptrUpperName = "ptr" + upperName;
+        String ptrPtrUpperName = "ptrPtr" + upperName;
+        module.add(new SPIRVOpTypeStruct(nextId(name), new SPIRVMultipleOperands<>(typeIdsArray)));
+        moduleTypes.add(name);
+        module.add(new SPIRVOpTypePointer(nextId(ptrUpperName), SPIRVStorageClass.CrossWorkgroup(), getType(name)));
+        moduleTypes.add(ptrUpperName);
+        module.add(new SPIRVOpTypePointer(nextId(ptrPtrUpperName), SPIRVStorageClass.CrossWorkgroup(), getType(ptrUpperName)));
+        moduleTypes.add(ptrPtrUpperName);
+    }
+
+    private void addArrayToModule(String name, String typeName, int len) {
+        SPIRVOpConstant constant = new SPIRVOpConstant(getType("int"), nextId(), new SPIRVContextDependentInt(new BigInteger(String.valueOf(len))));
+        module.add(constant);
+        SPIRVOpTypeArray typeArray = new SPIRVOpTypeArray(nextId(name + "Array"), getType(typeName), constant.getResultId());
+        module.add(typeArray);
+        moduleTypes.add(name + "Array");
+        SPIRVOpTypePointer ptrTypeArray = new SPIRVOpTypePointer(nextId("ptr" + name + "Array"), SPIRVStorageClass.CrossWorkgroup(), getType(name + "Array"));
+        module.add(ptrTypeArray);
+        moduleTypes.add("ptr" + name + "Array");
+    }
+
+    private void generateTypeDeclaration(Object... args) {
+        Arrays.stream(args)
+            .filter(arg -> arg instanceof Buffer)
+            .map(arg -> (Buffer) arg)
+            .forEach(ifaceBuffer -> {
+                BoundSchema<?> boundSchema = Buffer.getBoundSchema(ifaceBuffer);
+                boundSchema.schema().rootIfaceType.visitTypes(0, t -> {
+                    int fieldCount = t.fields.size();
+                    List<Object[]> typesNames = new ArrayList<>();
+                    int[] count = new int[]{0};
+                    classMap.put(t.iface.getCanonicalName(), new HashMap<String, Integer>());
+                    StreamCounter.of(t.fields, (c, field) -> {
+                        boolean isLast = c.value() == fieldCount - 1;
+                        if (field instanceof Schema.FieldNode.AbstractPrimitiveField primitiveField) {
+                            if (primitiveField instanceof Schema.FieldNode.PrimitiveArray array) {
+                                int arrayLen;
+                                if (array instanceof Schema.FieldNode.PrimitiveFieldControlledArray fieldControlledArray) {
+                                    int[] len = new int[]{0};
+                                    if (isLast && t.parent == null) {
+                                        len[0] = 1;
+                                    } else {
+                                        boolean[] done = new boolean[]{false};
+                                        boundSchema.boundArrayFields().forEach(a -> {
+                                            if (a.field.equals(array)) {
+                                                len[0] = a.len;
+                                                done[0] = true;
+                                            }
+                                        });
+                                        if (!done[0]) {
+                                            throw new IllegalStateException("we need to extract the array size hat kind of array ");
+                                        }
+                                    }
+                                    arrayLen = len[0];
+                                } else if (array instanceof Schema.FieldNode.PrimitiveFixedArray fixed) {
+                                    arrayLen = fixed.len;
+                                } else {
+                                    throw new IllegalStateException("what kind of array ");
+                                }
+                                addArrayToModule(primitiveField.name, primitiveField.type.getCanonicalName(), arrayLen);
+                                int fieldSize = getTypeSize(primitiveField.type.getCanonicalName()) * arrayLen;
+                                typesNames.add(new Object[]{primitiveField.name + "Array", fieldSize});
+                                classMap.get(t.iface.getCanonicalName()).put(primitiveField.name, count[0]);
+                                sizeMap.put(t.iface.getCanonicalName(), fieldSize);
+                                count[0]++;
+                            } else {
+                                int fieldSize = getTypeSize(primitiveField.type.getCanonicalName());
+                                typesNames.add(new Object[]{primitiveField.type.getCanonicalName(), fieldSize});
+                                classMap.get(t.iface.getCanonicalName()).put(primitiveField.name, count[0]);
+                                sizeMap.put(t.iface.getCanonicalName(), fieldSize);
+                                count[0]++;
+                            }
+                        } else if (field instanceof Schema.FieldNode.AbstractIfaceField ifaceField) {
+                            if (ifaceField instanceof Schema.FieldNode.IfaceArray array) {
+                                int arrayLen;
+                                if (array instanceof Schema.FieldNode.IfaceFieldControlledArray fieldControlledArray) {          
+                                    int[] len = new int[]{0};
+                                    if (isLast && t.parent == null) {
+                                        len[0] = 1;
+                                    } else {
+                                        boolean[] done = new boolean[]{false};
+                                        boundSchema.boundArrayFields().forEach(a -> {
+                                            if (a.field.equals(ifaceField)) {
+                                                len[0] = a.len;
+                                                done[0] = true;
+                                            }
+                                        });
+                                        if (!done[0]) {
+                                            throw new IllegalStateException("we need to extract the array size hat kind of array ");
+                                        }
+                                    }
+                                    arrayLen = len[0];
+                                } else if (array instanceof Schema.FieldNode.IfaceFixedArray fixed) {
+                                    arrayLen = fixed.len;
+                                } else {
+                                    throw new IllegalStateException("what kind of array ");
+                                }
+                                addArrayToModule(ifaceField.ifaceType.iface.getSimpleName(), ifaceField.ifaceType.iface.getCanonicalName(), arrayLen);
+                                int fieldSize = getTypeSize(ifaceField.ifaceType.iface.getCanonicalName()) * arrayLen;
+                                typesNames.add(new Object[]{ ifaceField.ifaceType.iface.getSimpleName() + "Array", fieldSize});
+                                classMap.get(t.iface.getCanonicalName()).put(ifaceField.name, count[0]);
+                                sizeMap.put(t.iface.getCanonicalName(), fieldSize);
+                                count[0]++;
+                            } else {
+                                int fieldSize = getTypeSize(ifaceField.ifaceType.iface.getCanonicalName());
+                                typesNames.add(new Object[]{ifaceField.ifaceType.iface.getCanonicalName(), fieldSize});
+                                classMap.get(t.iface.getCanonicalName()).put(ifaceField.name, count[0]);
+                                sizeMap.put(ifaceField.ifaceType.iface.getCanonicalName(), fieldSize);
+                                count[0]++;
+                            }
+                        } else if (field instanceof Schema.SchemaNode.Padding) {
+                            // SKIP
+                            System.out.println("Padding ");
+                        } else {
+                            throw new IllegalStateException("hmm");
+                        }
+                    }
+                );
+                String name = t.iface.getCanonicalName();
+                SPIRVId[] typeIdsArray;
+                if (Buffer.Struct.class.isAssignableFrom(t.iface) || Buffer.class.isAssignableFrom(t.iface)) {
+                    // struct
+                    typeIdsArray = new SPIRVId[count[0]];
+                    for (int i = 0; i < count[0]; i++) {
+                        SPIRVId typeId = getType((String)typesNames.get(i)[0]);
+                        typeIdsArray[i] = typeId;
+                    }
+                    addTypeToModule(name, typeIdsArray);
+                } else {
+                    // union
+                    typeIdsArray = new SPIRVId[1];
+                    SPIRVId typeId = getType("int");
+                    int maxTypeSize = 0;
+                    for (int i = 0; i < count[0]; i++) {
+                        SPIRVId currentTypeId = getType((String)typesNames.get(i)[0]);
+                        int currentTypeSize = (int)typesNames.get(i)[1];
+                        if (currentTypeSize > maxTypeSize) {
+                            typeId = currentTypeId;
+                        }
+                    }
+                    typeIdsArray[0] = typeId;
+                    addTypeToModule(name, typeIdsArray);
+                    HashMap<String, Integer> map = classMap.get(t.iface.getCanonicalName());
+                    // only one field in union to make sure size is correct
+                    for (Map.Entry<String, Integer> entry : map.entrySet()) {
+                        map.put(entry.getKey(), 0);
+                    }
+                }
+            });
+        });
+    }
+
+    private void generateDependentFunctions(KernelCallGraph callGraph) {
+        for (KernelCallGraph.KernelReachableResolvedMethodCall call : callGraph.kernelReachableResolvedStream().sorted((lhs, rhs) -> rhs.rank - lhs.rank).toList()) {
+            if (call.targetMethodRef != null) {
+                try {
+                    FuncOpWrapper calledFunc = call.funcOpWrapper();
+                    FuncOpWrapper loweredFunc = calledFunc.lower();
+                    CoreOp.FuncOp fo = loweredFunc.op();
+                    SpirvOp.FuncOp spirvFunc = TranslateToSpirvModel.translateFunction(fo);
+                    SPIRVId fnId = generateFunction(fo.funcName(), spirvFunc, false);
+                    symbols.putId(call.targetMethodRef.toString(), fnId);
+                } catch (Exception e) {
+                    Throwable cause = e;
+                    while (cause.getCause() != null) {
+                        cause = cause.getCause();
+                    }
+                    cause.printStackTrace();
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+    }
+
     private SPIRVId generateFunction(String fnName, SpirvOp.FuncOp func, boolean isEntryPoint) {
         TypeElement returnType = func.invokableType().returnType();
         SPIRVId functionId = nextId(fnName);
@@ -203,6 +411,7 @@ public class SpirvModuleGenerator {
         SPIRVId spirvReturnType = spirvType(returnType.toString());
         SPIRVFunction function = (SPIRVFunction)module.add(new SPIRVOpFunction(spirvReturnType, functionId, SPIRVFunctionControl.DontInline(), functionSig));
         SPIRVOpLabel entryLabel = new SPIRVOpLabel(nextId());
+        symbols.putLabel(func.body().entryBlock(), entryLabel);
         SPIRVBlock entryBlock = (SPIRVBlock)function.add(entryLabel);
         SPIRVMultipleOperands<SPIRVId> operands = new SPIRVMultipleOperands<>(getId("globalInvocationId"), getId("globalSize"), getId("subgroupSize"), getId("subgroupId"));
         if (isEntryPoint) {
@@ -240,7 +449,13 @@ public class SpirvModuleGenerator {
                         SPIRVPairIdRefIdRef[] outPredecessors = new SPIRVPairIdRefIdRef[inPredecessors.size()];
                         for (int i = 0; i < inPredecessors.size(); i++) {
                             PhiOp.Predecessor predecessor = inPredecessors.get(i);
-                            SPIRVId label = symbols.getLabel(predecessor.block().targetBlock()).getResultId();
+                            SPIRVId label;
+                            if (predecessor.block() == null) {
+                                // This is the entry block
+                                label = symbols.getLabel(body.entryBlock()).getResultId();
+                            } else {
+                                label = symbols.getLabel(predecessor.block().targetBlock()).getResultId();
+                            }
                             SPIRVId value = getResult(predecessor.value()).value();
                             outPredecessors[i] = new SPIRVPairIdRefIdRef(value, label);
                         }
@@ -283,6 +498,7 @@ public class SpirvModuleGenerator {
                         SPIRVId intType = getType("int");
                         SPIRVId longType = getType("long");
                         SPIRVId floatType = getType("float");
+                        SPIRVId doubleType = getType("double");
                         SPIRVId lhs = getResult(op.operands().get(0)).value();
                         SPIRVId rhs = getResult(op.operands().get(1)).value();
                         SPIRVId lhsType = spirvType(op.resultType().toString());
@@ -290,6 +506,7 @@ public class SpirvModuleGenerator {
                         if (lhsType == intType) spirvBlock.add(new SPIRVOpIAdd(intType, ans, lhs, rhs));
                         else if (lhsType == longType) spirvBlock.add(new SPIRVOpIAdd(longType, ans, lhs, rhs));
                         else if (lhsType == floatType) spirvBlock.add(new SPIRVOpFAdd(floatType, ans, lhs, rhs));
+                        else if (lhsType == doubleType) spirvBlock.add(new SPIRVOpFAdd(doubleType, ans, lhs, rhs));
                         else unsupported("type", lhsType.getName());
                         addResult(op.result(), new SpirvResult(lhsType, null, ans));
                     }
@@ -297,6 +514,7 @@ public class SpirvModuleGenerator {
                         SPIRVId intType = getType("int");
                         SPIRVId longType = getType("long");
                         SPIRVId floatType = getType("float");
+                        SPIRVId doubleType = getType("double");
                         SPIRVId lhs = getResult(op.operands().get(0)).value();
                         SPIRVId rhs = getResult(op.operands().get(1)).value();
                         SPIRVId lhsType = spirvType(op.resultType().toString());
@@ -304,6 +522,7 @@ public class SpirvModuleGenerator {
                         if (lhsType == intType) spirvBlock.add(new SPIRVOpISub(intType, ans, lhs, rhs));
                         else if (lhsType == longType) spirvBlock.add(new SPIRVOpISub(longType, ans, lhs, rhs));
                         else if (lhsType == floatType) spirvBlock.add(new SPIRVOpFSub(floatType, ans, lhs, rhs));
+                        else if (lhsType == doubleType) spirvBlock.add(new SPIRVOpFSub(doubleType, ans, lhs, rhs));
                         else unsupported("type", lhsType.getName());
                         addResult(op.result(), new SpirvResult(lhsType, null, ans));
                     }
@@ -311,6 +530,7 @@ public class SpirvModuleGenerator {
                         SPIRVId intType = getType("int");
                         SPIRVId longType = getType("long");
                         SPIRVId floatType = getType("float");
+                        SPIRVId doubleType = getType("double");
                         SPIRVId lhs = getResult(op.operands().get(0)).value();
                         SPIRVId rhs = getResult(op.operands().get(1)).value();
                         SPIRVId lhsType = spirvType(op.resultType().toString());
@@ -330,7 +550,11 @@ public class SpirvModuleGenerator {
                             if (op instanceof SpirvOp.FMulOp) spirvBlock.add(new SPIRVOpFMul(floatType, ans, lhs, rhs));
                             else if (op instanceof SpirvOp.FDivOp) spirvBlock.add(new SPIRVOpFDiv(floatType, ans, lhs, rhs));
                         }
-                        else unsupported("type", lhsType);
+                        else if (lhsType == doubleType) {
+                            if (op instanceof SpirvOp.FMulOp) spirvBlock.add(new SPIRVOpFMul(doubleType, ans, lhs, rhs));
+                            else if (op instanceof SpirvOp.FDivOp) spirvBlock.add(new SPIRVOpFDiv(doubleType, ans, lhs, rhs));
+                        }
+                        else unsupported("type", lhsType.getName());
                         addResult(op.result(), new SpirvResult(lhsType, null, ans));
                     }
                     case SpirvOp.ModOp mop -> {
@@ -355,6 +579,18 @@ public class SpirvModuleGenerator {
                         else unsupported("type", lhsType.getName());
                         addResult(op.result(), new SpirvResult(lhsType, null, ans));
                     }
+                    case SpirvOp.AshrOp ashop -> {
+                        SPIRVId intType = getType("int");
+                        SPIRVId longType = getType("long");
+                        SPIRVId lhs = getResult(ashop.operands().get(0)).value();
+                        SPIRVId rhs = getResult(ashop.operands().get(1)).value();
+                        SPIRVId lhsType = spirvType(ashop.resultType().toString());
+                        SPIRVId ans = nextId();
+                        if (lhsType == intType) spirvBlock.add(new SPIRVOpShiftRightArithmetic(intType, ans, lhs, rhs));
+                        else if (lhsType == longType) spirvBlock.add(new SPIRVOpShiftRightArithmetic(longType, ans, lhs, rhs));
+                        else unsupported("type", lhsType.getName());
+                        addResult(ashop.result(), new SpirvResult(lhsType, null, ans));
+                    }
                     case SpirvOp.GeOp eqop -> {
                         SPIRVId boolType = getType("bool");
                         SPIRVId lhs = getResult(op.operands().get(0)).value();
@@ -374,12 +610,13 @@ public class SpirvModuleGenerator {
                         SPIRVId rhsLong = nextId();
                         spirvBlock.add(new SPIRVOpConvertPtrToU(longType, lhsLong, lhs));
                         spirvBlock.add(new SPIRVOpConvertPtrToU(longType, rhsLong, rhs));
-                        spirvBlock.add(new SPIRVOpIEqual(boolType, ans, lhsLong, rhsLong));
+                        spirvBlock.add(new SPIRVOpINotEqual(boolType, ans, lhsLong, rhsLong));
                         addResult(op.result(), new SpirvResult(boolType, null, ans));
                     }
                     case SpirvOp.CallOp call -> {
                         MethodRef methodRef = call.callDescriptor();
-                        if (methodRef.equals(MethodRef.ofString("hat.buffer.S32Array::array(long)int")))
+                        if (methodRef.equals(MethodRef.ofString("hat.buffer.S32Array::array(long)int")) ||
+                            methodRef.equals(MethodRef.ofString("hat.buffer.F32Array::array(long)float")))
                         {
                             SPIRVId longType = getType("long");
                             String arrayTypeName = call.operands().get(0).type().toString();
@@ -394,7 +631,7 @@ public class SpirvModuleGenerator {
                             SPIRVId temp1 = nextId();
                             SPIRVId temp2 = nextId();
                             spirvBlock.add(new SPIRVOpConvertPtrToU(longType, temp1, array));
-                            spirvBlock.add(new SPIRVOpIAdd(longType, temp2, temp1, getConst("long", 4)));
+                            spirvBlock.add(new SPIRVOpIAdd(longType, temp2, temp1, getConst("long", 8)));
                             SPIRVId elementBase = nextId();
                             spirvBlock.add(new SPIRVOpConvertUToPtr(arrayType, elementBase, temp2));
                             SPIRVId resultAddr = nextId();
@@ -417,18 +654,21 @@ public class SpirvModuleGenerator {
                             SPIRVId array = nextId();
                             SPIRVId temp1 = nextId();
                             SPIRVId temp2 = nextId();
+                            spirvBlock.add(new SPIRVOpLoad(arrayType, array, arrayAddr, align(arrayType.getName())));
                             spirvBlock.add(new SPIRVOpConvertPtrToU(longType, temp1, array));
-                            spirvBlock.add(new SPIRVOpIAdd(longType, temp2, temp1, getConst("long", 4)));
+                            spirvBlock.add(new SPIRVOpIAdd(longType, temp2, temp1, getConst("long", 8)));
                             SPIRVId elementBase = nextId();
                             spirvBlock.add(new SPIRVOpConvertUToPtr(arrayType, elementBase, temp2));
-                            spirvBlock.add(new SPIRVOpLoad(arrayType, array, arrayAddr, align(arrayType.getName())));
                             SPIRVId resultAddr = nextId();
                             spirvBlock.add(new SPIRVOpInBoundsPtrAccessChain(arrayType, resultAddr, elementBase, indexX, new SPIRVMultipleOperands<>()));
                             SPIRVId result = nextId();
                             spirvBlock.add(new SPIRVOpLoad(elementType, result, resultAddr, align(elementType.getName())));
                             addResult(call.result(), new SpirvResult(elementType, resultAddr, result));
                         }
-                        else if (methodRef.equals(MethodRef.ofString("hat.buffer.S32Array::array(long, int)void"))) {
+                        else if (methodRef.equals(MethodRef.ofString("hat.buffer.S32Array::array(long, int)void")) ||
+                                 methodRef.equals(MethodRef.ofString("hat.buffer.S32Array::array(long, float)void")) ||
+                                 methodRef.equals(MethodRef.ofString("hat.buffer.F32Array::array(long, int)void")) ||
+                                 methodRef.equals(MethodRef.ofString("hat.buffer.F32Array::array(long, float)void"))) {
                             SPIRVId longType = getType("long");
                             String arrayTypeName = call.operands().get(0).type().toString();
                             SpirvResult arrayResult = getResult(call.operands().get(0));
@@ -443,7 +683,7 @@ public class SpirvModuleGenerator {
                             SPIRVId temp1 = nextId();
                             SPIRVId temp2 = nextId();
                             spirvBlock.add(new SPIRVOpConvertPtrToU(longType, temp1, array));
-                            spirvBlock.add(new SPIRVOpIAdd(longType, temp2, temp1, getConst("long", 4)));
+                            spirvBlock.add(new SPIRVOpIAdd(longType, temp2, temp1, getConst("long", 8)));
                             SPIRVId elementBase = nextId();
                             spirvBlock.add(new SPIRVOpConvertUToPtr(arrayType, elementBase, temp2));
                             SPIRVId dest = nextId();
@@ -506,17 +746,106 @@ public class SpirvModuleGenerator {
                             spirvBlock.add(new SPIRVOpLoad(intType, result, resultAddr, align(arrayType.getName())));
                             addResult(call.result(), new SpirvResult(intType, resultAddr, result));
                         }
+                        else if (methodRef.equals(MethodRef.ofString("hat.buffer.S08x3RGBImage::data(long)byte"))) {
+                            SPIRVId longType = getType("long");
+                            SPIRVId byteType = getType("byte");
+                            String arrayTypeName = call.operands().get(0).type().toString();
+                            SpirvResult arrayResult = getResult(call.operands().get(0));
+                            SPIRVId arrayAddr = arrayResult.address();
+                            SPIRVId arrayType = spirvType(arrayTypeName);
+                            SPIRVId elementType = spirvElementType(arrayTypeName);
+                            int nIndexes = call.operands().size() - 1;
+                            SPIRVId indexX = getResult(call.operands().get(1)).value();
+                            SPIRVId array = nextId();
+                            spirvBlock.add(new SPIRVOpLoad(arrayType, array, arrayAddr, align(arrayType.getName())));
+                            SPIRVId temp1 = nextId();
+                            SPIRVId temp2 = nextId();
+                            spirvBlock.add(new SPIRVOpConvertPtrToU(longType, temp1, array));
+                            spirvBlock.add(new SPIRVOpIAdd(longType, temp2, temp1, getConst("long", 8)));
+                            SPIRVId elementBase = nextId();
+                            spirvBlock.add(new SPIRVOpConvertUToPtr(arrayType, elementBase, temp2));
+                            SPIRVId resultAddr = nextId();
+                            spirvBlock.add(new SPIRVOpInBoundsPtrAccessChain(arrayType, resultAddr, elementBase, indexX, new SPIRVMultipleOperands<>()));
+                            SPIRVId result = nextId();
+                            spirvBlock.add(new SPIRVOpLoad(elementType, result, resultAddr, align(elementType.getName())));
+                            addResult(call.result(), new SpirvResult(elementType, resultAddr, result));
+                        }
                         else if (methodRef.equals(MethodRef.ofString("java.lang.Math::sqrt(double)double"))) {
-                            SPIRVId floatType = getType("float");
+                            SPIRVId floatType = getType("double");
                             SPIRVId result = nextId();
                             SPIRVId operand = getResult(call.operands().get(0)).value();
                             spirvBlock.add(new SPIRVOpExtInst(floatType, result, getId("oclExtension"), new SPIRVLiteralExtInstInteger(61, "sqrt"), new SPIRVMultipleOperands<>(operand)));
                             addResult(call.result(), new SpirvResult(floatType, null, result));
                         }
+                        else if (methodRef.equals(MethodRef.ofString("java.lang.Math::exp(double)double"))) {
+                            SPIRVId floatType = getType("double");
+                            SPIRVId result = nextId();
+                            SPIRVId operand = getResult(call.operands().get(0)).value();
+                            spirvBlock.add(new SPIRVOpExtInst(floatType, result, getId("oclExtension"), new SPIRVLiteralExtInstInteger(19, "exp"), new SPIRVMultipleOperands<>(operand)));
+                            addResult(call.result(), new SpirvResult(floatType, null, result));
+                        }
+                        else if (methodRef.equals(MethodRef.ofString("java.lang.Math::log(double)double"))) {
+                            SPIRVId floatType = getType("double");
+                            SPIRVId result = nextId();
+                            SPIRVId operand = getResult(call.operands().get(0)).value();
+                            spirvBlock.add(new SPIRVOpExtInst(floatType, result, getId("oclExtension"), new SPIRVLiteralExtInstInteger(37, "log"), new SPIRVMultipleOperands<>(operand)));
+                            addResult(call.result(), new SpirvResult(floatType, null, result));
+                        }
                         else {
                             SPIRVId fnId = getFunctionId(methodRef);
                             if (fnId == null) {
-                                unsupported("method", methodRef);
+                                if (!isBufferType((JavaType) methodRef.refType()))
+                                    unsupported("method", methodRef);
+                                FunctionType fnType = methodRef.type();
+                                String returnTypeName = fnType.returnType().toString();
+                                SPIRVId accessReturnType;
+                                if (isPrimitiveType(fnType.returnType().toString())) {
+                                    accessReturnType = spirvVariableType(spirvType(returnTypeName));
+                                } else {
+                                    accessReturnType = spirvType(returnTypeName);
+                                }    
+                                String typeName = call.operands().get(0).type().toString().replaceAll("\\$", ".");
+                                SPIRVId returnType = spirvType(fnType.returnType().toString());
+                                SPIRVId accessResult = nextId();
+                                SPIRVId result = nextId();
+                                SPIRVId operand = getResult(call.operands().get(0)).value();
+                                String methodName = methodRef.name();
+                                boolean atomic_op = false;
+                                boolean setter = false;
+                                SPIRVMultipleOperands accessOperands;
+
+                                if (methodName.startsWith("atomic") && methodName.endsWith("Inc")) {
+                                    atomic_op = true;
+                                    methodName = methodName.substring(0, methodName.length() - 3);
+                                }
+
+                                int offset = classMap.get(typeName).get(methodName);
+                                if (fnType.returnType().toString().equals("void")) {
+                                    // field setter
+                                    setter = true;
+                                    accessOperands = new SPIRVMultipleOperands<>(getConst("int", offset));
+                                    accessReturnType = spirvVariableType(spirvType(call.operands().get(1).type().toString()));
+                                } else if (call.operands().size() > 1) {
+                                    // array access
+                                    SPIRVId arrayIdx = getResult(call.operands().get(1)).value();
+                                    accessOperands = new SPIRVMultipleOperands<>(getConst("int", offset), arrayIdx);
+                                } else {
+                                    // field access
+                                    accessOperands = new SPIRVMultipleOperands<>(getConst("int", offset));
+                                }
+                                spirvBlock.add(new SPIRVOpAccessChain(accessReturnType, accessResult, operand, accessOperands));
+                                if (atomic_op) {
+                                    // only support atomic increment for now
+                                    spirvBlock.add(new SPIRVOpAtomicIIncrement(returnType, result, accessResult, getConst("int", 0), getConst("int", 0x8)));
+                                    addResult(call.result(), new SpirvResult(returnType, null, result));
+                                } else if (isPrimitiveType(fnType.returnType().toString())) {    
+                                    spirvBlock.add(new SPIRVOpLoad(returnType, result, accessResult, align(returnType.getName())));
+                                    addResult(call.result(), new SpirvResult(returnType, null, result));
+                                } else if (setter) {
+                                    spirvBlock.add(new SPIRVOpStore(accessResult, getResult(call.operands().get(1)).value(), align(returnType.getName())));
+                                } else {
+                                    addResult(call.result(), new SpirvResult(accessReturnType, null, accessResult));
+                                }
                             }
                             else {
                                 FunctionType fnType = methodRef.type();
@@ -548,13 +877,9 @@ public class SpirvModuleGenerator {
                         else if (type == getType("bool")) {
                             module.add(((boolean)value) ? new SPIRVOpConstantTrue(type, result) : new SPIRVOpConstantFalse(type, result));
                         }
-                        else if (type == getType("java.lang.Object")) {
+                        else {
                             module.add(new SPIRVOpConstantNull(type, result));
                         }
-                        else if (type == getType("int[]")) {
-                            module.add(new SPIRVOpConstantNull(type, result));
-                        }
-                        else unsupported("type", cop.resultType());
                         addResult(cop.result(), new SpirvResult(type, null, result));
                     }
                     case SpirvOp.ConvertOp scop -> {
@@ -583,6 +908,15 @@ public class SpirvModuleGenerator {
                         }
                         else unsupported("conversion type", scop.operands().get(0));
                         addResult(scop.result(), new SpirvResult(toType, null, to));
+                    }
+                    case SpirvOp.CastOp cop -> {
+                        SPIRVId toType = spirvType(cop.resultType().toString());
+                        SPIRVId to = nextId();
+                        SpirvResult valueResult = getResult(cop.operands().get(0));
+                        SPIRVId from = valueResult.value();
+                        SPIRVId fromType = valueResult.type();
+                        spirvBlock.add(new SPIRVOpBitcast(toType, to, from));
+                        addResult(cop.result(), new SpirvResult(toType, null, to));
                     }
                     case SpirvOp.InBoundsAccessChainOp iacop -> {
                         SPIRVId type = spirvType(iacop.resultType().toString());
@@ -665,6 +999,36 @@ public class SpirvModuleGenerator {
                         spirvBlock.add(sop);
                         addResult(ltop.result(), new SpirvResult(boolType, null, result));
                     }
+                    case SpirvOp.GtOp gtop -> {
+                        SpirvResult lhs = getResult(gtop.operands().get(0));
+                        SpirvResult rhs = getResult(gtop.operands().get(1));
+                        SPIRVId boolType = getType("bool");
+                        SPIRVId result = nextId();
+                        String operandType = lhs.type().getName();
+                        SPIRVInstruction sop = switch (operandType) {
+                            case "float" -> new SPIRVOpFUnordGreaterThan(boolType, result, lhs.value(), rhs.value());
+                            case "int" -> new SPIRVOpSGreaterThan(boolType, result, lhs.value(), rhs.value());
+                            case "long" -> new SPIRVOpSGreaterThan(boolType, result, lhs.value(), rhs.value());
+                            default -> throw new RuntimeException("Unsupported type: " + lhs.type().getName());
+                        };
+                        spirvBlock.add(sop);
+                        addResult(gtop.result(), new SpirvResult(boolType, null, result));
+                    }
+                    case SpirvOp.FNegateOp fnop -> {
+                        SPIRVId floatType = getType("float");
+                        SPIRVId result = nextId();
+                        SPIRVId operand = getResult(fnop.operands().get(0)).value();
+                        spirvBlock.add(new SPIRVOpFNegate(floatType, result, operand));
+                        addResult(fnop.result(), new SpirvResult(floatType, null, result));
+                    }
+                    case SpirvOp.BitwiseAndOp baop -> {
+                        SpirvResult lhs = getResult(baop.operands().get(0));
+                        SpirvResult rhs = getResult(baop.operands().get(1));
+                        SPIRVId resultType = spirvType(baop.resultType().toString());
+                        SPIRVId result = nextId();
+                        spirvBlock.add(new SPIRVOpBitwiseAnd(resultType, result, lhs.value(), rhs.value()));
+                        addResult(baop.result(), new SpirvResult(resultType, null, result));
+                    }
                     case SpirvOp.ReturnOp rop -> {
                         spirvBlock.add(new SPIRVOpReturn());
                     }
@@ -680,21 +1044,26 @@ public class SpirvModuleGenerator {
 
     private SPIRVId getFunctionId(MethodRef methodRef) {
         SPIRVId fnId = symbols.getId(methodRef.toString());
-        if (fnId == null) {
+        return fnId;
+    }
+
+    private boolean isBufferType(JavaType javaType) {
+        boolean bufferMethod = false;
+        Class<?>[] classes = new Class<?>[] {Buffer.class, Buffer.Struct.class, Buffer.Union.class};
+        if (javaType instanceof ClassType classType) {
             try {
-                Optional<CoreOp.FuncOp> optJFuncOp = methodRef.codeModel(MethodHandles.lookup());
-                if (optJFuncOp.isPresent()) {
-                    CoreOp.FuncOp jFuncOp = optJFuncOp.get();
-                    SpirvOp.FuncOp sFuncOp = TranslateToSpirvModel.translateFunction(jFuncOp);
-                    fnId = generateFunction(jFuncOp.funcName(), sFuncOp, false);
-                    symbols.putId(methodRef.toString(), fnId);
+                Class<?> javaTypeClass = Class.forName(classType.toString());
+                for (Class<?> clazz : classes) {
+                    if (clazz.isAssignableFrom(javaTypeClass)) {
+                        bufferMethod = true;
+                        break;
+                    }
                 }
-            }
-            catch (ReflectiveOperationException e) {
-                throw new RuntimeException(e);
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
             }
         }
-        return fnId;
+        return bufferMethod;
     }
 
     private void initModule() {
@@ -702,7 +1071,9 @@ public class SpirvModuleGenerator {
         module.add(new SPIRVOpCapability(SPIRVCapability.Linkage()));
         module.add(new SPIRVOpCapability(SPIRVCapability.Kernel()));
         module.add(new SPIRVOpCapability(SPIRVCapability.Int8()));
+        module.add(new SPIRVOpCapability(SPIRVCapability.Int16()));
         module.add(new SPIRVOpCapability(SPIRVCapability.Int64()));
+        module.add(new SPIRVOpCapability(SPIRVCapability.Float64()));
         module.add(new SPIRVOpMemoryModel(SPIRVAddressingModel.Physical64(), SPIRVMemoryModel.OpenCL()));
 
         // OpenCL extension provides built-in variables suitable for kernel programming
@@ -754,11 +1125,13 @@ public class SpirvModuleGenerator {
             case "java.lang.Object" -> getType("java.lang.Object");
             case "hat.buffer.S32Array" -> getType("int[]");
             case "hat.buffer.S32Array2D" -> getType("int[]");
+            case "hat.buffer.F32Array" -> getType("float[]");
             case "hat.buffer.F32Array2D" -> getType("float[]");
+            case "hat.buffer.S08x3RGBImage" -> getType("byte[]");
             case "void" -> getType("void");
             case "hat.KernelContext" -> getType("ptrKernelContext");
             case "java.lang.foreign.MemorySegment" -> getType("ptrByte");
-            default -> null;
+            default -> getType("ptr" + javaType.substring(0, 1).toUpperCase() + javaType.substring(1));
         };
         if (ans == null) unsupported("type", javaType);
         return ans;
@@ -775,8 +1148,10 @@ public class SpirvModuleGenerator {
             case "double[]" -> getType("double");
             case "boolean[]" -> getType("bool");
             case "hat.buffer.S32Array" -> getType("int");
+            case "hat.buffer.F32Array" -> getType("float");
             case "hat.buffer.S32Array2D" -> getType("int");
             case "hat.buffer.F32Array2D" -> getType("float");
+            case "hat.buffer.S08x3RGBImage" -> getType("byte");
             case "java.lang.foreign.MemorySegment" -> getType("byte");
             default -> null;
         };
@@ -820,7 +1195,7 @@ public class SpirvModuleGenerator {
             case "ptrKernelContext" -> getType("ptrPtrKernelContext");
             case "hat.KernelContext" -> getType("ptrKernelContext");
             case "ptrByte" -> getType("ptrPtrByte");
-            default -> null;
+            default -> getType("ptr" + spirvType.getName().substring(0, 1).toUpperCase() + spirvType.getName().substring(1));
         };
         if (ans == null) unsupported("type", spirvType.getName());
         return ans;
@@ -834,7 +1209,9 @@ public class SpirvModuleGenerator {
 
     private int alignment(String inputType) {
         String spirvType = inputType.replaceAll("\\$", ".");
+        if (inputType.startsWith("ptr")) return 32;
         int ans = switch(spirvType) {
+            case "void" -> 1;
             case "bool" -> 1;
             case "byte" -> 1;
             case "short" -> 2;
@@ -890,9 +1267,10 @@ public class SpirvModuleGenerator {
                 case "double" -> module.add(new SPIRVOpTypeFloat(nextId(name), new SPIRVLiteralInteger(64)));
                 case "ptrBool" -> module.add(new SPIRVOpTypePointer(nextId(name), SPIRVStorageClass.CrossWorkgroup(), getType("bool")));
                 case "ptrByte" -> module.add(new SPIRVOpTypePointer(nextId(name), SPIRVStorageClass.CrossWorkgroup(), getType("byte")));
-                case "ptrInt" -> module.add(new SPIRVOpTypePointer(nextId(name), SPIRVStorageClass.Function(), getType("int")));
-                case "ptrLong" -> module.add(new SPIRVOpTypePointer(nextId(name), SPIRVStorageClass.Function(), getType("long")));
-                case "ptrFloat" -> module.add(new SPIRVOpTypePointer(nextId(name), SPIRVStorageClass.Function(), getType("float")));
+                case "ptrShort" -> module.add(new SPIRVOpTypePointer(nextId(name), SPIRVStorageClass.CrossWorkgroup(), getType("short")));
+                case "ptrInt" -> module.add(new SPIRVOpTypePointer(nextId(name), SPIRVStorageClass.CrossWorkgroup(), getType("int")));
+                case "ptrLong" -> module.add(new SPIRVOpTypePointer(nextId(name), SPIRVStorageClass.CrossWorkgroup(), getType("long")));
+                case "ptrFloat" -> module.add(new SPIRVOpTypePointer(nextId(name), SPIRVStorageClass.CrossWorkgroup(), getType("float")));
                 case "byte[]" -> module.add(new SPIRVOpTypePointer(nextId(name), SPIRVStorageClass.CrossWorkgroup(), getType("byte")));
                 case "short[]" -> module.add(new SPIRVOpTypePointer(nextId(name), SPIRVStorageClass.CrossWorkgroup(), getType("short")));
                 case "int[]" -> module.add(new SPIRVOpTypePointer(nextId(name), SPIRVStorageClass.CrossWorkgroup(), getType("int")));
@@ -998,7 +1376,7 @@ public class SpirvModuleGenerator {
         return new SpirvResult(intType, null, globalIndex);
     }
 
-   private SpirvResult flatIndex(SPIRVId sizeX, SPIRVId sizeY, SPIRVId sizeZ, SPIRVId indexX, SPIRVId indexY, SPIRVId indexZ, SPIRVBlock spirvBlock)
+    private SpirvResult flatIndex(SPIRVId sizeX, SPIRVId sizeY, SPIRVId sizeZ, SPIRVId indexX, SPIRVId indexY, SPIRVId indexZ, SPIRVBlock spirvBlock)
     {
         SPIRVId longType = getType("long");
         SPIRVId xTerm0 = nextId();
@@ -1024,6 +1402,10 @@ public class SpirvModuleGenerator {
         symbols.putId(name, ans);
         module.add(new SPIRVOpName(ans, new SPIRVLiteralString(name)));
         return ans;
+    }
+
+    private boolean isPrimitiveType(String javaType) {
+        return javaType.equals("byte") || javaType.equals("boolean") || javaType.equals("short") || javaType.equals("int") || javaType.equals("long") || javaType.equals("float") || javaType.equals("double");
     }
 
     private static int counter = 0;

@@ -282,6 +282,23 @@ public abstract class SpirvOp extends ExternalizableOp {
         }
     }
 
+    public static final class CastOp extends SpirvOp {
+        public static final String OPNAME = NAME_PREFIX + "cast";
+
+        public CastOp(TypeElement resultType, List<Value> operands) {
+                super(OPNAME, resultType, operands);
+        }
+
+        public CastOp(CastOp that, CopyContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public CastOp transform(CopyContext cc, OpTransformer ot) {
+            return new CastOp(this, cc);
+        }
+    }
+
     public static final class BitwiseAndOp extends SpirvOp {
         public static final String NAME = NAME_PREFIX + "and";
 
@@ -624,6 +641,23 @@ public abstract class SpirvOp extends ExternalizableOp {
         }
     }
 
+    public static final class AshrOp extends SpirvOp {
+        public static final String NAME = NAME_PREFIX + "ashr";
+
+        public AshrOp(TypeElement resultType, List<Value> operands) {
+                super(NAME, resultType, operands);
+        }
+
+        public AshrOp(AshrOp that, CopyContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public AshrOp transform(CopyContext cc, OpTransformer ot) {
+            return new AshrOp(this, cc);
+        }
+    }
+    // TODO: add more
     public static final class BranchOp extends SpirvOp implements Op.BlockTerminating {
         public static final String NAME = NAME_PREFIX + "br";
         private final Block.Reference successor;

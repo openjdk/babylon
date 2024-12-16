@@ -165,6 +165,8 @@ public class TranslateToSpirvModel  {
             for (Op op : block.ops()) {
                 switch (op) {
                     case CoreOp.VarOp vop -> {
+                        if (vop.operands().size() == 0)
+                            continue;
                         Value dest = valueMap.get(vop.result());
                         Value value = valueMap.get(vop.operands().get(0));
                         // init variable here; declaration has been moved to top of function
@@ -221,7 +223,7 @@ public class TranslateToSpirvModel  {
                         SpirvOp saop = new SpirvOp.BitwiseAndOp(type, operands);
                         spirvBlock.op(saop);
                         valueMap.put(andop.result(), saop.result());
-                     }
+                    }
                     case CoreOp.AddOp aop -> {
                         TypeElement type = aop.operands().get(0).type();
                         List<Value> operands = mapOperands(aop);
@@ -231,7 +233,7 @@ public class TranslateToSpirvModel  {
                         else throw unsupported("type", type);
                         spirvBlock.op(addOp);
                         valueMap.put(aop.result(), addOp.result());
-                     }
+                    }
                     case CoreOp.SubOp sop -> {
                         TypeElement  type = sop.operands().get(0).type();
                         List<Value> operands = mapOperands(sop);
@@ -241,7 +243,7 @@ public class TranslateToSpirvModel  {
                         else throw unsupported("type", type);
                         spirvBlock.op(subOp);
                         valueMap.put(sop.result(), subOp.result());
-                     }
+                    }
                     case CoreOp.MulOp mop -> {
                         TypeElement type = mop.operands().get(0).type();
                         List<Value> operands = mapOperands(mop);
@@ -310,7 +312,7 @@ public class TranslateToSpirvModel  {
                     case CoreOp.GtOp gtop -> {
                         TypeElement type = gtop.operands().get(0).type();
                         List<Value> operands = mapOperands(gtop);
-                        SpirvOp sgtop = new SpirvOp.LtOp(type, operands);
+                        SpirvOp sgtop = new SpirvOp.GtOp(type, operands);
                         spirvBlock.op(sgtop);
                         valueMap.put(gtop.result(), sgtop.result());
                     }
@@ -320,6 +322,13 @@ public class TranslateToSpirvModel  {
                         SpirvOp sgeop = new SpirvOp.GeOp(type, operands);
                         spirvBlock.op(sgeop);
                         valueMap.put(geop.result(), sgeop.result());
+                    }
+                    case CoreOp.AshrOp asop -> {
+                        TypeElement type = asop.operands().get(0).type();
+                        List<Value> operands = mapOperands(asop);
+                        SpirvOp sasop = new SpirvOp.AshrOp(type, operands);
+                        spirvBlock.op(sasop);
+                        valueMap.put(asop.result(), sasop.result());
                     }
                     case CoreOp.InvokeOp inv -> {
                         List<Value> operands = mapOperands(inv);
@@ -335,6 +344,12 @@ public class TranslateToSpirvModel  {
                     case CoreOp.ConvOp cop -> {
                         List<Value> operands = mapOperands(cop);
                         SpirvOp scop = new SpirvOp.ConvertOp(cop.resultType(), operands);
+                        spirvBlock.op(scop);
+                        valueMap.put(cop.result(), scop.result());
+                    }
+                    case CoreOp.CastOp cop -> {
+                        List<Value> operands = mapOperands(cop);
+                        SpirvOp scop = new SpirvOp.CastOp(cop.resultType(), operands);
                         spirvBlock.op(scop);
                         valueMap.put(cop.result(), scop.result());
                     }
