@@ -402,11 +402,10 @@ public class ReflectMethods extends TreeTranslator {
         return opFieldTree;
     }
 
-    private JCMethodDecl opMethodDecl(Name prefix, CoreOp.FuncOp op) {
+    private JCMethodDecl opMethodDecl(Name methodName, CoreOp.FuncOp op) {
         var mt = new MethodType(com.sun.tools.javac.util.List.nil(), crSyms.funcOpType,
                 com.sun.tools.javac.util.List.nil(), syms.methodClass);
-        // TODO op$ in the start
-        var mn = prefix.append('$', names.fromString("op"));
+        var mn = names.fromString("method$op$").append(methodName);
         var ms = new MethodSymbol(PUBLIC | STATIC | SYNTHETIC, mn, mt, currentClassSym);
         currentClassSym.members().enter(ms);
 
