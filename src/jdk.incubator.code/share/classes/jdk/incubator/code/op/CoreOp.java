@@ -1557,7 +1557,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         }
 
         public List<Value> argOperands() {
-            if (isVarArgs){
+            if (!isVarArgs){
                 return operands();
             }
             int paramCount = invokeDescriptor().type().parameterTypes().size();

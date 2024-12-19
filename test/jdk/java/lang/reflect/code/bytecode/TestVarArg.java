@@ -1,3 +1,8 @@
+import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
+import jdk.incubator.code.op.CoreOp;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -6,10 +11,6 @@ import java.lang.classfile.components.ClassPrinter;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.lang.reflect.code.OpTransformer;
-import java.lang.reflect.code.bytecode.BytecodeGenerator;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.runtime.CodeReflection;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -17,6 +18,7 @@ import java.util.stream.Stream;
 /*
  * @test
  * @enablePreview
+ * @modules jdk.incubator.code
  * @run testng TestVarArg
  *
  */
@@ -92,6 +94,6 @@ public class TestVarArg {
                 .findFirst();
 
         Method m = om.get();
-        return m.getCodeModel().get();
+        return Op.ofMethod(m).get();
     }
 }
