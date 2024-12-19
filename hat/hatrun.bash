@@ -32,7 +32,7 @@ if [ $# -eq 0 ]; then
    echo 'usage:'
    echo '   bash hatrun.bash [headless] backend package args ...'
    echo '       headless : Optional passes -Dheadless=true to app'
-   echo '       backend  : opencl|cuda|hip|spirv|ptx|mock'
+   echo '       backend  : native-opencl|native-cuda|native-hip|native-spirv|native-ptx|native-mock|java-mt|java-seq'
    echo '       package  : the examples package (and dirname under hat/examples)'
    echo '       Class name is assumed to be package.Main '
 elif [[ -d build ]] ; then
@@ -56,26 +56,20 @@ elif [[ -d build ]] ; then
 
    export BACKEND="${1}"
    echo BACKEND=${BACKEND}
-   if [[ -d backends/$1 || "$1" = "java" ]] ; then
-      export JARS=build/hat-1.0.jar
-      if [[ "$1" = "java" ]] ; then 
-         export BACKEND_JAR_or_DIR=backends/shared/src/main/resources
-         echo BACKEND_JAR_or_DIR=${BACKEND_JAR_or_DIR}
-      else
-         export BACKEND_JAR_or_DIR=build/hat-backend-${BACKEND}-1.0.jar
-         echo BACKEND_JAR_or_DIR=${BACKEND_JAR_or_DIR}
-         if [[ ! -f ${BACKEND_JAR_or_DIR} ]] ;then
-            echo "no backend ${BACKEND_JAR_or_DIR}"
-            exit 1
-         fi
-      fi
-      export JARS=${JARS}:${BACKEND_JAR_or_DIR}
-      if [[ "$1" = "spirv" ]] ;then 
-         export JARS=${JARS}:build/levelzero.jar:build/beehive-spirv-lib-0.0.4.jar;
-      fi
-      export OPTS="${OPTS} -Djava.library.path=build:/usr/local/lib"
-      shift 1
+   export BACKEND_JAR=build/hat-backend-${BACKEND}-1.0.jar
+
+   export JARS=build/hat-1.0.jar
+   echo BACKEND_JAR=${BACKEND_JAR}
+   if [[ ! -f ${BACKEND_JAR} ]] ;then
+      echo "no backend ${BACKEND_JAR}"
+      exit 1
    fi
+   export JARS=${JARS}:${BACKEND_JAR}
+   if [[ "$1" = "spirv" ]] ;then 
+      export JARS=${JARS}:build/levelzero.jar:build/beehive-spirv-lib-0.0.4.jar;
+   fi
+   export OPTS="${OPTS} -Djava.library.path=build:/usr/local/lib"
+   shift 1
 
    export EXAMPLE="${1}"
    echo EXAMPLE=${EXAMPLE}
@@ -84,7 +78,7 @@ elif [[ -d build ]] ; then
       export JARS=${JARS}:${EXAMPLE_JAR}
       shift 1
    else
-      echo "no example build/${EXAMPLE_JAR}"
+      echo "no example ${EXAMPLE_JAR}"
       exit 1
    fi  
    echo JARS=${JARS}

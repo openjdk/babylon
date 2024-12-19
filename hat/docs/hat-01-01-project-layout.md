@@ -28,41 +28,44 @@ called `hat` under [github.com/openjdk/babylon](https://github.com/openjdk/babyl
 
 ```
 ${BABYLON_JDK}
-   └── hat
-        │
-        ├── CMakeFile
-        ├── build
-        │
-        ├── intellij
-        │    ├── .idea
-        │    │    ├── compiler.xml
-        │    │    ├── misc.xml
-        │    │    ├── modules.xml
-        │    │    ├── uiDesigner.xml
-        │    │    ├── vcs.xml
-        │    │    └── workspace.xml
-        │    │
-        │    ├── hat.iml
-        │    ├── backend_(spirv|mock|cuda|ptx|opencl).iml
-        │    └── (mandel|violajones|experiments).iml
-        │
-        ├── hat
-        │    └── src
-        │         └── java
-        │
-        ├── backends
-        │    └── (opencl|cuda|ptx|mock|shared)
-        │          └── src
-        │              ├── cpp
-        │              ├── include
-        │              ├── java
-        │              └── services
-        └── examples
-             ├── mandel
-             │    └── src
-             │         └── java
-             └── violajones
-                  └── src
-                       ├── java
-                       └── resources
+     ./
+     +--build/                     All jars, native libs and executables
+     |    +--cmake-build-debug/    All intermediate cmake artifacts
+     |
+     +--stage/
+     |    +--repo/                 All downloaded maven assets
+     |    |
+     |    +--jextract/             All jextracted files
+     |    |    +--opencl
+     |    |    +--opengl
+     |    |    +--cuda
+     |
+     +--hat                        * Note maven style layout
+     |    +--src/main/java
+     |    |    +--hat/
+     |    |
+     |    +--src/main/test
+     |         +--hat/
+     |
+     +--backends
+     |    +--java
+     |    |    +--mt                    (*)
+     |    |    +--seq                   (*)
+     |    +--jextracted
+     |    |    +--opencl                (*)
+     |    +--ffi
+     |    |    +--opencl                (*)
+     |    |    +--ptx                   (*)
+     |    |    +--mock                  (*)
+     |    |    +--spirv                 (*)
+     |    |    +--cuda                  (*)
+     |    |    +--hip                   (*)
+     |
+     +--examples
+     |    +--mandel                (*)
+     |    +--squares               (*)
+     |    +--heal                  (*)
+     |    +--life                  (*)
+     |    +--violajones            (*)
+
 ```

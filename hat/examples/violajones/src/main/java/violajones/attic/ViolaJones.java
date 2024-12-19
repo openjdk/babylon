@@ -26,8 +26,8 @@ package violajones.attic;
 
 
 import hat.Accelerator;
-import hat.backend.JavaMultiThreadedBackend;
-import hat.backend.WorkStealer;
+import hat.backend.java.JavaMultiThreadedBackend;
+import hat.backend.java.WorkStealer;
 import hat.buffer.F32Array2D;
 import org.xml.sax.SAXException;
 import violajones.HaarViewer;

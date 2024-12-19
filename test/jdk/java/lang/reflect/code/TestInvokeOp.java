@@ -1,15 +1,17 @@
+import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.op.CoreOp;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.code.op.CoreOp;
-import java.lang.runtime.CodeReflection;
 import java.util.ArrayList;
 import java.util.Optional;
 import java.util.stream.Stream;
 
 /*
  * @test
+ * @modules jdk.incubator.code
  * @run testng TestInvokeOp
  */
 public class TestInvokeOp {
@@ -53,6 +55,6 @@ public class TestInvokeOp {
                 .findFirst();
 
         Method m = om.get();
-        return m.getCodeModel().get();
+        return Op.ofMethod(m).get();
     }
 }

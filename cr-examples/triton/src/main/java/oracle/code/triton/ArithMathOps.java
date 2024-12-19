@@ -64,7 +64,7 @@ public class ArithMathOps {
     @OpFactory.OpDeclaration(ConstantOp.NAME)
     public static class ConstantOp extends ArithMathOp implements Op.Pure {
         public static final String NAME = "arith.constant";
-        public static final String ATTRIBUTE_CONSTANT_VALUE = NAME + ".value";
+        public static final String ATTRIBUTE_CONSTANT_VALUE = "value";
 
         final Object value;
 
@@ -121,6 +121,13 @@ public class ArithMathOps {
                 } else if (value instanceof Number n) {
                     return n.floatValue();
                 }
+            } else if (t.equals(Float16.FLOAT_16_TYPE)) {
+                // represent as a float for now
+                if (value instanceof String s) {
+                    return Float.valueOf(s);
+                } else if (value instanceof Number n) {
+                    return n.floatValue();
+                }
             } else if (t.equals(JavaType.DOUBLE)) {
                 if (value instanceof String s) {
                     return Double.valueOf(s);
@@ -160,7 +167,7 @@ public class ArithMathOps {
         @Override
         public Map<String, Object> attributes() {
             HashMap<String, Object> attrs = new HashMap<>(super.attributes());
-            attrs.put("", value);
+            attrs.put(ATTRIBUTE_CONSTANT_VALUE, value);
             return attrs;
         }
 
@@ -395,16 +402,28 @@ public class ArithMathOps {
     @OpFactory.OpDeclaration(CompareOp.NAME)
     public static class CompareOp extends ArithMathOp implements Op.Pure {
         public static final String NAME = "arith.cmp";
-        public static final String ATTRIBUTE_CONSTANT_VALUE = NAME + ".compare";
+        public static final String ATTRIBUTE_PREDICATE = "predicate";
 
+        // https://mlir.llvm.org/docs/Dialects/ArithOps/#cmpipredicate
+        // The ordinal values correspond to the MLIR symbol's values
+        // Need to refine when considering comparisons of floating point numbers which is in a different namespace
         public enum CompareKind {
-            slt
+            eq,
+            ne,
+            slt,
+            sle,
+            sgt,
+            sge,
+            ult,
+            ule,
+            ugt,
+            uge
         }
 
         final CompareKind ck;
 
         public static CompareOp create(ExternalizedOp def) {
-            CompareKind ck = def.extractAttributeValue(ATTRIBUTE_CONSTANT_VALUE, true,
+            CompareKind ck = def.extractAttributeValue(ATTRIBUTE_PREDICATE, true,
                     v -> switch (v) {
                         case String s -> CompareKind.valueOf(s);
                         case CompareKind k -> k;
@@ -431,7 +450,14 @@ public class ArithMathOps {
         }
 
         CompareOp(CompareKind ck, Value a, Value b) {
-            super(NAME + nameSuffixFromType(a.type(), false), a.type(), List.of(a, b));
+            TypeElement t;
+            if (a.type() instanceof TensorType ot) {
+                t = new TensorType(JavaType.BOOLEAN, ot.shape());
+            }
+            else {
+                t = JavaType.BOOLEAN;
+            }
+            super(NAME + nameSuffixFromType(a.type(), false), t, List.of(a, b));
 
             this.ck = ck;
         }
@@ -439,7 +465,7 @@ public class ArithMathOps {
         @Override
         public Map<String, Object> attributes() {
             HashMap<String, Object> attrs = new HashMap<>(super.attributes());
-            attrs.put("", ck);
+            attrs.put(ATTRIBUTE_PREDICATE, Long.valueOf(ck.ordinal()));
             return attrs;
         }
 

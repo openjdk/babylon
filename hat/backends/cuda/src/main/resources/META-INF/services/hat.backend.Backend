@@ -1,3 +1,0 @@
-hat.backend.CudaBackend
-hat.backend.JavaSequentialBackend
-hat.backend.JavaMultiThreadedBackend

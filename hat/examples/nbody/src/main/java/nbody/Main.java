@@ -508,7 +508,7 @@ public class Main {
 
     public void main(String[] args) {
         int particleCount =  32768;
-        NBody.Mode mode = NBody.Mode.of("HAT", NBody.Mode.OpenCL);
+        NBody.Mode mode = NBody.Mode.OpenCL4;//NBody.Mode.of("HAT", NBody.Mode.OpenCL);
         System.out.println("mode" + mode);
         try (var arena = Arena.ofConfined()) {
             var particleTexture = new GLWrap.GLTexture(arena, NBody.class.getResourceAsStream("/particle.png"));

@@ -152,7 +152,7 @@ public class TritonOps {
         }
 
         public static final String NAME = "tt.func";
-        public static final String ATTRIBUTE_FUNC_NAME = NAME + ".name";
+        public static final String ATTRIBUTE_FUNC_NAME = "sym_name";
 
         final String funcName;
         final Body body;
@@ -217,7 +217,7 @@ public class TritonOps {
         @Override
         public Map<String, Object> attributes() {
             HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put("", funcName);
+            m.put(ATTRIBUTE_FUNC_NAME, funcName);
             return Collections.unmodifiableMap(m);
         }
 
@@ -247,7 +247,7 @@ public class TritonOps {
     @OpFactory.OpDeclaration(CallOp.NAME)
     public static final class CallOp extends TritonOp {
         public static final String NAME = "tt.call";
-        public static final String ATTRIBUTE_FUNC_NAME = NAME + ".name";
+        public static final String ATTRIBUTE_FUNC_NAME = "callee";
 
         final String funcName;
 
@@ -287,7 +287,7 @@ public class TritonOps {
         @Override
         public Map<String, Object> attributes() {
             HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put("", funcName);
+            m.put(ATTRIBUTE_FUNC_NAME, funcName);
             return Collections.unmodifiableMap(m);
         }
 
@@ -449,7 +449,7 @@ public class TritonOps {
         @Override
         public Map<String, Object> attributes() {
             HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put("", axis);
+            m.put(ATTRIBUTE_AXIS, axis);
             return Collections.unmodifiableMap(m);
         }
 
@@ -565,7 +565,7 @@ public class TritonOps {
         @Override
         public Map<String, Object> attributes() {
             HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put("", axis);
+            m.put(ATTRIBUTE_AXIS, axis);
             return Collections.unmodifiableMap(m);
         }
 
@@ -660,6 +660,10 @@ public class TritonOps {
         LoadOp(TypeElement tensorType, Value ptr, Value mask) {
             super(NAME, tensorType, List.of(ptr, mask));
         }
+
+        LoadOp(TypeElement tensorType, Value ptr, Value mask, Value other) {
+            super(NAME, tensorType, List.of(ptr, mask, other));
+        }
     }
 
     @OpFactory.OpDeclaration(StoreOp.NAME)
@@ -727,8 +731,8 @@ public class TritonOps {
             return new DotOp(this, cc);
         }
 
-        DotOp(TypeElement tensorType, Value a, Value b) {
-            super(NAME, tensorType, List.of(a, b));
+        DotOp(TypeElement tensorType, Value a, Value b, Value c) {
+            super(NAME, tensorType, List.of(a, b, c));
         }
     }
 
@@ -802,6 +806,10 @@ public class TritonOps {
         return new LoadOp(tensorType, ptr, mask);
     }
 
+    public static LoadOp load(TypeElement tensorType, Value ptr, Value mask, Value other) {
+        return new LoadOp(tensorType, ptr, mask, other);
+    }
+
     public static StoreOp store(Value ptr, Value v, Value mask) {
         return new StoreOp(ptr, v, mask);
     }
@@ -814,8 +822,8 @@ public class TritonOps {
         return new ReturnOp(v);
     }
 
-    public static DotOp dot(TypeElement tensorType, Value a, Value b) {
-        return new DotOp(tensorType, a, b);
+    public static DotOp dot(TypeElement tensorType, Value a, Value b, Value c) {
+        return new DotOp(tensorType, a, b, c);
     }
 
 
