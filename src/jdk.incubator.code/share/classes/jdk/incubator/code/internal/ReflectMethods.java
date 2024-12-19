@@ -403,22 +403,18 @@ public class ReflectMethods extends TreeTranslator {
     }
 
     private JCMethodDecl opMethodDecl(Name prefix, CoreOp.FuncOp op) {
-
-        var mt = new MethodType(com.sun.tools.javac.util.List.nil(), crSyms.funcOpType, com.sun.tools.javac.util.List.nil(), syms.methodClass);
+        var mt = new MethodType(com.sun.tools.javac.util.List.nil(), crSyms.funcOpType,
+                com.sun.tools.javac.util.List.nil(), syms.methodClass);
+        // TODO op$ in the start
         var mn = prefix.append('$', names.fromString("op"));
         var ms = new MethodSymbol(PUBLIC | STATIC | SYNTHETIC, mn, mt, currentClassSym);
         currentClassSym.members().enter(ms);
 
-        ListBuffer<JCTree.JCStatement> statements = new ListBuffer<>();
+        var opFromStr = make.App(make.Ident(crSyms.opParserFromString),
+                com.sun.tools.javac.util.List.of(make.Literal(op.toText())));
+        var ret = make.Return(make.TypeCast(crSyms.funcOpType, opFromStr));
 
-        var opVarInit = make.App(make.Ident(crSyms.opParserFromString), com.sun.tools.javac.util.List.of(make.Literal(op.toText())));
-        var opVar = make.VarDef(new VarSymbol(0, names.fromString("op"), crSyms.opType, ms), opVarInit);
-        statements.add(opVar);
-
-        var ret = make.Return(make.TypeCast(crSyms.funcOpType, make.Ident(opVar)));
-        statements.add(ret);
-
-        var md = make.MethodDef(ms, make.Block(0, statements.toList()));
+        var md = make.MethodDef(ms, make.Block(0, com.sun.tools.javac.util.List.of(ret)));
         return md;
     }
 

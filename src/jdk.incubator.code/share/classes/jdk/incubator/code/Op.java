@@ -31,21 +31,15 @@ import java.io.Writer;
 
 import com.sun.tools.javac.api.JavacScope;
 import com.sun.tools.javac.api.JavacTrees;
-import com.sun.tools.javac.code.Source;
 import com.sun.tools.javac.code.Symbol.ClassSymbol;
 import com.sun.tools.javac.comp.Attr;
-import com.sun.tools.javac.comp.Modules;
-import com.sun.tools.javac.main.JavaCompiler;
 import com.sun.tools.javac.model.JavacElements;
 import com.sun.tools.javac.processing.JavacProcessingEnvironment;
 import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
 import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.util.Context;
-import com.sun.tools.javac.util.Names;
 import jdk.incubator.code.internal.ReflectMethods;
 import jdk.incubator.code.op.CoreOp.FuncOp;
-import jdk.incubator.code.op.ExtendedOp;
-import jdk.incubator.code.parser.OpParser;
 import jdk.incubator.code.type.FunctionType;
 import jdk.incubator.code.type.MethodRef;
 import jdk.incubator.code.writer.OpWriter;
@@ -54,7 +48,6 @@ import jdk.internal.access.SharedSecrets;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -501,19 +494,20 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
                 case '.', ';', '[', '/': sig[i] = '$';
             }
         }
+        String opMethodName = new String(sig) + "$" + "op";
+        Method opMethod;
         try {
-            String opMethodName = new String(sig) + "$" + "op";
-            Method opMethod = method.getDeclaringClass().getDeclaredMethod(opMethodName);
-            try {
-                FuncOp funcOp = (FuncOp) opMethod.invoke(null);
-                return Optional.of(funcOp);
-            } catch (IllegalAccessException e) {
-                throw new RuntimeException("Op class doesn't have access to opMethod: " + opMethod);
-            } catch (InvocationTargetException e) {
-                throw new RuntimeException(e);
-            }
+            // @@@ Use method handle with full power mode
+            opMethod = method.getDeclaringClass().getDeclaredMethod(opMethodName);
         } catch (NoSuchMethodException e) {
             return Optional.empty();
+        }
+        opMethod.setAccessible(true);
+        try {
+            FuncOp funcOp = (FuncOp) opMethod.invoke(null);
+            return Optional.of(funcOp);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
         }
     }
 

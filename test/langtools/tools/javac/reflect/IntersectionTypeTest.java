@@ -32,7 +32,7 @@ import jdk.incubator.code.CodeReflection;
  * @run main CodeReflectionTester IntersectionTypeTest
  */
 
-public class IntersectionTypeTest {
+class IntersectionTypeTest {
     interface A {
         Object f_A = 5;
         void m_A();
