@@ -49,7 +49,7 @@ public class TestInvokeSuper {
         String f() { return "A"; }
     }
 
-    static class B extends A implements I {
+    public static class B extends A implements I {
         final boolean invokeClass;
 
         public B(boolean invokeClass) {

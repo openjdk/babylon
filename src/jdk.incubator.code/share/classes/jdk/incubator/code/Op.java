@@ -54,7 +54,7 @@ import jdk.internal.access.SharedSecrets;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
-import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -495,39 +495,26 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     private static Optional<FuncOp> createCodeModel(Method method) {
-        Class<?> dc = method.getDeclaringClass();
         char[] sig = MethodRef.method(method).toString().toCharArray();
         for (int i = 0; i < sig.length; i++) {
             switch (sig[i]) {
                 case '.', ';', '[', '/': sig[i] = '$';
             }
         }
-        String fieldName = new String(sig) + "$" + "op";
-        Field f;
         try {
-            f = dc.getDeclaredField(fieldName);
-        } catch (NoSuchFieldException e) {
+            String opMethodName = new String(sig) + "$" + "op";
+            Method opMethod = method.getDeclaringClass().getDeclaredMethod(opMethodName);
+            try {
+                FuncOp funcOp = (FuncOp) opMethod.invoke(null);
+                return Optional.of(funcOp);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException("Op class doesn't have access to opMethod: " + opMethod);
+            } catch (InvocationTargetException e) {
+                throw new RuntimeException(e);
+            }
+        } catch (NoSuchMethodException e) {
             return Optional.empty();
         }
-
-        String modelText;
-        try {
-            // @@@ Use method handle with full power mode
-            f.setAccessible(true);
-            modelText = (String) f.get(null);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
-
-        FuncOp op;
-        try {
-            List<jdk.incubator.code.Op> ops = OpParser.fromString(ExtendedOp.FACTORY, modelText);
-            op = (FuncOp) ops.get(0);
-        } catch (RuntimeException e) {
-            // @@@ Error or Exception?
-            throw e;
-        }
-        return Optional.of(op);
     }
 
     /**

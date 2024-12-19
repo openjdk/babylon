@@ -46,6 +46,8 @@ public class CodeReflectionSymbols {
     public final MethodSymbol opInterpreterInvoke;
     public final MethodSymbol opParserFromString;
     public final MethodSymbol methodHandlesLookup;
+    public final Type opType;
+    public final Type funcOpType;
 
     CodeReflectionSymbols(Context context) {
         Symtab syms = Symtab.instance(context);
@@ -55,7 +57,7 @@ public class CodeReflectionSymbols {
         quotedType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.Quoted");
         quotableType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.Quotable");
         Type opInterpreterType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.interpreter.Interpreter");
-        Type opType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.Op");
+        opType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.Op");
         opInterpreterInvoke = new MethodSymbol(PUBLIC | STATIC | VARARGS,
                 names.fromString("invoke"),
                 new MethodType(List.of(syms.methodHandleLookupType, opType, new ArrayType(syms.objectType, syms.arrayClass)), syms.objectType,
@@ -74,5 +76,6 @@ public class CodeReflectionSymbols {
                 syms.methodHandlesType.tsym);
         syms.synthesizeEmptyInterfaceIfMissing(quotedType);
         syms.synthesizeEmptyInterfaceIfMissing(quotableType);
+        funcOpType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.op.CoreOp$FuncOp");
     }
 }
