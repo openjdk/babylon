@@ -69,10 +69,9 @@ import static sun.invoke.util.Wrapper.isWrapperType;
     final boolean isSerializable;             // Should the returned instance be serializable
     final Class<?>[] altInterfaces;           // Additional interfaces to be implemented
     final MethodType[] altMethods;            // Signatures of additional methods to bridge
-    final MethodHandle quotableOpField;       // A getter method handle that is used to retrieve the
-                                              // string representation of the quotable lambda's associated
-                                              // intermediate representation (can be null).
-    final MethodHandleInfo quotableOpFieldInfo;  // Info about the quotable getter method handle (can be null).
+    final MethodHandle quotableOpGetter;       // A getter method handle that is used to retrieve the
+                                              // the quotable lambda's associated intermediate representation (can be null).
+    final MethodHandleInfo quotableOpGetterInfo;  // Info about the quotable getter method handle (can be null).
 
     /**
      * Meta-factory constructor.
@@ -187,7 +186,7 @@ import static sun.invoke.util.Wrapper.isWrapperType;
         this.isSerializable = isSerializable;
         this.altInterfaces = altInterfaces;
         this.altMethods = altMethods;
-        this.quotableOpField = reflectiveField;
+        this.quotableOpGetter = reflectiveField;
 
         if (interfaceMethodName.isEmpty() ||
                 interfaceMethodName.indexOf('.') >= 0 ||
@@ -217,16 +216,15 @@ import static sun.invoke.util.Wrapper.isWrapperType;
 
         if (reflectiveField != null) {
             try {
-                quotableOpFieldInfo = caller.revealDirect(reflectiveField); // may throw SecurityException
+                quotableOpGetterInfo = caller.revealDirect(reflectiveField); // may throw SecurityException
             } catch (IllegalArgumentException e) {
                 throw new LambdaConversionException(implementation + " is not direct or cannot be cracked");
             }
-            if (quotableOpFieldInfo.getReferenceKind() != REF_getField &&
-                    quotableOpFieldInfo.getReferenceKind() != REF_getStatic) {
-                throw new LambdaConversionException(String.format("Unsupported MethodHandle kind: %s", quotableOpFieldInfo));
+            if (quotableOpGetterInfo.getReferenceKind() != REF_invokeStatic) {
+                throw new LambdaConversionException(String.format("Unsupported MethodHandle kind: %s", quotableOpGetterInfo));
             }
         } else {
-            quotableOpFieldInfo = null;
+            quotableOpGetterInfo = null;
         }
     }
 

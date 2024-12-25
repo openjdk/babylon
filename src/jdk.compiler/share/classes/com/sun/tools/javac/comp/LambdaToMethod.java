@@ -879,8 +879,8 @@ public class LambdaToMethod extends TreeTranslator {
                 }
             }
             if (isQuotable) {
-                VarSymbol reflectField = (VarSymbol)tree.codeModel;
-                staticArgs = staticArgs.append(reflectField.asMethodHandle(true));
+                MethodSymbol opMethodSym = (MethodSymbol)tree.codeModel;
+                staticArgs = staticArgs.append(opMethodSym.asHandle());
             }
             if (isSerializable) {
                 int prevPos = make.pos;

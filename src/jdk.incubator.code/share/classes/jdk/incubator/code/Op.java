@@ -494,7 +494,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
                 case '.', ';', '[', '/': sig[i] = '$';
             }
         }
-        String opMethodName = "method$op$" + new String(sig);
+        String opMethodName = "op$" + new String(sig);
         Method opMethod;
         try {
             // @@@ Use method handle with full power mode

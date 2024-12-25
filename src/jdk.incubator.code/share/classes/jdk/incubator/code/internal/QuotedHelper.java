@@ -37,4 +37,7 @@ public class QuotedHelper {
         FuncOp op = (FuncOp)OpParser.fromStringOfFuncOp(opText);
         return (Quoted)Interpreter.invoke(lookup, op, args);
     }
+    public static Quoted makeQuoted(MethodHandles.Lookup lookup, FuncOp op, Object[] args) {
+        return (Quoted)Interpreter.invoke(lookup, op, args);
+    }
 }
