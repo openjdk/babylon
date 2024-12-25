@@ -31,21 +31,15 @@ import java.io.Writer;
 
 import com.sun.tools.javac.api.JavacScope;
 import com.sun.tools.javac.api.JavacTrees;
-import com.sun.tools.javac.code.Source;
 import com.sun.tools.javac.code.Symbol.ClassSymbol;
 import com.sun.tools.javac.comp.Attr;
-import com.sun.tools.javac.comp.Modules;
-import com.sun.tools.javac.main.JavaCompiler;
 import com.sun.tools.javac.model.JavacElements;
 import com.sun.tools.javac.processing.JavacProcessingEnvironment;
 import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
 import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.util.Context;
-import com.sun.tools.javac.util.Names;
 import jdk.incubator.code.internal.ReflectMethods;
 import jdk.incubator.code.op.CoreOp.FuncOp;
-import jdk.incubator.code.op.ExtendedOp;
-import jdk.incubator.code.parser.OpParser;
 import jdk.incubator.code.type.FunctionType;
 import jdk.incubator.code.type.MethodRef;
 import jdk.incubator.code.writer.OpWriter;
@@ -54,7 +48,6 @@ import jdk.internal.access.SharedSecrets;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -495,39 +488,27 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     private static Optional<FuncOp> createCodeModel(Method method) {
-        Class<?> dc = method.getDeclaringClass();
         char[] sig = MethodRef.method(method).toString().toCharArray();
         for (int i = 0; i < sig.length; i++) {
             switch (sig[i]) {
                 case '.', ';', '[', '/': sig[i] = '$';
             }
         }
-        String fieldName = new String(sig) + "$" + "op";
-        Field f;
-        try {
-            f = dc.getDeclaredField(fieldName);
-        } catch (NoSuchFieldException e) {
-            return Optional.empty();
-        }
-
-        String modelText;
+        String opMethodName = "method$op$" + new String(sig);
+        Method opMethod;
         try {
             // @@@ Use method handle with full power mode
-            f.setAccessible(true);
-            modelText = (String) f.get(null);
-        } catch (IllegalAccessException e) {
+            opMethod = method.getDeclaringClass().getDeclaredMethod(opMethodName);
+        } catch (NoSuchMethodException e) {
+            return Optional.empty();
+        }
+        opMethod.setAccessible(true);
+        try {
+            FuncOp funcOp = (FuncOp) opMethod.invoke(null);
+            return Optional.of(funcOp);
+        } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
-
-        FuncOp op;
-        try {
-            List<jdk.incubator.code.Op> ops = OpParser.fromString(ExtendedOp.FACTORY, modelText);
-            op = (FuncOp) ops.get(0);
-        } catch (RuntimeException e) {
-            // @@@ Error or Exception?
-            throw e;
-        }
-        return Optional.of(op);
     }
 
     /**

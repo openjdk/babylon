@@ -101,6 +101,8 @@ import java.util.function.Supplier;
 
 import static com.sun.tools.javac.code.Flags.NOOUTERTHIS;
 import static com.sun.tools.javac.code.Flags.PARAMETER;
+import static com.sun.tools.javac.code.Flags.PUBLIC;
+import static com.sun.tools.javac.code.Flags.STATIC;
 import static com.sun.tools.javac.code.Flags.SYNTHETIC;
 import static com.sun.tools.javac.code.Kinds.Kind.MTH;
 import static com.sun.tools.javac.code.Kinds.Kind.TYP;
@@ -203,9 +205,8 @@ public class ReflectMethods extends TreeTranslator {
                     // dump the method IR if requested
                     log.note(MethodIrDump(tree.sym.enclClass(), tree.sym, funcOp.toText()));
                 }
-                // create a static final field holding the op' string text.
-                // The name of the field is foo$op, where 'foo' is the name of the corresponding method.
-                classOps.add(opFieldDecl(methodName(bodyScanner.symbolToErasedMethodRef(tree.sym)), tree.getModifiers().flags, funcOp));
+                // create a static method that returns the op
+                classOps.add(opMethodDecl(methodName(bodyScanner.symbolToErasedMethodRef(tree.sym)), funcOp));
             } catch (UnsupportedASTException ex) {
                 // whoops, some AST node inside the method body were not supported. Log it and move on.
                 log.note(ex.tree, MethodIrSkip(tree.sym.enclClass(), tree.sym, ex.tree.getTag().toString()));
@@ -399,6 +400,21 @@ public class ReflectMethods extends TreeTranslator {
         JCLiteral opText = make.Literal(op.toText());
         JCVariableDecl opFieldTree = make.VarDef(opFieldSym, opText);
         return opFieldTree;
+    }
+
+    private JCMethodDecl opMethodDecl(Name methodName, CoreOp.FuncOp op) {
+        var mt = new MethodType(com.sun.tools.javac.util.List.nil(), crSyms.funcOpType,
+                com.sun.tools.javac.util.List.nil(), syms.methodClass);
+        var mn = names.fromString("method$op$").append(methodName);
+        var ms = new MethodSymbol(PUBLIC | STATIC | SYNTHETIC, mn, mt, currentClassSym);
+        currentClassSym.members().enter(ms);
+
+        var opFromStr = make.App(make.Ident(crSyms.opParserFromString),
+                com.sun.tools.javac.util.List.of(make.Literal(op.toText())));
+        var ret = make.Return(make.TypeCast(crSyms.funcOpType, opFromStr));
+
+        var md = make.MethodDef(ms, make.Block(0, com.sun.tools.javac.util.List.of(ret)));
+        return md;
     }
 
     public JCTree translateTopLevelClass(JCTree cdef, TreeMaker make) {
