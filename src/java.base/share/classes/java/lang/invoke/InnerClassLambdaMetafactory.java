@@ -34,14 +34,12 @@ import java.io.Serializable;
 import java.lang.classfile.ClassBuilder;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.CodeBuilder;
-import java.lang.classfile.FieldBuilder;
 import java.lang.classfile.MethodBuilder;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
 import java.lang.classfile.constantpool.MethodHandleEntry;
 import java.lang.classfile.constantpool.NameAndTypeEntry;
 import java.lang.constant.ClassDesc;
-import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.module.Configuration;
@@ -49,8 +47,6 @@ import java.lang.module.ModuleFinder;
 import java.lang.reflect.Modifier;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Optional;
-import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -58,12 +54,10 @@ import static java.lang.classfile.ClassFile.*;
 import java.lang.classfile.attribute.ExceptionsAttribute;
 import java.lang.classfile.constantpool.ClassEntry;
 import java.lang.classfile.constantpool.ConstantPoolBuilder;
-import java.lang.classfile.constantpool.MethodRefEntry;
+
 import static java.lang.constant.ConstantDescs.*;
 import static java.lang.invoke.MethodHandleNatives.Constants.NESTMATE_CLASS;
 import static java.lang.invoke.MethodHandleNatives.Constants.STRONG_LOADER_LINK;
-import static java.lang.invoke.MethodHandles.Lookup.ClassOption.NESTMATE;
-import static java.lang.invoke.MethodHandles.Lookup.ClassOption.STRONG;
 import static java.lang.invoke.MethodType.methodType;
 import jdk.internal.constant.ConstantUtils;
 import jdk.internal.constant.MethodTypeDescImpl;
@@ -368,7 +362,7 @@ import sun.invoke.util.Wrapper;
                     generateSerializationHostileMethods(clb);
 
                 if (quotableOpGetter != null) {
-                    generateQuotableMethod(clb);
+                    generateQuotedMethod(clb);
                 }
             }
         });
@@ -580,9 +574,9 @@ import sun.invoke.util.Wrapper;
     }
 
     /**
-     * Generate a writeReplace method that supports serialization
+    * Generate method #quoted()
      */
-    private void generateQuotableMethod(ClassBuilder clb) {
+    private void generateQuotedMethod(ClassBuilder clb) {
         clb.withMethod(NAME_METHOD_QUOTED, CodeReflectionSupport.MTD_Quoted, ACC_PUBLIC + ACC_FINAL, new MethodBody(new Consumer<CodeBuilder>() {
             @Override
             public void accept(CodeBuilder cob) {

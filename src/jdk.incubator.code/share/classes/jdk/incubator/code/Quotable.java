@@ -27,11 +27,8 @@ package jdk.incubator.code;
 
 /**
  * Classes implementing this interface support code reflection. That is, they can obtain
- * a {@link Quoted} object using {@link #quoted()}, which returns the intermediate
+ * a {@link Quoted} object using {@link Op#ofQuotable(Quotable)}, which returns the intermediate
  * representation associated with a lambda expression or method reference.
  */
 public interface Quotable {
-    default Quoted quoted() {
-        throw new UnsupportedOperationException();
-    }
 }

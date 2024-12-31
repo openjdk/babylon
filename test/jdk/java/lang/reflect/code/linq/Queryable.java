@@ -46,13 +46,13 @@ public interface Queryable<T> {
 
     @SuppressWarnings("unchecked")
     default Queryable<T> where(QuotablePredicate<T> f) {
-        LambdaOp l = (LambdaOp) f.quoted().op();
+        LambdaOp l = (LambdaOp) Op.ofQuotable(f).get().op();
         return (Queryable<T>) insertQuery(elementType(), "where", l);
     }
 
     @SuppressWarnings("unchecked")
     default <R> Queryable<R> select(QuotableFunction<T, R> f) {
-        LambdaOp l = (LambdaOp) f.quoted().op();
+        LambdaOp l = (LambdaOp) Op.ofQuotable(f).get().op();
         return (Queryable<R>) insertQuery((JavaType) l.invokableType().returnType(), "select", l);
     }
 

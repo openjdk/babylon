@@ -25,7 +25,11 @@
 
 package jdk.incubator.code.interpreter;
 
+import java.lang.classfile.ClassFile;
+import java.lang.constant.ClassDesc;
+import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.*;
+import java.lang.reflect.AccessFlag;
 import java.lang.reflect.Array;
 import java.lang.reflect.Proxy;
 import jdk.incubator.code.*;
@@ -487,12 +491,26 @@ public final class Interpreter {
                     .asCollector(Object[].class, lo.parameters().size());
             Object fiInstance = MethodHandleProxies.asInterfaceInstance(fi, fProxy);
 
-            // If a quotable lambda proxy again to implement Quotable
+            // If a quotable lambda proxy again to add method Quoted quoted()
             if (Quotable.class.isAssignableFrom(fi)) {
-                return Proxy.newProxyInstance(l.lookupClass().getClassLoader(), new Class<?>[]{fi},
+                // Op.ofQuotable(Quotable q) expect q's class to have the method: Quoted quoted()
+                // that's why we define an interface that contains the method, so that proxy class has it
+                // and the code of Op.ofQuotable works
+                byte[] bytes = ClassFile.of().build(ClassDesc.of("I" + System.nanoTime()), classBuilder -> {
+                    classBuilder
+                            .withFlags(AccessFlag.PUBLIC, AccessFlag.INTERFACE, AccessFlag.ABSTRACT)
+                            .withMethod("quoted", MethodTypeDesc.of(Quoted.class.describeConstable().get()),
+                            ClassFile.ACC_PUBLIC | ClassFile.ACC_ABSTRACT, mb -> {});
+                });
+                Class<?> interfaceQuotedCLass;
+                try {
+                    interfaceQuotedCLass = l.defineClass(bytes);
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
+                return Proxy.newProxyInstance(l.lookupClass().getClassLoader(), new Class<?>[]{fi, interfaceQuotedCLass},
                         (_, method, args) -> {
-                            if (method.getDeclaringClass() == Quotable.class) {
-                                // Implement Quotable::quoted
+                            if (method.getDeclaringClass() == interfaceQuotedCLass) {
                                 return new Quoted(lo, capturedValuesAndArguments);
                             } else {
                                 // Delegate to FI instance

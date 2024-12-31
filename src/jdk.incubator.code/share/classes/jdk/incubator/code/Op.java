@@ -48,6 +48,7 @@ import jdk.internal.access.SharedSecrets;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -472,6 +473,22 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
 
+    public static Optional<Quoted> ofQuotable(Quotable q) {
+        Method method;
+        try {
+            method = q.getClass().getMethod("quoted");
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
+        method.setAccessible(true);
+        Quoted quoted;
+        try {
+            quoted = (Quoted) method.invoke(q);
+        } catch (InvocationTargetException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+        return Optional.of(quoted);
+    }
 
     /**
      * Returns the code model of the method body, if present.
