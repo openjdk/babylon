@@ -486,14 +486,11 @@ import sun.invoke.util.Wrapper;
         static {
             try {
                 ModuleLayer layer = codeLayer();
-                QUOTED_CLASS = layer.findLoader("jdk.incubator.code")
-                        .loadClass("jdk.incubator.code.Quoted");
-                QUOTABLE_CLASS = layer.findLoader("jdk.incubator.code")
-                        .loadClass("jdk.incubator.code.Quotable");
-                Class<?> quotedHelper = layer.findLoader("jdk.incubator.code")
-                        .loadClass("jdk.incubator.code.internal.QuotedHelper");
-                Class<?> funcOp = layer.findLoader("jdk.incubator.code")
-                        .loadClass("jdk.incubator.code.op.CoreOp$FuncOp");
+                ClassLoader cl = layer.findLoader("jdk.incubator.code");
+                QUOTED_CLASS = cl.loadClass("jdk.incubator.code.Quoted");
+                QUOTABLE_CLASS = cl.loadClass("jdk.incubator.code.Quotable");
+                Class<?> quotedHelper = cl.loadClass("jdk.incubator.code.internal.QuotedHelper");
+                Class<?> funcOp = cl.loadClass("jdk.incubator.code.op.CoreOp$FuncOp");
                 MethodHandle makeQuoted = Lookup.IMPL_LOOKUP.findStatic(quotedHelper, "makeQuoted",
                         MethodType.methodType(QUOTED_CLASS, MethodHandles.Lookup.class, funcOp, Object[].class));
                 HANDLE_MAKE_QUOTED = makeQuoted.bindTo(Lookup.IMPL_LOOKUP);
