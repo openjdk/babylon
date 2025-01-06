@@ -879,7 +879,7 @@ public class LambdaToMethod extends TreeTranslator {
                 }
             }
             if (isQuotable) {
-                MethodSymbol opMethodSym = (MethodSymbol)tree.codeModel;
+                MethodSymbol opMethodSym = tree.codeModel;
                 staticArgs = staticArgs.append(opMethodSym.asHandle());
             }
             if (isSerializable) {
