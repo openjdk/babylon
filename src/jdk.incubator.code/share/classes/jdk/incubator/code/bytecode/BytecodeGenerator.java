@@ -54,6 +54,7 @@ import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.op.CoreOp.*;
+import jdk.incubator.code.parser.OpParser;
 import jdk.incubator.code.type.ArrayType;
 import jdk.incubator.code.type.FieldRef;
 import jdk.incubator.code.type.FunctionType;
@@ -163,9 +164,15 @@ public final class BytecodeGenerator {
             for (int i = 0; i < lambdaSink.size(); i++) {
                 LambdaOp lop = lambdaSink.get(i);
                 if (quotable.get(i)) {
-                    clb.withField("lambda$" + i + "$op", CD_String, fb -> fb
-                            .withFlags(ClassFile.ACC_STATIC)
-                            .with(ConstantValueAttribute.of(quote(lop).toText())));
+                    // return (FuncOp) OpParser.fromOpString(opText)
+                    clb.withMethod("op$lambda$" + i, MethodTypeDesc.of(FuncOp.class.describeConstable().get()),
+                        ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC | ClassFile.ACC_SYNTHETIC, mb -> mb.withCode(cb -> cb
+                                .loadConstant(quote(lop).toText())
+                                .invoke(Opcode.INVOKESTATIC, OpParser.class.describeConstable().get(),
+                                        "fromStringOfFuncOp",
+                                        MethodTypeDesc.of(Op.class.describeConstable().get(), CD_String), false)
+                                .checkcast(FuncOp.class.describeConstable().get())
+                                .areturn()));
                 }
                 generateMethod(lookup, className, "lambda$" + i, lop, clb, lambdaSink, quotable);
             }
@@ -891,10 +898,10 @@ public final class BytecodeGenerator {
                                                                   mtd.insertParameterTypes(0, captureTypes)),
                                         mtd,
                                         LambdaMetafactory.FLAG_QUOTABLE,
-                                        MethodHandleDesc.ofField(DirectMethodHandleDesc.Kind.STATIC_GETTER,
-                                                                 className,
-                                                                 "lambda$" + lambdaIndex + "$op",
-                                                                 CD_String)));
+                                        MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,
+                                                className,
+                                                "op$lambda$" + lambdaIndex,
+                                                MethodTypeDesc.of(FuncOp.class.describeConstable().get()))));
                                 quotable.set(lambdaSink.size());
                             } else {
                                 cob.invokedynamic(DynamicCallSiteDesc.of(

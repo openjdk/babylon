@@ -500,7 +500,8 @@ public final class LambdaMetafactory {
         int flags = extractArg(args, argIndex++, Integer.class);
         Class<?>[] altInterfaces = EMPTY_CLASS_ARRAY;
         MethodType[] altMethods = EMPTY_MT_ARRAY;
-        MethodHandle quotableField = null;
+        // Getter that returns the op of a Quotable instance
+        MethodHandle quotableOpGetter = null;
         if ((flags & FLAG_MARKERS) != 0) {
             int altInterfaceCount = extractArg(args, argIndex++, Integer.class);
             if (altInterfaceCount < 0) {
@@ -522,7 +523,7 @@ public final class LambdaMetafactory {
             }
         }
         if ((flags & FLAG_QUOTABLE) != 0) {
-            quotableField = extractArg(args, argIndex++, MethodHandle.class);
+            quotableOpGetter = extractArg(args, argIndex++, MethodHandle.class);
             altInterfaces = Arrays.copyOf(altInterfaces, altInterfaces.length + 1);
             altInterfaces[altInterfaces.length-1] = InnerClassLambdaMetafactory.CodeReflectionSupport.QUOTABLE_CLASS;
         }
@@ -551,7 +552,7 @@ public final class LambdaMetafactory {
                                                   isSerializable,
                                                   altInterfaces,
                                                   altMethods,
-                                                  quotableField);
+                                                  quotableOpGetter);
         mf.validateMetafactoryArgs();
         return mf.buildCallSite();
     }

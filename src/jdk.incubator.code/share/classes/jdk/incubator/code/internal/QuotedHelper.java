@@ -33,8 +33,7 @@ import jdk.incubator.code.parser.OpParser;
 import java.lang.invoke.MethodHandles;
 
 public class QuotedHelper {
-    public static Quoted makeQuoted(MethodHandles.Lookup lookup, String opText, Object[] args) {
-        FuncOp op = (FuncOp)OpParser.fromStringOfFuncOp(opText);
+    public static Quoted makeQuoted(MethodHandles.Lookup lookup, FuncOp op, Object[] args) {
         return (Quoted)Interpreter.invoke(lookup, op, args);
     }
 }
