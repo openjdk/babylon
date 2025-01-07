@@ -472,7 +472,7 @@ import sun.invoke.util.Wrapper;
             cob.aastore();
         }
 
-        // now create a Quoted from FuncOp and captured args Object[]
+        // Create a Quoted from FuncOp and captured args Object[]
 
         cob.invokevirtual(CD_MethodHandle, "invokeExact", methodDesc(CodeReflectionSupport.HANDLE_MAKE_QUOTED.type()))
            .putfield(lambdaClassEntry.asSymbol(), quotedInstanceFieldName, CodeReflectionSupport.CD_Quoted);
