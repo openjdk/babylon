@@ -811,7 +811,7 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
         /** The owner of this functional expression. */
         public Symbol owner;
         /** code reflection specific metadata. */
-        public Symbol codeModel;
+        public MethodSymbol codeModel;
 
         public Type getDescriptorType(Types types) {
             if (target == null) {
