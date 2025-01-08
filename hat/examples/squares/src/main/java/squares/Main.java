@@ -53,7 +53,7 @@ public class Main {
                 kc -> squareKernel(kc, s32Array)
         );
     }
-    
+
 
     public static void main(String[] args) {
         var lookup = java.lang.invoke.MethodHandles.lookup();
