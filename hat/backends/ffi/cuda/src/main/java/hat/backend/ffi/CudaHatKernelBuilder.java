@@ -24,14 +24,13 @@
  */
 package hat.backend.ffi;
 
-import hat.backend.c99codebuilders.C99HatBuildContext;
-import hat.backend.c99codebuilders.C99HatKernelBuilder;
+import hat.backend.codebuilders.C99HATKernelBuilder;
 import hat.optools.OpWrapper;
 
 import jdk.incubator.code.Op;
 import jdk.incubator.code.type.JavaType;
 
-public class CudaHatKernelBuilder extends C99HatKernelBuilder<CudaHatKernelBuilder> {
+public class CudaHatKernelBuilder extends C99HATKernelBuilder<CudaHatKernelBuilder> {
 
     @Override
     public CudaHatKernelBuilder defines() {
@@ -78,7 +77,7 @@ public class CudaHatKernelBuilder extends C99HatKernelBuilder<CudaHatKernelBuild
 
 
     @Override
-    public CudaHatKernelBuilder atomicInc(C99HatBuildContext buildContext, Op.Result instanceResult, String name){
+    public CudaHatKernelBuilder atomicInc(CodeBuilderContext buildContext, Op.Result instanceResult, String name){
         return identifier("atomicAdd").paren(_ -> {
              ampersand().recurse(buildContext, OpWrapper.wrap(instanceResult.op()));
              rarrow().identifier(name).comma().literal(1);

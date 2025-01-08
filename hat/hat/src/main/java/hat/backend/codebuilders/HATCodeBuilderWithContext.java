@@ -22,7 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.backend.c99codebuilders;
+package hat.backend.codebuilders;
 
 
 import hat.ifacemapper.BoundSchema;
@@ -65,7 +65,7 @@ import jdk.incubator.code.type.ClassType;
 import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.type.PrimitiveType;
 
-public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeBuilder<T> implements C99HatBuilderInterface<T> {
+public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithContext<T>> extends HATCodeBuilder<T> implements HATCodeBuilder.CodeBuilderInterface<T> {
     /*
    0 =  ()[ ] . -> ++ --
    1 = ++ --+ -! ~ (type) *(deref) &(addressof) sizeof
@@ -158,14 +158,14 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
     }
 
     @Override
-    public T varLoad(C99HatBuildContext buildContext, VarLoadOpWrapper varAccessOpWrapper) {
+    public T varLoad(CodeBuilderContext buildContext, VarLoadOpWrapper varAccessOpWrapper) {
         CoreOp.VarOp varOp = buildContext.scope.resolve(varAccessOpWrapper.operandNAsValue(0));
         varName(varOp);
         return self();
     }
 
     @Override
-    public T varStore(C99HatBuildContext buildContext, VarStoreOpWrapper varAccessOpWrapper) {
+    public T varStore(CodeBuilderContext buildContext, VarStoreOpWrapper varAccessOpWrapper) {
         CoreOp.VarOp varOp = buildContext.scope.resolve(varAccessOpWrapper.operandNAsValue(0));
         varName(varOp).equals();
         parencedence(buildContext, varAccessOpWrapper, varAccessOpWrapper.operandNAsResult(1).op());
@@ -173,7 +173,7 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
     }
 
     @Override
-    public T varDeclaration(C99HatBuildContext buildContext, VarDeclarationOpWrapper varDeclarationOpWrapper) {
+    public T varDeclaration(CodeBuilderContext buildContext, VarDeclarationOpWrapper varDeclarationOpWrapper) {
         if (varDeclarationOpWrapper.op().isUninitialized()) {
             // Variable is uninitialized
             type(varDeclarationOpWrapper.javaType()).space().identifier(varDeclarationOpWrapper.varName());
@@ -185,13 +185,13 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
     }
 
     @Override
-    public T varFuncDeclaration(C99HatBuildContext buildContext, VarFuncDeclarationOpWrapper varFuncDeclarationOpWrapper) {
+    public T varFuncDeclaration(CodeBuilderContext buildContext, VarFuncDeclarationOpWrapper varFuncDeclarationOpWrapper) {
         // append("/* skipping ").type(varFuncDeclarationOpWrapper.javaType()).append(" param declaration  */");
         return self();
     }
 
     @Override
-    public T fieldLoad(C99HatBuildContext buildContext, FieldLoadOpWrapper fieldLoadOpWrapper) {
+    public T fieldLoad(CodeBuilderContext buildContext, FieldLoadOpWrapper fieldLoadOpWrapper) {
         if (fieldLoadOpWrapper.isKernelContextAccess()) {
             identifier("kc").rarrow().identifier(fieldLoadOpWrapper.fieldName());
         } else if (fieldLoadOpWrapper.isStaticFinalPrimitive()) {
@@ -205,7 +205,7 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
     }
 
     @Override
-    public T fieldStore(C99HatBuildContext buildContext, FieldStoreOpWrapper fieldStoreOpWrapper) {
+    public T fieldStore(CodeBuilderContext buildContext, FieldStoreOpWrapper fieldStoreOpWrapper) {
         //throw new IllegalStateException("What is this field store ?" + fieldStoreOpWrapper.fieldRef());
         return self();
     }
@@ -239,7 +239,7 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
     }
 
     @Override
-    public T unaryOperation(C99HatBuildContext buildContext, UnaryArithmeticOrLogicOpWrapper unaryOperatorOpWrapper) {
+    public T unaryOperation(CodeBuilderContext buildContext, UnaryArithmeticOrLogicOpWrapper unaryOperatorOpWrapper) {
       //  parencedence(buildContext, binaryOperatorOpWrapper.op(), binaryOperatorOpWrapper.lhsAsOp());
         symbol(unaryOperatorOpWrapper.op());
         parencedence(buildContext, unaryOperatorOpWrapper.op(), unaryOperatorOpWrapper.operandNAsResult(0).op());
@@ -247,7 +247,7 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
     }
 
     @Override
-    public T binaryOperation(C99HatBuildContext buildContext, BinaryArithmeticOrLogicOperation binaryOperatorOpWrapper) {
+    public T binaryOperation(CodeBuilderContext buildContext, BinaryArithmeticOrLogicOperation binaryOperatorOpWrapper) {
         parencedence(buildContext, binaryOperatorOpWrapper.op(), binaryOperatorOpWrapper.lhsAsOp());
         symbol(binaryOperatorOpWrapper.op());
         parencedence(buildContext, binaryOperatorOpWrapper.op(), binaryOperatorOpWrapper.rhsAsOp());
@@ -255,7 +255,7 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
     }
 
     @Override
-    public T logical(C99HatBuildContext buildContext, LogicalOpWrapper logicalOpWrapper) {
+    public T logical(CodeBuilderContext buildContext, LogicalOpWrapper logicalOpWrapper) {
         logicalOpWrapper.lhsWrappedYieldOpStream().forEach((wrapped) -> {
             recurse(buildContext, wrapped);
         });
@@ -267,7 +267,7 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
     }
 
     @Override
-    public T binaryTest(C99HatBuildContext buildContext, BinaryTestOpWrapper binaryTestOpWrapper) {
+    public T binaryTest(CodeBuilderContext buildContext, BinaryTestOpWrapper binaryTestOpWrapper) {
         parencedence(buildContext, binaryTestOpWrapper.op(), binaryTestOpWrapper.lhsAsOp());
         symbol(binaryTestOpWrapper.op());
         parencedence(buildContext, binaryTestOpWrapper.op(), binaryTestOpWrapper.rhsAsOp());
@@ -276,7 +276,7 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
 
     @Override
 
-    public T conv(C99HatBuildContext buildContext, ConvOpWrapper convOpWrapper) {
+    public T conv(CodeBuilderContext buildContext, ConvOpWrapper convOpWrapper) {
         if (convOpWrapper.resultJavaType() == JavaType.DOUBLE) {
             paren(_ -> type(JavaType.FLOAT));
         } else {
@@ -288,7 +288,7 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
     }
 
     @Override
-    public T constant(C99HatBuildContext buildContext, ConstantOpWrapper constantOpWrapper) {
+    public T constant(CodeBuilderContext buildContext, ConstantOpWrapper constantOpWrapper) {
         Object object = constantOpWrapper.op().value();
         if (object == null) {
             nullKeyword();
@@ -299,7 +299,7 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
     }
 
     @Override
-    public T javaYield(C99HatBuildContext buildContext, YieldOpWrapper yieldOpWrapper) {
+    public T javaYield(CodeBuilderContext buildContext, YieldOpWrapper yieldOpWrapper) {
         var operand0 = yieldOpWrapper.operandNAsValue(0);
         if (operand0 instanceof Op.Result result) {
             recurse(buildContext, OpWrapper.wrap(result.op()));
@@ -310,12 +310,12 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
     }
 
     @Override
-    public T lambda(C99HatBuildContext buildContext, LambdaOpWrapper lambdaOpWrapper) {
+    public T lambda(CodeBuilderContext buildContext, LambdaOpWrapper lambdaOpWrapper) {
         return commented("/*LAMBDA*/");
     }
 
     @Override
-    public T tuple(C99HatBuildContext buildContext, TupleOpWrapper tupleOpWrapper) {
+    public T tuple(CodeBuilderContext buildContext, TupleOpWrapper tupleOpWrapper) {
         StreamCounter.of(tupleOpWrapper.operands(), (c, operand) -> {
             if (c.isNotFirst()) {
                 comma().space();
@@ -330,7 +330,7 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
     }
 
     @Override
-    public T funcCall(C99HatBuildContext buildContext, FuncCallOpWrapper funcCallOpWrapper) {
+    public T funcCall(CodeBuilderContext buildContext, FuncCallOpWrapper funcCallOpWrapper) {
         var functionCallName = funcCallOpWrapper.funcName();
 
 
@@ -348,7 +348,7 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
     }
 
     @Override
-    public T javaLabeled(C99HatBuildContext buildContext, JavaLabeledOpWrapper javaLabeledOpWrapper) {
+    public T javaLabeled(CodeBuilderContext buildContext, JavaLabeledOpWrapper javaLabeledOpWrapper) {
         var labelNameOp = OpWrapper.wrap(javaLabeledOpWrapper.firstBlockOfFirstBody().ops().get(0));
         CoreOp.ConstantOp constantOp = (CoreOp.ConstantOp) labelNameOp.op();
         literal(constantOp.value().toString()).colon().nl();
@@ -358,7 +358,7 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
         return self();
     }
 
-    public T javaBreak(C99HatBuildContext buildContext, JavaBreakOpWrapper javaBreakOpWrapper) {
+    public T javaBreak(CodeBuilderContext buildContext, JavaBreakOpWrapper javaBreakOpWrapper) {
         breakKeyword();
         if (javaBreakOpWrapper.hasOperands() && javaBreakOpWrapper.operandNAsResult(0) instanceof Op.Result result) {
             space();
@@ -369,13 +369,13 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
         return self();
     }
 
-    public T javaContinue(C99HatBuildContext buildContext, JavaContinueOpWrapper javaContinueOpWrapper) {
+    public T javaContinue(CodeBuilderContext buildContext, JavaContinueOpWrapper javaContinueOpWrapper) {
         if (javaContinueOpWrapper.hasOperands()
                 && javaContinueOpWrapper.operandNAsResult(0) instanceof Op.Result result
                 && result.op() instanceof CoreOp.ConstantOp c
         ) {
             continueKeyword().space().literal(c.value().toString());
-        } else if (buildContext.scope.parent instanceof C99HatBuildContext.LoopScope<?>) {
+        } else if (buildContext.scope.parent instanceof CodeBuilderContext.LoopScope<?>) {
             // nope
         } else {
             continueKeyword();
@@ -385,7 +385,7 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
     }
 
     @Override
-    public T javaIf(C99HatBuildContext buildContext, IfOpWrapper ifOpWrapper) {
+    public T javaIf(CodeBuilderContext buildContext, IfOpWrapper ifOpWrapper) {
         buildContext.scope(ifOpWrapper, () -> {
             boolean[] lastWasBody = new boolean[]{false};
             StreamCounter.of(ifOpWrapper.bodies(), (c, b) -> {
@@ -419,7 +419,7 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
     }
 
     @Override
-    public T javaWhile(C99HatBuildContext buildContext, WhileOpWrapper whileOpWrapper) {
+    public T javaWhile(CodeBuilderContext buildContext, WhileOpWrapper whileOpWrapper) {
         whileKeyword().paren(_ ->
                 whileOpWrapper.conditionWrappedYieldOpStream().forEach((wrapped) -> recurse(buildContext, wrapped))
         ).braceNlIndented(_ ->
@@ -431,7 +431,7 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
     }
 
     @Override
-    public T javaFor(C99HatBuildContext buildContext, ForOpWrapper forOpWrapper) {
+    public T javaFor(CodeBuilderContext buildContext, ForOpWrapper forOpWrapper) {
         buildContext.scope(forOpWrapper, () ->
                 forKeyword().paren(_ -> {
                     forOpWrapper.initWrappedYieldOpStream().forEach((wrapped) -> recurse(buildContext, wrapped));
@@ -522,12 +522,12 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
         return self();
     }
 
-    public T atomicInc(C99HatBuildContext buildContext, Op.Result instanceResult, String name) {
+    public T atomicInc(CodeBuilderContext buildContext, Op.Result instanceResult, String name) {
         throw new IllegalStateException("atomicInc not implemented");
     }
 
     @Override
-    public T methodCall(C99HatBuildContext buildContext, InvokeOpWrapper invokeOpWrapper) {
+    public T methodCall(CodeBuilderContext buildContext, InvokeOpWrapper invokeOpWrapper) {
         var name = invokeOpWrapper.name();
 
         if (invokeOpWrapper.isIfaceBufferMethod()) {
@@ -652,7 +652,7 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
     }
 
     @Override
-    public T ternary(C99HatBuildContext buildContext, TernaryOpWrapper ternaryOpWrapper) {
+    public T ternary(CodeBuilderContext buildContext, TernaryOpWrapper ternaryOpWrapper) {
         ternaryOpWrapper.conditionWrappedYieldOpStream().forEach((wrapped) -> recurse(buildContext, wrapped));
         questionMark();
         ternaryOpWrapper.thenWrappedYieldOpStream().forEach((wrapped) -> recurse(buildContext, wrapped));
@@ -670,25 +670,25 @@ public abstract class C99HatBuilder<T extends C99HatBuilder<T>> extends C99CodeB
      * @param child
      */
     @Override
-    public T parencedence(C99HatBuildContext buildContext, Op parent, OpWrapper<?> child) {
+    public T parencedence(CodeBuilderContext buildContext, Op parent, OpWrapper<?> child) {
         return parenWhen(precedenceOf(parent) < precedenceOf(child.op()), _ -> recurse(buildContext, child));
     }
 
-    public T parencedence(C99HatBuildContext buildContext, OpWrapper<?> parent, OpWrapper<?> child) {
+    public T parencedence(CodeBuilderContext buildContext, OpWrapper<?> parent, OpWrapper<?> child) {
         return parenWhen(precedenceOf(parent.op()) < precedenceOf(child.op()), _ -> recurse(buildContext, child));
     }
 
-    public T parencedence(C99HatBuildContext buildContext, Op parent, Op child) {
+    public T parencedence(CodeBuilderContext buildContext, Op parent, Op child) {
         return parenWhen(precedenceOf(parent) < precedenceOf(child), _ -> recurse(buildContext, OpWrapper.wrap(child)));
     }
 
-    public T parencedence(C99HatBuildContext buildContext, OpWrapper<?> parent, Op child) {
+    public T parencedence(CodeBuilderContext buildContext, OpWrapper<?> parent, Op child) {
         return parenWhen(precedenceOf(parent.op()) < precedenceOf(child), _ -> recurse(buildContext, OpWrapper.wrap(child)));
     }
 
 
     @Override
-    public T ret(C99HatBuildContext buildContext, ReturnOpWrapper returnOpWrapper) {
+    public T ret(CodeBuilderContext buildContext, ReturnOpWrapper returnOpWrapper) {
         returnKeyword();
         if (returnOpWrapper.hasOperands()) {
             space().parencedence(buildContext, returnOpWrapper, returnOpWrapper.operandNAsResult(0).op());

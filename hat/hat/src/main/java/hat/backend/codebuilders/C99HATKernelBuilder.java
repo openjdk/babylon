@@ -22,7 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.backend.c99codebuilders;
+package hat.backend.codebuilders;
 
 
 import hat.buffer.Buffer;
@@ -38,8 +38,8 @@ import jdk.incubator.code.type.ClassType;
 import jdk.incubator.code.type.JavaType;
 import java.util.function.Consumer;
 
-public abstract class C99HatKernelBuilder<T extends C99HatKernelBuilder<T>> extends C99HatBuilder<T> {
-    public C99HatKernelBuilder() {
+public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends HATCodeBuilderWithContext<T> {
+    public C99HATKernelBuilder() {
 
     }
 
@@ -102,7 +102,7 @@ public abstract class C99HatKernelBuilder<T extends C99HatKernelBuilder<T>> exte
     }
 
     public T kernelMethod(KernelCallGraph.KernelReachableResolvedMethodCall kernelReachableResolvedMethodCall) {
-        C99HatBuildContext buildContext = new C99HatBuildContext(kernelReachableResolvedMethodCall.funcOpWrapper());
+        CodeBuilderContext buildContext = new CodeBuilderContext(kernelReachableResolvedMethodCall.funcOpWrapper());
         buildContext.scope(buildContext.funcOpWrapper, () -> {
             nl();
             functionDeclaration(buildContext.funcOpWrapper.getReturnType(), buildContext.funcOpWrapper.functionName());
@@ -125,7 +125,7 @@ public abstract class C99HatKernelBuilder<T extends C99HatKernelBuilder<T>> exte
     public T kernelEntrypoint(KernelEntrypoint kernelEntrypoint, Object[] args) {
 
         nl();
-        C99HatBuildContext buildContext = new C99HatBuildContext(kernelEntrypoint.funcOpWrapper());
+        CodeBuilderContext buildContext = new CodeBuilderContext(kernelEntrypoint.funcOpWrapper());
         //  System.out.print(kernelReachableResolvedMethodCall.funcOpWrapper().toText());
         buildContext.scope(buildContext.funcOpWrapper, () -> {
 
