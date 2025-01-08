@@ -474,6 +474,12 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
 
+    /**
+     * Returns the code model of the Quotable passed in.
+     * @param q the Quotable we want to get its code model.
+     * @return the code model of the Quotable passed in.
+     * @since 99
+     */
     public static Optional<Quoted> ofQuotable(Quotable q) {
         // Quotable is a marker interface with no method
         // the code here, expect class of object q to have the method: Quoted quoted()
