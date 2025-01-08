@@ -22,8 +22,33 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.backend.c99codebuilders;
+package hat.backend.codebuilders;
 
-public class HatComputeBuilder extends C99HatComputeBuilder<HatComputeBuilder> {
 
+import hat.optools.FuncOpWrapper;
+import hat.optools.StructuralOpWrapper;
+
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.type.JavaType;
+
+
+public  class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends HATCodeBuilderWithContext<T> {
+
+    public T computeDeclaration(TypeElement typeElement, String name) {
+        return typeName(typeElement.toString()).space().identifier(name);
+    }
+
+    public T compute(FuncOpWrapper funcOpWrapper) {
+        computeDeclaration(funcOpWrapper.functionReturnTypeDesc(), funcOpWrapper.functionName());
+        parenNlIndented(_ ->
+                commaSeparated(funcOpWrapper.paramTable.list(), (info) -> type((JavaType) info.parameter.type()).space().varName(info.varOp))
+        );
+        CodeBuilderContext buildContext = new CodeBuilderContext(funcOpWrapper);
+        braceNlIndented(_ ->
+                funcOpWrapper.wrappedRootOpStream(funcOpWrapper.firstBlockOfFirstBody()).forEach(root ->
+                        recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>)).nl()
+                ));
+
+        return self();
+    }
 }

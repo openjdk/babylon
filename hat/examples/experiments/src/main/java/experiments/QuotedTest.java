@@ -24,7 +24,7 @@
  */
 package experiments;
 
-import hat.backend.c99codebuilders.HatComputeBuilder;
+import hat.backend.codebuilders.C99HATComputeBuilder;
 import hat.optools.FuncOpWrapper;
 import hat.optools.OpWrapper;
 
@@ -76,7 +76,7 @@ public class QuotedTest {
                 });
 
         f.writeTo(System.out);
-        HatComputeBuilder codeBuilder = new HatComputeBuilder();
+        C99HATComputeBuilder codeBuilder = new C99HATComputeBuilder();
         FuncOpWrapper wf = OpWrapper.wrap(f);
         codeBuilder.compute(wf);
         System.out.println(codeBuilder);

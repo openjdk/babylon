@@ -24,14 +24,13 @@
  */
 package hat.backend.ffi;
 
-import hat.backend.c99codebuilders.C99HatBuildContext;
-import hat.backend.c99codebuilders.C99HatKernelBuilder;
+import hat.backend.codebuilders.C99HATKernelBuilder;
 import hat.optools.OpWrapper;
 
 import jdk.incubator.code.Op;
 import jdk.incubator.code.type.JavaType;
 
-public class OpenCLHatKernelBuilder extends C99HatKernelBuilder<OpenCLHatKernelBuilder> {
+public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelBuilder> {
     @Override
     public OpenCLHatKernelBuilder defines() {
         hashDefine("NDRANGE_OPENCL");
@@ -74,7 +73,7 @@ public class OpenCLHatKernelBuilder extends C99HatKernelBuilder<OpenCLHatKernelB
     }
 
     @Override
-    public OpenCLHatKernelBuilder atomicInc(C99HatBuildContext buildContext, Op.Result instanceResult, String name){
+    public OpenCLHatKernelBuilder atomicInc(CodeBuilderContext buildContext, Op.Result instanceResult, String name){
           return identifier("atomic_inc").paren(_ -> {
               ampersand().recurse(buildContext, OpWrapper.wrap(instanceResult.op()));
               rarrow().identifier(name);

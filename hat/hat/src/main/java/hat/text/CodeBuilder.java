@@ -525,6 +525,15 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
         });
         return self();
     }
+    public <I> T commaNlSeparated(Iterable<I> iterable, Consumer<I> c) {
+        StreamCounter.of(iterable, (counter, t) -> {
+            if (counter.isNotFirst()) {
+                comma().nl();
+            }
+            c.accept(t);
+        });
+        return self();
+    }
 
     public <I> T nlSeparated(Iterable<I> iterable, Consumer<I> c) {
         StreamCounter.of(iterable, (countStream, t) -> {
