@@ -123,8 +123,5 @@ public class Main {
                 System.out.println("Result is wrong!");
             }
         }
-
-
-
     }
 }
