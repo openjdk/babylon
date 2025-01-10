@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager" inherit-compiler-output="true">
+    <exclude-output />
+    <content url="file://$MODULE_DIR$/../backends/ffi/opencl">
+      <excludeFolder url="file://$MODULE_DIR$/../backends/ffi/opencl/cpp" />
+      <excludeFolder url="file://$MODULE_DIR$/../backends/ffi/opencl/include" />
+      <sourceFolder url="file://$MODULE_DIR$/../backends/ffi/opencl/src/main/java" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../backends/ffi/opencl/src/main/resources" type="java-resource" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module" module-name="hat" />
+    <orderEntry type="module" module-name="backend_ffi_shared" />
+  </component>
+</module>

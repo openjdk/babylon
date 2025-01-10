@@ -28,11 +28,18 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.api.extension.ParameterResolver;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.op.CoreOp;
@@ -107,6 +114,16 @@ public class TritonTestExtension implements ParameterResolver {
             TritonOps.ModuleOp actualTritonKernel = ScopedValue.callWhere(TritonTransformer.SV_SSA, doSSA,() -> {
                 return TritonTransformer.tritonModule(javaKernel, JavaType.VOID, argTypes);
             });
+
+            String mlirText = MLIRGenerator.transform(actualTritonKernel);
+            Path buildDir = Path.of(System.getProperty("project.build.directory", ""));
+            Path mlirDir = buildDir.resolve("mlir");
+            try {
+                Files.createDirectories(mlirDir);
+                Files.writeString(mlirDir.resolve(javaKernelName + ".mlir"), mlirText, StandardOpenOption.CREATE);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
 
             Assertions.assertEquals(
                     expectedTritonKernel == null ? "NO @TritonCodeModel" : expectedTritonKernel.toText(),

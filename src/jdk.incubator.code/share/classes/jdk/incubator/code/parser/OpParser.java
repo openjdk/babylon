@@ -162,6 +162,7 @@ public final class OpParser {
      * @param in the input string
      * @return the func operation
      */
+    //@@@ visit return type
     public static Op fromStringOfFuncOp(String in) {
         Op op = fromString(ExtendedOp.FACTORY, in).get(0);
         if (!(op instanceof CoreOp.FuncOp)) {

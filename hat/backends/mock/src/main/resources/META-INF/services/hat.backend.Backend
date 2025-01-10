@@ -1,3 +1,0 @@
-hat.backend.MockBackend
-hat.backend.JavaSequentialBackend
-hat.backend.JavaMultiThreadedBackend

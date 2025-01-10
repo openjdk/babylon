@@ -54,6 +54,7 @@ public class Main {
         );
     }
 
+
     public static void main(String[] args) {
         var lookup = java.lang.invoke.MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);//new JavaMultiThreadedBackend());

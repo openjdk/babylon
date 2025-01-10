@@ -101,6 +101,8 @@ import java.util.function.Supplier;
 
 import static com.sun.tools.javac.code.Flags.NOOUTERTHIS;
 import static com.sun.tools.javac.code.Flags.PARAMETER;
+import static com.sun.tools.javac.code.Flags.PUBLIC;
+import static com.sun.tools.javac.code.Flags.STATIC;
 import static com.sun.tools.javac.code.Flags.SYNTHETIC;
 import static com.sun.tools.javac.code.Kinds.Kind.MTH;
 import static com.sun.tools.javac.code.Kinds.Kind.TYP;
@@ -203,9 +205,8 @@ public class ReflectMethods extends TreeTranslator {
                     // dump the method IR if requested
                     log.note(MethodIrDump(tree.sym.enclClass(), tree.sym, funcOp.toText()));
                 }
-                // create a static final field holding the op' string text.
-                // The name of the field is foo$op, where 'foo' is the name of the corresponding method.
-                classOps.add(opFieldDecl(methodName(bodyScanner.symbolToErasedMethodRef(tree.sym)), tree.getModifiers().flags, funcOp));
+                // create a static method that returns the op
+                classOps.add(opMethodDecl(methodName(bodyScanner.symbolToErasedMethodRef(tree.sym)), funcOp));
             } catch (UnsupportedASTException ex) {
                 // whoops, some AST node inside the method body were not supported. Log it and move on.
                 log.note(ex.tree, MethodIrSkip(tree.sym.enclClass(), tree.sym, ex.tree.getTag().toString()));
@@ -252,24 +253,23 @@ public class ReflectMethods extends TreeTranslator {
                     // dump the method IR if requested
                     log.note(QuotedIrDump(funcOp.toText()));
                 }
-                // create a static final field holding the op' string text.
-                // The name of the field is foo$op, where 'foo' is the name of the corresponding method.
-                JCVariableDecl opField = opFieldDecl(lambdaName(), 0, funcOp);
-                classOps.add(opField);
+                // create a static method that returns the FuncOp representing the lambda
+                JCMethodDecl opMethod = opMethodDecl(lambdaName(), funcOp);
+                classOps.add(opMethod);
 
                 switch (kind) {
                     case QUOTED_STRUCTURAL -> {
                         // @@@ Consider replacing with invokedynamic to quoted bootstrap method
                         // Thereby we avoid certain dependencies and hide specific details
-                        JCIdent opFieldId = make.Ident(opField.sym);
+                        JCIdent opMethodId = make.Ident(opMethod.sym);
                         ListBuffer<JCExpression> interpreterArgs = new ListBuffer<>();
                         // Obtain MethodHandles.lookup()
                         // @@@ Could probably use MethodHandles.publicLookup()
                         JCMethodInvocation lookup = make.App(make.Ident(crSyms.methodHandlesLookup), com.sun.tools.javac.util.List.nil());
                         interpreterArgs.append(lookup);
                         // Deserialize the func operation
-                        JCMethodInvocation parsedOp = make.App(make.Ident(crSyms.opParserFromString), com.sun.tools.javac.util.List.of(opFieldId));
-                        interpreterArgs.append(parsedOp);
+                        JCMethodInvocation op = make.App(opMethodId);
+                        interpreterArgs.append(op);
                         // Append captured vars
                         ListBuffer<JCExpression> capturedArgs = quotedCapturedArgs(tree, bodyScanner);
                         interpreterArgs.appendList(capturedArgs.toList());
@@ -282,7 +282,7 @@ public class ReflectMethods extends TreeTranslator {
                     }
                     case QUOTABLE -> {
                         // leave the lambda in place, but also leave a trail for LambdaToMethod
-                        tree.codeModel = opField.sym;
+                        tree.codeModel = opMethod.sym;
                         super.visitLambda(tree);
                     }
                 }
@@ -314,11 +314,10 @@ public class ReflectMethods extends TreeTranslator {
                     // dump the method IR if requested
                     log.note(QuotedIrDump(funcOp.toText()));
                 }
-                // create a static final field holding the op' string text.
-                // The name of the field is foo$op, where 'foo' is the name of the corresponding method.
-                JCVariableDecl opField = opFieldDecl(lambdaName(), 0, funcOp);
-                classOps.add(opField);
-                tree.codeModel = opField.sym;
+                // create a method that returns the FuncOp representing the lambda
+                JCMethodDecl opMethod = opMethodDecl(lambdaName(), funcOp);
+                classOps.add(opMethod);
+                tree.codeModel = opMethod.sym;
                 super.visitReference(tree);
                 if (recvDecl != null) {
                     result = copyReferenceWithReceiverVar(tree, recvDecl);
@@ -389,16 +388,19 @@ public class ReflectMethods extends TreeTranslator {
         return names.fromChars(sigCh, 0, sigCh.length);
     }
 
-    private JCVariableDecl opFieldDecl(Name prefix, long flags, CoreOp.FuncOp op) {
-        VarSymbol opFieldSym = new VarSymbol(flags | Flags.STATIC | Flags.FINAL | Flags.SYNTHETIC,
-                prefix.append('$', names.fromString("op")),
-                syms.stringType,
-                currentClassSym);
+    private JCMethodDecl opMethodDecl(Name methodName, CoreOp.FuncOp op) {
+        var mt = new MethodType(com.sun.tools.javac.util.List.nil(), crSyms.funcOpType,
+                com.sun.tools.javac.util.List.nil(), syms.methodClass);
+        var mn = names.fromString("op$").append(methodName);
+        var ms = new MethodSymbol(PUBLIC | STATIC | SYNTHETIC, mn, mt, currentClassSym);
+        currentClassSym.members().enter(ms);
 
-        currentClassSym.members().enter(opFieldSym);
-        JCLiteral opText = make.Literal(op.toText());
-        JCVariableDecl opFieldTree = make.VarDef(opFieldSym, opText);
-        return opFieldTree;
+        var opFromStr = make.App(make.Ident(crSyms.opParserFromString),
+                com.sun.tools.javac.util.List.of(make.Literal(op.toText())));
+        var ret = make.Return(make.TypeCast(crSyms.funcOpType, opFromStr));
+
+        var md = make.MethodDef(ms, make.Block(0, com.sun.tools.javac.util.List.of(ret)));
+        return md;
     }
 
     public JCTree translateTopLevelClass(JCTree cdef, TreeMaker make) {

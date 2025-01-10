@@ -336,7 +336,7 @@ import sun.invoke.util.Wrapper;
                 }
 
                 // if quotable, generate the field that will hold the value of quoted
-                if (quotableOpField != null) {
+                if (quotableOpGetter != null) {
                     clb.withField(quotedInstanceFieldName, CodeReflectionSupport.CD_Quoted, ACC_PRIVATE + ACC_FINAL);
                 }
 
@@ -367,7 +367,7 @@ import sun.invoke.util.Wrapper;
                 else if (finalAccidentallySerializable)
                     generateSerializationHostileMethods(clb);
 
-                if (quotableOpField != null) {
+                if (quotableOpGetter != null) {
                     generateQuotableMethod(clb);
                 }
             }
@@ -378,10 +378,10 @@ import sun.invoke.util.Wrapper;
         try {
             // this class is linked at the indy callsite; so define a hidden nestmate
             List<?> classdata;
-            if (useImplMethodHandle || quotableOpField != null) {
-                classdata = quotableOpField == null ?
+            if (useImplMethodHandle || quotableOpGetter != null) {
+                classdata = quotableOpGetter == null ?
                         List.of(implementation) :
-                        List.of(implementation, quotableOpField, CodeReflectionSupport.HANDLE_MAKE_QUOTED);
+                        List.of(implementation, quotableOpGetter, CodeReflectionSupport.HANDLE_MAKE_QUOTED);
             } else {
                 classdata = null;
             }
@@ -434,7 +434,7 @@ import sun.invoke.util.Wrapper;
                             cob.loadLocal(TypeKind.from(argType), cob.parameterSlot(i));
                             cob.putfield(pool.fieldRefEntry(lambdaClassEntry, pool.nameAndTypeEntry(argNames[i], argDescs[i])));
                         }
-                        if (quotableOpField != null) {
+                        if (quotableOpGetter != null) {
                             generateQuotedFieldInitializer(cob);
                         }
                         cob.return_();
@@ -451,8 +451,8 @@ import sun.invoke.util.Wrapper;
            .ldc(cp.constantDynamicEntry(cp.bsmEntry(bsmDataAt, List.of(cp.intEntry(2))), natMH))
         // load op string from field
            .ldc(cp.constantDynamicEntry(cp.bsmEntry(bsmDataAt, List.of(cp.intEntry(1))), natMH));
-        MethodType mtype = quotableOpFieldInfo.getMethodType();
-        if (quotableOpFieldInfo.getReferenceKind() != MethodHandleInfo.REF_getStatic) {
+        MethodType mtype = quotableOpGetterInfo.getMethodType();
+        if (quotableOpGetterInfo.getReferenceKind() != MethodHandleInfo.REF_invokeStatic) {
             mtype = mtype.insertParameterTypes(0, implClass);
         }
         cob.invokevirtual(CD_MethodHandle, "invokeExact", mtype.describeConstable().get());
@@ -472,7 +472,7 @@ import sun.invoke.util.Wrapper;
             cob.aastore();
         }
 
-        // now create a Quoted from String and captured args Object[]
+        // Create a Quoted from FuncOp and captured args Object[]
 
         cob.invokevirtual(CD_MethodHandle, "invokeExact", methodDesc(CodeReflectionSupport.HANDLE_MAKE_QUOTED.type()))
            .putfield(lambdaClassEntry.asSymbol(), quotedInstanceFieldName, CodeReflectionSupport.CD_Quoted);
@@ -486,14 +486,13 @@ import sun.invoke.util.Wrapper;
         static {
             try {
                 ModuleLayer layer = codeLayer();
-                QUOTED_CLASS = layer.findLoader("jdk.incubator.code")
-                        .loadClass("jdk.incubator.code.Quoted");
-                QUOTABLE_CLASS = layer.findLoader("jdk.incubator.code")
-                        .loadClass("jdk.incubator.code.Quotable");
-                Class<?> quotedHelper = layer.findLoader("jdk.incubator.code")
-                        .loadClass("jdk.incubator.code.internal.QuotedHelper");
+                ClassLoader cl = layer.findLoader("jdk.incubator.code");
+                QUOTED_CLASS = cl.loadClass("jdk.incubator.code.Quoted");
+                QUOTABLE_CLASS = cl.loadClass("jdk.incubator.code.Quotable");
+                Class<?> quotedHelper = cl.loadClass("jdk.incubator.code.internal.QuotedHelper");
+                Class<?> funcOp = cl.loadClass("jdk.incubator.code.op.CoreOp$FuncOp");
                 MethodHandle makeQuoted = Lookup.IMPL_LOOKUP.findStatic(quotedHelper, "makeQuoted",
-                        MethodType.methodType(QUOTED_CLASS, MethodHandles.Lookup.class, String.class, Object[].class));
+                        MethodType.methodType(QUOTED_CLASS, MethodHandles.Lookup.class, funcOp, Object[].class));
                 HANDLE_MAKE_QUOTED = makeQuoted.bindTo(Lookup.IMPL_LOOKUP);
             } catch (Throwable ex) {
                 throw new ExceptionInInitializerError(ex);
