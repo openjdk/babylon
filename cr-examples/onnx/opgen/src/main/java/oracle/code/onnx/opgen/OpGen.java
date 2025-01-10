@@ -80,7 +80,7 @@ public class OpGen {
         IndentWriter w = new IndentWriter(sw, 4);
 
         w.write("@OpFactory.OpDeclaration(" + s.name() + ".NAME)\n");
-        w.write("public static final class "+ s.name() + " extends OnnxOp {\n");
+        w.write("public static final class " + s.name() + " extends OnnxOp {\n");
         w.in();
 
         w.write("public static final String NAME = \"" + s.name() + "\";\n");
@@ -96,6 +96,10 @@ public class OpGen {
 
         w.out();
         w.write("}\n");
+        w.write("\n");
+
+        genFactory(w, s);
+
         return sw.toString();
     }
 
@@ -115,7 +119,8 @@ public class OpGen {
                 case GRAPHS -> {
                     throw new UnsupportedOperationException("Graph attribute unsupported, " + a.name());
                 }
-                default -> {}
+                default -> {
+                }
             }
             w.write(a.name());
             w.write("(");
@@ -160,7 +165,7 @@ public class OpGen {
         w.write("\n");
     }
 
-    private void genFields(IndentWriter w, OpSchema s) throws IOException{
+    private void genFields(IndentWriter w, OpSchema s) throws IOException {
         if (s.attributes().isEmpty()) {
             return;
         }
@@ -201,6 +206,9 @@ public class OpGen {
 
 
         w.write(s.name() + "(");
+
+        // Result type parameter
+        w.write("TypeElement resultType, ");
 
         boolean first = true;
         for (OpSchema.FormalParameter inParam : s.inputs()) {
@@ -254,7 +262,7 @@ public class OpGen {
         w.write(") {\n");
         w.in();
 
-        w.write("super(NAME, List.of(");
+        w.write("super(NAME, resultType, List.of(");
         first = true;
         for (OpSchema.FormalParameter inParam : s.inputs()) {
             if (!first) {
@@ -283,46 +291,94 @@ public class OpGen {
             }
             w.write("this.attributes = Map.copyOf(attrs);\n");
         }
-        
+
         w.out();
         w.write("}\n");
         w.write("\n");
     }
 
     private void genMethods(IndentWriter w, OpSchema s) throws IOException {
-        OpSchema.FormalParameter outParam = s.outputs().getFirst();
-        if (s.min_output() == 1 && s.max_output() == 1) {
-            switch (outParam.option()) {
-                case Single -> {
-                    String s1 = outParam.type_str();
-                    int i = 0;
-                    for (OpSchema.FormalParameter input : s.inputs()) {
-                        if (s1.equals(input.type_str())) {
-                            break;
-                        }
-                        i++;
-                    }
-                    if (i < s.inputs().size()) {
-                        w.write("@Override\n");
-                        w.write("public TypeElement resultType() {\n");
-                        w.write("    return operands().get(" + i + ").type();\n");
-                        w.write("}\n");
-                        w.write("\n");
-                    } else {
-                        throw new UnsupportedOperationException("Result type independent of input types, " + s1);
-                    }
-                }
-                case Optional -> {
-                    throw new UnsupportedOperationException("Optional formal output parameter unsupported");
-                }
-                case Variadic -> {
-                    throw new UnsupportedOperationException("Variadic formal output parameter unsupported");
-                }
-            }
-        } else {
-            throw new UnsupportedOperationException("Multiple formal output parameters unsupported, " +
-                    "min " + s.min_output() + " max " + s.max_output());
-        }
+        // Result
+        // @@@ result type needs to be computed possibly using broadcasting rules, it is not
+        // simply the same as an input operand's type
+//        OpSchema.FormalParameter outParam = s.outputs().getFirst();
+//        if (s.min_output() == 1 && s.max_output() == 1) {
+//            switch (outParam.option()) {
+//                case Single -> {
+//                    // Find if the output type string is also used by a required input
+//                    String outputTypeString = outParam.type_str();
+//                    int i = 0;
+//                    for (OpSchema.FormalParameter input : s.inputs()) {
+//                        if (input.option() == Single && outputTypeString.equals(input.type_str())) {
+//                            break;
+//                        }
+//                        i++;
+//                    }
+//                    if (i < s.inputs().size()) {
+//                        // Result type is the same as one of the required input types
+//                        // @@@ Does it have the same shape?
+//                        w.write("@Override\n");
+//                        w.write("public TypeElement resultType() {\n");
+//                        w.write("    return operands().get(" + i + ").type();\n");
+//                        w.write("}\n");
+//                        w.write("\n");
+//                    } else {
+//                        // Find the output type constraint from output type string
+//                        Optional<OpSchema.TypeConstraintParam> oOutTcp = s.type_constraints().stream()
+//                                .filter(tc -> tc.type_param_str().equals(outputTypeString)).findFirst();
+//                        if (oOutTcp.isEmpty()) {
+//                            // Result type is literal, but we don't know its shape
+//                            String literalTypeString = outputTypeString;
+//                            throw new UnsupportedOperationException("Result type is literal with unknown shape, " + literalTypeString);
+//                        } else {
+//                            // See And operator for example
+//                            // If there is an input with a different type string
+//                            // but with the same with same output type constraints
+//                            OpSchema.TypeConstraintParam outTcp = oOutTcp.get();
+//                            if (outTcp.allowed_type_strs().size() == 1) {
+//                                i = 0;
+//                                for (OpSchema.FormalParameter input : s.inputs()) {
+//                                    // Find the input type constraint from input type string
+//                                    Optional<OpSchema.TypeConstraintParam> oInTcp = s.type_constraints().stream()
+//                                            .filter(tc -> tc.type_param_str().equals(input.type_str())).findFirst();
+//                                    if (input.option() == Single && oInTcp.isPresent()) {
+//                                        OpSchema.TypeConstraintParam inTcp = oInTcp.get();
+//                                        if (outTcp.allowed_type_strs().equals(inTcp.allowed_type_strs())) {
+//                                            break;
+//                                        }
+//                                    }
+//                                    i++;
+//                                }
+//                                if (i < s.inputs().size()) {
+//                                    // Result type is the same as one of the required input types
+//                                    // @@@ Does it have the same shape?
+//                                    w.write("@Override\n");
+//                                    w.write("public TypeElement resultType() {\n");
+//                                    w.write("    return operands().get(" + i + ").type();\n");
+//                                    w.write("}\n");
+//                                    w.write("\n");
+//                                    break;
+//                                } else {
+//                                    // Result type is literal, but we don't know its shape
+//                                    String literalTypeString = outTcp.allowed_type_strs().getFirst();
+//                                    throw new UnsupportedOperationException("Result type is literal with unknown shape, " + literalTypeString);
+//                                }
+//                            }
+//                        }
+//                        throw new UnsupportedOperationException("Result type independent of input types, " + outputTypeString);
+//                    }
+//                }
+//                case Optional -> {
+//                    throw new UnsupportedOperationException("Optional formal output parameter unsupported");
+//                }
+//                case Variadic -> {
+//                    throw new UnsupportedOperationException("Variadic formal output parameter unsupported");
+//                }
+//            }
+//        } else {
+//            throw new UnsupportedOperationException("Multiple formal output parameters unsupported, " +
+//                    "min " + s.min_output() + " max " + s.max_output());
+//        }
 
         // Parameters
 
@@ -380,6 +436,94 @@ public class OpGen {
             w.write("}\n");
             w.write("\n");
         }
+    }
+
+    private void genFactory(IndentWriter w, OpSchema s) throws IOException {
+        w.write("public static " + s.name() + " " + s.name() + "(");
+
+        // Result type parameter
+        w.write("TypeElement resultType, ");
+
+        boolean first = true;
+        for (OpSchema.FormalParameter inParam : s.inputs()) {
+            if (!first) {
+                w.write(", ");
+            }
+
+            switch (inParam.option()) {
+                case Single -> {
+                    w.write("Value");
+                }
+                case Optional -> {
+                    throw new UnsupportedOperationException("Optional formal input parameter unsupported, " +
+                            inParam.name());
+                }
+                case Variadic -> {
+                    throw new UnsupportedOperationException("Variadic formal input parameter unsupported, " +
+                            inParam.name());
+                }
+            }
+            w.write(" ");
+            w.write(inParam.name());
+
+            first = false;
+        }
+
+        for (OpSchema.Attribute attribute : s.attributes()) {
+            if (!first) {
+                w.write(", ");
+            }
+
+            OpSchema.AttributeType aType = attribute.type();
+            Class<?> type = switch (aType) {
+                // @@@ sub-graphs have inputs and outputs
+                case GRAPH -> throw new UnsupportedOperationException("Graph attribute unsupported");
+                default -> aType.type();
+            };
+            if (attribute.required()) {
+                w.write(type.getSimpleName());
+            } else {
+                w.write("Optional<");
+                w.write(toBoxType(type).getSimpleName());
+                w.write(">");
+            }
+            w.write(" ");
+            w.write(attribute.name());
+
+            first = false;
+        }
+
+        w.write(") {\n");
+        w.in();
+
+        w.write("return new " + s.name() + "(");
+
+        w.write("resultType, ");
+
+        first = true;
+        for (OpSchema.FormalParameter inParam : s.inputs()) {
+            if (!first) {
+                w.write(", ");
+            }
+
+            w.write(inParam.name());
+
+            first = false;
+        }
+
+        for (OpSchema.Attribute attribute : s.attributes()) {
+            if (!first) {
+                w.write(", ");
+            }
+
+            w.write(attribute.name());
+
+            first = false;
+        }
+
+        w.write(");\n");
+        w.out();
+        w.write("}\n");
     }
 
     static String toJavaIdentifier(String type_str) {

@@ -2,7 +2,6 @@ package oracle.code.onnx.ir;
 
 import jdk.incubator.code.*;
 import jdk.incubator.code.op.OpFactory;
-import jdk.incubator.code.type.TupleType;
 
 import java.util.*;
 
@@ -79,12 +78,8 @@ public final class OnnxOpsProto {
             return new Add(this, cc);
         }
 
-        Add(Value A, Value B) {
-            super(NAME, List.of(A, B));
-        }
-
-        public TypeElement resultType() {
-            return operands().get(0).type();
+        Add(TypeElement resultType, Value A, Value B) {
+            super(NAME, resultType, List.of(A, B));
         }
 
         public SequencedSet<OnnxParameter> onnxOutputs() {
@@ -111,8 +106,8 @@ public final class OnnxOpsProto {
         }
     }
 
-    public static Add Add(Value A, Value B) {
-        return new Add(A, B);
+    public static Add Add(TypeElement resultType, Value A, Value B) {
+        return new Add(resultType, A, B);
     }
 
     @OpFactory.OpDeclaration(AveragePool.NAME)
@@ -174,7 +169,8 @@ public final class OnnxOpsProto {
             return new AveragePool(this, cc);
         }
 
-        AveragePool(Value X,
+        AveragePool(TypeElement resultType,
+                    Value X,
                     Optional<int[]> pads,
                     Optional<int[]> dilations,
                     Optional<String> auto_pad,
@@ -182,7 +178,7 @@ public final class OnnxOpsProto {
                     Optional<Integer> ceil_mode,
                     Optional<int[]> strides,
                     int[] kernel_shape) {
-            super(NAME, List.of(X));
+            super(NAME, resultType, List.of(X));
 
             // @@@ Validate type constraints for X
 
@@ -195,10 +191,6 @@ public final class OnnxOpsProto {
             Attribute.strides.process(attrs, strides);
             Attribute.kernel_shape.process(attrs, kernel_shape);
             this.attributes = Map.copyOf(attrs);
-        }
-
-        public TypeElement resultType() {
-            return operands().get(0).type();
         }
 
         @Override
@@ -257,7 +249,8 @@ public final class OnnxOpsProto {
         }
     }
 
-    public static AveragePool AveragePool(Value X,
+    public static AveragePool AveragePool(TypeElement resultType,
+                                          Value X,
                                           Optional<int[]> pads,
                                           Optional<int[]> dilations,
                                           Optional<String> auto_pad,
@@ -265,7 +258,7 @@ public final class OnnxOpsProto {
                                           Optional<Integer> ceil_mode,
                                           Optional<int[]> strides,
                                           int[] kernel_shape) {
-        return new AveragePool(X, pads, dilations, auto_pad, count_include_pad, ceil_mode, strides, kernel_shape);
+        return new AveragePool(resultType, X, pads, dilations, auto_pad, count_include_pad, ceil_mode, strides, kernel_shape);
     }
 
 
@@ -361,14 +354,15 @@ public final class OnnxOpsProto {
             return new DFT(this, cc);
         }
 
-        DFT(Value input,
+        DFT(TypeElement resultType,
+            Value input,
             // Optional operands
             Optional<Value> dft_length,
             Optional<Value> axis,
             // Attributes
             Optional<Integer> inverse,
             Optional<Integer> onesided) {
-            super(NAME, concatValues(input, dft_length, axis));
+            super(NAME, resultType, concatValues(input, dft_length, axis));
 
             this.optionalInputs = new ArrayList<>();
             if (dft_length.isPresent()) {
@@ -382,10 +376,6 @@ public final class OnnxOpsProto {
             Attribute.inverse.process(attrs, inverse);
             Attribute.onesided.process(attrs, onesided);
             this.attributes = Map.copyOf(attrs);
-        }
-
-        public TypeElement resultType() {
-            return operands().get(0).type();
         }
 
         @Override
@@ -448,12 +438,13 @@ public final class OnnxOpsProto {
         }
     }
 
-    public static DFT DFT(Value input,
+    public static DFT DFT(TypeElement resultType,
+                          Value input,
                           Optional<Value> dft_length,
                           Optional<Value> axis,
                           Optional<Integer> inverse,
                           Optional<Integer> onesided) {
-        return new DFT(input, dft_length, axis, inverse, onesided);
+        return new DFT(resultType, input, dft_length, axis, inverse, onesided);
     }
 
 
@@ -559,7 +550,8 @@ public final class OnnxOpsProto {
             return new SoftmaxCrossEntropyLoss(this, cc);
         }
 
-        SoftmaxCrossEntropyLoss(SequencedSet<OutputParameter> optionalOutputs,
+        SoftmaxCrossEntropyLoss(TypeElement resultType,
+                                SequencedSet<OutputParameter> optionalOutputs,
                                 // Required Operands
                                 Value scores,
                                 Value labels,
@@ -568,7 +560,7 @@ public final class OnnxOpsProto {
                                 // Attributes
                                 Optional<Integer> ignore_index,
                                 Optional<String> reduction) {
-            super(NAME, concatValues(scores, labels, weights));
+            super(NAME, resultType, concatValues(scores, labels, weights));
 
             this.optionalInputs = new ArrayList<>();
             if (weights.isPresent()) {
@@ -588,18 +580,18 @@ public final class OnnxOpsProto {
             this.attributes = Map.copyOf(attrs);
         }
 
-        public TypeElement resultType() {
-            List<TypeElement> types = new ArrayList<>();
-            types.add(operands().get(0).type());
-            if (optionalOutputs.contains(OutputParameter.log_prob)) {
-                types.add(operands().get(0).type());
-            }
-            if (types.size() == 1) {
-                return types.getFirst();
-            } else {
-                return TupleType.tupleType(types);
-            }
-        }
+//        public TypeElement resultType() {
+//            List<TypeElement> types = new ArrayList<>();
+//            types.add(operands().get(0).type());
+//            if (optionalOutputs.contains(OutputParameter.log_prob)) {
+//                types.add(operands().get(0).type());
+//            }
+//            if (types.size() == 1) {
+//                return types.getFirst();
+//            } else {
+//                return TupleType.tupleType(types);
+//            }
+//        }
 
         @Override
         public Map<String, Object> onnxAttributes() {
@@ -663,7 +655,8 @@ public final class OnnxOpsProto {
         }
     }
 
-    public SoftmaxCrossEntropyLoss SoftmaxCrossEntropyLoss(SequencedSet<SoftmaxCrossEntropyLoss.OutputParameter> optionalOutputs,
+    public SoftmaxCrossEntropyLoss SoftmaxCrossEntropyLoss(TypeElement resultType,
+                                                           SequencedSet<SoftmaxCrossEntropyLoss.OutputParameter> optionalOutputs,
                                                            // Required Operands
                                                            Value scores,
                                                            Value labels,
@@ -672,7 +665,7 @@ public final class OnnxOpsProto {
                                                            // Attributes
                                                            Optional<Integer> ignore_index,
                                                            Optional<String> reduction) {
-        return new SoftmaxCrossEntropyLoss(optionalOutputs, scores, labels, weights, ignore_index, reduction);
+        return new SoftmaxCrossEntropyLoss(resultType, optionalOutputs, scores, labels, weights, ignore_index, reduction);
     }
 
 
@@ -758,7 +751,7 @@ public final class OnnxOpsProto {
             return new Adagrad(this, cc);
         }
 
-        Adagrad(
+        Adagrad(TypeElement resultType,
                 // Required Operands
                 Value R,
                 Value T,
@@ -767,7 +760,7 @@ public final class OnnxOpsProto {
                 Optional<Float> norm_coefficient,
                 Optional<Float> decay_factor,
                 Optional<Float> epsilon) {
-            super(NAME, concatValues(R, T, inputs));
+            super(NAME, resultType, concatValues(R, T, inputs));
 
             Map<String, Object> attrs = new HashMap<>();
             Attribute.norm_coefficient.process(attrs, norm_coefficient);
@@ -776,10 +769,10 @@ public final class OnnxOpsProto {
             this.attributes = Map.copyOf(attrs);
         }
 
-        public TypeElement resultType() {
-            // @@@ Seq<T> size of N inputs or Tuple with N components
-            return operands().get(2).type();
-        }
+//        public TypeElement resultType() {
+//            // @@@ Seq<T> size of N inputs or Tuple with N components
+//            return operands().get(2).type();
+//        }
 
         @Override
         public Map<String, Object> onnxAttributes() {
@@ -839,16 +832,16 @@ public final class OnnxOpsProto {
         }
     }
 
-    public Adagrad Adagrad(
-            // Required Operands
-            Value R,
-            Value T,
-            List<Value> inputs,
-            // Attributes
-            Optional<Float> norm_coefficient,
-            Optional<Float> decay_factor,
-            Optional<Float> epsilon) {
-        return new Adagrad(R, T, inputs, norm_coefficient, decay_factor, epsilon);
+    public Adagrad Adagrad(TypeElement resultType,
+                           // Required Operands
+                           Value R,
+                           Value T,
+                           List<Value> inputs,
+                           // Attributes
+                           Optional<Float> norm_coefficient,
+                           Optional<Float> decay_factor,
+                           Optional<Float> epsilon) {
+        return new Adagrad(resultType, R, T, inputs, norm_coefficient, decay_factor, epsilon);
     }
 
 }
