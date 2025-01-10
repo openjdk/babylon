@@ -38,7 +38,6 @@ import com.sun.tools.javac.processing.JavacProcessingEnvironment;
 import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
 import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.util.Context;
-import jdk.incubator.code.internal.Quotable2;
 import jdk.incubator.code.internal.ReflectMethods;
 import jdk.incubator.code.op.CoreOp.FuncOp;
 import jdk.incubator.code.type.FunctionType;
@@ -481,21 +480,6 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * @since 99
      */
     public static Optional<Quoted> ofQuotable(Quotable q) {
-        // Quotable is a marker interface with no method
-        // the code here, expect class of object q to have the method: Quoted quoted()
-        // for lambda objects are created through LambdaMetaFactory, we know that their classes has the method
-        // for lambda objects created via interpreter, the proxy class implements Quotable2
-        // so the proxy class has the method
-        // but it's in a package that's not exported to this module
-        // so trying to do: method.setAccessible(true), will result in the error:
-        // module jdk.proxy2 does not "exports com.sun.proxy.jdk.proxy2" to module jdk.incubator.code
-        // that's why we do it differently by checking if q is instance of Quotable2
-
-        // also note that lambda classes created via LambdaMetaFactory, can't access Quotable2 because it's not exported
-
-        if (q instanceof Quotable2 q2) {
-            return Optional.of(q2.quoted());
-        }
         Method method;
         try {
             method = q.getClass().getMethod("quoted");
