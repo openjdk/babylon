@@ -433,3 +433,297 @@ public class OpGen {
 //        opGen.genOpsClass(new OutputStreamWriter(System.out));
     }
 }
+
+/*
+# Result types
+
+Skipping And: Result type independent of input types, T1
+- Two type constraints that are the same with one type "tensor(bool)"
+- Literal type, can be expressed directly
+
+Skipping ArgMax: Result type independent of input types, tensor(int64)
+Skipping ArgMin: Result type independent of input types, tensor(int64)
+- Literal type, can be expressed directly
+
+Skipping Bernoulli: Result type independent of input types, T2
+- Result type needs to be an explicit Java parameter
+
+Skipping Cast: Result type independent of input types, T2
+- int attribute "to" declares the element type of the returned tensor.
+  Must be one of the types from DataType enum in TensorProto
+- Result type needs to be an explicit Java parameter
+- How can we ensure attribute "to" and Result type are in sync
+- Requires custom code
+
+Skipping CastMap: Result type independent of input types, T2
+- String attribute "cast_to" declares output tensor type
+  "A string indicating the desired element type of the output tensor,
+   one of 'TO_FLOAT', 'TO_STRING', 'TO_INT64'."
+- input types are of map(int64, string) or map(int64, float)
+- Skip this operation?
+
+Skipping CategoryMapper: Result type independent of input types, T2
+- "Output data. If strings are input, the output values are integers, and vice versa."
+- Skip this operation?
+
+Skipping ConcatFromSequence: Result type independent of input types, T
+- Input is seq(tensor(T)), output is tensor(T)
+- Requires custom code
+
+Skipping Constant: Result type independent of input types, T
+- Result type derived from constant value
+- Constant value declared as specific attribute
+- Requires custom code
+
+Skipping ConstantOfShape: Result type independent of input types, T2
+- Constant value is one element tensor declared as attribute
+- Input, 1D tensor of int64 that is the shape
+- Requires custom code
+
+Skipping DictVectorizer: Result type independent of input types, T2
+- Input is map(string, T), output is tensor(T)
+- Requires custom code
+
+Skipping Equal: Result type independent of input types, T1
+- Result type constraint with just one type "tensor(bool)"
+- Literal type, can be expressed directly
+
+Skipping EyeLike: Result type independent of input types, T2
+- int attribute "dtype" declares the element type of the returned tensor.
+- Result type needs to be an explicit Java parameter
+- How can we ensure attribute "dtype" and Result type are in sync
+- Requires custom code
+
+Skipping Greater: Result type independent of input types, T1
+Skipping GreaterOrEqual: Result type independent of input types, T1
+- Result type constraint with just one type "tensor(bool)"
+- Literal type, can be expressed directly
+
+Skipping HammingWindow: Result type independent of input types, T2
+Skipping HannWindow: Result type independent of input types, T2
+- int attribute "output_datatype" declares the element type of the returned tensor.
+- Result type needs to be an explicit Java parameter
+- How can we ensure attribute "output_datatype" and Result type are in sync
+- Requires custom code
+
+Skipping ImageDecoder: Result type independent of input types, T2
+- Result type constraint with just one type "tensor(uint8)"
+- Literal type, can be expressed directly
+
+Skipping IsInf: Result type independent of input types, T2
+Skipping IsNaN: Result type independent of input types, T2
+- Result type constraint with just one type "tensor(bool)"
+- Literal type, can be expressed directly
+
+Skipping LabelEncoder: Result type independent of input types, T2
+- Attribute "values_T" is tensor(T) declared as attribute
+- Result type is tensor(T)
+- Requires custom code
+
+Skipping Less: Result type independent of input types, T1
+Skipping LessOrEqual: Result type independent of input types, T1
+- Result type constraint with just one type "tensor(bool)"
+- Literal type, can be expressed directly
+
+Skipping LinearRegressor: Result type independent of input types, tensor(float)
+- Literal type, can be expressed directly
+
+Skipping MelWeightMatrix: Result type independent of input types, T3
+- int attribute "output_datatype" declares the element type of the returned tensor.
+- Result type needs to be an explicit Java parameter
+- How can we ensure attribute "output_datatype" and Result type are in sync
+- Requires custom code
+
+Skipping Multinomial: Result type independent of input types, T2
+- *Optional* int attribute "dtype" declares the element type of the returned tensor,
+  default value is that for int32
+  Set is limited to int32 or int64
+- Requires custom code
+
+Skipping NonZero: Result type independent of input types, tensor(int64)
+Skipping Normalizer: Result type independent of input types, tensor(float)
+Skipping OneHotEncoder: Result type independent of input types, tensor(float)
+- Literal type, can be expressed directly
+
+Skipping OptionalGetElement: Result type independent of input types, V
+- input is tensor(T), seq(tensor(T)), optional(tensor(T)), optional(seq(tensor(T)))
+- output is tensor(T), seq(tensor(T))
+- Requires custom code
+
+Skipping Or: Result type independent of input types, T1
+- Result type constraint with just one type "tensor(bool)"
+- Literal type, can be expressed directly
+
+Skipping RandomNormal: Result type independent of input types, T
+- *Optional* int attribute "dtype" declares the element type of the returned tensor,
+  restricted to floats, default is float32
+- Requires custom code
+
+Skipping RandomNormalLike: Result type independent of input types, T2
+- *Optional* int attribute "dtype" declares the element type of the returned tensor,
+  restricted to floats. "if not specified, we will use the data type of the input tensor."
+- Requires custom code
+
+Skipping RandomUniform: Result type independent of input types, T
+- *Optional* int attribute "dtype" declares the element type of the returned tensor,
+  restricted to floats, default is float32
+- Requires custom code
+
+Skipping RandomUniformLike: Result type independent of input types, T2
+- *Optional* int attribute "dtype" declares the element type of the returned tensor,
+  restricted to floats. "if not specified, we will use the data type of the input tensor."
+- Requires custom code
+
+Skipping RegexFullMatch: Result type independent of input types, T2
+- Result type constraint with just one type "tensor(bool)"
+- Literal type, can be expressed directly
+
+Skipping SVMRegressor: Result type independent of input types, tensor(float)
+Skipping Scaler: Result type independent of input types, tensor(float)
+- Literal type, can be expressed directly
+
+Skipping SequenceAt: Result type independent of input types, T
+- Unclear if output tensor is same as input tensor, seems so
+- Requires custom code
+
+Skipping SequenceEmpty: Result type independent of input types, S
+- *Optional* int attribute "dtype" declares the element type of the returned tensor,
+  default value is that for float32
+- Requires custom code
+
+Skipping SequenceLength: Result type independent of input types, I
+Skipping Shape: Result type independent of input types, T1
+Skipping Size: Result type independent of input types, T1
+- Result type constraint with just one type "tensor(int64)"
+- Literal type, can be expressed directly
+
+Skipping TfIdfVectorizer: Result type independent of input types, T1
+- Result type constraint with just one type "tensor(float)"
+- Literal type, can be expressed directly
+
+Skipping TreeEnsembleRegressor: Result type independent of input types, tensor(float)
+- Literal type, can be expressed directly
+
+Skipping Xor: Result type independent of input types, T1
+- Result type constraint with just one type "tensor(bool)"
+- Literal type, can be expressed directly
+
+Skipping ZipMap: Result type independent of input types, T
+- Input is tensor(float)
+- Output is seq(map(int64,tensor(float))) or seq(map(string,tensor(float)))
+  depending on attribute "classlabels_int64s" or "classlabels_strings"
+- Requires custom code
+
+
+# Optional formal input parameter
+- optional parameters occur after single parameters in the sequence of input parameters
+- for code models we will require a code model operation attribute listing the present
+ input parameters. The production of this attribute can be hidden behind the
+ corresponding factory method.
+
+Skipping Clip: Optional formal input parameter unsupported, min
+Skipping Conv: Optional formal input parameter unsupported, B
+Skipping ConvInteger: Optional formal input parameter unsupported, x_zero_point
+Skipping ConvTranspose: Optional formal input parameter unsupported, B
+Skipping DFT: Optional formal input parameter unsupported, dft_length
+Skipping DeformConv: Optional formal input parameter unsupported, B
+Skipping DequantizeLinear: Optional formal input parameter unsupported, x_zero_point
+Skipping Dropout: Optional formal input parameter unsupported, ratio
+Skipping GRU: Optional formal input parameter unsupported, B
+Skipping Gemm: Optional formal input parameter unsupported, C
+Skipping LSTM: Optional formal input parameter unsupported, B
+Skipping LayerNormalization: Optional formal input parameter unsupported, B
+Skipping MatMulInteger: Optional formal input parameter unsupported, a_zero_point
+Skipping MaxUnpool: Optional formal input parameter unsupported, output_shape
+Skipping NegativeLogLikelihoodLoss: Optional formal input parameter unsupported, weight
+Skipping NonMaxSuppression: Optional formal input parameter unsupported, max_output_boxes_per_class
+Skipping Optional: Optional formal input parameter unsupported, input
+Skipping OptionalHasElement: Optional formal input parameter unsupported, input
+Skipping Pad: Optional formal input parameter unsupported, constant_value
+Skipping QLinearConv: Optional formal input parameter unsupported, B
+Skipping QuantizeLinear: Optional formal input parameter unsupported, y_zero_point
+Skipping RNN: Optional formal input parameter unsupported, B
+Skipping ReduceL1: Optional formal input parameter unsupported, axes
+Skipping ReduceL2: Optional formal input parameter unsupported, axes
+Skipping ReduceLogSum: Optional formal input parameter unsupported, axes
+Skipping ReduceLogSumExp: Optional formal input parameter unsupported, axes
+Skipping ReduceMax: Optional formal input parameter unsupported, axes
+Skipping ReduceMean: Optional formal input parameter unsupported, axes
+Skipping ReduceMin: Optional formal input parameter unsupported, axes
+Skipping ReduceProd: Optional formal input parameter unsupported, axes
+Skipping ReduceSum: Optional formal input parameter unsupported, axes
+Skipping ReduceSumSquare: Optional formal input parameter unsupported, axes
+Skipping Resize: Optional formal input parameter unsupported, roi
+Skipping STFT: Optional formal input parameter unsupported, window
+Skipping SequenceErase: Optional formal input parameter unsupported, position
+Skipping SequenceInsert: Optional formal input parameter unsupported, position
+Skipping Slice: Optional formal input parameter unsupported, axes
+Skipping SoftmaxCrossEntropyLoss: Optional formal input parameter unsupported, weights
+Skipping Split: Optional formal input parameter unsupported, split
+Skipping SplitToSequence: Optional formal input parameter unsupported, split
+Skipping Squeeze: Optional formal input parameter unsupported, axes
+Skipping Trilu: Optional formal input parameter unsupported, k
+
+
+# Variadic formal input parameter
+- the single variadic parameter occurs last in the sequence of input parameters
+- if is_homogeneous == false, it is presumable a union of any of the set of types
+in the given type constraints, otherwise it is just one
+
+Skipping Adagrad: Variadic formal input parameter unsupported, inputs
+Skipping Adam: Variadic formal input parameter unsupported, inputs
+Skipping Concat: Variadic formal input parameter unsupported, inputs
+Skipping Einsum: Variadic formal input parameter unsupported, Inputs
+Skipping FeatureVectorizer: Variadic formal input parameter unsupported, X
+Skipping Gradient: Variadic formal input parameter unsupported, Inputs
+Skipping Max: Variadic formal input parameter unsupported, data_0
+Skipping Mean: Variadic formal input parameter unsupported, data_0
+Skipping Min: Variadic formal input parameter unsupported, data_0
+Skipping Momentum: Variadic formal input parameter unsupported, inputs
+Skipping SequenceConstruct: Variadic formal input parameter unsupported, inputs
+Skipping Sum: Variadic formal input parameter unsupported, data_0
+
+
+# Multiple formal output parameters
+- Optional parameters are requested by the "caller"
+- Some outputs are variadic (confusing term applied to outputs).
+  If is_homogeneous == false, it is presumable a union of any of the set of types
+  in the given type constraints, otherwise it is just one
+  - Represent as sequence
+- For non-variadic represent as tuple, which could also identify the present
+optional output parameters in its type. For code models we will require a code model
+operation attribute listing the present output parameters. The production of
+this attribute can be hidden behind the corresponding factory method.
+
+Skipping BatchNormalization: Multiple formal output parameters unsupported, min 1 max 3
+Skipping DynamicQuantizeLinear: Multiple formal output parameters unsupported, min 3 max 3
+Skipping LinearClassifier: Multiple formal output parameters unsupported, min 2 max 2
+Skipping MaxPool: Multiple formal output parameters unsupported, min 1 max 2
+Skipping SVMClassifier: Multiple formal output parameters unsupported, min 2 max 2
+Skipping StringSplit: Multiple formal output parameters unsupported, min 2 max 2
+Skipping TopK: Multiple formal output parameters unsupported, min 2 max 2
+Skipping Unique: Multiple formal output parameters unsupported, min 1 max 4
+Skipping TreeEnsembleClassifier: Multiple formal output parameters unsupported, min 2 max 2
+
+
+# Graph attribute unsupported
+
+Skipping If: Graph attribute unsupported, else_branch
+- two graphs for then and else.
+- each graph has N outputs and the number of outputs must match the number of
+  outputs in the then_branch.
+- op has one boolean tensor for input representing the condition to check
+- op has N outputs matching that of the graph outputs
+Skipping Loop: Graph attribute unsupported, body
+- body graph has 2+N inputs: (iteration_num, condition, loop carried dependencies…).
+- body graph has 1+N+K outputs: (condition, loop carried dependencies…, scan_outputs…)
+- op has N inputs for initial loop carried dependencies
+- op has N+K outputs for final loop carried dependency values and scan_outputs
+Skipping Scan: Graph attribute unsupported, body
+- body graph has has N+M inputs: (loop state variables..., scan_input_elts...).
+- body graph has N+K outputs: (loop state variables..., scan_output_elts...)
+- op has N+M inputs
+- op has N+K outputs
+Skipping SequenceMap: Graph attribute unsupported, body
+- body graph has number number of inputs and outputs as the operation
+ */
