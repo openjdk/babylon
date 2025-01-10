@@ -56,16 +56,16 @@ public class Main {
         );
     }
 
-    private static void runSequential(F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
+    private static void runSequential(F32Array matrixA, F32Array matrixB, F32Array matrixC, final int size) {
         for (int i = 0; i < size; i++) {
             for (int j = 0; j < size; j++) {
-                int sum = 0;
+                float sum = 0;
                 for (int k = 0; k < size; k++) {
-                    float a = matrixA.array(i * size + k);
-                    float b = matrixB.array(k * size + j);
-                    sum += (a * b);
+                    float a = matrixA.array((long) i * size + k);
+                    float b = matrixB.array((long) k * size + j);
+                    sum += a * b;
                 }
-                matrixC.array(i * size + j, sum);
+                matrixC.array((long) i * size + j, sum);
             }
         }
     }
