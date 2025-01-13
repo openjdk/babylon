@@ -25,9 +25,23 @@ final class IndentWriter extends Writer {
             w.write(" ".repeat(indent));
             writeIndent = false;
         }
-        w.write(cbuf, off, len);
-        if (len > 0 && cbuf[off + len - 1] == '\n') {
+
+        int end = off + len;
+        for (int i = off; i < end; i++) {
+            if (cbuf[i] != '\n') {
+                continue;
+            }
+
+            if (writeIndent) {
+                w.write(" ".repeat(indent));
+            }
+
+            w.write(cbuf, off, i - off + 1);
             writeIndent = true;
+            off = i + 1;
+        }
+        if (off < end) {
+            w.write(cbuf, off, end - off);
         }
     }
 

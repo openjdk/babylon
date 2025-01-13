@@ -28,10 +28,6 @@ public class OperatorGen {
     static final String ONNX_PACKAGE = "oracle.code.onnx";
     static final String ONNX_OPERATORS_CLASS = "OnnxOperators";
 
-    void gen(Path dir) throws IOException {
-        genOpClass(dir);
-    }
-
     void genOpClass(Path dir) throws IOException {
         OutputStreamWriter osw = new OutputStreamWriter(
                 new FileOutputStream(dir.resolve(ONNX_OPERATORS_CLASS + ".java").toFile()));
@@ -45,114 +41,169 @@ public class OperatorGen {
         w.write("\n");
         w.write("package " + ONNX_PACKAGE + ";\n");
         w.write("\n");
-        w.write("import " + "java.util.Optional" + ";\n");
-        w.write("import " + "java.util.List" + ";\n");
+        w.write("""
+                import oracle.code.onnx.ir.OnnxOps;
+                
+                import java.util.Optional;
+                import java.util.List;
+                """);
         w.write("\n");
 
+        w.write("@SuppressWarnings({\"unchecked\", \"OptionalUsedAsFieldOrParameterType\"})\n");
         w.write("public final class " + ONNX_OPERATORS_CLASS + " {\n");
 
         w.in();
 
         w.write("\n");
         w.write("private " + ONNX_OPERATORS_CLASS + "() {}\n");
+        w.write("\n");
 
         for (OpSchema s : schemas.values().stream().map(SortedSet::getFirst).toList()) {
+            if (skip(s)) {
+                System.out.println("Skipping " + s.name());
+                continue;
+            }
+
+            genMethod(w, s);
             w.write("\n");
-            w.write("public static ");
-
-            if (!s.type_constraints().isEmpty()) {
-                boolean first = true;
-                w.write("<");
-                for (OpSchema.TypeConstraintParam typeConstraint : s.type_constraints()) {
-                    if (!first) {
-                        w.write(", ");
-                    }
-                    w.write(typeConstraint.type_param_str());
-                    first = false;
-                }
-                w.write(">");
-                w.write(" ");
-            }
-
-            OpSchema.FormalParameter outParam = s.outputs().getFirst();
-            if (s.min_output() == 1 && s.max_output() == 1) {
-                w.write("Tensor<" + toJavaIdentifier(outParam.type_str()) + ">");
-            } else if (s.min_output() == 0 && s.max_output() == 1) {
-                // @@@ This does not occur
-                w.write("Optional<");
-                w.write("Tensor<" + toJavaIdentifier(outParam.type_str()) + ">");
-                w.write(">");
-            } else {
-                // @@@ If multiple output params differ in type constraints
-                //     If so need to return a tuple or a sequence
-                w.write("List<");
-                w.write("Tensor<" + toJavaIdentifier(outParam.type_str()) + ">");
-                w.write(">");
-            }
-            w.write(" ");
-            w.write(s.name() + "(");
-
-            boolean first = true;
-            for (OpSchema.FormalParameter inParam : s.inputs()) {
-                if (!first) {
-                    w.write(", ");
-                }
-
-                switch (inParam.option()) {
-                    case Single -> {
-                        w.write("Tensor<" + toJavaIdentifier(inParam.type_str()) + ">");
-                    }
-                    case Optional -> {
-                        w.write("Optional<");
-                        w.write("Tensor<" + toJavaIdentifier(inParam.type_str()) + ">");
-                        w.write(">");
-                    }
-                    case Variadic -> {
-                        w.write("List<");
-                        w.write("Tensor<" + toJavaIdentifier(inParam.type_str()) + ">");
-                        w.write(">");
-                    }
-                }
-                w.write(" ");
-                w.write(inParam.name());
-
-                first = false;
-            }
-
-            for (OpSchema.Attribute attribute : s.attributes()) {
-                if (!first) {
-                    w.write(", ");
-                }
-
-                OpSchema.AttributeType aType = attribute.type();
-                Class<?> type = switch (aType) {
-                    // @@@ sub-graphs have inputs and outputs
-                    case GRAPH -> OnnxRunnable.class;
-                    default -> aType.type();
-                };
-                if (attribute.required()) {
-                    w.write(type.getSimpleName());
-                } else {
-                    w.write("Optional<");
-                    w.write(toBoxType(type).getSimpleName());
-                    w.write(">");
-                }
-                w.write(" ");
-                w.write(attribute.name());
-
-                first = false;
-            }
-
-            w.write(") {\n");
-            w.in();
-            w.write(" throw new UnsupportedOperationException();\n");
-            w.out();
-            w.write("}\n");
         }
         w.out();
 
         w.write("}\n");
         w.flush();
+    }
+
+    private boolean skip(OpSchema s) {
+        return s.attributes().stream().anyMatch(a ->
+                a.type() == OpSchema.AttributeType.GRAPH ||
+                        a.type() == OpSchema.AttributeType.GRAPHS);
+    }
+
+    private void genMethod(IndentWriter w, OpSchema s) throws IOException {
+        w.write("public static ");
+
+        if (!s.type_constraints().isEmpty()) {
+            boolean first = true;
+            w.write("<");
+            for (OpSchema.TypeConstraintParam typeConstraint : s.type_constraints()) {
+                if (!first) {
+                    w.write(", ");
+                }
+                w.write(typeConstraint.type_param_str());
+                first = false;
+            }
+            w.write(">");
+            w.write(" ");
+        }
+
+        // @@@ Multiple output parameters - need to return tuple/record
+        OpSchema.FormalParameter outParam = s.outputs().getFirst();
+        String outputTypeString;
+        if (s.min_output() == 1 && s.max_output() == 1) {
+            outputTypeString = "Tensor<" + toJavaIdentifier(outParam.type_str()) + ">";
+        } else if (s.min_output() == 0 && s.max_output() == 1) {
+            // @@@ This does not occur
+            outputTypeString = "Optional<Tensor<" + toJavaIdentifier(outParam.type_str()) + ">>";
+        } else {
+            outputTypeString = "List<Tensor<" + toJavaIdentifier(outParam.type_str()) + ">>";
+        }
+        w.write(outputTypeString);
+        w.write(" ");
+        w.write(s.name() + "(");
+
+        boolean first = true;
+        for (OpSchema.FormalParameter inParam : s.inputs()) {
+            if (!first) {
+                w.write(", ");
+            }
+
+            switch (inParam.option()) {
+                case Single -> {
+                    w.write("Tensor<" + toJavaIdentifier(inParam.type_str()) + ">");
+                }
+                case Optional -> {
+                    w.write("Optional<");
+                    w.write("Tensor<" + toJavaIdentifier(inParam.type_str()) + ">");
+                    w.write(">");
+                }
+                case Variadic -> {
+                    w.write("List<");
+                    w.write("Tensor<" + toJavaIdentifier(inParam.type_str()) + ">");
+                    w.write(">");
+                }
+            }
+            w.write(" ");
+            w.write(inParam.name());
+
+            first = false;
+        }
+
+        for (OpSchema.Attribute attribute : s.attributes()) {
+            if (!first) {
+                w.write(", ");
+            }
+
+            OpSchema.AttributeType aType = attribute.type();
+            String typeString = switch (aType) {
+                case TENSORS -> aType.type().getSimpleName() + "<?>";
+                case TENSOR -> aType.type().getSimpleName() + "<?>";
+                default -> {
+                    if (attribute.required()) {
+                        yield aType.type().getSimpleName();
+                    } else {
+                        yield toBoxType(aType.type()).getSimpleName();
+                    }
+                }
+            };
+            if (attribute.required()) {
+                w.write(typeString);
+            } else {
+                w.write("Optional<");
+                w.write(typeString);
+                w.write(">");
+            }
+            w.write(" ");
+            w.write(attribute.name());
+
+            first = false;
+        }
+
+        w.write(") {\n");
+        w.in();
+
+        w.write("Object result = OnnxInterpreter.interpret(");
+        w.write("OnnxOps." + s.name() + ".class");
+        w.write(", ");
+
+        w.write("List.of(");
+        first = true;
+        for (OpSchema.FormalParameter inParam : s.inputs()) {
+            if (!first) {
+                w.write(", ");
+            }
+
+            w.write(inParam.name());
+            first = false;
+        }
+        w.write(")");
+        w.write(", ");
+
+        w.write("List.of(");
+        first = true;
+        for (OpSchema.Attribute attribute : s.attributes()) {
+            if (!first) {
+                w.write(", ");
+            }
+
+            w.write(attribute.name());
+            first = false;
+        }
+        w.write(")");
+        w.write(");\n");
+
+        w.write("return (" + outputTypeString + ") result;\n");
+        w.out();
+        w.write("}\n");
     }
 
     static String toJavaIdentifier(String type_str) {
@@ -199,10 +250,9 @@ public class OperatorGen {
 
     public static void main(String[] args) throws Exception {
         List<OpSchema> schemas = OpSchemaParser.parse(Path.of(
-                "/Users/sandoz/Projects/jdk/babylon/cr-examples/onnx/opgen/onnx-schema.json"));
+                "opgen/onnx-schema.json"));
         OperatorGen oprGen = new OperatorGen(schemas);
 
-        oprGen.genOpClass(Path.of("/Users/sandoz/Projects/jdk/babylon/cr-examples/onnx/src/main/java/oracle/code/onnx"));
-//        oprGen.genOpClass(new OutputStreamWriter(System.out));
+        oprGen.genOpClass(Path.of("src/main/java/oracle/code/onnx"));
     }
 }

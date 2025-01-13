@@ -9,59 +9,75 @@ public final class OnnxOpsProto {
     private OnnxOpsProto() {
     }
 
-    public interface OnnxParameter {
-        String name();
-    }
-
-    static List<Value> concatValues(Object... operands) {
-        List<Value> l = new ArrayList<>();
-        for (Object operand : operands) {
-            switch (operand) {
-                case Value v -> l.add(v);
-                case Optional<?> ov -> {
-                    if (ov.isPresent()) {
-                        l.add((Value) ov.get());
-                    }
-                }
-                case List<?> vs -> {
-                    for (Object v : vs) {
-                        l.add((Value) v);
-                    }
-                }
-                default -> throw new UnsupportedOperationException();
-            }
-        }
-        return l;
-    }
-
     @OpFactory.OpDeclaration(Add.NAME)
     public static final class Add extends OnnxOp {
         public static final String NAME = "Add";
 
+        enum TypeConstraint implements OnnxTypeConstraint {
+            T(new OnnxType.TypeVariable("T",
+                    List.of(
+                            new OnnxType.TensorType(new OnnxType.UInt8Type()),
+                            new OnnxType.TensorType(new OnnxType.UInt16Type())
+                            // @@@ ...
+                    )));
+
+            final OnnxType.TypeVariable typeVariable;
+
+            TypeConstraint(OnnxType.TypeVariable typeVariable) {
+                assert typeVariable.name().equals(name());
+                this.typeVariable = typeVariable;
+            }
+
+            @Override
+            public OnnxType.TypeVariable typeVariable() {
+                return typeVariable;
+            }
+        }
+
         enum InputParameter implements OnnxParameter {
-            A(null, false),
-            B(null, false),
+            A(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
+            B(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
             ;
 
-            final List<TypeElement> typeConstraints;
-            final boolean optional;
+            final OnnxType type;
+            final Quantifier quantifier;
 
-            InputParameter(List<TypeElement> typeConstraints, boolean optional) {
-                this.typeConstraints = typeConstraints;
-                this.optional = optional;
+            InputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return quantifier;
             }
         }
 
         enum OutputParameter implements OnnxParameter {
-            C(null, false),
+            C(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
             ;
 
-            final List<TypeElement> typeConstraints;
-            final boolean optional;
+            final OnnxType type;
+            final Quantifier quantifier;
 
-            OutputParameter(List<TypeElement> typeConstraints, boolean optional) {
-                this.typeConstraints = typeConstraints;
-                this.optional = optional;
+            OutputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return quantifier;
             }
         }
 
@@ -79,9 +95,13 @@ public final class OnnxOpsProto {
         }
 
         Add(TypeElement resultType, Value A, Value B) {
-            super(NAME, resultType, List.of(A, B));
+            super(NAME, resultType,
+                    null, Set.of(),
+                    InputParameter.values(), List.of(A, B),
+                    null, List.of());
         }
 
+        @Override
         public SequencedSet<OnnxParameter> onnxOutputs() {
             SequencedSet<OnnxParameter> outputs = new LinkedHashSet<>();
             outputs.add(OutputParameter.C);
@@ -90,7 +110,8 @@ public final class OnnxOpsProto {
 
         // Operand accessors
 
-        public SequencedMap<OnnxParameter, Value> onnxInputs() {
+        @Override
+        public SequencedMap<OnnxParameter, Object> onnxInputs() {
             SequencedMap<OnnxParameter, Value> inputs = new LinkedHashMap<>();
             inputs.put(InputParameter.A, A());
             inputs.put(InputParameter.B, B());
@@ -139,7 +160,7 @@ public final class OnnxOpsProto {
                 return t;
             }
 
-            public boolean optional() {
+            public boolean isOptional() {
                 return optional;
             }
 
@@ -148,20 +169,79 @@ public final class OnnxOpsProto {
             }
         }
 
-        final Map<String, Object> attributes;
+        enum TypeConstraint implements OnnxTypeConstraint {
+            T(new OnnxType.TypeVariable("T",
+                    List.of(
+                            new OnnxType.TensorType(new OnnxType.BFloat16Type()),
+                            new OnnxType.TensorType(new OnnxType.Float16Type())
+                            // ...
+                    )));
+
+            final OnnxType.TypeVariable typeVariable;
+
+            TypeConstraint(OnnxType.TypeVariable typeVariable) {
+                assert typeVariable.name().equals(name());
+                this.typeVariable = typeVariable;
+            }
+
+            @Override
+            public OnnxType.TypeVariable typeVariable() {
+                return typeVariable;
+            }
+        }
+
+        enum InputParameter implements OnnxParameter {
+            X(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
+            ;
+
+            final OnnxType type;
+            final Quantifier quantifier;
+
+            InputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return quantifier;
+            }
+        }
+
+        enum OutputParameter implements OnnxParameter {
+            Y(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
+            ;
+
+            final OnnxType type;
+            final Quantifier quantifier;
+
+            OutputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return quantifier;
+            }
+        }
 
         public AveragePool(ExternalizedOp def) {
-            super(def);
-
-            // @@@ Validate type constraints for X operand
-
-            this.attributes = OnnxAttribute.process(def, Attribute::valueOf);
+            super(def, Attribute.values());
         }
 
         AveragePool(AveragePool that, CopyContext cc) {
             super(that, cc);
-
-            this.attributes = Map.copyOf(that.attributes);
         }
 
         @Override
@@ -178,34 +258,27 @@ public final class OnnxOpsProto {
                     Optional<Integer> ceil_mode,
                     Optional<int[]> strides,
                     int[] kernel_shape) {
-            super(NAME, resultType, List.of(X));
-
-            // @@@ Validate type constraints for X
-
-            Map<String, Object> attrs = new HashMap<>();
-            Attribute.pads.process(attrs, pads);
-            Attribute.dilations.process(attrs, dilations);
-            Attribute.auto_pad.process(attrs, auto_pad);
-            Attribute.count_include_pad.process(attrs, count_include_pad);
-            Attribute.ceil_mode.process(attrs, ceil_mode);
-            Attribute.strides.process(attrs, strides);
-            Attribute.kernel_shape.process(attrs, kernel_shape);
-            this.attributes = Map.copyOf(attrs);
+            super(NAME, resultType,
+                    null, Set.of(),
+                    Add.InputParameter.values(), List.of(X),
+                    Attribute.values(), List.of(pads, dilations, auto_pad, count_include_pad, ceil_mode, strides, kernel_shape));
         }
 
         @Override
-        public Map<String, Object> onnxAttributes() {
-            return attributes;
-        }
-
-        @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.putAll(onnxAttributes());
-            return Collections.unmodifiableMap(m);
+        public SequencedSet<OnnxParameter> onnxOutputs() {
+            SequencedSet<OnnxParameter> outputs = new LinkedHashSet<>();
+            outputs.add(OutputParameter.Y);
+            return outputs;
         }
 
         // Operand accessors
+
+        @Override
+        public SequencedMap<OnnxParameter, Object> onnxInputs() {
+            SequencedMap<OnnxParameter, Value> inputs = new LinkedHashMap<>();
+            inputs.put(InputParameter.X, X());
+            return Collections.unmodifiableSequencedMap(inputs);
+        }
 
         public Value X() {
             return operands().get(0);
@@ -214,37 +287,37 @@ public final class OnnxOpsProto {
         // Attribute accessors
 
         public Optional<int[]> pads() {
-            int[] pads = Attribute.pads.access(int[].class, attributes);
+            int[] pads = Attribute.pads.access(int[].class, onnxAttributes);
             return Optional.ofNullable(pads).map(int[]::clone);
         }
 
         public Optional<int[]> dilations() {
-            int[] pads = Attribute.pads.access(int[].class, attributes);
+            int[] pads = Attribute.pads.access(int[].class, onnxAttributes);
             return Optional.ofNullable(pads).map(int[]::clone);
         }
 
         public Optional<String> auto_pad() {
-            String auto_pad = Attribute.auto_pad.access(String.class, attributes);
+            String auto_pad = Attribute.auto_pad.access(String.class, onnxAttributes);
             return Optional.ofNullable(auto_pad);
         }
 
         public Optional<Integer> count_include_pad() {
-            Integer count_include_pad = Attribute.count_include_pad.access(Integer.class, attributes);
+            Integer count_include_pad = Attribute.count_include_pad.access(Integer.class, onnxAttributes);
             return Optional.ofNullable(count_include_pad);
         }
 
         public Optional<Integer> ceil_mode() {
-            Integer ceil_mode = Attribute.ceil_mode.access(Integer.class, attributes);
+            Integer ceil_mode = Attribute.ceil_mode.access(Integer.class, onnxAttributes);
             return Optional.ofNullable(ceil_mode);
         }
 
         public Optional<int[]> strides() {
-            int[] strides = Attribute.strides.access(int[].class, attributes);
+            int[] strides = Attribute.strides.access(int[].class, onnxAttributes);
             return Optional.ofNullable(strides).map(int[]::clone);
         }
 
         public int[] kernel_shape() {
-            int[] kernel_shape = Attribute.kernel_shape.access(int[].class, attributes);
+            int[] kernel_shape = Attribute.kernel_shape.access(int[].class, onnxAttributes);
             return kernel_shape;
         }
     }
@@ -286,7 +359,7 @@ public final class OnnxOpsProto {
                 return t;
             }
 
-            public boolean optional() {
+            public boolean isOptional() {
                 return optional;
             }
 
@@ -295,58 +368,89 @@ public final class OnnxOpsProto {
             }
         }
 
-        enum InputParameter implements OnnxParameter {
-            input(null, false),
-            dft_length(null, true),
-            axis(null, true),
+        enum TypeConstraint implements OnnxTypeConstraint {
+            T1(new OnnxType.TypeVariable("T1",
+                    List.of(
+                            new OnnxType.TensorType(new OnnxType.BFloat16Type()),
+                            new OnnxType.TensorType(new OnnxType.Float16Type())
+                            // @@@ ...
+                    ))),
+            T2(new OnnxType.TypeVariable("T2",
+                    List.of(
+                            new OnnxType.TensorType(new OnnxType.Int32Type()),
+                            new OnnxType.TensorType(new OnnxType.Int64Type())
+                            // @@@ ...
+                    ))),
             ;
 
-            final List<TypeElement> typeConstraints;
-            final boolean optional;
+            final OnnxType.TypeVariable typeVariable;
 
-            InputParameter(List<TypeElement> typeConstraints, boolean optional) {
-                this.typeConstraints = typeConstraints;
-                this.optional = optional;
+            TypeConstraint(OnnxType.TypeVariable typeVariable) {
+                assert typeVariable.name().equals(name());
+                this.typeVariable = typeVariable;
+            }
+
+            @Override
+            public OnnxType.TypeVariable typeVariable() {
+                return typeVariable;
+            }
+        }
+
+        enum InputParameter implements OnnxParameter {
+            input(TypeConstraint.T1.typeVariable(), Quantifier.REQUIRED),
+            dft_length(TypeConstraint.T2.typeVariable(), Quantifier.OPTIONAL),
+            axis(new OnnxType.TensorType(new OnnxType.Int64Type()), Quantifier.OPTIONAL),
+            ;
+
+            final OnnxType type;
+            final Quantifier quantifier;
+
+            InputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return null;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return null;
             }
         }
 
         enum OutputParameter implements OnnxParameter {
-            output(null, false),
+            output(TypeConstraint.T1.typeVariable(), Quantifier.REQUIRED),
             ;
 
-            final List<TypeElement> typeConstraints;
-            final boolean optional;
+            final OnnxType type;
+            final Quantifier quantifier;
 
-            OutputParameter(List<TypeElement> typeConstraints, boolean optional) {
-                this.typeConstraints = typeConstraints;
-                this.optional = optional;
+            OutputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return null;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return null;
             }
         }
 
-        static final String ATTRIBUTE_OPTIONAL_INPUTS = "optional_inputs";
-
-        final List<InputParameter> optionalInputs;
-
-        final Map<String, Object> attributes;
-
         @SuppressWarnings("unchecked")
         public DFT(ExternalizedOp def) {
-            super(def);
-
-            this.optionalInputs = def.extractAttributeValue(ATTRIBUTE_OPTIONAL_INPUTS,
-                    false, v -> switch (v) {
-                        case List<?> s -> (List<InputParameter>) s;
-                        case null, default -> throw new UnsupportedOperationException();
-                    });
-
-            this.attributes = OnnxAttribute.process(def, Attribute::valueOf);
+            super(def, Attribute.values());
         }
 
         DFT(DFT that, CopyContext cc) {
             super(that, cc);
-
-            this.optionalInputs = new ArrayList<>(that.optionalInputs);
-            this.attributes = Map.copyOf(that.attributes);
         }
 
         @Override
@@ -362,35 +466,13 @@ public final class OnnxOpsProto {
             // Attributes
             Optional<Integer> inverse,
             Optional<Integer> onesided) {
-            super(NAME, resultType, concatValues(input, dft_length, axis));
-
-            this.optionalInputs = new ArrayList<>();
-            if (dft_length.isPresent()) {
-                optionalInputs.add(InputParameter.dft_length);
-            }
-            if (axis.isPresent()) {
-                optionalInputs.add(InputParameter.axis);
-            }
-
-            Map<String, Object> attrs = new HashMap<>();
-            Attribute.inverse.process(attrs, inverse);
-            Attribute.onesided.process(attrs, onesided);
-            this.attributes = Map.copyOf(attrs);
+            super(NAME, resultType,
+                    null, Set.of(),
+                    InputParameter.values(), List.of(input, dft_length, axis),
+                    Attribute.values(), List.of(inverse, onesided));
         }
 
         @Override
-        public Map<String, Object> onnxAttributes() {
-            return attributes;
-        }
-
-        @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.putAll(onnxAttributes());
-            m.put(ATTRIBUTE_OPTIONAL_INPUTS, optionalInputs);
-            return Collections.unmodifiableMap(m);
-        }
-
         public SequencedSet<OnnxParameter> onnxOutputs() {
             SequencedSet<OnnxParameter> outputs = new LinkedHashSet<>();
             outputs.add(OutputParameter.output);
@@ -399,6 +481,7 @@ public final class OnnxOpsProto {
 
         // Operand accessors
 
+        @Override
         public SequencedMap<OnnxParameter, Object> onnxInputs() {
             SequencedMap<OnnxParameter, Object> inputs = new LinkedHashMap<>();
             inputs.put(InputParameter.input, input());
@@ -412,14 +495,14 @@ public final class OnnxOpsProto {
         }
 
         public Optional<Value> dft_length() {
-            int i = optionalInputs.indexOf(InputParameter.dft_length);
+            int i = optionalInputArguments.indexOf(InputParameter.dft_length);
             return i != -1
                     ? Optional.of(operands().get(1 + i))
                     : Optional.empty();
         }
 
         public Optional<Value> axis() {
-            int i = optionalInputs.indexOf(InputParameter.axis);
+            int i = optionalInputArguments.indexOf(InputParameter.axis);
             return i != -1
                     ? Optional.of(operands().get(1 + i))
                     : Optional.empty();
@@ -428,12 +511,12 @@ public final class OnnxOpsProto {
         // Attribute accessors
 
         public Optional<Integer> inverse() {
-            Integer inverse = Attribute.inverse.access(Integer.class, attributes);
+            Integer inverse = Attribute.inverse.access(Integer.class, onnxAttributes);
             return Optional.ofNullable(inverse);
         }
 
         public Optional<Integer> onesided() {
-            Integer onesided = Attribute.onesided.access(Integer.class, attributes);
+            Integer onesided = Attribute.onesided.access(Integer.class, onnxAttributes);
             return Optional.ofNullable(onesided);
         }
     }
@@ -472,7 +555,7 @@ public final class OnnxOpsProto {
                 return t;
             }
 
-            public boolean optional() {
+            public boolean isOptional() {
                 return optional;
             }
 
@@ -481,68 +564,90 @@ public final class OnnxOpsProto {
             }
         }
 
-        enum InputParameter implements OnnxParameter {
-            scores(null, false),
-            labels(null, false),
-            weights(null, true),
+        enum TypeConstraint implements OnnxTypeConstraint {
+            T(new OnnxType.TypeVariable("T",
+                    List.of(
+                            new OnnxType.TensorType(new OnnxType.Float16Type()),
+                            new OnnxType.TensorType(new OnnxType.Float32Type())
+                            // @@@ ...
+                    ))),
+            Tind(new OnnxType.TypeVariable("Tind",
+                    List.of(
+                            new OnnxType.TensorType(new OnnxType.Int32Type()),
+                            new OnnxType.TensorType(new OnnxType.Int64Type())
+                            // @@@ ...
+                    ))),
             ;
 
-            final List<TypeElement> typeConstraints;
-            final boolean optional;
+            final OnnxType.TypeVariable typeVariable;
 
-            InputParameter(List<TypeElement> typeConstraints, boolean optional) {
-                this.typeConstraints = typeConstraints;
-                this.optional = optional;
+            TypeConstraint(OnnxType.TypeVariable typeVariable) {
+                assert typeVariable.name().equals(name());
+                this.typeVariable = typeVariable;
+            }
+
+            @Override
+            public OnnxType.TypeVariable typeVariable() {
+                return typeVariable;
+            }
+        }
+
+        enum InputParameter implements OnnxParameter {
+            scores(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
+            labels(TypeConstraint.Tind.typeVariable(), Quantifier.REQUIRED),
+            weights(TypeConstraint.T.typeVariable(), Quantifier.OPTIONAL),
+            ;
+
+            final OnnxType type;
+            final Quantifier quantifier;
+
+            InputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return quantifier;
             }
         }
 
         enum OutputParameter implements OnnxParameter {
-            output(null, false),
-            log_prob(null, true),
+            output(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
+            log_prob(TypeConstraint.T.typeVariable(), Quantifier.OPTIONAL),
             ;
 
-            final List<TypeElement> typeConstraints;
-            final boolean optional;
+            final OnnxType type;
+            final Quantifier quantifier;
 
-            OutputParameter(List<TypeElement> typeConstraints, boolean optional) {
-                this.typeConstraints = typeConstraints;
-                this.optional = optional;
+            OutputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return quantifier;
             }
         }
 
-        static final String ATTRIBUTE_OPTIONAL_INPUTS = "optional_inputs";
-        static final String ATTRIBUTE_OPTIONAL_OUTPUTS = "optional_outputs";
-
-        final List<InputParameter> optionalInputs;
-        final SequencedSet<OutputParameter> optionalOutputs;
-
-        final Map<String, Object> attributes;
-
         @SuppressWarnings("unchecked")
         public SoftmaxCrossEntropyLoss(ExternalizedOp def) {
-            super(def);
-
-            this.optionalInputs = def.extractAttributeValue(ATTRIBUTE_OPTIONAL_INPUTS,
-                    false, v -> switch (v) {
-                        case List<?> s -> (List<InputParameter>) s;
-                        case null, default -> throw new UnsupportedOperationException();
-                    });
-
-            this.optionalOutputs = def.extractAttributeValue(ATTRIBUTE_OPTIONAL_OUTPUTS,
-                    false, v -> switch (v) {
-                        case SequencedSet<?> s -> (SequencedSet<OutputParameter>) s;
-                        case null, default -> throw new UnsupportedOperationException();
-                    });
-
-            this.attributes = OnnxAttribute.process(def, Attribute::valueOf);
+            super(def, Attribute.values());
         }
 
         SoftmaxCrossEntropyLoss(SoftmaxCrossEntropyLoss that, CopyContext cc) {
             super(that, cc);
-
-            this.optionalInputs = new ArrayList<>(that.optionalInputs);
-            this.optionalOutputs = new LinkedHashSet<>(that.optionalOutputs);
-            this.attributes = Map.copyOf(that.attributes);
         }
 
         @Override
@@ -551,7 +656,7 @@ public final class OnnxOpsProto {
         }
 
         SoftmaxCrossEntropyLoss(TypeElement resultType,
-                                SequencedSet<OutputParameter> optionalOutputs,
+                                Set<OutputParameter> optionalOutputs,
                                 // Required Operands
                                 Value scores,
                                 Value labels,
@@ -560,24 +665,10 @@ public final class OnnxOpsProto {
                                 // Attributes
                                 Optional<Integer> ignore_index,
                                 Optional<String> reduction) {
-            super(NAME, resultType, concatValues(scores, labels, weights));
-
-            this.optionalInputs = new ArrayList<>();
-            if (weights.isPresent()) {
-                optionalInputs.add(InputParameter.weights);
-            }
-
-            this.optionalOutputs = new LinkedHashSet<>();
-            for (OutputParameter optionalOutput : optionalOutputs) {
-                if (optionalOutput.optional) {
-                    this.optionalOutputs.add(optionalOutput);
-                }
-            }
-
-            Map<String, Object> attrs = new HashMap<>();
-            Attribute.ignore_index.process(attrs, ignore_index);
-            Attribute.reduction.process(attrs, reduction);
-            this.attributes = Map.copyOf(attrs);
+            super(NAME, resultType,
+                    OutputParameter.values(), optionalOutputs,
+                    InputParameter.values(), List.of(scores, labels, weights),
+                    Attribute.values(), List.of(ignore_index, reduction));
         }
 
 //        public TypeElement resultType() {
@@ -594,23 +685,10 @@ public final class OnnxOpsProto {
 //        }
 
         @Override
-        public Map<String, Object> onnxAttributes() {
-            return attributes;
-        }
-
-        @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.putAll(onnxAttributes());
-            m.put(ATTRIBUTE_OPTIONAL_INPUTS, optionalInputs);
-            m.put(ATTRIBUTE_OPTIONAL_OUTPUTS, optionalOutputs);
-            return Collections.unmodifiableMap(m);
-        }
-
         public SequencedSet<OnnxParameter> onnxOutputs() {
             SequencedSet<OnnxParameter> inputs = new LinkedHashSet<>();
             inputs.add(OutputParameter.output);
-            if (optionalOutputs.contains(OutputParameter.log_prob)) {
+            if (optionalOutputParameters.contains(OutputParameter.log_prob)) {
                 inputs.add(OutputParameter.log_prob);
             }
             return inputs;
@@ -618,6 +696,7 @@ public final class OnnxOpsProto {
 
         // Operand accessors
 
+        @Override
         public SequencedMap<OnnxParameter, Object> onnxInputs() {
             SequencedMap<OnnxParameter, Object> inputs = new LinkedHashMap<>();
             inputs.put(InputParameter.scores, scores());
@@ -635,7 +714,7 @@ public final class OnnxOpsProto {
         }
 
         public Optional<Value> weights() {
-            int i = optionalInputs.indexOf(InputParameter.weights);
+            int i = optionalInputArguments.indexOf(InputParameter.weights);
             return i != -1
                     ? Optional.of(operands().get(2 + i))
                     : Optional.empty();
@@ -645,12 +724,12 @@ public final class OnnxOpsProto {
         // Attribute accessors
 
         public Optional<Integer> ignore_index() {
-            Integer ignore_index = Attribute.ignore_index.access(Integer.class, attributes);
+            Integer ignore_index = Attribute.ignore_index.access(Integer.class, onnxAttributes);
             return Optional.ofNullable(ignore_index);
         }
 
         public Optional<String> reduction() {
-            String reduction = Attribute.reduction.access(String.class, attributes);
+            String reduction = Attribute.reduction.access(String.class, onnxAttributes);
             return Optional.ofNullable(reduction);
         }
     }
@@ -694,7 +773,7 @@ public final class OnnxOpsProto {
                 return t;
             }
 
-            public boolean optional() {
+            public boolean isOptional() {
                 return optional;
             }
 
@@ -703,47 +782,91 @@ public final class OnnxOpsProto {
             }
         }
 
-        enum InputParameter implements OnnxParameter {
-            R(null, false),
-            T(null, false),
-            inputs(null, false),
+        enum TypeConstraint implements OnnxTypeConstraint {
+            T1(new OnnxType.TypeVariable("T1",
+                    List.of(
+                            new OnnxType.TensorType(new OnnxType.Float32Type()),
+                            new OnnxType.TensorType(new OnnxType.Float64Type())
+                    ))),
+            T2(new OnnxType.TypeVariable("T2",
+                    List.of(
+                            new OnnxType.TensorType(new OnnxType.Int64Type())
+                    ))),
+            T3(new OnnxType.TypeVariable("T3",
+                    List.of(
+                            new OnnxType.TensorType(new OnnxType.Float32Type()),
+                            new OnnxType.TensorType(new OnnxType.Float64Type())
+                    ))),
             ;
 
-            final List<TypeElement> typeConstraints;
-            final boolean optional;
+            final OnnxType.TypeVariable typeVariable;
 
-            InputParameter(List<TypeElement> typeConstraints, boolean optional) {
-                this.typeConstraints = typeConstraints;
-                this.optional = optional;
+            TypeConstraint(OnnxType.TypeVariable typeVariable) {
+                assert typeVariable.name().equals(name());
+                this.typeVariable = typeVariable;
+            }
+
+            @Override
+            public OnnxType.TypeVariable typeVariable() {
+                return typeVariable;
+            }
+        }
+
+        enum InputParameter implements OnnxParameter {
+            R(TypeConstraint.T1.typeVariable(), Quantifier.REQUIRED),
+            T(TypeConstraint.T2.typeVariable(), Quantifier.REQUIRED),
+            inputs(TypeConstraint.T3.typeVariable(), Quantifier.VARIADIC),
+            ;
+
+            final OnnxType type;
+            final Quantifier quantifier;
+
+            InputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return quantifier;
             }
         }
 
         enum OutputParameter implements OnnxParameter {
-            outputs(null, false),
+            outputs(TypeConstraint.T3.typeVariable(), Quantifier.VARIADIC),
             ;
 
-            final List<TypeElement> typeConstraints;
-            final boolean optional;
+            final OnnxType type;
+            final Quantifier quantifier;
 
-            OutputParameter(List<TypeElement> typeConstraints, boolean optional) {
-                this.typeConstraints = typeConstraints;
-                this.optional = optional;
+            OutputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return quantifier;
             }
         }
 
-        final Map<String, Object> attributes;
-
         @SuppressWarnings("unchecked")
         public Adagrad(ExternalizedOp def) {
-            super(def);
-
-            this.attributes = OnnxAttribute.process(def, Attribute::valueOf);
+            super(def, Attribute.values());
         }
 
         Adagrad(Adagrad that, CopyContext cc) {
             super(that, cc);
-
-            this.attributes = Map.copyOf(that.attributes);
         }
 
         @Override
@@ -760,13 +883,10 @@ public final class OnnxOpsProto {
                 Optional<Float> norm_coefficient,
                 Optional<Float> decay_factor,
                 Optional<Float> epsilon) {
-            super(NAME, resultType, concatValues(R, T, inputs));
-
-            Map<String, Object> attrs = new HashMap<>();
-            Attribute.norm_coefficient.process(attrs, norm_coefficient);
-            Attribute.decay_factor.process(attrs, decay_factor);
-            Attribute.epsilon.process(attrs, epsilon);
-            this.attributes = Map.copyOf(attrs);
+            super(NAME, resultType,
+                    null, Set.of(),
+                    InputParameter.values(), List.of(R, T, inputs),
+                    Attribute.values(), List.of(norm_coefficient, decay_factor, epsilon));
         }
 
 //        public TypeElement resultType() {
@@ -775,18 +895,7 @@ public final class OnnxOpsProto {
 //        }
 
         @Override
-        public Map<String, Object> onnxAttributes() {
-            return attributes;
-        }
-
-        @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.putAll(onnxAttributes());
-            return Collections.unmodifiableMap(m);
-        }
-
-        public SequencedSet<OnnxParameter> outputs() {
+        public SequencedSet<OnnxParameter> onnxOutputs() {
             SequencedSet<OnnxParameter> outputs = new LinkedHashSet<>();
             outputs.add(OutputParameter.outputs);
             return outputs;
@@ -794,6 +903,7 @@ public final class OnnxOpsProto {
 
         // Operand accessors
 
+        @Override
         public SequencedMap<OnnxParameter, Object> onnxInputs() {
             SequencedMap<OnnxParameter, Object> inputs = new LinkedHashMap<>();
             inputs.put(InputParameter.R, R());
@@ -817,17 +927,17 @@ public final class OnnxOpsProto {
         // Attribute accessors
 
         public Optional<Float> norm_coefficient() {
-            Float norm_coefficient = Attribute.norm_coefficient.access(Float.class, attributes);
+            Float norm_coefficient = Attribute.norm_coefficient.access(Float.class, onnxAttributes);
             return Optional.ofNullable(norm_coefficient);
         }
 
         public Optional<Float> decay_factor() {
-            Float decay_factor = Attribute.decay_factor.access(Float.class, attributes);
+            Float decay_factor = Attribute.decay_factor.access(Float.class, onnxAttributes);
             return Optional.ofNullable(decay_factor);
         }
 
         public Optional<Float> epsilon() {
-            Float epsilon = Attribute.epsilon.access(Float.class, attributes);
+            Float epsilon = Attribute.epsilon.access(Float.class, onnxAttributes);
             return Optional.ofNullable(epsilon);
         }
     }

@@ -1,6 +1,7 @@
 package oracle.code.onnx.ir;
 
 import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.type.TypeElementFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,16 +9,279 @@ import java.util.Objects;
 
 public abstract sealed class OnnxType implements TypeElement {
 
+    public static final TypeElementFactory FACTORY = new TypeElementFactory() {
+        @Override
+        public OnnxType constructType(ExternalizedTypeElement tree) {
+            switch (tree.identifier()) {
+                case TypeVariable.NAME: {
+                    if (tree.arguments().size() < 2) {
+                        throw new IllegalArgumentException();
+                    }
+
+                    ExternalizedTypeElement typeVariable = tree.arguments().getFirst();
+                    if (!typeVariable.arguments().isEmpty()) {
+                        throw new IllegalArgumentException();
+                    }
+                    List<OnnxType> types = new ArrayList<>();
+                    for (int i = 1; i < tree.arguments().size(); i++) {
+                        types.add(constructType(tree.arguments().get(i)));
+                    }
+                    return new TypeVariable(typeVariable.identifier(), types);
+                }
+                case OptionalType.NAME: {
+                    if (tree.arguments().size() != 1) {
+                        throw new IllegalArgumentException();
+                    }
+
+                    return new OptionalType(constructType(tree.arguments().getFirst()));
+                }
+                case "seq":
+                case SequenceType.NAME: {
+                    if (tree.arguments().size() != 1) {
+                        throw new IllegalArgumentException();
+                    }
+
+                    return new SequenceType(constructType(tree.arguments().getFirst()));
+                }
+                case MapType.NAME: {
+                    if (tree.arguments().size() != 2) {
+                        throw new IllegalArgumentException();
+                    }
+
+                    return new MapType(constructType(
+                            tree.arguments().get(0)), constructType(tree.arguments().get(1)));
+                }
+                case TensorType.NAME: {
+                    if (tree.arguments().size() != 1) {
+                        throw new IllegalArgumentException();
+                    }
+
+                    // @@@ Shape encoding
+                    return new TensorType(
+                            (OnnxElementType) constructType(tree.arguments().getFirst()),
+                            List.of());
+                }
+                case Float16Type.NAME: {
+                    if (!tree.arguments().isEmpty()) {
+                        throw new IllegalArgumentException();
+                    }
+
+                    return new Float16Type();
+                }
+                case "float":
+                case Float32Type.NAME: {
+                    if (!tree.arguments().isEmpty()) {
+                        throw new IllegalArgumentException();
+                    }
+
+                    return new Float32Type();
+                }
+                case "double":
+                case Float64Type.NAME: {
+                    if (!tree.arguments().isEmpty()) {
+                        throw new IllegalArgumentException();
+                    }
+
+                    return new Float64Type();
+                }
+                case BFloat16Type.NAME: {
+                    if (!tree.arguments().isEmpty()) {
+                        throw new IllegalArgumentException();
+                    }
+
+                    return new BFloat16Type();
+                }
+                case Float8e4m3fnType.NAME: {
+                    if (!tree.arguments().isEmpty()) {
+                        throw new IllegalArgumentException();
+                    }
+
+                    return new Float8e4m3fnType();
+                }
+                case Float8e5m2Type.NAME: {
+                    if (!tree.arguments().isEmpty()) {
+                        throw new IllegalArgumentException();
+                    }
+
+                    return new Float8e5m2Type();
+                }
+                case Float8e4m3fnuzType.NAME: {
+                    if (!tree.arguments().isEmpty()) {
+                        throw new IllegalArgumentException();
+                    }
+
+                    return new Float8e4m3fnuzType();
+                }
+                case Float8e5m2fnuzType.NAME: {
+                    if (!tree.arguments().isEmpty()) {
+                        throw new IllegalArgumentException();
+                    }
+
+                    return new Float8e5m2fnuzType();
+                }
+                case Float4e2m1Type.NAME: {
+                    if (!tree.arguments().isEmpty()) {
+                        throw new IllegalArgumentException();
+                    }
+
+                    return new Float4e2m1Type();
+                }
+                case Int4Type.NAME: {
+                    if (!tree.arguments().isEmpty()) {
+                        throw new IllegalArgumentException();
+                    }
+
+                    return new Int4Type();
+                }
+                case Int8Type.NAME: {
+                    if (!tree.arguments().isEmpty()) {
+                        throw new IllegalArgumentException();
+                    }
+
+                    return new Int8Type();
+                }
+                case Int16Type.NAME: {
+                    if (!tree.arguments().isEmpty()) {
+                        throw new IllegalArgumentException();
+                    }
+
+                    return new Int16Type();
+                }
+                case Int32Type.NAME: {
+                    if (!tree.arguments().isEmpty()) {
+                        throw new IllegalArgumentException();
+                    }
+
+                    return new Int32Type();
+                }
+                case Int64Type.NAME: {
+                    if (!tree.arguments().isEmpty()) {
+                        throw new IllegalArgumentException();
+                    }
+
+                    return new Int64Type();
+                }
+                case UInt4Type.NAME: {
+                    if (!tree.arguments().isEmpty()) {
+                        throw new IllegalArgumentException();
+                    }
+
+                    return new UInt4Type();
+                }
+                case UInt8Type.NAME: {
+                    if (!tree.arguments().isEmpty()) {
+                        throw new IllegalArgumentException();
+                    }
+
+                    return new UInt8Type();
+                }
+                case UInt16Type.NAME: {
+                    if (!tree.arguments().isEmpty()) {
+                        throw new IllegalArgumentException();
+                    }
+
+                    return new UInt16Type();
+                }
+                case UInt32Type.NAME: {
+                    if (!tree.arguments().isEmpty()) {
+                        throw new IllegalArgumentException();
+                    }
+
+                    return new UInt32Type();
+                }
+                case UInt64Type.NAME: {
+                    if (!tree.arguments().isEmpty()) {
+                        throw new IllegalArgumentException();
+                    }
+
+                    return new UInt64Type();
+                }
+                case Complex64Type.NAME: {
+                    if (!tree.arguments().isEmpty()) {
+                        throw new IllegalArgumentException();
+                    }
+
+                    return new Complex64Type();
+                }
+                case Complex128Type.NAME: {
+                    if (!tree.arguments().isEmpty()) {
+                        throw new IllegalArgumentException();
+                    }
+
+                    return new Complex128Type();
+                }
+                case BoolType.NAME: {
+                    if (!tree.arguments().isEmpty()) {
+                        throw new IllegalArgumentException();
+                    }
+
+                    return new BoolType();
+                }
+                case StringType.NAME: {
+                    if (!tree.arguments().isEmpty()) {
+                        throw new IllegalArgumentException();
+                    }
+
+                    return new StringType();
+                }
+            }
+            return null;
+        }
+    };
+
+
+    public static final class TypeVariable extends OnnxType {
+        static final String NAME = "variable";
+
+        final String name;
+        final List<OnnxType> types;
+
+        public TypeVariable(String name, List<OnnxType> types) {
+            this.name = name;
+            this.types = List.copyOf(types);
+        }
+
+        public String name() {
+            return name;
+        }
+
+        public List<OnnxType> types() {
+            return types;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (!(o instanceof TypeVariable that)) return false;
+            return Objects.equals(name, that.name) && Objects.equals(types, that.types);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(name, types);
+        }
+
+        @Override
+        public ExternalizedTypeElement externalize() {
+            List<ExternalizedTypeElement> children = new ArrayList<>();
+            children.add(new ExternalizedTypeElement(name, List.of()));
+            for (OnnxType type : types) {
+                children.add(type.externalize());
+            }
+            return new ExternalizedTypeElement(NAME, children);
+        }
+    }
+
+
     public static final class OptionalType extends OnnxType {
         static final String NAME = "optional";
 
-        final TypeElement eType;
+        final OnnxType eType;
 
-        public OptionalType(TypeElement eType) {
+        public OptionalType(OnnxType eType) {
             this.eType = eType;
         }
 
-        public TypeElement eType() {
+        public OnnxType eType() {
             return eType;
         }
 
@@ -41,15 +305,15 @@ public abstract sealed class OnnxType implements TypeElement {
     }
 
     public static final class SequenceType extends OnnxType {
-        static final String NAME = "seq";
+        static final String NAME = "sequence";
 
-        final TypeElement eType;
+        final OnnxType eType;
 
-        public SequenceType(TypeElement eType) {
+        public SequenceType(OnnxType eType) {
             this.eType = eType;
         }
 
-        public TypeElement eType() {
+        public OnnxType eType() {
             return eType;
         }
 
@@ -75,19 +339,19 @@ public abstract sealed class OnnxType implements TypeElement {
     public static final class MapType extends OnnxType {
         static final String NAME = "map";
 
-        final TypeElement keyType;
-        final TypeElement valueType;
+        final OnnxType keyType;
+        final OnnxType valueType;
 
-        public MapType(TypeElement keyType, TypeElement valueType) {
+        public MapType(OnnxType keyType, OnnxType valueType) {
             this.keyType = keyType;
             this.valueType = valueType;
         }
 
-        public TypeElement keyType() {
+        public OnnxType keyType() {
             return keyType;
         }
 
-        public TypeElement valueType() {
+        public OnnxType valueType() {
             return valueType;
         }
 
@@ -113,7 +377,7 @@ public abstract sealed class OnnxType implements TypeElement {
     public static final class TensorType extends OnnxType {
         static final String NAME = "tensor";
 
-        final TypeElement eType;
+        final OnnxElementType eType;
         // A tensor can be defined as a pair of sequences/lists (V, S) where S is the shape of the tensor
         // (a list of non-negative integers) and V is a list of values with length equal to the product
         // of the dimensions in S
@@ -134,29 +398,21 @@ public abstract sealed class OnnxType implements TypeElement {
         // or a string representing a dimension variable e.g. [100, 100] or [N,M]
         final List<Object> shape;
 
-        // When size == 0, tensor represents a scalar whose contents hold one element
-        final int size;
-
-        public TensorType(TypeElement eType, List<Integer> shape) {
-            this.eType = eType;
-            this.shape = List.copyOf(shape);
-            int s = 1;
-            for (Integer i : shape) {
-                s *= i;
-            }
-            this.size = s;
+        public TensorType(OnnxElementType eType) {
+            this(eType, null);
         }
 
-        public TypeElement eType() {
+        public TensorType(OnnxElementType eType, List<Object> shape) {
+            this.eType = eType;
+            this.shape = shape != null ? List.copyOf(shape) : null;
+        }
+
+        public OnnxElementType eType() {
             return eType;
         }
 
         public List<Object> shape() {
             return shape;
-        }
-
-        public int size() {
-            return size;
         }
 
         @Override
@@ -199,11 +455,11 @@ public abstract sealed class OnnxType implements TypeElement {
         }
     }
 
-    public static final class FloatType extends OnnxElementType {
+    public static final class Float32Type extends OnnxElementType {
         // float32
-        static final String NAME = "float";
+        static final String NAME = "float32";
 
-        public FloatType() {
+        public Float32Type() {
         }
 
         @Override
@@ -212,11 +468,11 @@ public abstract sealed class OnnxType implements TypeElement {
         }
     }
 
-    public static final class DoubleType extends OnnxElementType {
+    public static final class Float64Type extends OnnxElementType {
         // float64
-        static final String NAME = "double";
+        static final String NAME = "float64";
 
-        public DoubleType() {
+        public Float64Type() {
         }
 
         @Override
@@ -357,10 +613,10 @@ public abstract sealed class OnnxType implements TypeElement {
         }
     }
 
-    public static final class Uint4Type extends OnnxElementType {
+    public static final class UInt4Type extends OnnxElementType {
         static final String NAME = "uint4";
 
-        public Uint4Type() {
+        public UInt4Type() {
         }
 
         @Override
@@ -369,10 +625,10 @@ public abstract sealed class OnnxType implements TypeElement {
         }
     }
 
-    public static final class Uint8Type extends OnnxElementType {
+    public static final class UInt8Type extends OnnxElementType {
         static final String NAME = "uint8";
 
-        public Uint8Type() {
+        public UInt8Type() {
         }
 
         @Override
@@ -381,10 +637,10 @@ public abstract sealed class OnnxType implements TypeElement {
         }
     }
 
-    public static final class Uint16Type extends OnnxElementType {
+    public static final class UInt16Type extends OnnxElementType {
         static final String NAME = "uint16";
 
-        public Uint16Type() {
+        public UInt16Type() {
         }
 
         @Override
@@ -393,10 +649,10 @@ public abstract sealed class OnnxType implements TypeElement {
         }
     }
 
-    public static final class Uint32Type extends OnnxElementType {
+    public static final class UInt32Type extends OnnxElementType {
         static final String NAME = "uint32";
 
-        public Uint32Type() {
+        public UInt32Type() {
         }
 
         @Override
@@ -405,10 +661,10 @@ public abstract sealed class OnnxType implements TypeElement {
         }
     }
 
-    public static final class Uint64Type extends OnnxElementType {
+    public static final class UInt64Type extends OnnxElementType {
         static final String NAME = "uint64";
 
-        public Uint64Type() {
+        public UInt64Type() {
         }
 
         @Override
