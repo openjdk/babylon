@@ -50,6 +50,7 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.BiFunction;
@@ -480,16 +481,22 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * @since 99
      */
     public static Optional<Quoted> ofQuotable(Quotable q) {
+        Object oq = q;
+        if (Proxy.isProxyClass(oq.getClass())) {
+            oq = Proxy.getInvocationHandler(oq);
+        }
+
         Method method;
         try {
-            method = q.getClass().getMethod("quoted");
+            method = oq.getClass().getMethod("quoted");
         } catch (NoSuchMethodException e) {
             throw new RuntimeException(e);
         }
         method.setAccessible(true);
+
         Quoted quoted;
         try {
-            quoted = (Quoted) method.invoke(q);
+            quoted = (Quoted) method.invoke(oq);
         } catch (InvocationTargetException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
