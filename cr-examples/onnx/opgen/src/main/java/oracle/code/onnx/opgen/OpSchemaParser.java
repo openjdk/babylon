@@ -25,8 +25,8 @@ public class OpSchemaParser {
 
     public static void main(String[] args) throws Exception {
         byte[] serSchemas = serialize(Path.of(
-                "/Users/sandoz/Projects/jdk/babylon/cr-examples/onnx/opgen/onnx-schema.json"));
-        Files.write(Path.of("op-schemas.ser"), serSchemas, StandardOpenOption.CREATE_NEW);
+                "opgen/onnx-schema.json"));
+        Files.write(Path.of("opgen/op-schemas.ser"), serSchemas, StandardOpenOption.CREATE_NEW);
     }
 
     static byte[] serialize(Path p) throws IOException {
