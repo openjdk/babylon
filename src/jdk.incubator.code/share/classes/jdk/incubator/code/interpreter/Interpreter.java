@@ -27,9 +27,10 @@ package jdk.incubator.code.interpreter;
 
 import java.lang.invoke.*;
 import java.lang.reflect.Array;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import jdk.incubator.code.*;
-import jdk.incubator.code.internal.QuotableLambdaOpInvocationHandler;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.type.ArrayType;
 import jdk.incubator.code.type.FieldRef;
@@ -490,9 +491,23 @@ public final class Interpreter {
 
             // If a quotable lambda proxy again to add method Quoted quoted()
             if (Quotable.class.isAssignableFrom(fi)) {
-                Quoted quoted = new Quoted(lo, capturedValuesAndArguments);
                 return Proxy.newProxyInstance(l.lookupClass().getClassLoader(), new Class<?>[]{fi},
-                        new QuotableLambdaOpInvocationHandler(fiInstance, quoted));
+                        new InvocationHandler() {
+                            private final Quoted quoted = new Quoted(lo, capturedValuesAndArguments);
+                            @Override
+                            public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+                                if (Objects.equals(method.getName(), "quoted") && method.getParameterCount() == 0) {
+                                    return quoted();
+                                } else {
+                                    // Delegate to FI instance
+                                    return method.invoke(fiInstance, args);
+                                }
+                            }
+
+                            public Quoted quoted() {
+                                return quoted;
+                            }
+                        });
             } else {
                 return fiInstance;
             }
