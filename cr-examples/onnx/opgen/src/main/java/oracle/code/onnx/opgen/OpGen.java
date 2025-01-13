@@ -119,7 +119,7 @@ public class OpGen {
 
     private void genAttributeEnum(IndentWriter w, OpSchema s) throws IOException {
         if (s.attributes().isEmpty()) {
-            w.write("public enum Attribute implements NoOnnxAttribute { }\n");
+            w.write("public enum Attribute implements OnnxAttribute.None { }\n");
             w.write("\n");
             return;
         }
@@ -173,7 +173,7 @@ public class OpGen {
 
     private Map<String, List<TypeElement.ExternalizedTypeElement>> genTypeConstraintEnum(IndentWriter w, OpSchema s) throws IOException {
         if (s.type_constraints().isEmpty()) {
-            w.write("public enum TypeConstraint implements NoOnnxTypeConstraint { }\n");
+            w.write("public enum TypeConstraint implements OnnxTypeConstraint.None { }\n");
             w.write("\n");
             return Map.of();
         }
@@ -225,7 +225,7 @@ public class OpGen {
     private void genInputParameterEnum(IndentWriter w, OpSchema s,
                                        Map<String, List<TypeElement.ExternalizedTypeElement>> typeConstraints) throws IOException {
         if (s.inputs().isEmpty()) {
-            w.write("public enum InputParameter implements NoOnnxParameter { }\n");
+            w.write("public enum InputParameter implements OnnxParameter.None { }\n");
             w.write("\n");
             return;
         }
@@ -289,7 +289,7 @@ public class OpGen {
     private void genOutputParameterEnum(IndentWriter w, OpSchema s,
                                         Map<String, List<TypeElement.ExternalizedTypeElement>> typeConstraints) throws IOException {
         if (s.outputs().isEmpty()) {
-            w.write("public enum OutputParameter implements NoOnnxParameter { }\n");
+            w.write("public enum OutputParameter implements OnnxParameter.None { }\n");
             w.write("\n");
             return;
         }
@@ -487,9 +487,42 @@ public class OpGen {
     }
 
     private static void genOutputParameterMethods(IndentWriter w, OpSchema s) throws IOException {
+        w.write("""
+                @Override
+                public SequencedSet<OnnxParameter> onnxOutputs() {
+                    return onnxOutputs(OutputParameter.values());
+                }
+                """);
+        w.write("\n");
     }
 
     private static void genInputParameterMethods(IndentWriter w, OpSchema s) throws IOException {
+        w.write("""
+                @Override
+                public SequencedMap<OnnxParameter, Object> onnxInputs() {
+                """);
+        w.in();
+
+        w.write("return onnxInputs(InputParameter.values(), ");
+        w.write("List.of(");
+        boolean first = true;
+        for (OpSchema.FormalParameter p : s.inputs()) {
+            if (!first) {
+                w.write(", ");
+            }
+
+            w.write(p.name() + "()");
+
+            first = false;;
+        }
+        w.write(")");
+        w.write(");\n");
+
+        w.out();
+        w.write("}\n");
+        w.write("\n");
+
+
         int i = 0;
         int rc = 0;
         int oc = 0;

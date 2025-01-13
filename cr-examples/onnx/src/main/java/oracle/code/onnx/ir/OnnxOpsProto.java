@@ -103,19 +103,14 @@ public final class OnnxOpsProto {
 
         @Override
         public SequencedSet<OnnxParameter> onnxOutputs() {
-            SequencedSet<OnnxParameter> outputs = new LinkedHashSet<>();
-            outputs.add(OutputParameter.C);
-            return outputs;
+            return onnxOutputs(OutputParameter.values());
         }
 
         // Operand accessors
 
         @Override
         public SequencedMap<OnnxParameter, Object> onnxInputs() {
-            SequencedMap<OnnxParameter, Value> inputs = new LinkedHashMap<>();
-            inputs.put(InputParameter.A, A());
-            inputs.put(InputParameter.B, B());
-            return Collections.unmodifiableSequencedMap(inputs);
+            return onnxInputs(InputParameter.values(), List.of(A(), B()));
         }
 
         public Value A() {

@@ -51,45 +51,47 @@ public abstract class OnnxOp extends ExternalizableOp {
 
             return Map.copyOf(attrs);
         }
+
+        interface None extends OnnxAttribute {
+            @Override
+            default String name() {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            default Class<?> type() {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            default Object defaultValue() {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            default boolean isOptional() {
+                throw new UnsupportedOperationException();
+            }
+        }
+
     }
 
-    interface NoOnnxAttribute extends OnnxAttribute {
-        @Override
-        default String name() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        default Class<?> type() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        default Object defaultValue() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        default boolean isOptional() {
-            throw new UnsupportedOperationException();
-        }
-    }
 
     public interface OnnxTypeConstraint {
         String name();
 
         OnnxType.TypeVariable typeVariable();
-    }
 
-    interface NoOnnxTypeConstraint extends OnnxTypeConstraint {
-        @Override
-        default String name() {
-            throw new UnsupportedOperationException();
-        }
+        interface None extends OnnxTypeConstraint {
+            @Override
+            default String name() {
+                throw new UnsupportedOperationException();
+            }
 
-        @Override
-        default OnnxType.TypeVariable typeVariable() {
-            throw new UnsupportedOperationException();
+            @Override
+            default OnnxType.TypeVariable typeVariable() {
+                throw new UnsupportedOperationException();
+            }
         }
     }
 
@@ -118,22 +120,22 @@ public abstract class OnnxOp extends ExternalizableOp {
         OnnxType type();
 
         Quantifier quantifier();
-    }
 
-    interface NoOnnxParameter extends OnnxParameter {
-        @Override
-        default String name() {
-            throw new UnsupportedOperationException();
-        }
+        interface None extends OnnxParameter {
+            @Override
+            default String name() {
+                throw new UnsupportedOperationException();
+            }
 
-        @Override
-        default OnnxType type() {
-            throw new UnsupportedOperationException();
-        }
+            @Override
+            default OnnxType type() {
+                throw new UnsupportedOperationException();
+            }
 
-        @Override
-        default Quantifier quantifier() {
-            throw new UnsupportedOperationException();
+            @Override
+            default Quantifier quantifier() {
+                throw new UnsupportedOperationException();
+            }
         }
     }
 

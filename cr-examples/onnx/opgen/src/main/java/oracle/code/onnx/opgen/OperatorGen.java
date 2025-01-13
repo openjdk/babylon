@@ -1,7 +1,6 @@
 package oracle.code.onnx.opgen;
 
 import jdk.incubator.code.TypeElement;
-import oracle.code.onnx.OnnxRunnable;
 import oracle.code.onnx.OpSchema;
 import oracle.code.onnx.Tensor;
 
