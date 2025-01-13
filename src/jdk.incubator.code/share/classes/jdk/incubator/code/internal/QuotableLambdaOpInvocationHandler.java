@@ -1,4 +1,4 @@
-package jdk.incubator.code.interpreter;
+package jdk.incubator.code.internal;
 
 import jdk.incubator.code.Quoted;
 

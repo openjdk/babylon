@@ -25,14 +25,11 @@
 
 package jdk.incubator.code.interpreter;
 
-import java.lang.classfile.ClassFile;
-import java.lang.constant.ClassDesc;
-import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.*;
-import java.lang.reflect.AccessFlag;
 import java.lang.reflect.Array;
 import java.lang.reflect.Proxy;
 import jdk.incubator.code.*;
+import jdk.incubator.code.internal.QuotableLambdaOpInvocationHandler;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.type.ArrayType;
 import jdk.incubator.code.type.FieldRef;
