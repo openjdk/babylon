@@ -104,6 +104,8 @@ public class OpGen {
 
         genOutputParameterEnum(w, s, typeConstraints);
 
+        genSchemaInstance(w, s);
+
         genConstructors(w, s);
 
         genMethods(w, s);
@@ -350,14 +352,23 @@ public class OpGen {
         w.write("\n");
     }
 
+    private void genSchemaInstance(IndentWriter w, OpSchema s) throws IOException {
+        w.write("""
+                public static final OnnxSchema SCHEMA = new OnnxSchemaRecord(
+                        NAME,
+                        List.of(Attribute.values()),
+                        List.of(TypeConstraint.values()),
+                        List.of(InputParameter.values()),
+                        List.of(OutputParameter.values())
+                );
+                """);
+        w.write("\n");
+    }
+
     private void genConstructors(IndentWriter w, OpSchema s) throws IOException {
         w.write("public " + s.name() + "(ExternalizedOp def) {\n");
         w.in();
-        if (!s.attributes().isEmpty()) {
-            w.write("super(def, Attribute.values());\n");
-        } else {
-            w.write("super(def);\n");
-        }
+        w.write("super(SCHEMA, def);\n");
         w.out();
         w.write("}\n");
         w.write("\n");
@@ -435,12 +446,11 @@ public class OpGen {
         w.write(") {\n");
         w.in();
 
-        w.write("super(NAME, resultType, ");
+        w.write("super(SCHEMA, resultType, ");
 
         // @@@ Optional output parameters
-        w.write("OutputParameter.values(), Set.of(), ");
+        w.write("Set.of(), ");
 
-        w.write("InputParameter.values(), ");
         w.write("List.of(");
         first = true;
         for (OpSchema.FormalParameter inParam : s.inputs()) {
@@ -451,9 +461,8 @@ public class OpGen {
 
             first = false;
         }
-        w.write(")");
+        w.write("), ");
 
-        w.write(", Attribute.values(), ");
         w.write("List.of(");
         first = true;
         for (OpSchema.Attribute a : s.attributes()) {
@@ -490,7 +499,7 @@ public class OpGen {
         w.write("""
                 @Override
                 public SequencedSet<OnnxParameter> onnxOutputs() {
-                    return onnxOutputs(OutputParameter.values());
+                    return onnxOutputs(SCHEMA);
                 }
                 """);
         w.write("\n");
@@ -503,7 +512,7 @@ public class OpGen {
                 """);
         w.in();
 
-        w.write("return onnxInputs(InputParameter.values(), ");
+        w.write("return onnxInputs(SCHEMA, ");
         w.write("List.of(");
         boolean first = true;
         for (OpSchema.FormalParameter p : s.inputs()) {

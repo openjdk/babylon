@@ -52,6 +52,20 @@ public abstract class OnnxOp extends ExternalizableOp {
             return Map.copyOf(attrs);
         }
 
+        static Map<String, Object> process(ExternalizedOp eop,
+                                           List<OnnxAttribute> attributes) {
+            Map<String, Object> attrs = new HashMap<>();
+            for (OnnxAttribute attribute : attributes) {
+                Object v = eop.attributes().get(attribute.name());
+                if (v == null && !attribute.isOptional()) {
+                    throw new NoSuchElementException(attribute.name());
+                }
+                attribute.process(attrs, v);
+            }
+
+            return Map.copyOf(attrs);
+        }
+
         interface None extends OnnxAttribute {
             @Override
             default String name() {
@@ -75,7 +89,6 @@ public abstract class OnnxOp extends ExternalizableOp {
         }
 
     }
-
 
     public interface OnnxTypeConstraint {
         String name();
@@ -139,6 +152,26 @@ public abstract class OnnxOp extends ExternalizableOp {
         }
     }
 
+    public interface OnnxSchema {
+        String name();
+
+        List<OnnxAttribute> attributes();
+
+        List<OnnxTypeConstraint> typeConstraints();
+
+        List<OnnxParameter> inputs();
+
+        List<OnnxParameter> outputs();
+    }
+
+    record OnnxSchemaRecord(
+            String name,
+            List<OnnxAttribute> attributes,
+            List<OnnxTypeConstraint> typeConstraints,
+            List<OnnxParameter> inputs,
+            List<OnnxParameter> outputs
+    ) implements OnnxSchema {}
+
     static List<Value> concatValues(Value operand) {
         return List.of(operand);
     }
@@ -180,17 +213,42 @@ public abstract class OnnxOp extends ExternalizableOp {
     final List<OnnxParameter> optionalInputArguments;
     final List<OnnxParameter> optionalOutputParameters;
 
-    @SuppressWarnings("unchecked")
     OnnxOp(ExternalizedOp def) {
-        this(def, null);
+        this(def, (OnnxAttribute[]) null);
     }
 
+    @SuppressWarnings("unchecked")
     OnnxOp(ExternalizedOp def, OnnxAttribute[] onnxAttributes) {
         super(def);
 
         this.onnxAttributes = onnxAttributes == null
                 ? Map.of()
                 : OnnxAttribute.process(def, onnxAttributes);
+        this.resultType = def.resultType();
+
+        // @@@ Filter optional
+        this.optionalInputArguments = def.extractAttributeValue(ATTRIBUTE_OPTIONAL_INPUTS,
+                false, v -> switch (v) {
+                    case List<?> s -> (List<OnnxParameter>) s;
+                    case null -> List.of();
+                    default -> throw new UnsupportedOperationException();
+                });
+
+        // @@@ Filter optional
+        this.optionalOutputParameters = def.extractAttributeValue(ATTRIBUTE_OPTIONAL_OUTPUTS,
+                false, v -> switch (v) {
+                    case List<?> s -> (List<OnnxParameter>) s;
+                    case null -> List.of();
+                    default -> throw new UnsupportedOperationException();
+                });
+    }
+
+    OnnxOp(OnnxSchema schema, ExternalizedOp def) {
+        super(def);
+
+        this.onnxAttributes = schema.attributes().isEmpty()
+                ? Map.of()
+                : OnnxAttribute.process(def, schema.attributes());
         this.resultType = def.resultType();
 
         // @@@ Filter optional
@@ -280,6 +338,69 @@ public abstract class OnnxOp extends ExternalizableOp {
         }
     }
 
+    OnnxOp(OnnxSchema schema, TypeElement resultType,
+           Set<? extends OnnxParameter> optionalOutputParameters,
+           List<Object> inputArguments,
+           List<Object> attributeValues) {
+        super(schema.name(), concatValues(inputArguments));
+
+        this.resultType = resultType;
+
+        // Optional output parameters
+
+        if (!optionalOutputParameters.isEmpty()) {
+            List<OnnxParameter> l = new ArrayList<>();
+
+            for (int i = 0; i < schema.outputs().size(); i++) {
+                OnnxParameter p = schema.outputs().get(i);
+                if (p.quantifier().isOptional()
+                        && optionalOutputParameters.contains(p)) {
+                    l.add(p);
+                }
+            }
+            this.optionalOutputParameters = List.copyOf(l);
+        } else {
+            this.optionalOutputParameters = List.of();
+        }
+
+        // Optional input parameters
+
+        if (!inputArguments.isEmpty()) {
+            List<OnnxParameter> l = new ArrayList<>();
+
+            for (int i = 0; i < schema.inputs().size(); i++) {
+                OnnxParameter p = schema.inputs().get(i);
+                if (p.quantifier().isOptional()) {
+                    assert inputArguments.get(i) instanceof Optional;
+                    if (inputArguments.get(i) instanceof Optional<?> optionalValue
+                            && optionalValue.isPresent()) {
+                        l.add(p);
+                    }
+                }
+            }
+            if (!l.isEmpty()) {
+                this.optionalInputArguments = List.copyOf(l);
+            } else {
+                this.optionalInputArguments = List.of();
+            }
+        } else {
+            this.optionalInputArguments = List.of();
+        }
+
+        // Attributes
+
+        if (!attributeValues.isEmpty()) {
+            Map<String, Object> attrs = new HashMap<>();
+            assert schema.attributes().size() == attributeValues.size();
+            for (int i = 0; i < schema.attributes().size(); i++) {
+                schema.attributes().get(i).process(attrs, attributeValues.get(i));
+            }
+            this.onnxAttributes = Map.copyOf(attrs);
+        } else {
+            this.onnxAttributes = Map.of();
+        }
+    }
+
     @Override
     public TypeElement resultType() {
         return resultType;
@@ -307,9 +428,9 @@ public abstract class OnnxOp extends ExternalizableOp {
         return Collections.emptyNavigableSet();
     }
 
-    SequencedSet<OnnxParameter> onnxOutputs(OnnxParameter[] onnxOutputParameters) {
+    SequencedSet<OnnxParameter> onnxOutputs(OnnxSchema schema) {
         LinkedHashSet<OnnxParameter> s = new LinkedHashSet<>();
-        for (OnnxParameter p : onnxOutputParameters) {
+        for (OnnxParameter p : schema.outputs()) {
             if (!p.quantifier().isOptional() || optionalOutputParameters.contains(p)) {
                 s.add(p);
             }
@@ -322,11 +443,12 @@ public abstract class OnnxOp extends ExternalizableOp {
         return Collections.emptyNavigableMap();
     }
 
-    SequencedMap<OnnxParameter, Object> onnxInputs(OnnxParameter[] onnxInputParameters, List<Object> inputArguments) {
+    SequencedMap<OnnxParameter, Object> onnxInputs(OnnxSchema schema, List<Object> inputArguments) {
+        assert schema.inputs().size() == inputArguments.size();
         if (!inputArguments.isEmpty()) {
             SequencedMap<OnnxParameter, Object> inputs = new LinkedHashMap<>();
-            for (int i = 0; i < onnxInputParameters.length; i++) {
-                inputs.put(onnxInputParameters[i], inputArguments.get(i));
+            for (int i = 0; i < schema.outputs().size(); i++) {
+                inputs.put(schema.outputs().get(i), inputArguments.get(i));
             }
             return inputs;
         } else {

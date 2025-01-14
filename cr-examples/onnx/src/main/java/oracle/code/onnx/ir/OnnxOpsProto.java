@@ -9,6 +9,8 @@ public final class OnnxOpsProto {
     private OnnxOpsProto() {
     }
 
+    public enum Attribute implements OnnxOp.OnnxAttribute.None {}
+
     @OpFactory.OpDeclaration(Add.NAME)
     public static final class Add extends OnnxOp {
         public static final String NAME = "Add";
@@ -81,8 +83,16 @@ public final class OnnxOpsProto {
             }
         }
 
+        public static final OnnxSchema SCHEMA = new OnnxSchemaRecord(
+                NAME,
+                List.of(Attribute.values()),
+                List.of(TypeConstraint.values()),
+                List.of(InputParameter.values()),
+                List.of(OutputParameter.values())
+        );
+
         public Add(ExternalizedOp def) {
-            super(def);
+            super(SCHEMA, def);
         }
 
         Add(Add that, CopyContext cc) {
@@ -95,22 +105,22 @@ public final class OnnxOpsProto {
         }
 
         Add(TypeElement resultType, Value A, Value B) {
-            super(NAME, resultType,
-                    null, Set.of(),
-                    InputParameter.values(), List.of(A, B),
-                    null, List.of());
+            super(SCHEMA, resultType,
+                    Set.of(),
+                    List.of(A, B),
+                    List.of());
         }
 
         @Override
         public SequencedSet<OnnxParameter> onnxOutputs() {
-            return onnxOutputs(OutputParameter.values());
+            return onnxOutputs(SCHEMA);
         }
 
         // Operand accessors
 
         @Override
         public SequencedMap<OnnxParameter, Object> onnxInputs() {
-            return onnxInputs(InputParameter.values(), List.of(A(), B()));
+            return onnxInputs(SCHEMA, List.of(A(), B()));
         }
 
         public Value A() {
