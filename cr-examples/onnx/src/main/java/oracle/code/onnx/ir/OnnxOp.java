@@ -213,36 +213,7 @@ public abstract class OnnxOp extends ExternalizableOp {
     final List<OnnxParameter> optionalInputArguments;
     final List<OnnxParameter> optionalOutputParameters;
 
-    OnnxOp(ExternalizedOp def) {
-        this(def, (OnnxAttribute[]) null);
-    }
-
     @SuppressWarnings("unchecked")
-    OnnxOp(ExternalizedOp def, OnnxAttribute[] onnxAttributes) {
-        super(def);
-
-        this.onnxAttributes = onnxAttributes == null
-                ? Map.of()
-                : OnnxAttribute.process(def, onnxAttributes);
-        this.resultType = def.resultType();
-
-        // @@@ Filter optional
-        this.optionalInputArguments = def.extractAttributeValue(ATTRIBUTE_OPTIONAL_INPUTS,
-                false, v -> switch (v) {
-                    case List<?> s -> (List<OnnxParameter>) s;
-                    case null -> List.of();
-                    default -> throw new UnsupportedOperationException();
-                });
-
-        // @@@ Filter optional
-        this.optionalOutputParameters = def.extractAttributeValue(ATTRIBUTE_OPTIONAL_OUTPUTS,
-                false, v -> switch (v) {
-                    case List<?> s -> (List<OnnxParameter>) s;
-                    case null -> List.of();
-                    default -> throw new UnsupportedOperationException();
-                });
-    }
-
     OnnxOp(OnnxSchema schema, ExternalizedOp def) {
         super(def);
 
@@ -275,67 +246,6 @@ public abstract class OnnxOp extends ExternalizableOp {
         this.resultType = that.resultType;
         this.optionalInputArguments = List.copyOf(that.optionalInputArguments);
         this.optionalOutputParameters = List.copyOf(that.optionalOutputParameters);
-    }
-
-    OnnxOp(String name, TypeElement resultType,
-           OnnxParameter[] onnxOutputParameters, Set<? extends OnnxParameter> optionalOutputParameters,
-           OnnxParameter[] onnxInputParameters, List<Object> inputArguments,
-           OnnxAttribute[] onnxAttributes, List<Object> attributeValues) {
-        super(name, concatValues(inputArguments));
-
-        this.resultType = resultType;
-
-        // Optional output parameters
-
-        if (!optionalOutputParameters.isEmpty()) {
-            List<OnnxParameter> l = new ArrayList<>();
-
-            for (int i = 0; i < onnxOutputParameters.length; i++) {
-                if (onnxOutputParameters[i].quantifier().isOptional()
-                        && optionalOutputParameters.contains(onnxOutputParameters[i])) {
-                    l.add(onnxOutputParameters[i]);
-                }
-            }
-            this.optionalOutputParameters = List.copyOf(l);
-        } else {
-            this.optionalOutputParameters = List.of();
-        }
-
-        // Optional input parameters
-
-        if (!inputArguments.isEmpty()) {
-            List<OnnxParameter> l = new ArrayList<>();
-
-            for (int i = 0; i < onnxInputParameters.length; i++) {
-                if (onnxInputParameters[i].quantifier().isOptional()) {
-                    assert inputArguments.get(i) instanceof Optional;
-                    if (inputArguments.get(i) instanceof Optional<?> optionalValue
-                            && optionalValue.isPresent()) {
-                        l.add(onnxInputParameters[i]);
-                    }
-                }
-            }
-            if (!l.isEmpty()) {
-                this.optionalInputArguments = List.copyOf(l);
-            } else {
-                this.optionalInputArguments = List.of();
-            }
-        } else {
-            this.optionalInputArguments = List.of();
-        }
-
-        // Attributes
-
-        if (!attributeValues.isEmpty()) {
-            Map<String, Object> attrs = new HashMap<>();
-            assert onnxAttributes.length == attributeValues.size();
-            for (int i = 0; i < onnxAttributes.length; i++) {
-                onnxAttributes[i].process(attrs, attributeValues.get(i));
-            }
-            this.onnxAttributes = Map.copyOf(attrs);
-        } else {
-            this.onnxAttributes = Map.of();
-        }
     }
 
     OnnxOp(OnnxSchema schema, TypeElement resultType,

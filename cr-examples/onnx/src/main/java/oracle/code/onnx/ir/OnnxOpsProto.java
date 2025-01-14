@@ -241,8 +241,16 @@ public final class OnnxOpsProto {
             }
         }
 
+        public static final OnnxSchema SCHEMA = new OnnxSchemaRecord(
+                NAME,
+                List.of(OnnxOpsProto.Attribute.values()),
+                List.of(Add.TypeConstraint.values()),
+                List.of(Add.InputParameter.values()),
+                List.of(Add.OutputParameter.values())
+        );
+
         public AveragePool(ExternalizedOp def) {
-            super(def, Attribute.values());
+            super(SCHEMA, def);
         }
 
         AveragePool(AveragePool that, CopyContext cc) {
@@ -263,10 +271,10 @@ public final class OnnxOpsProto {
                     Optional<Integer> ceil_mode,
                     Optional<int[]> strides,
                     int[] kernel_shape) {
-            super(NAME, resultType,
-                    null, Set.of(),
-                    Add.InputParameter.values(), List.of(X),
-                    Attribute.values(), List.of(pads, dilations, auto_pad, count_include_pad, ceil_mode, strides, kernel_shape));
+            super(SCHEMA, resultType,
+                    Set.of(),
+                    List.of(X),
+                    List.of(pads, dilations, auto_pad, count_include_pad, ceil_mode, strides, kernel_shape));
         }
 
         @Override
@@ -449,9 +457,17 @@ public final class OnnxOpsProto {
             }
         }
 
+        public static final OnnxSchema SCHEMA = new OnnxSchemaRecord(
+                NAME,
+                List.of(OnnxOpsProto.Attribute.values()),
+                List.of(Add.TypeConstraint.values()),
+                List.of(Add.InputParameter.values()),
+                List.of(Add.OutputParameter.values())
+        );
+
         @SuppressWarnings("unchecked")
         public DFT(ExternalizedOp def) {
-            super(def, Attribute.values());
+            super(SCHEMA, def);
         }
 
         DFT(DFT that, CopyContext cc) {
@@ -471,10 +487,10 @@ public final class OnnxOpsProto {
             // Attributes
             Optional<Integer> inverse,
             Optional<Integer> onesided) {
-            super(NAME, resultType,
-                    null, Set.of(),
-                    InputParameter.values(), List.of(input, dft_length, axis),
-                    Attribute.values(), List.of(inverse, onesided));
+            super(SCHEMA, resultType,
+                    Set.of(),
+                    List.of(input, dft_length, axis),
+                    List.of(inverse, onesided));
         }
 
         @Override
@@ -646,9 +662,17 @@ public final class OnnxOpsProto {
             }
         }
 
+        public static final OnnxSchema SCHEMA = new OnnxSchemaRecord(
+                NAME,
+                List.of(OnnxOpsProto.Attribute.values()),
+                List.of(Add.TypeConstraint.values()),
+                List.of(Add.InputParameter.values()),
+                List.of(Add.OutputParameter.values())
+        );
+
         @SuppressWarnings("unchecked")
         public SoftmaxCrossEntropyLoss(ExternalizedOp def) {
-            super(def, Attribute.values());
+            super(SCHEMA, def);
         }
 
         SoftmaxCrossEntropyLoss(SoftmaxCrossEntropyLoss that, CopyContext cc) {
@@ -670,10 +694,10 @@ public final class OnnxOpsProto {
                                 // Attributes
                                 Optional<Integer> ignore_index,
                                 Optional<String> reduction) {
-            super(NAME, resultType,
-                    OutputParameter.values(), optionalOutputs,
-                    InputParameter.values(), List.of(scores, labels, weights),
-                    Attribute.values(), List.of(ignore_index, reduction));
+            super(SCHEMA, resultType,
+                    optionalOutputs,
+                    List.of(scores, labels, weights),
+                    List.of(ignore_index, reduction));
         }
 
 //        public TypeElement resultType() {
@@ -865,9 +889,17 @@ public final class OnnxOpsProto {
             }
         }
 
+        public static final OnnxSchema SCHEMA = new OnnxSchemaRecord(
+                NAME,
+                List.of(OnnxOpsProto.Attribute.values()),
+                List.of(Add.TypeConstraint.values()),
+                List.of(Add.InputParameter.values()),
+                List.of(Add.OutputParameter.values())
+        );
+
         @SuppressWarnings("unchecked")
         public Adagrad(ExternalizedOp def) {
-            super(def, Attribute.values());
+            super(SCHEMA, def);
         }
 
         Adagrad(Adagrad that, CopyContext cc) {
@@ -888,10 +920,10 @@ public final class OnnxOpsProto {
                 Optional<Float> norm_coefficient,
                 Optional<Float> decay_factor,
                 Optional<Float> epsilon) {
-            super(NAME, resultType,
-                    null, Set.of(),
-                    InputParameter.values(), List.of(R, T, inputs),
-                    Attribute.values(), List.of(norm_coefficient, decay_factor, epsilon));
+            super(SCHEMA, resultType,
+                    Set.of(),
+                    List.of(R, T, inputs),
+                    List.of(norm_coefficient, decay_factor, epsilon));
         }
 
 //        public TypeElement resultType() {
