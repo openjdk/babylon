@@ -35,17 +35,24 @@ public record OpSchema(
         FLOAT(float.class),
         INT(int.class),
         STRING(String.class),
-        TENSOR(Tensor.class),
-        GRAPH(jdk.incubator.code.Op.class),
-        SPARSE_TENSOR(Object.class),
-        TYPE_PROTO(byte[].class),
+        // @@@ proto
+        TENSOR(byte[].class),
+        // proto
+        GRAPH(byte[].class),
+        SPARSE_TENSOR(byte[].class),
+        // @@@ Map<K, V>, Opaque, Optional<T>, Sequence<T>, SparseTensor<T>, Tensor<T>
+        // OnnxTypeElement?
+        TYPE_PROTO(Object.class),
         FLOATS(float[].class),
         INTS(int[].class),
         STRINGS(String[].class),
-        TENSORS(Tensor[].class),
-        GRAPHS(jdk.incubator.code.Op[].class),
-        SPARSE_TENSORS(Object.class),
-        TYPE_PROTOS(byte[][].class)
+        // @@@ proto
+        TENSORS(byte[][].class),
+        // @@@ proto
+        GRAPHS(byte[][].class),
+        // @@@ proto
+        SPARSE_TENSORS(byte[][].class),
+        TYPE_PROTOS(Object[].class)
         ;
 
         final Class<?> type;

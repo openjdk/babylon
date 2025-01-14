@@ -5203,8 +5203,8 @@ public final class OnnxOps {
             value_float(Float.class, true, null),
             value_string(String.class, true, null),
             value_ints(int[].class, true, null),
-            sparse_value(Object.class, true, null),
-            value(Tensor.class, true, null),
+            sparse_value(byte[].class, true, null),
+            value(byte[].class, true, null),
             ;
             
                 final Class<?> t;
@@ -5294,7 +5294,7 @@ public final class OnnxOps {
             return new Constant(this, cc);
         }
         
-        Constant(TypeElement resultType, java.util.Optional<Integer> value_int, java.util.Optional<float[]> value_floats, java.util.Optional<String[]> value_strings, java.util.Optional<Float> value_float, java.util.Optional<String> value_string, java.util.Optional<int[]> value_ints, java.util.Optional<Object> sparse_value, java.util.Optional<Tensor<?>> value) {
+        Constant(TypeElement resultType, java.util.Optional<Integer> value_int, java.util.Optional<float[]> value_floats, java.util.Optional<String[]> value_strings, java.util.Optional<Float> value_float, java.util.Optional<String> value_string, java.util.Optional<int[]> value_ints, java.util.Optional<byte[]> sparse_value, java.util.Optional<byte[]> value) {
             super(SCHEMA, resultType, Set.of(), List.of(), List.of(value_int, value_floats, value_strings, value_float, value_string, value_ints, sparse_value, value));
         }
         
@@ -5338,19 +5338,19 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(value_ints).map(int[]::clone);
         }
         
-        public java.util.Optional<Object> sparse_value() {
-            Object sparse_value = Attribute.sparse_value.access(Object.class, onnxAttributes);
-            return java.util.Optional.ofNullable(sparse_value);
+        public java.util.Optional<byte[]> sparse_value() {
+            byte[] sparse_value = Attribute.sparse_value.access(byte[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(sparse_value).map(byte[]::clone);
         }
         
-        public java.util.Optional<Tensor<?>> value() {
-            Tensor<?> value = Attribute.value.access(Tensor.class, onnxAttributes);
-            return java.util.Optional.ofNullable(value);
+        public java.util.Optional<byte[]> value() {
+            byte[] value = Attribute.value.access(byte[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(value).map(byte[]::clone);
         }
         
     }
     
-    public static Constant Constant(TypeElement resultType, java.util.Optional<Integer> value_int, java.util.Optional<float[]> value_floats, java.util.Optional<String[]> value_strings, java.util.Optional<Float> value_float, java.util.Optional<String> value_string, java.util.Optional<int[]> value_ints, java.util.Optional<Object> sparse_value, java.util.Optional<Tensor<?>> value) {
+    public static Constant Constant(TypeElement resultType, java.util.Optional<Integer> value_int, java.util.Optional<float[]> value_floats, java.util.Optional<String[]> value_strings, java.util.Optional<Float> value_float, java.util.Optional<String> value_string, java.util.Optional<int[]> value_ints, java.util.Optional<byte[]> sparse_value, java.util.Optional<byte[]> value) {
         return new Constant(resultType, value_int, value_floats, value_strings, value_float, value_string, value_ints, sparse_value, value);
     }
 
@@ -5359,7 +5359,7 @@ public final class OnnxOps {
         public static final String NAME = "ConstantOfShape";
         
         public enum Attribute implements OnnxAttribute {
-            value(Tensor.class, true, null),
+            value(byte[].class, true, null),
             ;
             
                 final Class<?> t;
@@ -5471,7 +5471,7 @@ public final class OnnxOps {
             return new ConstantOfShape(this, cc);
         }
         
-        ConstantOfShape(TypeElement resultType, Value input, java.util.Optional<Tensor<?>> value) {
+        ConstantOfShape(TypeElement resultType, Value input, java.util.Optional<byte[]> value) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of(value));
         }
         
@@ -5489,14 +5489,14 @@ public final class OnnxOps {
             return operands().get(0);
         }
         
-        public java.util.Optional<Tensor<?>> value() {
-            Tensor<?> value = Attribute.value.access(Tensor.class, onnxAttributes);
-            return java.util.Optional.ofNullable(value);
+        public java.util.Optional<byte[]> value() {
+            byte[] value = Attribute.value.access(byte[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(value).map(byte[]::clone);
         }
         
     }
     
-    public static ConstantOfShape ConstantOfShape(TypeElement resultType, Value input, java.util.Optional<Tensor<?>> value) {
+    public static ConstantOfShape ConstantOfShape(TypeElement resultType, Value input, java.util.Optional<byte[]> value) {
         return new ConstantOfShape(resultType, input, value);
     }
 
@@ -13161,13 +13161,13 @@ public final class OnnxOps {
         public enum Attribute implements OnnxAttribute {
             values_strings(String[].class, true, null),
             keys_int64s(int[].class, true, null),
-            keys_tensor(Tensor.class, true, null),
+            keys_tensor(byte[].class, true, null),
             keys_strings(String[].class, true, null),
             default_float(Float.class, true, null),
             keys_floats(float[].class, true, null),
-            default_tensor(Tensor.class, true, null),
+            default_tensor(byte[].class, true, null),
             default_int64(Integer.class, true, null),
-            values_tensor(Tensor.class, true, null),
+            values_tensor(byte[].class, true, null),
             values_int64s(int[].class, true, null),
             default_string(String.class, true, null),
             values_floats(float[].class, true, null),
@@ -13282,7 +13282,7 @@ public final class OnnxOps {
             return new LabelEncoder(this, cc);
         }
         
-        LabelEncoder(TypeElement resultType, Value X, java.util.Optional<String[]> values_strings, java.util.Optional<int[]> keys_int64s, java.util.Optional<Tensor<?>> keys_tensor, java.util.Optional<String[]> keys_strings, java.util.Optional<Float> default_float, java.util.Optional<float[]> keys_floats, java.util.Optional<Tensor<?>> default_tensor, java.util.Optional<Integer> default_int64, java.util.Optional<Tensor<?>> values_tensor, java.util.Optional<int[]> values_int64s, java.util.Optional<String> default_string, java.util.Optional<float[]> values_floats) {
+        LabelEncoder(TypeElement resultType, Value X, java.util.Optional<String[]> values_strings, java.util.Optional<int[]> keys_int64s, java.util.Optional<byte[]> keys_tensor, java.util.Optional<String[]> keys_strings, java.util.Optional<Float> default_float, java.util.Optional<float[]> keys_floats, java.util.Optional<byte[]> default_tensor, java.util.Optional<Integer> default_int64, java.util.Optional<byte[]> values_tensor, java.util.Optional<int[]> values_int64s, java.util.Optional<String> default_string, java.util.Optional<float[]> values_floats) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(values_strings, keys_int64s, keys_tensor, keys_strings, default_float, keys_floats, default_tensor, default_int64, values_tensor, values_int64s, default_string, values_floats));
         }
         
@@ -13310,9 +13310,9 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(keys_int64s).map(int[]::clone);
         }
         
-        public java.util.Optional<Tensor<?>> keys_tensor() {
-            Tensor<?> keys_tensor = Attribute.keys_tensor.access(Tensor.class, onnxAttributes);
-            return java.util.Optional.ofNullable(keys_tensor);
+        public java.util.Optional<byte[]> keys_tensor() {
+            byte[] keys_tensor = Attribute.keys_tensor.access(byte[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(keys_tensor).map(byte[]::clone);
         }
         
         public java.util.Optional<String[]> keys_strings() {
@@ -13330,9 +13330,9 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(keys_floats).map(float[]::clone);
         }
         
-        public java.util.Optional<Tensor<?>> default_tensor() {
-            Tensor<?> default_tensor = Attribute.default_tensor.access(Tensor.class, onnxAttributes);
-            return java.util.Optional.ofNullable(default_tensor);
+        public java.util.Optional<byte[]> default_tensor() {
+            byte[] default_tensor = Attribute.default_tensor.access(byte[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(default_tensor).map(byte[]::clone);
         }
         
         public java.util.Optional<Integer> default_int64() {
@@ -13340,9 +13340,9 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(default_int64);
         }
         
-        public java.util.Optional<Tensor<?>> values_tensor() {
-            Tensor<?> values_tensor = Attribute.values_tensor.access(Tensor.class, onnxAttributes);
-            return java.util.Optional.ofNullable(values_tensor);
+        public java.util.Optional<byte[]> values_tensor() {
+            byte[] values_tensor = Attribute.values_tensor.access(byte[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(values_tensor).map(byte[]::clone);
         }
         
         public java.util.Optional<int[]> values_int64s() {
@@ -13362,7 +13362,7 @@ public final class OnnxOps {
         
     }
     
-    public static LabelEncoder LabelEncoder(TypeElement resultType, Value X, java.util.Optional<String[]> values_strings, java.util.Optional<int[]> keys_int64s, java.util.Optional<Tensor<?>> keys_tensor, java.util.Optional<String[]> keys_strings, java.util.Optional<Float> default_float, java.util.Optional<float[]> keys_floats, java.util.Optional<Tensor<?>> default_tensor, java.util.Optional<Integer> default_int64, java.util.Optional<Tensor<?>> values_tensor, java.util.Optional<int[]> values_int64s, java.util.Optional<String> default_string, java.util.Optional<float[]> values_floats) {
+    public static LabelEncoder LabelEncoder(TypeElement resultType, Value X, java.util.Optional<String[]> values_strings, java.util.Optional<int[]> keys_int64s, java.util.Optional<byte[]> keys_tensor, java.util.Optional<String[]> keys_strings, java.util.Optional<Float> default_float, java.util.Optional<float[]> keys_floats, java.util.Optional<byte[]> default_tensor, java.util.Optional<Integer> default_int64, java.util.Optional<byte[]> values_tensor, java.util.Optional<int[]> values_int64s, java.util.Optional<String> default_string, java.util.Optional<float[]> values_floats) {
         return new LabelEncoder(resultType, X, values_strings, keys_int64s, keys_tensor, keys_strings, default_float, keys_floats, default_tensor, default_int64, values_tensor, values_int64s, default_string, values_floats);
     }
 
@@ -18105,7 +18105,7 @@ public final class OnnxOps {
         public static final String NAME = "Optional";
         
         public enum Attribute implements OnnxAttribute {
-            type(byte[].class, true, null),
+            type(Object.class, true, null),
             ;
             
                 final Class<?> t;
@@ -18217,7 +18217,7 @@ public final class OnnxOps {
             return new Optional(this, cc);
         }
         
-        Optional(TypeElement resultType, java.util.Optional<Value> input, java.util.Optional<byte[]> type) {
+        Optional(TypeElement resultType, java.util.Optional<Value> input, java.util.Optional<Object> type) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of(type));
         }
         
@@ -18236,14 +18236,14 @@ public final class OnnxOps {
             return i != -1 ? java.util.Optional.of(operands().get(0 + i)) : java.util.Optional.empty();
         }
         
-        public java.util.Optional<byte[]> type() {
-            byte[] type = Attribute.type.access(byte[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(type).map(byte[]::clone);
+        public java.util.Optional<Object> type() {
+            Object type = Attribute.type.access(Object.class, onnxAttributes);
+            return java.util.Optional.ofNullable(type);
         }
         
     }
     
-    public static Optional Optional(TypeElement resultType, java.util.Optional<Value> input, java.util.Optional<byte[]> type) {
+    public static Optional Optional(TypeElement resultType, java.util.Optional<Value> input, java.util.Optional<Object> type) {
         return new Optional(resultType, input, type);
     }
 
@@ -29209,21 +29209,21 @@ public final class OnnxOps {
         
         public enum Attribute implements OnnxAttribute {
             aggregate_function(Integer.class, true, null),
-            nodes_hitrates(Tensor.class, true, null),
+            nodes_hitrates(byte[].class, true, null),
             nodes_featureids(int[].class, false, null),
             nodes_falseleafs(int[].class, false, null),
             post_transform(Integer.class, true, null),
             nodes_trueleafs(int[].class, false, null),
-            nodes_modes(Tensor.class, false, null),
+            nodes_modes(byte[].class, false, null),
             nodes_falsenodeids(int[].class, false, null),
             nodes_truenodeids(int[].class, false, null),
-            leaf_weights(Tensor.class, false, null),
+            leaf_weights(byte[].class, false, null),
             leaf_targetids(int[].class, false, null),
             tree_roots(int[].class, false, null),
             n_targets(Integer.class, true, null),
             nodes_missing_value_tracks_true(int[].class, true, null),
-            membership_values(Tensor.class, true, null),
-            nodes_splits(Tensor.class, false, null),
+            membership_values(byte[].class, true, null),
+            nodes_splits(byte[].class, false, null),
             ;
             
                 final Class<?> t;
@@ -29334,7 +29334,7 @@ public final class OnnxOps {
             return new TreeEnsemble(this, cc);
         }
         
-        TreeEnsemble(TypeElement resultType, Value X, java.util.Optional<Integer> aggregate_function, java.util.Optional<Tensor<?>> nodes_hitrates, int[] nodes_featureids, int[] nodes_falseleafs, java.util.Optional<Integer> post_transform, int[] nodes_trueleafs, Tensor<?> nodes_modes, int[] nodes_falsenodeids, int[] nodes_truenodeids, Tensor<?> leaf_weights, int[] leaf_targetids, int[] tree_roots, java.util.Optional<Integer> n_targets, java.util.Optional<int[]> nodes_missing_value_tracks_true, java.util.Optional<Tensor<?>> membership_values, Tensor<?> nodes_splits) {
+        TreeEnsemble(TypeElement resultType, Value X, java.util.Optional<Integer> aggregate_function, java.util.Optional<byte[]> nodes_hitrates, int[] nodes_featureids, int[] nodes_falseleafs, java.util.Optional<Integer> post_transform, int[] nodes_trueleafs, byte[] nodes_modes, int[] nodes_falsenodeids, int[] nodes_truenodeids, byte[] leaf_weights, int[] leaf_targetids, int[] tree_roots, java.util.Optional<Integer> n_targets, java.util.Optional<int[]> nodes_missing_value_tracks_true, java.util.Optional<byte[]> membership_values, byte[] nodes_splits) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(aggregate_function, nodes_hitrates, nodes_featureids, nodes_falseleafs, post_transform, nodes_trueleafs, nodes_modes, nodes_falsenodeids, nodes_truenodeids, leaf_weights, leaf_targetids, tree_roots, n_targets, nodes_missing_value_tracks_true, membership_values, nodes_splits));
         }
         
@@ -29357,9 +29357,9 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(aggregate_function);
         }
         
-        public java.util.Optional<Tensor<?>> nodes_hitrates() {
-            Tensor<?> nodes_hitrates = Attribute.nodes_hitrates.access(Tensor.class, onnxAttributes);
-            return java.util.Optional.ofNullable(nodes_hitrates);
+        public java.util.Optional<byte[]> nodes_hitrates() {
+            byte[] nodes_hitrates = Attribute.nodes_hitrates.access(byte[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(nodes_hitrates).map(byte[]::clone);
         }
         
         public int[] nodes_featureids() {
@@ -29382,9 +29382,9 @@ public final class OnnxOps {
             return nodes_trueleafs.clone();
         }
         
-        public Tensor<?> nodes_modes() {
-            Tensor<?> nodes_modes = Attribute.nodes_modes.access(Tensor.class, onnxAttributes);
-            return nodes_modes;
+        public byte[] nodes_modes() {
+            byte[] nodes_modes = Attribute.nodes_modes.access(byte[].class, onnxAttributes);
+            return nodes_modes.clone();
         }
         
         public int[] nodes_falsenodeids() {
@@ -29397,9 +29397,9 @@ public final class OnnxOps {
             return nodes_truenodeids.clone();
         }
         
-        public Tensor<?> leaf_weights() {
-            Tensor<?> leaf_weights = Attribute.leaf_weights.access(Tensor.class, onnxAttributes);
-            return leaf_weights;
+        public byte[] leaf_weights() {
+            byte[] leaf_weights = Attribute.leaf_weights.access(byte[].class, onnxAttributes);
+            return leaf_weights.clone();
         }
         
         public int[] leaf_targetids() {
@@ -29422,19 +29422,19 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(nodes_missing_value_tracks_true).map(int[]::clone);
         }
         
-        public java.util.Optional<Tensor<?>> membership_values() {
-            Tensor<?> membership_values = Attribute.membership_values.access(Tensor.class, onnxAttributes);
-            return java.util.Optional.ofNullable(membership_values);
+        public java.util.Optional<byte[]> membership_values() {
+            byte[] membership_values = Attribute.membership_values.access(byte[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(membership_values).map(byte[]::clone);
         }
         
-        public Tensor<?> nodes_splits() {
-            Tensor<?> nodes_splits = Attribute.nodes_splits.access(Tensor.class, onnxAttributes);
-            return nodes_splits;
+        public byte[] nodes_splits() {
+            byte[] nodes_splits = Attribute.nodes_splits.access(byte[].class, onnxAttributes);
+            return nodes_splits.clone();
         }
         
     }
     
-    public static TreeEnsemble TreeEnsemble(TypeElement resultType, Value X, java.util.Optional<Integer> aggregate_function, java.util.Optional<Tensor<?>> nodes_hitrates, int[] nodes_featureids, int[] nodes_falseleafs, java.util.Optional<Integer> post_transform, int[] nodes_trueleafs, Tensor<?> nodes_modes, int[] nodes_falsenodeids, int[] nodes_truenodeids, Tensor<?> leaf_weights, int[] leaf_targetids, int[] tree_roots, java.util.Optional<Integer> n_targets, java.util.Optional<int[]> nodes_missing_value_tracks_true, java.util.Optional<Tensor<?>> membership_values, Tensor<?> nodes_splits) {
+    public static TreeEnsemble TreeEnsemble(TypeElement resultType, Value X, java.util.Optional<Integer> aggregate_function, java.util.Optional<byte[]> nodes_hitrates, int[] nodes_featureids, int[] nodes_falseleafs, java.util.Optional<Integer> post_transform, int[] nodes_trueleafs, byte[] nodes_modes, int[] nodes_falsenodeids, int[] nodes_truenodeids, byte[] leaf_weights, int[] leaf_targetids, int[] tree_roots, java.util.Optional<Integer> n_targets, java.util.Optional<int[]> nodes_missing_value_tracks_true, java.util.Optional<byte[]> membership_values, byte[] nodes_splits) {
         return new TreeEnsemble(resultType, X, aggregate_function, nodes_hitrates, nodes_featureids, nodes_falseleafs, post_transform, nodes_trueleafs, nodes_modes, nodes_falsenodeids, nodes_truenodeids, leaf_weights, leaf_targetids, tree_roots, n_targets, nodes_missing_value_tracks_true, membership_values, nodes_splits);
     }
 
@@ -29448,22 +29448,22 @@ public final class OnnxOps {
             nodes_hitrates(float[].class, true, null),
             nodes_featureids(int[].class, true, null),
             nodes_treeids(int[].class, true, null),
-            class_weights_as_tensor(Tensor.class, true, null),
+            class_weights_as_tensor(byte[].class, true, null),
             post_transform(String.class, true, null),
             nodes_modes(String[].class, true, null),
             nodes_falsenodeids(int[].class, true, null),
             classlabels_strings(String[].class, true, null),
             nodes_truenodeids(int[].class, true, null),
             nodes_nodeids(int[].class, true, null),
-            nodes_hitrates_as_tensor(Tensor.class, true, null),
+            nodes_hitrates_as_tensor(byte[].class, true, null),
             class_weights(float[].class, true, null),
-            base_values_as_tensor(Tensor.class, true, null),
+            base_values_as_tensor(byte[].class, true, null),
             nodes_missing_value_tracks_true(int[].class, true, null),
             class_nodeids(int[].class, true, null),
             class_treeids(int[].class, true, null),
             base_values(float[].class, true, null),
             nodes_values(float[].class, true, null),
-            nodes_values_as_tensor(Tensor.class, true, null),
+            nodes_values_as_tensor(byte[].class, true, null),
             ;
             
                 final Class<?> t;
@@ -29576,7 +29576,7 @@ public final class OnnxOps {
             return new TreeEnsembleClassifier(this, cc);
         }
         
-        TreeEnsembleClassifier(TypeElement resultType, Value X, java.util.Optional<int[]> classlabels_int64s, java.util.Optional<int[]> class_ids, java.util.Optional<float[]> nodes_hitrates, java.util.Optional<int[]> nodes_featureids, java.util.Optional<int[]> nodes_treeids, java.util.Optional<Tensor<?>> class_weights_as_tensor, java.util.Optional<String> post_transform, java.util.Optional<String[]> nodes_modes, java.util.Optional<int[]> nodes_falsenodeids, java.util.Optional<String[]> classlabels_strings, java.util.Optional<int[]> nodes_truenodeids, java.util.Optional<int[]> nodes_nodeids, java.util.Optional<Tensor<?>> nodes_hitrates_as_tensor, java.util.Optional<float[]> class_weights, java.util.Optional<Tensor<?>> base_values_as_tensor, java.util.Optional<int[]> nodes_missing_value_tracks_true, java.util.Optional<int[]> class_nodeids, java.util.Optional<int[]> class_treeids, java.util.Optional<float[]> base_values, java.util.Optional<float[]> nodes_values, java.util.Optional<Tensor<?>> nodes_values_as_tensor) {
+        TreeEnsembleClassifier(TypeElement resultType, Value X, java.util.Optional<int[]> classlabels_int64s, java.util.Optional<int[]> class_ids, java.util.Optional<float[]> nodes_hitrates, java.util.Optional<int[]> nodes_featureids, java.util.Optional<int[]> nodes_treeids, java.util.Optional<byte[]> class_weights_as_tensor, java.util.Optional<String> post_transform, java.util.Optional<String[]> nodes_modes, java.util.Optional<int[]> nodes_falsenodeids, java.util.Optional<String[]> classlabels_strings, java.util.Optional<int[]> nodes_truenodeids, java.util.Optional<int[]> nodes_nodeids, java.util.Optional<byte[]> nodes_hitrates_as_tensor, java.util.Optional<float[]> class_weights, java.util.Optional<byte[]> base_values_as_tensor, java.util.Optional<int[]> nodes_missing_value_tracks_true, java.util.Optional<int[]> class_nodeids, java.util.Optional<int[]> class_treeids, java.util.Optional<float[]> base_values, java.util.Optional<float[]> nodes_values, java.util.Optional<byte[]> nodes_values_as_tensor) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(classlabels_int64s, class_ids, nodes_hitrates, nodes_featureids, nodes_treeids, class_weights_as_tensor, post_transform, nodes_modes, nodes_falsenodeids, classlabels_strings, nodes_truenodeids, nodes_nodeids, nodes_hitrates_as_tensor, class_weights, base_values_as_tensor, nodes_missing_value_tracks_true, class_nodeids, class_treeids, base_values, nodes_values, nodes_values_as_tensor));
         }
         
@@ -29619,9 +29619,9 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(nodes_treeids).map(int[]::clone);
         }
         
-        public java.util.Optional<Tensor<?>> class_weights_as_tensor() {
-            Tensor<?> class_weights_as_tensor = Attribute.class_weights_as_tensor.access(Tensor.class, onnxAttributes);
-            return java.util.Optional.ofNullable(class_weights_as_tensor);
+        public java.util.Optional<byte[]> class_weights_as_tensor() {
+            byte[] class_weights_as_tensor = Attribute.class_weights_as_tensor.access(byte[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(class_weights_as_tensor).map(byte[]::clone);
         }
         
         public java.util.Optional<String> post_transform() {
@@ -29654,9 +29654,9 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(nodes_nodeids).map(int[]::clone);
         }
         
-        public java.util.Optional<Tensor<?>> nodes_hitrates_as_tensor() {
-            Tensor<?> nodes_hitrates_as_tensor = Attribute.nodes_hitrates_as_tensor.access(Tensor.class, onnxAttributes);
-            return java.util.Optional.ofNullable(nodes_hitrates_as_tensor);
+        public java.util.Optional<byte[]> nodes_hitrates_as_tensor() {
+            byte[] nodes_hitrates_as_tensor = Attribute.nodes_hitrates_as_tensor.access(byte[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(nodes_hitrates_as_tensor).map(byte[]::clone);
         }
         
         public java.util.Optional<float[]> class_weights() {
@@ -29664,9 +29664,9 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(class_weights).map(float[]::clone);
         }
         
-        public java.util.Optional<Tensor<?>> base_values_as_tensor() {
-            Tensor<?> base_values_as_tensor = Attribute.base_values_as_tensor.access(Tensor.class, onnxAttributes);
-            return java.util.Optional.ofNullable(base_values_as_tensor);
+        public java.util.Optional<byte[]> base_values_as_tensor() {
+            byte[] base_values_as_tensor = Attribute.base_values_as_tensor.access(byte[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(base_values_as_tensor).map(byte[]::clone);
         }
         
         public java.util.Optional<int[]> nodes_missing_value_tracks_true() {
@@ -29694,14 +29694,14 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(nodes_values).map(float[]::clone);
         }
         
-        public java.util.Optional<Tensor<?>> nodes_values_as_tensor() {
-            Tensor<?> nodes_values_as_tensor = Attribute.nodes_values_as_tensor.access(Tensor.class, onnxAttributes);
-            return java.util.Optional.ofNullable(nodes_values_as_tensor);
+        public java.util.Optional<byte[]> nodes_values_as_tensor() {
+            byte[] nodes_values_as_tensor = Attribute.nodes_values_as_tensor.access(byte[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(nodes_values_as_tensor).map(byte[]::clone);
         }
         
     }
     
-    public static TreeEnsembleClassifier TreeEnsembleClassifier(TypeElement resultType, Value X, java.util.Optional<int[]> classlabels_int64s, java.util.Optional<int[]> class_ids, java.util.Optional<float[]> nodes_hitrates, java.util.Optional<int[]> nodes_featureids, java.util.Optional<int[]> nodes_treeids, java.util.Optional<Tensor<?>> class_weights_as_tensor, java.util.Optional<String> post_transform, java.util.Optional<String[]> nodes_modes, java.util.Optional<int[]> nodes_falsenodeids, java.util.Optional<String[]> classlabels_strings, java.util.Optional<int[]> nodes_truenodeids, java.util.Optional<int[]> nodes_nodeids, java.util.Optional<Tensor<?>> nodes_hitrates_as_tensor, java.util.Optional<float[]> class_weights, java.util.Optional<Tensor<?>> base_values_as_tensor, java.util.Optional<int[]> nodes_missing_value_tracks_true, java.util.Optional<int[]> class_nodeids, java.util.Optional<int[]> class_treeids, java.util.Optional<float[]> base_values, java.util.Optional<float[]> nodes_values, java.util.Optional<Tensor<?>> nodes_values_as_tensor) {
+    public static TreeEnsembleClassifier TreeEnsembleClassifier(TypeElement resultType, Value X, java.util.Optional<int[]> classlabels_int64s, java.util.Optional<int[]> class_ids, java.util.Optional<float[]> nodes_hitrates, java.util.Optional<int[]> nodes_featureids, java.util.Optional<int[]> nodes_treeids, java.util.Optional<byte[]> class_weights_as_tensor, java.util.Optional<String> post_transform, java.util.Optional<String[]> nodes_modes, java.util.Optional<int[]> nodes_falsenodeids, java.util.Optional<String[]> classlabels_strings, java.util.Optional<int[]> nodes_truenodeids, java.util.Optional<int[]> nodes_nodeids, java.util.Optional<byte[]> nodes_hitrates_as_tensor, java.util.Optional<float[]> class_weights, java.util.Optional<byte[]> base_values_as_tensor, java.util.Optional<int[]> nodes_missing_value_tracks_true, java.util.Optional<int[]> class_nodeids, java.util.Optional<int[]> class_treeids, java.util.Optional<float[]> base_values, java.util.Optional<float[]> nodes_values, java.util.Optional<byte[]> nodes_values_as_tensor) {
         return new TreeEnsembleClassifier(resultType, X, classlabels_int64s, class_ids, nodes_hitrates, nodes_featureids, nodes_treeids, class_weights_as_tensor, post_transform, nodes_modes, nodes_falsenodeids, classlabels_strings, nodes_truenodeids, nodes_nodeids, nodes_hitrates_as_tensor, class_weights, base_values_as_tensor, nodes_missing_value_tracks_true, class_nodeids, class_treeids, base_values, nodes_values, nodes_values_as_tensor);
     }
 
@@ -29712,7 +29712,7 @@ public final class OnnxOps {
         public enum Attribute implements OnnxAttribute {
             aggregate_function(String.class, true, null),
             nodes_hitrates(float[].class, true, null),
-            target_weights_as_tensor(Tensor.class, true, null),
+            target_weights_as_tensor(byte[].class, true, null),
             nodes_featureids(int[].class, true, null),
             target_treeids(int[].class, true, null),
             nodes_treeids(int[].class, true, null),
@@ -29724,13 +29724,13 @@ public final class OnnxOps {
             nodes_truenodeids(int[].class, true, null),
             target_nodeids(int[].class, true, null),
             nodes_nodeids(int[].class, true, null),
-            nodes_hitrates_as_tensor(Tensor.class, true, null),
-            base_values_as_tensor(Tensor.class, true, null),
+            nodes_hitrates_as_tensor(byte[].class, true, null),
+            base_values_as_tensor(byte[].class, true, null),
             n_targets(Integer.class, true, null),
             nodes_missing_value_tracks_true(int[].class, true, null),
             base_values(float[].class, true, null),
             nodes_values(float[].class, true, null),
-            nodes_values_as_tensor(Tensor.class, true, null),
+            nodes_values_as_tensor(byte[].class, true, null),
             ;
             
                 final Class<?> t;
@@ -29841,7 +29841,7 @@ public final class OnnxOps {
             return new TreeEnsembleRegressor(this, cc);
         }
         
-        TreeEnsembleRegressor(TypeElement resultType, Value X, java.util.Optional<String> aggregate_function, java.util.Optional<float[]> nodes_hitrates, java.util.Optional<Tensor<?>> target_weights_as_tensor, java.util.Optional<int[]> nodes_featureids, java.util.Optional<int[]> target_treeids, java.util.Optional<int[]> nodes_treeids, java.util.Optional<String> post_transform, java.util.Optional<String[]> nodes_modes, java.util.Optional<float[]> target_weights, java.util.Optional<int[]> nodes_falsenodeids, java.util.Optional<int[]> target_ids, java.util.Optional<int[]> nodes_truenodeids, java.util.Optional<int[]> target_nodeids, java.util.Optional<int[]> nodes_nodeids, java.util.Optional<Tensor<?>> nodes_hitrates_as_tensor, java.util.Optional<Tensor<?>> base_values_as_tensor, java.util.Optional<Integer> n_targets, java.util.Optional<int[]> nodes_missing_value_tracks_true, java.util.Optional<float[]> base_values, java.util.Optional<float[]> nodes_values, java.util.Optional<Tensor<?>> nodes_values_as_tensor) {
+        TreeEnsembleRegressor(TypeElement resultType, Value X, java.util.Optional<String> aggregate_function, java.util.Optional<float[]> nodes_hitrates, java.util.Optional<byte[]> target_weights_as_tensor, java.util.Optional<int[]> nodes_featureids, java.util.Optional<int[]> target_treeids, java.util.Optional<int[]> nodes_treeids, java.util.Optional<String> post_transform, java.util.Optional<String[]> nodes_modes, java.util.Optional<float[]> target_weights, java.util.Optional<int[]> nodes_falsenodeids, java.util.Optional<int[]> target_ids, java.util.Optional<int[]> nodes_truenodeids, java.util.Optional<int[]> target_nodeids, java.util.Optional<int[]> nodes_nodeids, java.util.Optional<byte[]> nodes_hitrates_as_tensor, java.util.Optional<byte[]> base_values_as_tensor, java.util.Optional<Integer> n_targets, java.util.Optional<int[]> nodes_missing_value_tracks_true, java.util.Optional<float[]> base_values, java.util.Optional<float[]> nodes_values, java.util.Optional<byte[]> nodes_values_as_tensor) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(aggregate_function, nodes_hitrates, target_weights_as_tensor, nodes_featureids, target_treeids, nodes_treeids, post_transform, nodes_modes, target_weights, nodes_falsenodeids, target_ids, nodes_truenodeids, target_nodeids, nodes_nodeids, nodes_hitrates_as_tensor, base_values_as_tensor, n_targets, nodes_missing_value_tracks_true, base_values, nodes_values, nodes_values_as_tensor));
         }
         
@@ -29869,9 +29869,9 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(nodes_hitrates).map(float[]::clone);
         }
         
-        public java.util.Optional<Tensor<?>> target_weights_as_tensor() {
-            Tensor<?> target_weights_as_tensor = Attribute.target_weights_as_tensor.access(Tensor.class, onnxAttributes);
-            return java.util.Optional.ofNullable(target_weights_as_tensor);
+        public java.util.Optional<byte[]> target_weights_as_tensor() {
+            byte[] target_weights_as_tensor = Attribute.target_weights_as_tensor.access(byte[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(target_weights_as_tensor).map(byte[]::clone);
         }
         
         public java.util.Optional<int[]> nodes_featureids() {
@@ -29929,14 +29929,14 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(nodes_nodeids).map(int[]::clone);
         }
         
-        public java.util.Optional<Tensor<?>> nodes_hitrates_as_tensor() {
-            Tensor<?> nodes_hitrates_as_tensor = Attribute.nodes_hitrates_as_tensor.access(Tensor.class, onnxAttributes);
-            return java.util.Optional.ofNullable(nodes_hitrates_as_tensor);
+        public java.util.Optional<byte[]> nodes_hitrates_as_tensor() {
+            byte[] nodes_hitrates_as_tensor = Attribute.nodes_hitrates_as_tensor.access(byte[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(nodes_hitrates_as_tensor).map(byte[]::clone);
         }
         
-        public java.util.Optional<Tensor<?>> base_values_as_tensor() {
-            Tensor<?> base_values_as_tensor = Attribute.base_values_as_tensor.access(Tensor.class, onnxAttributes);
-            return java.util.Optional.ofNullable(base_values_as_tensor);
+        public java.util.Optional<byte[]> base_values_as_tensor() {
+            byte[] base_values_as_tensor = Attribute.base_values_as_tensor.access(byte[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(base_values_as_tensor).map(byte[]::clone);
         }
         
         public java.util.Optional<Integer> n_targets() {
@@ -29959,14 +29959,14 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(nodes_values).map(float[]::clone);
         }
         
-        public java.util.Optional<Tensor<?>> nodes_values_as_tensor() {
-            Tensor<?> nodes_values_as_tensor = Attribute.nodes_values_as_tensor.access(Tensor.class, onnxAttributes);
-            return java.util.Optional.ofNullable(nodes_values_as_tensor);
+        public java.util.Optional<byte[]> nodes_values_as_tensor() {
+            byte[] nodes_values_as_tensor = Attribute.nodes_values_as_tensor.access(byte[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(nodes_values_as_tensor).map(byte[]::clone);
         }
         
     }
     
-    public static TreeEnsembleRegressor TreeEnsembleRegressor(TypeElement resultType, Value X, java.util.Optional<String> aggregate_function, java.util.Optional<float[]> nodes_hitrates, java.util.Optional<Tensor<?>> target_weights_as_tensor, java.util.Optional<int[]> nodes_featureids, java.util.Optional<int[]> target_treeids, java.util.Optional<int[]> nodes_treeids, java.util.Optional<String> post_transform, java.util.Optional<String[]> nodes_modes, java.util.Optional<float[]> target_weights, java.util.Optional<int[]> nodes_falsenodeids, java.util.Optional<int[]> target_ids, java.util.Optional<int[]> nodes_truenodeids, java.util.Optional<int[]> target_nodeids, java.util.Optional<int[]> nodes_nodeids, java.util.Optional<Tensor<?>> nodes_hitrates_as_tensor, java.util.Optional<Tensor<?>> base_values_as_tensor, java.util.Optional<Integer> n_targets, java.util.Optional<int[]> nodes_missing_value_tracks_true, java.util.Optional<float[]> base_values, java.util.Optional<float[]> nodes_values, java.util.Optional<Tensor<?>> nodes_values_as_tensor) {
+    public static TreeEnsembleRegressor TreeEnsembleRegressor(TypeElement resultType, Value X, java.util.Optional<String> aggregate_function, java.util.Optional<float[]> nodes_hitrates, java.util.Optional<byte[]> target_weights_as_tensor, java.util.Optional<int[]> nodes_featureids, java.util.Optional<int[]> target_treeids, java.util.Optional<int[]> nodes_treeids, java.util.Optional<String> post_transform, java.util.Optional<String[]> nodes_modes, java.util.Optional<float[]> target_weights, java.util.Optional<int[]> nodes_falsenodeids, java.util.Optional<int[]> target_ids, java.util.Optional<int[]> nodes_truenodeids, java.util.Optional<int[]> target_nodeids, java.util.Optional<int[]> nodes_nodeids, java.util.Optional<byte[]> nodes_hitrates_as_tensor, java.util.Optional<byte[]> base_values_as_tensor, java.util.Optional<Integer> n_targets, java.util.Optional<int[]> nodes_missing_value_tracks_true, java.util.Optional<float[]> base_values, java.util.Optional<float[]> nodes_values, java.util.Optional<byte[]> nodes_values_as_tensor) {
         return new TreeEnsembleRegressor(resultType, X, aggregate_function, nodes_hitrates, target_weights_as_tensor, nodes_featureids, target_treeids, nodes_treeids, post_transform, nodes_modes, target_weights, nodes_falsenodeids, target_ids, nodes_truenodeids, target_nodeids, nodes_nodeids, nodes_hitrates_as_tensor, base_values_as_tensor, n_targets, nodes_missing_value_tracks_true, base_values, nodes_values, nodes_values_as_tensor);
     }
 

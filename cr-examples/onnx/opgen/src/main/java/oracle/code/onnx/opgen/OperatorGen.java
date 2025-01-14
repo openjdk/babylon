@@ -144,8 +144,6 @@ public class OperatorGen {
 
             OpSchema.AttributeType aType = attribute.type();
             String typeString = switch (aType) {
-                case TENSORS -> aType.type().getSimpleName() + "<?>";
-                case TENSOR -> aType.type().getSimpleName() + "<?>";
                 default -> {
                     if (attribute.required()) {
                         yield aType.type().getSimpleName();

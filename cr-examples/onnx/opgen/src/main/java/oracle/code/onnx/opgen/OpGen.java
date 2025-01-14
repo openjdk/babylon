@@ -420,8 +420,6 @@ public class OpGen {
 
             OpSchema.AttributeType aType = attribute.type();
             String typeString = switch (aType) {
-                case TENSORS -> aType.type().getSimpleName() + "<?>";
-                case TENSOR -> aType.type().getSimpleName() + "<?>";
                 default -> {
                     if (attribute.required()) {
                         yield aType.type().getSimpleName();
@@ -585,8 +583,6 @@ public class OpGen {
 
             OpSchema.AttributeType aType = a.type();
             String typeString = switch (aType) {
-                case TENSORS -> aType.type().getSimpleName() + "<?>";
-                case TENSOR -> aType.type().getSimpleName() + "<?>";
                 default -> {
                     if (a.required()) {
                         yield aType.type().getSimpleName();
@@ -678,8 +674,6 @@ public class OpGen {
 
             OpSchema.AttributeType aType = attribute.type();
             String typeString = switch (aType) {
-                case TENSORS -> aType.type().getSimpleName() + "<?>";
-                case TENSOR -> aType.type().getSimpleName() + "<?>";
                 default -> {
                     if (attribute.required()) {
                         yield aType.type().getSimpleName();

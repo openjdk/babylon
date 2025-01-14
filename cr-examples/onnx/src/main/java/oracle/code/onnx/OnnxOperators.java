@@ -197,12 +197,12 @@ public final class OnnxOperators extends ExplicitOnnxOperators {
         return (Tensor<T>) result;
     }
     
-    public static <T> Tensor<T> Constant(Optional<Integer> value_int, Optional<float[]> value_floats, Optional<String[]> value_strings, Optional<Float> value_float, Optional<String> value_string, Optional<int[]> value_ints, Optional<Object> sparse_value, Optional<Tensor<?>> value) {
+    public static <T> Tensor<T> Constant(Optional<Integer> value_int, Optional<float[]> value_floats, Optional<String[]> value_strings, Optional<Float> value_float, Optional<String> value_string, Optional<int[]> value_ints, Optional<byte[]> sparse_value, Optional<byte[]> value) {
         Object result = OnnxInterpreter.interpret(OnnxOps.Constant.class, List.of(), List.of(value_int, value_floats, value_strings, value_float, value_string, value_ints, sparse_value, value));
         return (Tensor<T>) result;
     }
     
-    public static <T1, T2> Tensor<T2> ConstantOfShape(Tensor<T1> input, Optional<Tensor<?>> value) {
+    public static <T1, T2> Tensor<T2> ConstantOfShape(Tensor<T1> input, Optional<byte[]> value) {
         Object result = OnnxInterpreter.interpret(OnnxOps.ConstantOfShape.class, List.of(input), List.of(value));
         return (Tensor<T2>) result;
     }
@@ -467,7 +467,7 @@ public final class OnnxOperators extends ExplicitOnnxOperators {
         return (List<Tensor<T>>) result;
     }
     
-    public static <T1, T2> Tensor<T2> LabelEncoder(Tensor<T1> X, Optional<String[]> values_strings, Optional<int[]> keys_int64s, Optional<Tensor<?>> keys_tensor, Optional<String[]> keys_strings, Optional<Float> default_float, Optional<float[]> keys_floats, Optional<Tensor<?>> default_tensor, Optional<Integer> default_int64, Optional<Tensor<?>> values_tensor, Optional<int[]> values_int64s, Optional<String> default_string, Optional<float[]> values_floats) {
+    public static <T1, T2> Tensor<T2> LabelEncoder(Tensor<T1> X, Optional<String[]> values_strings, Optional<int[]> keys_int64s, Optional<byte[]> keys_tensor, Optional<String[]> keys_strings, Optional<Float> default_float, Optional<float[]> keys_floats, Optional<byte[]> default_tensor, Optional<Integer> default_int64, Optional<byte[]> values_tensor, Optional<int[]> values_int64s, Optional<String> default_string, Optional<float[]> values_floats) {
         Object result = OnnxInterpreter.interpret(OnnxOps.LabelEncoder.class, List.of(X), List.of(values_strings, keys_int64s, keys_tensor, keys_strings, default_float, keys_floats, default_tensor, default_int64, values_tensor, values_int64s, default_string, values_floats));
         return (Tensor<T2>) result;
     }
@@ -637,7 +637,7 @@ public final class OnnxOperators extends ExplicitOnnxOperators {
         return (Tensor<Float>) result;
     }
     
-    public static <V, O> Tensor<O> Optional(Optional<Tensor<V>> input, Optional<byte[]> type) {
+    public static <V, O> Tensor<O> Optional(Optional<Tensor<V>> input, Optional<Object> type) {
         Object result = OnnxInterpreter.interpret(OnnxOps.Optional.class, List.of(input), List.of(type));
         return (Tensor<O>) result;
     }
@@ -1022,17 +1022,17 @@ public final class OnnxOperators extends ExplicitOnnxOperators {
         return (Tensor<T>) result;
     }
     
-    public static <T> Tensor<T> TreeEnsemble(Tensor<T> X, Optional<Integer> aggregate_function, Optional<Tensor<?>> nodes_hitrates, int[] nodes_featureids, int[] nodes_falseleafs, Optional<Integer> post_transform, int[] nodes_trueleafs, Tensor<?> nodes_modes, int[] nodes_falsenodeids, int[] nodes_truenodeids, Tensor<?> leaf_weights, int[] leaf_targetids, int[] tree_roots, Optional<Integer> n_targets, Optional<int[]> nodes_missing_value_tracks_true, Optional<Tensor<?>> membership_values, Tensor<?> nodes_splits) {
+    public static <T> Tensor<T> TreeEnsemble(Tensor<T> X, Optional<Integer> aggregate_function, Optional<byte[]> nodes_hitrates, int[] nodes_featureids, int[] nodes_falseleafs, Optional<Integer> post_transform, int[] nodes_trueleafs, byte[] nodes_modes, int[] nodes_falsenodeids, int[] nodes_truenodeids, byte[] leaf_weights, int[] leaf_targetids, int[] tree_roots, Optional<Integer> n_targets, Optional<int[]> nodes_missing_value_tracks_true, Optional<byte[]> membership_values, byte[] nodes_splits) {
         Object result = OnnxInterpreter.interpret(OnnxOps.TreeEnsemble.class, List.of(X), List.of(aggregate_function, nodes_hitrates, nodes_featureids, nodes_falseleafs, post_transform, nodes_trueleafs, nodes_modes, nodes_falsenodeids, nodes_truenodeids, leaf_weights, leaf_targetids, tree_roots, n_targets, nodes_missing_value_tracks_true, membership_values, nodes_splits));
         return (Tensor<T>) result;
     }
     
-    public static <T1, T2> List<Tensor<T2>> TreeEnsembleClassifier(Tensor<T1> X, Optional<int[]> classlabels_int64s, Optional<int[]> class_ids, Optional<float[]> nodes_hitrates, Optional<int[]> nodes_featureids, Optional<int[]> nodes_treeids, Optional<Tensor<?>> class_weights_as_tensor, Optional<String> post_transform, Optional<String[]> nodes_modes, Optional<int[]> nodes_falsenodeids, Optional<String[]> classlabels_strings, Optional<int[]> nodes_truenodeids, Optional<int[]> nodes_nodeids, Optional<Tensor<?>> nodes_hitrates_as_tensor, Optional<float[]> class_weights, Optional<Tensor<?>> base_values_as_tensor, Optional<int[]> nodes_missing_value_tracks_true, Optional<int[]> class_nodeids, Optional<int[]> class_treeids, Optional<float[]> base_values, Optional<float[]> nodes_values, Optional<Tensor<?>> nodes_values_as_tensor) {
+    public static <T1, T2> List<Tensor<T2>> TreeEnsembleClassifier(Tensor<T1> X, Optional<int[]> classlabels_int64s, Optional<int[]> class_ids, Optional<float[]> nodes_hitrates, Optional<int[]> nodes_featureids, Optional<int[]> nodes_treeids, Optional<byte[]> class_weights_as_tensor, Optional<String> post_transform, Optional<String[]> nodes_modes, Optional<int[]> nodes_falsenodeids, Optional<String[]> classlabels_strings, Optional<int[]> nodes_truenodeids, Optional<int[]> nodes_nodeids, Optional<byte[]> nodes_hitrates_as_tensor, Optional<float[]> class_weights, Optional<byte[]> base_values_as_tensor, Optional<int[]> nodes_missing_value_tracks_true, Optional<int[]> class_nodeids, Optional<int[]> class_treeids, Optional<float[]> base_values, Optional<float[]> nodes_values, Optional<byte[]> nodes_values_as_tensor) {
         Object result = OnnxInterpreter.interpret(OnnxOps.TreeEnsembleClassifier.class, List.of(X), List.of(classlabels_int64s, class_ids, nodes_hitrates, nodes_featureids, nodes_treeids, class_weights_as_tensor, post_transform, nodes_modes, nodes_falsenodeids, classlabels_strings, nodes_truenodeids, nodes_nodeids, nodes_hitrates_as_tensor, class_weights, base_values_as_tensor, nodes_missing_value_tracks_true, class_nodeids, class_treeids, base_values, nodes_values, nodes_values_as_tensor));
         return (List<Tensor<T2>>) result;
     }
     
-    public static <T> Tensor<Float> TreeEnsembleRegressor(Tensor<T> X, Optional<String> aggregate_function, Optional<float[]> nodes_hitrates, Optional<Tensor<?>> target_weights_as_tensor, Optional<int[]> nodes_featureids, Optional<int[]> target_treeids, Optional<int[]> nodes_treeids, Optional<String> post_transform, Optional<String[]> nodes_modes, Optional<float[]> target_weights, Optional<int[]> nodes_falsenodeids, Optional<int[]> target_ids, Optional<int[]> nodes_truenodeids, Optional<int[]> target_nodeids, Optional<int[]> nodes_nodeids, Optional<Tensor<?>> nodes_hitrates_as_tensor, Optional<Tensor<?>> base_values_as_tensor, Optional<Integer> n_targets, Optional<int[]> nodes_missing_value_tracks_true, Optional<float[]> base_values, Optional<float[]> nodes_values, Optional<Tensor<?>> nodes_values_as_tensor) {
+    public static <T> Tensor<Float> TreeEnsembleRegressor(Tensor<T> X, Optional<String> aggregate_function, Optional<float[]> nodes_hitrates, Optional<byte[]> target_weights_as_tensor, Optional<int[]> nodes_featureids, Optional<int[]> target_treeids, Optional<int[]> nodes_treeids, Optional<String> post_transform, Optional<String[]> nodes_modes, Optional<float[]> target_weights, Optional<int[]> nodes_falsenodeids, Optional<int[]> target_ids, Optional<int[]> nodes_truenodeids, Optional<int[]> target_nodeids, Optional<int[]> nodes_nodeids, Optional<byte[]> nodes_hitrates_as_tensor, Optional<byte[]> base_values_as_tensor, Optional<Integer> n_targets, Optional<int[]> nodes_missing_value_tracks_true, Optional<float[]> base_values, Optional<float[]> nodes_values, Optional<byte[]> nodes_values_as_tensor) {
         Object result = OnnxInterpreter.interpret(OnnxOps.TreeEnsembleRegressor.class, List.of(X), List.of(aggregate_function, nodes_hitrates, target_weights_as_tensor, nodes_featureids, target_treeids, nodes_treeids, post_transform, nodes_modes, target_weights, nodes_falsenodeids, target_ids, nodes_truenodeids, target_nodeids, nodes_nodeids, nodes_hitrates_as_tensor, base_values_as_tensor, n_targets, nodes_missing_value_tracks_true, base_values, nodes_values, nodes_values_as_tensor));
         return (Tensor<Float>) result;
     }
