@@ -36,11 +36,14 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-public interface Tensor<T> {
+public class Tensor<T> extends OnnxNumber {
     // element type
     // dim
     // runtime representation
     // defer to ONNX runtime?
+
+    Tensor() {
+    }
 
     enum ElementType {
         FLOAT(1, float.class),
@@ -65,8 +68,7 @@ public interface Tensor<T> {
         FLOAT8E5M2FNUZ(20, Object.class),
         UINT4(21, Object.class),
         INT4(22, Object.class),
-        FLOAT4E2M1(23, Object.class)
-        ;
+        FLOAT4E2M1(23, Object.class);
 
         final int id;
         final Class<?> type;

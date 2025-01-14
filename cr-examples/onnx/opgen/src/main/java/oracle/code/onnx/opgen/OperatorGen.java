@@ -49,7 +49,7 @@ public class OperatorGen {
         w.write("\n");
 
         w.write("@SuppressWarnings({\"unchecked\", \"OptionalUsedAsFieldOrParameterType\"})\n");
-        w.write("public final class " + ONNX_OPERATORS_CLASS + " {\n");
+        w.write("public final class " + ONNX_OPERATORS_CLASS + " extends ExplicitOnnxOperators {\n");
 
         w.in();
 

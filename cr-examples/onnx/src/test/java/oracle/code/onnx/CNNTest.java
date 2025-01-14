@@ -9,7 +9,7 @@ import static oracle.code.onnx.OnnxOperators.*;
 
 // A rough CNN implementation -- uncertain if the padding will line up
 // Over time we will improve the operator expressions to reduce
-// the verbosity e.g., esp. the constant expressions
+// the verbosity e.g., esp. scalar constant expressions
 public class CNNTest {
 
     private static final int PIXEL_DEPTH = 255;
@@ -36,18 +36,12 @@ public class CNNTest {
 
     @CodeReflection
     public Tensor<Float> cnn(Tensor<Float> inputImage) {
-        Tensor<Long> shape = Constant(empty(), empty(), empty(),
-                empty(), empty(), of(new int[]{-1, IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS}), empty(),
-                empty());
+        Tensor<Long> shape = Constant(new int[]{-1, IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS});
         var inputReshaped = Reshape(inputImage, shape, empty());
 
         // Scaling the features
-        Tensor<Float> centeringFactor = Constant(empty(), empty(), empty(),
-                of(PIXEL_DEPTH / 2.0f), empty(), empty(), empty(),
-                empty());
-        Tensor<Float> scalingFactor = Constant(empty(), empty(), empty(),
-                of((float) PIXEL_DEPTH), empty(), empty(), empty(),
-                empty());
+        Tensor<Float> centeringFactor = Constant(PIXEL_DEPTH / 2.0f);
+        Tensor<Float> scalingFactor = Constant((float) PIXEL_DEPTH);
         var scaledInput = Div(Sub(inputReshaped, centeringFactor), scalingFactor);
 
         // First conv layer
@@ -71,9 +65,7 @@ public class CNNTest {
                 empty(), empty(), of(new int[]{1, 2, 2, 1}), new int[]{1, 2, 2, 1});
 
         // Flatten inputs
-        Tensor<Long> flatShape = Constant(empty(), empty(), empty(),
-                empty(), empty(), of(new int[]{0, 3136}), empty(),
-                empty());
+        Tensor<Long> flatShape = Constant(new int[]{0, 3136});
         var flatten = Reshape(pool2.getFirst(), flatShape, empty());
 
         // Fully connected layer

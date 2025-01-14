@@ -8,7 +8,7 @@ import java.util.Optional;
 import java.util.List;
 
 @SuppressWarnings({"unchecked", "OptionalUsedAsFieldOrParameterType"})
-public final class OnnxOperators {
+public final class OnnxOperators extends ExplicitOnnxOperators {
     
     private OnnxOperators() {}
     
