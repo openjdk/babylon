@@ -715,23 +715,14 @@ public final class OnnxOpsProto {
 
         @Override
         public SequencedSet<OnnxParameter> onnxOutputs() {
-            SequencedSet<OnnxParameter> inputs = new LinkedHashSet<>();
-            inputs.add(OutputParameter.output);
-            if (optionalOutputParameters.contains(OutputParameter.log_prob)) {
-                inputs.add(OutputParameter.log_prob);
-            }
-            return inputs;
+            return onnxOutputs(SCHEMA);
         }
 
         // Operand accessors
 
         @Override
         public SequencedMap<OnnxParameter, Object> onnxInputs() {
-            SequencedMap<OnnxParameter, Object> inputs = new LinkedHashMap<>();
-            inputs.put(InputParameter.scores, scores());
-            inputs.put(InputParameter.labels, labels());
-            inputs.put(InputParameter.weights, weights());
-            return Collections.unmodifiableSequencedMap(inputs);
+            return onnxInputs(SCHEMA, List.of(scores(), labels(), weights()));
         }
 
         public Value scores() {

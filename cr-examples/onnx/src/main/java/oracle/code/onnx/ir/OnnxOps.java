@@ -2290,8 +2290,8 @@ public final class OnnxOps {
             return new BatchNormalization(this, cc);
         }
         
-        BatchNormalization(TypeElement resultType, Value X, Value scale, Value B, Value input_mean, Value input_var, java.util.Optional<Float> epsilon, java.util.Optional<Integer> training_mode, java.util.Optional<Float> momentum) {
-            super(SCHEMA, resultType, Set.of(), List.of(X, scale, B, input_mean, input_var), List.of(epsilon, training_mode, momentum));
+        BatchNormalization(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value X, Value scale, Value B, Value input_mean, Value input_var, java.util.Optional<Float> epsilon, java.util.Optional<Integer> training_mode, java.util.Optional<Float> momentum) {
+            super(SCHEMA, resultType, optionalOutputs, List.of(X, scale, B, input_mean, input_var), List.of(epsilon, training_mode, momentum));
         }
         
         @Override
@@ -2341,8 +2341,8 @@ public final class OnnxOps {
         
     }
     
-    public static BatchNormalization BatchNormalization(TypeElement resultType, Value X, Value scale, Value B, Value input_mean, Value input_var, java.util.Optional<Float> epsilon, java.util.Optional<Integer> training_mode, java.util.Optional<Float> momentum) {
-        return new BatchNormalization(resultType, X, scale, B, input_mean, input_var, epsilon, training_mode, momentum);
+    public static BatchNormalization BatchNormalization(TypeElement resultType, Set<BatchNormalization.OutputParameter> optionalOutputs, Value X, Value scale, Value B, Value input_mean, Value input_var, java.util.Optional<Float> epsilon, java.util.Optional<Integer> training_mode, java.util.Optional<Float> momentum) {
+        return new BatchNormalization(resultType, optionalOutputs, X, scale, B, input_mean, input_var, epsilon, training_mode, momentum);
     }
 
     @OpFactory.OpDeclaration(Bernoulli.NAME)
@@ -7643,8 +7643,8 @@ public final class OnnxOps {
             return new Dropout(this, cc);
         }
         
-        Dropout(TypeElement resultType, Value data, java.util.Optional<Value> ratio, java.util.Optional<Value> training_mode, java.util.Optional<Integer> seed) {
-            super(SCHEMA, resultType, Set.of(), List.of(data, ratio, training_mode), List.of(seed));
+        Dropout(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value data, java.util.Optional<Value> ratio, java.util.Optional<Value> training_mode, java.util.Optional<Integer> seed) {
+            super(SCHEMA, resultType, optionalOutputs, List.of(data, ratio, training_mode), List.of(seed));
         }
         
         @Override
@@ -7678,8 +7678,8 @@ public final class OnnxOps {
         
     }
     
-    public static Dropout Dropout(TypeElement resultType, Value data, java.util.Optional<Value> ratio, java.util.Optional<Value> training_mode, java.util.Optional<Integer> seed) {
-        return new Dropout(resultType, data, ratio, training_mode, seed);
+    public static Dropout Dropout(TypeElement resultType, Set<Dropout.OutputParameter> optionalOutputs, Value data, java.util.Optional<Value> ratio, java.util.Optional<Value> training_mode, java.util.Optional<Integer> seed) {
+        return new Dropout(resultType, optionalOutputs, data, ratio, training_mode, seed);
     }
 
     @OpFactory.OpDeclaration(DynamicQuantizeLinear.NAME)
@@ -9242,8 +9242,8 @@ public final class OnnxOps {
             return new GRU(this, cc);
         }
         
-        GRU(TypeElement resultType, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Integer> layout, java.util.Optional<float[]> activation_alpha, java.util.Optional<Integer> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Integer> linear_before_reset, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
-            super(SCHEMA, resultType, Set.of(), List.of(X, W, R, B, sequence_lens, initial_h), List.of(layout, activation_alpha, hidden_size, activation_beta, activations, linear_before_reset, clip, direction));
+        GRU(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Integer> layout, java.util.Optional<float[]> activation_alpha, java.util.Optional<Integer> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Integer> linear_before_reset, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
+            super(SCHEMA, resultType, optionalOutputs, List.of(X, W, R, B, sequence_lens, initial_h), List.of(layout, activation_alpha, hidden_size, activation_beta, activations, linear_before_reset, clip, direction));
         }
         
         @Override
@@ -9325,8 +9325,8 @@ public final class OnnxOps {
         
     }
     
-    public static GRU GRU(TypeElement resultType, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Integer> layout, java.util.Optional<float[]> activation_alpha, java.util.Optional<Integer> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Integer> linear_before_reset, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
-        return new GRU(resultType, X, W, R, B, sequence_lens, initial_h, layout, activation_alpha, hidden_size, activation_beta, activations, linear_before_reset, clip, direction);
+    public static GRU GRU(TypeElement resultType, Set<GRU.OutputParameter> optionalOutputs, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Integer> layout, java.util.Optional<float[]> activation_alpha, java.util.Optional<Integer> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Integer> linear_before_reset, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
+        return new GRU(resultType, optionalOutputs, X, W, R, B, sequence_lens, initial_h, layout, activation_alpha, hidden_size, activation_beta, activations, linear_before_reset, clip, direction);
     }
 
     @OpFactory.OpDeclaration(Gather.NAME)
@@ -13056,8 +13056,8 @@ public final class OnnxOps {
             return new LSTM(this, cc);
         }
         
-        LSTM(TypeElement resultType, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Value> initial_c, java.util.Optional<Value> P, java.util.Optional<Integer> layout, java.util.Optional<Integer> input_forget, java.util.Optional<float[]> activation_alpha, java.util.Optional<Integer> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
-            super(SCHEMA, resultType, Set.of(), List.of(X, W, R, B, sequence_lens, initial_h, initial_c, P), List.of(layout, input_forget, activation_alpha, hidden_size, activation_beta, activations, clip, direction));
+        LSTM(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Value> initial_c, java.util.Optional<Value> P, java.util.Optional<Integer> layout, java.util.Optional<Integer> input_forget, java.util.Optional<float[]> activation_alpha, java.util.Optional<Integer> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
+            super(SCHEMA, resultType, optionalOutputs, List.of(X, W, R, B, sequence_lens, initial_h, initial_c, P), List.of(layout, input_forget, activation_alpha, hidden_size, activation_beta, activations, clip, direction));
         }
         
         @Override
@@ -13149,8 +13149,8 @@ public final class OnnxOps {
         
     }
     
-    public static LSTM LSTM(TypeElement resultType, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Value> initial_c, java.util.Optional<Value> P, java.util.Optional<Integer> layout, java.util.Optional<Integer> input_forget, java.util.Optional<float[]> activation_alpha, java.util.Optional<Integer> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
-        return new LSTM(resultType, X, W, R, B, sequence_lens, initial_h, initial_c, P, layout, input_forget, activation_alpha, hidden_size, activation_beta, activations, clip, direction);
+    public static LSTM LSTM(TypeElement resultType, Set<LSTM.OutputParameter> optionalOutputs, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Value> initial_c, java.util.Optional<Value> P, java.util.Optional<Integer> layout, java.util.Optional<Integer> input_forget, java.util.Optional<float[]> activation_alpha, java.util.Optional<Integer> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
+        return new LSTM(resultType, optionalOutputs, X, W, R, B, sequence_lens, initial_h, initial_c, P, layout, input_forget, activation_alpha, hidden_size, activation_beta, activations, clip, direction);
     }
 
     @OpFactory.OpDeclaration(LabelEncoder.NAME)
@@ -13488,8 +13488,8 @@ public final class OnnxOps {
             return new LayerNormalization(this, cc);
         }
         
-        LayerNormalization(TypeElement resultType, Value X, Value Scale, java.util.Optional<Value> B, java.util.Optional<Float> epsilon, java.util.Optional<Integer> stash_type, java.util.Optional<Integer> axis) {
-            super(SCHEMA, resultType, Set.of(), List.of(X, Scale, B), List.of(epsilon, stash_type, axis));
+        LayerNormalization(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value X, Value Scale, java.util.Optional<Value> B, java.util.Optional<Float> epsilon, java.util.Optional<Integer> stash_type, java.util.Optional<Integer> axis) {
+            super(SCHEMA, resultType, optionalOutputs, List.of(X, Scale, B), List.of(epsilon, stash_type, axis));
         }
         
         @Override
@@ -13532,8 +13532,8 @@ public final class OnnxOps {
         
     }
     
-    public static LayerNormalization LayerNormalization(TypeElement resultType, Value X, Value Scale, java.util.Optional<Value> B, java.util.Optional<Float> epsilon, java.util.Optional<Integer> stash_type, java.util.Optional<Integer> axis) {
-        return new LayerNormalization(resultType, X, Scale, B, epsilon, stash_type, axis);
+    public static LayerNormalization LayerNormalization(TypeElement resultType, Set<LayerNormalization.OutputParameter> optionalOutputs, Value X, Value Scale, java.util.Optional<Value> B, java.util.Optional<Float> epsilon, java.util.Optional<Integer> stash_type, java.util.Optional<Integer> axis) {
+        return new LayerNormalization(resultType, optionalOutputs, X, Scale, B, epsilon, stash_type, axis);
     }
 
     @OpFactory.OpDeclaration(LeakyRelu.NAME)
@@ -15342,8 +15342,8 @@ public final class OnnxOps {
             return new MaxPool(this, cc);
         }
         
-        MaxPool(TypeElement resultType, Value X, java.util.Optional<int[]> pads, java.util.Optional<int[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<Integer> ceil_mode, java.util.Optional<Integer> storage_order, java.util.Optional<int[]> strides, int[] kernel_shape) {
-            super(SCHEMA, resultType, Set.of(), List.of(X), List.of(pads, dilations, auto_pad, ceil_mode, storage_order, strides, kernel_shape));
+        MaxPool(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value X, java.util.Optional<int[]> pads, java.util.Optional<int[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<Integer> ceil_mode, java.util.Optional<Integer> storage_order, java.util.Optional<int[]> strides, int[] kernel_shape) {
+            super(SCHEMA, resultType, optionalOutputs, List.of(X), List.of(pads, dilations, auto_pad, ceil_mode, storage_order, strides, kernel_shape));
         }
         
         @Override
@@ -15397,8 +15397,8 @@ public final class OnnxOps {
         
     }
     
-    public static MaxPool MaxPool(TypeElement resultType, Value X, java.util.Optional<int[]> pads, java.util.Optional<int[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<Integer> ceil_mode, java.util.Optional<Integer> storage_order, java.util.Optional<int[]> strides, int[] kernel_shape) {
-        return new MaxPool(resultType, X, pads, dilations, auto_pad, ceil_mode, storage_order, strides, kernel_shape);
+    public static MaxPool MaxPool(TypeElement resultType, Set<MaxPool.OutputParameter> optionalOutputs, Value X, java.util.Optional<int[]> pads, java.util.Optional<int[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<Integer> ceil_mode, java.util.Optional<Integer> storage_order, java.util.Optional<int[]> strides, int[] kernel_shape) {
+        return new MaxPool(resultType, optionalOutputs, X, pads, dilations, auto_pad, ceil_mode, storage_order, strides, kernel_shape);
     }
 
     @OpFactory.OpDeclaration(MaxRoiPool.NAME)
@@ -19674,8 +19674,8 @@ public final class OnnxOps {
             return new RNN(this, cc);
         }
         
-        RNN(TypeElement resultType, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Integer> layout, java.util.Optional<float[]> activation_alpha, java.util.Optional<Integer> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
-            super(SCHEMA, resultType, Set.of(), List.of(X, W, R, B, sequence_lens, initial_h), List.of(layout, activation_alpha, hidden_size, activation_beta, activations, clip, direction));
+        RNN(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Integer> layout, java.util.Optional<float[]> activation_alpha, java.util.Optional<Integer> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
+            super(SCHEMA, resultType, optionalOutputs, List.of(X, W, R, B, sequence_lens, initial_h), List.of(layout, activation_alpha, hidden_size, activation_beta, activations, clip, direction));
         }
         
         @Override
@@ -19752,8 +19752,8 @@ public final class OnnxOps {
         
     }
     
-    public static RNN RNN(TypeElement resultType, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Integer> layout, java.util.Optional<float[]> activation_alpha, java.util.Optional<Integer> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
-        return new RNN(resultType, X, W, R, B, sequence_lens, initial_h, layout, activation_alpha, hidden_size, activation_beta, activations, clip, direction);
+    public static RNN RNN(TypeElement resultType, Set<RNN.OutputParameter> optionalOutputs, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Integer> layout, java.util.Optional<float[]> activation_alpha, java.util.Optional<Integer> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
+        return new RNN(resultType, optionalOutputs, X, W, R, B, sequence_lens, initial_h, layout, activation_alpha, hidden_size, activation_beta, activations, clip, direction);
     }
 
     @OpFactory.OpDeclaration(RandomNormal.NAME)
@@ -26586,8 +26586,8 @@ public final class OnnxOps {
             return new SoftmaxCrossEntropyLoss(this, cc);
         }
         
-        SoftmaxCrossEntropyLoss(TypeElement resultType, Value scores, Value labels, java.util.Optional<Value> weights, java.util.Optional<Integer> ignore_index, java.util.Optional<String> reduction) {
-            super(SCHEMA, resultType, Set.of(), List.of(scores, labels, weights), List.of(ignore_index, reduction));
+        SoftmaxCrossEntropyLoss(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value scores, Value labels, java.util.Optional<Value> weights, java.util.Optional<Integer> ignore_index, java.util.Optional<String> reduction) {
+            super(SCHEMA, resultType, optionalOutputs, List.of(scores, labels, weights), List.of(ignore_index, reduction));
         }
         
         @Override
@@ -26625,8 +26625,8 @@ public final class OnnxOps {
         
     }
     
-    public static SoftmaxCrossEntropyLoss SoftmaxCrossEntropyLoss(TypeElement resultType, Value scores, Value labels, java.util.Optional<Value> weights, java.util.Optional<Integer> ignore_index, java.util.Optional<String> reduction) {
-        return new SoftmaxCrossEntropyLoss(resultType, scores, labels, weights, ignore_index, reduction);
+    public static SoftmaxCrossEntropyLoss SoftmaxCrossEntropyLoss(TypeElement resultType, Set<SoftmaxCrossEntropyLoss.OutputParameter> optionalOutputs, Value scores, Value labels, java.util.Optional<Value> weights, java.util.Optional<Integer> ignore_index, java.util.Optional<String> reduction) {
+        return new SoftmaxCrossEntropyLoss(resultType, optionalOutputs, scores, labels, weights, ignore_index, reduction);
     }
 
     @OpFactory.OpDeclaration(Softplus.NAME)
@@ -30240,8 +30240,8 @@ public final class OnnxOps {
             return new Unique(this, cc);
         }
         
-        Unique(TypeElement resultType, Value X, java.util.Optional<Integer> sorted, java.util.Optional<Integer> axis) {
-            super(SCHEMA, resultType, Set.of(), List.of(X), List.of(sorted, axis));
+        Unique(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value X, java.util.Optional<Integer> sorted, java.util.Optional<Integer> axis) {
+            super(SCHEMA, resultType, optionalOutputs, List.of(X), List.of(sorted, axis));
         }
         
         @Override
@@ -30270,8 +30270,8 @@ public final class OnnxOps {
         
     }
     
-    public static Unique Unique(TypeElement resultType, Value X, java.util.Optional<Integer> sorted, java.util.Optional<Integer> axis) {
-        return new Unique(resultType, X, sorted, axis);
+    public static Unique Unique(TypeElement resultType, Set<Unique.OutputParameter> optionalOutputs, Value X, java.util.Optional<Integer> sorted, java.util.Optional<Integer> axis) {
+        return new Unique(resultType, optionalOutputs, X, sorted, axis);
     }
 
     @OpFactory.OpDeclaration(Unsqueeze.NAME)

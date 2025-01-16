@@ -1,5 +1,6 @@
 package oracle.code.onnx.opgen;
 
+import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import oracle.code.onnx.OpSchema;
 
@@ -235,34 +236,6 @@ public class OpGen {
         return typeConstraints;
     }
 
-    private void genTypes(IndentWriter w, List<TypeElement.ExternalizedTypeElement> types) throws IOException {
-        boolean first = true;
-        for (TypeElement.ExternalizedTypeElement type : types) {
-            if (!first) {
-                w.write(", ");
-            }
-
-            genType(w, type);
-
-            first = false;
-        }
-    }
-
-    private void genType(IndentWriter w, TypeElement.ExternalizedTypeElement type) throws IOException {
-        w.write("OnnxType." + replaceTypeIdentifier(type.identifier()));
-        w.write("(");
-        genTypes(w, type.arguments());
-        w.write(")");
-    }
-
-    private String replaceTypeIdentifier(String i) {
-        return switch (i) {
-            case "float" -> "float32";
-            case "double" -> "float64";
-            default -> i;
-        };
-    }
-
     private void genInputParameterEnum(IndentWriter w, OpSchema s,
                                        Map<String, List<TypeElement.ExternalizedTypeElement>> typeConstraints) throws IOException {
         if (s.inputs().isEmpty()) {
@@ -429,6 +402,12 @@ public class OpGen {
         // Result type parameter
         w.write("TypeElement resultType, ");
 
+        boolean hasOptionalOutputs = s.outputs()
+                .stream().anyMatch(o -> o.option() == OpSchema.FormalParameterOption.Optional);
+        if (hasOptionalOutputs) {
+            w.write("Set<OutputParameter> optionalOutputs, ");
+        }
+
         boolean first = true;
         for (OpSchema.FormalParameter inParam : s.inputs()) {
             if (!first) {
@@ -485,8 +464,11 @@ public class OpGen {
 
         w.write("super(SCHEMA, resultType, ");
 
-        // @@@ Optional output parameters
-        w.write("Set.of(), ");
+        if (hasOptionalOutputs) {
+            w.write("optionalOutputs, ");
+        } else {
+            w.write("Set.of(), ");
+        }
 
         w.write("List.of(");
         first = true;
@@ -684,6 +666,12 @@ public class OpGen {
         // Result type parameter
         w.write("TypeElement resultType, ");
 
+        boolean hasOptionalOutputs = s.outputs()
+                .stream().anyMatch(o -> o.option() == OpSchema.FormalParameterOption.Optional);
+        if (hasOptionalOutputs) {
+            w.write("Set<" + s.name() + ".OutputParameter> optionalOutputs, ");
+        }
+
         boolean first = true;
         for (OpSchema.FormalParameter inParam : s.inputs()) {
             if (!first) {
@@ -742,6 +730,10 @@ public class OpGen {
 
         w.write("resultType, ");
 
+        if (hasOptionalOutputs) {
+            w.write("optionalOutputs, ");
+        }
+
         first = true;
         for (OpSchema.FormalParameter inParam : s.inputs()) {
             if (!first) {
@@ -766,6 +758,34 @@ public class OpGen {
         w.write(");\n");
         w.out();
         w.write("}\n");
+    }
+
+    private void genTypes(IndentWriter w, List<TypeElement.ExternalizedTypeElement> types) throws IOException {
+        boolean first = true;
+        for (TypeElement.ExternalizedTypeElement type : types) {
+            if (!first) {
+                w.write(", ");
+            }
+
+            genType(w, type);
+
+            first = false;
+        }
+    }
+
+    private void genType(IndentWriter w, TypeElement.ExternalizedTypeElement type) throws IOException {
+        w.write("OnnxType." + replaceTypeIdentifier(type.identifier()));
+        w.write("(");
+        genTypes(w, type.arguments());
+        w.write(")");
+    }
+
+    private String replaceTypeIdentifier(String i) {
+        return switch (i) {
+            case "float" -> "float32";
+            case "double" -> "float64";
+            default -> i;
+        };
     }
 
     static TypeElement.ExternalizedTypeElement parseTypeString(String type_str) {
