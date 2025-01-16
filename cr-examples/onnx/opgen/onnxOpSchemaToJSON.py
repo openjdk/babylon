@@ -1,6 +1,7 @@
 import json
 
 from onnx.defs import (
+    AttributeProto,
     OpSchema,
     get_all_schemas_with_history,
 )
@@ -50,9 +51,18 @@ class OpSchemaEncoder(json.JSONEncoder):
                 "description": obj.description,
                 "type": obj.type.name,
                 # @@@ extract default value from protobuf
-                "default_value": obj.default_value.__str__(),
+                "default_value": obj.default_value,
                 "required": obj.required,
             }
+        elif isinstance(obj, AttributeProto):
+            if obj.type == AttributeProto.INT:
+                return obj.i;
+            elif obj.type == AttributeProto.FLOAT:
+                return obj.f;
+            elif obj.type == AttributeProto.STRING:
+                return obj.s.decode();
+            else:
+                return None;
         elif isinstance(obj, OpSchema.TypeConstraintParam):
             return {
                 "type_param_str": obj.type_param_str,

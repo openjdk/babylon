@@ -27,6 +27,17 @@ public class OpSchemaParser {
         byte[] serSchemas = serialize(Path.of(
                 "opgen/onnx-schema.json"));
         Files.write(Path.of("opgen/op-schemas.ser"), serSchemas, StandardOpenOption.CREATE_NEW);
+
+        List<OpSchema> parse = parse(Path.of("opgen/onnx-schema.json"));
+        for (OpSchema opSchema : parse) {
+            for (OpSchema.Attribute attribute : opSchema.attributes()) {
+                if (attribute.default_value() != null) {
+                    System.out.println(attribute.name() + " : " + attribute.type() + " = " + attribute.default_value());
+                }
+            }
+
+        }
+
     }
 
     static byte[] serialize(Path p) throws IOException {
@@ -58,6 +69,9 @@ public class OpSchemaParser {
             case JSONValue s when s.isString() && c == Object.class -> (T) s.asString();
             case JSONValue n when n.isLong() && c == int.class -> (T) (Integer) (int) n.asLong();
             case JSONValue b when b.isBoolean() && c == boolean.class -> (T) (Boolean) b.asBoolean();
+            case JSONValue f when f.isDouble() && c == Object.class -> (T) (Float) (float) f.asDouble();
+            case JSONValue i when i.isLong() && c == Object.class -> (T) (Integer) (int) i.asLong();
+            case JSONValue n when n.isNull() && c == Object.class -> null;
             case JSONArray a when c == List.class -> switch (gt) {
                 case ParameterizedType pt when pt.getActualTypeArguments()[0] instanceof Class<?> tc ->
                         (T) mapJsonArray(a, tc);
@@ -69,7 +83,7 @@ public class OpSchemaParser {
                         (T) mapJsonObjectAsIfJsonArray(o, tc);
                 default -> throw new IllegalStateException();
             };
-            default -> throw new IllegalStateException();
+            default -> throw new IllegalStateException(v + " " + c);
         };
     }
 

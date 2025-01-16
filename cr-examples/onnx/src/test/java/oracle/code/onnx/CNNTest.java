@@ -2,8 +2,6 @@ package oracle.code.onnx;
 
 import jdk.incubator.code.CodeReflection;
 
-import java.util.Optional;
-
 import static java.util.Optional.*;
 import static oracle.code.onnx.OnnxOperators.*;
 

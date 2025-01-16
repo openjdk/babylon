@@ -135,8 +135,18 @@ public class OpGen {
             w.write(", ");
             w.write(Boolean.toString(!a.required()));
             w.write(", ");
-            // @@@ Default value?
-            w.write("null");
+
+            if (!a.required() && a.default_value() != null) {
+                switch (a.type()) {
+                    case FLOAT -> w.write(Float.toString((Float) a.default_value()) + "f");
+                    case INT -> w.write(Integer.toString((Integer) a.default_value()));
+                    case STRING -> w.write("\"" + a.default_value() + "\"");
+                    default -> throw new IllegalStateException();
+                }
+            } else {
+                w.write("null");
+            }
+
             w.write("),\n");
         }
         w.write(";\n");

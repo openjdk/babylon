@@ -359,9 +359,9 @@ public final class OnnxOps {
         public static final String NAME = "Adagrad";
         
         public enum Attribute implements OnnxAttribute {
-            epsilon(Float.class, true, null),
-            decay_factor(Float.class, true, null),
-            norm_coefficient(Float.class, true, null),
+            epsilon(Float.class, true, 1.0E-6f),
+            decay_factor(Float.class, true, 0.0f),
+            norm_coefficient(Float.class, true, 0.0f),
             ;
             
                 final Class<?> t;
@@ -528,11 +528,11 @@ public final class OnnxOps {
         public static final String NAME = "Adam";
         
         public enum Attribute implements OnnxAttribute {
-            epsilon(Float.class, true, null),
-            norm_coefficient_post(Float.class, true, null),
-            norm_coefficient(Float.class, true, null),
-            alpha(Float.class, true, null),
-            beta(Float.class, true, null),
+            epsilon(Float.class, true, 1.0E-6f),
+            norm_coefficient_post(Float.class, true, 0.0f),
+            norm_coefficient(Float.class, true, 0.0f),
+            alpha(Float.class, true, 0.9f),
+            beta(Float.class, true, 0.999f),
             ;
             
                 final Class<?> t;
@@ -828,7 +828,7 @@ public final class OnnxOps {
         public static final String NAME = "AffineGrid";
         
         public enum Attribute implements OnnxAttribute {
-            align_corners(Integer.class, true, null),
+            align_corners(Integer.class, true, 0),
             ;
             
                 final Class<?> t;
@@ -1099,9 +1099,9 @@ public final class OnnxOps {
         public static final String NAME = "ArgMax";
         
         public enum Attribute implements OnnxAttribute {
-            keepdims(Integer.class, true, null),
-            select_last_index(Integer.class, true, null),
-            axis(Integer.class, true, null),
+            keepdims(Integer.class, true, 1),
+            select_last_index(Integer.class, true, 0),
+            axis(Integer.class, true, 0),
             ;
             
                 final Class<?> t;
@@ -1256,9 +1256,9 @@ public final class OnnxOps {
         public static final String NAME = "ArgMin";
         
         public enum Attribute implements OnnxAttribute {
-            keepdims(Integer.class, true, null),
-            select_last_index(Integer.class, true, null),
-            axis(Integer.class, true, null),
+            keepdims(Integer.class, true, 1),
+            select_last_index(Integer.class, true, 0),
+            axis(Integer.class, true, 0),
             ;
             
                 final Class<?> t;
@@ -1990,9 +1990,9 @@ public final class OnnxOps {
         public enum Attribute implements OnnxAttribute {
             pads(int[].class, true, null),
             dilations(int[].class, true, null),
-            auto_pad(String.class, true, null),
-            count_include_pad(Integer.class, true, null),
-            ceil_mode(Integer.class, true, null),
+            auto_pad(String.class, true, "NOTSET"),
+            count_include_pad(Integer.class, true, 0),
+            ceil_mode(Integer.class, true, 0),
             strides(int[].class, true, null),
             kernel_shape(int[].class, false, null),
             ;
@@ -2169,9 +2169,9 @@ public final class OnnxOps {
         public static final String NAME = "BatchNormalization";
         
         public enum Attribute implements OnnxAttribute {
-            epsilon(Float.class, true, null),
-            training_mode(Integer.class, true, null),
-            momentum(Float.class, true, null),
+            epsilon(Float.class, true, 1.0E-5f),
+            training_mode(Integer.class, true, 0),
+            momentum(Float.class, true, 0.9f),
             ;
             
                 final Class<?> t;
@@ -2502,7 +2502,7 @@ public final class OnnxOps {
         public static final String NAME = "Binarizer";
         
         public enum Attribute implements OnnxAttribute {
-            threshold(Float.class, true, null),
+            threshold(Float.class, true, 0.0f),
             ;
             
                 final Class<?> t;
@@ -3268,8 +3268,8 @@ public final class OnnxOps {
         public static final String NAME = "BlackmanWindow";
         
         public enum Attribute implements OnnxAttribute {
-            periodic(Integer.class, true, null),
-            output_datatype(Integer.class, true, null),
+            periodic(Integer.class, true, 1),
+            output_datatype(Integer.class, true, 1),
             ;
             
                 final Class<?> t;
@@ -3420,7 +3420,7 @@ public final class OnnxOps {
         public static final String NAME = "Cast";
         
         public enum Attribute implements OnnxAttribute {
-            saturate(Integer.class, true, null),
+            saturate(Integer.class, true, 1),
             to(Integer.class, false, null),
             ;
             
@@ -3572,7 +3572,7 @@ public final class OnnxOps {
         public static final String NAME = "CastLike";
         
         public enum Attribute implements OnnxAttribute {
-            saturate(Integer.class, true, null),
+            saturate(Integer.class, true, 1),
             ;
             
                 final Class<?> t;
@@ -3723,9 +3723,9 @@ public final class OnnxOps {
         public static final String NAME = "CastMap";
         
         public enum Attribute implements OnnxAttribute {
-            map_form(String.class, true, null),
-            cast_to(String.class, true, null),
-            max_map(Integer.class, true, null),
+            map_form(String.class, true, "DENSE"),
+            cast_to(String.class, true, "TO_FLOAT"),
+            max_map(Integer.class, true, 1),
             ;
             
                 final Class<?> t;
@@ -3883,8 +3883,8 @@ public final class OnnxOps {
         public enum Attribute implements OnnxAttribute {
             cats_int64s(int[].class, true, null),
             cats_strings(String[].class, true, null),
-            default_int64(Integer.class, true, null),
-            default_string(String.class, true, null),
+            default_int64(Integer.class, true, -1),
+            default_string(String.class, true, "_Unused"),
             ;
             
                 final Class<?> t;
@@ -4159,7 +4159,7 @@ public final class OnnxOps {
         public static final String NAME = "Celu";
         
         public enum Attribute implements OnnxAttribute {
-            alpha(Float.class, true, null),
+            alpha(Float.class, true, 1.0f),
             ;
             
                 final Class<?> t;
@@ -5045,7 +5045,7 @@ public final class OnnxOps {
         
         public enum Attribute implements OnnxAttribute {
             axis(Integer.class, false, null),
-            new_axis(Integer.class, true, null),
+            new_axis(Integer.class, true, 0),
             ;
             
                 final Class<?> t;
@@ -5506,9 +5506,9 @@ public final class OnnxOps {
         public enum Attribute implements OnnxAttribute {
             pads(int[].class, true, null),
             dilations(int[].class, true, null),
-            auto_pad(String.class, true, null),
+            auto_pad(String.class, true, "NOTSET"),
             strides(int[].class, true, null),
-            group(Integer.class, true, null),
+            group(Integer.class, true, 1),
             kernel_shape(int[].class, true, null),
             ;
             
@@ -5692,9 +5692,9 @@ public final class OnnxOps {
         public enum Attribute implements OnnxAttribute {
             pads(int[].class, true, null),
             dilations(int[].class, true, null),
-            auto_pad(String.class, true, null),
+            auto_pad(String.class, true, "NOTSET"),
             strides(int[].class, true, null),
-            group(Integer.class, true, null),
+            group(Integer.class, true, 1),
             kernel_shape(int[].class, true, null),
             ;
             
@@ -5887,9 +5887,9 @@ public final class OnnxOps {
             output_shape(int[].class, true, null),
             pads(int[].class, true, null),
             dilations(int[].class, true, null),
-            auto_pad(String.class, true, null),
+            auto_pad(String.class, true, "NOTSET"),
             strides(int[].class, true, null),
-            group(Integer.class, true, null),
+            group(Integer.class, true, 1),
             kernel_shape(int[].class, true, null),
             output_padding(int[].class, true, null),
             ;
@@ -6310,8 +6310,8 @@ public final class OnnxOps {
         public static final String NAME = "CumSum";
         
         public enum Attribute implements OnnxAttribute {
-            exclusive(Integer.class, true, null),
-            reverse(Integer.class, true, null),
+            exclusive(Integer.class, true, 0),
+            reverse(Integer.class, true, 0),
             ;
             
                 final Class<?> t;
@@ -6467,8 +6467,8 @@ public final class OnnxOps {
         public static final String NAME = "DFT";
         
         public enum Attribute implements OnnxAttribute {
-            inverse(Integer.class, true, null),
-            onesided(Integer.class, true, null),
+            inverse(Integer.class, true, 0),
+            onesided(Integer.class, true, 0),
             ;
             
                 final Class<?> t;
@@ -6634,8 +6634,8 @@ public final class OnnxOps {
             pads(int[].class, true, null),
             dilations(int[].class, true, null),
             strides(int[].class, true, null),
-            offset_group(Integer.class, true, null),
-            group(Integer.class, true, null),
+            offset_group(Integer.class, true, 1),
+            group(Integer.class, true, 1),
             kernel_shape(int[].class, true, null),
             ;
             
@@ -6828,7 +6828,7 @@ public final class OnnxOps {
         public static final String NAME = "DepthToSpace";
         
         public enum Attribute implements OnnxAttribute {
-            mode(String.class, true, null),
+            mode(String.class, true, "DCR"),
             blocksize(Integer.class, false, null),
             ;
             
@@ -6979,8 +6979,8 @@ public final class OnnxOps {
         public static final String NAME = "DequantizeLinear";
         
         public enum Attribute implements OnnxAttribute {
-            axis(Integer.class, true, null),
-            block_size(Integer.class, true, null),
+            axis(Integer.class, true, 1),
+            block_size(Integer.class, true, 0),
             ;
             
                 final Class<?> t;
@@ -7949,7 +7949,7 @@ public final class OnnxOps {
         public static final String NAME = "Elu";
         
         public enum Attribute implements OnnxAttribute {
-            alpha(Float.class, true, null),
+            alpha(Float.class, true, 1.0f),
             ;
             
                 final Class<?> t;
@@ -8562,7 +8562,7 @@ public final class OnnxOps {
         
         public enum Attribute implements OnnxAttribute {
             dtype(Integer.class, true, null),
-            k(Integer.class, true, null),
+            k(Integer.class, true, 0),
             ;
             
                 final Class<?> t;
@@ -8858,7 +8858,7 @@ public final class OnnxOps {
         public static final String NAME = "Flatten";
         
         public enum Attribute implements OnnxAttribute {
-            axis(Integer.class, true, null),
+            axis(Integer.class, true, 1),
             ;
             
                 final Class<?> t;
@@ -9117,14 +9117,14 @@ public final class OnnxOps {
         public static final String NAME = "GRU";
         
         public enum Attribute implements OnnxAttribute {
-            layout(Integer.class, true, null),
+            layout(Integer.class, true, 0),
             activation_alpha(float[].class, true, null),
             hidden_size(Integer.class, true, null),
             activation_beta(float[].class, true, null),
             activations(String[].class, true, null),
-            linear_before_reset(Integer.class, true, null),
+            linear_before_reset(Integer.class, true, 0),
             clip(Float.class, true, null),
-            direction(String.class, true, null),
+            direction(String.class, true, "forward"),
             ;
             
                 final Class<?> t;
@@ -9334,7 +9334,7 @@ public final class OnnxOps {
         public static final String NAME = "Gather";
         
         public enum Attribute implements OnnxAttribute {
-            axis(Integer.class, true, null),
+            axis(Integer.class, true, 0),
             ;
             
                 final Class<?> t;
@@ -9485,7 +9485,7 @@ public final class OnnxOps {
         public static final String NAME = "GatherElements";
         
         public enum Attribute implements OnnxAttribute {
-            axis(Integer.class, true, null),
+            axis(Integer.class, true, 0),
             ;
             
                 final Class<?> t;
@@ -9636,7 +9636,7 @@ public final class OnnxOps {
         public static final String NAME = "GatherND";
         
         public enum Attribute implements OnnxAttribute {
-            batch_dims(Integer.class, true, null),
+            batch_dims(Integer.class, true, 0),
             ;
             
                 final Class<?> t;
@@ -9786,7 +9786,7 @@ public final class OnnxOps {
         public static final String NAME = "Gelu";
         
         public enum Attribute implements OnnxAttribute {
-            approximate(String.class, true, null),
+            approximate(String.class, true, "none"),
             ;
             
                 final Class<?> t;
@@ -9931,10 +9931,10 @@ public final class OnnxOps {
         public static final String NAME = "Gemm";
         
         public enum Attribute implements OnnxAttribute {
-            alpha(Float.class, true, null),
-            transB(Integer.class, true, null),
-            beta(Float.class, true, null),
-            transA(Integer.class, true, null),
+            alpha(Float.class, true, 1.0f),
+            transB(Integer.class, true, 0),
+            beta(Float.class, true, 1.0f),
+            transA(Integer.class, true, 0),
             ;
             
                 final Class<?> t;
@@ -10219,7 +10219,7 @@ public final class OnnxOps {
         public static final String NAME = "GlobalLpPool";
         
         public enum Attribute implements OnnxAttribute {
-            p(Integer.class, true, null),
+            p(Integer.class, true, 2),
             ;
             
                 final Class<?> t;
@@ -10876,9 +10876,9 @@ public final class OnnxOps {
         public static final String NAME = "GridSample";
         
         public enum Attribute implements OnnxAttribute {
-            mode(String.class, true, null),
-            align_corners(Integer.class, true, null),
-            padding_mode(String.class, true, null),
+            mode(String.class, true, "linear"),
+            align_corners(Integer.class, true, 0),
+            padding_mode(String.class, true, "zeros"),
             ;
             
                 final Class<?> t;
@@ -11039,8 +11039,8 @@ public final class OnnxOps {
         public static final String NAME = "GroupNormalization";
         
         public enum Attribute implements OnnxAttribute {
-            epsilon(Float.class, true, null),
-            stash_type(Integer.class, true, null),
+            epsilon(Float.class, true, 1.0E-5f),
+            stash_type(Integer.class, true, 1),
             num_groups(Integer.class, false, null),
             ;
             
@@ -11206,8 +11206,8 @@ public final class OnnxOps {
         public static final String NAME = "HammingWindow";
         
         public enum Attribute implements OnnxAttribute {
-            periodic(Integer.class, true, null),
-            output_datatype(Integer.class, true, null),
+            periodic(Integer.class, true, 1),
+            output_datatype(Integer.class, true, 1),
             ;
             
                 final Class<?> t;
@@ -11358,8 +11358,8 @@ public final class OnnxOps {
         public static final String NAME = "HannWindow";
         
         public enum Attribute implements OnnxAttribute {
-            periodic(Integer.class, true, null),
-            output_datatype(Integer.class, true, null),
+            periodic(Integer.class, true, 1),
+            output_datatype(Integer.class, true, 1),
             ;
             
                 final Class<?> t;
@@ -11510,8 +11510,8 @@ public final class OnnxOps {
         public static final String NAME = "HardSigmoid";
         
         public enum Attribute implements OnnxAttribute {
-            alpha(Float.class, true, null),
-            beta(Float.class, true, null),
+            alpha(Float.class, true, 0.2f),
+            beta(Float.class, true, 0.5f),
             ;
             
                 final Class<?> t;
@@ -11775,7 +11775,7 @@ public final class OnnxOps {
         public static final String NAME = "Hardmax";
         
         public enum Attribute implements OnnxAttribute {
-            axis(Integer.class, true, null),
+            axis(Integer.class, true, -1),
             ;
             
                 final Class<?> t;
@@ -12034,7 +12034,7 @@ public final class OnnxOps {
         public static final String NAME = "ImageDecoder";
         
         public enum Attribute implements OnnxAttribute {
-            pixel_format(String.class, true, null),
+            pixel_format(String.class, true, "RGB"),
             ;
             
                 final Class<?> t;
@@ -12180,8 +12180,8 @@ public final class OnnxOps {
         public static final String NAME = "Imputer";
         
         public enum Attribute implements OnnxAttribute {
-            replaced_value_int64(Integer.class, true, null),
-            replaced_value_float(Float.class, true, null),
+            replaced_value_int64(Integer.class, true, 0),
+            replaced_value_float(Float.class, true, 0.0f),
             imputed_value_int64s(int[].class, true, null),
             imputed_value_floats(float[].class, true, null),
             ;
@@ -12343,7 +12343,7 @@ public final class OnnxOps {
         public static final String NAME = "InstanceNormalization";
         
         public enum Attribute implements OnnxAttribute {
-            epsilon(Float.class, true, null),
+            epsilon(Float.class, true, 1.0E-5f),
             ;
             
                 final Class<?> t;
@@ -12498,8 +12498,8 @@ public final class OnnxOps {
         public static final String NAME = "IsInf";
         
         public enum Attribute implements OnnxAttribute {
-            detect_negative(Integer.class, true, null),
-            detect_positive(Integer.class, true, null),
+            detect_negative(Integer.class, true, 1),
+            detect_positive(Integer.class, true, 1),
             ;
             
                 final Class<?> t;
@@ -12766,9 +12766,9 @@ public final class OnnxOps {
         
         public enum Attribute implements OnnxAttribute {
             size(Integer.class, false, null),
-            alpha(Float.class, true, null),
-            bias(Float.class, true, null),
-            beta(Float.class, true, null),
+            alpha(Float.class, true, 1.0E-4f),
+            bias(Float.class, true, 1.0f),
+            beta(Float.class, true, 0.75f),
             ;
             
                 final Class<?> t;
@@ -12928,14 +12928,14 @@ public final class OnnxOps {
         public static final String NAME = "LSTM";
         
         public enum Attribute implements OnnxAttribute {
-            layout(Integer.class, true, null),
-            input_forget(Integer.class, true, null),
+            layout(Integer.class, true, 0),
+            input_forget(Integer.class, true, 0),
             activation_alpha(float[].class, true, null),
             hidden_size(Integer.class, true, null),
             activation_beta(float[].class, true, null),
             activations(String[].class, true, null),
             clip(Float.class, true, null),
-            direction(String.class, true, null),
+            direction(String.class, true, "forward"),
             ;
             
                 final Class<?> t;
@@ -13162,13 +13162,13 @@ public final class OnnxOps {
             keys_int64s(int[].class, true, null),
             keys_tensor(byte[].class, true, null),
             keys_strings(String[].class, true, null),
-            default_float(Float.class, true, null),
+            default_float(Float.class, true, -0.0f),
             keys_floats(float[].class, true, null),
             default_tensor(byte[].class, true, null),
-            default_int64(Integer.class, true, null),
+            default_int64(Integer.class, true, -1),
             values_tensor(byte[].class, true, null),
             values_int64s(int[].class, true, null),
-            default_string(String.class, true, null),
+            default_string(String.class, true, "_Unused"),
             values_floats(float[].class, true, null),
             ;
             
@@ -13370,9 +13370,9 @@ public final class OnnxOps {
         public static final String NAME = "LayerNormalization";
         
         public enum Attribute implements OnnxAttribute {
-            epsilon(Float.class, true, null),
-            stash_type(Integer.class, true, null),
-            axis(Integer.class, true, null),
+            epsilon(Float.class, true, 1.0E-5f),
+            stash_type(Integer.class, true, 1),
+            axis(Integer.class, true, -1),
             ;
             
                 final Class<?> t;
@@ -13541,7 +13541,7 @@ public final class OnnxOps {
         public static final String NAME = "LeakyRelu";
         
         public enum Attribute implements OnnxAttribute {
-            alpha(Float.class, true, null),
+            alpha(Float.class, true, 0.01f),
             ;
             
                 final Class<?> t;
@@ -13927,9 +13927,9 @@ public final class OnnxOps {
         
         public enum Attribute implements OnnxAttribute {
             classlabels_ints(int[].class, true, null),
-            post_transform(String.class, true, null),
+            post_transform(String.class, true, "NONE"),
             coefficients(float[].class, false, null),
-            multi_class(Integer.class, true, null),
+            multi_class(Integer.class, true, 0),
             intercepts(float[].class, true, null),
             classlabels_strings(String[].class, true, null),
             ;
@@ -14103,9 +14103,9 @@ public final class OnnxOps {
         public static final String NAME = "LinearRegressor";
         
         public enum Attribute implements OnnxAttribute {
-            post_transform(String.class, true, null),
+            post_transform(String.class, true, "NONE"),
             coefficients(float[].class, true, null),
-            targets(Integer.class, true, null),
+            targets(Integer.class, true, 1),
             intercepts(float[].class, true, null),
             ;
             
@@ -14380,7 +14380,7 @@ public final class OnnxOps {
         public static final String NAME = "LogSoftmax";
         
         public enum Attribute implements OnnxAttribute {
-            axis(Integer.class, true, null),
+            axis(Integer.class, true, -1),
             ;
             
                 final Class<?> t;
@@ -14525,8 +14525,8 @@ public final class OnnxOps {
         public static final String NAME = "LpNormalization";
         
         public enum Attribute implements OnnxAttribute {
-            p(Integer.class, true, null),
-            axis(Integer.class, true, null),
+            p(Integer.class, true, 2),
+            axis(Integer.class, true, -1),
             ;
             
                 final Class<?> t;
@@ -14676,11 +14676,11 @@ public final class OnnxOps {
         public static final String NAME = "LpPool";
         
         public enum Attribute implements OnnxAttribute {
-            p(Integer.class, true, null),
+            p(Integer.class, true, 2),
             pads(int[].class, true, null),
             dilations(int[].class, true, null),
-            auto_pad(String.class, true, null),
-            ceil_mode(Integer.class, true, null),
+            auto_pad(String.class, true, "NOTSET"),
+            ceil_mode(Integer.class, true, 0),
             strides(int[].class, true, null),
             kernel_shape(int[].class, false, null),
             ;
@@ -15225,9 +15225,9 @@ public final class OnnxOps {
         public enum Attribute implements OnnxAttribute {
             pads(int[].class, true, null),
             dilations(int[].class, true, null),
-            auto_pad(String.class, true, null),
-            ceil_mode(Integer.class, true, null),
-            storage_order(Integer.class, true, null),
+            auto_pad(String.class, true, "NOTSET"),
+            ceil_mode(Integer.class, true, 0),
+            storage_order(Integer.class, true, 0),
             strides(int[].class, true, null),
             kernel_shape(int[].class, false, null),
             ;
@@ -15406,7 +15406,7 @@ public final class OnnxOps {
         public static final String NAME = "MaxRoiPool";
         
         public enum Attribute implements OnnxAttribute {
-            spatial_scale(Float.class, true, null),
+            spatial_scale(Float.class, true, 1.0f),
             pooled_shape(int[].class, false, null),
             ;
             
@@ -15990,7 +15990,7 @@ public final class OnnxOps {
         public static final String NAME = "MelWeightMatrix";
         
         public enum Attribute implements OnnxAttribute {
-            output_datatype(Integer.class, true, null),
+            output_datatype(Integer.class, true, 1),
             ;
             
                 final Class<?> t;
@@ -16385,7 +16385,7 @@ public final class OnnxOps {
         public static final String NAME = "Mod";
         
         public enum Attribute implements OnnxAttribute {
-            fmod(Integer.class, true, null),
+            fmod(Integer.class, true, 0),
             ;
             
                 final Class<?> t;
@@ -16830,8 +16830,8 @@ public final class OnnxOps {
         
         public enum Attribute implements OnnxAttribute {
             seed(Float.class, true, null),
-            sample_size(Integer.class, true, null),
-            dtype(Integer.class, true, null),
+            sample_size(Integer.class, true, 1),
+            dtype(Integer.class, true, 6),
             ;
             
                 final Class<?> t;
@@ -17102,7 +17102,7 @@ public final class OnnxOps {
         
         public enum Attribute implements OnnxAttribute {
             ignore_index(Integer.class, true, null),
-            reduction(String.class, true, null),
+            reduction(String.class, true, "mean"),
             ;
             
                 final Class<?> t;
@@ -17264,7 +17264,7 @@ public final class OnnxOps {
         public static final String NAME = "NonMaxSuppression";
         
         public enum Attribute implements OnnxAttribute {
-            center_point_box(Integer.class, true, null),
+            center_point_box(Integer.class, true, 0),
             ;
             
                 final Class<?> t;
@@ -17531,7 +17531,7 @@ public final class OnnxOps {
         public static final String NAME = "Normalizer";
         
         public enum Attribute implements OnnxAttribute {
-            norm(String.class, true, null),
+            norm(String.class, true, "MAX"),
             ;
             
                 final Class<?> t;
@@ -17790,7 +17790,7 @@ public final class OnnxOps {
         public static final String NAME = "OneHot";
         
         public enum Attribute implements OnnxAttribute {
-            axis(Integer.class, true, null),
+            axis(Integer.class, true, -1),
             ;
             
                 final Class<?> t;
@@ -17949,7 +17949,7 @@ public final class OnnxOps {
         public enum Attribute implements OnnxAttribute {
             cats_strings(String[].class, true, null),
             cats_int64s(int[].class, true, null),
-            zeros(Integer.class, true, null),
+            zeros(Integer.class, true, 1),
             ;
             
                 final Class<?> t;
@@ -18721,7 +18721,7 @@ public final class OnnxOps {
         public static final String NAME = "Pad";
         
         public enum Attribute implements OnnxAttribute {
-            mode(String.class, true, null),
+            mode(String.class, true, "constant"),
             ;
             
                 final Class<?> t;
@@ -19006,9 +19006,9 @@ public final class OnnxOps {
         public enum Attribute implements OnnxAttribute {
             pads(int[].class, true, null),
             dilations(int[].class, true, null),
-            auto_pad(String.class, true, null),
+            auto_pad(String.class, true, "NOTSET"),
             strides(int[].class, true, null),
-            group(Integer.class, true, null),
+            group(Integer.class, true, 1),
             kernel_shape(int[].class, true, null),
             ;
             
@@ -19375,10 +19375,10 @@ public final class OnnxOps {
         public static final String NAME = "QuantizeLinear";
         
         public enum Attribute implements OnnxAttribute {
-            output_dtype(Integer.class, true, null),
-            saturate(Integer.class, true, null),
-            axis(Integer.class, true, null),
-            block_size(Integer.class, true, null),
+            output_dtype(Integer.class, true, 0),
+            saturate(Integer.class, true, 1),
+            axis(Integer.class, true, 1),
+            block_size(Integer.class, true, 0),
             ;
             
                 final Class<?> t;
@@ -19550,13 +19550,13 @@ public final class OnnxOps {
         public static final String NAME = "RNN";
         
         public enum Attribute implements OnnxAttribute {
-            layout(Integer.class, true, null),
+            layout(Integer.class, true, 0),
             activation_alpha(float[].class, true, null),
             hidden_size(Integer.class, true, null),
             activation_beta(float[].class, true, null),
             activations(String[].class, true, null),
             clip(Float.class, true, null),
-            direction(String.class, true, null),
+            direction(String.class, true, "forward"),
             ;
             
                 final Class<?> t;
@@ -19763,9 +19763,9 @@ public final class OnnxOps {
         public enum Attribute implements OnnxAttribute {
             shape(int[].class, false, null),
             seed(Float.class, true, null),
-            mean(Float.class, true, null),
-            scale(Float.class, true, null),
-            dtype(Integer.class, true, null),
+            mean(Float.class, true, 0.0f),
+            scale(Float.class, true, 1.0f),
+            dtype(Integer.class, true, 1),
             ;
             
                 final Class<?> t;
@@ -19906,8 +19906,8 @@ public final class OnnxOps {
         
         public enum Attribute implements OnnxAttribute {
             seed(Float.class, true, null),
-            mean(Float.class, true, null),
-            scale(Float.class, true, null),
+            mean(Float.class, true, 0.0f),
+            scale(Float.class, true, 1.0f),
             dtype(Integer.class, true, null),
             ;
             
@@ -20069,11 +20069,11 @@ public final class OnnxOps {
         public static final String NAME = "RandomUniform";
         
         public enum Attribute implements OnnxAttribute {
-            high(Float.class, true, null),
+            high(Float.class, true, 1.0f),
             shape(int[].class, false, null),
             seed(Float.class, true, null),
-            low(Float.class, true, null),
-            dtype(Integer.class, true, null),
+            low(Float.class, true, 0.0f),
+            dtype(Integer.class, true, 1),
             ;
             
                 final Class<?> t;
@@ -20213,9 +20213,9 @@ public final class OnnxOps {
         public static final String NAME = "RandomUniformLike";
         
         public enum Attribute implements OnnxAttribute {
-            high(Float.class, true, null),
+            high(Float.class, true, 1.0f),
             seed(Float.class, true, null),
-            low(Float.class, true, null),
+            low(Float.class, true, 0.0f),
             dtype(Integer.class, true, null),
             ;
             
@@ -20615,8 +20615,8 @@ public final class OnnxOps {
         public static final String NAME = "ReduceL1";
         
         public enum Attribute implements OnnxAttribute {
-            noop_with_empty_axes(Integer.class, true, null),
-            keepdims(Integer.class, true, null),
+            noop_with_empty_axes(Integer.class, true, 0),
+            keepdims(Integer.class, true, 1),
             ;
             
                 final Class<?> t;
@@ -20772,8 +20772,8 @@ public final class OnnxOps {
         public static final String NAME = "ReduceL2";
         
         public enum Attribute implements OnnxAttribute {
-            noop_with_empty_axes(Integer.class, true, null),
-            keepdims(Integer.class, true, null),
+            noop_with_empty_axes(Integer.class, true, 0),
+            keepdims(Integer.class, true, 1),
             ;
             
                 final Class<?> t;
@@ -20929,8 +20929,8 @@ public final class OnnxOps {
         public static final String NAME = "ReduceLogSum";
         
         public enum Attribute implements OnnxAttribute {
-            noop_with_empty_axes(Integer.class, true, null),
-            keepdims(Integer.class, true, null),
+            noop_with_empty_axes(Integer.class, true, 0),
+            keepdims(Integer.class, true, 1),
             ;
             
                 final Class<?> t;
@@ -21086,8 +21086,8 @@ public final class OnnxOps {
         public static final String NAME = "ReduceLogSumExp";
         
         public enum Attribute implements OnnxAttribute {
-            noop_with_empty_axes(Integer.class, true, null),
-            keepdims(Integer.class, true, null),
+            noop_with_empty_axes(Integer.class, true, 0),
+            keepdims(Integer.class, true, 1),
             ;
             
                 final Class<?> t;
@@ -21243,8 +21243,8 @@ public final class OnnxOps {
         public static final String NAME = "ReduceMax";
         
         public enum Attribute implements OnnxAttribute {
-            noop_with_empty_axes(Integer.class, true, null),
-            keepdims(Integer.class, true, null),
+            noop_with_empty_axes(Integer.class, true, 0),
+            keepdims(Integer.class, true, 1),
             ;
             
                 final Class<?> t;
@@ -21400,8 +21400,8 @@ public final class OnnxOps {
         public static final String NAME = "ReduceMean";
         
         public enum Attribute implements OnnxAttribute {
-            noop_with_empty_axes(Integer.class, true, null),
-            keepdims(Integer.class, true, null),
+            noop_with_empty_axes(Integer.class, true, 0),
+            keepdims(Integer.class, true, 1),
             ;
             
                 final Class<?> t;
@@ -21557,8 +21557,8 @@ public final class OnnxOps {
         public static final String NAME = "ReduceMin";
         
         public enum Attribute implements OnnxAttribute {
-            noop_with_empty_axes(Integer.class, true, null),
-            keepdims(Integer.class, true, null),
+            noop_with_empty_axes(Integer.class, true, 0),
+            keepdims(Integer.class, true, 1),
             ;
             
                 final Class<?> t;
@@ -21714,8 +21714,8 @@ public final class OnnxOps {
         public static final String NAME = "ReduceProd";
         
         public enum Attribute implements OnnxAttribute {
-            noop_with_empty_axes(Integer.class, true, null),
-            keepdims(Integer.class, true, null),
+            noop_with_empty_axes(Integer.class, true, 0),
+            keepdims(Integer.class, true, 1),
             ;
             
                 final Class<?> t;
@@ -21871,8 +21871,8 @@ public final class OnnxOps {
         public static final String NAME = "ReduceSum";
         
         public enum Attribute implements OnnxAttribute {
-            noop_with_empty_axes(Integer.class, true, null),
-            keepdims(Integer.class, true, null),
+            noop_with_empty_axes(Integer.class, true, 0),
+            keepdims(Integer.class, true, 1),
             ;
             
                 final Class<?> t;
@@ -22028,8 +22028,8 @@ public final class OnnxOps {
         public static final String NAME = "ReduceSumSquare";
         
         public enum Attribute implements OnnxAttribute {
-            noop_with_empty_axes(Integer.class, true, null),
-            keepdims(Integer.class, true, null),
+            noop_with_empty_axes(Integer.class, true, 0),
+            keepdims(Integer.class, true, 1),
             ;
             
                 final Class<?> t;
@@ -22445,7 +22445,7 @@ public final class OnnxOps {
         public static final String NAME = "Reshape";
         
         public enum Attribute implements OnnxAttribute {
-            allowzero(Integer.class, true, null),
+            allowzero(Integer.class, true, 0),
             ;
             
                 final Class<?> t;
@@ -22595,15 +22595,15 @@ public final class OnnxOps {
         public static final String NAME = "Resize";
         
         public enum Attribute implements OnnxAttribute {
-            mode(String.class, true, null),
-            extrapolation_value(Float.class, true, null),
-            nearest_mode(String.class, true, null),
-            antialias(Integer.class, true, null),
-            cubic_coeff_a(Float.class, true, null),
+            mode(String.class, true, "nearest"),
+            extrapolation_value(Float.class, true, 0.0f),
+            nearest_mode(String.class, true, "round_prefer_floor"),
+            antialias(Integer.class, true, 0),
+            cubic_coeff_a(Float.class, true, -0.75f),
             axes(int[].class, true, null),
-            coordinate_transformation_mode(String.class, true, null),
-            keep_aspect_ratio_policy(String.class, true, null),
-            exclude_outside(Integer.class, true, null),
+            coordinate_transformation_mode(String.class, true, "half_pixel"),
+            keep_aspect_ratio_policy(String.class, true, "stretch"),
+            exclude_outside(Integer.class, true, 0),
             ;
             
                 final Class<?> t;
@@ -22807,8 +22807,8 @@ public final class OnnxOps {
         public static final String NAME = "ReverseSequence";
         
         public enum Attribute implements OnnxAttribute {
-            time_axis(Integer.class, true, null),
-            batch_axis(Integer.class, true, null),
+            time_axis(Integer.class, true, 0),
+            batch_axis(Integer.class, true, 1),
             ;
             
                 final Class<?> t;
@@ -22963,12 +22963,12 @@ public final class OnnxOps {
         public static final String NAME = "RoiAlign";
         
         public enum Attribute implements OnnxAttribute {
-            mode(String.class, true, null),
-            output_width(Integer.class, true, null),
-            spatial_scale(Float.class, true, null),
-            coordinate_transformation_mode(String.class, true, null),
-            sampling_ratio(Integer.class, true, null),
-            output_height(Integer.class, true, null),
+            mode(String.class, true, "avg"),
+            output_width(Integer.class, true, 1),
+            spatial_scale(Float.class, true, 1.0f),
+            coordinate_transformation_mode(String.class, true, "half_pixel"),
+            sampling_ratio(Integer.class, true, 0),
+            output_height(Integer.class, true, 1),
             ;
             
                 final Class<?> t;
@@ -23263,7 +23263,7 @@ public final class OnnxOps {
         public static final String NAME = "STFT";
         
         public enum Attribute implements OnnxAttribute {
-            onesided(Integer.class, true, null),
+            onesided(Integer.class, true, 1),
             ;
             
                 final Class<?> t;
@@ -23428,9 +23428,9 @@ public final class OnnxOps {
         public enum Attribute implements OnnxAttribute {
             prob_b(float[].class, true, null),
             kernel_params(float[].class, true, null),
-            kernel_type(String.class, true, null),
+            kernel_type(String.class, true, "LINEAR"),
             classlabels_ints(int[].class, true, null),
-            post_transform(String.class, true, null),
+            post_transform(String.class, true, "NONE"),
             rho(float[].class, true, null),
             coefficients(float[].class, true, null),
             support_vectors(float[].class, true, null),
@@ -23633,14 +23633,14 @@ public final class OnnxOps {
         public static final String NAME = "SVMRegressor";
         
         public enum Attribute implements OnnxAttribute {
-            kernel_type(String.class, true, null),
+            kernel_type(String.class, true, "LINEAR"),
             kernel_params(float[].class, true, null),
-            n_supports(Integer.class, true, null),
+            n_supports(Integer.class, true, 0),
             rho(float[].class, true, null),
-            post_transform(String.class, true, null),
+            post_transform(String.class, true, "NONE"),
             coefficients(float[].class, true, null),
             support_vectors(float[].class, true, null),
-            one_class(Integer.class, true, null),
+            one_class(Integer.class, true, 0),
             ;
             
                 final Class<?> t;
@@ -23971,7 +23971,7 @@ public final class OnnxOps {
         public static final String NAME = "Scatter";
         
         public enum Attribute implements OnnxAttribute {
-            axis(Integer.class, true, null),
+            axis(Integer.class, true, 0),
             ;
             
                 final Class<?> t;
@@ -24127,8 +24127,8 @@ public final class OnnxOps {
         public static final String NAME = "ScatterElements";
         
         public enum Attribute implements OnnxAttribute {
-            reduction(String.class, true, null),
-            axis(Integer.class, true, null),
+            reduction(String.class, true, "none"),
+            axis(Integer.class, true, 0),
             ;
             
                 final Class<?> t;
@@ -24289,7 +24289,7 @@ public final class OnnxOps {
         public static final String NAME = "ScatterND";
         
         public enum Attribute implements OnnxAttribute {
-            reduction(String.class, true, null),
+            reduction(String.class, true, "none"),
             ;
             
                 final Class<?> t;
@@ -24444,8 +24444,8 @@ public final class OnnxOps {
         public static final String NAME = "Selu";
         
         public enum Attribute implements OnnxAttribute {
-            alpha(Float.class, true, null),
-            gamma(Float.class, true, null),
+            alpha(Float.class, true, 1.6732632f),
+            gamma(Float.class, true, 1.050701f),
             ;
             
                 final Class<?> t;
@@ -25314,7 +25314,7 @@ public final class OnnxOps {
         public static final String NAME = "Shape";
         
         public enum Attribute implements OnnxAttribute {
-            start(Integer.class, true, null),
+            start(Integer.class, true, 0),
             end(Integer.class, true, null),
             ;
             
@@ -25466,8 +25466,8 @@ public final class OnnxOps {
         public static final String NAME = "Shrink";
         
         public enum Attribute implements OnnxAttribute {
-            lambd(Float.class, true, null),
-            bias(Float.class, true, null),
+            lambd(Float.class, true, 0.5f),
+            bias(Float.class, true, 0.0f),
             ;
             
                 final Class<?> t;
@@ -26325,7 +26325,7 @@ public final class OnnxOps {
         public static final String NAME = "Softmax";
         
         public enum Attribute implements OnnxAttribute {
-            axis(Integer.class, true, null),
+            axis(Integer.class, true, -1),
             ;
             
                 final Class<?> t;
@@ -26471,7 +26471,7 @@ public final class OnnxOps {
         
         public enum Attribute implements OnnxAttribute {
             ignore_index(Integer.class, true, null),
-            reduction(String.class, true, null),
+            reduction(String.class, true, "mean"),
             ;
             
                 final Class<?> t;
@@ -27008,7 +27008,7 @@ public final class OnnxOps {
         
         public enum Attribute implements OnnxAttribute {
             num_outputs(Integer.class, true, null),
-            axis(Integer.class, true, null),
+            axis(Integer.class, true, 0),
             ;
             
                 final Class<?> t;
@@ -27164,8 +27164,8 @@ public final class OnnxOps {
         public static final String NAME = "SplitToSequence";
         
         public enum Attribute implements OnnxAttribute {
-            keepdims(Integer.class, true, null),
-            axis(Integer.class, true, null),
+            keepdims(Integer.class, true, 1),
+            axis(Integer.class, true, 0),
             ;
             
                 final Class<?> t;
@@ -27676,10 +27676,10 @@ public final class OnnxOps {
         public static final String NAME = "StringNormalizer";
         
         public enum Attribute implements OnnxAttribute {
-            is_case_sensitive(Integer.class, true, null),
+            is_case_sensitive(Integer.class, true, 0),
             locale(String.class, true, null),
             stopwords(String[].class, true, null),
-            case_change_action(String.class, true, null),
+            case_change_action(String.class, true, "NONE"),
             ;
             
                 final Class<?> t;
@@ -28633,7 +28633,7 @@ public final class OnnxOps {
         public static final String NAME = "ThresholdedRelu";
         
         public enum Attribute implements OnnxAttribute {
-            alpha(Float.class, true, null),
+            alpha(Float.class, true, 1.0f),
             ;
             
                 final Class<?> t;
@@ -28898,9 +28898,9 @@ public final class OnnxOps {
         public static final String NAME = "TopK";
         
         public enum Attribute implements OnnxAttribute {
-            largest(Integer.class, true, null),
-            sorted(Integer.class, true, null),
-            axis(Integer.class, true, null),
+            largest(Integer.class, true, 1),
+            sorted(Integer.class, true, 1),
+            axis(Integer.class, true, -1),
             ;
             
                 final Class<?> t;
@@ -29207,11 +29207,11 @@ public final class OnnxOps {
         public static final String NAME = "TreeEnsemble";
         
         public enum Attribute implements OnnxAttribute {
-            aggregate_function(Integer.class, true, null),
+            aggregate_function(Integer.class, true, 1),
             nodes_hitrates(byte[].class, true, null),
             nodes_featureids(int[].class, false, null),
             nodes_falseleafs(int[].class, false, null),
-            post_transform(Integer.class, true, null),
+            post_transform(Integer.class, true, 0),
             nodes_trueleafs(int[].class, false, null),
             nodes_modes(byte[].class, false, null),
             nodes_falsenodeids(int[].class, false, null),
@@ -29448,7 +29448,7 @@ public final class OnnxOps {
             nodes_featureids(int[].class, true, null),
             nodes_treeids(int[].class, true, null),
             class_weights_as_tensor(byte[].class, true, null),
-            post_transform(String.class, true, null),
+            post_transform(String.class, true, "NONE"),
             nodes_modes(String[].class, true, null),
             nodes_falsenodeids(int[].class, true, null),
             classlabels_strings(String[].class, true, null),
@@ -29709,13 +29709,13 @@ public final class OnnxOps {
         public static final String NAME = "TreeEnsembleRegressor";
         
         public enum Attribute implements OnnxAttribute {
-            aggregate_function(String.class, true, null),
+            aggregate_function(String.class, true, "SUM"),
             nodes_hitrates(float[].class, true, null),
             target_weights_as_tensor(byte[].class, true, null),
             nodes_featureids(int[].class, true, null),
             target_treeids(int[].class, true, null),
             nodes_treeids(int[].class, true, null),
-            post_transform(String.class, true, null),
+            post_transform(String.class, true, "NONE"),
             nodes_modes(String[].class, true, null),
             target_weights(float[].class, true, null),
             nodes_falsenodeids(int[].class, true, null),
@@ -29974,7 +29974,7 @@ public final class OnnxOps {
         public static final String NAME = "Trilu";
         
         public enum Attribute implements OnnxAttribute {
-            upper(Integer.class, true, null),
+            upper(Integer.class, true, 1),
             ;
             
                 final Class<?> t;
@@ -30125,7 +30125,7 @@ public final class OnnxOps {
         public static final String NAME = "Unique";
         
         public enum Attribute implements OnnxAttribute {
-            sorted(Integer.class, true, null),
+            sorted(Integer.class, true, 1),
             axis(Integer.class, true, null),
             ;
             
@@ -30398,7 +30398,7 @@ public final class OnnxOps {
         public static final String NAME = "Upsample";
         
         public enum Attribute implements OnnxAttribute {
-            mode(String.class, true, null),
+            mode(String.class, true, "nearest"),
             ;
             
                 final Class<?> t;
