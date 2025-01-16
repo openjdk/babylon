@@ -446,7 +446,7 @@ public abstract sealed class OnnxType implements TypeElement {
     public static final class Float16Type extends OnnxElementType {
         static final String NAME = "float16";
 
-        public Float16Type() {
+        Float16Type() {
         }
 
         @Override
@@ -459,7 +459,7 @@ public abstract sealed class OnnxType implements TypeElement {
         // float32
         static final String NAME = "float32";
 
-        public Float32Type() {
+        Float32Type() {
         }
 
         @Override
@@ -472,7 +472,7 @@ public abstract sealed class OnnxType implements TypeElement {
         // float64
         static final String NAME = "float64";
 
-        public Float64Type() {
+        Float64Type() {
         }
 
         @Override
@@ -484,7 +484,7 @@ public abstract sealed class OnnxType implements TypeElement {
     public static final class BFloat16Type extends OnnxElementType {
         static final String NAME = "bfloat16";
 
-        public BFloat16Type() {
+        BFloat16Type() {
         }
 
         @Override
@@ -496,7 +496,7 @@ public abstract sealed class OnnxType implements TypeElement {
     public static final class Float8e4m3fnType extends OnnxElementType {
         static final String NAME = "float8e4m3fn";
 
-        public Float8e4m3fnType() {
+        Float8e4m3fnType() {
         }
 
         @Override
@@ -508,7 +508,7 @@ public abstract sealed class OnnxType implements TypeElement {
     public static final class Float8e5m2Type extends OnnxElementType {
         static final String NAME = "float8e5m2";
 
-        public Float8e5m2Type() {
+        Float8e5m2Type() {
         }
 
         @Override
@@ -520,7 +520,7 @@ public abstract sealed class OnnxType implements TypeElement {
     public static final class Float8e4m3fnuzType extends OnnxElementType {
         static final String NAME = "float8e4m3fnuz";
 
-        public Float8e4m3fnuzType() {
+        Float8e4m3fnuzType() {
         }
 
         @Override
@@ -532,7 +532,7 @@ public abstract sealed class OnnxType implements TypeElement {
     public static final class Float8e5m2fnuzType extends OnnxElementType {
         static final String NAME = "float8e5m2fnuz";
 
-        public Float8e5m2fnuzType() {
+        Float8e5m2fnuzType() {
         }
 
         @Override
@@ -544,7 +544,7 @@ public abstract sealed class OnnxType implements TypeElement {
     public static final class Float4e2m1Type extends OnnxElementType {
         static final String NAME = "float4e2m1";
 
-        public Float4e2m1Type() {
+        Float4e2m1Type() {
         }
 
         @Override
@@ -556,7 +556,7 @@ public abstract sealed class OnnxType implements TypeElement {
     public static final class Int4Type extends OnnxElementType {
         static final String NAME = "int4";
 
-        public Int4Type() {
+        Int4Type() {
         }
 
         @Override
@@ -568,7 +568,7 @@ public abstract sealed class OnnxType implements TypeElement {
     public static final class Int8Type extends OnnxElementType {
         static final String NAME = "int8";
 
-        public Int8Type() {
+        Int8Type() {
         }
 
         @Override
@@ -580,7 +580,7 @@ public abstract sealed class OnnxType implements TypeElement {
     public static final class Int16Type extends OnnxElementType {
         static final String NAME = "int16";
 
-        public Int16Type() {
+        Int16Type() {
         }
 
         @Override
@@ -592,7 +592,7 @@ public abstract sealed class OnnxType implements TypeElement {
     public static final class Int32Type extends OnnxElementType {
         static final String NAME = "int32";
 
-        public Int32Type() {
+        Int32Type() {
         }
 
         @Override
@@ -604,7 +604,7 @@ public abstract sealed class OnnxType implements TypeElement {
     public static final class Int64Type extends OnnxElementType {
         static final String NAME = "int64";
 
-        public Int64Type() {
+        Int64Type() {
         }
 
         @Override
@@ -616,7 +616,7 @@ public abstract sealed class OnnxType implements TypeElement {
     public static final class UInt4Type extends OnnxElementType {
         static final String NAME = "uint4";
 
-        public UInt4Type() {
+        UInt4Type() {
         }
 
         @Override
@@ -628,7 +628,7 @@ public abstract sealed class OnnxType implements TypeElement {
     public static final class UInt8Type extends OnnxElementType {
         static final String NAME = "uint8";
 
-        public UInt8Type() {
+        UInt8Type() {
         }
 
         @Override
@@ -640,7 +640,7 @@ public abstract sealed class OnnxType implements TypeElement {
     public static final class UInt16Type extends OnnxElementType {
         static final String NAME = "uint16";
 
-        public UInt16Type() {
+        UInt16Type() {
         }
 
         @Override
@@ -652,7 +652,7 @@ public abstract sealed class OnnxType implements TypeElement {
     public static final class UInt32Type extends OnnxElementType {
         static final String NAME = "uint32";
 
-        public UInt32Type() {
+        UInt32Type() {
         }
 
         @Override
@@ -664,7 +664,7 @@ public abstract sealed class OnnxType implements TypeElement {
     public static final class UInt64Type extends OnnxElementType {
         static final String NAME = "uint64";
 
-        public UInt64Type() {
+        UInt64Type() {
         }
 
         @Override
@@ -676,7 +676,7 @@ public abstract sealed class OnnxType implements TypeElement {
     public static final class Complex64Type extends OnnxElementType {
         static final String NAME = "complex64";
 
-        public Complex64Type() {
+        Complex64Type() {
         }
 
         @Override
@@ -688,7 +688,7 @@ public abstract sealed class OnnxType implements TypeElement {
     public static final class Complex128Type extends OnnxElementType {
         static final String NAME = "complex128";
 
-        public Complex128Type() {
+        Complex128Type() {
         }
 
         @Override
@@ -700,7 +700,7 @@ public abstract sealed class OnnxType implements TypeElement {
     public static final class BoolType extends OnnxElementType {
         static final String NAME = "bool";
 
-        public BoolType() {
+        BoolType() {
         }
 
         @Override
@@ -712,7 +712,7 @@ public abstract sealed class OnnxType implements TypeElement {
     public static final class StringType extends OnnxElementType {
         static final String NAME = "string";
 
-        public StringType() {
+        StringType() {
         }
 
         @Override
@@ -721,6 +721,145 @@ public abstract sealed class OnnxType implements TypeElement {
         }
     }
 
+    public static final Int4Type INT4 = new Int4Type();
+    public static final Int8Type INT8 = new Int8Type();
+    public static final Int16Type INT16 = new Int16Type();
+    public static final Int32Type INT32 = new Int32Type();
+    public static final Int64Type INT64 = new Int64Type();
+
+    public static final UInt4Type UINT4 = new UInt4Type();
+    public static final UInt8Type UINT8 = new UInt8Type();
+    public static final UInt16Type UINT16 = new UInt16Type();
+    public static final UInt32Type UINT32 = new UInt32Type();
+    public static final UInt64Type UINT64 = new UInt64Type();
+
+    public static final Float16Type FLOAT16 = new Float16Type();
+    public static final Float32Type FLOAT32 = new Float32Type();
+    public static final Float64Type FLOAT64 = new Float64Type();
+
+    public static final BFloat16Type BFLOAT16 = new BFloat16Type();
+
+    public static final Float4e2m1Type FLOAT4E2M1 = new Float4e2m1Type();
+    public static final Float8e5m2Type FLOAT8E5M2 = new Float8e5m2Type();
+    public static final Float8e4m3fnType FLOAT8E4M3FN = new Float8e4m3fnType();
+    public static final Float8e4m3fnuzType FLOAT8E4M3FNUZ = new Float8e4m3fnuzType();
+    public static final Float8e5m2fnuzType FLOAT8E5M2FNUZ = new Float8e5m2fnuzType();
+
+    public static final Complex64Type COMPLEX64 = new Complex64Type();
+    public static final Complex128Type COMPLEX128 = new Complex128Type();
+
+    public static final StringType STRING = new StringType();
+    public static final BoolType BOOL = new BoolType();
+
+    public static final TensorType TENSOR_INT4 = new TensorType(INT4);
+    public static final TensorType TENSOR_INT8 = new TensorType(INT8);
+    public static final TensorType TENSOR_INT16 = new TensorType(INT16);
+    public static final TensorType TENSOR_INT32 = new TensorType(INT32);
+    public static final TensorType TENSOR_INT64 = new TensorType(INT64);
+
+    public static final TensorType TENSOR_UINT4 = new TensorType(UINT4);
+    public static final TensorType TENSOR_UINT8 = new TensorType(UINT8);
+    public static final TensorType TENSOR_UINT16 = new TensorType(UINT16);
+    public static final TensorType TENSOR_UINT32 = new TensorType(UINT32);
+    public static final TensorType TENSOR_UINT64 = new TensorType(UINT64);
+
+    public static final TensorType TENSOR_FLOAT16 = new TensorType(FLOAT16);
+    public static final TensorType TENSOR_FLOAT32 = new TensorType(FLOAT32);
+    public static final TensorType TENSOR_FLOAT64 = new TensorType(FLOAT64);
+
+    public static final TensorType TENSOR_BFLOAT16 = new TensorType(BFLOAT16);
+
+    public static final TensorType TENSOR_FLOAT4E2M1 = new TensorType(FLOAT4E2M1);
+    public static final TensorType TENSOR_FLOAT8E5M2 = new TensorType(FLOAT8E5M2);
+    public static final TensorType TENSOR_FLOAT8E4M3FN = new TensorType(FLOAT8E4M3FN);
+    public static final TensorType TENSOR_FLOAT8E4M3FNUZ = new TensorType(FLOAT8E4M3FNUZ);
+    public static final TensorType TENSOR_FLOAT8E5M2FNUZ = new TensorType(FLOAT8E5M2FNUZ);
+
+    public static final TensorType TENSOR_COMPLEX64 = new TensorType(COMPLEX64);
+    public static final TensorType TENSOR_COMPLEX128 = new TensorType(COMPLEX128);
+
+    public static final TensorType TENSOR_STRING = new TensorType(STRING);
+    public static final TensorType TENSOR_BOOL = new TensorType(BOOL);
+    
+    
+    public static Int4Type int4() { return INT4; }
+    public static Int8Type int8() { return INT8; }
+    public static Int16Type int16() { return INT16; }
+    public static Int32Type int32() { return INT32; }
+    public static Int64Type int64() { return INT64; }
+
+    public static Float16Type float16() { return FLOAT16; }
+    public static Float32Type float32() { return FLOAT32; }
+    public static Float64Type float64() { return FLOAT64; }
+
+    public static UInt4Type uint4() { return UINT4; }
+    public static UInt8Type uint8() { return UINT8; }
+    public static UInt16Type uint16() { return UINT16; }
+    public static UInt32Type uint32() { return UINT32; }
+    public static UInt64Type uint64() { return UINT64; }
+
+    public static Complex64Type complex64() { return COMPLEX64; }
+    public static Complex128Type complex128() { return COMPLEX128; }
+
+    public static BFloat16Type bfloat16() { return BFLOAT16; }
+
+    public static Float4e2m1Type float4e2m1() { return FLOAT4E2M1; }
+    public static Float8e5m2Type float8e5m2() { return FLOAT8E5M2; }
+    public static Float8e4m3fnType float8e4m3fn() { return FLOAT8E4M3FN; }
+    public static Float8e4m3fnuzType float8e4m3fnuz() { return FLOAT8E4M3FNUZ; }
+    public static Float8e5m2fnuzType float8e5m2fnuz() { return FLOAT8E5M2FNUZ; }
+
+    public static StringType string() { return STRING; }
+    public static BoolType bool() { return BOOL; }
+    
+    public static TensorType tensor(OnnxElementType e) {
+        TensorType tt = switch (e) {
+            case Int4Type t -> OnnxType.TENSOR_INT4;
+            case Int8Type t -> OnnxType.TENSOR_INT8;
+            case Int16Type t -> OnnxType.TENSOR_INT16;
+            case Int32Type t -> OnnxType.TENSOR_INT32;
+            case Int64Type t -> OnnxType.TENSOR_INT64;
+
+            case UInt4Type t -> OnnxType.TENSOR_INT4;
+            case UInt8Type t -> OnnxType.TENSOR_INT8;
+            case UInt16Type t -> OnnxType.TENSOR_INT16;
+            case UInt32Type t -> OnnxType.TENSOR_INT32;
+            case UInt64Type t -> OnnxType.TENSOR_INT64;
+
+            case Float16Type t -> OnnxType.TENSOR_FLOAT16;
+            case Float32Type t -> OnnxType.TENSOR_FLOAT32;
+            case Float64Type t -> OnnxType.TENSOR_FLOAT64;
+
+            case BFloat16Type t -> OnnxType.TENSOR_BFLOAT16;
+
+            case Float4e2m1Type t -> OnnxType.TENSOR_FLOAT4E2M1;
+            case Float8e5m2Type t -> OnnxType.TENSOR_FLOAT8E5M2;
+            case Float8e4m3fnType t -> OnnxType.TENSOR_FLOAT8E4M3FN;
+            case Float8e4m3fnuzType t -> OnnxType.TENSOR_FLOAT8E4M3FNUZ;
+            case Float8e5m2fnuzType float8e5m2fnuzType -> OnnxType.TENSOR_FLOAT8E5M2FNUZ;
+
+            case Complex64Type t -> OnnxType.TENSOR_COMPLEX64;
+            case Complex128Type t -> OnnxType.TENSOR_COMPLEX128;
+
+            case StringType t -> OnnxType.TENSOR_STRING;
+            case BoolType t -> OnnxType.TENSOR_BOOL;
+        };
+
+        assert tt.eType.equals(e);
+        return tt;
+    }
+
+    public static OptionalType optional(OnnxType e) {
+        return new OptionalType(e);
+    }
+
+    public static SequenceType seq(OnnxType e) {
+        return new SequenceType(e);
+    }
+
+    public static MapType map(OnnxType k, OnnxType v) {
+        return new MapType(k, v);
+    }
 
     @Override
     public String toString() {

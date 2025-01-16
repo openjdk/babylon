@@ -36,12 +36,12 @@ public class CNNTest {
 
     @CodeReflection
     public Tensor<Float> cnn(Tensor<Float> inputImage) {
-        Tensor<Long> shape = Constant(new int[]{-1, IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS});
+        var shape = Constant(new int[]{-1, IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS});
         var inputReshaped = Reshape(inputImage, shape, empty());
 
         // Scaling the features
-        Tensor<Float> centeringFactor = Constant(PIXEL_DEPTH / 2.0f);
-        Tensor<Float> scalingFactor = Constant((float) PIXEL_DEPTH);
+        var centeringFactor = Constant(PIXEL_DEPTH / 2.0f);
+        var scalingFactor = Constant((float) PIXEL_DEPTH);
         var scaledInput = Div(Sub(inputReshaped, centeringFactor), scalingFactor);
 
         // First conv layer
@@ -65,7 +65,7 @@ public class CNNTest {
                 empty(), empty(), of(new int[]{1, 2, 2, 1}), new int[]{1, 2, 2, 1});
 
         // Flatten inputs
-        Tensor<Long> flatShape = Constant(new int[]{0, 3136});
+        var flatShape = Constant(new int[]{0, 3136});
         var flatten = Reshape(pool2.getFirst(), flatShape, empty());
 
         // Fully connected layer

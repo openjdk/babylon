@@ -43,7 +43,6 @@ public class OpGen {
         w.write("""
                 import jdk.incubator.code.*;
                 import jdk.incubator.code.op.OpFactory;
-                import oracle.code.onnx.Tensor;
                 
                 import java.util.*;
                 """);
@@ -195,7 +194,9 @@ public class OpGen {
 
             w.write("new OnnxType.TypeVariable(");
             w.write("\"" + tcp.type_param_str() + "\", ");
-            w.write("List.of(/* @@@ " + types + " */)");
+            w.write("List.of(");
+            genTypes(w, types);
+            w.write(")");
             w.write(")");
 
             w.write("),\n");
@@ -224,6 +225,34 @@ public class OpGen {
         return typeConstraints;
     }
 
+    private void genTypes(IndentWriter w, List<TypeElement.ExternalizedTypeElement> types) throws IOException {
+        boolean first = true;
+        for (TypeElement.ExternalizedTypeElement type : types) {
+            if (!first) {
+                w.write(", ");
+            }
+
+            genType(w, type);
+
+            first = false;
+        }
+    }
+
+    private void genType(IndentWriter w, TypeElement.ExternalizedTypeElement type) throws IOException {
+        w.write("OnnxType." + replaceTypeIdentifier(type.identifier()));
+        w.write("(");
+        genTypes(w, type.arguments());
+        w.write(")");
+    }
+
+    private String replaceTypeIdentifier(String i) {
+        return switch (i) {
+            case "float" -> "float32";
+            case "double" -> "float64";
+            default -> i;
+        };
+    }
+
     private void genInputParameterEnum(IndentWriter w, OpSchema s,
                                        Map<String, List<TypeElement.ExternalizedTypeElement>> typeConstraints) throws IOException {
         if (s.inputs().isEmpty()) {
@@ -242,7 +271,7 @@ public class OpGen {
                 w.write("TypeConstraint." + input.type_str() + ".typeVariable()");
             } else {
                 TypeElement.ExternalizedTypeElement type = parseTypeString(input.type_str());
-                w.write("null /* @@@ " + type + " */");
+                genType(w, type);
             }
             w.write(", ");
             w.write("Quantifier.");
@@ -306,7 +335,7 @@ public class OpGen {
                 w.write("TypeConstraint." + output.type_str() + ".typeVariable()");
             } else {
                 TypeElement.ExternalizedTypeElement type = parseTypeString(output.type_str());
-                w.write("null /* @@@ " + type + " */");
+                genType(w, type);
             }
             w.write(", ");
             w.write("Quantifier.");
@@ -520,7 +549,8 @@ public class OpGen {
 
             w.write(p.name() + "()");
 
-            first = false;;
+            first = false;
+            ;
         }
         w.write(")");
         w.write(");\n");
