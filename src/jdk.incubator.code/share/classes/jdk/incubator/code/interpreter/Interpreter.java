@@ -497,14 +497,14 @@ public final class Interpreter {
                             @Override
                             public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
                                 if (Objects.equals(method.getName(), "quoted") && method.getParameterCount() == 0) {
-                                    return quoted();
+                                    return __internal_quoted();
                                 } else {
                                     // Delegate to FI instance
                                     return method.invoke(fiInstance, args);
                                 }
                             }
 
-                            public Quoted quoted() {
+                            public Quoted __internal_quoted() {
                                 return quoted;
                             }
                         });

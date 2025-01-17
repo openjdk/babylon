@@ -88,7 +88,7 @@ import sun.invoke.util.Wrapper;
 
     private static final boolean disableEagerInitialization;
 
-    private static final String NAME_METHOD_QUOTED = "quoted";
+    private static final String NAME_METHOD_QUOTED = "__internal_quoted";
     private static final String quotedInstanceFieldName = "quoted";
 
     static {

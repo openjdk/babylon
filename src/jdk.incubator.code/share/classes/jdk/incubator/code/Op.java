@@ -488,7 +488,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
 
         Method method;
         try {
-            method = oq.getClass().getMethod("quoted");
+            method = oq.getClass().getMethod("__internal_quoted");
         } catch (NoSuchMethodException e) {
             throw new RuntimeException(e);
         }
