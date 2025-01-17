@@ -131,7 +131,7 @@ public class TestQuoted {
         }
 
         static void isMethodRef(Quotable q) {
-            Quoted quoted = q.quoted();
+            Quoted quoted = Op.ofQuotable(q).orElseThrow();;
             CoreOp.LambdaOp op = (CoreOp.LambdaOp) quoted.op();
             System.out.println(isMethodRef(op));
         }

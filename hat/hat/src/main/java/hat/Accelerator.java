@@ -147,7 +147,7 @@ public class Accelerator implements BufferAllocator {
      */
 
     public void compute(QuotableComputeContextConsumer quotableComputeContextConsumer) {
-        Quoted quoted = quotableComputeContextConsumer.quoted();
+        Quoted quoted = CoreOp.ofQuotable(quotableComputeContextConsumer).orElseThrow();
         LambdaOpWrapper lambda = OpWrapper.wrap((CoreOp.LambdaOp) quoted.op());
         Method method = lambda.getQuotableTargetMethod(this.lookup);
 

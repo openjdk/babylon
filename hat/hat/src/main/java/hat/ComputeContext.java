@@ -140,7 +140,7 @@ public class ComputeContext implements BufferAllocator {
      */
 
     public void dispatchKernel(int range, QuotableKernelContextConsumer quotableKernelContextConsumer) {
-        Quoted quoted = quotableKernelContextConsumer.quoted();
+        Quoted quoted = Op.ofQuotable(quotableKernelContextConsumer).orElseThrow();
         LambdaOpWrapper lambdaOpWrapper = OpWrapper.wrap((CoreOp.LambdaOp) quoted.op());
         MethodRef methodRef = lambdaOpWrapper.getQuotableTargetMethodRef();
         KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
