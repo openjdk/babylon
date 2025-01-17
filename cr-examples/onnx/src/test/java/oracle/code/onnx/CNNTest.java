@@ -53,7 +53,7 @@ public class CNNTest {
                 empty(), empty(), of(new int[]{1, 2, 2, 1}), new int[]{1, 2, 2, 1});
 
         // Second conv layer
-        var conv2 = Conv(pool1.getFirst(), conv2Weights, of(conv2Biases), empty(),
+        var conv2 = Conv(pool1.Y(), conv2Weights, of(conv2Biases), empty(),
                 empty(), of("SAME_UPPER"), of(new int[]{1, 1, 1, 1}),
                 empty(), empty());
         var relu2 = Relu(conv2);
@@ -64,7 +64,7 @@ public class CNNTest {
 
         // Flatten inputs
         var flatShape = Constant(new int[]{0, 3136});
-        var flatten = Reshape(pool2.getFirst(), flatShape, empty());
+        var flatten = Reshape(pool2.Y(), flatShape, empty());
 
         // Fully connected layer
         var fc1 = Gemm(flatten, fc1Weights, of(fc1Biases), of(1f), of(1), of(1f), empty());

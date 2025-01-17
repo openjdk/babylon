@@ -7,10 +7,10 @@ import oracle.code.onnx.Tensor;
 import java.io.*;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.util.Comparator.comparing;
-import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.toCollection;
+import static java.util.stream.Collectors.*;
 
 public class OperatorGen {
 
@@ -45,6 +45,7 @@ public class OperatorGen {
                 
                 import java.util.Optional;
                 import java.util.List;
+                import java.util.Map;
                 """);
         w.write("\n");
 
@@ -79,6 +80,45 @@ public class OperatorGen {
     }
 
     private void genMethod(IndentWriter w, OpSchema s) throws IOException {
+        Map<String, TypeElement.ExternalizedTypeElement> javaTypeConstraints = javaTypes(typeConstraintMap(s));
+        boolean twoOrMoreResults = s.max_output() > 1 && s.outputs().size() > 1;
+        if (twoOrMoreResults) {
+            System.out.println(s.name());
+
+            w.write("public record " + s.name() + "Result");
+            if (!s.type_constraints().isEmpty()) {
+                boolean first = true;
+                w.write("<");
+                for (OpSchema.TypeConstraintParam typeConstraint : s.type_constraints()) {
+                    if (!first) {
+                        w.write(", ");
+                    }
+                    w.write(typeConstraint.type_param_str());
+                    first = false;
+                }
+                w.write(">");
+            }
+
+            w.write("(");
+            boolean first = true;
+            for (OpSchema.FormalParameter outParam : s.outputs()) {
+                if (!first) {
+                    w.write(", ");
+                }
+
+                TypeElement.ExternalizedTypeElement outputType = javaTypeConstraints
+                        .computeIfAbsent(outParam.type_str(),
+                                ts -> javaType("?", parseTypeString(ts)));
+
+                w.write(outputType.toString());
+                w.write(" " + outParam.name());
+
+                first = false;
+            }
+
+            w.write(") { }\n");
+        }
+
         w.write("public static ");
 
         if (!s.type_constraints().isEmpty()) {
@@ -96,17 +136,42 @@ public class OperatorGen {
         }
 
         // @@@ Multiple output parameters - need to return tuple/record
-        OpSchema.FormalParameter outParam = s.outputs().getFirst();
-        String outputTypeString;
+        final TypeElement.ExternalizedTypeElement outputType;
         if (s.min_output() == 1 && s.max_output() == 1) {
-            outputTypeString = "Tensor<" + toJavaIdentifier(outParam.type_str()) + ">";
+            OpSchema.FormalParameter outParam = s.outputs().getFirst();
+
+            outputType = javaTypeConstraints.computeIfAbsent(outParam.type_str(),
+                    ts -> javaType("?", parseTypeString(ts)));
+            w.write(outputType.toString());
         } else if (s.min_output() == 0 && s.max_output() == 1) {
-            // @@@ This does not occur
-            outputTypeString = "Optional<Tensor<" + toJavaIdentifier(outParam.type_str()) + ">>";
+            // This does not occur
+            throw new UnsupportedOperationException();
+        } else if (s.outputs().size() == 1) {
+            OpSchema.FormalParameter outParam = s.outputs().getFirst();
+            assert outParam.option() == OpSchema.FormalParameterOption.Variadic;
+
+            outputType = new TypeElement.ExternalizedTypeElement("List",
+                    List.of(javaTypeConstraints.computeIfAbsent(outParam.type_str(),
+                            ts -> javaType("?", parseTypeString(ts)))));
+            w.write(outputType.toString());
         } else {
-            outputTypeString = "List<Tensor<" + toJavaIdentifier(outParam.type_str()) + ">>";
+            assert twoOrMoreResults;
+
+            outputType = new TypeElement.ExternalizedTypeElement(s.name() + "Result", List.of());
+            w.write(outputType.toString());
+            if (!s.type_constraints().isEmpty()) {
+                boolean first = true;
+                w.write("<");
+                for (OpSchema.TypeConstraintParam typeConstraint : s.type_constraints()) {
+                    if (!first) {
+                        w.write(", ");
+                    }
+                    w.write(typeConstraint.type_param_str());
+                    first = false;
+                }
+                w.write(">");
+            }
         }
-        w.write(outputTypeString);
         w.write(" ");
         w.write(s.name() + "(");
 
@@ -116,18 +181,21 @@ public class OperatorGen {
                 w.write(", ");
             }
 
+            final TypeElement.ExternalizedTypeElement inputType = javaTypeConstraints
+                    .computeIfAbsent(inParam.type_str(),
+                            ts -> javaType("?", parseTypeString(ts)));
             switch (inParam.option()) {
                 case Single -> {
-                    w.write("Tensor<" + toJavaIdentifier(inParam.type_str()) + ">");
+                    w.write(inputType.toString());
                 }
                 case Optional -> {
                     w.write("Optional<");
-                    w.write("Tensor<" + toJavaIdentifier(inParam.type_str()) + ">");
+                    w.write(inputType.toString());
                     w.write(">");
                 }
                 case Variadic -> {
                     w.write("List<");
-                    w.write("Tensor<" + toJavaIdentifier(inParam.type_str()) + ">");
+                    w.write(inputType.toString());
                     w.write(">");
                 }
             }
@@ -198,31 +266,98 @@ public class OperatorGen {
         w.write(")");
         w.write(");\n");
 
-        w.write("return (" + outputTypeString + ") result;\n");
+        if (twoOrMoreResults) {
+            w.write("Object[] resultArray = (Object[]) result;\n");
+            w.write("return new " + s.name() + "Result");
+            if (!s.type_constraints().isEmpty()) {
+                w.write("<>");
+            }
+            w.write("(");
+            first = true;
+            for (int i = 0; i < s.outputs().size(); i++) {
+                if (!first) {
+                    w.write(", ");
+                }
+
+                w.write("(");
+                //
+                final TypeElement.ExternalizedTypeElement t = javaTypeConstraints
+                        .computeIfAbsent(s.outputs().get(i).type_str(),
+                                ts -> javaType("?", parseTypeString(ts)));
+                w.write(t.toString());
+                w.write(")");
+                w.write("resultArray[" + i + "]");
+                first = false;
+            }
+            w.write(");\n");
+        } else {
+            w.write("return (" + outputType + ") result;\n");
+        }
         w.out();
         w.write("}\n");
     }
 
-    static String toJavaIdentifier(String type_str) {
-        TypeElement.ExternalizedTypeElement ete = TypeElement.ExternalizedTypeElement.ofString(
-                type_str.replace('(', '<').replace(')', '>'));
-        if (ete.arguments().isEmpty()) {
-            // Type variable
-            return ete.identifier();
-        } else if (ete.arguments().size() == 1 && ete.identifier().equals("tensor")) {
-            // Concrete tensor
-            TypeElement.ExternalizedTypeElement typeArg = ete.arguments().getFirst();
-            if (typeArg.arguments().isEmpty()) {
-                Tensor.ElementType elementType = Tensor.ElementType.fromOnnxName(typeArg.identifier());
+    static Map<String, TypeElement.ExternalizedTypeElement> javaTypes(Map<String, TypeElement.ExternalizedTypeElement> tcm) {
+        return tcm.entrySet().stream().collect(Collectors.toMap(
+                e -> e.getKey(),
+                e -> javaType(e.getKey(), e.getValue())));
+    }
+
+    static TypeElement.ExternalizedTypeElement javaType(String typeVariable, TypeElement.ExternalizedTypeElement ete) {
+        String javaIdentifier = switch (ete.identifier()) {
+            case "seq" -> "List";
+            case "sequence" -> "List";
+            case "map" -> "Map";
+            case "optional" -> "Optional";
+            case "tensor" -> "Tensor";
+            case "?" -> typeVariable;
+
+            default -> {
+                Tensor.ElementType elementType = Tensor.ElementType.fromOnnxName(ete.identifier());
                 Class<?> type = elementType.type();
                 if (type.isPrimitive()) {
-                    return toBoxType(type).getSimpleName();
+                    yield toBoxType(type).getSimpleName();
                 } else {
-                    return type.getSimpleName();
+                    yield type.getSimpleName();
                 }
             }
+        };
+
+        if (ete.identifier().equals("map") &&
+                ete.arguments().stream().allMatch(t -> t.identifier().equals("?"))) {
+            return new TypeElement.ExternalizedTypeElement(javaIdentifier,
+                    ete.arguments().stream().map(c -> javaType("?", c)).toList());
         }
-        throw new UnsupportedOperationException(type_str);
+
+        return new TypeElement.ExternalizedTypeElement(javaIdentifier,
+                ete.arguments().stream().map(c -> javaType(typeVariable, c)).toList());
+    }
+
+    static Map<String, TypeElement.ExternalizedTypeElement> typeConstraintMap(OpSchema s) {
+        return s.type_constraints().stream().collect(toMap(
+                tc -> tc.type_param_str(),
+                tc -> tc.allowed_type_strs().stream().map(OperatorGen::parseTypeString).reduce(OperatorGen::lub).orElseThrow()));
+    }
+
+    static TypeElement.ExternalizedTypeElement lub(TypeElement.ExternalizedTypeElement a,
+                                                   TypeElement.ExternalizedTypeElement b) {
+        if (!a.identifier().equals(b.identifier())) {
+            return new TypeElement.ExternalizedTypeElement("?", List.of());
+        }
+
+        assert a.arguments().size() == b.arguments().size();
+
+        List<TypeElement.ExternalizedTypeElement> children = new ArrayList<>();
+        for (int i = 0; i < a.arguments().size(); i++) {
+            children.add(lub(a.arguments().get(i), b.arguments().get(i)));
+        }
+
+        return new TypeElement.ExternalizedTypeElement(a.identifier(), children);
+    }
+
+    static TypeElement.ExternalizedTypeElement parseTypeString(String type_str) {
+        return TypeElement.ExternalizedTypeElement.ofString(
+                type_str.replace('(', '<').replace(')', '>'));
     }
 
     static Class<?> toBoxType(Class<?> pc) {
