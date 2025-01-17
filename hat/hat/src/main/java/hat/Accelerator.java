@@ -35,6 +35,8 @@ import hat.optools.OpWrapper;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
+
+import jdk.incubator.code.Op;
 import jdk.incubator.code.Quotable;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.op.CoreOp;
@@ -147,7 +149,7 @@ public class Accelerator implements BufferAllocator {
      */
 
     public void compute(QuotableComputeContextConsumer quotableComputeContextConsumer) {
-        Quoted quoted = CoreOp.ofQuotable(quotableComputeContextConsumer).orElseThrow();
+        Quoted quoted = Op.ofQuotable(quotableComputeContextConsumer).orElseThrow();
         LambdaOpWrapper lambda = OpWrapper.wrap((CoreOp.LambdaOp) quoted.op());
         Method method = lambda.getQuotableTargetMethod(this.lookup);
 
