@@ -27,6 +27,8 @@ package jdk.incubator.code.interpreter;
 
 import java.lang.invoke.*;
 import java.lang.reflect.Array;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import jdk.incubator.code.*;
 import jdk.incubator.code.op.CoreOp;
@@ -487,16 +489,23 @@ public final class Interpreter {
                     .asCollector(Object[].class, lo.parameters().size());
             Object fiInstance = MethodHandleProxies.asInterfaceInstance(fi, fProxy);
 
-            // If a quotable lambda proxy again to implement Quotable
+            // If a quotable lambda proxy again to add method Quoted quoted()
             if (Quotable.class.isAssignableFrom(fi)) {
                 return Proxy.newProxyInstance(l.lookupClass().getClassLoader(), new Class<?>[]{fi},
-                        (_, method, args) -> {
-                            if (method.getDeclaringClass() == Quotable.class) {
-                                // Implement Quotable::quoted
-                                return new Quoted(lo, capturedValuesAndArguments);
-                            } else {
-                                // Delegate to FI instance
-                                return method.invoke(fiInstance, args);
+                        new InvocationHandler() {
+                            private final Quoted quoted = new Quoted(lo, capturedValuesAndArguments);
+                            @Override
+                            public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+                                if (Objects.equals(method.getName(), "quoted") && method.getParameterCount() == 0) {
+                                    return __internal_quoted();
+                                } else {
+                                    // Delegate to FI instance
+                                    return method.invoke(fiInstance, args);
+                                }
+                            }
+
+                            public Quoted __internal_quoted() {
+                                return quoted;
                             }
                         });
             } else {

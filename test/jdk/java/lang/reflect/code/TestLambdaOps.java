@@ -153,7 +153,7 @@ public class TestLambdaOps {
     @Test
     public void testQuotableModel() {
         Quotable quotable = (Runnable & Quotable) () -> {};
-        Op qop = quotable.quoted().op();
+        Op qop = Op.ofQuotable(quotable).get().op();
         Op top = qop.ancestorBody().parentOp().ancestorBody().parentOp();
         Assert.assertTrue(top instanceof CoreOp.FuncOp);
 
@@ -180,7 +180,7 @@ public class TestLambdaOps {
             QuotableIntSupplier op = (QuotableIntSupplier) Interpreter.invoke(MethodHandles.lookup(), g, 42);
             Assert.assertEquals(op.getAsInt(), 42);
 
-            Quoted q = op.quoted();
+            Quoted q = Op.ofQuotable(op).get();
             q.op().writeTo(System.out);
             Assert.assertEquals(q.capturedValues().size(), 1);
             Assert.assertEquals(((Var<?>)q.capturedValues().values().iterator().next()).value(), 42);
@@ -198,7 +198,7 @@ public class TestLambdaOps {
             QuotableIntSupplier op = quote(42);
             Assert.assertEquals(op.getAsInt(), 42);
 
-            Quoted q = op.quoted();
+            Quoted q = Op.ofQuotable(op).get();
             q.op().writeTo(System.out);
             System.out.print(q.capturedValues().values());
             Assert.assertEquals(q.capturedValues().size(), 1);
@@ -235,7 +235,7 @@ public class TestLambdaOps {
 
     @Test(dataProvider = "methodRefLambdas")
     public void testIsMethodReference(Quotable q) {
-        Quoted quoted = q.quoted();
+        Quoted quoted = Op.ofQuotable(q).get();
         CoreOp.LambdaOp lop = (CoreOp.LambdaOp) quoted.op();
         Assert.assertTrue(lop.methodReference().isPresent());
     }

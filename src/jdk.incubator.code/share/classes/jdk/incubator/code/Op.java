@@ -48,7 +48,9 @@ import jdk.internal.access.SharedSecrets;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.BiFunction;
@@ -472,6 +474,36 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
 
+    /**
+     * Returns the code model of the Quotable passed in.
+     * @param q the Quotable we want to get its code model.
+     * @return the code model of the Quotable passed in.
+     * @apiNote If the Quotable instance is a proxy instance, then the quoted code model is inaccessible and this method
+     * returns an empty optional.
+     * @since 99
+     */
+    public static Optional<Quoted> ofQuotable(Quotable q) {
+        Object oq = q;
+        if (Proxy.isProxyClass(oq.getClass())) {
+            oq = Proxy.getInvocationHandler(oq);
+        }
+
+        Method method;
+        try {
+            method = oq.getClass().getMethod("__internal_quoted");
+        } catch (NoSuchMethodException e) {
+            return Optional.empty();
+        }
+        method.setAccessible(true);
+
+        Quoted quoted;
+        try {
+            quoted = (Quoted) method.invoke(oq);
+        } catch (InvocationTargetException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+        return Optional.of(quoted);
+    }
 
     /**
      * Returns the code model of the method body, if present.

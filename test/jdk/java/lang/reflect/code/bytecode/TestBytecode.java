@@ -386,9 +386,9 @@ public class TestBytecode {
     }
 
     static int consumeQuotable(int i, QuotableFunc f) {
-        Assert.assertNotNull(f.quoted());
-        Assert.assertNotNull(f.quoted().op());
-        Assert.assertTrue(f.quoted().op() instanceof CoreOp.LambdaOp);
+        Assert.assertNotNull(Op.ofQuotable(f).get());
+        Assert.assertNotNull(Op.ofQuotable(f).get().op());
+        Assert.assertTrue(Op.ofQuotable(f).get().op() instanceof CoreOp.LambdaOp);
         return f.apply(i + 1);
     }
 
