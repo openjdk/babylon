@@ -62,7 +62,7 @@ public class TestNestedCapturingLambda {
 
     static void test(QIntSupplier s, int a) {
         @SuppressWarnings("unchecked")
-        CoreOp.Var<Integer> capture = (CoreOp.Var<Integer>) s.quoted().capturedValues().values().iterator().next();
+        CoreOp.Var<Integer> capture = (CoreOp.Var<Integer>) Op.ofQuotable(s).get().capturedValues().values().iterator().next();
         Assert.assertEquals(capture.value().intValue(), a);
     }
 

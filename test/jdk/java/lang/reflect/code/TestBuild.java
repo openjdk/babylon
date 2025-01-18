@@ -46,7 +46,7 @@ public class TestBuild {
     public LambdaOp f() {
         IntBinaryOperator ibo = (IntBinaryOperator & Quotable) (a, b) -> a + b;
         Quotable iboq = (Quotable) ibo;
-        return SSA.transform((LambdaOp) iboq.quoted().op());
+        return SSA.transform((LambdaOp) Op.ofQuotable(iboq).get().op());
     }
 
     @Test

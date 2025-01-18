@@ -71,10 +71,10 @@ public final class StreamFuserUsingQuotable {
             final LambdaOp lambdaOp;
 
             StreamOp(Quotable quotedLambda) {
-                if (!(quotedLambda.quoted().op() instanceof LambdaOp lambdaOp)) {
+                if (!(Op.ofQuotable(quotedLambda).get().op() instanceof LambdaOp lambdaOp)) {
                     throw new IllegalArgumentException("Quotable operation is not lambda operation");
                 }
-                if (!(quotedLambda.quoted().capturedValues().isEmpty())) {
+                if (!(Op.ofQuotable(quotedLambda).get().capturedValues().isEmpty())) {
                     throw new IllegalArgumentException("Quotable operation captures values");
                 }
                 this.lambdaOp = lambdaOp;
@@ -197,10 +197,10 @@ public final class StreamFuserUsingQuotable {
         }
 
         public FuncOp forEach(QuotableConsumer<T> quotableConsumer) {
-            if (!(quotableConsumer.quoted().op() instanceof LambdaOp consumer)) {
+            if (!(Op.ofQuotable(quotableConsumer).get().op() instanceof LambdaOp consumer)) {
                 throw new IllegalArgumentException("Quotable consumer is not lambda operation");
             }
-            if (!(quotableConsumer.quoted().capturedValues().isEmpty())) {
+            if (!(Op.ofQuotable(quotableConsumer).get().capturedValues().isEmpty())) {
                 throw new IllegalArgumentException("Quotable consumer captures values");
             }
 
@@ -224,16 +224,16 @@ public final class StreamFuserUsingQuotable {
         }
 
         public <C> FuncOp collect(QuotableSupplier<C> quotableSupplier, QuotableBiConsumer<C, T> quotableAccumulator) {
-            if (!(quotableSupplier.quoted().op() instanceof LambdaOp supplier)) {
+            if (!(Op.ofQuotable(quotableSupplier).get().op() instanceof LambdaOp supplier)) {
                 throw new IllegalArgumentException("Quotable supplier is not lambda operation");
             }
-            if (!(quotableSupplier.quoted().capturedValues().isEmpty())) {
+            if (!(Op.ofQuotable(quotableSupplier).get().capturedValues().isEmpty())) {
                 throw new IllegalArgumentException("Quotable supplier captures values");
             }
-            if (!(quotableAccumulator.quoted().op() instanceof LambdaOp accumulator)) {
+            if (!(Op.ofQuotable(quotableAccumulator).get().op() instanceof LambdaOp accumulator)) {
                 throw new IllegalArgumentException("Quotable accumulator is not lambda operation");
             }
-            if (!(quotableAccumulator.quoted().capturedValues().isEmpty())) {
+            if (!(Op.ofQuotable(quotableAccumulator).get().capturedValues().isEmpty())) {
                 throw new IllegalArgumentException("Quotable accumulator captures values");
             }
 

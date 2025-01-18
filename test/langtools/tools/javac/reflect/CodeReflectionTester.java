@@ -90,7 +90,7 @@ public class CodeReflectionTester {
             }
         } else if (Quotable.class.isAssignableFrom(field.getType())) {
             Quotable quotable = (Quotable) field.get(null);
-            String found = canonicalizeModel(field, getModelOfQuotedOp(quotable.quoted()));
+            String found = canonicalizeModel(field, getModelOfQuotedOp(Op.ofQuotable(quotable).get()));
             String expected = canonicalizeModel(field, ir.value());
             if (!found.equals(expected)) {
                 error("Bad IR\nFound:\n%s\n\nExpected:\n%s", found, expected);

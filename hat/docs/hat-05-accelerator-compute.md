@@ -207,7 +207,7 @@ Here is how we extract the 'target' from such a lambda
 
 ```java
  public void  compute(QuotableComputeContextConsumer qccc) {
-   Quoted quoted = qccc.quoted();
+   Quoted quoted = Op.ofQuotable(qccc).orElseThrow();
    LambdaOpWrapper lambda = OpTools.wrap((CoreOps.LambdaOp)quoted.op());
 
    Method method = lambda.getQuotableComputeContextTargetMethod();
