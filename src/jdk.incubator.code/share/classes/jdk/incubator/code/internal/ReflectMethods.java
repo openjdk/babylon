@@ -138,6 +138,7 @@ public class ReflectMethods extends TreeTranslator {
     private final CodeReflectionSymbols crSyms;
     private final boolean dumpIR;
     private final boolean lineDebugInfo;
+    private final CodeModelStorageOption codeModelStorageOption;
 
     // @@@ Separate out mutable state
     private TreeMaker make;
@@ -154,6 +155,7 @@ public class ReflectMethods extends TreeTranslator {
         lineDebugInfo =
                 options.isUnset(G_CUSTOM) ||
                         options.isSet(G_CUSTOM, "lines");
+        codeModelStorageOption = CodeModelStorageOption.valueOf(options.get("codeModelStorageOption"));
         names = Names.instance(context);
         syms = Symtab.instance(context);
         types = Types.instance(context);
@@ -206,7 +208,7 @@ public class ReflectMethods extends TreeTranslator {
                     log.note(MethodIrDump(tree.sym.enclClass(), tree.sym, funcOp.toText()));
                 }
                 // create a static method that returns the op
-                classOps.add(opMethodDecl(methodName(bodyScanner.symbolToErasedMethodRef(tree.sym)), funcOp));
+                classOps.add(opMethodDecl(methodName(bodyScanner.symbolToErasedMethodRef(tree.sym)), funcOp, codeModelStorageOption));
             } catch (UnsupportedASTException ex) {
                 // whoops, some AST node inside the method body were not supported. Log it and move on.
                 log.note(ex.tree, MethodIrSkip(tree.sym.enclClass(), tree.sym, ex.tree.getTag().toString()));
@@ -254,7 +256,7 @@ public class ReflectMethods extends TreeTranslator {
                     log.note(QuotedIrDump(funcOp.toText()));
                 }
                 // create a static method that returns the FuncOp representing the lambda
-                JCMethodDecl opMethod = opMethodDecl(lambdaName(), funcOp);
+                JCMethodDecl opMethod = opMethodDecl(lambdaName(), funcOp, codeModelStorageOption);
                 classOps.add(opMethod);
 
                 switch (kind) {
@@ -315,7 +317,7 @@ public class ReflectMethods extends TreeTranslator {
                     log.note(QuotedIrDump(funcOp.toText()));
                 }
                 // create a method that returns the FuncOp representing the lambda
-                JCMethodDecl opMethod = opMethodDecl(lambdaName(), funcOp);
+                JCMethodDecl opMethod = opMethodDecl(lambdaName(), funcOp, codeModelStorageOption);
                 classOps.add(opMethod);
                 tree.codeModel = opMethod.sym;
                 super.visitReference(tree);
@@ -388,19 +390,30 @@ public class ReflectMethods extends TreeTranslator {
         return names.fromChars(sigCh, 0, sigCh.length);
     }
 
-    private JCMethodDecl opMethodDecl(Name methodName, CoreOp.FuncOp op) {
-        var mt = new MethodType(com.sun.tools.javac.util.List.nil(), crSyms.funcOpType,
-                com.sun.tools.javac.util.List.nil(), syms.methodClass);
-        var mn = names.fromString("op$").append(methodName);
-        var ms = new MethodSymbol(PUBLIC | STATIC | SYNTHETIC, mn, mt, currentClassSym);
-        currentClassSym.members().enter(ms);
+    private enum CodeModelStorageOption {
+        TEXT,
+        CODE_BUILDER
+    }
 
-        var opFromStr = make.App(make.Ident(crSyms.opParserFromString),
-                com.sun.tools.javac.util.List.of(make.Literal(op.toText())));
-        var ret = make.Return(make.TypeCast(crSyms.funcOpType, opFromStr));
+    private JCMethodDecl opMethodDecl(Name methodName, CoreOp.FuncOp op, CodeModelStorageOption codeModelStorageOption) {
+        if (CodeModelStorageOption.TEXT.equals(codeModelStorageOption)) {
+            var mt = new MethodType(com.sun.tools.javac.util.List.nil(), crSyms.funcOpType,
+                    com.sun.tools.javac.util.List.nil(), syms.methodClass);
+            var mn = names.fromString("op$").append(methodName);
+            var ms = new MethodSymbol(PUBLIC | STATIC | SYNTHETIC, mn, mt, currentClassSym);
+            currentClassSym.members().enter(ms);
 
-        var md = make.MethodDef(ms, make.Block(0, com.sun.tools.javac.util.List.of(ret)));
-        return md;
+            var opFromStr = make.App(make.Ident(crSyms.opParserFromString),
+                    com.sun.tools.javac.util.List.of(make.Literal(op.toText())));
+            var ret = make.Return(make.TypeCast(crSyms.funcOpType, opFromStr));
+
+            var md = make.MethodDef(ms, make.Block(0, com.sun.tools.javac.util.List.of(ret)));
+            return md;
+        } else if (CodeModelStorageOption.CODE_BUILDER.equals(codeModelStorageOption)) {
+            throw new IllegalStateException("code model storage option %s not supported for the moment".formatted(codeModelStorageOption));
+        } else {
+            throw new IllegalStateException("unknown code model storage option: " + codeModelStorageOption);
+        }
     }
 
     public JCTree translateTopLevelClass(JCTree cdef, TreeMaker make) {
