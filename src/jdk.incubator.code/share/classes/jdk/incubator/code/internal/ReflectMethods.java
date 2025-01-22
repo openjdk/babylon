@@ -155,7 +155,8 @@ public class ReflectMethods extends TreeTranslator {
         lineDebugInfo =
                 options.isUnset(G_CUSTOM) ||
                         options.isSet(G_CUSTOM, "lines");
-        codeModelStorageOption = CodeModelStorageOption.valueOf(options.get("codeModelStorageOption"));
+        String cmso = options.get("codeModelStorageOption");
+        codeModelStorageOption = CodeModelStorageOption.valueOf(cmso != null ? cmso : CodeModelStorageOption.TEXT.name());
         names = Names.instance(context);
         syms = Symtab.instance(context);
         types = Types.instance(context);
