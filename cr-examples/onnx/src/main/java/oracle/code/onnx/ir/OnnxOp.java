@@ -23,8 +23,11 @@ public abstract class OnnxOp extends ExternalizableOp {
                 value = o.orElse(null);
             }
             // @@@ Parse attribute from string value
+            // @@@ Arrays don't serialize
             if (type().isInstance(value)) {
                 attrs.put(name(), value);
+            } else if (value == null) {
+                // Ignore
             } else {
                 throw new UnsupportedOperationException();
             }
@@ -36,20 +39,6 @@ public abstract class OnnxOp extends ExternalizableOp {
                 throw new NoSuchElementException();
             }
             return type.cast(value);
-        }
-
-        static Map<String, Object> process(ExternalizedOp eop,
-                                           OnnxAttribute[] attributes) {
-            Map<String, Object> attrs = new HashMap<>();
-            for (OnnxAttribute attribute : attributes) {
-                Object v = eop.attributes().get(attribute.name());
-                if (v == null && !attribute.isOptional()) {
-                    throw new NoSuchElementException(attribute.name());
-                }
-                attribute.process(attrs, v);
-            }
-
-            return Map.copyOf(attrs);
         }
 
         static Map<String, Object> process(ExternalizedOp eop,

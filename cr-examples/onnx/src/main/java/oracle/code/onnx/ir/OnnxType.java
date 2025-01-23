@@ -431,8 +431,10 @@ public abstract sealed class OnnxType implements TypeElement {
         @Override
         public ExternalizedTypeElement externalize() {
             List<ExternalizedTypeElement> args = new ArrayList<>();
-            for (Object i : shape) {
-                args.add(new ExternalizedTypeElement("x" + i, List.of()));
+            if (shape != null) {
+                for (Object i : shape) {
+                    args.add(new ExternalizedTypeElement("x" + i, List.of()));
+                }
             }
             args.add(eType.externalize());
             return new ExternalizedTypeElement(NAME, args);
@@ -820,11 +822,11 @@ public abstract sealed class OnnxType implements TypeElement {
             case Int32Type t -> OnnxType.TENSOR_INT32;
             case Int64Type t -> OnnxType.TENSOR_INT64;
 
-            case UInt4Type t -> OnnxType.TENSOR_INT4;
-            case UInt8Type t -> OnnxType.TENSOR_INT8;
-            case UInt16Type t -> OnnxType.TENSOR_INT16;
-            case UInt32Type t -> OnnxType.TENSOR_INT32;
-            case UInt64Type t -> OnnxType.TENSOR_INT64;
+            case UInt4Type t -> OnnxType.TENSOR_UINT4;
+            case UInt8Type t -> OnnxType.TENSOR_UINT8;
+            case UInt16Type t -> OnnxType.TENSOR_UINT16;
+            case UInt32Type t -> OnnxType.TENSOR_UINT32;
+            case UInt64Type t -> OnnxType.TENSOR_UINT64;
 
             case Float16Type t -> OnnxType.TENSOR_FLOAT16;
             case Float32Type t -> OnnxType.TENSOR_FLOAT32;
