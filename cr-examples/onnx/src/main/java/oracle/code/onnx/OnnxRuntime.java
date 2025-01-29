@@ -3,14 +3,7 @@ package oracle.code.onnx;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.lang.foreign.AddressLayout;
-import java.lang.foreign.Arena;
-import java.lang.foreign.FunctionDescriptor;
-import java.lang.foreign.Linker;
-import java.lang.foreign.MemoryLayout;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SymbolLookup;
-import java.util.function.Consumer;
+import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.VarHandle;
 import java.lang.reflect.UndeclaredThrowableException;
@@ -18,14 +11,14 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
-import java.util.Objects;
-
-import static java.lang.foreign.ValueLayout.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Locale;
+import java.util.Map;
+import java.util.function.Consumer;
+
+import static java.lang.foreign.ValueLayout.*;
 
 public final class OnnxRuntime {
 
@@ -392,7 +385,7 @@ public final class OnnxRuntime {
             return createTensor(f.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, f.length(), arena), shape, elementType);
         }
 
-        private OrtTensor createTensor(TensorShape shape, float... elements) {
+        OrtTensor createTensor(TensorShape shape, float... elements) {
             return createTensor(arena.allocateFrom(JAVA_FLOAT, elements), shape, Tensor.ElementType.FLOAT);
         }
 
@@ -462,7 +455,6 @@ public final class OnnxRuntime {
             }
         }
     }
-
 
     public SessionOptions createSessionOptions() {
         try {
@@ -586,75 +578,5 @@ public final class OnnxRuntime {
 
     private static RuntimeException wrap(Throwable t) {
         return t instanceof RuntimeException e ? e : new UndeclaredThrowableException(t);
-    }
-
-    public static void main(String... args) throws Exception {
-        var env = new OnnxRuntime().createEnv();
-        try (var absOp = env.createSession(Op.ABS.model); var addOp = env.createSession(Op.ADD.model)) {
-
-            assertEquals(1, absOp.getNumberOfInputs());
-            assertEquals(1, absOp.getNumberOfOutputs());
-
-            assertEquals(2, addOp.getNumberOfInputs());
-            assertEquals(1, addOp.getNumberOfOutputs());
-
-            var inputShape = ((OrtTensorTypeAndShapeInfo)absOp.getInputTypeInfo(0)).getShape();
-            var inputTensor = env.createTensor(inputShape, -1, 2, -3, 4, -5, 6);
-
-            var absExpectedShape = ((OrtTensorTypeAndShapeInfo)absOp.getOutputTypeInfo(0)).getShape();
-            var absExpectedTensor = env.createTensor(absExpectedShape, 1, 2, 3, 4, 5, 6);
-
-            var absResult = absOp.run(Map.of(absOp.getInputName(0), inputTensor), absOp.getOutputName(0));
-
-            assertEquals(1, absResult.length);
-
-            var absOutputTensor = (OrtTensor)absResult[0];
-
-            assertEquals(absExpectedTensor, absOutputTensor);
-
-            var addResult = addOp.run(Map.of(addOp.getInputName(0), inputTensor, addOp.getInputName(1), absOutputTensor), addOp.getOutputName(0));
-
-            assertEquals(1, addResult.length);
-
-            var addOutputTensor = (OrtTensor)addResult[0];
-
-            var addExpectedShape = ((OrtTensorTypeAndShapeInfo)absOp.getOutputTypeInfo(0)).getShape();
-            var addExpectedTensor = env.createTensor(addExpectedShape, 0, 4, 0, 8, 0, 12);
-
-            assertEquals(addExpectedTensor, addOutputTensor);
-        }
-        System.out.println("Finished.");
-    }
-
-    static void assertEquals(OrtTensor expectedTensor, OrtTensor actualTensor) {
-        var expectedType = expectedTensor.getTensorTypeAndShape();
-        var expectedShape = expectedType.getShape();
-
-        var actualType = actualTensor.getTensorTypeAndShape();
-        var actualShape = actualType.getShape();
-
-        assertEquals(expectedShape.getDimensionsCount(), actualShape.getDimensionsCount());
-        for (int i = 0; i < expectedShape.getDimensionsCount(); i++) {
-            assertEquals(expectedShape.getDimension(i), actualShape.getDimension(i));
-        }
-
-        assertEquals(expectedType.getTensorElementType(), actualType.getTensorElementType());
-        assertEquals(expectedType.getTensorShapeElementCount(), actualType.getTensorShapeElementCount());
-
-        var expectedData = expectedTensor.asByteBuffer().asFloatBuffer();
-        var actualData = actualTensor.asByteBuffer().asFloatBuffer();
-
-        assertEquals(expectedData.capacity(), actualData.capacity());
-        for (int i = 0; i < expectedData.capacity(); i++) {
-            assertEquals(expectedData.get(i), actualData.get(i));
-        }
-    }
-
-    static void assertEquals(float exp, float act) {
-        if (Math.abs(exp - act) > 1e-6f) throw new AssertionError(exp + " not equals " + act);
-    }
-
-    static void assertEquals(Object exp, Object act) {
-        if (!Objects.equals(exp, act)) throw new AssertionError(exp + " not equals " + act);
     }
 }
