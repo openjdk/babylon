@@ -111,8 +111,22 @@ public class Tensor<T> extends OnnxNumber {
             return name().toLowerCase();
         }
 
+        int size() {
+            return switch (this) {
+                case UINT8, INT8, BOOL, FLOAT8E4M3FN, FLOAT8E4M3FNUZ, FLOAT8E5M2, FLOAT8E5M2FNUZ -> 1;
+                case UINT16, INT16, FLOAT16, BFLOAT16 -> 2;
+                case UINT32, INT32, FLOAT -> 4;
+                case UINT64, INT64, DOUBLE -> 8;
+                default -> 0;
+            };
+        }
+
         public static ElementType fromOnnxName(String name) {
             return ElementType.valueOf(name.toUpperCase());
+        }
+
+        public static ElementType fromOnnxId(int id) {
+            return values()[id - 1];
         }
     }
 }
