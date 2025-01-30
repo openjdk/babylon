@@ -241,9 +241,9 @@ public final class OnnxRuntime {
         }
 
         public OrtTensor runBinaryOp(String opName, Tensor.ElementType elementType, OrtTensor arg1, OrtTensor arg2) {
-            // @@ sessions caching and closing
-            var session = createSession(binaryOp(opName, elementType));
-            return (OrtTensor)session.run(Map.of(session.getInputName(0), arg1, session.getInputName(1), arg2), session.getOutputName(0))[0];
+            try (var session = createSession(binaryOp(opName, elementType))) {
+                return (OrtTensor)session.run(Map.of(session.getInputName(0), arg1, session.getInputName(1), arg2), session.getOutputName(0))[0];
+            }
         }
 
         public Session createSession(String modelPath) {
@@ -373,7 +373,7 @@ public final class OnnxRuntime {
             }
 
             @Override
-            public void close() throws Exception {
+            public void close() {
                 try {
                     checkStatus(releaseSession.invokeExact(sessionAddress));
                 } catch (Throwable t) {
