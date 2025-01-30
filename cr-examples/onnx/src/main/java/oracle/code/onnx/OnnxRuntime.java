@@ -53,6 +53,13 @@ public final class OnnxRuntime {
 
     private static final VarHandle VH_ADDRESS = ADDRESS.varHandle();
 
+    private static Environment ENV;
+
+    public static Environment defaultEnvironment() {
+        if (ENV == null) ENV = new OnnxRuntime().createEnv();
+        return ENV;
+    }
+
     private final Arena         arena;
     private final SymbolLookup  library;
     private final MemorySegment runtimeAddress, ret;
@@ -83,11 +90,11 @@ public final class OnnxRuntime {
                                 sessionGetOutputTypeInfo,
                                 setInterOpNumThreads;
 
-    public OnnxRuntime() throws IOException {
+    public OnnxRuntime() {
         this(14);
     }
 
-    public OnnxRuntime(int version) throws IOException {
+    public OnnxRuntime(int version) {
         arena = Arena.ofAuto();
         library = SymbolLookup.libraryLookup(LIB_PATH, arena);
         ret = arena.allocate(ADDR_WITH_ADDR);
@@ -158,80 +165,69 @@ public final class OnnxRuntime {
         UNKNOWN, TENSOR, SEQUENCE, MAP, OPAQUE, SPARSETENSOR, OPTIONAL
     }
 
-    public enum Op {
-        ABS(unaryOp("Abs", Tensor.ElementType.FLOAT)),
-        ADD(binaryOp("Add", Tensor.ElementType.FLOAT));
+    interface ProtoBuf extends Consumer<ByteBuffer> {
+    }
 
-        interface ProtoBuf extends Consumer<ByteBuffer> {
+    private static ByteBuffer storeVarInt(ByteBuffer bb, int number) {
+        long expanded = Long.expand(Integer.toUnsignedLong(number), 0x7f7f7f7f7f7f7f7fl);
+        int bytesSize = Math.max(1, 8 - Long.numberOfLeadingZeros(expanded) / 8);
+        for (int i = 1; i < bytesSize; i++) {
+            bb.put((byte)(0x80 | expanded & 0x7f));
+            expanded >>= 8;
         }
+        return bb.put((byte)(expanded & 0x7f));
+    }
 
-        private static ByteBuffer storeVarInt(ByteBuffer bb, int number) {
-            long expanded = Long.expand(Integer.toUnsignedLong(number), 0x7f7f7f7f7f7f7f7fl);
-            int bytesSize = Math.max(1, 8 - Long.numberOfLeadingZeros(expanded) / 8);
-            for (int i = 1; i < bytesSize; i++) {
-                bb.put((byte)(0x80 | expanded & 0x7f));
-                expanded >>= 8;
+    static ProtoBuf stringField(int fieldIndex, String value) {
+        var bytes = value.getBytes(StandardCharsets.UTF_8);
+        return bb -> storeVarInt(storeVarInt(bb, fieldIndex << 3 | 2), bytes.length).put(bytes);
+    }
+
+    static ProtoBuf intField(int fieldIndex, int value) {
+        return bb -> storeVarInt(storeVarInt(bb, fieldIndex << 3), value);
+    }
+
+    static ProtoBuf subField(int fieldIndex, ProtoBuf... values) {
+        return bb -> {
+            int start = storeVarInt(bb, fieldIndex << 3 | 2).position();
+            bb.put((byte)0);
+            for (var v : values) v.accept(bb);
+            int end = bb.position();
+            storeVarInt(bb.position(start), end - start - 1); // patch size
+            if (bb.position() == start + 1) {
+                bb.position(end); // size < 128, all OK
+            } else {
+                for (var v : values) v.accept(bb); // replay shifted
             }
-            return bb.put((byte)(expanded & 0x7f));
-        }
+        };
+    }
 
-        static ProtoBuf stringField(int fieldIndex, String value) {
-            var bytes = value.getBytes(StandardCharsets.UTF_8);
-            return bb -> storeVarInt(storeVarInt(bb, fieldIndex << 3 | 2), bytes.length).put(bytes);
-        }
+    static final int IR_VERSION = 10;
+    static final int OPSET_VERSION = 14;
 
-        static ProtoBuf intField(int fieldIndex, int value) {
-            return bb -> storeVarInt(storeVarInt(bb, fieldIndex << 3), value);
-        }
+    static ByteBuffer unaryOp(String opName, Tensor.ElementType type) {
+        var bb = ByteBuffer.allocateDirect(40 + opName.length());
+        intField(1, IR_VERSION).accept(bb);
+        subField(7, // Graph
+                subField(1, stringField(1, "x"), stringField(2, "y"), stringField(4, opName)), // Op node
+                subField(11, stringField(1, "x"), subField(2, subField(1, intField(1, type.id)))), // Input
+                subField(12, stringField(1, "y"), subField(2, subField(1, intField(1, type.id))))).accept(bb); // Output
+        subField(8, intField(2, OPSET_VERSION)).accept(bb); // Opset import
+        int len = bb.position();
+        return bb.limit(len).asReadOnlyBuffer();
+    }
 
-        static ProtoBuf subField(int fieldIndex, ProtoBuf... values) {
-            return bb -> {
-                int start = storeVarInt(bb, fieldIndex << 3 | 2).position();
-                bb.put((byte)0);
-                for (var v : values) v.accept(bb);
-                int end = bb.position();
-                storeVarInt(bb.position(start), end - start - 1); // patch size
-                if (bb.position() == start + 1) {
-                    bb.position(end); // size < 128, all OK
-                } else {
-                    for (var v : values) v.accept(bb); // replay shifted
-                }
-            };
-        }
-
-        static final int IR_VERSION = 10;
-        static final int OPSET_VERSION = 14;
-
-        static ByteBuffer unaryOp(String opName, Tensor.ElementType type) {
-            var bb = ByteBuffer.allocateDirect(40 + opName.length());
-            intField(1, IR_VERSION).accept(bb);
-            subField(7, // Graph
-                    subField(1, stringField(1, "x"), stringField(2, "y"), stringField(4, opName)), // Op node
-                    subField(11, stringField(1, "x"), subField(2, subField(1, intField(1, type.id)))), // Input
-                    subField(12, stringField(1, "y"), subField(2, subField(1, intField(1, type.id))))).accept(bb); // Output
-            subField(8, intField(2, OPSET_VERSION)).accept(bb); // Opset import
-            int len = bb.position();
-            return bb.limit(len).asReadOnlyBuffer();
-        }
-
-        static ByteBuffer binaryOp(String opName, Tensor.ElementType type) {
-            var bb = ByteBuffer.allocateDirect(54 + opName.length());
-            intField(1, IR_VERSION).accept(bb);
-            subField(7, // Graph
-                    subField(1, stringField(1, "a"), stringField(1, "b"), stringField(2, "c"), stringField(4, opName)), // Op node
-                    subField(11, stringField(1, "a"), subField(2, subField(1, intField(1, type.id)))), // Input
-                    subField(11, stringField(1, "b"), subField(2, subField(1, intField(1, type.id)))), // Input
-                    subField(12, stringField(1, "c"), subField(2, subField(1, intField(1, type.id))))).accept(bb); // Output
-            subField(8, intField(2, OPSET_VERSION)).accept(bb); // Opset import
-            int len = bb.position();
-            return bb.limit(len).asReadOnlyBuffer();
-        }
-
-        final ByteBuffer model;
-
-        Op(ByteBuffer model) {
-            this.model = model;
-        }
+    static ByteBuffer binaryOp(String opName, Tensor.ElementType type) {
+        var bb = ByteBuffer.allocateDirect(54 + opName.length());
+        intField(1, IR_VERSION).accept(bb);
+        subField(7, // Graph
+                subField(1, stringField(1, "a"), stringField(1, "b"), stringField(2, "c"), stringField(4, opName)), // Op node
+                subField(11, stringField(1, "a"), subField(2, subField(1, intField(1, type.id)))), // Input
+                subField(11, stringField(1, "b"), subField(2, subField(1, intField(1, type.id)))), // Input
+                subField(12, stringField(1, "c"), subField(2, subField(1, intField(1, type.id))))).accept(bb); // Output
+        subField(8, intField(2, OPSET_VERSION)).accept(bb); // Opset import
+        int len = bb.position();
+        return bb.limit(len).asReadOnlyBuffer();
     }
 
     public final class Environment {
@@ -242,6 +238,12 @@ public final class OnnxRuntime {
         private Environment(MemorySegment envAddress, MemorySegment defaultAllocatorAddress) {
             this.envAddress = envAddress;
             this.defaultAllocatorAddress = defaultAllocatorAddress;
+        }
+
+        public OrtTensor runBinaryOp(String opName, Tensor.ElementType elementType, OrtTensor arg1, OrtTensor arg2) {
+            // @@ sessions caching and closing
+            var session = createSession(binaryOp(opName, elementType));
+            return (OrtTensor)session.run(Map.of(session.getInputName(0), arg1, session.getInputName(1), arg2), session.getOutputName(0))[0];
         }
 
         public Session createSession(String modelPath) {
@@ -385,6 +387,10 @@ public final class OnnxRuntime {
             return createTensor(f.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, f.length(), arena), shape, elementType);
         }
 
+        OrtTensor createFlatTensor(float... elements) {
+            return createTensor(new TensorShape((long)elements.length), elements);
+        }
+
         OrtTensor createTensor(TensorShape shape, float... elements) {
             return createTensor(arena.allocateFrom(JAVA_FLOAT, elements), shape, Tensor.ElementType.FLOAT);
         }
@@ -402,6 +408,10 @@ public final class OnnxRuntime {
     public final class TensorShape {
 
         private final MemorySegment dataAddress;
+
+        public TensorShape(long... dimensions) {
+            this(arena.allocateFrom(JAVA_LONG, dimensions));
+        }
 
         private TensorShape(MemorySegment dataAddress) {
             this.dataAddress = dataAddress;

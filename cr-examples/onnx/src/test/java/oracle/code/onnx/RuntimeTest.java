@@ -1,5 +1,6 @@
 package oracle.code.onnx;
 
+import java.nio.FloatBuffer;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -10,7 +11,8 @@ public class RuntimeTest {
     @Test
     public void test() throws Exception {
         var env = new OnnxRuntime().createEnv();
-        try (var absOp = env.createSession(OnnxRuntime.Op.ABS.model); var addOp = env.createSession(OnnxRuntime.Op.ADD.model)) {
+        try (var absOp = env.createSession(OnnxRuntime.unaryOp("Abs", Tensor.ElementType.FLOAT));
+             var addOp = env.createSession(OnnxRuntime.binaryOp("Add", Tensor.ElementType.FLOAT))) {
 
             assertEquals(1, absOp.getNumberOfInputs());
             assertEquals(1, absOp.getNumberOfOutputs());
@@ -60,9 +62,10 @@ public class RuntimeTest {
         assertEquals(expectedType.getTensorElementType(), actualType.getTensorElementType());
         assertEquals(expectedType.getTensorShapeElementCount(), actualType.getTensorShapeElementCount());
 
-        var expectedData = expectedTensor.asByteBuffer().asFloatBuffer();
-        var actualData = actualTensor.asByteBuffer().asFloatBuffer();
+        assertEqualData(expectedTensor.asByteBuffer().asFloatBuffer(), actualTensor.asByteBuffer().asFloatBuffer());
+    }
 
+    static void assertEqualData(FloatBuffer expectedData, FloatBuffer actualData) {
         assertEquals(expectedData.capacity(), actualData.capacity());
         for (int i = 0; i < expectedData.capacity(); i++) {
             assertEquals(expectedData.get(i), actualData.get(i), 1e-6f);

@@ -67,7 +67,14 @@ public class Tensor<T> extends OnnxNumber {
     // runtime representation
     // defer to ONNX runtime?
 
-    Tensor() {
+    final OnnxRuntime.OrtTensor rtTensor;
+
+    public Tensor(float... data) {
+        this(OnnxRuntime.defaultEnvironment().createFlatTensor(data));
+    }
+
+    Tensor(OnnxRuntime.OrtTensor rtTensor) {
+        this.rtTensor = rtTensor;
     }
 
     enum ElementType {
