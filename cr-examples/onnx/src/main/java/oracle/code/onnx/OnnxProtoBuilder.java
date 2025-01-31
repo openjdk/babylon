@@ -1,10 +1,8 @@
 package oracle.code.onnx;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.HexFormat;
 
 // Generated from onnx.proto3
 class OnnxProtoBuilder<T extends OnnxProtoBuilder> {

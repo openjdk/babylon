@@ -57,10 +57,6 @@ class DataType(enum.IntEnum):
     FLOAT4E2M1 = 23
      */
 
-import java.util.NoSuchElementException;
-import java.util.Optional;
-import java.util.stream.Stream;
-
 public class Tensor<T> extends OnnxNumber {
     // element type
     // dim
