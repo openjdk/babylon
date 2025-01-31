@@ -182,11 +182,7 @@ class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
         FunctionProto metadata_props(StringStringEntryProto metadata_props) {return _f(14, metadata_props);}
     }
 
-    final ByteArrayOutputStream buf;
-
-    OnnxProtoBuilder() {
-        buf = new ByteArrayOutputStream();
-    }
+    final ByteArrayOutputStream buf = new ByteArrayOutputStream();
 
     void _encode(long number) {
         long expanded = Long.expand(number, 0x7f7f7f7f7f7f7f7fl);
