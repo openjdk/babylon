@@ -5,7 +5,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
 // Generated from onnx.proto3
-class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
+sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
 
     static final class Attribute extends OnnxProtoBuilder<Attribute> {
         Attribute name(String name) {return _f(1, name);}
