@@ -35,7 +35,6 @@ package oracle.code.json;
  * regardless of its precision or magnitude as long as the syntax is valid.
  * The parsed string representation is retrieved from {@link #toString()}.
  *
- * 
  */
 public sealed interface JsonNumber extends JsonValue permits JsonNumberImpl {
 

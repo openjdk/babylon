@@ -32,7 +32,6 @@ package oracle.code.json;
  * <p> Alternatively, {@link #of(boolean)} can be used to
  * obtain a {@code JsonBoolean}.
  *
- * 
  */
 public sealed interface JsonBoolean extends JsonValue permits JsonBooleanImpl {
 

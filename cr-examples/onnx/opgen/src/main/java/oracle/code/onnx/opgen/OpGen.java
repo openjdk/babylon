@@ -94,7 +94,7 @@ public class OpGen {
         w.write("""
                 import jdk.incubator.code.*;
                 import jdk.incubator.code.op.OpFactory;
-                
+
                 import java.util.*;
                 """);
         w.write("\n");
@@ -207,22 +207,22 @@ public class OpGen {
                     final Class<?> t;
                     final boolean optional;
                     final Object defaultValue;
-                
+
                     Attribute(Class<?> type, boolean optional, Object defaultValue) {
                         this.t = type;
                         this.optional = optional;
                         this.defaultValue = defaultValue;
                         assert optional || defaultValue == null;
                     }
-                
+
                     public Class<?> type() {
                         return t;
                     }
-                
+
                     public boolean isOptional() {
                         return optional;
                     }
-                
+
                     public Object defaultValue() {
                         return defaultValue;
                     }
@@ -328,17 +328,17 @@ public class OpGen {
         w.write("""
                 final OnnxType type;
                 final Quantifier quantifier;
-                
+
                 InputParameter(OnnxType type, Quantifier quantifier) {
                     this.type = type;
                     this.quantifier = quantifier;
                 }
-                
+
                 @Override
                 public OnnxType type() {
                     return type;
                 }
-                
+
                 @Override
                 public Quantifier quantifier() {
                     return quantifier;
@@ -392,17 +392,17 @@ public class OpGen {
         w.write("""
                 final OnnxType type;
                 final Quantifier quantifier;
-                
+
                 OutputParameter(OnnxType type, Quantifier quantifier) {
                     this.type = type;
                     this.quantifier = quantifier;
                 }
-                
+
                 @Override
                 public OnnxType type() {
                     return type;
                 }
-                
+
                 @Override
                 public Quantifier quantifier() {
                     return quantifier;

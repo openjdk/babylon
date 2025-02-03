@@ -37,7 +37,6 @@ import java.util.Objects;
  * may not be allowed. If duplicate keys appear during a {@link Json#parse(String)},
  * a {@code JsonParseException} is thrown.
  *
- * 
  */
 public sealed interface JsonObject extends JsonValue permits JsonObjectImpl {
 

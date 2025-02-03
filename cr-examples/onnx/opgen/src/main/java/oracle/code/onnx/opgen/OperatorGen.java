@@ -93,7 +93,7 @@ public class OperatorGen {
         w.write("\n");
         w.write("""
                 import oracle.code.onnx.ir.OnnxOps;
-                
+
                 import java.util.Optional;
                 import java.util.List;
                 import java.util.Map;

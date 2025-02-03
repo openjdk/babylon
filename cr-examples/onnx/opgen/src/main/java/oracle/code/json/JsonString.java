@@ -34,7 +34,6 @@ import java.util.Objects;
  * <p> Alternatively, {@link #of(String)} can be used to obtain a {@code JsonString}
  * from a {@code String}.
  *
- * 
  */
 public sealed interface JsonString extends JsonValue permits JsonStringImpl {
 

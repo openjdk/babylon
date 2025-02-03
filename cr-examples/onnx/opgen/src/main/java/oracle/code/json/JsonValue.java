@@ -46,7 +46,6 @@ package oracle.code.json;
  *     json.toString(); // returns "[\"foo\",true,25]"
  * }
  *
- * 
  */
 public sealed interface JsonValue
         permits JsonString, JsonNumber, JsonObject, JsonArray, JsonBoolean, JsonNull {

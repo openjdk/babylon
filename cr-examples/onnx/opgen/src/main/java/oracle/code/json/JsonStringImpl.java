@@ -46,7 +46,7 @@ final class JsonStringImpl implements JsonString, JsonValueImpl {
         theString = unescape(startOffset + 1, endOffset - 1);
         endIndex = 0;
     }
-    
+
     JsonStringImpl(JsonDocumentInfo doc, int offset, int index) {
         docInfo = doc;
         startOffset = offset;

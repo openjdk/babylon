@@ -31,7 +31,6 @@ package oracle.code.json;
  * A {@code JsonNull} can be produced by {@link Json#parse(String)}.
  * <p> Alternatively, {@link #of()} can be used to obtain a {@code JsonNull}.
  *
- * 
  */
 public sealed interface JsonNull extends JsonValue permits JsonNullImpl {
 

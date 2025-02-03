@@ -28,6 +28,7 @@ package oracle.code.onnx.opgen;
 import java.io.IOException;
 import java.io.Writer;
 
+// @@@ Note this leaves trailing white space for empty lines
 final class IndentWriter extends Writer {
     static final int INDENT = 4;
 
