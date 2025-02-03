@@ -2,12 +2,14 @@ package oracle.code.onnx;
 
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.type.FunctionType;
 import oracle.code.onnx.ir.OnnxOps;
 import oracle.code.onnx.ir.OnnxType;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Method;
 import java.util.Set;
 
 import static java.util.Optional.empty;
@@ -248,12 +250,23 @@ public class CNNTest {
     }
 
     @Test
-    public void test() {
-        CoreOp.FuncOp funcOp = cnnModel();
-        System.out.println(funcOp.toText());
+    public void test() throws Exception {
+        {
+            Method cnn = CNNTest.class.getMethod("cnn", Tensor.class);
+            CoreOp.FuncOp funcOp = Op.ofMethod(cnn).get();
+            System.out.println(funcOp.toText());
+        }
+
+        {
+            CoreOp.FuncOp funcOp = cnnModel();
+            System.out.println(funcOp.toText());
+        }
     }
 
+
     /*
+    ONNX code model
+
 func @"cnn" (
 %0 : tensor<float32>,
 %1 : tensor<float32>,
