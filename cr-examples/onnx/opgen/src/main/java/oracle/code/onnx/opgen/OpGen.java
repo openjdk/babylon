@@ -267,12 +267,12 @@ public class OpGen {
 
         w.write("""
                 final OnnxType.TypeVariable typeVariable;
-                
+
                 TypeConstraint(OnnxType.TypeVariable typeVariable) {
                     assert typeVariable.name().equals(name());
                     this.typeVariable = typeVariable;
                 }
-                
+
                 @Override
                 public OnnxType.TypeVariable typeVariable() {
                     return typeVariable;

@@ -31,7 +31,6 @@ import java.io.Serial;
  * Signals that an error has been detected while parsing the
  * JSON document.
  *
- * 
  */
 public class JsonParseException extends RuntimeException {
 

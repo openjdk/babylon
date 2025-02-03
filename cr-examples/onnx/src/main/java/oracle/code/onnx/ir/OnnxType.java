@@ -807,8 +807,8 @@ public abstract sealed class OnnxType implements TypeElement {
 
     public static final TensorType TENSOR_STRING = new TensorType(STRING);
     public static final TensorType TENSOR_BOOL = new TensorType(BOOL);
-    
-    
+
+
     public static Int4Type int4() { return INT4; }
     public static Int8Type int8() { return INT8; }
     public static Int16Type int16() { return INT16; }
@@ -838,7 +838,7 @@ public abstract sealed class OnnxType implements TypeElement {
 
     public static StringType string() { return STRING; }
     public static BoolType bool() { return BOOL; }
-    
+
     public static TensorType tensor(OnnxElementType e) {
         TensorType tt = switch (e) {
             case Int4Type t -> OnnxType.TENSOR_INT4;
