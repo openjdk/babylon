@@ -134,8 +134,6 @@ public class OperatorGen {
         Map<String, TypeElement.ExternalizedTypeElement> javaTypeConstraints = javaTypes(typeConstraintMap(s));
         boolean twoOrMoreResults = s.max_output() > 1 && s.outputs().size() > 1;
         if (twoOrMoreResults) {
-            System.out.println(s.name());
-
             w.write("public record " + s.name() + "Result");
             if (!s.type_constraints().isEmpty()) {
                 boolean first = true;

@@ -41,10 +41,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Stream;
-
-import static java.util.stream.Collectors.*;
 
 public class OpSchemaParser {
 
@@ -82,52 +79,54 @@ public class OpSchemaParser {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
-        JSONValue schemaDoc = JSON.parse(schemaString);
-        return mapJsonArray((JSONArray) schemaDoc, OpSchema.class);
+        JsonValue schemaDoc = Json.parse(schemaString);
+        return mapJsonArray((JsonArray) schemaDoc, OpSchema.class);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    static <T> T mapJsonValue(JSONValue v, Class<T> c, Type gt) {
+    static <T> T mapJsonValue(JsonValue v, Class<T> c, Type gt) {
         return switch (v) {
-            case JSONValue s when s.isString() && c.isEnum() -> (T) Enum.valueOf((Class<Enum>) c, s.asString());
-            case JSONValue s when s.isString() && c == String.class -> (T) s.asString();
-            case JSONValue s when s.isString() && c == Object.class -> (T) s.asString();
-            case JSONValue n when n.isLong() && c == int.class -> (T) (Integer) (int) n.asLong();
-            case JSONValue b when b.isBoolean() && c == boolean.class -> (T) (Boolean) b.asBoolean();
-            case JSONValue f when f.isDouble() && c == Object.class -> (T) (Float) (float) f.asDouble();
-            case JSONValue i when i.isLong() && c == Object.class -> (T) (Integer) (int) i.asLong();
-            case JSONValue n when n.isNull() && c == Object.class -> null;
-            case JSONArray a when c == List.class -> switch (gt) {
+            case JsonBoolean b when c == boolean.class -> (T) (Boolean) b.value();
+
+            case JsonNull _ when c == Object.class -> null;
+
+            case JsonString s when c.isEnum() -> (T) Enum.valueOf((Class<Enum>) c, s.value());
+            case JsonString s when c == String.class -> (T) s.value();
+            case JsonString s when c == Object.class -> (T) s.value();
+
+            case JsonNumber n when c == int.class -> (T) (Integer) n.value().intValue();
+            case JsonNumber n when n.value() instanceof Integer i && c == Object.class -> (T) i;
+            case JsonNumber n when n.value() instanceof Double d && c == Object.class -> (T) (Float) d.floatValue();
+
+            case JsonArray a when c == List.class -> switch (gt) {
                 case ParameterizedType pt when pt.getActualTypeArguments()[0] instanceof Class<?> tc ->
                         (T) mapJsonArray(a, tc);
                 default -> throw new IllegalStateException();
             };
-            case JSONObject o when Record.class.isAssignableFrom(c) -> (T) mapJsonObject(o, (Class<Record>) c);
-            case JSONObject o when c == List.class -> switch (gt) {
+
+            case JsonObject o when Record.class.isAssignableFrom(c) -> (T) mapJsonObject(o, (Class<Record>) c);
+            case JsonObject o when c == List.class -> switch (gt) {
                 case ParameterizedType pt when pt.getActualTypeArguments()[0] instanceof Class<?> tc ->
                         (T) mapJsonObjectAsIfJsonArray(o, tc);
                 default -> throw new IllegalStateException();
             };
+
             default -> throw new IllegalStateException(v + " " + c);
         };
     }
 
-    static <T> List<T> mapJsonObjectAsIfJsonArray(JSONObject o, Class<T> ct) {
-        Map<String, JSONValue> map = o.fields().stream()
-                .collect(toMap(JSONObject.Field::name, JSONObject.Field::value));
-        return map.values().stream().map(v -> mapJsonValue(v, ct, ct)).toList();
+    static <T> List<T> mapJsonObjectAsIfJsonArray(JsonObject o, Class<T> ct) {
+        return o.keys().values().stream().map(v -> mapJsonValue(v, ct, ct)).toList();
     }
 
-    static <T> List<T> mapJsonArray(JSONArray a, Class<T> ct) {
-        return a.stream().map(v -> mapJsonValue(v, ct, ct)).toList();
+    static <T> List<T> mapJsonArray(JsonArray a, Class<T> ct) {
+        return a.values().stream().map(v -> mapJsonValue(v, ct, ct)).toList();
     }
 
-    static <T extends Record> T mapJsonObject(JSONObject o, Class<T> r) {
-        Map<String, JSONValue> map = o.fields().stream()
-                .collect(toMap(JSONObject.Field::name, JSONObject.Field::value));
+    static <T extends Record> T mapJsonObject(JsonObject o, Class<T> r) {
         List<Object> rcInstances = new ArrayList<>();
         for (RecordComponent rc : r.getRecordComponents()) {
-            JSONValue jsonValue = map.get(rc.getName());
+            JsonValue jsonValue = o.keys().get(rc.getName());
             if (jsonValue == null) {
                 throw new IllegalStateException();
             }
