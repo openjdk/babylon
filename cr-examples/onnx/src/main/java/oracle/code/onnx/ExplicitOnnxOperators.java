@@ -32,14 +32,14 @@ class ExplicitOnnxOperators {
     // Explicit constant operators
 
     public static Tensor<Long> Constant(
-            Integer c) {
+            Long c) {
         return OnnxOperators.Constant(
                 Optional.of(c),Optional.empty(), Optional.empty(), Optional.empty(),
                 Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty());
     }
 
     public static Tensor<Long> Constant(
-            int[] c) {
+            long[] c) {
         return OnnxOperators.Constant(
                 Optional.empty(),Optional.empty(), Optional.empty(), Optional.empty(),
                 Optional.empty(), Optional.of(c), Optional.empty(), Optional.empty());

@@ -28,12 +28,20 @@ import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.type.FunctionType;
+import jdk.incubator.code.type.TupleType;
+import jdk.incubator.code.writer.OpWriter;
+import oracle.code.onnx.compiler.OnnxTransformer;
 import oracle.code.onnx.ir.OnnxOps;
 import oracle.code.onnx.ir.OnnxType;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Assertions;
 
+import java.io.StringWriter;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
@@ -49,26 +57,28 @@ public class CNNTest {
     private static final int IMAGE_SIZE = 28;
     private static final int NUM_LABELS = 10;
 
-    // (5, 5, NUM_CHANNELS, 32)
-    private Tensor<Float> conv1Weights;
-    // (32)
-    private Tensor<Float> conv1Biases;
-    // (5, 5, 32, 64)
-    private Tensor<Float> conv2Weights;
-    // (64)
-    private Tensor<Float> conv2Biases;
-    // (IMAGE_SIZE * IMAGE_SIZE * 4, 512)
-    private Tensor<Float> fc1Weights;
-    // (512)
-    private Tensor<Float> fc1Biases;
-    // (512, NUM_LABELS)
-    private Tensor<Float> fc2Weights;
-    // (NUM_LABELS)
-    private Tensor<Float> fc2Biases;
-
     @CodeReflection
-    public Tensor<Float> cnn(Tensor<Float> inputImage) {
-        var shape = Constant(new int[]{-1, IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS});
+    public static Tensor<Float> cnn(
+            // Weights and biases
+            // (5, 5, NUM_CHANNELS, 32)
+            Tensor<Float> conv1Weights,
+            // (32)
+            Tensor<Float> conv1Biases,
+            // (5, 5, 32, 64)
+            Tensor<Float> conv2Weights,
+            // (64)
+            Tensor<Float> conv2Biases,
+            // (IMAGE_SIZE * IMAGE_SIZE * 4, 512)
+            Tensor<Float> fc1Weights,
+            // (512)
+            Tensor<Float> fc1Biases,
+            // (512, NUM_LABELS)
+            Tensor<Float> fc2Weights,
+            // (NUM_LABELS)
+            Tensor<Float> fc2Biases,
+            // Inputs
+            Tensor<Float> inputImage) {
+        var shape = Constant(new long[]{-1, IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS});
         var inputReshaped = Reshape(inputImage, shape, empty());
 
         // Scaling the features
@@ -78,35 +88,35 @@ public class CNNTest {
 
         // First conv layer
         var conv1 = Conv(scaledInput, conv1Weights, of(conv1Biases), empty(),
-                empty(), of("SAME_UPPER"), of(new int[]{1, 1, 1, 1}),
+                empty(), of("SAME_UPPER"), of(new long[]{1, 1, 1, 1}),
                 empty(), empty());
         var relu1 = Relu(conv1);
 
         // First pooling layer
         var pool1 = MaxPool(relu1, empty(), empty(), of("SAME_UPPER"),
-                empty(), empty(), of(new int[]{1, 2, 2, 1}), new int[]{1, 2, 2, 1});
+                empty(), empty(), of(new long[]{1, 2, 2, 1}), new long[]{1, 2, 2, 1});
 
         // Second conv layer
         var conv2 = Conv(pool1.Y(), conv2Weights, of(conv2Biases), empty(),
-                empty(), of("SAME_UPPER"), of(new int[]{1, 1, 1, 1}),
+                empty(), of("SAME_UPPER"), of(new long[]{1, 1, 1, 1}),
                 empty(), empty());
         var relu2 = Relu(conv2);
 
         // Second pooling layer
         var pool2 = MaxPool(relu2, empty(), empty(), of("SAME_UPPER"),
-                empty(), empty(), of(new int[]{1, 2, 2, 1}), new int[]{1, 2, 2, 1});
+                empty(), empty(), of(new long[]{1, 2, 2, 1}), new long[]{1, 2, 2, 1});
 
         // Flatten inputs
-        var flatShape = Constant(new int[]{0, 3136});
+        var flatShape = Constant(new long[]{0, 3136});
         var flatten = Reshape(pool2.Y(), flatShape, empty());
 
         // Fully connected layer
-        var fc1 = Gemm(flatten, fc1Weights, of(fc1Biases), of(1f), of(1), of(1f), empty());
+        var fc1 = Gemm(flatten, fc1Weights, of(fc1Biases), of(1f), of(1L), of(1f), empty());
         var relu3 = Relu(fc1);
 
         // Softmax layer
-        var fc2 = Gemm(relu3, fc2Weights, of(fc2Biases), of(1f), of(1), of(1f), empty());
-        var prediction = Softmax(fc2, of(1));
+        var fc2 = Gemm(relu3, fc2Weights, of(fc2Biases), of(1f), of(1L), of(1f), empty());
+        var prediction = Softmax(fc2, of(1L));
 
         return prediction;
     }
@@ -116,7 +126,6 @@ public class CNNTest {
 
         FunctionType functionType = FunctionType.functionType(
                 OnnxType.TENSOR_FLOAT32, // return
-                OnnxType.TENSOR_FLOAT32, // input arg
                 // weights & biases
                 OnnxType.TENSOR_FLOAT32,
                 OnnxType.TENSOR_FLOAT32,
@@ -125,21 +134,23 @@ public class CNNTest {
                 OnnxType.TENSOR_FLOAT32,
                 OnnxType.TENSOR_FLOAT32,
                 OnnxType.TENSOR_FLOAT32,
+                OnnxType.TENSOR_FLOAT32,
+                // input
                 OnnxType.TENSOR_FLOAT32
         );
 
         return CoreOp.func("cnn", functionType).body(b -> {
-            Block.Parameter inputImage = b.parameters().get(0);
-
             // weights & biases
-            Block.Parameter conv1Weights = b.parameters().get(1);
-            Block.Parameter conv1Biases = b.parameters().get(2);
-            Block.Parameter conv2Weights = b.parameters().get(3);
-            Block.Parameter conv2Biases = b.parameters().get(4);
-            Block.Parameter fc1Weights = b.parameters().get(5);
-            Block.Parameter fc1Biases = b.parameters().get(6);
-            Block.Parameter fc2Weights = b.parameters().get(7);
-            Block.Parameter fc2Biases = b.parameters().get(8);
+            Block.Parameter conv1Weights = b.parameters().get(0);
+            Block.Parameter conv1Biases = b.parameters().get(1);
+            Block.Parameter conv2Weights = b.parameters().get(2);
+            Block.Parameter conv2Biases = b.parameters().get(3);
+            Block.Parameter fc1Weights = b.parameters().get(4);
+            Block.Parameter fc1Biases = b.parameters().get(5);
+            Block.Parameter fc2Weights = b.parameters().get(6);
+            Block.Parameter fc2Biases = b.parameters().get(7);
+
+            Block.Parameter inputImage = b.parameters().get(8);
 
             var shape = b.op(OnnxOps.Constant(OnnxType.TENSOR_INT64,
                     empty(),
@@ -147,7 +158,7 @@ public class CNNTest {
                     empty(),
                     empty(),
                     empty(),
-                    of(new int[]{-1, IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS}),
+                    of(new long[]{-1, IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS}),
                     empty(),
                     empty()));
             var inputReshaped = b.op(OnnxOps.Reshape(inputImage.type(),
@@ -184,7 +195,7 @@ public class CNNTest {
                     empty(),
                     empty(),
                     of("SAME_UPPER"),
-                    of(new int[]{1, 1, 1, 1}),
+                    of(new long[]{1, 1, 1, 1}),
                     empty(),
                     empty()));
             var relu1 = b.op(OnnxOps.Relu(conv1.type(),
@@ -192,17 +203,19 @@ public class CNNTest {
 
             // First pooling layer
             // @@@ multiple results?
-            var pool1 = b.op(OnnxOps.MaxPool(relu1.type(), Set.of(),
+            var pool1Result = b.op(OnnxOps.MaxPool(TupleType.tupleType(relu1.type(), OnnxType.TENSOR_INT64),
+                    Set.of(OnnxOps.MaxPool.OutputParameter.Indices),
                     relu1,
                     empty(),
                     empty(),
                     of("SAME_UPPER"),
                     empty(),
                     empty(),
-                    of(new int[]{1, 2, 2, 1}),
-                    new int[]{1, 2, 2, 1}));
+                    of(new long[]{1, 2, 2, 1}),
+                    new long[]{1, 2, 2, 1}));
 
             // Second conv layer
+            var pool1 = b.op(CoreOp.tupleLoad(pool1Result, 0));
             var conv2 = b.op(OnnxOps.Conv(pool1.type(),
                     pool1,
                     conv2Weights,
@@ -210,7 +223,7 @@ public class CNNTest {
                     empty(),
                     empty(),
                     of("SAME_UPPER"),
-                    of(new int[]{1, 1, 1, 1}),
+                    of(new long[]{1, 1, 1, 1}),
                     empty(),
                     empty()));
             var relu2 = b.op(OnnxOps.Relu(conv2.type(),
@@ -218,15 +231,16 @@ public class CNNTest {
 
             // Second pooling layer
             // @@@ multiple results?
-            var pool2 = b.op(OnnxOps.MaxPool(relu2.type(), Set.of(),
+            var pool2Result = b.op(OnnxOps.MaxPool(TupleType.tupleType(relu2.type(), OnnxType.TENSOR_INT64),
+                    Set.of(OnnxOps.MaxPool.OutputParameter.Indices),
                     relu2,
                     empty(),
                     empty(),
                     of("SAME_UPPER"),
                     empty(),
                     empty(),
-                    of(new int[]{1, 2, 2, 1}),
-                    new int[]{1, 2, 2, 1}));
+                    of(new long[]{1, 2, 2, 1}),
+                    new long[]{1, 2, 2, 1}));
 
             // Flatten inputs
             var flatShape = b.op(OnnxOps.Constant(OnnxType.TENSOR_INT64,
@@ -235,9 +249,10 @@ public class CNNTest {
                     empty(),
                     empty(),
                     empty(),
-                    of(new int[]{0, 3136}),
+                    of(new long[]{0, 3136}),
                     empty(),
                     empty()));
+            var pool2 = b.op(CoreOp.tupleLoad(pool2Result, 0));
             var flatten = b.op(OnnxOps.Reshape(pool2.type(),
                     pool2,
                     flatShape,
@@ -249,7 +264,7 @@ public class CNNTest {
                     fc1Weights,
                     of(fc1Biases),
                     of(1f),
-                    of(1),
+                    of(1L),
                     of(1f),
                     empty()));
             var relu3 = b.op(OnnxOps.Relu(fc1.type(),
@@ -261,31 +276,43 @@ public class CNNTest {
                     fc2Weights,
                     of(fc2Biases),
                     of(1f),
-                    of(1),
+                    of(1L),
                     of(1f),
                     empty()));
             var prediction = b.op(OnnxOps.Softmax(fc2.type(),
                     fc2,
-                    of(1)));
+                    of(1L)));
 
             b.op(CoreOp._return(prediction));
         });
     }
 
     @Test
-    public void test() throws Exception {
-        {
-            Method cnn = CNNTest.class.getMethod("cnn", Tensor.class);
-            CoreOp.FuncOp funcOp = Op.ofMethod(cnn).get();
-            System.out.println(funcOp.toText());
-        }
+    public void test() {
+        CoreOp.FuncOp f = getFuncOp("cnn");
+        CoreOp.FuncOp onnxModel = OnnxTransformer.transform(MethodHandles.lookup(), f);
+        System.out.println(onnxModel.toText());
 
-        {
-            CoreOp.FuncOp funcOp = cnnModel();
-            System.out.println(funcOp.toText());
-        }
+        CoreOp.FuncOp expectedOnnxModel = cnnModel();
+        System.out.println(expectedOnnxModel.toText());
+
+        Assertions.assertEquals(serialize(expectedOnnxModel), serialize(onnxModel));
     }
 
+    static String serialize(Op o) {
+        StringWriter w = new StringWriter();
+        OpWriter.writeTo(w, o, OpWriter.LocationOption.DROP_LOCATION);
+        return w.toString();
+    }
+
+    static CoreOp.FuncOp getFuncOp(String name) {
+        Optional<Method> om = Stream.of(CNNTest.class.getDeclaredMethods())
+                .filter(m -> m.getName().equals(name))
+                .findFirst();
+
+        Method m = om.get();
+        return Op.ofMethod(m).get();
+    }
 
     /*
     ONNX code model

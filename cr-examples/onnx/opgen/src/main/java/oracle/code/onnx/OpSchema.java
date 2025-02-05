@@ -58,7 +58,7 @@ public record OpSchema(
 
     public enum AttributeType implements Serializable {
         FLOAT(float.class),
-        INT(int.class),
+        INT(long.class),
         STRING(String.class),
         // @@@ proto
         TENSOR(byte[].class),
@@ -69,7 +69,7 @@ public record OpSchema(
         // OnnxTypeElement?
         TYPE_PROTO(Object.class),
         FLOATS(float[].class),
-        INTS(int[].class),
+        INTS(long[].class),
         STRINGS(String[].class),
         // @@@ proto
         TENSORS(byte[][].class),
