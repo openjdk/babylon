@@ -852,7 +852,7 @@ public final class OnnxOps {
         public static final String NAME = "AffineGrid";
 
         public enum Attribute implements OnnxAttribute {
-            align_corners(Integer.class, true, 0),
+            align_corners(Long.class, true, 0),
             ;
 
                 final Class<?> t;
@@ -965,7 +965,7 @@ public final class OnnxOps {
             return new AffineGrid(this, cc);
         }
 
-        AffineGrid(TypeElement resultType, Value theta, Value size, java.util.Optional<Integer> align_corners) {
+        AffineGrid(TypeElement resultType, Value theta, Value size, java.util.Optional<Long> align_corners) {
             super(SCHEMA, resultType, Set.of(), List.of(theta, size), List.of(align_corners));
         }
 
@@ -987,14 +987,14 @@ public final class OnnxOps {
             return operands().get(1);
         }
 
-        public java.util.Optional<Integer> align_corners() {
-            Integer align_corners = Attribute.align_corners.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> align_corners() {
+            Long align_corners = Attribute.align_corners.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(align_corners);
         }
 
     }
 
-    public static AffineGrid AffineGrid(TypeElement resultType, Value theta, Value size, java.util.Optional<Integer> align_corners) {
+    public static AffineGrid AffineGrid(TypeElement resultType, Value theta, Value size, java.util.Optional<Long> align_corners) {
         return new AffineGrid(resultType, theta, size, align_corners);
     }
 
@@ -1123,9 +1123,9 @@ public final class OnnxOps {
         public static final String NAME = "ArgMax";
 
         public enum Attribute implements OnnxAttribute {
-            keepdims(Integer.class, true, 1),
-            select_last_index(Integer.class, true, 0),
-            axis(Integer.class, true, 0),
+            keepdims(Long.class, true, 1),
+            select_last_index(Long.class, true, 0),
+            axis(Long.class, true, 0),
             ;
 
                 final Class<?> t;
@@ -1236,7 +1236,7 @@ public final class OnnxOps {
             return new ArgMax(this, cc);
         }
 
-        ArgMax(TypeElement resultType, Value data, java.util.Optional<Integer> keepdims, java.util.Optional<Integer> select_last_index, java.util.Optional<Integer> axis) {
+        ArgMax(TypeElement resultType, Value data, java.util.Optional<Long> keepdims, java.util.Optional<Long> select_last_index, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(data), List.of(keepdims, select_last_index, axis));
         }
 
@@ -1254,24 +1254,24 @@ public final class OnnxOps {
             return operands().get(0);
         }
 
-        public java.util.Optional<Integer> keepdims() {
-            Integer keepdims = Attribute.keepdims.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> keepdims() {
+            Long keepdims = Attribute.keepdims.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(keepdims);
         }
 
-        public java.util.Optional<Integer> select_last_index() {
-            Integer select_last_index = Attribute.select_last_index.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> select_last_index() {
+            Long select_last_index = Attribute.select_last_index.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(select_last_index);
         }
 
-        public java.util.Optional<Integer> axis() {
-            Integer axis = Attribute.axis.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> axis() {
+            Long axis = Attribute.axis.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(axis);
         }
 
     }
 
-    public static ArgMax ArgMax(TypeElement resultType, Value data, java.util.Optional<Integer> keepdims, java.util.Optional<Integer> select_last_index, java.util.Optional<Integer> axis) {
+    public static ArgMax ArgMax(TypeElement resultType, Value data, java.util.Optional<Long> keepdims, java.util.Optional<Long> select_last_index, java.util.Optional<Long> axis) {
         return new ArgMax(resultType, data, keepdims, select_last_index, axis);
     }
 
@@ -1280,9 +1280,9 @@ public final class OnnxOps {
         public static final String NAME = "ArgMin";
 
         public enum Attribute implements OnnxAttribute {
-            keepdims(Integer.class, true, 1),
-            select_last_index(Integer.class, true, 0),
-            axis(Integer.class, true, 0),
+            keepdims(Long.class, true, 1),
+            select_last_index(Long.class, true, 0),
+            axis(Long.class, true, 0),
             ;
 
                 final Class<?> t;
@@ -1393,7 +1393,7 @@ public final class OnnxOps {
             return new ArgMin(this, cc);
         }
 
-        ArgMin(TypeElement resultType, Value data, java.util.Optional<Integer> keepdims, java.util.Optional<Integer> select_last_index, java.util.Optional<Integer> axis) {
+        ArgMin(TypeElement resultType, Value data, java.util.Optional<Long> keepdims, java.util.Optional<Long> select_last_index, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(data), List.of(keepdims, select_last_index, axis));
         }
 
@@ -1411,24 +1411,24 @@ public final class OnnxOps {
             return operands().get(0);
         }
 
-        public java.util.Optional<Integer> keepdims() {
-            Integer keepdims = Attribute.keepdims.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> keepdims() {
+            Long keepdims = Attribute.keepdims.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(keepdims);
         }
 
-        public java.util.Optional<Integer> select_last_index() {
-            Integer select_last_index = Attribute.select_last_index.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> select_last_index() {
+            Long select_last_index = Attribute.select_last_index.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(select_last_index);
         }
 
-        public java.util.Optional<Integer> axis() {
-            Integer axis = Attribute.axis.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> axis() {
+            Long axis = Attribute.axis.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(axis);
         }
 
     }
 
-    public static ArgMin ArgMin(TypeElement resultType, Value data, java.util.Optional<Integer> keepdims, java.util.Optional<Integer> select_last_index, java.util.Optional<Integer> axis) {
+    public static ArgMin ArgMin(TypeElement resultType, Value data, java.util.Optional<Long> keepdims, java.util.Optional<Long> select_last_index, java.util.Optional<Long> axis) {
         return new ArgMin(resultType, data, keepdims, select_last_index, axis);
     }
 
@@ -2012,13 +2012,13 @@ public final class OnnxOps {
         public static final String NAME = "AveragePool";
 
         public enum Attribute implements OnnxAttribute {
-            pads(int[].class, true, null),
-            dilations(int[].class, true, null),
+            pads(long[].class, true, null),
+            dilations(long[].class, true, null),
             auto_pad(String.class, true, "NOTSET"),
-            count_include_pad(Integer.class, true, 0),
-            ceil_mode(Integer.class, true, 0),
-            strides(int[].class, true, null),
-            kernel_shape(int[].class, false, null),
+            count_include_pad(Long.class, true, 0),
+            ceil_mode(Long.class, true, 0),
+            strides(long[].class, true, null),
+            kernel_shape(long[].class, false, null),
             ;
 
                 final Class<?> t;
@@ -2129,7 +2129,7 @@ public final class OnnxOps {
             return new AveragePool(this, cc);
         }
 
-        AveragePool(TypeElement resultType, Value X, java.util.Optional<int[]> pads, java.util.Optional<int[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<Integer> count_include_pad, java.util.Optional<Integer> ceil_mode, java.util.Optional<int[]> strides, int[] kernel_shape) {
+        AveragePool(TypeElement resultType, Value X, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<Long> count_include_pad, java.util.Optional<Long> ceil_mode, java.util.Optional<long[]> strides, long[] kernel_shape) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(pads, dilations, auto_pad, count_include_pad, ceil_mode, strides, kernel_shape));
         }
 
@@ -2147,14 +2147,14 @@ public final class OnnxOps {
             return operands().get(0);
         }
 
-        public java.util.Optional<int[]> pads() {
-            int[] pads = Attribute.pads.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(pads).map(int[]::clone);
+        public java.util.Optional<long[]> pads() {
+            long[] pads = Attribute.pads.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(pads).map(long[]::clone);
         }
 
-        public java.util.Optional<int[]> dilations() {
-            int[] dilations = Attribute.dilations.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(dilations).map(int[]::clone);
+        public java.util.Optional<long[]> dilations() {
+            long[] dilations = Attribute.dilations.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(dilations).map(long[]::clone);
         }
 
         public java.util.Optional<String> auto_pad() {
@@ -2162,29 +2162,29 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(auto_pad);
         }
 
-        public java.util.Optional<Integer> count_include_pad() {
-            Integer count_include_pad = Attribute.count_include_pad.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> count_include_pad() {
+            Long count_include_pad = Attribute.count_include_pad.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(count_include_pad);
         }
 
-        public java.util.Optional<Integer> ceil_mode() {
-            Integer ceil_mode = Attribute.ceil_mode.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> ceil_mode() {
+            Long ceil_mode = Attribute.ceil_mode.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(ceil_mode);
         }
 
-        public java.util.Optional<int[]> strides() {
-            int[] strides = Attribute.strides.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(strides).map(int[]::clone);
+        public java.util.Optional<long[]> strides() {
+            long[] strides = Attribute.strides.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(strides).map(long[]::clone);
         }
 
-        public int[] kernel_shape() {
-            int[] kernel_shape = Attribute.kernel_shape.access(int[].class, onnxAttributes);
+        public long[] kernel_shape() {
+            long[] kernel_shape = Attribute.kernel_shape.access(long[].class, onnxAttributes);
             return kernel_shape.clone();
         }
 
     }
 
-    public static AveragePool AveragePool(TypeElement resultType, Value X, java.util.Optional<int[]> pads, java.util.Optional<int[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<Integer> count_include_pad, java.util.Optional<Integer> ceil_mode, java.util.Optional<int[]> strides, int[] kernel_shape) {
+    public static AveragePool AveragePool(TypeElement resultType, Value X, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<Long> count_include_pad, java.util.Optional<Long> ceil_mode, java.util.Optional<long[]> strides, long[] kernel_shape) {
         return new AveragePool(resultType, X, pads, dilations, auto_pad, count_include_pad, ceil_mode, strides, kernel_shape);
     }
 
@@ -2194,7 +2194,7 @@ public final class OnnxOps {
 
         public enum Attribute implements OnnxAttribute {
             epsilon(Float.class, true, 1.0E-5f),
-            training_mode(Integer.class, true, 0),
+            training_mode(Long.class, true, 0),
             momentum(Float.class, true, 0.9f),
             ;
 
@@ -2314,7 +2314,7 @@ public final class OnnxOps {
             return new BatchNormalization(this, cc);
         }
 
-        BatchNormalization(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value X, Value scale, Value B, Value input_mean, Value input_var, java.util.Optional<Float> epsilon, java.util.Optional<Integer> training_mode, java.util.Optional<Float> momentum) {
+        BatchNormalization(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value X, Value scale, Value B, Value input_mean, Value input_var, java.util.Optional<Float> epsilon, java.util.Optional<Long> training_mode, java.util.Optional<Float> momentum) {
             super(SCHEMA, resultType, optionalOutputs, List.of(X, scale, B, input_mean, input_var), List.of(epsilon, training_mode, momentum));
         }
 
@@ -2353,8 +2353,8 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(epsilon);
         }
 
-        public java.util.Optional<Integer> training_mode() {
-            Integer training_mode = Attribute.training_mode.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> training_mode() {
+            Long training_mode = Attribute.training_mode.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(training_mode);
         }
 
@@ -2365,7 +2365,7 @@ public final class OnnxOps {
 
     }
 
-    public static BatchNormalization BatchNormalization(TypeElement resultType, Set<BatchNormalization.OutputParameter> optionalOutputs, Value X, Value scale, Value B, Value input_mean, Value input_var, java.util.Optional<Float> epsilon, java.util.Optional<Integer> training_mode, java.util.Optional<Float> momentum) {
+    public static BatchNormalization BatchNormalization(TypeElement resultType, Set<BatchNormalization.OutputParameter> optionalOutputs, Value X, Value scale, Value B, Value input_mean, Value input_var, java.util.Optional<Float> epsilon, java.util.Optional<Long> training_mode, java.util.Optional<Float> momentum) {
         return new BatchNormalization(resultType, optionalOutputs, X, scale, B, input_mean, input_var, epsilon, training_mode, momentum);
     }
 
@@ -2375,7 +2375,7 @@ public final class OnnxOps {
 
         public enum Attribute implements OnnxAttribute {
             seed(Float.class, true, null),
-            dtype(Integer.class, true, null),
+            dtype(Long.class, true, null),
             ;
 
                 final Class<?> t;
@@ -2487,7 +2487,7 @@ public final class OnnxOps {
             return new Bernoulli(this, cc);
         }
 
-        Bernoulli(TypeElement resultType, Value input, java.util.Optional<Float> seed, java.util.Optional<Integer> dtype) {
+        Bernoulli(TypeElement resultType, Value input, java.util.Optional<Float> seed, java.util.Optional<Long> dtype) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of(seed, dtype));
         }
 
@@ -2510,14 +2510,14 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(seed);
         }
 
-        public java.util.Optional<Integer> dtype() {
-            Integer dtype = Attribute.dtype.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> dtype() {
+            Long dtype = Attribute.dtype.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(dtype);
         }
 
     }
 
-    public static Bernoulli Bernoulli(TypeElement resultType, Value input, java.util.Optional<Float> seed, java.util.Optional<Integer> dtype) {
+    public static Bernoulli Bernoulli(TypeElement resultType, Value input, java.util.Optional<Float> seed, java.util.Optional<Long> dtype) {
         return new Bernoulli(resultType, input, seed, dtype);
     }
 
@@ -3292,8 +3292,8 @@ public final class OnnxOps {
         public static final String NAME = "BlackmanWindow";
 
         public enum Attribute implements OnnxAttribute {
-            periodic(Integer.class, true, 1),
-            output_datatype(Integer.class, true, 1),
+            periodic(Long.class, true, 1),
+            output_datatype(Long.class, true, 1),
             ;
 
                 final Class<?> t;
@@ -3405,7 +3405,7 @@ public final class OnnxOps {
             return new BlackmanWindow(this, cc);
         }
 
-        BlackmanWindow(TypeElement resultType, Value size, java.util.Optional<Integer> periodic, java.util.Optional<Integer> output_datatype) {
+        BlackmanWindow(TypeElement resultType, Value size, java.util.Optional<Long> periodic, java.util.Optional<Long> output_datatype) {
             super(SCHEMA, resultType, Set.of(), List.of(size), List.of(periodic, output_datatype));
         }
 
@@ -3423,19 +3423,19 @@ public final class OnnxOps {
             return operands().get(0);
         }
 
-        public java.util.Optional<Integer> periodic() {
-            Integer periodic = Attribute.periodic.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> periodic() {
+            Long periodic = Attribute.periodic.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(periodic);
         }
 
-        public java.util.Optional<Integer> output_datatype() {
-            Integer output_datatype = Attribute.output_datatype.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> output_datatype() {
+            Long output_datatype = Attribute.output_datatype.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(output_datatype);
         }
 
     }
 
-    public static BlackmanWindow BlackmanWindow(TypeElement resultType, Value size, java.util.Optional<Integer> periodic, java.util.Optional<Integer> output_datatype) {
+    public static BlackmanWindow BlackmanWindow(TypeElement resultType, Value size, java.util.Optional<Long> periodic, java.util.Optional<Long> output_datatype) {
         return new BlackmanWindow(resultType, size, periodic, output_datatype);
     }
 
@@ -3444,8 +3444,8 @@ public final class OnnxOps {
         public static final String NAME = "Cast";
 
         public enum Attribute implements OnnxAttribute {
-            saturate(Integer.class, true, 1),
-            to(Integer.class, false, null),
+            saturate(Long.class, true, 1),
+            to(Long.class, false, null),
             ;
 
                 final Class<?> t;
@@ -3557,7 +3557,7 @@ public final class OnnxOps {
             return new Cast(this, cc);
         }
 
-        Cast(TypeElement resultType, Value input, java.util.Optional<Integer> saturate, int to) {
+        Cast(TypeElement resultType, Value input, java.util.Optional<Long> saturate, long to) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of(saturate, to));
         }
 
@@ -3575,19 +3575,19 @@ public final class OnnxOps {
             return operands().get(0);
         }
 
-        public java.util.Optional<Integer> saturate() {
-            Integer saturate = Attribute.saturate.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> saturate() {
+            Long saturate = Attribute.saturate.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(saturate);
         }
 
-        public int to() {
-            int to = Attribute.to.access(int.class, onnxAttributes);
+        public long to() {
+            long to = Attribute.to.access(long.class, onnxAttributes);
             return to;
         }
 
     }
 
-    public static Cast Cast(TypeElement resultType, Value input, java.util.Optional<Integer> saturate, int to) {
+    public static Cast Cast(TypeElement resultType, Value input, java.util.Optional<Long> saturate, long to) {
         return new Cast(resultType, input, saturate, to);
     }
 
@@ -3596,7 +3596,7 @@ public final class OnnxOps {
         public static final String NAME = "CastLike";
 
         public enum Attribute implements OnnxAttribute {
-            saturate(Integer.class, true, 1),
+            saturate(Long.class, true, 1),
             ;
 
                 final Class<?> t;
@@ -3709,7 +3709,7 @@ public final class OnnxOps {
             return new CastLike(this, cc);
         }
 
-        CastLike(TypeElement resultType, Value input, Value target_type, java.util.Optional<Integer> saturate) {
+        CastLike(TypeElement resultType, Value input, Value target_type, java.util.Optional<Long> saturate) {
             super(SCHEMA, resultType, Set.of(), List.of(input, target_type), List.of(saturate));
         }
 
@@ -3731,14 +3731,14 @@ public final class OnnxOps {
             return operands().get(1);
         }
 
-        public java.util.Optional<Integer> saturate() {
-            Integer saturate = Attribute.saturate.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> saturate() {
+            Long saturate = Attribute.saturate.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(saturate);
         }
 
     }
 
-    public static CastLike CastLike(TypeElement resultType, Value input, Value target_type, java.util.Optional<Integer> saturate) {
+    public static CastLike CastLike(TypeElement resultType, Value input, Value target_type, java.util.Optional<Long> saturate) {
         return new CastLike(resultType, input, target_type, saturate);
     }
 
@@ -3749,7 +3749,7 @@ public final class OnnxOps {
         public enum Attribute implements OnnxAttribute {
             map_form(String.class, true, "DENSE"),
             cast_to(String.class, true, "TO_FLOAT"),
-            max_map(Integer.class, true, 1),
+            max_map(Long.class, true, 1),
             ;
 
                 final Class<?> t;
@@ -3861,7 +3861,7 @@ public final class OnnxOps {
             return new CastMap(this, cc);
         }
 
-        CastMap(TypeElement resultType, Value X, java.util.Optional<String> map_form, java.util.Optional<String> cast_to, java.util.Optional<Integer> max_map) {
+        CastMap(TypeElement resultType, Value X, java.util.Optional<String> map_form, java.util.Optional<String> cast_to, java.util.Optional<Long> max_map) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(map_form, cast_to, max_map));
         }
 
@@ -3889,14 +3889,14 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(cast_to);
         }
 
-        public java.util.Optional<Integer> max_map() {
-            Integer max_map = Attribute.max_map.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> max_map() {
+            Long max_map = Attribute.max_map.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(max_map);
         }
 
     }
 
-    public static CastMap CastMap(TypeElement resultType, Value X, java.util.Optional<String> map_form, java.util.Optional<String> cast_to, java.util.Optional<Integer> max_map) {
+    public static CastMap CastMap(TypeElement resultType, Value X, java.util.Optional<String> map_form, java.util.Optional<String> cast_to, java.util.Optional<Long> max_map) {
         return new CastMap(resultType, X, map_form, cast_to, max_map);
     }
 
@@ -3905,9 +3905,9 @@ public final class OnnxOps {
         public static final String NAME = "CategoryMapper";
 
         public enum Attribute implements OnnxAttribute {
-            cats_int64s(int[].class, true, null),
+            cats_int64s(long[].class, true, null),
             cats_strings(String[].class, true, null),
-            default_int64(Integer.class, true, -1),
+            default_int64(Long.class, true, -1),
             default_string(String.class, true, "_Unused"),
             ;
 
@@ -4020,7 +4020,7 @@ public final class OnnxOps {
             return new CategoryMapper(this, cc);
         }
 
-        CategoryMapper(TypeElement resultType, Value X, java.util.Optional<int[]> cats_int64s, java.util.Optional<String[]> cats_strings, java.util.Optional<Integer> default_int64, java.util.Optional<String> default_string) {
+        CategoryMapper(TypeElement resultType, Value X, java.util.Optional<long[]> cats_int64s, java.util.Optional<String[]> cats_strings, java.util.Optional<Long> default_int64, java.util.Optional<String> default_string) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(cats_int64s, cats_strings, default_int64, default_string));
         }
 
@@ -4038,9 +4038,9 @@ public final class OnnxOps {
             return operands().get(0);
         }
 
-        public java.util.Optional<int[]> cats_int64s() {
-            int[] cats_int64s = Attribute.cats_int64s.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(cats_int64s).map(int[]::clone);
+        public java.util.Optional<long[]> cats_int64s() {
+            long[] cats_int64s = Attribute.cats_int64s.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(cats_int64s).map(long[]::clone);
         }
 
         public java.util.Optional<String[]> cats_strings() {
@@ -4048,8 +4048,8 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(cats_strings).map(String[]::clone);
         }
 
-        public java.util.Optional<Integer> default_int64() {
-            Integer default_int64 = Attribute.default_int64.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> default_int64() {
+            Long default_int64 = Attribute.default_int64.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(default_int64);
         }
 
@@ -4060,7 +4060,7 @@ public final class OnnxOps {
 
     }
 
-    public static CategoryMapper CategoryMapper(TypeElement resultType, Value X, java.util.Optional<int[]> cats_int64s, java.util.Optional<String[]> cats_strings, java.util.Optional<Integer> default_int64, java.util.Optional<String> default_string) {
+    public static CategoryMapper CategoryMapper(TypeElement resultType, Value X, java.util.Optional<long[]> cats_int64s, java.util.Optional<String[]> cats_strings, java.util.Optional<Long> default_int64, java.util.Optional<String> default_string) {
         return new CategoryMapper(resultType, X, cats_int64s, cats_strings, default_int64, default_string);
     }
 
@@ -4328,7 +4328,7 @@ public final class OnnxOps {
         public static final String NAME = "CenterCropPad";
 
         public enum Attribute implements OnnxAttribute {
-            axes(int[].class, true, null),
+            axes(long[].class, true, null),
             ;
 
                 final Class<?> t;
@@ -4441,7 +4441,7 @@ public final class OnnxOps {
             return new CenterCropPad(this, cc);
         }
 
-        CenterCropPad(TypeElement resultType, Value input_data, Value shape, java.util.Optional<int[]> axes) {
+        CenterCropPad(TypeElement resultType, Value input_data, Value shape, java.util.Optional<long[]> axes) {
             super(SCHEMA, resultType, Set.of(), List.of(input_data, shape), List.of(axes));
         }
 
@@ -4463,14 +4463,14 @@ public final class OnnxOps {
             return operands().get(1);
         }
 
-        public java.util.Optional<int[]> axes() {
-            int[] axes = Attribute.axes.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(axes).map(int[]::clone);
+        public java.util.Optional<long[]> axes() {
+            long[] axes = Attribute.axes.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(axes).map(long[]::clone);
         }
 
     }
 
-    public static CenterCropPad CenterCropPad(TypeElement resultType, Value input_data, Value shape, java.util.Optional<int[]> axes) {
+    public static CenterCropPad CenterCropPad(TypeElement resultType, Value input_data, Value shape, java.util.Optional<long[]> axes) {
         return new CenterCropPad(resultType, input_data, shape, axes);
     }
 
@@ -4605,9 +4605,9 @@ public final class OnnxOps {
         public static final String NAME = "Col2Im";
 
         public enum Attribute implements OnnxAttribute {
-            pads(int[].class, true, null),
-            dilations(int[].class, true, null),
-            strides(int[].class, true, null),
+            pads(long[].class, true, null),
+            dilations(long[].class, true, null),
+            strides(long[].class, true, null),
             ;
 
                 final Class<?> t;
@@ -4720,7 +4720,7 @@ public final class OnnxOps {
             return new Col2Im(this, cc);
         }
 
-        Col2Im(TypeElement resultType, Value input, Value image_shape, Value block_shape, java.util.Optional<int[]> pads, java.util.Optional<int[]> dilations, java.util.Optional<int[]> strides) {
+        Col2Im(TypeElement resultType, Value input, Value image_shape, Value block_shape, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<long[]> strides) {
             super(SCHEMA, resultType, Set.of(), List.of(input, image_shape, block_shape), List.of(pads, dilations, strides));
         }
 
@@ -4746,24 +4746,24 @@ public final class OnnxOps {
             return operands().get(2);
         }
 
-        public java.util.Optional<int[]> pads() {
-            int[] pads = Attribute.pads.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(pads).map(int[]::clone);
+        public java.util.Optional<long[]> pads() {
+            long[] pads = Attribute.pads.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(pads).map(long[]::clone);
         }
 
-        public java.util.Optional<int[]> dilations() {
-            int[] dilations = Attribute.dilations.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(dilations).map(int[]::clone);
+        public java.util.Optional<long[]> dilations() {
+            long[] dilations = Attribute.dilations.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(dilations).map(long[]::clone);
         }
 
-        public java.util.Optional<int[]> strides() {
-            int[] strides = Attribute.strides.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(strides).map(int[]::clone);
+        public java.util.Optional<long[]> strides() {
+            long[] strides = Attribute.strides.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(strides).map(long[]::clone);
         }
 
     }
 
-    public static Col2Im Col2Im(TypeElement resultType, Value input, Value image_shape, Value block_shape, java.util.Optional<int[]> pads, java.util.Optional<int[]> dilations, java.util.Optional<int[]> strides) {
+    public static Col2Im Col2Im(TypeElement resultType, Value input, Value image_shape, Value block_shape, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<long[]> strides) {
         return new Col2Im(resultType, input, image_shape, block_shape, pads, dilations, strides);
     }
 
@@ -4772,7 +4772,7 @@ public final class OnnxOps {
         public static final String NAME = "Compress";
 
         public enum Attribute implements OnnxAttribute {
-            axis(Integer.class, true, null),
+            axis(Long.class, true, null),
             ;
 
                 final Class<?> t;
@@ -4885,7 +4885,7 @@ public final class OnnxOps {
             return new Compress(this, cc);
         }
 
-        Compress(TypeElement resultType, Value input, Value condition, java.util.Optional<Integer> axis) {
+        Compress(TypeElement resultType, Value input, Value condition, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(input, condition), List.of(axis));
         }
 
@@ -4907,14 +4907,14 @@ public final class OnnxOps {
             return operands().get(1);
         }
 
-        public java.util.Optional<Integer> axis() {
-            Integer axis = Attribute.axis.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> axis() {
+            Long axis = Attribute.axis.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(axis);
         }
 
     }
 
-    public static Compress Compress(TypeElement resultType, Value input, Value condition, java.util.Optional<Integer> axis) {
+    public static Compress Compress(TypeElement resultType, Value input, Value condition, java.util.Optional<Long> axis) {
         return new Compress(resultType, input, condition, axis);
     }
 
@@ -4923,7 +4923,7 @@ public final class OnnxOps {
         public static final String NAME = "Concat";
 
         public enum Attribute implements OnnxAttribute {
-            axis(Integer.class, false, null),
+            axis(Long.class, false, null),
             ;
 
                 final Class<?> t;
@@ -5034,7 +5034,7 @@ public final class OnnxOps {
             return new Concat(this, cc);
         }
 
-        Concat(TypeElement resultType, List<Value> inputs, int axis) {
+        Concat(TypeElement resultType, List<Value> inputs, long axis) {
             super(SCHEMA, resultType, Set.of(), List.of(inputs), List.of(axis));
         }
 
@@ -5052,14 +5052,14 @@ public final class OnnxOps {
             return operands();
         }
 
-        public int axis() {
-            int axis = Attribute.axis.access(int.class, onnxAttributes);
+        public long axis() {
+            long axis = Attribute.axis.access(long.class, onnxAttributes);
             return axis;
         }
 
     }
 
-    public static Concat Concat(TypeElement resultType, List<Value> inputs, int axis) {
+    public static Concat Concat(TypeElement resultType, List<Value> inputs, long axis) {
         return new Concat(resultType, inputs, axis);
     }
 
@@ -5068,8 +5068,8 @@ public final class OnnxOps {
         public static final String NAME = "ConcatFromSequence";
 
         public enum Attribute implements OnnxAttribute {
-            axis(Integer.class, false, null),
-            new_axis(Integer.class, true, 0),
+            axis(Long.class, false, null),
+            new_axis(Long.class, true, 0),
             ;
 
                 final Class<?> t;
@@ -5181,7 +5181,7 @@ public final class OnnxOps {
             return new ConcatFromSequence(this, cc);
         }
 
-        ConcatFromSequence(TypeElement resultType, Value input_sequence, int axis, java.util.Optional<Integer> new_axis) {
+        ConcatFromSequence(TypeElement resultType, Value input_sequence, long axis, java.util.Optional<Long> new_axis) {
             super(SCHEMA, resultType, Set.of(), List.of(input_sequence), List.of(axis, new_axis));
         }
 
@@ -5199,19 +5199,19 @@ public final class OnnxOps {
             return operands().get(0);
         }
 
-        public int axis() {
-            int axis = Attribute.axis.access(int.class, onnxAttributes);
+        public long axis() {
+            long axis = Attribute.axis.access(long.class, onnxAttributes);
             return axis;
         }
 
-        public java.util.Optional<Integer> new_axis() {
-            Integer new_axis = Attribute.new_axis.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> new_axis() {
+            Long new_axis = Attribute.new_axis.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(new_axis);
         }
 
     }
 
-    public static ConcatFromSequence ConcatFromSequence(TypeElement resultType, Value input_sequence, int axis, java.util.Optional<Integer> new_axis) {
+    public static ConcatFromSequence ConcatFromSequence(TypeElement resultType, Value input_sequence, long axis, java.util.Optional<Long> new_axis) {
         return new ConcatFromSequence(resultType, input_sequence, axis, new_axis);
     }
 
@@ -5220,12 +5220,12 @@ public final class OnnxOps {
         public static final String NAME = "Constant";
 
         public enum Attribute implements OnnxAttribute {
-            value_int(Integer.class, true, null),
+            value_int(Long.class, true, null),
             value_floats(float[].class, true, null),
             value_strings(String[].class, true, null),
             value_float(Float.class, true, null),
             value_string(String.class, true, null),
-            value_ints(int[].class, true, null),
+            value_ints(long[].class, true, null),
             sparse_value(byte[].class, true, null),
             value(byte[].class, true, null),
             ;
@@ -5317,7 +5317,7 @@ public final class OnnxOps {
             return new Constant(this, cc);
         }
 
-        Constant(TypeElement resultType, java.util.Optional<Integer> value_int, java.util.Optional<float[]> value_floats, java.util.Optional<String[]> value_strings, java.util.Optional<Float> value_float, java.util.Optional<String> value_string, java.util.Optional<int[]> value_ints, java.util.Optional<byte[]> sparse_value, java.util.Optional<byte[]> value) {
+        Constant(TypeElement resultType, java.util.Optional<Long> value_int, java.util.Optional<float[]> value_floats, java.util.Optional<String[]> value_strings, java.util.Optional<Float> value_float, java.util.Optional<String> value_string, java.util.Optional<long[]> value_ints, java.util.Optional<byte[]> sparse_value, java.util.Optional<byte[]> value) {
             super(SCHEMA, resultType, Set.of(), List.of(), List.of(value_int, value_floats, value_strings, value_float, value_string, value_ints, sparse_value, value));
         }
 
@@ -5331,8 +5331,8 @@ public final class OnnxOps {
             return onnxInputs(SCHEMA, List.of());
         }
 
-        public java.util.Optional<Integer> value_int() {
-            Integer value_int = Attribute.value_int.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> value_int() {
+            Long value_int = Attribute.value_int.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(value_int);
         }
 
@@ -5356,9 +5356,9 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(value_string);
         }
 
-        public java.util.Optional<int[]> value_ints() {
-            int[] value_ints = Attribute.value_ints.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(value_ints).map(int[]::clone);
+        public java.util.Optional<long[]> value_ints() {
+            long[] value_ints = Attribute.value_ints.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(value_ints).map(long[]::clone);
         }
 
         public java.util.Optional<byte[]> sparse_value() {
@@ -5373,7 +5373,7 @@ public final class OnnxOps {
 
     }
 
-    public static Constant Constant(TypeElement resultType, java.util.Optional<Integer> value_int, java.util.Optional<float[]> value_floats, java.util.Optional<String[]> value_strings, java.util.Optional<Float> value_float, java.util.Optional<String> value_string, java.util.Optional<int[]> value_ints, java.util.Optional<byte[]> sparse_value, java.util.Optional<byte[]> value) {
+    public static Constant Constant(TypeElement resultType, java.util.Optional<Long> value_int, java.util.Optional<float[]> value_floats, java.util.Optional<String[]> value_strings, java.util.Optional<Float> value_float, java.util.Optional<String> value_string, java.util.Optional<long[]> value_ints, java.util.Optional<byte[]> sparse_value, java.util.Optional<byte[]> value) {
         return new Constant(resultType, value_int, value_floats, value_strings, value_float, value_string, value_ints, sparse_value, value);
     }
 
@@ -5528,12 +5528,12 @@ public final class OnnxOps {
         public static final String NAME = "Conv";
 
         public enum Attribute implements OnnxAttribute {
-            pads(int[].class, true, null),
-            dilations(int[].class, true, null),
+            pads(long[].class, true, null),
+            dilations(long[].class, true, null),
             auto_pad(String.class, true, "NOTSET"),
-            strides(int[].class, true, null),
-            group(Integer.class, true, 1),
-            kernel_shape(int[].class, true, null),
+            strides(long[].class, true, null),
+            group(Long.class, true, 1),
+            kernel_shape(long[].class, true, null),
             ;
 
                 final Class<?> t;
@@ -5646,7 +5646,7 @@ public final class OnnxOps {
             return new Conv(this, cc);
         }
 
-        Conv(TypeElement resultType, Value X, Value W, java.util.Optional<Value> B, java.util.Optional<int[]> pads, java.util.Optional<int[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<int[]> strides, java.util.Optional<Integer> group, java.util.Optional<int[]> kernel_shape) {
+        Conv(TypeElement resultType, Value X, Value W, java.util.Optional<Value> B, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<long[]> strides, java.util.Optional<Long> group, java.util.Optional<long[]> kernel_shape) {
             super(SCHEMA, resultType, Set.of(), List.of(X, W, B), List.of(pads, dilations, auto_pad, strides, group, kernel_shape));
         }
 
@@ -5673,14 +5673,14 @@ public final class OnnxOps {
             return i != -1 ? java.util.Optional.of(operands().get(2 + i)) : java.util.Optional.empty();
         }
 
-        public java.util.Optional<int[]> pads() {
-            int[] pads = Attribute.pads.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(pads).map(int[]::clone);
+        public java.util.Optional<long[]> pads() {
+            long[] pads = Attribute.pads.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(pads).map(long[]::clone);
         }
 
-        public java.util.Optional<int[]> dilations() {
-            int[] dilations = Attribute.dilations.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(dilations).map(int[]::clone);
+        public java.util.Optional<long[]> dilations() {
+            long[] dilations = Attribute.dilations.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(dilations).map(long[]::clone);
         }
 
         public java.util.Optional<String> auto_pad() {
@@ -5688,24 +5688,24 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(auto_pad);
         }
 
-        public java.util.Optional<int[]> strides() {
-            int[] strides = Attribute.strides.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(strides).map(int[]::clone);
+        public java.util.Optional<long[]> strides() {
+            long[] strides = Attribute.strides.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(strides).map(long[]::clone);
         }
 
-        public java.util.Optional<Integer> group() {
-            Integer group = Attribute.group.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> group() {
+            Long group = Attribute.group.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(group);
         }
 
-        public java.util.Optional<int[]> kernel_shape() {
-            int[] kernel_shape = Attribute.kernel_shape.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(kernel_shape).map(int[]::clone);
+        public java.util.Optional<long[]> kernel_shape() {
+            long[] kernel_shape = Attribute.kernel_shape.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(kernel_shape).map(long[]::clone);
         }
 
     }
 
-    public static Conv Conv(TypeElement resultType, Value X, Value W, java.util.Optional<Value> B, java.util.Optional<int[]> pads, java.util.Optional<int[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<int[]> strides, java.util.Optional<Integer> group, java.util.Optional<int[]> kernel_shape) {
+    public static Conv Conv(TypeElement resultType, Value X, Value W, java.util.Optional<Value> B, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<long[]> strides, java.util.Optional<Long> group, java.util.Optional<long[]> kernel_shape) {
         return new Conv(resultType, X, W, B, pads, dilations, auto_pad, strides, group, kernel_shape);
     }
 
@@ -5714,12 +5714,12 @@ public final class OnnxOps {
         public static final String NAME = "ConvInteger";
 
         public enum Attribute implements OnnxAttribute {
-            pads(int[].class, true, null),
-            dilations(int[].class, true, null),
+            pads(long[].class, true, null),
+            dilations(long[].class, true, null),
             auto_pad(String.class, true, "NOTSET"),
-            strides(int[].class, true, null),
-            group(Integer.class, true, 1),
-            kernel_shape(int[].class, true, null),
+            strides(long[].class, true, null),
+            group(Long.class, true, 1),
+            kernel_shape(long[].class, true, null),
             ;
 
                 final Class<?> t;
@@ -5835,7 +5835,7 @@ public final class OnnxOps {
             return new ConvInteger(this, cc);
         }
 
-        ConvInteger(TypeElement resultType, Value x, Value w, java.util.Optional<Value> x_zero_point, java.util.Optional<Value> w_zero_point, java.util.Optional<int[]> pads, java.util.Optional<int[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<int[]> strides, java.util.Optional<Integer> group, java.util.Optional<int[]> kernel_shape) {
+        ConvInteger(TypeElement resultType, Value x, Value w, java.util.Optional<Value> x_zero_point, java.util.Optional<Value> w_zero_point, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<long[]> strides, java.util.Optional<Long> group, java.util.Optional<long[]> kernel_shape) {
             super(SCHEMA, resultType, Set.of(), List.of(x, w, x_zero_point, w_zero_point), List.of(pads, dilations, auto_pad, strides, group, kernel_shape));
         }
 
@@ -5867,14 +5867,14 @@ public final class OnnxOps {
             return i != -1 ? java.util.Optional.of(operands().get(2 + i)) : java.util.Optional.empty();
         }
 
-        public java.util.Optional<int[]> pads() {
-            int[] pads = Attribute.pads.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(pads).map(int[]::clone);
+        public java.util.Optional<long[]> pads() {
+            long[] pads = Attribute.pads.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(pads).map(long[]::clone);
         }
 
-        public java.util.Optional<int[]> dilations() {
-            int[] dilations = Attribute.dilations.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(dilations).map(int[]::clone);
+        public java.util.Optional<long[]> dilations() {
+            long[] dilations = Attribute.dilations.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(dilations).map(long[]::clone);
         }
 
         public java.util.Optional<String> auto_pad() {
@@ -5882,24 +5882,24 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(auto_pad);
         }
 
-        public java.util.Optional<int[]> strides() {
-            int[] strides = Attribute.strides.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(strides).map(int[]::clone);
+        public java.util.Optional<long[]> strides() {
+            long[] strides = Attribute.strides.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(strides).map(long[]::clone);
         }
 
-        public java.util.Optional<Integer> group() {
-            Integer group = Attribute.group.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> group() {
+            Long group = Attribute.group.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(group);
         }
 
-        public java.util.Optional<int[]> kernel_shape() {
-            int[] kernel_shape = Attribute.kernel_shape.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(kernel_shape).map(int[]::clone);
+        public java.util.Optional<long[]> kernel_shape() {
+            long[] kernel_shape = Attribute.kernel_shape.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(kernel_shape).map(long[]::clone);
         }
 
     }
 
-    public static ConvInteger ConvInteger(TypeElement resultType, Value x, Value w, java.util.Optional<Value> x_zero_point, java.util.Optional<Value> w_zero_point, java.util.Optional<int[]> pads, java.util.Optional<int[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<int[]> strides, java.util.Optional<Integer> group, java.util.Optional<int[]> kernel_shape) {
+    public static ConvInteger ConvInteger(TypeElement resultType, Value x, Value w, java.util.Optional<Value> x_zero_point, java.util.Optional<Value> w_zero_point, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<long[]> strides, java.util.Optional<Long> group, java.util.Optional<long[]> kernel_shape) {
         return new ConvInteger(resultType, x, w, x_zero_point, w_zero_point, pads, dilations, auto_pad, strides, group, kernel_shape);
     }
 
@@ -5908,14 +5908,14 @@ public final class OnnxOps {
         public static final String NAME = "ConvTranspose";
 
         public enum Attribute implements OnnxAttribute {
-            output_shape(int[].class, true, null),
-            pads(int[].class, true, null),
-            dilations(int[].class, true, null),
+            output_shape(long[].class, true, null),
+            pads(long[].class, true, null),
+            dilations(long[].class, true, null),
             auto_pad(String.class, true, "NOTSET"),
-            strides(int[].class, true, null),
-            group(Integer.class, true, 1),
-            kernel_shape(int[].class, true, null),
-            output_padding(int[].class, true, null),
+            strides(long[].class, true, null),
+            group(Long.class, true, 1),
+            kernel_shape(long[].class, true, null),
+            output_padding(long[].class, true, null),
             ;
 
                 final Class<?> t;
@@ -6028,7 +6028,7 @@ public final class OnnxOps {
             return new ConvTranspose(this, cc);
         }
 
-        ConvTranspose(TypeElement resultType, Value X, Value W, java.util.Optional<Value> B, java.util.Optional<int[]> output_shape, java.util.Optional<int[]> pads, java.util.Optional<int[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<int[]> strides, java.util.Optional<Integer> group, java.util.Optional<int[]> kernel_shape, java.util.Optional<int[]> output_padding) {
+        ConvTranspose(TypeElement resultType, Value X, Value W, java.util.Optional<Value> B, java.util.Optional<long[]> output_shape, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<long[]> strides, java.util.Optional<Long> group, java.util.Optional<long[]> kernel_shape, java.util.Optional<long[]> output_padding) {
             super(SCHEMA, resultType, Set.of(), List.of(X, W, B), List.of(output_shape, pads, dilations, auto_pad, strides, group, kernel_shape, output_padding));
         }
 
@@ -6055,19 +6055,19 @@ public final class OnnxOps {
             return i != -1 ? java.util.Optional.of(operands().get(2 + i)) : java.util.Optional.empty();
         }
 
-        public java.util.Optional<int[]> output_shape() {
-            int[] output_shape = Attribute.output_shape.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(output_shape).map(int[]::clone);
+        public java.util.Optional<long[]> output_shape() {
+            long[] output_shape = Attribute.output_shape.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(output_shape).map(long[]::clone);
         }
 
-        public java.util.Optional<int[]> pads() {
-            int[] pads = Attribute.pads.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(pads).map(int[]::clone);
+        public java.util.Optional<long[]> pads() {
+            long[] pads = Attribute.pads.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(pads).map(long[]::clone);
         }
 
-        public java.util.Optional<int[]> dilations() {
-            int[] dilations = Attribute.dilations.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(dilations).map(int[]::clone);
+        public java.util.Optional<long[]> dilations() {
+            long[] dilations = Attribute.dilations.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(dilations).map(long[]::clone);
         }
 
         public java.util.Optional<String> auto_pad() {
@@ -6075,29 +6075,29 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(auto_pad);
         }
 
-        public java.util.Optional<int[]> strides() {
-            int[] strides = Attribute.strides.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(strides).map(int[]::clone);
+        public java.util.Optional<long[]> strides() {
+            long[] strides = Attribute.strides.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(strides).map(long[]::clone);
         }
 
-        public java.util.Optional<Integer> group() {
-            Integer group = Attribute.group.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> group() {
+            Long group = Attribute.group.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(group);
         }
 
-        public java.util.Optional<int[]> kernel_shape() {
-            int[] kernel_shape = Attribute.kernel_shape.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(kernel_shape).map(int[]::clone);
+        public java.util.Optional<long[]> kernel_shape() {
+            long[] kernel_shape = Attribute.kernel_shape.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(kernel_shape).map(long[]::clone);
         }
 
-        public java.util.Optional<int[]> output_padding() {
-            int[] output_padding = Attribute.output_padding.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(output_padding).map(int[]::clone);
+        public java.util.Optional<long[]> output_padding() {
+            long[] output_padding = Attribute.output_padding.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(output_padding).map(long[]::clone);
         }
 
     }
 
-    public static ConvTranspose ConvTranspose(TypeElement resultType, Value X, Value W, java.util.Optional<Value> B, java.util.Optional<int[]> output_shape, java.util.Optional<int[]> pads, java.util.Optional<int[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<int[]> strides, java.util.Optional<Integer> group, java.util.Optional<int[]> kernel_shape, java.util.Optional<int[]> output_padding) {
+    public static ConvTranspose ConvTranspose(TypeElement resultType, Value X, Value W, java.util.Optional<Value> B, java.util.Optional<long[]> output_shape, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<long[]> strides, java.util.Optional<Long> group, java.util.Optional<long[]> kernel_shape, java.util.Optional<long[]> output_padding) {
         return new ConvTranspose(resultType, X, W, B, output_shape, pads, dilations, auto_pad, strides, group, kernel_shape, output_padding);
     }
 
@@ -6334,8 +6334,8 @@ public final class OnnxOps {
         public static final String NAME = "CumSum";
 
         public enum Attribute implements OnnxAttribute {
-            exclusive(Integer.class, true, 0),
-            reverse(Integer.class, true, 0),
+            exclusive(Long.class, true, 0),
+            reverse(Long.class, true, 0),
             ;
 
                 final Class<?> t;
@@ -6448,7 +6448,7 @@ public final class OnnxOps {
             return new CumSum(this, cc);
         }
 
-        CumSum(TypeElement resultType, Value x, Value axis, java.util.Optional<Integer> exclusive, java.util.Optional<Integer> reverse) {
+        CumSum(TypeElement resultType, Value x, Value axis, java.util.Optional<Long> exclusive, java.util.Optional<Long> reverse) {
             super(SCHEMA, resultType, Set.of(), List.of(x, axis), List.of(exclusive, reverse));
         }
 
@@ -6470,19 +6470,19 @@ public final class OnnxOps {
             return operands().get(1);
         }
 
-        public java.util.Optional<Integer> exclusive() {
-            Integer exclusive = Attribute.exclusive.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> exclusive() {
+            Long exclusive = Attribute.exclusive.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(exclusive);
         }
 
-        public java.util.Optional<Integer> reverse() {
-            Integer reverse = Attribute.reverse.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> reverse() {
+            Long reverse = Attribute.reverse.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(reverse);
         }
 
     }
 
-    public static CumSum CumSum(TypeElement resultType, Value x, Value axis, java.util.Optional<Integer> exclusive, java.util.Optional<Integer> reverse) {
+    public static CumSum CumSum(TypeElement resultType, Value x, Value axis, java.util.Optional<Long> exclusive, java.util.Optional<Long> reverse) {
         return new CumSum(resultType, x, axis, exclusive, reverse);
     }
 
@@ -6491,8 +6491,8 @@ public final class OnnxOps {
         public static final String NAME = "DFT";
 
         public enum Attribute implements OnnxAttribute {
-            inverse(Integer.class, true, 0),
-            onesided(Integer.class, true, 0),
+            inverse(Long.class, true, 0),
+            onesided(Long.class, true, 0),
             ;
 
                 final Class<?> t;
@@ -6606,7 +6606,7 @@ public final class OnnxOps {
             return new DFT(this, cc);
         }
 
-        DFT(TypeElement resultType, Value input, java.util.Optional<Value> dft_length, java.util.Optional<Value> axis, java.util.Optional<Integer> inverse, java.util.Optional<Integer> onesided) {
+        DFT(TypeElement resultType, Value input, java.util.Optional<Value> dft_length, java.util.Optional<Value> axis, java.util.Optional<Long> inverse, java.util.Optional<Long> onesided) {
             super(SCHEMA, resultType, Set.of(), List.of(input, dft_length, axis), List.of(inverse, onesided));
         }
 
@@ -6634,19 +6634,19 @@ public final class OnnxOps {
             return i != -1 ? java.util.Optional.of(operands().get(1 + i)) : java.util.Optional.empty();
         }
 
-        public java.util.Optional<Integer> inverse() {
-            Integer inverse = Attribute.inverse.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> inverse() {
+            Long inverse = Attribute.inverse.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(inverse);
         }
 
-        public java.util.Optional<Integer> onesided() {
-            Integer onesided = Attribute.onesided.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> onesided() {
+            Long onesided = Attribute.onesided.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(onesided);
         }
 
     }
 
-    public static DFT DFT(TypeElement resultType, Value input, java.util.Optional<Value> dft_length, java.util.Optional<Value> axis, java.util.Optional<Integer> inverse, java.util.Optional<Integer> onesided) {
+    public static DFT DFT(TypeElement resultType, Value input, java.util.Optional<Value> dft_length, java.util.Optional<Value> axis, java.util.Optional<Long> inverse, java.util.Optional<Long> onesided) {
         return new DFT(resultType, input, dft_length, axis, inverse, onesided);
     }
 
@@ -6655,12 +6655,12 @@ public final class OnnxOps {
         public static final String NAME = "DeformConv";
 
         public enum Attribute implements OnnxAttribute {
-            pads(int[].class, true, null),
-            dilations(int[].class, true, null),
-            strides(int[].class, true, null),
-            offset_group(Integer.class, true, 1),
-            group(Integer.class, true, 1),
-            kernel_shape(int[].class, true, null),
+            pads(long[].class, true, null),
+            dilations(long[].class, true, null),
+            strides(long[].class, true, null),
+            offset_group(Long.class, true, 1),
+            group(Long.class, true, 1),
+            kernel_shape(long[].class, true, null),
             ;
 
                 final Class<?> t;
@@ -6775,7 +6775,7 @@ public final class OnnxOps {
             return new DeformConv(this, cc);
         }
 
-        DeformConv(TypeElement resultType, Value X, Value W, Value offset, java.util.Optional<Value> B, java.util.Optional<Value> mask, java.util.Optional<int[]> pads, java.util.Optional<int[]> dilations, java.util.Optional<int[]> strides, java.util.Optional<Integer> offset_group, java.util.Optional<Integer> group, java.util.Optional<int[]> kernel_shape) {
+        DeformConv(TypeElement resultType, Value X, Value W, Value offset, java.util.Optional<Value> B, java.util.Optional<Value> mask, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<long[]> strides, java.util.Optional<Long> offset_group, java.util.Optional<Long> group, java.util.Optional<long[]> kernel_shape) {
             super(SCHEMA, resultType, Set.of(), List.of(X, W, offset, B, mask), List.of(pads, dilations, strides, offset_group, group, kernel_shape));
         }
 
@@ -6811,39 +6811,39 @@ public final class OnnxOps {
             return i != -1 ? java.util.Optional.of(operands().get(3 + i)) : java.util.Optional.empty();
         }
 
-        public java.util.Optional<int[]> pads() {
-            int[] pads = Attribute.pads.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(pads).map(int[]::clone);
+        public java.util.Optional<long[]> pads() {
+            long[] pads = Attribute.pads.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(pads).map(long[]::clone);
         }
 
-        public java.util.Optional<int[]> dilations() {
-            int[] dilations = Attribute.dilations.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(dilations).map(int[]::clone);
+        public java.util.Optional<long[]> dilations() {
+            long[] dilations = Attribute.dilations.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(dilations).map(long[]::clone);
         }
 
-        public java.util.Optional<int[]> strides() {
-            int[] strides = Attribute.strides.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(strides).map(int[]::clone);
+        public java.util.Optional<long[]> strides() {
+            long[] strides = Attribute.strides.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(strides).map(long[]::clone);
         }
 
-        public java.util.Optional<Integer> offset_group() {
-            Integer offset_group = Attribute.offset_group.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> offset_group() {
+            Long offset_group = Attribute.offset_group.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(offset_group);
         }
 
-        public java.util.Optional<Integer> group() {
-            Integer group = Attribute.group.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> group() {
+            Long group = Attribute.group.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(group);
         }
 
-        public java.util.Optional<int[]> kernel_shape() {
-            int[] kernel_shape = Attribute.kernel_shape.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(kernel_shape).map(int[]::clone);
+        public java.util.Optional<long[]> kernel_shape() {
+            long[] kernel_shape = Attribute.kernel_shape.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(kernel_shape).map(long[]::clone);
         }
 
     }
 
-    public static DeformConv DeformConv(TypeElement resultType, Value X, Value W, Value offset, java.util.Optional<Value> B, java.util.Optional<Value> mask, java.util.Optional<int[]> pads, java.util.Optional<int[]> dilations, java.util.Optional<int[]> strides, java.util.Optional<Integer> offset_group, java.util.Optional<Integer> group, java.util.Optional<int[]> kernel_shape) {
+    public static DeformConv DeformConv(TypeElement resultType, Value X, Value W, Value offset, java.util.Optional<Value> B, java.util.Optional<Value> mask, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<long[]> strides, java.util.Optional<Long> offset_group, java.util.Optional<Long> group, java.util.Optional<long[]> kernel_shape) {
         return new DeformConv(resultType, X, W, offset, B, mask, pads, dilations, strides, offset_group, group, kernel_shape);
     }
 
@@ -6853,7 +6853,7 @@ public final class OnnxOps {
 
         public enum Attribute implements OnnxAttribute {
             mode(String.class, true, "DCR"),
-            blocksize(Integer.class, false, null),
+            blocksize(Long.class, false, null),
             ;
 
                 final Class<?> t;
@@ -6964,7 +6964,7 @@ public final class OnnxOps {
             return new DepthToSpace(this, cc);
         }
 
-        DepthToSpace(TypeElement resultType, Value input, java.util.Optional<String> mode, int blocksize) {
+        DepthToSpace(TypeElement resultType, Value input, java.util.Optional<String> mode, long blocksize) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of(mode, blocksize));
         }
 
@@ -6987,14 +6987,14 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(mode);
         }
 
-        public int blocksize() {
-            int blocksize = Attribute.blocksize.access(int.class, onnxAttributes);
+        public long blocksize() {
+            long blocksize = Attribute.blocksize.access(long.class, onnxAttributes);
             return blocksize;
         }
 
     }
 
-    public static DepthToSpace DepthToSpace(TypeElement resultType, Value input, java.util.Optional<String> mode, int blocksize) {
+    public static DepthToSpace DepthToSpace(TypeElement resultType, Value input, java.util.Optional<String> mode, long blocksize) {
         return new DepthToSpace(resultType, input, mode, blocksize);
     }
 
@@ -7003,8 +7003,8 @@ public final class OnnxOps {
         public static final String NAME = "DequantizeLinear";
 
         public enum Attribute implements OnnxAttribute {
-            axis(Integer.class, true, 1),
-            block_size(Integer.class, true, 0),
+            axis(Long.class, true, 1),
+            block_size(Long.class, true, 0),
             ;
 
                 final Class<?> t;
@@ -7118,7 +7118,7 @@ public final class OnnxOps {
             return new DequantizeLinear(this, cc);
         }
 
-        DequantizeLinear(TypeElement resultType, Value x, Value x_scale, java.util.Optional<Value> x_zero_point, java.util.Optional<Integer> axis, java.util.Optional<Integer> block_size) {
+        DequantizeLinear(TypeElement resultType, Value x, Value x_scale, java.util.Optional<Value> x_zero_point, java.util.Optional<Long> axis, java.util.Optional<Long> block_size) {
             super(SCHEMA, resultType, Set.of(), List.of(x, x_scale, x_zero_point), List.of(axis, block_size));
         }
 
@@ -7145,19 +7145,19 @@ public final class OnnxOps {
             return i != -1 ? java.util.Optional.of(operands().get(2 + i)) : java.util.Optional.empty();
         }
 
-        public java.util.Optional<Integer> axis() {
-            Integer axis = Attribute.axis.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> axis() {
+            Long axis = Attribute.axis.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(axis);
         }
 
-        public java.util.Optional<Integer> block_size() {
-            Integer block_size = Attribute.block_size.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> block_size() {
+            Long block_size = Attribute.block_size.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(block_size);
         }
 
     }
 
-    public static DequantizeLinear DequantizeLinear(TypeElement resultType, Value x, Value x_scale, java.util.Optional<Value> x_zero_point, java.util.Optional<Integer> axis, java.util.Optional<Integer> block_size) {
+    public static DequantizeLinear DequantizeLinear(TypeElement resultType, Value x, Value x_scale, java.util.Optional<Value> x_zero_point, java.util.Optional<Long> axis, java.util.Optional<Long> block_size) {
         return new DequantizeLinear(resultType, x, x_scale, x_zero_point, axis, block_size);
     }
 
@@ -7281,7 +7281,7 @@ public final class OnnxOps {
 
         public enum Attribute implements OnnxAttribute {
             string_vocabulary(String[].class, true, null),
-            int64_vocabulary(int[].class, true, null),
+            int64_vocabulary(long[].class, true, null),
             ;
 
                 final Class<?> t;
@@ -7393,7 +7393,7 @@ public final class OnnxOps {
             return new DictVectorizer(this, cc);
         }
 
-        DictVectorizer(TypeElement resultType, Value X, java.util.Optional<String[]> string_vocabulary, java.util.Optional<int[]> int64_vocabulary) {
+        DictVectorizer(TypeElement resultType, Value X, java.util.Optional<String[]> string_vocabulary, java.util.Optional<long[]> int64_vocabulary) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(string_vocabulary, int64_vocabulary));
         }
 
@@ -7416,14 +7416,14 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(string_vocabulary).map(String[]::clone);
         }
 
-        public java.util.Optional<int[]> int64_vocabulary() {
-            int[] int64_vocabulary = Attribute.int64_vocabulary.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(int64_vocabulary).map(int[]::clone);
+        public java.util.Optional<long[]> int64_vocabulary() {
+            long[] int64_vocabulary = Attribute.int64_vocabulary.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(int64_vocabulary).map(long[]::clone);
         }
 
     }
 
-    public static DictVectorizer DictVectorizer(TypeElement resultType, Value X, java.util.Optional<String[]> string_vocabulary, java.util.Optional<int[]> int64_vocabulary) {
+    public static DictVectorizer DictVectorizer(TypeElement resultType, Value X, java.util.Optional<String[]> string_vocabulary, java.util.Optional<long[]> int64_vocabulary) {
         return new DictVectorizer(resultType, X, string_vocabulary, int64_vocabulary);
     }
 
@@ -7551,7 +7551,7 @@ public final class OnnxOps {
         public static final String NAME = "Dropout";
 
         public enum Attribute implements OnnxAttribute {
-            seed(Integer.class, true, null),
+            seed(Long.class, true, null),
             ;
 
                 final Class<?> t;
@@ -7667,7 +7667,7 @@ public final class OnnxOps {
             return new Dropout(this, cc);
         }
 
-        Dropout(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value data, java.util.Optional<Value> ratio, java.util.Optional<Value> training_mode, java.util.Optional<Integer> seed) {
+        Dropout(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value data, java.util.Optional<Value> ratio, java.util.Optional<Value> training_mode, java.util.Optional<Long> seed) {
             super(SCHEMA, resultType, optionalOutputs, List.of(data, ratio, training_mode), List.of(seed));
         }
 
@@ -7695,14 +7695,14 @@ public final class OnnxOps {
             return i != -1 ? java.util.Optional.of(operands().get(1 + i)) : java.util.Optional.empty();
         }
 
-        public java.util.Optional<Integer> seed() {
-            Integer seed = Attribute.seed.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> seed() {
+            Long seed = Attribute.seed.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(seed);
         }
 
     }
 
-    public static Dropout Dropout(TypeElement resultType, Set<Dropout.OutputParameter> optionalOutputs, Value data, java.util.Optional<Value> ratio, java.util.Optional<Value> training_mode, java.util.Optional<Integer> seed) {
+    public static Dropout Dropout(TypeElement resultType, Set<Dropout.OutputParameter> optionalOutputs, Value data, java.util.Optional<Value> ratio, java.util.Optional<Value> training_mode, java.util.Optional<Long> seed) {
         return new Dropout(resultType, optionalOutputs, data, ratio, training_mode, seed);
     }
 
@@ -8585,8 +8585,8 @@ public final class OnnxOps {
         public static final String NAME = "EyeLike";
 
         public enum Attribute implements OnnxAttribute {
-            dtype(Integer.class, true, null),
-            k(Integer.class, true, 0),
+            dtype(Long.class, true, null),
+            k(Long.class, true, 0),
             ;
 
                 final Class<?> t;
@@ -8698,7 +8698,7 @@ public final class OnnxOps {
             return new EyeLike(this, cc);
         }
 
-        EyeLike(TypeElement resultType, Value input, java.util.Optional<Integer> dtype, java.util.Optional<Integer> k) {
+        EyeLike(TypeElement resultType, Value input, java.util.Optional<Long> dtype, java.util.Optional<Long> k) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of(dtype, k));
         }
 
@@ -8716,19 +8716,19 @@ public final class OnnxOps {
             return operands().get(0);
         }
 
-        public java.util.Optional<Integer> dtype() {
-            Integer dtype = Attribute.dtype.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> dtype() {
+            Long dtype = Attribute.dtype.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(dtype);
         }
 
-        public java.util.Optional<Integer> k() {
-            Integer k = Attribute.k.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> k() {
+            Long k = Attribute.k.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(k);
         }
 
     }
 
-    public static EyeLike EyeLike(TypeElement resultType, Value input, java.util.Optional<Integer> dtype, java.util.Optional<Integer> k) {
+    public static EyeLike EyeLike(TypeElement resultType, Value input, java.util.Optional<Long> dtype, java.util.Optional<Long> k) {
         return new EyeLike(resultType, input, dtype, k);
     }
 
@@ -8737,7 +8737,7 @@ public final class OnnxOps {
         public static final String NAME = "FeatureVectorizer";
 
         public enum Attribute implements OnnxAttribute {
-            inputdimensions(int[].class, true, null),
+            inputdimensions(long[].class, true, null),
             ;
 
                 final Class<?> t;
@@ -8848,7 +8848,7 @@ public final class OnnxOps {
             return new FeatureVectorizer(this, cc);
         }
 
-        FeatureVectorizer(TypeElement resultType, List<Value> X, java.util.Optional<int[]> inputdimensions) {
+        FeatureVectorizer(TypeElement resultType, List<Value> X, java.util.Optional<long[]> inputdimensions) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(inputdimensions));
         }
 
@@ -8866,14 +8866,14 @@ public final class OnnxOps {
             return operands();
         }
 
-        public java.util.Optional<int[]> inputdimensions() {
-            int[] inputdimensions = Attribute.inputdimensions.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(inputdimensions).map(int[]::clone);
+        public java.util.Optional<long[]> inputdimensions() {
+            long[] inputdimensions = Attribute.inputdimensions.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(inputdimensions).map(long[]::clone);
         }
 
     }
 
-    public static FeatureVectorizer FeatureVectorizer(TypeElement resultType, List<Value> X, java.util.Optional<int[]> inputdimensions) {
+    public static FeatureVectorizer FeatureVectorizer(TypeElement resultType, List<Value> X, java.util.Optional<long[]> inputdimensions) {
         return new FeatureVectorizer(resultType, X, inputdimensions);
     }
 
@@ -8882,7 +8882,7 @@ public final class OnnxOps {
         public static final String NAME = "Flatten";
 
         public enum Attribute implements OnnxAttribute {
-            axis(Integer.class, true, 1),
+            axis(Long.class, true, 1),
             ;
 
                 final Class<?> t;
@@ -8993,7 +8993,7 @@ public final class OnnxOps {
             return new Flatten(this, cc);
         }
 
-        Flatten(TypeElement resultType, Value input, java.util.Optional<Integer> axis) {
+        Flatten(TypeElement resultType, Value input, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of(axis));
         }
 
@@ -9011,14 +9011,14 @@ public final class OnnxOps {
             return operands().get(0);
         }
 
-        public java.util.Optional<Integer> axis() {
-            Integer axis = Attribute.axis.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> axis() {
+            Long axis = Attribute.axis.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(axis);
         }
 
     }
 
-    public static Flatten Flatten(TypeElement resultType, Value input, java.util.Optional<Integer> axis) {
+    public static Flatten Flatten(TypeElement resultType, Value input, java.util.Optional<Long> axis) {
         return new Flatten(resultType, input, axis);
     }
 
@@ -9141,12 +9141,12 @@ public final class OnnxOps {
         public static final String NAME = "GRU";
 
         public enum Attribute implements OnnxAttribute {
-            layout(Integer.class, true, 0),
+            layout(Long.class, true, 0),
             activation_alpha(float[].class, true, null),
-            hidden_size(Integer.class, true, null),
+            hidden_size(Long.class, true, null),
             activation_beta(float[].class, true, null),
             activations(String[].class, true, null),
-            linear_before_reset(Integer.class, true, 0),
+            linear_before_reset(Long.class, true, 0),
             clip(Float.class, true, null),
             direction(String.class, true, "forward"),
             ;
@@ -9266,7 +9266,7 @@ public final class OnnxOps {
             return new GRU(this, cc);
         }
 
-        GRU(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Integer> layout, java.util.Optional<float[]> activation_alpha, java.util.Optional<Integer> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Integer> linear_before_reset, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
+        GRU(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Long> layout, java.util.Optional<float[]> activation_alpha, java.util.Optional<Long> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Long> linear_before_reset, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
             super(SCHEMA, resultType, optionalOutputs, List.of(X, W, R, B, sequence_lens, initial_h), List.of(layout, activation_alpha, hidden_size, activation_beta, activations, linear_before_reset, clip, direction));
         }
 
@@ -9307,8 +9307,8 @@ public final class OnnxOps {
             return i != -1 ? java.util.Optional.of(operands().get(3 + i)) : java.util.Optional.empty();
         }
 
-        public java.util.Optional<Integer> layout() {
-            Integer layout = Attribute.layout.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> layout() {
+            Long layout = Attribute.layout.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(layout);
         }
 
@@ -9317,8 +9317,8 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(activation_alpha).map(float[]::clone);
         }
 
-        public java.util.Optional<Integer> hidden_size() {
-            Integer hidden_size = Attribute.hidden_size.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> hidden_size() {
+            Long hidden_size = Attribute.hidden_size.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(hidden_size);
         }
 
@@ -9332,8 +9332,8 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(activations).map(String[]::clone);
         }
 
-        public java.util.Optional<Integer> linear_before_reset() {
-            Integer linear_before_reset = Attribute.linear_before_reset.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> linear_before_reset() {
+            Long linear_before_reset = Attribute.linear_before_reset.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(linear_before_reset);
         }
 
@@ -9349,7 +9349,7 @@ public final class OnnxOps {
 
     }
 
-    public static GRU GRU(TypeElement resultType, Set<GRU.OutputParameter> optionalOutputs, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Integer> layout, java.util.Optional<float[]> activation_alpha, java.util.Optional<Integer> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Integer> linear_before_reset, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
+    public static GRU GRU(TypeElement resultType, Set<GRU.OutputParameter> optionalOutputs, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Long> layout, java.util.Optional<float[]> activation_alpha, java.util.Optional<Long> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Long> linear_before_reset, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
         return new GRU(resultType, optionalOutputs, X, W, R, B, sequence_lens, initial_h, layout, activation_alpha, hidden_size, activation_beta, activations, linear_before_reset, clip, direction);
     }
 
@@ -9358,7 +9358,7 @@ public final class OnnxOps {
         public static final String NAME = "Gather";
 
         public enum Attribute implements OnnxAttribute {
-            axis(Integer.class, true, 0),
+            axis(Long.class, true, 0),
             ;
 
                 final Class<?> t;
@@ -9471,7 +9471,7 @@ public final class OnnxOps {
             return new Gather(this, cc);
         }
 
-        Gather(TypeElement resultType, Value data, Value indices, java.util.Optional<Integer> axis) {
+        Gather(TypeElement resultType, Value data, Value indices, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(data, indices), List.of(axis));
         }
 
@@ -9493,14 +9493,14 @@ public final class OnnxOps {
             return operands().get(1);
         }
 
-        public java.util.Optional<Integer> axis() {
-            Integer axis = Attribute.axis.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> axis() {
+            Long axis = Attribute.axis.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(axis);
         }
 
     }
 
-    public static Gather Gather(TypeElement resultType, Value data, Value indices, java.util.Optional<Integer> axis) {
+    public static Gather Gather(TypeElement resultType, Value data, Value indices, java.util.Optional<Long> axis) {
         return new Gather(resultType, data, indices, axis);
     }
 
@@ -9509,7 +9509,7 @@ public final class OnnxOps {
         public static final String NAME = "GatherElements";
 
         public enum Attribute implements OnnxAttribute {
-            axis(Integer.class, true, 0),
+            axis(Long.class, true, 0),
             ;
 
                 final Class<?> t;
@@ -9622,7 +9622,7 @@ public final class OnnxOps {
             return new GatherElements(this, cc);
         }
 
-        GatherElements(TypeElement resultType, Value data, Value indices, java.util.Optional<Integer> axis) {
+        GatherElements(TypeElement resultType, Value data, Value indices, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(data, indices), List.of(axis));
         }
 
@@ -9644,14 +9644,14 @@ public final class OnnxOps {
             return operands().get(1);
         }
 
-        public java.util.Optional<Integer> axis() {
-            Integer axis = Attribute.axis.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> axis() {
+            Long axis = Attribute.axis.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(axis);
         }
 
     }
 
-    public static GatherElements GatherElements(TypeElement resultType, Value data, Value indices, java.util.Optional<Integer> axis) {
+    public static GatherElements GatherElements(TypeElement resultType, Value data, Value indices, java.util.Optional<Long> axis) {
         return new GatherElements(resultType, data, indices, axis);
     }
 
@@ -9660,7 +9660,7 @@ public final class OnnxOps {
         public static final String NAME = "GatherND";
 
         public enum Attribute implements OnnxAttribute {
-            batch_dims(Integer.class, true, 0),
+            batch_dims(Long.class, true, 0),
             ;
 
                 final Class<?> t;
@@ -9772,7 +9772,7 @@ public final class OnnxOps {
             return new GatherND(this, cc);
         }
 
-        GatherND(TypeElement resultType, Value data, Value indices, java.util.Optional<Integer> batch_dims) {
+        GatherND(TypeElement resultType, Value data, Value indices, java.util.Optional<Long> batch_dims) {
             super(SCHEMA, resultType, Set.of(), List.of(data, indices), List.of(batch_dims));
         }
 
@@ -9794,14 +9794,14 @@ public final class OnnxOps {
             return operands().get(1);
         }
 
-        public java.util.Optional<Integer> batch_dims() {
-            Integer batch_dims = Attribute.batch_dims.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> batch_dims() {
+            Long batch_dims = Attribute.batch_dims.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(batch_dims);
         }
 
     }
 
-    public static GatherND GatherND(TypeElement resultType, Value data, Value indices, java.util.Optional<Integer> batch_dims) {
+    public static GatherND GatherND(TypeElement resultType, Value data, Value indices, java.util.Optional<Long> batch_dims) {
         return new GatherND(resultType, data, indices, batch_dims);
     }
 
@@ -9956,9 +9956,9 @@ public final class OnnxOps {
 
         public enum Attribute implements OnnxAttribute {
             alpha(Float.class, true, 1.0f),
-            transB(Integer.class, true, 0),
+            transB(Long.class, true, 0),
             beta(Float.class, true, 1.0f),
-            transA(Integer.class, true, 0),
+            transA(Long.class, true, 0),
             ;
 
                 final Class<?> t;
@@ -10071,7 +10071,7 @@ public final class OnnxOps {
             return new Gemm(this, cc);
         }
 
-        Gemm(TypeElement resultType, Value A, Value B, java.util.Optional<Value> C, java.util.Optional<Float> alpha, java.util.Optional<Integer> transB, java.util.Optional<Float> beta, java.util.Optional<Integer> transA) {
+        Gemm(TypeElement resultType, Value A, Value B, java.util.Optional<Value> C, java.util.Optional<Float> alpha, java.util.Optional<Long> transB, java.util.Optional<Float> beta, java.util.Optional<Long> transA) {
             super(SCHEMA, resultType, Set.of(), List.of(A, B, C), List.of(alpha, transB, beta, transA));
         }
 
@@ -10103,8 +10103,8 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(alpha);
         }
 
-        public java.util.Optional<Integer> transB() {
-            Integer transB = Attribute.transB.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> transB() {
+            Long transB = Attribute.transB.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(transB);
         }
 
@@ -10113,14 +10113,14 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(beta);
         }
 
-        public java.util.Optional<Integer> transA() {
-            Integer transA = Attribute.transA.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> transA() {
+            Long transA = Attribute.transA.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(transA);
         }
 
     }
 
-    public static Gemm Gemm(TypeElement resultType, Value A, Value B, java.util.Optional<Value> C, java.util.Optional<Float> alpha, java.util.Optional<Integer> transB, java.util.Optional<Float> beta, java.util.Optional<Integer> transA) {
+    public static Gemm Gemm(TypeElement resultType, Value A, Value B, java.util.Optional<Value> C, java.util.Optional<Float> alpha, java.util.Optional<Long> transB, java.util.Optional<Float> beta, java.util.Optional<Long> transA) {
         return new Gemm(resultType, A, B, C, alpha, transB, beta, transA);
     }
 
@@ -10243,7 +10243,7 @@ public final class OnnxOps {
         public static final String NAME = "GlobalLpPool";
 
         public enum Attribute implements OnnxAttribute {
-            p(Integer.class, true, 2),
+            p(Long.class, true, 2),
             ;
 
                 final Class<?> t;
@@ -10354,7 +10354,7 @@ public final class OnnxOps {
             return new GlobalLpPool(this, cc);
         }
 
-        GlobalLpPool(TypeElement resultType, Value X, java.util.Optional<Integer> p) {
+        GlobalLpPool(TypeElement resultType, Value X, java.util.Optional<Long> p) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(p));
         }
 
@@ -10372,14 +10372,14 @@ public final class OnnxOps {
             return operands().get(0);
         }
 
-        public java.util.Optional<Integer> p() {
-            Integer p = Attribute.p.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> p() {
+            Long p = Attribute.p.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(p);
         }
 
     }
 
-    public static GlobalLpPool GlobalLpPool(TypeElement resultType, Value X, java.util.Optional<Integer> p) {
+    public static GlobalLpPool GlobalLpPool(TypeElement resultType, Value X, java.util.Optional<Long> p) {
         return new GlobalLpPool(resultType, X, p);
     }
 
@@ -10901,7 +10901,7 @@ public final class OnnxOps {
 
         public enum Attribute implements OnnxAttribute {
             mode(String.class, true, "linear"),
-            align_corners(Integer.class, true, 0),
+            align_corners(Long.class, true, 0),
             padding_mode(String.class, true, "zeros"),
             ;
 
@@ -11015,7 +11015,7 @@ public final class OnnxOps {
             return new GridSample(this, cc);
         }
 
-        GridSample(TypeElement resultType, Value X, Value grid, java.util.Optional<String> mode, java.util.Optional<Integer> align_corners, java.util.Optional<String> padding_mode) {
+        GridSample(TypeElement resultType, Value X, Value grid, java.util.Optional<String> mode, java.util.Optional<Long> align_corners, java.util.Optional<String> padding_mode) {
             super(SCHEMA, resultType, Set.of(), List.of(X, grid), List.of(mode, align_corners, padding_mode));
         }
 
@@ -11042,8 +11042,8 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(mode);
         }
 
-        public java.util.Optional<Integer> align_corners() {
-            Integer align_corners = Attribute.align_corners.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> align_corners() {
+            Long align_corners = Attribute.align_corners.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(align_corners);
         }
 
@@ -11054,7 +11054,7 @@ public final class OnnxOps {
 
     }
 
-    public static GridSample GridSample(TypeElement resultType, Value X, Value grid, java.util.Optional<String> mode, java.util.Optional<Integer> align_corners, java.util.Optional<String> padding_mode) {
+    public static GridSample GridSample(TypeElement resultType, Value X, Value grid, java.util.Optional<String> mode, java.util.Optional<Long> align_corners, java.util.Optional<String> padding_mode) {
         return new GridSample(resultType, X, grid, mode, align_corners, padding_mode);
     }
 
@@ -11064,8 +11064,8 @@ public final class OnnxOps {
 
         public enum Attribute implements OnnxAttribute {
             epsilon(Float.class, true, 1.0E-5f),
-            stash_type(Integer.class, true, 1),
-            num_groups(Integer.class, false, null),
+            stash_type(Long.class, true, 1),
+            num_groups(Long.class, false, null),
             ;
 
                 final Class<?> t;
@@ -11178,7 +11178,7 @@ public final class OnnxOps {
             return new GroupNormalization(this, cc);
         }
 
-        GroupNormalization(TypeElement resultType, Value X, Value scale, Value bias, java.util.Optional<Float> epsilon, java.util.Optional<Integer> stash_type, int num_groups) {
+        GroupNormalization(TypeElement resultType, Value X, Value scale, Value bias, java.util.Optional<Float> epsilon, java.util.Optional<Long> stash_type, long num_groups) {
             super(SCHEMA, resultType, Set.of(), List.of(X, scale, bias), List.of(epsilon, stash_type, num_groups));
         }
 
@@ -11209,19 +11209,19 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(epsilon);
         }
 
-        public java.util.Optional<Integer> stash_type() {
-            Integer stash_type = Attribute.stash_type.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> stash_type() {
+            Long stash_type = Attribute.stash_type.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(stash_type);
         }
 
-        public int num_groups() {
-            int num_groups = Attribute.num_groups.access(int.class, onnxAttributes);
+        public long num_groups() {
+            long num_groups = Attribute.num_groups.access(long.class, onnxAttributes);
             return num_groups;
         }
 
     }
 
-    public static GroupNormalization GroupNormalization(TypeElement resultType, Value X, Value scale, Value bias, java.util.Optional<Float> epsilon, java.util.Optional<Integer> stash_type, int num_groups) {
+    public static GroupNormalization GroupNormalization(TypeElement resultType, Value X, Value scale, Value bias, java.util.Optional<Float> epsilon, java.util.Optional<Long> stash_type, long num_groups) {
         return new GroupNormalization(resultType, X, scale, bias, epsilon, stash_type, num_groups);
     }
 
@@ -11230,8 +11230,8 @@ public final class OnnxOps {
         public static final String NAME = "HammingWindow";
 
         public enum Attribute implements OnnxAttribute {
-            periodic(Integer.class, true, 1),
-            output_datatype(Integer.class, true, 1),
+            periodic(Long.class, true, 1),
+            output_datatype(Long.class, true, 1),
             ;
 
                 final Class<?> t;
@@ -11343,7 +11343,7 @@ public final class OnnxOps {
             return new HammingWindow(this, cc);
         }
 
-        HammingWindow(TypeElement resultType, Value size, java.util.Optional<Integer> periodic, java.util.Optional<Integer> output_datatype) {
+        HammingWindow(TypeElement resultType, Value size, java.util.Optional<Long> periodic, java.util.Optional<Long> output_datatype) {
             super(SCHEMA, resultType, Set.of(), List.of(size), List.of(periodic, output_datatype));
         }
 
@@ -11361,19 +11361,19 @@ public final class OnnxOps {
             return operands().get(0);
         }
 
-        public java.util.Optional<Integer> periodic() {
-            Integer periodic = Attribute.periodic.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> periodic() {
+            Long periodic = Attribute.periodic.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(periodic);
         }
 
-        public java.util.Optional<Integer> output_datatype() {
-            Integer output_datatype = Attribute.output_datatype.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> output_datatype() {
+            Long output_datatype = Attribute.output_datatype.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(output_datatype);
         }
 
     }
 
-    public static HammingWindow HammingWindow(TypeElement resultType, Value size, java.util.Optional<Integer> periodic, java.util.Optional<Integer> output_datatype) {
+    public static HammingWindow HammingWindow(TypeElement resultType, Value size, java.util.Optional<Long> periodic, java.util.Optional<Long> output_datatype) {
         return new HammingWindow(resultType, size, periodic, output_datatype);
     }
 
@@ -11382,8 +11382,8 @@ public final class OnnxOps {
         public static final String NAME = "HannWindow";
 
         public enum Attribute implements OnnxAttribute {
-            periodic(Integer.class, true, 1),
-            output_datatype(Integer.class, true, 1),
+            periodic(Long.class, true, 1),
+            output_datatype(Long.class, true, 1),
             ;
 
                 final Class<?> t;
@@ -11495,7 +11495,7 @@ public final class OnnxOps {
             return new HannWindow(this, cc);
         }
 
-        HannWindow(TypeElement resultType, Value size, java.util.Optional<Integer> periodic, java.util.Optional<Integer> output_datatype) {
+        HannWindow(TypeElement resultType, Value size, java.util.Optional<Long> periodic, java.util.Optional<Long> output_datatype) {
             super(SCHEMA, resultType, Set.of(), List.of(size), List.of(periodic, output_datatype));
         }
 
@@ -11513,19 +11513,19 @@ public final class OnnxOps {
             return operands().get(0);
         }
 
-        public java.util.Optional<Integer> periodic() {
-            Integer periodic = Attribute.periodic.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> periodic() {
+            Long periodic = Attribute.periodic.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(periodic);
         }
 
-        public java.util.Optional<Integer> output_datatype() {
-            Integer output_datatype = Attribute.output_datatype.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> output_datatype() {
+            Long output_datatype = Attribute.output_datatype.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(output_datatype);
         }
 
     }
 
-    public static HannWindow HannWindow(TypeElement resultType, Value size, java.util.Optional<Integer> periodic, java.util.Optional<Integer> output_datatype) {
+    public static HannWindow HannWindow(TypeElement resultType, Value size, java.util.Optional<Long> periodic, java.util.Optional<Long> output_datatype) {
         return new HannWindow(resultType, size, periodic, output_datatype);
     }
 
@@ -11799,7 +11799,7 @@ public final class OnnxOps {
         public static final String NAME = "Hardmax";
 
         public enum Attribute implements OnnxAttribute {
-            axis(Integer.class, true, -1),
+            axis(Long.class, true, -1),
             ;
 
                 final Class<?> t;
@@ -11910,7 +11910,7 @@ public final class OnnxOps {
             return new Hardmax(this, cc);
         }
 
-        Hardmax(TypeElement resultType, Value input, java.util.Optional<Integer> axis) {
+        Hardmax(TypeElement resultType, Value input, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of(axis));
         }
 
@@ -11928,14 +11928,14 @@ public final class OnnxOps {
             return operands().get(0);
         }
 
-        public java.util.Optional<Integer> axis() {
-            Integer axis = Attribute.axis.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> axis() {
+            Long axis = Attribute.axis.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(axis);
         }
 
     }
 
-    public static Hardmax Hardmax(TypeElement resultType, Value input, java.util.Optional<Integer> axis) {
+    public static Hardmax Hardmax(TypeElement resultType, Value input, java.util.Optional<Long> axis) {
         return new Hardmax(resultType, input, axis);
     }
 
@@ -12204,9 +12204,9 @@ public final class OnnxOps {
         public static final String NAME = "Imputer";
 
         public enum Attribute implements OnnxAttribute {
-            replaced_value_int64(Integer.class, true, 0),
+            replaced_value_int64(Long.class, true, 0),
             replaced_value_float(Float.class, true, 0.0f),
-            imputed_value_int64s(int[].class, true, null),
+            imputed_value_int64s(long[].class, true, null),
             imputed_value_floats(float[].class, true, null),
             ;
 
@@ -12318,7 +12318,7 @@ public final class OnnxOps {
             return new Imputer(this, cc);
         }
 
-        Imputer(TypeElement resultType, Value X, java.util.Optional<Integer> replaced_value_int64, java.util.Optional<Float> replaced_value_float, java.util.Optional<int[]> imputed_value_int64s, java.util.Optional<float[]> imputed_value_floats) {
+        Imputer(TypeElement resultType, Value X, java.util.Optional<Long> replaced_value_int64, java.util.Optional<Float> replaced_value_float, java.util.Optional<long[]> imputed_value_int64s, java.util.Optional<float[]> imputed_value_floats) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(replaced_value_int64, replaced_value_float, imputed_value_int64s, imputed_value_floats));
         }
 
@@ -12336,8 +12336,8 @@ public final class OnnxOps {
             return operands().get(0);
         }
 
-        public java.util.Optional<Integer> replaced_value_int64() {
-            Integer replaced_value_int64 = Attribute.replaced_value_int64.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> replaced_value_int64() {
+            Long replaced_value_int64 = Attribute.replaced_value_int64.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(replaced_value_int64);
         }
 
@@ -12346,9 +12346,9 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(replaced_value_float);
         }
 
-        public java.util.Optional<int[]> imputed_value_int64s() {
-            int[] imputed_value_int64s = Attribute.imputed_value_int64s.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(imputed_value_int64s).map(int[]::clone);
+        public java.util.Optional<long[]> imputed_value_int64s() {
+            long[] imputed_value_int64s = Attribute.imputed_value_int64s.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(imputed_value_int64s).map(long[]::clone);
         }
 
         public java.util.Optional<float[]> imputed_value_floats() {
@@ -12358,7 +12358,7 @@ public final class OnnxOps {
 
     }
 
-    public static Imputer Imputer(TypeElement resultType, Value X, java.util.Optional<Integer> replaced_value_int64, java.util.Optional<Float> replaced_value_float, java.util.Optional<int[]> imputed_value_int64s, java.util.Optional<float[]> imputed_value_floats) {
+    public static Imputer Imputer(TypeElement resultType, Value X, java.util.Optional<Long> replaced_value_int64, java.util.Optional<Float> replaced_value_float, java.util.Optional<long[]> imputed_value_int64s, java.util.Optional<float[]> imputed_value_floats) {
         return new Imputer(resultType, X, replaced_value_int64, replaced_value_float, imputed_value_int64s, imputed_value_floats);
     }
 
@@ -12522,8 +12522,8 @@ public final class OnnxOps {
         public static final String NAME = "IsInf";
 
         public enum Attribute implements OnnxAttribute {
-            detect_negative(Integer.class, true, 1),
-            detect_positive(Integer.class, true, 1),
+            detect_negative(Long.class, true, 1),
+            detect_positive(Long.class, true, 1),
             ;
 
                 final Class<?> t;
@@ -12635,7 +12635,7 @@ public final class OnnxOps {
             return new IsInf(this, cc);
         }
 
-        IsInf(TypeElement resultType, Value X, java.util.Optional<Integer> detect_negative, java.util.Optional<Integer> detect_positive) {
+        IsInf(TypeElement resultType, Value X, java.util.Optional<Long> detect_negative, java.util.Optional<Long> detect_positive) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(detect_negative, detect_positive));
         }
 
@@ -12653,19 +12653,19 @@ public final class OnnxOps {
             return operands().get(0);
         }
 
-        public java.util.Optional<Integer> detect_negative() {
-            Integer detect_negative = Attribute.detect_negative.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> detect_negative() {
+            Long detect_negative = Attribute.detect_negative.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(detect_negative);
         }
 
-        public java.util.Optional<Integer> detect_positive() {
-            Integer detect_positive = Attribute.detect_positive.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> detect_positive() {
+            Long detect_positive = Attribute.detect_positive.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(detect_positive);
         }
 
     }
 
-    public static IsInf IsInf(TypeElement resultType, Value X, java.util.Optional<Integer> detect_negative, java.util.Optional<Integer> detect_positive) {
+    public static IsInf IsInf(TypeElement resultType, Value X, java.util.Optional<Long> detect_negative, java.util.Optional<Long> detect_positive) {
         return new IsInf(resultType, X, detect_negative, detect_positive);
     }
 
@@ -12789,7 +12789,7 @@ public final class OnnxOps {
         public static final String NAME = "LRN";
 
         public enum Attribute implements OnnxAttribute {
-            size(Integer.class, false, null),
+            size(Long.class, false, null),
             alpha(Float.class, true, 1.0E-4f),
             bias(Float.class, true, 1.0f),
             beta(Float.class, true, 0.75f),
@@ -12903,7 +12903,7 @@ public final class OnnxOps {
             return new LRN(this, cc);
         }
 
-        LRN(TypeElement resultType, Value X, int size, java.util.Optional<Float> alpha, java.util.Optional<Float> bias, java.util.Optional<Float> beta) {
+        LRN(TypeElement resultType, Value X, long size, java.util.Optional<Float> alpha, java.util.Optional<Float> bias, java.util.Optional<Float> beta) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(size, alpha, bias, beta));
         }
 
@@ -12921,8 +12921,8 @@ public final class OnnxOps {
             return operands().get(0);
         }
 
-        public int size() {
-            int size = Attribute.size.access(int.class, onnxAttributes);
+        public long size() {
+            long size = Attribute.size.access(long.class, onnxAttributes);
             return size;
         }
 
@@ -12943,7 +12943,7 @@ public final class OnnxOps {
 
     }
 
-    public static LRN LRN(TypeElement resultType, Value X, int size, java.util.Optional<Float> alpha, java.util.Optional<Float> bias, java.util.Optional<Float> beta) {
+    public static LRN LRN(TypeElement resultType, Value X, long size, java.util.Optional<Float> alpha, java.util.Optional<Float> bias, java.util.Optional<Float> beta) {
         return new LRN(resultType, X, size, alpha, bias, beta);
     }
 
@@ -12952,10 +12952,10 @@ public final class OnnxOps {
         public static final String NAME = "LSTM";
 
         public enum Attribute implements OnnxAttribute {
-            layout(Integer.class, true, 0),
-            input_forget(Integer.class, true, 0),
+            layout(Long.class, true, 0),
+            input_forget(Long.class, true, 0),
             activation_alpha(float[].class, true, null),
-            hidden_size(Integer.class, true, null),
+            hidden_size(Long.class, true, null),
             activation_beta(float[].class, true, null),
             activations(String[].class, true, null),
             clip(Float.class, true, null),
@@ -13080,7 +13080,7 @@ public final class OnnxOps {
             return new LSTM(this, cc);
         }
 
-        LSTM(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Value> initial_c, java.util.Optional<Value> P, java.util.Optional<Integer> layout, java.util.Optional<Integer> input_forget, java.util.Optional<float[]> activation_alpha, java.util.Optional<Integer> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
+        LSTM(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Value> initial_c, java.util.Optional<Value> P, java.util.Optional<Long> layout, java.util.Optional<Long> input_forget, java.util.Optional<float[]> activation_alpha, java.util.Optional<Long> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
             super(SCHEMA, resultType, optionalOutputs, List.of(X, W, R, B, sequence_lens, initial_h, initial_c, P), List.of(layout, input_forget, activation_alpha, hidden_size, activation_beta, activations, clip, direction));
         }
 
@@ -13131,13 +13131,13 @@ public final class OnnxOps {
             return i != -1 ? java.util.Optional.of(operands().get(3 + i)) : java.util.Optional.empty();
         }
 
-        public java.util.Optional<Integer> layout() {
-            Integer layout = Attribute.layout.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> layout() {
+            Long layout = Attribute.layout.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(layout);
         }
 
-        public java.util.Optional<Integer> input_forget() {
-            Integer input_forget = Attribute.input_forget.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> input_forget() {
+            Long input_forget = Attribute.input_forget.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(input_forget);
         }
 
@@ -13146,8 +13146,8 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(activation_alpha).map(float[]::clone);
         }
 
-        public java.util.Optional<Integer> hidden_size() {
-            Integer hidden_size = Attribute.hidden_size.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> hidden_size() {
+            Long hidden_size = Attribute.hidden_size.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(hidden_size);
         }
 
@@ -13173,7 +13173,7 @@ public final class OnnxOps {
 
     }
 
-    public static LSTM LSTM(TypeElement resultType, Set<LSTM.OutputParameter> optionalOutputs, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Value> initial_c, java.util.Optional<Value> P, java.util.Optional<Integer> layout, java.util.Optional<Integer> input_forget, java.util.Optional<float[]> activation_alpha, java.util.Optional<Integer> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
+    public static LSTM LSTM(TypeElement resultType, Set<LSTM.OutputParameter> optionalOutputs, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Value> initial_c, java.util.Optional<Value> P, java.util.Optional<Long> layout, java.util.Optional<Long> input_forget, java.util.Optional<float[]> activation_alpha, java.util.Optional<Long> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
         return new LSTM(resultType, optionalOutputs, X, W, R, B, sequence_lens, initial_h, initial_c, P, layout, input_forget, activation_alpha, hidden_size, activation_beta, activations, clip, direction);
     }
 
@@ -13183,15 +13183,15 @@ public final class OnnxOps {
 
         public enum Attribute implements OnnxAttribute {
             values_strings(String[].class, true, null),
-            keys_int64s(int[].class, true, null),
+            keys_int64s(long[].class, true, null),
             keys_tensor(byte[].class, true, null),
             keys_strings(String[].class, true, null),
             default_float(Float.class, true, -0.0f),
             keys_floats(float[].class, true, null),
             default_tensor(byte[].class, true, null),
-            default_int64(Integer.class, true, -1),
+            default_int64(Long.class, true, -1),
             values_tensor(byte[].class, true, null),
-            values_int64s(int[].class, true, null),
+            values_int64s(long[].class, true, null),
             default_string(String.class, true, "_Unused"),
             values_floats(float[].class, true, null),
             ;
@@ -13305,7 +13305,7 @@ public final class OnnxOps {
             return new LabelEncoder(this, cc);
         }
 
-        LabelEncoder(TypeElement resultType, Value X, java.util.Optional<String[]> values_strings, java.util.Optional<int[]> keys_int64s, java.util.Optional<byte[]> keys_tensor, java.util.Optional<String[]> keys_strings, java.util.Optional<Float> default_float, java.util.Optional<float[]> keys_floats, java.util.Optional<byte[]> default_tensor, java.util.Optional<Integer> default_int64, java.util.Optional<byte[]> values_tensor, java.util.Optional<int[]> values_int64s, java.util.Optional<String> default_string, java.util.Optional<float[]> values_floats) {
+        LabelEncoder(TypeElement resultType, Value X, java.util.Optional<String[]> values_strings, java.util.Optional<long[]> keys_int64s, java.util.Optional<byte[]> keys_tensor, java.util.Optional<String[]> keys_strings, java.util.Optional<Float> default_float, java.util.Optional<float[]> keys_floats, java.util.Optional<byte[]> default_tensor, java.util.Optional<Long> default_int64, java.util.Optional<byte[]> values_tensor, java.util.Optional<long[]> values_int64s, java.util.Optional<String> default_string, java.util.Optional<float[]> values_floats) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(values_strings, keys_int64s, keys_tensor, keys_strings, default_float, keys_floats, default_tensor, default_int64, values_tensor, values_int64s, default_string, values_floats));
         }
 
@@ -13328,9 +13328,9 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(values_strings).map(String[]::clone);
         }
 
-        public java.util.Optional<int[]> keys_int64s() {
-            int[] keys_int64s = Attribute.keys_int64s.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(keys_int64s).map(int[]::clone);
+        public java.util.Optional<long[]> keys_int64s() {
+            long[] keys_int64s = Attribute.keys_int64s.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(keys_int64s).map(long[]::clone);
         }
 
         public java.util.Optional<byte[]> keys_tensor() {
@@ -13358,8 +13358,8 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(default_tensor).map(byte[]::clone);
         }
 
-        public java.util.Optional<Integer> default_int64() {
-            Integer default_int64 = Attribute.default_int64.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> default_int64() {
+            Long default_int64 = Attribute.default_int64.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(default_int64);
         }
 
@@ -13368,9 +13368,9 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(values_tensor).map(byte[]::clone);
         }
 
-        public java.util.Optional<int[]> values_int64s() {
-            int[] values_int64s = Attribute.values_int64s.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(values_int64s).map(int[]::clone);
+        public java.util.Optional<long[]> values_int64s() {
+            long[] values_int64s = Attribute.values_int64s.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(values_int64s).map(long[]::clone);
         }
 
         public java.util.Optional<String> default_string() {
@@ -13385,7 +13385,7 @@ public final class OnnxOps {
 
     }
 
-    public static LabelEncoder LabelEncoder(TypeElement resultType, Value X, java.util.Optional<String[]> values_strings, java.util.Optional<int[]> keys_int64s, java.util.Optional<byte[]> keys_tensor, java.util.Optional<String[]> keys_strings, java.util.Optional<Float> default_float, java.util.Optional<float[]> keys_floats, java.util.Optional<byte[]> default_tensor, java.util.Optional<Integer> default_int64, java.util.Optional<byte[]> values_tensor, java.util.Optional<int[]> values_int64s, java.util.Optional<String> default_string, java.util.Optional<float[]> values_floats) {
+    public static LabelEncoder LabelEncoder(TypeElement resultType, Value X, java.util.Optional<String[]> values_strings, java.util.Optional<long[]> keys_int64s, java.util.Optional<byte[]> keys_tensor, java.util.Optional<String[]> keys_strings, java.util.Optional<Float> default_float, java.util.Optional<float[]> keys_floats, java.util.Optional<byte[]> default_tensor, java.util.Optional<Long> default_int64, java.util.Optional<byte[]> values_tensor, java.util.Optional<long[]> values_int64s, java.util.Optional<String> default_string, java.util.Optional<float[]> values_floats) {
         return new LabelEncoder(resultType, X, values_strings, keys_int64s, keys_tensor, keys_strings, default_float, keys_floats, default_tensor, default_int64, values_tensor, values_int64s, default_string, values_floats);
     }
 
@@ -13395,8 +13395,8 @@ public final class OnnxOps {
 
         public enum Attribute implements OnnxAttribute {
             epsilon(Float.class, true, 1.0E-5f),
-            stash_type(Integer.class, true, 1),
-            axis(Integer.class, true, -1),
+            stash_type(Long.class, true, 1),
+            axis(Long.class, true, -1),
             ;
 
                 final Class<?> t;
@@ -13512,7 +13512,7 @@ public final class OnnxOps {
             return new LayerNormalization(this, cc);
         }
 
-        LayerNormalization(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value X, Value Scale, java.util.Optional<Value> B, java.util.Optional<Float> epsilon, java.util.Optional<Integer> stash_type, java.util.Optional<Integer> axis) {
+        LayerNormalization(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value X, Value Scale, java.util.Optional<Value> B, java.util.Optional<Float> epsilon, java.util.Optional<Long> stash_type, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, optionalOutputs, List.of(X, Scale, B), List.of(epsilon, stash_type, axis));
         }
 
@@ -13544,19 +13544,19 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(epsilon);
         }
 
-        public java.util.Optional<Integer> stash_type() {
-            Integer stash_type = Attribute.stash_type.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> stash_type() {
+            Long stash_type = Attribute.stash_type.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(stash_type);
         }
 
-        public java.util.Optional<Integer> axis() {
-            Integer axis = Attribute.axis.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> axis() {
+            Long axis = Attribute.axis.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(axis);
         }
 
     }
 
-    public static LayerNormalization LayerNormalization(TypeElement resultType, Set<LayerNormalization.OutputParameter> optionalOutputs, Value X, Value Scale, java.util.Optional<Value> B, java.util.Optional<Float> epsilon, java.util.Optional<Integer> stash_type, java.util.Optional<Integer> axis) {
+    public static LayerNormalization LayerNormalization(TypeElement resultType, Set<LayerNormalization.OutputParameter> optionalOutputs, Value X, Value Scale, java.util.Optional<Value> B, java.util.Optional<Float> epsilon, java.util.Optional<Long> stash_type, java.util.Optional<Long> axis) {
         return new LayerNormalization(resultType, optionalOutputs, X, Scale, B, epsilon, stash_type, axis);
     }
 
@@ -13950,10 +13950,10 @@ public final class OnnxOps {
         public static final String NAME = "LinearClassifier";
 
         public enum Attribute implements OnnxAttribute {
-            classlabels_ints(int[].class, true, null),
+            classlabels_ints(long[].class, true, null),
             post_transform(String.class, true, "NONE"),
             coefficients(float[].class, false, null),
-            multi_class(Integer.class, true, 0),
+            multi_class(Long.class, true, 0),
             intercepts(float[].class, true, null),
             classlabels_strings(String[].class, true, null),
             ;
@@ -14068,7 +14068,7 @@ public final class OnnxOps {
             return new LinearClassifier(this, cc);
         }
 
-        LinearClassifier(TypeElement resultType, Value X, java.util.Optional<int[]> classlabels_ints, java.util.Optional<String> post_transform, float[] coefficients, java.util.Optional<Integer> multi_class, java.util.Optional<float[]> intercepts, java.util.Optional<String[]> classlabels_strings) {
+        LinearClassifier(TypeElement resultType, Value X, java.util.Optional<long[]> classlabels_ints, java.util.Optional<String> post_transform, float[] coefficients, java.util.Optional<Long> multi_class, java.util.Optional<float[]> intercepts, java.util.Optional<String[]> classlabels_strings) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(classlabels_ints, post_transform, coefficients, multi_class, intercepts, classlabels_strings));
         }
 
@@ -14086,9 +14086,9 @@ public final class OnnxOps {
             return operands().get(0);
         }
 
-        public java.util.Optional<int[]> classlabels_ints() {
-            int[] classlabels_ints = Attribute.classlabels_ints.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(classlabels_ints).map(int[]::clone);
+        public java.util.Optional<long[]> classlabels_ints() {
+            long[] classlabels_ints = Attribute.classlabels_ints.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(classlabels_ints).map(long[]::clone);
         }
 
         public java.util.Optional<String> post_transform() {
@@ -14101,8 +14101,8 @@ public final class OnnxOps {
             return coefficients.clone();
         }
 
-        public java.util.Optional<Integer> multi_class() {
-            Integer multi_class = Attribute.multi_class.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> multi_class() {
+            Long multi_class = Attribute.multi_class.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(multi_class);
         }
 
@@ -14118,7 +14118,7 @@ public final class OnnxOps {
 
     }
 
-    public static LinearClassifier LinearClassifier(TypeElement resultType, Value X, java.util.Optional<int[]> classlabels_ints, java.util.Optional<String> post_transform, float[] coefficients, java.util.Optional<Integer> multi_class, java.util.Optional<float[]> intercepts, java.util.Optional<String[]> classlabels_strings) {
+    public static LinearClassifier LinearClassifier(TypeElement resultType, Value X, java.util.Optional<long[]> classlabels_ints, java.util.Optional<String> post_transform, float[] coefficients, java.util.Optional<Long> multi_class, java.util.Optional<float[]> intercepts, java.util.Optional<String[]> classlabels_strings) {
         return new LinearClassifier(resultType, X, classlabels_ints, post_transform, coefficients, multi_class, intercepts, classlabels_strings);
     }
 
@@ -14129,7 +14129,7 @@ public final class OnnxOps {
         public enum Attribute implements OnnxAttribute {
             post_transform(String.class, true, "NONE"),
             coefficients(float[].class, true, null),
-            targets(Integer.class, true, 1),
+            targets(Long.class, true, 1),
             intercepts(float[].class, true, null),
             ;
 
@@ -14241,7 +14241,7 @@ public final class OnnxOps {
             return new LinearRegressor(this, cc);
         }
 
-        LinearRegressor(TypeElement resultType, Value X, java.util.Optional<String> post_transform, java.util.Optional<float[]> coefficients, java.util.Optional<Integer> targets, java.util.Optional<float[]> intercepts) {
+        LinearRegressor(TypeElement resultType, Value X, java.util.Optional<String> post_transform, java.util.Optional<float[]> coefficients, java.util.Optional<Long> targets, java.util.Optional<float[]> intercepts) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(post_transform, coefficients, targets, intercepts));
         }
 
@@ -14269,8 +14269,8 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(coefficients).map(float[]::clone);
         }
 
-        public java.util.Optional<Integer> targets() {
-            Integer targets = Attribute.targets.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> targets() {
+            Long targets = Attribute.targets.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(targets);
         }
 
@@ -14281,7 +14281,7 @@ public final class OnnxOps {
 
     }
 
-    public static LinearRegressor LinearRegressor(TypeElement resultType, Value X, java.util.Optional<String> post_transform, java.util.Optional<float[]> coefficients, java.util.Optional<Integer> targets, java.util.Optional<float[]> intercepts) {
+    public static LinearRegressor LinearRegressor(TypeElement resultType, Value X, java.util.Optional<String> post_transform, java.util.Optional<float[]> coefficients, java.util.Optional<Long> targets, java.util.Optional<float[]> intercepts) {
         return new LinearRegressor(resultType, X, post_transform, coefficients, targets, intercepts);
     }
 
@@ -14404,7 +14404,7 @@ public final class OnnxOps {
         public static final String NAME = "LogSoftmax";
 
         public enum Attribute implements OnnxAttribute {
-            axis(Integer.class, true, -1),
+            axis(Long.class, true, -1),
             ;
 
                 final Class<?> t;
@@ -14515,7 +14515,7 @@ public final class OnnxOps {
             return new LogSoftmax(this, cc);
         }
 
-        LogSoftmax(TypeElement resultType, Value input, java.util.Optional<Integer> axis) {
+        LogSoftmax(TypeElement resultType, Value input, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of(axis));
         }
 
@@ -14533,14 +14533,14 @@ public final class OnnxOps {
             return operands().get(0);
         }
 
-        public java.util.Optional<Integer> axis() {
-            Integer axis = Attribute.axis.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> axis() {
+            Long axis = Attribute.axis.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(axis);
         }
 
     }
 
-    public static LogSoftmax LogSoftmax(TypeElement resultType, Value input, java.util.Optional<Integer> axis) {
+    public static LogSoftmax LogSoftmax(TypeElement resultType, Value input, java.util.Optional<Long> axis) {
         return new LogSoftmax(resultType, input, axis);
     }
 
@@ -14549,8 +14549,8 @@ public final class OnnxOps {
         public static final String NAME = "LpNormalization";
 
         public enum Attribute implements OnnxAttribute {
-            p(Integer.class, true, 2),
-            axis(Integer.class, true, -1),
+            p(Long.class, true, 2),
+            axis(Long.class, true, -1),
             ;
 
                 final Class<?> t;
@@ -14661,7 +14661,7 @@ public final class OnnxOps {
             return new LpNormalization(this, cc);
         }
 
-        LpNormalization(TypeElement resultType, Value input, java.util.Optional<Integer> p, java.util.Optional<Integer> axis) {
+        LpNormalization(TypeElement resultType, Value input, java.util.Optional<Long> p, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of(p, axis));
         }
 
@@ -14679,19 +14679,19 @@ public final class OnnxOps {
             return operands().get(0);
         }
 
-        public java.util.Optional<Integer> p() {
-            Integer p = Attribute.p.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> p() {
+            Long p = Attribute.p.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(p);
         }
 
-        public java.util.Optional<Integer> axis() {
-            Integer axis = Attribute.axis.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> axis() {
+            Long axis = Attribute.axis.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(axis);
         }
 
     }
 
-    public static LpNormalization LpNormalization(TypeElement resultType, Value input, java.util.Optional<Integer> p, java.util.Optional<Integer> axis) {
+    public static LpNormalization LpNormalization(TypeElement resultType, Value input, java.util.Optional<Long> p, java.util.Optional<Long> axis) {
         return new LpNormalization(resultType, input, p, axis);
     }
 
@@ -14700,13 +14700,13 @@ public final class OnnxOps {
         public static final String NAME = "LpPool";
 
         public enum Attribute implements OnnxAttribute {
-            p(Integer.class, true, 2),
-            pads(int[].class, true, null),
-            dilations(int[].class, true, null),
+            p(Long.class, true, 2),
+            pads(long[].class, true, null),
+            dilations(long[].class, true, null),
             auto_pad(String.class, true, "NOTSET"),
-            ceil_mode(Integer.class, true, 0),
-            strides(int[].class, true, null),
-            kernel_shape(int[].class, false, null),
+            ceil_mode(Long.class, true, 0),
+            strides(long[].class, true, null),
+            kernel_shape(long[].class, false, null),
             ;
 
                 final Class<?> t;
@@ -14817,7 +14817,7 @@ public final class OnnxOps {
             return new LpPool(this, cc);
         }
 
-        LpPool(TypeElement resultType, Value X, java.util.Optional<Integer> p, java.util.Optional<int[]> pads, java.util.Optional<int[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<Integer> ceil_mode, java.util.Optional<int[]> strides, int[] kernel_shape) {
+        LpPool(TypeElement resultType, Value X, java.util.Optional<Long> p, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<Long> ceil_mode, java.util.Optional<long[]> strides, long[] kernel_shape) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(p, pads, dilations, auto_pad, ceil_mode, strides, kernel_shape));
         }
 
@@ -14835,19 +14835,19 @@ public final class OnnxOps {
             return operands().get(0);
         }
 
-        public java.util.Optional<Integer> p() {
-            Integer p = Attribute.p.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> p() {
+            Long p = Attribute.p.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(p);
         }
 
-        public java.util.Optional<int[]> pads() {
-            int[] pads = Attribute.pads.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(pads).map(int[]::clone);
+        public java.util.Optional<long[]> pads() {
+            long[] pads = Attribute.pads.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(pads).map(long[]::clone);
         }
 
-        public java.util.Optional<int[]> dilations() {
-            int[] dilations = Attribute.dilations.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(dilations).map(int[]::clone);
+        public java.util.Optional<long[]> dilations() {
+            long[] dilations = Attribute.dilations.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(dilations).map(long[]::clone);
         }
 
         public java.util.Optional<String> auto_pad() {
@@ -14855,24 +14855,24 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(auto_pad);
         }
 
-        public java.util.Optional<Integer> ceil_mode() {
-            Integer ceil_mode = Attribute.ceil_mode.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> ceil_mode() {
+            Long ceil_mode = Attribute.ceil_mode.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(ceil_mode);
         }
 
-        public java.util.Optional<int[]> strides() {
-            int[] strides = Attribute.strides.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(strides).map(int[]::clone);
+        public java.util.Optional<long[]> strides() {
+            long[] strides = Attribute.strides.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(strides).map(long[]::clone);
         }
 
-        public int[] kernel_shape() {
-            int[] kernel_shape = Attribute.kernel_shape.access(int[].class, onnxAttributes);
+        public long[] kernel_shape() {
+            long[] kernel_shape = Attribute.kernel_shape.access(long[].class, onnxAttributes);
             return kernel_shape.clone();
         }
 
     }
 
-    public static LpPool LpPool(TypeElement resultType, Value X, java.util.Optional<Integer> p, java.util.Optional<int[]> pads, java.util.Optional<int[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<Integer> ceil_mode, java.util.Optional<int[]> strides, int[] kernel_shape) {
+    public static LpPool LpPool(TypeElement resultType, Value X, java.util.Optional<Long> p, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<Long> ceil_mode, java.util.Optional<long[]> strides, long[] kernel_shape) {
         return new LpPool(resultType, X, p, pads, dilations, auto_pad, ceil_mode, strides, kernel_shape);
     }
 
@@ -15247,13 +15247,13 @@ public final class OnnxOps {
         public static final String NAME = "MaxPool";
 
         public enum Attribute implements OnnxAttribute {
-            pads(int[].class, true, null),
-            dilations(int[].class, true, null),
+            pads(long[].class, true, null),
+            dilations(long[].class, true, null),
             auto_pad(String.class, true, "NOTSET"),
-            ceil_mode(Integer.class, true, 0),
-            storage_order(Integer.class, true, 0),
-            strides(int[].class, true, null),
-            kernel_shape(int[].class, false, null),
+            ceil_mode(Long.class, true, 0),
+            storage_order(Long.class, true, 0),
+            strides(long[].class, true, null),
+            kernel_shape(long[].class, false, null),
             ;
 
                 final Class<?> t;
@@ -15366,7 +15366,7 @@ public final class OnnxOps {
             return new MaxPool(this, cc);
         }
 
-        MaxPool(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value X, java.util.Optional<int[]> pads, java.util.Optional<int[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<Integer> ceil_mode, java.util.Optional<Integer> storage_order, java.util.Optional<int[]> strides, int[] kernel_shape) {
+        MaxPool(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value X, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<Long> ceil_mode, java.util.Optional<Long> storage_order, java.util.Optional<long[]> strides, long[] kernel_shape) {
             super(SCHEMA, resultType, optionalOutputs, List.of(X), List.of(pads, dilations, auto_pad, ceil_mode, storage_order, strides, kernel_shape));
         }
 
@@ -15384,14 +15384,14 @@ public final class OnnxOps {
             return operands().get(0);
         }
 
-        public java.util.Optional<int[]> pads() {
-            int[] pads = Attribute.pads.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(pads).map(int[]::clone);
+        public java.util.Optional<long[]> pads() {
+            long[] pads = Attribute.pads.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(pads).map(long[]::clone);
         }
 
-        public java.util.Optional<int[]> dilations() {
-            int[] dilations = Attribute.dilations.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(dilations).map(int[]::clone);
+        public java.util.Optional<long[]> dilations() {
+            long[] dilations = Attribute.dilations.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(dilations).map(long[]::clone);
         }
 
         public java.util.Optional<String> auto_pad() {
@@ -15399,29 +15399,29 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(auto_pad);
         }
 
-        public java.util.Optional<Integer> ceil_mode() {
-            Integer ceil_mode = Attribute.ceil_mode.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> ceil_mode() {
+            Long ceil_mode = Attribute.ceil_mode.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(ceil_mode);
         }
 
-        public java.util.Optional<Integer> storage_order() {
-            Integer storage_order = Attribute.storage_order.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> storage_order() {
+            Long storage_order = Attribute.storage_order.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(storage_order);
         }
 
-        public java.util.Optional<int[]> strides() {
-            int[] strides = Attribute.strides.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(strides).map(int[]::clone);
+        public java.util.Optional<long[]> strides() {
+            long[] strides = Attribute.strides.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(strides).map(long[]::clone);
         }
 
-        public int[] kernel_shape() {
-            int[] kernel_shape = Attribute.kernel_shape.access(int[].class, onnxAttributes);
+        public long[] kernel_shape() {
+            long[] kernel_shape = Attribute.kernel_shape.access(long[].class, onnxAttributes);
             return kernel_shape.clone();
         }
 
     }
 
-    public static MaxPool MaxPool(TypeElement resultType, Set<MaxPool.OutputParameter> optionalOutputs, Value X, java.util.Optional<int[]> pads, java.util.Optional<int[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<Integer> ceil_mode, java.util.Optional<Integer> storage_order, java.util.Optional<int[]> strides, int[] kernel_shape) {
+    public static MaxPool MaxPool(TypeElement resultType, Set<MaxPool.OutputParameter> optionalOutputs, Value X, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<Long> ceil_mode, java.util.Optional<Long> storage_order, java.util.Optional<long[]> strides, long[] kernel_shape) {
         return new MaxPool(resultType, optionalOutputs, X, pads, dilations, auto_pad, ceil_mode, storage_order, strides, kernel_shape);
     }
 
@@ -15431,7 +15431,7 @@ public final class OnnxOps {
 
         public enum Attribute implements OnnxAttribute {
             spatial_scale(Float.class, true, 1.0f),
-            pooled_shape(int[].class, false, null),
+            pooled_shape(long[].class, false, null),
             ;
 
                 final Class<?> t;
@@ -15543,7 +15543,7 @@ public final class OnnxOps {
             return new MaxRoiPool(this, cc);
         }
 
-        MaxRoiPool(TypeElement resultType, Value X, Value rois, java.util.Optional<Float> spatial_scale, int[] pooled_shape) {
+        MaxRoiPool(TypeElement resultType, Value X, Value rois, java.util.Optional<Float> spatial_scale, long[] pooled_shape) {
             super(SCHEMA, resultType, Set.of(), List.of(X, rois), List.of(spatial_scale, pooled_shape));
         }
 
@@ -15570,14 +15570,14 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(spatial_scale);
         }
 
-        public int[] pooled_shape() {
-            int[] pooled_shape = Attribute.pooled_shape.access(int[].class, onnxAttributes);
+        public long[] pooled_shape() {
+            long[] pooled_shape = Attribute.pooled_shape.access(long[].class, onnxAttributes);
             return pooled_shape.clone();
         }
 
     }
 
-    public static MaxRoiPool MaxRoiPool(TypeElement resultType, Value X, Value rois, java.util.Optional<Float> spatial_scale, int[] pooled_shape) {
+    public static MaxRoiPool MaxRoiPool(TypeElement resultType, Value X, Value rois, java.util.Optional<Float> spatial_scale, long[] pooled_shape) {
         return new MaxRoiPool(resultType, X, rois, spatial_scale, pooled_shape);
     }
 
@@ -15586,9 +15586,9 @@ public final class OnnxOps {
         public static final String NAME = "MaxUnpool";
 
         public enum Attribute implements OnnxAttribute {
-            pads(int[].class, true, null),
-            strides(int[].class, true, null),
-            kernel_shape(int[].class, false, null),
+            pads(long[].class, true, null),
+            strides(long[].class, true, null),
+            kernel_shape(long[].class, false, null),
             ;
 
                 final Class<?> t;
@@ -15702,7 +15702,7 @@ public final class OnnxOps {
             return new MaxUnpool(this, cc);
         }
 
-        MaxUnpool(TypeElement resultType, Value X, Value I, java.util.Optional<Value> output_shape, java.util.Optional<int[]> pads, java.util.Optional<int[]> strides, int[] kernel_shape) {
+        MaxUnpool(TypeElement resultType, Value X, Value I, java.util.Optional<Value> output_shape, java.util.Optional<long[]> pads, java.util.Optional<long[]> strides, long[] kernel_shape) {
             super(SCHEMA, resultType, Set.of(), List.of(X, I, output_shape), List.of(pads, strides, kernel_shape));
         }
 
@@ -15729,24 +15729,24 @@ public final class OnnxOps {
             return i != -1 ? java.util.Optional.of(operands().get(2 + i)) : java.util.Optional.empty();
         }
 
-        public java.util.Optional<int[]> pads() {
-            int[] pads = Attribute.pads.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(pads).map(int[]::clone);
+        public java.util.Optional<long[]> pads() {
+            long[] pads = Attribute.pads.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(pads).map(long[]::clone);
         }
 
-        public java.util.Optional<int[]> strides() {
-            int[] strides = Attribute.strides.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(strides).map(int[]::clone);
+        public java.util.Optional<long[]> strides() {
+            long[] strides = Attribute.strides.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(strides).map(long[]::clone);
         }
 
-        public int[] kernel_shape() {
-            int[] kernel_shape = Attribute.kernel_shape.access(int[].class, onnxAttributes);
+        public long[] kernel_shape() {
+            long[] kernel_shape = Attribute.kernel_shape.access(long[].class, onnxAttributes);
             return kernel_shape.clone();
         }
 
     }
 
-    public static MaxUnpool MaxUnpool(TypeElement resultType, Value X, Value I, java.util.Optional<Value> output_shape, java.util.Optional<int[]> pads, java.util.Optional<int[]> strides, int[] kernel_shape) {
+    public static MaxUnpool MaxUnpool(TypeElement resultType, Value X, Value I, java.util.Optional<Value> output_shape, java.util.Optional<long[]> pads, java.util.Optional<long[]> strides, long[] kernel_shape) {
         return new MaxUnpool(resultType, X, I, output_shape, pads, strides, kernel_shape);
     }
 
@@ -15869,7 +15869,7 @@ public final class OnnxOps {
         public static final String NAME = "MeanVarianceNormalization";
 
         public enum Attribute implements OnnxAttribute {
-            axes(int[].class, true, null),
+            axes(long[].class, true, null),
             ;
 
                 final Class<?> t;
@@ -15980,7 +15980,7 @@ public final class OnnxOps {
             return new MeanVarianceNormalization(this, cc);
         }
 
-        MeanVarianceNormalization(TypeElement resultType, Value X, java.util.Optional<int[]> axes) {
+        MeanVarianceNormalization(TypeElement resultType, Value X, java.util.Optional<long[]> axes) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(axes));
         }
 
@@ -15998,14 +15998,14 @@ public final class OnnxOps {
             return operands().get(0);
         }
 
-        public java.util.Optional<int[]> axes() {
-            int[] axes = Attribute.axes.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(axes).map(int[]::clone);
+        public java.util.Optional<long[]> axes() {
+            long[] axes = Attribute.axes.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(axes).map(long[]::clone);
         }
 
     }
 
-    public static MeanVarianceNormalization MeanVarianceNormalization(TypeElement resultType, Value X, java.util.Optional<int[]> axes) {
+    public static MeanVarianceNormalization MeanVarianceNormalization(TypeElement resultType, Value X, java.util.Optional<long[]> axes) {
         return new MeanVarianceNormalization(resultType, X, axes);
     }
 
@@ -16014,7 +16014,7 @@ public final class OnnxOps {
         public static final String NAME = "MelWeightMatrix";
 
         public enum Attribute implements OnnxAttribute {
-            output_datatype(Integer.class, true, 1),
+            output_datatype(Long.class, true, 1),
             ;
 
                 final Class<?> t;
@@ -16131,7 +16131,7 @@ public final class OnnxOps {
             return new MelWeightMatrix(this, cc);
         }
 
-        MelWeightMatrix(TypeElement resultType, Value num_mel_bins, Value dft_length, Value sample_rate, Value lower_edge_hertz, Value upper_edge_hertz, java.util.Optional<Integer> output_datatype) {
+        MelWeightMatrix(TypeElement resultType, Value num_mel_bins, Value dft_length, Value sample_rate, Value lower_edge_hertz, Value upper_edge_hertz, java.util.Optional<Long> output_datatype) {
             super(SCHEMA, resultType, Set.of(), List.of(num_mel_bins, dft_length, sample_rate, lower_edge_hertz, upper_edge_hertz), List.of(output_datatype));
         }
 
@@ -16165,14 +16165,14 @@ public final class OnnxOps {
             return operands().get(4);
         }
 
-        public java.util.Optional<Integer> output_datatype() {
-            Integer output_datatype = Attribute.output_datatype.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> output_datatype() {
+            Long output_datatype = Attribute.output_datatype.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(output_datatype);
         }
 
     }
 
-    public static MelWeightMatrix MelWeightMatrix(TypeElement resultType, Value num_mel_bins, Value dft_length, Value sample_rate, Value lower_edge_hertz, Value upper_edge_hertz, java.util.Optional<Integer> output_datatype) {
+    public static MelWeightMatrix MelWeightMatrix(TypeElement resultType, Value num_mel_bins, Value dft_length, Value sample_rate, Value lower_edge_hertz, Value upper_edge_hertz, java.util.Optional<Long> output_datatype) {
         return new MelWeightMatrix(resultType, num_mel_bins, dft_length, sample_rate, lower_edge_hertz, upper_edge_hertz, output_datatype);
     }
 
@@ -16409,7 +16409,7 @@ public final class OnnxOps {
         public static final String NAME = "Mod";
 
         public enum Attribute implements OnnxAttribute {
-            fmod(Integer.class, true, 0),
+            fmod(Long.class, true, 0),
             ;
 
                 final Class<?> t;
@@ -16521,7 +16521,7 @@ public final class OnnxOps {
             return new Mod(this, cc);
         }
 
-        Mod(TypeElement resultType, Value A, Value B, java.util.Optional<Integer> fmod) {
+        Mod(TypeElement resultType, Value A, Value B, java.util.Optional<Long> fmod) {
             super(SCHEMA, resultType, Set.of(), List.of(A, B), List.of(fmod));
         }
 
@@ -16543,14 +16543,14 @@ public final class OnnxOps {
             return operands().get(1);
         }
 
-        public java.util.Optional<Integer> fmod() {
-            Integer fmod = Attribute.fmod.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> fmod() {
+            Long fmod = Attribute.fmod.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(fmod);
         }
 
     }
 
-    public static Mod Mod(TypeElement resultType, Value A, Value B, java.util.Optional<Integer> fmod) {
+    public static Mod Mod(TypeElement resultType, Value A, Value B, java.util.Optional<Long> fmod) {
         return new Mod(resultType, A, B, fmod);
     }
 
@@ -16854,8 +16854,8 @@ public final class OnnxOps {
 
         public enum Attribute implements OnnxAttribute {
             seed(Float.class, true, null),
-            sample_size(Integer.class, true, 1),
-            dtype(Integer.class, true, 6),
+            sample_size(Long.class, true, 1),
+            dtype(Long.class, true, 6),
             ;
 
                 final Class<?> t;
@@ -16967,7 +16967,7 @@ public final class OnnxOps {
             return new Multinomial(this, cc);
         }
 
-        Multinomial(TypeElement resultType, Value input, java.util.Optional<Float> seed, java.util.Optional<Integer> sample_size, java.util.Optional<Integer> dtype) {
+        Multinomial(TypeElement resultType, Value input, java.util.Optional<Float> seed, java.util.Optional<Long> sample_size, java.util.Optional<Long> dtype) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of(seed, sample_size, dtype));
         }
 
@@ -16990,19 +16990,19 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(seed);
         }
 
-        public java.util.Optional<Integer> sample_size() {
-            Integer sample_size = Attribute.sample_size.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> sample_size() {
+            Long sample_size = Attribute.sample_size.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(sample_size);
         }
 
-        public java.util.Optional<Integer> dtype() {
-            Integer dtype = Attribute.dtype.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> dtype() {
+            Long dtype = Attribute.dtype.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(dtype);
         }
 
     }
 
-    public static Multinomial Multinomial(TypeElement resultType, Value input, java.util.Optional<Float> seed, java.util.Optional<Integer> sample_size, java.util.Optional<Integer> dtype) {
+    public static Multinomial Multinomial(TypeElement resultType, Value input, java.util.Optional<Float> seed, java.util.Optional<Long> sample_size, java.util.Optional<Long> dtype) {
         return new Multinomial(resultType, input, seed, sample_size, dtype);
     }
 
@@ -17125,7 +17125,7 @@ public final class OnnxOps {
         public static final String NAME = "NegativeLogLikelihoodLoss";
 
         public enum Attribute implements OnnxAttribute {
-            ignore_index(Integer.class, true, null),
+            ignore_index(Long.class, true, null),
             reduction(String.class, true, "mean"),
             ;
 
@@ -17240,7 +17240,7 @@ public final class OnnxOps {
             return new NegativeLogLikelihoodLoss(this, cc);
         }
 
-        NegativeLogLikelihoodLoss(TypeElement resultType, Value input, Value target, java.util.Optional<Value> weight, java.util.Optional<Integer> ignore_index, java.util.Optional<String> reduction) {
+        NegativeLogLikelihoodLoss(TypeElement resultType, Value input, Value target, java.util.Optional<Value> weight, java.util.Optional<Long> ignore_index, java.util.Optional<String> reduction) {
             super(SCHEMA, resultType, Set.of(), List.of(input, target, weight), List.of(ignore_index, reduction));
         }
 
@@ -17267,8 +17267,8 @@ public final class OnnxOps {
             return i != -1 ? java.util.Optional.of(operands().get(2 + i)) : java.util.Optional.empty();
         }
 
-        public java.util.Optional<Integer> ignore_index() {
-            Integer ignore_index = Attribute.ignore_index.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> ignore_index() {
+            Long ignore_index = Attribute.ignore_index.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(ignore_index);
         }
 
@@ -17279,7 +17279,7 @@ public final class OnnxOps {
 
     }
 
-    public static NegativeLogLikelihoodLoss NegativeLogLikelihoodLoss(TypeElement resultType, Value input, Value target, java.util.Optional<Value> weight, java.util.Optional<Integer> ignore_index, java.util.Optional<String> reduction) {
+    public static NegativeLogLikelihoodLoss NegativeLogLikelihoodLoss(TypeElement resultType, Value input, Value target, java.util.Optional<Value> weight, java.util.Optional<Long> ignore_index, java.util.Optional<String> reduction) {
         return new NegativeLogLikelihoodLoss(resultType, input, target, weight, ignore_index, reduction);
     }
 
@@ -17288,7 +17288,7 @@ public final class OnnxOps {
         public static final String NAME = "NonMaxSuppression";
 
         public enum Attribute implements OnnxAttribute {
-            center_point_box(Integer.class, true, 0),
+            center_point_box(Long.class, true, 0),
             ;
 
                 final Class<?> t;
@@ -17388,7 +17388,7 @@ public final class OnnxOps {
             return new NonMaxSuppression(this, cc);
         }
 
-        NonMaxSuppression(TypeElement resultType, Value boxes, Value scores, java.util.Optional<Value> max_output_boxes_per_class, java.util.Optional<Value> iou_threshold, java.util.Optional<Value> score_threshold, java.util.Optional<Integer> center_point_box) {
+        NonMaxSuppression(TypeElement resultType, Value boxes, Value scores, java.util.Optional<Value> max_output_boxes_per_class, java.util.Optional<Value> iou_threshold, java.util.Optional<Value> score_threshold, java.util.Optional<Long> center_point_box) {
             super(SCHEMA, resultType, Set.of(), List.of(boxes, scores, max_output_boxes_per_class, iou_threshold, score_threshold), List.of(center_point_box));
         }
 
@@ -17425,14 +17425,14 @@ public final class OnnxOps {
             return i != -1 ? java.util.Optional.of(operands().get(2 + i)) : java.util.Optional.empty();
         }
 
-        public java.util.Optional<Integer> center_point_box() {
-            Integer center_point_box = Attribute.center_point_box.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> center_point_box() {
+            Long center_point_box = Attribute.center_point_box.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(center_point_box);
         }
 
     }
 
-    public static NonMaxSuppression NonMaxSuppression(TypeElement resultType, Value boxes, Value scores, java.util.Optional<Value> max_output_boxes_per_class, java.util.Optional<Value> iou_threshold, java.util.Optional<Value> score_threshold, java.util.Optional<Integer> center_point_box) {
+    public static NonMaxSuppression NonMaxSuppression(TypeElement resultType, Value boxes, Value scores, java.util.Optional<Value> max_output_boxes_per_class, java.util.Optional<Value> iou_threshold, java.util.Optional<Value> score_threshold, java.util.Optional<Long> center_point_box) {
         return new NonMaxSuppression(resultType, boxes, scores, max_output_boxes_per_class, iou_threshold, score_threshold, center_point_box);
     }
 
@@ -17814,7 +17814,7 @@ public final class OnnxOps {
         public static final String NAME = "OneHot";
 
         public enum Attribute implements OnnxAttribute {
-            axis(Integer.class, true, -1),
+            axis(Long.class, true, -1),
             ;
 
                 final Class<?> t;
@@ -17929,7 +17929,7 @@ public final class OnnxOps {
             return new OneHot(this, cc);
         }
 
-        OneHot(TypeElement resultType, Value indices, Value depth, Value values, java.util.Optional<Integer> axis) {
+        OneHot(TypeElement resultType, Value indices, Value depth, Value values, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(indices, depth, values), List.of(axis));
         }
 
@@ -17955,14 +17955,14 @@ public final class OnnxOps {
             return operands().get(2);
         }
 
-        public java.util.Optional<Integer> axis() {
-            Integer axis = Attribute.axis.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> axis() {
+            Long axis = Attribute.axis.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(axis);
         }
 
     }
 
-    public static OneHot OneHot(TypeElement resultType, Value indices, Value depth, Value values, java.util.Optional<Integer> axis) {
+    public static OneHot OneHot(TypeElement resultType, Value indices, Value depth, Value values, java.util.Optional<Long> axis) {
         return new OneHot(resultType, indices, depth, values, axis);
     }
 
@@ -17972,8 +17972,8 @@ public final class OnnxOps {
 
         public enum Attribute implements OnnxAttribute {
             cats_strings(String[].class, true, null),
-            cats_int64s(int[].class, true, null),
-            zeros(Integer.class, true, 1),
+            cats_int64s(long[].class, true, null),
+            zeros(Long.class, true, 1),
             ;
 
                 final Class<?> t;
@@ -18084,7 +18084,7 @@ public final class OnnxOps {
             return new OneHotEncoder(this, cc);
         }
 
-        OneHotEncoder(TypeElement resultType, Value X, java.util.Optional<String[]> cats_strings, java.util.Optional<int[]> cats_int64s, java.util.Optional<Integer> zeros) {
+        OneHotEncoder(TypeElement resultType, Value X, java.util.Optional<String[]> cats_strings, java.util.Optional<long[]> cats_int64s, java.util.Optional<Long> zeros) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(cats_strings, cats_int64s, zeros));
         }
 
@@ -18107,19 +18107,19 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(cats_strings).map(String[]::clone);
         }
 
-        public java.util.Optional<int[]> cats_int64s() {
-            int[] cats_int64s = Attribute.cats_int64s.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(cats_int64s).map(int[]::clone);
+        public java.util.Optional<long[]> cats_int64s() {
+            long[] cats_int64s = Attribute.cats_int64s.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(cats_int64s).map(long[]::clone);
         }
 
-        public java.util.Optional<Integer> zeros() {
-            Integer zeros = Attribute.zeros.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> zeros() {
+            Long zeros = Attribute.zeros.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(zeros);
         }
 
     }
 
-    public static OneHotEncoder OneHotEncoder(TypeElement resultType, Value X, java.util.Optional<String[]> cats_strings, java.util.Optional<int[]> cats_int64s, java.util.Optional<Integer> zeros) {
+    public static OneHotEncoder OneHotEncoder(TypeElement resultType, Value X, java.util.Optional<String[]> cats_strings, java.util.Optional<long[]> cats_int64s, java.util.Optional<Long> zeros) {
         return new OneHotEncoder(resultType, X, cats_strings, cats_int64s, zeros);
     }
 
@@ -19028,12 +19028,12 @@ public final class OnnxOps {
         public static final String NAME = "QLinearConv";
 
         public enum Attribute implements OnnxAttribute {
-            pads(int[].class, true, null),
-            dilations(int[].class, true, null),
+            pads(long[].class, true, null),
+            dilations(long[].class, true, null),
             auto_pad(String.class, true, "NOTSET"),
-            strides(int[].class, true, null),
-            group(Integer.class, true, 1),
-            kernel_shape(int[].class, true, null),
+            strides(long[].class, true, null),
+            group(Long.class, true, 1),
+            kernel_shape(long[].class, true, null),
             ;
 
                 final Class<?> t;
@@ -19155,7 +19155,7 @@ public final class OnnxOps {
             return new QLinearConv(this, cc);
         }
 
-        QLinearConv(TypeElement resultType, Value x, Value x_scale, Value x_zero_point, Value w, Value w_scale, Value w_zero_point, Value y_scale, Value y_zero_point, java.util.Optional<Value> B, java.util.Optional<int[]> pads, java.util.Optional<int[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<int[]> strides, java.util.Optional<Integer> group, java.util.Optional<int[]> kernel_shape) {
+        QLinearConv(TypeElement resultType, Value x, Value x_scale, Value x_zero_point, Value w, Value w_scale, Value w_zero_point, Value y_scale, Value y_zero_point, java.util.Optional<Value> B, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<long[]> strides, java.util.Optional<Long> group, java.util.Optional<long[]> kernel_shape) {
             super(SCHEMA, resultType, Set.of(), List.of(x, x_scale, x_zero_point, w, w_scale, w_zero_point, y_scale, y_zero_point, B), List.of(pads, dilations, auto_pad, strides, group, kernel_shape));
         }
 
@@ -19206,14 +19206,14 @@ public final class OnnxOps {
             return i != -1 ? java.util.Optional.of(operands().get(8 + i)) : java.util.Optional.empty();
         }
 
-        public java.util.Optional<int[]> pads() {
-            int[] pads = Attribute.pads.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(pads).map(int[]::clone);
+        public java.util.Optional<long[]> pads() {
+            long[] pads = Attribute.pads.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(pads).map(long[]::clone);
         }
 
-        public java.util.Optional<int[]> dilations() {
-            int[] dilations = Attribute.dilations.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(dilations).map(int[]::clone);
+        public java.util.Optional<long[]> dilations() {
+            long[] dilations = Attribute.dilations.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(dilations).map(long[]::clone);
         }
 
         public java.util.Optional<String> auto_pad() {
@@ -19221,24 +19221,24 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(auto_pad);
         }
 
-        public java.util.Optional<int[]> strides() {
-            int[] strides = Attribute.strides.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(strides).map(int[]::clone);
+        public java.util.Optional<long[]> strides() {
+            long[] strides = Attribute.strides.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(strides).map(long[]::clone);
         }
 
-        public java.util.Optional<Integer> group() {
-            Integer group = Attribute.group.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> group() {
+            Long group = Attribute.group.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(group);
         }
 
-        public java.util.Optional<int[]> kernel_shape() {
-            int[] kernel_shape = Attribute.kernel_shape.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(kernel_shape).map(int[]::clone);
+        public java.util.Optional<long[]> kernel_shape() {
+            long[] kernel_shape = Attribute.kernel_shape.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(kernel_shape).map(long[]::clone);
         }
 
     }
 
-    public static QLinearConv QLinearConv(TypeElement resultType, Value x, Value x_scale, Value x_zero_point, Value w, Value w_scale, Value w_zero_point, Value y_scale, Value y_zero_point, java.util.Optional<Value> B, java.util.Optional<int[]> pads, java.util.Optional<int[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<int[]> strides, java.util.Optional<Integer> group, java.util.Optional<int[]> kernel_shape) {
+    public static QLinearConv QLinearConv(TypeElement resultType, Value x, Value x_scale, Value x_zero_point, Value w, Value w_scale, Value w_zero_point, Value y_scale, Value y_zero_point, java.util.Optional<Value> B, java.util.Optional<long[]> pads, java.util.Optional<long[]> dilations, java.util.Optional<String> auto_pad, java.util.Optional<long[]> strides, java.util.Optional<Long> group, java.util.Optional<long[]> kernel_shape) {
         return new QLinearConv(resultType, x, x_scale, x_zero_point, w, w_scale, w_zero_point, y_scale, y_zero_point, B, pads, dilations, auto_pad, strides, group, kernel_shape);
     }
 
@@ -19399,10 +19399,10 @@ public final class OnnxOps {
         public static final String NAME = "QuantizeLinear";
 
         public enum Attribute implements OnnxAttribute {
-            output_dtype(Integer.class, true, 0),
-            saturate(Integer.class, true, 1),
-            axis(Integer.class, true, 1),
-            block_size(Integer.class, true, 0),
+            output_dtype(Long.class, true, 0),
+            saturate(Long.class, true, 1),
+            axis(Long.class, true, 1),
+            block_size(Long.class, true, 0),
             ;
 
                 final Class<?> t;
@@ -19516,7 +19516,7 @@ public final class OnnxOps {
             return new QuantizeLinear(this, cc);
         }
 
-        QuantizeLinear(TypeElement resultType, Value x, Value y_scale, java.util.Optional<Value> y_zero_point, java.util.Optional<Integer> output_dtype, java.util.Optional<Integer> saturate, java.util.Optional<Integer> axis, java.util.Optional<Integer> block_size) {
+        QuantizeLinear(TypeElement resultType, Value x, Value y_scale, java.util.Optional<Value> y_zero_point, java.util.Optional<Long> output_dtype, java.util.Optional<Long> saturate, java.util.Optional<Long> axis, java.util.Optional<Long> block_size) {
             super(SCHEMA, resultType, Set.of(), List.of(x, y_scale, y_zero_point), List.of(output_dtype, saturate, axis, block_size));
         }
 
@@ -19543,29 +19543,29 @@ public final class OnnxOps {
             return i != -1 ? java.util.Optional.of(operands().get(2 + i)) : java.util.Optional.empty();
         }
 
-        public java.util.Optional<Integer> output_dtype() {
-            Integer output_dtype = Attribute.output_dtype.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> output_dtype() {
+            Long output_dtype = Attribute.output_dtype.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(output_dtype);
         }
 
-        public java.util.Optional<Integer> saturate() {
-            Integer saturate = Attribute.saturate.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> saturate() {
+            Long saturate = Attribute.saturate.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(saturate);
         }
 
-        public java.util.Optional<Integer> axis() {
-            Integer axis = Attribute.axis.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> axis() {
+            Long axis = Attribute.axis.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(axis);
         }
 
-        public java.util.Optional<Integer> block_size() {
-            Integer block_size = Attribute.block_size.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> block_size() {
+            Long block_size = Attribute.block_size.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(block_size);
         }
 
     }
 
-    public static QuantizeLinear QuantizeLinear(TypeElement resultType, Value x, Value y_scale, java.util.Optional<Value> y_zero_point, java.util.Optional<Integer> output_dtype, java.util.Optional<Integer> saturate, java.util.Optional<Integer> axis, java.util.Optional<Integer> block_size) {
+    public static QuantizeLinear QuantizeLinear(TypeElement resultType, Value x, Value y_scale, java.util.Optional<Value> y_zero_point, java.util.Optional<Long> output_dtype, java.util.Optional<Long> saturate, java.util.Optional<Long> axis, java.util.Optional<Long> block_size) {
         return new QuantizeLinear(resultType, x, y_scale, y_zero_point, output_dtype, saturate, axis, block_size);
     }
 
@@ -19574,9 +19574,9 @@ public final class OnnxOps {
         public static final String NAME = "RNN";
 
         public enum Attribute implements OnnxAttribute {
-            layout(Integer.class, true, 0),
+            layout(Long.class, true, 0),
             activation_alpha(float[].class, true, null),
-            hidden_size(Integer.class, true, null),
+            hidden_size(Long.class, true, null),
             activation_beta(float[].class, true, null),
             activations(String[].class, true, null),
             clip(Float.class, true, null),
@@ -19698,7 +19698,7 @@ public final class OnnxOps {
             return new RNN(this, cc);
         }
 
-        RNN(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Integer> layout, java.util.Optional<float[]> activation_alpha, java.util.Optional<Integer> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
+        RNN(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Long> layout, java.util.Optional<float[]> activation_alpha, java.util.Optional<Long> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
             super(SCHEMA, resultType, optionalOutputs, List.of(X, W, R, B, sequence_lens, initial_h), List.of(layout, activation_alpha, hidden_size, activation_beta, activations, clip, direction));
         }
 
@@ -19739,8 +19739,8 @@ public final class OnnxOps {
             return i != -1 ? java.util.Optional.of(operands().get(3 + i)) : java.util.Optional.empty();
         }
 
-        public java.util.Optional<Integer> layout() {
-            Integer layout = Attribute.layout.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> layout() {
+            Long layout = Attribute.layout.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(layout);
         }
 
@@ -19749,8 +19749,8 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(activation_alpha).map(float[]::clone);
         }
 
-        public java.util.Optional<Integer> hidden_size() {
-            Integer hidden_size = Attribute.hidden_size.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> hidden_size() {
+            Long hidden_size = Attribute.hidden_size.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(hidden_size);
         }
 
@@ -19776,7 +19776,7 @@ public final class OnnxOps {
 
     }
 
-    public static RNN RNN(TypeElement resultType, Set<RNN.OutputParameter> optionalOutputs, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Integer> layout, java.util.Optional<float[]> activation_alpha, java.util.Optional<Integer> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
+    public static RNN RNN(TypeElement resultType, Set<RNN.OutputParameter> optionalOutputs, Value X, Value W, Value R, java.util.Optional<Value> B, java.util.Optional<Value> sequence_lens, java.util.Optional<Value> initial_h, java.util.Optional<Long> layout, java.util.Optional<float[]> activation_alpha, java.util.Optional<Long> hidden_size, java.util.Optional<float[]> activation_beta, java.util.Optional<String[]> activations, java.util.Optional<Float> clip, java.util.Optional<String> direction) {
         return new RNN(resultType, optionalOutputs, X, W, R, B, sequence_lens, initial_h, layout, activation_alpha, hidden_size, activation_beta, activations, clip, direction);
     }
 
@@ -19785,11 +19785,11 @@ public final class OnnxOps {
         public static final String NAME = "RandomNormal";
 
         public enum Attribute implements OnnxAttribute {
-            shape(int[].class, false, null),
+            shape(long[].class, false, null),
             seed(Float.class, true, null),
             mean(Float.class, true, 0.0f),
             scale(Float.class, true, 1.0f),
-            dtype(Integer.class, true, 1),
+            dtype(Long.class, true, 1),
             ;
 
                 final Class<?> t;
@@ -19879,7 +19879,7 @@ public final class OnnxOps {
             return new RandomNormal(this, cc);
         }
 
-        RandomNormal(TypeElement resultType, int[] shape, java.util.Optional<Float> seed, java.util.Optional<Float> mean, java.util.Optional<Float> scale, java.util.Optional<Integer> dtype) {
+        RandomNormal(TypeElement resultType, long[] shape, java.util.Optional<Float> seed, java.util.Optional<Float> mean, java.util.Optional<Float> scale, java.util.Optional<Long> dtype) {
             super(SCHEMA, resultType, Set.of(), List.of(), List.of(shape, seed, mean, scale, dtype));
         }
 
@@ -19893,8 +19893,8 @@ public final class OnnxOps {
             return onnxInputs(SCHEMA, List.of());
         }
 
-        public int[] shape() {
-            int[] shape = Attribute.shape.access(int[].class, onnxAttributes);
+        public long[] shape() {
+            long[] shape = Attribute.shape.access(long[].class, onnxAttributes);
             return shape.clone();
         }
 
@@ -19913,14 +19913,14 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(scale);
         }
 
-        public java.util.Optional<Integer> dtype() {
-            Integer dtype = Attribute.dtype.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> dtype() {
+            Long dtype = Attribute.dtype.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(dtype);
         }
 
     }
 
-    public static RandomNormal RandomNormal(TypeElement resultType, int[] shape, java.util.Optional<Float> seed, java.util.Optional<Float> mean, java.util.Optional<Float> scale, java.util.Optional<Integer> dtype) {
+    public static RandomNormal RandomNormal(TypeElement resultType, long[] shape, java.util.Optional<Float> seed, java.util.Optional<Float> mean, java.util.Optional<Float> scale, java.util.Optional<Long> dtype) {
         return new RandomNormal(resultType, shape, seed, mean, scale, dtype);
     }
 
@@ -19932,7 +19932,7 @@ public final class OnnxOps {
             seed(Float.class, true, null),
             mean(Float.class, true, 0.0f),
             scale(Float.class, true, 1.0f),
-            dtype(Integer.class, true, null),
+            dtype(Long.class, true, null),
             ;
 
                 final Class<?> t;
@@ -20044,7 +20044,7 @@ public final class OnnxOps {
             return new RandomNormalLike(this, cc);
         }
 
-        RandomNormalLike(TypeElement resultType, Value input, java.util.Optional<Float> seed, java.util.Optional<Float> mean, java.util.Optional<Float> scale, java.util.Optional<Integer> dtype) {
+        RandomNormalLike(TypeElement resultType, Value input, java.util.Optional<Float> seed, java.util.Optional<Float> mean, java.util.Optional<Float> scale, java.util.Optional<Long> dtype) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of(seed, mean, scale, dtype));
         }
 
@@ -20077,14 +20077,14 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(scale);
         }
 
-        public java.util.Optional<Integer> dtype() {
-            Integer dtype = Attribute.dtype.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> dtype() {
+            Long dtype = Attribute.dtype.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(dtype);
         }
 
     }
 
-    public static RandomNormalLike RandomNormalLike(TypeElement resultType, Value input, java.util.Optional<Float> seed, java.util.Optional<Float> mean, java.util.Optional<Float> scale, java.util.Optional<Integer> dtype) {
+    public static RandomNormalLike RandomNormalLike(TypeElement resultType, Value input, java.util.Optional<Float> seed, java.util.Optional<Float> mean, java.util.Optional<Float> scale, java.util.Optional<Long> dtype) {
         return new RandomNormalLike(resultType, input, seed, mean, scale, dtype);
     }
 
@@ -20094,10 +20094,10 @@ public final class OnnxOps {
 
         public enum Attribute implements OnnxAttribute {
             high(Float.class, true, 1.0f),
-            shape(int[].class, false, null),
+            shape(long[].class, false, null),
             seed(Float.class, true, null),
             low(Float.class, true, 0.0f),
-            dtype(Integer.class, true, 1),
+            dtype(Long.class, true, 1),
             ;
 
                 final Class<?> t;
@@ -20187,7 +20187,7 @@ public final class OnnxOps {
             return new RandomUniform(this, cc);
         }
 
-        RandomUniform(TypeElement resultType, java.util.Optional<Float> high, int[] shape, java.util.Optional<Float> seed, java.util.Optional<Float> low, java.util.Optional<Integer> dtype) {
+        RandomUniform(TypeElement resultType, java.util.Optional<Float> high, long[] shape, java.util.Optional<Float> seed, java.util.Optional<Float> low, java.util.Optional<Long> dtype) {
             super(SCHEMA, resultType, Set.of(), List.of(), List.of(high, shape, seed, low, dtype));
         }
 
@@ -20206,8 +20206,8 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(high);
         }
 
-        public int[] shape() {
-            int[] shape = Attribute.shape.access(int[].class, onnxAttributes);
+        public long[] shape() {
+            long[] shape = Attribute.shape.access(long[].class, onnxAttributes);
             return shape.clone();
         }
 
@@ -20221,14 +20221,14 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(low);
         }
 
-        public java.util.Optional<Integer> dtype() {
-            Integer dtype = Attribute.dtype.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> dtype() {
+            Long dtype = Attribute.dtype.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(dtype);
         }
 
     }
 
-    public static RandomUniform RandomUniform(TypeElement resultType, java.util.Optional<Float> high, int[] shape, java.util.Optional<Float> seed, java.util.Optional<Float> low, java.util.Optional<Integer> dtype) {
+    public static RandomUniform RandomUniform(TypeElement resultType, java.util.Optional<Float> high, long[] shape, java.util.Optional<Float> seed, java.util.Optional<Float> low, java.util.Optional<Long> dtype) {
         return new RandomUniform(resultType, high, shape, seed, low, dtype);
     }
 
@@ -20240,7 +20240,7 @@ public final class OnnxOps {
             high(Float.class, true, 1.0f),
             seed(Float.class, true, null),
             low(Float.class, true, 0.0f),
-            dtype(Integer.class, true, null),
+            dtype(Long.class, true, null),
             ;
 
                 final Class<?> t;
@@ -20352,7 +20352,7 @@ public final class OnnxOps {
             return new RandomUniformLike(this, cc);
         }
 
-        RandomUniformLike(TypeElement resultType, Value input, java.util.Optional<Float> high, java.util.Optional<Float> seed, java.util.Optional<Float> low, java.util.Optional<Integer> dtype) {
+        RandomUniformLike(TypeElement resultType, Value input, java.util.Optional<Float> high, java.util.Optional<Float> seed, java.util.Optional<Float> low, java.util.Optional<Long> dtype) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of(high, seed, low, dtype));
         }
 
@@ -20385,14 +20385,14 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(low);
         }
 
-        public java.util.Optional<Integer> dtype() {
-            Integer dtype = Attribute.dtype.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> dtype() {
+            Long dtype = Attribute.dtype.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(dtype);
         }
 
     }
 
-    public static RandomUniformLike RandomUniformLike(TypeElement resultType, Value input, java.util.Optional<Float> high, java.util.Optional<Float> seed, java.util.Optional<Float> low, java.util.Optional<Integer> dtype) {
+    public static RandomUniformLike RandomUniformLike(TypeElement resultType, Value input, java.util.Optional<Float> high, java.util.Optional<Float> seed, java.util.Optional<Float> low, java.util.Optional<Long> dtype) {
         return new RandomUniformLike(resultType, input, high, seed, low, dtype);
     }
 
@@ -20639,8 +20639,8 @@ public final class OnnxOps {
         public static final String NAME = "ReduceL1";
 
         public enum Attribute implements OnnxAttribute {
-            noop_with_empty_axes(Integer.class, true, 0),
-            keepdims(Integer.class, true, 1),
+            noop_with_empty_axes(Long.class, true, 0),
+            keepdims(Long.class, true, 1),
             ;
 
                 final Class<?> t;
@@ -20752,7 +20752,7 @@ public final class OnnxOps {
             return new ReduceL1(this, cc);
         }
 
-        ReduceL1(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Integer> noop_with_empty_axes, java.util.Optional<Integer> keepdims) {
+        ReduceL1(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
             super(SCHEMA, resultType, Set.of(), List.of(data, axes), List.of(noop_with_empty_axes, keepdims));
         }
 
@@ -20775,19 +20775,19 @@ public final class OnnxOps {
             return i != -1 ? java.util.Optional.of(operands().get(1 + i)) : java.util.Optional.empty();
         }
 
-        public java.util.Optional<Integer> noop_with_empty_axes() {
-            Integer noop_with_empty_axes = Attribute.noop_with_empty_axes.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> noop_with_empty_axes() {
+            Long noop_with_empty_axes = Attribute.noop_with_empty_axes.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(noop_with_empty_axes);
         }
 
-        public java.util.Optional<Integer> keepdims() {
-            Integer keepdims = Attribute.keepdims.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> keepdims() {
+            Long keepdims = Attribute.keepdims.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(keepdims);
         }
 
     }
 
-    public static ReduceL1 ReduceL1(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Integer> noop_with_empty_axes, java.util.Optional<Integer> keepdims) {
+    public static ReduceL1 ReduceL1(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
         return new ReduceL1(resultType, data, axes, noop_with_empty_axes, keepdims);
     }
 
@@ -20796,8 +20796,8 @@ public final class OnnxOps {
         public static final String NAME = "ReduceL2";
 
         public enum Attribute implements OnnxAttribute {
-            noop_with_empty_axes(Integer.class, true, 0),
-            keepdims(Integer.class, true, 1),
+            noop_with_empty_axes(Long.class, true, 0),
+            keepdims(Long.class, true, 1),
             ;
 
                 final Class<?> t;
@@ -20909,7 +20909,7 @@ public final class OnnxOps {
             return new ReduceL2(this, cc);
         }
 
-        ReduceL2(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Integer> noop_with_empty_axes, java.util.Optional<Integer> keepdims) {
+        ReduceL2(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
             super(SCHEMA, resultType, Set.of(), List.of(data, axes), List.of(noop_with_empty_axes, keepdims));
         }
 
@@ -20932,19 +20932,19 @@ public final class OnnxOps {
             return i != -1 ? java.util.Optional.of(operands().get(1 + i)) : java.util.Optional.empty();
         }
 
-        public java.util.Optional<Integer> noop_with_empty_axes() {
-            Integer noop_with_empty_axes = Attribute.noop_with_empty_axes.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> noop_with_empty_axes() {
+            Long noop_with_empty_axes = Attribute.noop_with_empty_axes.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(noop_with_empty_axes);
         }
 
-        public java.util.Optional<Integer> keepdims() {
-            Integer keepdims = Attribute.keepdims.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> keepdims() {
+            Long keepdims = Attribute.keepdims.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(keepdims);
         }
 
     }
 
-    public static ReduceL2 ReduceL2(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Integer> noop_with_empty_axes, java.util.Optional<Integer> keepdims) {
+    public static ReduceL2 ReduceL2(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
         return new ReduceL2(resultType, data, axes, noop_with_empty_axes, keepdims);
     }
 
@@ -20953,8 +20953,8 @@ public final class OnnxOps {
         public static final String NAME = "ReduceLogSum";
 
         public enum Attribute implements OnnxAttribute {
-            noop_with_empty_axes(Integer.class, true, 0),
-            keepdims(Integer.class, true, 1),
+            noop_with_empty_axes(Long.class, true, 0),
+            keepdims(Long.class, true, 1),
             ;
 
                 final Class<?> t;
@@ -21066,7 +21066,7 @@ public final class OnnxOps {
             return new ReduceLogSum(this, cc);
         }
 
-        ReduceLogSum(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Integer> noop_with_empty_axes, java.util.Optional<Integer> keepdims) {
+        ReduceLogSum(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
             super(SCHEMA, resultType, Set.of(), List.of(data, axes), List.of(noop_with_empty_axes, keepdims));
         }
 
@@ -21089,19 +21089,19 @@ public final class OnnxOps {
             return i != -1 ? java.util.Optional.of(operands().get(1 + i)) : java.util.Optional.empty();
         }
 
-        public java.util.Optional<Integer> noop_with_empty_axes() {
-            Integer noop_with_empty_axes = Attribute.noop_with_empty_axes.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> noop_with_empty_axes() {
+            Long noop_with_empty_axes = Attribute.noop_with_empty_axes.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(noop_with_empty_axes);
         }
 
-        public java.util.Optional<Integer> keepdims() {
-            Integer keepdims = Attribute.keepdims.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> keepdims() {
+            Long keepdims = Attribute.keepdims.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(keepdims);
         }
 
     }
 
-    public static ReduceLogSum ReduceLogSum(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Integer> noop_with_empty_axes, java.util.Optional<Integer> keepdims) {
+    public static ReduceLogSum ReduceLogSum(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
         return new ReduceLogSum(resultType, data, axes, noop_with_empty_axes, keepdims);
     }
 
@@ -21110,8 +21110,8 @@ public final class OnnxOps {
         public static final String NAME = "ReduceLogSumExp";
 
         public enum Attribute implements OnnxAttribute {
-            noop_with_empty_axes(Integer.class, true, 0),
-            keepdims(Integer.class, true, 1),
+            noop_with_empty_axes(Long.class, true, 0),
+            keepdims(Long.class, true, 1),
             ;
 
                 final Class<?> t;
@@ -21223,7 +21223,7 @@ public final class OnnxOps {
             return new ReduceLogSumExp(this, cc);
         }
 
-        ReduceLogSumExp(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Integer> noop_with_empty_axes, java.util.Optional<Integer> keepdims) {
+        ReduceLogSumExp(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
             super(SCHEMA, resultType, Set.of(), List.of(data, axes), List.of(noop_with_empty_axes, keepdims));
         }
 
@@ -21246,19 +21246,19 @@ public final class OnnxOps {
             return i != -1 ? java.util.Optional.of(operands().get(1 + i)) : java.util.Optional.empty();
         }
 
-        public java.util.Optional<Integer> noop_with_empty_axes() {
-            Integer noop_with_empty_axes = Attribute.noop_with_empty_axes.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> noop_with_empty_axes() {
+            Long noop_with_empty_axes = Attribute.noop_with_empty_axes.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(noop_with_empty_axes);
         }
 
-        public java.util.Optional<Integer> keepdims() {
-            Integer keepdims = Attribute.keepdims.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> keepdims() {
+            Long keepdims = Attribute.keepdims.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(keepdims);
         }
 
     }
 
-    public static ReduceLogSumExp ReduceLogSumExp(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Integer> noop_with_empty_axes, java.util.Optional<Integer> keepdims) {
+    public static ReduceLogSumExp ReduceLogSumExp(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
         return new ReduceLogSumExp(resultType, data, axes, noop_with_empty_axes, keepdims);
     }
 
@@ -21267,8 +21267,8 @@ public final class OnnxOps {
         public static final String NAME = "ReduceMax";
 
         public enum Attribute implements OnnxAttribute {
-            noop_with_empty_axes(Integer.class, true, 0),
-            keepdims(Integer.class, true, 1),
+            noop_with_empty_axes(Long.class, true, 0),
+            keepdims(Long.class, true, 1),
             ;
 
                 final Class<?> t;
@@ -21380,7 +21380,7 @@ public final class OnnxOps {
             return new ReduceMax(this, cc);
         }
 
-        ReduceMax(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Integer> noop_with_empty_axes, java.util.Optional<Integer> keepdims) {
+        ReduceMax(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
             super(SCHEMA, resultType, Set.of(), List.of(data, axes), List.of(noop_with_empty_axes, keepdims));
         }
 
@@ -21403,19 +21403,19 @@ public final class OnnxOps {
             return i != -1 ? java.util.Optional.of(operands().get(1 + i)) : java.util.Optional.empty();
         }
 
-        public java.util.Optional<Integer> noop_with_empty_axes() {
-            Integer noop_with_empty_axes = Attribute.noop_with_empty_axes.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> noop_with_empty_axes() {
+            Long noop_with_empty_axes = Attribute.noop_with_empty_axes.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(noop_with_empty_axes);
         }
 
-        public java.util.Optional<Integer> keepdims() {
-            Integer keepdims = Attribute.keepdims.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> keepdims() {
+            Long keepdims = Attribute.keepdims.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(keepdims);
         }
 
     }
 
-    public static ReduceMax ReduceMax(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Integer> noop_with_empty_axes, java.util.Optional<Integer> keepdims) {
+    public static ReduceMax ReduceMax(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
         return new ReduceMax(resultType, data, axes, noop_with_empty_axes, keepdims);
     }
 
@@ -21424,8 +21424,8 @@ public final class OnnxOps {
         public static final String NAME = "ReduceMean";
 
         public enum Attribute implements OnnxAttribute {
-            noop_with_empty_axes(Integer.class, true, 0),
-            keepdims(Integer.class, true, 1),
+            noop_with_empty_axes(Long.class, true, 0),
+            keepdims(Long.class, true, 1),
             ;
 
                 final Class<?> t;
@@ -21537,7 +21537,7 @@ public final class OnnxOps {
             return new ReduceMean(this, cc);
         }
 
-        ReduceMean(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Integer> noop_with_empty_axes, java.util.Optional<Integer> keepdims) {
+        ReduceMean(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
             super(SCHEMA, resultType, Set.of(), List.of(data, axes), List.of(noop_with_empty_axes, keepdims));
         }
 
@@ -21560,19 +21560,19 @@ public final class OnnxOps {
             return i != -1 ? java.util.Optional.of(operands().get(1 + i)) : java.util.Optional.empty();
         }
 
-        public java.util.Optional<Integer> noop_with_empty_axes() {
-            Integer noop_with_empty_axes = Attribute.noop_with_empty_axes.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> noop_with_empty_axes() {
+            Long noop_with_empty_axes = Attribute.noop_with_empty_axes.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(noop_with_empty_axes);
         }
 
-        public java.util.Optional<Integer> keepdims() {
-            Integer keepdims = Attribute.keepdims.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> keepdims() {
+            Long keepdims = Attribute.keepdims.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(keepdims);
         }
 
     }
 
-    public static ReduceMean ReduceMean(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Integer> noop_with_empty_axes, java.util.Optional<Integer> keepdims) {
+    public static ReduceMean ReduceMean(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
         return new ReduceMean(resultType, data, axes, noop_with_empty_axes, keepdims);
     }
 
@@ -21581,8 +21581,8 @@ public final class OnnxOps {
         public static final String NAME = "ReduceMin";
 
         public enum Attribute implements OnnxAttribute {
-            noop_with_empty_axes(Integer.class, true, 0),
-            keepdims(Integer.class, true, 1),
+            noop_with_empty_axes(Long.class, true, 0),
+            keepdims(Long.class, true, 1),
             ;
 
                 final Class<?> t;
@@ -21694,7 +21694,7 @@ public final class OnnxOps {
             return new ReduceMin(this, cc);
         }
 
-        ReduceMin(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Integer> noop_with_empty_axes, java.util.Optional<Integer> keepdims) {
+        ReduceMin(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
             super(SCHEMA, resultType, Set.of(), List.of(data, axes), List.of(noop_with_empty_axes, keepdims));
         }
 
@@ -21717,19 +21717,19 @@ public final class OnnxOps {
             return i != -1 ? java.util.Optional.of(operands().get(1 + i)) : java.util.Optional.empty();
         }
 
-        public java.util.Optional<Integer> noop_with_empty_axes() {
-            Integer noop_with_empty_axes = Attribute.noop_with_empty_axes.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> noop_with_empty_axes() {
+            Long noop_with_empty_axes = Attribute.noop_with_empty_axes.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(noop_with_empty_axes);
         }
 
-        public java.util.Optional<Integer> keepdims() {
-            Integer keepdims = Attribute.keepdims.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> keepdims() {
+            Long keepdims = Attribute.keepdims.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(keepdims);
         }
 
     }
 
-    public static ReduceMin ReduceMin(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Integer> noop_with_empty_axes, java.util.Optional<Integer> keepdims) {
+    public static ReduceMin ReduceMin(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
         return new ReduceMin(resultType, data, axes, noop_with_empty_axes, keepdims);
     }
 
@@ -21738,8 +21738,8 @@ public final class OnnxOps {
         public static final String NAME = "ReduceProd";
 
         public enum Attribute implements OnnxAttribute {
-            noop_with_empty_axes(Integer.class, true, 0),
-            keepdims(Integer.class, true, 1),
+            noop_with_empty_axes(Long.class, true, 0),
+            keepdims(Long.class, true, 1),
             ;
 
                 final Class<?> t;
@@ -21851,7 +21851,7 @@ public final class OnnxOps {
             return new ReduceProd(this, cc);
         }
 
-        ReduceProd(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Integer> noop_with_empty_axes, java.util.Optional<Integer> keepdims) {
+        ReduceProd(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
             super(SCHEMA, resultType, Set.of(), List.of(data, axes), List.of(noop_with_empty_axes, keepdims));
         }
 
@@ -21874,19 +21874,19 @@ public final class OnnxOps {
             return i != -1 ? java.util.Optional.of(operands().get(1 + i)) : java.util.Optional.empty();
         }
 
-        public java.util.Optional<Integer> noop_with_empty_axes() {
-            Integer noop_with_empty_axes = Attribute.noop_with_empty_axes.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> noop_with_empty_axes() {
+            Long noop_with_empty_axes = Attribute.noop_with_empty_axes.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(noop_with_empty_axes);
         }
 
-        public java.util.Optional<Integer> keepdims() {
-            Integer keepdims = Attribute.keepdims.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> keepdims() {
+            Long keepdims = Attribute.keepdims.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(keepdims);
         }
 
     }
 
-    public static ReduceProd ReduceProd(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Integer> noop_with_empty_axes, java.util.Optional<Integer> keepdims) {
+    public static ReduceProd ReduceProd(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
         return new ReduceProd(resultType, data, axes, noop_with_empty_axes, keepdims);
     }
 
@@ -21895,8 +21895,8 @@ public final class OnnxOps {
         public static final String NAME = "ReduceSum";
 
         public enum Attribute implements OnnxAttribute {
-            noop_with_empty_axes(Integer.class, true, 0),
-            keepdims(Integer.class, true, 1),
+            noop_with_empty_axes(Long.class, true, 0),
+            keepdims(Long.class, true, 1),
             ;
 
                 final Class<?> t;
@@ -22008,7 +22008,7 @@ public final class OnnxOps {
             return new ReduceSum(this, cc);
         }
 
-        ReduceSum(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Integer> noop_with_empty_axes, java.util.Optional<Integer> keepdims) {
+        ReduceSum(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
             super(SCHEMA, resultType, Set.of(), List.of(data, axes), List.of(noop_with_empty_axes, keepdims));
         }
 
@@ -22031,19 +22031,19 @@ public final class OnnxOps {
             return i != -1 ? java.util.Optional.of(operands().get(1 + i)) : java.util.Optional.empty();
         }
 
-        public java.util.Optional<Integer> noop_with_empty_axes() {
-            Integer noop_with_empty_axes = Attribute.noop_with_empty_axes.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> noop_with_empty_axes() {
+            Long noop_with_empty_axes = Attribute.noop_with_empty_axes.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(noop_with_empty_axes);
         }
 
-        public java.util.Optional<Integer> keepdims() {
-            Integer keepdims = Attribute.keepdims.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> keepdims() {
+            Long keepdims = Attribute.keepdims.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(keepdims);
         }
 
     }
 
-    public static ReduceSum ReduceSum(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Integer> noop_with_empty_axes, java.util.Optional<Integer> keepdims) {
+    public static ReduceSum ReduceSum(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
         return new ReduceSum(resultType, data, axes, noop_with_empty_axes, keepdims);
     }
 
@@ -22052,8 +22052,8 @@ public final class OnnxOps {
         public static final String NAME = "ReduceSumSquare";
 
         public enum Attribute implements OnnxAttribute {
-            noop_with_empty_axes(Integer.class, true, 0),
-            keepdims(Integer.class, true, 1),
+            noop_with_empty_axes(Long.class, true, 0),
+            keepdims(Long.class, true, 1),
             ;
 
                 final Class<?> t;
@@ -22165,7 +22165,7 @@ public final class OnnxOps {
             return new ReduceSumSquare(this, cc);
         }
 
-        ReduceSumSquare(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Integer> noop_with_empty_axes, java.util.Optional<Integer> keepdims) {
+        ReduceSumSquare(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
             super(SCHEMA, resultType, Set.of(), List.of(data, axes), List.of(noop_with_empty_axes, keepdims));
         }
 
@@ -22188,19 +22188,19 @@ public final class OnnxOps {
             return i != -1 ? java.util.Optional.of(operands().get(1 + i)) : java.util.Optional.empty();
         }
 
-        public java.util.Optional<Integer> noop_with_empty_axes() {
-            Integer noop_with_empty_axes = Attribute.noop_with_empty_axes.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> noop_with_empty_axes() {
+            Long noop_with_empty_axes = Attribute.noop_with_empty_axes.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(noop_with_empty_axes);
         }
 
-        public java.util.Optional<Integer> keepdims() {
-            Integer keepdims = Attribute.keepdims.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> keepdims() {
+            Long keepdims = Attribute.keepdims.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(keepdims);
         }
 
     }
 
-    public static ReduceSumSquare ReduceSumSquare(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Integer> noop_with_empty_axes, java.util.Optional<Integer> keepdims) {
+    public static ReduceSumSquare ReduceSumSquare(TypeElement resultType, Value data, java.util.Optional<Value> axes, java.util.Optional<Long> noop_with_empty_axes, java.util.Optional<Long> keepdims) {
         return new ReduceSumSquare(resultType, data, axes, noop_with_empty_axes, keepdims);
     }
 
@@ -22469,7 +22469,7 @@ public final class OnnxOps {
         public static final String NAME = "Reshape";
 
         public enum Attribute implements OnnxAttribute {
-            allowzero(Integer.class, true, 0),
+            allowzero(Long.class, true, 0),
             ;
 
                 final Class<?> t;
@@ -22581,7 +22581,7 @@ public final class OnnxOps {
             return new Reshape(this, cc);
         }
 
-        Reshape(TypeElement resultType, Value data, Value shape, java.util.Optional<Integer> allowzero) {
+        Reshape(TypeElement resultType, Value data, Value shape, java.util.Optional<Long> allowzero) {
             super(SCHEMA, resultType, Set.of(), List.of(data, shape), List.of(allowzero));
         }
 
@@ -22603,14 +22603,14 @@ public final class OnnxOps {
             return operands().get(1);
         }
 
-        public java.util.Optional<Integer> allowzero() {
-            Integer allowzero = Attribute.allowzero.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> allowzero() {
+            Long allowzero = Attribute.allowzero.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(allowzero);
         }
 
     }
 
-    public static Reshape Reshape(TypeElement resultType, Value data, Value shape, java.util.Optional<Integer> allowzero) {
+    public static Reshape Reshape(TypeElement resultType, Value data, Value shape, java.util.Optional<Long> allowzero) {
         return new Reshape(resultType, data, shape, allowzero);
     }
 
@@ -22622,12 +22622,12 @@ public final class OnnxOps {
             mode(String.class, true, "nearest"),
             extrapolation_value(Float.class, true, 0.0f),
             nearest_mode(String.class, true, "round_prefer_floor"),
-            antialias(Integer.class, true, 0),
+            antialias(Long.class, true, 0),
             cubic_coeff_a(Float.class, true, -0.75f),
-            axes(int[].class, true, null),
+            axes(long[].class, true, null),
             coordinate_transformation_mode(String.class, true, "half_pixel"),
             keep_aspect_ratio_policy(String.class, true, "stretch"),
-            exclude_outside(Integer.class, true, 0),
+            exclude_outside(Long.class, true, 0),
             ;
 
                 final Class<?> t;
@@ -22742,7 +22742,7 @@ public final class OnnxOps {
             return new Resize(this, cc);
         }
 
-        Resize(TypeElement resultType, Value X, java.util.Optional<Value> roi, java.util.Optional<Value> scales, java.util.Optional<Value> sizes, java.util.Optional<String> mode, java.util.Optional<Float> extrapolation_value, java.util.Optional<String> nearest_mode, java.util.Optional<Integer> antialias, java.util.Optional<Float> cubic_coeff_a, java.util.Optional<int[]> axes, java.util.Optional<String> coordinate_transformation_mode, java.util.Optional<String> keep_aspect_ratio_policy, java.util.Optional<Integer> exclude_outside) {
+        Resize(TypeElement resultType, Value X, java.util.Optional<Value> roi, java.util.Optional<Value> scales, java.util.Optional<Value> sizes, java.util.Optional<String> mode, java.util.Optional<Float> extrapolation_value, java.util.Optional<String> nearest_mode, java.util.Optional<Long> antialias, java.util.Optional<Float> cubic_coeff_a, java.util.Optional<long[]> axes, java.util.Optional<String> coordinate_transformation_mode, java.util.Optional<String> keep_aspect_ratio_policy, java.util.Optional<Long> exclude_outside) {
             super(SCHEMA, resultType, Set.of(), List.of(X, roi, scales, sizes), List.of(mode, extrapolation_value, nearest_mode, antialias, cubic_coeff_a, axes, coordinate_transformation_mode, keep_aspect_ratio_policy, exclude_outside));
         }
 
@@ -22790,8 +22790,8 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(nearest_mode);
         }
 
-        public java.util.Optional<Integer> antialias() {
-            Integer antialias = Attribute.antialias.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> antialias() {
+            Long antialias = Attribute.antialias.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(antialias);
         }
 
@@ -22800,9 +22800,9 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(cubic_coeff_a);
         }
 
-        public java.util.Optional<int[]> axes() {
-            int[] axes = Attribute.axes.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(axes).map(int[]::clone);
+        public java.util.Optional<long[]> axes() {
+            long[] axes = Attribute.axes.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(axes).map(long[]::clone);
         }
 
         public java.util.Optional<String> coordinate_transformation_mode() {
@@ -22815,14 +22815,14 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(keep_aspect_ratio_policy);
         }
 
-        public java.util.Optional<Integer> exclude_outside() {
-            Integer exclude_outside = Attribute.exclude_outside.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> exclude_outside() {
+            Long exclude_outside = Attribute.exclude_outside.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(exclude_outside);
         }
 
     }
 
-    public static Resize Resize(TypeElement resultType, Value X, java.util.Optional<Value> roi, java.util.Optional<Value> scales, java.util.Optional<Value> sizes, java.util.Optional<String> mode, java.util.Optional<Float> extrapolation_value, java.util.Optional<String> nearest_mode, java.util.Optional<Integer> antialias, java.util.Optional<Float> cubic_coeff_a, java.util.Optional<int[]> axes, java.util.Optional<String> coordinate_transformation_mode, java.util.Optional<String> keep_aspect_ratio_policy, java.util.Optional<Integer> exclude_outside) {
+    public static Resize Resize(TypeElement resultType, Value X, java.util.Optional<Value> roi, java.util.Optional<Value> scales, java.util.Optional<Value> sizes, java.util.Optional<String> mode, java.util.Optional<Float> extrapolation_value, java.util.Optional<String> nearest_mode, java.util.Optional<Long> antialias, java.util.Optional<Float> cubic_coeff_a, java.util.Optional<long[]> axes, java.util.Optional<String> coordinate_transformation_mode, java.util.Optional<String> keep_aspect_ratio_policy, java.util.Optional<Long> exclude_outside) {
         return new Resize(resultType, X, roi, scales, sizes, mode, extrapolation_value, nearest_mode, antialias, cubic_coeff_a, axes, coordinate_transformation_mode, keep_aspect_ratio_policy, exclude_outside);
     }
 
@@ -22831,8 +22831,8 @@ public final class OnnxOps {
         public static final String NAME = "ReverseSequence";
 
         public enum Attribute implements OnnxAttribute {
-            time_axis(Integer.class, true, 0),
-            batch_axis(Integer.class, true, 1),
+            time_axis(Long.class, true, 0),
+            batch_axis(Long.class, true, 1),
             ;
 
                 final Class<?> t;
@@ -22944,7 +22944,7 @@ public final class OnnxOps {
             return new ReverseSequence(this, cc);
         }
 
-        ReverseSequence(TypeElement resultType, Value input, Value sequence_lens, java.util.Optional<Integer> time_axis, java.util.Optional<Integer> batch_axis) {
+        ReverseSequence(TypeElement resultType, Value input, Value sequence_lens, java.util.Optional<Long> time_axis, java.util.Optional<Long> batch_axis) {
             super(SCHEMA, resultType, Set.of(), List.of(input, sequence_lens), List.of(time_axis, batch_axis));
         }
 
@@ -22966,19 +22966,19 @@ public final class OnnxOps {
             return operands().get(1);
         }
 
-        public java.util.Optional<Integer> time_axis() {
-            Integer time_axis = Attribute.time_axis.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> time_axis() {
+            Long time_axis = Attribute.time_axis.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(time_axis);
         }
 
-        public java.util.Optional<Integer> batch_axis() {
-            Integer batch_axis = Attribute.batch_axis.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> batch_axis() {
+            Long batch_axis = Attribute.batch_axis.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(batch_axis);
         }
 
     }
 
-    public static ReverseSequence ReverseSequence(TypeElement resultType, Value input, Value sequence_lens, java.util.Optional<Integer> time_axis, java.util.Optional<Integer> batch_axis) {
+    public static ReverseSequence ReverseSequence(TypeElement resultType, Value input, Value sequence_lens, java.util.Optional<Long> time_axis, java.util.Optional<Long> batch_axis) {
         return new ReverseSequence(resultType, input, sequence_lens, time_axis, batch_axis);
     }
 
@@ -22988,11 +22988,11 @@ public final class OnnxOps {
 
         public enum Attribute implements OnnxAttribute {
             mode(String.class, true, "avg"),
-            output_width(Integer.class, true, 1),
+            output_width(Long.class, true, 1),
             spatial_scale(Float.class, true, 1.0f),
             coordinate_transformation_mode(String.class, true, "half_pixel"),
-            sampling_ratio(Integer.class, true, 0),
-            output_height(Integer.class, true, 1),
+            sampling_ratio(Long.class, true, 0),
+            output_height(Long.class, true, 1),
             ;
 
                 final Class<?> t;
@@ -23106,7 +23106,7 @@ public final class OnnxOps {
             return new RoiAlign(this, cc);
         }
 
-        RoiAlign(TypeElement resultType, Value X, Value rois, Value batch_indices, java.util.Optional<String> mode, java.util.Optional<Integer> output_width, java.util.Optional<Float> spatial_scale, java.util.Optional<String> coordinate_transformation_mode, java.util.Optional<Integer> sampling_ratio, java.util.Optional<Integer> output_height) {
+        RoiAlign(TypeElement resultType, Value X, Value rois, Value batch_indices, java.util.Optional<String> mode, java.util.Optional<Long> output_width, java.util.Optional<Float> spatial_scale, java.util.Optional<String> coordinate_transformation_mode, java.util.Optional<Long> sampling_ratio, java.util.Optional<Long> output_height) {
             super(SCHEMA, resultType, Set.of(), List.of(X, rois, batch_indices), List.of(mode, output_width, spatial_scale, coordinate_transformation_mode, sampling_ratio, output_height));
         }
 
@@ -23137,8 +23137,8 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(mode);
         }
 
-        public java.util.Optional<Integer> output_width() {
-            Integer output_width = Attribute.output_width.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> output_width() {
+            Long output_width = Attribute.output_width.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(output_width);
         }
 
@@ -23152,19 +23152,19 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(coordinate_transformation_mode);
         }
 
-        public java.util.Optional<Integer> sampling_ratio() {
-            Integer sampling_ratio = Attribute.sampling_ratio.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> sampling_ratio() {
+            Long sampling_ratio = Attribute.sampling_ratio.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(sampling_ratio);
         }
 
-        public java.util.Optional<Integer> output_height() {
-            Integer output_height = Attribute.output_height.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> output_height() {
+            Long output_height = Attribute.output_height.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(output_height);
         }
 
     }
 
-    public static RoiAlign RoiAlign(TypeElement resultType, Value X, Value rois, Value batch_indices, java.util.Optional<String> mode, java.util.Optional<Integer> output_width, java.util.Optional<Float> spatial_scale, java.util.Optional<String> coordinate_transformation_mode, java.util.Optional<Integer> sampling_ratio, java.util.Optional<Integer> output_height) {
+    public static RoiAlign RoiAlign(TypeElement resultType, Value X, Value rois, Value batch_indices, java.util.Optional<String> mode, java.util.Optional<Long> output_width, java.util.Optional<Float> spatial_scale, java.util.Optional<String> coordinate_transformation_mode, java.util.Optional<Long> sampling_ratio, java.util.Optional<Long> output_height) {
         return new RoiAlign(resultType, X, rois, batch_indices, mode, output_width, spatial_scale, coordinate_transformation_mode, sampling_ratio, output_height);
     }
 
@@ -23287,7 +23287,7 @@ public final class OnnxOps {
         public static final String NAME = "STFT";
 
         public enum Attribute implements OnnxAttribute {
-            onesided(Integer.class, true, 1),
+            onesided(Long.class, true, 1),
             ;
 
                 final Class<?> t;
@@ -23402,7 +23402,7 @@ public final class OnnxOps {
             return new STFT(this, cc);
         }
 
-        STFT(TypeElement resultType, Value signal, Value frame_step, java.util.Optional<Value> window, java.util.Optional<Value> frame_length, java.util.Optional<Integer> onesided) {
+        STFT(TypeElement resultType, Value signal, Value frame_step, java.util.Optional<Value> window, java.util.Optional<Value> frame_length, java.util.Optional<Long> onesided) {
             super(SCHEMA, resultType, Set.of(), List.of(signal, frame_step, window, frame_length), List.of(onesided));
         }
 
@@ -23434,14 +23434,14 @@ public final class OnnxOps {
             return i != -1 ? java.util.Optional.of(operands().get(2 + i)) : java.util.Optional.empty();
         }
 
-        public java.util.Optional<Integer> onesided() {
-            Integer onesided = Attribute.onesided.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> onesided() {
+            Long onesided = Attribute.onesided.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(onesided);
         }
 
     }
 
-    public static STFT STFT(TypeElement resultType, Value signal, Value frame_step, java.util.Optional<Value> window, java.util.Optional<Value> frame_length, java.util.Optional<Integer> onesided) {
+    public static STFT STFT(TypeElement resultType, Value signal, Value frame_step, java.util.Optional<Value> window, java.util.Optional<Value> frame_length, java.util.Optional<Long> onesided) {
         return new STFT(resultType, signal, frame_step, window, frame_length, onesided);
     }
 
@@ -23453,12 +23453,12 @@ public final class OnnxOps {
             prob_b(float[].class, true, null),
             kernel_params(float[].class, true, null),
             kernel_type(String.class, true, "LINEAR"),
-            classlabels_ints(int[].class, true, null),
+            classlabels_ints(long[].class, true, null),
             post_transform(String.class, true, "NONE"),
             rho(float[].class, true, null),
             coefficients(float[].class, true, null),
             support_vectors(float[].class, true, null),
-            vectors_per_class(int[].class, true, null),
+            vectors_per_class(long[].class, true, null),
             prob_a(float[].class, true, null),
             classlabels_strings(String[].class, true, null),
             ;
@@ -23573,7 +23573,7 @@ public final class OnnxOps {
             return new SVMClassifier(this, cc);
         }
 
-        SVMClassifier(TypeElement resultType, Value X, java.util.Optional<float[]> prob_b, java.util.Optional<float[]> kernel_params, java.util.Optional<String> kernel_type, java.util.Optional<int[]> classlabels_ints, java.util.Optional<String> post_transform, java.util.Optional<float[]> rho, java.util.Optional<float[]> coefficients, java.util.Optional<float[]> support_vectors, java.util.Optional<int[]> vectors_per_class, java.util.Optional<float[]> prob_a, java.util.Optional<String[]> classlabels_strings) {
+        SVMClassifier(TypeElement resultType, Value X, java.util.Optional<float[]> prob_b, java.util.Optional<float[]> kernel_params, java.util.Optional<String> kernel_type, java.util.Optional<long[]> classlabels_ints, java.util.Optional<String> post_transform, java.util.Optional<float[]> rho, java.util.Optional<float[]> coefficients, java.util.Optional<float[]> support_vectors, java.util.Optional<long[]> vectors_per_class, java.util.Optional<float[]> prob_a, java.util.Optional<String[]> classlabels_strings) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(prob_b, kernel_params, kernel_type, classlabels_ints, post_transform, rho, coefficients, support_vectors, vectors_per_class, prob_a, classlabels_strings));
         }
 
@@ -23606,9 +23606,9 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(kernel_type);
         }
 
-        public java.util.Optional<int[]> classlabels_ints() {
-            int[] classlabels_ints = Attribute.classlabels_ints.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(classlabels_ints).map(int[]::clone);
+        public java.util.Optional<long[]> classlabels_ints() {
+            long[] classlabels_ints = Attribute.classlabels_ints.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(classlabels_ints).map(long[]::clone);
         }
 
         public java.util.Optional<String> post_transform() {
@@ -23631,9 +23631,9 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(support_vectors).map(float[]::clone);
         }
 
-        public java.util.Optional<int[]> vectors_per_class() {
-            int[] vectors_per_class = Attribute.vectors_per_class.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(vectors_per_class).map(int[]::clone);
+        public java.util.Optional<long[]> vectors_per_class() {
+            long[] vectors_per_class = Attribute.vectors_per_class.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(vectors_per_class).map(long[]::clone);
         }
 
         public java.util.Optional<float[]> prob_a() {
@@ -23648,7 +23648,7 @@ public final class OnnxOps {
 
     }
 
-    public static SVMClassifier SVMClassifier(TypeElement resultType, Value X, java.util.Optional<float[]> prob_b, java.util.Optional<float[]> kernel_params, java.util.Optional<String> kernel_type, java.util.Optional<int[]> classlabels_ints, java.util.Optional<String> post_transform, java.util.Optional<float[]> rho, java.util.Optional<float[]> coefficients, java.util.Optional<float[]> support_vectors, java.util.Optional<int[]> vectors_per_class, java.util.Optional<float[]> prob_a, java.util.Optional<String[]> classlabels_strings) {
+    public static SVMClassifier SVMClassifier(TypeElement resultType, Value X, java.util.Optional<float[]> prob_b, java.util.Optional<float[]> kernel_params, java.util.Optional<String> kernel_type, java.util.Optional<long[]> classlabels_ints, java.util.Optional<String> post_transform, java.util.Optional<float[]> rho, java.util.Optional<float[]> coefficients, java.util.Optional<float[]> support_vectors, java.util.Optional<long[]> vectors_per_class, java.util.Optional<float[]> prob_a, java.util.Optional<String[]> classlabels_strings) {
         return new SVMClassifier(resultType, X, prob_b, kernel_params, kernel_type, classlabels_ints, post_transform, rho, coefficients, support_vectors, vectors_per_class, prob_a, classlabels_strings);
     }
 
@@ -23659,12 +23659,12 @@ public final class OnnxOps {
         public enum Attribute implements OnnxAttribute {
             kernel_type(String.class, true, "LINEAR"),
             kernel_params(float[].class, true, null),
-            n_supports(Integer.class, true, 0),
+            n_supports(Long.class, true, 0),
             rho(float[].class, true, null),
             post_transform(String.class, true, "NONE"),
             coefficients(float[].class, true, null),
             support_vectors(float[].class, true, null),
-            one_class(Integer.class, true, 0),
+            one_class(Long.class, true, 0),
             ;
 
                 final Class<?> t;
@@ -23775,7 +23775,7 @@ public final class OnnxOps {
             return new SVMRegressor(this, cc);
         }
 
-        SVMRegressor(TypeElement resultType, Value X, java.util.Optional<String> kernel_type, java.util.Optional<float[]> kernel_params, java.util.Optional<Integer> n_supports, java.util.Optional<float[]> rho, java.util.Optional<String> post_transform, java.util.Optional<float[]> coefficients, java.util.Optional<float[]> support_vectors, java.util.Optional<Integer> one_class) {
+        SVMRegressor(TypeElement resultType, Value X, java.util.Optional<String> kernel_type, java.util.Optional<float[]> kernel_params, java.util.Optional<Long> n_supports, java.util.Optional<float[]> rho, java.util.Optional<String> post_transform, java.util.Optional<float[]> coefficients, java.util.Optional<float[]> support_vectors, java.util.Optional<Long> one_class) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(kernel_type, kernel_params, n_supports, rho, post_transform, coefficients, support_vectors, one_class));
         }
 
@@ -23803,8 +23803,8 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(kernel_params).map(float[]::clone);
         }
 
-        public java.util.Optional<Integer> n_supports() {
-            Integer n_supports = Attribute.n_supports.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> n_supports() {
+            Long n_supports = Attribute.n_supports.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(n_supports);
         }
 
@@ -23828,14 +23828,14 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(support_vectors).map(float[]::clone);
         }
 
-        public java.util.Optional<Integer> one_class() {
-            Integer one_class = Attribute.one_class.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> one_class() {
+            Long one_class = Attribute.one_class.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(one_class);
         }
 
     }
 
-    public static SVMRegressor SVMRegressor(TypeElement resultType, Value X, java.util.Optional<String> kernel_type, java.util.Optional<float[]> kernel_params, java.util.Optional<Integer> n_supports, java.util.Optional<float[]> rho, java.util.Optional<String> post_transform, java.util.Optional<float[]> coefficients, java.util.Optional<float[]> support_vectors, java.util.Optional<Integer> one_class) {
+    public static SVMRegressor SVMRegressor(TypeElement resultType, Value X, java.util.Optional<String> kernel_type, java.util.Optional<float[]> kernel_params, java.util.Optional<Long> n_supports, java.util.Optional<float[]> rho, java.util.Optional<String> post_transform, java.util.Optional<float[]> coefficients, java.util.Optional<float[]> support_vectors, java.util.Optional<Long> one_class) {
         return new SVMRegressor(resultType, X, kernel_type, kernel_params, n_supports, rho, post_transform, coefficients, support_vectors, one_class);
     }
 
@@ -23995,7 +23995,7 @@ public final class OnnxOps {
         public static final String NAME = "Scatter";
 
         public enum Attribute implements OnnxAttribute {
-            axis(Integer.class, true, 0),
+            axis(Long.class, true, 0),
             ;
 
                 final Class<?> t;
@@ -24109,7 +24109,7 @@ public final class OnnxOps {
             return new Scatter(this, cc);
         }
 
-        Scatter(TypeElement resultType, Value data, Value indices, Value updates, java.util.Optional<Integer> axis) {
+        Scatter(TypeElement resultType, Value data, Value indices, Value updates, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(data, indices, updates), List.of(axis));
         }
 
@@ -24135,14 +24135,14 @@ public final class OnnxOps {
             return operands().get(2);
         }
 
-        public java.util.Optional<Integer> axis() {
-            Integer axis = Attribute.axis.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> axis() {
+            Long axis = Attribute.axis.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(axis);
         }
 
     }
 
-    public static Scatter Scatter(TypeElement resultType, Value data, Value indices, Value updates, java.util.Optional<Integer> axis) {
+    public static Scatter Scatter(TypeElement resultType, Value data, Value indices, Value updates, java.util.Optional<Long> axis) {
         return new Scatter(resultType, data, indices, updates, axis);
     }
 
@@ -24152,7 +24152,7 @@ public final class OnnxOps {
 
         public enum Attribute implements OnnxAttribute {
             reduction(String.class, true, "none"),
-            axis(Integer.class, true, 0),
+            axis(Long.class, true, 0),
             ;
 
                 final Class<?> t;
@@ -24266,7 +24266,7 @@ public final class OnnxOps {
             return new ScatterElements(this, cc);
         }
 
-        ScatterElements(TypeElement resultType, Value data, Value indices, Value updates, java.util.Optional<String> reduction, java.util.Optional<Integer> axis) {
+        ScatterElements(TypeElement resultType, Value data, Value indices, Value updates, java.util.Optional<String> reduction, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(data, indices, updates), List.of(reduction, axis));
         }
 
@@ -24297,14 +24297,14 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(reduction);
         }
 
-        public java.util.Optional<Integer> axis() {
-            Integer axis = Attribute.axis.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> axis() {
+            Long axis = Attribute.axis.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(axis);
         }
 
     }
 
-    public static ScatterElements ScatterElements(TypeElement resultType, Value data, Value indices, Value updates, java.util.Optional<String> reduction, java.util.Optional<Integer> axis) {
+    public static ScatterElements ScatterElements(TypeElement resultType, Value data, Value indices, Value updates, java.util.Optional<String> reduction, java.util.Optional<Long> axis) {
         return new ScatterElements(resultType, data, indices, updates, reduction, axis);
     }
 
@@ -24855,7 +24855,7 @@ public final class OnnxOps {
         public static final String NAME = "SequenceEmpty";
 
         public enum Attribute implements OnnxAttribute {
-            dtype(Integer.class, true, null),
+            dtype(Long.class, true, null),
             ;
 
                 final Class<?> t;
@@ -24945,7 +24945,7 @@ public final class OnnxOps {
             return new SequenceEmpty(this, cc);
         }
 
-        SequenceEmpty(TypeElement resultType, java.util.Optional<Integer> dtype) {
+        SequenceEmpty(TypeElement resultType, java.util.Optional<Long> dtype) {
             super(SCHEMA, resultType, Set.of(), List.of(), List.of(dtype));
         }
 
@@ -24959,14 +24959,14 @@ public final class OnnxOps {
             return onnxInputs(SCHEMA, List.of());
         }
 
-        public java.util.Optional<Integer> dtype() {
-            Integer dtype = Attribute.dtype.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> dtype() {
+            Long dtype = Attribute.dtype.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(dtype);
         }
 
     }
 
-    public static SequenceEmpty SequenceEmpty(TypeElement resultType, java.util.Optional<Integer> dtype) {
+    public static SequenceEmpty SequenceEmpty(TypeElement resultType, java.util.Optional<Long> dtype) {
         return new SequenceEmpty(resultType, dtype);
     }
 
@@ -25338,8 +25338,8 @@ public final class OnnxOps {
         public static final String NAME = "Shape";
 
         public enum Attribute implements OnnxAttribute {
-            start(Integer.class, true, 0),
-            end(Integer.class, true, null),
+            start(Long.class, true, 0),
+            end(Long.class, true, null),
             ;
 
                 final Class<?> t;
@@ -25451,7 +25451,7 @@ public final class OnnxOps {
             return new Shape(this, cc);
         }
 
-        Shape(TypeElement resultType, Value data, java.util.Optional<Integer> start, java.util.Optional<Integer> end) {
+        Shape(TypeElement resultType, Value data, java.util.Optional<Long> start, java.util.Optional<Long> end) {
             super(SCHEMA, resultType, Set.of(), List.of(data), List.of(start, end));
         }
 
@@ -25469,19 +25469,19 @@ public final class OnnxOps {
             return operands().get(0);
         }
 
-        public java.util.Optional<Integer> start() {
-            Integer start = Attribute.start.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> start() {
+            Long start = Attribute.start.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(start);
         }
 
-        public java.util.Optional<Integer> end() {
-            Integer end = Attribute.end.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> end() {
+            Long end = Attribute.end.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(end);
         }
 
     }
 
-    public static Shape Shape(TypeElement resultType, Value data, java.util.Optional<Integer> start, java.util.Optional<Integer> end) {
+    public static Shape Shape(TypeElement resultType, Value data, java.util.Optional<Long> start, java.util.Optional<Long> end) {
         return new Shape(resultType, data, start, end);
     }
 
@@ -26349,7 +26349,7 @@ public final class OnnxOps {
         public static final String NAME = "Softmax";
 
         public enum Attribute implements OnnxAttribute {
-            axis(Integer.class, true, -1),
+            axis(Long.class, true, -1),
             ;
 
                 final Class<?> t;
@@ -26460,7 +26460,7 @@ public final class OnnxOps {
             return new Softmax(this, cc);
         }
 
-        Softmax(TypeElement resultType, Value input, java.util.Optional<Integer> axis) {
+        Softmax(TypeElement resultType, Value input, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of(axis));
         }
 
@@ -26478,14 +26478,14 @@ public final class OnnxOps {
             return operands().get(0);
         }
 
-        public java.util.Optional<Integer> axis() {
-            Integer axis = Attribute.axis.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> axis() {
+            Long axis = Attribute.axis.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(axis);
         }
 
     }
 
-    public static Softmax Softmax(TypeElement resultType, Value input, java.util.Optional<Integer> axis) {
+    public static Softmax Softmax(TypeElement resultType, Value input, java.util.Optional<Long> axis) {
         return new Softmax(resultType, input, axis);
     }
 
@@ -26494,7 +26494,7 @@ public final class OnnxOps {
         public static final String NAME = "SoftmaxCrossEntropyLoss";
 
         public enum Attribute implements OnnxAttribute {
-            ignore_index(Integer.class, true, null),
+            ignore_index(Long.class, true, null),
             reduction(String.class, true, "mean"),
             ;
 
@@ -26610,7 +26610,7 @@ public final class OnnxOps {
             return new SoftmaxCrossEntropyLoss(this, cc);
         }
 
-        SoftmaxCrossEntropyLoss(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value scores, Value labels, java.util.Optional<Value> weights, java.util.Optional<Integer> ignore_index, java.util.Optional<String> reduction) {
+        SoftmaxCrossEntropyLoss(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value scores, Value labels, java.util.Optional<Value> weights, java.util.Optional<Long> ignore_index, java.util.Optional<String> reduction) {
             super(SCHEMA, resultType, optionalOutputs, List.of(scores, labels, weights), List.of(ignore_index, reduction));
         }
 
@@ -26637,8 +26637,8 @@ public final class OnnxOps {
             return i != -1 ? java.util.Optional.of(operands().get(2 + i)) : java.util.Optional.empty();
         }
 
-        public java.util.Optional<Integer> ignore_index() {
-            Integer ignore_index = Attribute.ignore_index.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> ignore_index() {
+            Long ignore_index = Attribute.ignore_index.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(ignore_index);
         }
 
@@ -26649,7 +26649,7 @@ public final class OnnxOps {
 
     }
 
-    public static SoftmaxCrossEntropyLoss SoftmaxCrossEntropyLoss(TypeElement resultType, Set<SoftmaxCrossEntropyLoss.OutputParameter> optionalOutputs, Value scores, Value labels, java.util.Optional<Value> weights, java.util.Optional<Integer> ignore_index, java.util.Optional<String> reduction) {
+    public static SoftmaxCrossEntropyLoss SoftmaxCrossEntropyLoss(TypeElement resultType, Set<SoftmaxCrossEntropyLoss.OutputParameter> optionalOutputs, Value scores, Value labels, java.util.Optional<Value> weights, java.util.Optional<Long> ignore_index, java.util.Optional<String> reduction) {
         return new SoftmaxCrossEntropyLoss(resultType, optionalOutputs, scores, labels, weights, ignore_index, reduction);
     }
 
@@ -26886,7 +26886,7 @@ public final class OnnxOps {
         public static final String NAME = "SpaceToDepth";
 
         public enum Attribute implements OnnxAttribute {
-            blocksize(Integer.class, false, null),
+            blocksize(Long.class, false, null),
             ;
 
                 final Class<?> t;
@@ -26997,7 +26997,7 @@ public final class OnnxOps {
             return new SpaceToDepth(this, cc);
         }
 
-        SpaceToDepth(TypeElement resultType, Value input, int blocksize) {
+        SpaceToDepth(TypeElement resultType, Value input, long blocksize) {
             super(SCHEMA, resultType, Set.of(), List.of(input), List.of(blocksize));
         }
 
@@ -27015,14 +27015,14 @@ public final class OnnxOps {
             return operands().get(0);
         }
 
-        public int blocksize() {
-            int blocksize = Attribute.blocksize.access(int.class, onnxAttributes);
+        public long blocksize() {
+            long blocksize = Attribute.blocksize.access(long.class, onnxAttributes);
             return blocksize;
         }
 
     }
 
-    public static SpaceToDepth SpaceToDepth(TypeElement resultType, Value input, int blocksize) {
+    public static SpaceToDepth SpaceToDepth(TypeElement resultType, Value input, long blocksize) {
         return new SpaceToDepth(resultType, input, blocksize);
     }
 
@@ -27031,8 +27031,8 @@ public final class OnnxOps {
         public static final String NAME = "Split";
 
         public enum Attribute implements OnnxAttribute {
-            num_outputs(Integer.class, true, null),
-            axis(Integer.class, true, 0),
+            num_outputs(Long.class, true, null),
+            axis(Long.class, true, 0),
             ;
 
                 final Class<?> t;
@@ -27144,7 +27144,7 @@ public final class OnnxOps {
             return new Split(this, cc);
         }
 
-        Split(TypeElement resultType, Value input, java.util.Optional<Value> split, java.util.Optional<Integer> num_outputs, java.util.Optional<Integer> axis) {
+        Split(TypeElement resultType, Value input, java.util.Optional<Value> split, java.util.Optional<Long> num_outputs, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(input, split), List.of(num_outputs, axis));
         }
 
@@ -27167,19 +27167,19 @@ public final class OnnxOps {
             return i != -1 ? java.util.Optional.of(operands().get(1 + i)) : java.util.Optional.empty();
         }
 
-        public java.util.Optional<Integer> num_outputs() {
-            Integer num_outputs = Attribute.num_outputs.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> num_outputs() {
+            Long num_outputs = Attribute.num_outputs.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(num_outputs);
         }
 
-        public java.util.Optional<Integer> axis() {
-            Integer axis = Attribute.axis.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> axis() {
+            Long axis = Attribute.axis.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(axis);
         }
 
     }
 
-    public static Split Split(TypeElement resultType, Value input, java.util.Optional<Value> split, java.util.Optional<Integer> num_outputs, java.util.Optional<Integer> axis) {
+    public static Split Split(TypeElement resultType, Value input, java.util.Optional<Value> split, java.util.Optional<Long> num_outputs, java.util.Optional<Long> axis) {
         return new Split(resultType, input, split, num_outputs, axis);
     }
 
@@ -27188,8 +27188,8 @@ public final class OnnxOps {
         public static final String NAME = "SplitToSequence";
 
         public enum Attribute implements OnnxAttribute {
-            keepdims(Integer.class, true, 1),
-            axis(Integer.class, true, 0),
+            keepdims(Long.class, true, 1),
+            axis(Long.class, true, 0),
             ;
 
                 final Class<?> t;
@@ -27303,7 +27303,7 @@ public final class OnnxOps {
             return new SplitToSequence(this, cc);
         }
 
-        SplitToSequence(TypeElement resultType, Value input, java.util.Optional<Value> split, java.util.Optional<Integer> keepdims, java.util.Optional<Integer> axis) {
+        SplitToSequence(TypeElement resultType, Value input, java.util.Optional<Value> split, java.util.Optional<Long> keepdims, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(input, split), List.of(keepdims, axis));
         }
 
@@ -27326,19 +27326,19 @@ public final class OnnxOps {
             return i != -1 ? java.util.Optional.of(operands().get(1 + i)) : java.util.Optional.empty();
         }
 
-        public java.util.Optional<Integer> keepdims() {
-            Integer keepdims = Attribute.keepdims.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> keepdims() {
+            Long keepdims = Attribute.keepdims.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(keepdims);
         }
 
-        public java.util.Optional<Integer> axis() {
-            Integer axis = Attribute.axis.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> axis() {
+            Long axis = Attribute.axis.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(axis);
         }
 
     }
 
-    public static SplitToSequence SplitToSequence(TypeElement resultType, Value input, java.util.Optional<Value> split, java.util.Optional<Integer> keepdims, java.util.Optional<Integer> axis) {
+    public static SplitToSequence SplitToSequence(TypeElement resultType, Value input, java.util.Optional<Value> split, java.util.Optional<Long> keepdims, java.util.Optional<Long> axis) {
         return new SplitToSequence(resultType, input, split, keepdims, axis);
     }
 
@@ -27700,7 +27700,7 @@ public final class OnnxOps {
         public static final String NAME = "StringNormalizer";
 
         public enum Attribute implements OnnxAttribute {
-            is_case_sensitive(Integer.class, true, 0),
+            is_case_sensitive(Long.class, true, 0),
             locale(String.class, true, null),
             stopwords(String[].class, true, null),
             case_change_action(String.class, true, "NONE"),
@@ -27799,7 +27799,7 @@ public final class OnnxOps {
             return new StringNormalizer(this, cc);
         }
 
-        StringNormalizer(TypeElement resultType, Value X, java.util.Optional<Integer> is_case_sensitive, java.util.Optional<String> locale, java.util.Optional<String[]> stopwords, java.util.Optional<String> case_change_action) {
+        StringNormalizer(TypeElement resultType, Value X, java.util.Optional<Long> is_case_sensitive, java.util.Optional<String> locale, java.util.Optional<String[]> stopwords, java.util.Optional<String> case_change_action) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(is_case_sensitive, locale, stopwords, case_change_action));
         }
 
@@ -27817,8 +27817,8 @@ public final class OnnxOps {
             return operands().get(0);
         }
 
-        public java.util.Optional<Integer> is_case_sensitive() {
-            Integer is_case_sensitive = Attribute.is_case_sensitive.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> is_case_sensitive() {
+            Long is_case_sensitive = Attribute.is_case_sensitive.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(is_case_sensitive);
         }
 
@@ -27839,7 +27839,7 @@ public final class OnnxOps {
 
     }
 
-    public static StringNormalizer StringNormalizer(TypeElement resultType, Value X, java.util.Optional<Integer> is_case_sensitive, java.util.Optional<String> locale, java.util.Optional<String[]> stopwords, java.util.Optional<String> case_change_action) {
+    public static StringNormalizer StringNormalizer(TypeElement resultType, Value X, java.util.Optional<Long> is_case_sensitive, java.util.Optional<String> locale, java.util.Optional<String[]> stopwords, java.util.Optional<String> case_change_action) {
         return new StringNormalizer(resultType, X, is_case_sensitive, locale, stopwords, case_change_action);
     }
 
@@ -27849,7 +27849,7 @@ public final class OnnxOps {
 
         public enum Attribute implements OnnxAttribute {
             delimiter(String.class, true, null),
-            maxsplit(Integer.class, true, null),
+            maxsplit(Long.class, true, null),
             ;
 
                 final Class<?> t;
@@ -27963,7 +27963,7 @@ public final class OnnxOps {
             return new StringSplit(this, cc);
         }
 
-        StringSplit(TypeElement resultType, Value X, java.util.Optional<String> delimiter, java.util.Optional<Integer> maxsplit) {
+        StringSplit(TypeElement resultType, Value X, java.util.Optional<String> delimiter, java.util.Optional<Long> maxsplit) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(delimiter, maxsplit));
         }
 
@@ -27986,14 +27986,14 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(delimiter);
         }
 
-        public java.util.Optional<Integer> maxsplit() {
-            Integer maxsplit = Attribute.maxsplit.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> maxsplit() {
+            Long maxsplit = Attribute.maxsplit.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(maxsplit);
         }
 
     }
 
-    public static StringSplit StringSplit(TypeElement resultType, Value X, java.util.Optional<String> delimiter, java.util.Optional<Integer> maxsplit) {
+    public static StringSplit StringSplit(TypeElement resultType, Value X, java.util.Optional<String> delimiter, java.util.Optional<Long> maxsplit) {
         return new StringSplit(resultType, X, delimiter, maxsplit);
     }
 
@@ -28463,15 +28463,15 @@ public final class OnnxOps {
         public static final String NAME = "TfIdfVectorizer";
 
         public enum Attribute implements OnnxAttribute {
-            ngram_counts(int[].class, false, null),
-            min_gram_length(Integer.class, false, null),
+            ngram_counts(long[].class, false, null),
+            min_gram_length(Long.class, false, null),
             pool_strings(String[].class, true, null),
             mode(String.class, false, null),
-            max_gram_length(Integer.class, false, null),
-            max_skip_count(Integer.class, false, null),
-            pool_int64s(int[].class, true, null),
+            max_gram_length(Long.class, false, null),
+            max_skip_count(Long.class, false, null),
+            pool_int64s(long[].class, true, null),
             weights(float[].class, true, null),
-            ngram_indexes(int[].class, false, null),
+            ngram_indexes(long[].class, false, null),
             ;
 
                 final Class<?> t;
@@ -28583,7 +28583,7 @@ public final class OnnxOps {
             return new TfIdfVectorizer(this, cc);
         }
 
-        TfIdfVectorizer(TypeElement resultType, Value X, int[] ngram_counts, int min_gram_length, java.util.Optional<String[]> pool_strings, String mode, int max_gram_length, int max_skip_count, java.util.Optional<int[]> pool_int64s, java.util.Optional<float[]> weights, int[] ngram_indexes) {
+        TfIdfVectorizer(TypeElement resultType, Value X, long[] ngram_counts, long min_gram_length, java.util.Optional<String[]> pool_strings, String mode, long max_gram_length, long max_skip_count, java.util.Optional<long[]> pool_int64s, java.util.Optional<float[]> weights, long[] ngram_indexes) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(ngram_counts, min_gram_length, pool_strings, mode, max_gram_length, max_skip_count, pool_int64s, weights, ngram_indexes));
         }
 
@@ -28601,13 +28601,13 @@ public final class OnnxOps {
             return operands().get(0);
         }
 
-        public int[] ngram_counts() {
-            int[] ngram_counts = Attribute.ngram_counts.access(int[].class, onnxAttributes);
+        public long[] ngram_counts() {
+            long[] ngram_counts = Attribute.ngram_counts.access(long[].class, onnxAttributes);
             return ngram_counts.clone();
         }
 
-        public int min_gram_length() {
-            int min_gram_length = Attribute.min_gram_length.access(int.class, onnxAttributes);
+        public long min_gram_length() {
+            long min_gram_length = Attribute.min_gram_length.access(long.class, onnxAttributes);
             return min_gram_length;
         }
 
@@ -28621,19 +28621,19 @@ public final class OnnxOps {
             return mode;
         }
 
-        public int max_gram_length() {
-            int max_gram_length = Attribute.max_gram_length.access(int.class, onnxAttributes);
+        public long max_gram_length() {
+            long max_gram_length = Attribute.max_gram_length.access(long.class, onnxAttributes);
             return max_gram_length;
         }
 
-        public int max_skip_count() {
-            int max_skip_count = Attribute.max_skip_count.access(int.class, onnxAttributes);
+        public long max_skip_count() {
+            long max_skip_count = Attribute.max_skip_count.access(long.class, onnxAttributes);
             return max_skip_count;
         }
 
-        public java.util.Optional<int[]> pool_int64s() {
-            int[] pool_int64s = Attribute.pool_int64s.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(pool_int64s).map(int[]::clone);
+        public java.util.Optional<long[]> pool_int64s() {
+            long[] pool_int64s = Attribute.pool_int64s.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(pool_int64s).map(long[]::clone);
         }
 
         public java.util.Optional<float[]> weights() {
@@ -28641,14 +28641,14 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(weights).map(float[]::clone);
         }
 
-        public int[] ngram_indexes() {
-            int[] ngram_indexes = Attribute.ngram_indexes.access(int[].class, onnxAttributes);
+        public long[] ngram_indexes() {
+            long[] ngram_indexes = Attribute.ngram_indexes.access(long[].class, onnxAttributes);
             return ngram_indexes.clone();
         }
 
     }
 
-    public static TfIdfVectorizer TfIdfVectorizer(TypeElement resultType, Value X, int[] ngram_counts, int min_gram_length, java.util.Optional<String[]> pool_strings, String mode, int max_gram_length, int max_skip_count, java.util.Optional<int[]> pool_int64s, java.util.Optional<float[]> weights, int[] ngram_indexes) {
+    public static TfIdfVectorizer TfIdfVectorizer(TypeElement resultType, Value X, long[] ngram_counts, long min_gram_length, java.util.Optional<String[]> pool_strings, String mode, long max_gram_length, long max_skip_count, java.util.Optional<long[]> pool_int64s, java.util.Optional<float[]> weights, long[] ngram_indexes) {
         return new TfIdfVectorizer(resultType, X, ngram_counts, min_gram_length, pool_strings, mode, max_gram_length, max_skip_count, pool_int64s, weights, ngram_indexes);
     }
 
@@ -28922,9 +28922,9 @@ public final class OnnxOps {
         public static final String NAME = "TopK";
 
         public enum Attribute implements OnnxAttribute {
-            largest(Integer.class, true, 1),
-            sorted(Integer.class, true, 1),
-            axis(Integer.class, true, -1),
+            largest(Long.class, true, 1),
+            sorted(Long.class, true, 1),
+            axis(Long.class, true, -1),
             ;
 
                 final Class<?> t;
@@ -29038,7 +29038,7 @@ public final class OnnxOps {
             return new TopK(this, cc);
         }
 
-        TopK(TypeElement resultType, Value X, Value K, java.util.Optional<Integer> largest, java.util.Optional<Integer> sorted, java.util.Optional<Integer> axis) {
+        TopK(TypeElement resultType, Value X, Value K, java.util.Optional<Long> largest, java.util.Optional<Long> sorted, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, Set.of(), List.of(X, K), List.of(largest, sorted, axis));
         }
 
@@ -29060,24 +29060,24 @@ public final class OnnxOps {
             return operands().get(1);
         }
 
-        public java.util.Optional<Integer> largest() {
-            Integer largest = Attribute.largest.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> largest() {
+            Long largest = Attribute.largest.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(largest);
         }
 
-        public java.util.Optional<Integer> sorted() {
-            Integer sorted = Attribute.sorted.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> sorted() {
+            Long sorted = Attribute.sorted.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(sorted);
         }
 
-        public java.util.Optional<Integer> axis() {
-            Integer axis = Attribute.axis.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> axis() {
+            Long axis = Attribute.axis.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(axis);
         }
 
     }
 
-    public static TopK TopK(TypeElement resultType, Value X, Value K, java.util.Optional<Integer> largest, java.util.Optional<Integer> sorted, java.util.Optional<Integer> axis) {
+    public static TopK TopK(TypeElement resultType, Value X, Value K, java.util.Optional<Long> largest, java.util.Optional<Long> sorted, java.util.Optional<Long> axis) {
         return new TopK(resultType, X, K, largest, sorted, axis);
     }
 
@@ -29086,7 +29086,7 @@ public final class OnnxOps {
         public static final String NAME = "Transpose";
 
         public enum Attribute implements OnnxAttribute {
-            perm(int[].class, true, null),
+            perm(long[].class, true, null),
             ;
 
                 final Class<?> t;
@@ -29197,7 +29197,7 @@ public final class OnnxOps {
             return new Transpose(this, cc);
         }
 
-        Transpose(TypeElement resultType, Value data, java.util.Optional<int[]> perm) {
+        Transpose(TypeElement resultType, Value data, java.util.Optional<long[]> perm) {
             super(SCHEMA, resultType, Set.of(), List.of(data), List.of(perm));
         }
 
@@ -29215,14 +29215,14 @@ public final class OnnxOps {
             return operands().get(0);
         }
 
-        public java.util.Optional<int[]> perm() {
-            int[] perm = Attribute.perm.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(perm).map(int[]::clone);
+        public java.util.Optional<long[]> perm() {
+            long[] perm = Attribute.perm.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(perm).map(long[]::clone);
         }
 
     }
 
-    public static Transpose Transpose(TypeElement resultType, Value data, java.util.Optional<int[]> perm) {
+    public static Transpose Transpose(TypeElement resultType, Value data, java.util.Optional<long[]> perm) {
         return new Transpose(resultType, data, perm);
     }
 
@@ -29231,20 +29231,20 @@ public final class OnnxOps {
         public static final String NAME = "TreeEnsemble";
 
         public enum Attribute implements OnnxAttribute {
-            aggregate_function(Integer.class, true, 1),
+            aggregate_function(Long.class, true, 1),
             nodes_hitrates(byte[].class, true, null),
-            nodes_featureids(int[].class, false, null),
-            nodes_falseleafs(int[].class, false, null),
-            post_transform(Integer.class, true, 0),
-            nodes_trueleafs(int[].class, false, null),
+            nodes_featureids(long[].class, false, null),
+            nodes_falseleafs(long[].class, false, null),
+            post_transform(Long.class, true, 0),
+            nodes_trueleafs(long[].class, false, null),
             nodes_modes(byte[].class, false, null),
-            nodes_falsenodeids(int[].class, false, null),
-            nodes_truenodeids(int[].class, false, null),
+            nodes_falsenodeids(long[].class, false, null),
+            nodes_truenodeids(long[].class, false, null),
             leaf_weights(byte[].class, false, null),
-            leaf_targetids(int[].class, false, null),
-            tree_roots(int[].class, false, null),
-            n_targets(Integer.class, true, null),
-            nodes_missing_value_tracks_true(int[].class, true, null),
+            leaf_targetids(long[].class, false, null),
+            tree_roots(long[].class, false, null),
+            n_targets(Long.class, true, null),
+            nodes_missing_value_tracks_true(long[].class, true, null),
             membership_values(byte[].class, true, null),
             nodes_splits(byte[].class, false, null),
             ;
@@ -29357,7 +29357,7 @@ public final class OnnxOps {
             return new TreeEnsemble(this, cc);
         }
 
-        TreeEnsemble(TypeElement resultType, Value X, java.util.Optional<Integer> aggregate_function, java.util.Optional<byte[]> nodes_hitrates, int[] nodes_featureids, int[] nodes_falseleafs, java.util.Optional<Integer> post_transform, int[] nodes_trueleafs, byte[] nodes_modes, int[] nodes_falsenodeids, int[] nodes_truenodeids, byte[] leaf_weights, int[] leaf_targetids, int[] tree_roots, java.util.Optional<Integer> n_targets, java.util.Optional<int[]> nodes_missing_value_tracks_true, java.util.Optional<byte[]> membership_values, byte[] nodes_splits) {
+        TreeEnsemble(TypeElement resultType, Value X, java.util.Optional<Long> aggregate_function, java.util.Optional<byte[]> nodes_hitrates, long[] nodes_featureids, long[] nodes_falseleafs, java.util.Optional<Long> post_transform, long[] nodes_trueleafs, byte[] nodes_modes, long[] nodes_falsenodeids, long[] nodes_truenodeids, byte[] leaf_weights, long[] leaf_targetids, long[] tree_roots, java.util.Optional<Long> n_targets, java.util.Optional<long[]> nodes_missing_value_tracks_true, java.util.Optional<byte[]> membership_values, byte[] nodes_splits) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(aggregate_function, nodes_hitrates, nodes_featureids, nodes_falseleafs, post_transform, nodes_trueleafs, nodes_modes, nodes_falsenodeids, nodes_truenodeids, leaf_weights, leaf_targetids, tree_roots, n_targets, nodes_missing_value_tracks_true, membership_values, nodes_splits));
         }
 
@@ -29375,8 +29375,8 @@ public final class OnnxOps {
             return operands().get(0);
         }
 
-        public java.util.Optional<Integer> aggregate_function() {
-            Integer aggregate_function = Attribute.aggregate_function.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> aggregate_function() {
+            Long aggregate_function = Attribute.aggregate_function.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(aggregate_function);
         }
 
@@ -29385,23 +29385,23 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(nodes_hitrates).map(byte[]::clone);
         }
 
-        public int[] nodes_featureids() {
-            int[] nodes_featureids = Attribute.nodes_featureids.access(int[].class, onnxAttributes);
+        public long[] nodes_featureids() {
+            long[] nodes_featureids = Attribute.nodes_featureids.access(long[].class, onnxAttributes);
             return nodes_featureids.clone();
         }
 
-        public int[] nodes_falseleafs() {
-            int[] nodes_falseleafs = Attribute.nodes_falseleafs.access(int[].class, onnxAttributes);
+        public long[] nodes_falseleafs() {
+            long[] nodes_falseleafs = Attribute.nodes_falseleafs.access(long[].class, onnxAttributes);
             return nodes_falseleafs.clone();
         }
 
-        public java.util.Optional<Integer> post_transform() {
-            Integer post_transform = Attribute.post_transform.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> post_transform() {
+            Long post_transform = Attribute.post_transform.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(post_transform);
         }
 
-        public int[] nodes_trueleafs() {
-            int[] nodes_trueleafs = Attribute.nodes_trueleafs.access(int[].class, onnxAttributes);
+        public long[] nodes_trueleafs() {
+            long[] nodes_trueleafs = Attribute.nodes_trueleafs.access(long[].class, onnxAttributes);
             return nodes_trueleafs.clone();
         }
 
@@ -29410,13 +29410,13 @@ public final class OnnxOps {
             return nodes_modes.clone();
         }
 
-        public int[] nodes_falsenodeids() {
-            int[] nodes_falsenodeids = Attribute.nodes_falsenodeids.access(int[].class, onnxAttributes);
+        public long[] nodes_falsenodeids() {
+            long[] nodes_falsenodeids = Attribute.nodes_falsenodeids.access(long[].class, onnxAttributes);
             return nodes_falsenodeids.clone();
         }
 
-        public int[] nodes_truenodeids() {
-            int[] nodes_truenodeids = Attribute.nodes_truenodeids.access(int[].class, onnxAttributes);
+        public long[] nodes_truenodeids() {
+            long[] nodes_truenodeids = Attribute.nodes_truenodeids.access(long[].class, onnxAttributes);
             return nodes_truenodeids.clone();
         }
 
@@ -29425,24 +29425,24 @@ public final class OnnxOps {
             return leaf_weights.clone();
         }
 
-        public int[] leaf_targetids() {
-            int[] leaf_targetids = Attribute.leaf_targetids.access(int[].class, onnxAttributes);
+        public long[] leaf_targetids() {
+            long[] leaf_targetids = Attribute.leaf_targetids.access(long[].class, onnxAttributes);
             return leaf_targetids.clone();
         }
 
-        public int[] tree_roots() {
-            int[] tree_roots = Attribute.tree_roots.access(int[].class, onnxAttributes);
+        public long[] tree_roots() {
+            long[] tree_roots = Attribute.tree_roots.access(long[].class, onnxAttributes);
             return tree_roots.clone();
         }
 
-        public java.util.Optional<Integer> n_targets() {
-            Integer n_targets = Attribute.n_targets.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> n_targets() {
+            Long n_targets = Attribute.n_targets.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(n_targets);
         }
 
-        public java.util.Optional<int[]> nodes_missing_value_tracks_true() {
-            int[] nodes_missing_value_tracks_true = Attribute.nodes_missing_value_tracks_true.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(nodes_missing_value_tracks_true).map(int[]::clone);
+        public java.util.Optional<long[]> nodes_missing_value_tracks_true() {
+            long[] nodes_missing_value_tracks_true = Attribute.nodes_missing_value_tracks_true.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(nodes_missing_value_tracks_true).map(long[]::clone);
         }
 
         public java.util.Optional<byte[]> membership_values() {
@@ -29457,7 +29457,7 @@ public final class OnnxOps {
 
     }
 
-    public static TreeEnsemble TreeEnsemble(TypeElement resultType, Value X, java.util.Optional<Integer> aggregate_function, java.util.Optional<byte[]> nodes_hitrates, int[] nodes_featureids, int[] nodes_falseleafs, java.util.Optional<Integer> post_transform, int[] nodes_trueleafs, byte[] nodes_modes, int[] nodes_falsenodeids, int[] nodes_truenodeids, byte[] leaf_weights, int[] leaf_targetids, int[] tree_roots, java.util.Optional<Integer> n_targets, java.util.Optional<int[]> nodes_missing_value_tracks_true, java.util.Optional<byte[]> membership_values, byte[] nodes_splits) {
+    public static TreeEnsemble TreeEnsemble(TypeElement resultType, Value X, java.util.Optional<Long> aggregate_function, java.util.Optional<byte[]> nodes_hitrates, long[] nodes_featureids, long[] nodes_falseleafs, java.util.Optional<Long> post_transform, long[] nodes_trueleafs, byte[] nodes_modes, long[] nodes_falsenodeids, long[] nodes_truenodeids, byte[] leaf_weights, long[] leaf_targetids, long[] tree_roots, java.util.Optional<Long> n_targets, java.util.Optional<long[]> nodes_missing_value_tracks_true, java.util.Optional<byte[]> membership_values, byte[] nodes_splits) {
         return new TreeEnsemble(resultType, X, aggregate_function, nodes_hitrates, nodes_featureids, nodes_falseleafs, post_transform, nodes_trueleafs, nodes_modes, nodes_falsenodeids, nodes_truenodeids, leaf_weights, leaf_targetids, tree_roots, n_targets, nodes_missing_value_tracks_true, membership_values, nodes_splits);
     }
 
@@ -29466,24 +29466,24 @@ public final class OnnxOps {
         public static final String NAME = "TreeEnsembleClassifier";
 
         public enum Attribute implements OnnxAttribute {
-            classlabels_int64s(int[].class, true, null),
-            class_ids(int[].class, true, null),
+            classlabels_int64s(long[].class, true, null),
+            class_ids(long[].class, true, null),
             nodes_hitrates(float[].class, true, null),
-            nodes_featureids(int[].class, true, null),
-            nodes_treeids(int[].class, true, null),
+            nodes_featureids(long[].class, true, null),
+            nodes_treeids(long[].class, true, null),
             class_weights_as_tensor(byte[].class, true, null),
             post_transform(String.class, true, "NONE"),
             nodes_modes(String[].class, true, null),
-            nodes_falsenodeids(int[].class, true, null),
+            nodes_falsenodeids(long[].class, true, null),
             classlabels_strings(String[].class, true, null),
-            nodes_truenodeids(int[].class, true, null),
-            nodes_nodeids(int[].class, true, null),
+            nodes_truenodeids(long[].class, true, null),
+            nodes_nodeids(long[].class, true, null),
             nodes_hitrates_as_tensor(byte[].class, true, null),
             class_weights(float[].class, true, null),
             base_values_as_tensor(byte[].class, true, null),
-            nodes_missing_value_tracks_true(int[].class, true, null),
-            class_nodeids(int[].class, true, null),
-            class_treeids(int[].class, true, null),
+            nodes_missing_value_tracks_true(long[].class, true, null),
+            class_nodeids(long[].class, true, null),
+            class_treeids(long[].class, true, null),
             base_values(float[].class, true, null),
             nodes_values(float[].class, true, null),
             nodes_values_as_tensor(byte[].class, true, null),
@@ -29599,7 +29599,7 @@ public final class OnnxOps {
             return new TreeEnsembleClassifier(this, cc);
         }
 
-        TreeEnsembleClassifier(TypeElement resultType, Value X, java.util.Optional<int[]> classlabels_int64s, java.util.Optional<int[]> class_ids, java.util.Optional<float[]> nodes_hitrates, java.util.Optional<int[]> nodes_featureids, java.util.Optional<int[]> nodes_treeids, java.util.Optional<byte[]> class_weights_as_tensor, java.util.Optional<String> post_transform, java.util.Optional<String[]> nodes_modes, java.util.Optional<int[]> nodes_falsenodeids, java.util.Optional<String[]> classlabels_strings, java.util.Optional<int[]> nodes_truenodeids, java.util.Optional<int[]> nodes_nodeids, java.util.Optional<byte[]> nodes_hitrates_as_tensor, java.util.Optional<float[]> class_weights, java.util.Optional<byte[]> base_values_as_tensor, java.util.Optional<int[]> nodes_missing_value_tracks_true, java.util.Optional<int[]> class_nodeids, java.util.Optional<int[]> class_treeids, java.util.Optional<float[]> base_values, java.util.Optional<float[]> nodes_values, java.util.Optional<byte[]> nodes_values_as_tensor) {
+        TreeEnsembleClassifier(TypeElement resultType, Value X, java.util.Optional<long[]> classlabels_int64s, java.util.Optional<long[]> class_ids, java.util.Optional<float[]> nodes_hitrates, java.util.Optional<long[]> nodes_featureids, java.util.Optional<long[]> nodes_treeids, java.util.Optional<byte[]> class_weights_as_tensor, java.util.Optional<String> post_transform, java.util.Optional<String[]> nodes_modes, java.util.Optional<long[]> nodes_falsenodeids, java.util.Optional<String[]> classlabels_strings, java.util.Optional<long[]> nodes_truenodeids, java.util.Optional<long[]> nodes_nodeids, java.util.Optional<byte[]> nodes_hitrates_as_tensor, java.util.Optional<float[]> class_weights, java.util.Optional<byte[]> base_values_as_tensor, java.util.Optional<long[]> nodes_missing_value_tracks_true, java.util.Optional<long[]> class_nodeids, java.util.Optional<long[]> class_treeids, java.util.Optional<float[]> base_values, java.util.Optional<float[]> nodes_values, java.util.Optional<byte[]> nodes_values_as_tensor) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(classlabels_int64s, class_ids, nodes_hitrates, nodes_featureids, nodes_treeids, class_weights_as_tensor, post_transform, nodes_modes, nodes_falsenodeids, classlabels_strings, nodes_truenodeids, nodes_nodeids, nodes_hitrates_as_tensor, class_weights, base_values_as_tensor, nodes_missing_value_tracks_true, class_nodeids, class_treeids, base_values, nodes_values, nodes_values_as_tensor));
         }
 
@@ -29617,14 +29617,14 @@ public final class OnnxOps {
             return operands().get(0);
         }
 
-        public java.util.Optional<int[]> classlabels_int64s() {
-            int[] classlabels_int64s = Attribute.classlabels_int64s.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(classlabels_int64s).map(int[]::clone);
+        public java.util.Optional<long[]> classlabels_int64s() {
+            long[] classlabels_int64s = Attribute.classlabels_int64s.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(classlabels_int64s).map(long[]::clone);
         }
 
-        public java.util.Optional<int[]> class_ids() {
-            int[] class_ids = Attribute.class_ids.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(class_ids).map(int[]::clone);
+        public java.util.Optional<long[]> class_ids() {
+            long[] class_ids = Attribute.class_ids.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(class_ids).map(long[]::clone);
         }
 
         public java.util.Optional<float[]> nodes_hitrates() {
@@ -29632,14 +29632,14 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(nodes_hitrates).map(float[]::clone);
         }
 
-        public java.util.Optional<int[]> nodes_featureids() {
-            int[] nodes_featureids = Attribute.nodes_featureids.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(nodes_featureids).map(int[]::clone);
+        public java.util.Optional<long[]> nodes_featureids() {
+            long[] nodes_featureids = Attribute.nodes_featureids.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(nodes_featureids).map(long[]::clone);
         }
 
-        public java.util.Optional<int[]> nodes_treeids() {
-            int[] nodes_treeids = Attribute.nodes_treeids.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(nodes_treeids).map(int[]::clone);
+        public java.util.Optional<long[]> nodes_treeids() {
+            long[] nodes_treeids = Attribute.nodes_treeids.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(nodes_treeids).map(long[]::clone);
         }
 
         public java.util.Optional<byte[]> class_weights_as_tensor() {
@@ -29657,9 +29657,9 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(nodes_modes).map(String[]::clone);
         }
 
-        public java.util.Optional<int[]> nodes_falsenodeids() {
-            int[] nodes_falsenodeids = Attribute.nodes_falsenodeids.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(nodes_falsenodeids).map(int[]::clone);
+        public java.util.Optional<long[]> nodes_falsenodeids() {
+            long[] nodes_falsenodeids = Attribute.nodes_falsenodeids.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(nodes_falsenodeids).map(long[]::clone);
         }
 
         public java.util.Optional<String[]> classlabels_strings() {
@@ -29667,14 +29667,14 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(classlabels_strings).map(String[]::clone);
         }
 
-        public java.util.Optional<int[]> nodes_truenodeids() {
-            int[] nodes_truenodeids = Attribute.nodes_truenodeids.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(nodes_truenodeids).map(int[]::clone);
+        public java.util.Optional<long[]> nodes_truenodeids() {
+            long[] nodes_truenodeids = Attribute.nodes_truenodeids.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(nodes_truenodeids).map(long[]::clone);
         }
 
-        public java.util.Optional<int[]> nodes_nodeids() {
-            int[] nodes_nodeids = Attribute.nodes_nodeids.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(nodes_nodeids).map(int[]::clone);
+        public java.util.Optional<long[]> nodes_nodeids() {
+            long[] nodes_nodeids = Attribute.nodes_nodeids.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(nodes_nodeids).map(long[]::clone);
         }
 
         public java.util.Optional<byte[]> nodes_hitrates_as_tensor() {
@@ -29692,19 +29692,19 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(base_values_as_tensor).map(byte[]::clone);
         }
 
-        public java.util.Optional<int[]> nodes_missing_value_tracks_true() {
-            int[] nodes_missing_value_tracks_true = Attribute.nodes_missing_value_tracks_true.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(nodes_missing_value_tracks_true).map(int[]::clone);
+        public java.util.Optional<long[]> nodes_missing_value_tracks_true() {
+            long[] nodes_missing_value_tracks_true = Attribute.nodes_missing_value_tracks_true.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(nodes_missing_value_tracks_true).map(long[]::clone);
         }
 
-        public java.util.Optional<int[]> class_nodeids() {
-            int[] class_nodeids = Attribute.class_nodeids.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(class_nodeids).map(int[]::clone);
+        public java.util.Optional<long[]> class_nodeids() {
+            long[] class_nodeids = Attribute.class_nodeids.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(class_nodeids).map(long[]::clone);
         }
 
-        public java.util.Optional<int[]> class_treeids() {
-            int[] class_treeids = Attribute.class_treeids.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(class_treeids).map(int[]::clone);
+        public java.util.Optional<long[]> class_treeids() {
+            long[] class_treeids = Attribute.class_treeids.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(class_treeids).map(long[]::clone);
         }
 
         public java.util.Optional<float[]> base_values() {
@@ -29724,7 +29724,7 @@ public final class OnnxOps {
 
     }
 
-    public static TreeEnsembleClassifier TreeEnsembleClassifier(TypeElement resultType, Value X, java.util.Optional<int[]> classlabels_int64s, java.util.Optional<int[]> class_ids, java.util.Optional<float[]> nodes_hitrates, java.util.Optional<int[]> nodes_featureids, java.util.Optional<int[]> nodes_treeids, java.util.Optional<byte[]> class_weights_as_tensor, java.util.Optional<String> post_transform, java.util.Optional<String[]> nodes_modes, java.util.Optional<int[]> nodes_falsenodeids, java.util.Optional<String[]> classlabels_strings, java.util.Optional<int[]> nodes_truenodeids, java.util.Optional<int[]> nodes_nodeids, java.util.Optional<byte[]> nodes_hitrates_as_tensor, java.util.Optional<float[]> class_weights, java.util.Optional<byte[]> base_values_as_tensor, java.util.Optional<int[]> nodes_missing_value_tracks_true, java.util.Optional<int[]> class_nodeids, java.util.Optional<int[]> class_treeids, java.util.Optional<float[]> base_values, java.util.Optional<float[]> nodes_values, java.util.Optional<byte[]> nodes_values_as_tensor) {
+    public static TreeEnsembleClassifier TreeEnsembleClassifier(TypeElement resultType, Value X, java.util.Optional<long[]> classlabels_int64s, java.util.Optional<long[]> class_ids, java.util.Optional<float[]> nodes_hitrates, java.util.Optional<long[]> nodes_featureids, java.util.Optional<long[]> nodes_treeids, java.util.Optional<byte[]> class_weights_as_tensor, java.util.Optional<String> post_transform, java.util.Optional<String[]> nodes_modes, java.util.Optional<long[]> nodes_falsenodeids, java.util.Optional<String[]> classlabels_strings, java.util.Optional<long[]> nodes_truenodeids, java.util.Optional<long[]> nodes_nodeids, java.util.Optional<byte[]> nodes_hitrates_as_tensor, java.util.Optional<float[]> class_weights, java.util.Optional<byte[]> base_values_as_tensor, java.util.Optional<long[]> nodes_missing_value_tracks_true, java.util.Optional<long[]> class_nodeids, java.util.Optional<long[]> class_treeids, java.util.Optional<float[]> base_values, java.util.Optional<float[]> nodes_values, java.util.Optional<byte[]> nodes_values_as_tensor) {
         return new TreeEnsembleClassifier(resultType, X, classlabels_int64s, class_ids, nodes_hitrates, nodes_featureids, nodes_treeids, class_weights_as_tensor, post_transform, nodes_modes, nodes_falsenodeids, classlabels_strings, nodes_truenodeids, nodes_nodeids, nodes_hitrates_as_tensor, class_weights, base_values_as_tensor, nodes_missing_value_tracks_true, class_nodeids, class_treeids, base_values, nodes_values, nodes_values_as_tensor);
     }
 
@@ -29736,21 +29736,21 @@ public final class OnnxOps {
             aggregate_function(String.class, true, "SUM"),
             nodes_hitrates(float[].class, true, null),
             target_weights_as_tensor(byte[].class, true, null),
-            nodes_featureids(int[].class, true, null),
-            target_treeids(int[].class, true, null),
-            nodes_treeids(int[].class, true, null),
+            nodes_featureids(long[].class, true, null),
+            target_treeids(long[].class, true, null),
+            nodes_treeids(long[].class, true, null),
             post_transform(String.class, true, "NONE"),
             nodes_modes(String[].class, true, null),
             target_weights(float[].class, true, null),
-            nodes_falsenodeids(int[].class, true, null),
-            target_ids(int[].class, true, null),
-            nodes_truenodeids(int[].class, true, null),
-            target_nodeids(int[].class, true, null),
-            nodes_nodeids(int[].class, true, null),
+            nodes_falsenodeids(long[].class, true, null),
+            target_ids(long[].class, true, null),
+            nodes_truenodeids(long[].class, true, null),
+            target_nodeids(long[].class, true, null),
+            nodes_nodeids(long[].class, true, null),
             nodes_hitrates_as_tensor(byte[].class, true, null),
             base_values_as_tensor(byte[].class, true, null),
-            n_targets(Integer.class, true, null),
-            nodes_missing_value_tracks_true(int[].class, true, null),
+            n_targets(Long.class, true, null),
+            nodes_missing_value_tracks_true(long[].class, true, null),
             base_values(float[].class, true, null),
             nodes_values(float[].class, true, null),
             nodes_values_as_tensor(byte[].class, true, null),
@@ -29864,7 +29864,7 @@ public final class OnnxOps {
             return new TreeEnsembleRegressor(this, cc);
         }
 
-        TreeEnsembleRegressor(TypeElement resultType, Value X, java.util.Optional<String> aggregate_function, java.util.Optional<float[]> nodes_hitrates, java.util.Optional<byte[]> target_weights_as_tensor, java.util.Optional<int[]> nodes_featureids, java.util.Optional<int[]> target_treeids, java.util.Optional<int[]> nodes_treeids, java.util.Optional<String> post_transform, java.util.Optional<String[]> nodes_modes, java.util.Optional<float[]> target_weights, java.util.Optional<int[]> nodes_falsenodeids, java.util.Optional<int[]> target_ids, java.util.Optional<int[]> nodes_truenodeids, java.util.Optional<int[]> target_nodeids, java.util.Optional<int[]> nodes_nodeids, java.util.Optional<byte[]> nodes_hitrates_as_tensor, java.util.Optional<byte[]> base_values_as_tensor, java.util.Optional<Integer> n_targets, java.util.Optional<int[]> nodes_missing_value_tracks_true, java.util.Optional<float[]> base_values, java.util.Optional<float[]> nodes_values, java.util.Optional<byte[]> nodes_values_as_tensor) {
+        TreeEnsembleRegressor(TypeElement resultType, Value X, java.util.Optional<String> aggregate_function, java.util.Optional<float[]> nodes_hitrates, java.util.Optional<byte[]> target_weights_as_tensor, java.util.Optional<long[]> nodes_featureids, java.util.Optional<long[]> target_treeids, java.util.Optional<long[]> nodes_treeids, java.util.Optional<String> post_transform, java.util.Optional<String[]> nodes_modes, java.util.Optional<float[]> target_weights, java.util.Optional<long[]> nodes_falsenodeids, java.util.Optional<long[]> target_ids, java.util.Optional<long[]> nodes_truenodeids, java.util.Optional<long[]> target_nodeids, java.util.Optional<long[]> nodes_nodeids, java.util.Optional<byte[]> nodes_hitrates_as_tensor, java.util.Optional<byte[]> base_values_as_tensor, java.util.Optional<Long> n_targets, java.util.Optional<long[]> nodes_missing_value_tracks_true, java.util.Optional<float[]> base_values, java.util.Optional<float[]> nodes_values, java.util.Optional<byte[]> nodes_values_as_tensor) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(aggregate_function, nodes_hitrates, target_weights_as_tensor, nodes_featureids, target_treeids, nodes_treeids, post_transform, nodes_modes, target_weights, nodes_falsenodeids, target_ids, nodes_truenodeids, target_nodeids, nodes_nodeids, nodes_hitrates_as_tensor, base_values_as_tensor, n_targets, nodes_missing_value_tracks_true, base_values, nodes_values, nodes_values_as_tensor));
         }
 
@@ -29897,19 +29897,19 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(target_weights_as_tensor).map(byte[]::clone);
         }
 
-        public java.util.Optional<int[]> nodes_featureids() {
-            int[] nodes_featureids = Attribute.nodes_featureids.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(nodes_featureids).map(int[]::clone);
+        public java.util.Optional<long[]> nodes_featureids() {
+            long[] nodes_featureids = Attribute.nodes_featureids.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(nodes_featureids).map(long[]::clone);
         }
 
-        public java.util.Optional<int[]> target_treeids() {
-            int[] target_treeids = Attribute.target_treeids.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(target_treeids).map(int[]::clone);
+        public java.util.Optional<long[]> target_treeids() {
+            long[] target_treeids = Attribute.target_treeids.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(target_treeids).map(long[]::clone);
         }
 
-        public java.util.Optional<int[]> nodes_treeids() {
-            int[] nodes_treeids = Attribute.nodes_treeids.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(nodes_treeids).map(int[]::clone);
+        public java.util.Optional<long[]> nodes_treeids() {
+            long[] nodes_treeids = Attribute.nodes_treeids.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(nodes_treeids).map(long[]::clone);
         }
 
         public java.util.Optional<String> post_transform() {
@@ -29927,29 +29927,29 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(target_weights).map(float[]::clone);
         }
 
-        public java.util.Optional<int[]> nodes_falsenodeids() {
-            int[] nodes_falsenodeids = Attribute.nodes_falsenodeids.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(nodes_falsenodeids).map(int[]::clone);
+        public java.util.Optional<long[]> nodes_falsenodeids() {
+            long[] nodes_falsenodeids = Attribute.nodes_falsenodeids.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(nodes_falsenodeids).map(long[]::clone);
         }
 
-        public java.util.Optional<int[]> target_ids() {
-            int[] target_ids = Attribute.target_ids.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(target_ids).map(int[]::clone);
+        public java.util.Optional<long[]> target_ids() {
+            long[] target_ids = Attribute.target_ids.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(target_ids).map(long[]::clone);
         }
 
-        public java.util.Optional<int[]> nodes_truenodeids() {
-            int[] nodes_truenodeids = Attribute.nodes_truenodeids.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(nodes_truenodeids).map(int[]::clone);
+        public java.util.Optional<long[]> nodes_truenodeids() {
+            long[] nodes_truenodeids = Attribute.nodes_truenodeids.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(nodes_truenodeids).map(long[]::clone);
         }
 
-        public java.util.Optional<int[]> target_nodeids() {
-            int[] target_nodeids = Attribute.target_nodeids.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(target_nodeids).map(int[]::clone);
+        public java.util.Optional<long[]> target_nodeids() {
+            long[] target_nodeids = Attribute.target_nodeids.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(target_nodeids).map(long[]::clone);
         }
 
-        public java.util.Optional<int[]> nodes_nodeids() {
-            int[] nodes_nodeids = Attribute.nodes_nodeids.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(nodes_nodeids).map(int[]::clone);
+        public java.util.Optional<long[]> nodes_nodeids() {
+            long[] nodes_nodeids = Attribute.nodes_nodeids.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(nodes_nodeids).map(long[]::clone);
         }
 
         public java.util.Optional<byte[]> nodes_hitrates_as_tensor() {
@@ -29962,14 +29962,14 @@ public final class OnnxOps {
             return java.util.Optional.ofNullable(base_values_as_tensor).map(byte[]::clone);
         }
 
-        public java.util.Optional<Integer> n_targets() {
-            Integer n_targets = Attribute.n_targets.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> n_targets() {
+            Long n_targets = Attribute.n_targets.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(n_targets);
         }
 
-        public java.util.Optional<int[]> nodes_missing_value_tracks_true() {
-            int[] nodes_missing_value_tracks_true = Attribute.nodes_missing_value_tracks_true.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(nodes_missing_value_tracks_true).map(int[]::clone);
+        public java.util.Optional<long[]> nodes_missing_value_tracks_true() {
+            long[] nodes_missing_value_tracks_true = Attribute.nodes_missing_value_tracks_true.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(nodes_missing_value_tracks_true).map(long[]::clone);
         }
 
         public java.util.Optional<float[]> base_values() {
@@ -29989,7 +29989,7 @@ public final class OnnxOps {
 
     }
 
-    public static TreeEnsembleRegressor TreeEnsembleRegressor(TypeElement resultType, Value X, java.util.Optional<String> aggregate_function, java.util.Optional<float[]> nodes_hitrates, java.util.Optional<byte[]> target_weights_as_tensor, java.util.Optional<int[]> nodes_featureids, java.util.Optional<int[]> target_treeids, java.util.Optional<int[]> nodes_treeids, java.util.Optional<String> post_transform, java.util.Optional<String[]> nodes_modes, java.util.Optional<float[]> target_weights, java.util.Optional<int[]> nodes_falsenodeids, java.util.Optional<int[]> target_ids, java.util.Optional<int[]> nodes_truenodeids, java.util.Optional<int[]> target_nodeids, java.util.Optional<int[]> nodes_nodeids, java.util.Optional<byte[]> nodes_hitrates_as_tensor, java.util.Optional<byte[]> base_values_as_tensor, java.util.Optional<Integer> n_targets, java.util.Optional<int[]> nodes_missing_value_tracks_true, java.util.Optional<float[]> base_values, java.util.Optional<float[]> nodes_values, java.util.Optional<byte[]> nodes_values_as_tensor) {
+    public static TreeEnsembleRegressor TreeEnsembleRegressor(TypeElement resultType, Value X, java.util.Optional<String> aggregate_function, java.util.Optional<float[]> nodes_hitrates, java.util.Optional<byte[]> target_weights_as_tensor, java.util.Optional<long[]> nodes_featureids, java.util.Optional<long[]> target_treeids, java.util.Optional<long[]> nodes_treeids, java.util.Optional<String> post_transform, java.util.Optional<String[]> nodes_modes, java.util.Optional<float[]> target_weights, java.util.Optional<long[]> nodes_falsenodeids, java.util.Optional<long[]> target_ids, java.util.Optional<long[]> nodes_truenodeids, java.util.Optional<long[]> target_nodeids, java.util.Optional<long[]> nodes_nodeids, java.util.Optional<byte[]> nodes_hitrates_as_tensor, java.util.Optional<byte[]> base_values_as_tensor, java.util.Optional<Long> n_targets, java.util.Optional<long[]> nodes_missing_value_tracks_true, java.util.Optional<float[]> base_values, java.util.Optional<float[]> nodes_values, java.util.Optional<byte[]> nodes_values_as_tensor) {
         return new TreeEnsembleRegressor(resultType, X, aggregate_function, nodes_hitrates, target_weights_as_tensor, nodes_featureids, target_treeids, nodes_treeids, post_transform, nodes_modes, target_weights, nodes_falsenodeids, target_ids, nodes_truenodeids, target_nodeids, nodes_nodeids, nodes_hitrates_as_tensor, base_values_as_tensor, n_targets, nodes_missing_value_tracks_true, base_values, nodes_values, nodes_values_as_tensor);
     }
 
@@ -29998,7 +29998,7 @@ public final class OnnxOps {
         public static final String NAME = "Trilu";
 
         public enum Attribute implements OnnxAttribute {
-            upper(Integer.class, true, 1),
+            upper(Long.class, true, 1),
             ;
 
                 final Class<?> t;
@@ -30110,7 +30110,7 @@ public final class OnnxOps {
             return new Trilu(this, cc);
         }
 
-        Trilu(TypeElement resultType, Value input, java.util.Optional<Value> k, java.util.Optional<Integer> upper) {
+        Trilu(TypeElement resultType, Value input, java.util.Optional<Value> k, java.util.Optional<Long> upper) {
             super(SCHEMA, resultType, Set.of(), List.of(input, k), List.of(upper));
         }
 
@@ -30133,14 +30133,14 @@ public final class OnnxOps {
             return i != -1 ? java.util.Optional.of(operands().get(1 + i)) : java.util.Optional.empty();
         }
 
-        public java.util.Optional<Integer> upper() {
-            Integer upper = Attribute.upper.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> upper() {
+            Long upper = Attribute.upper.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(upper);
         }
 
     }
 
-    public static Trilu Trilu(TypeElement resultType, Value input, java.util.Optional<Value> k, java.util.Optional<Integer> upper) {
+    public static Trilu Trilu(TypeElement resultType, Value input, java.util.Optional<Value> k, java.util.Optional<Long> upper) {
         return new Trilu(resultType, input, k, upper);
     }
 
@@ -30149,8 +30149,8 @@ public final class OnnxOps {
         public static final String NAME = "Unique";
 
         public enum Attribute implements OnnxAttribute {
-            sorted(Integer.class, true, 1),
-            axis(Integer.class, true, null),
+            sorted(Long.class, true, 1),
+            axis(Long.class, true, null),
             ;
 
                 final Class<?> t;
@@ -30264,7 +30264,7 @@ public final class OnnxOps {
             return new Unique(this, cc);
         }
 
-        Unique(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value X, java.util.Optional<Integer> sorted, java.util.Optional<Integer> axis) {
+        Unique(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value X, java.util.Optional<Long> sorted, java.util.Optional<Long> axis) {
             super(SCHEMA, resultType, optionalOutputs, List.of(X), List.of(sorted, axis));
         }
 
@@ -30282,19 +30282,19 @@ public final class OnnxOps {
             return operands().get(0);
         }
 
-        public java.util.Optional<Integer> sorted() {
-            Integer sorted = Attribute.sorted.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> sorted() {
+            Long sorted = Attribute.sorted.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(sorted);
         }
 
-        public java.util.Optional<Integer> axis() {
-            Integer axis = Attribute.axis.access(Integer.class, onnxAttributes);
+        public java.util.Optional<Long> axis() {
+            Long axis = Attribute.axis.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(axis);
         }
 
     }
 
-    public static Unique Unique(TypeElement resultType, Set<Unique.OutputParameter> optionalOutputs, Value X, java.util.Optional<Integer> sorted, java.util.Optional<Integer> axis) {
+    public static Unique Unique(TypeElement resultType, Set<Unique.OutputParameter> optionalOutputs, Value X, java.util.Optional<Long> sorted, java.util.Optional<Long> axis) {
         return new Unique(resultType, optionalOutputs, X, sorted, axis);
     }
 
@@ -30817,7 +30817,7 @@ public final class OnnxOps {
         public static final String NAME = "ZipMap";
 
         public enum Attribute implements OnnxAttribute {
-            classlabels_int64s(int[].class, true, null),
+            classlabels_int64s(long[].class, true, null),
             classlabels_strings(String[].class, true, null),
             ;
 
@@ -30929,7 +30929,7 @@ public final class OnnxOps {
             return new ZipMap(this, cc);
         }
 
-        ZipMap(TypeElement resultType, Value X, java.util.Optional<int[]> classlabels_int64s, java.util.Optional<String[]> classlabels_strings) {
+        ZipMap(TypeElement resultType, Value X, java.util.Optional<long[]> classlabels_int64s, java.util.Optional<String[]> classlabels_strings) {
             super(SCHEMA, resultType, Set.of(), List.of(X), List.of(classlabels_int64s, classlabels_strings));
         }
 
@@ -30947,9 +30947,9 @@ public final class OnnxOps {
             return operands().get(0);
         }
 
-        public java.util.Optional<int[]> classlabels_int64s() {
-            int[] classlabels_int64s = Attribute.classlabels_int64s.access(int[].class, onnxAttributes);
-            return java.util.Optional.ofNullable(classlabels_int64s).map(int[]::clone);
+        public java.util.Optional<long[]> classlabels_int64s() {
+            long[] classlabels_int64s = Attribute.classlabels_int64s.access(long[].class, onnxAttributes);
+            return java.util.Optional.ofNullable(classlabels_int64s).map(long[]::clone);
         }
 
         public java.util.Optional<String[]> classlabels_strings() {
@@ -30959,7 +30959,7 @@ public final class OnnxOps {
 
     }
 
-    public static ZipMap ZipMap(TypeElement resultType, Value X, java.util.Optional<int[]> classlabels_int64s, java.util.Optional<String[]> classlabels_strings) {
+    public static ZipMap ZipMap(TypeElement resultType, Value X, java.util.Optional<long[]> classlabels_int64s, java.util.Optional<String[]> classlabels_strings) {
         return new ZipMap(resultType, X, classlabels_int64s, classlabels_strings);
     }
 
