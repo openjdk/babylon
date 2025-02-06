@@ -29,16 +29,21 @@ END_OF_LICENSE
 
 if [ "${BASH_SOURCE[0]}" = "${0}" ]; then 
    # We just bail if it was not sourced.. We want to set AND export PATH and JAVA_HOME...
+   # So we must be sourced.  Otherwise we just fork a new shell, set the vars in the temp shell and exit
    echo "You must source this file ..."
    echo "Using either "
    echo "    . ${0}"
    echo "or"
    echo "    source ${0}"
-   exit 1;  # this is ok because we were not sourced 
+   exit 1;  # exiting here is ONLY ok because we were not sourced.
 else
 
-  # We were indeed sourced so don't exit below here or we will trash the users shell ;)
-  #    possibly loging them out 
+  # We were sourced so must not exit below or we will trash the users shell ;) possibly logging them out 
+  # We first need to determine the arch an os types so we can construct/test against something like
+  #    macosx-aarch64-server-release
+  #       ^     ^
+  #       |     + ${archtype}
+  #       + ${ostype}
 
   OS=$(uname -s )
   if [[ "$OS" == Linux ]]; then
@@ -91,13 +96,15 @@ else
       fi
 
       if [[ ${1} = "clean" ]]; then 
-         rm -rf build maven-build thirdparty repoDir
+         rm -rf build 
       fi 
-      if [[ ! -e bldr/Bldr.java ]]; then 
-         ln -s src/main/java/bldr/Bldr.java bldr/Bldr.java
-         echo "Created a symlink bldr/Bldr.java "
-      fi 
-      echo "SUCCESS!"
+
+      if command -v jextract; then 
+         echo 'SUCCESS.. Found a valid JDK and found jextract in your PATH'
+      else
+         echo 'CAUTION.. Found a valid JDK, but you will need to add jextract to your PATH to be able to build'
+      fi
+
     else
       echo "We expected either:-"
       echo "    \${PWD} to be in a hat subdir of a compiled babylon jdk build" 

@@ -23,8 +23,7 @@
  * questions.
  */
 
-import static bldr.Bldr.*;           // all the helpers are here 
-//import static java.nio.file.Files.*; // so we can use isDirectory(path);
+import static bldr.Bldr.*;  
  
 
 void main(String[] argv) {
@@ -38,8 +37,11 @@ void main(String[] argv) {
       class name is assumed to be package.Main  (i.e. mandel.main) 
 
       examples:
-         java @bldr/args opencl mandel
-         java @bldr/args headless opencl mandel
+         java @bldr/args ffi-opencl mandel
+         java @bldr/args java-opencl mandel
+         java @bldr/args headless ffi-opencl mandel
+         java @bldr/args ffi-opencl life
+         java @bldr/args java-opencl life
   """;
 
   var hatDir =  DirEntry.current();
