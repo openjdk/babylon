@@ -32,6 +32,9 @@ import java.io.Writer;
 import jdk.incubator.code.*;
 import jdk.incubator.code.op.ExternalizableOp;
 import jdk.incubator.code.type.JavaType;
+
+import java.lang.reflect.Array;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -70,25 +73,51 @@ public final class OpWriter {
 
     static final class AttributeMapper {
         static String toString(Object value) {
-            return value == ExternalizableOp.NULL_ATTRIBUTE_VALUE
-                    ? "null"
-                    : "\"" + quote(value.toString()) + "\"";
+            if (value == ExternalizableOp.NULL_ATTRIBUTE_VALUE) {
+                return "null";
+            }
+
+            StringBuilder sb = new StringBuilder();
+            sb.append("\"");
+            toString(value, sb);
+            sb.append("\"");
+            return sb.toString();
+        }
+
+        static void toString(Object o, StringBuilder sb) {
+            if (o.getClass().isArray()) {
+                arrayToString(o, sb);
+            } else {
+                quote(o.toString(), sb);
+            }
+        }
+
+        static void arrayToString(Object a, StringBuilder sb) {
+            boolean first = true;
+            sb.append("[");
+            for (int i = 0; i < Array.getLength(a); i++) {
+                if (!first) {
+                    sb.append(", ");
+                }
+
+                toString(Array.get(a, i), sb);
+                first = false;
+            }
+            sb.append("]");
         }
     }
 
-    // Copied from com.sun.tools.javac.util.Convert
-    static String quote(String s) {
-        StringBuilder buf = new StringBuilder();
+    static void quote(String s, StringBuilder sb) {
         for (int i = 0; i < s.length(); i++) {
-            buf.append(quote(s.charAt(i)));
+            sb.append(quote(s.charAt(i)));
         }
-        return buf.toString();
     }
 
     /**
      * Escapes a character if it has an escape sequence or is
      * non-printable ASCII.  Leaves non-ASCII characters alone.
      */
+    // Copied from com.sun.tools.javac.util.Convert
     static String quote(char ch) {
         return switch (ch) {
             case '\b' -> "\\b";
