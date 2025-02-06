@@ -101,7 +101,7 @@ public class CNNTest {
             Tensor<Float> fc3Biases,
             // Inputs
             Tensor<Float> inputImage) {
-        var shape = Constant(new long[]{-1, IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS});
+        var shape = Constant(new long[]{-1, NUM_CHANNELS, IMAGE_SIZE, IMAGE_SIZE});
         var inputReshaped = Reshape(inputImage, shape, empty());
 
         // Scaling the features to 0-1
@@ -278,7 +278,7 @@ public class CNNTest {
             // Flatten inputs
             var pool2 = b.op(CoreOp.tupleLoad(pool2Result, 0));
             var flatten = b.op(OnnxOps.Flatten(pool2.type(),
-                    pool2Result,
+                    pool2,
                     of(1L)));
 
             // First fully connected layer
