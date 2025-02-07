@@ -171,9 +171,9 @@ if __name__ == "__main__":
     onnx_program.save("lenet-dynamo.onnx")
     print("Saved ONNX dynamo model")
 
-    torch.onnx.export(net, test_input, "lenet-torchscript.onnx", verbose=True, 
-                      input_names=["image"], output_names=["logits"], 
-                      dynamic_axes={'image' : {0 : 'batch_size'},    # variable length axes
+    torch.onnx.export(net, test_input, "lenet-torchscript.onnx", verbose=True,
+                      input_names=["image"], output_names=["logits"],
+                      dynamic_axes={'image' : {0 : 'batch_size'},  # variable length axes
                                 'logits' : {0 : 'batch_size'}})
     print("Saved ONNX torchscript model")
 
