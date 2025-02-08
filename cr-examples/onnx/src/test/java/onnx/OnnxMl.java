@@ -291,7 +291,6 @@ public final class OnnxMl {
      */
     public static final int IR_VERSION_VALUE = 10;
 
-
     public final int getNumber() {
       return value;
     }
@@ -408,7 +407,6 @@ public final class OnnxMl {
      * <code>STABLE = 1;</code>
      */
     public static final int STABLE_VALUE = 1;
-
 
     public final int getNumber() {
       return value;
@@ -1240,7 +1238,6 @@ public final class OnnxMl {
        * <code>TYPE_PROTOS = 14;</code>
        */
       public static final int TYPE_PROTOS_VALUE = 14;
-
 
       public final int getNumber() {
         return value;
@@ -26882,7 +26879,6 @@ public final class OnnxMl {
        */
       public static final int INT4_VALUE = 22;
 
-
       public final int getNumber() {
         return value;
       }
@@ -27013,7 +27009,6 @@ public final class OnnxMl {
        * <code>EXTERNAL = 1;</code>
        */
       public static final int EXTERNAL_VALUE = 1;
-
 
       public final int getNumber() {
         return value;
