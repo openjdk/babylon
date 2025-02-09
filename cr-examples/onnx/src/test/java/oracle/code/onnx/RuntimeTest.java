@@ -13,8 +13,8 @@ public class RuntimeTest {
     @Test
     public void test() throws Exception {
         var env = new OnnxRuntime().createEnv();
-        try (var absOp = env.createSession(OnnxProtoBuilder.op(OnnxOps.Abs.SCHEMA, Tensor.ElementType.FLOAT));
-             var addOp = env.createSession(OnnxProtoBuilder.op(OnnxOps.Add.SCHEMA, Tensor.ElementType.FLOAT))) {
+        try (var absOp = env.createSession(OnnxProtoBuilder.opModel(OnnxOps.Abs.SCHEMA, Tensor.ElementType.FLOAT));
+             var addOp = env.createSession(OnnxProtoBuilder.opModel(OnnxOps.Add.SCHEMA, Tensor.ElementType.FLOAT))) {
 
             assertEquals(1, absOp.getNumberOfInputs());
             assertEquals(1, absOp.getNumberOfOutputs());

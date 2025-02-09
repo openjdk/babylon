@@ -180,7 +180,7 @@ public final class OnnxRuntime {
         public List<OrtTensor> runOp(OnnxOp.OnnxSchema schema, List<OrtTensor> inputValues) {
             var inputs = schema.inputs();
             // @@@ hardcoded float tensor element type
-            try (var session = createSession(OnnxProtoBuilder.op(schema, Tensor.ElementType.FLOAT))) {
+            try (var session = createSession(OnnxProtoBuilder.opModel(schema, Tensor.ElementType.FLOAT))) {
                 return session.run(
                         IntStream.range(0, inputs.size()).boxed().collect(Collectors.toMap(i -> inputs.get(i).name(), i -> inputValues.get(i))),
                         schema.outputs().stream().map(OnnxOp.OnnxParameter::name).toList());

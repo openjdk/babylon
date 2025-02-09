@@ -253,7 +253,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     // @@@ only for tensor inputs and outputs
     // @@@ need to obtain tensor element type
     // order of building defines order inside protobufs
-    static ByteBuffer op(OnnxOp.OnnxSchema opSchema, oracle.code.onnx.Tensor.ElementType elementType) {
+    static ByteBuffer opModel(OnnxOp.OnnxSchema opSchema, oracle.code.onnx.Tensor.ElementType elementType) {
         var node = new NodeProto();
         for (var in : opSchema.inputs()) {
             node.input(in.name());
