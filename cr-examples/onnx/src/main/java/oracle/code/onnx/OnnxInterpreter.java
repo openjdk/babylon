@@ -26,7 +26,6 @@
 package oracle.code.onnx;
 
 import oracle.code.onnx.ir.OnnxOp;
-import oracle.code.onnx.ir.OnnxOps.*;
 
 import java.util.List;
 
@@ -34,10 +33,13 @@ public class OnnxInterpreter {
     public static Object interpret(Class<? extends OnnxOp> opClass,
                                    List<Object> inputs,
                                    List<Object> attributes) {
-        if (opClass == Add.class) {
-            // @@@ type detection
-            return new Tensor(OnnxRuntime.defaultEnvironment().runBinaryOp("Add", Tensor.ElementType.FLOAT, ((Tensor)inputs.get(0)).rtTensor, ((Tensor)inputs.get(1)).rtTensor));
+        try {
+            // @@@ assuming tensor inputs and single tensor output
+            return new Tensor(OnnxRuntime.defaultEnvironment().runOp(
+                    (OnnxOp.OnnxSchema)opClass.getDeclaredField("SCHEMA").get(null),
+                    inputs.stream().map(o -> ((Tensor)o).rtTensor).toList()).getFirst());
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
         }
-        throw new UnsupportedOperationException();
     }
 }

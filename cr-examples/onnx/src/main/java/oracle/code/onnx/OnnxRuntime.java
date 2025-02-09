@@ -13,9 +13,12 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import oracle.code.onnx.ir.OnnxOp;
 
 import static java.lang.foreign.ValueLayout.*;
 
@@ -174,9 +177,13 @@ public final class OnnxRuntime {
             this.defaultAllocatorAddress = defaultAllocatorAddress;
         }
 
-        public OrtTensor runBinaryOp(String opName, Tensor.ElementType elementType, OrtTensor arg1, OrtTensor arg2) {
-            try (var session = createSession(OnnxProtoBuilder.binaryOp(opName, elementType))) {
-                return (OrtTensor)session.run(Map.of(session.getInputName(0), arg1, session.getInputName(1), arg2), session.getOutputName(0))[0];
+        public List<OrtTensor> runOp(OnnxOp.OnnxSchema schema, List<OrtTensor> inputValues) {
+            var inputs = schema.inputs();
+            // @@@ hardcoded float tensor element type
+            try (var session = createSession(OnnxProtoBuilder.op(schema, Tensor.ElementType.FLOAT))) {
+                return session.run(
+                        IntStream.range(0, inputs.size()).boxed().collect(Collectors.toMap(i -> inputs.get(i).name(), i -> inputValues.get(i))),
+                        schema.outputs().stream().map(OnnxOp.OnnxParameter::name).toList());
             }
         }
 
@@ -278,9 +285,11 @@ public final class OnnxRuntime {
                 }
             }
 
-            public OrtValue[] run(Map<String, OrtValue> inputMap, String... outputNames) {
+            // @@@ only tensors are supported yet
+            public List<OrtTensor> run(Map<String, OrtValue> inputMap, List<String> outputNames) {
                 var runOptions = MemorySegment.NULL;
                 int inputLen = inputMap.size();
+                int outputLen = outputNames.size();
                 var inputNames = arena.allocate(ADDRESS, inputLen);
                 var inputs = arena.allocate(ADDRESS, inputLen);
                 long index = 0;
@@ -288,19 +297,19 @@ public final class OnnxRuntime {
                     inputNames.setAtIndex(ADDRESS, index, arena.allocateFrom(input.getKey()));
                     inputs.setAtIndex(ADDRESS, index++, input.getValue().valueAddress());
                 }
-                var outputNamesArr = arena.allocate(ADDRESS, outputNames.length);
-                var outputs = arena.allocate(ADDRESS, outputNames.length);
-                for (int i = 0; i < outputNames.length; i++) {
-                    outputNamesArr.setAtIndex(ADDRESS, i, arena.allocateFrom(outputNames[i]));
+                var outputNamesArr = arena.allocate(ADDRESS, outputLen);
+                var outputs = arena.allocate(ADDRESS, outputLen);
+                for (int i = 0; i < outputLen; i++) {
+                    outputNamesArr.setAtIndex(ADDRESS, i, arena.allocateFrom(outputNames.get(i)));
                     outputs.setAtIndex(ADDRESS, i, MemorySegment.NULL);
                 }
                 try {
-                    checkStatus(run.invokeExact(sessionAddress, runOptions, inputNames, inputs, (long)inputLen, outputNamesArr, (long)outputNames.length, outputs));
-                    var retArr = new OrtValue[outputNames.length];
-                    for (int i = 0; i < outputNames.length; i++) {
+                    checkStatus(run.invokeExact(sessionAddress, runOptions, inputNames, inputs, (long)inputLen, outputNamesArr, (long)outputLen, outputs));
+                    var retArr = new OrtTensor[outputLen];
+                    for (int i = 0; i < outputLen; i++) {
                         retArr[i] = new OrtTensor(outputs.getAtIndex(ADDRESS, i));
                     }
-                    return retArr;
+                    return List.of(retArr);
                 } catch (Throwable t) {
                     throw wrap(t);
                 }

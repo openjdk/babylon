@@ -3,6 +3,8 @@ package oracle.code.onnx;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import oracle.code.onnx.ir.OnnxOp;
+import oracle.code.onnx.ir.OnnxType;
 
 // Generated from onnx.proto3
 sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
@@ -248,26 +250,27 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     static final int IR_VERSION = 10;
     static final int OPSET_VERSION = 14;
 
-    static ByteBuffer unaryOp(String opName, oracle.code.onnx.Tensor.ElementType type) {
+    // @@@ only for tensor inputs and outputs
+    // @@@ need to obtain tensor element type
+    // order of building defines order inside protobufs
+    static ByteBuffer op(OnnxOp.OnnxSchema opSchema, oracle.code.onnx.Tensor.ElementType elementType) {
+        var node = new NodeProto();
+        for (var in : opSchema.inputs()) {
+            node.input(in.name());
+        }
+        for (var out : opSchema.outputs()) {
+            node.output(out.name());
+        }
+        var graph = new GraphProto().node(node.op_type(opSchema.name()));
+        for (var in : opSchema.inputs()) {
+            graph.input(new ValueInfoProto().name(in.name()).type(new TypeProto().tensor_type(new Tensor().elem_type(elementType.id))));
+        }
+        for (var out : opSchema.outputs()) {
+            graph.output(new ValueInfoProto().name(out.name()).type(new TypeProto().tensor_type(new Tensor().elem_type(elementType.id))));
+        }
         var bytes = new ModelProto()
                 .ir_version(IR_VERSION)
-                .graph(new GraphProto()
-                        .node(new NodeProto().input("x").output("y").op_type(opName))
-                        .input(new ValueInfoProto().name("x").type(new TypeProto().tensor_type(new Tensor().elem_type(type.id))))
-                        .output(new ValueInfoProto().name("y").type(new TypeProto().tensor_type(new Tensor().elem_type(type.id)))))
-                .opset_import(new OperatorSetIdProto().version(OPSET_VERSION))
-                .buf.toByteArray();
-        return ByteBuffer.allocateDirect(bytes.length).put(bytes).asReadOnlyBuffer();
-    }
-
-    static ByteBuffer binaryOp(String opName, oracle.code.onnx.Tensor.ElementType type) {
-        var bytes = new ModelProto()
-                .ir_version(IR_VERSION)
-                .graph(new GraphProto()
-                        .node(new NodeProto().input("a").input("b").output("c").op_type(opName))
-                        .input(new ValueInfoProto().name("a").type(new TypeProto().tensor_type(new Tensor().elem_type(type.id))))
-                        .input(new ValueInfoProto().name("b").type(new TypeProto().tensor_type(new Tensor().elem_type(type.id))))
-                        .output(new ValueInfoProto().name("c").type(new TypeProto().tensor_type(new Tensor().elem_type(type.id)))))
+                .graph(graph)
                 .opset_import(new OperatorSetIdProto().version(OPSET_VERSION))
                 .buf.toByteArray();
         return ByteBuffer.allocateDirect(bytes.length).put(bytes).asReadOnlyBuffer();
