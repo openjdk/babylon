@@ -870,7 +870,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.TensorProto tensors = 10;</code>
      */
-    java.util.List<onnx.OnnxMl.TensorProto> 
+    java.util.List<onnx.OnnxMl.TensorProto>
         getTensorsList();
     /**
      * <pre>
@@ -895,7 +895,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.TensorProto tensors = 10;</code>
      */
-    java.util.List<? extends onnx.OnnxMl.TensorProtoOrBuilder> 
+    java.util.List<? extends onnx.OnnxMl.TensorProtoOrBuilder>
         getTensorsOrBuilderList();
     /**
      * <pre>
@@ -914,7 +914,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.GraphProto graphs = 11;</code>
      */
-    java.util.List<onnx.OnnxMl.GraphProto> 
+    java.util.List<onnx.OnnxMl.GraphProto>
         getGraphsList();
     /**
      * <pre>
@@ -939,7 +939,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.GraphProto graphs = 11;</code>
      */
-    java.util.List<? extends onnx.OnnxMl.GraphProtoOrBuilder> 
+    java.util.List<? extends onnx.OnnxMl.GraphProtoOrBuilder>
         getGraphsOrBuilderList();
     /**
      * <pre>
@@ -958,7 +958,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.SparseTensorProto sparse_tensors = 23;</code>
      */
-    java.util.List<onnx.OnnxMl.SparseTensorProto> 
+    java.util.List<onnx.OnnxMl.SparseTensorProto>
         getSparseTensorsList();
     /**
      * <pre>
@@ -983,7 +983,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.SparseTensorProto sparse_tensors = 23;</code>
      */
-    java.util.List<? extends onnx.OnnxMl.SparseTensorProtoOrBuilder> 
+    java.util.List<? extends onnx.OnnxMl.SparseTensorProtoOrBuilder>
         getSparseTensorsOrBuilderList();
     /**
      * <pre>
@@ -1002,7 +1002,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.TypeProto type_protos = 15;</code>
      */
-    java.util.List<onnx.OnnxMl.TypeProto> 
+    java.util.List<onnx.OnnxMl.TypeProto>
         getTypeProtosList();
     /**
      * <pre>
@@ -1027,7 +1027,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.TypeProto type_protos = 15;</code>
      */
-    java.util.List<? extends onnx.OnnxMl.TypeProtoOrBuilder> 
+    java.util.List<? extends onnx.OnnxMl.TypeProtoOrBuilder>
         getTypeProtosOrBuilderList();
     /**
      * <pre>
@@ -1353,7 +1353,7 @@ public final class OnnxMl {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -1375,7 +1375,7 @@ public final class OnnxMl {
         getNameBytes() {
       java.lang.Object ref = name_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         name_ = b;
@@ -1420,7 +1420,7 @@ public final class OnnxMl {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -1445,7 +1445,7 @@ public final class OnnxMl {
         getRefAttrNameBytes() {
       java.lang.Object ref = refAttrName_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         refAttrName_ = b;
@@ -1484,7 +1484,7 @@ public final class OnnxMl {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -1506,7 +1506,7 @@ public final class OnnxMl {
         getDocStringBytes() {
       java.lang.Object ref = docString_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         docString_ = b;
@@ -1933,7 +1933,7 @@ public final class OnnxMl {
      * <code>repeated .onnx.TensorProto tensors = 10;</code>
      */
     @java.lang.Override
-    public java.util.List<? extends onnx.OnnxMl.TensorProtoOrBuilder> 
+    public java.util.List<? extends onnx.OnnxMl.TensorProtoOrBuilder>
         getTensorsOrBuilderList() {
       return tensors_;
     }
@@ -1994,7 +1994,7 @@ public final class OnnxMl {
      * <code>repeated .onnx.GraphProto graphs = 11;</code>
      */
     @java.lang.Override
-    public java.util.List<? extends onnx.OnnxMl.GraphProtoOrBuilder> 
+    public java.util.List<? extends onnx.OnnxMl.GraphProtoOrBuilder>
         getGraphsOrBuilderList() {
       return graphs_;
     }
@@ -2055,7 +2055,7 @@ public final class OnnxMl {
      * <code>repeated .onnx.SparseTensorProto sparse_tensors = 23;</code>
      */
     @java.lang.Override
-    public java.util.List<? extends onnx.OnnxMl.SparseTensorProtoOrBuilder> 
+    public java.util.List<? extends onnx.OnnxMl.SparseTensorProtoOrBuilder>
         getSparseTensorsOrBuilderList() {
       return sparseTensors_;
     }
@@ -2116,7 +2116,7 @@ public final class OnnxMl {
      * <code>repeated .onnx.TypeProto type_protos = 15;</code>
      */
     @java.lang.Override
-    public java.util.List<? extends onnx.OnnxMl.TypeProtoOrBuilder> 
+    public java.util.List<? extends onnx.OnnxMl.TypeProtoOrBuilder>
         getTypeProtosOrBuilderList() {
       return typeProtos_;
     }
@@ -2936,7 +2936,7 @@ public final class OnnxMl {
               tensorsBuilder_ = null;
               tensors_ = other.tensors_;
               bitField0_ = (bitField0_ & ~0x00004000);
-              tensorsBuilder_ = 
+              tensorsBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getTensorsFieldBuilder() : null;
             } else {
@@ -2962,7 +2962,7 @@ public final class OnnxMl {
               graphsBuilder_ = null;
               graphs_ = other.graphs_;
               bitField0_ = (bitField0_ & ~0x00008000);
-              graphsBuilder_ = 
+              graphsBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getGraphsFieldBuilder() : null;
             } else {
@@ -2988,7 +2988,7 @@ public final class OnnxMl {
               sparseTensorsBuilder_ = null;
               sparseTensors_ = other.sparseTensors_;
               bitField0_ = (bitField0_ & ~0x00010000);
-              sparseTensorsBuilder_ = 
+              sparseTensorsBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getSparseTensorsFieldBuilder() : null;
             } else {
@@ -3014,7 +3014,7 @@ public final class OnnxMl {
               typeProtosBuilder_ = null;
               typeProtos_ = other.typeProtos_;
               bitField0_ = (bitField0_ & ~0x00020000);
-              typeProtosBuilder_ = 
+              typeProtosBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getTypeProtosFieldBuilder() : null;
             } else {
@@ -3272,7 +3272,7 @@ public final class OnnxMl {
           getNameBytes() {
         java.lang.Object ref = name_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           name_ = b;
@@ -3385,7 +3385,7 @@ public final class OnnxMl {
           getRefAttrNameBytes() {
         java.lang.Object ref = refAttrName_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           refAttrName_ = b;
@@ -3498,7 +3498,7 @@ public final class OnnxMl {
           getDocStringBytes() {
         java.lang.Object ref = docString_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           docString_ = b;
@@ -3946,7 +3946,7 @@ public final class OnnxMl {
        * <code>optional .onnx.TensorProto t = 5;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          onnx.OnnxMl.TensorProto, onnx.OnnxMl.TensorProto.Builder, onnx.OnnxMl.TensorProtoOrBuilder> 
+          onnx.OnnxMl.TensorProto, onnx.OnnxMl.TensorProto.Builder, onnx.OnnxMl.TensorProtoOrBuilder>
           getTFieldBuilder() {
         if (tBuilder_ == null) {
           tBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -4103,7 +4103,7 @@ public final class OnnxMl {
        * <code>optional .onnx.GraphProto g = 6;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          onnx.OnnxMl.GraphProto, onnx.OnnxMl.GraphProto.Builder, onnx.OnnxMl.GraphProtoOrBuilder> 
+          onnx.OnnxMl.GraphProto, onnx.OnnxMl.GraphProto.Builder, onnx.OnnxMl.GraphProtoOrBuilder>
           getGFieldBuilder() {
         if (gBuilder_ == null) {
           gBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -4260,7 +4260,7 @@ public final class OnnxMl {
        * <code>optional .onnx.SparseTensorProto sparse_tensor = 22;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          onnx.OnnxMl.SparseTensorProto, onnx.OnnxMl.SparseTensorProto.Builder, onnx.OnnxMl.SparseTensorProtoOrBuilder> 
+          onnx.OnnxMl.SparseTensorProto, onnx.OnnxMl.SparseTensorProto.Builder, onnx.OnnxMl.SparseTensorProtoOrBuilder>
           getSparseTensorFieldBuilder() {
         if (sparseTensorBuilder_ == null) {
           sparseTensorBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -4426,7 +4426,7 @@ public final class OnnxMl {
        * <code>optional .onnx.TypeProto tp = 14;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          onnx.OnnxMl.TypeProto, onnx.OnnxMl.TypeProto.Builder, onnx.OnnxMl.TypeProtoOrBuilder> 
+          onnx.OnnxMl.TypeProto, onnx.OnnxMl.TypeProto.Builder, onnx.OnnxMl.TypeProtoOrBuilder>
           getTpFieldBuilder() {
         if (tpBuilder_ == null) {
           tpBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -5036,7 +5036,7 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.TensorProto tensors = 10;</code>
        */
-      public java.util.List<? extends onnx.OnnxMl.TensorProtoOrBuilder> 
+      public java.util.List<? extends onnx.OnnxMl.TensorProtoOrBuilder>
            getTensorsOrBuilderList() {
         if (tensorsBuilder_ != null) {
           return tensorsBuilder_.getMessageOrBuilderList();
@@ -5074,12 +5074,12 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.TensorProto tensors = 10;</code>
        */
-      public java.util.List<onnx.OnnxMl.TensorProto.Builder> 
+      public java.util.List<onnx.OnnxMl.TensorProto.Builder>
            getTensorsBuilderList() {
         return getTensorsFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          onnx.OnnxMl.TensorProto, onnx.OnnxMl.TensorProto.Builder, onnx.OnnxMl.TensorProtoOrBuilder> 
+          onnx.OnnxMl.TensorProto, onnx.OnnxMl.TensorProto.Builder, onnx.OnnxMl.TensorProtoOrBuilder>
           getTensorsFieldBuilder() {
         if (tensorsBuilder_ == null) {
           tensorsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -5348,7 +5348,7 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.GraphProto graphs = 11;</code>
        */
-      public java.util.List<? extends onnx.OnnxMl.GraphProtoOrBuilder> 
+      public java.util.List<? extends onnx.OnnxMl.GraphProtoOrBuilder>
            getGraphsOrBuilderList() {
         if (graphsBuilder_ != null) {
           return graphsBuilder_.getMessageOrBuilderList();
@@ -5386,12 +5386,12 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.GraphProto graphs = 11;</code>
        */
-      public java.util.List<onnx.OnnxMl.GraphProto.Builder> 
+      public java.util.List<onnx.OnnxMl.GraphProto.Builder>
            getGraphsBuilderList() {
         return getGraphsFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          onnx.OnnxMl.GraphProto, onnx.OnnxMl.GraphProto.Builder, onnx.OnnxMl.GraphProtoOrBuilder> 
+          onnx.OnnxMl.GraphProto, onnx.OnnxMl.GraphProto.Builder, onnx.OnnxMl.GraphProtoOrBuilder>
           getGraphsFieldBuilder() {
         if (graphsBuilder_ == null) {
           graphsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -5660,7 +5660,7 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.SparseTensorProto sparse_tensors = 23;</code>
        */
-      public java.util.List<? extends onnx.OnnxMl.SparseTensorProtoOrBuilder> 
+      public java.util.List<? extends onnx.OnnxMl.SparseTensorProtoOrBuilder>
            getSparseTensorsOrBuilderList() {
         if (sparseTensorsBuilder_ != null) {
           return sparseTensorsBuilder_.getMessageOrBuilderList();
@@ -5698,12 +5698,12 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.SparseTensorProto sparse_tensors = 23;</code>
        */
-      public java.util.List<onnx.OnnxMl.SparseTensorProto.Builder> 
+      public java.util.List<onnx.OnnxMl.SparseTensorProto.Builder>
            getSparseTensorsBuilderList() {
         return getSparseTensorsFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          onnx.OnnxMl.SparseTensorProto, onnx.OnnxMl.SparseTensorProto.Builder, onnx.OnnxMl.SparseTensorProtoOrBuilder> 
+          onnx.OnnxMl.SparseTensorProto, onnx.OnnxMl.SparseTensorProto.Builder, onnx.OnnxMl.SparseTensorProtoOrBuilder>
           getSparseTensorsFieldBuilder() {
         if (sparseTensorsBuilder_ == null) {
           sparseTensorsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -5972,7 +5972,7 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.TypeProto type_protos = 15;</code>
        */
-      public java.util.List<? extends onnx.OnnxMl.TypeProtoOrBuilder> 
+      public java.util.List<? extends onnx.OnnxMl.TypeProtoOrBuilder>
            getTypeProtosOrBuilderList() {
         if (typeProtosBuilder_ != null) {
           return typeProtosBuilder_.getMessageOrBuilderList();
@@ -6010,12 +6010,12 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.TypeProto type_protos = 15;</code>
        */
-      public java.util.List<onnx.OnnxMl.TypeProto.Builder> 
+      public java.util.List<onnx.OnnxMl.TypeProto.Builder>
            getTypeProtosBuilderList() {
         return getTypeProtosFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          onnx.OnnxMl.TypeProto, onnx.OnnxMl.TypeProto.Builder, onnx.OnnxMl.TypeProtoOrBuilder> 
+          onnx.OnnxMl.TypeProto, onnx.OnnxMl.TypeProto.Builder, onnx.OnnxMl.TypeProtoOrBuilder>
           getTypeProtosFieldBuilder() {
         if (typeProtosBuilder_ == null) {
           typeProtosBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -6179,7 +6179,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.StringStringEntryProto metadata_props = 4;</code>
      */
-    java.util.List<onnx.OnnxMl.StringStringEntryProto> 
+    java.util.List<onnx.OnnxMl.StringStringEntryProto>
         getMetadataPropsList();
     /**
      * <pre>
@@ -6204,7 +6204,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.StringStringEntryProto metadata_props = 4;</code>
      */
-    java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+    java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder>
         getMetadataPropsOrBuilderList();
     /**
      * <pre>
@@ -6291,7 +6291,7 @@ public final class OnnxMl {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -6313,7 +6313,7 @@ public final class OnnxMl {
         getNameBytes() {
       java.lang.Object ref = name_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         name_ = b;
@@ -6393,7 +6393,7 @@ public final class OnnxMl {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -6415,7 +6415,7 @@ public final class OnnxMl {
         getDocStringBytes() {
       java.lang.Object ref = docString_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         docString_ = b;
@@ -6447,7 +6447,7 @@ public final class OnnxMl {
      * <code>repeated .onnx.StringStringEntryProto metadata_props = 4;</code>
      */
     @java.lang.Override
-    public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+    public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder>
         getMetadataPropsOrBuilderList() {
       return metadataProps_;
     }
@@ -6858,7 +6858,7 @@ public final class OnnxMl {
               metadataPropsBuilder_ = null;
               metadataProps_ = other.metadataProps_;
               bitField0_ = (bitField0_ & ~0x00000008);
-              metadataPropsBuilder_ = 
+              metadataPropsBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getMetadataPropsFieldBuilder() : null;
             } else {
@@ -6985,7 +6985,7 @@ public final class OnnxMl {
           getNameBytes() {
         java.lang.Object ref = name_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           name_ = b;
@@ -7196,7 +7196,7 @@ public final class OnnxMl {
        * <code>optional .onnx.TypeProto type = 2;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          onnx.OnnxMl.TypeProto, onnx.OnnxMl.TypeProto.Builder, onnx.OnnxMl.TypeProtoOrBuilder> 
+          onnx.OnnxMl.TypeProto, onnx.OnnxMl.TypeProto.Builder, onnx.OnnxMl.TypeProtoOrBuilder>
           getTypeFieldBuilder() {
         if (typeBuilder_ == null) {
           typeBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -7255,7 +7255,7 @@ public final class OnnxMl {
           getDocStringBytes() {
         java.lang.Object ref = docString_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           docString_ = b;
@@ -7568,7 +7568,7 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.StringStringEntryProto metadata_props = 4;</code>
        */
-      public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+      public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder>
            getMetadataPropsOrBuilderList() {
         if (metadataPropsBuilder_ != null) {
           return metadataPropsBuilder_.getMessageOrBuilderList();
@@ -7606,12 +7606,12 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.StringStringEntryProto metadata_props = 4;</code>
        */
-      public java.util.List<onnx.OnnxMl.StringStringEntryProto.Builder> 
+      public java.util.List<onnx.OnnxMl.StringStringEntryProto.Builder>
            getMetadataPropsBuilderList() {
         return getMetadataPropsFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          onnx.OnnxMl.StringStringEntryProto, onnx.OnnxMl.StringStringEntryProto.Builder, onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+          onnx.OnnxMl.StringStringEntryProto, onnx.OnnxMl.StringStringEntryProto.Builder, onnx.OnnxMl.StringStringEntryProtoOrBuilder>
           getMetadataPropsFieldBuilder() {
         if (metadataPropsBuilder_ == null) {
           metadataPropsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -7888,7 +7888,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.AttributeProto attribute = 5;</code>
      */
-    java.util.List<onnx.OnnxMl.AttributeProto> 
+    java.util.List<onnx.OnnxMl.AttributeProto>
         getAttributeList();
     /**
      * <pre>
@@ -7913,7 +7913,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.AttributeProto attribute = 5;</code>
      */
-    java.util.List<? extends onnx.OnnxMl.AttributeProtoOrBuilder> 
+    java.util.List<? extends onnx.OnnxMl.AttributeProtoOrBuilder>
         getAttributeOrBuilderList();
     /**
      * <pre>
@@ -7961,7 +7961,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.StringStringEntryProto metadata_props = 9;</code>
      */
-    java.util.List<onnx.OnnxMl.StringStringEntryProto> 
+    java.util.List<onnx.OnnxMl.StringStringEntryProto>
         getMetadataPropsList();
     /**
      * <pre>
@@ -7986,7 +7986,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.StringStringEntryProto metadata_props = 9;</code>
      */
-    java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+    java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder>
         getMetadataPropsOrBuilderList();
     /**
      * <pre>
@@ -8194,7 +8194,7 @@ public final class OnnxMl {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -8217,7 +8217,7 @@ public final class OnnxMl {
         getNameBytes() {
       java.lang.Object ref = name_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         name_ = b;
@@ -8256,7 +8256,7 @@ public final class OnnxMl {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -8278,7 +8278,7 @@ public final class OnnxMl {
         getOpTypeBytes() {
       java.lang.Object ref = opType_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         opType_ = b;
@@ -8317,7 +8317,7 @@ public final class OnnxMl {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -8339,7 +8339,7 @@ public final class OnnxMl {
         getDomainBytes() {
       java.lang.Object ref = domain_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         domain_ = b;
@@ -8378,7 +8378,7 @@ public final class OnnxMl {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -8400,7 +8400,7 @@ public final class OnnxMl {
         getOverloadBytes() {
       java.lang.Object ref = overload_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         overload_ = b;
@@ -8432,7 +8432,7 @@ public final class OnnxMl {
      * <code>repeated .onnx.AttributeProto attribute = 5;</code>
      */
     @java.lang.Override
-    public java.util.List<? extends onnx.OnnxMl.AttributeProtoOrBuilder> 
+    public java.util.List<? extends onnx.OnnxMl.AttributeProtoOrBuilder>
         getAttributeOrBuilderList() {
       return attribute_;
     }
@@ -8500,7 +8500,7 @@ public final class OnnxMl {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -8522,7 +8522,7 @@ public final class OnnxMl {
         getDocStringBytes() {
       java.lang.Object ref = docString_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         docString_ = b;
@@ -8554,7 +8554,7 @@ public final class OnnxMl {
      * <code>repeated .onnx.StringStringEntryProto metadata_props = 9;</code>
      */
     @java.lang.Override
-    public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+    public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder>
         getMetadataPropsOrBuilderList() {
       return metadataProps_;
     }
@@ -9098,7 +9098,7 @@ public final class OnnxMl {
               attributeBuilder_ = null;
               attribute_ = other.attribute_;
               bitField0_ = (bitField0_ & ~0x00000040);
-              attributeBuilder_ = 
+              attributeBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getAttributeFieldBuilder() : null;
             } else {
@@ -9129,7 +9129,7 @@ public final class OnnxMl {
               metadataPropsBuilder_ = null;
               metadataProps_ = other.metadataProps_;
               bitField0_ = (bitField0_ & ~0x00000100);
-              metadataPropsBuilder_ = 
+              metadataPropsBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getMetadataPropsFieldBuilder() : null;
             } else {
@@ -9584,7 +9584,7 @@ public final class OnnxMl {
           getNameBytes() {
         java.lang.Object ref = name_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           name_ = b;
@@ -9691,7 +9691,7 @@ public final class OnnxMl {
           getOpTypeBytes() {
         java.lang.Object ref = opType_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           opType_ = b;
@@ -9795,7 +9795,7 @@ public final class OnnxMl {
           getDomainBytes() {
         java.lang.Object ref = domain_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           domain_ = b;
@@ -9899,7 +9899,7 @@ public final class OnnxMl {
           getOverloadBytes() {
         java.lang.Object ref = overload_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           overload_ = b;
@@ -10212,7 +10212,7 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.AttributeProto attribute = 5;</code>
        */
-      public java.util.List<? extends onnx.OnnxMl.AttributeProtoOrBuilder> 
+      public java.util.List<? extends onnx.OnnxMl.AttributeProtoOrBuilder>
            getAttributeOrBuilderList() {
         if (attributeBuilder_ != null) {
           return attributeBuilder_.getMessageOrBuilderList();
@@ -10250,12 +10250,12 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.AttributeProto attribute = 5;</code>
        */
-      public java.util.List<onnx.OnnxMl.AttributeProto.Builder> 
+      public java.util.List<onnx.OnnxMl.AttributeProto.Builder>
            getAttributeBuilderList() {
         return getAttributeFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          onnx.OnnxMl.AttributeProto, onnx.OnnxMl.AttributeProto.Builder, onnx.OnnxMl.AttributeProtoOrBuilder> 
+          onnx.OnnxMl.AttributeProto, onnx.OnnxMl.AttributeProto.Builder, onnx.OnnxMl.AttributeProtoOrBuilder>
           getAttributeFieldBuilder() {
         if (attributeBuilder_ == null) {
           attributeBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -10315,7 +10315,7 @@ public final class OnnxMl {
           getDocStringBytes() {
         java.lang.Object ref = docString_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           docString_ = b;
@@ -10628,7 +10628,7 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.StringStringEntryProto metadata_props = 9;</code>
        */
-      public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+      public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder>
            getMetadataPropsOrBuilderList() {
         if (metadataPropsBuilder_ != null) {
           return metadataPropsBuilder_.getMessageOrBuilderList();
@@ -10666,12 +10666,12 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.StringStringEntryProto metadata_props = 9;</code>
        */
-      public java.util.List<onnx.OnnxMl.StringStringEntryProto.Builder> 
+      public java.util.List<onnx.OnnxMl.StringStringEntryProto.Builder>
            getMetadataPropsBuilderList() {
         return getMetadataPropsFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          onnx.OnnxMl.StringStringEntryProto, onnx.OnnxMl.StringStringEntryProto.Builder, onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+          onnx.OnnxMl.StringStringEntryProto, onnx.OnnxMl.StringStringEntryProto.Builder, onnx.OnnxMl.StringStringEntryProtoOrBuilder>
           getMetadataPropsFieldBuilder() {
         if (metadataPropsBuilder_ == null) {
           metadataPropsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -10927,7 +10927,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.StringStringEntryProto initialization_binding = 3;</code>
      */
-    java.util.List<onnx.OnnxMl.StringStringEntryProto> 
+    java.util.List<onnx.OnnxMl.StringStringEntryProto>
         getInitializationBindingList();
     /**
      * <pre>
@@ -10970,7 +10970,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.StringStringEntryProto initialization_binding = 3;</code>
      */
-    java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+    java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder>
         getInitializationBindingOrBuilderList();
     /**
      * <pre>
@@ -11034,7 +11034,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.StringStringEntryProto update_binding = 4;</code>
      */
-    java.util.List<onnx.OnnxMl.StringStringEntryProto> 
+    java.util.List<onnx.OnnxMl.StringStringEntryProto>
         getUpdateBindingList();
     /**
      * <pre>
@@ -11176,7 +11176,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.StringStringEntryProto update_binding = 4;</code>
      */
-    java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+    java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder>
         getUpdateBindingOrBuilderList();
     /**
      * <pre>
@@ -11519,7 +11519,7 @@ public final class OnnxMl {
      * <code>repeated .onnx.StringStringEntryProto initialization_binding = 3;</code>
      */
     @java.lang.Override
-    public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+    public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder>
         getInitializationBindingOrBuilderList() {
       return initializationBinding_;
     }
@@ -11676,7 +11676,7 @@ public final class OnnxMl {
      * <code>repeated .onnx.StringStringEntryProto update_binding = 4;</code>
      */
     @java.lang.Override
-    public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+    public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder>
         getUpdateBindingOrBuilderList() {
       return updateBinding_;
     }
@@ -12232,7 +12232,7 @@ public final class OnnxMl {
               initializationBindingBuilder_ = null;
               initializationBinding_ = other.initializationBinding_;
               bitField0_ = (bitField0_ & ~0x00000004);
-              initializationBindingBuilder_ = 
+              initializationBindingBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getInitializationBindingFieldBuilder() : null;
             } else {
@@ -12258,7 +12258,7 @@ public final class OnnxMl {
               updateBindingBuilder_ = null;
               updateBinding_ = other.updateBinding_;
               bitField0_ = (bitField0_ & ~0x00000008);
-              updateBindingBuilder_ = 
+              updateBindingBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getUpdateBindingFieldBuilder() : null;
             } else {
@@ -12601,7 +12601,7 @@ public final class OnnxMl {
        * <code>optional .onnx.GraphProto initialization = 1;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          onnx.OnnxMl.GraphProto, onnx.OnnxMl.GraphProto.Builder, onnx.OnnxMl.GraphProtoOrBuilder> 
+          onnx.OnnxMl.GraphProto, onnx.OnnxMl.GraphProto.Builder, onnx.OnnxMl.GraphProtoOrBuilder>
           getInitializationFieldBuilder() {
         if (initializationBuilder_ == null) {
           initializationBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -13010,7 +13010,7 @@ public final class OnnxMl {
        * <code>optional .onnx.GraphProto algorithm = 2;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          onnx.OnnxMl.GraphProto, onnx.OnnxMl.GraphProto.Builder, onnx.OnnxMl.GraphProtoOrBuilder> 
+          onnx.OnnxMl.GraphProto, onnx.OnnxMl.GraphProto.Builder, onnx.OnnxMl.GraphProtoOrBuilder>
           getAlgorithmFieldBuilder() {
         if (algorithmBuilder_ == null) {
           algorithmBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -13368,7 +13368,7 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.StringStringEntryProto initialization_binding = 3;</code>
        */
-      public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+      public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder>
            getInitializationBindingOrBuilderList() {
         if (initializationBindingBuilder_ != null) {
           return initializationBindingBuilder_.getMessageOrBuilderList();
@@ -13424,12 +13424,12 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.StringStringEntryProto initialization_binding = 3;</code>
        */
-      public java.util.List<onnx.OnnxMl.StringStringEntryProto.Builder> 
+      public java.util.List<onnx.OnnxMl.StringStringEntryProto.Builder>
            getInitializationBindingBuilderList() {
         return getInitializationBindingFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          onnx.OnnxMl.StringStringEntryProto, onnx.OnnxMl.StringStringEntryProto.Builder, onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+          onnx.OnnxMl.StringStringEntryProto, onnx.OnnxMl.StringStringEntryProto.Builder, onnx.OnnxMl.StringStringEntryProtoOrBuilder>
           getInitializationBindingFieldBuilder() {
         if (initializationBindingBuilder_ == null) {
           initializationBindingBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -14283,7 +14283,7 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.StringStringEntryProto update_binding = 4;</code>
        */
-      public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+      public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder>
            getUpdateBindingOrBuilderList() {
         if (updateBindingBuilder_ != null) {
           return updateBindingBuilder_.getMessageOrBuilderList();
@@ -14438,12 +14438,12 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.StringStringEntryProto update_binding = 4;</code>
        */
-      public java.util.List<onnx.OnnxMl.StringStringEntryProto.Builder> 
+      public java.util.List<onnx.OnnxMl.StringStringEntryProto.Builder>
            getUpdateBindingBuilderList() {
         return getUpdateBindingFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          onnx.OnnxMl.StringStringEntryProto, onnx.OnnxMl.StringStringEntryProto.Builder, onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+          onnx.OnnxMl.StringStringEntryProto, onnx.OnnxMl.StringStringEntryProto.Builder, onnx.OnnxMl.StringStringEntryProtoOrBuilder>
           getUpdateBindingFieldBuilder() {
         if (updateBindingBuilder_ == null) {
           updateBindingBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -14547,7 +14547,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.OperatorSetIdProto opset_import = 8;</code>
      */
-    java.util.List<onnx.OnnxMl.OperatorSetIdProto> 
+    java.util.List<onnx.OnnxMl.OperatorSetIdProto>
         getOpsetImportList();
     /**
      * <pre>
@@ -14593,7 +14593,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.OperatorSetIdProto opset_import = 8;</code>
      */
-    java.util.List<? extends onnx.OnnxMl.OperatorSetIdProtoOrBuilder> 
+    java.util.List<? extends onnx.OnnxMl.OperatorSetIdProtoOrBuilder>
         getOpsetImportOrBuilderList();
     /**
      * <pre>
@@ -14808,7 +14808,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.StringStringEntryProto metadata_props = 14;</code>
      */
-    java.util.List<onnx.OnnxMl.StringStringEntryProto> 
+    java.util.List<onnx.OnnxMl.StringStringEntryProto>
         getMetadataPropsList();
     /**
      * <pre>
@@ -14833,7 +14833,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.StringStringEntryProto metadata_props = 14;</code>
      */
-    java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+    java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder>
         getMetadataPropsOrBuilderList();
     /**
      * <pre>
@@ -14860,7 +14860,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.TrainingInfoProto training_info = 20;</code>
      */
-    java.util.List<onnx.OnnxMl.TrainingInfoProto> 
+    java.util.List<onnx.OnnxMl.TrainingInfoProto>
         getTrainingInfoList();
     /**
      * <pre>
@@ -14909,7 +14909,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.TrainingInfoProto training_info = 20;</code>
      */
-    java.util.List<? extends onnx.OnnxMl.TrainingInfoProtoOrBuilder> 
+    java.util.List<? extends onnx.OnnxMl.TrainingInfoProtoOrBuilder>
         getTrainingInfoOrBuilderList();
     /**
      * <pre>
@@ -14951,7 +14951,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.FunctionProto functions = 25;</code>
      */
-    java.util.List<onnx.OnnxMl.FunctionProto> 
+    java.util.List<onnx.OnnxMl.FunctionProto>
         getFunctionsList();
     /**
      * <pre>
@@ -15021,7 +15021,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.FunctionProto functions = 25;</code>
      */
-    java.util.List<? extends onnx.OnnxMl.FunctionProtoOrBuilder> 
+    java.util.List<? extends onnx.OnnxMl.FunctionProtoOrBuilder>
         getFunctionsOrBuilderList();
     /**
      * <pre>
@@ -15168,7 +15168,7 @@ public final class OnnxMl {
      * <code>repeated .onnx.OperatorSetIdProto opset_import = 8;</code>
      */
     @java.lang.Override
-    public java.util.List<? extends onnx.OnnxMl.OperatorSetIdProtoOrBuilder> 
+    public java.util.List<? extends onnx.OnnxMl.OperatorSetIdProtoOrBuilder>
         getOpsetImportOrBuilderList() {
       return opsetImport_;
     }
@@ -15261,7 +15261,7 @@ public final class OnnxMl {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -15285,7 +15285,7 @@ public final class OnnxMl {
         getProducerNameBytes() {
       java.lang.Object ref = producerName_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         producerName_ = b;
@@ -15328,7 +15328,7 @@ public final class OnnxMl {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -15352,7 +15352,7 @@ public final class OnnxMl {
         getProducerVersionBytes() {
       java.lang.Object ref = producerVersion_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         producerVersion_ = b;
@@ -15401,7 +15401,7 @@ public final class OnnxMl {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -15428,7 +15428,7 @@ public final class OnnxMl {
         getDomainBytes() {
       java.lang.Object ref = domain_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         domain_ = b;
@@ -15494,7 +15494,7 @@ public final class OnnxMl {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -15516,7 +15516,7 @@ public final class OnnxMl {
         getDocStringBytes() {
       java.lang.Object ref = docString_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         docString_ = b;
@@ -15586,7 +15586,7 @@ public final class OnnxMl {
      * <code>repeated .onnx.StringStringEntryProto metadata_props = 14;</code>
      */
     @java.lang.Override
-    public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+    public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder>
         getMetadataPropsOrBuilderList() {
       return metadataProps_;
     }
@@ -15663,7 +15663,7 @@ public final class OnnxMl {
      * <code>repeated .onnx.TrainingInfoProto training_info = 20;</code>
      */
     @java.lang.Override
-    public java.util.List<? extends onnx.OnnxMl.TrainingInfoProtoOrBuilder> 
+    public java.util.List<? extends onnx.OnnxMl.TrainingInfoProtoOrBuilder>
         getTrainingInfoOrBuilderList() {
       return trainingInfo_;
     }
@@ -15778,7 +15778,7 @@ public final class OnnxMl {
      * <code>repeated .onnx.FunctionProto functions = 25;</code>
      */
     @java.lang.Override
-    public java.util.List<? extends onnx.OnnxMl.FunctionProtoOrBuilder> 
+    public java.util.List<? extends onnx.OnnxMl.FunctionProtoOrBuilder>
         getFunctionsOrBuilderList() {
       return functions_;
     }
@@ -16402,7 +16402,7 @@ public final class OnnxMl {
               opsetImportBuilder_ = null;
               opsetImport_ = other.opsetImport_;
               bitField0_ = (bitField0_ & ~0x00000002);
-              opsetImportBuilder_ = 
+              opsetImportBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getOpsetImportFieldBuilder() : null;
             } else {
@@ -16454,7 +16454,7 @@ public final class OnnxMl {
               metadataPropsBuilder_ = null;
               metadataProps_ = other.metadataProps_;
               bitField0_ = (bitField0_ & ~0x00000100);
-              metadataPropsBuilder_ = 
+              metadataPropsBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getMetadataPropsFieldBuilder() : null;
             } else {
@@ -16480,7 +16480,7 @@ public final class OnnxMl {
               trainingInfoBuilder_ = null;
               trainingInfo_ = other.trainingInfo_;
               bitField0_ = (bitField0_ & ~0x00000200);
-              trainingInfoBuilder_ = 
+              trainingInfoBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getTrainingInfoFieldBuilder() : null;
             } else {
@@ -16506,7 +16506,7 @@ public final class OnnxMl {
               functionsBuilder_ = null;
               functions_ = other.functions_;
               bitField0_ = (bitField0_ & ~0x00000400);
-              functionsBuilder_ = 
+              functionsBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getFunctionsFieldBuilder() : null;
             } else {
@@ -17066,7 +17066,7 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.OperatorSetIdProto opset_import = 8;</code>
        */
-      public java.util.List<? extends onnx.OnnxMl.OperatorSetIdProtoOrBuilder> 
+      public java.util.List<? extends onnx.OnnxMl.OperatorSetIdProtoOrBuilder>
            getOpsetImportOrBuilderList() {
         if (opsetImportBuilder_ != null) {
           return opsetImportBuilder_.getMessageOrBuilderList();
@@ -17125,12 +17125,12 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.OperatorSetIdProto opset_import = 8;</code>
        */
-      public java.util.List<onnx.OnnxMl.OperatorSetIdProto.Builder> 
+      public java.util.List<onnx.OnnxMl.OperatorSetIdProto.Builder>
            getOpsetImportBuilderList() {
         return getOpsetImportFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          onnx.OnnxMl.OperatorSetIdProto, onnx.OnnxMl.OperatorSetIdProto.Builder, onnx.OnnxMl.OperatorSetIdProtoOrBuilder> 
+          onnx.OnnxMl.OperatorSetIdProto, onnx.OnnxMl.OperatorSetIdProto.Builder, onnx.OnnxMl.OperatorSetIdProtoOrBuilder>
           getOpsetImportFieldBuilder() {
         if (opsetImportBuilder_ == null) {
           opsetImportBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -17196,7 +17196,7 @@ public final class OnnxMl {
           getProducerNameBytes() {
         java.lang.Object ref = producerName_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           producerName_ = b;
@@ -17312,7 +17312,7 @@ public final class OnnxMl {
           getProducerVersionBytes() {
         java.lang.Object ref = producerVersion_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           producerVersion_ = b;
@@ -17437,7 +17437,7 @@ public final class OnnxMl {
           getDomainBytes() {
         java.lang.Object ref = domain_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           domain_ = b;
@@ -17612,7 +17612,7 @@ public final class OnnxMl {
           getDocStringBytes() {
         java.lang.Object ref = docString_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           docString_ = b;
@@ -17814,7 +17814,7 @@ public final class OnnxMl {
        * <code>optional .onnx.GraphProto graph = 7;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          onnx.OnnxMl.GraphProto, onnx.OnnxMl.GraphProto.Builder, onnx.OnnxMl.GraphProtoOrBuilder> 
+          onnx.OnnxMl.GraphProto, onnx.OnnxMl.GraphProto.Builder, onnx.OnnxMl.GraphProtoOrBuilder>
           getGraphFieldBuilder() {
         if (graphBuilder_ == null) {
           graphBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -18082,7 +18082,7 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.StringStringEntryProto metadata_props = 14;</code>
        */
-      public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+      public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder>
            getMetadataPropsOrBuilderList() {
         if (metadataPropsBuilder_ != null) {
           return metadataPropsBuilder_.getMessageOrBuilderList();
@@ -18120,12 +18120,12 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.StringStringEntryProto metadata_props = 14;</code>
        */
-      public java.util.List<onnx.OnnxMl.StringStringEntryProto.Builder> 
+      public java.util.List<onnx.OnnxMl.StringStringEntryProto.Builder>
            getMetadataPropsBuilderList() {
         return getMetadataPropsFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          onnx.OnnxMl.StringStringEntryProto, onnx.OnnxMl.StringStringEntryProto.Builder, onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+          onnx.OnnxMl.StringStringEntryProto, onnx.OnnxMl.StringStringEntryProto.Builder, onnx.OnnxMl.StringStringEntryProtoOrBuilder>
           getMetadataPropsFieldBuilder() {
         if (metadataPropsBuilder_ == null) {
           metadataPropsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -18514,7 +18514,7 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.TrainingInfoProto training_info = 20;</code>
        */
-      public java.util.List<? extends onnx.OnnxMl.TrainingInfoProtoOrBuilder> 
+      public java.util.List<? extends onnx.OnnxMl.TrainingInfoProtoOrBuilder>
            getTrainingInfoOrBuilderList() {
         if (trainingInfoBuilder_ != null) {
           return trainingInfoBuilder_.getMessageOrBuilderList();
@@ -18576,12 +18576,12 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.TrainingInfoProto training_info = 20;</code>
        */
-      public java.util.List<onnx.OnnxMl.TrainingInfoProto.Builder> 
+      public java.util.List<onnx.OnnxMl.TrainingInfoProto.Builder>
            getTrainingInfoBuilderList() {
         return getTrainingInfoFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          onnx.OnnxMl.TrainingInfoProto, onnx.OnnxMl.TrainingInfoProto.Builder, onnx.OnnxMl.TrainingInfoProtoOrBuilder> 
+          onnx.OnnxMl.TrainingInfoProto, onnx.OnnxMl.TrainingInfoProto.Builder, onnx.OnnxMl.TrainingInfoProtoOrBuilder>
           getTrainingInfoFieldBuilder() {
         if (trainingInfoBuilder_ == null) {
           trainingInfoBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -19075,7 +19075,7 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.FunctionProto functions = 25;</code>
        */
-      public java.util.List<? extends onnx.OnnxMl.FunctionProtoOrBuilder> 
+      public java.util.List<? extends onnx.OnnxMl.FunctionProtoOrBuilder>
            getFunctionsOrBuilderList() {
         if (functionsBuilder_ != null) {
           return functionsBuilder_.getMessageOrBuilderList();
@@ -19158,12 +19158,12 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.FunctionProto functions = 25;</code>
        */
-      public java.util.List<onnx.OnnxMl.FunctionProto.Builder> 
+      public java.util.List<onnx.OnnxMl.FunctionProto.Builder>
            getFunctionsBuilderList() {
         return getFunctionsFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          onnx.OnnxMl.FunctionProto, onnx.OnnxMl.FunctionProto.Builder, onnx.OnnxMl.FunctionProtoOrBuilder> 
+          onnx.OnnxMl.FunctionProto, onnx.OnnxMl.FunctionProto.Builder, onnx.OnnxMl.FunctionProtoOrBuilder>
           getFunctionsFieldBuilder() {
         if (functionsBuilder_ == null) {
           functionsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -19332,7 +19332,7 @@ public final class OnnxMl {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -19350,7 +19350,7 @@ public final class OnnxMl {
         getKeyBytes() {
       java.lang.Object ref = key_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         key_ = b;
@@ -19381,7 +19381,7 @@ public final class OnnxMl {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -19399,7 +19399,7 @@ public final class OnnxMl {
         getValueBytes() {
       java.lang.Object ref = value_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         value_ = b;
@@ -19780,7 +19780,7 @@ public final class OnnxMl {
           getKeyBytes() {
         java.lang.Object ref = key_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           key_ = b;
@@ -19860,7 +19860,7 @@ public final class OnnxMl {
           getValueBytes() {
         java.lang.Object ref = value_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           value_ = b;
@@ -19988,7 +19988,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.StringStringEntryProto quant_parameter_tensor_names = 2;</code>
      */
-    java.util.List<onnx.OnnxMl.StringStringEntryProto> 
+    java.util.List<onnx.OnnxMl.StringStringEntryProto>
         getQuantParameterTensorNamesList();
     /**
      * <pre>
@@ -20022,7 +20022,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.StringStringEntryProto quant_parameter_tensor_names = 2;</code>
      */
-    java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+    java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder>
         getQuantParameterTensorNamesOrBuilderList();
     /**
      * <pre>
@@ -20098,7 +20098,7 @@ public final class OnnxMl {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -20116,7 +20116,7 @@ public final class OnnxMl {
         getTensorNameBytes() {
       java.lang.Object ref = tensorName_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         tensorName_ = b;
@@ -20154,7 +20154,7 @@ public final class OnnxMl {
      * <code>repeated .onnx.StringStringEntryProto quant_parameter_tensor_names = 2;</code>
      */
     @java.lang.Override
-    public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+    public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder>
         getQuantParameterTensorNamesOrBuilderList() {
       return quantParameterTensorNames_;
     }
@@ -20507,7 +20507,7 @@ public final class OnnxMl {
               quantParameterTensorNamesBuilder_ = null;
               quantParameterTensorNames_ = other.quantParameterTensorNames_;
               bitField0_ = (bitField0_ & ~0x00000002);
-              quantParameterTensorNamesBuilder_ = 
+              quantParameterTensorNamesBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getQuantParameterTensorNamesFieldBuilder() : null;
             } else {
@@ -20610,7 +20610,7 @@ public final class OnnxMl {
           getTensorNameBytes() {
         java.lang.Object ref = tensorName_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           tensorName_ = b;
@@ -20956,7 +20956,7 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.StringStringEntryProto quant_parameter_tensor_names = 2;</code>
        */
-      public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+      public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder>
            getQuantParameterTensorNamesOrBuilderList() {
         if (quantParameterTensorNamesBuilder_ != null) {
           return quantParameterTensorNamesBuilder_.getMessageOrBuilderList();
@@ -21003,12 +21003,12 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.StringStringEntryProto quant_parameter_tensor_names = 2;</code>
        */
-      public java.util.List<onnx.OnnxMl.StringStringEntryProto.Builder> 
+      public java.util.List<onnx.OnnxMl.StringStringEntryProto.Builder>
            getQuantParameterTensorNamesBuilderList() {
         return getQuantParameterTensorNamesFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          onnx.OnnxMl.StringStringEntryProto, onnx.OnnxMl.StringStringEntryProto.Builder, onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+          onnx.OnnxMl.StringStringEntryProto, onnx.OnnxMl.StringStringEntryProto.Builder, onnx.OnnxMl.StringStringEntryProtoOrBuilder>
           getQuantParameterTensorNamesFieldBuilder() {
         if (quantParameterTensorNamesBuilder_ == null) {
           quantParameterTensorNamesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -21084,7 +21084,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.NodeProto node = 1;</code>
      */
-    java.util.List<onnx.OnnxMl.NodeProto> 
+    java.util.List<onnx.OnnxMl.NodeProto>
         getNodeList();
     /**
      * <pre>
@@ -21109,7 +21109,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.NodeProto node = 1;</code>
      */
-    java.util.List<? extends onnx.OnnxMl.NodeProtoOrBuilder> 
+    java.util.List<? extends onnx.OnnxMl.NodeProtoOrBuilder>
         getNodeOrBuilderList();
     /**
      * <pre>
@@ -21160,7 +21160,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.TensorProto initializer = 5;</code>
      */
-    java.util.List<onnx.OnnxMl.TensorProto> 
+    java.util.List<onnx.OnnxMl.TensorProto>
         getInitializerList();
     /**
      * <pre>
@@ -21194,7 +21194,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.TensorProto initializer = 5;</code>
      */
-    java.util.List<? extends onnx.OnnxMl.TensorProtoOrBuilder> 
+    java.util.List<? extends onnx.OnnxMl.TensorProtoOrBuilder>
         getInitializerOrBuilderList();
     /**
      * <pre>
@@ -21216,7 +21216,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.SparseTensorProto sparse_initializer = 15;</code>
      */
-    java.util.List<onnx.OnnxMl.SparseTensorProto> 
+    java.util.List<onnx.OnnxMl.SparseTensorProto>
         getSparseInitializerList();
     /**
      * <pre>
@@ -21241,7 +21241,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.SparseTensorProto sparse_initializer = 15;</code>
      */
-    java.util.List<? extends onnx.OnnxMl.SparseTensorProtoOrBuilder> 
+    java.util.List<? extends onnx.OnnxMl.SparseTensorProtoOrBuilder>
         getSparseInitializerOrBuilderList();
     /**
      * <pre>
@@ -21289,7 +21289,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.ValueInfoProto input = 11;</code>
      */
-    java.util.List<onnx.OnnxMl.ValueInfoProto> 
+    java.util.List<onnx.OnnxMl.ValueInfoProto>
         getInputList();
     /**
      * <pre>
@@ -21314,7 +21314,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.ValueInfoProto input = 11;</code>
      */
-    java.util.List<? extends onnx.OnnxMl.ValueInfoProtoOrBuilder> 
+    java.util.List<? extends onnx.OnnxMl.ValueInfoProtoOrBuilder>
         getInputOrBuilderList();
     /**
      * <pre>
@@ -21329,7 +21329,7 @@ public final class OnnxMl {
     /**
      * <code>repeated .onnx.ValueInfoProto output = 12;</code>
      */
-    java.util.List<onnx.OnnxMl.ValueInfoProto> 
+    java.util.List<onnx.OnnxMl.ValueInfoProto>
         getOutputList();
     /**
      * <code>repeated .onnx.ValueInfoProto output = 12;</code>
@@ -21342,7 +21342,7 @@ public final class OnnxMl {
     /**
      * <code>repeated .onnx.ValueInfoProto output = 12;</code>
      */
-    java.util.List<? extends onnx.OnnxMl.ValueInfoProtoOrBuilder> 
+    java.util.List<? extends onnx.OnnxMl.ValueInfoProtoOrBuilder>
         getOutputOrBuilderList();
     /**
      * <code>repeated .onnx.ValueInfoProto output = 12;</code>
@@ -21358,7 +21358,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.ValueInfoProto value_info = 13;</code>
      */
-    java.util.List<onnx.OnnxMl.ValueInfoProto> 
+    java.util.List<onnx.OnnxMl.ValueInfoProto>
         getValueInfoList();
     /**
      * <pre>
@@ -21386,7 +21386,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.ValueInfoProto value_info = 13;</code>
      */
-    java.util.List<? extends onnx.OnnxMl.ValueInfoProtoOrBuilder> 
+    java.util.List<? extends onnx.OnnxMl.ValueInfoProtoOrBuilder>
         getValueInfoOrBuilderList();
     /**
      * <pre>
@@ -21409,7 +21409,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.TensorAnnotation quantization_annotation = 14;</code>
      */
-    java.util.List<onnx.OnnxMl.TensorAnnotation> 
+    java.util.List<onnx.OnnxMl.TensorAnnotation>
         getQuantizationAnnotationList();
     /**
      * <pre>
@@ -21443,7 +21443,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.TensorAnnotation quantization_annotation = 14;</code>
      */
-    java.util.List<? extends onnx.OnnxMl.TensorAnnotationOrBuilder> 
+    java.util.List<? extends onnx.OnnxMl.TensorAnnotationOrBuilder>
         getQuantizationAnnotationOrBuilderList();
     /**
      * <pre>
@@ -21465,7 +21465,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.StringStringEntryProto metadata_props = 16;</code>
      */
-    java.util.List<onnx.OnnxMl.StringStringEntryProto> 
+    java.util.List<onnx.OnnxMl.StringStringEntryProto>
         getMetadataPropsList();
     /**
      * <pre>
@@ -21490,7 +21490,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.StringStringEntryProto metadata_props = 16;</code>
      */
-    java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+    java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder>
         getMetadataPropsOrBuilderList();
     /**
      * <pre>
@@ -21581,7 +21581,7 @@ public final class OnnxMl {
      * <code>repeated .onnx.NodeProto node = 1;</code>
      */
     @java.lang.Override
-    public java.util.List<? extends onnx.OnnxMl.NodeProtoOrBuilder> 
+    public java.util.List<? extends onnx.OnnxMl.NodeProtoOrBuilder>
         getNodeOrBuilderList() {
       return node_;
     }
@@ -21649,7 +21649,7 @@ public final class OnnxMl {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -21671,7 +21671,7 @@ public final class OnnxMl {
         getNameBytes() {
       java.lang.Object ref = name_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         name_ = b;
@@ -21709,7 +21709,7 @@ public final class OnnxMl {
      * <code>repeated .onnx.TensorProto initializer = 5;</code>
      */
     @java.lang.Override
-    public java.util.List<? extends onnx.OnnxMl.TensorProtoOrBuilder> 
+    public java.util.List<? extends onnx.OnnxMl.TensorProtoOrBuilder>
         getInitializerOrBuilderList() {
       return initializer_;
     }
@@ -21779,7 +21779,7 @@ public final class OnnxMl {
      * <code>repeated .onnx.SparseTensorProto sparse_initializer = 15;</code>
      */
     @java.lang.Override
-    public java.util.List<? extends onnx.OnnxMl.SparseTensorProtoOrBuilder> 
+    public java.util.List<? extends onnx.OnnxMl.SparseTensorProtoOrBuilder>
         getSparseInitializerOrBuilderList() {
       return sparseInitializer_;
     }
@@ -21847,7 +21847,7 @@ public final class OnnxMl {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -21869,7 +21869,7 @@ public final class OnnxMl {
         getDocStringBytes() {
       java.lang.Object ref = docString_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         docString_ = b;
@@ -21901,7 +21901,7 @@ public final class OnnxMl {
      * <code>repeated .onnx.ValueInfoProto input = 11;</code>
      */
     @java.lang.Override
-    public java.util.List<? extends onnx.OnnxMl.ValueInfoProtoOrBuilder> 
+    public java.util.List<? extends onnx.OnnxMl.ValueInfoProtoOrBuilder>
         getInputOrBuilderList() {
       return input_;
     }
@@ -21954,7 +21954,7 @@ public final class OnnxMl {
      * <code>repeated .onnx.ValueInfoProto output = 12;</code>
      */
     @java.lang.Override
-    public java.util.List<? extends onnx.OnnxMl.ValueInfoProtoOrBuilder> 
+    public java.util.List<? extends onnx.OnnxMl.ValueInfoProtoOrBuilder>
         getOutputOrBuilderList() {
       return output_;
     }
@@ -22005,7 +22005,7 @@ public final class OnnxMl {
      * <code>repeated .onnx.ValueInfoProto value_info = 13;</code>
      */
     @java.lang.Override
-    public java.util.List<? extends onnx.OnnxMl.ValueInfoProtoOrBuilder> 
+    public java.util.List<? extends onnx.OnnxMl.ValueInfoProtoOrBuilder>
         getValueInfoOrBuilderList() {
       return valueInfo_;
     }
@@ -22075,7 +22075,7 @@ public final class OnnxMl {
      * <code>repeated .onnx.TensorAnnotation quantization_annotation = 14;</code>
      */
     @java.lang.Override
-    public java.util.List<? extends onnx.OnnxMl.TensorAnnotationOrBuilder> 
+    public java.util.List<? extends onnx.OnnxMl.TensorAnnotationOrBuilder>
         getQuantizationAnnotationOrBuilderList() {
       return quantizationAnnotation_;
     }
@@ -22145,7 +22145,7 @@ public final class OnnxMl {
      * <code>repeated .onnx.StringStringEntryProto metadata_props = 16;</code>
      */
     @java.lang.Override
-    public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+    public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder>
         getMetadataPropsOrBuilderList() {
       return metadataProps_;
     }
@@ -22716,7 +22716,7 @@ public final class OnnxMl {
               nodeBuilder_ = null;
               node_ = other.node_;
               bitField0_ = (bitField0_ & ~0x00000001);
-              nodeBuilder_ = 
+              nodeBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getNodeFieldBuilder() : null;
             } else {
@@ -22747,7 +22747,7 @@ public final class OnnxMl {
               initializerBuilder_ = null;
               initializer_ = other.initializer_;
               bitField0_ = (bitField0_ & ~0x00000004);
-              initializerBuilder_ = 
+              initializerBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getInitializerFieldBuilder() : null;
             } else {
@@ -22773,7 +22773,7 @@ public final class OnnxMl {
               sparseInitializerBuilder_ = null;
               sparseInitializer_ = other.sparseInitializer_;
               bitField0_ = (bitField0_ & ~0x00000008);
-              sparseInitializerBuilder_ = 
+              sparseInitializerBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getSparseInitializerFieldBuilder() : null;
             } else {
@@ -22804,7 +22804,7 @@ public final class OnnxMl {
               inputBuilder_ = null;
               input_ = other.input_;
               bitField0_ = (bitField0_ & ~0x00000020);
-              inputBuilder_ = 
+              inputBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getInputFieldBuilder() : null;
             } else {
@@ -22830,7 +22830,7 @@ public final class OnnxMl {
               outputBuilder_ = null;
               output_ = other.output_;
               bitField0_ = (bitField0_ & ~0x00000040);
-              outputBuilder_ = 
+              outputBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getOutputFieldBuilder() : null;
             } else {
@@ -22856,7 +22856,7 @@ public final class OnnxMl {
               valueInfoBuilder_ = null;
               valueInfo_ = other.valueInfo_;
               bitField0_ = (bitField0_ & ~0x00000080);
-              valueInfoBuilder_ = 
+              valueInfoBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getValueInfoFieldBuilder() : null;
             } else {
@@ -22882,7 +22882,7 @@ public final class OnnxMl {
               quantizationAnnotationBuilder_ = null;
               quantizationAnnotation_ = other.quantizationAnnotation_;
               bitField0_ = (bitField0_ & ~0x00000100);
-              quantizationAnnotationBuilder_ = 
+              quantizationAnnotationBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getQuantizationAnnotationFieldBuilder() : null;
             } else {
@@ -22908,7 +22908,7 @@ public final class OnnxMl {
               metadataPropsBuilder_ = null;
               metadataProps_ = other.metadataProps_;
               bitField0_ = (bitField0_ & ~0x00000200);
-              metadataPropsBuilder_ = 
+              metadataPropsBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getMetadataPropsFieldBuilder() : null;
             } else {
@@ -23328,7 +23328,7 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.NodeProto node = 1;</code>
        */
-      public java.util.List<? extends onnx.OnnxMl.NodeProtoOrBuilder> 
+      public java.util.List<? extends onnx.OnnxMl.NodeProtoOrBuilder>
            getNodeOrBuilderList() {
         if (nodeBuilder_ != null) {
           return nodeBuilder_.getMessageOrBuilderList();
@@ -23366,12 +23366,12 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.NodeProto node = 1;</code>
        */
-      public java.util.List<onnx.OnnxMl.NodeProto.Builder> 
+      public java.util.List<onnx.OnnxMl.NodeProto.Builder>
            getNodeBuilderList() {
         return getNodeFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          onnx.OnnxMl.NodeProto, onnx.OnnxMl.NodeProto.Builder, onnx.OnnxMl.NodeProtoOrBuilder> 
+          onnx.OnnxMl.NodeProto, onnx.OnnxMl.NodeProto.Builder, onnx.OnnxMl.NodeProtoOrBuilder>
           getNodeFieldBuilder() {
         if (nodeBuilder_ == null) {
           nodeBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -23431,7 +23431,7 @@ public final class OnnxMl {
           getNameBytes() {
         java.lang.Object ref = name_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           name_ = b;
@@ -23789,7 +23789,7 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.TensorProto initializer = 5;</code>
        */
-      public java.util.List<? extends onnx.OnnxMl.TensorProtoOrBuilder> 
+      public java.util.List<? extends onnx.OnnxMl.TensorProtoOrBuilder>
            getInitializerOrBuilderList() {
         if (initializerBuilder_ != null) {
           return initializerBuilder_.getMessageOrBuilderList();
@@ -23836,12 +23836,12 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.TensorProto initializer = 5;</code>
        */
-      public java.util.List<onnx.OnnxMl.TensorProto.Builder> 
+      public java.util.List<onnx.OnnxMl.TensorProto.Builder>
            getInitializerBuilderList() {
         return getInitializerFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          onnx.OnnxMl.TensorProto, onnx.OnnxMl.TensorProto.Builder, onnx.OnnxMl.TensorProtoOrBuilder> 
+          onnx.OnnxMl.TensorProto, onnx.OnnxMl.TensorProto.Builder, onnx.OnnxMl.TensorProtoOrBuilder>
           getInitializerFieldBuilder() {
         if (initializerBuilder_ == null) {
           initializerBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -24110,7 +24110,7 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.SparseTensorProto sparse_initializer = 15;</code>
        */
-      public java.util.List<? extends onnx.OnnxMl.SparseTensorProtoOrBuilder> 
+      public java.util.List<? extends onnx.OnnxMl.SparseTensorProtoOrBuilder>
            getSparseInitializerOrBuilderList() {
         if (sparseInitializerBuilder_ != null) {
           return sparseInitializerBuilder_.getMessageOrBuilderList();
@@ -24148,12 +24148,12 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.SparseTensorProto sparse_initializer = 15;</code>
        */
-      public java.util.List<onnx.OnnxMl.SparseTensorProto.Builder> 
+      public java.util.List<onnx.OnnxMl.SparseTensorProto.Builder>
            getSparseInitializerBuilderList() {
         return getSparseInitializerFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          onnx.OnnxMl.SparseTensorProto, onnx.OnnxMl.SparseTensorProto.Builder, onnx.OnnxMl.SparseTensorProtoOrBuilder> 
+          onnx.OnnxMl.SparseTensorProto, onnx.OnnxMl.SparseTensorProto.Builder, onnx.OnnxMl.SparseTensorProtoOrBuilder>
           getSparseInitializerFieldBuilder() {
         if (sparseInitializerBuilder_ == null) {
           sparseInitializerBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -24213,7 +24213,7 @@ public final class OnnxMl {
           getDocStringBytes() {
         java.lang.Object ref = docString_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           docString_ = b;
@@ -24526,7 +24526,7 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.ValueInfoProto input = 11;</code>
        */
-      public java.util.List<? extends onnx.OnnxMl.ValueInfoProtoOrBuilder> 
+      public java.util.List<? extends onnx.OnnxMl.ValueInfoProtoOrBuilder>
            getInputOrBuilderList() {
         if (inputBuilder_ != null) {
           return inputBuilder_.getMessageOrBuilderList();
@@ -24564,12 +24564,12 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.ValueInfoProto input = 11;</code>
        */
-      public java.util.List<onnx.OnnxMl.ValueInfoProto.Builder> 
+      public java.util.List<onnx.OnnxMl.ValueInfoProto.Builder>
            getInputBuilderList() {
         return getInputFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          onnx.OnnxMl.ValueInfoProto, onnx.OnnxMl.ValueInfoProto.Builder, onnx.OnnxMl.ValueInfoProtoOrBuilder> 
+          onnx.OnnxMl.ValueInfoProto, onnx.OnnxMl.ValueInfoProto.Builder, onnx.OnnxMl.ValueInfoProtoOrBuilder>
           getInputFieldBuilder() {
         if (inputBuilder_ == null) {
           inputBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -24778,7 +24778,7 @@ public final class OnnxMl {
       /**
        * <code>repeated .onnx.ValueInfoProto output = 12;</code>
        */
-      public java.util.List<? extends onnx.OnnxMl.ValueInfoProtoOrBuilder> 
+      public java.util.List<? extends onnx.OnnxMl.ValueInfoProtoOrBuilder>
            getOutputOrBuilderList() {
         if (outputBuilder_ != null) {
           return outputBuilder_.getMessageOrBuilderList();
@@ -24804,12 +24804,12 @@ public final class OnnxMl {
       /**
        * <code>repeated .onnx.ValueInfoProto output = 12;</code>
        */
-      public java.util.List<onnx.OnnxMl.ValueInfoProto.Builder> 
+      public java.util.List<onnx.OnnxMl.ValueInfoProto.Builder>
            getOutputBuilderList() {
         return getOutputFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          onnx.OnnxMl.ValueInfoProto, onnx.OnnxMl.ValueInfoProto.Builder, onnx.OnnxMl.ValueInfoProtoOrBuilder> 
+          onnx.OnnxMl.ValueInfoProto, onnx.OnnxMl.ValueInfoProto.Builder, onnx.OnnxMl.ValueInfoProtoOrBuilder>
           getOutputFieldBuilder() {
         if (outputBuilder_ == null) {
           outputBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -25093,7 +25093,7 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.ValueInfoProto value_info = 13;</code>
        */
-      public java.util.List<? extends onnx.OnnxMl.ValueInfoProtoOrBuilder> 
+      public java.util.List<? extends onnx.OnnxMl.ValueInfoProtoOrBuilder>
            getValueInfoOrBuilderList() {
         if (valueInfoBuilder_ != null) {
           return valueInfoBuilder_.getMessageOrBuilderList();
@@ -25134,12 +25134,12 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.ValueInfoProto value_info = 13;</code>
        */
-      public java.util.List<onnx.OnnxMl.ValueInfoProto.Builder> 
+      public java.util.List<onnx.OnnxMl.ValueInfoProto.Builder>
            getValueInfoBuilderList() {
         return getValueInfoFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          onnx.OnnxMl.ValueInfoProto, onnx.OnnxMl.ValueInfoProto.Builder, onnx.OnnxMl.ValueInfoProtoOrBuilder> 
+          onnx.OnnxMl.ValueInfoProto, onnx.OnnxMl.ValueInfoProto.Builder, onnx.OnnxMl.ValueInfoProtoOrBuilder>
           getValueInfoFieldBuilder() {
         if (valueInfoBuilder_ == null) {
           valueInfoBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -25453,7 +25453,7 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.TensorAnnotation quantization_annotation = 14;</code>
        */
-      public java.util.List<? extends onnx.OnnxMl.TensorAnnotationOrBuilder> 
+      public java.util.List<? extends onnx.OnnxMl.TensorAnnotationOrBuilder>
            getQuantizationAnnotationOrBuilderList() {
         if (quantizationAnnotationBuilder_ != null) {
           return quantizationAnnotationBuilder_.getMessageOrBuilderList();
@@ -25500,12 +25500,12 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.TensorAnnotation quantization_annotation = 14;</code>
        */
-      public java.util.List<onnx.OnnxMl.TensorAnnotation.Builder> 
+      public java.util.List<onnx.OnnxMl.TensorAnnotation.Builder>
            getQuantizationAnnotationBuilderList() {
         return getQuantizationAnnotationFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          onnx.OnnxMl.TensorAnnotation, onnx.OnnxMl.TensorAnnotation.Builder, onnx.OnnxMl.TensorAnnotationOrBuilder> 
+          onnx.OnnxMl.TensorAnnotation, onnx.OnnxMl.TensorAnnotation.Builder, onnx.OnnxMl.TensorAnnotationOrBuilder>
           getQuantizationAnnotationFieldBuilder() {
         if (quantizationAnnotationBuilder_ == null) {
           quantizationAnnotationBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -25774,7 +25774,7 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.StringStringEntryProto metadata_props = 16;</code>
        */
-      public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+      public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder>
            getMetadataPropsOrBuilderList() {
         if (metadataPropsBuilder_ != null) {
           return metadataPropsBuilder_.getMessageOrBuilderList();
@@ -25812,12 +25812,12 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.StringStringEntryProto metadata_props = 16;</code>
        */
-      public java.util.List<onnx.OnnxMl.StringStringEntryProto.Builder> 
+      public java.util.List<onnx.OnnxMl.StringStringEntryProto.Builder>
            getMetadataPropsBuilderList() {
         return getMetadataPropsFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          onnx.OnnxMl.StringStringEntryProto, onnx.OnnxMl.StringStringEntryProto.Builder, onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+          onnx.OnnxMl.StringStringEntryProto, onnx.OnnxMl.StringStringEntryProto.Builder, onnx.OnnxMl.StringStringEntryProtoOrBuilder>
           getMetadataPropsFieldBuilder() {
         if (metadataPropsBuilder_ == null) {
           metadataPropsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -26240,7 +26240,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.StringStringEntryProto external_data = 13;</code>
      */
-    java.util.List<onnx.OnnxMl.StringStringEntryProto> 
+    java.util.List<onnx.OnnxMl.StringStringEntryProto>
         getExternalDataList();
     /**
      * <pre>
@@ -26289,7 +26289,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.StringStringEntryProto external_data = 13;</code>
      */
-    java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+    java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder>
         getExternalDataOrBuilderList();
     /**
      * <pre>
@@ -26417,7 +26417,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.StringStringEntryProto metadata_props = 16;</code>
      */
-    java.util.List<onnx.OnnxMl.StringStringEntryProto> 
+    java.util.List<onnx.OnnxMl.StringStringEntryProto>
         getMetadataPropsList();
     /**
      * <pre>
@@ -26442,7 +26442,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.StringStringEntryProto metadata_props = 16;</code>
      */
-    java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+    java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder>
         getMetadataPropsOrBuilderList();
     /**
      * <pre>
@@ -28002,7 +28002,7 @@ public final class OnnxMl {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -28024,7 +28024,7 @@ public final class OnnxMl {
         getNameBytes() {
       java.lang.Object ref = name_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         name_ = b;
@@ -28063,7 +28063,7 @@ public final class OnnxMl {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -28085,7 +28085,7 @@ public final class OnnxMl {
         getDocStringBytes() {
       java.lang.Object ref = docString_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         docString_ = b;
@@ -28190,7 +28190,7 @@ public final class OnnxMl {
      * <code>repeated .onnx.StringStringEntryProto external_data = 13;</code>
      */
     @java.lang.Override
-    public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+    public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder>
         getExternalDataOrBuilderList() {
       return externalData_;
     }
@@ -28409,7 +28409,7 @@ public final class OnnxMl {
      * <code>repeated .onnx.StringStringEntryProto metadata_props = 16;</code>
      */
     @java.lang.Override
-    public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+    public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder>
         getMetadataPropsOrBuilderList() {
       return metadataProps_;
     }
@@ -29175,7 +29175,7 @@ public final class OnnxMl {
               externalDataBuilder_ = null;
               externalData_ = other.externalData_;
               bitField0_ = (bitField0_ & ~0x00000400);
-              externalDataBuilder_ = 
+              externalDataBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getExternalDataFieldBuilder() : null;
             } else {
@@ -29226,7 +29226,7 @@ public final class OnnxMl {
               metadataPropsBuilder_ = null;
               metadataProps_ = other.metadataProps_;
               bitField0_ = (bitField0_ & ~0x00004000);
-              metadataPropsBuilder_ = 
+              metadataPropsBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getMetadataPropsFieldBuilder() : null;
             } else {
@@ -29726,7 +29726,7 @@ public final class OnnxMl {
        * <code>optional .onnx.TensorProto.Segment segment = 3;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          onnx.OnnxMl.TensorProto.Segment, onnx.OnnxMl.TensorProto.Segment.Builder, onnx.OnnxMl.TensorProto.SegmentOrBuilder> 
+          onnx.OnnxMl.TensorProto.Segment, onnx.OnnxMl.TensorProto.Segment.Builder, onnx.OnnxMl.TensorProto.SegmentOrBuilder>
           getSegmentFieldBuilder() {
         if (segmentBuilder_ == null) {
           segmentBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -30358,7 +30358,7 @@ public final class OnnxMl {
           getNameBytes() {
         java.lang.Object ref = name_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           name_ = b;
@@ -30462,7 +30462,7 @@ public final class OnnxMl {
           getDocStringBytes() {
         java.lang.Object ref = docString_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           docString_ = b;
@@ -31011,7 +31011,7 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.StringStringEntryProto external_data = 13;</code>
        */
-      public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+      public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder>
            getExternalDataOrBuilderList() {
         if (externalDataBuilder_ != null) {
           return externalDataBuilder_.getMessageOrBuilderList();
@@ -31073,12 +31073,12 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.StringStringEntryProto external_data = 13;</code>
        */
-      public java.util.List<onnx.OnnxMl.StringStringEntryProto.Builder> 
+      public java.util.List<onnx.OnnxMl.StringStringEntryProto.Builder>
            getExternalDataBuilderList() {
         return getExternalDataFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          onnx.OnnxMl.StringStringEntryProto, onnx.OnnxMl.StringStringEntryProto.Builder, onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+          onnx.OnnxMl.StringStringEntryProto, onnx.OnnxMl.StringStringEntryProto.Builder, onnx.OnnxMl.StringStringEntryProtoOrBuilder>
           getExternalDataFieldBuilder() {
         if (externalDataBuilder_ == null) {
           externalDataBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -31691,7 +31691,7 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.StringStringEntryProto metadata_props = 16;</code>
        */
-      public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+      public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder>
            getMetadataPropsOrBuilderList() {
         if (metadataPropsBuilder_ != null) {
           return metadataPropsBuilder_.getMessageOrBuilderList();
@@ -31729,12 +31729,12 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.StringStringEntryProto metadata_props = 16;</code>
        */
-      public java.util.List<onnx.OnnxMl.StringStringEntryProto.Builder> 
+      public java.util.List<onnx.OnnxMl.StringStringEntryProto.Builder>
            getMetadataPropsBuilderList() {
         return getMetadataPropsFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          onnx.OnnxMl.StringStringEntryProto, onnx.OnnxMl.StringStringEntryProto.Builder, onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+          onnx.OnnxMl.StringStringEntryProto, onnx.OnnxMl.StringStringEntryProto.Builder, onnx.OnnxMl.StringStringEntryProtoOrBuilder>
           getMetadataPropsFieldBuilder() {
         if (metadataPropsBuilder_ == null) {
           metadataPropsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -32696,7 +32696,7 @@ public final class OnnxMl {
        * <code>optional .onnx.TensorProto values = 1;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          onnx.OnnxMl.TensorProto, onnx.OnnxMl.TensorProto.Builder, onnx.OnnxMl.TensorProtoOrBuilder> 
+          onnx.OnnxMl.TensorProto, onnx.OnnxMl.TensorProto.Builder, onnx.OnnxMl.TensorProtoOrBuilder>
           getValuesFieldBuilder() {
         if (valuesBuilder_ == null) {
           valuesBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -32934,7 +32934,7 @@ public final class OnnxMl {
        * <code>optional .onnx.TensorProto indices = 2;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          onnx.OnnxMl.TensorProto, onnx.OnnxMl.TensorProto.Builder, onnx.OnnxMl.TensorProtoOrBuilder> 
+          onnx.OnnxMl.TensorProto, onnx.OnnxMl.TensorProto.Builder, onnx.OnnxMl.TensorProtoOrBuilder>
           getIndicesFieldBuilder() {
         if (indicesBuilder_ == null) {
           indicesBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -33117,7 +33117,7 @@ public final class OnnxMl {
     /**
      * <code>repeated .onnx.TensorShapeProto.Dimension dim = 1;</code>
      */
-    java.util.List<onnx.OnnxMl.TensorShapeProto.Dimension> 
+    java.util.List<onnx.OnnxMl.TensorShapeProto.Dimension>
         getDimList();
     /**
      * <code>repeated .onnx.TensorShapeProto.Dimension dim = 1;</code>
@@ -33130,7 +33130,7 @@ public final class OnnxMl {
     /**
      * <code>repeated .onnx.TensorShapeProto.Dimension dim = 1;</code>
      */
-    java.util.List<? extends onnx.OnnxMl.TensorShapeProto.DimensionOrBuilder> 
+    java.util.List<? extends onnx.OnnxMl.TensorShapeProto.DimensionOrBuilder>
         getDimOrBuilderList();
     /**
      * <code>repeated .onnx.TensorShapeProto.Dimension dim = 1;</code>
@@ -33399,7 +33399,7 @@ public final class OnnxMl {
         if (ref instanceof java.lang.String) {
           return (java.lang.String) ref;
         } else {
-          com.google.protobuf.ByteString bs = 
+          com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
           if (bs.isValidUtf8() && (valueCase_ == 2)) {
@@ -33423,7 +33423,7 @@ public final class OnnxMl {
           ref = value_;
         }
         if (ref instanceof java.lang.String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           if (valueCase_ == 2) {
@@ -33472,7 +33472,7 @@ public final class OnnxMl {
         if (ref instanceof java.lang.String) {
           return (java.lang.String) ref;
         } else {
-          com.google.protobuf.ByteString bs = 
+          com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
           if (bs.isValidUtf8()) {
@@ -33498,7 +33498,7 @@ public final class OnnxMl {
           getDenotationBytes() {
         java.lang.Object ref = denotation_;
         if (ref instanceof java.lang.String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           denotation_ = b;
@@ -33998,7 +33998,7 @@ public final class OnnxMl {
             ref = value_;
           }
           if (ref instanceof String) {
-            com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString b =
                 com.google.protobuf.ByteString.copyFromUtf8(
                     (java.lang.String) ref);
             if (valueCase_ == 2) {
@@ -34118,7 +34118,7 @@ public final class OnnxMl {
             getDenotationBytes() {
           java.lang.Object ref = denotation_;
           if (ref instanceof String) {
-            com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString b =
                 com.google.protobuf.ByteString.copyFromUtf8(
                     (java.lang.String) ref);
             denotation_ = b;
@@ -34253,7 +34253,7 @@ public final class OnnxMl {
      * <code>repeated .onnx.TensorShapeProto.Dimension dim = 1;</code>
      */
     @java.lang.Override
-    public java.util.List<? extends onnx.OnnxMl.TensorShapeProto.DimensionOrBuilder> 
+    public java.util.List<? extends onnx.OnnxMl.TensorShapeProto.DimensionOrBuilder>
         getDimOrBuilderList() {
       return dim_;
     }
@@ -34564,7 +34564,7 @@ public final class OnnxMl {
               dimBuilder_ = null;
               dim_ = other.dim_;
               bitField0_ = (bitField0_ & ~0x00000001);
-              dimBuilder_ = 
+              dimBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getDimFieldBuilder() : null;
             } else {
@@ -34823,7 +34823,7 @@ public final class OnnxMl {
       /**
        * <code>repeated .onnx.TensorShapeProto.Dimension dim = 1;</code>
        */
-      public java.util.List<? extends onnx.OnnxMl.TensorShapeProto.DimensionOrBuilder> 
+      public java.util.List<? extends onnx.OnnxMl.TensorShapeProto.DimensionOrBuilder>
            getDimOrBuilderList() {
         if (dimBuilder_ != null) {
           return dimBuilder_.getMessageOrBuilderList();
@@ -34849,12 +34849,12 @@ public final class OnnxMl {
       /**
        * <code>repeated .onnx.TensorShapeProto.Dimension dim = 1;</code>
        */
-      public java.util.List<onnx.OnnxMl.TensorShapeProto.Dimension.Builder> 
+      public java.util.List<onnx.OnnxMl.TensorShapeProto.Dimension.Builder>
            getDimBuilderList() {
         return getDimFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          onnx.OnnxMl.TensorShapeProto.Dimension, onnx.OnnxMl.TensorShapeProto.Dimension.Builder, onnx.OnnxMl.TensorShapeProto.DimensionOrBuilder> 
+          onnx.OnnxMl.TensorShapeProto.Dimension, onnx.OnnxMl.TensorShapeProto.Dimension.Builder, onnx.OnnxMl.TensorShapeProto.DimensionOrBuilder>
           getDimFieldBuilder() {
         if (dimBuilder_ == null) {
           dimBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -35810,7 +35810,7 @@ public final class OnnxMl {
          * <code>optional .onnx.TensorShapeProto shape = 2;</code>
          */
         private com.google.protobuf.SingleFieldBuilder<
-            onnx.OnnxMl.TensorShapeProto, onnx.OnnxMl.TensorShapeProto.Builder, onnx.OnnxMl.TensorShapeProtoOrBuilder> 
+            onnx.OnnxMl.TensorShapeProto, onnx.OnnxMl.TensorShapeProto.Builder, onnx.OnnxMl.TensorShapeProtoOrBuilder>
             getShapeFieldBuilder() {
           if (shapeBuilder_ == null) {
             shapeBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -36463,7 +36463,7 @@ public final class OnnxMl {
          * <code>optional .onnx.TypeProto elem_type = 1;</code>
          */
         private com.google.protobuf.SingleFieldBuilder<
-            onnx.OnnxMl.TypeProto, onnx.OnnxMl.TypeProto.Builder, onnx.OnnxMl.TypeProtoOrBuilder> 
+            onnx.OnnxMl.TypeProto, onnx.OnnxMl.TypeProto.Builder, onnx.OnnxMl.TypeProtoOrBuilder>
             getElemTypeFieldBuilder() {
           if (elemTypeBuilder_ == null) {
             elemTypeBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -37248,7 +37248,7 @@ public final class OnnxMl {
          * <code>optional .onnx.TypeProto value_type = 2;</code>
          */
         private com.google.protobuf.SingleFieldBuilder<
-            onnx.OnnxMl.TypeProto, onnx.OnnxMl.TypeProto.Builder, onnx.OnnxMl.TypeProtoOrBuilder> 
+            onnx.OnnxMl.TypeProto, onnx.OnnxMl.TypeProto.Builder, onnx.OnnxMl.TypeProtoOrBuilder>
             getValueTypeFieldBuilder() {
           if (valueTypeBuilder_ == null) {
             valueTypeBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -37916,7 +37916,7 @@ public final class OnnxMl {
          * <code>optional .onnx.TypeProto elem_type = 1;</code>
          */
         private com.google.protobuf.SingleFieldBuilder<
-            onnx.OnnxMl.TypeProto, onnx.OnnxMl.TypeProto.Builder, onnx.OnnxMl.TypeProtoOrBuilder> 
+            onnx.OnnxMl.TypeProto, onnx.OnnxMl.TypeProto.Builder, onnx.OnnxMl.TypeProtoOrBuilder>
             getElemTypeFieldBuilder() {
           if (elemTypeBuilder_ == null) {
             elemTypeBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -38633,7 +38633,7 @@ public final class OnnxMl {
          * <code>optional .onnx.TensorShapeProto shape = 2;</code>
          */
         private com.google.protobuf.SingleFieldBuilder<
-            onnx.OnnxMl.TensorShapeProto, onnx.OnnxMl.TensorShapeProto.Builder, onnx.OnnxMl.TensorShapeProtoOrBuilder> 
+            onnx.OnnxMl.TensorShapeProto, onnx.OnnxMl.TensorShapeProto.Builder, onnx.OnnxMl.TensorShapeProtoOrBuilder>
             getShapeFieldBuilder() {
           if (shapeBuilder_ == null) {
             shapeBuilder_ = new com.google.protobuf.SingleFieldBuilder<
@@ -38828,7 +38828,7 @@ public final class OnnxMl {
         if (ref instanceof java.lang.String) {
           return (java.lang.String) ref;
         } else {
-          com.google.protobuf.ByteString bs = 
+          com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
           if (bs.isValidUtf8()) {
@@ -38850,7 +38850,7 @@ public final class OnnxMl {
           getDomainBytes() {
         java.lang.Object ref = domain_;
         if (ref instanceof java.lang.String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           domain_ = b;
@@ -38889,7 +38889,7 @@ public final class OnnxMl {
         if (ref instanceof java.lang.String) {
           return (java.lang.String) ref;
         } else {
-          com.google.protobuf.ByteString bs = 
+          com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
           if (bs.isValidUtf8()) {
@@ -38911,7 +38911,7 @@ public final class OnnxMl {
           getNameBytes() {
         java.lang.Object ref = name_;
         if (ref instanceof java.lang.String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           name_ = b;
@@ -39299,7 +39299,7 @@ public final class OnnxMl {
             getDomainBytes() {
           java.lang.Object ref = domain_;
           if (ref instanceof String) {
-            com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString b =
                 com.google.protobuf.ByteString.copyFromUtf8(
                     (java.lang.String) ref);
             domain_ = b;
@@ -39403,7 +39403,7 @@ public final class OnnxMl {
             getNameBytes() {
           java.lang.Object ref = name_;
           if (ref instanceof String) {
-            com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString b =
                 com.google.protobuf.ByteString.copyFromUtf8(
                     (java.lang.String) ref);
             name_ = b;
@@ -39844,7 +39844,7 @@ public final class OnnxMl {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -39869,7 +39869,7 @@ public final class OnnxMl {
         getDenotationBytes() {
       java.lang.Object ref = denotation_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         denotation_ = b;
@@ -40582,7 +40582,7 @@ public final class OnnxMl {
        * <code>.onnx.TypeProto.Tensor tensor_type = 1;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          onnx.OnnxMl.TypeProto.Tensor, onnx.OnnxMl.TypeProto.Tensor.Builder, onnx.OnnxMl.TypeProto.TensorOrBuilder> 
+          onnx.OnnxMl.TypeProto.Tensor, onnx.OnnxMl.TypeProto.Tensor.Builder, onnx.OnnxMl.TypeProto.TensorOrBuilder>
           getTensorTypeFieldBuilder() {
         if (tensorTypeBuilder_ == null) {
           if (!(valueCase_ == 1)) {
@@ -40760,7 +40760,7 @@ public final class OnnxMl {
        * <code>.onnx.TypeProto.Sequence sequence_type = 4;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          onnx.OnnxMl.TypeProto.Sequence, onnx.OnnxMl.TypeProto.Sequence.Builder, onnx.OnnxMl.TypeProto.SequenceOrBuilder> 
+          onnx.OnnxMl.TypeProto.Sequence, onnx.OnnxMl.TypeProto.Sequence.Builder, onnx.OnnxMl.TypeProto.SequenceOrBuilder>
           getSequenceTypeFieldBuilder() {
         if (sequenceTypeBuilder_ == null) {
           if (!(valueCase_ == 4)) {
@@ -40938,7 +40938,7 @@ public final class OnnxMl {
        * <code>.onnx.TypeProto.Map map_type = 5;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          onnx.OnnxMl.TypeProto.Map, onnx.OnnxMl.TypeProto.Map.Builder, onnx.OnnxMl.TypeProto.MapOrBuilder> 
+          onnx.OnnxMl.TypeProto.Map, onnx.OnnxMl.TypeProto.Map.Builder, onnx.OnnxMl.TypeProto.MapOrBuilder>
           getMapTypeFieldBuilder() {
         if (mapTypeBuilder_ == null) {
           if (!(valueCase_ == 5)) {
@@ -41116,7 +41116,7 @@ public final class OnnxMl {
        * <code>.onnx.TypeProto.Optional optional_type = 9;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          onnx.OnnxMl.TypeProto.Optional, onnx.OnnxMl.TypeProto.Optional.Builder, onnx.OnnxMl.TypeProto.OptionalOrBuilder> 
+          onnx.OnnxMl.TypeProto.Optional, onnx.OnnxMl.TypeProto.Optional.Builder, onnx.OnnxMl.TypeProto.OptionalOrBuilder>
           getOptionalTypeFieldBuilder() {
         if (optionalTypeBuilder_ == null) {
           if (!(valueCase_ == 9)) {
@@ -41294,7 +41294,7 @@ public final class OnnxMl {
        * <code>.onnx.TypeProto.SparseTensor sparse_tensor_type = 8;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          onnx.OnnxMl.TypeProto.SparseTensor, onnx.OnnxMl.TypeProto.SparseTensor.Builder, onnx.OnnxMl.TypeProto.SparseTensorOrBuilder> 
+          onnx.OnnxMl.TypeProto.SparseTensor, onnx.OnnxMl.TypeProto.SparseTensor.Builder, onnx.OnnxMl.TypeProto.SparseTensorOrBuilder>
           getSparseTensorTypeFieldBuilder() {
         if (sparseTensorTypeBuilder_ == null) {
           if (!(valueCase_ == 8)) {
@@ -41436,7 +41436,7 @@ public final class OnnxMl {
        * <code>.onnx.TypeProto.Opaque opaque_type = 7;</code>
        */
       private com.google.protobuf.SingleFieldBuilder<
-          onnx.OnnxMl.TypeProto.Opaque, onnx.OnnxMl.TypeProto.Opaque.Builder, onnx.OnnxMl.TypeProto.OpaqueOrBuilder> 
+          onnx.OnnxMl.TypeProto.Opaque, onnx.OnnxMl.TypeProto.Opaque.Builder, onnx.OnnxMl.TypeProto.OpaqueOrBuilder>
           getOpaqueTypeFieldBuilder() {
         if (opaqueTypeBuilder_ == null) {
           if (!(valueCase_ == 7)) {
@@ -41509,7 +41509,7 @@ public final class OnnxMl {
           getDenotationBytes() {
         java.lang.Object ref = denotation_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           denotation_ = b;
@@ -41770,7 +41770,7 @@ public final class OnnxMl {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -41795,7 +41795,7 @@ public final class OnnxMl {
         getDomainBytes() {
       java.lang.Object ref = domain_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         domain_ = b;
@@ -42227,7 +42227,7 @@ public final class OnnxMl {
           getDomainBytes() {
         java.lang.Object ref = domain_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           domain_ = b;
@@ -42562,7 +42562,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.AttributeProto attribute_proto = 11;</code>
      */
-    java.util.List<onnx.OnnxMl.AttributeProto> 
+    java.util.List<onnx.OnnxMl.AttributeProto>
         getAttributeProtoList();
     /**
      * <pre>
@@ -42596,7 +42596,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.AttributeProto attribute_proto = 11;</code>
      */
-    java.util.List<? extends onnx.OnnxMl.AttributeProtoOrBuilder> 
+    java.util.List<? extends onnx.OnnxMl.AttributeProtoOrBuilder>
         getAttributeProtoOrBuilderList();
     /**
      * <pre>
@@ -42618,7 +42618,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.NodeProto node = 7;</code>
      */
-    java.util.List<onnx.OnnxMl.NodeProto> 
+    java.util.List<onnx.OnnxMl.NodeProto>
         getNodeList();
     /**
      * <pre>
@@ -42643,7 +42643,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.NodeProto node = 7;</code>
      */
-    java.util.List<? extends onnx.OnnxMl.NodeProtoOrBuilder> 
+    java.util.List<? extends onnx.OnnxMl.NodeProtoOrBuilder>
         getNodeOrBuilderList();
     /**
      * <pre>
@@ -42687,7 +42687,7 @@ public final class OnnxMl {
     /**
      * <code>repeated .onnx.OperatorSetIdProto opset_import = 9;</code>
      */
-    java.util.List<onnx.OnnxMl.OperatorSetIdProto> 
+    java.util.List<onnx.OnnxMl.OperatorSetIdProto>
         getOpsetImportList();
     /**
      * <code>repeated .onnx.OperatorSetIdProto opset_import = 9;</code>
@@ -42700,7 +42700,7 @@ public final class OnnxMl {
     /**
      * <code>repeated .onnx.OperatorSetIdProto opset_import = 9;</code>
      */
-    java.util.List<? extends onnx.OnnxMl.OperatorSetIdProtoOrBuilder> 
+    java.util.List<? extends onnx.OnnxMl.OperatorSetIdProtoOrBuilder>
         getOpsetImportOrBuilderList();
     /**
      * <code>repeated .onnx.OperatorSetIdProto opset_import = 9;</code>
@@ -42782,7 +42782,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.ValueInfoProto value_info = 12;</code>
      */
-    java.util.List<onnx.OnnxMl.ValueInfoProto> 
+    java.util.List<onnx.OnnxMl.ValueInfoProto>
         getValueInfoList();
     /**
      * <pre>
@@ -42816,7 +42816,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.ValueInfoProto value_info = 12;</code>
      */
-    java.util.List<? extends onnx.OnnxMl.ValueInfoProtoOrBuilder> 
+    java.util.List<? extends onnx.OnnxMl.ValueInfoProtoOrBuilder>
         getValueInfoOrBuilderList();
     /**
      * <pre>
@@ -42838,7 +42838,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.StringStringEntryProto metadata_props = 14;</code>
      */
-    java.util.List<onnx.OnnxMl.StringStringEntryProto> 
+    java.util.List<onnx.OnnxMl.StringStringEntryProto>
         getMetadataPropsList();
     /**
      * <pre>
@@ -42863,7 +42863,7 @@ public final class OnnxMl {
      *
      * <code>repeated .onnx.StringStringEntryProto metadata_props = 14;</code>
      */
-    java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+    java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder>
         getMetadataPropsOrBuilderList();
     /**
      * <pre>
@@ -42959,7 +42959,7 @@ public final class OnnxMl {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -42982,7 +42982,7 @@ public final class OnnxMl {
         getNameBytes() {
       java.lang.Object ref = name_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         name_ = b;
@@ -43167,7 +43167,7 @@ public final class OnnxMl {
      * <code>repeated .onnx.AttributeProto attribute_proto = 11;</code>
      */
     @java.lang.Override
-    public java.util.List<? extends onnx.OnnxMl.AttributeProtoOrBuilder> 
+    public java.util.List<? extends onnx.OnnxMl.AttributeProtoOrBuilder>
         getAttributeProtoOrBuilderList() {
       return attributeProto_;
     }
@@ -43237,7 +43237,7 @@ public final class OnnxMl {
      * <code>repeated .onnx.NodeProto node = 7;</code>
      */
     @java.lang.Override
-    public java.util.List<? extends onnx.OnnxMl.NodeProtoOrBuilder> 
+    public java.util.List<? extends onnx.OnnxMl.NodeProtoOrBuilder>
         getNodeOrBuilderList() {
       return node_;
     }
@@ -43305,7 +43305,7 @@ public final class OnnxMl {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -43327,7 +43327,7 @@ public final class OnnxMl {
         getDocStringBytes() {
       java.lang.Object ref = docString_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         docString_ = b;
@@ -43351,7 +43351,7 @@ public final class OnnxMl {
      * <code>repeated .onnx.OperatorSetIdProto opset_import = 9;</code>
      */
     @java.lang.Override
-    public java.util.List<? extends onnx.OnnxMl.OperatorSetIdProtoOrBuilder> 
+    public java.util.List<? extends onnx.OnnxMl.OperatorSetIdProtoOrBuilder>
         getOpsetImportOrBuilderList() {
       return opsetImport_;
     }
@@ -43409,7 +43409,7 @@ public final class OnnxMl {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -43432,7 +43432,7 @@ public final class OnnxMl {
         getDomainBytes() {
       java.lang.Object ref = domain_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         domain_ = b;
@@ -43473,7 +43473,7 @@ public final class OnnxMl {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
+        com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
@@ -43496,7 +43496,7 @@ public final class OnnxMl {
         getOverloadBytes() {
       java.lang.Object ref = overload_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
+        com.google.protobuf.ByteString b =
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         overload_ = b;
@@ -43534,7 +43534,7 @@ public final class OnnxMl {
      * <code>repeated .onnx.ValueInfoProto value_info = 12;</code>
      */
     @java.lang.Override
-    public java.util.List<? extends onnx.OnnxMl.ValueInfoProtoOrBuilder> 
+    public java.util.List<? extends onnx.OnnxMl.ValueInfoProtoOrBuilder>
         getValueInfoOrBuilderList() {
       return valueInfo_;
     }
@@ -43604,7 +43604,7 @@ public final class OnnxMl {
      * <code>repeated .onnx.StringStringEntryProto metadata_props = 14;</code>
      */
     @java.lang.Override
-    public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+    public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder>
         getMetadataPropsOrBuilderList() {
       return metadataProps_;
     }
@@ -44223,7 +44223,7 @@ public final class OnnxMl {
               attributeProtoBuilder_ = null;
               attributeProto_ = other.attributeProto_;
               bitField0_ = (bitField0_ & ~0x00000010);
-              attributeProtoBuilder_ = 
+              attributeProtoBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getAttributeProtoFieldBuilder() : null;
             } else {
@@ -44249,7 +44249,7 @@ public final class OnnxMl {
               nodeBuilder_ = null;
               node_ = other.node_;
               bitField0_ = (bitField0_ & ~0x00000020);
-              nodeBuilder_ = 
+              nodeBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getNodeFieldBuilder() : null;
             } else {
@@ -44280,7 +44280,7 @@ public final class OnnxMl {
               opsetImportBuilder_ = null;
               opsetImport_ = other.opsetImport_;
               bitField0_ = (bitField0_ & ~0x00000080);
-              opsetImportBuilder_ = 
+              opsetImportBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getOpsetImportFieldBuilder() : null;
             } else {
@@ -44316,7 +44316,7 @@ public final class OnnxMl {
               valueInfoBuilder_ = null;
               valueInfo_ = other.valueInfo_;
               bitField0_ = (bitField0_ & ~0x00000400);
-              valueInfoBuilder_ = 
+              valueInfoBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getValueInfoFieldBuilder() : null;
             } else {
@@ -44342,7 +44342,7 @@ public final class OnnxMl {
               metadataPropsBuilder_ = null;
               metadataProps_ = other.metadataProps_;
               bitField0_ = (bitField0_ & ~0x00000800);
-              metadataPropsBuilder_ = 
+              metadataPropsBuilder_ =
                 com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getMetadataPropsFieldBuilder() : null;
             } else {
@@ -44545,7 +44545,7 @@ public final class OnnxMl {
           getNameBytes() {
         java.lang.Object ref = name_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           name_ = b;
@@ -45317,7 +45317,7 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.AttributeProto attribute_proto = 11;</code>
        */
-      public java.util.List<? extends onnx.OnnxMl.AttributeProtoOrBuilder> 
+      public java.util.List<? extends onnx.OnnxMl.AttributeProtoOrBuilder>
            getAttributeProtoOrBuilderList() {
         if (attributeProtoBuilder_ != null) {
           return attributeProtoBuilder_.getMessageOrBuilderList();
@@ -45364,12 +45364,12 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.AttributeProto attribute_proto = 11;</code>
        */
-      public java.util.List<onnx.OnnxMl.AttributeProto.Builder> 
+      public java.util.List<onnx.OnnxMl.AttributeProto.Builder>
            getAttributeProtoBuilderList() {
         return getAttributeProtoFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          onnx.OnnxMl.AttributeProto, onnx.OnnxMl.AttributeProto.Builder, onnx.OnnxMl.AttributeProtoOrBuilder> 
+          onnx.OnnxMl.AttributeProto, onnx.OnnxMl.AttributeProto.Builder, onnx.OnnxMl.AttributeProtoOrBuilder>
           getAttributeProtoFieldBuilder() {
         if (attributeProtoBuilder_ == null) {
           attributeProtoBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -45638,7 +45638,7 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.NodeProto node = 7;</code>
        */
-      public java.util.List<? extends onnx.OnnxMl.NodeProtoOrBuilder> 
+      public java.util.List<? extends onnx.OnnxMl.NodeProtoOrBuilder>
            getNodeOrBuilderList() {
         if (nodeBuilder_ != null) {
           return nodeBuilder_.getMessageOrBuilderList();
@@ -45676,12 +45676,12 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.NodeProto node = 7;</code>
        */
-      public java.util.List<onnx.OnnxMl.NodeProto.Builder> 
+      public java.util.List<onnx.OnnxMl.NodeProto.Builder>
            getNodeBuilderList() {
         return getNodeFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          onnx.OnnxMl.NodeProto, onnx.OnnxMl.NodeProto.Builder, onnx.OnnxMl.NodeProtoOrBuilder> 
+          onnx.OnnxMl.NodeProto, onnx.OnnxMl.NodeProto.Builder, onnx.OnnxMl.NodeProtoOrBuilder>
           getNodeFieldBuilder() {
         if (nodeBuilder_ == null) {
           nodeBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -45741,7 +45741,7 @@ public final class OnnxMl {
           getDocStringBytes() {
         java.lang.Object ref = docString_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           docString_ = b;
@@ -45994,7 +45994,7 @@ public final class OnnxMl {
       /**
        * <code>repeated .onnx.OperatorSetIdProto opset_import = 9;</code>
        */
-      public java.util.List<? extends onnx.OnnxMl.OperatorSetIdProtoOrBuilder> 
+      public java.util.List<? extends onnx.OnnxMl.OperatorSetIdProtoOrBuilder>
            getOpsetImportOrBuilderList() {
         if (opsetImportBuilder_ != null) {
           return opsetImportBuilder_.getMessageOrBuilderList();
@@ -46020,12 +46020,12 @@ public final class OnnxMl {
       /**
        * <code>repeated .onnx.OperatorSetIdProto opset_import = 9;</code>
        */
-      public java.util.List<onnx.OnnxMl.OperatorSetIdProto.Builder> 
+      public java.util.List<onnx.OnnxMl.OperatorSetIdProto.Builder>
            getOpsetImportBuilderList() {
         return getOpsetImportFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          onnx.OnnxMl.OperatorSetIdProto, onnx.OnnxMl.OperatorSetIdProto.Builder, onnx.OnnxMl.OperatorSetIdProtoOrBuilder> 
+          onnx.OnnxMl.OperatorSetIdProto, onnx.OnnxMl.OperatorSetIdProto.Builder, onnx.OnnxMl.OperatorSetIdProtoOrBuilder>
           getOpsetImportFieldBuilder() {
         if (opsetImportBuilder_ == null) {
           opsetImportBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -46088,7 +46088,7 @@ public final class OnnxMl {
           getDomainBytes() {
         java.lang.Object ref = domain_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           domain_ = b;
@@ -46198,7 +46198,7 @@ public final class OnnxMl {
           getOverloadBytes() {
         java.lang.Object ref = overload_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString b =
               com.google.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           overload_ = b;
@@ -46559,7 +46559,7 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.ValueInfoProto value_info = 12;</code>
        */
-      public java.util.List<? extends onnx.OnnxMl.ValueInfoProtoOrBuilder> 
+      public java.util.List<? extends onnx.OnnxMl.ValueInfoProtoOrBuilder>
            getValueInfoOrBuilderList() {
         if (valueInfoBuilder_ != null) {
           return valueInfoBuilder_.getMessageOrBuilderList();
@@ -46606,12 +46606,12 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.ValueInfoProto value_info = 12;</code>
        */
-      public java.util.List<onnx.OnnxMl.ValueInfoProto.Builder> 
+      public java.util.List<onnx.OnnxMl.ValueInfoProto.Builder>
            getValueInfoBuilderList() {
         return getValueInfoFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          onnx.OnnxMl.ValueInfoProto, onnx.OnnxMl.ValueInfoProto.Builder, onnx.OnnxMl.ValueInfoProtoOrBuilder> 
+          onnx.OnnxMl.ValueInfoProto, onnx.OnnxMl.ValueInfoProto.Builder, onnx.OnnxMl.ValueInfoProtoOrBuilder>
           getValueInfoFieldBuilder() {
         if (valueInfoBuilder_ == null) {
           valueInfoBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -46880,7 +46880,7 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.StringStringEntryProto metadata_props = 14;</code>
        */
-      public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+      public java.util.List<? extends onnx.OnnxMl.StringStringEntryProtoOrBuilder>
            getMetadataPropsOrBuilderList() {
         if (metadataPropsBuilder_ != null) {
           return metadataPropsBuilder_.getMessageOrBuilderList();
@@ -46918,12 +46918,12 @@ public final class OnnxMl {
        *
        * <code>repeated .onnx.StringStringEntryProto metadata_props = 14;</code>
        */
-      public java.util.List<onnx.OnnxMl.StringStringEntryProto.Builder> 
+      public java.util.List<onnx.OnnxMl.StringStringEntryProto.Builder>
            getMetadataPropsBuilderList() {
         return getMetadataPropsFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilder<
-          onnx.OnnxMl.StringStringEntryProto, onnx.OnnxMl.StringStringEntryProto.Builder, onnx.OnnxMl.StringStringEntryProtoOrBuilder> 
+          onnx.OnnxMl.StringStringEntryProto, onnx.OnnxMl.StringStringEntryProto.Builder, onnx.OnnxMl.StringStringEntryProtoOrBuilder>
           getMetadataPropsFieldBuilder() {
         if (metadataPropsBuilder_ == null) {
           metadataPropsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
@@ -46990,112 +46990,112 @@ public final class OnnxMl {
 
   private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_onnx_AttributeProto_descriptor;
-  private static final 
+  private static final
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_onnx_AttributeProto_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_onnx_ValueInfoProto_descriptor;
-  private static final 
+  private static final
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_onnx_ValueInfoProto_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_onnx_NodeProto_descriptor;
-  private static final 
+  private static final
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_onnx_NodeProto_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_onnx_TrainingInfoProto_descriptor;
-  private static final 
+  private static final
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_onnx_TrainingInfoProto_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_onnx_ModelProto_descriptor;
-  private static final 
+  private static final
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_onnx_ModelProto_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_onnx_StringStringEntryProto_descriptor;
-  private static final 
+  private static final
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_onnx_StringStringEntryProto_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_onnx_TensorAnnotation_descriptor;
-  private static final 
+  private static final
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_onnx_TensorAnnotation_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_onnx_GraphProto_descriptor;
-  private static final 
+  private static final
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_onnx_GraphProto_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_onnx_TensorProto_descriptor;
-  private static final 
+  private static final
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_onnx_TensorProto_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_onnx_TensorProto_Segment_descriptor;
-  private static final 
+  private static final
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_onnx_TensorProto_Segment_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_onnx_SparseTensorProto_descriptor;
-  private static final 
+  private static final
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_onnx_SparseTensorProto_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_onnx_TensorShapeProto_descriptor;
-  private static final 
+  private static final
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_onnx_TensorShapeProto_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_onnx_TensorShapeProto_Dimension_descriptor;
-  private static final 
+  private static final
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_onnx_TensorShapeProto_Dimension_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_onnx_TypeProto_descriptor;
-  private static final 
+  private static final
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_onnx_TypeProto_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_onnx_TypeProto_Tensor_descriptor;
-  private static final 
+  private static final
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_onnx_TypeProto_Tensor_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_onnx_TypeProto_Sequence_descriptor;
-  private static final 
+  private static final
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_onnx_TypeProto_Sequence_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_onnx_TypeProto_Map_descriptor;
-  private static final 
+  private static final
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_onnx_TypeProto_Map_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_onnx_TypeProto_Optional_descriptor;
-  private static final 
+  private static final
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_onnx_TypeProto_Optional_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_onnx_TypeProto_SparseTensor_descriptor;
-  private static final 
+  private static final
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_onnx_TypeProto_SparseTensor_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_onnx_TypeProto_Opaque_descriptor;
-  private static final 
+  private static final
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_onnx_TypeProto_Opaque_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_onnx_OperatorSetIdProto_descriptor;
-  private static final 
+  private static final
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_onnx_OperatorSetIdProto_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_onnx_FunctionProto_descriptor;
-  private static final 
+  private static final
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_onnx_FunctionProto_fieldAccessorTable;
 
