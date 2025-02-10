@@ -48,8 +48,8 @@ void main(String[] argv) {
   var backends = hatDir.existingDir("backends");
   var examples = hatDir.dir("examples");
   var buildDir = hatDir.existingBuildDir("build");
-  var jextractedOpenCLJar = buildDir.jarFile("jextracted-opencl.jar");
-  var jextractedOpenGLJar = buildDir.jarFile("jextracted-opengl.jar");
+  var jextractedOpenCLJar = buildDir.jarFile("opencl.jar");
+  var jextractedOpenGLJar = buildDir.jarFile("opengl.jar");
   var args = new ArrayList<>(List.of(argv));
   java(java -> java
      .enable_preview()

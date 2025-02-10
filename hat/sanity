@@ -28,7 +28,8 @@ import static bldr.Bldr.*;           // all the helpers are here
 
 void main(String[] args){
   DirEntry.current()
-    .subDirs(dir -> dir.matches("^.*(hat|examples|backends|docs)$"))
+    .subDirs()
+    .filter(dir -> dir.matches("^.*(hat|examples|backends|docs|bldr)$"))
     .forEach(dir->dir
        .findFiles()
           .filter((path)->Pattern.matches("^.*\\.(java|cpp|h|hpp|md)$", path.toString()))

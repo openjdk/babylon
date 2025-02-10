@@ -25,6 +25,7 @@
  */
 
 import static bldr.Bldr.*;
+import static java.lang.System.*;
 
 void main(String[] args) {
 
@@ -71,204 +72,195 @@ void main(String[] args) {
      *
      */
 
-    var hatDir = DirEntry.current();
-  var hatCoreDir = hatDir.existingDir("hat");
-  var backends = hatDir.existingDir("backends");
-  var examples = hatDir.existingDir("examples");
-  var stageDir = hatDir.buildDir("stage").create();
-  var jextractDir = stageDir.buildDir("jextract").create();
-  var buildDir = BuildDir.of(hatDir.path("build")).create();
-  var cmakeBuildDir = buildDir.cMakeBuildDir("cmake-build-debug");
+  var dir = DirEntry.current();
 
-  var extractedOpenCLJar = buildDir.jarFile("jextracted-opencl.jar");
-  var extractedOpenGLJar = buildDir.jarFile("jextracted-opengl.jar");
+    // var dir = DirEntry.current();
+    var hatCoreDir = dir.existingDir("hat");
+    var backends = dir.existingDir("backends");
+    var examples = dir.existingDir("examples");
+    var stageDir = dir.buildDir("stage").create();
+    var buildDir = BuildDir.of(dir.path("build")).create();
+    var cmakeBuildDir = buildDir.cMakeBuildDir("cmake-build-debug");
 
-  var opencl = Capabilities.OpenCL.of();
-  var opengl = Capabilities.OpenGL.of();
-  var cuda = Capabilities.CUDA.of();
-  var hip = Capabilities.HIP.of();
-  var jextract = Capabilities.JExtract.of();
-  var cmake = Capabilities.CMake.of();
+    var openclCapability = Capabilities.OpenCL.of();
+    var openglCapability = Capabilities.OpenGL.of();
+    var cudaCapability = Capabilities.CUDA.of();
+    var hipCapability = Capabilities.HIP.of();
+    var jextractCapability = Capabilities.JExtract.of();// or Capability.JExtract.of(Path.of("/my/jextract-22/bin/jextract"));
+    var cmakeCapability = Capabilities.CMake.of();
 
-  Capabilities capabilities = Capabilities.of(opencl, opengl, cuda, hip, jextract, cmake);
+    Capabilities capabilities = Capabilities.of(openclCapability, openglCapability, cudaCapability, hipCapability, jextractCapability, cmakeCapability);
 
-  if (cmake.available()) {
-    cmake.probe(buildDir, capabilities);
-  }
-  capabilities.capabilities().forEach(fw -> println((fw.available() ? "we have " : "no ") + fw.name));
-  var verbose = false;
+    if (cmakeCapability.available()) {
+        cmakeCapability.probe(buildDir, capabilities);
+    }
+
+    capabilities.capabilities().forEach(fw -> out.print( "["+fw.name + (fw.available() ? "\u2714" : "\u2715") +"]"));
+    out.println();
+
+    var verbose = false;
 
 
-  if (jextract.available()) {
-    if (opencl.available()) {
-      if (!extractedOpenCLJar.exists()) {
-        var openclSource = jextractDir.sourceDir("opencl");
-        if (!openclSource.exists()) {
-          jextract(jextract.executable, $ -> {
-            $
-              .verbose(verbose)
-              .output(jextractDir)
-              .target_package(openclSource.fileName());
-            switch (os) {
-              case OS.Mac mac -> {
-                $
-                  .compile_flag("-F" + opencl.appLibFrameworks() + "/System/library/Frameworks")
-                  .library(mac.frameworkLibrary("OpenCL"))
-                  //.library(Path.of(opencl.lib()))
-                  .header(Path.of(opencl.includeDir()).resolve("Headers/opencl.h"));
-              }
-              case OS.Linux linux -> {
-              }
-              default -> throw new RuntimeException("Unsupported OS: " + os);
+    if (jextractCapability.available()) {
+        if (openclCapability.available()) {
+            if (!openclCapability.jarFile(buildDir).exists()) {
+                if (!openclCapability.stage(stageDir).exists()) {
+                    jextract(jextractCapability.executable, $ -> $
+                            .verbose(verbose)
+                            .capability(openclCapability,stageDir)
+                            .os(
+                                    mac -> $
+                                            .compile_flag("-F" + openclCapability.appLibFrameworks() + "/System/library/Frameworks")
+                                            .library(mac.frameworkLibrary("OpenCL"))
+                                            .header(Path.of(openclCapability.includeDir()).resolve("Headers/opencl.h")),
+                                    linux -> {
+                                        throw new RuntimeException("Unsupported OS: " + os);
+                                    }
+                            )
+                    );
+                }else{
+                    out.println("Using previously extracted  "+openclCapability.stage(buildDir).fileName());
+                }
+                jar(jar ->
+                            jar
+                                    .jarFile(openclCapability.jarFile(buildDir))
+                                    .javac(javac -> javac.current_source().source_path(SourceDir.of(openclCapability.stage(stageDir).path())))
+
+                );
+            }else{
+                out.println("Using existing extracted "+openclCapability.jarFile(buildDir).fileName());
             }
-          });
+        } else {
+            out.println("This platform does not have OpenCL");
         }
-        jar(jar -> {
-              jar
-                .jar(extractedOpenCLJar)
-                .javac(javac -> javac.source(24).source_path(openclSource));
-            }
-        );
-      }
-    } else {
-      println("This platform does not have OpenCL");
-    }
 
-    if (opengl.available()) {
-      if (!extractedOpenGLJar.exists()) {
-        var openglSource = jextractDir.sourceDir("opengl");
-        if (!openglSource.exists()) {
-          jextract(jextract.executable, $ -> { $
-              .verbose(verbose)
-              .output(jextractDir)
-              .target_package(openglSource.fileName());
-            switch (os) {
-              case OS.Mac mac -> { $
-                  .compile_flag("-F" + opengl.appLibFrameworks() + "/System/library/Frameworks")
-                  //.library(opengl.lib("GLUT"),opengl.lib("OpenGL"))
-                  .library(mac.frameworkLibrary("GLUT"), mac.frameworkLibrary("OpenGL"))
-                  .header(mac.frameworkHeader("GLUT", "glut.h"));
-              }
-              case OS.Linux linux -> {
-              }
-              default -> throw new RuntimeException("Unsupported OS: " + os);
+        if (openglCapability.available()) {
+            if (!openglCapability.jarFile(buildDir).exists()) {
+                if (!openglCapability.stage(stageDir).exists()) {
+                    jextract(jextractCapability, $ -> $
+                            .verbose(verbose)
+                            .capability(openglCapability, stageDir)
+                            .os(
+                                    mac -> $
+                                            .compile_flag("-F" + openglCapability.appLibFrameworks() + "/System/library/Frameworks")
+                                            .library(mac.frameworkLibrary("GLUT"), mac.frameworkLibrary("OpenGL"))
+                                            .header(mac.frameworkHeader("GLUT", "glut.h")),
+                                    linux -> {
+                                        throw new RuntimeException("Unsupported OS: " + os);
+                                    }
+                            )
+                    );
+                }else{
+                    out.println("Using previously extracted  "+openglCapability.stage(buildDir).fileName());
+                }
+                jar(jar -> jar
+                        .jarFile(openglCapability.jarFile(buildDir))
+                        .javac(javac -> javac.current_source().source_path(SourceDir.of(openglCapability.stage(stageDir).path())))
+                );
+            }else{
+                out.println("Using existing extracted "+openglCapability.jarFile(buildDir).fileName());
             }
-          });
+        } else {
+            out.println("This platform does not have OpenGL");
         }
-        jar(jar -> jar
-          .jar(extractedOpenGLJar)
-          .javac(javac -> javac.source(24).source_path(openglSource))
+
+
+        if (cudaCapability.available()) {
+
+        } else {
+            out.println("This platform does not have CUDA");
+        }
+    }
+    var hatJavacOpts = javacBuilder($ -> $
+            .enable_preview()
+            .add_modules("jdk.incubator.code")
+            .add_exports_to_all_unnamed("java.base", "jdk.internal", "jdk.internal.vm.annotation")
+            .current_source()
+    );
+
+    var hatJarOptions = jarBuilder($ -> $
+            .verbose(verbose)
+    );
+    var hatJarFile = buildDir.jarFile("hat-1.0.jar");
+    jar(hatJarOptions, jar -> jar
+            .jarFile(hatJarFile)
+            .maven_style_root(hatCoreDir)
+            .javac(hatJavacOpts, javac -> {
+            })
+    );
+
+
+    // Here we create all backend jars.
+    var ffiBackends = backends.existingDir("ffi");
+    ffiBackends
+            .subDirs()
+            .filter(backend -> backend.failsToMatch("^.*(spirv|hip|shared|target|.idea)$"))
+            .forEach(backend -> {
+                var jarFile = buildDir.jarFile("hat-backend-ffi-" + backend.fileName() + "-1.0.jar");
+                out.println(jarFile.fileName());
+                jar(hatJarOptions, jar -> jar
+                        .jarFile(jarFile)
+                        .maven_style_root(backend)
+                        .javac(hatJavacOpts, javac -> javac.class_path(hatJarFile))
+                );
+            });
+
+    // Here we create all java backend jars.
+    backends.existingDir("java")
+            .subDirs()
+            .filter(backend -> backend.failsToMatch("^.*(target|.idea)$"))
+            .forEach(backend -> {
+                var jarFile = buildDir.jarFile("hat-backend-java-" + backend.fileName() + "-1.0.jar");
+                out.println(jarFile.fileName());
+                jar(hatJarOptions, jar -> jar
+                        .jarFile(jarFile)
+                        .dir_list(backend.dir("src/main/resources"))
+                );
+            });
+
+
+    // here we create the example jars
+    examples.subDirs()
+            .filter(example -> example.failsToMatch("^.*(experiments|nbody|target|.idea)$"))
+            .forEach(example -> {
+                var jarFile = buildDir.jarFile("hat-example-" + example.fileName() + "-1.0.jar");
+                out.println(jarFile.fileName());
+                jar(hatJarOptions, jar -> jar
+                        .jarFile(jarFile)
+                        .maven_style_root(example)
+                        .javac(hatJavacOpts, javac -> javac.class_path(hatJarFile))
+                        .manifest(manifest -> manifest
+                                .main_class(example.fileName() + ".Main")
+                        )
+                );
+            });
+
+    if (jextractCapability.available() && openclCapability.available() && openglCapability.available()) {
+        var example = examples.dir("nbody");
+        var jarFile = buildDir.jarFile("hat-example-" + example.fileName() + "-1.0.jar");
+        out.println(jarFile.fileName());
+        jar(hatJarOptions, jar -> jar
+                .jarFile(jarFile)
+                .maven_style_root(example)
+                .javac(hatJavacOpts, javac -> javac.class_path(hatJarFile, openclCapability.jarFile(buildDir), openglCapability.jarFile(buildDir)))
         );
-      }
+    }
+
+    if (cmakeCapability.available()) {
+        if (!cmakeBuildDir.exists()) {
+            cmake($ -> $
+                    .verbose(verbose)
+                    .source_dir(ffiBackends)
+                    .build_dir(cmakeBuildDir)
+                    .copy_to(buildDir)
+            );
+        }
+        cmake($ -> $
+                .build(cmakeBuildDir)
+        );
     } else {
-      println("This platform does not have OpenGL");
+        out.println("No cmake available so we did not build ffi backend shared libs");
     }
-
-
-    if (cuda.available()) {
-
-    } else {
-      println("This platform does not have CUDA");
-    }
-  }
-  var hatJavacOpts = javacBuilder(javacBuilder -> {javacBuilder
-    .enable_preview()
-    .add_modules("jdk.incubator.code")
-    .add_exports(
-       "java.base",
-       List.of(
-          "jdk.internal",
-          "jdk.internal.vm.annotation"
-       ),
-       "ALL-UNNAMED"
-    )
-    .source(24);
-  });
-
-  var hatJarOptions = jarBuilder(jarBuilder -> jarBuilder
-    .verbose(verbose)
-  );
-  var hatJarFile = buildDir.jarFile("hat-1.0.jar");
-  jar(jar -> jar
-    .copy(hatJarOptions)
-    .jar(hatJarFile)
-    .maven_style_root(hatCoreDir)
-    .javac(javac -> javac.copy(hatJavacOpts))
-  );
-
-
-  // Here we create all backend jars.
-  var ffiBackends = backends.existingDir("ffi");
-  ffiBackends
-    .subDirs(backend -> !backend.matches("^.*(spirv|hip|shared|target|.idea)$"))
-    .forEach(backend -> {
-      var jarFile = buildDir.jarFile("hat-backend-ffi-" + backend.fileName() + "-1.0.jar");
-      println(jarFile.fileName());
-      jar(jar -> jar.copy(hatJarOptions)
-        .jar(jarFile)
-        .maven_style_root(backend)
-        .javac(javac -> javac.copy(hatJavacOpts).class_path(hatJarFile))
-      );
-    });
-
-  // Here we create all java backend jars.
-  var javaBackends = backends.existingDir("java");
-  javaBackends
-    .subDirs(backend -> !backend.matches("^.*(target|.idea)$"))
-    .forEach(backend -> {
-      var jarFile = buildDir.jarFile("hat-backend-java-" + backend.fileName() + "-1.0.jar");
-      println(jarFile.fileName());
-      jar(jar -> jar
-            .copy(hatJarOptions)
-            .jar(jarFile)
-            .dir_list(backend.dir("src/main/resources"))
-          //.maven_style_root(backend)
-      );
-    });
-
-
-  // here we create the example jars
-  examples
-    .subDirs(example -> !example.matches("^.*(experiments|nbody|target|.idea)$"))
-    .forEach(example -> {
-      var jarFile = buildDir.jarFile("hat-example-" + example.fileName() + "-1.0.jar");
-      println(jarFile.fileName());
-      jar(jar -> jar.copy(hatJarOptions)
-        .jar(jarFile)
-        .maven_style_root(example)
-        .javac(javac -> javac.copy(hatJavacOpts).class_path(hatJarFile))
-        .manifest(manifest -> manifest
-          .main_class(example.fileName() + ".Main")
-        )
-      );
-    });
-
-  if (jextract.available() && opencl.available() && opengl.available()) {
-    var example = examples.dir("nbody");
-    var jarFile = buildDir.jarFile("hat-example-" + example.fileName() + "-1.0.jar");
-    println(jarFile.fileName());
-    jar(jar -> jar.copy(hatJarOptions)
-      .jar(jarFile)
-      .maven_style_root(example)
-      .javac(javac -> javac.copy(hatJavacOpts).class_path(hatJarFile, extractedOpenCLJar, extractedOpenGLJar))
-    );
-  }
-
-  if (cmake.available()) {
-    if (!cmakeBuildDir.exists()) {
-      cmake($ -> $
-        .source_dir(ffiBackends)
-        .build_dir(cmakeBuildDir)
-        .copy_to(buildDir)
-      );
-    }
-    cmake($ -> $
-      .build(cmakeBuildDir)
-    );
-  } else {
-    println("No cmake available so we did not build ffi backend shared libs");
-  }
-
 
 }
  

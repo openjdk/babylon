@@ -25,6 +25,8 @@
 
 package bldr;
 
+import com.sun.source.util.JavacTask;
+import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -36,6 +38,8 @@ import javax.tools.DiagnosticListener;
 import javax.tools.JavaCompiler;
 import javax.tools.JavaFileObject;
 import javax.tools.SimpleJavaFileObject;
+import javax.tools.ToolProvider;
+import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.TransformerFactory;
@@ -87,11 +91,11 @@ import static java.io.IO.print;
 import static java.io.IO.println;
 
 public class Bldr {
-    public sealed interface PathHolder permits ClassPathEntry, DirPathHolder,  FilePathHolder {
-        Path path();
+    public sealed interface PathHolder permits ClassPathEntry, DirPathHolder, FilePathHolder, SourcePathEntry {
         default Path path(String subdir) {
             return path().resolve(subdir);
         }
+
         default String fileName() {
             return path().getFileName().toString();
         }
@@ -107,26 +111,17 @@ public class Bldr {
         default boolean matches(String pattern) {
             return pathMatcher(Pattern.compile(pattern)).matches();
         }
-
-        default boolean exists(){
-            return Files.exists(path());
+        default boolean failsToMatch(String pattern) {
+            return !pathMatcher(Pattern.compile(pattern)).matches();
         }
 
-        default CppSourceFile cppSourceFile(String s) {
-            return CppSourceFile.of(path().resolve(s));
-        }
+        boolean exists();
 
-        default XMLFile xmlFile(String s) {
-            return XMLFile.of(path().resolve(s));
-        }
-
-        default TestNGSuiteFile testNGSuiteFile(String s) {
-            return TestNGSuiteFile.of(path().resolve(s));
-        }
+        Path path();
     }
 
     public sealed interface DirPathHolder<T extends DirPathHolder<T>> extends PathHolder
-            permits BuildDirHolder, DirEntry, SourcePathEntry {
+            permits BuildDirHolder, DirEntry, SourceDir {
 
         default Stream<Path> find() {
             try {
@@ -167,21 +162,33 @@ public class Bldr {
         }
 
         default boolean exists() {
-            return PathHolder.super.exists() && Files.isDirectory(path());
+            return Files.isDirectory(path());
         }
 
         default BuildDir buildDir(String name) {
             return BuildDir.of(path().resolve(name));
         }
 
-        default SourcePathEntry sourceDir(String s) {
-            return SourcePathEntry.of(path().resolve(s));
+        default SourceDir sourceDir(String s) {
+            return SourceDir.of(path().resolve(s));
+        }
+
+        default CppSourceFile cppSourceFile(String s) {
+            return CppSourceFile.of(path().resolve(s));
+        }
+
+        default XMLFile xmlFile(String s) {
+            return XMLFile.of(path().resolve(s));
+        }
+
+        default TestNGSuiteFile testNGSuiteFile(String s) {
+            return TestNGSuiteFile.of(path().resolve(s));
         }
     }
 
     public sealed interface FilePathHolder extends PathHolder {
         default boolean exists() {
-            return PathHolder.super.exists() && Files.isRegularFile(path());
+            return Files.isRegularFile(path());
         }
     }
 
@@ -193,7 +200,7 @@ public class Bldr {
 
 
     public interface ClassPathEntryProvider {
-        List<Bldr.ClassPathEntry> classPathEntries();
+        List<ClassPathEntry> classPathEntries();
     }
 
     public sealed interface ClassPathEntry extends PathHolder, ClassPathEntryProvider {
@@ -205,11 +212,11 @@ public class Bldr {
         default String charSeparated() {
             StringBuilder sb = new StringBuilder();
             entries().forEach(pathHolder -> {
-                                if (!sb.isEmpty()) {
-                                    sb.append(File.pathSeparatorChar);
-                                }
-                                sb.append(pathHolder.path());
-                            });
+                if (!sb.isEmpty()) {
+                    sb.append(File.pathSeparatorChar);
+                }
+                sb.append(pathHolder.path());
+            });
             return sb.toString();
         }
     }
@@ -251,8 +258,8 @@ public class Bldr {
         }
     }
 
-    public record SourcePath(List<SourcePathEntry> entries)
-            implements PathHolderList<SourcePathEntry> {
+    public record SourcePath(List<SourceDir> entries)
+            implements PathHolderList<SourceDir> {
         public static SourcePath of() {
             return new SourcePath(new ArrayList<>());
         }
@@ -261,12 +268,12 @@ public class Bldr {
             return sourcePath == null ? of() : sourcePath;
         }
 
-        public SourcePath add(List<SourcePathEntry> sourcePathEntries) {
+        public SourcePath add(List<SourceDir> sourcePathEntries) {
             entries.addAll(sourcePathEntries);
             return this;
         }
 
-        public SourcePath add(SourcePathEntry... sourcePathEntries) {
+        public SourcePath add(SourceDir... sourcePathEntries) {
             add(Arrays.asList(sourcePathEntries));
             return this;
         }
@@ -340,9 +347,9 @@ public class Bldr {
 
         T remove();
 
-        default void clean() {
+        default T clean() {
             remove();
-            create();
+            return create();
         }
 
         default Path mkdir(Path path) {
@@ -367,6 +374,7 @@ public class Bldr {
             return path;
         }
     }
+
 
     public record ClassDir(Path path) implements ClassPathEntry, BuildDirHolder<ClassDir> {
         public static ClassDir of(Path path) {
@@ -446,6 +454,7 @@ public class Bldr {
         public DirEntry dir(String subdir) {
             return DirEntry.of(path(subdir));
         }
+
         public FileEntry file(String fileName) {
             return FileEntry.of(path(fileName));
         }
@@ -459,9 +468,9 @@ public class Bldr {
                     .map(d -> DirEntry.of(d.getPath()));
         }
 
-        public Stream<DirEntry> subDirs(Predicate<DirEntry> predicate) {
-            return subDirs().filter(predicate);
-        }
+       // public Stream<DirEntry> subDirs(Predicate<DirEntry> predicate) {
+        //    return subDirs().filter(predicate);
+       // }
 
         public XMLFile pom(
                 String comment, Consumer<XMLNode.PomXmlBuilder> pomXmlBuilderConsumer) {
@@ -475,13 +484,25 @@ public class Bldr {
         }
     }
 
-    public record SourcePathEntry(Path path) implements DirPathHolder<SourcePathEntry> {
-        public static SourcePathEntry of(Path path) {
-            return new SourcePathEntry(path);
+    public interface SourcePathEntryProvider {
+        List<SourcePathEntry> sourcePathEntries();
+    }
+
+    public sealed interface SourcePathEntry extends PathHolder, SourcePathEntryProvider {
+    }
+
+    public record SourceDir(Path path) implements SourcePathEntry, DirPathHolder<SourceDir> {
+        public static SourceDir of(Path path) {
+            return new SourceDir(path);
         }
 
         public Stream<Path> javaFiles() {
             return findFilesBySuffix(".java");
+        }
+
+        @Override
+        public List<SourcePathEntry> sourcePathEntries() {
+            return List.of(this);
         }
     }
 
@@ -499,12 +520,10 @@ public class Bldr {
         public JarFile jarFile(String name) {
             return JarFile.of(path().resolve(name));
         }
-        public ClassPathEntryProvider jarFiles(String ...names) {
+
+        public ClassPathEntryProvider jarFiles(String... names) {
             var classPath = ClassPath.of();
-            Stream.of(names).forEach(name->
-                classPath.add(JarFile.of(path().resolve(name))
-                )
-            );
+            Stream.of(names).forEach(name -> classPath.add(JarFile.of(path().resolve(name))));
             return classPath;
         }
 
@@ -525,6 +544,7 @@ public class Bldr {
         public BuildDir create() {
             return BuildDir.of(mkdir(path()));
         }
+
 
         @Override
         public BuildDir remove() {
@@ -563,6 +583,7 @@ public class Bldr {
                 throw new RuntimeException(e);
             }
         }
+
         public SearchableTextFile textFile(String file, Consumer<StringBuilder> stringBuilderConsumer) {
             SearchableTextFile textFile = SearchableTextFile.of(path().resolve(file));
             var sb = new StringBuilder();
@@ -589,13 +610,13 @@ public class Bldr {
         }
     }
 
-    public record FileEntry(Path path) implements FilePathHolder{
+    public record FileEntry(Path path) implements FilePathHolder {
         public static FileEntry of(Path path) {
             return new FileEntry(path);
         }
     }
 
-    public record JarFile(Path path) implements ClassPathEntry,FilePathHolder {
+    public record JarFile(Path path) implements ClassPathEntry, FilePathHolder {
         public static JarFile of(Path path) {
             return new JarFile(path);
         }
@@ -618,8 +639,6 @@ public class Bldr {
             }
         }
     }
-
-
 
 
     public sealed interface SourceFile extends TextFile {
@@ -654,8 +673,8 @@ public class Bldr {
         }
 
         JavaSourceFile(Path path) {
-            super(path.toUri(), JavaFileObject.Kind.SOURCE);
-            this.path=path;
+            super(path.toUri(), Kind.SOURCE);
+            this.path = path;
         }
 
         @Override
@@ -765,11 +784,15 @@ public class Bldr {
 
     public static OS os = OS.get();
 
-    public record Java(String version, DirEntry home) {
+    public record Java(String version, DirEntry home, int specVersion) {
     }
 
     public static Java java =
-            new Java(System.getProperty("java.version"), DirEntry.of(System.getProperty("java.home")));
+            new Java(
+                    System.getProperty("java.version"),
+                    DirEntry.of(System.getProperty("java.home")),
+                    Integer.parseInt(System.getProperty("java.specification.version"))
+            );
 
     public record User(DirEntry home, DirEntry pwd) {
     }
@@ -782,16 +805,18 @@ public class Bldr {
         public Builder<?> parent;
         public boolean verbose;
         public boolean quiet;
+
         @SuppressWarnings("unchecked")
         T self() {
             return (T) this;
         }
 
-        public T copy(T other){
+        protected T dontCallThisCopy(T other) {
             this.verbose = other.verbose;
             this.quiet = other.quiet;
             return self();
         }
+
         public T quiet(boolean quiet) {
             this.quiet = quiet;
             return self();
@@ -801,6 +826,7 @@ public class Bldr {
             quiet(true);
             return self();
         }
+
         public T verbose(boolean verbose) {
             this.verbose = verbose;
             return self();
@@ -841,35 +867,63 @@ public class Bldr {
             return self();
         }
 
-        Builder(Builder<?> parent){
+        Builder(Builder<?> parent) {
             this.parent = parent;
         }
-        Builder(){
+
+        Builder() {
             this(null);
+        }
+
+        public T mac(Consumer<OS.Mac> macConsumer) {
+            if (Bldr.os instanceof OS.Mac mac) {
+                macConsumer.accept(mac);
+            }
+            return self();
+        }
+
+        public T linux(Consumer<OS.Linux> linuxConsumer) {
+            if (Bldr.os instanceof OS.Linux linux) {
+                linuxConsumer.accept(linux);
+            }
+            return self();
+        }
+
+        public T os(Consumer<OS.Mac> macConsumer, Consumer<OS.Linux> linuxConsumer) {
+            switch (Bldr.os) {
+                case OS.Linux linux -> linuxConsumer.accept(linux);
+                case OS.Mac mac -> macConsumer.accept(mac);
+                default -> throw new IllegalStateException("Unexpected value: " + Bldr.os);
+            }
+            ;
+            return self();
         }
     }
 
     public abstract static sealed class Result<T extends Builder<T>> permits JExtractResult, JarResult, JavaResult, JavacResult {
         public boolean ok;
         public T builder;
-        Result(T builder){
+
+        Result(T builder) {
             this.builder = builder;
         }
     }
 
     public static class Strings {
         public List<String> strings = new ArrayList<>();
-        Strings(){
 
+        Strings() {
         }
-        Strings(Strings strings){
-            add(strings);
-        }
-        Strings(List<String> strings){
+
+        Strings(Strings strings) {
             add(strings);
         }
 
-        Strings(String ... strings){
+        Strings(List<String> strings) {
+            add(strings);
+        }
+
+        Strings(String... strings) {
             add(strings);
         }
 
@@ -888,31 +942,34 @@ public class Bldr {
             return this;
         }
 
-        public String spaceSeperated() {
+        public String spaceSeparated() {
             StringBuilder stringBuilder = new StringBuilder();
-            strings.forEach(opt->stringBuilder.append(stringBuilder.isEmpty()?"":" ").append(opt));
+            strings.forEach(opt -> stringBuilder.append(stringBuilder.isEmpty() ? "" : " ").append(opt));
             return stringBuilder.toString();
         }
     }
 
 
-    public static sealed  class JavaOpts<T extends JavaOpts<T>> extends Builder<T> {
+    public static sealed class JavaOpts<T extends JavaOpts<T>> extends Builder<T> {
         public DirEntry jdk = java.home;
         public Boolean enablePreview;
-        public Strings modules ;
-        record FromModulePackageToModule(String fromModule, String pkg, String toModule){}
+        public Strings modules;
+
+        record FromModulePackageToModule(String fromModule, String pkg, String toModule) {
+        }
+
         List<FromModulePackageToModule> exports;
 
-        public T copy(T other){
-            super.copy(other);
+        protected T dontCallThisCopy(T other) {
+            super.dontCallThisCopy(other);
             if (other.jdk != null) {
                 this.jdk = other.jdk;
             }
             if (other.enablePreview != null) {
-                this.enablePreview=other.enablePreview;
+                this.enablePreview = other.enablePreview;
             }
             if (other.modules != null) {
-               this.modules = new Strings(other.modules);
+                this.modules = new Strings(other.modules);
             }
             if (other.exports != null) {
                 this.exports = new ArrayList<>(other.exports);
@@ -924,6 +981,7 @@ public class Bldr {
         public JavaOpts(Builder<?> parent) {
             super(parent);
         }
+
         public JavaOpts() {
             super();
         }
@@ -938,15 +996,15 @@ public class Bldr {
         }
 
         public T add_exports(String fromModule, String pkg, String toModule) {
-             if (this.exports == null){
-                 this.exports = new ArrayList<>();
-             }
-             exports.add(new FromModulePackageToModule(fromModule, pkg, toModule));
-             return self();
+            if (this.exports == null) {
+                this.exports = new ArrayList<>();
+            }
+            exports.add(new FromModulePackageToModule(fromModule, pkg, toModule));
+            return self();
         }
 
         public T add_modules(String... modules) {
-            if (this.modules == null){
+            if (this.modules == null) {
                 this.modules = new Strings();
             }
             this.modules.add(modules);
@@ -960,27 +1018,37 @@ public class Bldr {
             return self();
         }
 
+        public T add_exports(String fromModule, String[] packages, String toModule) {
+            return add_exports(fromModule, Arrays.asList(packages), toModule);
+        }
+
+        public T add_exports_to_all_unnamed(String fromModule, String... packages) {
+            return add_exports(fromModule, Arrays.asList(packages), "ALL-UNNAMED");
+        }
+
         public T enable_preview() {
             this.enablePreview = true;
             return self();
         }
 
 
-
     }
 
-    public abstract sealed static class JavaToolBuilder<T extends JavaToolBuilder<T>> extends JavaOpts<T> permits JavacBuilder,JavaBuilder{
+    public abstract sealed static class JavaToolBuilder<T extends JavaToolBuilder<T>> extends JavaOpts<T> permits JavacBuilder, JavaBuilder {
         public ClassPath classPath;
-        public T copy(T other){
-            super.copy(other);
+
+        protected T dontCallThisCopy(T other) {
+            super.dontCallThisCopy(other);
             if (other.classPath != null) {
                 this.classPath = ClassPath.of().add(other.classPath);
             }
             return self();
         }
+
         public JavaToolBuilder(Builder<?> parent) {
             super(parent);
         }
+
         public JavaToolBuilder() {
             super();
         }
@@ -1002,30 +1070,37 @@ public class Bldr {
         public ClassPath modulePath;
         public SourcePath moduleSourcePath;
         public Integer source;
-        public JavacBuilder copy(JavacBuilder other){
-            super.copy(other);
-            if (other.mavenStyleRoot != null){
+        public List<Predicate<JavaSourceFile>> exclusionFilters;
+
+        protected JavacBuilder dontCallThisCopy(JavacBuilder other) {
+            super.dontCallThisCopy(other);
+            if (other.mavenStyleRoot != null) {
                 throw new RuntimeException("You are copying a JavacBuilder which is already bound to maven style dir");
             }
-            if (other.sourcePath != null){
+            if (other.sourcePath != null) {
                 throw new RuntimeException("You are copying a JavacBuilder which is already bound to a SourcePath");
             }
-            if (other.moduleSourcePath != null){
+            if (other.moduleSourcePath != null) {
                 throw new RuntimeException("You are copying a JavacBuilder which is already bound to a ModuleSourcePath");
             }
 
-            if (other.source !=null){
+            if (other.source != null) {
                 this.source = other.source;
             }
 
-            if (other.classPath != null){
+            if (other.classPath != null) {
                 ClassPath.ofOrUse(this.classPath).add(other.classPath);
             }
             return this;
         }
+
         public JavacBuilder source(int version) {
-             this.source = version;
-             return self();
+            this.source = version;
+            return self();
+        }
+
+        public JavacBuilder current_source() {
+            return source(Bldr.java.specVersion);
         }
 
         public JavacBuilder maven_style_root(DirEntry mavenStyleRoot) {
@@ -1043,12 +1118,17 @@ public class Bldr {
             return this;
         }
 
-        public JavacBuilder source_path(List<SourcePathEntry> sourcePaths) {
+        public JavacBuilder d(ClassDir classDir) {
+            this.classDir = classDir;
+            return this;
+        }
+
+        public JavacBuilder source_path(List<SourceDir> sourcePaths) {
             this.sourcePath = SourcePath.ofOrUse(this.sourcePath).add(sourcePaths);
             return this;
         }
 
-        public JavacBuilder source_path(SourcePathEntry... sourcePathEntries) {
+        public JavacBuilder source_path(SourceDir... sourcePathEntries) {
             return source_path(List.of(sourcePathEntries));
         }
 
@@ -1056,12 +1136,12 @@ public class Bldr {
             return source_path(sourcePath.entries);
         }
 
-        public JavacBuilder module_source_path(List<SourcePathEntry> moduleSourcePathEntries) {
+        public JavacBuilder module_source_path(List<SourceDir> moduleSourcePathEntries) {
             this.moduleSourcePath = SourcePath.ofOrUse(this.moduleSourcePath).add(moduleSourcePathEntries);
             return this;
         }
 
-        public JavacBuilder module_source_path(SourcePathEntry... moduleSourcePathEntries) {
+        public JavacBuilder module_source_path(SourceDir... moduleSourcePathEntries) {
             return module_source_path(List.of(moduleSourcePathEntries));
         }
 
@@ -1069,19 +1149,27 @@ public class Bldr {
             return module_source_path(moduleSourcePath.entries());
         }
 
-        public JavacBuilder(){
+        public JavacBuilder() {
             super();
         }
+
         public JavacBuilder(JarBuilder jarBuilder) {
             super(jarBuilder);
         }
+
+        public JavacBuilder exclude(Predicate<JavaSourceFile> javaSourceFileFilter) {
+            this.exclusionFilters = (this.exclusionFilters == null ? new ArrayList<>() : this.exclusionFilters);
+            this.exclusionFilters.add(javaSourceFileFilter);
+            return self();
+        }
     }
 
-    public static final class JavacResult extends Result<JavacBuilder>{
+    public static final class JavacResult extends Result<JavacBuilder> {
         Strings opts = new Strings();
         List<JavaSourceFile> sourceFiles = new ArrayList<>();
         List<JavaFileObject> classes = new ArrayList<>();
-        ClassDir classDir;
+        public ClassDir classDir;
+
         JavacResult(JavacBuilder builder) {
             super(builder);
         }
@@ -1091,21 +1179,21 @@ public class Bldr {
         JavacResult result = new JavacResult(javacBuilder);
 
         try {
-            if (javacBuilder.source != null){
+            if (javacBuilder.source != null) {
                 result.opts.add("--source", javacBuilder.source.toString());
             }
 
-            if (javacBuilder.enablePreview!=null && javacBuilder.enablePreview){
+            if (javacBuilder.enablePreview != null && javacBuilder.enablePreview) {
                 result.opts.add("--enable-preview");
             }
-            if (javacBuilder.modules!=null){
-                javacBuilder.modules.strings.forEach(module->
-                    result.opts.add("--add-modules", module)
+            if (javacBuilder.modules != null) {
+                javacBuilder.modules.strings.forEach(module ->
+                        result.opts.add("--add-modules", module)
                 );
             }
 
-            if (javacBuilder.exports!=null){
-                javacBuilder.exports.forEach(fpt->{
+            if (javacBuilder.exports != null) {
+                javacBuilder.exports.forEach(fpt -> {
                     result.opts.add("--add-exports=" + fpt.fromModule + "/" + fpt.pkg + "=" + fpt.toModule);
                 });
             }
@@ -1114,17 +1202,17 @@ public class Bldr {
             result.opts.add("-d", result.classDir.path().toString());
             if (javacBuilder.classPath != null) {
                 result.opts.add("--class-path", javacBuilder.classPath.charSeparated());
-            }else if (javacBuilder.modulePath != null){
-            //https://dev.java/learn/modules/building/
+            } else if (javacBuilder.modulePath != null) {
+                //https://dev.java/learn/modules/building/
                 result.opts.add("--module-path", javacBuilder.modulePath.charSeparated());
-            }else{
-               // println("Warning no class path or module path ");
+            } else {
+                // println("Warning no class path or module path ");
                 //throw new RuntimeException("No class path or module path provided");
             }
             var mavenStyleRoot =
                     ((javacBuilder.parent instanceof JarBuilder jarBuilder) && jarBuilder.mavenStyleRoot instanceof DirEntry fromJarBuilder)
-                        ?fromJarBuilder
-                        :javacBuilder.mavenStyleRoot;
+                            ? fromJarBuilder
+                            : javacBuilder.mavenStyleRoot;
 
 
             if (mavenStyleRoot == null) {
@@ -1137,37 +1225,59 @@ public class Bldr {
                 } else {
                     throw new RuntimeException("No source path or module source path specified");
                 }
-            }else{
-                var sourcePath = SourcePath.of().add(SourcePathEntry.of(mavenStyleRoot.path.resolve("src/main/java")));
+            } else {
+                var sourcePath = SourcePath.of().add(SourceDir.of(mavenStyleRoot.path.resolve("src/main/java")));
                 result.sourceFiles.addAll(sourcePath.javaFiles().map(JavaSourceFile::new).toList());
+                if (result.sourceFiles.isEmpty()) {
+                    throw new RuntimeException("No sources");
+                }
                 result.opts.add("--source-path", sourcePath.charSeparated());
 
-                if (javacBuilder.sourcePath != null && !javacBuilder.sourcePath.entries.isEmpty()){
-                   throw new RuntimeException("You have specified --source-path AND provided maven_style_root ");
+                if (javacBuilder.sourcePath != null && !javacBuilder.sourcePath.entries.isEmpty()) {
+                    throw new RuntimeException("You have specified --source-path AND provided maven_style_root ");
                 }
             }
+            boolean[] failed = {false};
 
             DiagnosticListener<JavaFileObject> diagnosticListener =
                     (diagnostic) -> {
+                        if (diagnostic.getKind().equals(Diagnostic.Kind.ERROR)) {
+                            failed[0] = true;
+                        }
                         if (!diagnostic.getKind().equals(Diagnostic.Kind.NOTE)) {
                             System.out.println("javac "
                                     + diagnostic.getKind()
-                                            + " "
-                                            +((JavaSourceFile)(diagnostic.getSource())).path().toString()
-                                            +"  "
-                                            + diagnostic.getLineNumber()
-                                            + ":"
-                                            + diagnostic.getColumnNumber()
-                                            + " "
-                                            + diagnostic.getMessage(null));
+                                    + " "
+                                    + ((JavaSourceFile) (diagnostic.getSource())).path().toString()
+                                    + "  "
+                                    + diagnostic.getLineNumber()
+                                    + ":"
+                                    + diagnostic.getColumnNumber()
+                                    + " "
+                                    + diagnostic.getMessage(null));
                         }
                     };
 
-            JavaCompiler javac = javax.tools.ToolProvider.getSystemJavaCompiler();
-             if (javacBuilder.verbose  || javacBuilder.parent instanceof JarBuilder jarBuilder && jarBuilder.verbose) {
-                println("javac "+result.opts.spaceSeperated());
+            JavaCompiler javac = ToolProvider.getSystemJavaCompiler();
+            if (javacBuilder.exclusionFilters != null) {
+                javacBuilder.exclusionFilters.forEach(p -> {
+                    result.sourceFiles = result.sourceFiles.stream().filter(
+                            javaSourceFile -> {
+                                var kill = p.test(javaSourceFile);
+                                if (kill) {
+                                    println("Excluded " + javaSourceFile);
+                                }
+                                return !kill;
+                            }
+                    ).toList();
+                });
             }
-             JavaCompiler.CompilationTask compilationTask =
+            if (javacBuilder.verbose || javacBuilder.parent instanceof JarBuilder jarBuilder && jarBuilder.verbose) {
+                print("javac " + result.opts.spaceSeparated());
+                result.sourceFiles.forEach(s -> print(s + " "));
+                println("");
+            }
+            JavaCompiler.CompilationTask compilationTask =
                     (javac.getTask(
                             new PrintWriter(System.err),
                             javac.getStandardFileManager(diagnosticListener, null, null),
@@ -1176,19 +1286,26 @@ public class Bldr {
                             null,
                             result.sourceFiles
                     ));
-            ((com.sun.source.util.JavacTask) compilationTask).generate().forEach(javaFileObject -> {
+            JavacTask javacTask = (JavacTask) compilationTask;
+
+            javacTask.generate().forEach(javaFileObject -> {
                 result.classes.add(javaFileObject);
             });
+            if (failed[0]) {
+                throw new RuntimeException("javac failed");
+            }
             return result;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
-    public static JavacBuilder javacBuilder(Consumer<JavacBuilder> javacBuilderConsumer){
-        JavacBuilder javacBuilder= new JavacBuilder();
+
+    public static JavacBuilder javacBuilder(Consumer<JavacBuilder> javacBuilderConsumer) {
+        JavacBuilder javacBuilder = new JavacBuilder();
         javacBuilderConsumer.accept(javacBuilder);
         return javacBuilder;
     }
+
     public static JavacResult javac(Consumer<JavacBuilder> javacBuilderConsumer) {
         return javac(javacBuilder(javacBuilderConsumer));
     }
@@ -1203,7 +1320,11 @@ public class Bldr {
 
         public JavaBuilder enable_native_access(String module) {
             nativeAccessModules.add(module);
-             return self();
+            return self();
+        }
+
+        public JavaBuilder enable_native_access_to_all_unnamed() {
+            return enable_native_access("ALL-UNNAMED");
         }
 
         public JavaBuilder args(List<String> args) {
@@ -1236,7 +1357,7 @@ public class Bldr {
         }
 
         public JavaBuilder start_on_first_thread() {
-            this.startOnFirstThread =   true;
+            this.startOnFirstThread = true;
             return this;
         }
 
@@ -1245,8 +1366,9 @@ public class Bldr {
         }
     }
 
-    public static final class JavaResult extends Result<JavaBuilder>{
+    public static final class JavaResult extends Result<JavaBuilder> {
         Strings opts = new Strings();
+
         JavaResult(JavaBuilder javaBuilder) {
             super(javaBuilder);
         }
@@ -1255,29 +1377,29 @@ public class Bldr {
     public static JavaBuilder java(JavaBuilder javaBuilder) {
         JavaResult result = new JavaResult(javaBuilder);
         result.opts.add(javaBuilder.jdk.path().resolve("bin/java").toString());
-        if (javaBuilder.enablePreview != null && javaBuilder.enablePreview){
+        if (javaBuilder.enablePreview != null && javaBuilder.enablePreview) {
             result.opts.add("--enable-preview");
         }
-        if (javaBuilder.modules!=null){
-            javaBuilder.modules.strings.forEach(module->
+        if (javaBuilder.modules != null) {
+            javaBuilder.modules.strings.forEach(module ->
                     result.opts.add("--add-modules", module)
             );
         }
 
-        if (javaBuilder.exports!=null){
-            javaBuilder.exports.forEach(fpt->{
+        if (javaBuilder.exports != null) {
+            javaBuilder.exports.forEach(fpt -> {
                 result.opts.add("--add-exports=" + fpt.fromModule + "/" + fpt.pkg + "=" + fpt.toModule);
             });
         }
         if (javaBuilder.headless) {
             result.opts.add("-Dheadless=true");
         }
-        if (javaBuilder.startOnFirstThread){
+        if (javaBuilder.startOnFirstThread) {
             result.opts.add("-XstartOnFirstThread");
         }
 
-        javaBuilder.nativeAccessModules.strings.forEach(module->
-            result.opts.add("--enable-native-access=" + module)
+        javaBuilder.nativeAccessModules.strings.forEach(module ->
+                result.opts.add("--enable-native-access=" + module)
         );
 
         if (javaBuilder.classPath != null) {
@@ -1293,7 +1415,7 @@ public class Bldr {
             var processBuilder = new ProcessBuilder().inheritIO().command(result.opts.strings);
             var process = processBuilder.start();
             if (javaBuilder.verbose) {
-                println(result.opts.spaceSeperated());
+                println(result.opts.spaceSeparated());
             }
             process.waitFor();
         } catch (InterruptedException | IOException ie) {
@@ -1314,14 +1436,14 @@ public class Bldr {
     }
 
     public static final class FormatBuilder extends Builder<FormatBuilder> {
-        public Bldr.SourcePath sourcePath;
+        public SourcePath sourcePath;
 
-        public FormatBuilder source_path(List<Bldr.SourcePathEntry> sourcePaths) {
-            this.sourcePath = Bldr.SourcePath.ofOrUse(this.sourcePath).add(sourcePaths);
+        public FormatBuilder source_path(List<SourceDir> sourcePaths) {
+            this.sourcePath = SourcePath.ofOrUse(this.sourcePath).add(sourcePaths);
             return this;
         }
 
-        public FormatBuilder source_path(Bldr.SourcePathEntry... sourcePaths) {
+        public FormatBuilder source_path(SourceDir... sourcePaths) {
             return source_path(List.of(sourcePaths));
         }
     }
@@ -1354,27 +1476,27 @@ public class Bldr {
     }
 
     public static final class TestNGBuilder extends Builder<TestNGBuilder> {
-        public Bldr.SourcePath sourcePath;
-        public Bldr.ClassPath classPath;
+        public SourcePath sourcePath;
+        public ClassPath classPath;
         private SuiteBuilder suiteBuilder;
         private JarFile testJar;
 
-        public TestNGBuilder class_path(List<Bldr.ClassPathEntryProvider> classPathEntryProviders) {
-            this.classPath = Bldr.ClassPath.ofOrUse(this.classPath).add(classPathEntryProviders);
+        public TestNGBuilder class_path(List<ClassPathEntryProvider> classPathEntryProviders) {
+            this.classPath = ClassPath.ofOrUse(this.classPath).add(classPathEntryProviders);
             return this;
         }
 
-        public TestNGBuilder class_path(Bldr.ClassPathEntryProvider... classPathEntryProviders) {
+        public TestNGBuilder class_path(ClassPathEntryProvider... classPathEntryProviders) {
             class_path(List.of(classPathEntryProviders));
             return this;
         }
 
-        public TestNGBuilder source_path(List<Bldr.SourcePathEntry> sourcePathEntries) {
-            this.sourcePath = Bldr.SourcePath.ofOrUse(this.sourcePath).add(sourcePathEntries);
+        public TestNGBuilder source_path(List<SourceDir> sourcePathEntries) {
+            this.sourcePath = SourcePath.ofOrUse(this.sourcePath).add(sourcePathEntries);
             return this;
         }
 
-        public TestNGBuilder source_path(Bldr.SourcePathEntry... sourcePathEntries) {
+        public TestNGBuilder source_path(SourceDir... sourcePathEntries) {
             return source_path(List.of(sourcePathEntries));
         }
 
@@ -1456,25 +1578,27 @@ public class Bldr {
                                 })
                         .toString();
 
-        TestNGSuiteFile testNGSuiteFile = Bldr.TestNGSuiteFile.containing(text);
+        println(text);
+
+        TestNGSuiteFile testNGSuiteFile = TestNGSuiteFile.containing(text);
         var mavenJars = repoDir.classPathEntries("org.testng/testng", "org.slf4j/slf4j-api");
 
 
         var testJarResult =
-                jar(jar->jar
-                        .jar(testNGBuilder.testJar)
-                        .javac(javac->javac
+                jar(jar -> jar
+                        .jarFile(testNGBuilder.testJar)
+                        .javac(javac -> javac
                                 .source(24)
-                                                        .enable_preview()
-                                                        .class_path(testNGBuilder.classPath, mavenJars)
-                                                        .source_path(testNGBuilder.sourcePath)
+                                .enable_preview()
+                                .class_path(testNGBuilder.classPath, mavenJars)
+                                .source_path(testNGBuilder.sourcePath)
                         )
                 );
 
         java(
                 $ ->
                         $.enable_preview()
-                                .add_exports("java.base", "jdk.internal", "ALL-UNNAMED")
+                                .add_exports_to_all_unnamed("java.base", "jdk.internal")
                                 .enable_native_access("ALL-UNNAMED")
                                 .class_path(testNGBuilder.classPath, mavenJars, testJarResult)
                                 .main_class("org.testng.TestNG")
@@ -1482,49 +1606,80 @@ public class Bldr {
     }
 
     public static final class JarBuilder extends Builder<JarBuilder> {
-        public static class Manifest{
+        public static class Manifest {
             public String mainClass;
-            public String classPath;
+            public String[] classPath;
             public String version;
             public String createdBy;
             public String buildBy;
+
+            public void writeTo(JarOutputStream jarStream) {
+                PrintWriter printWriter = new PrintWriter(jarStream);
+                if (version != null) {
+                    printWriter.println("Manifest-Version: " + version);
+                }
+                if (mainClass != null) {
+                    printWriter.println("Main-Class: " + mainClass);
+                }
+                if (classPath != null) {
+                    printWriter.print("Class-Path:");
+                    for (String s : classPath) {
+                        printWriter.print(" ");
+                        printWriter.print(s);
+                    }
+                    printWriter.println();
+                }
+                printWriter.flush();
+            }
         }
-        public static final class ManifestBuilder extends Builder<ManifestBuilder>{
+
+        public static final class ManifestBuilder extends Builder<ManifestBuilder> {
 
             Manifest manifest;
 
-            public ManifestBuilder main_class(String mainClass){
+            public ManifestBuilder main_class(String mainClass) {
                 this.manifest.mainClass = mainClass;
                 return self();
             }
-            public ManifestBuilder version(String version){
+
+            public ManifestBuilder version(String version) {
                 this.manifest.version = version;
                 return self();
             }
-            public ManifestBuilder created_by(String createdBy){
+
+            public ManifestBuilder created_by(String createdBy) {
                 this.manifest.createdBy = createdBy;
                 return self();
             }
-            public ManifestBuilder build_by(String buildBy){
+
+            public ManifestBuilder build_by(String buildBy) {
                 this.manifest.buildBy = buildBy;
                 return self();
             }
-            public ManifestBuilder class_path(String classPath){
+
+            public ManifestBuilder class_path(String... classPath) {
                 this.manifest.classPath = classPath;
                 return self();
             }
 
-            ManifestBuilder(Manifest manifest){
+            public ManifestBuilder class_path(ClassPathEntry... classPathEntries) {
+                this.manifest.classPath = Stream.of(classPathEntries).map(classPathEntry -> classPathEntry.path().getFileName().toString()).toArray(String[]::new);
+                return self();
+            }
+
+            ManifestBuilder(Manifest manifest) {
                 this.manifest = manifest;
             }
         }
+
         public DirEntry mavenStyleRoot;
         public JarFile jar;
         public JavacResult javacResult;
         public DirPath dirList;
-      //  public String mainClass;
+        //  public String mainClass;
         public Manifest manifest;
-        public JarBuilder jar(JarFile jar) {
+
+        public JarBuilder jarFile(JarFile jar) {
             this.jar = jar;
             return self();
         }
@@ -1534,8 +1689,8 @@ public class Bldr {
             return this;
         }
 
-        public JarBuilder manifest(Consumer<ManifestBuilder> manifestBuilderConsumer){
-            this.manifest = this.manifest==null?new Manifest():this.manifest;
+        public JarBuilder manifest(Consumer<ManifestBuilder> manifestBuilderConsumer) {
+            this.manifest = this.manifest == null ? new Manifest() : this.manifest;
             var manifestBuilder = new ManifestBuilder(manifest);
             manifestBuilderConsumer.accept(manifestBuilder);
             return self();
@@ -1548,7 +1703,7 @@ public class Bldr {
                     (this.dirList == null)
                             ? DirPath.of().add(this.javacResult.classDir)
                             : this.dirList.add(this.javacResult.classDir);
-            if (mavenStyleRoot!=null){
+            if (mavenStyleRoot != null) {
                 var resources = mavenStyleRoot.dir("src/main/resources");
                 if (resources.exists()) {
                     this.dirList.add(resources);
@@ -1557,8 +1712,15 @@ public class Bldr {
             return self();
         }
 
-        public JavacBuilder javacBuilder(Consumer<JavacBuilder> javacBuilderConsumer){
-            JavacBuilder javacBuilder= new JavacBuilder(this);
+        public JavacBuilder javacBuilder(Consumer<JavacBuilder> javacBuilderConsumer) {
+            JavacBuilder javacBuilder = new JavacBuilder(this);
+            javacBuilderConsumer.accept(javacBuilder);
+            return javacBuilder;
+        }
+
+        public JavacBuilder javacBuilder(JavacBuilder copyMe, Consumer<JavacBuilder> javacBuilderConsumer) {
+            JavacBuilder javacBuilder = new JavacBuilder(this);
+            javacBuilder.dontCallThisCopy(copyMe);
             javacBuilderConsumer.accept(javacBuilder);
             return javacBuilder;
         }
@@ -1567,18 +1729,34 @@ public class Bldr {
             return javac(javacBuilder(javacBuilderConsumer));
         }
 
-        public <P extends DirPathHolder<P>> JarBuilder dir_list(P holder) {
-            this.dirList = DirPath.ofOrUse(this.dirList).add(holder);
+        public JarBuilder javac(JavacBuilder copyMe, Consumer<JavacBuilder> javacBuilderConsumer) {
+            return javac(javacBuilder(copyMe, javacBuilderConsumer));
+        }
+
+        @SuppressWarnings("unchecked")
+        public <P extends DirPathHolder<P>> JarBuilder dir_list(P... holders) {
+            Arrays.asList(holders).forEach(holder ->
+                    this.dirList = DirPath.ofOrUse(this.dirList).add(holder)
+            );
+            return self();
+        }
+
+        @SuppressWarnings("unchecked")
+        public <P extends DirPathHolder<P>> JarBuilder add(P... holders) {
+            Arrays.asList(holders).forEach(holder ->
+                    this.dirList = DirPath.ofOrUse(this.dirList).add(holder)
+            );
             return self();
         }
     }
 
-    public static final class JarResult extends Result<JarBuilder> implements ClassPathEntryProvider{
+    public static final class JarResult extends Result<JarBuilder> implements ClassPathEntryProvider {
         public Strings opts = new Strings();
         public List<RootDirAndSubPath> pathsToJar = new ArrayList<>();
         public List<Path> paths = new ArrayList<>();
         public JarFile jarFile;
-        public String mainClass;
+
+
         public JarResult(JarBuilder jarBuilder) {
             super(jarBuilder);
             this.jarFile = jarBuilder.jar;
@@ -1589,7 +1767,8 @@ public class Bldr {
             return List.of(jarFile);
         }
 
-        @Override public String toString(){
+        @Override
+        public String toString() {
             return jarFile.path.toString();
         }
     }
@@ -1600,8 +1779,18 @@ public class Bldr {
         try {
 
             var jarStream = new JarOutputStream(Files.newOutputStream(jarBuilder.jar.path()));
-            if (jarBuilder.dirList ==null){
+            if (jarBuilder.dirList == null) {
                 throw new RuntimeException("Nothing to jar ");
+            }
+            if (jarBuilder.manifest != null) {
+                // We must add manifest
+                var entry = new JarEntry("META-INF/MANIFEST.MF");
+                // entry.setTime(Files.getLastModifiedTime(rootAndPath.path()).toMillis());
+
+                jarStream.putNextEntry(entry);
+                jarBuilder.manifest.writeTo(jarStream);
+                jarStream.closeEntry();
+
             }
             jarBuilder.dirList.entries.forEach(
                     root ->
@@ -1619,8 +1808,8 @@ public class Bldr {
                                     jarStream.putNextEntry(entry);
                                     Files.newInputStream(rootAndPath.path()).transferTo(jarStream);
                                     jarStream.closeEntry();
-                                    if (jarBuilder.verbose){
-                                        println("INFO: adding "+rootAndPath.relativize().toString());
+                                    if (jarBuilder.verbose) {
+                                        println("INFO: adding " + rootAndPath.relativize().toString());
                                     }
                                 } catch (IOException e) {
                                     throw new RuntimeException(e);
@@ -1628,8 +1817,8 @@ public class Bldr {
                             });
             jarStream.finish();
             jarStream.close();
-            if (jarBuilder.verbose){
-                println("INFO: created "+jarBuilder.jar.path.toString());
+            if (jarBuilder.verbose) {
+                println("INFO: created " + jarBuilder.jar.path.toString());
             }
             return result;
         } catch (IOException e) {
@@ -1637,14 +1826,25 @@ public class Bldr {
         }
     }
 
-    public static JarBuilder jarBuilder(Consumer<JarBuilder> jarBuilderConsumer){
-        JarBuilder jarBuilder= new JarBuilder();
+    public static JarBuilder jarBuilder(Consumer<JarBuilder> jarBuilderConsumer) {
+        JarBuilder jarBuilder = new JarBuilder();
+        jarBuilderConsumer.accept(jarBuilder);
+        return jarBuilder;
+    }
+
+    public static JarBuilder jarBuilder(JarBuilder copyMe, Consumer<JarBuilder> jarBuilderConsumer) {
+        JarBuilder jarBuilder = new JarBuilder();
+        jarBuilder.dontCallThisCopy(copyMe);
         jarBuilderConsumer.accept(jarBuilder);
         return jarBuilder;
     }
 
     public static JarResult jar(Consumer<JarBuilder> jarBuilderConsumer) {
         return jar(jarBuilder(jarBuilderConsumer));
+    }
+
+    public static JarResult jar(JarBuilder copyMe, Consumer<JarBuilder> jarBuilderConsumer) {
+        return jar(jarBuilder(copyMe, jarBuilderConsumer));
     }
 
     public static final class CMakeBuilder extends Builder<CMakeBuilder> {
@@ -1742,61 +1942,81 @@ public class Bldr {
         return dir;
     }
 
+
     public static final class JExtractBuilder extends Builder<JExtractBuilder> {
         public Strings compileFlags = new Strings();
         public List<Path> libraries = new ArrayList<>();
         public List<Path> headers = new ArrayList<>();
         private String targetPackage;
+        private String headerClassName;
         private BuildDir output;
 
-        public JExtractBuilder copy(JExtractBuilder other){
+        protected JExtractBuilder dontCallThisCopy(JExtractBuilder other) {
             this.compileFlags = new Strings(other.compileFlags);
-            if (other.targetPackage != null){
+            if (other.targetPackage != null) {
                 throw new RuntimeException("You are copying jextract builder already bound to a target package");
             }
-            if (other.output != null){
+            if (other.output != null) {
                 throw new RuntimeException("You are copying jextract builder already bound to output directory");
             }
-            if (!other.libraries.isEmpty()){
+            if (!other.libraries.isEmpty()) {
                 throw new RuntimeException("You are copying jextract builder already bound to library(ies)");
             }
-            if (!other.headers.isEmpty()){
+            if (!other.headers.isEmpty()) {
                 throw new RuntimeException("You are copying jextract builder already bound to headers library(ies)");
             }
             return self();
         }
+
         public JExtractBuilder target_package(String targetPackage) {
             this.targetPackage = targetPackage;
-            return  self();
+            return self();
+        }
+
+        public JExtractBuilder header_class_name(String headerClassName) {
+            this.headerClassName = headerClassName;
+            return self();
         }
 
         public JExtractBuilder output(BuildDir output) {
             this.output = output;
-            return  self();
+            return self();
         }
 
         public JExtractBuilder library(Path... libraries) {
             this.libraries.addAll(Arrays.asList(libraries));
-            return  self();
+            return self();
         }
 
         public JExtractBuilder compile_flag(String... compileFlags) {
             this.compileFlags.add(compileFlags);
-            return  self();
+            return self();
         }
 
         public JExtractBuilder header(Path header) {
             this.headers.add(header);
-            return  self();
+            return self();
+        }
+
+        public JExtractBuilder capability(Capabilities.Jextractable jextractable, BuildDir stageDir) {
+            return output(jextractable.stage(stageDir))
+                    .target_package(jextractable.packageName())
+                    .header_class_name(jextractable.headerClassName());
         }
     }
 
-    public static final class JExtractResult extends Result<JExtractBuilder>{
+    public static final class JExtractResult extends Result<JExtractBuilder> {
         public Strings opts = new Strings();
+
         JExtractResult(JExtractBuilder builder) {
             super(builder);
         }
     }
+
+    public static JExtractResult jextract(Capabilities.JExtract jextract, Consumer<JExtractBuilder> jextractBuilderConsumer) {
+      return jextract(JExtractExecutable.of(jextract.path()),jextractBuilderConsumer);
+    }
+
 
     public static JExtractResult jextract(JExtractExecutable executable, Consumer<JExtractBuilder> jextractBuilderConsumer) {
 
@@ -1819,16 +2039,27 @@ public class Bldr {
             result.opts.add("--library", ":" + library);
         }
 
+
+        if (jExtractBuilder.headers.isEmpty()) {
+            throw new RuntimeException("No headers specified");
+        }
         for (Path header : jExtractBuilder.headers) {
+            if (jExtractBuilder.headerClassName != null) {
+                result.opts.add("--header-class-name", jExtractBuilder.headerClassName);
+                System.out.println("header and class name: " + header.toString() + " with " + jExtractBuilder.headerClassName);
+            } else {
+                System.out.println("header: " + header.toString() + " no header className");
+            }
             result.opts.add(header.toString());
         }
+
 
         if (jExtractBuilder.compileFlags != null && !jExtractBuilder.compileFlags.strings.isEmpty()) {
             jExtractBuilder.output.textFile("compile_flags.txt", jExtractBuilder.compileFlags.strings);
         }
 
         if (jExtractBuilder.verbose) {
-            println(result.opts.spaceSeperated());
+            println(result.opts.spaceSeparated());
         }
         var processBuilder = new ProcessBuilder();
         if (jExtractBuilder.output != null) {
@@ -1847,6 +2078,7 @@ public class Bldr {
         static SearchableTextFile of(Path path) {
             return new SearchableTextFile(path);
         }
+
         public Stream<Line> lines() {
             try {
                 int num[] = new int[]{1};
@@ -2035,30 +2267,30 @@ public class Bldr {
             this.dir.clean();
 
             try {
-                this.dir.cmakeLists(cmakeLists-> {
-                        cmakeLists.append(
-                             """
-                             cmake_minimum_required(VERSION 3.21)
-                             project(cmakeprobe)
-                             set(CMAKE_CXX_STANDARD 14)
-                             """
-                        );
+                this.dir.cmakeLists(cmakeLists -> {
+                    cmakeLists.append(
+                            """
+                                    cmake_minimum_required(VERSION 3.21)
+                                    project(cmakeprobe)
+                                    set(CMAKE_CXX_STANDARD 14)
+                                    """
+                    );
 
-                        capabilities.capabilities()
-                                    .filter(capability -> capability instanceof Capabilities.CMakeCapability)
-                                    .map(capability -> (Capabilities.CMakeCapability) capability)
-                                    .forEach(p ->
-                                            cmakeLists.append(p.probeStanza()).append("\n")
-                                    );
-                        cmakeLists.append(
-                             """
-                             get_cmake_property(_variableNames VARIABLES ${VarNames})
-                             foreach(VarName ${_variableNames})
-                                 message("${VarName}={<{${${VarName}}}>}")
-                             endforeach()
-                             """
+                    capabilities.capabilities()
+                            .filter(capability -> capability instanceof Capabilities.CMakeProbeable)
+                            .map(capability -> (Capabilities.CMakeProbeable) capability)
+                            .forEach(p ->
+                                    cmakeLists.append(p.cmakeStanza()).append("\n")
                             );
-                        });
+                    cmakeLists.append(
+                            """
+                                    get_cmake_property(_variableNames VARIABLES ${VarNames})
+                                    foreach(VarName ${_variableNames})
+                                        message("${VarName}={<{${${VarName}}}>}")
+                                    endforeach()
+                                    """
+                    );
+                });
 
                 var cmakeProcessBuilder =
                         new ProcessBuilder()
@@ -2071,9 +2303,9 @@ public class Bldr {
                                 .lines()
                                 .toList();
                 cmakeProcessBuilder.waitFor();
-                this.dir.textFile("rawlines", sb->{
-                    stdinlines.forEach(line-> sb.append(line).append("\n"));
-                   // stderrlines.forEach(line-> sb.append("ERR").append(line).append("\n"));
+                this.dir.textFile("rawlines", sb -> {
+                    stdinlines.forEach(line -> sb.append(line).append("\n"));
+                    // stderrlines.forEach(line-> sb.append("ERR").append(line).append("\n"));
                 });
 
                 String comment = null;
@@ -2135,7 +2367,7 @@ public class Bldr {
                             if (varMap.containsKey(v.name())) {
                                 var theVar = varMap.get(v.name());
                                 if (theVar.value().equals(v.value())) {
-                                  //  println("Skipping duplicate variable name different value: " + v + theVar);
+                                    //  println("Skipping duplicate variable name different value: " + v + theVar);
                                 } else {
                                     throw new IllegalStateException(
                                             "Duplicate variable name different value: " + v + theVar);
@@ -2146,21 +2378,21 @@ public class Bldr {
                             }
                         } else if (CMakeSimpleVar.regex.pattern().matcher(line) instanceof Matcher matcher
                                 && matcher.matches()) {
-                            var v =  new CMakeSimpleVar(matcher);
+                            var v = new CMakeSimpleVar(matcher);
                             if (varMap.containsKey(v.name())) {
                                 var theVar = varMap.get(v.name());
                                 if (theVar.value().equals(v.value())) {
-                                   // println("Skipping duplicate variable name different value: " + v + theVar);
+                                    // println("Skipping duplicate variable name different value: " + v + theVar);
                                 } else {
                                     //throw new IllegalStateException(
-                                      //      "Duplicate variable name different vars: " + v + theVar);
+                                    //      "Duplicate variable name different vars: " + v + theVar);
                                 }
                                 // note we don't replace a Typed with a Simple
                             } else {
                                 varMap.put(v.name(), v);
                             }
                         } else {
-                           // println("Skipping " + line);
+                            // println("Skipping " + line);
                         }
                     }
                 }
@@ -2170,15 +2402,15 @@ public class Bldr {
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            this.dir.textFile("vars", sb-> {
-                varMap.values().forEach(v->sb.append(v.name()).append("<{<").append(v.value().toString()).append(">}>").append("\n"));
+            this.dir.textFile("vars", sb -> {
+                varMap.values().forEach(v -> sb.append(v.name()).append("<{<").append(v.value().toString()).append(">}>").append("\n"));
             });
 
             capabilities
                     .capabilities()
-                    .filter(capability -> capability instanceof Capabilities.CMakeCapability)
-                    .map(capability->(Capabilities.CMakeCapability)capability)
-                    .forEach(capability -> capability.setCmakeProbe(this));
+                    .filter(capability -> capability instanceof Capabilities.CMakeProbeable)
+                    .map(capability -> (Capabilities.CMakeProbeable) capability)
+                    .forEach(capability -> capability.accept(this));
 
         }
 
@@ -2217,263 +2449,391 @@ public class Bldr {
 
 
         public String value(String key) {
-            var  v = varMap.get(key);
+            var v = varMap.get(key);
             return v.value().toString();
         }
 
-        public  boolean hasKey(String includeDirKey) {
+        public boolean hasKey(String includeDirKey) {
             return varMap.containsKey(includeDirKey);
         }
 
     }
 
+    public interface CapabilityHolder {
+        Capabilities.Capability capability();
+    }
+
     public static class Capabilities {
-        interface Probe{
+
+        interface Probe {
 
         }
-        public static abstract class Capability {
+
+        public static abstract class Capability implements CapabilityHolder {
             final public String name;
+
             protected Capability(String name) {
-                this.name=name;
+                this.name = name;
             }
+
+            public String name() {
+                return name;
+            }
+
             public abstract boolean available();
 
-
+            @Override
+            public Capability capability() {
+                return this;
+            }
         }
-        public static abstract class CMakeCapability extends Capability {
-            CMakeProbe cmakeProbe;
-            CMakeCapability(String name) {
-                super(name);
+
+        public interface CMakeProbeable extends Consumer<Bldr.CMakeProbe> {
+
+            // void setCmakeProbe(Bldr.CMakeProbe cmakeProbe);
+            String cmakeStanza();
+        }
+
+        public interface Jextractable {
+
+
+            String name();
+
+
+            default BuildDir stage(BuildDir stage) {
+                return stage.buildDir(packageName() + "_jextracted");
             }
-            public  void setCmakeProbe(CMakeProbe cmakeProbe){
-                this.cmakeProbe = cmakeProbe;
+
+
+            default String packageName() {
+                return name().toLowerCase();
             }
-            public abstract String probeStanza();
+
+
+            default String headerClassName() {
+                return packageName() + "_h";
+            }
+
+            default JarFile jarFile(BuildDir buildDir) {
+                return buildDir.jarFile(packageName() + ".jar");
+            }
         }
 
         public Map<String, Capability> capabilityMap = new HashMap<>();
 
-        public static Capabilities of(Capability... capabilities) {
-            return new Capabilities(capabilities);
+        public static Capabilities of(CapabilityHolder... capabilityHolders) {
+            return new Capabilities(capabilityHolders);
         }
 
         public Stream<Capability> capabilities() {
             return capabilityMap.values().stream();
         }
+
         public Stream<Capability> capabilities(Predicate<Capability> filter) {
             return capabilities().filter(filter);
         }
 
         public boolean capabilityIsAvailable(String name) {
-            return capabilities().anyMatch(c-> c.name.equalsIgnoreCase(name));
+            return capabilities().anyMatch(c -> c.name.equalsIgnoreCase(name));
         }
 
-        private Capabilities(Capability... capabilities){
-            List.of(capabilities).forEach(capability ->
-                    capabilityMap.put(capability.name, capability)
+        private Capabilities(CapabilityHolder... capabilityHolders) {
+            List.of(capabilityHolders).forEach(capabilityHolder ->
+                    capabilityMap.put(capabilityHolder.capability().name, capabilityHolder.capability())
             );
 
         }
 
-        public static class OpenCL extends CMakeCapability {
-            public static String includeDirKey  = "CMAKE_OpenCL_INCLUDE_DIR";
-            public static String libKey  = "CMAKE_OpenCL_LIBRARY";
+        public static final class OpenCL extends Capability implements CMakeProbeable, Jextractable {
+            public static String includeDirKey = "CMAKE_OpenCL_INCLUDE_DIR";
+            public static String libKey = "CMAKE_OpenCL_LIBRARY";
+            public static String foundKey = "CMAKE_OPENCL_FOUND";
             public static String osxSysroot = "CMAKE_OSX_SYSROOT";
+
             public OpenCL() {
                 super("OpenCL");
             }
-            public static OpenCL of(){
+
+            public static OpenCL of() {
                 return new OpenCL();
             }
+
             @Override
-            public String probeStanza() {
+            public String cmakeStanza() {
                 return
                         """
-                        find_package(OpenCL)
-                        if(OPENCL_FOUND)
-                            if (APPLE)
-                               set(OPENCL_FRAMEWORK "-framework OpenGL")
-                               set(OPENCL_INCLUDE_DIR "-framework OpenCL")
-                               set(OPENCL_LIBRARY_DIR "-framework OpenCL")
-                            else()
-                               set(OPENCL_LIB "OpenCL")
-                            endif()
-                        endif()
-                        """;
+                                find_package(OpenCL)
+                                if(OPENCL_FOUND)
+                                    if (APPLE)
+                                       set(OPENCL_INCLUDE_DIR "-framework OpenCL")
+                                       set(OPENCL_LIBRARY_DIR "-framework OpenCL")
+                                    else()
+                                       set(OPENCL_LIB "OpenCL")
+                                    endif()
+                                endif()
+                                """;
             }
+
             public String appLibFrameworks() {
                 return cmakeProbe.value(osxSysroot);
             }
 
             @Override
             public boolean available() {
-                return cmakeProbe.hasKey(includeDirKey);
+                return cmakeProbe.hasKey(foundKey) && cmakeProbe.value(foundKey).equals("TRUE");
             }
-            public String lib(){
+
+            public String lib() {
                 return cmakeProbe.value(libKey);
             }
 
-            public String includeDir(){
+            public String includeDir() {
                 return cmakeProbe.value(includeDirKey);
             }
+
+            public Bldr.CMakeProbe cmakeProbe;
+
+            @Override
+            public void accept(Bldr.CMakeProbe cmakeProbe) {
+                this.cmakeProbe = cmakeProbe;
+            }
+
+
         }
 
-        public static class OpenGL extends CMakeCapability {
-            public static String includeDirKey  = "CMAKE_OPENGL_INCLUDE_DIR";
-            public static String libKey  = "CMAKE_OPENGL_LIBRARY";
+        public static final class OpenGL extends Capability implements CMakeProbeable, Jextractable {
+            public static String glutIncludeDirKey = "CMAKE_GLUT_INCLUDE_DIR";
+            public static String openGLIncludeDirKey = "CMAKE_OPENGL_INCLUDE_DIR";
+            public static String libKey = "CMAKE_OPENGL_LIBRARY";
             public static String osxSysroot = "CMAKE_OSX_SYSROOT";
+
             public OpenGL() {
                 super("OpenGL");
             }
-            public static OpenGL of(){
+
+            public static OpenGL of() {
                 return new OpenGL();
             }
+
             @Override
             public boolean available() {
-                return cmakeProbe.hasKey(includeDirKey);
+                return cmakeProbe.hasKey(openGLIncludeDirKey);
             }
-            DirEntry includeDir(){
-                return DirEntry.of(Path.of(cmakeProbe.value(includeDirKey)));
+
+            public DirEntry openglIncludeDir() {
+                return DirEntry.of(Path.of(cmakeProbe.value(openGLIncludeDirKey)) + "/Headers");
+            }
+
+            public DirEntry glutIncludeDir() {
+                return DirEntry.of("/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.0.sdk/System/Library/Frameworks/GLUT.framework/Headers");
+                // return DirEntry.of(Path.of(cmakeProbe.value(glutIncludeDirKey))+"/Headers");
             }
 
             public String appLibFrameworks() {
                 return cmakeProbe.value(osxSysroot);
             }
-           // public Path frameworkLibrary(String frameworkName) {
-           //     return Path.of(appLibFrameworks()).resolve(frameworkName + ".framework/" + frameworkName);
-          //  }
 
-            public Path lib(String frameworkName ) {
+            // public Path frameworkLibrary(String frameworkName) {
+            //     return Path.of(appLibFrameworks()).resolve(frameworkName + ".framework/" + frameworkName);
+            //  }
+            public String lib() {
+                return cmakeProbe.value(libKey);
+            }
+
+            public Path lib(String frameworkName) {
                 return Path.of(cmakeProbe.value(libKey).split(";")[0]).resolve(frameworkName + ".framework/" + frameworkName);
             }
+
             @Override
-            public String probeStanza() {
+            public String cmakeStanza() {
                 return
                         """
-                        find_package(OpenGL)
-                        if(OPENGL_FOUND)
-                            if (APPLE)
-                               set(OPENGL_FRAMEWORK "-framework OpenGL")
-                            else()
-                               set(OPENCL_LIB "OpenCL")
-                            endif()
-                        else()
-                            message("NO OPENGL FOUND")
-                        endif()
-                        """;
+                                find_package(OpenGL)
+                                if(OPENGL_FOUND)
+                                    if (APPLE)
+                                       set(OPENGL_FRAMEWORK "-framework OpenGL")
+                                    else()
+                                       set(OPENCL_LIB "OpenCL")
+                                    endif()
+                                else()
+                                    message("NO OPENGL FOUND")
+                                endif()
+                                """;
             }
 
+            public Bldr.CMakeProbe cmakeProbe;
+
+            @Override
+            public void accept(Bldr.CMakeProbe cmakeProbe) {
+
+                this.cmakeProbe = cmakeProbe;
+/*
+                cmakeProbe.varMap.forEach((k, v) -> {
+                    if (k.toUpperCase().contains("OPENGL")) {
+                        println(k);
+                    }
+                    if (k.toUpperCase().contains("GLUT")) {
+                        println(k);
+                    }
+                }); */
+
+            }
         }
 
-        public static class HIP extends CMakeCapability {
+        public static final class HIP extends Capability implements CMakeProbeable, Jextractable {
             public HIP() {
                 super("HIP");
             }
-            public static HIP of(){
+
+            public static HIP of() {
                 return new HIP();
             }
+
             @Override
             public boolean available() {
                 return false;
             }
+
             @Override
-            public String probeStanza() {
+            public String cmakeStanza() {
                 return
                         """
-                        find_package(HIP)
-                        if(HIP_FOUND)
+                                find_package(HIP)
+                                if(HIP_FOUND)
 
-                        else()
-                            message("NO HIP FOUND")
-                        endif()
-                        """;
+                                else()
+                                    message("NO HIP FOUND")
+                                endif()
+                                """;
+            }
+
+            public Bldr.CMakeProbe cmakeProbe;
+
+            @Override
+            public void accept(Bldr.CMakeProbe cmakeProbe) {
+
+                this.cmakeProbe = cmakeProbe;
             }
 
         }
-        public static class CUDA extends CMakeCapability {
-            public static String sdkRootDirKey  = "CMAKE_CUDA_SDK_ROOT_DIR";
-            public static String sdkRootDirNotFoundValue  = "CUDA_SDK_ROOT_DIR-NOTFOUND";
+
+        public static final class CUDA extends Capability implements CMakeProbeable, Jextractable {
+            public static String sdkRootDirKey = "CMAKE_CUDA_SDK_ROOT_DIR";
+            public static String sdkRootDirNotFoundValue = "CUDA_SDK_ROOT_DIR-NOTFOUND";
+
             public CUDA() {
                 super("CUDA");
             }
-            public static CUDA of(){
+
+            public static CUDA of() {
                 return new CUDA();
             }
+
             @Override
             public boolean available() {
                 return cmakeProbe.hasKey(sdkRootDirKey) && !cmakeProbe.value(sdkRootDirKey).equals(sdkRootDirNotFoundValue);
             }
+
             @Override
-            public String probeStanza() {
+            public String cmakeStanza() {
                 return
                         """
-                        find_package(CUDAToolkit)
-                        if(CUDAToolkit_FOUND)
-                            set(CUDA_FOUND true)
-                            set(CUDA_INCLUDE_DIR ${CUDAToolkit_INCLUDE_DIR})
-                            set(CUDA_LIBRARY_DIR ${CUDAToolkit_LIBRARY_DIR})
-                            set(CUDA_LIBRARIES "-lcudart -lcuda")
-                        else()
-                            message("NO CUDA FOUND")
-                        endif()
-                        """;
+                                find_package(CUDAToolkit)
+                                if(CUDAToolkit_FOUND)
+                                    set(CUDA_FOUND true)
+                                    set(CUDA_INCLUDE_DIR ${CUDAToolkit_INCLUDE_DIR})
+                                    set(CUDA_LIBRARY_DIR ${CUDAToolkit_LIBRARY_DIR})
+                                    set(CUDA_LIBRARIES "-lcudart -lcuda")
+                                else()
+                                    message("NO CUDA FOUND")
+                                endif()
+                                """;
+            }
+
+            public Bldr.CMakeProbe cmakeProbe;
+
+            @Override
+            public void accept(Bldr.CMakeProbe cmakeProbe) {
+                this.cmakeProbe = cmakeProbe;
             }
 
         }
 
-        public static class JExtract extends Bldr.Capabilities.Capability{
-            public Bldr.JExtractExecutable executable;
-            JExtract(){
+        public static final class JExtract extends Capability implements Executable {
+            public JExtractExecutable executable;
+
+            JExtract() {
                 super("JExtract");
-                var  optionalExe = fromPATH("jextract");
-                if (optionalExe.isEmpty()){
-                    println("jextract not in path");
-                }else{
-                    executable = Bldr.JExtractExecutable.of(optionalExe.get());
+                var optionalExe = fromPATH("jextract");
+                if (optionalExe.isEmpty()) {
+                    //  println("jextract not in path");
+                } else {
+                    executable = JExtractExecutable.of(optionalExe.get());
                 }
 
             }
+
+            JExtract(Path executable) {
+                super("JExtract");
+                this.executable = JExtractExecutable.of(executable);
+            }
+
             @Override
             public boolean available() {
                 return executable != null && executable.exists();
             }
 
-            public static JExtract of(){
+            public static JExtract of() {
                 return new JExtract();
             }
 
+            public static JExtract of(Path executable) {
+                return new JExtract(executable);
+            }
+
+
+            @Override
+            public Path path() {
+                return executable.path;
+            }
         }
 
-        public static class CMake extends Bldr.Capabilities.Capability{
-            public Bldr.JExtractExecutable executable;
+        public static final class CMake extends Capability implements Executable {
+            public JExtractExecutable executable;
             public Bldr.CMakeProbe cmakeProbe;
-            CMake(){
-                super("CMake");
-                var  optionalExe = fromPATH("cmake");
-                if (optionalExe.isEmpty()){
-                    println("cmake not in path");
-                }else{
-                    executable = Bldr.JExtractExecutable.of(optionalExe.get());
-                }
 
+            CMake() {
+                super("CMake");
+                var optionalExe = fromPATH("cmake");
+                if (optionalExe.isEmpty()) {
+                    println("cmake not in path");
+                } else {
+                    executable = JExtractExecutable.of(optionalExe.get());
+                }
             }
+
             @Override
             public boolean available() {
                 return executable != null && executable.exists();
             }
 
-            public static CMake of(){
+            public static CMake of() {
                 return new CMake();
             }
 
             public void probe(BuildDir buildDir, Capabilities capabilities) {
                 this.cmakeProbe = new Bldr.CMakeProbe(buildDir, capabilities);
             }
+
+            @Override
+            public Path path() {
+                return executable.path();
+            }
         }
 
     }
 
-    static record Regex(Pattern pattern) {
+    public record Regex(Pattern pattern) {
         Regex(String regex) {
             this(Pattern.compile(regex));
         }
@@ -2493,30 +2853,25 @@ public class Bldr {
     }
 
     public static class XMLNode {
-        org.w3c.dom.Element element;
+        Element element;
         List<XMLNode> children = new ArrayList<>();
         Map<String, String> attrMap = new HashMap<>();
 
         public static class AbstractXMLBuilder<T extends AbstractXMLBuilder<T>> {
-            final public org.w3c.dom.Element element;
+            final public Element element;
+
             @SuppressWarnings("unchecked")
             public T self() {
                 return (T) this;
             }
 
             public T attr(String name, String value) {
-                // var att = element.getOwnerDocument().createAttribute(name);
-                // att.setValue(value);
                 element.setAttribute(name, value);
-                // element.appendChild(att);
                 return self();
             }
 
             public T attr(URI uri, String name, String value) {
-                // var att = element.getOwnerDocument().createAttribute(name);
-                // att.setValue(value);
                 element.setAttributeNS(uri.toString(), name, value);
-                // element.appendChild(att);
                 return self();
             }
 
@@ -2574,7 +2929,7 @@ public class Bldr {
             }
         }
 
-        public static class PomXmlBuilder extends AbstractXMLBuilder<bldr.Bldr.XMLNode.PomXmlBuilder> {
+        public static class PomXmlBuilder extends AbstractXMLBuilder<PomXmlBuilder> {
             PomXmlBuilder(Element element) {
                 super(element);
             }
@@ -2639,6 +2994,7 @@ public class Bldr {
                         "1.8",
                         pomXmlBuilderConsumer);
             }
+
             public PomXmlBuilder surefirePlugin(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
                 return plugin(
                         "org.apache.maven.plugins",
@@ -2652,8 +3008,8 @@ public class Bldr {
                 return plugin(
                         "org.apache.maven.plugins",
                         "maven-compiler-plugin",
-                        "3.11.0",pomXmlBuilderConsumer
-                      );
+                        "3.11.0", pomXmlBuilderConsumer
+                );
             }
 
             public PomXmlBuilder execPlugin(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
@@ -2750,10 +3106,10 @@ public class Bldr {
             public PomXmlBuilder ant(
                     String id, String phase, String goal, Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
                 return execution(execution -> execution
-                                        .id(id)
-                                        .phase(phase)
-                                        .goals(gs -> gs.goal(goal))
-                                        .configuration(configuration -> configuration.target(pomXmlBuilderConsumer)));
+                        .id(id)
+                        .phase(phase)
+                        .goals(gs -> gs.goal(goal))
+                        .configuration(configuration -> configuration.target(pomXmlBuilderConsumer)));
             }
 
             public PomXmlBuilder goals(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
@@ -2787,6 +3143,7 @@ public class Bldr {
             public PomXmlBuilder dependsOn(String groupId, String artifactId, String version) {
                 return element("dependencies", $ -> $.dependency(groupId, artifactId, version));
             }
+
             public PomXmlBuilder dependsOn(String groupId, String artifactId, String version, String phase) {
                 return element("dependencies", $ -> $.dependency(groupId, artifactId, version, phase));
             }
@@ -2807,9 +3164,11 @@ public class Bldr {
             public PomXmlBuilder modules(Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
                 return element("modules", pomXmlBuilderConsumer);
             }
+
             public PomXmlBuilder modules(List<String> modules) {
                 return element("modules", $ -> $.forEach(modules.stream(), $::module));
             }
+
             public PomXmlBuilder modules(String... modules) {
                 return modules(List.of(modules));
             }
@@ -2821,6 +3180,7 @@ public class Bldr {
             public PomXmlBuilder property(String name, String value) {
                 return element(name, $ -> $.text(value));
             }
+
             public PomXmlBuilder antproperty(String name, String value) {
                 return element("property", $ -> $.attr("name", name).attr("value", value));
             }
@@ -2846,7 +3206,7 @@ public class Bldr {
             }
 
             public PomXmlBuilder antjar(String basedir, String include, String destfile) {
-                return element("jar", $ -> $.attr("basedir", basedir).attr("includes", include+"/**").attr("destfile", destfile));
+                return element("jar", $ -> $.attr("basedir", basedir).attr("includes", include + "/**").attr("destfile", destfile));
             }
 
             public PomXmlBuilder echo(String message) {
@@ -2922,7 +3282,7 @@ public class Bldr {
             }
         }
 
-        public static class ImlBuilder extends AbstractXMLBuilder<bldr.Bldr.XMLNode.ImlBuilder> {
+        public static class ImlBuilder extends AbstractXMLBuilder<ImlBuilder> {
 
             ImlBuilder(Element element) {
                 super(element);
@@ -3150,8 +3510,8 @@ public class Bldr {
             }
         }
 
-        public static class XMLBuilder extends AbstractXMLBuilder<bldr.Bldr.XMLNode.XMLBuilder> {
-           XMLBuilder(Element element) {
+        public static class XMLBuilder extends AbstractXMLBuilder<XMLBuilder> {
+            XMLBuilder(Element element) {
                 super(element);
             }
 
@@ -3168,7 +3528,7 @@ public class Bldr {
 
             try {
                 var doc =
-                        javax.xml.parsers.DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
+                        DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
                 var element = doc.createElement(nodeName);
                 doc.appendChild(element);
                 XMLBuilder xmlBuilder = new XMLBuilder(element);
@@ -3182,7 +3542,7 @@ public class Bldr {
         static XMLNode createIml(String commentText, Consumer<ImlBuilder> imlBuilderConsumer) {
             try {
                 var doc =
-                        javax.xml.parsers.DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
+                        DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
                 var uri1 = URI.create("http://maven.apache.org/POM/4.0.0");
                 var uri2 = URI.create("http://www.w3.org/2001/XMLSchema-instance");
                 var uri3 = URI.create("http://maven.apache.org/xsd/maven-4.0.0.xsd");
@@ -3203,7 +3563,7 @@ public class Bldr {
                 String commentText, Consumer<PomXmlBuilder> pomXmlBuilderConsumer) {
             try {
                 var doc =
-                        javax.xml.parsers.DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
+                        DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
 
                 var uri1 = URI.create("http://maven.apache.org/POM/4.0.0");
                 var uri2 = URI.create("http://www.w3.org/2001/XMLSchema-instance");
@@ -3224,7 +3584,7 @@ public class Bldr {
         static XMLNode create(URI uri, String nodeName, Consumer<XMLBuilder> xmlBuilderConsumer) {
             try {
                 var doc =
-                        javax.xml.parsers.DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
+                        DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
                 var element = doc.createElementNS(uri.toString(), nodeName);
                 doc.appendChild(element);
                 XMLBuilder xmlBuilder = new XMLBuilder(element);
@@ -3245,7 +3605,7 @@ public class Bldr {
                 }
             }
             for (int i = 0; i < element.getAttributes().getLength(); i++) {
-                if (element.getAttributes().item(i) instanceof org.w3c.dom.Attr attr) {
+                if (element.getAttributes().item(i) instanceof Attr attr) {
                     this.attrMap.put(attr.getName(), attr.getValue());
                 }
             }
@@ -3261,7 +3621,7 @@ public class Bldr {
 
         static Document parse(InputStream is) {
             try {
-                return javax.xml.parsers.DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(is);
+                return DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(is);
             } catch (ParserConfigurationException | SAXException | IOException e) {
                 throw new RuntimeException(e);
             }
@@ -3454,7 +3814,7 @@ public class Bldr {
             }
         }
 
-        public sealed interface Id permits DependencyId, bldr.Bldr.MavenStyleRepository.MetaDataId {
+        public sealed interface Id permits DependencyId, MetaDataId {
             MavenStyleRepository mavenStyleRepository();
 
             GroupAndArtifactId groupAndArtifactId();
@@ -3516,11 +3876,11 @@ public class Bldr {
                                 dependency ->
                                         new DependencyId(
                                                 metaDataId().mavenStyleRepository(),
-                                                bldr.Bldr.MavenStyleRepository.GroupAndArtifactId.of(
-                                                        bldr.Bldr.MavenStyleRepository.GroupId.of(dependency.xpathQueryString("groupId/text()")),
-                                                        bldr.Bldr.MavenStyleRepository.ArtifactId.of(dependency.xpathQueryString("artifactId/text()"))),
-                                                bldr.Bldr.MavenStyleRepository.VersionId.of(dependency.xpathQueryString("version/text()")),
-                                                bldr.Bldr.MavenStyleRepository.Scope.of(dependency.xpathQueryString("scope/text()")),
+                                                GroupAndArtifactId.of(
+                                                        GroupId.of(dependency.xpathQueryString("groupId/text()")),
+                                                        ArtifactId.of(dependency.xpathQueryString("artifactId/text()"))),
+                                                VersionId.of(dependency.xpathQueryString("version/text()")),
+                                                Scope.of(dependency.xpathQueryString("scope/text()")),
                                                 !Boolean.parseBoolean(dependency.xpathQueryString("optional/text()"))));
             }
 
@@ -3567,7 +3927,7 @@ public class Bldr {
                         yield Optional.empty();
                     }
                 }
-                default -> throw new IllegalStateException("Unexpected value: " + id);
+
             };
         }
 
@@ -3650,17 +4010,17 @@ public class Bldr {
                     var resolveSet = new HashSet<>(unresolved);
                     unresolved.clear();
                     resolveSet.forEach(id -> {
-                                if (repo.pom(id) instanceof Optional<Pom> p && p.isPresent()) {
-                                    p.get()
-                                            .requiredDependencies()
-                                            .filter(dependencyId -> !dependencyId.scope.equals(Scope.TEST))
-                                            .forEach(
-                                                    dependencyId -> {
-                                                        unresolved.add(dependencyId);
-                                                        add(id, dependencyId);
-                                                    });
-                                }
-                            });
+                        if (repo.pom(id) instanceof Optional<Pom> p && p.isPresent()) {
+                            p.get()
+                                    .requiredDependencies()
+                                    .filter(dependencyId -> !dependencyId.scope.equals(Scope.TEST))
+                                    .forEach(
+                                            dependencyId -> {
+                                                unresolved.add(dependencyId);
+                                                add(id, dependencyId);
+                                            });
+                        }
+                    });
                 }
                 removeUNSPECIFIED();
             }
@@ -3697,30 +4057,30 @@ public class Bldr {
         }
 
         public ClassPathEntryProvider classPathEntries(List<GroupAndArtifactId> rootGroupAndArtifactIds) {
-          StringBuilder sb = new StringBuilder();
-          rootGroupAndArtifactIds.forEach(groupAndArtifactId->sb.append(sb.isEmpty() ?"":"-").append(groupAndArtifactId.groupId+"-"+groupAndArtifactId.artifactId));
-          System.out.println(sb);
-          ClassPathEntryProvider classPathEntries=null;
-          var pathFileName = sb+"-path.xml";
-          var pathFile = dir.xmlFile(pathFileName);
-          if (pathFile.exists()){
-              System.out.println(pathFileName + " exists " + pathFile.path().toString());
-              XMLNode path = new XMLNode(pathFile.path());
-              ClassPath classPath = ClassPath.of();
-              path.nodes(path.xpath("/path/jar/text()")).forEach(e->
-                      classPath.add(dir.jarFile(e.getNodeValue()))
-              );
-              classPathEntries = classPath;
-          }else {
-             var finalClassPathEntries =  new Dag(this, rootGroupAndArtifactIds);
-                  XMLNode.create("path", xml-> {
-                      finalClassPathEntries.classPathEntries().forEach(cpe ->
-                              xml.element("jar",jar->jar.text(dir.path().relativize(cpe.path()).toString()))
-                      );
-                  }).write(pathFile);
-             System.out.println("created "+pathFile.path());
-             classPathEntries = finalClassPathEntries;
-          }
+            StringBuilder sb = new StringBuilder();
+            rootGroupAndArtifactIds.forEach(groupAndArtifactId -> sb.append(sb.isEmpty() ? "" : "-").append(groupAndArtifactId.groupId + "-" + groupAndArtifactId.artifactId));
+            System.out.println(sb);
+            ClassPathEntryProvider classPathEntries = null;
+            var pathFileName = sb + "-path.xml";
+            var pathFile = dir.xmlFile(pathFileName);
+            if (pathFile.exists()) {
+                System.out.println(pathFileName + " exists " + pathFile.path().toString());
+                XMLNode path = new XMLNode(pathFile.path());
+                ClassPath classPath = ClassPath.of();
+                path.nodes(path.xpath("/path/jar/text()")).forEach(e ->
+                        classPath.add(dir.jarFile(e.getNodeValue()))
+                );
+                classPathEntries = classPath;
+            } else {
+                var finalClassPathEntries = new Dag(this, rootGroupAndArtifactIds);
+                XMLNode.create("path", xml -> {
+                    finalClassPathEntries.classPathEntries().forEach(cpe ->
+                            xml.element("jar", jar -> jar.text(dir.path().relativize(cpe.path()).toString()))
+                    );
+                }).write(pathFile);
+                System.out.println("created " + pathFile.path());
+                classPathEntries = finalClassPathEntries;
+            }
             return classPathEntries;
         }
 
@@ -3900,10 +4260,10 @@ public class Bldr {
                                 xmln ->
                                         new MetaDataId(
                                                 this.mavenStyleRepository,
-                                                bldr.Bldr.MavenStyleRepository.GroupAndArtifactId.of(
-                                                        bldr.Bldr.MavenStyleRepository.GroupId.of(xmln.xpathQueryString("str[@name='g']/text()")),
-                                                        bldr.Bldr.MavenStyleRepository.ArtifactId.of(xmln.xpathQueryString("str[@name='a']/text()"))),
-                                                bldr.Bldr.MavenStyleRepository.VersionId.of(xmln.xpathQueryString("str[@name='v']/text()")),
+                                                GroupAndArtifactId.of(
+                                                        GroupId.of(xmln.xpathQueryString("str[@name='g']/text()")),
+                                                        ArtifactId.of(xmln.xpathQueryString("str[@name='a']/text()"))),
+                                                VersionId.of(xmln.xpathQueryString("str[@name='v']/text()")),
                                                 new HashSet<>(
                                                         xmln.nodes(xmln.xpath("arr[@name='ec']/str/text()"))
                                                                 .map(Node::getNodeValue)
@@ -3956,11 +4316,6 @@ public class Bldr {
                     // println(url);
                     var xmlNode =
                             queryAndCache(url, dir.xmlFile(groupAndArtifactId.artifactId() + ".meta.xml"));
-                    // var numFound2 = xmlNode.xpathQueryString("/response/result/@numFound");
-                    // var start = xmlNode.xpathQueryString("/response/result/@start");
-                    // var rows =
-                    // xmlNode.xpathQueryString("/response/lst[@name='responseHeader']/lst[@name='params']/str[@name='rows']/text()");
-                    // println("numFound = "+numFound+" rows ="+rows+ " start ="+start);
                     if (numFound.isEmpty() || numFound.equals("0")) {
                         return Optional.empty();
                     } else {
@@ -4096,6 +4451,5 @@ public class Bldr {
                 compiler = new Compiler(intellijDir, new XMLNode(ideaDir.xmlFile("compiler.xml").path()));
             }
         }
-
     }
 }
