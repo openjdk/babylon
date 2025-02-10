@@ -105,26 +105,13 @@ void main(String[] args) {
         if (openclCapability.available()) {
             if (!openclCapability.jarFile(buildDir).exists()) {
                 if (!openclCapability.stage(stageDir).exists()) {
-                    jextract(jextractCapability.executable, $ -> $
-                            .verbose(verbose)
-                            .capability(openclCapability,stageDir)
-                            .os(
-                                    mac -> $
-                                            .compile_flag("-F" + openclCapability.appLibFrameworks() + "/System/library/Frameworks")
-                                            .library(mac.frameworkLibrary("OpenCL"))
-                                            .header(Path.of(openclCapability.includeDir()).resolve("Headers/opencl.h")),
-                                    linux -> {
-                                        throw new RuntimeException("Unsupported OS: " + os);
-                                    }
-                            )
-                    );
+                    jextract(jextractCapability.executable, $ -> $ .verbose(verbose) .capability(openclCapability,stageDir));
                 }else{
                     out.println("Using previously extracted  "+openclCapability.stage(buildDir).fileName());
                 }
-                jar(jar ->
-                            jar
-                                    .jarFile(openclCapability.jarFile(buildDir))
-                                    .javac(javac -> javac.current_source().source_path(SourceDir.of(openclCapability.stage(stageDir).path())))
+                jar(jar -> jar
+                    .jarFile(openclCapability.jarFile(buildDir))
+                    .javac(javac -> javac.current_source().source_path(SourceDir.of(openclCapability.stage(stageDir).path())))
 
                 );
             }else{
@@ -137,19 +124,7 @@ void main(String[] args) {
         if (openglCapability.available()) {
             if (!openglCapability.jarFile(buildDir).exists()) {
                 if (!openglCapability.stage(stageDir).exists()) {
-                    jextract(jextractCapability, $ -> $
-                            .verbose(verbose)
-                            .capability(openglCapability, stageDir)
-                            .os(
-                                    mac -> $
-                                            .compile_flag("-F" + openglCapability.appLibFrameworks() + "/System/library/Frameworks")
-                                            .library(mac.frameworkLibrary("GLUT"), mac.frameworkLibrary("OpenGL"))
-                                            .header(mac.frameworkHeader("GLUT", "glut.h")),
-                                    linux -> {
-                                        throw new RuntimeException("Unsupported OS: " + os);
-                                    }
-                            )
-                    );
+                    jextract(jextractCapability, $ -> $ .verbose(verbose) .capability(openglCapability, stageDir));
                 }else{
                     out.println("Using previously extracted  "+openglCapability.stage(buildDir).fileName());
                 }
