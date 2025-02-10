@@ -413,6 +413,7 @@ public class ReflectMethods extends TreeTranslator {
             }
             case CODE_BUILDER -> {
                 var opBuilder = OpBuilder.createBuilderFunction(op);
+                opBuilder.writeTo(System.out);
                 var cmToASTTransformer = new CodeModelToAST(make, names, syms, currentClassSym, crSyms);
                 return cmToASTTransformer.transformFuncOpToAST(opBuilder, methodName);
             }
