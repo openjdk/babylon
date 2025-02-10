@@ -13,7 +13,7 @@
     <orderEntry type="module-library">
       <library>
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/../build/jextracted-opencl.jar!/" />
+          <root url="jar://$MODULE_DIR$/../build/opencl.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />
