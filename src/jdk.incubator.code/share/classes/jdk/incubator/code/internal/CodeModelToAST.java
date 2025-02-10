@@ -45,7 +45,7 @@ public class CodeModelToAST {
         Class<?>[] crTypes = {Body.Builder.class, TypeElement.ExternalizedTypeElement.class, TypeElement.class,
                 FunctionType.class, Block.Builder.class, Value.class, Block.Reference.class, Op.Result.class,
                 Op.class, TypeElementFactory.class, OpFactory.class, ExternalizableOp.ExternalizedOp.class,
-                MethodRef.class
+                MethodRef.class, Block.Parameter.class
         };
         for (Class<?> crType : crTypes) {
             JavaType jt = JavaType.type(crType.describeConstable().get());
