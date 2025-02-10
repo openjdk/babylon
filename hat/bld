@@ -86,7 +86,7 @@ void main(String[] args) {
     var openglCapability = Capabilities.OpenGL.of();
     var cudaCapability = Capabilities.CUDA.of();
     var hipCapability = Capabilities.HIP.of();
-    var jextractCapability = Capabilities.JExtract.of(Path.of("/Users/grfrost/jextract-22/bin/jextract"));
+    var jextractCapability = Capabilities.JExtract.of();// or Capability.JExtract.of(Path.of("/my/jextract-22/bin/jextract"));
     var cmakeCapability = Capabilities.CMake.of();
 
     Capabilities capabilities = Capabilities.of(openclCapability, openglCapability, cudaCapability, hipCapability, jextractCapability, cmakeCapability);
