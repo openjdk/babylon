@@ -42,12 +42,31 @@ import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectOutputStream;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import onnx.OnnxMl;
 
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
-import static oracle.code.onnx.OnnxOperators.*;
+import static oracle.code.onnx.OnnxOperators.Constant;
+import static oracle.code.onnx.OnnxOperators.Conv;
+import static oracle.code.onnx.OnnxOperators.Div;
+import static oracle.code.onnx.OnnxOperators.Flatten;
+import static oracle.code.onnx.OnnxOperators.Gemm;
+import static oracle.code.onnx.OnnxOperators.MaxPool;
+import static oracle.code.onnx.OnnxOperators.Relu;
+import static oracle.code.onnx.OnnxOperators.Reshape;
+import static oracle.code.onnx.OnnxOperators.Softmax;
 
-// A rough CNN implementation -- uncertain if the padding will line up
+// A rough CNN implementation which expects a input [batch_size, 1, 28, 28].
 // Over time we will improve the operator expressions to reduce
 // the verbosity e.g., esp. scalar constant expressions
 public class CNNTest {
@@ -60,65 +79,89 @@ public class CNNTest {
     @CodeReflection
     public static Tensor<Float> cnn(
             // Weights and biases
-            // (5, 5, NUM_CHANNELS, 32)
+            // [6, 1, 5, 5]
             Tensor<Float> conv1Weights,
-            // (32)
+            // [6]
             Tensor<Float> conv1Biases,
-            // (5, 5, 32, 64)
+            // [16, 6, 5, 5]
             Tensor<Float> conv2Weights,
-            // (64)
+            // [16]
             Tensor<Float> conv2Biases,
-            // (IMAGE_SIZE * IMAGE_SIZE * 4, 512)
+            // [120, 256]
             Tensor<Float> fc1Weights,
-            // (512)
+            // [120]
             Tensor<Float> fc1Biases,
-            // (512, NUM_LABELS)
+            // [84, 120]
             Tensor<Float> fc2Weights,
-            // (NUM_LABELS)
+            // [84]
             Tensor<Float> fc2Biases,
+            // [NUM_LABELS, 84]
+            Tensor<Float> fc3Weights,
+            // [NUM_LABELS]
+            Tensor<Float> fc3Biases,
             // Inputs
             Tensor<Float> inputImage) {
-        var shape = Constant(new long[]{-1, IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS});
+        var shape = Constant(new long[]{-1, NUM_CHANNELS, IMAGE_SIZE, IMAGE_SIZE});
         var inputReshaped = Reshape(inputImage, shape, empty());
 
-        // Scaling the features
-        var centeringFactor = Constant(PIXEL_DEPTH / 2.0f);
+        // Scaling the features to 0-1
         var scalingFactor = Constant((float) PIXEL_DEPTH);
-        var scaledInput = Div(Sub(inputReshaped, centeringFactor), scalingFactor);
+        var scaledInput = Div(inputReshaped, scalingFactor);
 
         // First conv layer
-        var conv1 = Conv(scaledInput, conv1Weights, of(conv1Biases), empty(),
-                empty(), of("SAME_UPPER"), of(new long[]{1, 1, 1, 1}),
-                empty(), empty());
+        var conv1 = Conv(scaledInput, conv1Weights, of(conv1Biases), of(new long[4]),
+                of(new long[]{1,1}), empty(), of(new long[]{1, 1, 1, 1}),
+                of(1L), of(new long[]{5,5}));
         var relu1 = Relu(conv1);
 
         // First pooling layer
-        var pool1 = MaxPool(relu1, empty(), empty(), of("SAME_UPPER"),
-                empty(), empty(), of(new long[]{1, 2, 2, 1}), new long[]{1, 2, 2, 1});
+        var pool1 = MaxPool(relu1, of(new long[4]), of(new long[]{1,1}), empty(),
+                of(0L), empty(), of(new long[]{2, 2}), new long[]{2, 2});
 
         // Second conv layer
-        var conv2 = Conv(pool1.Y(), conv2Weights, of(conv2Biases), empty(),
-                empty(), of("SAME_UPPER"), of(new long[]{1, 1, 1, 1}),
-                empty(), empty());
+        var conv2 = Conv(pool1.Y(), conv2Weights, of(conv2Biases), of(new long[4]),
+                of(new long[]{1,1}), empty(), of(new long[]{1, 1, 1, 1}),
+                of(1L), of(new long[]{5,5}));
         var relu2 = Relu(conv2);
 
         // Second pooling layer
-        var pool2 = MaxPool(relu2, empty(), empty(), of("SAME_UPPER"),
-                empty(), empty(), of(new long[]{1, 2, 2, 1}), new long[]{1, 2, 2, 1});
+        var pool2 = MaxPool(relu2, of(new long[4]), of(new long[]{1,1}), empty(),
+                of(0L), empty(), of(new long[]{2, 2}), new long[]{2, 2});
 
         // Flatten inputs
-        var flatShape = Constant(new long[]{0, 3136});
-        var flatten = Reshape(pool2.Y(), flatShape, empty());
+        var flatten = Flatten(pool2.Y(), of(1L));
 
-        // Fully connected layer
+        // First fully connected layer
         var fc1 = Gemm(flatten, fc1Weights, of(fc1Biases), of(1f), of(1L), of(1f), empty());
         var relu3 = Relu(fc1);
 
-        // Softmax layer
+        // Second fully connected layer
         var fc2 = Gemm(relu3, fc2Weights, of(fc2Biases), of(1f), of(1L), of(1f), empty());
-        var prediction = Softmax(fc2, of(1L));
+        var relu4 = Relu(fc2);
+
+        // Softmax layer
+        var fc3 = Gemm(relu4, fc3Weights, of(fc3Biases), of(1f), of(1L), of(1f), empty());
+        var prediction = Softmax(fc3, of(1L));
 
         return prediction;
+    }
+
+    @CodeReflection
+    public Tensor<Float> loadWeight(Initializer init) {
+        var buf = ByteBuffer.allocate(init.values().length).order(ByteOrder.nativeOrder());
+        buf.put(init.values());
+        buf.rewind();
+        var floatBuf = buf.asFloatBuffer();
+        var floatArr = new float[floatBuf.remaining()];
+        floatBuf.get(floatArr);
+        Tensor<Long> shape = Constant(
+                empty(), empty(), empty(), empty(), empty(), of(init.shape()), empty(), empty()
+        );
+        Tensor<Float> floats = Constant(
+                empty(), of(floatArr), empty(), empty(), empty(), empty(), empty(), empty()
+        );
+        var shaped = Reshape(floats, shape, empty());
+        return shaped;
     }
 
     CoreOp.FuncOp cnnModel() {
@@ -126,17 +169,17 @@ public class CNNTest {
 
         FunctionType functionType = FunctionType.functionType(
                 OnnxType.TENSOR_FLOAT32, // return
-                // weights & biases
-                OnnxType.TENSOR_FLOAT32,
-                OnnxType.TENSOR_FLOAT32,
-                OnnxType.TENSOR_FLOAT32,
-                OnnxType.TENSOR_FLOAT32,
-                OnnxType.TENSOR_FLOAT32,
-                OnnxType.TENSOR_FLOAT32,
-                OnnxType.TENSOR_FLOAT32,
-                OnnxType.TENSOR_FLOAT32,
-                // input
-                OnnxType.TENSOR_FLOAT32
+                OnnxType.TENSOR_FLOAT32, // conv1Weights
+                OnnxType.TENSOR_FLOAT32, // conv1Biases
+                OnnxType.TENSOR_FLOAT32, // conv2Weights
+                OnnxType.TENSOR_FLOAT32, // conv2Biases
+                OnnxType.TENSOR_FLOAT32, // fc1Weights
+                OnnxType.TENSOR_FLOAT32, // fc1Biases
+                OnnxType.TENSOR_FLOAT32, // fc2Weights
+                OnnxType.TENSOR_FLOAT32, // fc2Biases
+                OnnxType.TENSOR_FLOAT32, // fc3Weights
+                OnnxType.TENSOR_FLOAT32,  // fc3Biases
+                OnnxType.TENSOR_FLOAT32 // input
         );
 
         return CoreOp.func("cnn", functionType).body(b -> {
@@ -149,8 +192,9 @@ public class CNNTest {
             Block.Parameter fc1Biases = b.parameters().get(5);
             Block.Parameter fc2Weights = b.parameters().get(6);
             Block.Parameter fc2Biases = b.parameters().get(7);
-
-            Block.Parameter inputImage = b.parameters().get(8);
+            Block.Parameter fc3Weights = b.parameters().get(8);
+            Block.Parameter fc3Biases = b.parameters().get(9);
+            Block.Parameter inputImage = b.parameters().get(10);
 
             var shape = b.op(OnnxOps.Constant(OnnxType.TENSOR_INT64,
                     empty(),
@@ -158,22 +202,13 @@ public class CNNTest {
                     empty(),
                     empty(),
                     empty(),
-                    of(new long[]{-1, IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS}),
+                    of(new long[]{-1, NUM_CHANNELS, IMAGE_SIZE, IMAGE_SIZE}),
                     empty(),
                     empty()));
             var inputReshaped = b.op(OnnxOps.Reshape(inputImage.type(),
                     inputImage, shape, empty()));
 
             // Scaling the features
-            var centeringFactor = b.op(OnnxOps.Constant(OnnxType.TENSOR_FLOAT32,
-                    empty(),
-                    empty(),
-                    empty(),
-                    of(PIXEL_DEPTH / 2.0f),
-                    empty(),
-                    empty(),
-                    empty(),
-                    empty()));
             var scalingFactor = b.op(OnnxOps.Constant(OnnxType.TENSOR_FLOAT32,
                     empty(),
                     empty(),
@@ -183,21 +218,19 @@ public class CNNTest {
                     empty(),
                     empty(),
                     empty()));
-            var scaledInput = b.op(OnnxOps.Div(inputReshaped.type(),
-                    b.op(OnnxOps.Sub(inputReshaped.type(),
-                            inputReshaped, centeringFactor)), scalingFactor));
+            var scaledInput = b.op(OnnxOps.Div(inputReshaped.type(), inputReshaped, scalingFactor));
 
             // First conv layer
             var conv1 = b.op(OnnxOps.Conv(scaledInput.type(),
                     scaledInput,
                     conv1Weights,
                     of(conv1Biases),
+                    of(new long[4]),
+                    of(new long[]{1,1}),
                     empty(),
-                    empty(),
-                    of("SAME_UPPER"),
                     of(new long[]{1, 1, 1, 1}),
-                    empty(),
-                    empty()));
+                    of(1L),
+                    of(new long[]{5,5})));
             var relu1 = b.op(OnnxOps.Relu(conv1.type(),
                     conv1));
 
@@ -206,13 +239,13 @@ public class CNNTest {
             var pool1Result = b.op(OnnxOps.MaxPool(TupleType.tupleType(relu1.type(), OnnxType.TENSOR_INT64),
                     Set.of(OnnxOps.MaxPool.OutputParameter.Indices),
                     relu1,
+                    of(new long[4]),
+                    of(new long[]{1,1}),
                     empty(),
+                    of(0L),
                     empty(),
-                    of("SAME_UPPER"),
-                    empty(),
-                    empty(),
-                    of(new long[]{1, 2, 2, 1}),
-                    new long[]{1, 2, 2, 1}));
+                    of(new long[]{2, 2}),
+                    new long[]{2, 2}));
 
             // Second conv layer
             var pool1 = b.op(CoreOp.tupleLoad(pool1Result, 0));
@@ -220,12 +253,12 @@ public class CNNTest {
                     pool1,
                     conv2Weights,
                     of(conv2Biases),
+                    of(new long[4]),
+                    of(new long[]{1,1}),
                     empty(),
-                    empty(),
-                    of("SAME_UPPER"),
                     of(new long[]{1, 1, 1, 1}),
-                    empty(),
-                    empty()));
+                    of(1L),
+                    of(new long[]{5,5})));
             var relu2 = b.op(OnnxOps.Relu(conv2.type(),
                     conv2));
 
@@ -234,31 +267,21 @@ public class CNNTest {
             var pool2Result = b.op(OnnxOps.MaxPool(TupleType.tupleType(relu2.type(), OnnxType.TENSOR_INT64),
                     Set.of(OnnxOps.MaxPool.OutputParameter.Indices),
                     relu2,
+                    of(new long[4]),
+                    of(new long[]{1,1}),
                     empty(),
+                    of(0L),
                     empty(),
-                    of("SAME_UPPER"),
-                    empty(),
-                    empty(),
-                    of(new long[]{1, 2, 2, 1}),
-                    new long[]{1, 2, 2, 1}));
+                    of(new long[]{2, 2}),
+                    new long[]{2, 2}));
 
             // Flatten inputs
-            var flatShape = b.op(OnnxOps.Constant(OnnxType.TENSOR_INT64,
-                    empty(),
-                    empty(),
-                    empty(),
-                    empty(),
-                    empty(),
-                    of(new long[]{0, 3136}),
-                    empty(),
-                    empty()));
             var pool2 = b.op(CoreOp.tupleLoad(pool2Result, 0));
-            var flatten = b.op(OnnxOps.Reshape(pool2.type(),
+            var flatten = b.op(OnnxOps.Flatten(pool2.type(),
                     pool2,
-                    flatShape,
-                    empty()));
+                    of(1L)));
 
-            // Fully connected layer
+            // First fully connected layer
             var fc1 = b.op(OnnxOps.Gemm(flatten.type(),
                     flatten,
                     fc1Weights,
@@ -270,7 +293,7 @@ public class CNNTest {
             var relu3 = b.op(OnnxOps.Relu(fc1.type(),
                     fc1));
 
-            // Softmax layer
+            // Second fully connected layer
             var fc2 = b.op(OnnxOps.Gemm(relu3.type(),
                     relu3,
                     fc2Weights,
@@ -279,8 +302,20 @@ public class CNNTest {
                     of(1L),
                     of(1f),
                     empty()));
-            var prediction = b.op(OnnxOps.Softmax(fc2.type(),
-                    fc2,
+            var relu4 = b.op(OnnxOps.Relu(fc2.type(),
+                    fc2));
+
+            // Softmax layer
+            var fc3 = b.op(OnnxOps.Gemm(relu4.type(),
+                    relu4,
+                    fc3Weights,
+                    of(fc3Biases),
+                    of(1f),
+                    of(1L),
+                    of(1f),
+                    empty()));
+            var prediction = b.op(OnnxOps.Softmax(fc3.type(),
+                    fc3,
                     of(1L)));
 
             b.op(CoreOp._return(prediction));
@@ -314,6 +349,48 @@ public class CNNTest {
         return Op.ofMethod(m).get();
     }
 
+    public static void extractWeights(Path inputOnnx, Path outputSerialized) throws IOException  {
+        try (InputStream is = Files.newInputStream(inputOnnx)) {
+            OnnxMl.ModelProto model = OnnxMl.ModelProto.parseFrom(is);
+            OnnxMl.GraphProto graph = model.getGraph();
+            List<Initializer> initList = new ArrayList<>();
+            for (var init : graph.getInitializerList()) {
+                var name = init.getName();
+                var type = init.getDataType();
+                var shape = init.getDimsList().stream().mapToLong(a -> a).toArray();
+                var valuesBuf = init.getRawData().asReadOnlyByteBuffer();
+                var valuesArr = new byte[valuesBuf.remaining()];
+                valuesBuf.get(valuesArr);
+                var initializer = new Initializer(name, type, shape, valuesArr);
+                System.out.println(initializer);
+                initList.add(initializer);
+            }
+            try (ObjectOutputStream oos = new ObjectOutputStream(Files.newOutputStream(outputSerialized))) {
+                oos.writeObject(initList);
+            }
+        }
+    }
+
+    public record Initializer(String name, int type, long[] shape, byte[] values) implements java.io.Serializable {
+        @Override
+        public String toString() {
+            return "Initializer{" +
+                    "name='" + name + '\'' +
+                    ", type=" + type +
+                    ", shape=" + Arrays.toString(shape) +
+                    ", values.length=" + values.length +
+                    '}';
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        Path inputPath = Path.of(args[0]);
+
+        Path outputPath = Path.of(args[1]);
+
+        extractWeights(inputPath, outputPath);
+    }
+
     /*
     ONNX code model
 
@@ -326,26 +403,27 @@ func @"cnn" (
 %5 : tensor<float32>,
 %6 : tensor<float32>,
 %7 : tensor<float32>,
-%8 : tensor<float32>)tensor<float32> -> {
-    %9 : tensor<int64> = Constant @value_ints="[I@7b9a4292";
-    %10 : tensor<float32> = Reshape %0 %9;
-    %11 : tensor<float32> = Constant @value_float="127.5";
-    %12 : tensor<float32> = Constant @value_float="255.0";
-    %13 : tensor<float32> = Sub %10 %11;
-    %14 : tensor<float32> = Div %13 %12;
-    %15 : tensor<float32> = Conv %14 %1 %2 @strides="[I@12468a38" @auto_pad="SAME_UPPER" @optional_inputs="[B]";
+%8 : tensor<float32>,
+%9 : tensor<float32>,
+%10 : tensor<float32>)tensor<float32> -> {
+    %11 : tensor<int64> = Constant @value_ints="[I@32910148";
+    %12 : tensor<float32> = Reshape %0 %11;
+    %13 : tensor<float32> = Constant @value_float="255.0";
+    %14 : tensor<float32> = Div %12 %13;
+    %15 : tensor<float32> = Conv %14 %1 %2 @optional_inputs="[B]" @strides="[I@2b4bac49" @pads="[I@fd07cbb" @dilations="[I@3571b748" @group="1" @kernel_shape="[I@3e96bacf";
     %16 : tensor<float32> = Relu %15;
-    %17 : tensor<float32> = MaxPool %16 @strides="[I@1aa7ecca" @auto_pad="SAME_UPPER" @kernel_shape="[I@59309333";
-    %18 : tensor<float32> = Conv %17 %3 %4 @strides="[I@5876a9af" @auto_pad="SAME_UPPER" @optional_inputs="[B]";
+    %17 : tensor<float32> = MaxPool %16 @ceil_mode="0" @strides="[I@484970b0" @pads="[I@4470f8a6" @dilations="[I@7c83dc97" @kernel_shape="[I@7748410a";
+    %18 : tensor<float32> = Conv %17 %3 %4 @optional_inputs="[B]" @strides="[I@740773a3" @pads="[I@37f1104d" @dilations="[I@55740540" @group="1" @kernel_shape="[I@60015ef5";
     %19 : tensor<float32> = Relu %18;
-    %20 : tensor<float32> = MaxPool %19 @strides="[I@7ec7ffd3" @auto_pad="SAME_UPPER" @kernel_shape="[I@5b239d7d";
-    %21 : tensor<int64> = Constant @value_ints="[I@6b81ce95";
-    %22 : tensor<float32> = Reshape %20 %21;
-    %23 : tensor<float32> = Gemm %22 %5 %6 @optional_inputs="[C]" @transB="1" @beta="1.0" @alpha="1.0";
-    %24 : tensor<float32> = Relu %23;
-    %25 : tensor<float32> = Gemm %24 %7 %8 @optional_inputs="[C]" @transB="1" @beta="1.0" @alpha="1.0";
-    %26 : tensor<float32> = Softmax %25 @axis="1";
-    return %26;
+    %20 : tensor<float32> = MaxPool %19 @ceil_mode="0" @strides="[I@2f54a33d" @pads="[I@1018bde2" @dilations="[I@65b3f4a4" @kernel_shape="[I@f2ff811";
+    %21 : tensor<float32> = Flatten %20 @axis="1";
+    %22 : tensor<float32> = Gemm %21 %5 %6 @optional_inputs="[C]" @transB="1" @beta="1.0" @alpha="1.0";
+    %23 : tensor<float32> = Relu %22;
+    %24 : tensor<float32> = Gemm %23 %7 %8 @optional_inputs="[C]" @transB="1" @beta="1.0" @alpha="1.0";
+    %25 : tensor<float32> = Relu %24;
+    %26 : tensor<float32> = Gemm %25 %9 %10 @optional_inputs="[C]" @transB="1" @beta="1.0" @alpha="1.0";
+    %27 : tensor<float32> = Softmax %26 @axis="1";
+    return %27;
 };
      */
 }
