@@ -91,6 +91,7 @@ import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.op.ExtendedOp;
 import jdk.incubator.code.type.*;
 import jdk.incubator.code.type.WildcardType.BoundKind;
+import jdk.incubator.code.writer.OpBuilder;
 
 import javax.lang.model.element.Modifier;
 import javax.tools.JavaFileObject;
@@ -397,23 +398,26 @@ public class ReflectMethods extends TreeTranslator {
     }
 
     private JCMethodDecl opMethodDecl(Name methodName, CoreOp.FuncOp op, CodeModelStorageOption codeModelStorageOption) {
-        if (CodeModelStorageOption.TEXT.equals(codeModelStorageOption)) {
-            var mt = new MethodType(com.sun.tools.javac.util.List.nil(), crSyms.funcOpType,
-                    com.sun.tools.javac.util.List.nil(), syms.methodClass);
-            var mn = names.fromString("op$").append(methodName);
-            var ms = new MethodSymbol(PUBLIC | STATIC | SYNTHETIC, mn, mt, currentClassSym);
-            currentClassSym.members().enter(ms);
-
-            var opFromStr = make.App(make.Ident(crSyms.opParserFromString),
-                    com.sun.tools.javac.util.List.of(make.Literal(op.toText())));
-            var ret = make.Return(make.TypeCast(crSyms.funcOpType, opFromStr));
-
-            var md = make.MethodDef(ms, make.Block(0, com.sun.tools.javac.util.List.of(ret)));
-            return md;
-        } else if (CodeModelStorageOption.CODE_BUILDER.equals(codeModelStorageOption)) {
-            throw new IllegalStateException("code model storage option %s not supported for the moment".formatted(codeModelStorageOption));
-        } else {
-            throw new IllegalStateException("unknown code model storage option: " + codeModelStorageOption);
+        switch (codeModelStorageOption) {
+            case TEXT -> {
+                var mt = new MethodType(com.sun.tools.javac.util.List.nil(), crSyms.funcOpType,
+                        com.sun.tools.javac.util.List.nil(), syms.methodClass);
+                var mn = names.fromString("op$").append(methodName);
+                var ms = new MethodSymbol(PUBLIC | STATIC | SYNTHETIC, mn, mt, currentClassSym);
+                currentClassSym.members().enter(ms);
+                var opFromStr = make.App(make.Ident(crSyms.opParserFromString),
+                        com.sun.tools.javac.util.List.of(make.Literal(op.toText())));
+                var ret = make.Return(make.TypeCast(crSyms.funcOpType, opFromStr));
+                var md = make.MethodDef(ms, make.Block(0, com.sun.tools.javac.util.List.of(ret)));
+                return md;
+            }
+            case CODE_BUILDER -> {
+                var opBuilder = OpBuilder.createBuilderFunction(op);
+                var cmToASTTransformer = new CodeModelToAST(make, names, syms, currentClassSym, crSyms);
+                return cmToASTTransformer.transformFuncOpToAST(opBuilder, methodName);
+            }
+            case null, default ->
+                    throw new IllegalStateException("unknown code model storage option: " + codeModelStorageOption);
         }
     }
 

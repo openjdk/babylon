@@ -48,6 +48,8 @@ public class CodeReflectionSymbols {
     public final MethodSymbol methodHandlesLookup;
     public final Type opType;
     public final Type funcOpType;
+    public final Type opFactoryType;
+    public final Type typeElementFactoryType;
 
     CodeReflectionSymbols(Context context) {
         Symtab syms = Symtab.instance(context);
@@ -77,5 +79,9 @@ public class CodeReflectionSymbols {
                 syms.methodHandlesType.tsym);
         syms.synthesizeEmptyInterfaceIfMissing(quotedType);
         syms.synthesizeEmptyInterfaceIfMissing(quotableType);
+        opFactoryType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.op.OpFactory");
+        typeElementFactoryType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.type.TypeElementFactory");
+
+
     }
 }
