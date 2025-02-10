@@ -165,7 +165,7 @@ void main(String[] args) {
     );
 
 
-    // Here we create all backend jars.
+    // Here we create all ffi-backend jars.
     var ffiBackends = backends.existingDir("ffi");
     ffiBackends
             .subDirs()
@@ -177,6 +177,35 @@ void main(String[] args) {
                         .jarFile(jarFile)
                         .maven_style_root(backend)
                         .javac(hatJavacOpts, javac -> javac.class_path(hatJarFile))
+                );
+            });
+
+    // Here we create all jextracted-backend jars.
+    var jextractedBackends = backends.existingDir("jextracted");
+    var jextractedBackendSharedDir = jextractedBackends.dir("shared");
+    var jextractedBackendSharedResult = jar(hatJarOptions, jar -> jar
+          .jarFile(buildDir.jarFile("hat-backend-jextracted-shared-1.0.jar"))
+          .maven_style_root(jextractedBackendSharedDir)
+          .javac(hatJavacOpts, javac -> javac.verbose(true)
+              .class_path(hatJarFile)
+          )
+    );
+
+    jextractedBackends
+            .subDirs()
+            .filter(backend -> backend.failsToMatch("^.*(target|shared|.idea)$"))
+            .forEach(backend -> {
+                var jarFile = buildDir.jarFile("hat-backend-jextracted-" + backend.fileName() + "-1.0.jar");
+                out.println(jarFile.fileName());
+                jar(hatJarOptions, jar -> jar
+                        .jarFile(jarFile)
+                        .maven_style_root(backend)
+                        .javac(hatJavacOpts, javac -> javac.verbose(true)
+                           .class_path(hatJarFile, jextractedBackendSharedResult)
+                           .when(backend.fileName().equals("opencl"), _->
+                              javac.class_path( openclCapability.jarFile(buildDir))
+                           )
+                        )
                 );
             });
 
