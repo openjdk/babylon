@@ -1999,9 +1999,11 @@ public class Bldr {
         }
 
         public JExtractBuilder capability(Capabilities.Jextractable jextractable, BuildDir stageDir) {
-            return output(jextractable.stage(stageDir))
+             output(jextractable.stage(stageDir))
                     .target_package(jextractable.packageName())
                     .header_class_name(jextractable.headerClassName());
+              jextractable.inversionOfControl(this);
+             return self();
         }
     }
 
@@ -2517,6 +2519,8 @@ public class Bldr {
             default JarFile jarFile(BuildDir buildDir) {
                 return buildDir.jarFile(packageName() + ".jar");
             }
+
+            void inversionOfControl(JExtractBuilder jextractBuilder);
         }
 
         public Map<String, Capability> capabilityMap = new HashMap<>();
@@ -2599,6 +2603,17 @@ public class Bldr {
             }
 
 
+            @Override
+            public void inversionOfControl(JExtractBuilder jextractBuilder) {
+ jextractBuilder.os(mac -> jextractBuilder
+                                .compile_flag("-F"
+                                        + appLibFrameworks() + "/System/library/Frameworks")
+                                .library(mac.frameworkLibrary("OpenCL"))
+                                .header(Path.of(includeDir()).resolve("Headers/opencl.h")),
+                        linux -> {
+                            throw new IllegalStateException("Linux not handled yet");
+                        });
+            }
         }
 
         public static final class OpenGL extends Capability implements CMakeProbeable, Jextractable {
@@ -2678,6 +2693,19 @@ public class Bldr {
                 }); */
 
             }
+            @Override public void inversionOfControl(JExtractBuilder jextractBuilder){
+                jextractBuilder
+                        .os(mac -> jextractBuilder
+                                .compile_flag("-F"
+                                        + appLibFrameworks() + "/System/library/Frameworks")
+                                .library(mac.frameworkLibrary("OpenGL"))
+                                .library(mac.frameworkLibrary("GLUT"))
+                                .header(glutIncludeDir().dir("glut.h").path()),
+                        linux -> {
+                            throw new IllegalStateException("Linux not handled yet");
+                        }
+                );
+            }
         }
 
         public static final class HIP extends Capability implements CMakeProbeable, Jextractable {
@@ -2715,6 +2743,10 @@ public class Bldr {
                 this.cmakeProbe = cmakeProbe;
             }
 
+            @Override
+            public void inversionOfControl(JExtractBuilder jextractBuilder) {
+
+            }
         }
 
         public static final class CUDA extends Capability implements CMakeProbeable, Jextractable {
@@ -2757,6 +2789,10 @@ public class Bldr {
                 this.cmakeProbe = cmakeProbe;
             }
 
+            @Override
+            public void inversionOfControl(JExtractBuilder jextractBuilder) {
+
+            }
         }
 
         public static final class JExtract extends Capability implements Executable {
