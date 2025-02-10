@@ -156,8 +156,7 @@ public class ReflectMethods extends TreeTranslator {
         lineDebugInfo =
                 options.isUnset(G_CUSTOM) ||
                         options.isSet(G_CUSTOM, "lines");
-        String cmso = options.get("codeModelStorageOption");
-        codeModelStorageOption = CodeModelStorageOption.valueOf(cmso != null ? cmso : CodeModelStorageOption.TEXT.name());
+        codeModelStorageOption = CodeModelStorageOption.parse(options.get("codeModelStorageOption"));
         names = Names.instance(context);
         syms = Symtab.instance(context);
         types = Types.instance(context);
@@ -393,8 +392,14 @@ public class ReflectMethods extends TreeTranslator {
     }
 
     private enum CodeModelStorageOption {
-        TEXT,
-        CODE_BUILDER
+        TEXT, CODE_BUILDER;
+
+        public static CodeModelStorageOption parse(String s) {
+            if (s == null) {
+                return CodeModelStorageOption.TEXT;
+            }
+            return CodeModelStorageOption.valueOf(s);
+        }
     }
 
     private JCMethodDecl opMethodDecl(Name methodName, CoreOp.FuncOp op, CodeModelStorageOption codeModelStorageOption) {
