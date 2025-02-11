@@ -2,15 +2,13 @@
 <module type="JAVA_MODULE" version="4">
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
-    <content url="file://$MODULE_DIR$/../backends/jextracted/opencl">
-      <sourceFolder url="file://$MODULE_DIR$/../backends/jextracted/opencl/src/main/java" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/../backends/jextracted/opencl/src/main/resources" type="java-resource" />
+    <content url="file://$MODULE_DIR$/../wrap/clwrap">
+      <sourceFolder url="file://$MODULE_DIR$/../wrap/clwrap/src/main/java" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../wrap/clwrap/src/main/resources" type="java-resource" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module" module-name="hat" />
-    <orderEntry type="module" module-name="backend_jextracted_shared" />
-    <orderEntry type="module" module-name="clwrap" />
+    <orderEntry type="module" module-name="wrap" />
     <orderEntry type="module-library">
       <library>
         <CLASSES>
