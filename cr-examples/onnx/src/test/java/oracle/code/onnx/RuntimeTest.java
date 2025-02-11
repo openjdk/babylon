@@ -1,10 +1,11 @@
 package oracle.code.onnx;
 
 import java.nio.FloatBuffer;
+import java.nio.LongBuffer;
 import java.util.List;
-import java.util.Map;
 import oracle.code.onnx.ir.OnnxOps;
 import org.junit.jupiter.api.Test;
+
 import static oracle.code.onnx.Tensor.ElementType.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -69,6 +70,13 @@ public class RuntimeTest {
         assertEquals(expectedData.capacity(), actualData.capacity());
         for (int i = 0; i < expectedData.capacity(); i++) {
             assertEquals(expectedData.get(i), actualData.get(i), 1e-6f);
+        }
+    }
+
+    static void assertEqualData(LongBuffer expectedData, LongBuffer actualData) {
+        assertEquals(expectedData.capacity(), actualData.capacity());
+        for (int i = 0; i < expectedData.capacity(); i++) {
+            assertEquals(expectedData.get(i), actualData.get(i));
         }
     }
 }

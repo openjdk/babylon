@@ -25408,7 +25408,7 @@ public final class OnnxOps {
         }
 
         public enum OutputParameter implements OnnxParameter {
-            shape(TypeConstraint.T1.typeVariable(), Quantifier.REQUIRED),
+            shape(OnnxType.tensor(OnnxType.int64()), Quantifier.REQUIRED),
             ;
 
             final OnnxType type;
