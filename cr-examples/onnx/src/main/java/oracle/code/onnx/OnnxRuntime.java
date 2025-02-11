@@ -168,13 +168,9 @@ public final class OnnxRuntime {
     }
 
     public List<OrtTensor> runOp(OnnxOp.OnnxSchema schema, List<OrtTensor> inputValues) {
-        var inputs = schema.inputs();
-        // @@@ geting tensor element type from the first input
-        var tensorElementType = inputValues.getFirst().getTensorTypeAndShape().getTensorElementType();
-        try (var session = createSession(OnnxProtoBuilder.opModel(schema, tensorElementType))) {
-            return session.run(
-                    IntStream.range(0, inputs.size()).boxed().collect(Collectors.toMap(i -> inputs.get(i).name(), i -> inputValues.get(i))),
-                    schema.outputs().stream().map(OnnxOp.OnnxParameter::name).toList());
+        var protoModel = OnnxProtoBuilder.buildOpModel(schema, inputValues.stream().map(OrtTensor::getTensorTypeAndShape).map(OrtTensorTypeAndShapeInfo::getTensorElementType).toList());
+        try (var session = createSession(protoModel)) {
+            return session.run(schema.inputs(), schema.outputs(), inputValues);
         }
     }
 
@@ -277,25 +273,25 @@ public final class OnnxRuntime {
         }
 
         // @@@ only tensors are supported yet
-        public List<OrtTensor> run(Map<String, OrtValue> inputMap, List<String> outputNames) {
+        public List<OrtTensor> run(List<OnnxOp.OnnxParameter> inputParams, List<OnnxOp.OnnxParameter> outputParams, List<OrtTensor> inputValues) {
             var runOptions = MemorySegment.NULL;
-            int inputLen = inputMap.size();
-            int outputLen = outputNames.size();
+            int inputLen = inputValues.size();
+            int outputLen = outputParams.size();
             var inputNames = arena.allocate(ADDRESS, inputLen);
             var inputs = arena.allocate(ADDRESS, inputLen);
             long index = 0;
-            for (var input : inputMap.entrySet()) {
-                inputNames.setAtIndex(ADDRESS, index, arena.allocateFrom(input.getKey()));
-                inputs.setAtIndex(ADDRESS, index++, input.getValue().valueAddress());
+            for (int i = 0; i < inputLen; i++) {
+                inputNames.setAtIndex(ADDRESS, index, arena.allocateFrom(inputParams.get(i).name()));
+                inputs.setAtIndex(ADDRESS, index++, inputValues.get(i).valueAddress());
             }
-            var outputNamesArr = arena.allocate(ADDRESS, outputLen);
+            var outputNames = arena.allocate(ADDRESS, outputLen);
             var outputs = arena.allocate(ADDRESS, outputLen);
             for (int i = 0; i < outputLen; i++) {
-                outputNamesArr.setAtIndex(ADDRESS, i, arena.allocateFrom(outputNames.get(i)));
+                outputNames.setAtIndex(ADDRESS, i, arena.allocateFrom(outputParams.get(i).name()));
                 outputs.setAtIndex(ADDRESS, i, MemorySegment.NULL);
             }
             try {
-                checkStatus(run.invokeExact(sessionAddress, runOptions, inputNames, inputs, (long)inputLen, outputNamesArr, (long)outputLen, outputs));
+                checkStatus(run.invokeExact(sessionAddress, runOptions, inputNames, inputs, (long)inputLen, outputNames, (long)outputLen, outputs));
                 var retArr = new OrtTensor[outputLen];
                 for (int i = 0; i < outputLen; i++) {
                     retArr[i] = new OrtTensor(outputs.getAtIndex(ADDRESS, i));
@@ -319,6 +315,10 @@ public final class OnnxRuntime {
     public OrtTensor loadFlatTensorFromMemoryMappedDataFile(String file, Tensor.ElementType elementType) throws IOException {
         var f = new RandomAccessFile(file, "r");
         return createFlatTensor(f.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, f.length(), arena), elementType);
+    }
+
+    OrtTensor createFlatTensor(long... elements) {
+        return createFlatTensor(arena.allocateFrom(JAVA_LONG, elements), Tensor.ElementType.INT64);
     }
 
     OrtTensor createFlatTensor(float... elements) {

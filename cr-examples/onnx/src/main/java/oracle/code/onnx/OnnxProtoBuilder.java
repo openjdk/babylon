@@ -3,8 +3,12 @@ package oracle.code.onnx;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 import oracle.code.onnx.ir.OnnxOp;
-import oracle.code.onnx.ir.OnnxType;
+import oracle.code.onnx.Tensor.ElementType;
 
 // Generated from onnx.proto3
 sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
@@ -247,30 +251,36 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
         return _f(fieldIndex, value.buf.toByteArray());
     }
 
+    @SuppressWarnings("unchecked")
+    <P> T forEach(Iterable<P> sup, BiConsumer<T, ? super P> cons) {
+        sup.forEach(p -> cons.accept((T)this, p));
+        return (T)this;
+    }
+
     static final int IR_VERSION = 10;
     static final int OPSET_VERSION = 14;
 
-    // @@@ only for tensor inputs and outputs
-    // @@@ need to obtain tensor element type
+    // @@@ tensors only
     // order of building defines order inside protobufs
-    static ByteBuffer opModel(OnnxOp.OnnxSchema opSchema, oracle.code.onnx.Tensor.ElementType elementType) {
-        var node = new NodeProto();
-        for (var in : opSchema.inputs()) {
-            node.input(in.name());
-        }
-        for (var out : opSchema.outputs()) {
-            node.output(out.name());
-        }
-        var graph = new GraphProto().node(node.op_type(opSchema.name()));
-        for (var in : opSchema.inputs()) {
-            graph.input(new ValueInfoProto().name(in.name()).type(new TypeProto().tensor_type(new Tensor().elem_type(elementType.id))));
-        }
-        for (var out : opSchema.outputs()) {
-            graph.output(new ValueInfoProto().name(out.name()).type(new TypeProto().tensor_type(new Tensor().elem_type(elementType.id))));
-        }
+    static ByteBuffer buildOpModel(OnnxOp.OnnxSchema schema, List<ElementType> inputElementTypes) {
+        // @@@ output element types inferred from the first input
+        int outputElementType = inputElementTypes.getFirst().id;
         var bytes = new ModelProto()
                 .ir_version(IR_VERSION)
-                .graph(graph)
+                .graph(new GraphProto()
+                        .node(new NodeProto()
+                            .forEach(schema.inputs(), (n, i) -> n.input(i.name()))
+                            .forEach(schema.outputs(), (n, o) -> n.output(o.name()))
+                            .op_type(schema.name()))
+                        .forEach(schema.inputs(), (g, i) -> g.input(new ValueInfoProto()
+                                .name(i.name())
+                                .type(new TypeProto()
+                                        // inputValues matching schema inputs by OnnxParameter::ordinal
+                                        .tensor_type(new Tensor().elem_type(inputElementTypes.get(i.ordinal()).id)))))
+                        .forEach(schema.outputs(), (g, o) -> g.output(new ValueInfoProto()
+                                .name(o.name())
+                                .type(new TypeProto()
+                                        .tensor_type(new Tensor().elem_type(outputElementType))))))
                 .opset_import(new OperatorSetIdProto().version(OPSET_VERSION))
                 .buf.toByteArray();
         return ByteBuffer.allocateDirect(bytes.length).put(bytes).asReadOnlyBuffer();
