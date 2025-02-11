@@ -36,7 +36,6 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface F32Array extends Buffer {
     int length();
-    @BoundBy("length")
     float array(long idx);
     void array(long idx, float f);
 

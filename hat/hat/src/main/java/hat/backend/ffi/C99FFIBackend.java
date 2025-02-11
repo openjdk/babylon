@@ -60,13 +60,13 @@ public abstract class C99FFIBackend extends FFIBackend {
             this.kernelHandle = kernelHandle;
             this.kernelContext = KernelContext.create(kernelCallGraph.computeContext.accelerator, 0, 0);
             ndRangeAndArgs[0] = this.kernelContext;
-            this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator, kernelCallGraph.computeContext.runtimeInfo, ndRangeAndArgs);
+            this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator,  ndRangeAndArgs);
         }
 
         public void dispatch(NDRange ndRange, Object[] args) {
             kernelContext.maxX(ndRange.kid.maxX);
             args[0] = this.kernelContext;
-            ArgArray.update(argArray, kernelCallGraph.computeContext.runtimeInfo, args);
+            ArgArray.update(argArray, args);
             c99FFIBackend.ndRange(kernelHandle, this.argArray);
         }
     }

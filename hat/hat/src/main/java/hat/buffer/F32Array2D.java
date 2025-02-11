@@ -36,10 +36,10 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 public interface F32Array2D extends Buffer {
     int width();
 
-    @After("width")
+
     int height();
 
-    @BoundBy({"width","height"})
+
     float array(long idx);
 
     void array(long idx, float v);

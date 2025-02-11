@@ -40,21 +40,13 @@ public interface ArgArray extends Buffer {
             interface Buf extends Buffer.Struct{
                 MemorySegment address();
                 void address(MemorySegment address);
-
-                @After("address") long bytes();
+                long bytes();
                 void bytes(long bytes);
-
-                @After("bytes")
                 MemorySegment vendorPtr();
                 void vendorPtr(MemorySegment vendorPtr);
-
-                @After("vendorPtr")
                 byte access();
                 void access(byte access);
 
-                @After("access")
-                byte state();
-                void state(byte state);
             }
 
             boolean z1();
@@ -103,10 +95,10 @@ public interface ArgArray extends Buffer {
         int idx();
         void idx(int idx);
 
-        @After("idx") byte variant();
+         byte variant();
         void variant(byte variant);
 
-        @SelectedBy("variant") @Pad(11) Value value();
+       Value value();
 
         default String asString() {
             switch (variant()) {
@@ -216,17 +208,15 @@ public interface ArgArray extends Buffer {
 
     int argc();
 
-    @BoundBy("argc") @Pad(12)
+
     Arg arg(long idx);
 
-    @After("arg")
+
     MemorySegment vendorPtr();
     void vendorPtr(MemorySegment vendorPtr);
 
-    @After("vendorPtr")
     int schemaLen();
 
-    @BoundBy("schemaLen")
     byte schemaBytes(long idx);
     void schemaBytes(long idx, byte b);
 
@@ -237,8 +227,8 @@ public interface ArgArray extends Buffer {
                             .field("value", value->value
                                             .fields("z1","s8","u16","s16","s32","u32","f32","s64","u64","f64")
                                                     .field("buf", buf->buf
-                                                            .fields("address","bytes","vendorPtr","access","state")
-                                                            .pad((int)(16 - JAVA_BYTE.byteSize() - JAVA_BYTE.byteSize()))
+                                                            .fields("address","bytes","vendorPtr","access")
+                                                            .pad((int)(16 - JAVA_BYTE.byteSize()/* - JAVA_BYTE.byteSize()*/))
                                                     )
                             )
                     )
@@ -262,7 +252,7 @@ public interface ArgArray extends Buffer {
         return (valueLayout.order().equals(ByteOrder.LITTLE_ENDIAN)) ? schema.toLowerCase() : schema;
     }
 
-    static ArgArray create(Accelerator accelerator,ComputeContext.RuntimeInfo runtimeInfo, Object... args) {
+    static ArgArray create(Accelerator accelerator, Object... args) {
         String[] schemas = new String[args.length];
         StringBuilder argSchema = new StringBuilder();
         argSchema.append(args.length);
@@ -292,11 +282,11 @@ public interface ArgArray extends Buffer {
             argArray.schemaBytes(i, schemaStrBytes[i]);
         }
         argArray.schemaBytes(schemaStrBytes.length, (byte) 0);
-        update(argArray, runtimeInfo,args);
+        update(argArray,args);
         return argArray;
     }
 
-    static void update(ArgArray argArray, ComputeContext.RuntimeInfo runtimeInfo, Object... args) {
+    static void update(ArgArray argArray,  Object... args) {
         final byte javaDirty = 1;
         final byte javaClean = 0;
         for (int i = 0; i < args.length; i++) {
@@ -319,7 +309,6 @@ public interface ArgArray extends Buffer {
                     Arg.Value.Buf buf = value.buf();
                     buf.address(segment);
                     buf.bytes(segment.byteSize());
-                    buf.state(runtimeInfo.javaDirty.contains(buffer)?javaDirty:javaClean);
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + argObject);
             }
