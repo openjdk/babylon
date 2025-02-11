@@ -12,9 +12,9 @@ public class RuntimeTest {
 
     @Test
     public void test() throws Exception {
-        var env = new OnnxRuntime().createEnv();
-        try (var absOp = env.createSession(OnnxProtoBuilder.opModel(OnnxOps.Abs.SCHEMA, Tensor.ElementType.FLOAT));
-             var addOp = env.createSession(OnnxProtoBuilder.opModel(OnnxOps.Add.SCHEMA, Tensor.ElementType.FLOAT))) {
+        var ort = OnnxRuntime.getInstance();
+        try (var absOp = ort.createSession(OnnxProtoBuilder.opModel(OnnxOps.Abs.SCHEMA, Tensor.ElementType.FLOAT));
+             var addOp = ort.createSession(OnnxProtoBuilder.opModel(OnnxOps.Add.SCHEMA, Tensor.ElementType.FLOAT))) {
 
             assertEquals(1, absOp.getNumberOfInputs());
             assertEquals(1, absOp.getNumberOfOutputs());
@@ -23,10 +23,10 @@ public class RuntimeTest {
             assertEquals(1, addOp.getNumberOfOutputs());
 
             var inputShape = ((OnnxRuntime.OrtTensorTypeAndShapeInfo)absOp.getInputTypeInfo(0)).getShape();
-            var inputTensor = env.createTensor(inputShape, -1, 2, -3, 4, -5, 6);
+            var inputTensor = ort.createTensor(inputShape, -1, 2, -3, 4, -5, 6);
 
             var absExpectedShape = ((OnnxRuntime.OrtTensorTypeAndShapeInfo)absOp.getOutputTypeInfo(0)).getShape();
-            var absExpectedTensor = env.createTensor(absExpectedShape, 1, 2, 3, 4, 5, 6);
+            var absExpectedTensor = ort.createTensor(absExpectedShape, 1, 2, 3, 4, 5, 6);
 
             var absResult = absOp.run(Map.of(absOp.getInputName(0), inputTensor), List.of(absOp.getOutputName(0)));
 
@@ -43,7 +43,7 @@ public class RuntimeTest {
             var addOutputTensor = (OnnxRuntime.OrtTensor)addResult.getFirst();
 
             var addExpectedShape = ((OnnxRuntime.OrtTensorTypeAndShapeInfo)absOp.getOutputTypeInfo(0)).getShape();
-            var addExpectedTensor = env.createTensor(addExpectedShape, 0, 4, 0, 8, 0, 12);
+            var addExpectedTensor = ort.createTensor(addExpectedShape, 0, 4, 0, 8, 0, 12);
 
             assertTensorEquals(addExpectedTensor, addOutputTensor);
         }

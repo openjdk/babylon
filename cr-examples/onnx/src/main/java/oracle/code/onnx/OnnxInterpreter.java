@@ -35,7 +35,7 @@ public class OnnxInterpreter {
                                    List<Object> attributes) {
         try {
             // @@@ assuming tensor inputs and single tensor output
-            return new Tensor(OnnxRuntime.defaultEnvironment().runOp(
+            return new Tensor(OnnxRuntime.getInstance().runOp(
                     (OnnxOp.OnnxSchema)opClass.getDeclaredField("SCHEMA").get(null),
                     inputs.stream().map(o -> ((Tensor)o).rtTensor).toList()).getFirst());
         } catch (NoSuchFieldException | IllegalAccessException e) {
