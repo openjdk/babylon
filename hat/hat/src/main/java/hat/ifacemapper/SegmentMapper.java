@@ -344,12 +344,30 @@ public interface SegmentMapper<T> {
      */
 
     default T allocate(Arena arena, BoundSchema<?> boundSchema) {
-if (boundSchema == null) {
-    throw new IllegalStateException("we must have a bound schema");
-}
-        // To help debug we add a tail marker
-        // We add 16 bytes and then pad to the next 16 bytes
-        // and request alignment on 16 byte boundary
+        if (boundSchema == null) {
+            throw new IllegalStateException("we must have a bound schema");
+         }
+        // hat iface buffer bits
+        // hat iface bffa   bits
+        // 4a7 1face bffa   b175
+        long MAGIC =0x4a71facebffab175L;
+        /*
+         We adjust size to next 16 byte boundary and then add sizeof ifacebufferbitz bytes
+
+         See backend_ffi_shared/include/shared.h
+
+        struct ifacebufferpayload_t{
+          int javaDirty;
+          int gpuDirty;
+          int unused[2];
+        };
+
+        struct ifacebufferbitz_t{
+           long magic1; // MAGIC
+           ifacebufferpayload_t payload;
+           long magic2; // MAGIC
+        }
+         */
         long byteSize = layout().byteSize();
         long extendedByteSize = byteSize+16;
         long byteSizePad = extendedByteSize%16;
@@ -358,9 +376,14 @@ if (boundSchema == null) {
         }
         long extendedByteSizePaddedTo16Bytes = extendedByteSize+byteSizePad;
         //System.out.println("Alloc 16 byte aligned layout + 16 bytes padded to next 16 bytes "+byteSize+"=>"+extendedByteSizePaddedTo16Bytes);
-        var segment = arena.allocate(extendedByteSizePaddedTo16Bytes, 16);
-        segment.set(ValueLayout.JAVA_LONG, extendedByteSizePaddedTo16Bytes-16,0x1face00000facadeL);
-        segment.set(ValueLayout.JAVA_LONG, extendedByteSizePaddedTo16Bytes-8, 0x1face00000facadeL);
+        var segment = arena.allocate(extendedByteSizePaddedTo16Bytes
+                +ValueLayout.JAVA_LONG.byteSize()*2, 16);
+
+
+        segment.set(ValueLayout.JAVA_LONG, extendedByteSizePaddedTo16Bytes-2*ValueLayout.JAVA_LONG.byteSize(),  MAGIC);//hatifacebffabits
+        segment.set(ValueLayout.JAVA_LONG, extendedByteSizePaddedTo16Bytes-1*ValueLayout.JAVA_LONG.byteSize(),  0x0000000000000000L);
+        segment.set(ValueLayout.JAVA_LONG, extendedByteSizePaddedTo16Bytes+0*ValueLayout.JAVA_LONG.byteSize(),  0x0000000000000000L);//hatifacebffabits
+        segment.set(ValueLayout.JAVA_LONG, extendedByteSizePaddedTo16Bytes+1*ValueLayout.JAVA_LONG.byteSize(),  MAGIC);
         return get(segment, layout(), boundSchema);
     }
     /**

@@ -75,6 +75,35 @@ typedef unsigned long u64_t;
 
 extern void hexdump(void *ptr, int buflen);
 
+ struct IfaceBufferPayload_s{
+     int javaDirty;
+     int gpuDirty;
+     int unused[2];
+ };
+
+ // hat iface buffer bits
+ // hat iface bffa   bits
+ // 4a7 1face bffa   b175
+ #define MAGIC 0x4a71facebffab175
+
+ struct IfaceBufferBits_s{
+   long magic1;
+   IfaceBufferPayload_s payload;
+   long magic2;
+   bool ok(){
+      return magic1 == MAGIC && magic2 == MAGIC;
+   }
+   bool isJavaDirty(){
+      return payload.javaDirty != 0;
+   }
+   bool isGpuDirty(){
+      return payload.gpuDirty != 0;
+   }
+   static IfaceBufferBits_s* of(void *ptr, size_t sizeInBytes){
+      return (IfaceBufferBits_s*) (((char*)ptr)+sizeInBytes-sizeof(IfaceBufferBits_s));
+   }
+};
+
  struct Buffer_s {
     void *memorySegment;   // Address of a Buffer/MemorySegment
     long sizeInBytes;     // The size of the memory segment in bytes
@@ -110,9 +139,6 @@ struct ArgArray_s {
     u32_t argc;
     u8_t pad12[12];
     Arg_s argv[0/*argc*/];
-    // void * vendorPtr;
-    // int schemaLen
-    // char schema[schemaLen]
 };
 
 class ArgSled {
