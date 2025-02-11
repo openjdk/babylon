@@ -132,22 +132,22 @@ public class OperatorGen {
 
     private void genMethod(IndentWriter w, OpSchema s) throws IOException {
         Map<String, TypeElement.ExternalizedTypeElement> javaTypeConstraints = javaTypes(typeConstraintMap(s));
+        Set<String> javaTypeVariables = javaTypeVariables(javaTypeConstraints);
+
         boolean twoOrMoreResults = s.max_output() > 1 && s.outputs().size() > 1;
+        List<String> recordResultTypeVariables = new ArrayList<>();
         if (twoOrMoreResults) {
-            w.write("public record " + s.name() + "Result");
-            if (!s.type_constraints().isEmpty()) {
-                boolean first = true;
-                w.write("<");
-                for (OpSchema.TypeConstraintParam typeConstraint : s.type_constraints()) {
-                    if (!first) {
-                        w.write(", ");
-                    }
-                    w.write(typeConstraint.type_param_str());
-                    first = false;
+            for (OpSchema.TypeConstraintParam typeConstraint : s.type_constraints()) {
+                if (s.outputs().stream().anyMatch(op -> typeConstraint.type_param_str().equals(op.type_str())) &&
+                        javaTypeVariables.contains(typeConstraint.type_param_str())) {
+                    recordResultTypeVariables.add(typeConstraint.type_param_str());
                 }
-                w.write(">");
             }
 
+            w.write("public record " + s.name() + "Result");
+            if (!recordResultTypeVariables.isEmpty()) {
+                w.write(recordResultTypeVariables.stream().collect(Collectors.joining(", ", "<", ">")));
+            }
             w.write("(");
             boolean first = true;
             for (OpSchema.FormalParameter outParam : s.outputs()) {
@@ -171,17 +171,17 @@ public class OperatorGen {
         w.write("public static ");
 
         if (!s.type_constraints().isEmpty()) {
-            boolean first = true;
-            w.write("<");
+            List<String> typeVariables = new ArrayList<>();
             for (OpSchema.TypeConstraintParam typeConstraint : s.type_constraints()) {
-                if (!first) {
-                    w.write(", ");
+                if (javaTypeVariables.contains(typeConstraint.type_param_str())) {
+                    typeVariables.add(typeConstraint.type_param_str());
                 }
-                w.write(typeConstraint.type_param_str());
-                first = false;
             }
-            w.write(">");
-            w.write(" ");
+
+            if (!typeVariables.isEmpty()) {
+                w.write(typeVariables.stream().collect(Collectors.joining(", ", "<", ">")));
+                w.write(" ");
+            }
         }
 
         // @@@ Multiple output parameters - need to return tuple/record
@@ -208,17 +208,8 @@ public class OperatorGen {
 
             outputType = new TypeElement.ExternalizedTypeElement(s.name() + "Result", List.of());
             w.write(outputType.toString());
-            if (!s.type_constraints().isEmpty()) {
-                boolean first = true;
-                w.write("<");
-                for (OpSchema.TypeConstraintParam typeConstraint : s.type_constraints()) {
-                    if (!first) {
-                        w.write(", ");
-                    }
-                    w.write(typeConstraint.type_param_str());
-                    first = false;
-                }
-                w.write(">");
+            if (!recordResultTypeVariables.isEmpty()) {
+                w.write(recordResultTypeVariables.stream().collect(Collectors.joining(", ", "<", ">")));
             }
         }
         w.write(" ");
@@ -318,7 +309,7 @@ public class OperatorGen {
         if (twoOrMoreResults) {
             w.write("Object[] resultArray = (Object[]) result;\n");
             w.write("return new " + s.name() + "Result");
-            if (!s.type_constraints().isEmpty()) {
+            if (!recordResultTypeVariables.isEmpty()) {
                 w.write("<>");
             }
             w.write("(");
@@ -350,6 +341,20 @@ public class OperatorGen {
         return tcm.entrySet().stream().collect(Collectors.toMap(
                 e -> e.getKey(),
                 e -> javaType(e.getKey(), e.getValue())));
+    }
+
+    static Set<String> javaTypeVariables(Map<String, TypeElement.ExternalizedTypeElement> tcm) {
+        return tcm.entrySet().stream()
+                .filter(e -> usesTypeVariable(e.getKey(), e.getValue()))
+                .map(e -> e.getKey())
+                .collect(Collectors.toSet());
+    }
+
+    static boolean usesTypeVariable(String typeVariable, TypeElement.ExternalizedTypeElement ete) {
+        if (ete.arguments().isEmpty()) {
+            return typeVariable.equals(ete.identifier());
+        }
+        return ete.arguments().stream().anyMatch(a -> usesTypeVariable(typeVariable, a));
     }
 
     static TypeElement.ExternalizedTypeElement javaType(String typeVariable, TypeElement.ExternalizedTypeElement ete) {
