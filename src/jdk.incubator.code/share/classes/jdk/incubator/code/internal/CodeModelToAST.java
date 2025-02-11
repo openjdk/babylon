@@ -132,17 +132,19 @@ public class CodeModelToAST {
         }
         var flags = method.getModifiers();
         var name = names.fromString(invokeOp.invokeDescriptor().name());
+        Value receiver = invokeOp.invokeKind() == CoreOp.InvokeOp.InvokeKind.INSTANCE ? invokeOp.operands().get(0) : null;
+        List<Value> arguments = invokeOp.operands().stream().skip(receiver == null ? 0 : 1).collect(List.collector());
         var argTypes = new ListBuffer<Type>();
-        for (Value operand : invokeOp.operands()) {
+        for (Value operand : arguments) {
             argTypes.add(typeElementToType(operand.type()));
         }
         var restype = typeElementToType(invokeOp.resultType());
         var type = new Type.MethodType(argTypes.toList(), restype, List.nil(), syms.methodClass);
         var methodSym = new Symbol.MethodSymbol(flags, name, type,
                 typeElementToType(invokeOp.invokeDescriptor().refType()).tsym);
-        var meth = treeMaker.Ident(methodSym);
+        var meth = receiver == null ? treeMaker.Ident(methodSym) : treeMaker.Select((JCTree.JCExpression) valueToTree.get(receiver), methodSym);
         var args = new ListBuffer<JCTree.JCExpression>();
-        for (Value operand : invokeOp.operands()) {
+        for (Value operand : arguments) {
             args.add((JCTree.JCExpression) valueToTree.get(operand));
         }
         return treeMaker.App(meth, args.toList());
@@ -194,12 +196,9 @@ public class CodeModelToAST {
     // before their uses, we first do var.load then use the result of that
     private JCTree opToTree(Op op) {
         JCTree tree = switch (op) {
-            case CoreOp.ConstantOp constantOp when constantOp.resultType() instanceof PrimitiveType ->
-                    treeMaker.Literal(constantOp.value());
-            case CoreOp.ConstantOp constantOp -> {
-                var literalType = typeElementToType(constantOp.resultType());
-               yield treeMaker.Literal(literalType.getTag(), constantOp.value()).setType(literalType);
-            }
+            case CoreOp.ConstantOp constantOp when constantOp.value() == null ->
+                    treeMaker.Literal(TypeTag.BOT, null).setType(syms.botType);
+            case CoreOp.ConstantOp constantOp -> treeMaker.Literal(constantOp.value());
             case CoreOp.InvokeOp invokeOp -> invokeOpToJCMethodInvocation(invokeOp);
             case CoreOp.NewOp newOp -> {
                 var ownerType = typeElementToType(newOp.constructorType().returnType());
