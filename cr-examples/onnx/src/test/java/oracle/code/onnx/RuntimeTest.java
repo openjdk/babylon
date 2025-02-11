@@ -22,11 +22,9 @@ public class RuntimeTest {
             assertEquals(2, addOp.getNumberOfInputs());
             assertEquals(1, addOp.getNumberOfOutputs());
 
-            var inputShape = ((OnnxRuntime.OrtTensorTypeAndShapeInfo)absOp.getInputTypeInfo(0)).getShape();
-            var inputTensor = ort.createTensor(inputShape, -1, 2, -3, 4, -5, 6);
+            var inputTensor = ort.createFlatTensor(-1, 2, -3, 4, -5, 6);
 
-            var absExpectedShape = ((OnnxRuntime.OrtTensorTypeAndShapeInfo)absOp.getOutputTypeInfo(0)).getShape();
-            var absExpectedTensor = ort.createTensor(absExpectedShape, 1, 2, 3, 4, 5, 6);
+            var absExpectedTensor = ort.createFlatTensor(1, 2, 3, 4, 5, 6);
 
             var absResult = absOp.run(Map.of(absOp.getInputName(0), inputTensor), List.of(absOp.getOutputName(0)));
 
@@ -42,8 +40,7 @@ public class RuntimeTest {
 
             var addOutputTensor = (OnnxRuntime.OrtTensor)addResult.getFirst();
 
-            var addExpectedShape = ((OnnxRuntime.OrtTensorTypeAndShapeInfo)absOp.getOutputTypeInfo(0)).getShape();
-            var addExpectedTensor = ort.createTensor(addExpectedShape, 0, 4, 0, 8, 0, 12);
+            var addExpectedTensor = ort.createFlatTensor(0, 4, 0, 8, 0, 12);
 
             assertTensorEquals(addExpectedTensor, addOutputTensor);
         }
