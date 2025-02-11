@@ -226,9 +226,8 @@ public class CodeModelToAST {
                 var v = new Symbol.VarSymbol(0, name, type, ms);
                 yield treeMaker.VarDef(v, (JCTree.JCExpression) init);
             }
-            case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> {
-                yield treeMaker.Ident((JCTree.JCVariableDecl) valueToTree.get(varLoadOp.varOperand()));
-            }
+            case CoreOp.VarAccessOp.VarLoadOp varLoadOp ->
+                    treeMaker.Ident((JCTree.JCVariableDecl) valueToTree.get(varLoadOp.varOperand()));
             default -> throw new IllegalStateException("Op -> JCTree not supported for :" + op.getClass().getName());
         };
         valueToTree.put(op.result(), tree);
@@ -306,8 +305,6 @@ public class CodeModelToAST {
 
     // TODO see if we can use LET AST node
     // TODO add vars in OpBuilder (later)
-
-
 
 
     // TODO explore builderOp --> java code (as string)
