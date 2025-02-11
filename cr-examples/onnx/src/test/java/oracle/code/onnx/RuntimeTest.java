@@ -28,7 +28,7 @@ public class RuntimeTest {
 
             var absExpectedTensor = ort.createFlatTensor(1f, 2, 3, 4, 5, 6);
 
-            var absResult = absOp.run(OnnxOps.Abs.SCHEMA.inputs(), OnnxOps.Abs.SCHEMA.outputs(), List.of(inputTensor));
+            var absResult = absOp.run(List.of(inputTensor));
 
             assertEquals(1, absResult.size());
 
@@ -36,7 +36,7 @@ public class RuntimeTest {
 
             assertTensorEquals(absExpectedTensor, absOutputTensor);
 
-            var addResult = addOp.run(OnnxOps.Add.SCHEMA.inputs(), OnnxOps.Add.SCHEMA.outputs(), List.of(inputTensor, absOutputTensor));
+            var addResult = addOp.run(List.of(inputTensor, absOutputTensor));
 
             assertEquals(1, addResult.size());
 

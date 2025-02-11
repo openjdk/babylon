@@ -264,7 +264,6 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     // @@@ tensors only
     // order of building defines order inside protobufs
     static ByteBuffer buildOpModel(OnnxOp.OnnxSchema schema, List<ElementType> inputElementTypes) {
-        var fallback = inputElementTypes.getFirst();
         var bytes = new ModelProto()
                 .ir_version(IR_VERSION)
                 .graph(new GraphProto()
@@ -276,65 +275,11 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                                 .name(i.name())
                                 .type(new TypeProto()
                                         // inputValues matching schema inputs by OnnxParameter::ordinal
-                                        .tensor_type(new Tensor().elem_type(resolveElementType(i.type(), inputElementTypes.get(i.ordinal())))))))
+                                        .tensor_type(new Tensor().elem_type(inputElementTypes.get(i.ordinal()).id)))))
                         .forEach(schema.outputs(), (g, o) -> g.output(new ValueInfoProto()
-                                .name(o.name())
-                                .type(new TypeProto()
-                                        .tensor_type(new Tensor().elem_type(resolveElementType(o.type(), fallback)))))))
+                                .name(o.name()))))
                 .opset_import(new OperatorSetIdProto().version(OPSET_VERSION))
                 .buf.toByteArray();
         return ByteBuffer.allocateDirect(bytes.length).put(bytes).asReadOnlyBuffer();
-    }
-
-    private static int resolveElementType(OnnxType schemeType, ElementType fallback) {
-        if (schemeType == OnnxType.TENSOR_FLOAT32) {
-            return 1;
-        } else if(schemeType == OnnxType.TENSOR_UINT8) {
-            return 2;
-        } else if(schemeType == OnnxType.TENSOR_INT8) {
-            return 3;
-        } else if(schemeType == OnnxType.TENSOR_UINT16) {
-            return 4;
-        } else if(schemeType == OnnxType.TENSOR_INT16) {
-            return 5;
-        } else if(schemeType == OnnxType.TENSOR_INT32) {
-            return 6;
-        } else if(schemeType == OnnxType.TENSOR_INT64) {
-            return 7;
-        } else if(schemeType == OnnxType.TENSOR_STRING) {
-            return 8;
-        } else if(schemeType == OnnxType.TENSOR_BOOL) {
-            return 9;
-        } else if(schemeType == OnnxType.TENSOR_FLOAT16) {
-            return 10;
-        } else if(schemeType == OnnxType.TENSOR_FLOAT64) {
-            return 11;
-        } else if(schemeType == OnnxType.TENSOR_UINT32) {
-            return 12;
-        } else if(schemeType == OnnxType.TENSOR_UINT64) {
-            return 13;
-        } else if(schemeType == OnnxType.TENSOR_COMPLEX64) {
-            return 14;
-        } else if(schemeType == OnnxType.TENSOR_COMPLEX128) {
-            return 15;
-        } else if(schemeType == OnnxType.TENSOR_BFLOAT16) {
-            return 16;
-        } else if(schemeType == OnnxType.TENSOR_FLOAT8E4M3FN) {
-            return 17;
-        } else if(schemeType == OnnxType.TENSOR_FLOAT8E4M3FNUZ) {
-            return 18;
-        } else if(schemeType == OnnxType.TENSOR_FLOAT8E5M2) {
-            return 19;
-        } else if(schemeType == OnnxType.TENSOR_FLOAT8E5M2FNUZ) {
-            return 20;
-        } else if(schemeType == OnnxType.TENSOR_UINT4) {
-            return 21;
-        } else if(schemeType == OnnxType.TENSOR_INT4) {
-            return 22;
-        } else if(schemeType == OnnxType.TENSOR_FLOAT4E2M1) {
-            return 23;
-        } else {
-            return fallback.id;
-        }
     }
 }

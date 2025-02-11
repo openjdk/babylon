@@ -167,10 +167,14 @@ public final class OnnxRuntime {
         UNKNOWN, TENSOR, SEQUENCE, MAP, OPAQUE, SPARSETENSOR, OPTIONAL
     }
 
+    private static List<Tensor.ElementType> toElementTypes(List<OrtTensor> values) {
+        return values.stream().map(OrtTensor::getTensorTypeAndShape).map(OrtTensorTypeAndShapeInfo::getTensorElementType).toList();
+    }
+
     public List<OrtTensor> runOp(OnnxOp.OnnxSchema schema, List<OrtTensor> inputValues) {
-        var protoModel = OnnxProtoBuilder.buildOpModel(schema, inputValues.stream().map(OrtTensor::getTensorTypeAndShape).map(OrtTensorTypeAndShapeInfo::getTensorElementType).toList());
+        var protoModel = OnnxProtoBuilder.buildOpModel(schema, toElementTypes(inputValues));
         try (var session = createSession(protoModel)) {
-            return session.run(schema.inputs(), schema.outputs(), inputValues);
+            return session.run(inputValues);
         }
     }
 
@@ -273,21 +277,21 @@ public final class OnnxRuntime {
         }
 
         // @@@ only tensors are supported yet
-        public List<OrtTensor> run(List<OnnxOp.OnnxParameter> inputParams, List<OnnxOp.OnnxParameter> outputParams, List<OrtTensor> inputValues) {
+        public List<OrtTensor> run(List<OrtTensor> inputValues) {
             var runOptions = MemorySegment.NULL;
-            int inputLen = inputValues.size();
-            int outputLen = outputParams.size();
+            int inputLen = getNumberOfInputs();
+            int outputLen = getNumberOfOutputs();
             var inputNames = arena.allocate(ADDRESS, inputLen);
             var inputs = arena.allocate(ADDRESS, inputLen);
             long index = 0;
             for (int i = 0; i < inputLen; i++) {
-                inputNames.setAtIndex(ADDRESS, index, arena.allocateFrom(inputParams.get(i).name()));
+                inputNames.setAtIndex(ADDRESS, index, arena.allocateFrom(getInputName(i)));
                 inputs.setAtIndex(ADDRESS, index++, inputValues.get(i).valueAddress());
             }
             var outputNames = arena.allocate(ADDRESS, outputLen);
             var outputs = arena.allocate(ADDRESS, outputLen);
             for (int i = 0; i < outputLen; i++) {
-                outputNames.setAtIndex(ADDRESS, i, arena.allocateFrom(outputParams.get(i).name()));
+                outputNames.setAtIndex(ADDRESS, i, arena.allocateFrom(getOutputName(i)));
                 outputs.setAtIndex(ADDRESS, i, MemorySegment.NULL);
             }
             try {
