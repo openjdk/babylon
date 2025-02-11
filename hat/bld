@@ -78,6 +78,7 @@ void main(String[] args) {
     var hatCoreDir = dir.existingDir("hat");
     var backends = dir.existingDir("backends");
     var examples = dir.existingDir("examples");
+    var wrapsDir = dir.existingDir("wrap");
     var stageDir = dir.buildDir("stage").create();
     var buildDir = BuildDir.of(dir.path("build")).create();
     var cmakeBuildDir = buildDir.cMakeBuildDir("cmake-build-debug");
@@ -100,6 +101,11 @@ void main(String[] args) {
 
     var verbose = false;
 
+    var wrap= jar(jar -> jar
+         .jarFile(buildDir.jarFile("wrap.jar"))
+         .maven_style_root(wrapsDir.dir("wrap"))
+         .javac(javac -> javac.current_source())
+    );
 
     if (jextractCapability.available()) {
         if (openclCapability.available()) {
@@ -117,6 +123,11 @@ void main(String[] args) {
             }else{
                 out.println("Using existing extracted "+openclCapability.jarFile(buildDir).fileName());
             }
+            jar(jar -> jar
+               .jarFile(buildDir.jarFile("clwrap.jar"))
+               .maven_style_root(wrapsDir.dir("clwrap"))
+               .javac(javac -> javac.current_source().class_path(wrap, openclCapability.jarFile(buildDir)))
+            );
         } else {
             out.println("This platform does not have OpenCL");
         }
@@ -135,6 +146,16 @@ void main(String[] args) {
             }else{
                 out.println("Using existing extracted "+openglCapability.jarFile(buildDir).fileName());
             }
+            jar(jar -> jar
+               .jarFile(buildDir.jarFile("glwrap.jar"))
+               .maven_style_root(wrapsDir.dir("glwrap"))
+               .javac(javac -> javac
+                  .current_source()
+                  .exclude(javaSrc -> javaSrc.matches("^.*/wrap/glwrap/GLCallbackEventHandler\\.java$"))
+                  //.exclude(javaSrc -> javaSrc.matches("^.*/wrap/glwrap/GLFuncEventHandler\\.java$"))
+                  .class_path(wrap, openglCapability.jarFile(buildDir))
+               )
+            );
         } else {
             out.println("This platform does not have OpenGL");
         }
@@ -180,34 +201,30 @@ void main(String[] args) {
                 );
             });
 
-    // Here we create all jextracted-backend jars.
+    // Here we create jextracted-backend jars.
     var jextractedBackends = backends.existingDir("jextracted");
     var jextractedBackendSharedDir = jextractedBackends.dir("shared");
+    out.println("Shared jextracted "+jextractedBackendSharedDir.path());
     var jextractedBackendSharedResult = jar(hatJarOptions, jar -> jar
           .jarFile(buildDir.jarFile("hat-backend-jextracted-shared-1.0.jar"))
           .maven_style_root(jextractedBackendSharedDir)
           .javac(hatJavacOpts, javac -> javac.verbose(true)
               .class_path(hatJarFile)
           )
-    );
+    ); 
 
-    jextractedBackends
-            .subDirs()
-            .filter(backend -> backend.failsToMatch("^.*(target|shared|.idea)$"))
-            .forEach(backend -> {
-                var jarFile = buildDir.jarFile("hat-backend-jextracted-" + backend.fileName() + "-1.0.jar");
-                out.println(jarFile.fileName());
-                jar(hatJarOptions, jar -> jar
-                        .jarFile(jarFile)
-                        .maven_style_root(backend)
-                        .javac(hatJavacOpts, javac -> javac.verbose(true)
-                           .class_path(hatJarFile, jextractedBackendSharedResult)
-                           .when(backend.fileName().equals("opencl"), _->
-                              javac.class_path( openclCapability.jarFile(buildDir))
-                           )
-                        )
-                );
-            });
+    if (openclCapability.available()){
+       var jextractedBackendOpenCLDir = jextractedBackends.dir("opencl");
+       out.println("OpenCL jextracted "+jextractedBackendOpenCLDir.path());
+       var jextractedOpenCLBackendOpenCLResult = jar(hatJarOptions, jar -> jar
+          .jarFile(buildDir.jarFile("hat-backend-jextracted-opencl-1.0.jar"))
+          .maven_style_root(jextractedBackendOpenCLDir)
+          .javac(hatJavacOpts, javac -> javac.verbose(true)
+              .class_path(hatJarFile, openclCapability.jarFile(buildDir), jextractedBackendSharedResult )
+          )
+       );
+   }
+
 
     // Here we create all java backend jars.
     backends.existingDir("java")
