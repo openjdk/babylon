@@ -3,10 +3,12 @@ package oracle.code.onnx;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.stream.Stream;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.op.CoreOp.FuncOp;
 import oracle.code.onnx.ir.OnnxOp;
 import oracle.code.onnx.Tensor.ElementType;
 import oracle.code.onnx.ir.OnnxType;
@@ -278,6 +280,89 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                                         .tensor_type(new Tensor().elem_type(inputElementTypes.get(i.ordinal()).id)))))
                         .forEach(schema.outputs(), (g, o) -> g.output(new ValueInfoProto()
                                 .name(o.name()))))
+                .opset_import(new OperatorSetIdProto().version(OPSET_VERSION))
+                .buf.toByteArray();
+        return ByteBuffer.allocateDirect(bytes.length).put(bytes).asReadOnlyBuffer();
+    }
+
+    private static int toElementType(TypeElement type) {
+        if (type == OnnxType.TENSOR_FLOAT32) {
+            return 1;
+        } else if(type == OnnxType.TENSOR_UINT8) {
+            return 2;
+        } else if(type == OnnxType.TENSOR_INT8) {
+            return 3;
+        } else if(type == OnnxType.TENSOR_UINT16) {
+            return 4;
+        } else if(type == OnnxType.TENSOR_INT16) {
+            return 5;
+        } else if(type == OnnxType.TENSOR_INT32) {
+            return 6;
+        } else if(type == OnnxType.TENSOR_INT64) {
+            return 7;
+        } else if(type == OnnxType.TENSOR_STRING) {
+            return 8;
+        } else if(type == OnnxType.TENSOR_BOOL) {
+            return 9;
+        } else if(type == OnnxType.TENSOR_FLOAT16) {
+            return 10;
+        } else if(type == OnnxType.TENSOR_FLOAT64) {
+            return 11;
+        } else if(type == OnnxType.TENSOR_UINT32) {
+            return 12;
+        } else if(type == OnnxType.TENSOR_UINT64) {
+            return 13;
+        } else if(type == OnnxType.TENSOR_COMPLEX64) {
+            return 14;
+        } else if(type == OnnxType.TENSOR_COMPLEX128) {
+            return 15;
+        } else if(type == OnnxType.TENSOR_BFLOAT16) {
+            return 16;
+        } else if(type == OnnxType.TENSOR_FLOAT8E4M3FN) {
+            return 17;
+        } else if(type == OnnxType.TENSOR_FLOAT8E4M3FNUZ) {
+            return 18;
+        } else if(type == OnnxType.TENSOR_FLOAT8E5M2) {
+            return 19;
+        } else if(type == OnnxType.TENSOR_FLOAT8E5M2FNUZ) {
+            return 20;
+        } else if(type == OnnxType.TENSOR_UINT4) {
+            return 21;
+        } else if(type == OnnxType.TENSOR_INT4) {
+            return 22;
+        } else if(type == OnnxType.TENSOR_FLOAT4E2M1) {
+            return 23;
+        } else {
+            throw new RuntimeException(type.toString());
+        }
+    }
+
+    static ByteBuffer buildFuncModel(FuncOp model) {
+        var indexer = new IdentityHashMap<Value, String>() {
+            String getName(Value v) {
+                return computeIfAbsent(v, _ -> "#" + size());
+            }
+        };
+        var entryBlock = model.body().entryBlock();
+        var bytes = new ModelProto()
+                .ir_version(IR_VERSION)
+                .graph(new GraphProto()
+                        .forEach(entryBlock.ops(), (g, op) -> {
+                            if (op instanceof OnnxOp) {
+                                g.node(new NodeProto()
+                                        .forEach(op.operands(), (n, p) -> n.input(indexer.getName(p)))
+                                        .output(indexer.getName(op.result()))
+                                        .op_type(op.opName()));
+                            }
+                        })
+                        .forEach(model.parameters(), (g, p) -> g.input(new ValueInfoProto()
+                                .name(indexer.getName(p))
+                                .type(new TypeProto()
+                                        .tensor_type(new Tensor().elem_type(toElementType(p.type()))))))
+                        .output(new ValueInfoProto()
+                                .name(indexer.getName(entryBlock.terminatingOp().operands().getFirst()))
+                                .type(new TypeProto()
+                                        .tensor_type(new Tensor().elem_type(toElementType(model.body().yieldType()))))))
                 .opset_import(new OperatorSetIdProto().version(OPSET_VERSION))
                 .buf.toByteArray();
         return ByteBuffer.allocateDirect(bytes.length).put(bytes).asReadOnlyBuffer();

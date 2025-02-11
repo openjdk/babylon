@@ -9,6 +9,7 @@ import java.lang.invoke.VarHandle;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.LongBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -18,6 +19,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import jdk.incubator.code.op.CoreOp;
 import oracle.code.onnx.ir.OnnxOp;
 
 import static java.lang.foreign.ValueLayout.*;
@@ -173,6 +175,13 @@ public final class OnnxRuntime {
 
     public List<OrtTensor> runOp(OnnxOp.OnnxSchema schema, List<OrtTensor> inputValues) {
         var protoModel = OnnxProtoBuilder.buildOpModel(schema, toElementTypes(inputValues));
+        try (var session = createSession(protoModel)) {
+            return session.run(inputValues);
+        }
+    }
+
+    public List<OrtTensor> runFunc(CoreOp.FuncOp model, List<OrtTensor> inputValues) {
+        var protoModel = OnnxProtoBuilder.buildFuncModel(model);
         try (var session = createSession(protoModel)) {
             return session.run(inputValues);
         }
