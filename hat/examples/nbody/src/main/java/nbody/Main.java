@@ -41,24 +41,24 @@ import java.util.stream.IntStream;
 
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
-import static opengl.glut_h.GL_COLOR_BUFFER_BIT;
-import static opengl.glut_h.GL_DEPTH_BUFFER_BIT;
-import static opengl.glut_h.GL_QUADS;
-import static opengl.glut_h.GL_TEXTURE_2D;
-import static opengl.glut_h.glBegin;
-import static opengl.glut_h.glBindTexture;
-import static opengl.glut_h.glClear;
-import static opengl.glut_h.glColor3f;
-import static opengl.glut_h.glEnd;
-import static opengl.glut_h.glLoadIdentity;
-import static opengl.glut_h.glPopMatrix;
-import static opengl.glut_h.glPushMatrix;
-import static opengl.glut_h.glRotatef;
-import static opengl.glut_h.glScalef;
-import static opengl.glut_h.glTexCoord2f;
-import static opengl.glut_h.glVertex3f;
-import static opengl.glut_h.glutSwapBuffers;
-import static opengl.glut_h_3.C_FLOAT;
+import static opengl.opengl_h.GL_COLOR_BUFFER_BIT;
+import static opengl.opengl_h.GL_DEPTH_BUFFER_BIT;
+import static opengl.opengl_h.GL_QUADS;
+import static opengl.opengl_h.GL_TEXTURE_2D;
+import static opengl.opengl_h.glBegin;
+import static opengl.opengl_h.glBindTexture;
+import static opengl.opengl_h.glClear;
+import static opengl.opengl_h.glColor3f;
+import static opengl.opengl_h.glEnd;
+import static opengl.opengl_h.glLoadIdentity;
+import static opengl.opengl_h.glPopMatrix;
+import static opengl.opengl_h.glPushMatrix;
+import static opengl.opengl_h.glRotatef;
+import static opengl.opengl_h.glScalef;
+import static opengl.opengl_h.glTexCoord2f;
+import static opengl.opengl_h.glVertex3f;
+import static opengl.opengl_h.glutSwapBuffers;
+import static opengl.opengl_h_3.C_FLOAT;
 
 
 public class Main {

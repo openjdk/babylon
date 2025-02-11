@@ -2,10 +2,14 @@
 <project version="4">
   <component name="CompilerConfiguration">
     <option name="USE_RELEASE_OPTION" value="false" />
+    <excludeFromCompile>
+      <file url="file://$PROJECT_DIR$/../wrap/glwrap/src/main/java/wrap/glwrap/GLCallbackEventHandler.java" />
+    </excludeFromCompile>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_STRING" value="--add-modules=jdk.incubator.code --add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports=java.base/jdk.internal=ALL-UNNAMED" />
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="glwrap" options="--add-modules=jdk.incubator.code,java.desktop --add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports=java.base/jdk.internal=ALL-UNNAMED" />
       <module name="life" options="--add-modules=jdk.incubator.code,java.desktop --add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports=java.base/jdk.internal=ALL-UNNAMED" />
       <module name="mandel" options="--add-modules=jdk.incubator.code,java.desktop --add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports=java.base/jdk.internal=ALL-UNNAMED" />
     </option>
