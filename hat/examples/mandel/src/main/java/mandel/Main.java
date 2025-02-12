@@ -28,6 +28,7 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
 import hat.backend.Backend;
+import hat.buffer.Buffer;
 import hat.buffer.S32Array;
 import hat.buffer.S32Array2D;
 
@@ -81,6 +82,10 @@ public class Main {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
         S32Array2D s32Array2D = S32Array2D.create(accelerator, width, height);
+        var tail = Buffer.Tail.of(s32Array2D);
+
+        System.out.println("java dirty "+tail.javaDirty());
+        System.out.println("gpu dirty "+tail.gpuDirty());
 
         int[] palletteArray = new int[maxIterations];
 

@@ -342,7 +342,7 @@ public interface SegmentMapper<T> {
      * @throws IndexOutOfBoundsException if
      *                                   {@code layout().byteSize() > segment.byteSize()}
      */
-
+    static final long MAGIC =0x4a71facebffab175L;
     default T allocate(Arena arena, BoundSchema<?> boundSchema) {
         if (boundSchema == null) {
             throw new IllegalStateException("we must have a bound schema");
@@ -350,7 +350,7 @@ public interface SegmentMapper<T> {
         // hat iface buffer bits
         // hat iface bffa   bits
         // 4a7 1face bffa   b175
-        long MAGIC =0x4a71facebffab175L;
+
         /*
          We adjust size to next 16 byte boundary and then add sizeof ifacebufferbitz bytes
 
