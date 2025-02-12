@@ -57,17 +57,24 @@ class DataType(enum.IntEnum):
     FLOAT4E2M1 = 23
      */
 
-import java.util.NoSuchElementException;
-import java.util.Optional;
-import java.util.stream.Stream;
-
 public class Tensor<T> extends OnnxNumber {
     // element type
     // dim
     // runtime representation
     // defer to ONNX runtime?
 
-    Tensor() {
+    final OnnxRuntime.OrtTensor rtTensor;
+
+    public Tensor(long... data) {
+        this(OnnxRuntime.getInstance().createFlatTensor(data));
+    }
+
+    public Tensor(float... data) {
+        this(OnnxRuntime.getInstance().createFlatTensor(data));
+    }
+
+    Tensor(OnnxRuntime.OrtTensor rtTensor) {
+        this.rtTensor = rtTensor;
     }
 
     enum ElementType {
@@ -111,8 +118,22 @@ public class Tensor<T> extends OnnxNumber {
             return name().toLowerCase();
         }
 
+        int size() {
+            return switch (this) {
+                case UINT8, INT8, BOOL, FLOAT8E4M3FN, FLOAT8E4M3FNUZ, FLOAT8E5M2, FLOAT8E5M2FNUZ -> 1;
+                case UINT16, INT16, FLOAT16, BFLOAT16 -> 2;
+                case UINT32, INT32, FLOAT -> 4;
+                case UINT64, INT64, DOUBLE -> 8;
+                default -> 0;
+            };
+        }
+
         public static ElementType fromOnnxName(String name) {
             return ElementType.valueOf(name.toUpperCase());
+        }
+
+        public static ElementType fromOnnxId(int id) {
+            return values()[id - 1];
         }
     }
 }

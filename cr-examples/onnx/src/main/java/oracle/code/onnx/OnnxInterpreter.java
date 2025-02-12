@@ -33,6 +33,18 @@ public class OnnxInterpreter {
     public static Object interpret(Class<? extends OnnxOp> opClass,
                                    List<Object> inputs,
                                    List<Object> attributes) {
-        throw new UnsupportedOperationException();
+        try {
+            // @@@ assuming tensor inputs and outputs
+            var outTensors = OnnxRuntime.getInstance().runOp(
+                    (OnnxOp.OnnxSchema)opClass.getDeclaredField("SCHEMA").get(null),
+                    inputs.stream().map(o -> ((Tensor)o).rtTensor).toList());
+            if (outTensors.size() == 1) {
+                return new Tensor<>(outTensors.getFirst());
+            } else {
+                return outTensors.stream().map(Tensor::new).toArray();
+            }
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

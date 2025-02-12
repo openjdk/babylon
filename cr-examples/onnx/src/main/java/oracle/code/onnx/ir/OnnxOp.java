@@ -144,6 +144,8 @@ public abstract class OnnxOp extends ExternalizableOp {
 
         String name();
 
+        int ordinal();
+
         OnnxType type();
 
         Quantifier quantifier();
