@@ -38,9 +38,10 @@ public class SimpleTest {
 
     @Test
     public void testFconstant() throws Exception {
-        assertEquals(
-                fconstant(),
-                runModel("fconstant"));
+        // tests the numbers are encoded correctly
+        var expected = new Tensor(-1f, 0, 1, Float.MIN_VALUE, Float.MAX_VALUE);
+        assertEquals(expected, fconstant());
+        assertEquals(expected, runModel("fconstant"));
     }
 
     @CodeReflection
@@ -50,9 +51,10 @@ public class SimpleTest {
 
     @Test
     public void testLconstant() throws Exception {
-        assertEquals(
-                lconstant(),
-                runModel("lconstant"));
+        // tests the numbers are encoded correctly
+        var expected = new Tensor(-1l, 0, 1, Long.MIN_VALUE, Long.MAX_VALUE);
+        assertEquals(expected, lconstant());
+        assertEquals(expected, runModel("lconstant"));
     }
 
     @CodeReflection
