@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import jdk.incubator.code.op.CoreOp;
 import oracle.code.onnx.ir.OnnxOp;
 
@@ -23,7 +24,7 @@ import static java.lang.foreign.ValueLayout.*;
 public final class OnnxRuntime {
 
     private static final int ORT_VERSION = 20;
-    private static final int LOG_LEVEL = 0; // 0 - verbose, 1 - info, 2 - warning, 3 - error, 4 - fatal
+    private static final int LOG_LEVEL = 3; // 0 - verbose, 1 - info, 2 - warning, 3 - error, 4 - fatal
     private static final String LOG_ID = "onnx-ffm-java";
 
     public static OnnxRuntime getInstance() {
@@ -169,8 +170,8 @@ public final class OnnxRuntime {
         return values.stream().map(OrtTensor::getTensorTypeAndShape).map(OrtTensorTypeAndShapeInfo::getTensorElementType).toList();
     }
 
-    public List<OrtTensor> runOp(OnnxOp.OnnxSchema schema, List<OrtTensor> inputValues) {
-        var protoModel = OnnxProtoBuilder.buildOpModel(schema, toElementTypes(inputValues));
+    public List<OrtTensor> runOp(OnnxOp.OnnxSchema schema, List<OrtTensor> inputValues, List<Object> attributes) {
+        var protoModel = OnnxProtoBuilder.buildOpModel(schema, toElementTypes(inputValues), attributes);
         try (var session = createSession(protoModel)) {
             return session.run(inputValues);
         }

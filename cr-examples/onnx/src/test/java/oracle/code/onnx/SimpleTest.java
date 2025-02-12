@@ -4,20 +4,19 @@ import java.lang.invoke.MethodHandles;
 import java.nio.ByteBuffer;
 import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
-import java.util.List;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.stream.Stream;
 import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.op.CoreOp;
 import oracle.code.onnx.compiler.OnnxTransformer;
+import oracle.code.onnx.ir.OnnxOp;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 public class SimpleTest {
 
-    // Java code model -> ONNX code model -> ONNX runtime instance -> execute via ORT
-    // Run directly, each operation reflectively executes via ORT
     @CodeReflection
     public static Tensor<Float> add(Tensor<Float> a, Tensor<Float> b) {
         return OnnxOperators.Add(a, b);
@@ -30,6 +29,35 @@ public class SimpleTest {
         assertEquals(
                 add(a, b),
                 runModel("add", a, b));
+    }
+
+    @CodeReflection
+    public static Tensor<Float> fconstant() {
+        return OnnxOperators.Constant(new float[]{-1f, 0, 1, Float.MIN_VALUE, Float.MAX_VALUE});
+    }
+
+    @Test
+    public void testFconstant() throws Exception {
+        assertEquals(
+                fconstant(),
+                new Tensor(-1f, 0, 1, Float.MIN_VALUE, Float.MAX_VALUE));
+//                runModel("fconstant"));
+    }
+
+    @CodeReflection
+    public static Tensor<Long> lconstant() {
+        return OnnxOperators.Constant(new long[]{-1, 0, 1, Long.MIN_VALUE, Long.MAX_VALUE});
+    }
+
+    @Test
+    public void testLconstant() throws Exception {
+        var l = new long[5];
+        lconstant().rtTensor.asByteBuffer().asLongBuffer().get(l);
+        System.out.println(Arrays.toString(l));
+        assertEquals(
+                lconstant(),
+                new Tensor(-1, 0, 1, Long.MIN_VALUE, Long.MAX_VALUE));
+//                runModel("lconstant"));
     }
 
     @CodeReflection

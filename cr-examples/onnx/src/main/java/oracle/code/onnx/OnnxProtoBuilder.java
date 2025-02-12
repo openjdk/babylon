@@ -264,24 +264,53 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
 
     // @@@ tensors only
     // order of building defines order inside protobufs
-    static ByteBuffer buildOpModel(OnnxOp.OnnxSchema schema, List<ElementType> inputElementTypes) {
+    static ByteBuffer buildOpModel(OnnxOp.OnnxSchema schema, List<ElementType> inputElementTypes, List<Object> attributes) {
         var bytes = new ModelProto()
                 .ir_version(IR_VERSION)
                 .graph(new GraphProto()
                         .node(new NodeProto()
                             .forEach(schema.inputs(), (n, i) -> n.input(i.name()))
                             .forEach(schema.outputs(), (n, o) -> n.output(o.name()))
-                            .op_type(schema.name()))
+                            .op_type(schema.name())
+                            .forEach(schema.attributes(), (n, a) -> {
+                                // attributes match schema by OnnxAttribute::ordinal
+                                var attrValue = attributes.get(a.ordinal());
+                                if (a.isOptional()) {
+                                    if (attrValue instanceof java.util.Optional o && o.isPresent()) {
+                                        n.attribute(buildAttribute(a.name(), o.get()));
+                                    }
+                                } else {
+                                    n.attribute(buildAttribute(a.name(), attrValue));
+                                }
+                            }))
                         .forEach(schema.inputs(), (g, i) -> g.input(new ValueInfoProto()
                                 .name(i.name())
                                 .type(new TypeProto()
-                                        // inputValues matching schema inputs by OnnxParameter::ordinal
+                                        // inputValues match schema inputs by OnnxParameter::ordinal
                                         .tensor_type(new Tensor().elem_type(inputElementTypes.get(i.ordinal()).id)))))
                         .forEach(schema.outputs(), (g, o) -> g.output(new ValueInfoProto()
                                 .name(o.name()))))
                 .opset_import(new OperatorSetIdProto().version(OPSET_VERSION))
                 .buf.toByteArray();
         return ByteBuffer.allocateDirect(bytes.length).put(bytes).asReadOnlyBuffer();
+    }
+
+    static Attribute buildAttribute(String name, Object value) {
+        var attr = new Attribute().name(name);
+        switch (value) {
+            case long[] longs -> {
+                attr.type(7);
+                for (long l : longs) attr.ints(l);
+            }
+            case float[] floats -> {
+                attr.type(6);
+                for (float f : floats) attr.floats(f);
+            }
+            default -> {
+                throw new UnsupportedOperationException(); // @@@ ToDo
+            }
+        }
+        return attr;
     }
 
     // @@@ unchecked constraints:
