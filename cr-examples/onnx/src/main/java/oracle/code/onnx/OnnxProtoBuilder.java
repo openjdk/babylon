@@ -1,6 +1,7 @@
 package oracle.code.onnx;
 
 import java.io.ByteArrayOutputStream;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.IdentityHashMap;
@@ -193,13 +194,11 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     final ByteArrayOutputStream buf = new ByteArrayOutputStream();
 
     void _encode(long number) {
-        long expanded = Long.expand(number, 0x7f7f7f7f7f7f7f7fl);
-        int bytesSize = Math.max(1, 8 - Long.numberOfLeadingZeros(expanded) / 8);
-        for (int i = 1; i < bytesSize; i++) {
-            buf.write(0x80 | (int)expanded & 0x7f);
-            expanded >>= 8;
+        for (int i = 64 - Long.numberOfLeadingZeros(number); i > 7; i -= 7) {
+            buf.write(0x80 | (int)number & 0x7f);
+            number >>= 7;
         }
-        buf.write((int)expanded & 0x7f);
+        buf.write((int)number & 0x7f);
     }
 
     @SuppressWarnings("unchecked")

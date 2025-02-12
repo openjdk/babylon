@@ -51,9 +51,6 @@ public class SimpleTest {
 
     @Test
     public void testLconstant() throws Exception {
-        var l = new long[5];
-        lconstant().rtTensor.asByteBuffer().asLongBuffer().get(l);
-        System.out.println(Arrays.toString(l));
         assertEquals(
                 lconstant(),
                 new Tensor(-1, 0, 1, Long.MIN_VALUE, Long.MAX_VALUE));
