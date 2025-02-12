@@ -468,6 +468,7 @@ public abstract sealed class OnnxType implements TypeElement {
 
 
     public static abstract sealed class OnnxElementType extends OnnxType {
+        public abstract int id();
     }
 
     public static final class Float16Type extends OnnxElementType {
@@ -479,6 +480,11 @@ public abstract sealed class OnnxType implements TypeElement {
         @Override
         public ExternalizedTypeElement externalize() {
             return new ExternalizedTypeElement(NAME, List.of());
+        }
+
+        @Override
+        public int id() {
+            return 10;
         }
     }
 
@@ -493,6 +499,11 @@ public abstract sealed class OnnxType implements TypeElement {
         public ExternalizedTypeElement externalize() {
             return new ExternalizedTypeElement(NAME, List.of());
         }
+
+        @Override
+        public int id() {
+            return 1;
+        }
     }
 
     public static final class Float64Type extends OnnxElementType {
@@ -506,6 +517,11 @@ public abstract sealed class OnnxType implements TypeElement {
         public ExternalizedTypeElement externalize() {
             return new ExternalizedTypeElement(NAME, List.of());
         }
+
+        @Override
+        public int id() {
+            return 11;
+        }
     }
 
     public static final class BFloat16Type extends OnnxElementType {
@@ -517,6 +533,11 @@ public abstract sealed class OnnxType implements TypeElement {
         @Override
         public ExternalizedTypeElement externalize() {
             return new ExternalizedTypeElement(NAME, List.of());
+        }
+
+        @Override
+        public int id() {
+            return 16;
         }
     }
 
@@ -530,6 +551,11 @@ public abstract sealed class OnnxType implements TypeElement {
         public ExternalizedTypeElement externalize() {
             return new ExternalizedTypeElement(NAME, List.of());
         }
+
+        @Override
+        public int id() {
+            return 17;
+        }
     }
 
     public static final class Float8e5m2Type extends OnnxElementType {
@@ -541,6 +567,11 @@ public abstract sealed class OnnxType implements TypeElement {
         @Override
         public ExternalizedTypeElement externalize() {
             return new ExternalizedTypeElement(NAME, List.of());
+        }
+
+        @Override
+        public int id() {
+            return 19;
         }
     }
 
@@ -554,6 +585,11 @@ public abstract sealed class OnnxType implements TypeElement {
         public ExternalizedTypeElement externalize() {
             return new ExternalizedTypeElement(NAME, List.of());
         }
+
+        @Override
+        public int id() {
+            return 18;
+        }
     }
 
     public static final class Float8e5m2fnuzType extends OnnxElementType {
@@ -565,6 +601,11 @@ public abstract sealed class OnnxType implements TypeElement {
         @Override
         public ExternalizedTypeElement externalize() {
             return new ExternalizedTypeElement(NAME, List.of());
+        }
+
+        @Override
+        public int id() {
+            return 20;
         }
     }
 
@@ -578,6 +619,11 @@ public abstract sealed class OnnxType implements TypeElement {
         public ExternalizedTypeElement externalize() {
             return new ExternalizedTypeElement(NAME, List.of());
         }
+
+        @Override
+        public int id() {
+            return 23;
+        }
     }
 
     public static final class Int4Type extends OnnxElementType {
@@ -589,6 +635,11 @@ public abstract sealed class OnnxType implements TypeElement {
         @Override
         public ExternalizedTypeElement externalize() {
             return new ExternalizedTypeElement(NAME, List.of());
+        }
+
+        @Override
+        public int id() {
+            return 22;
         }
     }
 
@@ -602,6 +653,11 @@ public abstract sealed class OnnxType implements TypeElement {
         public ExternalizedTypeElement externalize() {
             return new ExternalizedTypeElement(NAME, List.of());
         }
+
+        @Override
+        public int id() {
+            return 3;
+        }
     }
 
     public static final class Int16Type extends OnnxElementType {
@@ -613,6 +669,11 @@ public abstract sealed class OnnxType implements TypeElement {
         @Override
         public ExternalizedTypeElement externalize() {
             return new ExternalizedTypeElement(NAME, List.of());
+        }
+
+        @Override
+        public int id() {
+            return 5;
         }
     }
 
@@ -626,6 +687,11 @@ public abstract sealed class OnnxType implements TypeElement {
         public ExternalizedTypeElement externalize() {
             return new ExternalizedTypeElement(NAME, List.of());
         }
+
+        @Override
+        public int id() {
+            return 6;
+        }
     }
 
     public static final class Int64Type extends OnnxElementType {
@@ -637,6 +703,11 @@ public abstract sealed class OnnxType implements TypeElement {
         @Override
         public ExternalizedTypeElement externalize() {
             return new ExternalizedTypeElement(NAME, List.of());
+        }
+
+        @Override
+        public int id() {
+            return 7;
         }
     }
 
@@ -650,6 +721,11 @@ public abstract sealed class OnnxType implements TypeElement {
         public ExternalizedTypeElement externalize() {
             return new ExternalizedTypeElement(NAME, List.of());
         }
+
+        @Override
+        public int id() {
+            return 21;
+        }
     }
 
     public static final class UInt8Type extends OnnxElementType {
@@ -661,6 +737,11 @@ public abstract sealed class OnnxType implements TypeElement {
         @Override
         public ExternalizedTypeElement externalize() {
             return new ExternalizedTypeElement(NAME, List.of());
+        }
+
+        @Override
+        public int id() {
+            return 2;
         }
     }
 
@@ -674,6 +755,11 @@ public abstract sealed class OnnxType implements TypeElement {
         public ExternalizedTypeElement externalize() {
             return new ExternalizedTypeElement(NAME, List.of());
         }
+
+        @Override
+        public int id() {
+            return 4;
+        }
     }
 
     public static final class UInt32Type extends OnnxElementType {
@@ -685,6 +771,11 @@ public abstract sealed class OnnxType implements TypeElement {
         @Override
         public ExternalizedTypeElement externalize() {
             return new ExternalizedTypeElement(NAME, List.of());
+        }
+
+        @Override
+        public int id() {
+            return 12;
         }
     }
 
@@ -698,6 +789,11 @@ public abstract sealed class OnnxType implements TypeElement {
         public ExternalizedTypeElement externalize() {
             return new ExternalizedTypeElement(NAME, List.of());
         }
+
+        @Override
+        public int id() {
+            return 13;
+        }
     }
 
     public static final class Complex64Type extends OnnxElementType {
@@ -709,6 +805,11 @@ public abstract sealed class OnnxType implements TypeElement {
         @Override
         public ExternalizedTypeElement externalize() {
             return new ExternalizedTypeElement(NAME, List.of());
+        }
+
+        @Override
+        public int id() {
+            return 14;
         }
     }
 
@@ -722,6 +823,11 @@ public abstract sealed class OnnxType implements TypeElement {
         public ExternalizedTypeElement externalize() {
             return new ExternalizedTypeElement(NAME, List.of());
         }
+
+        @Override
+        public int id() {
+            return 15;
+        }
     }
 
     public static final class BoolType extends OnnxElementType {
@@ -734,6 +840,11 @@ public abstract sealed class OnnxType implements TypeElement {
         public ExternalizedTypeElement externalize() {
             return new ExternalizedTypeElement(NAME, List.of());
         }
+
+        @Override
+        public int id() {
+            return 9;
+        }
     }
 
     public static final class StringType extends OnnxElementType {
@@ -745,6 +856,11 @@ public abstract sealed class OnnxType implements TypeElement {
         @Override
         public ExternalizedTypeElement externalize() {
             return new ExternalizedTypeElement(NAME, List.of());
+        }
+
+        @Override
+        public int id() {
+            return 8;
         }
     }
 

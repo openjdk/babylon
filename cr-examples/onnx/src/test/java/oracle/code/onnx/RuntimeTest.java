@@ -1,7 +1,5 @@
 package oracle.code.onnx;
 
-import java.nio.FloatBuffer;
-import java.nio.LongBuffer;
 import java.util.List;
 import oracle.code.onnx.ir.OnnxOps;
 import org.junit.jupiter.api.Test;
@@ -34,7 +32,7 @@ public class RuntimeTest {
 
             var absOutputTensor = (OnnxRuntime.OrtTensor)absResult.getFirst();
 
-            assertTensorEquals(absExpectedTensor, absOutputTensor);
+            SimpleTest.assertEquals(absExpectedTensor, absOutputTensor);
 
             var addResult = addOp.run(List.of(inputTensor, absOutputTensor));
 
@@ -44,39 +42,7 @@ public class RuntimeTest {
 
             var addExpectedTensor = ort.createFlatTensor(0f, 4, 0, 8, 0, 12);
 
-            assertTensorEquals(addExpectedTensor, addOutputTensor);
-        }
-    }
-
-    static void assertTensorEquals(OnnxRuntime.OrtTensor expectedTensor, OnnxRuntime.OrtTensor actualTensor) {
-        var expectedType = expectedTensor.getTensorTypeAndShape();
-        var expectedShape = expectedType.getShape();
-
-        var actualType = actualTensor.getTensorTypeAndShape();
-        var actualShape = actualType.getShape();
-
-        assertEquals(expectedShape.getDimensionsCount(), actualShape.getDimensionsCount());
-        for (int i = 0; i < expectedShape.getDimensionsCount(); i++) {
-            assertEquals(expectedShape.getDimension(i), actualShape.getDimension(i));
-        }
-
-        assertEquals(expectedType.getTensorElementType(), actualType.getTensorElementType());
-        assertEquals(expectedType.getTensorShapeElementCount(), actualType.getTensorShapeElementCount());
-
-        assertEqualData(expectedTensor.asByteBuffer().asFloatBuffer(), actualTensor.asByteBuffer().asFloatBuffer());
-    }
-
-    static void assertEqualData(FloatBuffer expectedData, FloatBuffer actualData) {
-        assertEquals(expectedData.capacity(), actualData.capacity());
-        for (int i = 0; i < expectedData.capacity(); i++) {
-            assertEquals(expectedData.get(i), actualData.get(i), 1e-6f);
-        }
-    }
-
-    static void assertEqualData(LongBuffer expectedData, LongBuffer actualData) {
-        assertEquals(expectedData.capacity(), actualData.capacity());
-        for (int i = 0; i < expectedData.capacity(); i++) {
-            assertEquals(expectedData.get(i), actualData.get(i));
+            SimpleTest.assertEquals(addExpectedTensor, addOutputTensor);
         }
     }
 }

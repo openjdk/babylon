@@ -1,15 +1,17 @@
 package oracle.code.onnx;
 
 import java.lang.invoke.MethodHandles;
+import java.nio.ByteBuffer;
+import java.nio.DoubleBuffer;
+import java.nio.FloatBuffer;
 import java.util.List;
 import java.util.Optional;
 import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.op.CoreOp;
 import oracle.code.onnx.compiler.OnnxTransformer;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 public class SimpleTest {
 
@@ -49,20 +51,55 @@ public class SimpleTest {
                 Op.ofMethod(SimpleTest.class.getDeclaredMethod(name, params)).get());
     }
 
-    static void assertEquals(Tensor actual, Tensor expected) {
-        var expectedTS = expected.rtTensor.getTensorTypeAndShape();
-        var actualTS = actual.rtTensor.getTensorTypeAndShape();
-        assertSame(expectedTS.getTensorElementType(), actualTS.getTensorElementType());
+    static void assertEquals(Tensor expected, Tensor actual) {
+        assertEquals(expected.rtTensor, actual.rtTensor);
+    }
 
-        // @@@ assert equal shapes
+    static void assertEquals(OnnxRuntime.OrtTensor expected, OnnxRuntime.OrtTensor actual) {
 
-        switch (actualTS.getTensorElementType()) {
+        var expectedType = expected.getTensorTypeAndShape();
+        var expectedShape = expectedType.getShape();
+
+        var actualType = actual.getTensorTypeAndShape();
+        var actualShape = actualType.getShape();
+
+        Assertions.assertSame(expectedType.getTensorElementType(), actualType.getTensorElementType());
+
+        Assertions.assertEquals(expectedShape.getDimensionsCount(), actualShape.getDimensionsCount());
+        for (int i = 0; i < expectedShape.getDimensionsCount(); i++) {
+            Assertions.assertEquals(expectedShape.getDimension(i), actualShape.getDimension(i));
+        }
+
+        switch (actualType.getTensorElementType()) {
+            case UINT8, INT8, UINT16, INT16, INT32, INT64, STRING, BOOL, UINT32, UINT64, UINT4, INT4 ->
+                assertEquals(expected.asByteBuffer(), actual.asByteBuffer());
             case FLOAT ->
-                RuntimeTest.assertEqualData(expected.rtTensor.asByteBuffer().asFloatBuffer(), actual.rtTensor.asByteBuffer().asFloatBuffer());
-            case INT64 ->
-                RuntimeTest.assertEqualData(expected.rtTensor.asByteBuffer().asLongBuffer(), actual.rtTensor.asByteBuffer().asLongBuffer());
+                assertEquals(expected.asByteBuffer().asFloatBuffer(), actual.asByteBuffer().asFloatBuffer());
+            case DOUBLE ->
+                assertEquals(expected.asByteBuffer().asDoubleBuffer(), actual.asByteBuffer().asDoubleBuffer());
             default ->
-                throw new UnsupportedOperationException(); // @@@ ToDo
+                throw new UnsupportedOperationException("Unsupported tensor element type " + actualType.getTensorElementType());
+        }
+    }
+
+    static void assertEquals(ByteBuffer expectedData, ByteBuffer actualData) {
+        Assertions.assertEquals(expectedData.capacity(), actualData.capacity());
+        for (int i = 0; i < expectedData.capacity(); i++) {
+            Assertions.assertEquals(expectedData.get(i), actualData.get(i));
+        }
+    }
+
+    static void assertEquals(FloatBuffer expectedData, FloatBuffer actualData) {
+        Assertions.assertEquals(expectedData.capacity(), actualData.capacity());
+        for (int i = 0; i < expectedData.capacity(); i++) {
+            Assertions.assertEquals(expectedData.get(i), actualData.get(i), 1e-6f);
+        }
+    }
+
+    static void assertEquals(DoubleBuffer expectedData, DoubleBuffer actualData) {
+        Assertions.assertEquals(expectedData.capacity(), actualData.capacity());
+        for (int i = 0; i < expectedData.capacity(); i++) {
+            Assertions.assertEquals(expectedData.get(i), actualData.get(i), 1e-6f);
         }
     }
 }
