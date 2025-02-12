@@ -40,8 +40,7 @@ public class SimpleTest {
     public void testFconstant() throws Exception {
         assertEquals(
                 fconstant(),
-                new Tensor(-1f, 0, 1, Float.MIN_VALUE, Float.MAX_VALUE));
-//                runModel("fconstant"));
+                runModel("fconstant"));
     }
 
     @CodeReflection
@@ -53,8 +52,7 @@ public class SimpleTest {
     public void testLconstant() throws Exception {
         assertEquals(
                 lconstant(),
-                new Tensor(-1, 0, 1, Long.MIN_VALUE, Long.MAX_VALUE));
-//                runModel("lconstant"));
+                runModel("lconstant"));
     }
 
     @CodeReflection

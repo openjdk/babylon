@@ -294,24 +294,6 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
         return ByteBuffer.allocateDirect(bytes.length).put(bytes).asReadOnlyBuffer();
     }
 
-    static Attribute buildAttribute(String name, Object value) {
-        var attr = new Attribute().name(name);
-        switch (value) {
-            case long[] longs -> {
-                attr.type(7);
-                for (long l : longs) attr.ints(l);
-            }
-            case float[] floats -> {
-                attr.type(6);
-                for (float f : floats) attr.floats(f);
-            }
-            default -> {
-                throw new UnsupportedOperationException(); // @@@ ToDo
-            }
-        }
-        return attr;
-    }
-
     // @@@ unchecked constraints:
     //         tensor FuncOp parameters and single tensor return type
     //         OnnxOps (with tensor operands and single tensor return value) and ReturnOp (returning single tensor)
@@ -328,11 +310,12 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                 .ir_version(IR_VERSION)
                 .graph(new GraphProto()
                         .forEach(entryBlock.ops(), (g, op) -> {
-                            if (op instanceof OnnxOp) {
+                            if (op instanceof OnnxOp onnxOp) {
                                 g.node(new NodeProto()
                                         .forEach(op.operands(), (n, p) -> n.input(indexer.getName(p)))
                                         .output(indexer.getName(op.result()))
-                                        .op_type(op.opName()));
+                                        .op_type(op.opName())
+                                        .forEach(onnxOp.onnxAttributes().entrySet(), (n, ae) -> n.attribute(buildAttribute(ae.getKey(), ae.getValue()))));
                             }
                         })
                         .forEach(entryBlock.parameters(), (g, p) -> g.input(new ValueInfoProto()
@@ -346,5 +329,23 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                 .opset_import(new OperatorSetIdProto().version(OPSET_VERSION))
                 .buf.toByteArray();
         return ByteBuffer.allocateDirect(bytes.length).put(bytes).asReadOnlyBuffer();
+    }
+
+    static Attribute buildAttribute(String name, Object value) {
+        var attr = new Attribute().name(name);
+        switch (value) {
+            case long[] longs -> {
+                attr.type(7);
+                for (long l : longs) attr.ints(l);
+            }
+            case float[] floats -> {
+                attr.type(6);
+                for (float f : floats) attr.floats(f);
+            }
+            default -> {
+                throw new UnsupportedOperationException(); // @@@ ToDo
+            }
+        }
+        return attr;
     }
 }
