@@ -284,6 +284,11 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
         return ByteBuffer.allocateDirect(bytes.length).put(bytes).asReadOnlyBuffer();
     }
 
+    // @@@ unchecked constraints:
+    //         tensor FuncOp parameters and single tensor return type
+    //         OnnxOps (with tensor operands and single tensor return value) and ReturnOp (returning single tensor)
+    //         entry block only
+    // order of building defines order inside protobufs
     static ByteBuffer buildFuncModel(FuncOp model) {
         var indexer = new IdentityHashMap<Value, String>() {
             String getName(Value v) {

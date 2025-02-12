@@ -6,6 +6,7 @@ import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.op.CoreOp;
@@ -28,8 +29,7 @@ public class SimpleTest {
         var b = new Tensor(6f, 5, 4);
         assertEquals(
                 add(a, b),
-                new Tensor(OnnxRuntime.getInstance().runFunc(getOnnxModel("add", Tensor.class, Tensor.class),
-                        List.of(a.rtTensor, b.rtTensor)).getFirst()));
+                runModel("add", a, b));
     }
 
     @CodeReflection
@@ -41,14 +41,20 @@ public class SimpleTest {
     public void testReshapeAndShape() throws Exception {
         var data = new Tensor(1f, 2, 3, 4, 5, 6, 7, 8);
         var shape = new Tensor(2l, 2, 2);
-        assertEquals(shape, reshapeAndShape(data, shape));
-        assertEquals(shape, new Tensor(OnnxRuntime.getInstance().runFunc(getOnnxModel("reshapeAndShape", Tensor.class, Tensor.class),
-                        List.of(data.rtTensor, shape.rtTensor)).getFirst()));
+        assertEquals(
+                reshapeAndShape(data, shape),
+                runModel("reshapeAndShape", data, shape));
     }
 
-    private static CoreOp.FuncOp getOnnxModel(String name, Class... params) throws NoSuchMethodException {
+    private static Tensor runModel(String name, Tensor... params) throws NoSuchMethodException {
+        return new Tensor(OnnxRuntime.getInstance().runFunc(
+                getOnnxModel(name),
+                Stream.of(params).map(t -> t.rtTensor).toList()).getFirst());
+    }
+
+    private static CoreOp.FuncOp getOnnxModel(String name) throws NoSuchMethodException {
         return OnnxTransformer.transform(MethodHandles.publicLookup(),
-                Op.ofMethod(SimpleTest.class.getDeclaredMethod(name, params)).get());
+                Op.ofMethod(Stream.of(SimpleTest.class.getDeclaredMethods()).filter(m -> m.getName().equals(name)).findFirst().get()).get());
     }
 
     static void assertEquals(Tensor expected, Tensor actual) {
