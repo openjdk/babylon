@@ -33,28 +33,56 @@ public class SimpleTest {
 
     @CodeReflection
     public static Tensor<Float> fconstant() {
-        return OnnxOperators.Constant(new float[]{-1f, 0, 1, Float.MIN_VALUE, Float.MAX_VALUE});
+        return OnnxOperators.Constant(-1f);
     }
 
     @Test
     public void testFconstant() throws Exception {
         // tests the numbers are encoded correctly
-        var expected = new Tensor(-1f, 0, 1, Float.MIN_VALUE, Float.MAX_VALUE);
+        var expected = new Tensor(-1f);
+        System.out.println(expected.rtTensor.getTensorTypeAndShape().getDimensionsCount());
         assertEquals(expected, fconstant());
         assertEquals(expected, runModel("fconstant"));
     }
 
     @CodeReflection
+    public static Tensor<Float> fconstants() {
+        return OnnxOperators.Constant(new float[]{-1f, 0, 1, Float.MIN_VALUE, Float.MAX_VALUE});
+    }
+
+    @Test
+    public void testFconstants() throws Exception {
+        // tests the numbers are encoded correctly
+        var expected = new Tensor(-1f, 0, 1, Float.MIN_VALUE, Float.MAX_VALUE);
+        assertEquals(expected, fconstants());
+        assertEquals(expected, runModel("fconstants"));
+    }
+
+    @CodeReflection
     public static Tensor<Long> lconstant() {
-        return OnnxOperators.Constant(new long[]{-1, 0, 1, Long.MIN_VALUE, Long.MAX_VALUE});
+        return OnnxOperators.Constant(-1l);
     }
 
     @Test
     public void testLconstant() throws Exception {
         // tests the numbers are encoded correctly
-        var expected = new Tensor(-1l, 0, 1, Long.MIN_VALUE, Long.MAX_VALUE);
+        var expected = new Tensor(-1l);
+        System.out.println(expected.rtTensor.getTensorTypeAndShape().getDimensionsCount());
         assertEquals(expected, lconstant());
         assertEquals(expected, runModel("lconstant"));
+    }
+
+    @CodeReflection
+    public static Tensor<Long> lconstants() {
+        return OnnxOperators.Constant(new long[]{-1, 0, 1, Long.MIN_VALUE, Long.MAX_VALUE});
+    }
+
+    @Test
+    public void testLconstants() throws Exception {
+        // tests the numbers are encoded correctly
+        var expected = new Tensor(-1l, 0, 1, Long.MIN_VALUE, Long.MAX_VALUE);
+        assertEquals(expected, lconstants());
+        assertEquals(expected, runModel("lconstants"));
     }
 
     @CodeReflection

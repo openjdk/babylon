@@ -65,6 +65,14 @@ public class Tensor<T> extends OnnxNumber {
 
     final OnnxRuntime.OrtTensor rtTensor;
 
+    public Tensor(long data) {
+        this(OnnxRuntime.getInstance().createScalar(data));
+    }
+
+    public Tensor(float data) {
+        this(OnnxRuntime.getInstance().createScalar(data));
+    }
+
     public Tensor(long... data) {
         this(OnnxRuntime.getInstance().createFlatTensor(data));
     }

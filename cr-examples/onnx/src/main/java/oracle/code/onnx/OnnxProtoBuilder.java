@@ -260,7 +260,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     }
 
     static final int IR_VERSION = 10;
-    static final int OPSET_VERSION = 14;
+    static final int OPSET_VERSION = 21;
 
     // @@@ tensors only
     static ByteBuffer buildOpModel(OnnxOp.OnnxSchema schema, List<ElementType> inputElementTypes, List<Object> attributes) {
@@ -344,10 +344,10 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
         var attr = new Attribute().name(name);
         switch (value) {
             case Float f -> {
-                attr.type(2).f(f);
+                attr.type(1).f(f);
             }
             case Long l -> {
-                attr.type(3).i(l);
+                attr.type(2).i(l);
             }
             case float[] floats -> {
                 attr.type(6);

@@ -324,22 +324,38 @@ public final class OnnxRuntime {
 
     public OrtTensor loadFlatTensorFromMemoryMappedDataFile(String file, Tensor.ElementType elementType) throws IOException {
         var f = new RandomAccessFile(file, "r");
-        return createFlatTensor(f.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, f.length(), arena), elementType);
+        return createTensor(f.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, f.length(), arena), elementType, new TensorShape(f.length() / elementType.size()));
+    }
+
+    OrtTensor createScalar(long element) {
+        return createScalar(arena.allocateFrom(JAVA_LONG, element), Tensor.ElementType.INT64);
+    }
+
+    OrtTensor createScalar(float element) {
+        return createScalar(arena.allocateFrom(JAVA_FLOAT, element), Tensor.ElementType.FLOAT);
+    }
+
+    private OrtTensor createScalar(MemorySegment flatData, Tensor.ElementType elementType) {
+        try {
+            var allocatorInfo = retAddr(allocatorGetInfo.invokeExact(defaultAllocatorAddress, ret));
+            return new OrtTensor(retAddr(createTensorWithDataAsOrtValue.invokeExact(allocatorInfo, flatData, flatData.byteSize(), MemorySegment.NULL, 0l, elementType.id, ret)));
+        } catch (Throwable t) {
+            throw wrap(t);
+        }
     }
 
     OrtTensor createFlatTensor(long... elements) {
-        return createFlatTensor(arena.allocateFrom(JAVA_LONG, elements), Tensor.ElementType.INT64);
+        return createTensor(arena.allocateFrom(JAVA_LONG, elements), Tensor.ElementType.INT64, new TensorShape(elements.length));
     }
 
     OrtTensor createFlatTensor(float... elements) {
-        return createFlatTensor(arena.allocateFrom(JAVA_FLOAT, elements), Tensor.ElementType.FLOAT);
+        return createTensor(arena.allocateFrom(JAVA_FLOAT, elements), Tensor.ElementType.FLOAT, new TensorShape(elements.length));
     }
 
-    private OrtTensor createFlatTensor(MemorySegment flatData, Tensor.ElementType elementType) {
-        var flatShape = new TensorShape(flatData.byteSize() / elementType.size());
+    private OrtTensor createTensor(MemorySegment flatData, Tensor.ElementType elementType, TensorShape shape) {
         try {
             var allocatorInfo = retAddr(allocatorGetInfo.invokeExact(defaultAllocatorAddress, ret));
-            return new OrtTensor(retAddr(createTensorWithDataAsOrtValue.invokeExact(allocatorInfo, flatData, flatData.byteSize(), flatShape.dataAddress, 1l, elementType.id, ret)));
+            return new OrtTensor(retAddr(createTensorWithDataAsOrtValue.invokeExact(allocatorInfo, flatData, flatData.byteSize(), shape.dataAddress, shape.getDimensionsCount(), elementType.id, ret)));
         } catch (Throwable t) {
             throw wrap(t);
         }
