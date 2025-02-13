@@ -40,7 +40,6 @@ public class SimpleTest {
     public void testFconstant() throws Exception {
         // tests the numbers are encoded correctly
         var expected = new Tensor(-1f);
-        System.out.println(expected.rtTensor.getTensorTypeAndShape().getDimensionsCount());
         assertEquals(expected, fconstant());
         assertEquals(expected, runModel("fconstant"));
     }
@@ -67,7 +66,6 @@ public class SimpleTest {
     public void testLconstant() throws Exception {
         // tests the numbers are encoded correctly
         var expected = new Tensor(-1l);
-        System.out.println(expected.rtTensor.getTensorTypeAndShape().getDimensionsCount());
         assertEquals(expected, lconstant());
         assertEquals(expected, runModel("lconstant"));
     }
