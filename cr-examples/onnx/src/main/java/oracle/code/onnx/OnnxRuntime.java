@@ -354,7 +354,7 @@ public final class OnnxRuntime {
         return createTensor(arena.allocateFrom(JAVA_FLOAT, elements), Tensor.ElementType.FLOAT, new TensorShape(elements.length));
     }
 
-    private OrtTensor createTensor(MemorySegment flatData, Tensor.ElementType elementType, TensorShape shape) {
+    OrtTensor createTensor(MemorySegment flatData, Tensor.ElementType elementType, TensorShape shape) {
         try {
             var allocatorInfo = retAddr(allocatorGetInfo.invokeExact(defaultAllocatorAddress, ret));
             return new OrtTensor(retAddr(createTensorWithDataAsOrtValue.invokeExact(allocatorInfo, flatData, flatData.byteSize(), shape.dataAddress, shape.getDimensionsCount(), elementType.id, ret)));

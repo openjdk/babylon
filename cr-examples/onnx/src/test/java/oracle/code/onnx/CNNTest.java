@@ -45,6 +45,7 @@ import java.util.stream.Stream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectOutputStream;
+import java.lang.foreign.MemorySegment;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
@@ -323,22 +324,35 @@ public class CNNTest {
     }
 
     @Test
-    public void test() {
+    public void test() throws Exception {
         CoreOp.FuncOp f = getFuncOp("cnn");
         CoreOp.FuncOp onnxModel = OnnxTransformer.transform(MethodHandles.lookup(), f);
-        System.out.println(onnxModel.toText());
-
+//        System.out.println(onnxModel.toText());
         CoreOp.FuncOp expectedOnnxModel = cnnModel();
-        System.out.println(expectedOnnxModel.toText());
-
+//        System.out.println(expectedOnnxModel.toText());
         Assertions.assertEquals(serialize(expectedOnnxModel), serialize(onnxModel));
 
-// @@@ needs some muckup tensors data
-//        Tensor<Float> conv1Weights, conv1Biases, conv2Weights, conv2Biases, fc1Weights, fc1Biases, fc2Weights, fc2Biases, fc3Weights, fc3Biases, inputImage;
-//        Assertions.assertEquals(
-//            cnn(conv1Weights, conv1Biases, conv2Weights, conv2Biases, fc1Weights, fc1Biases, fc2Weights, fc2Biases, fc3Weights, fc3Biases, inputImage),
-//            OnnxRuntime.getInstance().runFunc(onnxModel, Stream.of(conv1Weights, conv1Biases, conv2Weights, conv2Biases, fc1Weights, fc1Biases, fc2Weights, fc2Biases, fc3Weights, fc3Biases, inputImage)
-//                    .map(t -> Optional.of(t.rtTensor)).toList()));
+        // @@@ need some image to test :)
+        Tensor inputImage = new Tensor(new float[28*28]);
+        List<Tensor> w = loadWeights();
+        SimpleTest.assertEquals(
+            cnn(w.get(0), w.get(1), w.get(2), w.get(3), w.get(4), w.get(5), w.get(6), w.get(7), w.get(8), w.get(9), inputImage).rtTensor,
+            OnnxRuntime.getInstance().runFunc(onnxModel, Stream.concat(w.stream(), Stream.of(inputImage)).map(t -> Optional.of(t.rtTensor)).toList()).getFirst());
+    }
+
+    static List<Tensor> loadWeights() throws IOException {
+        try (var is = CNNTest.class.getResourceAsStream("lenet-torchscript.onnx")) {
+            return OnnxMl.ModelProto.parseFrom(is).getGraph().getInitializerList().stream()
+                    .map(init ->  {
+                        var bb = ByteBuffer.allocateDirect(init.getRawData().size());
+                        init.getRawData().copyTo(bb);
+                        return new Tensor(OnnxRuntime.getInstance().createTensor(
+                                MemorySegment.ofBuffer(bb.rewind()),
+                                Tensor.ElementType.fromOnnxId(init.getDataType()),
+                                OnnxRuntime.getInstance().new TensorShape(init.getDimsList().stream().mapToLong(a -> a).toArray())));
+                    })
+                    .toList();
+        }
     }
 
     static String serialize(Op o) {
