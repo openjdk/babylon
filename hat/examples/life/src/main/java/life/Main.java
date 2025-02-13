@@ -29,6 +29,7 @@ import hat.ComputeContext;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
+import hat.ifacemapper.MappableIface.*;
 import hat.ifacemapper.Schema;
 import io.github.robertograham.rleparser.RleParser;
 import io.github.robertograham.rleparser.domain.PatternData;
@@ -100,7 +101,7 @@ public class Main {
         }
 
         @CodeReflection
-        public static void life(KernelContext kc, Control control, CellGrid cellGrid) {
+        public static void life(@RO KernelContext kc, @RO Control control, @RW CellGrid cellGrid) {
             if (kc.x < kc.maxX) {
                 int w = cellGrid.width();
                 int h = cellGrid.height();

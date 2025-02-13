@@ -154,16 +154,6 @@ void CudaBackend::CudaProgram::CudaKernel::CudaBuffer::copyToDevice() {
  //             << std::endl;
     char *ptr = (char*)arg->value.buffer.memorySegment;
 
-    unsigned long ifacefacade1 = *reinterpret_cast<unsigned long*>(ptr+arg->value.buffer.sizeInBytes-16);
-    unsigned long ifacefacade2 = *reinterpret_cast<unsigned long*>(ptr+arg->value.buffer.sizeInBytes-8);
-
-    if (ifacefacade1 != 0x1face00000facadeL && ifacefacade1 != ifacefacade2) {
-        std::cerr<<"End of buf marker before HtoD"<< std::hex << ifacefacade1 << ifacefacade2<< " buffer corrupt !" <<std::endl
-                <<" " << __FILE__ << " line " << __LINE__ << std::endl;
-        exit(-1);
-    }
-
-
     CUresult status = cuMemcpyHtoDAsync(devicePtr, arg->value.buffer.memorySegment, arg->value.buffer.sizeInBytes,cudaKernel->cudaStream);
     if (CUDA_SUCCESS != status) {
         std::cerr << "cuMemcpyHtoDAsync() CUDA error = " << status
@@ -187,14 +177,6 @@ void CudaBackend::CudaProgram::CudaKernel::CudaBuffer::copyFromDevice() {
   //            << std::endl;
     char *ptr = (char*)arg->value.buffer.memorySegment;
 
-    unsigned long ifacefacade1 = *reinterpret_cast<unsigned long*>(ptr+arg->value.buffer.sizeInBytes-16);
-    unsigned long ifacefacade2 = *reinterpret_cast<unsigned long*>(ptr+arg->value.buffer.sizeInBytes-8);
-
-    if (ifacefacade1 != 0x1face00000facadeL || ifacefacade1 != ifacefacade2) {
-        std::cerr<<"end of buf marker before  DtoH"<< std::hex << ifacefacade1 << ifacefacade2<< std::dec<< " buffer corrupt !"<<std::endl
-                  <<" " << __FILE__ << " line " << __LINE__ << std::endl;
-        exit(-1);
-    }
     CUresult status =cuMemcpyDtoHAsync(arg->value.buffer.memorySegment, devicePtr, arg->value.buffer.sizeInBytes,cudaKernel->cudaStream);
     if (CUDA_SUCCESS != status) {
         std::cerr << "cudaStreamSynchronize() CUDA error = " << status
@@ -209,14 +191,7 @@ void CudaBackend::CudaProgram::CudaKernel::CudaBuffer::copyFromDevice() {
                   <<" " << __FILE__ << " line " << __LINE__ << std::endl;
         exit(-1);
     }
-    ifacefacade1 = *reinterpret_cast<unsigned long*>(ptr+arg->value.buffer.sizeInBytes-16);
-    ifacefacade2 = *reinterpret_cast<unsigned long*>(ptr+arg->value.buffer.sizeInBytes-8);
 
-    if (ifacefacade1 != 0x1face00000facadeL || ifacefacade1 != ifacefacade2) {
-        std::cerr<<"end of buf marker after  DtoH"<< std::hex << ifacefacade1 << ifacefacade2<< std::dec<< " buffer corrupt !"<<std::endl
-                  <<" " << __FILE__ << " line " << __LINE__ << std::endl;
-        exit(-1);
-    }
 }
 
 CudaBackend::CudaProgram::CudaKernel::CudaKernel(Backend::Program *program,char * name, CUfunction function)

@@ -195,6 +195,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         if (fieldLoadOpWrapper.isKernelContextAccess()) {
             identifier("kc").rarrow().identifier(fieldLoadOpWrapper.fieldName());
         } else if (fieldLoadOpWrapper.isStaticFinalPrimitive()) {
+
             Object value = fieldLoadOpWrapper.getStaticFinalPrimitiveValue();
             literal(value.toString());
         } else {

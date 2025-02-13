@@ -49,6 +49,7 @@ OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::OpenCLBuffer(Backend::
     }
 }
 
+
 void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyToDevice() {
 
     /*
@@ -66,6 +67,9 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyToDevice() {
                                          openclKernel->eventc,
                                          ((openclKernel->eventc == 0) ? NULL : openclKernel->events),
                                          &(openclKernel->events[openclKernel->eventc]));
+
+
+
 
 
     if (status != CL_SUCCESS) {
@@ -121,7 +125,7 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
        Sled::show(std::cout, argArray);
     }
     if (events != nullptr || eventc != 0) {
-        std::cerr << "opencl state issue, we might have leaked events!" << std::endl;
+        std::cerr << "opencl issue, we might have leaked events!" << std::endl;
     }
     eventMax = argSled.argc() * 4 + 1;
     eventc = 0;
@@ -135,13 +139,32 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
                 if (arg->idx == 0){
                     ndrange = static_cast<NDRange *>(arg->value.buffer.memorySegment);
                 }else{
-                     if (INFO){
-                        if (arg->value.buffer.state == 1) { //Java described this as dirty
-                            std::cout << "JAVA_DIRTY !"<<std::endl;
+                   IfaceBufferBits_s *ifacebufferbitz = IfaceBufferBits_s::of(
+                      arg->value.buffer.memorySegment,
+                      arg->value.buffer.sizeInBytes
+                   );
+                   if (ifacebufferbitz->ok()){
+                      if (INFO){
+                         if (ifacebufferbitz->isJavaDirty()){
+                             printf(" java dirty (javaDirty:%08x)\n", ifacebufferbitz->payload.javaDirty);
                          }else{
-                            std::cout << "NOT JAVA_DIRTY"<<std::endl;
-                          }
-                     }
+                            printf(" NOT java dirty (javaDirty:%08x)\n", ifacebufferbitz->payload.javaDirty);
+                         }
+                         if (ifacebufferbitz->isGpuDirty()){
+                            printf(" gpu dirty (gpuDirty:%08x)\n", ifacebufferbitz->payload.gpuDirty);
+                         }else{
+                            printf(" NOT gpu dirty (gpuDirty:%08x)\n", ifacebufferbitz->payload.gpuDirty);
+                         }
+                      }
+                   }else{
+                      printf("bad magic \n");
+                      printf("(magic1:%016lx,", ifacebufferbitz->magic1);
+                      printf("javaDirty:%08x,", ifacebufferbitz->payload.javaDirty);
+                      printf("gpuDirty:%08x,", ifacebufferbitz->payload.gpuDirty);
+                      printf("unused[0]:%08x,", ifacebufferbitz->payload.unused[0]);
+                      printf("unused[1]:%08x,", ifacebufferbitz->payload.unused[1]);
+                      printf("magic2:%016lx)\n", ifacebufferbitz->magic2);
+                   }
                 }
                 openclBuffer->copyToDevice();
                 cl_int status = clSetKernelArg(kernel, arg->idx, sizeof(cl_mem), &openclBuffer->clMem);

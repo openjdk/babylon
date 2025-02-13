@@ -27,11 +27,16 @@ package hat.callgraph;
 import hat.buffer.Buffer;
 import hat.optools.FuncOpWrapper;
 import hat.optools.OpWrapper;
-
-import java.lang.reflect.Method;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.ClassType;
+import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.type.MethodRef;
+import jdk.incubator.code.type.PrimitiveType;
+
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -89,7 +94,13 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
          *    b) setters (return void)
          * 3) calls on the NDRange id
          */
-
+        kernelReachableResolvedMethodCall.funcOpWrapper().selectAssignments(varOpWrapper -> {
+            if (varOpWrapper.isIfaceAssignment()){
+                // We might be aliasing a buffer which is 'frowned upon'
+                System.out.println("Kernel appears to be aliasing a buffer  " + varOpWrapper.javaType() + " name " + varOpWrapper.varName());
+                System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Yep");
+            }
+        });
         kernelReachableResolvedMethodCall.funcOpWrapper().selectCalls(invokeOpWrapper -> {
             MethodRef methodRef = invokeOpWrapper.methodRef();
             Class<?> javaRefTypeClass = invokeOpWrapper.javaRefClass().orElseThrow();
