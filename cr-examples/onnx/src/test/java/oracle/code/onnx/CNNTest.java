@@ -332,6 +332,13 @@ public class CNNTest {
         System.out.println(expectedOnnxModel.toText());
 
         Assertions.assertEquals(serialize(expectedOnnxModel), serialize(onnxModel));
+
+// @@@ needs some muckup tensors data
+//        Tensor<Float> conv1Weights, conv1Biases, conv2Weights, conv2Biases, fc1Weights, fc1Biases, fc2Weights, fc2Biases, fc3Weights, fc3Biases, inputImage;
+//        Assertions.assertEquals(
+//            cnn(conv1Weights, conv1Biases, conv2Weights, conv2Biases, fc1Weights, fc1Biases, fc2Weights, fc2Biases, fc3Weights, fc3Biases, inputImage),
+//            OnnxRuntime.getInstance().runFunc(onnxModel, Stream.of(conv1Weights, conv1Biases, conv2Weights, conv2Biases, fc1Weights, fc1Biases, fc2Weights, fc2Biases, fc3Weights, fc3Biases, inputImage)
+//                    .map(t -> Optional.of(t.rtTensor)).toList()));
     }
 
     static String serialize(Op o) {
