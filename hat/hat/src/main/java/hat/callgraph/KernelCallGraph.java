@@ -29,18 +29,14 @@ import hat.optools.FuncOpWrapper;
 import hat.optools.OpWrapper;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.ClassType;
-import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.type.MethodRef;
-import jdk.incubator.code.type.PrimitiveType;
-
-import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.lang.reflect.Type;
 import java.util.Optional;
 import java.util.stream.Stream;
 
 public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
+    public final ComputeCallGraph computeCallGraph;
+
     public interface KernelReachable {
     }
 
@@ -68,8 +64,6 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
             super(callGraph, targetMethodRef, method);
         }
     }
-
-    public final ComputeCallGraph computeCallGraph;
 
     public Stream<KernelReachableResolvedMethodCall> kernelReachableResolvedStream() {
         return methodRefToMethodCallMap.values().stream()

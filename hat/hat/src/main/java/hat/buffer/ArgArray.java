@@ -287,8 +287,6 @@ public interface ArgArray extends Buffer {
     }
 
     static void update(ArgArray argArray,  Object... args) {
-        final byte javaDirty = 1;
-        final byte javaClean = 0;
         for (int i = 0; i < args.length; i++) {
             Object argObject = args[i];
             Arg arg = argArray.arg(i);
