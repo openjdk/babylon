@@ -109,7 +109,7 @@ void Sled::show(std::ostream &out, void *argArray) {
                 break;
             }
             default: {
-                std::cerr << "unexpected variant '" << (char) arg->variant << "'" << std::endl;
+                std::cerr << "unexpected variant (shared.cpp) '" << (char) arg->variant << "'" << std::endl;
                 exit(1);
             }
         }

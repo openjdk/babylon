@@ -78,7 +78,7 @@ extern void hexdump(void *ptr, int buflen);
  struct IfaceBufferPayload_s{
      int javaDirty;
      int gpuDirty;
-     int unused[2];
+     void *vendorPtr;
  };
 
  // hat iface buffer bits
@@ -99,6 +99,22 @@ extern void hexdump(void *ptr, int buflen);
    bool isGpuDirty(){
       return payload.gpuDirty != 0;
    }
+
+   void dump(const char *msg){
+
+     if (ok()){
+        printf("{%s, javaDirty:%08x, ", msg, payload.javaDirty);
+        printf("gpuDirty:%08x, ", payload.gpuDirty);
+        printf("vendorPtr:%016lx}\n", (long)payload.vendorPtr);
+     }else{
+        printf("%s bad magic \n", msg);
+        printf("(magic1:%016lx,", magic1);
+        printf("javaDirty:%08x,", payload.javaDirty);
+        printf("gpuDirty:%08x,", payload.gpuDirty);
+        printf("vendorPtr:%016lx,", (long)payload.vendorPtr);
+        printf("magic2:%016lx)\n", magic2);
+     }
+   }
    static IfaceBufferBits_s* of(void *ptr, size_t sizeInBytes){
       return (IfaceBufferBits_s*) (((char*)ptr)+sizeInBytes-sizeof(IfaceBufferBits_s));
    }
@@ -107,7 +123,6 @@ extern void hexdump(void *ptr, int buflen);
  struct Buffer_s {
     void *memorySegment;   // Address of a Buffer/MemorySegment
     long sizeInBytes;     // The size of the memory segment in bytes
-    void *vendorPtr;       // The vendor side can reference vendor into
     u8_t access;          // 0=??/1=RO/2=WO/3=RW if this is a buffer
 } ;
 
@@ -196,13 +211,13 @@ public:
         }
     }
 
-    void *vendorPtrPtr() {
+    void *afterArgsPtrPtr() {
         Arg_s *a = arg(argc());
         return (void *) a;
-    }
+   }
 
     int *schemaLenPtr() {
-        int *schemaLenP = (int *) ((char *) vendorPtrPtr() + sizeof(void *));
+        int *schemaLenP = (int *) ((char *) afterArgsPtrPtr() /*+ sizeof(void *) */);
         return schemaLenP;
     }
 
@@ -211,7 +226,7 @@ public:
     }
 
     char *schema() {
-        int *schemaLenP = ((int *) ((char *) vendorPtrPtr() + sizeof(void *)) + 1);
+        int *schemaLenP = ((int *) ((char *) afterArgsPtrPtr() /*+ sizeof(void *)*/) + 1);
         return (char *) schemaLenP;
     }
 

@@ -43,7 +43,15 @@ OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::OpenCLBuffer(Backend::
         std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
         exit(1);
     }
-    arg->value.buffer.vendorPtr = static_cast<void *>(this);
+
+    //arg->value.buffer.vendorPtr = static_cast<void *>(this);
+    IfaceBufferBits_s * ifacebufferbitz = IfaceBufferBits_s::of(
+      arg->value.buffer.memorySegment,
+      arg->value.buffer.sizeInBytes
+      );
+    //   ifacebufferbitz->dump("on allocation before assign");
+    ifacebufferbitz->payload.vendorPtr =  static_cast<void *>(this);
+   // ifacebufferbitz->dump("after assign ");
     if (INFO){
          std::cout << "created buffer " << std::endl;
     }
@@ -138,33 +146,6 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
                auto openclBuffer = new OpenCLBuffer(this, arg);
                 if (arg->idx == 0){
                     ndrange = static_cast<NDRange *>(arg->value.buffer.memorySegment);
-                }else{
-                   IfaceBufferBits_s *ifacebufferbitz = IfaceBufferBits_s::of(
-                      arg->value.buffer.memorySegment,
-                      arg->value.buffer.sizeInBytes
-                   );
-                   if (ifacebufferbitz->ok()){
-                      if (INFO){
-                         if (ifacebufferbitz->isJavaDirty()){
-                             printf(" java dirty (javaDirty:%08x)\n", ifacebufferbitz->payload.javaDirty);
-                         }else{
-                            printf(" NOT java dirty (javaDirty:%08x)\n", ifacebufferbitz->payload.javaDirty);
-                         }
-                         if (ifacebufferbitz->isGpuDirty()){
-                            printf(" gpu dirty (gpuDirty:%08x)\n", ifacebufferbitz->payload.gpuDirty);
-                         }else{
-                            printf(" NOT gpu dirty (gpuDirty:%08x)\n", ifacebufferbitz->payload.gpuDirty);
-                         }
-                      }
-                   }else{
-                      printf("bad magic \n");
-                      printf("(magic1:%016lx,", ifacebufferbitz->magic1);
-                      printf("javaDirty:%08x,", ifacebufferbitz->payload.javaDirty);
-                      printf("gpuDirty:%08x,", ifacebufferbitz->payload.gpuDirty);
-                      printf("unused[0]:%08x,", ifacebufferbitz->payload.unused[0]);
-                      printf("unused[1]:%08x,", ifacebufferbitz->payload.unused[1]);
-                      printf("magic2:%016lx)\n", ifacebufferbitz->magic2);
-                   }
                 }
                 openclBuffer->copyToDevice();
                 cl_int status = clSetKernelArg(kernel, arg->idx, sizeof(cl_mem), &openclBuffer->clMem);
@@ -214,7 +195,7 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
                 break;
             }
             default: {
-                std::cerr << "unexpected variant " << (char) arg->variant << std::endl;
+                std::cerr << "unexpected variant (ndrange) " << (char) arg->variant << std::endl;
                 exit(1);
             }
         }
@@ -248,7 +229,14 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
     for (int i = 0; i < argSled.argc(); i++) {
         Arg_s *arg = argSled.arg(i);
         if (arg->variant == '&') {
-            static_cast<OpenCLBuffer *>(arg->value.buffer.vendorPtr)->copyFromDevice();
+            IfaceBufferBits_s * ifacebufferbitz = IfaceBufferBits_s::of(
+              arg->value.buffer.memorySegment,
+              arg->value.buffer.sizeInBytes
+              );
+          //  ifacebufferbitz->payload.vendorPtr =  static_cast<void *>(this);
+            static_cast<OpenCLBuffer *>(ifacebufferbitz->payload.vendorPtr)->copyFromDevice();
+           // ifacebufferbitz->dump("After copy from device");
+           // static_cast<OpenCLBuffer *>(arg->value.buffer.vendorPtr)->copyFromDevice();
         }
     }
     status = clWaitForEvents(eventc, events);
@@ -270,8 +258,16 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
     for (int i = 0; i < argSled.argc(); i++) {
         Arg_s *arg = argSled.arg(i);
         if (arg->variant == '&') {
-            delete static_cast<OpenCLBuffer *>(arg->value.buffer.vendorPtr);
-            arg->value.buffer.vendorPtr = nullptr;
+            IfaceBufferBits_s * ifacebufferbitz = IfaceBufferBits_s::of(
+                      arg->value.buffer.memorySegment,
+                      arg->value.buffer.sizeInBytes
+                      );
+                   // ifacebufferbitz->payload.vendorPtr =  static_cast<void *>(this);
+                    delete static_cast<OpenCLBuffer *>(ifacebufferbitz->payload.vendorPtr);
+                    ifacebufferbitz->payload.vendorPtr = nullptr;
+                 //   ifacebufferbitz->dump("After deleting buffer ");
+           // delete static_cast<OpenCLBuffer *>(arg->value.buffer.vendorPtr);
+           // arg->value.buffer.vendorPtr = nullptr;
         }
     }
     return 0;

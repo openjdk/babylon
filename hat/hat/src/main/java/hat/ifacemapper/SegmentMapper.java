@@ -359,7 +359,7 @@ public interface SegmentMapper<T> {
         struct ifacebufferpayload_t{
           int javaDirty;
           int gpuDirty;
-          int unused[2];
+          long vendorPtr; void *vendorPtr
         };
 
         struct ifacebufferbitz_t{
