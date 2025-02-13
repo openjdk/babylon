@@ -301,10 +301,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     static ByteBuffer buildFuncModel(FuncOp model) {
         var indexer = new IdentityHashMap<Value, String>() {
             String getName(Value v) {
-                return computeIfAbsent(v, _ -> {
-                    System.out.println(model.funcName() + " " + v + " #" + size());
-                    return "#" + size();
-                });
+                return computeIfAbsent(v, _ -> "#" + size());
             }
         };
         var entryBlock = model.body().entryBlock();
@@ -325,6 +322,10 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                                             .forEach(onnxOp.onnxAttributes().entrySet(), (n, ae) -> n.attribute(buildAttribute(ae.getKey(), ae.getValue()))));
                                 case CoreOp.ReturnOp _ -> {
                                      // skip
+                                }
+                                case CoreOp.TupleLoadOp _ -> {
+                                    // @@@ hack to forward to the first from the tuple
+                                    indexer.put(op.result(), indexer.getName(op.operands().getFirst()));
                                 }
                                 default ->
                                     throw new UnsupportedOperationException(op.toText());
