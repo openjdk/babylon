@@ -109,7 +109,6 @@ extern void hexdump(void *ptr, int buflen);
     long sizeInBytes;     // The size of the memory segment in bytes
     void *vendorPtr;       // The vendor side can reference vendor into
     u8_t access;          // 0=??/1=RO/2=WO/3=RW if this is a buffer
-  //  u8_t state;           // 0=UNKNOWN/1=GPUDIRTY/2=JAVADIRTY
 } ;
 
  union Value_u {
