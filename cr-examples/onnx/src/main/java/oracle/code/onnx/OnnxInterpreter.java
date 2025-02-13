@@ -38,7 +38,11 @@ public class OnnxInterpreter {
             // @@@ assuming tensor inputs and outputs
             var outTensors = OnnxRuntime.getInstance().runOp(
                     (OnnxOp.OnnxSchema)opClass.getDeclaredField("SCHEMA").get(null),
-                    inputs.stream().map(o -> ((Tensor)o).rtTensor).toList(),
+                    inputs.stream().map(o -> Optional.ofNullable(switch (o) {
+                        case Tensor t -> t.rtTensor;
+                        case Optional ot when ot.isPresent() && ot.get() instanceof Tensor t -> t.rtTensor;
+                        default -> null;
+                    })).toList(),
                     attributes);
             if (outTensors.size() == 1) {
                 return new Tensor<>(outTensors.getFirst());

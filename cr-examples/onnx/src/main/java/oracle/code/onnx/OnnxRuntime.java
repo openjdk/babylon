@@ -166,18 +166,18 @@ public final class OnnxRuntime {
         UNKNOWN, TENSOR, SEQUENCE, MAP, OPAQUE, SPARSETENSOR, OPTIONAL
     }
 
-    private static List<Tensor.ElementType> toElementTypes(List<OrtTensor> values) {
-        return values.stream().map(OrtTensor::getTensorTypeAndShape).map(OrtTensorTypeAndShapeInfo::getTensorElementType).toList();
+    private static List<Optional<Tensor.ElementType>> toElementTypes(List<Optional<OrtTensor>> values) {
+        return values.stream().map(ot -> ot.map(OrtTensor::getTensorTypeAndShape).map(OrtTensorTypeAndShapeInfo::getTensorElementType)).toList();
     }
 
-    public List<OrtTensor> runOp(OnnxOp.OnnxSchema schema, List<OrtTensor> inputValues, List<Object> attributes) {
+    public List<OrtTensor> runOp(OnnxOp.OnnxSchema schema, List<Optional<OrtTensor>> inputValues, List<Object> attributes) {
         var protoModel = OnnxProtoBuilder.buildOpModel(schema, toElementTypes(inputValues), attributes);
         try (var session = createSession(protoModel)) {
             return session.run(inputValues);
         }
     }
 
-    public List<OrtTensor> runFunc(CoreOp.FuncOp model, List<OrtTensor> inputValues) {
+    public List<OrtTensor> runFunc(CoreOp.FuncOp model, List<Optional<OrtTensor>> inputValues) {
         var protoModel = OnnxProtoBuilder.buildFuncModel(model);
         try (var session = createSession(protoModel)) {
             return session.run(inputValues);
@@ -283,7 +283,7 @@ public final class OnnxRuntime {
         }
 
         // @@@ only tensors are supported yet
-        public List<OrtTensor> run(List<OrtTensor> inputValues) {
+        public List<OrtTensor> run(List<Optional<OrtTensor>> inputValues) {
             var runOptions = MemorySegment.NULL;
             int inputLen = getNumberOfInputs();
             int outputLen = getNumberOfOutputs();
@@ -291,8 +291,10 @@ public final class OnnxRuntime {
             var inputs = arena.allocate(ADDRESS, inputLen);
             long index = 0;
             for (int i = 0; i < inputLen; i++) {
-                inputNames.setAtIndex(ADDRESS, index, arena.allocateFrom(getInputName(i)));
-                inputs.setAtIndex(ADDRESS, index++, inputValues.get(i).valueAddress());
+                if (inputValues.get(i).isPresent()) {
+                    inputNames.setAtIndex(ADDRESS, index, arena.allocateFrom(getInputName(i)));
+                    inputs.setAtIndex(ADDRESS, index++, inputValues.get(i).get().valueAddress());
+                }
             }
             var outputNames = arena.allocate(ADDRESS, outputLen);
             var outputs = arena.allocate(ADDRESS, outputLen);

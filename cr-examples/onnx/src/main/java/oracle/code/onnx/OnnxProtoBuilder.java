@@ -263,15 +263,19 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     static final int OPSET_VERSION = 21;
 
     // @@@ tensors only
-    static ByteBuffer buildOpModel(OnnxOp.OnnxSchema schema, List<ElementType> inputElementTypes, List<Object> attributes) {
+    static ByteBuffer buildOpModel(OnnxOp.OnnxSchema schema, List<java.util.Optional<ElementType>> inputElementTypes, List<Object> attributes) {
         var bytes = new ModelProto()
                 .ir_version(IR_VERSION)
                 .graph(new GraphProto()
-                        .forEach(schema.inputs(), (g, i) -> g.input(new ValueInfoProto()
-                                .name(i.name())
-                                .type(new TypeProto()
-                                        // inputValues match schema inputs by OnnxParameter::ordinal
-                                        .tensor_type(new Tensor().elem_type(inputElementTypes.get(i.ordinal()).id)))))
+                        .forEach(schema.inputs(), (g, i) -> {
+                            if (inputElementTypes.get(i.ordinal()).isPresent()) {
+                                g.input(new ValueInfoProto()
+                                    .name(i.name())
+                                    .type(new TypeProto()
+                                            // inputValues match schema inputs by OnnxParameter::ordinal
+                                            .tensor_type(new Tensor().elem_type(inputElementTypes.get(i.ordinal()).get().id))));
+                            }
+                        })
                         .node(new NodeProto()
                             .forEach(schema.inputs(), (n, i) -> n.input(i.name()))
                             .forEach(schema.outputs(), (n, o) -> n.output(o.name()))

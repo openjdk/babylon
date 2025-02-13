@@ -100,7 +100,7 @@ public class SimpleTest {
     private static Tensor runModel(String name, Tensor... params) throws NoSuchMethodException {
         return new Tensor(OnnxRuntime.getInstance().runFunc(
                 getOnnxModel(name),
-                Stream.of(params).map(t -> t.rtTensor).toList()).getFirst());
+                Stream.of(params).map(t -> Optional.ofNullable(t.rtTensor)).toList()).getFirst());
     }
 
     private static CoreOp.FuncOp getOnnxModel(String name) throws NoSuchMethodException {
