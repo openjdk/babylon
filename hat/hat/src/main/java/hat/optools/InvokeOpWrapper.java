@@ -33,6 +33,7 @@ import java.lang.reflect.Method;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.ClassType;
 import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.type.MethodRef;
 import java.util.Optional;
@@ -151,22 +152,17 @@ public class InvokeOpWrapper extends OpWrapper<CoreOp.InvokeOp> {
     }
 
     public Optional<Class<?>> javaRefClass() {
-        try {
-            JavaType refType = javaRefType();
-            String className = refType.toString();
-            Class<?> javaRefClass = Class.forName(className);
-            return Optional.of(javaRefClass);
-        } catch (ClassNotFoundException e) {
+        if (javaRefType() instanceof ClassType classType) {
+            return Optional.of((Class<?>)classTypeToType(classType));
+        }else{
             return Optional.empty();
         }
     }
 
     public Optional<Class<?>> javaReturnClass() {
-        try {
-            String className = javaReturnType().toString();
-            Class<?> javaRefClass = Class.forName(className);
-            return Optional.of(javaRefClass);
-        } catch (ClassNotFoundException e) {
+        if (javaReturnType() instanceof ClassType classType) {
+            return Optional.of((Class<?>)classTypeToType(classType));
+        }else{
             return Optional.empty();
         }
     }

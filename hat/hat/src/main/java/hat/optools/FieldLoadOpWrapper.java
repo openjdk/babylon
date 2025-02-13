@@ -24,32 +24,30 @@
  */
 package hat.optools;
 
-import java.lang.reflect.Field;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.ClassType;
+
+import java.lang.reflect.Field;
 
 public class FieldLoadOpWrapper extends FieldAccessOpWrapper<CoreOp.FieldAccessOp.FieldLoadOp> implements LoadOpWrapper {
-
-
     FieldLoadOpWrapper(CoreOp.FieldAccessOp.FieldLoadOp op) {
         super(op);
     }
 
     public Object getStaticFinalPrimitiveValue() {
-        TypeElement te = fieldType();
-        String fieldName = fieldName();
-        try {
-            Class<?> clazz = Class.forName(te.toString());
-            Field field = clazz.getField(fieldName);
-            field.setAccessible(true);
-           return  field.get(null);
-
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        } catch (NoSuchFieldException e) {
-            throw new RuntimeException(e);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
+        if (fieldType() instanceof ClassType classType) {
+            Class<?> clazz = (Class<?>) classTypeToType(classType);
+            try {
+                Field field = clazz.getField(fieldName());
+                field.setAccessible(true);
+                return field.get(null);
+            } catch (NoSuchFieldException e) {
+                throw new RuntimeException(e);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
         }
+        throw new RuntimeException("Could not find field value" + fieldName() + " in " + fieldType());
     }
 }
