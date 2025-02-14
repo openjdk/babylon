@@ -30,6 +30,12 @@ public:
     public :
     };
 
+      class MockQueue : public Backend::Queue {
+        public :
+         MockQueue():Backend::Queue(){}
+         virtual ~MockQueue(){}
+        };
+
     class MockProgram : public Backend::Program {
         class MockKernel : public Backend::Program::Kernel {
         public:
@@ -65,8 +71,8 @@ public:
 
 public:
 
-    MockBackend(MockConfig *mockConfig, int mockConfigSchemeLen, char *mockBackendSchema)
-            : Backend(mockConfig, mockConfigSchemeLen, mockBackendSchema) {
+    MockBackend(MockConfig *mockConfig, int mockConfigSchemeLen, char *mockBackendSchema, MockQueue *mockQueue)
+            : Backend(mockConfig, mockConfigSchemeLen, mockBackendSchema, mockQueue) {
         if (mockConfig == nullptr) {
             std::cout << "mockConfig == null" << std::endl;
         } else {
@@ -99,5 +105,6 @@ public:
 
 long getBackend(void *config, int configSchemaLen, char *configSchema) {
     MockBackend::MockConfig *mockConfig = (MockBackend::MockConfig *) config;
-    return (long) new MockBackend(mockConfig, configSchemaLen, configSchema);
+    MockBackend::MockQueue *mockQueue = (MockBackend::MockQueue *) new MockBackend::MockQueue();
+    return (long) new MockBackend(mockConfig, configSchemaLen, configSchema, mockQueue);
 }

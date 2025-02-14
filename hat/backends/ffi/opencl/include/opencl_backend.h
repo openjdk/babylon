@@ -62,6 +62,15 @@ public:
     public:
         boolean gpu;
     };
+    class OpenCLQueue : public Backend::Queue {
+    public:
+       size_t eventMax;
+       cl_event *events;
+       size_t eventc;
+       cl_command_queue command_queue;
+       OpenCLQueue():Backend::Queue(){}
+       virtual ~OpenCLQueue(){}
+    };
 
     class OpenCLProgram : public Backend::Program {
         class OpenCLKernel : public Backend::Program::Kernel {
@@ -110,7 +119,7 @@ public:
 public:
     cl_platform_id platform_id;
     cl_context context;
-    cl_command_queue command_queue;
+   // cl_command_queue command_queue;
     cl_device_id device_id;
 
 

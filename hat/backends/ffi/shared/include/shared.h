@@ -74,49 +74,50 @@ typedef long s64_t;
 typedef unsigned long u64_t;
 
 extern void hexdump(void *ptr, int buflen);
-
- struct IfaceBufferPayload_s{
-     int javaDirty;
-     int gpuDirty;
-     void *vendorPtr;
- };
-
  // hat iface buffer bits
  // hat iface bffa   bits
  // 4a7 1face bffa   b175
- #define MAGIC 0x4a71facebffab175
+ #define MAGIC (0x4a71facebffab175)
+ #define BIT_HOST_NEW (0x0004)
+ #define BIT_GPU_NEW (0x0008)
+ #define BIT_HOST_DIRTY (0x0001)
+ #define BIT_GPU_DIRTY (0x0002)
+ #define MODE_ALWAYS_COPY_OUT (0x0001)
+ #define MODE_ALWAYS_COPY_IN  (0x0002)
+ #define MODE_ALWAYS_COPY_IN_AND_OUT (MODE_ALWAYS_COPY_IN | MODE_ALWAYS_COPY_OUT)
 
- struct IfaceBufferBits_s{
+ struct BufferState_s{
    long magic1;
-   IfaceBufferPayload_s payload;
+   int bits;
+   int mode;
+   void *vendorPtr;
    long magic2;
    bool ok(){
-      return magic1 == MAGIC && magic2 == MAGIC;
+      return ((magic1 == MAGIC) && (magic2 == MAGIC));
    }
-   bool isJavaDirty(){
-      return payload.javaDirty != 0;
+   bool isHostDirty(){
+      return  (bits&BIT_HOST_DIRTY)==BIT_HOST_DIRTY;
+   }
+   bool isHostNew(){
+      return  (bits&BIT_HOST_NEW)==BIT_HOST_NEW;
    }
    bool isGpuDirty(){
-      return payload.gpuDirty != 0;
+      return (bits&BIT_GPU_DIRTY)==BIT_GPU_DIRTY;
    }
 
    void dump(const char *msg){
 
      if (ok()){
-        printf("{%s, javaDirty:%08x, ", msg, payload.javaDirty);
-        printf("gpuDirty:%08x, ", payload.gpuDirty);
-        printf("vendorPtr:%016lx}\n", (long)payload.vendorPtr);
+        printf("{%s, bits:%08x, mode:%08x, vendorPtr:%016lx}\n", msg, bits, mode, (long)vendorPtr);
      }else{
         printf("%s bad magic \n", msg);
         printf("(magic1:%016lx,", magic1);
-        printf("javaDirty:%08x,", payload.javaDirty);
-        printf("gpuDirty:%08x,", payload.gpuDirty);
-        printf("vendorPtr:%016lx,", (long)payload.vendorPtr);
+        printf("{%s, bits:%08x, mode:%08x, vendorPtr:%016lx}", msg, bits, mode, (long)vendorPtr);
         printf("magic2:%016lx)\n", magic2);
      }
    }
-   static IfaceBufferBits_s* of(void *ptr, size_t sizeInBytes){
-      return (IfaceBufferBits_s*) (((char*)ptr)+sizeInBytes-sizeof(IfaceBufferBits_s));
+   static BufferState_s* of(void *ptr, size_t sizeInBytes){
+      return (BufferState_s*) (((char*)ptr)+sizeInBytes-sizeof(BufferState_s));
    }
 };
 
@@ -297,6 +298,10 @@ public:
     class Config {
     public:
     };
+    class Queue {
+       public:
+       virtual ~Queue() {}
+    };
 
     class Program {
     public:
@@ -364,9 +369,10 @@ public:
     Config *config;
     int configSchemaLen;
     char *configSchema;
+    Queue *queue;
 
-    Backend(Config *config, int configSchemaLen, char *configSchema)
-            : config(config), configSchemaLen(configSchemaLen), configSchema(configSchema) {}
+    Backend(Config *config, int configSchemaLen, char *configSchema, Queue* queue)
+            : config(config),  configSchemaLen(configSchemaLen), configSchema(configSchema),queue(queue) {}
 
     virtual ~Backend() {};
 

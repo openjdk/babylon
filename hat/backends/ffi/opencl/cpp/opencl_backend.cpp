@@ -44,14 +44,17 @@ OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::OpenCLBuffer(Backend::
         exit(1);
     }
 
-    //arg->value.buffer.vendorPtr = static_cast<void *>(this);
-    IfaceBufferBits_s * ifacebufferbitz = IfaceBufferBits_s::of(
+    BufferState_s * bufferState = BufferState_s::of(
       arg->value.buffer.memorySegment,
       arg->value.buffer.sizeInBytes
       );
-    //   ifacebufferbitz->dump("on allocation before assign");
-    ifacebufferbitz->payload.vendorPtr =  static_cast<void *>(this);
-   // ifacebufferbitz->dump("after assign ");
+    if (INFO){
+       bufferState->dump("on allocation before assign");
+    }
+    bufferState->vendorPtr =  static_cast<void *>(this);
+    if (INFO){
+        bufferState->dump("after assign ");
+    }
     if (INFO){
          std::cout << "created buffer " << std::endl;
     }
@@ -66,7 +69,7 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyToDevice() {
      */
     auto openclKernel = dynamic_cast<OpenCLKernel *>(kernel);
     auto openclBackend = dynamic_cast<OpenCLBackend *>(openclKernel->program->backend);
-    cl_int status = clEnqueueWriteBuffer(openclBackend->command_queue,
+    cl_int status = clEnqueueWriteBuffer( dynamic_cast<OpenCLQueue *>(openclKernel->program->backend->queue)->command_queue,
                                          clMem,
                                          CL_FALSE,
                                          0,
@@ -93,7 +96,7 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyToDevice() {
 void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyFromDevice() {
     auto openclKernel = dynamic_cast<OpenCLKernel *>(kernel);
     auto openclBackend = dynamic_cast<OpenCLBackend *>(openclKernel->program->backend);
-    cl_int status = clEnqueueReadBuffer(openclBackend->command_queue,
+    cl_int status = clEnqueueReadBuffer( dynamic_cast<OpenCLQueue *>(openclKernel->program->backend->queue)->command_queue,
                                         clMem,
                                         CL_FALSE,
                                         0,
@@ -207,7 +210,7 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
     }
     size_t dims = 1;
     cl_int status = clEnqueueNDRangeKernel(
-            dynamic_cast<OpenCLBackend *>(program->backend)->command_queue,
+            dynamic_cast<OpenCLQueue *>(program->backend->queue)->command_queue,
             kernel,
             dims,
             nullptr,
@@ -229,14 +232,15 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
     for (int i = 0; i < argSled.argc(); i++) {
         Arg_s *arg = argSled.arg(i);
         if (arg->variant == '&') {
-            IfaceBufferBits_s * ifacebufferbitz = IfaceBufferBits_s::of(
+            BufferState_s * bufferState = BufferState_s::of(
               arg->value.buffer.memorySegment,
               arg->value.buffer.sizeInBytes
               );
-          //  ifacebufferbitz->payload.vendorPtr =  static_cast<void *>(this);
-            static_cast<OpenCLBuffer *>(ifacebufferbitz->payload.vendorPtr)->copyFromDevice();
-           // ifacebufferbitz->dump("After copy from device");
-           // static_cast<OpenCLBuffer *>(arg->value.buffer.vendorPtr)->copyFromDevice();
+            static_cast<OpenCLBuffer *>(bufferState->vendorPtr)->copyFromDevice();
+            if (INFO){
+               bufferState->dump("After copy from device");
+            }
+
         }
     }
     status = clWaitForEvents(eventc, events);
@@ -258,16 +262,15 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
     for (int i = 0; i < argSled.argc(); i++) {
         Arg_s *arg = argSled.arg(i);
         if (arg->variant == '&') {
-            IfaceBufferBits_s * ifacebufferbitz = IfaceBufferBits_s::of(
+            BufferState_s * bufferState = BufferState_s::of(
                       arg->value.buffer.memorySegment,
                       arg->value.buffer.sizeInBytes
                       );
-                   // ifacebufferbitz->payload.vendorPtr =  static_cast<void *>(this);
-                    delete static_cast<OpenCLBuffer *>(ifacebufferbitz->payload.vendorPtr);
-                    ifacebufferbitz->payload.vendorPtr = nullptr;
-                 //   ifacebufferbitz->dump("After deleting buffer ");
-           // delete static_cast<OpenCLBuffer *>(arg->value.buffer.vendorPtr);
-           // arg->value.buffer.vendorPtr = nullptr;
+            delete static_cast<OpenCLBuffer *>(bufferState->vendorPtr);
+            bufferState->vendorPtr = nullptr;
+            if (INFO){
+               bufferState->dump("After deleting buffer ");
+            }
         }
     }
     return 0;
@@ -293,7 +296,7 @@ bool OpenCLBackend::OpenCLProgram::programOK() {
 }
 
 OpenCLBackend::OpenCLBackend(OpenCLBackend::OpenCLConfig *openclConfig, int configSchemaLen, char *configSchema)
-        : Backend((Backend::Config *) openclConfig, configSchemaLen, configSchema) {
+        : Backend((Backend::Config *) openclConfig,  configSchemaLen, configSchema, (Backend::Queue *) new OpenCLQueue()) {
 
     if (INFO){
        if (openclConfig == nullptr) {
@@ -342,13 +345,14 @@ OpenCLBackend::OpenCLBackend(OpenCLBackend::OpenCLConfig *openclConfig, int conf
 
     cl_command_queue_properties queue_props = CL_QUEUE_PROFILING_ENABLE;
 
-    if ((command_queue = clCreateCommandQueue(context, device_ids[0], queue_props, &status)) == NULL ||
+    if ((dynamic_cast<OpenCLQueue *>(queue)->command_queue = clCreateCommandQueue(context, device_ids[0], queue_props, &status)) == NULL ||
         status != CL_SUCCESS) {
         clReleaseContext(context);
         delete[] platforms;
         delete[] device_ids;
         return;
     }
+
     device_id = device_ids[0];
     delete[] device_ids;
     delete[] platforms;
@@ -361,7 +365,7 @@ OpenCLBackend::OpenCLBackend()
 
 OpenCLBackend::~OpenCLBackend() {
     clReleaseContext(context);
-    clReleaseCommandQueue(command_queue);
+    clReleaseCommandQueue(dynamic_cast<OpenCLQueue *>(queue)->command_queue);
 }
 
 void OpenCLBackend::OpenCLProgram::OpenCLKernel::showEvents(int width) {

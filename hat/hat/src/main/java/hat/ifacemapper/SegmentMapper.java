@@ -344,62 +344,66 @@ public interface SegmentMapper<T> {
      * {@code layout().byteSize() > segment.byteSize()}
      */
 
-    // hat iface buffer bits
-    // hat iface bffa   bits
-    // 4a7 1face bffa   b175
+
 
         /*
-         We adjust size to next 16 byte boundary and then add sizeof ifacebufferbitz bytes
+
 
          See backend_ffi_shared/include/shared.h
 
-        struct ifacebufferpayload_t{
-          int javaDirty;
-          int gpuDirty;
-          long vendorPtr; void *vendorPtr
-        };
+         Make sure the final static values below match the #defines
+          // hat iface buffer bitz
+        // hat iface bffa   bitz
+        // 4a7 1face bffa   b175
 
-        struct ifacebufferbitz_t{
+
+
+        struct state{
            long magic1; // MAGIC
-           ifacebufferpayload_t payload;
+           int bits;
+           int mode;
+           void * vendorPtr; // In OpenCL this points to native OpenCL::Buffer
            long magic2; // MAGIC
         }
          */
 
     record State(MemorySegment segment, long paddedSize) {
         public static final long alignment = ValueLayout.JAVA_LONG.byteSize();
+        // hat iface buffer bitz
+        // hat iface bffa   bitz
+        // 4a7 1face bffa   b175
         public static final long MAGIC = 0x4a71facebffab175L;
-
-        static final MemoryLayout ifacebufferbitzMemoryLayout = MemoryLayout.structLayout(
+        public static int BIT_HOST_NEW = 0b0000_0000_0000_0100;
+        public static int BIT_GPU_NEW = 0b0000_0000_0000_1000;
+        public static int BIT_HOST_DIRTY = 0b0000_0000_0000_0001;
+        public static int BIT_GPU_DIRTY = 0b0000_0000_0000_0010;
+        public static int MODE_ALWAYS_COPY_OUT = 0b0000_0000_0000_0001;
+        public static int MODE_ALWAYS_COPY_IN = 0b0000_0000_0000_0010;
+        public static int MODE_ALWAYS_COPY_IN_AND_OUT = MODE_ALWAYS_COPY_IN | MODE_ALWAYS_COPY_OUT;
+        static final MemoryLayout stateMemoryLayout = MemoryLayout.structLayout(
                 ValueLayout.JAVA_LONG.withName("magic1"),
-                MemoryLayout.structLayout(
-                        ValueLayout.JAVA_INT.withName("javaDirty"),
-                        ValueLayout.JAVA_INT.withName("gpuDirty"),
-                        ValueLayout.ADDRESS.withName("vendorPtr")
-                ).withName("ifacebufferpayload"),
+                        ValueLayout.JAVA_INT.withName("bits"),
+                        ValueLayout.JAVA_INT.withName("mode"),
+                        ValueLayout.ADDRESS.withName("vendorPtr"),
                 ValueLayout.JAVA_LONG.withName("magic2")
-        ).withName("ifacebufferbitz");
+        ).withName("state");
 
         static long byteSize(){
-            return ifacebufferbitzMemoryLayout.byteSize();
+            return stateMemoryLayout.byteSize();
         }
 
-        static final VarHandle magic1 = ifacebufferbitzMemoryLayout.varHandle(
+        static final VarHandle magic1 = stateMemoryLayout.varHandle(
                 MemoryLayout.PathElement.groupElement("magic1")
         );
-        static final VarHandle javaDirty = ifacebufferbitzMemoryLayout.varHandle(
-                MemoryLayout.PathElement.groupElement("ifacebufferpayload"),
-                MemoryLayout.PathElement.groupElement("javaDirty")
+        static final VarHandle bits = stateMemoryLayout.varHandle(
+                MemoryLayout.PathElement.groupElement("bits")
         );
-        static final VarHandle gpuDirty = ifacebufferbitzMemoryLayout.varHandle(
-                MemoryLayout.PathElement.groupElement("ifacebufferpayload"),
-                MemoryLayout.PathElement.groupElement("gpuDirty")
+        static final VarHandle mode = stateMemoryLayout.varHandle(
+                MemoryLayout.PathElement.groupElement("mode")
         );
-        static final VarHandle magic2 = ifacebufferbitzMemoryLayout.varHandle(
+        static final VarHandle magic2 = stateMemoryLayout.varHandle(
                 MemoryLayout.PathElement.groupElement("magic2")
         );
-
-
 
         public static long getLayoutSizeAfterPadding(GroupLayout layout) {
             return layout.byteSize() +
@@ -419,27 +423,34 @@ public interface SegmentMapper<T> {
             return this;
         }
 
-        public State javaDirty(int javaDirty) {
-            State.javaDirty.set(segment, paddedSize, javaDirty);
+        public State mode(int mode) {
+            State.mode.set(segment, paddedSize, mode);
            return this;
         }
-        public State gpuDirty(int gpuDirty) {
-            State.gpuDirty.set(segment, paddedSize, gpuDirty);
+        public State bits(int bits) {
+            State.bits.set(segment, paddedSize, bits);
             return this;
         }
+        public int mode() {
+            return (Integer) State.mode.get(segment, paddedSize);
+        }
 
-        public int javaDirty() {
-            return (Integer) State.javaDirty.get(segment, paddedSize);
+        public int bits() {
+            return (Integer) State.bits.get(segment, paddedSize);
         }
-        public boolean isJavaDirty() {
-            return javaDirty()!=0;
+        public boolean isHostNew() {
+            return (bits()&BIT_HOST_NEW)==BIT_HOST_NEW;
         }
-        public int gpuDirty() {
-            return (Integer) State.gpuDirty.get(segment, paddedSize);
+        public boolean isHostDirty() {
+            return (bits()&BIT_HOST_DIRTY)==BIT_HOST_DIRTY;
+        }
+        public boolean isHostNewOrDirty() {
+            return (bits()&(BIT_HOST_NEW|BIT_HOST_DIRTY))==(BIT_HOST_NEW|BIT_HOST_DIRTY);
         }
         public boolean isGpuDirty() {
-            return gpuDirty()!=0;
+            return (bits()&BIT_GPU_DIRTY)==BIT_GPU_DIRTY;
         }
+
 
         public long magic1() {
             return (Long) State.magic1.get(segment, paddedSize);
@@ -456,11 +467,11 @@ public interface SegmentMapper<T> {
 
     default T allocate(Arena arena, BoundSchema<?> boundSchema) {
         if (boundSchema == null) {
-            throw new IllegalStateException("we must have a bound schema");
+            throw new IllegalStateException("No bound Schema provided");
         }
         //System.out.println("Alloc 16 byte aligned layout + 16 bytes padded to next 16 bytes "+byteSize+"=>"+extendedByteSizePaddedTo16Bytes);
         var segment = arena.allocate(State.getLayoutSizeAfterPadding(layout()) + State.byteSize(), State.alignment);
-        new State(segment, State.getLayoutSizeAfterPadding(layout())).setMagic().javaDirty(0).gpuDirty(0);
+        new State(segment, State.getLayoutSizeAfterPadding(layout())).setMagic().bits(State.BIT_HOST_NEW|State.BIT_HOST_DIRTY).mode(State.MODE_ALWAYS_COPY_IN_AND_OUT);
         T returnValue=  get(segment, layout(), boundSchema);
         // Uncomment if you want to check the State
         /*
