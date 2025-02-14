@@ -77,16 +77,17 @@ extern void hexdump(void *ptr, int buflen);
  // hat iface buffer bits
  // hat iface bffa   bits
  // 4a7 1face bffa   b175
- #define MAGIC (0x4a71facebffab175)
- #define BIT_HOST_NEW (0x0004)
- #define BIT_GPU_NEW (0x0008)
- #define BIT_HOST_DIRTY (0x0001)
- #define BIT_GPU_DIRTY (0x0002)
- #define MODE_ALWAYS_COPY_OUT (0x0001)
- #define MODE_ALWAYS_COPY_IN  (0x0002)
- #define MODE_ALWAYS_COPY_IN_AND_OUT (MODE_ALWAYS_COPY_IN | MODE_ALWAYS_COPY_OUT)
+
 
  struct BufferState_s{
+   static const long  MAGIC =0x4a71facebffab175;
+   static const int   BIT_HOST_NEW =0x0004;
+   static const int   BIT_GPU_NEW =0x0008;
+   static const int   BIT_HOST_DIRTY =0x0001;
+   static const int   BIT_GPU_DIRTY =0x0002;
+   static const int   MODE_ALWAYS_COPY_OUT =0x0001;
+   static const int   MODE_ALWAYS_COPY_IN  =0x0002;
+   static const int   MODE_ALWAYS_COPY_IN_AND_OUT=(MODE_ALWAYS_COPY_IN | MODE_ALWAYS_COPY_OUT);
    long magic1;
    int bits;
    int mode;
@@ -104,9 +105,17 @@ extern void hexdump(void *ptr, int buflen);
    bool isGpuDirty(){
       return (bits&BIT_GPU_DIRTY)==BIT_GPU_DIRTY;
    }
+   bool isModeAlwaysCopyInAndOut(){
+      return (mode&MODE_ALWAYS_COPY_IN_AND_OUT)==MODE_ALWAYS_COPY_IN_AND_OUT;
+   }
+   bool isModeAlwaysCopyIn(){
+      return (mode&MODE_ALWAYS_COPY_IN)==MODE_ALWAYS_COPY_IN;
+   }
+   bool isModeAlwaysCopyOut(){
+      return (mode&MODE_ALWAYS_COPY_OUT)==MODE_ALWAYS_COPY_OUT;
+   }
 
    void dump(const char *msg){
-
      if (ok()){
         printf("{%s, bits:%08x, mode:%08x, vendorPtr:%016lx}\n", msg, bits, mode, (long)vendorPtr);
      }else{
