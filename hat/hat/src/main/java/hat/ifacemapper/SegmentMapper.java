@@ -35,6 +35,7 @@ import java.lang.foreign.StructLayout;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
@@ -332,24 +333,20 @@ public interface SegmentMapper<T> {
      * @param arena from which to {@linkplain Arena#allocate(MemoryLayout) allocate} an
      *              internal memory segment.
      * @throws IllegalStateException     if the {@linkplain MemorySegment#scope() scope}
-     *                                   associated with the provided segment is not
-     *                                   {@linkplain MemorySegment.Scope#isAlive() alive}
+     * associated with the provided segment is not
+     * {@linkplain MemorySegment.Scope#isAlive() alive}
      * @throws WrongThreadException      if this method is called from a thread {@code T},
-     *                                   such that {@code isAccessibleBy(T) == false}
+     * such that {@code isAccessibleBy(T) == false}
      * @throws IllegalArgumentException  if the access operation is
-     *                                   <a href="MemorySegment.html#segment-alignment">incompatible with the alignment constraint</a>
-     *                                   of the {@link #layout()}
+     * <a href="MemorySegment.html#segment-alignment">incompatible with the alignment constraint</a>
+     * of the {@link #layout()}
      * @throws IndexOutOfBoundsException if
-     *                                   {@code layout().byteSize() > segment.byteSize()}
+     * {@code layout().byteSize() > segment.byteSize()}
      */
-    static final long MAGIC =0x4a71facebffab175L;
-    default T allocate(Arena arena, BoundSchema<?> boundSchema) {
-        if (boundSchema == null) {
-            throw new IllegalStateException("we must have a bound schema");
-         }
-        // hat iface buffer bits
-        // hat iface bffa   bits
-        // 4a7 1face bffa   b175
+
+    // hat iface buffer bits
+    // hat iface bffa   bits
+    // 4a7 1face bffa   b175
 
         /*
          We adjust size to next 16 byte boundary and then add sizeof ifacebufferbitz bytes
@@ -368,24 +365,115 @@ public interface SegmentMapper<T> {
            long magic2; // MAGIC
         }
          */
-        long byteSize = layout().byteSize();
-        long extendedByteSize = byteSize+16;
-        long byteSizePad = extendedByteSize%16;
-        if (byteSizePad != 0){
-            byteSizePad = 16-byteSizePad;
+
+    record State(MemorySegment segment, long paddedSize) {
+        public static final long alignment = ValueLayout.JAVA_LONG.byteSize();
+        public static final long MAGIC = 0x4a71facebffab175L;
+
+        static final MemoryLayout ifacebufferbitzMemoryLayout = MemoryLayout.structLayout(
+                ValueLayout.JAVA_LONG.withName("magic1"),
+                MemoryLayout.structLayout(
+                        ValueLayout.JAVA_INT.withName("javaDirty"),
+                        ValueLayout.JAVA_INT.withName("gpuDirty"),
+                        ValueLayout.ADDRESS.withName("vendorPtr")
+                ).withName("ifacebufferpayload"),
+                ValueLayout.JAVA_LONG.withName("magic2")
+        ).withName("ifacebufferbitz");
+
+        static long byteSize(){
+            return ifacebufferbitzMemoryLayout.byteSize();
         }
-        long extendedByteSizePaddedTo16Bytes = extendedByteSize+byteSizePad;
-        //System.out.println("Alloc 16 byte aligned layout + 16 bytes padded to next 16 bytes "+byteSize+"=>"+extendedByteSizePaddedTo16Bytes);
-        var segment = arena.allocate(extendedByteSizePaddedTo16Bytes
-                +ValueLayout.JAVA_LONG.byteSize()*2, 16);
+
+        static final VarHandle magic1 = ifacebufferbitzMemoryLayout.varHandle(
+                MemoryLayout.PathElement.groupElement("magic1")
+        );
+        static final VarHandle javaDirty = ifacebufferbitzMemoryLayout.varHandle(
+                MemoryLayout.PathElement.groupElement("ifacebufferpayload"),
+                MemoryLayout.PathElement.groupElement("javaDirty")
+        );
+        static final VarHandle gpuDirty = ifacebufferbitzMemoryLayout.varHandle(
+                MemoryLayout.PathElement.groupElement("ifacebufferpayload"),
+                MemoryLayout.PathElement.groupElement("gpuDirty")
+        );
+        static final VarHandle magic2 = ifacebufferbitzMemoryLayout.varHandle(
+                MemoryLayout.PathElement.groupElement("magic2")
+        );
 
 
-        segment.set(ValueLayout.JAVA_LONG, extendedByteSizePaddedTo16Bytes-2*ValueLayout.JAVA_LONG.byteSize(),  MAGIC);//hatifacebffabits
-        segment.set(ValueLayout.JAVA_LONG, extendedByteSizePaddedTo16Bytes-1*ValueLayout.JAVA_LONG.byteSize(),  0x0000000000000000L);
-        segment.set(ValueLayout.JAVA_LONG, extendedByteSizePaddedTo16Bytes+0*ValueLayout.JAVA_LONG.byteSize(),  0x0000000000000000L);//hatifacebffabits
-        segment.set(ValueLayout.JAVA_LONG, extendedByteSizePaddedTo16Bytes+1*ValueLayout.JAVA_LONG.byteSize(),  MAGIC);
-        return get(segment, layout(), boundSchema);
+
+        public static long getLayoutSizeAfterPadding(GroupLayout layout) {
+            return layout.byteSize() +
+                    ((layout.byteSize() % State.alignment) == 0 ? 0 : State.alignment - (layout.byteSize() % State.alignment));
+        }
+
+        public static <T> State of(T t) {
+            Buffer buffer = (Buffer) Objects.requireNonNull(t);
+            MemorySegment s = Buffer.getMemorySegment(buffer);
+            return new State(s,s.byteSize()- State.byteSize());
+        }
+
+
+        State setMagic(){
+            State.magic1.set(segment, paddedSize, MAGIC);
+            State.magic2.set(segment, paddedSize, MAGIC);
+            return this;
+        }
+
+        public State javaDirty(int javaDirty) {
+            State.javaDirty.set(segment, paddedSize, javaDirty);
+           return this;
+        }
+        public State gpuDirty(int gpuDirty) {
+            State.gpuDirty.set(segment, paddedSize, gpuDirty);
+            return this;
+        }
+
+        public int javaDirty() {
+            return (Integer) State.javaDirty.get(segment, paddedSize);
+        }
+        public boolean isJavaDirty() {
+            return javaDirty()!=0;
+        }
+        public int gpuDirty() {
+            return (Integer) State.gpuDirty.get(segment, paddedSize);
+        }
+        public boolean isGpuDirty() {
+            return gpuDirty()!=0;
+        }
+
+        public long magic1() {
+            return (Long) State.magic1.get(segment, paddedSize);
+        }
+
+        public long magic2() {
+            return (Long) State.magic2.get(segment, paddedSize);
+        }
+
+        public boolean ok() {
+            return MAGIC == magic1() && MAGIC == magic2();
+        }
     }
+
+    default T allocate(Arena arena, BoundSchema<?> boundSchema) {
+        if (boundSchema == null) {
+            throw new IllegalStateException("we must have a bound schema");
+        }
+        //System.out.println("Alloc 16 byte aligned layout + 16 bytes padded to next 16 bytes "+byteSize+"=>"+extendedByteSizePaddedTo16Bytes);
+        var segment = arena.allocate(State.getLayoutSizeAfterPadding(layout()) + State.byteSize(), State.alignment);
+        new State(segment, State.getLayoutSizeAfterPadding(layout())).setMagic().javaDirty(0).gpuDirty(0);
+        T returnValue=  get(segment, layout(), boundSchema);
+        // Uncomment if you want to check the State
+        /*
+        State state = State.of(returnValue);
+        if (state.ok() &&!state.isGpuDirty() &&!state.isJavaDirty()){
+            System.out.println("OK");
+        }else{
+            throw new IllegalArgumentException("BAD TAIL");
+        }
+         */
+        return returnValue;
+    }
+
     /**
      * {@return a new instance of type T projected at the provided
      * external {@code segment} at offset zero}
@@ -478,7 +566,7 @@ public interface SegmentMapper<T> {
     default T get(MemorySegment segment, GroupLayout layout, BoundSchema<?> boundSchema, long offset) {
         try {
             return (T) getHandle()
-                    .invokeExact(segment, layout, boundSchema,offset);
+                    .invokeExact(segment, layout, boundSchema, offset);
         } catch (NullPointerException |
                  IndexOutOfBoundsException |
                  WrongThreadException |
@@ -555,9 +643,9 @@ public interface SegmentMapper<T> {
      *                                       {@linkplain SequenceLayout#elementCount() element count} of a sequence layout
      * @throws NullPointerException          if a required parameter is {@code null}
      */
-   // default void setAtIndex(MemorySegment segment, long index, T t) {
+    // default void setAtIndex(MemorySegment segment, long index, T t) {
     //    set(segment, layout().byteSize() * index, t);
-  //  }
+    //  }
 
     /**
      * Writes the provided instance {@code t} of type T into the provided {@code segment}
@@ -732,7 +820,7 @@ public interface SegmentMapper<T> {
         Objects.requireNonNull(lookup);
         MapperUtil.requireImplementableInterfaceType(type);
         Objects.requireNonNull(layout);
-        return SegmentInterfaceMapper.create(lookup,  type, layout, boundSchema);
+        return SegmentInterfaceMapper.create(lookup, type, layout, boundSchema);
 
     }
 
@@ -741,7 +829,7 @@ public interface SegmentMapper<T> {
                                    Class<T> type,
                                    MemoryLayout... elements) {
 
-       StructLayout structlayout = MemoryLayout.structLayout(elements).withName(type.getSimpleName());
+        StructLayout structlayout = MemoryLayout.structLayout(elements).withName(type.getSimpleName());
         return of(lookup, type, structlayout);
     }
 
@@ -757,10 +845,12 @@ public interface SegmentMapper<T> {
          * {@return the backing segment of this instance}
          */
         MemorySegment segment();
+
         /**
          * {@return the backing segment of this instance}
          */
         MemoryLayout layout();
+
         /**
          * {@return the offset in the backing segment of this instance}
          */
