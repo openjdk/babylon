@@ -35,6 +35,7 @@ import hat.buffer.S32Array2D;
 import java.awt.Color;
 import java.lang.invoke.MethodHandles;
 
+import hat.ifacemapper.SegmentMapper;
 import jdk.incubator.code.CodeReflection;
 import static hat.ifacemapper.MappableIface.*;
 
@@ -84,10 +85,11 @@ public class Main {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
         S32Array2D s32Array2D = S32Array2D.create(accelerator, width, height);
-       // var tail = Buffer.Tail.of(s32Array2D);
+        var s32Array2DState = SegmentMapper.State.of(s32Array2D);
+        System.out.println(s32Array2DState);
+        s32Array2DState.modeOr(SegmentMapper.State.MODE_TRACE_COPY_IN_AND_OUT);
+        System.out.println(s32Array2DState);
 
-       // System.out.println("java dirty "+tail.javaDirty());
-       // System.out.println("gpu dirty "+tail.gpuDirty());
 
         int[] palletteArray = new int[maxIterations];
 

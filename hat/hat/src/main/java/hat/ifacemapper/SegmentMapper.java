@@ -380,6 +380,10 @@ public interface SegmentMapper<T> {
         public static int MODE_ALWAYS_COPY_OUT = 0b0000_0000_0000_0001;
         public static int MODE_ALWAYS_COPY_IN = 0b0000_0000_0000_0010;
         public static int MODE_ALWAYS_COPY_IN_AND_OUT = MODE_ALWAYS_COPY_IN | MODE_ALWAYS_COPY_OUT;
+        public static int MODE_TRACE_COPY_IN=0b0000_0000_0000_0100;
+        public static int MODE_TRACE_COPY_OUT=0b0000_0000_0000_1000;
+        public static int MODE_TRACE_COPY_IN_AND_OUT = MODE_TRACE_COPY_IN | MODE_TRACE_COPY_OUT;
+
         static final MemoryLayout stateMemoryLayout = MemoryLayout.structLayout(
                 ValueLayout.JAVA_LONG.withName("magic1"),
                         ValueLayout.JAVA_INT.withName("bits"),
@@ -427,8 +431,16 @@ public interface SegmentMapper<T> {
             State.mode.set(segment, paddedSize, mode);
            return this;
         }
+        public State modeOr(int mode) {
+            State.mode.set(segment, paddedSize, mode()|mode);
+            return this;
+        }
         public State bits(int bits) {
             State.bits.set(segment, paddedSize, bits);
+            return this;
+        }
+        public State bitsOr(int bits) {
+            State.bits.set(segment, paddedSize, bits()|bits);
             return this;
         }
         public int mode() {
@@ -438,17 +450,24 @@ public interface SegmentMapper<T> {
         public int bits() {
             return (Integer) State.bits.get(segment, paddedSize);
         }
+        public boolean isModeSet(int mode) {
+            return (mode()&mode)==mode;
+        }
+        public boolean areBitsSet(int bits) {
+            return (bits()&bits)==bits;
+        }
+
         public boolean isHostNew() {
-            return (bits()&BIT_HOST_NEW)==BIT_HOST_NEW;
+            return areBitsSet(BIT_HOST_NEW);
         }
         public boolean isHostDirty() {
-            return (bits()&BIT_HOST_DIRTY)==BIT_HOST_DIRTY;
+            return areBitsSet(BIT_HOST_DIRTY);
         }
         public boolean isHostNewOrDirty() {
-            return (bits()&(BIT_HOST_NEW|BIT_HOST_DIRTY))==(BIT_HOST_NEW|BIT_HOST_DIRTY);
+            return areBitsSet(BIT_HOST_NEW|BIT_HOST_DIRTY);
         }
         public boolean isGpuDirty() {
-            return (bits()&BIT_GPU_DIRTY)==BIT_GPU_DIRTY;
+            return areBitsSet(BIT_GPU_DIRTY);
         }
 
 
@@ -463,6 +482,50 @@ public interface SegmentMapper<T> {
         public boolean ok() {
             return MAGIC == magic1() && MAGIC == magic2();
         }
+
+        static String paddedString(int bits) {
+            String s = Integer.toBinaryString(bits);
+            String s32 = "                                  ";
+            return s32.substring(0,s32.length()-s.length())+s;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder builder = new StringBuilder();
+            if (ok()){
+                builder.append("State:ok").append("\n");
+                builder.append("State:Bits:").append(paddedString(bits()));
+                if (areBitsSet(BIT_HOST_DIRTY)){
+                    builder.append(",").append("HOST_DIRTY");
+                }
+                if (areBitsSet(BIT_GPU_DIRTY)){
+                    builder.append(",").append("GPU_DIRTY");
+                }
+                if (areBitsSet(BIT_HOST_NEW)){
+                    builder.append(",").append("HOST_NEW");
+                }
+                builder.append("\n");
+                builder.append("State:Mode:").append(paddedString(mode()));
+                if (isModeSet(MODE_ALWAYS_COPY_IN)){
+                    builder.append(",").append("ALWAYS_COPY_IN");
+                }
+                if (isModeSet(MODE_ALWAYS_COPY_OUT)){
+                    builder.append(",").append("ALWAYS_COPY_OUT");
+                }
+                if (isModeSet(MODE_TRACE_COPY_OUT)){
+                    builder.append(",").append("TRACE_COPY_OUT");
+                }
+                if (isModeSet(MODE_TRACE_COPY_IN)){
+                    builder.append(",").append("TRACE_COPY_IN");
+                }
+                builder.append("\n");
+
+            }else{
+                builder.append("State: not ok").append("\n");
+            }
+            return builder.toString();
+        }
+
     }
 
     default T allocate(Arena arena, BoundSchema<?> boundSchema) {
